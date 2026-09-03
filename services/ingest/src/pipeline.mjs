@@ -19,6 +19,7 @@ import { ingestBattlelog } from './battles.mjs';
 import { ingestClanRoster } from './roster.mjs';
 import { projectPlayerSnapshot } from './snapshots.mjs';
 import { refreshDailyRollups } from './rollups.mjs';
+import { projectRiverRace, stampWarKeys } from './war.mjs';
 
 function subjectTag(endpoint, entityKey) {
   if (entityKey === 'GLOBAL') return null;
@@ -86,9 +87,14 @@ const PROJECTORS = {
     });
     return { projected: 'player', clanTag, snapshot };
   },
-  async currentriverrace() {
-    // War projection is V2; the receipt/payload record is the value today.
-    return { projected: 'none' };
+  async currentriverrace(db, { entityKey, payload, fetchedAt }) {
+    const race = await projectRiverRace(db, { clanTag: entityKey, payload, fetchedAt });
+    const stamps = await stampWarKeys(db, {
+      clanTag: entityKey,
+      payload,
+      nowMs: Date.parse(fetchedAt),
+    });
+    return { ...race, warKeysStamped: stamps.stamped };
   },
   async cards() {
     // The catalog is served straight from the payload store (get_card_catalog).
