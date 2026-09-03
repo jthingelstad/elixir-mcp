@@ -143,6 +143,8 @@ Postgres, one schema, tenancy from day one. (SQLite served elixir-bot well but i
 ### 4.2 Recording & entitlements
 
 - **`recording`** — `recording_id`, `subject_type: player|clan`, `subject_tag`, `requested_by account_id`, `status: active|paused|stopped`, `created_at`. Opt-in is explicit; stopping keeps recorded data but halts polling.
+
+**Clan auto-follow (Jamie, 2026-09-03):** recording a player implicitly *follows* their current clan — the clan tag is read from the player's own profile (never asked of the user), the clan heartbeat starts, and it retargets automatically when the player moves clans. Following is not clan *recording* (that stays an explicit V2 opt-in): it costs only the fixed per-clan heartbeat, and everything it yields about clanmates is **roster-derived only** — `player` rows seeded for every member (name, role, trophies, donations, `lastSeen` from the clan payload itself), membership tenure, join/leave events. Zero additional API calls, and no per-player endpoint (battlelog, profile) is ever polled without that player's own opt-in — that line is both the consent posture and the budget guard. The payoff is §4.1's "data about you may predate you": a clanmate who signs up later finds their identity, tenure, and roster history already seeded.
 - **`entitlement`** — derived, materialized view or table: `(account_id, subject_tag, scope, source)`.
 
 **Entitlement rules (the whole policy, keep it this small):**
@@ -244,7 +246,7 @@ The battlelog is ~30 battles, unpaginated, and can rotate in under 24h for a hea
 
 Heat: new battles observed → hot; decay one tier per scheduling epoch without activity; decay at epoch start, before planning (elixir-bot's ordering bug cost ~30 min of recognition latency). Plan order: starved first, then heat, then overdue — fairness floors beat heat so a cold player is never unrecorded past the floor.
 
-Clan-level: `clan` every 15 min per recorded clan (the roster heartbeat that drives join/leave events and membership-derived entitlements); `currentriverrace` every 15 min on war/colosseum days, hourly on training days (gate on stored `periodType`, remembering colosseum practice days still report `training`); `riverracelog` daily + on enrollment backfill. Season-roll watcher forces profile snapshots for all recorded players in the final hour (donation preservation).
+Clan-level: `clan` every 15 min per followed clan — followed clans are derived from recorded players' profiles (§4.2 clan auto-follow), and the same roster payload seeds/refreshes `player` rows for every member for free; `currentriverrace` every 15 min on war/colosseum days, hourly on training days (gate on stored `periodType`, remembering colosseum practice days still report `training`); `riverracelog` daily + on enrollment backfill. Season-roll watcher forces profile snapshots for all recorded players in the final hour (donation preservation).
 
 ### 5.4 Completeness honesty
 
