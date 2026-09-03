@@ -52,7 +52,7 @@ after(async () => {
 });
 
 test('email hashing normalizes case and whitespace', () => {
-  assert.equal(JAMIE, emailHash('owner-test@example.com'));
+  assert.equal(JAMIE, emailHash('owner.test@example.com'));
 });
 
 test('access gate: request -> pending -> approve; duplicates are quiet', async () => {

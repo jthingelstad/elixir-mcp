@@ -46,16 +46,28 @@ async function seed(databaseUrl, spec) {
         gatewayId,
       ]);
     }
-    let demoted = 0;
-    if (spec.sole_owner === true) {
-      const { rowCount } = await db.query(
-        `update account set is_owner = false, status = 'disabled'
-         where is_owner and account_id <> $1`,
-        [account.account_id],
+    let purged = 0;
+    if (spec.purge_email_hash) {
+      // Hard delete of a mis-seeded account and everything it touches
+      // (explicit, one-off; dependents first, FK order).
+      const { rows: victims } = await db.query(
+        `select account_id from account where email_hash = $1 and account_id <> $2`,
+        [spec.purge_email_hash, account.account_id],
       );
-      demoted = rowCount;
+      for (const v of victims) {
+        await db.query(`delete from session where account_id = $1`, [v.account_id]);
+        await db.query(`delete from mcp_call_audit where account_id = $1`, [v.account_id]);
+        await db.query(`delete from recording where requested_by = $1`, [v.account_id]);
+        await db.query(`delete from claim where account_id = $1`, [v.account_id]);
+        await db.query(`delete from oauth_token t using oauth_family f
+                        where t.family_id = f.family_id and f.account_id = $1`, [v.account_id]);
+        await db.query(`delete from oauth_code where account_id = $1`, [v.account_id]);
+        await db.query(`delete from oauth_family where account_id = $1`, [v.account_id]);
+        await db.query(`delete from account where account_id = $1`, [v.account_id]);
+        purged += 1;
+      }
     }
-    return { seeded: true, accountId: account.account_id, gatewayId, demoted };
+    return { seeded: true, accountId: account.account_id, gatewayId, purged };
   } finally {
     await db.end();
   }
