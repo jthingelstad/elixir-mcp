@@ -11,11 +11,13 @@ import { handleMcpMessage } from './protocol.mjs';
 import { makeRegistry } from './tools.mjs';
 import { makeInvoker } from './invoker.mjs';
 import { makeQuota } from './quota.mjs';
+import { makeOauthRoutes } from './oauth-routes.mjs';
 
 export const HOURLY_RATE_LIMIT = 300;
 
-export function makeHandler({ databaseUrl, issuer = 'https://mcp.poapkings.com' }) {
+export function makeHandler({ databaseUrl, issuer = 'https://mcp.poapkings.com', sendLoginEmail }) {
   const registry = makeRegistry();
+  const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
   const unauthorized = () => ({
     statusCode: 401,
     headers: {
@@ -26,7 +28,32 @@ export function makeHandler({ databaseUrl, issuer = 'https://mcp.poapkings.com' 
   });
 
   return async function handler(event) {
-    if ((event.requestContext?.http?.method ?? event.httpMethod) !== 'POST') {
+    const method = event.requestContext?.http?.method ?? event.httpMethod ?? 'GET';
+    const path = event.rawPath ?? event.path ?? '/';
+
+    // Metadata documents need no auth and no DB.
+    if (method === 'GET' && path === '/.well-known/oauth-authorization-server') {
+      return oauth.authorizationServerMetadata();
+    }
+    if (method === 'GET' && path === '/.well-known/oauth-protected-resource') {
+      return oauth.protectedResourceMetadata();
+    }
+
+    if (path.startsWith('/oauth/')) {
+      const db = new pg.Client({ connectionString: databaseUrl });
+      await db.connect();
+      try {
+        if (method === 'POST' && path === '/oauth/register') return await oauth.register(db, event);
+        if (method === 'GET' && path === '/oauth/authorize') return await oauth.authorizeGet(db, event);
+        if (method === 'POST' && path === '/oauth/authorize') return await oauth.authorizePost(db, event);
+        if (method === 'POST' && path === '/oauth/token') return await oauth.token(db, event);
+        return { statusCode: 404, headers: { 'content-type': 'application/json' }, body: '{"error":"not_found"}' };
+      } finally {
+        await db.end();
+      }
+    }
+
+    if (method !== 'POST' || path !== '/mcp') {
       return { statusCode: 405, headers: { allow: 'POST' }, body: '' };
     }
     const auth = String(event.headers?.authorization ?? event.headers?.Authorization ?? '');
