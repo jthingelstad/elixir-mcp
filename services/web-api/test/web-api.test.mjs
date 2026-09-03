@@ -172,3 +172,26 @@ test('request-access is rate limited per IP', async () => {
   }
   assert.ok(limited > 0);
 });
+
+test('owner enrolls and stops clan recordings; non-owners refused', async () => {
+  const ownerCookie = await signIn(JAMIE);
+  const start = await handler(
+    event({ path: '/api/admin/clans', cookie: ownerCookie, body: { clan_tag: 'gq0ylcyj', action: 'start' } }),
+  );
+  assert.equal(parse(start).clan_tag, '#GQ0YLCYJ', 'normalized at the door');
+  const list = parse(await handler(event({ method: 'GET', path: '/api/admin/clans', cookie: ownerCookie, body: undefined })));
+  const row = list.clans.find((c) => c.clan_tag === '#GQ0YLCYJ');
+  assert.equal(row.status, 'active');
+  const dupe = await handler(
+    event({ path: '/api/admin/clans', cookie: ownerCookie, body: { clan_tag: '#GQ0YLCYJ', action: 'start' } }),
+  );
+  assert.equal(dupe.statusCode, 200, 'idempotent');
+  await handler(event({ path: '/api/admin/clans', cookie: ownerCookie, body: { clan_tag: '#GQ0YLCYJ', action: 'stop' } }));
+  const after = parse(await handler(event({ method: 'GET', path: '/api/admin/clans', cookie: ownerCookie, body: undefined })));
+  assert.ok(after.clans.some((c) => c.clan_tag === '#GQ0YLCYJ' && c.status === 'stopped'));
+
+  const nonOwner = await handler(
+    event({ path: '/api/admin/clans', cookie: newcomerCookie, body: { clan_tag: '#J2RGCRVG', action: 'start' } }),
+  );
+  assert.equal(nonOwner.statusCode, 403);
+});

@@ -4,11 +4,15 @@ import { api } from '../api.js';
 export function Admin({ me }) {
   const [requests, setRequests] = useState([]);
   const [gateways, setGateways] = useState([]);
+  const [clans, setClans] = useState([]);
+  const [clanTag, setClanTag] = useState('');
+  const [clanError, setClanError] = useState('');
 
   const load = useCallback(async () => {
-    const [r, g] = await Promise.all([api.adminRequests(), api.adminGateways()]);
+    const [r, g, c] = await Promise.all([api.adminRequests(), api.adminGateways(), api.adminClans()]);
     if (r.ok) setRequests(r.data.requests);
     if (g.ok) setGateways(g.data.gateways);
+    if (c.ok) setClans(c.data.clans);
   }, []);
 
   useEffect(() => {
@@ -42,6 +46,54 @@ export function Admin({ me }) {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="panel">
+        <h3>Recorded clans</h3>
+        <p>Each active clan records its roster, war race, and every open member&rsquo;s battles and profile.</p>
+        {clans.length > 0 && (
+          <table>
+            <thead>
+              <tr><th>Clan</th><th>Name</th><th>Status</th><th>Members</th><th>Last roster poll</th><th></th></tr>
+            </thead>
+            <tbody>
+              {clans.map((c) => (
+                <tr key={`${c.clan_tag}-${c.status}`}>
+                  <td><code>{c.clan_tag}</code></td>
+                  <td>{c.name ?? '—'}</td>
+                  <td><span className={`status ${c.status}`}>{c.status}</span></td>
+                  <td>{c.open_members}</td>
+                  <td>{c.last_roster_poll ? new Date(c.last_roster_poll).toLocaleTimeString() : 'never'}</td>
+                  <td>
+                    {c.status === 'active' && (
+                      <button className="quiet" onClick={async () => { await api.adminClanAction(c.clan_tag, 'stop'); load(); }}>
+                        Stop
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setClanError('');
+            const res = await api.adminClanAction(clanTag, 'start');
+            if (res.ok) {
+              setClanTag('');
+              load();
+            } else setClanError('That doesn’t look like a CR clan tag.');
+          }}
+        >
+          <label>
+            Record a clan
+            <input placeholder="#J2RGCRVG" value={clanTag} onChange={(e) => setClanTag(e.target.value)} />
+          </label>
+          {clanError && <p className="error">{clanError}</p>}
+          <button>Start recording</button>
+        </form>
       </div>
 
       <div className="panel">

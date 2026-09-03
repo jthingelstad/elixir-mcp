@@ -249,6 +249,53 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       return json(200, { ok: true, status: decided.status });
     },
 
+    'GET /api/admin/clans': async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+      const { rows } = await db.query(
+        `select r.subject_tag as clan_tag, r.status, r.created_at, cl.name,
+                (select count(*)::int from clan_membership cm
+                 where cm.clan_tag = r.subject_tag and cm.left_observed_at is null) as open_members,
+                (select max(ps.last_admitted_at) from poll_state ps
+                 where ps.subject_tag = r.subject_tag and ps.endpoint = 'clan') as last_roster_poll
+         from recording r
+         left join clan cl on cl.clan_tag = r.subject_tag
+         where r.subject_type = 'clan'
+         order by r.created_at`,
+      );
+      return json(200, { clans: rows });
+    },
+
+    'POST /api/admin/clans': async (db, event, body) => {
+      const account = await resolveAccount(db, event, { requireContractHeader: true });
+      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+      let tag;
+      try {
+        tag = normalizeTag(String(body.clan_tag ?? ''));
+      } catch {
+        return json(400, { error: 'invalid_tag' });
+      }
+      if (body.action === 'start') {
+        await db.query(`insert into clan (clan_tag) values ($1) on conflict do nothing`, [tag]);
+        await db.query(
+          `insert into recording (subject_type, subject_tag, requested_by)
+           select 'clan', $1, $2
+           where not exists (select 1 from recording
+                             where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
+          [tag, account.accountId],
+        );
+      } else if (body.action === 'stop') {
+        await db.query(
+          `update recording set status = 'stopped'
+           where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+          [tag],
+        );
+      } else {
+        return json(400, { error: 'bad_request' });
+      }
+      return json(200, { ok: true, clan_tag: tag });
+    },
+
     'GET /api/admin/gateways': async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isOwner) return json(403, { error: 'not_entitled' });

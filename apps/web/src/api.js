@@ -28,4 +28,6 @@ export const api = {
   adminRequests: () => request('GET', '/api/admin/requests'),
   adminDecide: (email_hash, decision) => request('POST', '/api/admin/decide', { email_hash, decision }),
   adminGateways: () => request('GET', '/api/admin/gateways'),
+  adminClans: () => request('GET', '/api/admin/clans'),
+  adminClanAction: (clan_tag, action) => request('POST', '/api/admin/clans', { clan_tag, action }),
 };
