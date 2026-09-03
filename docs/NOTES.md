@@ -130,4 +130,20 @@ Jamie, 2026-09-03 (design session inputs):
 **Launch-day incidents (2026-09-03, all resolved same hour):** (1) RDS force-SSL → sslmode=no-verify; (2) gateway .env not exported to process.env under launchd; (3) stale CloudFront cache after web sync → deploys now invalidate; (4) API GW v2 base64 form bodies → 'unknown client_id' on first OAuth connect → rawBody() decode everywhere; (5) gateway had no instantaneous pacing → 1.5s fetch floor added; (6) first CR token was endpoint-limited (clans 200, players 403 accessDenied — the 'insufficient token scope' 403 flavor is REAL, watch for it) → replaced with a correct key. **STEADY STATE reached 18:30Z:** 92-job clan fan-out drained to 0, 177 fetches/6min, breaker silent, ingest clean; ~46 POAP KINGS members + Jamie recording.
 - [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**
 
+## V2 build order (the standing work order — check off as chunks land green)
+
+Start every iteration with a recorder health glance (gateway FetchSucceeded/BreakerOpen, DLQs, a get_coverage call) — we babysit while we build. Deploys are routine (`deploy.mjs --skip-web` unless web changed); no billable gates in V2. Jamie-manual steps get queued in NOTES, never blocked on.
+
+- [ ] War clock (contracts or ingest lib): period math (periodIndex//7=sectionIndex; 0-2 training, 3-6 battle), observed period anchors, season inference, resolve_war_keys from the BATTLE'S OWN time — pattern: elixir-bot engine/clock.py; verify vs recorded currentriverrace payloads (we have live ones now)
+- [ ] Migration 0006: war_season / war_week / war_week_clan / war_participation (**points, not fame**) / war_attendance_day; share_battles_with_clan consent flag on claim (default: on for war battles, off otherwise per DESIGN §4.2)
+- [ ] War projector: currentriverrace → accumulate with MAX-merge (monotonic counters), week/season finalize, attendance days; stamp war keys onto battles at ingest
+- [ ] riverracelog backfill consumer (NET-NEW; paginate at enrollment, take what it gives) + run it for #J2RGCRVG against prod
+- [ ] Entitlements module: rules 2-4 (clan-scoped reads for verified members, summary-level clanmates, battle-level needs consent flag, leadership scope = elder+ role from recorded roster)
+- [ ] Tools: get_war, get_war_history, get_clan, compare_players (+ timeline granularity 'season'); tools respect entitlements + consent
+- [ ] Live lane wiring: MCP enqueue → receipt poll (~8s bound) for cr_api_live and get_player live:true; opportunistic ingest of live fetches
+- [ ] Liveness-proof claim verification (favorite-card challenge over the live lane) — soft claims upgrade to verified
+- [ ] Web: clan page (war standings, roster w/ consent-aware freshness), leader clan-enroll UI, verification flow, share_battles toggle
+- [ ] Gateway self-serve enrollment: raise-hand UI → admin key issuance (queues a Jamie-manual Supercell step per operator) → guided install → probation → active; operator docs (public repo!)
+- [ ] V2 smoke on live data + DESIGN/NOTES/AGENTS updates + memory update
+
 2026-09-03 audit outcomes (DESIGN.md §11–§12 added): versioning designed (migration ladder + fingerprint test; contracts package + serverInfo cache-buster + deprecation rules; audit-row tuning loop). Build-blockers closed: DB access path (migrate Lambda + break-glass), SQS 256KB (gateway gzip, alarm on overflow), live request lane (second queue, gateways drain first), budget state in Postgres. Scope changes ratified: `get_player_timeline` into V1 (11 tools), season-roll watcher into V1, **repo public from day one** (fixture discipline from first commit).
