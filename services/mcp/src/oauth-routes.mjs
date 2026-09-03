@@ -69,8 +69,15 @@ const json = (statusCode, body, headers = {}) => ({
 });
 const html = (statusCode, body) => ({ statusCode, headers: HTML_HEADERS, body });
 
-function parseForm(body) {
-  return Object.fromEntries(new URLSearchParams(body ?? ''));
+/** API Gateway v2 delivers form posts base64-encoded (isBase64Encoded);
+ *  JSON usually arrives as text. Decode before parsing, always. */
+export function rawBody(event) {
+  const body = event.body ?? '';
+  return event.isBase64Encoded ? Buffer.from(body, 'base64').toString('utf8') : body;
+}
+
+function parseForm(event) {
+  return Object.fromEntries(new URLSearchParams(rawBody(event)));
 }
 
 function hiddenAuthFields(q) {
@@ -110,7 +117,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
       if (!perIp || !globalOk) return json(429, { error: 'temporarily_unavailable' });
       let body;
       try {
-        body = JSON.parse(event.body ?? '');
+        body = JSON.parse(rawBody(event));
       } catch {
         return json(400, { error: 'invalid_client_metadata' });
       }
@@ -150,7 +157,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
     },
 
     async authorizePost(db, event) {
-      const form = parseForm(event.body);
+      const form = parseForm(event);
       const v = await validatedAuthRequest(db, form);
       if (v.error) return html(400, page('Elixir MCP', `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`));
       const hash = emailHash(form.email);
@@ -221,7 +228,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
     },
 
     async token(db, event) {
-      const form = parseForm(event.body);
+      const form = parseForm(event);
       const clientId = String(form.client_id ?? '');
       const client = await getClient(db, clientId);
       if (!client) return json(400, { error: 'invalid_client' });

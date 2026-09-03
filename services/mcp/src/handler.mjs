@@ -11,7 +11,7 @@ import { handleMcpMessage } from './protocol.mjs';
 import { makeRegistry } from './tools.mjs';
 import { makeInvoker } from './invoker.mjs';
 import { makeQuota } from './quota.mjs';
-import { makeOauthRoutes } from './oauth-routes.mjs';
+import { makeOauthRoutes, rawBody } from './oauth-routes.mjs';
 
 export const HOURLY_RATE_LIMIT = 300;
 
@@ -73,7 +73,7 @@ export function makeHandler({ databaseUrl, issuer = 'https://elixir.poapkings.co
       }
       let message;
       try {
-        message = JSON.parse(event.body ?? '');
+        message = JSON.parse(rawBody(event));
       } catch {
         return { statusCode: 400, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ error: 'invalid_json' }) };
       }

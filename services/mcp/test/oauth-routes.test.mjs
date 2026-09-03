@@ -192,3 +192,30 @@ test('DCR validates redirect uris and rate-limits per IP', async () => {
   }
   assert.ok(limited > 0, 'per-IP DCR cap engages');
 });
+
+test('base64-encoded form bodies (API Gateway v2 reality) parse correctly', async () => {
+  const reg = await handler(
+    event({ path: '/oauth/register', body: JSON.stringify({ client_name: 'B64', redirect_uris: [REDIRECT] }) }),
+  );
+  const { client_id } = JSON.parse(reg.body);
+  const challenge = crypto.createHash('sha256').update('w'.repeat(43)).digest('base64url');
+  const form = new URLSearchParams({
+    step: 'email',
+    email: 'nobody@example.com',
+    client_id,
+    redirect_uri: REDIRECT,
+    state: '',
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    scope: '',
+  }).toString();
+  const res = await handler({
+    rawPath: '/oauth/authorize',
+    requestContext: { http: { method: 'POST', sourceIp: '7.7.7.7' } },
+    headers: {},
+    body: Buffer.from(form).toString('base64'),
+    isBase64Encoded: true,
+  });
+  assert.equal(res.statusCode, 200, res.body);
+  assert.match(res.body, /If your account is approved/, 'client_id resolved from decoded body');
+});

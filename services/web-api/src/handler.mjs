@@ -270,7 +270,10 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
     let body = {};
     if (event.body) {
       try {
-        body = JSON.parse(event.body);
+        // API Gateway v2 may deliver bodies base64-encoded.
+        body = JSON.parse(
+          event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body,
+        );
       } catch {
         return json(400, { error: 'invalid_json' });
       }
