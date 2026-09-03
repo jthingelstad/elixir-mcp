@@ -93,7 +93,7 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Design v2 (2026-09-03): prior-art surveys (librarian auth/OAuth/MCP, Drop bridge, elixir-bot recorder), Jamie's decisions folded in, AWS infrastructure map (§7), prior-art map (§10).
 - [ ] Create the `elixir-mcp` repo (monorepo skeleton, Drop workspace shape) and move these docs into it.
 - [ ] Verify Fastmail JMAP send-as for `elixir@poapkings.com` works from a non-elixir-bot credential, or mint a dedicated API token for the relay Lambda.
-- [ ] Mint the dedicated Elixir MCP gateway CR key (developer.clashroyale.com, IP 72.50.194.201) and write it to `elixir-mcp/.env` locally (clipboard one-liner, mode 0600); then delete the Fastmail draft that temporarily held a token. Do NOT borrow Drop's production key — decided against 2026-09-03 (shared 403 blast radius, and nothing needs a key before the gateway code exists).
+- [x] CR token landed in `elixir-mcp/.env` (2026-09-03, mode 0600, canonical var name **`CR_API_TOKEN`** — note: Drop uses `CR_API_KEY`; our gateway config uses ours). If this is the borrowed Drop key, still swap in the dedicated key tonight; either way, delete the Fastmail draft that temporarily held a token. Do NOT borrow Drop's production key — decided against 2026-09-03 (shared 403 blast radius, and nothing needs a key before the gateway code exists).
 - [ ] Confirm poapkings.com DNS/ACM path for `elixir.` + `mcp.` CNAMEs (Namecheap; certs in us-east-1).
 - [ ] Privacy policy page for the site (we store emails + behavioral history incl. non-registered players; GDPR/deletion path per terms review §2/§4) — plain-language, one page.
 - [ ] Apply to Supercell for the `verifytoken` scope (parallel track; swap into the claim ladder if granted).
