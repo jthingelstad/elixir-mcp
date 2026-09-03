@@ -1,0 +1,38 @@
+/**
+ * Lambda handler shape for the results queue (SQS partial-batch response).
+ *
+ * Outcomes and retry semantics:
+ *  - admitted / rejected / duplicate / fetch_error: processed, deleted.
+ *  - bad_message: reported as a batch item failure -> SQS redrives ->
+ *    DLQ after maxReceiveCount (a malformed message never heals).
+ *  - thrown errors (DB down, etc.): batch item failure -> retry is correct.
+ */
+
+import pg from 'pg';
+import { processResult } from './pipeline.mjs';
+
+export function makeHandler({ databaseUrl }) {
+  return async function handler(event) {
+    const client = new pg.Client({ connectionString: databaseUrl });
+    await client.connect();
+    const batchItemFailures = [];
+    try {
+      for (const record of event.Records ?? []) {
+        let outcome;
+        try {
+          const message = JSON.parse(record.body);
+          outcome = await processResult(client, message);
+        } catch {
+          batchItemFailures.push({ itemIdentifier: record.messageId });
+          continue;
+        }
+        if (outcome.outcome === 'bad_message') {
+          batchItemFailures.push({ itemIdentifier: record.messageId });
+        }
+      }
+    } finally {
+      await client.end();
+    }
+    return { batchItemFailures };
+  };
+}
