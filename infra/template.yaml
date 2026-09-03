@@ -1,0 +1,824 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: elixir-mcp - Clash Royale history recorder and MCP server (unofficial, not endorsed by Supercell)
+
+# DESIGN.md section 7. One stack. NAT-free VPC: DB-touching Lambdas reach
+# SQS through an interface endpoint; the email relay lives OUTSIDE the VPC
+# and is the only compute with internet egress. Secrets arrive via
+# CloudFormation dynamic references from the app secret (created by
+# bootstrap); CR API tokens exist only on gateway operator machines.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Description: S3 bucket holding Lambda bundles (created by bootstrap)
+  WebApiCodeKey:
+    Type: String
+  McpCodeKey:
+    Type: String
+  SchedulerCodeKey:
+    Type: String
+  IngestCodeKey:
+    Type: String
+  EmailRelayCodeKey:
+    Type: String
+  MigrateCodeKey:
+    Type: String
+  AppSecretName:
+    Type: String
+    Default: elixir-mcp/app
+    Description: Secrets Manager secret with db_password, session_secret, jmap_token (URL-safe values)
+  SiteCertificateArn:
+    Type: String
+    Default: ''
+    Description: ACM cert for elixir.poapkings.com (us-east-1); empty deploys without the alias
+  McpCertificateArn:
+    Type: String
+    Default: ''
+    Description: ACM cert for mcp.poapkings.com (us-east-1); empty deploys without the alias
+  MonthlyCostAlarmUsd:
+    Type: Number
+    Default: 40
+
+Conditions:
+  HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, '']]
+  HasMcpCert: !Not [!Equals [!Ref McpCertificateArn, '']]
+
+Resources:
+  # ------------------------------------------------------------ networking
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.42.0.0/24
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: elixir-mcp }]
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.42.0.0/26
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags: [{ Key: Name, Value: elixir-mcp-private-a }]
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.42.0.64/26
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags: [{ Key: Name, Value: elixir-mcp-private-b }]
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: elixir-mcp VPC Lambdas
+      VpcId: !Ref Vpc
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: elixir-mcp RDS; Postgres from Lambdas only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: elixir-mcp SQS interface endpoint; HTTPS from Lambdas
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  SqsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sqs
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+      SecurityGroupIds: [!Ref EndpointSecurityGroup]
+
+  # -------------------------------------------------------------- database
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: elixir-mcp private subnets
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DBInstanceIdentifier: elixir-mcp
+      Engine: postgres
+      EngineVersion: '17'
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: '20'
+      MaxAllocatedStorage: 100
+      StorageType: gp3
+      DBName: elixir_mcp
+      MasterUsername: elixir
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}'
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VPCSecurityGroups: [!Ref DbSecurityGroup]
+      MultiAZ: false
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 7
+      DeletionProtection: true
+      EnablePerformanceInsights: false
+      AutoMinorVersionUpgrade: true
+
+  # ---------------------------------------------------------------- queues
+  RequestsLiveQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-cr-requests-live
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RequestsLiveDlq.Arn
+        maxReceiveCount: 5
+
+  RequestsLiveDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-cr-requests-live-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  RequestsBulkQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-cr-requests-bulk
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RequestsBulkDlq.Arn
+        maxReceiveCount: 5
+
+  RequestsBulkDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-cr-requests-bulk-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  ResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-cr-results
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ResultsDlq.Arn
+        maxReceiveCount: 5
+
+  ResultsDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-cr-results-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  EmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-email
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmailDlq.Arn
+        maxReceiveCount: 5
+
+  EmailDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-email-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  # ------------------------------------------------------------------- iam
+  VpcLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-vpc-lambda
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-vpc-lambda
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:SendMessage, sqs:GetQueueUrl]
+                Resource:
+                  - !GetAtt RequestsLiveQueue.Arn
+                  - !GetAtt RequestsBulkQueue.Arn
+                  - !GetAtt EmailQueue.Arn
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:GetQueueUrl]
+                Resource: !GetAtt ResultsQueue.Arn
+
+  EmailRelayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-email-relay
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-email-relay
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:GetQueueUrl]
+                Resource: !GetAtt EmailQueue.Arn
+
+  # --------------------------------------------------------------- lambdas
+  WebApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-web-api
+      RetentionInDays: 30
+
+  WebApiFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: WebApiLogGroup
+    Properties:
+      FunctionName: elixir-mcp-web-api
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 20
+      Role: !GetAtt VpcLambdaRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref WebApiCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          SESSION_SECRET: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}'
+          EMAIL_QUEUE_URL: !Ref EmailQueue
+
+  McpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-mcp
+      RetentionInDays: 30
+
+  McpFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: McpLogGroup
+    Properties:
+      FunctionName: elixir-mcp-mcp
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 25
+      Role: !GetAtt VpcLambdaRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref McpCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          OAUTH_ISSUER: https://mcp.poapkings.com
+          EMAIL_QUEUE_URL: !Ref EmailQueue
+
+  SchedulerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-scheduler
+      RetentionInDays: 30
+
+  SchedulerFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: SchedulerLogGroup
+    Properties:
+      FunctionName: elixir-mcp-scheduler
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 256
+      Timeout: 50
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt VpcLambdaRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref SchedulerCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          BULK_QUEUE_URL: !Ref RequestsBulkQueue
+
+  SchedulerRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-scheduler-tick
+      ScheduleExpression: rate(1 minute)
+      State: ENABLED
+      Targets:
+        - Id: scheduler
+          Arn: !GetAtt SchedulerFunction.Arn
+
+  SchedulerInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SchedulerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SchedulerRule.Arn
+
+  IngestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-ingest
+      RetentionInDays: 30
+
+  IngestFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: IngestLogGroup
+    Properties:
+      FunctionName: elixir-mcp-ingest
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 120
+      ReservedConcurrentExecutions: 4
+      Role: !GetAtt VpcLambdaRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref IngestCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+
+  IngestEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref IngestFunction
+      EventSourceArn: !GetAtt ResultsQueue.Arn
+      BatchSize: 5
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  EmailRelayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-email-relay
+      RetentionInDays: 30
+
+  EmailRelayFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: EmailRelayLogGroup
+    Properties:
+      FunctionName: elixir-mcp-email-relay
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 256
+      Timeout: 60
+      Role: !GetAtt EmailRelayRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref EmailRelayCodeKey }
+      Environment:
+        Variables:
+          JMAP_TOKEN: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:jmap_token}}'
+          FROM_EMAIL: elixir@poapkings.com
+
+  EmailEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref EmailRelayFunction
+      EventSourceArn: !GetAtt EmailQueue.Arn
+      BatchSize: 5
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  MigrateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-migrate
+      RetentionInDays: 30
+
+  MigrateFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: MigrateLogGroup
+    Properties:
+      FunctionName: elixir-mcp-migrate
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 256
+      Timeout: 300
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt VpcLambdaRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref MigrateCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+
+  # ------------------------------------------------------------ front doors
+  SiteApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: elixir-mcp-site-api
+      ProtocolType: HTTP
+      Target: !GetAtt WebApiFunction.Arn
+
+  SiteApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WebApiFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SiteApi}/*
+
+  McpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: elixir-mcp-mcp-api
+      ProtocolType: HTTP
+      Target: !GetAtt McpFunction.Arn
+
+  McpApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref McpFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${McpApi}/*
+
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub elixir-mcp-site-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub ${SiteBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}
+
+  SiteOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: elixir-mcp-site-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Cookies and the contract header flow to the site API; caching off.
+  SiteApiOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: elixir-mcp-site-api
+        CookiesConfig: { CookieBehavior: all }
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [x-elixir-client, content-type, authorization]
+        QueryStringsConfig: { QueryStringBehavior: all }
+
+  # The structural guarantee: the MCP door forwards NO cookies, ever.
+  McpOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: elixir-mcp-mcp-door
+        CookiesConfig: { CookieBehavior: none }
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [authorization, content-type, mcp-protocol-version]
+        QueryStringsConfig: { QueryStringBehavior: all }
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: elixir.poapkings.com
+        HttpVersion: http2and3
+        Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasSiteCert
+          - AcmCertificateArn: !Ref SiteCertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !Ref SiteOac
+            S3OriginConfig: { OriginAccessIdentity: '' }
+          - Id: api
+            DomainName: !Sub ${SiteApi}.execute-api.${AWS::Region}.amazonaws.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          # AWS managed CachingOptimized
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+        CacheBehaviors:
+          - PathPattern: /api/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            # AWS managed CachingDisabled
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
+        CustomErrorResponses:
+          # SPA routing: unknown paths serve the app shell.
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  McpDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: mcp.poapkings.com (no cookies forwarded, by construction)
+        HttpVersion: http2and3
+        Aliases: !If [HasMcpCert, [mcp.poapkings.com], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasMcpCert
+          - AcmCertificateArn: !Ref McpCertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: mcp
+            DomainName: !Sub ${McpApi}.execute-api.${AWS::Region}.amazonaws.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+        DefaultCacheBehavior:
+          TargetOriginId: mcp
+          ViewerProtocolPolicy: https-only
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+
+  # ------------------------------------------------------------ monitoring
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: elixir-mcp-alarms
+      # Routing of record is the sysadmin projects-ops-alerts queue; that
+      # subscription is managed in the projects-sysadmin repo. No email.
+
+  RequestsBulkAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-bulk-queue-age
+      AlarmDescription: Bulk request queue oldest message age high; gateways down or drowning
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions: [{ Name: QueueName, Value: !GetAtt RequestsBulkQueue.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 900
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DlqAlarmLive:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-dlq-requests-live
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt RequestsLiveDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DlqAlarmBulk:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-dlq-requests-bulk
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt RequestsBulkDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DlqAlarmResults:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-dlq-results
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt ResultsDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DlqAlarmEmail:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-dlq-email
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt EmailDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  SchedulerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-scheduler-errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref SchedulerFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  SchedulerMissingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-scheduler-missing
+      AlarmDescription: The planner stopped ticking; recording is stalled
+      Namespace: AWS/Lambda
+      MetricName: Invocations
+      Dimensions: [{ Name: FunctionName, Value: !Ref SchedulerFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  IngestErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-ingest-errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref IngestFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DbCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-db-cpu
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 85
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DbStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-db-storage
+      Namespace: AWS/RDS
+      MetricName: FreeStorageSpace
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
+      Statistic: Minimum
+      Period: 900
+      EvaluationPeriods: 1
+      Threshold: 2147483648
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DbConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-db-connections
+      Namespace: AWS/RDS
+      MetricName: DatabaseConnections
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 60
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  EstimatedChargesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-estimated-charges
+      AlarmDescription: Account-wide estimated charges guard for the hobby account
+      Namespace: AWS/Billing
+      MetricName: EstimatedCharges
+      Dimensions: [{ Name: Currency, Value: USD }]
+      Statistic: Maximum
+      Period: 21600
+      EvaluationPeriods: 1
+      Threshold: !Ref MonthlyCostAlarmUsd
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+Outputs:
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+  SiteDistributionDomain:
+    Value: !GetAtt SiteDistribution.DomainName
+    Description: CNAME target for elixir.poapkings.com at Namecheap
+  McpDistributionDomain:
+    Value: !GetAtt McpDistribution.DomainName
+    Description: CNAME target for mcp.poapkings.com at Namecheap
+  SiteBucketName:
+    Value: !Ref SiteBucket
+  MigrateFunctionName:
+    Value: !Ref MigrateFunction
+  AlarmTopicArn:
+    Value: !Ref AlarmTopic
+    Description: Subscribe from projects-sysadmin to projects-ops-alerts
