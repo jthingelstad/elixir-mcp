@@ -331,12 +331,6 @@ const TOOLS = {
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
       const where = ["bp.player_tag = $1"];
       const params = [tag];
-      if (s.battles === "war_only") {
-        // Rule 2: clanmate battle-level access covers war battles only
-        // unless the member opted into share_battles_with_clan.
-        params.push(typesForModeGroup("war"));
-        where.push(`b.type = any($${params.length})`);
-      }
       const add = (clause, value) => {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
@@ -449,12 +443,6 @@ const TOOLS = {
 
       return {
         player_tag: tag,
-        ...(s.battles === "war_only"
-          ? {
-              scope_note:
-                "Clanmate view: war battles only (this member has not shared their full battle history with the clan).",
-            }
-          : {}),
         battles,
         ...(rows.length === limit
           ? { next_cursor: rows[rows.length - 1].cursor }

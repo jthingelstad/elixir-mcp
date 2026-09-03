@@ -141,7 +141,7 @@ Postgres, one schema, tenancy from day one. (SQLite served elixir-bot well but i
 - **`claim`** — `account_id`, `player_tag`, `status: unverified|verified`, `verified_method`, `created_at`. One player tag may be claimed by at most one verified account; unverified claims can coexist and only lower-privilege reads apply.
 - **`clan`** + **`clan_membership`** — `(clan_tag, player_tag, joined_observed_at, left_observed_at NULL=open)` with a partial unique index on open membership per player. Observed tenure, not asserted (borrow elixir-bot's invariant exactly).
 
-**Tag verification:** `POST /players/{tag}/verifytoken` is scope-restricted (live-verified: normal keys get `accessDenied.invalidScope`), so plan around it. Recommended ladder: (a) soft claim — immediate, read-mostly rights, fine because nearly all CR data is publicly queryable anyway; (b) liveness proof for `verified` — "change your in-game favorite card to X within 15 minutes," confirmed by profile poll. Cheap, unspoofable enough, no Supercell cooperation needed. Apply for the verifytoken scope in parallel; swap it in if granted.
+**Tag verification (settled 2026-09-03): claims are TRUST-BASED.** `POST /players/{tag}/verifytoken` is scope-restricted (live-verified: normal keys get `accessDenied.invalidScope`), and the favourite-card liveness challenge was built and retired the same day — `currentFavouriteCard` is not reliably player-settable in-game (cr-agent-api-docs). Owner approval of accounts is the gate; a claim is taken at its word. `claim.status` stays in the schema unused; the verifytoken scope application remains the only credible future path.
 
 ### 4.2 Recording & entitlements
 
@@ -152,8 +152,8 @@ Postgres, one schema, tenancy from day one. (SQLite served elixir-bot well but i
 
 **Entitlement rules (the whole policy, keep it this small):**
 
-1. A verified claim entitles the account to full history for that tag — including battles recorded before the claim (data was recorded once; the claim unlocks the view).
-2. Clan recording covers members: while player P is an observed member of recorded clan C, accounts with a verified claim on any member tag of C may read C's clan-scoped data (war, roster, donations) and *summary-level* stats of fellow members. Full battle-level history of another member requires that member's own claim+consent flag (`share_battles_with_clan`, default on for war battles, off for the rest).
+1. A claim entitles the account to full history for that tag — including battles recorded before the claim (data was recorded once; the claim unlocks the view). Claims are trust-based (see §4.1 tag verification).
+2. Clan recording covers members: while player P is an observed member of recorded clan C, accounts with a claim on any member tag of C may read C's clan-scoped data (war, roster, donations) and fellow members' history, battles included. **Being in a clan is sharing your battles with it** (ratified 2026-09-03; battlelogs are public in-game and via the API — the retired `share_battles_with_clan` consent flag gated public data and is no longer read). Access ends when the observed membership closes.
 3. A battle is readable by anyone entitled to *either* participant — you were in it; it's your history too.
 4. Leadership-sensitive derived data (activity/inactivity rankings) is scoped to accounts whose claimed tag holds elder+ role in the recorded clan, mirroring elixir-bot's public/leadership scope split.
 

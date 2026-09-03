@@ -121,29 +121,6 @@ export function Clan({ me, navigate }) {
           </tbody>
         </table>
       </div>
-
-      {clan.my_claims.length > 0 && (
-        <div className="panel">
-          <h3>Battle sharing</h3>
-          <p>
-            Clanmates always see war stats. Sharing lets them see your full
-            recorded battle history through their own agents.
-          </p>
-          {clan.my_claims.map((c) => (
-            <label key={c.player_tag} style={{ display: "block" }}>
-              <input
-                type="checkbox"
-                checked={c.share_battles_with_clan === true}
-                onChange={async (e) => {
-                  await api.setShareBattles(c.player_tag, e.target.checked);
-                  load();
-                }}
-              />{" "}
-              Share <code>{c.player_tag}</code> battles with my clan
-            </label>
-          ))}
-        </div>
-      )}
     </>
   );
 }

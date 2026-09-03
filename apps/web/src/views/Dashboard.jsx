@@ -13,7 +13,6 @@ export function Dashboard({ me, refresh, navigate }) {
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
   const [tzSaved, setTzSaved] = useState(false);
-  const [challenge, setChallenge] = useState(null); // {tag, card_name, message?}
   const [gateways, setGateways] = useState(null); // null until first load
   const [gwForm, setGwForm] = useState({
     name: "",
@@ -76,26 +75,6 @@ export function Dashboard({ me, refresh, navigate }) {
                     <td>
                       <code>{c.player_tag}</code>
                       {c.is_primary ? " ★" : ""}
-                      {c.status === "verified" ? (
-                        " ✓"
-                      ) : (
-                        <>
-                          {" "}
-                          <button
-                            className="quiet"
-                            onClick={async () => {
-                              const res = await api.startVerify(c.player_tag);
-                              if (res.ok)
-                                setChallenge({
-                                  tag: c.player_tag,
-                                  ...res.data,
-                                });
-                            }}
-                          >
-                            Verify
-                          </button>
-                        </>
-                      )}
                     </td>
                     <td>{c.name ?? "—"}</td>
                     <td>
@@ -156,40 +135,6 @@ export function Dashboard({ me, refresh, navigate }) {
           <button>Claim</button>
         </form>
       </div>
-
-      {challenge && (
-        <div className="panel">
-          <h3>Verify {challenge.tag}</h3>
-          <p className="notice">
-            {challenge.instructions ??
-              `Set your in-game favourite card to “${challenge.card_name}”, then press Check.`}
-          </p>
-          {challenge.message && <p className="error">{challenge.message}</p>}
-          <button
-            onClick={async () => {
-              const res = await api.checkVerify(challenge.tag);
-              if (res.ok && res.data.verified) {
-                setChallenge(null);
-                refresh();
-              } else if (res.ok) {
-                setChallenge({
-                  ...challenge,
-                  message:
-                    res.data.message ??
-                    (res.data.expired
-                      ? "Challenge expired — start again."
-                      : "Not yet — try again in a minute."),
-                });
-              }
-            }}
-          >
-            Check
-          </button>{" "}
-          <button className="quiet" onClick={() => setChallenge(null)}>
-            Dismiss
-          </button>
-        </div>
-      )}
 
       <div className="panel">
         <h3>Connect your agent</h3>

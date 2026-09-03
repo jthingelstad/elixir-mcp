@@ -25,15 +25,9 @@ export const api = {
   signOut: () => request("POST", "/api/session/signout", {}),
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
-  startVerify: (player_tag) =>
-    request("POST", "/api/claims/verify", { player_tag }),
-  checkVerify: (player_tag) =>
-    request("POST", "/api/claims/verify/check", { player_tag }),
   setRecording: (player_tag, action) =>
     request("POST", "/api/recordings", { player_tag, action }),
   clan: () => request("GET", "/api/clan"),
-  setShareBattles: (player_tag, share) =>
-    request("POST", "/api/me/share-battles", { player_tag, share }),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>
     request("POST", "/api/admin/decide", { email_hash, decision }),

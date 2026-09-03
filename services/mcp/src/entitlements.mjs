@@ -2,49 +2,36 @@
  * Entitlement rules — DESIGN §4.2, the whole policy:
  *  1. A claim entitles the account to FULL history for that tag.
  *  2. Clan cover: while P is an open member of recorded clan C, accounts
- *     claiming any member tag of C read C's clan-scoped data and
- *     SUMMARY-level stats of fellow members; battle-level history of a
- *     fellow member needs that member's share_battles_with_clan consent —
- *     except war battles, which are clan-readable by default.
+ *     claiming any member tag of C read C's clan-scoped data and fellow
+ *     members' history — being in a clan IS sharing your battles with it
+ *     (Jamie, 2026-09-03; the retired consent toggle gated public data).
  *  3. A battle is readable by anyone entitled to either participant.
  *  4. Leadership-sensitive analytics need the claimed tag to hold elder+
  *     in the recorded clan.
  *
- * INTERIM (2026-09-03, recorded in NOTES): rule 2 says verified claims;
- * liveness verification ships later in this build order and every current
- * claim is soft. Accounts are owner-approved, so soft claims count for
- * clan scope until verification exists — then CLAN_SCOPE_REQUIRES flips
- * to 'verified'.
+ * Claims are TRUST-BASED (Jamie, 2026-09-03): accounts are owner-approved
+ * and a claim is taken at its word. The favourite-card liveness challenge
+ * was retired the day it shipped — currentFavouriteCard is not reliably
+ * player-settable (cr-agent-api-docs). claim.status stays in the schema
+ * unused.
  */
 
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
-// The flip is a deploy-time env change on the MCP Lambda, not a code edit:
-// set ELIXIR_CLAN_SCOPE_REQUIRES=verified once members can verify.
-const CLAN_SCOPE_REQUIRES =
-  process.env.ELIXIR_CLAN_SCOPE_REQUIRES === "verified"
-    ? "verified"
-    : "unverified";
 const LEADERSHIP_ROLES = new Set(["elder", "coLeader", "leader"]);
 
 /** Everything the account can see, resolved once per request. */
 async function resolveEntitlements(db, account) {
   const { rows: claims } = await db.query(
-    `select c.player_tag, c.status, c.share_battles_with_clan,
-            cm.clan_tag, cm.role
+    `select c.player_tag, cm.clan_tag, cm.role
      from claim c
      left join clan_membership cm
        on cm.player_tag = c.player_tag and cm.left_observed_at is null
      where c.account_id = $1`,
     [account.accountId],
   );
-  // Rule 1 (full own history) never depends on verification; rule 2 (clan
-  // cover) requires verified claims once the interim knob flips.
-  const clanEligible = (c) =>
-    c.clan_tag &&
-    (CLAN_SCOPE_REQUIRES !== "verified" || c.status === "verified");
   const clanTags = [
-    ...new Set(claims.filter(clanEligible).map((c) => c.clan_tag)),
+    ...new Set(claims.filter((c) => c.clan_tag).map((c) => c.clan_tag)),
   ];
   // Clan scope requires the clan to be actively recorded.
   const recordedClans = clanTags.length
@@ -58,7 +45,7 @@ async function resolveEntitlements(db, account) {
     : [];
   const roles = new Map();
   for (const c of claims) {
-    if (clanEligible(c) && recordedClans.includes(c.clan_tag)) {
+    if (c.clan_tag && recordedClans.includes(c.clan_tag)) {
       const best = roles.get(c.clan_tag);
       if (
         !best ||
@@ -93,9 +80,7 @@ async function resolveEntitlements(db, account) {
  * Resolve a subject tag against a need:
  *  - 'full': own claims only (rule 1);
  *  - 'summary': own claims OR open members of an entitled clan (rule 2);
- *  - 'battles': like summary, but reports whether battle-level access is
- *    unrestricted ('all': own or consented) or war-only.
- * Returns { tag, scope: 'own'|'clanmate', battles: 'all'|'war_only' }.
+ * Returns { tag, scope: 'own'|'clanmate' }.
  * Throws {code} objects matching the closed error taxonomy.
  */
 export async function resolveSubject(db, account, inputTag, need = "full") {
@@ -124,7 +109,7 @@ export async function resolveSubject(db, account, inputTag, need = "full") {
     }
   }
 
-  if (ent.ownTags.includes(tag)) return { tag, scope: "own", battles: "all" };
+  if (ent.ownTags.includes(tag)) return { tag, scope: "own" };
   if (need === "full") {
     throw {
       code: "not_entitled",
@@ -132,11 +117,11 @@ export async function resolveSubject(db, account, inputTag, need = "full") {
     };
   }
 
-  // Fellow member of an entitled clan?
+  // Fellow member of an entitled clan? Being in a clan IS sharing your
+  // battles with it (Jamie, 2026-09-03) — open membership is the whole
+  // gate, and it closes when the membership does.
   const { rows: membership } = await db.query(
-    `select cm.clan_tag, c.share_battles_with_clan
-     from clan_membership cm
-     left join claim c on c.player_tag = cm.player_tag
+    `select cm.clan_tag from clan_membership cm
      where cm.player_tag = $1 and cm.left_observed_at is null and cm.clan_tag = any($2)`,
     [tag, ent.clans.length ? ent.clans : ["#NONE"]],
   );
@@ -147,8 +132,7 @@ export async function resolveSubject(db, account, inputTag, need = "full") {
       hint: "Clan-scoped reads cover open members of your recorded clan.",
     };
   }
-  const consented = membership.some((m) => m.share_battles_with_clan === true);
-  return { tag, scope: "clanmate", battles: consented ? "all" : "war_only" };
+  return { tag, scope: "clanmate" };
 }
 
 /** Rule 4: leadership analytics gate. */

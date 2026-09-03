@@ -21,7 +21,6 @@ let db;
 let handler;
 const sentEmails = [];
 const ownerNotes = [];
-let liveProfile = null;
 
 function event({
   method = "POST",
@@ -66,10 +65,6 @@ before(async () => {
     secret: SECRET,
     sendLoginEmail: async (m) => sentEmails.push(m),
     notifyOwner: async (n) => ownerNotes.push(n),
-    liveFetch: async () =>
-      liveProfile
-        ? { ok: true, payload: liveProfile }
-        : { ok: false, reason: "timeout" },
   });
 });
 
@@ -326,79 +321,7 @@ test("owner enrolls and stops clan recordings; non-owners refused", async () => 
   assert.equal(nonOwner.statusCode, 403);
 });
 
-test("liveness verification: challenge -> wrong favourite -> right favourite -> verified", async () => {
-  // Seed the card catalog the picker draws from.
-  await db.query(
-    `insert into api_payload (endpoint, entity_key, payload_hash, payload_json)
-     values ('cards', 'GLOBAL', 'vh', '{"items": [{"id": 26000055, "name": "Mega Knight"}]}')
-     on conflict do nothing`,
-  );
-  // The newcomer's claim from the journey test (#2PP0V90Y) is unverified.
-  const cookie = await signIn(NEWCOMER);
-  const start = await handler(
-    event({
-      path: "/api/claims/verify",
-      cookie,
-      body: { player_tag: "#2PP0V90Y" },
-    }),
-  );
-  assert.equal(start.statusCode, 200, start.body);
-  const ch = parse(start);
-  assert.equal(ch.card_name, "Mega Knight");
-  assert.match(ch.instructions, /favourite card/);
-
-  // Wrong favourite: stays pending with an honest message.
-  liveProfile = {
-    tag: "#2PP0V90Y",
-    currentFavouriteCard: { id: 1, name: "Knight" },
-  };
-  const wrong = parse(
-    await handler(
-      event({
-        path: "/api/claims/verify/check",
-        cookie,
-        body: { player_tag: "#2PP0V90Y" },
-      }),
-    ),
-  );
-  assert.equal(wrong.verified, false);
-  assert.match(wrong.message, /Knight/);
-
-  // Right favourite: claim flips to verified.
-  liveProfile = {
-    tag: "#2PP0V90Y",
-    currentFavouriteCard: { id: 26000055, name: "Mega Knight" },
-  };
-  const right = parse(
-    await handler(
-      event({
-        path: "/api/claims/verify/check",
-        cookie,
-        body: { player_tag: "#2PP0V90Y" },
-      }),
-    ),
-  );
-  assert.equal(right.verified, true);
-  const { rows } = await db.query(
-    `select status, verified_method from claim where player_tag = '#2PP0V90Y'`,
-  );
-  assert.equal(rows[0].status, "verified");
-  assert.equal(rows[0].verified_method, "favourite_card");
-
-  // Already verified short-circuits.
-  const again = parse(
-    await handler(
-      event({
-        path: "/api/claims/verify",
-        cookie,
-        body: { player_tag: "#2PP0V90Y" },
-      }),
-    ),
-  );
-  assert.equal(again.already_verified, true);
-});
-
-test("clan page: entitled member sees war + roster; share toggle; outsiders refused", async () => {
+test("clan page: entitled member sees war + roster; outsiders refused", async () => {
   const cookie = await signIn(NEWCOMER);
 
   // Before any recorded clan membership: no clan for this account.
@@ -450,7 +373,6 @@ test("clan page: entitled member sees war + roster; share toggle; outsiders refu
   assert.equal(res.war.standings.length, 2);
   assert.equal(res.war.standings[0].rank, 1, "ordered by final rank");
   assert.equal(res.members.length, 2);
-  assert.ok(res.my_claims.some((c) => c.player_tag === "#2PP0V90Y"));
 
   // The owner falls back to the first active recorded clan.
   const ownerCookie = await signIn(JAMIE);
@@ -465,30 +387,6 @@ test("clan page: entitled member sees war + roster; share toggle; outsiders refu
     ),
   );
   assert.equal(ownerView.clan_tag, CLAN);
-
-  // Consent toggle: flips the claim's share flag; unclaimed tags refused.
-  const on = parse(
-    await handler(
-      event({
-        path: "/api/me/share-battles",
-        cookie,
-        body: { player_tag: "#2PP0V90Y", share: true },
-      }),
-    ),
-  );
-  assert.equal(on.share, true);
-  const { rows } = await db.query(
-    `select share_battles_with_clan from claim where player_tag = '#2PP0V90Y'`,
-  );
-  assert.equal(rows[0].share_battles_with_clan, true);
-  const notMine = await handler(
-    event({
-      path: "/api/me/share-battles",
-      cookie,
-      body: { player_tag: "#YYYYY", share: true },
-    }),
-  );
-  assert.equal(notMine.statusCode, 403);
 });
 
 test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; guards", async () => {

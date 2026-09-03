@@ -88,29 +88,21 @@ after(async () => {
 
 test("rule 1: own claim is full scope", async () => {
   const s = await resolveSubject(db, accounts.alice, "#YYYYYYYY", "full");
-  assert.deepEqual(s, { tag: "#YYYYYYYY", scope: "own", battles: "all" });
+  assert.deepEqual(s, { tag: "#YYYYYYYY", scope: "own" });
 });
 
-test("rule 2: fellow member gets summary; battle-level is war-only without consent", async () => {
+test("rule 2: fellow member readable (membership IS sharing); 'full' still needs a claim", async () => {
   const s = await resolveSubject(db, accounts.alice, "#RRRRRRRR", "summary");
-  assert.deepEqual(s, {
-    tag: "#RRRRRRRR",
-    scope: "clanmate",
-    battles: "war_only",
-  });
+  assert.deepEqual(s, { tag: "#RRRRRRRR", scope: "clanmate" });
   await assert.rejects(
     () => resolveSubject(db, accounts.alice, "#RRRRRRRR", "full"),
     (e) => e.code === "not_entitled",
   );
-  // Bob consents: battle-level opens.
-  await db.query(
-    `update claim set share_battles_with_clan = true where player_tag = '#RRRRRRRR'`,
-  );
   const s2 = await resolveSubject(db, accounts.alice, "#RRRRRRRR", "battles");
-  assert.equal(s2.battles, "all");
+  assert.equal(s2.scope, "clanmate");
 });
 
-test("non-members stay out; unclaimed clanmates are summary-readable, war-only battles", async () => {
+test("non-members stay out; unclaimed clanmates are readable", async () => {
   await assert.rejects(
     () => resolveSubject(db, accounts.carol, "#YYYYYYYY", "summary"),
     (e) => e.code === "not_entitled",
@@ -122,11 +114,7 @@ test("non-members stay out; unclaimed clanmates are summary-readable, war-only b
     [CLAN],
   );
   const s = await resolveSubject(db, accounts.alice, "#2C0PY22", "summary");
-  assert.deepEqual(s, {
-    tag: "#2C0PY22",
-    scope: "clanmate",
-    battles: "war_only",
-  });
+  assert.deepEqual(s, { tag: "#2C0PY22", scope: "clanmate" });
 });
 
 test("rule 4: leadership needs elder+; member refused, elder passes, owner passes", async () => {
@@ -141,7 +129,6 @@ test("rule 4: leadership needs elder+; member refused, elder passes, owner passe
 test("owner administers recorded clans without membership; default clan resolves", async () => {
   const s = await resolveSubject(db, accounts.owner, "#YYYYYYYY", "summary");
   assert.equal(s.scope, "clanmate");
-  assert.equal(s.battles, "war_only", "consent applies to the owner too");
   assert.equal(await resolveEntitledClan(db, accounts.alice), CLAN);
   assert.equal(await resolveEntitledClan(db, accounts.owner), CLAN);
   await assert.rejects(
