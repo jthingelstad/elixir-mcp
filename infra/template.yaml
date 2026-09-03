@@ -289,6 +289,7 @@ Resources:
           DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
           SESSION_SECRET: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}'
           EMAIL_QUEUE_URL: !Ref EmailQueue
+          LIVE_QUEUE_URL: !Ref RequestsLiveQueue
 
   McpLogGroup:
     Type: AWS::Logs::LogGroup

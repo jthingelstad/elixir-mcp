@@ -52,7 +52,7 @@ function bearer(event) {
   return auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
 }
 
-export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner = async () => {} }) {
+export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner = async () => {}, liveFetch = null }) {
   async function resolveAccount(db, event, { requireContractHeader = false } = {}) {
     const fromBearer = bearer(event);
     const token = fromBearer || readCookie(event);
@@ -247,6 +247,90 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       if (!decided) return json(404, { error: 'not_found' });
       if (decided.status === 'approved') await notifyOwner({ kind: 'approved_welcome', emailHash: body.email_hash });
       return json(200, { ok: true, status: decided.status });
+    },
+
+    'POST /api/claims/verify': async (db, event, body) => {
+      const account = await resolveAccount(db, event, { requireContractHeader: true });
+      if (!account) return json(401, { error: 'unauthenticated' });
+      let tag;
+      try {
+        tag = normalizeTag(String(body.player_tag ?? ''));
+      } catch {
+        return json(400, { error: 'invalid_tag' });
+      }
+      const { rows: claim } = await db.query(
+        `select status from claim where account_id = $1 and player_tag = $2`,
+        [account.accountId, tag],
+      );
+      if (!claim[0]) return json(403, { error: 'not_entitled' });
+      if (claim[0].status === 'verified') return json(200, { already_verified: true });
+
+      // Pick a random card from the recorded catalog: obscure enough to be
+      // unguessable, universally ownable (favourite card needs no unlock).
+      const { rows: cat } = await db.query(
+        `select payload_json->'items' as items from api_payload
+         where endpoint = 'cards' and entity_key = 'GLOBAL'
+         order by last_fetched_at desc limit 1`,
+      );
+      if (!cat[0]) return json(503, { error: 'temporarily_unavailable', message: 'Card catalog not recorded yet.' });
+      const items = cat[0].items;
+      const card = items[Math.floor(Math.random() * items.length)];
+      const { rows: challenge } = await db.query(
+        `insert into verification_challenge (account_id, player_tag, card_id, card_name, expires_at)
+         values ($1, $2, $3, $4, now() + interval '15 minutes')
+         returning challenge_id, expires_at`,
+        [account.accountId, tag, card.id, card.name],
+      );
+      return json(200, {
+        challenge_id: challenge[0].challenge_id,
+        card_name: card.name,
+        expires_at: challenge[0].expires_at,
+        instructions: `In Clash Royale, set your favourite card (profile screen) to "${card.name}" within 15 minutes, then press Check.`,
+      });
+    },
+
+    'POST /api/claims/verify/check': async (db, event, body) => {
+      const account = await resolveAccount(db, event, { requireContractHeader: true });
+      if (!account) return json(401, { error: 'unauthenticated' });
+      let tag;
+      try {
+        tag = normalizeTag(String(body.player_tag ?? ''));
+      } catch {
+        return json(400, { error: 'invalid_tag' });
+      }
+      const { rows: pending } = await db.query(
+        `select challenge_id, card_id, card_name, expires_at from verification_challenge
+         where account_id = $1 and player_tag = $2 and status = 'pending'
+         order by created_at desc limit 1`,
+        [account.accountId, tag],
+      );
+      if (!pending[0]) return json(404, { error: 'not_found', message: 'No pending challenge.' });
+      const ch = pending[0];
+      if (ch.expires_at.getTime() < Date.now()) {
+        await db.query(`update verification_challenge set status = 'expired' where challenge_id = $1`, [ch.challenge_id]);
+        return json(200, { verified: false, expired: true });
+      }
+      if (!liveFetch) return json(503, { error: 'temporarily_unavailable' });
+      const result = await liveFetch(db, { endpoint: 'player', entityKey: tag });
+      if (!result.ok) return json(200, { verified: false, retry: true, message: 'Live check did not complete; try again.' });
+      const favourite = result.payload?.currentFavouriteCard;
+      if (Number(favourite?.id) === Number(ch.card_id)) {
+        await db.query(
+          `update verification_challenge set status = 'verified', completed_at = now() where challenge_id = $1`,
+          [ch.challenge_id],
+        );
+        await db.query(
+          `update claim set status = 'verified', verified_method = 'favourite_card'
+           where account_id = $1 and player_tag = $2`,
+          [account.accountId, tag],
+        );
+        return json(200, { verified: true });
+      }
+      return json(200, {
+        verified: false,
+        seen: favourite?.name ?? null,
+        message: `Your favourite card currently shows "${favourite?.name ?? 'unknown'}", not "${ch.card_name}". Change it in-game, wait a minute, and check again.`,
+      });
     },
 
     'GET /api/admin/clans': async (db, event) => {
