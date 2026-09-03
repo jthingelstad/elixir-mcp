@@ -1,0 +1,15 @@
+{
+  "_": "Provenance for test fixtures. entity_key is the polled subject (battlelog observer, clan tag, etc.). Payloads are verbatim CR API responses captured live by elixir-bot, exported 2026-09-03.",
+  "player_battlelog/with_clanmate_2v2.json": { "entity_key": "#VGC22YGP", "fetched_at": "2026-09-02T11:10:50Z" },
+  "player_battlelog/with_boat_and_duel.json": { "entity_key": "#2YG98VVQ", "fetched_at": "2026-09-02T08:00:49Z" },
+  "player_battlelog/with_colosseum_duel.json": { "entity_key": "#JYRQ8U92C", "fetched_at": "2026-09-03T14:30:34Z" },
+  "player_battlelog/with_path_of_legend.json": { "entity_key": "#UVQ8RJYG9", "fetched_at": "2026-09-03T14:00:34Z" },
+  "player_battlelog/empty.json": { "entity_key": "#9JQ0U989", "fetched_at": "2026-07-29T13:04:43Z" },
+  "player/profile.json": { "entity_key": "#JYRQ8U92C", "fetched_at": "2026-09-03T14:40:34Z" },
+  "clan/roster.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-09-03T14:40:34Z" },
+  "currentriverrace/war_day.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-08-31T07:37:36Z" },
+  "currentriverrace/training.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-09-03T03:00:47Z" },
+  "currentriverrace/colosseum.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-09-03T14:40:34Z" },
+  "riverracelog/log.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-08-03T13:05:18Z" },
+  "cards/catalog.json": { "entity_key": "GLOBAL", "fetched_at": "2026-08-26T13:13:43Z" }
+}

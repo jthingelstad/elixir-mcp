@@ -1,0 +1,14 @@
+{
+  "name": "@elixir-mcp/ingest",
+  "version": "0.1.0",
+  "description": "Admission boundary + canonical projections: raw CR payloads in, receipts/battles/roster observations out (DESIGN §5.1, §4.3-4.5). Runs as the ingest Lambda on the results queue.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@elixir-mcp/contracts": "0.1.0",
+    "pg": "^8.13.0"
+  }
+}
