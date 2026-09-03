@@ -80,11 +80,23 @@ function admitRiverrace(payload, errors) {
     errors.push('periodIndex:section-cross-check-failed');
 }
 
+function admitCards(payload, errors) {
+  if (!Array.isArray(payload?.items) || payload.items.length === 0) {
+    errors.push('items:missing');
+    return;
+  }
+  payload.items.forEach((c, i) => {
+    if (typeof c?.id !== 'number') errors.push(`items[${i}].id:missing`);
+    if (typeof c?.name !== 'string') errors.push(`items[${i}].name:missing`);
+  });
+}
+
 const VALIDATORS = {
   player: admitPlayer,
   player_battlelog: admitBattlelog,
   clan: admitClan,
   currentriverrace: admitRiverrace,
+  cards: admitCards,
 };
 
 /**

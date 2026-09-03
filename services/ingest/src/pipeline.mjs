@@ -90,6 +90,10 @@ const PROJECTORS = {
     // War projection is V2; the receipt/payload record is the value today.
     return { projected: 'none' };
   },
+  async cards() {
+    // The catalog is served straight from the payload store (get_card_catalog).
+    return { projected: 'none' };
+  },
 };
 
 /**

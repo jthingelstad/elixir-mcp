@@ -360,6 +360,380 @@ const TOOLS = {
       };
     },
   },
+  get_player_timeline: {
+    description:
+      'Time series from daily snapshots: trophies, donations (weekly counter — resets Mondays), battle_count, collection_level. The trophy-graph tool. Granularity week returns the last snapshot of each ISO week.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        player_tag: TAG_SCHEMA,
+        metrics: {
+          type: 'array',
+          items: { type: 'string', enum: ['trophies', 'donations', 'battle_count', 'collection_level'] },
+          default: ['trophies'],
+        },
+        from: { type: 'string', description: 'YYYY-MM-DD' },
+        to: { type: 'string', description: 'YYYY-MM-DD' },
+        granularity: { type: 'string', enum: ['day', 'week'], default: 'day' },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const metrics = Array.isArray(args.metrics) && args.metrics.length > 0 ? args.metrics : ['trophies'];
+      const where = [`player_tag = $1`, `snapshot_kind = 'daily'`];
+      const params = [tag];
+      if (args.from) {
+        params.push(args.from);
+        where.push(`snapshot_date >= $${params.length}::date`);
+      }
+      if (args.to) {
+        params.push(args.to);
+        where.push(`snapshot_date <= $${params.length}::date`);
+      }
+      const { rows } = await ctx.db.query(
+        `select snapshot_date, trophies, donations,
+                (lifetime->>'battleCount')::int as battle_count,
+                (lifetime->>'collectionLevel')::int as collection_level
+         from player_snapshot_daily where ${where.join(' and ')}
+         order by snapshot_date`,
+        params,
+      );
+      let points = rows;
+      if (args.granularity === 'week') {
+        const byWeek = new Map();
+        for (const r of rows) {
+          const d = r.snapshot_date;
+          const week = `${d.getUTCFullYear()}-W${String(Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000 + new Date(Date.UTC(d.getUTCFullYear(), 0, 1)).getUTCDay() + 1) / 7)).padStart(2, '0')}`;
+          byWeek.set(week, r); // last snapshot of the week wins
+        }
+        points = [...byWeek.values()];
+      }
+      return {
+        player_tag: tag,
+        granularity: args.granularity === 'week' ? 'week' : 'day',
+        series: points.map((r) => ({
+          date: r.snapshot_date.toISOString().slice(0, 10),
+          ...Object.fromEntries(metrics.map((m) => [m, r[m]])),
+        })),
+        note: metrics.includes('donations')
+          ? 'donations is the weekly counter as-of each snapshot; it resets Mondays ~00:10 UTC.'
+          : undefined,
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
+  get_performance: {
+    description:
+      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side — built for "since X vs before" questions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        player_tag: TAG_SCHEMA,
+        from: { type: 'string', description: 'ISO instant or YYYY-MM-DD (your timezone).' },
+        to: { type: 'string' },
+        last_n_battles: { type: 'integer', minimum: 1, maximum: 500 },
+        mode: { type: 'string', enum: MODE_GROUPS },
+        deck_hash: { type: 'string' },
+        compare_from: { type: 'string' },
+        compare_to: { type: 'string' },
+        before_after: { type: 'string', description: 'Date splitting two windows: [from..date) vs [date..to]. The Firecracker question.' },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tz = ctx.account.timezone;
+
+      const segment = async ({ from, to, lastN }) => {
+        const where = ['bp.player_tag = $1', `bp.outcome is not null`];
+        const params = [tag];
+        const add = (clause, value) => {
+          params.push(value);
+          where.push(clause.replace('?', `$${params.length}`));
+        };
+        if (from) add('b.battle_time >= ?', from);
+        if (to) add('b.battle_time < ?', to);
+        if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
+        if (args.deck_hash) add('bp.deck_hash = ?', args.deck_hash);
+        const { rows } = await ctx.db.query(
+          `select bp.outcome, bp.crowns, bp.trophy_change,
+                  (select max(o.crowns) from battle_participant o
+                   where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where ${where.join(' and ')}
+           order by b.battle_time desc
+           ${lastN ? `limit ${Math.min(lastN, 500)}` : 'limit 2000'}`,
+          params,
+        );
+        const wins = rows.filter((r) => r.outcome === 'win').length;
+        const losses = rows.filter((r) => r.outcome === 'loss').length;
+        const draws = rows.filter((r) => r.outcome === 'draw').length;
+        const decided = wins + losses;
+        let streak = 0;
+        for (const r of rows) {
+          if (r.outcome === 'unresolved' || r.outcome === 'draw') continue;
+          if (streak === 0) streak = r.outcome === 'win' ? 1 : -1;
+          else if (streak > 0 && r.outcome === 'win') streak += 1;
+          else if (streak < 0 && r.outcome === 'loss') streak -= 1;
+          else break;
+        }
+        return {
+          battles: rows.length,
+          wins,
+          losses,
+          draws,
+          win_rate: decided > 0 ? Number((wins / decided).toFixed(3)) : null,
+          crowns_for: rows.reduce((s, r) => s + (r.crowns ?? 0), 0),
+          crowns_against: rows.reduce((s, r) => s + (r.opp_crowns ?? 0), 0),
+          net_trophies: rows.reduce((s, r) => s + (r.trophy_change ?? 0), 0),
+          three_crown_rate: rows.length > 0 ? Number((rows.filter((r) => r.crowns === 3).length / rows.length).toFixed(3)) : null,
+          current_streak: streak,
+        };
+      };
+
+      const from = resolveInstant(tz, args.from);
+      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      let result;
+      if (args.before_after) {
+        const split = resolveInstant(tz, args.before_after);
+        if (!split) throw new ToolFailure('bad_request', `Unparseable before_after: ${args.before_after}`);
+        result = {
+          before: await segment({ from, to: split }),
+          after: await segment({ from: split, to }),
+          split_at: split.toISOString(),
+        };
+      } else if (args.compare_from || args.compare_to) {
+        result = {
+          window: await segment({ from, to, lastN: args.last_n_battles }),
+          compare_window: await segment({
+            from: resolveInstant(tz, args.compare_from),
+            to: resolveInstant(tz, args.compare_to, { endOfDay: true }),
+          }),
+        };
+      } else {
+        result = { window: await segment({ from, to, lastN: args.last_n_battles }) };
+      }
+      return { player_tag: tag, ...result, meta: await buildMeta(ctx.db, ctx.account, tag) };
+    },
+  },
+
+  get_card_performance: {
+    description:
+      'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you — the nemesis question. Duels are excluded (no single deck).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        player_tag: TAG_SCHEMA,
+        perspective: { type: 'string', enum: ['mine', 'opponent'], default: 'mine' },
+        from: { type: 'string' },
+        to: { type: 'string' },
+        mode: { type: 'string', enum: MODE_GROUPS },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tz = ctx.account.timezone;
+      const mine = args.perspective !== 'opponent';
+      const where = ['bp.player_tag = $1', `bp.outcome in ('win','loss')`];
+      const params = [tag];
+      const add = (clause, value) => {
+        params.push(value);
+        where.push(clause.replace('?', `$${params.length}`));
+      };
+      const from = resolveInstant(tz, args.from);
+      if (from) add('b.battle_time >= ?', from);
+      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      if (to) add('b.battle_time < ?', to);
+      if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
+
+      const deckSource = mine
+        ? `bp.deck`
+        : `(select o.deck from battle_participant o
+            where o.battle_id = bp.battle_id and o.side <> bp.side and o.deck is not null
+            limit 1)`;
+      const { rows } = await ctx.db.query(
+        `select card->>'name' as name, (card->>'id')::bigint as id,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses
+         from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id,
+         lateral jsonb_array_elements(coalesce(${deckSource}->'cards', '[]'::jsonb)) card
+         where ${where.join(' and ')}
+         group by 1, 2
+         having count(*) >= 3
+         order by count(*) desc
+         limit 120`,
+        params,
+      );
+      return {
+        player_tag: tag,
+        perspective: mine ? 'mine' : 'opponent',
+        cards: rows.map((r) => ({
+          id: Number(r.id),
+          name: r.name,
+          battles: r.wins + r.losses,
+          wins: r.wins,
+          losses: r.losses,
+          win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
+        })),
+        note: mine
+          ? 'win_rate is YOUR record when this card is in your deck.'
+          : 'win_rate is YOUR record when this card appears in the OPPONENT deck — low means nemesis.',
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
+  get_deck_performance: {
+    description:
+      'Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. The factual substrate for deck review — pass a deck_hash to query_battles or get_performance to drill in.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        player_tag: TAG_SCHEMA,
+        from: { type: 'string' },
+        to: { type: 'string' },
+        mode: { type: 'string', enum: MODE_GROUPS },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tz = ctx.account.timezone;
+      const where = ['bp.player_tag = $1', 'bp.deck_hash is not null'];
+      const params = [tag];
+      const add = (clause, value) => {
+        params.push(value);
+        where.push(clause.replace('?', `$${params.length}`));
+      };
+      const from = resolveInstant(tz, args.from);
+      if (from) add('b.battle_time >= ?', from);
+      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      if (to) add('b.battle_time < ?', to);
+      if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
+      const { rows } = await ctx.db.query(
+        `select bp.deck_hash,
+                min(b.battle_time) as first_used, max(b.battle_time) as last_used,
+                count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses,
+                count(*) filter (where bp.outcome = 'draw')::int as draws,
+                (array_agg(bp.deck order by b.battle_time desc))[1] as deck
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+         where ${where.join(' and ')}
+         group by bp.deck_hash
+         order by count(*) desc
+         limit 40`,
+        params,
+      );
+      return {
+        player_tag: tag,
+        decks: rows.map((r) => ({
+          deck_hash: r.deck_hash,
+          cards: (r.deck?.cards ?? []).map((c) => ({ id: c.id, name: c.name })),
+          battles: r.battles,
+          wins: r.wins,
+          losses: r.losses,
+          draws: r.draws,
+          win_rate: r.wins + r.losses > 0 ? Number((r.wins / (r.wins + r.losses)).toFixed(3)) : null,
+          first_used: r.first_used.toISOString(),
+          last_used: r.last_used.toISOString(),
+        })),
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
+  get_collection: {
+    description:
+      'Full card collection as last recorded: levels, counts, evolutions, star levels, collection level. API-shaped passthrough of the latest profile payload; upgrade-gap math ships when the reference table lands.',
+    inputSchema: {
+      type: 'object',
+      properties: { player_tag: TAG_SCHEMA },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const { rows } = await ctx.db.query(
+        `select p.payload_json->'cards' as cards,
+                p.payload_json->'currentDeckSupportCards' as support_cards,
+                (p.payload_json->>'collectionLevel')::int as collection_level,
+                p.last_fetched_at
+         from api_payload p
+         where p.endpoint = 'player' and p.entity_key = $1
+         order by p.last_fetched_at desc limit 1`,
+        [tag],
+      );
+      const row = rows[0];
+      if (!row) {
+        throw new ToolFailure('not_recorded', `No profile payload recorded for ${tag} yet.`, 'Recording may have just started; the collection arrives with the first profile poll.');
+      }
+      return {
+        player_tag: tag,
+        collection_level: row.collection_level,
+        cards: row.cards,
+        support_cards: row.support_cards,
+        as_of_payload: row.last_fetched_at.toISOString(),
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
+  get_card_catalog: {
+    description:
+      'Current card and tower-troop catalog: ids, names, rarities, max levels, evolution availability. Use it to resolve card ids instead of guessing.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    async handler(ctx) {
+      const { rows } = await ctx.db.query(
+        `select payload_json->'items' as items, payload_json->'supportItems' as support_items, last_fetched_at
+         from api_payload where endpoint = 'cards' and entity_key = 'GLOBAL'
+         order by last_fetched_at desc limit 1`,
+      );
+      const row = rows[0];
+      if (!row) throw new ToolFailure('not_recorded', 'Card catalog not recorded yet.');
+      return {
+        cards: row.items,
+        tower_troops: row.support_items,
+        as_of: row.last_fetched_at.toISOString(),
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  cr_api_live: {
+    description:
+      'Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'e.g. /players/#20JJJ2CCRU or /clans/#J2RGCRVG/currentriverrace' },
+      },
+      required: ['path'],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const raw = String(args.path ?? '');
+      const m = /^\/(players|clans)\/([^/]+)(\/(battlelog|currentriverrace|riverracelog))?$/.exec(raw);
+      if (!m) throw new ToolFailure('bad_request', `Path not in the allowlist: ${raw}`);
+      if (m[1] === 'players' && m[4] && m[4] !== 'battlelog')
+        throw new ToolFailure('bad_request', `${m[4]} is a clan endpoint.`);
+      if (m[1] === 'clans' && m[4] === 'battlelog')
+        throw new ToolFailure('bad_request', 'battlelog is a player endpoint.');
+      try {
+        normalizeTag(decodeURIComponent(m[2]));
+      } catch {
+        throw new ToolFailure('invalid_tag', `Invalid tag in path: ${m[2]}`);
+      }
+      throw new ToolFailure(
+        'live_unavailable',
+        'The live lane is not deployed yet; recorded-data tools remain available.',
+        'Use get_player / query_battles / get_coverage against the record.',
+      );
+    },
+  },
 };
 
 export function makeRegistry() {
