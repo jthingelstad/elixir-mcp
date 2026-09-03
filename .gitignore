@@ -1,0 +1,17 @@
+# Secrets — never tracked. This repo is PUBLIC.
+# CR API keys, Fastmail tokens, AWS credentials live only in local .env files
+# written by bootstrap scripts (DESIGN.md §7 Secrets, §12).
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
