@@ -1,0 +1,14 @@
+{
+  "name": "elixir-mcp",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Clash Royale history recorder + remote MCP server. Unofficial; not endorsed by Supercell.",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  }
+}
