@@ -85,7 +85,41 @@ async function seed(databaseUrl, spec) {
   }
 }
 
+/** Read-only ops stats ({stats: true}) — the admin/ops query path from
+ *  DESIGN §7: counts only, no row data, safe to invoke any time. */
+async function stats(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const counts = {};
+    for (const [key, sql] of Object.entries({
+      accounts: `select count(*)::int n from account`,
+      recordings: `select count(*)::int n from recording where status = 'active'`,
+      players: `select count(*)::int n from player`,
+      open_memberships: `select count(*)::int n from clan_membership where left_observed_at is null`,
+      battles: `select count(*)::int n from battle`,
+      snapshots: `select count(*)::int n from player_snapshot_daily`,
+      war_weeks: `select count(*)::int n from war_week`,
+      war_participation: `select count(*)::int n from war_participation`,
+      war_anchors: `select count(*)::int n from war_period_anchor`,
+      receipts_by_endpoint: `select json_object_agg(endpoint, n) n from (
+         select endpoint, count(*)::int n from api_receipt group by endpoint) x`,
+      audit_calls: `select count(*)::int n from mcp_call_audit`,
+    })) {
+      counts[key] = (await db.query(sql)).rows[0].n;
+    }
+    return counts;
+  } finally {
+    await db.end();
+  }
+}
+
 export async function handler(event) {
+  if (event?.stats) {
+    const result = await stats(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.seed) {
     const result = await seed(process.env.DATABASE_URL, event.seed);
     console.log(JSON.stringify(result));
