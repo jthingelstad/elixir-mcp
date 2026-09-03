@@ -20,13 +20,22 @@
  */
 
 import { createHash } from "node:crypto";
-import { normalizeTag, deckHash } from "@elixir-mcp/contracts";
+import { normalizeTag, deckHash, displayLevel } from "@elixir-mcp/contracts";
 import { canonicalBattleTime } from "./battle-time.mjs";
 
 function slimCards(cards) {
   if (!Array.isArray(cards)) return undefined;
   return cards.map((c) => {
-    const slim = { id: c.id, name: c.name, level: c.level };
+    // Levels stored on the in-game display scale, never the API's
+    // rarity-relative one (contracts displayLevel — the one conversion).
+    const slim = {
+      id: c.id,
+      name: c.name,
+      level:
+        typeof c.level === "number" && typeof c.maxLevel === "number"
+          ? displayLevel(c.level, c.maxLevel)
+          : c.level,
+    };
     if (c.evolutionLevel !== undefined) slim.evolutionLevel = c.evolutionLevel;
     if (c.starLevel !== undefined) slim.starLevel = c.starLevel;
     if (c.used !== undefined) slim.used = c.used;
@@ -40,6 +49,7 @@ function participantDeck(entry) {
   if (Array.isArray(entry.rounds)) {
     return {
       deck: {
+        norm: 1, // levels already on the display scale (0011 backfill skips)
         rounds: entry.rounds.map((r) => ({ cards: slimCards(r.cards) })),
       },
       hash: null,
@@ -47,7 +57,7 @@ function participantDeck(entry) {
   }
   const cards = slimCards(entry.cards);
   if (!cards) return { deck: null, hash: null };
-  const deck = { cards };
+  const deck = { norm: 1, cards };
   if (Array.isArray(entry.supportCards) && entry.supportCards.length > 0) {
     deck.supportCards = slimCards(entry.supportCards);
   }

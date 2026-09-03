@@ -181,6 +181,15 @@ test("get_collection: API-shaped passthrough of the latest payload", async () =>
   assert.ok(Array.isArray(body.cards) && body.cards.length > 50);
   assert.ok(body.cards[0].id && body.cards[0].name, "API shapes pass through");
   assert.ok(body.collection_level !== undefined);
+  // Levels are display-scale: every card caps at 16, none exceeds it.
+  assert.ok(body.cards.every((c) => c.maxLevel === 16));
+  assert.ok(body.cards.every((c) => c.level <= 16));
+  // The profile fixture holds at least one maxed non-common: raw level
+  // below 16 that normalizes to exactly 16.
+  assert.ok(
+    body.cards.some((c) => c.level === 16),
+    "maxed cards read 16 like the game shows",
+  );
 });
 
 test("get_card_catalog: served from the recorded GLOBAL payload", async () => {

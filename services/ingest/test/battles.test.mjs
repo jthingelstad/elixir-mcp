@@ -177,3 +177,59 @@ test("empty battlelog is a clean no-op", async () => {
     affectedPairs: [],
   });
 });
+
+test("deck levels are stored on the display scale, norm-stamped; 0011 backfill converts raw rows once", async () => {
+  const { rows } = await ctx.db.query(
+    `select bp.deck from battle_participant bp where bp.deck ? 'cards' limit 5`,
+  );
+  assert.ok(rows.length > 0);
+  for (const r of rows) {
+    assert.equal(r.deck.norm, 1, "ingest stamps norm");
+    assert.ok(
+      r.deck.cards.every((c) => c.level >= 9 || c.level === undefined),
+      "legendary-and-up floors imply the shift happened (no raw 1-8 levels in real decks)",
+    );
+  }
+
+  // Backfill: seed one raw, unstamped deck + a catalog, run 0011's SQL,
+  // and prove conversion + idempotency (the norm guard).
+  const { readFile } = await import("node:fs/promises");
+  const sql = await readFile(
+    new URL(
+      "../../../db/migrations/0011_normalize_deck_levels.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  await ctx.db.query(
+    `insert into api_payload (endpoint, entity_key, payload_hash, payload_json)
+     values ('cards', 'GLOBAL', 'norm-test',
+             '{"items": [{"id": 26000035, "maxLevel": 8}], "supportItems": []}')
+     on conflict do nothing`,
+  );
+  await ctx.db.query(`insert into player (player_tag) values ('#20UU99Y')`);
+  await ctx.db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('norm-test-battle', now(), 'PvP', 'pvp')`,
+  );
+  await ctx.db.query(
+    `insert into battle_participant (battle_id, player_tag, side, deck)
+     values ('norm-test-battle', '#20UU99Y', 0,
+             '{"cards": [{"id": 26000035, "name": "Lumberjack", "level": 6}]}')`,
+  );
+  await ctx.db.query(sql);
+  const first = (
+    await ctx.db.query(
+      `select deck from battle_participant where battle_id = 'norm-test-battle'`,
+    )
+  ).rows[0].deck;
+  assert.equal(first.cards[0].level, 14, "raw 6/8 legendary displays as 14");
+  assert.equal(first.norm, 1, "backfill stamps norm");
+  await ctx.db.query(sql);
+  const second = (
+    await ctx.db.query(
+      `select deck from battle_participant where battle_id = 'norm-test-battle'`,
+    )
+  ).rows[0].deck;
+  assert.equal(second.cards[0].level, 14, "norm guard prevents double-shift");
+});

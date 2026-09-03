@@ -10,6 +10,7 @@ import {
   responseMeta,
   MODE_GROUPS,
   typesForModeGroup,
+  displayCard,
 } from "@elixir-mcp/contracts";
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
@@ -816,8 +817,9 @@ const TOOLS = {
       return {
         player_tag: tag,
         collection_level: row.collection_level,
-        cards: row.cards,
-        support_cards: row.support_cards,
+        // Levels on the in-game display scale (contracts displayCard).
+        cards: (row.cards ?? []).map(displayCard),
+        support_cards: (row.support_cards ?? []).map(displayCard),
         as_of_payload: row.last_fetched_at.toISOString(),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
@@ -852,7 +854,7 @@ const TOOLS = {
 
   cr_api_live: {
     description:
-      "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s.",
+      "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s. RAW payloads: card levels here are the API's rarity-relative scale (a maxed legendary reads 8/8); every recorded-data tool serves the in-game 1-16 scale instead.",
     inputSchema: {
       type: "object",
       properties: {
