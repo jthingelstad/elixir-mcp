@@ -134,9 +134,11 @@ Jamie, 2026-09-03 (design session inputs):
 
 Start every iteration with a recorder health glance (gateway FetchSucceeded/BreakerOpen, DLQs, a get_coverage call) — we babysit while we build. Deploys are routine (`deploy.mjs --skip-web` unless web changed); no billable gates in V2. Jamie-manual steps get queued in NOTES, never blocked on.
 
+**Multi-tenant discipline (Jamie, 2026-09-03): elixir-bot's war/clan code was single-tenant — the pattern, never the assumption, transfers.** Every clan-scoped table leads its PK with the observing clan_tag; the war clock/season inference is per-clan; standings are view-scoped per observer (duplication across recorded clans in one race is by design); entitlements scope clan reads to the member's OWN clan. Any new clan-activity feature gets this checked explicitly.
+
 - [x] War clock (services/ingest/war-clock.mjs): period grid + season inference + observed-anchor-with-fallback + resolveWarKeys from battle time (cross-section = honest nulls); verified against the three real captured riverrace payloads
-- [ ] Migration 0006: war_season / war_week / war_week_clan / war_participation (**points, not fame**) / war_attendance_day; share_battles_with_clan consent flag on claim (default: on for war battles, off otherwise per DESIGN §4.2)
-- [ ] War projector: currentriverrace → accumulate with MAX-merge (monotonic counters), week/season finalize, attendance days; stamp war keys onto battles at ingest
+- [x] Migration 0006 (deployed): war_period_anchor / war_week / war_week_clan / war_participation (**points**) / war_attendance_day + claim.share_battles_with_clan
+- [x] War projector (deployed): anchors first-observation-wins; honest anchor_only genesis pending backfill; MAX-merge throughout; war keys stamped from battle time via per-clan clock; stale-payload-at-roll edge documented
 - [ ] riverracelog backfill consumer (NET-NEW; paginate at enrollment, take what it gives) + run it for #J2RGCRVG against prod
 - [ ] Entitlements module: rules 2-4 (clan-scoped reads for verified members, summary-level clanmates, battle-level needs consent flag, leadership scope = elder+ role from recorded roster)
 - [ ] Tools: get_war, get_war_history, get_clan, compare_players (+ timeline granularity 'season'); tools respect entitlements + consent
