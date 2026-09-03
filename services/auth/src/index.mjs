@@ -4,3 +4,4 @@ export * from './magic.mjs';
 export * from './sessions-store.mjs';
 export * from './rate-limit.mjs';
 export * from './gate.mjs';
+export * from './oauth.mjs';
