@@ -15,6 +15,7 @@ export function Dashboard({ me, refresh, navigate }) {
   const [tzSaved, setTzSaved] = useState(false);
   const [gateways, setGateways] = useState(null); // null until first load
   const [usage, setUsage] = useState(null);
+  const [connections, setConnections] = useState([]);
   const [gwForm, setGwForm] = useState({
     name: "",
     ip: "",
@@ -26,6 +27,10 @@ export function Dashboard({ me, refresh, navigate }) {
     if (me?.authenticated)
       api.usage().then((r) => {
         if (r.ok) setUsage(r.data);
+      });
+    if (me?.authenticated)
+      api.connections().then((r) => {
+        if (r.ok) setConnections(r.data.connections);
       });
   }, [me?.authenticated]);
 
@@ -182,6 +187,51 @@ export function Dashboard({ me, refresh, navigate }) {
               {usage.top_tools.map((t) => `${t.tool} (${t.calls})`).join(", ")}
             </p>
           )}
+        </div>
+      )}
+
+      {connections.length > 0 && (
+        <div className="panel">
+          <h3>Connected agents</h3>
+          <p>
+            MCP clients authorized on your account. Disconnecting revokes their
+            tokens immediately.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Connected</th>
+                <th>Last active</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {connections.map((c) => (
+                <tr key={c.family_id}>
+                  <td>{c.client_name ?? "Unnamed client"}</td>
+                  <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                  <td>
+                    {c.last_token_at
+                      ? new Date(c.last_token_at).toLocaleString()
+                      : "—"}
+                  </td>
+                  <td>
+                    <button
+                      className="quiet"
+                      onClick={async () => {
+                        await api.revokeConnection(c.family_id);
+                        const r = await api.connections();
+                        if (r.ok) setConnections(r.data.connections);
+                      }}
+                    >
+                      Disconnect
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -29,6 +29,9 @@ export const api = {
     request("POST", "/api/recordings", { player_tag, action }),
   clan: () => request("GET", "/api/clan"),
   usage: () => request("GET", "/api/me/usage"),
+  connections: () => request("GET", "/api/me/connections"),
+  revokeConnection: (family_id) =>
+    request("POST", "/api/me/connections/revoke", { family_id }),
   adminUsage: () => request("GET", "/api/admin/usage"),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>

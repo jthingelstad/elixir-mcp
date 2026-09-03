@@ -109,6 +109,19 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
         ],
       },
     ],
+    "GET /api/me/connections": [
+      200,
+      {
+        connections: [
+          {
+            family_id: "fam1",
+            client_name: "Claude",
+            created_at: new Date().toISOString(),
+            last_token_at: new Date().toISOString(),
+          },
+        ],
+      },
+    ],
     "GET /api/me/usage": [
       200,
       {

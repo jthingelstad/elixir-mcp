@@ -89,6 +89,10 @@ async function signIn(email) {
 // The per-email send limit (5/hour) is a product value the tests respect:
 // sign in once per identity and share the cookie across tests.
 let newcomerCookie;
+// Post-sign-out identities, shared by all later tests (the 5/hour
+// send limit is a product value the suite respects).
+let memberCookie;
+let bossCookie;
 
 test("the full journey: request -> approve -> sign in -> claim -> record", async () => {
   // 1. A newcomer requests access; the owner is notified; response is neutral.
@@ -322,7 +326,9 @@ test("owner enrolls and stops clan recordings; non-owners refused", async () => 
 });
 
 test("clan page: entitled member sees war + roster; outsiders refused", async () => {
-  const cookie = await signIn(NEWCOMER);
+  memberCookie = await signIn(NEWCOMER);
+  bossCookie = await signIn(JAMIE);
+  const cookie = memberCookie;
 
   // Before any recorded clan membership: no clan for this account.
   const before = await handler(
@@ -375,7 +381,7 @@ test("clan page: entitled member sees war + roster; outsiders refused", async ()
   assert.equal(res.members.length, 2);
 
   // The owner falls back to the first active recorded clan.
-  const ownerCookie = await signIn(JAMIE);
+  const ownerCookie = bossCookie;
   const ownerView = parse(
     await handler(
       event({
@@ -390,7 +396,7 @@ test("clan page: entitled member sees war + roster; outsiders refused", async ()
 });
 
 test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; guards", async () => {
-  const cookie = await signIn(NEWCOMER);
+  const cookie = memberCookie;
   const notesBefore = ownerNotes.length;
 
   const bad = await handler(
@@ -449,7 +455,7 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
   );
 
   // Lifecycle is owner-only and forward-only.
-  const ownerCookie = await signIn(JAMIE);
+  const ownerCookie = bossCookie;
   const nonOwner = await handler(
     event({
       path: "/api/admin/gateways",
@@ -513,7 +519,7 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
 });
 
 test("usage: member sees own daily counts and quota; admin sees the fleet", async () => {
-  const cookie = await signIn(NEWCOMER);
+  const cookie = memberCookie;
   const { rows: acct } = await db.query(
     `select account_id from account where email_hash = $1`,
     [emailHash(NEWCOMER)],
@@ -539,7 +545,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   assert.equal(mine.days[0].errors, 1);
   assert.ok(mine.top_tools.some((t) => t.tool === "get_player"));
 
-  const ownerCookie = await signIn(JAMIE);
+  const ownerCookie = bossCookie;
   const fleet = parse(
     await handler(
       event({
@@ -559,4 +565,67 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     event({ method: "GET", path: "/api/admin/usage", cookie, body: undefined }),
   );
   assert.equal(nonOwner.statusCode, 403);
+});
+
+test("connections: list shows OAuth families; revoke disconnects; others' families untouchable", async () => {
+  const cookie = memberCookie;
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('cid-test', 'Claude', '[]', now() + interval '30 days')`,
+  );
+  const { rows: fam } = await db.query(
+    `insert into oauth_family (client_id, account_id, absolute_expires_at)
+     values ('cid-test', $1, now() + interval '90 days') returning family_id`,
+    [acct[0].account_id],
+  );
+
+  const list = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/connections",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(list.connections.length, 1);
+  assert.equal(list.connections[0].client_name, "Claude");
+
+  // The owner cannot revoke someone else's family through this route.
+  const ownerCookie = bossCookie;
+  const foreign = await handler(
+    event({
+      path: "/api/me/connections/revoke",
+      cookie: ownerCookie,
+      body: { family_id: fam[0].family_id },
+    }),
+  );
+  assert.equal(foreign.statusCode, 404);
+
+  const revoked = parse(
+    await handler(
+      event({
+        path: "/api/me/connections/revoke",
+        cookie,
+        body: { family_id: fam[0].family_id },
+      }),
+    ),
+  );
+  assert.equal(revoked.ok, true);
+  const after = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/connections",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(after.connections.length, 0);
 });

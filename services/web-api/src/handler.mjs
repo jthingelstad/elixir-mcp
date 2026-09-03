@@ -352,6 +352,36 @@ export function makeHandler({
       });
     },
 
+    "GET /api/me/connections": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select f.family_id, c.client_name, f.created_at, f.absolute_expires_at,
+                (select max(t.created_at) from oauth_token t
+                 where t.family_id = f.family_id) as last_token_at
+         from oauth_family f join oauth_client c on c.client_id = f.client_id
+         where f.account_id = $1 and f.revoked_at is null
+           and f.absolute_expires_at > now()
+         order by f.created_at desc`,
+        [account.accountId],
+      );
+      return json(200, { connections: rows });
+    },
+
+    "POST /api/me/connections/revoke": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rowCount } = await db.query(
+        `update oauth_family set revoked_at = now()
+         where family_id::text = $1 and account_id = $2 and revoked_at is null`,
+        [String(body.family_id ?? ""), account.accountId],
+      );
+      if (rowCount === 0) return json(404, { error: "not_found" });
+      return json(200, { ok: true });
+    },
+
     "GET /api/me/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
