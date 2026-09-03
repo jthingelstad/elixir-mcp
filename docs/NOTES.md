@@ -120,7 +120,7 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Web UI (apps/web): landing/sign-in/dashboard/admin/connect in Drop's token palette; 4 RTL tests; 49KB gzipped
 - [x] Email relay (JMAP sender + templates + SQS consumer; EmailMessage contract) — transport swappable behind the queue
 - [x] Season-roll watcher (shared pre-reset window fn; scheduler forces in-window profile polls; projector pins season_roll rows)
-- [ ] infra/: CloudFormation stack + bootstrap/deploy/parameters/smoke — AUTHORING is fine; **GATE: the first actual deploy (create-stack) needs Jamie's explicit go (billable resources)**
+- [x] infra/ AUTHORED (template validated vs the real CFN API; 6 bundles build; bootstrap/parameters/deploy/smoke scripts; CI w/ postgres:17). **GATE OPEN — awaiting Jamie's explicit go for: `AWS_PROFILE=jamie node infra/scripts/bootstrap.mjs` then `AWS_PROFILE=jamie node infra/scripts/deploy.mjs --create` (starts billing, RDS ~$15/mo). Pre-reqs on Jamie: ELIXIR_MCP_JMAP_TOKEN in .env; fresh aws login.**
 - [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**
 
 2026-09-03 audit outcomes (DESIGN.md §11–§12 added): versioning designed (migration ladder + fingerprint test; contracts package + serverInfo cache-buster + deprecation rules; audit-row tuning loop). Build-blockers closed: DB access path (migrate Lambda + break-glass), SQS 256KB (gateway gzip, alarm on overflow), live request lane (second queue, gateways drain first), budget state in Postgres. Scope changes ratified: `get_player_timeline` into V1 (11 tools), season-roll watcher into V1, **repo public from day one** (fixture discipline from first commit).
