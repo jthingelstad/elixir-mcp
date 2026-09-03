@@ -5,18 +5,21 @@ export function Admin({ me }) {
   const [requests, setRequests] = useState([]);
   const [gateways, setGateways] = useState([]);
   const [clans, setClans] = useState([]);
+  const [usage, setUsage] = useState(null);
   const [clanTag, setClanTag] = useState("");
   const [clanError, setClanError] = useState("");
 
   const load = useCallback(async () => {
-    const [r, g, c] = await Promise.all([
+    const [r, g, c, u] = await Promise.all([
       api.adminRequests(),
       api.adminGateways(),
       api.adminClans(),
+      api.adminUsage(),
     ]);
     if (r.ok) setRequests(r.data.requests);
     if (g.ok) setGateways(g.data.gateways);
     if (c.ok) setClans(c.data.clans);
+    if (u.ok) setUsage(u.data);
   }, []);
 
   useEffect(() => {
@@ -153,6 +156,75 @@ export function Admin({ me }) {
           <button>Start recording</button>
         </form>
       </div>
+
+      {usage && (
+        <div className="panel">
+          <h3>MCP usage (7 days)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Today</th>
+                <th>7d</th>
+                <th>Errors</th>
+                <th>Quota</th>
+                <th>Last call</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usage.accounts.map((a) => (
+                <tr key={a.email_hash}>
+                  <td>
+                    {a.primary_tag ? (
+                      <code>{a.primary_tag}</code>
+                    ) : (
+                      <code>{a.email_hash.slice(0, 10)}…</code>
+                    )}
+                  </td>
+                  <td>{a.calls_today}</td>
+                  <td>{a.calls_7d}</td>
+                  <td>{a.errors_7d || ""}</td>
+                  <td>{a.mcp_daily_quota ?? "default"}</td>
+                  <td>
+                    {a.last_call
+                      ? new Date(a.last_call).toLocaleString()
+                      : "never"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {usage.tools.length > 0 && (
+            <>
+              <h3>Tools (7 days)</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tool</th>
+                    <th>Calls</th>
+                    <th>Errors</th>
+                    <th>Avg ms</th>
+                    <th>Truncated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usage.tools.map((t) => (
+                    <tr key={t.tool}>
+                      <td>
+                        <code>{t.tool}</code>
+                      </td>
+                      <td>{t.calls}</td>
+                      <td>{t.errors || ""}</td>
+                      <td>{t.avg_ms}</td>
+                      <td>{t.truncated || ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="panel">
         <h3>Gateways</h3>

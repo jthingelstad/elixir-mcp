@@ -211,6 +211,8 @@ test("list_my_players: primary claim, recording status, meta envelope", async ()
   assert.equal(p.recording, "active");
   assert.equal(body.meta.contract_version, CONTRACT_VERSION);
   assert.match(body.meta.disclaimer, /not endorsed by Supercell/);
+  assert.equal(body.meta.quota.max, 500, "quota headroom rides the meta");
+  assert.ok(body.meta.quota.used >= 1);
 });
 
 test("get_coverage: polls, appearances, recorded_since", async () => {

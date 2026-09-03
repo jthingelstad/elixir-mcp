@@ -352,6 +352,70 @@ export function makeHandler({
       });
     },
 
+    "GET /api/me/usage": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows: days } = await db.query(
+        `select created_at::date::text as day, count(*)::int as calls,
+                count(*) filter (where error_code is not null)::int as errors
+         from mcp_call_audit
+         where account_id = $1 and created_at > now() - interval '7 days'
+         group by 1 order by 1 desc`,
+        [account.accountId],
+      );
+      const { rows: tools } = await db.query(
+        `select tool, count(*)::int as calls from mcp_call_audit
+         where account_id = $1 and created_at > now() - interval '7 days'
+         group by 1 order by 2 desc limit 5`,
+        [account.accountId],
+      );
+      const today = new Date().toISOString().slice(0, 10);
+      const { rows: live } = await db.query(
+        `select count from rate_limit where bucket = $1 and window_start = $2::date`,
+        [`liveday#${account.accountId}`, today],
+      );
+      const { rows: quota } = await db.query(
+        `select mcp_daily_quota from account where account_id = $1`,
+        [account.accountId],
+      );
+      return json(200, {
+        days,
+        top_tools: tools,
+        today_calls: days.find((d) => d.day === today)?.calls ?? 0,
+        live_today: live[0]?.count ?? 0,
+        live_max: account.isOwner ? null : 50,
+        quota_max: account.isOwner ? null : (quota[0]?.mcp_daily_quota ?? 500),
+      });
+    },
+
+    "GET /api/admin/usage": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const { rows: accounts } = await db.query(
+        `select a.email_hash, a.mcp_daily_quota,
+                (select c.player_tag from claim c
+                 where c.account_id = a.account_id and c.is_primary) as primary_tag,
+                count(m.audit_id)::int as calls_7d,
+                count(m.audit_id) filter (where m.created_at > now() - interval '1 day')::int as calls_today,
+                count(m.audit_id) filter (where m.error_code is not null)::int as errors_7d,
+                max(m.created_at) as last_call
+         from account a
+         left join mcp_call_audit m
+           on m.account_id = a.account_id and m.created_at > now() - interval '7 days'
+         where a.status = 'approved'
+         group by a.account_id order by calls_7d desc`,
+      );
+      const { rows: tools } = await db.query(
+        `select tool, count(*)::int as calls,
+                count(*) filter (where error_code is not null)::int as errors,
+                round(avg(duration_ms))::int as avg_ms,
+                count(*) filter (where truncated)::int as truncated
+         from mcp_call_audit where created_at > now() - interval '7 days'
+         group by 1 order by 2 desc`,
+      );
+      return json(200, { accounts, tools });
+    },
+
     "GET /api/admin/requests": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isOwner) return json(403, { error: "not_entitled" });

@@ -511,3 +511,52 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
   );
   assert.equal(again.statusCode, 200);
 });
+
+test("usage: member sees own daily counts and quota; admin sees the fleet", async () => {
+  const cookie = await signIn(NEWCOMER);
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, duration_ms, result_bytes)
+     values ($1, 'get_player', 120, 900), ($1, 'query_battles', 340, 4000)`,
+    [acct[0].account_id],
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, error_code)
+     values ($1, 'get_war', 'not_entitled')`,
+    [acct[0].account_id],
+  );
+
+  const mine = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/usage", cookie, body: undefined }),
+    ),
+  );
+  assert.equal(mine.today_calls, 3);
+  assert.equal(mine.quota_max, 500, "default quota surfaced");
+  assert.equal(mine.days[0].errors, 1);
+  assert.ok(mine.top_tools.some((t) => t.tool === "get_player"));
+
+  const ownerCookie = await signIn(JAMIE);
+  const fleet = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/usage",
+        cookie: ownerCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const row = fleet.accounts.find((a) => a.primary_tag === "#2PP0V90Y");
+  assert.equal(row.calls_7d, 3);
+  assert.equal(row.errors_7d, 1);
+  assert.ok(fleet.tools.some((t) => t.tool === "query_battles"));
+
+  const nonOwner = await handler(
+    event({ method: "GET", path: "/api/admin/usage", cookie, body: undefined }),
+  );
+  assert.equal(nonOwner.statusCode, 403);
+});

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
 function freshness(ts) {
@@ -14,12 +14,20 @@ export function Dashboard({ me, refresh, navigate }) {
   const [error, setError] = useState("");
   const [tzSaved, setTzSaved] = useState(false);
   const [gateways, setGateways] = useState(null); // null until first load
+  const [usage, setUsage] = useState(null);
   const [gwForm, setGwForm] = useState({
     name: "",
     ip: "",
     error: "",
     done: false,
   });
+
+  useEffect(() => {
+    if (me?.authenticated)
+      api.usage().then((r) => {
+        if (r.ok) setUsage(r.data);
+      });
+  }, [me?.authenticated]);
 
   if (me === null) return <p className="notice">Loading…</p>;
   if (!me.authenticated) {
@@ -135,6 +143,47 @@ export function Dashboard({ me, refresh, navigate }) {
           <button>Claim</button>
         </form>
       </div>
+
+      {usage && (
+        <div className="panel">
+          <h3>Usage</h3>
+          <p>
+            Today: <strong>{usage.today_calls}</strong>
+            {usage.quota_max ? ` of ${usage.quota_max}` : ""} tool calls
+            {usage.live_max
+              ? ` · ${usage.live_today} of ${usage.live_max} live fetches`
+              : usage.live_today
+                ? ` · ${usage.live_today} live fetches`
+                : ""}
+          </p>
+          {usage.days.length > 0 && (
+            <table>
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Calls</th>
+                  <th>Errors</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.days.map((d) => (
+                  <tr key={d.day}>
+                    <td>{d.day}</td>
+                    <td>{d.calls}</td>
+                    <td>{d.errors || ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {usage.top_tools.length > 0 && (
+            <p className="notice">
+              Most used:{" "}
+              {usage.top_tools.map((t) => `${t.tool} (${t.calls})`).join(", ")}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="panel">
         <h3>Connect your agent</h3>

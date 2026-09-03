@@ -330,7 +330,7 @@ export async function validateAccessToken(db, token) {
   const raw = validOpaque(token, ACCESS_TOKEN_PREFIX);
   if (!raw) return null;
   const { rows } = await db.query(
-    `select f.client_id, a.account_id, a.email_hash, a.is_owner, a.timezone
+    `select f.client_id, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
      join account a on a.account_id = f.account_id
@@ -347,6 +347,7 @@ export async function validateAccessToken(db, token) {
         emailHash: row.email_hash,
         isOwner: row.is_owner,
         timezone: row.timezone,
+        mcpDailyQuota: row.mcp_daily_quota,
         clientId: row.client_id,
       }
     : null;

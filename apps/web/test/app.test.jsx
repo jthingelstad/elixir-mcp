@@ -109,6 +109,17 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
         ],
       },
     ],
+    "GET /api/me/usage": [
+      200,
+      {
+        days: [{ day: "2026-09-03", calls: 12, errors: 0 }],
+        top_tools: [{ tool: "get_player", calls: 7 }],
+        today_calls: 12,
+        live_today: 1,
+        live_max: 50,
+        quota_max: 500,
+      },
+    ],
   });
   render(<App />);
   expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
@@ -116,6 +127,7 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
   expect(screen.getByText("active")).toBeTruthy();
   expect(screen.getByText(/elixir\.poapkings\.com\/mcp/)).toBeTruthy();
   expect(screen.getByText("Stop")).toBeTruthy();
+  expect(await screen.findByText(/of 500 tool calls/)).toBeTruthy();
 });
 
 test("admin view is owner-gated in the UI", async () => {

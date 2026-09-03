@@ -28,6 +28,8 @@ export const api = {
   setRecording: (player_tag, action) =>
     request("POST", "/api/recordings", { player_tag, action }),
   clan: () => request("GET", "/api/clan"),
+  usage: () => request("GET", "/api/me/usage"),
+  adminUsage: () => request("GET", "/api/admin/usage"),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>
     request("POST", "/api/admin/decide", { email_hash, decision }),

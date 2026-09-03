@@ -7,7 +7,8 @@
 
 const MCP_DAILY_QUOTA_DEFAULT = 500;
 
-export function makeQuota({ db, account, max = MCP_DAILY_QUOTA_DEFAULT }) {
+export function makeQuota({ db, account }) {
+  const max = account.mcpDailyQuota ?? MCP_DAILY_QUOTA_DEFAULT;
   return async function spendQuota() {
     if (account.isOwner) return { allowed: true, count: 0, max: Infinity };
     const day = new Date().toISOString().slice(0, 10);

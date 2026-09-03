@@ -149,6 +149,11 @@ export async function handleMcpMessage(message, context) {
         ? params.arguments
         : {};
     const invoked = await context.invokeTool(name, args);
+    // Agents self-moderate better than they handle walls: quota headroom
+    // rides every response meta (owner is uncapped — no quota block).
+    if (Number.isFinite(quota.max) && invoked.body?.meta) {
+      invoked.body.meta.quota = { used: quota.count, max: quota.max };
+    }
     const { text } = renderToolResultText(context.registry, name, invoked.body);
     return {
       statusCode: 200,
