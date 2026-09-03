@@ -4,3 +4,4 @@ export * from './deck.js';
 export * from './meta.js';
 export * from './version.js';
 export * from './queue.js';
+export * from './modes.js';

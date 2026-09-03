@@ -9,19 +9,9 @@
  * and duplicated across the day's mode rows by design.
  */
 
-export const MODE_GROUP_BY_TYPE = {
-  PvP: 'ladder',
-  pathOfLegend: 'ranked',
-  trail: 'casual',
-  riverRacePvP: 'war',
-  riverRaceDuel: 'war',
-  riverRaceDuelColosseum: 'war',
-  boatBattle: 'war',
-  clanMate2v2: 'casual',
-  friendly: 'casual',
-  challenge: 'challenge',
-  tournament: 'tournament',
-};
+import { MODE_GROUP_BY_TYPE } from '@elixir-mcp/contracts';
+
+export { MODE_GROUP_BY_TYPE };
 
 const MODE_GROUP_CASE = `case b.type ${Object.entries(MODE_GROUP_BY_TYPE)
   .map(([t, g]) => `when '${t}' then '${g}'`)
