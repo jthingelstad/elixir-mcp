@@ -57,6 +57,9 @@ says which existing repo to read before writing each subsystem.
 ## Working style
 
 - Work lands on `main`; CI (validate workflow) must stay green.
+- `npm run verify` (prettier check + oxlint + all workspace tests) is the
+  pre-push gate; `npm run format` fixes style. `npm run knip` hunts dead
+  exports/deps — run it when refactoring, not every push.
 - Commits are small and message-first; assert HEAD moved after committing
   (don't pipe commit output through `tail`).
 - Manual steps only Jamie can do (Supercell keys, DNS, Fastmail tokens,

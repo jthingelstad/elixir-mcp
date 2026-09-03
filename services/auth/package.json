@@ -1,14 +1,13 @@
 {
   "name": "@elixir-mcp/auth",
   "version": "0.1.0",
-  "description": "Shared credential core (DESIGN §6): magic links + codes, HMAC sessions with server-side revocation, rate limiting, the access gate. One core, two shells — the web sign-in and the OAuth authorize flow both issue through here.",
+  "description": "Shared credential core (DESIGN \u00a76): magic links + codes, HMAC sessions with server-side revocation, rate limiting, the access gate. One core, two shells \u2014 the web sign-in and the OAuth authorize flow both issue through here.",
   "type": "module",
   "main": "src/index.mjs",
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
-    "@elixir-mcp/contracts": "0.1.0",
     "pg": "^8.13.0"
   }
 }

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["infra/scripts/*.mjs"],
+      "project": ["infra/scripts/**/*.mjs"]
+    },
+    "apps/web": {
+      "entry": ["src/main.jsx", "vite.config.mjs"],
+      "project": ["src/**/*.{js,jsx}"]
+    },
+    "packages/contracts": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.mjs"]
+    },
+    "services/*": {
+      "entry": ["src/index.mjs", "src/lambda.mjs", "src/cli.mjs", "src/seed-dev.mjs", "scripts/*.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    }
+  }
+}

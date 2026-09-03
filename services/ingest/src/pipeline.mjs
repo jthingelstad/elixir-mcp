@@ -138,7 +138,7 @@ export async function processResult(db, rawMessage) {
   try {
     rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, 'base64')).toString('utf8');
     payload = JSON.parse(rawText);
-  } catch (err) {
+  } catch {
     payload = undefined;
   }
 

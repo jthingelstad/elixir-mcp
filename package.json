@@ -19,6 +19,18 @@
     "@aws-sdk/client-s3": "^3.1125.0",
     "@aws-sdk/client-secrets-manager": "^3.1125.0",
     "@aws-sdk/client-sts": "^3.1125.0",
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "knip": "^6.34.0",
+    "oxlint": "^1.81.0",
+    "prettier": "^3.9.6"
+  },
+  "scripts": {
+    "build": "npm run build -w @elixir-mcp/contracts",
+    "test": "npm test -ws --if-present",
+    "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip",
+    "verify": "npm run format:check && npm run lint && npm run test"
   }
 }

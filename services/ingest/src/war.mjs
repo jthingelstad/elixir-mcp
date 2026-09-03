@@ -43,7 +43,7 @@ export async function clanClock(db, clanTag, payload, nowMs) {
   });
 }
 
-export async function projectRiverRace(db, { clanTag, payload, fetchedAt }) {
+export async function projectRiverRace(db, { payload, fetchedAt }) {
   const tag = normalizeTag(payload.clan.tag);
   const observedMs = Date.parse(fetchedAt);
 

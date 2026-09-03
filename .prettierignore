@@ -1,0 +1,10 @@
+# Checksum-immutable migration ladder: reformatting = breaking (golden rule 6).
+db/migrations/
+db/schema.fingerprint
+
+# Real exported CR payloads, kept verbatim for provenance.
+fixtures/
+
+# Build output and lockfile.
+dist/
+package-lock.json

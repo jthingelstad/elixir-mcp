@@ -161,7 +161,7 @@ test('roster diffs emit clan events with evidence; first sight was silent', asyn
     ctx.db,
     message({ endpoint: 'clan', entityKey: '#J2RGCRVG', payload: clan, fetchedAt: '2026-09-03T14:40:34Z' }),
   );
-  let events = (await ctx.db.query('select count(*)::int n from clan_event')).rows[0].n;
+  const events = (await ctx.db.query('select count(*)::int n from clan_event')).rows[0].n;
   assert.equal(events, 0, 'first roster observation is silent');
 
   const changed = structuredClone(clan);

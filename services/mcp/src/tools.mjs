@@ -7,17 +7,12 @@
 
 import {
   normalizeTag,
-  InvalidTagError,
   responseMeta,
   MODE_GROUPS,
   typesForModeGroup,
 } from '@elixir-mcp/contracts';
 import { resolveInstant, formatLocal } from './time.mjs';
-import {
-  resolveSubject,
-  resolveEntitledClan,
-  requireLeadership,
-} from './entitlements.mjs';
+import { resolveSubject, resolveEntitledClan } from './entitlements.mjs';
 import { livePathToJob } from './live.mjs';
 
 const LIVE_DAILY_CAP = 50;
