@@ -6,7 +6,10 @@
  * become an email oracle; these functions just do the state moves.
  */
 
-export async function requestAccess(db, { emailHash, playerTag = null, note = null }) {
+export async function requestAccess(
+  db,
+  { emailHash, playerTag = null, note = null },
+) {
   const { rows } = await db.query(
     `insert into account (email_hash, status, requested_player_tag, request_note)
      values ($1, 'requested', $2, $3)
@@ -18,7 +21,8 @@ export async function requestAccess(db, { emailHash, playerTag = null, note = nu
 }
 
 export async function decideAccess(db, { emailHash, decision }) {
-  if (!['approved', 'denied'].includes(decision)) throw new Error(`bad decision: ${decision}`);
+  if (!["approved", "denied"].includes(decision))
+    throw new Error(`bad decision: ${decision}`);
   const { rows } = await db.query(
     `update account set status = $2, decided_at = now()
      where email_hash = $1 and status in ('requested', 'denied', 'approved')

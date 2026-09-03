@@ -8,20 +8,20 @@
  * human typo).
  */
 
-export const CR_TAG_ALPHABET = '0289PYLQGRJCUV';
+export const CR_TAG_ALPHABET = "0289PYLQGRJCUV";
 
 const CANONICAL_RE = new RegExp(`^#[${CR_TAG_ALPHABET}]{3,12}$`);
 
 export class InvalidTagError extends Error {
-  readonly code = 'invalid_tag' as const;
+  readonly code = "invalid_tag" as const;
   constructor(readonly input: string) {
     super(`not a valid Clash Royale tag: ${JSON.stringify(input)}`);
-    this.name = 'InvalidTagError';
+    this.name = "InvalidTagError";
   }
 }
 
 /** A tag in canonical form. Produced only by normalizeTag. */
-export type CanonicalTag = string & { readonly __brand: 'CanonicalTag' };
+export type CanonicalTag = string & { readonly __brand: "CanonicalTag" };
 
 /**
  * Normalize a player or clan tag to canonical form, or throw InvalidTagError.
@@ -30,8 +30,8 @@ export type CanonicalTag = string & { readonly __brand: 'CanonicalTag' };
  * folding — a malformed tag must never reach a query or the CR API.
  */
 export function normalizeTag(input: string): CanonicalTag {
-  const folded = input.trim().toUpperCase().replaceAll('O', '0');
-  const tag = folded.startsWith('#') ? folded : `#${folded}`;
+  const folded = input.trim().toUpperCase().replaceAll("O", "0");
+  const tag = folded.startsWith("#") ? folded : `#${folded}`;
   if (!CANONICAL_RE.test(tag)) throw new InvalidTagError(input);
   return tag as CanonicalTag;
 }

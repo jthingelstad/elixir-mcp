@@ -11,45 +11,50 @@
  * its sha256 (lowercased) is stored — same as production.
  */
 
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import pg from 'pg';
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import pg from "pg";
 
 // Jamie's player tag and POAP KINGS — public CR data, fine to commit.
-const OWNER_PLAYER_TAG = '#20JJJ2CCRU';
-const OWNER_CLAN_TAG = '#J2RGCRVG';
+const OWNER_PLAYER_TAG = "#20JJJ2CCRU";
+const OWNER_CLAN_TAG = "#J2RGCRVG";
 // No clan_membership seed on purpose: tenure is OBSERVED, never asserted
 // (DESIGN §4.1) — the recorder writes membership when it sees the roster.
 // In the running system the clan is auto-followed from the player's own
 // profile (§4.2); seeding the clan row here just gives dev a familiar clan.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '../../..');
+const repoRoot = path.resolve(here, "../../..");
 
 async function ownerEmail() {
-  if (process.env.ELIXIR_MCP_OWNER_EMAIL) return process.env.ELIXIR_MCP_OWNER_EMAIL;
+  if (process.env.ELIXIR_MCP_OWNER_EMAIL)
+    return process.env.ELIXIR_MCP_OWNER_EMAIL;
   try {
-    const env = await readFile(path.join(repoRoot, '.env'), 'utf8');
-    const line = env.split('\n').find((l) => l.startsWith('ELIXIR_MCP_OWNER_EMAIL='));
-    if (line) return line.slice('ELIXIR_MCP_OWNER_EMAIL='.length).trim();
+    const env = await readFile(path.join(repoRoot, ".env"), "utf8");
+    const line = env
+      .split("\n")
+      .find((l) => l.startsWith("ELIXIR_MCP_OWNER_EMAIL="));
+    if (line) return line.slice("ELIXIR_MCP_OWNER_EMAIL=".length).trim();
   } catch {
     /* no .env */
   }
-  throw new Error('set ELIXIR_MCP_OWNER_EMAIL in the environment or repo-root .env');
+  throw new Error(
+    "set ELIXIR_MCP_OWNER_EMAIL in the environment or repo-root .env",
+  );
 }
 
 const databaseUrl =
-  process.env.DATABASE_URL ?? 'postgres://otto@localhost:5432/elixir_mcp_dev';
-const emailHash = createHash('sha256')
+  process.env.DATABASE_URL ?? "postgres://otto@localhost:5432/elixir_mcp_dev";
+const emailHash = createHash("sha256")
   .update((await ownerEmail()).toLowerCase())
-  .digest('hex');
+  .digest("hex");
 
 const db = new pg.Client({ connectionString: databaseUrl });
 await db.connect();
 try {
-  await db.query('begin');
+  await db.query("begin");
   const {
     rows: [account],
   } = await db.query(
@@ -82,15 +87,15 @@ try {
      )`,
     [OWNER_PLAYER_TAG, account.account_id],
   );
-  await db.query('commit');
+  await db.query("commit");
   const { rows: summary } = await db.query(
     `select (select count(*)::int from account) as accounts,
             (select count(*)::int from claim) as claims,
             (select count(*)::int from recording where status = 'active') as active_recordings`,
   );
-  console.log('seeded:', JSON.stringify(summary[0]));
+  console.log("seeded:", JSON.stringify(summary[0]));
 } catch (err) {
-  await db.query('rollback').catch(() => {});
+  await db.query("rollback").catch(() => {});
   throw err;
 } finally {
   await db.end();

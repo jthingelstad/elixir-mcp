@@ -10,10 +10,10 @@ import {
   responseMeta,
   MODE_GROUPS,
   typesForModeGroup,
-} from '@elixir-mcp/contracts';
-import { resolveInstant, formatLocal } from './time.mjs';
-import { resolveSubject, resolveEntitledClan } from './entitlements.mjs';
-import { livePathToJob } from './live.mjs';
+} from "@elixir-mcp/contracts";
+import { resolveInstant, formatLocal } from "./time.mjs";
+import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
+import { livePathToJob } from "./live.mjs";
 
 const LIVE_DAILY_CAP = 50;
 
@@ -28,7 +28,11 @@ async function spendLiveQuota(ctx) {
     [`liveday#${ctx.account.accountId}`, day],
   );
   if (rows[0].count > LIVE_DAILY_CAP) {
-    throw new ToolFailure('quota_exceeded', `Live-fetch quota reached (${LIVE_DAILY_CAP}/day).`, 'Recorded-data tools are unlimited within the normal quota.');
+    throw new ToolFailure(
+      "quota_exceeded",
+      `Live-fetch quota reached (${LIVE_DAILY_CAP}/day).`,
+      "Recorded-data tools are unlimited within the normal quota.",
+    );
   }
 }
 
@@ -41,8 +45,9 @@ export class ToolFailure extends Error {
 }
 
 const TAG_SCHEMA = {
-  type: 'string',
-  description: 'Clash Royale player tag like #20JJJ2CCRU. Defaults to your primary claimed tag.',
+  type: "string",
+  description:
+    "Clash Royale player tag like #20JJJ2CCRU. Defaults to your primary claimed tag.",
 };
 
 // --- shared helpers --------------------------------------------------------
@@ -79,7 +84,9 @@ async function buildMeta(db, account, tag) {
   const row = rows[0] ?? {};
   return responseMeta({
     as_of: new Date().toISOString(),
-    ...(row.recorded_since ? { recorded_since: row.recorded_since.toISOString() } : {}),
+    ...(row.recorded_since
+      ? { recorded_since: row.recorded_since.toISOString() }
+      : {}),
     ...(row.freshness_seconds !== null && row.freshness_seconds !== undefined
       ? { freshness_seconds: row.freshness_seconds }
       : {}),
@@ -92,8 +99,12 @@ async function buildMeta(db, account, tag) {
 const TOOLS = {
   list_my_players: {
     description:
-      'Your session bootstrap: claimed tags, which is primary, verification and recording status, and current clan as recorded. Call this first.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+      "Your session bootstrap: claimed tags, which is primary, verification and recording status, and current clan as recorded. Call this first.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
     async handler(ctx) {
       const { rows } = await ctx.db.query(
         `select c.player_tag, c.status as claim_status, c.is_primary,
@@ -114,7 +125,7 @@ const TOOLS = {
           name: r.name,
           is_primary: r.is_primary,
           claim_status: r.claim_status,
-          recording: r.recording_status ?? 'not_recording',
+          recording: r.recording_status ?? "not_recording",
           clan_tag: r.member_of ?? r.last_known_clan_tag,
           clan_role: r.role,
         })),
@@ -125,14 +136,16 @@ const TOOLS = {
 
   get_coverage: {
     description:
-      'How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before you claimed the tag), and recent capture completeness. Use it to caveat answers honestly.',
+      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before you claimed the tag), and recent capture completeness. Use it to caveat answers honestly.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: { player_tag: TAG_SCHEMA },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
       const [polls, battles, completeness] = await Promise.all([
         ctx.db.query(
           `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
@@ -166,7 +179,7 @@ const TOOLS = {
           note:
             b.appearances > 0
               ? `This tag appears in ${b.appearances} recorded battles since ${b.first_seen?.toISOString()?.slice(0, 10)} — including any recorded before the tag was claimed.`
-              : 'No battles recorded yet for this tag.',
+              : "No battles recorded yet for this tag.",
         },
         completeness_last_7_days: {
           average_ratio: completeness.rows[0].recent_ratio,
@@ -179,27 +192,44 @@ const TOOLS = {
 
   get_player: {
     description:
-      'Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan. as-of the last profile poll.',
+      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan. as-of the last profile poll.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        live: { type: 'boolean', description: 'Fetch fresh from the CR API via the live lane (quota-limited).' },
+        live: {
+          type: "boolean",
+          description:
+            "Fetch fresh from the CR API via the live lane (quota-limited).",
+        },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
       if (args.live === true) {
         if (!ctx.live) {
-          throw new ToolFailure('live_unavailable', 'The live lane is not configured here.', 'Call again without live: true.');
+          throw new ToolFailure(
+            "live_unavailable",
+            "The live lane is not configured here.",
+            "Call again without live: true.",
+          );
         }
         await spendLiveQuota(ctx);
         // Fetch through the lane; the projector updates the snapshot the
         // moment it's admitted, so the normal read below serves it fresh.
-        const result = await ctx.live(ctx.db, { endpoint: 'player', entityKey: tag });
+        const result = await ctx.live(ctx.db, {
+          endpoint: "player",
+          entityKey: tag,
+        });
         if (!result.ok) {
-          throw new ToolFailure('live_unavailable', 'No gateway completed the live fetch in time.', 'Serving recorded data: call again without live: true.');
+          throw new ToolFailure(
+            "live_unavailable",
+            "No gateway completed the live fetch in time.",
+            "Serving recorded data: call again without live: true.",
+          );
         }
       }
       const { rows } = await ctx.db.query(
@@ -216,18 +246,24 @@ const TOOLS = {
         [tag],
       );
       const row = rows[0];
-      if (!row) throw new ToolFailure('not_recorded', `${tag} is not in the record yet.`);
+      if (!row)
+        throw new ToolFailure(
+          "not_recorded",
+          `${tag} is not in the record yet.`,
+        );
       if (!row.snapshot_date) {
         throw new ToolFailure(
-          'not_recorded',
+          "not_recorded",
           `${tag} is known but has no profile snapshot yet.`,
-          'Recording may have just started; try get_coverage.',
+          "Recording may have just started; try get_coverage.",
         );
       }
       return {
         player_tag: row.player_tag,
         name: row.name,
-        clan: row.last_known_clan_tag ? { clan_tag: row.last_known_clan_tag, name: row.clan_name } : null,
+        clan: row.last_known_clan_tag
+          ? { clan_tag: row.last_known_clan_tag, name: row.clan_name }
+          : null,
         snapshot: {
           date: row.snapshot_date.toISOString().slice(0, 10),
           trophies: row.trophies,
@@ -244,61 +280,95 @@ const TOOLS = {
 
   query_battles: {
     description:
-      'The workhorse: canonical recorded battles for a tag with filters and cursor pagination. Returns both perspectives of every battle (your deck and the opponents’). from/to accept ISO instants or date-only strings resolved in your timezone.',
+      "The workhorse: canonical recorded battles for a tag with filters and cursor pagination. Returns both perspectives of every battle (your deck and the opponents’). from/to accept ISO instants or date-only strings resolved in your timezone.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        from: { type: 'string', description: 'ISO instant or YYYY-MM-DD (your timezone).' },
-        to: { type: 'string', description: 'ISO instant or YYYY-MM-DD inclusive (your timezone).' },
-        mode: { type: 'string', enum: MODE_GROUPS, description: 'Mode group filter.' },
-        game_mode_id: { type: 'integer' },
-        opponent_tag: { type: 'string', description: 'Only battles against this tag.' },
-        outcome: { type: 'string', enum: ['win', 'loss', 'draw'] },
-        with_card: { type: 'integer', description: 'Card id present in YOUR deck.' },
-        against_card: { type: 'integer', description: 'Card id present in an OPPONENT deck.' },
-        deck_hash: { type: 'string', description: 'Exact deck identity (see get_deck_performance).' },
-        cursor: { type: 'integer', description: 'From a previous response’s next_cursor.' },
-        limit: { type: 'integer', minimum: 1, maximum: 50, default: 25 },
+        from: {
+          type: "string",
+          description: "ISO instant or YYYY-MM-DD (your timezone).",
+        },
+        to: {
+          type: "string",
+          description: "ISO instant or YYYY-MM-DD inclusive (your timezone).",
+        },
+        mode: {
+          type: "string",
+          enum: MODE_GROUPS,
+          description: "Mode group filter.",
+        },
+        game_mode_id: { type: "integer" },
+        opponent_tag: {
+          type: "string",
+          description: "Only battles against this tag.",
+        },
+        outcome: { type: "string", enum: ["win", "loss", "draw"] },
+        with_card: {
+          type: "integer",
+          description: "Card id present in YOUR deck.",
+        },
+        against_card: {
+          type: "integer",
+          description: "Card id present in an OPPONENT deck.",
+        },
+        deck_hash: {
+          type: "string",
+          description: "Exact deck identity (see get_deck_performance).",
+        },
+        cursor: {
+          type: "integer",
+          description: "From a previous response’s next_cursor.",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 50, default: 25 },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const s = await subject(ctx.db, ctx.account, args.player_tag, 'battles');
+      const s = await subject(ctx.db, ctx.account, args.player_tag, "battles");
       const tag = s.tag;
       const tz = ctx.account.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
-      const where = ['bp.player_tag = $1'];
+      const where = ["bp.player_tag = $1"];
       const params = [tag];
-      if (s.battles === 'war_only') {
+      if (s.battles === "war_only") {
         // Rule 2: clanmate battle-level access covers war battles only
         // unless the member opted into share_battles_with_clan.
-        params.push(typesForModeGroup('war'));
+        params.push(typesForModeGroup("war"));
         where.push(`b.type = any($${params.length})`);
       }
       const add = (clause, value) => {
         params.push(value);
-        where.push(clause.replace('?', `$${params.length}`));
+        where.push(clause.replace("?", `$${params.length}`));
       };
       const from = resolveInstant(tz, args.from);
-      if (args.from && !from) throw new ToolFailure('bad_request', `Unparseable from: ${args.from}`);
-      if (from) add('b.battle_time >= ?', from);
+      if (args.from && !from)
+        throw new ToolFailure("bad_request", `Unparseable from: ${args.from}`);
+      if (from) add("b.battle_time >= ?", from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (args.to && !to) throw new ToolFailure('bad_request', `Unparseable to: ${args.to}`);
-      if (to) add('b.battle_time < ?', to);
-      if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
-      if (args.game_mode_id !== undefined) add('b.game_mode_id = ?', args.game_mode_id);
-      if (args.outcome) add('bp.outcome = ?', args.outcome);
-      if (args.deck_hash) add('bp.deck_hash = ?', args.deck_hash);
+      if (args.to && !to)
+        throw new ToolFailure("bad_request", `Unparseable to: ${args.to}`);
+      if (to) add("b.battle_time < ?", to);
+      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+      if (args.game_mode_id !== undefined)
+        add("b.game_mode_id = ?", args.game_mode_id);
+      if (args.outcome) add("bp.outcome = ?", args.outcome);
+      if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
       if (args.with_card !== undefined) {
-        add(`bp.deck->'cards' @> ?::jsonb`, JSON.stringify([{ id: args.with_card }]));
+        add(
+          `bp.deck->'cards' @> ?::jsonb`,
+          JSON.stringify([{ id: args.with_card }]),
+        );
       }
       if (args.opponent_tag) {
         let opponent;
         try {
           opponent = normalizeTag(String(args.opponent_tag));
         } catch {
-          throw new ToolFailure('invalid_tag', `Invalid opponent_tag: ${args.opponent_tag}`);
+          throw new ToolFailure(
+            "invalid_tag",
+            `Invalid opponent_tag: ${args.opponent_tag}`,
+          );
         }
         add(
           `exists (select 1 from battle_participant o
@@ -314,7 +384,7 @@ const TOOLS = {
           JSON.stringify([{ id: args.against_card }]),
         );
       }
-      if (args.cursor !== undefined) add('b.cursor < ?', args.cursor);
+      if (args.cursor !== undefined) add("b.cursor < ?", args.cursor);
 
       const { rows } = await ctx.db.query(
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
@@ -323,7 +393,7 @@ const TOOLS = {
                 bp.elixir_leaked, bp.tower_hp, bp.outcome
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
-         where ${where.join(' and ')}
+         where ${where.join(" and ")}
          order by b.cursor desc
          limit ${limit}`,
         params,
@@ -368,7 +438,8 @@ const TOOLS = {
             starting_trophies: r.starting_trophies,
             deck: r.deck,
             deck_hash: r.deck_hash,
-            elixir_leaked: r.elixir_leaked === null ? null : Number(r.elixir_leaked),
+            elixir_leaked:
+              r.elixir_leaked === null ? null : Number(r.elixir_leaked),
             tower_hp: r.tower_hp,
           },
           teammates: rest.filter((o) => o.side === r.side).map(shape),
@@ -378,36 +449,49 @@ const TOOLS = {
 
       return {
         player_tag: tag,
-        ...(s.battles === 'war_only'
-          ? { scope_note: 'Clanmate view: war battles only (this member has not shared their full battle history with the clan).' }
+        ...(s.battles === "war_only"
+          ? {
+              scope_note:
+                "Clanmate view: war battles only (this member has not shared their full battle history with the clan).",
+            }
           : {}),
         battles,
-        ...(rows.length === limit ? { next_cursor: rows[rows.length - 1].cursor } : {}),
+        ...(rows.length === limit
+          ? { next_cursor: rows[rows.length - 1].cursor }
+          : {}),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
   },
   get_player_timeline: {
     description:
-      'Time series from daily snapshots: trophies, donations (weekly counter — resets Mondays), battle_count, collection_level. The trophy-graph tool. Granularity week returns the last snapshot of each ISO week.',
+      "Time series from daily snapshots: trophies, donations (weekly counter — resets Mondays), battle_count, collection_level. The trophy-graph tool. Granularity week returns the last snapshot of each ISO week.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
         metrics: {
-          type: 'array',
-          items: { type: 'string', enum: ['trophies', 'donations', 'battle_count', 'collection_level'] },
-          default: ['trophies'],
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["trophies", "donations", "battle_count", "collection_level"],
+          },
+          default: ["trophies"],
         },
-        from: { type: 'string', description: 'YYYY-MM-DD' },
-        to: { type: 'string', description: 'YYYY-MM-DD' },
-        granularity: { type: 'string', enum: ['day', 'week'], default: 'day' },
+        from: { type: "string", description: "YYYY-MM-DD" },
+        to: { type: "string", description: "YYYY-MM-DD" },
+        granularity: { type: "string", enum: ["day", "week"], default: "day" },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
-      const metrics = Array.isArray(args.metrics) && args.metrics.length > 0 ? args.metrics : ['trophies'];
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
+      const metrics =
+        Array.isArray(args.metrics) && args.metrics.length > 0
+          ? args.metrics
+          : ["trophies"];
       const where = [`player_tag = $1`, `snapshot_kind = 'daily'`];
       const params = [tag];
       if (args.from) {
@@ -422,29 +506,29 @@ const TOOLS = {
         `select snapshot_date, trophies, donations,
                 (lifetime->>'battleCount')::int as battle_count,
                 (lifetime->>'collectionLevel')::int as collection_level
-         from player_snapshot_daily where ${where.join(' and ')}
+         from player_snapshot_daily where ${where.join(" and ")}
          order by snapshot_date`,
         params,
       );
       let points = rows;
-      if (args.granularity === 'week') {
+      if (args.granularity === "week") {
         const byWeek = new Map();
         for (const r of rows) {
           const d = r.snapshot_date;
-          const week = `${d.getUTCFullYear()}-W${String(Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000 + new Date(Date.UTC(d.getUTCFullYear(), 0, 1)).getUTCDay() + 1) / 7)).padStart(2, '0')}`;
+          const week = `${d.getUTCFullYear()}-W${String(Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000 + new Date(Date.UTC(d.getUTCFullYear(), 0, 1)).getUTCDay() + 1) / 7)).padStart(2, "0")}`;
           byWeek.set(week, r); // last snapshot of the week wins
         }
         points = [...byWeek.values()];
       }
       return {
         player_tag: tag,
-        granularity: args.granularity === 'week' ? 'week' : 'day',
+        granularity: args.granularity === "week" ? "week" : "day",
         series: points.map((r) => ({
           date: r.snapshot_date.toISOString().slice(0, 10),
           ...Object.fromEntries(metrics.map((m) => [m, r[m]])),
         })),
-        note: metrics.includes('donations')
-          ? 'donations is the weekly counter as-of each snapshot; it resets Mondays ~00:10 UTC.'
+        note: metrics.includes("donations")
+          ? "donations is the weekly counter as-of each snapshot; it resets Mondays ~00:10 UTC."
           : undefined,
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
@@ -455,55 +539,64 @@ const TOOLS = {
     description:
       'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side — built for "since X vs before" questions.',
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        from: { type: 'string', description: 'ISO instant or YYYY-MM-DD (your timezone).' },
-        to: { type: 'string' },
-        last_n_battles: { type: 'integer', minimum: 1, maximum: 500 },
-        mode: { type: 'string', enum: MODE_GROUPS },
-        deck_hash: { type: 'string' },
-        compare_from: { type: 'string' },
-        compare_to: { type: 'string' },
-        before_after: { type: 'string', description: 'Date splitting two windows: [from..date) vs [date..to]. The Firecracker question.' },
+        from: {
+          type: "string",
+          description: "ISO instant or YYYY-MM-DD (your timezone).",
+        },
+        to: { type: "string" },
+        last_n_battles: { type: "integer", minimum: 1, maximum: 500 },
+        mode: { type: "string", enum: MODE_GROUPS },
+        deck_hash: { type: "string" },
+        compare_from: { type: "string" },
+        compare_to: { type: "string" },
+        before_after: {
+          type: "string",
+          description:
+            "Date splitting two windows: [from..date) vs [date..to]. The Firecracker question.",
+        },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
       const tz = ctx.account.timezone;
 
       const segment = async ({ from, to, lastN }) => {
-        const where = ['bp.player_tag = $1', `bp.outcome is not null`];
+        const where = ["bp.player_tag = $1", `bp.outcome is not null`];
         const params = [tag];
         const add = (clause, value) => {
           params.push(value);
-          where.push(clause.replace('?', `$${params.length}`));
+          where.push(clause.replace("?", `$${params.length}`));
         };
-        if (from) add('b.battle_time >= ?', from);
-        if (to) add('b.battle_time < ?', to);
-        if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
-        if (args.deck_hash) add('bp.deck_hash = ?', args.deck_hash);
+        if (from) add("b.battle_time >= ?", from);
+        if (to) add("b.battle_time < ?", to);
+        if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+        if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
           `select bp.outcome, bp.crowns, bp.trophy_change,
                   (select max(o.crowns) from battle_participant o
                    where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where ${where.join(' and ')}
+           where ${where.join(" and ")}
            order by b.battle_time desc
-           ${lastN ? `limit ${Math.min(lastN, 500)}` : 'limit 2000'}`,
+           ${lastN ? `limit ${Math.min(lastN, 500)}` : "limit 2000"}`,
           params,
         );
-        const wins = rows.filter((r) => r.outcome === 'win').length;
-        const losses = rows.filter((r) => r.outcome === 'loss').length;
-        const draws = rows.filter((r) => r.outcome === 'draw').length;
+        const wins = rows.filter((r) => r.outcome === "win").length;
+        const losses = rows.filter((r) => r.outcome === "loss").length;
+        const draws = rows.filter((r) => r.outcome === "draw").length;
         const decided = wins + losses;
         let streak = 0;
         for (const r of rows) {
-          if (r.outcome === 'unresolved' || r.outcome === 'draw') continue;
-          if (streak === 0) streak = r.outcome === 'win' ? 1 : -1;
-          else if (streak > 0 && r.outcome === 'win') streak += 1;
-          else if (streak < 0 && r.outcome === 'loss') streak -= 1;
+          if (r.outcome === "unresolved" || r.outcome === "draw") continue;
+          if (streak === 0) streak = r.outcome === "win" ? 1 : -1;
+          else if (streak > 0 && r.outcome === "win") streak += 1;
+          else if (streak < 0 && r.outcome === "loss") streak -= 1;
           else break;
         }
         return {
@@ -515,7 +608,14 @@ const TOOLS = {
           crowns_for: rows.reduce((s, r) => s + (r.crowns ?? 0), 0),
           crowns_against: rows.reduce((s, r) => s + (r.opp_crowns ?? 0), 0),
           net_trophies: rows.reduce((s, r) => s + (r.trophy_change ?? 0), 0),
-          three_crown_rate: rows.length > 0 ? Number((rows.filter((r) => r.crowns === 3).length / rows.length).toFixed(3)) : null,
+          three_crown_rate:
+            rows.length > 0
+              ? Number(
+                  (
+                    rows.filter((r) => r.crowns === 3).length / rows.length
+                  ).toFixed(3),
+                )
+              : null,
           current_streak: streak,
         };
       };
@@ -525,7 +625,11 @@ const TOOLS = {
       let result;
       if (args.before_after) {
         const split = resolveInstant(tz, args.before_after);
-        if (!split) throw new ToolFailure('bad_request', `Unparseable before_after: ${args.before_after}`);
+        if (!split)
+          throw new ToolFailure(
+            "bad_request",
+            `Unparseable before_after: ${args.before_after}`,
+          );
         result = {
           before: await segment({ from, to: split }),
           after: await segment({ from: split, to }),
@@ -540,9 +644,15 @@ const TOOLS = {
           }),
         };
       } else {
-        result = { window: await segment({ from, to, lastN: args.last_n_battles }) };
+        result = {
+          window: await segment({ from, to, lastN: args.last_n_battles }),
+        };
       }
-      return { player_tag: tag, ...result, meta: await buildMeta(ctx.db, ctx.account, tag) };
+      return {
+        player_tag: tag,
+        ...result,
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
     },
   },
 
@@ -550,31 +660,37 @@ const TOOLS = {
     description:
       'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you — the nemesis question. Duels are excluded (no single deck).',
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        perspective: { type: 'string', enum: ['mine', 'opponent'], default: 'mine' },
-        from: { type: 'string' },
-        to: { type: 'string' },
-        mode: { type: 'string', enum: MODE_GROUPS },
+        perspective: {
+          type: "string",
+          enum: ["mine", "opponent"],
+          default: "mine",
+        },
+        from: { type: "string" },
+        to: { type: "string" },
+        mode: { type: "string", enum: MODE_GROUPS },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
       const tz = ctx.account.timezone;
-      const mine = args.perspective !== 'opponent';
-      const where = ['bp.player_tag = $1', `bp.outcome in ('win','loss')`];
+      const mine = args.perspective !== "opponent";
+      const where = ["bp.player_tag = $1", `bp.outcome in ('win','loss')`];
       const params = [tag];
       const add = (clause, value) => {
         params.push(value);
-        where.push(clause.replace('?', `$${params.length}`));
+        where.push(clause.replace("?", `$${params.length}`));
       };
       const from = resolveInstant(tz, args.from);
-      if (from) add('b.battle_time >= ?', from);
+      if (from) add("b.battle_time >= ?", from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (to) add('b.battle_time < ?', to);
-      if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
+      if (to) add("b.battle_time < ?", to);
+      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
 
       const deckSource = mine
         ? `bp.deck`
@@ -588,7 +704,7 @@ const TOOLS = {
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id,
          lateral jsonb_array_elements(coalesce(${deckSource}->'cards', '[]'::jsonb)) card
-         where ${where.join(' and ')}
+         where ${where.join(" and ")}
          group by 1, 2
          having count(*) >= 3
          order by count(*) desc
@@ -597,7 +713,7 @@ const TOOLS = {
       );
       return {
         player_tag: tag,
-        perspective: mine ? 'mine' : 'opponent',
+        perspective: mine ? "mine" : "opponent",
         cards: rows.map((r) => ({
           id: Number(r.id),
           name: r.name,
@@ -607,8 +723,8 @@ const TOOLS = {
           win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
         })),
         note: mine
-          ? 'win_rate is YOUR record when this card is in your deck.'
-          : 'win_rate is YOUR record when this card appears in the OPPONENT deck — low means nemesis.',
+          ? "win_rate is YOUR record when this card is in your deck."
+          : "win_rate is YOUR record when this card appears in the OPPONENT deck — low means nemesis.",
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
@@ -616,31 +732,33 @@ const TOOLS = {
 
   get_deck_performance: {
     description:
-      'Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. The factual substrate for deck review — pass a deck_hash to query_battles or get_performance to drill in.',
+      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. The factual substrate for deck review — pass a deck_hash to query_battles or get_performance to drill in.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        from: { type: 'string' },
-        to: { type: 'string' },
-        mode: { type: 'string', enum: MODE_GROUPS },
+        from: { type: "string" },
+        to: { type: "string" },
+        mode: { type: "string", enum: MODE_GROUPS },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
       const tz = ctx.account.timezone;
-      const where = ['bp.player_tag = $1', 'bp.deck_hash is not null'];
+      const where = ["bp.player_tag = $1", "bp.deck_hash is not null"];
       const params = [tag];
       const add = (clause, value) => {
         params.push(value);
-        where.push(clause.replace('?', `$${params.length}`));
+        where.push(clause.replace("?", `$${params.length}`));
       };
       const from = resolveInstant(tz, args.from);
-      if (from) add('b.battle_time >= ?', from);
+      if (from) add("b.battle_time >= ?", from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (to) add('b.battle_time < ?', to);
-      if (args.mode) add('b.type = any(?)', typesForModeGroup(args.mode));
+      if (to) add("b.battle_time < ?", to);
+      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 min(b.battle_time) as first_used, max(b.battle_time) as last_used,
@@ -650,7 +768,7 @@ const TOOLS = {
                 count(*) filter (where bp.outcome = 'draw')::int as draws,
                 (array_agg(bp.deck order by b.battle_time desc))[1] as deck
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
-         where ${where.join(' and ')}
+         where ${where.join(" and ")}
          group by bp.deck_hash
          order by count(*) desc
          limit 40`,
@@ -665,7 +783,10 @@ const TOOLS = {
           wins: r.wins,
           losses: r.losses,
           draws: r.draws,
-          win_rate: r.wins + r.losses > 0 ? Number((r.wins / (r.wins + r.losses)).toFixed(3)) : null,
+          win_rate:
+            r.wins + r.losses > 0
+              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+              : null,
           first_used: r.first_used.toISOString(),
           last_used: r.last_used.toISOString(),
         })),
@@ -676,14 +797,16 @@ const TOOLS = {
 
   get_collection: {
     description:
-      'Full card collection as last recorded: levels, counts, evolutions, star levels, collection level. API-shaped passthrough of the latest profile payload; upgrade-gap math ships when the reference table lands.',
+      "Full card collection as last recorded: levels, counts, evolutions, star levels, collection level. API-shaped passthrough of the latest profile payload; upgrade-gap math ships when the reference table lands.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: { player_tag: TAG_SCHEMA },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
       const { rows } = await ctx.db.query(
         `select p.payload_json->'cards' as cards,
                 p.payload_json->'currentDeckSupportCards' as support_cards,
@@ -696,7 +819,11 @@ const TOOLS = {
       );
       const row = rows[0];
       if (!row) {
-        throw new ToolFailure('not_recorded', `No profile payload recorded for ${tag} yet.`, 'Recording may have just started; the collection arrives with the first profile poll.');
+        throw new ToolFailure(
+          "not_recorded",
+          `No profile payload recorded for ${tag} yet.`,
+          "Recording may have just started; the collection arrives with the first profile poll.",
+        );
       }
       return {
         player_tag: tag,
@@ -711,8 +838,12 @@ const TOOLS = {
 
   get_card_catalog: {
     description:
-      'Current card and tower-troop catalog: ids, names, rarities, max levels, evolution availability. Use it to resolve card ids instead of guessing.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+      "Current card and tower-troop catalog: ids, names, rarities, max levels, evolution availability. Use it to resolve card ids instead of guessing.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
     async handler(ctx) {
       const { rows } = await ctx.db.query(
         `select payload_json->'items' as items, payload_json->'supportItems' as support_items, last_fetched_at
@@ -720,7 +851,8 @@ const TOOLS = {
          order by last_fetched_at desc limit 1`,
       );
       const row = rows[0];
-      if (!row) throw new ToolFailure('not_recorded', 'Card catalog not recorded yet.');
+      if (!row)
+        throw new ToolFailure("not_recorded", "Card catalog not recorded yet.");
       return {
         cards: row.items,
         tower_troops: row.support_items,
@@ -732,30 +864,38 @@ const TOOLS = {
 
   cr_api_live: {
     description:
-      'Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s.',
+      "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        path: { type: 'string', description: 'e.g. /players/#20JJJ2CCRU or /clans/#J2RGCRVG/currentriverrace' },
+        path: {
+          type: "string",
+          description:
+            "e.g. /players/#20JJJ2CCRU or /clans/#J2RGCRVG/currentriverrace",
+        },
       },
-      required: ['path'],
+      required: ["path"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const job = livePathToJob(String(args.path ?? ''), normalizeTag);
+      const job = livePathToJob(String(args.path ?? ""), normalizeTag);
       if (job.error) throw new ToolFailure(job.error, job.message);
       if (!ctx.live) {
-        throw new ToolFailure('live_unavailable', 'The live lane is not configured here.', 'Recorded-data tools remain available.');
+        throw new ToolFailure(
+          "live_unavailable",
+          "The live lane is not configured here.",
+          "Recorded-data tools remain available.",
+        );
       }
       await spendLiveQuota(ctx);
       const result = await ctx.live(ctx.db, job);
       if (!result.ok) {
         throw new ToolFailure(
-          'live_unavailable',
-          result.reason === 'rejected'
-            ? 'The live fetch returned a payload our admission rejected.'
-            : 'No gateway completed the live fetch in time.',
-          'The recorded-data tools remain available; try again shortly.',
+          "live_unavailable",
+          result.reason === "rejected"
+            ? "The live fetch returned a payload our admission rejected."
+            : "No gateway completed the live fetch in time.",
+          "The recorded-data tools remain available; try again shortly.",
         );
       }
       return {
@@ -768,10 +908,15 @@ const TOOLS = {
   },
   get_clan: {
     description:
-      'Your recorded clan: roster with roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Defaults to your clan.',
+      "Your recorded clan: roster with roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Defaults to your clan.",
     inputSchema: {
-      type: 'object',
-      properties: { clan_tag: { type: 'string', description: 'Clan tag; defaults to your recorded clan.' } },
+      type: "object",
+      properties: {
+        clan_tag: {
+          type: "string",
+          description: "Clan tag; defaults to your recorded clan.",
+        },
+      },
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -822,7 +967,9 @@ const TOOLS = {
         })),
         meta: responseMeta({
           as_of: new Date().toISOString(),
-          ...(ctx.account.timezone ? { timezone_applied: ctx.account.timezone } : {}),
+          ...(ctx.account.timezone
+            ? { timezone_applied: ctx.account.timezone }
+            : {}),
         }),
       };
     },
@@ -830,10 +977,15 @@ const TOOLS = {
 
   get_war: {
     description:
-      'The current (latest recorded) river race for your clan: standings across the five clans, per-member points/decks used, war day and attendance so far. Defaults to your clan.',
+      "The current (latest recorded) river race for your clan: standings across the five clans, per-member points/decks used, war day and attendance so far. Defaults to your clan.",
     inputSchema: {
-      type: 'object',
-      properties: { clan_tag: { type: 'string', description: 'Clan tag; defaults to your recorded clan.' } },
+      type: "object",
+      properties: {
+        clan_tag: {
+          type: "string",
+          description: "Clan tag; defaults to your recorded clan.",
+        },
+      },
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -844,7 +996,11 @@ const TOOLS = {
         [clanTag],
       );
       if (!weekRows[0]) {
-        throw new ToolFailure('not_recorded', 'No war weeks recorded for this clan yet.', 'The first riverracelog poll lands within a day of enrollment.');
+        throw new ToolFailure(
+          "not_recorded",
+          "No war weeks recorded for this clan yet.",
+          "The first riverracelog poll lands within a day of enrollment.",
+        );
       }
       const wk = weekRows[0];
       const [standings, participation, attendance] = await Promise.all([
@@ -879,10 +1035,12 @@ const TOOLS = {
         standings: standings.rows,
         participants: participation.rows,
         attendance_by_war_day: attendance.rows,
-        note: 'points are per-member contributions; fame belongs to the boat (clan).',
+        note: "points are per-member contributions; fame belongs to the boat (clan).",
         meta: responseMeta({
           as_of: new Date().toISOString(),
-          ...(ctx.account.timezone ? { timezone_applied: ctx.account.timezone } : {}),
+          ...(ctx.account.timezone
+            ? { timezone_applied: ctx.account.timezone }
+            : {}),
         }),
       };
     },
@@ -892,18 +1050,32 @@ const TOOLS = {
     description:
       'Recorded war weeks for your clan: final ranks, boat fame, and (optionally) one member’s per-week points and decks — "did I miss a war day?" lives here. Defaults to your clan.',
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        clan_tag: { type: 'string', description: 'Clan tag; defaults to your recorded clan.' },
-        player_tag: { type: 'string', description: 'Focus one member’s participation.' },
-        seasons: { type: 'integer', minimum: 1, maximum: 12, default: 3, description: 'How many seasons back.' },
+        clan_tag: {
+          type: "string",
+          description: "Clan tag; defaults to your recorded clan.",
+        },
+        player_tag: {
+          type: "string",
+          description: "Focus one member’s participation.",
+        },
+        seasons: {
+          type: "integer",
+          minimum: 1,
+          maximum: 12,
+          default: 3,
+          description: "How many seasons back.",
+        },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       let focus = null;
-      if (args.player_tag) focus = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      if (args.player_tag)
+        focus = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+          .tag;
       const seasons = Math.min(Math.max(Number(args.seasons ?? 3), 1), 12);
       const { rows: weeks } = await ctx.db.query(
         `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at,
@@ -944,7 +1116,7 @@ const TOOLS = {
           trophy_change: w.trophy_change,
         })),
         ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
-        note: 'points are per-member contributions; fame belongs to the boat (clan).',
+        note: "points are per-member contributions; fame belongs to the boat (clan).",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -952,23 +1124,32 @@ const TOOLS = {
 
   compare_players: {
     description:
-      'Side-by-side of 2–4 entitled tags (your claims or clanmates): latest snapshot topline plus a shared performance window.',
+      "Side-by-side of 2–4 entitled tags (your claims or clanmates): latest snapshot topline plus a shared performance window.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        player_tags: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4 },
-        from: { type: 'string', description: 'ISO instant or YYYY-MM-DD (your timezone).' },
-        to: { type: 'string' },
+        player_tags: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+          maxItems: 4,
+        },
+        from: {
+          type: "string",
+          description: "ISO instant or YYYY-MM-DD (your timezone).",
+        },
+        to: { type: "string" },
       },
-      required: ['player_tags'],
+      required: ["player_tags"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const tags = [];
       for (const raw of args.player_tags ?? []) {
-        tags.push((await subject(ctx.db, ctx.account, raw, 'summary')).tag);
+        tags.push((await subject(ctx.db, ctx.account, raw, "summary")).tag);
       }
-      if (tags.length < 2) throw new ToolFailure('bad_request', 'compare_players needs 2-4 tags.');
+      if (tags.length < 2)
+        throw new ToolFailure("bad_request", "compare_players needs 2-4 tags.");
       const tz = ctx.account.timezone;
       const from = resolveInstant(tz, args.from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
@@ -985,7 +1166,10 @@ const TOOLS = {
           [tag],
         );
         const params = [tag];
-        const where = [`bp.player_tag = $1`, `bp.outcome in ('win','loss','draw')`];
+        const where = [
+          `bp.player_tag = $1`,
+          `bp.outcome in ('win','loss','draw')`,
+        ];
         if (from) {
           params.push(from);
           where.push(`b.battle_time >= $${params.length}`);
@@ -1000,7 +1184,7 @@ const TOOLS = {
                   count(*) filter (where bp.outcome = 'loss')::int losses,
                   coalesce(sum(bp.trophy_change), 0)::int net_trophies
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where ${where.join(' and ')}`,
+           where ${where.join(" and ")}`,
           params,
         );
         players.push({ player_tag: tag, ...snap[0], window: perf[0] });

@@ -17,10 +17,10 @@
  * to 'verified'.
  */
 
-import { normalizeTag, InvalidTagError } from '@elixir-mcp/contracts';
+import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
-export const CLAN_SCOPE_REQUIRES = 'unverified'; // -> 'verified' after liveness ships
-const LEADERSHIP_ROLES = new Set(['elder', 'coLeader', 'leader']);
+export const CLAN_SCOPE_REQUIRES = "unverified"; // -> 'verified' after liveness ships
+const LEADERSHIP_ROLES = new Set(["elder", "coLeader", "leader"]);
 
 /** Everything the account can see, resolved once per request. */
 export async function resolveEntitlements(db, account) {
@@ -50,7 +50,10 @@ export async function resolveEntitlements(db, account) {
   for (const c of claims) {
     if (c.clan_tag && recordedClans.includes(c.clan_tag)) {
       const best = roles.get(c.clan_tag);
-      if (!best || (LEADERSHIP_ROLES.has(c.role) && !LEADERSHIP_ROLES.has(best))) {
+      if (
+        !best ||
+        (LEADERSHIP_ROLES.has(c.role) && !LEADERSHIP_ROLES.has(best))
+      ) {
         roles.set(c.clan_tag, c.role);
       }
     }
@@ -66,7 +69,7 @@ export async function resolveEntitlements(db, account) {
       `select subject_tag from recording where subject_type = 'clan' and status = 'active'`,
     );
     clans = [...new Set([...recordedClans, ...rows.map((r) => r.subject_tag)])];
-    for (const c of clans) if (!roles.has(c)) roles.set(c, 'leader');
+    for (const c of clans) if (!roles.has(c)) roles.set(c, "leader");
   }
 
   return {
@@ -85,30 +88,38 @@ export async function resolveEntitlements(db, account) {
  * Returns { tag, scope: 'own'|'clanmate', battles: 'all'|'war_only' }.
  * Throws {code} objects matching the closed error taxonomy.
  */
-export async function resolveSubject(db, account, inputTag, need = 'full') {
+export async function resolveSubject(db, account, inputTag, need = "full") {
   const ent = await resolveEntitlements(db, account);
   let tag;
-  if (inputTag === undefined || inputTag === null || inputTag === '') {
+  if (inputTag === undefined || inputTag === null || inputTag === "") {
     const { rows } = await db.query(
       `select player_tag from claim where account_id = $1 and is_primary`,
       [account.accountId],
     );
     if (!rows[0]) {
-      throw { code: 'not_found', message: 'No primary claimed tag on this account.', hint: 'Claim a player tag on the website first.' };
+      throw {
+        code: "not_found",
+        message: "No primary claimed tag on this account.",
+        hint: "Claim a player tag on the website first.",
+      };
     }
     tag = rows[0].player_tag;
   } else {
     try {
       tag = normalizeTag(String(inputTag));
     } catch (err) {
-      if (err instanceof InvalidTagError) throw { code: 'invalid_tag', message: err.message };
+      if (err instanceof InvalidTagError)
+        throw { code: "invalid_tag", message: err.message };
       throw err;
     }
   }
 
-  if (ent.ownTags.includes(tag)) return { tag, scope: 'own', battles: 'all' };
-  if (need === 'full') {
-    throw { code: 'not_entitled', message: `No claim on ${tag} for this account.` };
+  if (ent.ownTags.includes(tag)) return { tag, scope: "own", battles: "all" };
+  if (need === "full") {
+    throw {
+      code: "not_entitled",
+      message: `No claim on ${tag} for this account.`,
+    };
   }
 
   // Fellow member of an entitled clan?
@@ -117,17 +128,17 @@ export async function resolveSubject(db, account, inputTag, need = 'full') {
      from clan_membership cm
      left join claim c on c.player_tag = cm.player_tag
      where cm.player_tag = $1 and cm.left_observed_at is null and cm.clan_tag = any($2)`,
-    [tag, ent.clans.length ? ent.clans : ['#NONE']],
+    [tag, ent.clans.length ? ent.clans : ["#NONE"]],
   );
   if (!membership[0]) {
     throw {
-      code: 'not_entitled',
+      code: "not_entitled",
       message: `${tag} is not a fellow member of a clan you belong to.`,
-      hint: 'Clan-scoped reads cover open members of your recorded clan.',
+      hint: "Clan-scoped reads cover open members of your recorded clan.",
     };
   }
   const consented = membership.some((m) => m.share_battles_with_clan === true);
-  return { tag, scope: 'clanmate', battles: consented ? 'all' : 'war_only' };
+  return { tag, scope: "clanmate", battles: consented ? "all" : "war_only" };
 }
 
 /** Rule 4: leadership analytics gate. */
@@ -136,8 +147,9 @@ export async function requireLeadership(db, account, clanTag) {
   const role = ent.roles.get(clanTag);
   if (!role || !LEADERSHIP_ROLES.has(role)) {
     throw {
-      code: 'not_entitled',
-      message: 'Leadership-scoped data needs an elder or higher claimed tag in this clan.',
+      code: "not_entitled",
+      message:
+        "Leadership-scoped data needs an elder or higher claimed tag in this clan.",
     };
   }
   return role;
@@ -151,18 +163,21 @@ export async function resolveEntitledClan(db, account, inputTag) {
     try {
       tag = normalizeTag(String(inputTag));
     } catch {
-      throw { code: 'invalid_tag', message: `Invalid clan tag: ${inputTag}` };
+      throw { code: "invalid_tag", message: `Invalid clan tag: ${inputTag}` };
     }
     if (!ent.clans.includes(tag)) {
-      throw { code: 'not_entitled', message: `${tag} is not a recorded clan you belong to.` };
+      throw {
+        code: "not_entitled",
+        message: `${tag} is not a recorded clan you belong to.`,
+      };
     }
     return tag;
   }
   if (ent.clans.length === 0) {
     throw {
-      code: 'not_entitled',
-      message: 'No recorded clan membership on this account.',
-      hint: 'Clan tools cover recorded clans you are an open member of.',
+      code: "not_entitled",
+      message: "No recorded clan membership on this account.",
+      hint: "Clan tools cover recorded clans you are an open member of.",
     };
   }
   return ent.clans[0];

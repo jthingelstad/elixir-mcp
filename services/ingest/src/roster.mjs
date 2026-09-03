@@ -8,8 +8,8 @@
  * the baseline that roster diffs run against.
  */
 
-import { normalizeTag } from '@elixir-mcp/contracts';
-import { emitEvent } from './events.mjs';
+import { normalizeTag } from "@elixir-mcp/contracts";
+import { emitEvent } from "./events.mjs";
 
 /**
  * Ingest one admitted clan payload. Caller owns the transaction.
@@ -17,7 +17,10 @@ import { emitEvent } from './events.mjs';
  * events honestly; first sight of a clan emits NO events (elixir-bot
  * invariant: the seed observation is silent — there is no diff yet).
  */
-export async function ingestClanRoster(db, { payload, observedAt, windowStart, receiptId }) {
+export async function ingestClanRoster(
+  db,
+  { payload, observedAt, windowStart, receiptId },
+) {
   const clanTag = normalizeTag(payload.tag);
   const at = observedAt ?? new Date().toISOString();
 
@@ -84,7 +87,10 @@ export async function ingestClanRoster(db, { payload, observedAt, windowStart, r
          values ($1, $2, $3, $4)`,
         [clanTag, m.tag, at, m.role],
       );
-      await emit('member_joined', evidence({ player_tag: m.tag, name: m.name, role: m.role }));
+      await emit(
+        "member_joined",
+        evidence({ player_tag: m.tag, name: m.name, role: m.role }),
+      );
       joined += 1;
     } else if (existing.role !== m.role) {
       await db.query(
@@ -93,8 +99,13 @@ export async function ingestClanRoster(db, { payload, observedAt, windowStart, r
         [clanTag, m.tag, m.role],
       );
       await emit(
-        'role_changed',
-        evidence({ player_tag: m.tag, name: m.name, role_before: existing.role, role_after: m.role }),
+        "role_changed",
+        evidence({
+          player_tag: m.tag,
+          name: m.name,
+          role_before: existing.role,
+          role_after: m.role,
+        }),
       );
     }
   }
@@ -107,7 +118,7 @@ export async function ingestClanRoster(db, { payload, observedAt, windowStart, r
         [clanTag, r.player_tag, at],
       );
       await emit(
-        'member_left',
+        "member_left",
         evidence({
           player_tag: r.player_tag,
           role_at_departure: r.role,

@@ -8,8 +8,8 @@
  *  - the SQS visibility timeout is the lease: post result, then delete.
  */
 
-import { gzipSync } from 'node:zlib';
-import { crPath } from './cr-api.mjs';
+import { gzipSync } from "node:zlib";
+import { crPath } from "./cr-api.mjs";
 
 const MAX_RESULT_BYTES = 250_000; // headroom under the 256KB SQS cap
 
@@ -45,29 +45,36 @@ export function makeWorker({
       gateway_id: gatewayId,
       fetched_at: now().toISOString(),
     };
-    if (fetched.kind === 'transport') {
-      return { ...base, status: 'error', error: { kind: 'transport', message: fetched.message } };
+    if (fetched.kind === "transport") {
+      return {
+        ...base,
+        status: "error",
+        error: { kind: "transport", message: fetched.message },
+      };
     }
     if (fetched.status !== 200) {
       return {
         ...base,
-        status: 'error',
+        status: "error",
         http_status: fetched.status,
-        error: { kind: 'http', message: `HTTP ${fetched.status}` },
+        error: { kind: "http", message: `HTTP ${fetched.status}` },
       };
     }
-    const gz = gzipSync(Buffer.from(fetched.bodyText, 'utf8'));
-    const b64 = gz.toString('base64');
+    const gz = gzipSync(Buffer.from(fetched.bodyText, "utf8"));
+    const b64 = gz.toString("base64");
     if (b64.length > MAX_RESULT_BYTES) {
       metrics.overflow();
       return {
         ...base,
-        status: 'error',
+        status: "error",
         http_status: 200,
-        error: { kind: 'overflow', message: `gzipped body ${b64.length}B exceeds cap` },
+        error: {
+          kind: "overflow",
+          message: `gzipped body ${b64.length}B exceeds cap`,
+        },
       };
     }
-    return { ...base, status: 'ok', http_status: 200, body_gzip_b64: b64 };
+    return { ...base, status: "ok", http_status: 200, body_gzip_b64: b64 };
   }
 
   async function handleLease(queueUrl, message) {
@@ -77,32 +84,32 @@ export function makeWorker({
       crPath(job); // throws on unknown endpoint before we spend a CR call
     } catch (err) {
       // Malformed job: never fetch; let it re-lease toward the DLQ.
-      log('warn', `unleasable job: ${err.message}`);
+      log("warn", `unleasable job: ${err.message}`);
       return { handled: false };
     }
 
     const fetched = await pacedFetch(crPath(job));
-    if (fetched.kind === 'http' && fetched.status === 403) {
+    if (fetched.kind === "http" && fetched.status === 403) {
       const opened = breaker.record403();
       if (opened) {
         metrics.breakerOpen();
-        log('warn', 'circuit breaker OPEN after consecutive 403s');
+        log("warn", "circuit breaker OPEN after consecutive 403s");
       }
-    } else if (fetched.kind === 'http' && fetched.status === 200) {
+    } else if (fetched.kind === "http" && fetched.status === 200) {
       breaker.recordSuccess();
     }
 
     const result = buildResult(job, fetched);
     await sqs.send(queues.results, JSON.stringify(result));
     await sqs.delete(queueUrl, message.receiptHandle);
-    if (result.status === 'ok') metrics.fetchSucceeded();
+    if (result.status === "ok") metrics.fetchSucceeded();
     return { handled: true, status: result.status, lane: job.lane };
   }
 
   /** One iteration: live first, then bulk. Returns what happened. */
   async function pollOnce() {
     if (breaker.isOpen()) {
-      return { polled: 'breaker_open' };
+      return { polled: "breaker_open" };
     }
     let message = await sqs.receive(queues.live, 1);
     let queueUrl = queues.live;
@@ -110,8 +117,8 @@ export function makeWorker({
       message = await sqs.receive(queues.bulk, 10);
       queueUrl = queues.bulk;
     }
-    if (!message) return { polled: 'empty' };
-    return { polled: 'job', ...(await handleLease(queueUrl, message)) };
+    if (!message) return { polled: "empty" };
+    return { polled: "job", ...(await handleLease(queueUrl, message)) };
   }
 
   return { pollOnce, handleLease, buildResult };

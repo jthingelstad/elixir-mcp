@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: elixir-mcp - Clash Royale history recorder and MCP server (unofficial, not endorsed by Supercell)
 
 # DESIGN.md section 7. One stack. NAT-free VPC: DB-touching Lambdas reach
@@ -29,7 +29,7 @@ Parameters:
     Description: Secrets Manager secret with db_password, session_secret, jmap_token (URL-safe values)
   SiteCertificateArn:
     Type: String
-    Default: ''
+    Default: ""
     Description: ACM cert for elixir.poapkings.com (us-east-1); empty deploys without the alias
   MonthlyCostAlarmUsd:
     Type: Number
@@ -42,7 +42,7 @@ Parameters:
     Description: Planner tick cadence; tune with a parameter-only stack update, no code change
 
 Conditions:
-  HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, '']]
+  HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, ""]]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
 
 Resources:
@@ -60,7 +60,7 @@ Resources:
     Properties:
       VpcId: !Ref Vpc
       CidrBlock: 10.42.0.0/26
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [0, !GetAZs ""]
       Tags: [{ Key: Name, Value: elixir-mcp-private-a }]
 
   PrivateSubnetB:
@@ -68,7 +68,7 @@ Resources:
     Properties:
       VpcId: !Ref Vpc
       CidrBlock: 10.42.0.64/26
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [1, !GetAZs ""]
       Tags: [{ Key: Name, Value: elixir-mcp-private-b }]
 
   LambdaSecurityGroup:
@@ -123,14 +123,14 @@ Resources:
     Properties:
       DBInstanceIdentifier: elixir-mcp
       Engine: postgres
-      EngineVersion: '17'
+      EngineVersion: "17"
       DBInstanceClass: db.t4g.micro
-      AllocatedStorage: '20'
+      AllocatedStorage: "20"
       MaxAllocatedStorage: 100
       StorageType: gp3
       DBName: elixir_mcp
       MasterUsername: elixir
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}'
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}"
       DBSubnetGroupName: !Ref DbSubnetGroup
       VPCSecurityGroups: [!Ref DbSecurityGroup]
       MultiAZ: false
@@ -219,7 +219,7 @@ Resources:
     Properties:
       RoleName: elixir-mcp-vpc-lambda
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal: { Service: lambda.amazonaws.com }
@@ -229,7 +229,7 @@ Resources:
       Policies:
         - PolicyName: elixir-mcp-vpc-lambda
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action: [sqs:SendMessage, sqs:GetQueueUrl]
@@ -238,7 +238,13 @@ Resources:
                   - !GetAtt RequestsBulkQueue.Arn
                   - !GetAtt EmailQueue.Arn
               - Effect: Allow
-                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:GetQueueUrl]
+                Action:
+                  [
+                    sqs:ReceiveMessage,
+                    sqs:DeleteMessage,
+                    sqs:GetQueueAttributes,
+                    sqs:GetQueueUrl,
+                  ]
                 Resource: !GetAtt ResultsQueue.Arn
 
   EmailRelayRole:
@@ -246,7 +252,7 @@ Resources:
     Properties:
       RoleName: elixir-mcp-email-relay
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal: { Service: lambda.amazonaws.com }
@@ -256,10 +262,16 @@ Resources:
       Policies:
         - PolicyName: elixir-mcp-email-relay
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:GetQueueUrl]
+                Action:
+                  [
+                    sqs:ReceiveMessage,
+                    sqs:DeleteMessage,
+                    sqs:GetQueueAttributes,
+                    sqs:GetQueueUrl,
+                  ]
                 Resource: !GetAtt EmailQueue.Arn
 
   # --------------------------------------------------------------- lambdas
@@ -286,8 +298,8 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
-          SESSION_SECRET: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}'
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           EMAIL_QUEUE_URL: !Ref EmailQueue
           LIVE_QUEUE_URL: !Ref RequestsLiveQueue
 
@@ -314,7 +326,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
           LIVE_QUEUE_URL: !Ref RequestsLiveQueue
@@ -343,7 +355,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           BULK_QUEUE_URL: !Ref RequestsBulkQueue
 
   SchedulerRule:
@@ -392,7 +404,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
 
   IngestEventSource:
     Type: AWS::Lambda::EventSourceMapping
@@ -422,7 +434,7 @@ Resources:
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref EmailRelayCodeKey }
       Environment:
         Variables:
-          JMAP_TOKEN: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:jmap_token}}'
+          JMAP_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:jmap_token}}"
           FROM_EMAIL: elixir@poapkings.com
 
   EmailEventSource:
@@ -457,7 +469,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
 
   # ------------------------------------------------------------ front doors
   SiteApi:
@@ -505,7 +517,7 @@ Resources:
     Properties:
       Bucket: !Ref SiteBucket
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal: { Service: cloudfront.amazonaws.com }
@@ -555,7 +567,7 @@ Resources:
         Enabled: true
         Comment: elixir.poapkings.com
         HttpVersion: http2and3
-        Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref 'AWS::NoValue']
+        Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref "AWS::NoValue"]
         ViewerCertificate: !If
           - HasSiteCert
           - AcmCertificateArn: !Ref SiteCertificateArn
@@ -567,7 +579,7 @@ Resources:
           - Id: site
             DomainName: !GetAtt SiteBucket.RegionalDomainName
             OriginAccessControlId: !Ref SiteOac
-            S3OriginConfig: { OriginAccessIdentity: '' }
+            S3OriginConfig: { OriginAccessIdentity: "" }
           - Id: api
             DomainName: !Sub ${SiteApi}.execute-api.${AWS::Region}.amazonaws.com
             CustomOriginConfig:
@@ -637,7 +649,8 @@ Resources:
       AlarmDescription: Bulk request queue oldest message age high; gateways down or drowning
       Namespace: AWS/SQS
       MetricName: ApproximateAgeOfOldestMessage
-      Dimensions: [{ Name: QueueName, Value: !GetAtt RequestsBulkQueue.QueueName }]
+      Dimensions:
+        [{ Name: QueueName, Value: !GetAtt RequestsBulkQueue.QueueName }]
       Statistic: Maximum
       Period: 300
       EvaluationPeriods: 2
@@ -652,7 +665,8 @@ Resources:
       AlarmName: elixir-mcp-dlq-requests-live
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions: [{ Name: QueueName, Value: !GetAtt RequestsLiveDlq.QueueName }]
+      Dimensions:
+        [{ Name: QueueName, Value: !GetAtt RequestsLiveDlq.QueueName }]
       Statistic: Maximum
       Period: 300
       EvaluationPeriods: 1
@@ -667,7 +681,8 @@ Resources:
       AlarmName: elixir-mcp-dlq-requests-bulk
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions: [{ Name: QueueName, Value: !GetAtt RequestsBulkDlq.QueueName }]
+      Dimensions:
+        [{ Name: QueueName, Value: !GetAtt RequestsBulkDlq.QueueName }]
       Statistic: Maximum
       Period: 300
       EvaluationPeriods: 1

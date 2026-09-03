@@ -14,7 +14,14 @@
       "project": ["src/**/*.ts", "test/**/*.mjs"]
     },
     "services/*": {
-      "entry": ["src/index.mjs", "src/lambda.mjs", "src/cli.mjs", "src/seed-dev.mjs", "scripts/*.mjs", "test/**/*.test.mjs"],
+      "entry": [
+        "src/index.mjs",
+        "src/lambda.mjs",
+        "src/cli.mjs",
+        "src/seed-dev.mjs",
+        "scripts/*.mjs",
+        "test/**/*.test.mjs"
+      ],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }
   }

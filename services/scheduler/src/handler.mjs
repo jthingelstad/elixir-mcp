@@ -4,8 +4,8 @@
  * bulk request queue in production, a fake in tests.
  */
 
-import pg from 'pg';
-import { planTick } from './plan.mjs';
+import pg from "pg";
+import { planTick } from "./plan.mjs";
 
 export function makeHandler({ databaseUrl, sendJobs }) {
   return async function handler() {

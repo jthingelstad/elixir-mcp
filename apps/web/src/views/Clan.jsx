@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { api } from '../api.js';
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
 
 function ago(ts) {
-  if (!ts) return 'never';
+  if (!ts) return "never";
   const mins = Math.round((Date.now() - Date.parse(ts)) / 60000);
   if (mins < 60) return `${mins}m ago`;
   if (mins < 60 * 48) return `${Math.round(mins / 60)}h ago`;
@@ -28,7 +28,16 @@ export function Clan({ me, navigate }) {
       <div className="panel">
         <h3>Sign in first</h3>
         <p>
-          <a href="/signin" onClick={(e) => { e.preventDefault(); navigate('/signin'); }}>Sign in</a> to see your clan.
+          <a
+            href="/signin"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/signin");
+            }}
+          >
+            Sign in
+          </a>{" "}
+          to see your clan.
         </p>
       </div>
     );
@@ -55,15 +64,22 @@ export function Clan({ me, navigate }) {
           <>
             <p className="notice">
               Season {clan.war.season_id}, week {clan.war.section_index + 1}
-              {clan.war.is_colosseum ? ' — Colosseum' : ''}
+              {clan.war.is_colosseum ? " — Colosseum" : ""}
             </p>
             <table>
               <thead>
-                <tr><th>#</th><th>Clan</th><th>Fame</th></tr>
+                <tr>
+                  <th>#</th>
+                  <th>Clan</th>
+                  <th>Fame</th>
+                </tr>
               </thead>
               <tbody>
                 {standings.map((s, i) => (
-                  <tr key={s.tag} className={s.tag === clan.clan_tag ? 'us' : ''}>
+                  <tr
+                    key={s.tag}
+                    className={s.tag === clan.clan_tag ? "us" : ""}
+                  >
                     <td>{s.rank ?? i + 1}</td>
                     <td>{s.clan ?? s.tag}</td>
                     <td>{s.fame?.toLocaleString()}</td>
@@ -73,7 +89,10 @@ export function Clan({ me, navigate }) {
             </table>
           </>
         ) : (
-          <p>No war data recorded yet — standings appear after the first river race poll.</p>
+          <p>
+            No war data recorded yet — standings appear after the first river
+            race poll.
+          </p>
         )}
       </div>
 
@@ -81,15 +100,21 @@ export function Clan({ me, navigate }) {
         <h3>Roster ({clan.members.length})</h3>
         <table>
           <thead>
-            <tr><th>Name</th><th>Role</th><th>Trophies</th><th>Donations</th><th>Last battle</th></tr>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Trophies</th>
+              <th>Donations</th>
+              <th>Last battle</th>
+            </tr>
           </thead>
           <tbody>
             {clan.members.map((m) => (
               <tr key={m.player_tag}>
                 <td>{m.name ?? m.player_tag}</td>
-                <td>{m.role ?? '—'}</td>
-                <td>{m.trophies?.toLocaleString() ?? '—'}</td>
-                <td>{m.donations ?? '—'}</td>
+                <td>{m.role ?? "—"}</td>
+                <td>{m.trophies?.toLocaleString() ?? "—"}</td>
+                <td>{m.donations ?? "—"}</td>
                 <td>{ago(m.last_battle)}</td>
               </tr>
             ))}
@@ -101,11 +126,11 @@ export function Clan({ me, navigate }) {
         <div className="panel">
           <h3>Battle sharing</h3>
           <p>
-            Clanmates always see war stats. Sharing lets them see your full recorded
-            battle history through their own agents.
+            Clanmates always see war stats. Sharing lets them see your full
+            recorded battle history through their own agents.
           </p>
           {clan.my_claims.map((c) => (
-            <label key={c.player_tag} style={{ display: 'block' }}>
+            <label key={c.player_tag} style={{ display: "block" }}>
               <input
                 type="checkbox"
                 checked={c.share_battles_with_clan === true}
@@ -113,7 +138,7 @@ export function Clan({ me, navigate }) {
                   await api.setShareBattles(c.player_tag, e.target.checked);
                   load();
                 }}
-              />{' '}
+              />{" "}
               Share <code>{c.player_tag}</code> battles with my clan
             </label>
           ))}

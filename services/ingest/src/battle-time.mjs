@@ -12,6 +12,7 @@ const CR_TIME_RE = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/;
 
 export function canonicalBattleTime(crTime) {
   const m = CR_TIME_RE.exec(crTime);
-  if (!m) throw new Error(`unrecognized CR battleTime: ${JSON.stringify(crTime)}`);
+  if (!m)
+    throw new Error(`unrecognized CR battleTime: ${JSON.stringify(crTime)}`);
   return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`;
 }

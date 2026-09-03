@@ -8,8 +8,8 @@
  *  - thrown errors (DB down, etc.): batch item failure -> retry is correct.
  */
 
-import pg from 'pg';
-import { processResult } from './pipeline.mjs';
+import pg from "pg";
+import { processResult } from "./pipeline.mjs";
 
 export function makeHandler({ databaseUrl }) {
   return async function handler(event) {
@@ -26,7 +26,7 @@ export function makeHandler({ databaseUrl }) {
           batchItemFailures.push({ itemIdentifier: record.messageId });
           continue;
         }
-        if (outcome.outcome === 'bad_message') {
+        if (outcome.outcome === "bad_message") {
           batchItemFailures.push({ itemIdentifier: record.messageId });
         }
       }

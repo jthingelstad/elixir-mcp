@@ -9,7 +9,7 @@
  * emails everywhere — never an oracle.
  */
 
-import pg from 'pg';
+import pg from "pg";
 import {
   emailHash,
   requestAccess,
@@ -23,15 +23,19 @@ import {
   resolveSession,
   revokeSession,
   checkRateLimit,
-} from '@elixir-mcp/auth';
-import { normalizeTag, InvalidTagError } from '@elixir-mcp/contracts';
+} from "@elixir-mcp/auth";
+import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
-const COOKIE_NAME = '__Host-elixir_session';
-const CONTRACT_HEADER = 'x-elixir-client';
+const COOKIE_NAME = "__Host-elixir_session";
+const CONTRACT_HEADER = "x-elixir-client";
 
 const json = (statusCode, body, headers = {}) => ({
   statusCode,
-  headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers },
+  headers: {
+    "content-type": "application/json",
+    "cache-control": "no-store",
+    ...headers,
+  },
   body: JSON.stringify(body),
 });
 
@@ -40,91 +44,131 @@ function sessionCookie(token, maxAgeSeconds) {
 }
 
 function readCookie(event) {
-  const cookies = event.cookies ?? String(event.headers?.cookie ?? '').split('; ');
+  const cookies =
+    event.cookies ?? String(event.headers?.cookie ?? "").split("; ");
   for (const c of cookies) {
     if (c.startsWith(`${COOKIE_NAME}=`)) return c.slice(COOKIE_NAME.length + 1);
   }
-  return '';
+  return "";
 }
 
 function bearer(event) {
-  const auth = String(event.headers?.authorization ?? '');
-  return auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  const auth = String(event.headers?.authorization ?? "");
+  return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
 }
 
-export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner = async () => {}, liveFetch = null }) {
-  async function resolveAccount(db, event, { requireContractHeader = false } = {}) {
+export function makeHandler({
+  databaseUrl,
+  secret,
+  sendLoginEmail,
+  notifyOwner = async () => {},
+  liveFetch = null,
+}) {
+  async function resolveAccount(
+    db,
+    event,
+    { requireContractHeader = false } = {},
+  ) {
     const fromBearer = bearer(event);
     const token = fromBearer || readCookie(event);
     if (!token) return null;
-    if (!fromBearer && requireContractHeader && !event.headers?.[CONTRACT_HEADER]) return null;
+    if (
+      !fromBearer &&
+      requireContractHeader &&
+      !event.headers?.[CONTRACT_HEADER]
+    )
+      return null;
     return resolveSession(db, { secret, token });
   }
 
   async function mintSessionResponse(db, hash) {
     const account = await approvedAccount(db, hash);
-    if (!account) return json(400, { error: 'invalid_or_expired' });
-    const minted = await createSession(db, { secret, accountId: account.account_id, emailHash: hash });
+    if (!account) return json(400, { error: "invalid_or_expired" });
+    const minted = await createSession(db, {
+      secret,
+      accountId: account.account_id,
+      emailHash: hash,
+    });
     return json(
       200,
       { authenticated: true },
-      { 'set-cookie': sessionCookie(minted.token, 9 * 24 * 3600) },
+      { "set-cookie": sessionCookie(minted.token, 9 * 24 * 3600) },
     );
   }
 
   const routes = {
-    'POST /api/request-access': async (db, event, body) => {
-      const ip = event.requestContext?.http?.sourceIp ?? 'unknown';
+    "POST /api/request-access": async (db, event, body) => {
+      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
       if (!(await checkRateLimit(db, { bucket: `reqaccess#${ip}`, max: 5 }))) {
-        return json(429, { error: 'rate_limited' });
+        return json(429, { error: "rate_limited" });
       }
-      const email = String(body.email ?? '').trim();
-      if (!email.includes('@')) return json(400, { error: 'bad_request' });
+      const email = String(body.email ?? "").trim();
+      if (!email.includes("@")) return json(400, { error: "bad_request" });
       let playerTag = null;
       try {
-        playerTag = body.player_tag ? normalizeTag(String(body.player_tag)) : null;
+        playerTag = body.player_tag
+          ? normalizeTag(String(body.player_tag))
+          : null;
       } catch {
-        return json(400, { error: 'invalid_tag' });
+        return json(400, { error: "invalid_tag" });
       }
       const result = await requestAccess(db, {
         emailHash: emailHash(email),
         playerTag,
-        note: String(body.note ?? '').slice(0, 500) || null,
+        note: String(body.note ?? "").slice(0, 500) || null,
       });
-      if (result.created) await notifyOwner({ kind: 'access_request', playerTag });
+      if (result.created)
+        await notifyOwner({ kind: "access_request", playerTag });
       // Identical response for new, repeat, denied, and already-approved.
-      return json(200, { ok: true, message: 'If your request is approved, you will hear from us by email.' });
+      return json(200, {
+        ok: true,
+        message: "If your request is approved, you will hear from us by email.",
+      });
     },
 
-    'POST /api/auth': async (db, event, body) => {
-      const ip = event.requestContext?.http?.sourceIp ?? 'unknown';
-      const email = String(body.email ?? '').trim();
+    "POST /api/auth": async (db, event, body) => {
+      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
+      const email = String(body.email ?? "").trim();
       const okIp = await checkRateLimit(db, { bucket: `auth#${ip}`, max: 10 });
-      const okEmail = await checkRateLimit(db, { bucket: `auth#${emailHash(email)}`, max: 5 });
-      if (okIp && okEmail && email.includes('@')) {
+      const okEmail = await checkRateLimit(db, {
+        bucket: `auth#${emailHash(email)}`,
+        max: 5,
+      });
+      if (okIp && okEmail && email.includes("@")) {
         const account = await approvedAccount(db, emailHash(email));
         if (account) {
-          const { token, code } = await startMagicLogin(db, { emailHash: emailHash(email), purpose: 'web' });
-          await sendLoginEmail({ email, code, token, purpose: 'web' });
+          const { token, code } = await startMagicLogin(db, {
+            emailHash: emailHash(email),
+            purpose: "web",
+          });
+          await sendLoginEmail({ email, code, token, purpose: "web" });
         }
       }
-      return json(200, { ok: true, message: 'If your account is approved, a sign-in email is on its way.' });
+      return json(200, {
+        ok: true,
+        message: "If your account is approved, a sign-in email is on its way.",
+      });
     },
 
-    'POST /api/auth/redeem': async (db, _event, body) => {
+    "POST /api/auth/redeem": async (db, _event, body) => {
       const row = await redeemMagicToken(db, body.token);
-      if (!row || row.purpose !== 'web') return json(400, { error: 'invalid_or_expired' });
+      if (!row || row.purpose !== "web")
+        return json(400, { error: "invalid_or_expired" });
       return mintSessionResponse(db, row.email_hash);
     },
 
-    'POST /api/auth/code': async (db, _event, body) => {
-      const hash = emailHash(String(body.email ?? ''));
-      const row = await verifyMagicCode(db, { emailHash: hash, code: body.code });
-      if (!row || row.purpose !== 'web') return json(400, { error: 'invalid_or_expired' });
+    "POST /api/auth/code": async (db, _event, body) => {
+      const hash = emailHash(String(body.email ?? ""));
+      const row = await verifyMagicCode(db, {
+        emailHash: hash,
+        code: body.code,
+      });
+      if (!row || row.purpose !== "web")
+        return json(400, { error: "invalid_or_expired" });
       return mintSessionResponse(db, hash);
     },
 
-    'GET /api/me': async (db, event) => {
+    "GET /api/me": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(200, { authenticated: false });
       const [claims, recordings] = await Promise.all([
@@ -150,36 +194,52 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       });
     },
 
-    'POST /api/session/signout': async (db, event) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
+    "POST /api/session/signout": async (db, event) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
       if (account) await revokeSession(db, account.sessionId);
-      return json(200, { ok: true }, { 'set-cookie': sessionCookie('', 0) });
+      return json(200, { ok: true }, { "set-cookie": sessionCookie("", 0) });
     },
 
-    'POST /api/me/timezone': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
-      const tz = String(body.timezone ?? '');
+    "POST /api/me/timezone": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const tz = String(body.timezone ?? "");
       try {
-        Intl.DateTimeFormat('en-US', { timeZone: tz });
+        Intl.DateTimeFormat("en-US", { timeZone: tz });
       } catch {
-        return json(400, { error: 'bad_request', message: 'Not an IANA timezone.' });
+        return json(400, {
+          error: "bad_request",
+          message: "Not an IANA timezone.",
+        });
       }
-      await db.query(`update account set timezone = $2 where account_id = $1`, [account.accountId, tz]);
+      await db.query(`update account set timezone = $2 where account_id = $1`, [
+        account.accountId,
+        tz,
+      ]);
       return json(200, { ok: true, timezone: tz });
     },
 
-    'POST /api/claims': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
+    "POST /api/claims": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
       let tag;
       try {
-        tag = normalizeTag(String(body.player_tag ?? ''));
+        tag = normalizeTag(String(body.player_tag ?? ""));
       } catch (err) {
-        if (err instanceof InvalidTagError) return json(400, { error: 'invalid_tag' });
+        if (err instanceof InvalidTagError)
+          return json(400, { error: "invalid_tag" });
         throw err;
       }
-      await db.query(`insert into player (player_tag) values ($1) on conflict do nothing`, [tag]);
+      await db.query(
+        `insert into player (player_tag) values ($1) on conflict do nothing`,
+        [tag],
+      );
       const { rows: existing } = await db.query(
         `select count(*)::int as n from claim where account_id = $1`,
         [account.accountId],
@@ -187,53 +247,59 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       await db.query(
         `insert into claim (account_id, player_tag, status, is_primary)
          values ($1, $2, 'unverified', $3) on conflict (account_id, player_tag) do nothing`,
-        [account.accountId, tag, existing[0].n === 0 || body.make_primary === true],
-      );
-      if (body.make_primary === true) {
-        await db.query(`update claim set is_primary = (player_tag = $2) where account_id = $1`, [
+        [
           account.accountId,
           tag,
-        ]);
+          existing[0].n === 0 || body.make_primary === true,
+        ],
+      );
+      if (body.make_primary === true) {
+        await db.query(
+          `update claim set is_primary = (player_tag = $2) where account_id = $1`,
+          [account.accountId, tag],
+        );
       }
       return json(200, { ok: true, player_tag: tag });
     },
 
-    'POST /api/recordings': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
+    "POST /api/recordings": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
       let tag;
       try {
-        tag = normalizeTag(String(body.player_tag ?? ''));
+        tag = normalizeTag(String(body.player_tag ?? ""));
       } catch {
-        return json(400, { error: 'invalid_tag' });
+        return json(400, { error: "invalid_tag" });
       }
       const { rows: claim } = await db.query(
         `select 1 from claim where account_id = $1 and player_tag = $2`,
         [account.accountId, tag],
       );
-      if (!claim[0]) return json(403, { error: 'not_entitled' });
-      if (body.action === 'start') {
+      if (!claim[0]) return json(403, { error: "not_entitled" });
+      if (body.action === "start") {
         await db.query(
           `insert into recording (subject_type, subject_tag, requested_by)
            select 'player', $1, $2
            where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
           [tag, account.accountId],
         );
-      } else if (body.action === 'stop') {
+      } else if (body.action === "stop") {
         await db.query(
           `update recording set status = 'stopped'
            where subject_type = 'player' and subject_tag = $1 and status = 'active'`,
           [tag],
         );
       } else {
-        return json(400, { error: 'bad_request' });
+        return json(400, { error: "bad_request" });
       }
       return json(200, { ok: true });
     },
 
-    'GET /api/clan': async (db, event) => {
+    "GET /api/clan": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account) return json(401, { error: 'unauthenticated' });
+      if (!account) return json(401, { error: "unauthenticated" });
       // The account's clan: open membership of a claimed tag in a recorded
       // clan; the owner falls back to the first recorded clan.
       const { rows: mine } = await db.query(
@@ -250,22 +316,25 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
         );
         clanTag = rows[0]?.subject_tag ?? null;
       }
-      if (!clanTag) return json(403, { error: 'not_entitled' });
+      if (!clanTag) return json(403, { error: "not_entitled" });
 
       // One pg.Client per invocation: queries run sequentially by design.
-      const clanRow = await db.query(`select name from clan where clan_tag = $1`, [clanTag]);
+      const clanRow = await db.query(
+        `select name from clan where clan_tag = $1`,
+        [clanTag],
+      );
       const week = await db.query(
-          `select w.season_id, w.section_index, w.is_colosseum,
+        `select w.season_id, w.section_index, w.is_colosseum,
                   (select json_agg(json_build_object('clan', s.participant_name, 'tag', s.participant_clan_tag,
                                                      'fame', s.fame, 'rank', s.rank) order by s.rank nulls last, s.fame desc)
                    from war_week_clan s where s.clan_tag = w.clan_tag
                      and s.season_id = w.season_id and s.section_index = w.section_index) as standings
            from war_week w where w.clan_tag = $1
            order by w.season_id desc, w.section_index desc limit 1`,
-          [clanTag],
-        );
+        [clanTag],
+      );
       const roster = await db.query(
-          `select cm.player_tag, cm.role, p.name, s.trophies, s.donations,
+        `select cm.player_tag, cm.role, p.name, s.trophies, s.donations,
                   (select max(b.battle_time) from battle_participant bp
                    join battle b on b.battle_id = bp.battle_id where bp.player_tag = cm.player_tag) as last_battle
            from clan_membership cm join player p on p.player_tag = cm.player_tag
@@ -274,12 +343,12 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
                               order by snapshot_date desc, snapshot_kind desc limit 1) s on true
            where cm.clan_tag = $1 and cm.left_observed_at is null
            order by s.trophies desc nulls last`,
-          [clanTag],
-        );
+        [clanTag],
+      );
       const consents = await db.query(
-          `select player_tag, share_battles_with_clan from claim where account_id = $1`,
-          [account.accountId],
-        );
+        `select player_tag, share_battles_with_clan from claim where account_id = $1`,
+        [account.accountId],
+      );
       return json(200, {
         clan_tag: clanTag,
         name: clanRow.rows[0]?.name ?? null,
@@ -289,56 +358,71 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       });
     },
 
-    'POST /api/me/share-battles': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
+    "POST /api/me/share-battles": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
       let tag;
       try {
-        tag = normalizeTag(String(body.player_tag ?? ''));
+        tag = normalizeTag(String(body.player_tag ?? ""));
       } catch {
-        return json(400, { error: 'invalid_tag' });
+        return json(400, { error: "invalid_tag" });
       }
       const { rowCount } = await db.query(
         `update claim set share_battles_with_clan = $3 where account_id = $1 and player_tag = $2`,
         [account.accountId, tag, body.share === true],
       );
-      if (rowCount === 0) return json(403, { error: 'not_entitled' });
-      return json(200, { ok: true, player_tag: tag, share: body.share === true });
+      if (rowCount === 0) return json(403, { error: "not_entitled" });
+      return json(200, {
+        ok: true,
+        player_tag: tag,
+        share: body.share === true,
+      });
     },
 
-    'GET /api/admin/requests': async (db, event) => {
+    "GET /api/admin/requests": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
       return json(200, { requests: await pendingRequests(db) });
     },
 
-    'POST /api/admin/decide': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
-      const decided = await decideAccess(db, {
-        emailHash: String(body.email_hash ?? ''),
-        decision: String(body.decision ?? ''),
+    "POST /api/admin/decide": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
       });
-      if (!decided) return json(404, { error: 'not_found' });
-      if (decided.status === 'approved') await notifyOwner({ kind: 'approved_welcome', emailHash: body.email_hash });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const decided = await decideAccess(db, {
+        emailHash: String(body.email_hash ?? ""),
+        decision: String(body.decision ?? ""),
+      });
+      if (!decided) return json(404, { error: "not_found" });
+      if (decided.status === "approved")
+        await notifyOwner({
+          kind: "approved_welcome",
+          emailHash: body.email_hash,
+        });
       return json(200, { ok: true, status: decided.status });
     },
 
-    'POST /api/claims/verify': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
+    "POST /api/claims/verify": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
       let tag;
       try {
-        tag = normalizeTag(String(body.player_tag ?? ''));
+        tag = normalizeTag(String(body.player_tag ?? ""));
       } catch {
-        return json(400, { error: 'invalid_tag' });
+        return json(400, { error: "invalid_tag" });
       }
       const { rows: claim } = await db.query(
         `select status from claim where account_id = $1 and player_tag = $2`,
         [account.accountId, tag],
       );
-      if (!claim[0]) return json(403, { error: 'not_entitled' });
-      if (claim[0].status === 'verified') return json(200, { already_verified: true });
+      if (!claim[0]) return json(403, { error: "not_entitled" });
+      if (claim[0].status === "verified")
+        return json(200, { already_verified: true });
 
       // Pick a random card from the recorded catalog: obscure enough to be
       // unguessable, universally ownable (favourite card needs no unlock).
@@ -347,7 +431,11 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
          where endpoint = 'cards' and entity_key = 'GLOBAL'
          order by last_fetched_at desc limit 1`,
       );
-      if (!cat[0]) return json(503, { error: 'temporarily_unavailable', message: 'Card catalog not recorded yet.' });
+      if (!cat[0])
+        return json(503, {
+          error: "temporarily_unavailable",
+          message: "Card catalog not recorded yet.",
+        });
       const items = cat[0].items;
       const card = items[Math.floor(Math.random() * items.length)];
       const { rows: challenge } = await db.query(
@@ -364,14 +452,16 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       });
     },
 
-    'POST /api/claims/verify/check': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
+    "POST /api/claims/verify/check": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
       let tag;
       try {
-        tag = normalizeTag(String(body.player_tag ?? ''));
+        tag = normalizeTag(String(body.player_tag ?? ""));
       } catch {
-        return json(400, { error: 'invalid_tag' });
+        return json(400, { error: "invalid_tag" });
       }
       const { rows: pending } = await db.query(
         `select challenge_id, card_id, card_name, expires_at from verification_challenge
@@ -379,15 +469,30 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
          order by created_at desc limit 1`,
         [account.accountId, tag],
       );
-      if (!pending[0]) return json(404, { error: 'not_found', message: 'No pending challenge.' });
+      if (!pending[0])
+        return json(404, {
+          error: "not_found",
+          message: "No pending challenge.",
+        });
       const ch = pending[0];
       if (ch.expires_at.getTime() < Date.now()) {
-        await db.query(`update verification_challenge set status = 'expired' where challenge_id = $1`, [ch.challenge_id]);
+        await db.query(
+          `update verification_challenge set status = 'expired' where challenge_id = $1`,
+          [ch.challenge_id],
+        );
         return json(200, { verified: false, expired: true });
       }
-      if (!liveFetch) return json(503, { error: 'temporarily_unavailable' });
-      const result = await liveFetch(db, { endpoint: 'player', entityKey: tag });
-      if (!result.ok) return json(200, { verified: false, retry: true, message: 'Live check did not complete; try again.' });
+      if (!liveFetch) return json(503, { error: "temporarily_unavailable" });
+      const result = await liveFetch(db, {
+        endpoint: "player",
+        entityKey: tag,
+      });
+      if (!result.ok)
+        return json(200, {
+          verified: false,
+          retry: true,
+          message: "Live check did not complete; try again.",
+        });
       const favourite = result.payload?.currentFavouriteCard;
       if (Number(favourite?.id) === Number(ch.card_id)) {
         await db.query(
@@ -404,13 +509,13 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       return json(200, {
         verified: false,
         seen: favourite?.name ?? null,
-        message: `Your favourite card currently shows "${favourite?.name ?? 'unknown'}", not "${ch.card_name}". Change it in-game, wait a minute, and check again.`,
+        message: `Your favourite card currently shows "${favourite?.name ?? "unknown"}", not "${ch.card_name}". Change it in-game, wait a minute, and check again.`,
       });
     },
 
-    'GET /api/admin/clans': async (db, event) => {
+    "GET /api/admin/clans": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select r.subject_tag as clan_tag, r.status, r.created_at, cl.name,
                 (select count(*)::int from clan_membership cm
@@ -425,17 +530,22 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       return json(200, { clans: rows });
     },
 
-    'POST /api/admin/clans': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+    "POST /api/admin/clans": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
       let tag;
       try {
-        tag = normalizeTag(String(body.clan_tag ?? ''));
+        tag = normalizeTag(String(body.clan_tag ?? ""));
       } catch {
-        return json(400, { error: 'invalid_tag' });
+        return json(400, { error: "invalid_tag" });
       }
-      if (body.action === 'start') {
-        await db.query(`insert into clan (clan_tag) values ($1) on conflict do nothing`, [tag]);
+      if (body.action === "start") {
+        await db.query(
+          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+          [tag],
+        );
         await db.query(
           `insert into recording (subject_type, subject_tag, requested_by)
            select 'clan', $1, $2
@@ -443,21 +553,21 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
                              where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
           [tag, account.accountId],
         );
-      } else if (body.action === 'stop') {
+      } else if (body.action === "stop") {
         await db.query(
           `update recording set status = 'stopped'
            where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
           [tag],
         );
       } else {
-        return json(400, { error: 'bad_request' });
+        return json(400, { error: "bad_request" });
       }
       return json(200, { ok: true, clan_tag: tag });
     },
 
-    'GET /api/admin/gateways': async (db, event) => {
+    "GET /api/admin/gateways": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select gateway_id, name, status, static_ip, key_source, enrolled_at, last_heartbeat_at, last_success_at,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
@@ -470,35 +580,41 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
     // Raise your hand to run a gateway (§4.6 lifecycle: pending until Jamie
     // issues an IP-bound key from his Supercell account + a per-gateway IAM
     // user — both Jamie-manual). The key itself never touches this system.
-    'POST /api/gateways': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account) return json(401, { error: 'unauthenticated' });
-      const name = String(body.name ?? '').trim().toLowerCase();
-      if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(name)) return json(400, { error: 'invalid_name' });
-      const ip = String(body.static_ip ?? '').trim();
-      if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return json(400, { error: 'invalid_ip' });
+    "POST /api/gateways": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const name = String(body.name ?? "")
+        .trim()
+        .toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(name))
+        return json(400, { error: "invalid_name" });
+      const ip = String(body.static_ip ?? "").trim();
+      if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip))
+        return json(400, { error: "invalid_ip" });
       const dupe = await db.query(
         `select 1 from gateway where name = $1 and status <> 'revoked'`,
         [name],
       );
-      if (dupe.rows.length > 0) return json(409, { error: 'name_taken' });
+      if (dupe.rows.length > 0) return json(409, { error: "name_taken" });
       const { rows } = await db.query(
         `insert into gateway (owner_account_id, name, static_ip)
          values ($1, $2, $3) returning gateway_id`,
         [account.accountId, name, ip],
       );
-      await notifyOwner({ kind: 'gateway_request', playerTag: name });
+      await notifyOwner({ kind: "gateway_request", playerTag: name });
       return json(200, {
         ok: true,
         gateway_id: rows[0].gateway_id,
-        status: 'pending',
-        next: 'The owner issues an IP-bound CR key and credentials, then follow docs/OPERATORS.md.',
+        status: "pending",
+        next: "The owner issues an IP-bound CR key and credentials, then follow docs/OPERATORS.md.",
       });
     },
 
-    'GET /api/me/gateways': async (db, event) => {
+    "GET /api/me/gateways": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account) return json(401, { error: 'unauthenticated' });
+      if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select gateway_id, name, status, static_ip, enrolled_at, last_heartbeat_at, last_success_at
          from gateway where owner_account_id = $1 order by enrolled_at`,
@@ -507,45 +623,55 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       return json(200, { gateways: rows });
     },
 
-    'POST /api/admin/gateways': async (db, event, body) => {
-      const account = await resolveAccount(db, event, { requireContractHeader: true });
-      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+    "POST /api/admin/gateways": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
       // Forward-only lifecycle; probation is the only entry to active.
       const TRANSITIONS = {
-        probation: ['pending', 'draining'],
-        activate: ['probation'],
-        drain: ['probation', 'active'],
-        revoke: ['pending', 'probation', 'active', 'draining'],
+        probation: ["pending", "draining"],
+        activate: ["probation"],
+        drain: ["probation", "active"],
+        revoke: ["pending", "probation", "active", "draining"],
       };
-      const to = { probation: 'probation', activate: 'active', drain: 'draining', revoke: 'revoked' }[body.action];
+      const to = {
+        probation: "probation",
+        activate: "active",
+        drain: "draining",
+        revoke: "revoked",
+      }[body.action];
       const from = TRANSITIONS[body.action];
-      if (!to) return json(400, { error: 'bad_request' });
+      if (!to) return json(400, { error: "bad_request" });
       const { rows } = await db.query(
         `update gateway set status = $2,
                 cr_key_ref = coalesce($3, cr_key_ref)
          where gateway_id::text = $1 and status = any($4)
          returning gateway_id, name, status`,
-        [String(body.gateway_id ?? ''), to, body.cr_key_ref ?? null, from],
+        [String(body.gateway_id ?? ""), to, body.cr_key_ref ?? null, from],
       );
-      if (rows.length === 0) return json(409, { error: 'bad_transition' });
+      if (rows.length === 0) return json(409, { error: "bad_transition" });
       return json(200, rows[0]);
     },
   };
 
   return async function handler(event) {
-    const method = event.requestContext?.http?.method ?? event.httpMethod ?? 'GET';
-    const path = event.rawPath ?? event.path ?? '/';
+    const method =
+      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
+    const path = event.rawPath ?? event.path ?? "/";
     const route = routes[`${method} ${path}`];
-    if (!route) return json(404, { error: 'not_found' });
+    if (!route) return json(404, { error: "not_found" });
     let body = {};
     if (event.body) {
       try {
         // API Gateway v2 may deliver bodies base64-encoded.
         body = JSON.parse(
-          event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body,
+          event.isBase64Encoded
+            ? Buffer.from(event.body, "base64").toString("utf8")
+            : event.body,
         );
       } catch {
-        return json(400, { error: 'invalid_json' });
+        return json(400, { error: "invalid_json" });
       }
     }
     const db = new pg.Client({ connectionString: databaseUrl });

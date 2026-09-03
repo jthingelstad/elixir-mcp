@@ -2,10 +2,10 @@
  *  the cloud (DESIGN §11.1). Invoked by the deploy script between code
  *  upload and flip. The build packages db/migrations alongside the bundle. */
 
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import pg from 'pg';
-import { migrate } from './migrate.mjs';
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import pg from "pg";
+import { migrate } from "./migrate.mjs";
 
 /**
  * One-time production seeding, run by explicit invoke payload only
@@ -38,17 +38,23 @@ async function seed(databaseUrl, spec) {
       );
       gatewayId =
         rows[0]?.gateway_id ??
-        (await db.query(`select gateway_id from gateway where name = $1`, [spec.gateway.name]))
-          .rows[0].gateway_id;
+        (
+          await db.query(`select gateway_id from gateway where name = $1`, [
+            spec.gateway.name,
+          ])
+        ).rows[0].gateway_id;
       // Re-seeding transfers ownership: the seeded account owns the gateway.
-      await db.query(`update gateway set owner_account_id = $1 where gateway_id = $2`, [
-        account.account_id,
-        gatewayId,
-      ]);
+      await db.query(
+        `update gateway set owner_account_id = $1 where gateway_id = $2`,
+        [account.account_id, gatewayId],
+      );
     }
     let clanRecording = null;
     if (spec.record_clan) {
-      await db.query(`insert into clan (clan_tag) values ($1) on conflict do nothing`, [spec.record_clan]);
+      await db.query(
+        `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+        [spec.record_clan],
+      );
       await db.query(
         `insert into recording (subject_type, subject_tag, requested_by)
          select 'clan', $1, $2
@@ -67,19 +73,42 @@ async function seed(databaseUrl, spec) {
         [spec.purge_email_hash, account.account_id],
       );
       for (const v of victims) {
-        await db.query(`delete from session where account_id = $1`, [v.account_id]);
-        await db.query(`delete from mcp_call_audit where account_id = $1`, [v.account_id]);
-        await db.query(`delete from recording where requested_by = $1`, [v.account_id]);
-        await db.query(`delete from claim where account_id = $1`, [v.account_id]);
-        await db.query(`delete from oauth_token t using oauth_family f
-                        where t.family_id = f.family_id and f.account_id = $1`, [v.account_id]);
-        await db.query(`delete from oauth_code where account_id = $1`, [v.account_id]);
-        await db.query(`delete from oauth_family where account_id = $1`, [v.account_id]);
-        await db.query(`delete from account where account_id = $1`, [v.account_id]);
+        await db.query(`delete from session where account_id = $1`, [
+          v.account_id,
+        ]);
+        await db.query(`delete from mcp_call_audit where account_id = $1`, [
+          v.account_id,
+        ]);
+        await db.query(`delete from recording where requested_by = $1`, [
+          v.account_id,
+        ]);
+        await db.query(`delete from claim where account_id = $1`, [
+          v.account_id,
+        ]);
+        await db.query(
+          `delete from oauth_token t using oauth_family f
+                        where t.family_id = f.family_id and f.account_id = $1`,
+          [v.account_id],
+        );
+        await db.query(`delete from oauth_code where account_id = $1`, [
+          v.account_id,
+        ]);
+        await db.query(`delete from oauth_family where account_id = $1`, [
+          v.account_id,
+        ]);
+        await db.query(`delete from account where account_id = $1`, [
+          v.account_id,
+        ]);
         purged += 1;
       }
     }
-    return { seeded: true, accountId: account.account_id, gatewayId, clanRecording, purged };
+    return {
+      seeded: true,
+      accountId: account.account_id,
+      gatewayId,
+      clanRecording,
+      purged,
+    };
   } finally {
     await db.end();
   }
@@ -128,7 +157,7 @@ export async function handler(event) {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const result = await migrate({
     databaseUrl: process.env.DATABASE_URL,
-    migrationsDir: path.join(here, 'migrations'),
+    migrationsDir: path.join(here, "migrations"),
     log: (m) => console.log(m),
   });
   console.log(JSON.stringify(result));

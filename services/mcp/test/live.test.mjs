@@ -1,20 +1,21 @@
-import { test, before, after } from 'node:test';
-import assert from 'node:assert/strict';
-import { gzipSync } from 'node:zlib';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
-import { migrate } from '../../migrate/src/migrate.mjs';
-import { processResult } from '../../ingest/src/pipeline.mjs';
-import { makeLive, livePathToJob } from '../src/live.mjs';
-import { makeRegistry } from '../src/tools.mjs';
-import { makeInvoker } from '../src/invoker.mjs';
-import { normalizeTag } from '@elixir-mcp/contracts';
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
+import pg from "pg";
+import { migrate } from "../../migrate/src/migrate.mjs";
+import { processResult } from "../../ingest/src/pipeline.mjs";
+import { makeLive, livePathToJob } from "../src/live.mjs";
+import { makeRegistry } from "../src/tools.mjs";
+import { makeInvoker } from "../src/invoker.mjs";
+import { normalizeTag } from "@elixir-mcp/contracts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '../../..');
-const ADMIN_URL = process.env.PG_ADMIN_URL ?? 'postgres://otto@localhost:5432/postgres';
+const repoRoot = path.resolve(here, "../../..");
+const ADMIN_URL =
+  process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_live_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
@@ -23,7 +24,9 @@ let gatewayId;
 let account;
 
 async function fixture(rel) {
-  return JSON.parse(await readFile(path.join(repoRoot, 'fixtures', rel), 'utf8'));
+  return JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures", rel), "utf8"),
+  );
 }
 
 /** A fake gateway: on enqueue, run the REAL results pipeline as if the
@@ -39,8 +42,10 @@ function fakeGatewayLive(payloadByKey) {
         job,
         gateway_id: gatewayId,
         fetched_at: new Date().toISOString(),
-        status: 'ok',
-        body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString('base64'),
+        status: "ok",
+        body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+          "base64",
+        ),
       });
     },
   });
@@ -52,7 +57,10 @@ before(async () => {
   await admin.query(`drop database if exists ${NAME} with (force)`);
   await admin.query(`create database ${NAME}`);
   await admin.end();
-  await migrate({ databaseUrl: DB_URL, migrationsDir: path.join(repoRoot, 'db/migrations') });
+  await migrate({
+    databaseUrl: DB_URL,
+    migrationsDir: path.join(repoRoot, "db/migrations"),
+  });
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   const {
@@ -80,36 +88,51 @@ after(async () => {
   await admin.end();
 });
 
-test('livePathToJob maps the allowlist and rejects the rest', () => {
-  assert.deepEqual(livePathToJob('/players/#20JJJ2CCRU', normalizeTag), {
-    endpoint: 'player',
-    entityKey: '#20JJJ2CCRU',
+test("livePathToJob maps the allowlist and rejects the rest", () => {
+  assert.deepEqual(livePathToJob("/players/#20JJJ2CCRU", normalizeTag), {
+    endpoint: "player",
+    entityKey: "#20JJJ2CCRU",
   });
-  assert.deepEqual(livePathToJob('/clans/#J2RGCRVG/riverracelog', normalizeTag), {
-    endpoint: 'riverracelog',
-    entityKey: '#J2RGCRVG',
-  });
-  assert.equal(livePathToJob('/locations/global', normalizeTag).error, 'bad_request');
-  assert.equal(livePathToJob('/players/NOPE!', normalizeTag).error, 'invalid_tag');
+  assert.deepEqual(
+    livePathToJob("/clans/#J2RGCRVG/riverracelog", normalizeTag),
+    {
+      endpoint: "riverracelog",
+      entityKey: "#J2RGCRVG",
+    },
+  );
+  assert.equal(
+    livePathToJob("/locations/global", normalizeTag).error,
+    "bad_request",
+  );
+  assert.equal(
+    livePathToJob("/players/NOPE!", normalizeTag).error,
+    "invalid_tag",
+  );
 });
 
-test('cr_api_live round-trips through the REAL pipeline and records opportunistically', async () => {
-  const profile = await fixture('player/profile.json');
+test("cr_api_live round-trips through the REAL pipeline and records opportunistically", async () => {
+  const profile = await fixture("player/profile.json");
   const tag = normalizeTag(profile.tag);
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke('cr_api_live', { path: `/players/${tag}` });
+  const { body, isError } = await invoke("cr_api_live", {
+    path: `/players/${tag}`,
+  });
   assert.equal(isError, false, JSON.stringify(body).slice(0, 200));
   assert.equal(body.live, true);
-  assert.equal(body.data.tag, profile.tag, 'API-shaped passthrough');
+  assert.equal(body.data.tag, profile.tag, "API-shaped passthrough");
   // Opportunistic recording: the fetch left a snapshot behind.
-  const snaps = (await db.query(`select count(*)::int n from player_snapshot_daily where player_tag = $1`, [tag]))
-    .rows[0].n;
-  assert.ok(snaps > 0, 'live fetch was recorded');
+  const snaps = (
+    await db.query(
+      `select count(*)::int n from player_snapshot_daily where player_tag = $1`,
+      [tag],
+    )
+  ).rows[0].n;
+  assert.ok(snaps > 0, "live fetch was recorded");
 });
 
-test('get_player live:true refreshes then serves the snapshot', async () => {
-  const profile = structuredClone(await fixture('player/profile.json'));
+test("get_player live:true refreshes then serves the snapshot", async () => {
+  const profile = structuredClone(await fixture("player/profile.json"));
   const tag = normalizeTag(profile.tag);
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary) values ($1, $2, 'unverified', true)
@@ -119,21 +142,27 @@ test('get_player live:true refreshes then serves the snapshot', async () => {
   profile.trophies += 99;
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke('get_player', { live: true });
+  const { body, isError } = await invoke("get_player", { live: true });
   assert.equal(isError, false, JSON.stringify(body).slice(0, 200));
-  assert.equal(body.snapshot.trophies, profile.trophies, 'served fresh from the live fetch');
+  assert.equal(
+    body.snapshot.trophies,
+    profile.trophies,
+    "served fresh from the live fetch",
+  );
 });
 
-test('an unfulfilled live job times out to a structured live_unavailable', async () => {
+test("an unfulfilled live job times out to a structured live_unavailable", async () => {
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke('cr_api_live', { path: '/clans/#GQ0YLCYJ' });
+  const { body, isError } = await invoke("cr_api_live", {
+    path: "/clans/#GQ0YLCYJ",
+  });
   assert.equal(isError, true);
-  assert.equal(body.error.code, 'live_unavailable');
+  assert.equal(body.error.code, "live_unavailable");
 });
 
-test('the live daily cap trips as quota_exceeded', async () => {
-  const profile = await fixture('player/profile.json');
+test("the live daily cap trips as quota_exceeded", async () => {
+  const profile = await fixture("player/profile.json");
   const tag = normalizeTag(profile.tag);
   const day = new Date().toISOString().slice(0, 10);
   await db.query(
@@ -143,7 +172,9 @@ test('the live daily cap trips as quota_exceeded', async () => {
   );
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke('cr_api_live', { path: `/players/${tag}` });
+  const { body, isError } = await invoke("cr_api_live", {
+    path: `/players/${tag}`,
+  });
   assert.equal(isError, true);
-  assert.equal(body.error.code, 'quota_exceeded');
+  assert.equal(body.error.code, "quota_exceeded");
 });

@@ -5,7 +5,7 @@
  * not two.
  */
 
-const BASE = 'https://api.clashroyale.com/v1';
+const BASE = "https://api.clashroyale.com/v1";
 const TIMEOUT_MS = 15_000;
 
 const enc = (tag) => encodeURIComponent(tag);
@@ -30,21 +30,21 @@ export function makeCrFetch({ token, fetchImpl = fetch }) {
       const res = await fetchImpl(`${BASE}${path}`, {
         headers: {
           authorization: `Bearer ${token}`,
-          'user-agent': 'Elixir-MCP-Gateway/0.1',
+          "user-agent": "Elixir-MCP-Gateway/0.1",
         },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       const bodyText = await res.text();
       return {
-        kind: 'http',
+        kind: "http",
         status: res.status,
         bodyText,
-        retryAfterSeconds: res.headers.get('retry-after')
-          ? Number(res.headers.get('retry-after'))
+        retryAfterSeconds: res.headers.get("retry-after")
+          ? Number(res.headers.get("retry-after"))
           : null,
       };
     } catch (err) {
-      return { kind: 'transport', message: err?.message ?? 'fetch failed' };
+      return { kind: "transport", message: err?.message ?? "fetch failed" };
     }
   };
 }

@@ -13,14 +13,14 @@
  * First sight emits nothing.
  */
 
-import { inPreResetWindow } from '@elixir-mcp/contracts';
-import { payloadHash } from './hash.mjs';
-import { emitEvent } from './events.mjs';
-import { refreshCompleteness } from './rollups.mjs';
+import { inPreResetWindow } from "@elixir-mcp/contracts";
+import { payloadHash } from "./hash.mjs";
+import { emitEvent } from "./events.mjs";
+import { refreshCompleteness } from "./rollups.mjs";
 
 export async function projectPlayerSnapshot(
   db,
-  { playerTag, payload, fetchedAt, receiptId = null, kind = 'daily' },
+  { playerTag, payload, fetchedAt, receiptId = null, kind = "daily" },
 ) {
   const day = fetchedAt.slice(0, 10);
 
@@ -73,17 +73,23 @@ export async function projectPlayerSnapshot(
 
   // In the pre-reset hour, also pin a season_roll row: the daily row will
   // be overwritten by post-reset polls the same UTC day; this one won't.
-  if (kind === 'daily' && inPreResetWindow(new Date(fetchedAt))) {
-    await projectPlayerSnapshot(db, { playerTag, payload, fetchedAt, receiptId, kind: 'season_roll' });
+  if (kind === "daily" && inPreResetWindow(new Date(fetchedAt))) {
+    await projectPlayerSnapshot(db, {
+      playerTag,
+      payload,
+      fetchedAt,
+      receiptId,
+      kind: "season_roll",
+    });
   }
 
   if (
     prev &&
-    typeof payload.donations === 'number' &&
-    typeof prev.donations === 'number' &&
+    typeof payload.donations === "number" &&
+    typeof prev.donations === "number" &&
     payload.donations < prev.donations
   ) {
-    await emitEvent(db, 'donation_reset', {
+    await emitEvent(db, "donation_reset", {
       tag: playerTag,
       receiptId,
       windowStart: `${prev.snapshot_date.toISOString().slice(0, 10)}T00:00:00Z`,

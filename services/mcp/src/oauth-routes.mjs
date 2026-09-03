@@ -32,12 +32,18 @@ import {
   mintTokens,
   redeemRefreshToken,
   OAUTH_SCOPES,
-} from '@elixir-mcp/auth';
+} from "@elixir-mcp/auth";
 
 const DCR_GLOBAL_DAILY_CAP = 200;
 
 const esc = (v) =>
-  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  String(v ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 
 function page(title, body) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -55,25 +61,35 @@ p{font-size:.9rem;color:#a9a493}small{display:block;margin-top:1rem;font-size:.7
 }
 
 const HTML_HEADERS = {
-  'content-type': 'text/html; charset=utf-8',
+  "content-type": "text/html; charset=utf-8",
   // form-action must keep https: — 'self' alone blocks the consent redirect.
-  'content-security-policy':
+  "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; frame-ancestors 'none'",
-  'cache-control': 'no-store',
+  "cache-control": "no-store",
 };
 
 const json = (statusCode, body, headers = {}) => ({
   statusCode,
-  headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers },
+  headers: {
+    "content-type": "application/json",
+    "cache-control": "no-store",
+    ...headers,
+  },
   body: JSON.stringify(body),
 });
-const html = (statusCode, body) => ({ statusCode, headers: HTML_HEADERS, body });
+const html = (statusCode, body) => ({
+  statusCode,
+  headers: HTML_HEADERS,
+  body,
+});
 
 /** API Gateway v2 delivers form posts base64-encoded (isBase64Encoded);
  *  JSON usually arrives as text. Decode before parsing, always. */
 export function rawBody(event) {
-  const body = event.body ?? '';
-  return event.isBase64Encoded ? Buffer.from(body, 'base64').toString('utf8') : body;
+  const body = event.body ?? "";
+  return event.isBase64Encoded
+    ? Buffer.from(body, "base64").toString("utf8")
+    : body;
 }
 
 function parseForm(event) {
@@ -81,28 +97,43 @@ function parseForm(event) {
 }
 
 function hiddenAuthFields(q) {
-  return ['client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'scope']
-    .map((k) => `<input type="hidden" name="${k}" value="${esc(q[k] ?? '')}">`)
-    .join('');
+  return [
+    "client_id",
+    "redirect_uri",
+    "state",
+    "code_challenge",
+    "code_challenge_method",
+    "scope",
+  ]
+    .map((k) => `<input type="hidden" name="${k}" value="${esc(q[k] ?? "")}">`)
+    .join("");
 }
 
 async function validatedAuthRequest(db, q) {
   const client = await getClient(db, q.client_id);
-  if (!client) return { error: 'unknown client_id' };
+  if (!client) return { error: "unknown client_id" };
   const redirectUri = validRedirectUri(q.redirect_uri);
-  if (!redirectUri || !client.redirectUris.includes(redirectUri)) return { error: 'redirect_uri not registered' };
-  if ((q.code_challenge_method ?? 'S256') !== 'S256') return { error: 'code_challenge_method must be S256' };
+  if (!redirectUri || !client.redirectUris.includes(redirectUri))
+    return { error: "redirect_uri not registered" };
+  if ((q.code_challenge_method ?? "S256") !== "S256")
+    return { error: "code_challenge_method must be S256" };
   const codeChallenge = validCodeChallenge(q.code_challenge);
-  if (!codeChallenge) return { error: 'invalid code_challenge' };
+  if (!codeChallenge) return { error: "invalid code_challenge" };
   const scope = normalizeScope(q.scope);
-  if (!scope) return { error: 'unsupported scope' };
-  return { client, redirectUri, codeChallenge, scope, state: validState(q.state) };
+  if (!scope) return { error: "unsupported scope" };
+  return {
+    client,
+    redirectUri,
+    codeChallenge,
+    scope,
+    state: validState(q.state),
+  };
 }
 
 export function makeOauthRoutes({ issuer, sendLoginEmail }) {
   return {
     async register(db, event) {
-      const ip = event.requestContext?.http?.sourceIp ?? 'unknown';
+      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
       const perIp = await checkRateLimit(db, { bucket: `dcr#${ip}`, max: 20 });
       let globalOk = false;
       try {
@@ -114,37 +145,45 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
       } catch {
         globalOk = false;
       }
-      if (!perIp || !globalOk) return json(429, { error: 'temporarily_unavailable' });
+      if (!perIp || !globalOk)
+        return json(429, { error: "temporarily_unavailable" });
       let body;
       try {
         body = JSON.parse(rawBody(event));
       } catch {
-        return json(400, { error: 'invalid_client_metadata' });
+        return json(400, { error: "invalid_client_metadata" });
       }
       const redirectUris = validateRedirectUris(body.redirect_uris);
-      if (!redirectUris) return json(400, { error: 'invalid_redirect_uri' });
+      if (!redirectUris) return json(400, { error: "invalid_redirect_uri" });
       const client = await registerClient(db, {
-        clientName: sanitizeClientName(body.client_name) || 'MCP client',
+        clientName: sanitizeClientName(body.client_name) || "MCP client",
         redirectUris,
       });
       return json(201, {
         client_id: client.clientId,
         client_name: client.clientName,
         redirect_uris: client.redirectUris,
-        token_endpoint_auth_method: 'none',
-        grant_types: ['authorization_code', 'refresh_token'],
-        response_types: ['code'],
+        token_endpoint_auth_method: "none",
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
       });
     },
 
     async authorizeGet(db, event) {
       const q = event.queryStringParameters ?? {};
       const v = await validatedAuthRequest(db, q);
-      if (v.error) return html(400, page('Elixir MCP', `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`));
+      if (v.error)
+        return html(
+          400,
+          page(
+            "Elixir MCP",
+            `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
+          ),
+        );
       return html(
         200,
         page(
-          'Connect to Elixir MCP',
+          "Connect to Elixir MCP",
           `<h1>Connect ${esc(v.client.clientName)}</h1>
            <p>Enter the email on your approved Elixir MCP account and we&rsquo;ll send a sign-in code.</p>
            <form method="post" action="/oauth/authorize">
@@ -159,17 +198,27 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
     async authorizePost(db, event) {
       const form = parseForm(event);
       const v = await validatedAuthRequest(db, form);
-      if (v.error) return html(400, page('Elixir MCP', `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`));
+      if (v.error)
+        return html(
+          400,
+          page(
+            "Elixir MCP",
+            `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
+          ),
+        );
       const hash = emailHash(form.email);
-      const ip = event.requestContext?.http?.sourceIp ?? 'unknown';
+      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
 
-      if (form.step === 'email') {
-        const allowed = await checkRateLimit(db, { bucket: `oauthmail#${ip}`, max: 10 });
+      if (form.step === "email") {
+        const allowed = await checkRateLimit(db, {
+          bucket: `oauthmail#${ip}`,
+          max: 10,
+        });
         const account = allowed ? await approvedAccount(db, hash) : null;
         if (account) {
           const { code } = await startMagicLogin(db, {
             emailHash: hash,
-            purpose: 'oauth',
+            purpose: "oauth",
             context: {
               client_id: v.client.clientId,
               redirect_uri: v.redirectUri,
@@ -178,13 +227,18 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
               code_challenge: v.codeChallenge,
             },
           });
-          await sendLoginEmail({ email: form.email, code, purpose: 'oauth', clientName: v.client.clientName });
+          await sendLoginEmail({
+            email: form.email,
+            code,
+            purpose: "oauth",
+            clientName: v.client.clientName,
+          });
         }
         // Identical page whether or not anything was sent — never an oracle.
         return html(
           200,
           page(
-            'Enter your code',
+            "Enter your code",
             `<h1>Check your email</h1>
              <p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>
              <p><strong>Entering it authorizes ${esc(v.client.clientName)} to read your recorded Clash Royale data.</strong></p>
@@ -198,9 +252,12 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         );
       }
 
-      if (form.step === 'code') {
-        const burned = await verifyMagicCode(db, { emailHash: hash, code: form.code });
-        const ctx = burned?.purpose === 'oauth' ? burned.context : null;
+      if (form.step === "code") {
+        const burned = await verifyMagicCode(db, {
+          emailHash: hash,
+          code: form.code,
+        });
+        const ctx = burned?.purpose === "oauth" ? burned.context : null;
         const account = burned ? await approvedAccount(db, hash) : null;
         if (
           !ctx ||
@@ -209,7 +266,13 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           ctx.redirect_uri !== v.redirectUri ||
           ctx.code_challenge !== v.codeChallenge
         ) {
-          return html(400, page('Elixir MCP', `<h1>That didn&rsquo;t work</h1><p>The code was wrong, expired, or didn&rsquo;t match this request. Start over from your MCP client.</p>`));
+          return html(
+            400,
+            page(
+              "Elixir MCP",
+              `<h1>That didn&rsquo;t work</h1><p>The code was wrong, expired, or didn&rsquo;t match this request. Start over from your MCP client.</p>`,
+            ),
+          );
         }
         const code = await createAuthCode(db, {
           clientId: v.client.clientId,
@@ -219,25 +282,32 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           codeChallenge: v.codeChallenge,
         });
         const url = new URL(v.redirectUri);
-        url.searchParams.set('code', code);
-        if (v.state) url.searchParams.set('state', v.state);
-        url.searchParams.set('iss', issuer); // RFC 9207
-        return { statusCode: 303, headers: { location: url.toString(), 'cache-control': 'no-store' }, body: '' };
+        url.searchParams.set("code", code);
+        if (v.state) url.searchParams.set("state", v.state);
+        url.searchParams.set("iss", issuer); // RFC 9207
+        return {
+          statusCode: 303,
+          headers: { location: url.toString(), "cache-control": "no-store" },
+          body: "",
+        };
       }
-      return html(400, page('Elixir MCP', '<h1>Bad request</h1>'));
+      return html(400, page("Elixir MCP", "<h1>Bad request</h1>"));
     },
 
     async token(db, event) {
       const form = parseForm(event);
-      const clientId = String(form.client_id ?? '');
+      const clientId = String(form.client_id ?? "");
       const client = await getClient(db, clientId);
-      if (!client) return json(400, { error: 'invalid_client' });
+      if (!client) return json(400, { error: "invalid_client" });
 
-      if (form.grant_type === 'authorization_code') {
+      if (form.grant_type === "authorization_code") {
         const redeemed = await redeemAuthCode(db, form.code);
-        if (!redeemed || redeemed.clientId !== clientId) return json(400, { error: 'invalid_grant' });
-        if (redeemed.redirectUri !== String(form.redirect_uri ?? '')) return json(400, { error: 'invalid_grant' });
-        if (!verifyPkce(form.code_verifier, redeemed.codeChallenge)) return json(400, { error: 'invalid_grant' });
+        if (!redeemed || redeemed.clientId !== clientId)
+          return json(400, { error: "invalid_grant" });
+        if (redeemed.redirectUri !== String(form.redirect_uri ?? ""))
+          return json(400, { error: "invalid_grant" });
+        if (!verifyPkce(form.code_verifier, redeemed.codeChallenge))
+          return json(400, { error: "invalid_grant" });
         const tokens = await mintTokens(db, {
           clientId,
           accountId: redeemed.accountId,
@@ -246,22 +316,26 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         return json(200, {
           access_token: tokens.accessToken,
           refresh_token: tokens.refreshToken,
-          token_type: 'Bearer',
+          token_type: "Bearer",
           expires_in: tokens.expiresIn,
           scope: redeemed.scope,
         });
       }
-      if (form.grant_type === 'refresh_token') {
-        const result = await redeemRefreshToken(db, { refreshToken: form.refresh_token, clientId });
-        if (result.status !== 'ok') return json(400, { error: 'invalid_grant' });
+      if (form.grant_type === "refresh_token") {
+        const result = await redeemRefreshToken(db, {
+          refreshToken: form.refresh_token,
+          clientId,
+        });
+        if (result.status !== "ok")
+          return json(400, { error: "invalid_grant" });
         return json(200, {
           access_token: result.tokens.accessToken,
           refresh_token: result.tokens.refreshToken,
-          token_type: 'Bearer',
+          token_type: "Bearer",
           expires_in: result.tokens.expiresIn,
         });
       }
-      return json(400, { error: 'unsupported_grant_type' });
+      return json(400, { error: "unsupported_grant_type" });
     },
 
     authorizationServerMetadata() {
@@ -272,13 +346,13 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           authorization_endpoint: `${issuer}/oauth/authorize`,
           token_endpoint: `${issuer}/oauth/token`,
           registration_endpoint: `${issuer}/oauth/register`,
-          response_types_supported: ['code'],
-          grant_types_supported: ['authorization_code', 'refresh_token'],
-          code_challenge_methods_supported: ['S256'],
-          token_endpoint_auth_methods_supported: ['none'],
+          response_types_supported: ["code"],
+          grant_types_supported: ["authorization_code", "refresh_token"],
+          code_challenge_methods_supported: ["S256"],
+          token_endpoint_auth_methods_supported: ["none"],
           scopes_supported: OAUTH_SCOPES,
         },
-        { 'cache-control': 'public, max-age=300' },
+        { "cache-control": "public, max-age=300" },
       );
     },
 
@@ -289,9 +363,9 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           resource: `${issuer}/mcp`,
           authorization_servers: [issuer],
           scopes_supported: OAUTH_SCOPES,
-          bearer_methods_supported: ['header'],
+          bearer_methods_supported: ["header"],
         },
-        { 'cache-control': 'public, max-age=300' },
+        { "cache-control": "public, max-age=300" },
       );
     },
   };

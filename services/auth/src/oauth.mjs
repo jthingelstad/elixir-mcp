@@ -14,12 +14,12 @@
  * pending table.
  */
 
-import crypto from 'node:crypto';
+import crypto from "node:crypto";
 
-export const OAUTH_SCOPES = ['cr:read'];
-export const ACCESS_TOKEN_PREFIX = 'eat_';
-export const REFRESH_TOKEN_PREFIX = 'ert_';
-export const AUTH_CODE_PREFIX = 'eac_';
+export const OAUTH_SCOPES = ["cr:read"];
+export const ACCESS_TOKEN_PREFIX = "eat_";
+export const REFRESH_TOKEN_PREFIX = "ert_";
+export const AUTH_CODE_PREFIX = "eac_";
 
 export const CLIENT_TTL_SECONDS = 365 * 24 * 3600;
 export const AUTH_CODE_TTL_SECONDS = 300;
@@ -32,21 +32,23 @@ const CODE_CHALLENGE_RE = /^[A-Za-z0-9_-]{43,128}$/;
 const CODE_VERIFIER_RE = /^[A-Za-z0-9._~-]{43,128}$/;
 const CLIENT_ID_RE = /^[A-Za-z0-9_-]{22,64}$/;
 
-const sha256hex = (v) => crypto.createHash('sha256').update(String(v)).digest('hex');
-const secret = (prefix) => `${prefix}${crypto.randomBytes(32).toString('base64url')}`;
+const sha256hex = (v) =>
+  crypto.createHash("sha256").update(String(v)).digest("hex");
+const secret = (prefix) =>
+  `${prefix}${crypto.randomBytes(32).toString("base64url")}`;
 
 // --- validators (pure) -----------------------------------------------------
 
 export function validClientId(value) {
-  const raw = String(value ?? '').trim();
-  return CLIENT_ID_RE.test(raw) ? raw : '';
+  const raw = String(value ?? "").trim();
+  return CLIENT_ID_RE.test(raw) ? raw : "";
 }
 
 export function sanitizeClientName(value) {
-  return String(value ?? '')
-    .replace(/\s+/g, ' ')
-    .replace(/[^\P{C}]/gu, '')
-    .replace(/[<>&"']/g, '')
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/[^\P{C}]/gu, "")
+    .replace(/[<>&"']/g, "")
     .trim()
     .slice(0, 100);
 }
@@ -54,22 +56,27 @@ export function sanitizeClientName(value) {
 /** Absolute https, or http on localhost/127.0.0.1 for local MCP clients.
  *  No fragments (RFC 6749 §3.1.2), no embedded credentials. */
 export function validRedirectUri(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw || raw.length > 2048) return '';
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.length > 2048) return "";
   let url;
   try {
     url = new URL(raw);
   } catch {
-    return '';
+    return "";
   }
-  if (url.hash || url.username || url.password) return '';
-  if (url.protocol === 'https:') return raw;
-  if (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)) return raw;
-  return '';
+  if (url.hash || url.username || url.password) return "";
+  if (url.protocol === "https:") return raw;
+  if (
+    url.protocol === "http:" &&
+    ["localhost", "127.0.0.1"].includes(url.hostname)
+  )
+    return raw;
+  return "";
 }
 
 export function validateRedirectUris(value) {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 5) return null;
+  if (!Array.isArray(value) || value.length < 1 || value.length > 5)
+    return null;
   const uris = [];
   for (const entry of value) {
     const uri = validRedirectUri(entry);
@@ -80,44 +87,49 @@ export function validateRedirectUris(value) {
 }
 
 export function validState(value) {
-  const raw = String(value ?? '');
-  return raw.length <= 512 ? raw : '';
+  const raw = String(value ?? "");
+  return raw.length <= 512 ? raw : "";
 }
 
 export function validCodeChallenge(value) {
-  const raw = String(value ?? '').trim();
-  return CODE_CHALLENGE_RE.test(raw) ? raw : '';
+  const raw = String(value ?? "").trim();
+  return CODE_CHALLENGE_RE.test(raw) ? raw : "";
 }
 
 export function normalizeScope(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw) return OAUTH_SCOPES.join(' ');
+  const raw = String(value ?? "").trim();
+  if (!raw) return OAUTH_SCOPES.join(" ");
   const unique = [...new Set(raw.split(/\s+/))];
-  return unique.some((s) => !OAUTH_SCOPES.includes(s)) ? '' : unique.join(' ');
+  return unique.some((s) => !OAUTH_SCOPES.includes(s)) ? "" : unique.join(" ");
 }
 
 export function verifyPkce(codeVerifier, codeChallenge) {
-  const verifier = String(codeVerifier ?? '').trim();
-  const challenge = String(codeChallenge ?? '');
-  if (!CODE_VERIFIER_RE.test(verifier) || !BASE64URL_RE.test(challenge)) return false;
-  const derived = Buffer.from(crypto.createHash('sha256').update(verifier).digest('base64url'));
+  const verifier = String(codeVerifier ?? "").trim();
+  const challenge = String(codeChallenge ?? "");
+  if (!CODE_VERIFIER_RE.test(verifier) || !BASE64URL_RE.test(challenge))
+    return false;
+  const derived = Buffer.from(
+    crypto.createHash("sha256").update(verifier).digest("base64url"),
+  );
   const actual = Buffer.from(challenge);
-  return derived.length === actual.length && crypto.timingSafeEqual(derived, actual);
+  return (
+    derived.length === actual.length && crypto.timingSafeEqual(derived, actual)
+  );
 }
 
 function validOpaque(raw, prefix) {
-  const value = String(raw ?? '').trim();
+  const value = String(raw ?? "").trim();
   return value.startsWith(prefix) &&
     BASE64URL_RE.test(value.slice(prefix.length)) &&
     value.length <= 128
     ? value
-    : '';
+    : "";
 }
 
 // --- clients ---------------------------------------------------------------
 
 export async function registerClient(db, { clientName, redirectUris }) {
-  const clientId = crypto.randomBytes(18).toString('base64url');
+  const clientId = crypto.randomBytes(18).toString("base64url");
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
      values ($1, $2, $3, now() + make_interval(secs => $4))`,
@@ -138,18 +150,33 @@ export async function getClient(db, clientId) {
   );
   const row = rows[0];
   return row
-    ? { clientId: row.client_id, clientName: row.client_name, redirectUris: row.redirect_uris }
+    ? {
+        clientId: row.client_id,
+        clientName: row.client_name,
+        redirectUris: row.redirect_uris,
+      }
     : null;
 }
 
 // --- authorization codes ---------------------------------------------------
 
-export async function createAuthCode(db, { clientId, accountId, redirectUri, scope, codeChallenge }) {
+export async function createAuthCode(
+  db,
+  { clientId, accountId, redirectUri, scope, codeChallenge },
+) {
   const code = secret(AUTH_CODE_PREFIX);
   await db.query(
     `insert into oauth_code (code_hash, client_id, account_id, code_challenge, redirect_uri, scope, expires_at)
      values ($1, $2, $3, $4, $5, $6, now() + make_interval(secs => $7))`,
-    [sha256hex(code), clientId, accountId, codeChallenge, redirectUri, scope, AUTH_CODE_TTL_SECONDS],
+    [
+      sha256hex(code),
+      clientId,
+      accountId,
+      codeChallenge,
+      redirectUri,
+      scope,
+      AUTH_CODE_TTL_SECONDS,
+    ],
   );
   return code;
 }
@@ -186,7 +213,10 @@ async function insertToken(db, { kind, familyId, token, ttlSeconds }) {
   );
 }
 
-export async function mintTokens(db, { clientId, accountId, scope, familyId = null }) {
+export async function mintTokens(
+  db,
+  { clientId, accountId, scope, familyId = null },
+) {
   let family = familyId;
   if (!family) {
     const { rows } = await db.query(
@@ -199,18 +229,37 @@ export async function mintTokens(db, { clientId, accountId, scope, familyId = nu
   }
   const accessToken = secret(ACCESS_TOKEN_PREFIX);
   const refreshToken = secret(REFRESH_TOKEN_PREFIX);
-  await insertToken(db, { kind: 'access', familyId: family, token: accessToken, ttlSeconds: ACCESS_TOKEN_TTL_SECONDS });
-  await insertToken(db, { kind: 'refresh', familyId: family, token: refreshToken, ttlSeconds: REFRESH_TOKEN_TTL_SECONDS });
-  return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL_SECONDS, scope, familyId: family };
+  await insertToken(db, {
+    kind: "access",
+    familyId: family,
+    token: accessToken,
+    ttlSeconds: ACCESS_TOKEN_TTL_SECONDS,
+  });
+  await insertToken(db, {
+    kind: "refresh",
+    familyId: family,
+    token: refreshToken,
+    ttlSeconds: REFRESH_TOKEN_TTL_SECONDS,
+  });
+  return {
+    accessToken,
+    refreshToken,
+    expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+    scope,
+    familyId: family,
+  };
 }
 
 async function revokeFamily(db, familyId) {
-  await db.query(`update oauth_family set revoked_at = now() where family_id = $1 and revoked_at is null`, [familyId]);
+  await db.query(
+    `update oauth_family set revoked_at = now() where family_id = $1 and revoked_at is null`,
+    [familyId],
+  );
 }
 
 export async function redeemRefreshToken(db, { refreshToken, clientId }) {
   const raw = validOpaque(refreshToken, REFRESH_TOKEN_PREFIX);
-  if (!raw) return { status: 'invalid' };
+  if (!raw) return { status: "invalid" };
   const { rows } = await db.query(
     `select t.token_hash, t.expires_at, t.rotated_to, t.revoked_at,
             f.family_id, f.client_id, f.account_id, f.absolute_expires_at, f.revoked_at as family_revoked_at
@@ -219,18 +268,19 @@ export async function redeemRefreshToken(db, { refreshToken, clientId }) {
     [sha256hex(raw)],
   );
   const row = rows[0];
-  if (!row || row.revoked_at || row.family_revoked_at) return { status: 'invalid' };
-  if (row.client_id !== clientId) return { status: 'invalid' };
-  if (row.expires_at.getTime() < Date.now()) return { status: 'invalid' };
+  if (!row || row.revoked_at || row.family_revoked_at)
+    return { status: "invalid" };
+  if (row.client_id !== clientId) return { status: "invalid" };
+  if (row.expires_at.getTime() < Date.now()) return { status: "invalid" };
   if (row.rotated_to) {
     // Replay of an already-rotated token (RFC 9700 §4.14.2): kill the family.
     await revokeFamily(db, row.family_id);
-    return { status: 'reuse_revoked' };
+    return { status: "reuse_revoked" };
   }
   if (row.absolute_expires_at.getTime() < Date.now()) {
     // Absolute family lifetime: force a fresh authorization (re-runs the gate).
     await revokeFamily(db, row.family_id);
-    return { status: 'invalid' };
+    return { status: "invalid" };
   }
 
   const newRefresh = secret(REFRESH_TOKEN_PREFIX);
@@ -243,14 +293,29 @@ export async function redeemRefreshToken(db, { refreshToken, clientId }) {
   );
   if (rowCount === 0) {
     await revokeFamily(db, row.family_id);
-    return { status: 'reuse_revoked' };
+    return { status: "reuse_revoked" };
   }
   const accessToken = secret(ACCESS_TOKEN_PREFIX);
-  await insertToken(db, { kind: 'access', familyId: row.family_id, token: accessToken, ttlSeconds: ACCESS_TOKEN_TTL_SECONDS });
-  await insertToken(db, { kind: 'refresh', familyId: row.family_id, token: newRefresh, ttlSeconds: REFRESH_TOKEN_TTL_SECONDS });
+  await insertToken(db, {
+    kind: "access",
+    familyId: row.family_id,
+    token: accessToken,
+    ttlSeconds: ACCESS_TOKEN_TTL_SECONDS,
+  });
+  await insertToken(db, {
+    kind: "refresh",
+    familyId: row.family_id,
+    token: newRefresh,
+    ttlSeconds: REFRESH_TOKEN_TTL_SECONDS,
+  });
   return {
-    status: 'ok',
-    tokens: { accessToken, refreshToken: newRefresh, expiresIn: ACCESS_TOKEN_TTL_SECONDS, familyId: row.family_id },
+    status: "ok",
+    tokens: {
+      accessToken,
+      refreshToken: newRefresh,
+      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      familyId: row.family_id,
+    },
     accountId: row.account_id,
     clientId: row.client_id,
   };

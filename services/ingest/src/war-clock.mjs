@@ -30,7 +30,7 @@ export function periodInfo(periodIndex) {
   return {
     sectionIndex,
     dayInSection,
-    kind: isWarDay ? 'war' : 'training',
+    kind: isWarDay ? "war" : "training",
     warDay: isWarDay ? dayInSection - TRAINING_DAYS + 1 : null, // 1..4
   };
 }
@@ -38,10 +38,13 @@ export function periodInfo(periodIndex) {
 /** Live season id wins; otherwise infer from the latest logged (season,
  *  section): a live section LOWER than the logged one means we rolled. */
 export function inferSeasonId(liveSeasonId, logged) {
-  if (typeof liveSeasonId === 'number') return liveSeasonId;
+  if (typeof liveSeasonId === "number") return liveSeasonId;
   if (!logged) return null;
   const currentSection = logged.liveSectionIndex;
-  if (typeof currentSection === 'number' && currentSection < logged.sectionIndex) {
+  if (
+    typeof currentSection === "number" &&
+    currentSection < logged.sectionIndex
+  ) {
     return logged.seasonId + 1;
   }
   return logged.seasonId;
@@ -50,7 +53,12 @@ export function inferSeasonId(liveSeasonId, logged) {
 /** Nominal fallback period start for "now": the most recent 10:00 UTC. */
 export function nominalPeriodStartMs(nowMs) {
   const d = new Date(nowMs);
-  const todayReset = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), NOMINAL_RESET_HOUR_UTC);
+  const todayReset = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    NOMINAL_RESET_HOUR_UTC,
+  );
   return nowMs >= todayReset ? todayReset : todayReset - DAY_MS;
 }
 
@@ -60,22 +68,31 @@ export function nominalPeriodStartMs(nowMs) {
  * records it); a missing or stale anchor (>24h old) falls back to the
  * nominal reset grid rather than producing a negative-length period.
  */
-export function warClock({ periodIndex, sectionIndex, periodType, seasonId }, { nowMs, anchorMs = null, logged = null }) {
+export function warClock(
+  { periodIndex, sectionIndex, periodType, seasonId },
+  { nowMs, anchorMs = null, logged = null },
+) {
   if (Math.floor(periodIndex / PERIODS_PER_SECTION) !== sectionIndex) {
-    throw new Error(`periodIndex ${periodIndex} does not sit in sectionIndex ${sectionIndex}`);
+    throw new Error(
+      `periodIndex ${periodIndex} does not sit in sectionIndex ${sectionIndex}`,
+    );
   }
   const info = periodInfo(periodIndex);
-  const anchorFresh = anchorMs !== null && nowMs - anchorMs < DAY_MS && nowMs >= anchorMs;
+  const anchorFresh =
+    anchorMs !== null && nowMs - anchorMs < DAY_MS && nowMs >= anchorMs;
   const periodStartMs = anchorFresh ? anchorMs : nominalPeriodStartMs(nowMs);
   return {
-    seasonId: inferSeasonId(seasonId, logged ? { ...logged, liveSectionIndex: sectionIndex } : null),
+    seasonId: inferSeasonId(
+      seasonId,
+      logged ? { ...logged, liveSectionIndex: sectionIndex } : null,
+    ),
     sectionIndex,
     periodIndex,
     periodStartMs,
     anchored: anchorFresh,
     // The payload's periodType wins for display (colosseum practice days
     // still say 'training'); the %7 grid decides war-day numbering.
-    kind: periodType === 'colosseum' ? 'colosseum' : info.kind,
+    kind: periodType === "colosseum" ? "colosseum" : info.kind,
     warDay: info.warDay,
   };
 }
@@ -86,11 +103,13 @@ export function warClock({ periodIndex, sectionIndex, periodType, seasonId }, { 
  * get null keys (cross-season attribution is not guessed).
  */
 export function resolveWarKeys(battleTimeMs, clock) {
-  const daysBack = battleTimeMs >= clock.periodStartMs
-    ? 0
-    : Math.ceil((clock.periodStartMs - battleTimeMs) / DAY_MS);
+  const daysBack =
+    battleTimeMs >= clock.periodStartMs
+      ? 0
+      : Math.ceil((clock.periodStartMs - battleTimeMs) / DAY_MS);
   const battlePeriodIndex = clock.periodIndex - daysBack;
-  if (battlePeriodIndex < 0) return { seasonId: null, sectionIndex: null, warDay: null };
+  if (battlePeriodIndex < 0)
+    return { seasonId: null, sectionIndex: null, warDay: null };
   const info = periodInfo(battlePeriodIndex);
   if (info.sectionIndex !== clock.sectionIndex) {
     // Earlier section (or season): attribution needs the war log, not

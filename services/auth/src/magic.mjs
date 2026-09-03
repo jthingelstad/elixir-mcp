@@ -14,21 +14,33 @@ import {
   sha256hex,
   timingSafeEqualHex,
   MAGIC_TTL_SECONDS,
-} from './crypto.mjs';
+} from "./crypto.mjs";
 
 export const MAX_CODE_ATTEMPTS = 5;
 
 /** Create a pending login; returns the plaintext token + code for the email. */
 export async function startMagicLogin(
   db,
-  { emailHash, purpose = 'web', context = null, ttlSeconds = MAGIC_TTL_SECONDS },
+  {
+    emailHash,
+    purpose = "web",
+    context = null,
+    ttlSeconds = MAGIC_TTL_SECONDS,
+  },
 ) {
   const token = createMagicToken();
   const code = createMagicCode();
   await db.query(
     `insert into magic_login (token_hash, email_hash, code_hash, purpose, context, expires_at)
      values ($1, $2, $3, $4, $5, now() + make_interval(secs => $6))`,
-    [sha256hex(token), emailHash, sha256hex(code), purpose, context ? JSON.stringify(context) : null, ttlSeconds],
+    [
+      sha256hex(token),
+      emailHash,
+      sha256hex(code),
+      purpose,
+      context ? JSON.stringify(context) : null,
+      ttlSeconds,
+    ],
   );
   return { token, code };
 }

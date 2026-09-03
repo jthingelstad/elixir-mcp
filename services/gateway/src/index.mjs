@@ -7,29 +7,32 @@
  * fetches — the second is what catches a silently broken IP binding).
  */
 
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   SQSClient,
   GetQueueUrlCommand,
   ReceiveMessageCommand,
   SendMessageCommand,
   DeleteMessageCommand,
-} from '@aws-sdk/client-sqs';
-import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
-import { makeWorker } from './worker.mjs';
-import { makeCrFetch } from './cr-api.mjs';
-import { CircuitBreaker } from './breaker.mjs';
+} from "@aws-sdk/client-sqs";
+import {
+  CloudWatchClient,
+  PutMetricDataCommand,
+} from "@aws-sdk/client-cloudwatch";
+import { makeWorker } from "./worker.mjs";
+import { makeCrFetch } from "./cr-api.mjs";
+import { CircuitBreaker } from "./breaker.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '../../..');
+const repoRoot = path.resolve(here, "../../..");
 
 async function loadEnv() {
   const env = { ...process.env };
   try {
-    const text = await readFile(path.join(repoRoot, '.env'), 'utf8');
-    for (const line of text.split('\n')) {
+    const text = await readFile(path.join(repoRoot, ".env"), "utf8");
+    for (const line of text.split("\n")) {
       const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
       if (m && env[m[1]] === undefined) {
         env[m[1]] = m[2];
@@ -53,23 +56,31 @@ const required = (name) => {
   return env[name];
 };
 
-const token = required('CR_API_TOKEN');
-const gatewayId = required('ELIXIR_MCP_GATEWAY_ID');
-const gatewayName = env.ELIXIR_MCP_GATEWAY_NAME ?? 'gw';
-const region = env.AWS_REGION ?? 'us-east-1';
+const token = required("CR_API_TOKEN");
+const gatewayId = required("ELIXIR_MCP_GATEWAY_ID");
+const gatewayName = env.ELIXIR_MCP_GATEWAY_NAME ?? "gw";
+const region = env.AWS_REGION ?? "us-east-1";
 
 const sqsClient = new SQSClient({ region });
 const cw = new CloudWatchClient({ region });
 
 async function queueUrl(name) {
-  const { QueueUrl } = await sqsClient.send(new GetQueueUrlCommand({ QueueName: name }));
+  const { QueueUrl } = await sqsClient.send(
+    new GetQueueUrlCommand({ QueueName: name }),
+  );
   return QueueUrl;
 }
 
 const queues = {
-  live: await queueUrl(env.ELIXIR_MCP_QUEUE_LIVE ?? 'elixir-mcp-cr-requests-live'),
-  bulk: await queueUrl(env.ELIXIR_MCP_QUEUE_BULK ?? 'elixir-mcp-cr-requests-bulk'),
-  results: await queueUrl(env.ELIXIR_MCP_QUEUE_RESULTS ?? 'elixir-mcp-cr-results'),
+  live: await queueUrl(
+    env.ELIXIR_MCP_QUEUE_LIVE ?? "elixir-mcp-cr-requests-live",
+  ),
+  bulk: await queueUrl(
+    env.ELIXIR_MCP_QUEUE_BULK ?? "elixir-mcp-cr-requests-bulk",
+  ),
+  results: await queueUrl(
+    env.ELIXIR_MCP_QUEUE_RESULTS ?? "elixir-mcp-cr-results",
+  ),
 };
 
 const NAMESPACE = `ElixirMCP/Gateway/${gatewayName}`;
@@ -78,7 +89,7 @@ async function putMetric(name, value = 1) {
     await cw.send(
       new PutMetricDataCommand({
         Namespace: NAMESPACE,
-        MetricData: [{ MetricName: name, Value: value, Unit: 'Count' }],
+        MetricData: [{ MetricName: name, Value: value, Unit: "Count" }],
       }),
     );
   } catch (err) {
@@ -87,8 +98,8 @@ async function putMetric(name, value = 1) {
 }
 
 const abort = new AbortController();
-process.on('SIGINT', () => abort.abort());
-process.on('SIGTERM', () => abort.abort());
+process.on("SIGINT", () => abort.abort());
+process.on("SIGTERM", () => abort.abort());
 
 const worker = makeWorker({
   sqs: {
@@ -105,10 +116,17 @@ const worker = makeWorker({
       return m ? { body: m.Body, receiptHandle: m.ReceiptHandle } : null;
     },
     async send(url, body) {
-      await sqsClient.send(new SendMessageCommand({ QueueUrl: url, MessageBody: body }));
+      await sqsClient.send(
+        new SendMessageCommand({ QueueUrl: url, MessageBody: body }),
+      );
     },
     async delete(url, receiptHandle) {
-      await sqsClient.send(new DeleteMessageCommand({ QueueUrl: url, ReceiptHandle: receiptHandle }));
+      await sqsClient.send(
+        new DeleteMessageCommand({
+          QueueUrl: url,
+          ReceiptHandle: receiptHandle,
+        }),
+      );
     },
   },
   queues,
@@ -116,24 +134,38 @@ const worker = makeWorker({
   breaker: new CircuitBreaker(),
   gatewayId,
   metrics: {
-    fetchSucceeded: () => putMetric('FetchSucceeded'),
-    overflow: () => putMetric('ResultOverflow'),
-    breakerOpen: () => putMetric('BreakerOpen'),
+    fetchSucceeded: () => putMetric("FetchSucceeded"),
+    overflow: () => putMetric("ResultOverflow"),
+    breakerOpen: () => putMetric("BreakerOpen"),
   },
-  log: (level, msg) => console.error(JSON.stringify({ t: new Date().toISOString(), level, msg })),
+  log: (level, msg) =>
+    console.error(JSON.stringify({ t: new Date().toISOString(), level, msg })),
 });
 
 // Process-alive heartbeat, independent of work outcomes.
-const heartbeat = setInterval(() => putMetric('Heartbeat'), 60_000);
-putMetric('Heartbeat');
+const heartbeat = setInterval(() => putMetric("Heartbeat"), 60_000);
+putMetric("Heartbeat");
 
-console.error(JSON.stringify({ t: new Date().toISOString(), level: 'info', msg: 'gateway up' }));
+console.error(
+  JSON.stringify({
+    t: new Date().toISOString(),
+    level: "info",
+    msg: "gateway up",
+  }),
+);
 while (!abort.signal.aborted) {
   try {
     const r = await worker.pollOnce();
-    if (r.polled === 'breaker_open') await new Promise((res) => setTimeout(res, 5000));
+    if (r.polled === "breaker_open")
+      await new Promise((res) => setTimeout(res, 5000));
   } catch (err) {
-    console.error(JSON.stringify({ t: new Date().toISOString(), level: 'error', msg: err.message }));
+    console.error(
+      JSON.stringify({
+        t: new Date().toISOString(),
+        level: "error",
+        msg: err.message,
+      }),
+    );
     await new Promise((res) => setTimeout(res, 5000));
   }
 }

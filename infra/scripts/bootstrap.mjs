@@ -15,13 +15,22 @@
  * Idempotent: existing resources are left alone and reported.
  */
 
-import crypto from 'node:crypto';
-import { readFile, appendFile, chmod } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
-import { S3Client, CreateBucketCommand, PutPublicAccessBlockCommand, HeadBucketCommand } from '@aws-sdk/client-s3';
-import { SecretsManagerClient, CreateSecretCommand, DescribeSecretCommand } from '@aws-sdk/client-secrets-manager';
+import crypto from "node:crypto";
+import { readFile, appendFile, chmod } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import {
+  S3Client,
+  CreateBucketCommand,
+  PutPublicAccessBlockCommand,
+  HeadBucketCommand,
+} from "@aws-sdk/client-s3";
+import {
+  SecretsManagerClient,
+  CreateSecretCommand,
+  DescribeSecretCommand,
+} from "@aws-sdk/client-secrets-manager";
 import {
   IAMClient,
   CreateUserCommand,
@@ -29,20 +38,21 @@ import {
   PutUserPolicyCommand,
   CreateAccessKeyCommand,
   ListAccessKeysCommand,
-} from '@aws-sdk/client-iam';
+} from "@aws-sdk/client-iam";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '../..');
-const REGION = process.env.AWS_REGION ?? 'us-east-1';
-const SECRET_NAME = 'elixir-mcp/app';
-const GW_USER = 'elixir-mcp-gw-jamie';
+const repoRoot = path.resolve(here, "../..");
+const REGION = process.env.AWS_REGION ?? "us-east-1";
+const SECRET_NAME = "elixir-mcp/app";
+const GW_USER = "elixir-mcp-gw-jamie";
 
-const urlSafeSecret = (bytes) => crypto.randomBytes(bytes).toString('base64url').replace(/[-_]/g, 'a');
+const urlSafeSecret = (bytes) =>
+  crypto.randomBytes(bytes).toString("base64url").replace(/[-_]/g, "a");
 
 async function envValue(name) {
   try {
-    const text = await readFile(path.join(repoRoot, '.env'), 'utf8');
-    const line = text.split('\n').find((l) => l.startsWith(`${name}=`));
+    const text = await readFile(path.join(repoRoot, ".env"), "utf8");
+    const line = text.split("\n").find((l) => l.startsWith(`${name}=`));
     return line ? line.slice(name.length + 1).trim() : process.env[name];
   } catch {
     return process.env[name];
@@ -80,15 +90,18 @@ try {
   await secrets.send(new DescribeSecretCommand({ SecretId: SECRET_NAME }));
   console.log(`secret exists: ${SECRET_NAME} (left untouched)`);
 } catch {
-  const jmapToken = await envValue('ELIXIR_MCP_JMAP_TOKEN');
+  const jmapToken = await envValue("ELIXIR_MCP_JMAP_TOKEN");
   if (!jmapToken) {
-    console.error('ELIXIR_MCP_JMAP_TOKEN missing from .env; add the Fastmail API token first.');
+    console.error(
+      "ELIXIR_MCP_JMAP_TOKEN missing from .env; add the Fastmail API token first.",
+    );
     process.exit(2);
   }
   await secrets.send(
     new CreateSecretCommand({
       Name: SECRET_NAME,
-      Description: 'elixir-mcp app secrets: db password, session secret, JMAP token',
+      Description:
+        "elixir-mcp app secrets: db password, session secret, JMAP token",
       SecretString: JSON.stringify({
         db_password: urlSafeSecret(24),
         session_secret: urlSafeSecret(32),
@@ -111,45 +124,57 @@ try {
 await iam.send(
   new PutUserPolicyCommand({
     UserName: GW_USER,
-    PolicyName: 'elixir-mcp-gateway',
+    PolicyName: "elixir-mcp-gateway",
     PolicyDocument: JSON.stringify({
-      Version: '2012-10-17',
+      Version: "2012-10-17",
       Statement: [
         {
-          Effect: 'Allow',
-          Action: ['sqs:ReceiveMessage', 'sqs:DeleteMessage', 'sqs:ChangeMessageVisibility', 'sqs:GetQueueUrl', 'sqs:GetQueueAttributes'],
+          Effect: "Allow",
+          Action: [
+            "sqs:ReceiveMessage",
+            "sqs:DeleteMessage",
+            "sqs:ChangeMessageVisibility",
+            "sqs:GetQueueUrl",
+            "sqs:GetQueueAttributes",
+          ],
           Resource: [
             `arn:aws:sqs:${REGION}:${accountId}:elixir-mcp-cr-requests-live`,
             `arn:aws:sqs:${REGION}:${accountId}:elixir-mcp-cr-requests-bulk`,
           ],
         },
         {
-          Effect: 'Allow',
-          Action: ['sqs:SendMessage', 'sqs:GetQueueUrl'],
+          Effect: "Allow",
+          Action: ["sqs:SendMessage", "sqs:GetQueueUrl"],
           Resource: `arn:aws:sqs:${REGION}:${accountId}:elixir-mcp-cr-results`,
         },
         {
-          Effect: 'Allow',
-          Action: 'cloudwatch:PutMetricData',
-          Resource: '*',
-          Condition: { StringLike: { 'cloudwatch:namespace': 'ElixirMCP/Gateway/*' } },
+          Effect: "Allow",
+          Action: "cloudwatch:PutMetricData",
+          Resource: "*",
+          Condition: {
+            StringLike: { "cloudwatch:namespace": "ElixirMCP/Gateway/*" },
+          },
         },
       ],
     }),
   }),
 );
-const { AccessKeyMetadata: keys } = await iam.send(new ListAccessKeysCommand({ UserName: GW_USER }));
+const { AccessKeyMetadata: keys } = await iam.send(
+  new ListAccessKeysCommand({ UserName: GW_USER }),
+);
 if (keys.length === 0) {
-  const { AccessKey } = await iam.send(new CreateAccessKeyCommand({ UserName: GW_USER }));
-  const envPath = path.join(repoRoot, '.env');
+  const { AccessKey } = await iam.send(
+    new CreateAccessKeyCommand({ UserName: GW_USER }),
+  );
+  const envPath = path.join(repoRoot, ".env");
   await appendFile(
     envPath,
     `AWS_ACCESS_KEY_ID=${AccessKey.AccessKeyId}\nAWS_SECRET_ACCESS_KEY=${AccessKey.SecretAccessKey}\nAWS_REGION=${REGION}\n`,
   );
   await chmod(envPath, 0o600);
-  console.log('gateway access key appended to .env (0600)');
+  console.log("gateway access key appended to .env (0600)");
 } else {
-  console.log('gateway access key exists (not rotated)');
+  console.log("gateway access key exists (not rotated)");
 }
 
 console.log(`\nbootstrap complete. code bucket: ${bucket}`);

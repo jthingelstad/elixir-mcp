@@ -9,8 +9,8 @@
  * silently.
  */
 
-import { createHash } from 'node:crypto';
-import pg from 'pg';
+import { createHash } from "node:crypto";
+import pg from "pg";
 
 export async function schemaDescription(databaseUrl) {
   const client = new pg.Client({ connectionString: databaseUrl });
@@ -41,5 +41,5 @@ export async function schemaDescription(databaseUrl) {
 export async function schemaFingerprint(databaseUrl) {
   const description = await schemaDescription(databaseUrl);
   const canonical = JSON.stringify(description);
-  return createHash('sha256').update(canonical).digest('hex');
+  return createHash("sha256").update(canonical).digest("hex");
 }

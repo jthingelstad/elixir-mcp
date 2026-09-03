@@ -19,9 +19,9 @@
  * means "the subject" — locate subjects by tag (§4.4 team[0] trap).
  */
 
-import { createHash } from 'node:crypto';
-import { normalizeTag, deckHash } from '@elixir-mcp/contracts';
-import { canonicalBattleTime } from './battle-time.mjs';
+import { createHash } from "node:crypto";
+import { normalizeTag, deckHash } from "@elixir-mcp/contracts";
+import { canonicalBattleTime } from "./battle-time.mjs";
 
 function slimCards(cards) {
   if (!Array.isArray(cards)) return undefined;
@@ -39,7 +39,9 @@ function participantDeck(entry) {
   // and there is no single deck identity to hash.
   if (Array.isArray(entry.rounds)) {
     return {
-      deck: { rounds: entry.rounds.map((r) => ({ cards: slimCards(r.cards) })) },
+      deck: {
+        rounds: entry.rounds.map((r) => ({ cards: slimCards(r.cards) })),
+      },
       hash: null,
     };
   }
@@ -52,7 +54,9 @@ function participantDeck(entry) {
   const hash = deckHash({
     cards: entry.cards.map((c) => ({
       id: c.id,
-      ...(c.evolutionLevel !== undefined ? { evolutionLevel: c.evolutionLevel } : {}),
+      ...(c.evolutionLevel !== undefined
+        ? { evolutionLevel: c.evolutionLevel }
+        : {}),
     })),
     ...(deck.supportCards?.[0]?.id !== undefined
       ? { towerTroopId: deck.supportCards[0].id }
@@ -63,47 +67,55 @@ function participantDeck(entry) {
 
 function towerHp(entry) {
   const out = {};
-  if (entry.kingTowerHitPoints !== undefined) out.king = entry.kingTowerHitPoints;
-  if (entry.princessTowersHitPoints !== undefined) out.princess = entry.princessTowersHitPoints;
+  if (entry.kingTowerHitPoints !== undefined)
+    out.king = entry.kingTowerHitPoints;
+  if (entry.princessTowersHitPoints !== undefined)
+    out.princess = entry.princessTowersHitPoints;
   return Object.keys(out).length > 0 ? out : null;
 }
 
 function sideCrowns(entries) {
-  const values = entries.map((e) => e.crowns).filter((c) => typeof c === 'number');
+  const values = entries
+    .map((e) => e.crowns)
+    .filter((c) => typeof c === "number");
   return values.length > 0 ? Math.max(...values) : undefined;
 }
 
 function outcomeFor(entry, ownSide, otherSide, battle, isTeamSide) {
-  if (battle.type?.startsWith('boatBattle')) {
-    if (typeof battle.boatBattleWon === 'boolean') {
-      return battle.boatBattleWon === isTeamSide ? 'win' : 'loss';
+  if (battle.type?.startsWith("boatBattle")) {
+    if (typeof battle.boatBattleWon === "boolean") {
+      return battle.boatBattleWon === isTeamSide ? "win" : "loss";
     }
-    return 'unresolved';
+    return "unresolved";
   }
-  if (typeof entry.trophyChange === 'number' && entry.trophyChange !== 0) {
-    return entry.trophyChange > 0 ? 'win' : 'loss';
+  if (typeof entry.trophyChange === "number" && entry.trophyChange !== 0) {
+    return entry.trophyChange > 0 ? "win" : "loss";
   }
   const own = sideCrowns(ownSide);
   const other = sideCrowns(otherSide);
   if (own !== undefined && other !== undefined) {
-    if (own > other) return 'win';
-    if (own < other) return 'loss';
-    return 'draw';
+    if (own > other) return "win";
+    if (own < other) return "loss";
+    return "draw";
   }
-  return 'unresolved';
+  return "unresolved";
 }
 
-export function canonicalBattleId(battleTimeCanonical, participantTags, typeClass) {
+export function canonicalBattleId(
+  battleTimeCanonical,
+  participantTags,
+  typeClass,
+) {
   const sorted = [...participantTags].sort();
-  return createHash('sha256')
-    .update(`${battleTimeCanonical}:${sorted.join(',')}:${typeClass}`)
-    .digest('hex');
+  return createHash("sha256")
+    .update(`${battleTimeCanonical}:${sorted.join(",")}:${typeClass}`)
+    .digest("hex");
 }
 
 /** Extract the canonical battle + participant rows from one battlelog entry. */
 export function canonicalizeBattle(entry) {
   const battleTime = canonicalBattleTime(entry.battleTime);
-  const typeClass = entry.type?.startsWith('boatBattle') ? 'boat' : 'pvp';
+  const typeClass = entry.type?.startsWith("boatBattle") ? "boat" : "pvp";
   const team = Array.isArray(entry.team) ? entry.team : [];
   const opponent = Array.isArray(entry.opponent) ? entry.opponent : [];
 
@@ -156,28 +168,47 @@ export function canonicalizeBattle(entry) {
 
 // Insert column lists — the enrich lists are DERIVED from these.
 const BATTLE_COLS = [
-  'battle_id', 'battle_time', 'type', 'type_class',
-  'game_mode_id', 'game_mode_name', 'arena', 'league_number', 'modifiers',
+  "battle_id",
+  "battle_time",
+  "type",
+  "type_class",
+  "game_mode_id",
+  "game_mode_name",
+  "arena",
+  "league_number",
+  "modifiers",
 ];
-const BATTLE_KEY = ['battle_id', 'battle_time', 'type', 'type_class'];
+const BATTLE_KEY = ["battle_id", "battle_time", "type", "type_class"];
 const BATTLE_ENRICH = BATTLE_COLS.filter((c) => !BATTLE_KEY.includes(c));
 
 const PARTICIPANT_COLS = [
-  'battle_id', 'player_tag', 'side',
-  'crowns', 'trophy_change', 'starting_trophies', 'deck', 'deck_hash',
-  'support_cards', 'elixir_leaked', 'tower_hp', 'outcome', 'clan_tag',
+  "battle_id",
+  "player_tag",
+  "side",
+  "crowns",
+  "trophy_change",
+  "starting_trophies",
+  "deck",
+  "deck_hash",
+  "support_cards",
+  "elixir_leaked",
+  "tower_hp",
+  "outcome",
+  "clan_tag",
 ];
-const PARTICIPANT_KEY = ['battle_id', 'player_tag', 'side'];
-const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter((c) => !PARTICIPANT_KEY.includes(c));
+const PARTICIPANT_KEY = ["battle_id", "player_tag", "side"];
+const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter(
+  (c) => !PARTICIPANT_KEY.includes(c),
+);
 
-const JSONB_COLS = new Set(['modifiers', 'deck', 'support_cards', 'tower_hp']);
+const JSONB_COLS = new Set(["modifiers", "deck", "support_cards", "tower_hp"]);
 
 function insertSql(table, cols, conflictTarget, enrichCols) {
-  const params = cols.map((_, i) => `$${i + 1}`).join(', ');
+  const params = cols.map((_, i) => `$${i + 1}`).join(", ");
   const sets = enrichCols
     .map((c) => `${c} = coalesce(${table}.${c}, excluded.${c})`)
-    .join(', ');
-  return `insert into ${table} (${cols.join(', ')}) values (${params})
+    .join(", ");
+  return `insert into ${table} (${cols.join(", ")}) values (${params})
           on conflict (${conflictTarget}) do update set ${sets}
           returning (xmax = 0) as inserted`;
 }
@@ -185,14 +216,18 @@ function insertSql(table, cols, conflictTarget, enrichCols) {
 function paramValues(cols, row) {
   return cols.map((c) => {
     const v = row[c];
-    if (JSONB_COLS.has(c)) return v === null || v === undefined ? null : JSON.stringify(v);
+    if (JSONB_COLS.has(c))
+      return v === null || v === undefined ? null : JSON.stringify(v);
     return v ?? null;
   });
 }
 
-const BATTLE_SQL = insertSql('battle', BATTLE_COLS, 'battle_id', BATTLE_ENRICH);
+const BATTLE_SQL = insertSql("battle", BATTLE_COLS, "battle_id", BATTLE_ENRICH);
 const PARTICIPANT_SQL = insertSql(
-  'battle_participant', PARTICIPANT_COLS, 'battle_id, player_tag', PARTICIPANT_ENRICH,
+  "battle_participant",
+  PARTICIPANT_COLS,
+  "battle_id, player_tag",
+  PARTICIPANT_ENRICH,
 );
 
 /**
@@ -253,7 +288,7 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
     battlesSeen,
     battlesInserted,
     affectedPairs: [...affected].map((k) => {
-      const [playerTag, day] = k.split('|');
+      const [playerTag, day] = k.split("|");
       return { playerTag, day };
     }),
   };

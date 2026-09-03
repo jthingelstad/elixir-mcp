@@ -16,8 +16,8 @@
  * Guard deliberately deferred until observed.
  */
 
-import { normalizeTag } from '@elixir-mcp/contracts';
-import { warClock, resolveWarKeys } from './war-clock.mjs';
+import { normalizeTag } from "@elixir-mcp/contracts";
+import { warClock, resolveWarKeys } from "./war-clock.mjs";
 
 async function latestLoggedWeek(db, clanTag) {
   const { rows } = await db.query(
@@ -25,7 +25,9 @@ async function latestLoggedWeek(db, clanTag) {
      where clan_tag = $1 order by season_id desc, section_index desc limit 1`,
     [clanTag],
   );
-  return rows[0] ? { seasonId: rows[0].season_id, sectionIndex: rows[0].section_index } : null;
+  return rows[0]
+    ? { seasonId: rows[0].season_id, sectionIndex: rows[0].section_index }
+    : null;
 }
 
 /** Build the clan's current clock from recorded anchors + logged weeks. */
@@ -56,7 +58,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
 
   const clock = await clanClock(db, tag, payload, observedMs);
   if (clock.seasonId === null) {
-    return { projected: 'anchor_only', needsBackfill: true };
+    return { projected: "anchor_only", needsBackfill: true };
   }
 
   // 2. The week row.
@@ -66,7 +68,13 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
      on conflict (clan_tag, season_id, section_index) do update set
        is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
        started_observed_at = least(war_week.started_observed_at, excluded.started_observed_at)`,
-    [tag, clock.seasonId, clock.sectionIndex, clock.kind === 'colosseum', fetchedAt],
+    [
+      tag,
+      clock.seasonId,
+      clock.sectionIndex,
+      clock.kind === "colosseum",
+      fetchedAt,
+    ],
   );
 
   // 3. Standings across the race's clans (fame here is the boat's own).
@@ -79,7 +87,15 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
          fame = greatest(war_week_clan.fame, excluded.fame),
          participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
          finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)`,
-      [tag, clock.seasonId, clock.sectionIndex, normalizeTag(c.tag), c.name ?? null, c.fame ?? 0, c.finishTime ? crTimeToIso(c.finishTime) : null],
+      [
+        tag,
+        clock.seasonId,
+        clock.sectionIndex,
+        normalizeTag(c.tag),
+        c.name ?? null,
+        c.fame ?? 0,
+        c.finishTime ? crTimeToIso(c.finishTime) : null,
+      ],
     );
   }
 
@@ -87,10 +103,10 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   let members = 0;
   for (const p of payload.clan.participants ?? []) {
     const playerTag = normalizeTag(p.tag);
-    await db.query(`insert into player (player_tag, name) values ($1, $2) on conflict do nothing`, [
-      playerTag,
-      p.name ?? null,
-    ]);
+    await db.query(
+      `insert into player (player_tag, name) values ($1, $2) on conflict do nothing`,
+      [playerTag, p.name ?? null],
+    );
     await db.query(
       `insert into war_participation
          (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
@@ -99,7 +115,15 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
          points = greatest(war_participation.points, excluded.points),
          decks_used = greatest(war_participation.decks_used, excluded.decks_used),
          boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)`,
-      [tag, clock.seasonId, clock.sectionIndex, playerTag, p.fame ?? 0, p.decksUsed ?? 0, p.boatAttacks ?? 0],
+      [
+        tag,
+        clock.seasonId,
+        clock.sectionIndex,
+        playerTag,
+        p.fame ?? 0,
+        p.decksUsed ?? 0,
+        p.boatAttacks ?? 0,
+      ],
     );
     if (clock.warDay !== null) {
       await db.query(
@@ -108,14 +132,21 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
          values ($1, $2, $3, $4, $5, $6)
          on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
            decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today)`,
-        [tag, clock.seasonId, clock.sectionIndex, clock.warDay, playerTag, p.decksUsedToday ?? 0],
+        [
+          tag,
+          clock.seasonId,
+          clock.sectionIndex,
+          clock.warDay,
+          playerTag,
+          p.decksUsedToday ?? 0,
+        ],
       );
     }
     members += 1;
   }
 
   return {
-    projected: 'war',
+    projected: "war",
     seasonId: clock.seasonId,
     sectionIndex: clock.sectionIndex,
     warDay: clock.warDay,
@@ -139,7 +170,10 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
   const seasons = new Set(items.map((i) => i.seasonId));
   const maxSection = new Map();
   for (const i of items) {
-    maxSection.set(i.seasonId, Math.max(maxSection.get(i.seasonId) ?? -1, i.sectionIndex));
+    maxSection.set(
+      i.seasonId,
+      Math.max(maxSection.get(i.seasonId) ?? -1, i.sectionIndex),
+    );
   }
   const newestSeason = Math.max(...seasons, -Infinity);
 
@@ -147,7 +181,8 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
   for (const item of items) {
     const finished = crTimeToIso(item.createdDate);
     const isColosseum =
-      item.seasonId !== newestSeason && item.sectionIndex === maxSection.get(item.seasonId);
+      item.seasonId !== newestSeason &&
+      item.sectionIndex === maxSection.get(item.seasonId);
     await db.query(
       `insert into war_week (clan_tag, season_id, section_index, is_colosseum, finished_observed_at)
        values ($1, $2, $3, $4, $5)
@@ -178,7 +213,9 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
           participantTag,
           standing.clan.name ?? null,
           standing.clan.fame ?? 0,
-          standing.clan.finishTime ? crTimeToIso(standing.clan.finishTime) : null,
+          standing.clan.finishTime
+            ? crTimeToIso(standing.clan.finishTime)
+            : null,
           standing.rank ?? null,
           standing.trophyChange ?? null,
         ],
@@ -200,17 +237,31 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
                points = greatest(war_participation.points, excluded.points),
                decks_used = greatest(war_participation.decks_used, excluded.decks_used),
                boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)`,
-            [tag, item.seasonId, item.sectionIndex, playerTag, p.fame ?? 0, p.decksUsed ?? 0, p.boatAttacks ?? 0],
+            [
+              tag,
+              item.seasonId,
+              item.sectionIndex,
+              playerTag,
+              p.fame ?? 0,
+              p.decksUsed ?? 0,
+              p.boatAttacks ?? 0,
+            ],
           );
         }
       }
     }
   }
-  return { projected: 'riverracelog', weeks, seasons: [...seasons].sort((a, b) => a - b) };
+  return {
+    projected: "riverracelog",
+    weeks,
+    seasons: [...seasons].sort((a, b) => a - b),
+  };
 }
 
 function crTimeToIso(crTime) {
-  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/.exec(crTime);
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/.exec(
+    crTime,
+  );
   return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;
 }
 

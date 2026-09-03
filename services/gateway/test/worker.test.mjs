@@ -1,16 +1,16 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { gunzipSync } from 'node:zlib';
-import { makeWorker } from '../src/worker.mjs';
-import { CircuitBreaker } from '../src/breaker.mjs';
-import { crPath } from '../src/cr-api.mjs';
-import { validateResultMessage } from '@elixir-mcp/contracts';
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { gunzipSync } from "node:zlib";
+import { makeWorker } from "../src/worker.mjs";
+import { CircuitBreaker } from "../src/breaker.mjs";
+import { crPath } from "../src/cr-api.mjs";
+import { validateResultMessage } from "@elixir-mcp/contracts";
 
-const GW = '00000000-0000-0000-0000-000000000001';
+const GW = "00000000-0000-0000-0000-000000000001";
 
 function fakeSqs() {
   const queues = { live: [], bulk: [], results: [] };
-  const urls = { live: 'q://live', bulk: 'q://bulk', results: 'q://results' };
+  const urls = { live: "q://live", bulk: "q://bulk", results: "q://results" };
   const byUrl = (url) => queues[Object.keys(urls).find((k) => urls[k] === url)];
   return {
     queues,
@@ -18,7 +18,9 @@ function fakeSqs() {
     sqs: {
       async receive(url, _wait) {
         const q = byUrl(url);
-        return q.length > 0 ? { body: q.shift(), receiptHandle: `rh-${url}-${q.length}` } : null;
+        return q.length > 0
+          ? { body: q.shift(), receiptHandle: `rh-${url}-${q.length}` }
+          : null;
       },
       async send(url, body) {
         byUrl(url).push(body);
@@ -39,128 +41,207 @@ function worker({ fetchResult, breaker, sqsBox, metrics }) {
     breaker: breaker ?? new CircuitBreaker(),
     gatewayId: GW,
     metrics,
-    now: () => new Date('2026-09-03T16:00:00Z'),
+    now: () => new Date("2026-09-03T16:00:00Z"),
   });
 }
 
-const JOB = JSON.stringify({ endpoint: 'player', entity_key: '#20JJJ2CCRU', lane: 'bulk' });
+const JOB = JSON.stringify({
+  endpoint: "player",
+  entity_key: "#20JJJ2CCRU",
+  lane: "bulk",
+});
 
-test('CR paths encode the hash and cover all admitted endpoints', () => {
-  assert.equal(crPath({ endpoint: 'player', entity_key: '#20JJJ2CCRU' }), '/players/%2320JJJ2CCRU');
+test("CR paths encode the hash and cover all admitted endpoints", () => {
   assert.equal(
-    crPath({ endpoint: 'player_battlelog', entity_key: '#20JJJ2CCRU' }),
-    '/players/%2320JJJ2CCRU/battlelog',
+    crPath({ endpoint: "player", entity_key: "#20JJJ2CCRU" }),
+    "/players/%2320JJJ2CCRU",
   );
-  assert.equal(crPath({ endpoint: 'clan', entity_key: '#J2RGCRVG' }), '/clans/%23J2RGCRVG');
   assert.equal(
-    crPath({ endpoint: 'currentriverrace', entity_key: '#J2RGCRVG' }),
-    '/clans/%23J2RGCRVG/currentriverrace',
+    crPath({ endpoint: "player_battlelog", entity_key: "#20JJJ2CCRU" }),
+    "/players/%2320JJJ2CCRU/battlelog",
+  );
+  assert.equal(
+    crPath({ endpoint: "clan", entity_key: "#J2RGCRVG" }),
+    "/clans/%23J2RGCRVG",
+  );
+  assert.equal(
+    crPath({ endpoint: "currentriverrace", entity_key: "#J2RGCRVG" }),
+    "/clans/%23J2RGCRVG/currentriverrace",
   );
 });
 
-test('live lane drains before bulk', async () => {
+test("live lane drains before bulk", async () => {
   const box = fakeSqs();
-  box.queues.live.push(JSON.stringify({ endpoint: 'player', entity_key: '#20JJJ2CCRU', lane: 'live' }));
+  box.queues.live.push(
+    JSON.stringify({
+      endpoint: "player",
+      entity_key: "#20JJJ2CCRU",
+      lane: "live",
+    }),
+  );
   box.queues.bulk.push(JOB);
-  const w = worker({ fetchResult: { kind: 'http', status: 200, bodyText: '{"tag":"#20JJJ2CCRU"}' }, sqsBox: box });
+  const w = worker({
+    fetchResult: {
+      kind: "http",
+      status: 200,
+      bodyText: '{"tag":"#20JJJ2CCRU"}',
+    },
+    sqsBox: box,
+  });
   const first = await w.pollOnce();
-  assert.equal(first.lane, 'live');
+  assert.equal(first.lane, "live");
   const second = await w.pollOnce();
-  assert.equal(second.lane, 'bulk');
+  assert.equal(second.lane, "bulk");
 });
 
-test('ok result is a valid, gunzippable contract message and the lease is deleted', async () => {
+test("ok result is a valid, gunzippable contract message and the lease is deleted", async () => {
   const box = fakeSqs();
   box.queues.bulk.push(JOB);
-  const w = worker({ fetchResult: { kind: 'http', status: 200, bodyText: '{"tag":"#20JJJ2CCRU","name":"Jamie"}' }, sqsBox: box });
+  const w = worker({
+    fetchResult: {
+      kind: "http",
+      status: 200,
+      bodyText: '{"tag":"#20JJJ2CCRU","name":"Jamie"}',
+    },
+    sqsBox: box,
+  });
   const r = await w.pollOnce();
-  assert.equal(r.status, 'ok');
+  assert.equal(r.status, "ok");
   assert.equal(box.queues.results.length, 1);
   const msg = JSON.parse(box.queues.results[0]);
   const validated = validateResultMessage(msg);
   assert.ok(validated.ok, JSON.stringify(validated));
-  const body = JSON.parse(gunzipSync(Buffer.from(msg.body_gzip_b64, 'base64')).toString());
-  assert.equal(body.name, 'Jamie');
+  const body = JSON.parse(
+    gunzipSync(Buffer.from(msg.body_gzip_b64, "base64")).toString(),
+  );
+  assert.equal(body.name, "Jamie");
   assert.equal(msg.gateway_id, GW);
-  assert.equal(box.sqs.deleted.length, 1, 'request deleted after result posted');
+  assert.equal(
+    box.sqs.deleted.length,
+    1,
+    "request deleted after result posted",
+  );
 });
 
-test('non-200 posts an http error result; 404 does not trip the breaker', async () => {
+test("non-200 posts an http error result; 404 does not trip the breaker", async () => {
   const box = fakeSqs();
   box.queues.bulk.push(JOB);
   const breaker = new CircuitBreaker({ threshold: 2 });
-  const w = worker({ fetchResult: { kind: 'http', status: 404, bodyText: '{"reason":"notFound"}' }, sqsBox: box, breaker });
+  const w = worker({
+    fetchResult: {
+      kind: "http",
+      status: 404,
+      bodyText: '{"reason":"notFound"}',
+    },
+    sqsBox: box,
+    breaker,
+  });
   await w.pollOnce();
   const msg = JSON.parse(box.queues.results[0]);
-  assert.equal(msg.status, 'error');
+  assert.equal(msg.status, "error");
   assert.equal(msg.http_status, 404);
   assert.equal(breaker.isOpen(), false);
 });
 
-test('consecutive 403s open the breaker and leasing stops', async () => {
+test("consecutive 403s open the breaker and leasing stops", async () => {
   const box = fakeSqs();
   box.queues.bulk.push(JOB, JOB, JOB);
   const breaker = new CircuitBreaker({ threshold: 2, now: () => 1000 });
   let breakerOpened = 0;
   const w = worker({
-    fetchResult: { kind: 'http', status: 403, bodyText: '{"reason":"accessDenied"}' },
+    fetchResult: {
+      kind: "http",
+      status: 403,
+      bodyText: '{"reason":"accessDenied"}',
+    },
     sqsBox: box,
     breaker,
-    metrics: { fetchSucceeded() {}, overflow() {}, breakerOpen: () => (breakerOpened += 1) },
+    metrics: {
+      fetchSucceeded() {},
+      overflow() {},
+      breakerOpen: () => (breakerOpened += 1),
+    },
   });
   await w.pollOnce();
   await w.pollOnce();
   assert.equal(breakerOpened, 1);
   const r = await w.pollOnce();
-  assert.equal(r.polled, 'breaker_open', 'open breaker stops leasing');
-  assert.equal(box.queues.bulk.length, 1, 'remaining job left for another gateway');
-  assert.equal(box.queues.results.length, 2, 'in-flight leases still posted their error results');
+  assert.equal(r.polled, "breaker_open", "open breaker stops leasing");
+  assert.equal(
+    box.queues.bulk.length,
+    1,
+    "remaining job left for another gateway",
+  );
+  assert.equal(
+    box.queues.results.length,
+    2,
+    "in-flight leases still posted their error results",
+  );
 });
 
-test('breaker half-opens after cooldown and a success resets it', async () => {
+test("breaker half-opens after cooldown and a success resets it", async () => {
   let clock = 0;
-  const breaker = new CircuitBreaker({ threshold: 2, cooldownMs: 100, now: () => clock });
+  const breaker = new CircuitBreaker({
+    threshold: 2,
+    cooldownMs: 100,
+    now: () => clock,
+  });
   breaker.record403();
   breaker.record403();
   assert.equal(breaker.isOpen(), true);
   clock = 200;
-  assert.equal(breaker.isOpen(), false, 'half-open probe allowed after cooldown');
+  assert.equal(
+    breaker.isOpen(),
+    false,
+    "half-open probe allowed after cooldown",
+  );
   breaker.recordSuccess();
   breaker.record403();
-  assert.equal(breaker.isOpen(), false, 'reset streak: one 403 no longer opens');
+  assert.equal(
+    breaker.isOpen(),
+    false,
+    "reset streak: one 403 no longer opens",
+  );
 });
 
-test('transport failure posts a transport error result', async () => {
+test("transport failure posts a transport error result", async () => {
   const box = fakeSqs();
   box.queues.bulk.push(JOB);
-  const w = worker({ fetchResult: { kind: 'transport', message: 'timeout' }, sqsBox: box });
+  const w = worker({
+    fetchResult: { kind: "transport", message: "timeout" },
+    sqsBox: box,
+  });
   const r = await w.pollOnce();
-  assert.equal(r.status, 'error');
+  assert.equal(r.status, "error");
   const msg = JSON.parse(box.queues.results[0]);
-  assert.equal(msg.error.kind, 'transport');
+  assert.equal(msg.error.kind, "transport");
 });
 
-test('post-compression overflow is a loud error, never a silent fallback', async () => {
+test("post-compression overflow is a loud error, never a silent fallback", async () => {
   const box = fakeSqs();
   box.queues.bulk.push(JOB);
   // Incompressible body: random bytes as hex still compress poorly enough.
   const big = Buffer.from(
     Array.from({ length: 400_000 }, () => Math.floor(Math.random() * 256)),
-  ).toString('base64');
+  ).toString("base64");
   let overflows = 0;
   const w = worker({
-    fetchResult: { kind: 'http', status: 200, bodyText: big },
+    fetchResult: { kind: "http", status: 200, bodyText: big },
     sqsBox: box,
-    metrics: { fetchSucceeded() {}, overflow: () => (overflows += 1), breakerOpen() {} },
+    metrics: {
+      fetchSucceeded() {},
+      overflow: () => (overflows += 1),
+      breakerOpen() {},
+    },
   });
   await w.pollOnce();
   const msg = JSON.parse(box.queues.results[0]);
-  assert.equal(msg.status, 'error');
-  assert.equal(msg.error.kind, 'overflow');
+  assert.equal(msg.status, "error");
+  assert.equal(msg.error.kind, "overflow");
   assert.equal(overflows, 1);
 });
 
-test('malformed job is left to re-lease toward the DLQ, no CR call spent', async () => {
+test("malformed job is left to re-lease toward the DLQ, no CR call spent", async () => {
   const box = fakeSqs();
   box.queues.bulk.push('{"endpoint":"nope","entity_key":"#X","lane":"bulk"}');
   let fetched = 0;
@@ -169,7 +250,7 @@ test('malformed job is left to re-lease toward the DLQ, no CR call spent', async
     queues: box.urls,
     crFetch: async () => {
       fetched += 1;
-      return { kind: 'http', status: 200, bodyText: '{}' };
+      return { kind: "http", status: 200, bodyText: "{}" };
     },
     breaker: new CircuitBreaker(),
     gatewayId: GW,
@@ -178,10 +259,14 @@ test('malformed job is left to re-lease toward the DLQ, no CR call spent', async
   assert.equal(r.handled, false);
   assert.equal(fetched, 0);
   assert.equal(box.queues.results.length, 0);
-  assert.equal(box.sqs.deleted.length, 0, 'not deleted: visibility timeout re-leases it');
+  assert.equal(
+    box.sqs.deleted.length,
+    0,
+    "not deleted: visibility timeout re-leases it",
+  );
 });
 
-test('consecutive fetches are paced to the CR minimum interval', async () => {
+test("consecutive fetches are paced to the CR minimum interval", async () => {
   const box = fakeSqs();
   box.queues.bulk.push(JOB, JOB, JOB);
   let clock = 1_000_000;
@@ -189,7 +274,7 @@ test('consecutive fetches are paced to the CR minimum interval', async () => {
   const w = makeWorker({
     sqs: box.sqs,
     queues: box.urls,
-    crFetch: async () => ({ kind: 'http', status: 200, bodyText: '{}' }),
+    crFetch: async () => ({ kind: "http", status: 200, bodyText: "{}" }),
     breaker: new CircuitBreaker(),
     gatewayId: GW,
     now: () => new Date(clock),
@@ -201,6 +286,6 @@ test('consecutive fetches are paced to the CR minimum interval', async () => {
   await w.pollOnce(); // first fetch: no wait
   await w.pollOnce(); // immediate second: must pace
   await w.pollOnce();
-  assert.equal(sleeps.length, 2, 'second and third fetches paced');
+  assert.equal(sleeps.length, 2, "second and third fetches paced");
   assert.ok(sleeps.every((ms) => ms > 0 && ms <= 1500));
 });

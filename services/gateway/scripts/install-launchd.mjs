@@ -6,19 +6,19 @@
  * stdout/stderr to ~/Library/Logs. Re-run to update.
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
-import path from 'node:path';
-import os from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { writeFile, mkdir } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import os from "node:os";
+import { fileURLToPath } from "node:url";
 
-const LABEL = 'com.poapkings.elixir-mcp-gw';
+const LABEL = "com.poapkings.elixir-mcp-gw";
 const here = path.dirname(fileURLToPath(import.meta.url));
-const entry = path.resolve(here, '../src/index.mjs');
+const entry = path.resolve(here, "../src/index.mjs");
 const node = process.execPath;
 const home = os.homedir();
-const logPath = path.join(home, 'Library/Logs/elixir-mcp-gw.log');
-const plistPath = path.join(home, 'Library/LaunchAgents', `${LABEL}.plist`);
+const logPath = path.join(home, "Library/Logs/elixir-mcp-gw.log");
+const plistPath = path.join(home, "Library/LaunchAgents", `${LABEL}.plist`);
 
 const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -44,10 +44,14 @@ await writeFile(plistPath, plist);
 const uid = process.getuid();
 const domain = `gui/${uid}`;
 try {
-  execFileSync('launchctl', ['bootout', domain, plistPath], { stdio: 'ignore' });
+  execFileSync("launchctl", ["bootout", domain, plistPath], {
+    stdio: "ignore",
+  });
 } catch {
   /* not loaded */
 }
-execFileSync('launchctl', ['bootstrap', domain, plistPath]);
-execFileSync('launchctl', ['kickstart', '-k', `${domain}/${LABEL}`]);
-console.log(`installed + started ${LABEL}\n  node: ${node}\n  log:  ${logPath}`);
+execFileSync("launchctl", ["bootstrap", domain, plistPath]);
+execFileSync("launchctl", ["kickstart", "-k", `${domain}/${LABEL}`]);
+console.log(
+  `installed + started ${LABEL}\n  node: ${node}\n  log:  ${logPath}`,
+);

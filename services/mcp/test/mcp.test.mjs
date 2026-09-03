@@ -1,37 +1,44 @@
-import { test, before, after } from 'node:test';
-import assert from 'node:assert/strict';
-import { gzipSync } from 'node:zlib';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
-import { migrate } from '../../migrate/src/migrate.mjs';
-import { processResult } from '../../ingest/src/pipeline.mjs';
-import { emailHash } from '../../auth/src/index.mjs';
-import { CONTRACT_VERSION } from '@elixir-mcp/contracts';
-import { handleMcpMessage, serverVersion, MCP_QUOTA_ERROR_CODE } from '../src/protocol.mjs';
-import { makeRegistry } from '../src/tools.mjs';
-import { makeInvoker } from '../src/invoker.mjs';
-import { makeQuota } from '../src/quota.mjs';
-import { localDayRange, formatLocal } from '../src/time.mjs';
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
+import pg from "pg";
+import { migrate } from "../../migrate/src/migrate.mjs";
+import { processResult } from "../../ingest/src/pipeline.mjs";
+import { emailHash } from "../../auth/src/index.mjs";
+import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
+import {
+  handleMcpMessage,
+  serverVersion,
+  MCP_QUOTA_ERROR_CODE,
+} from "../src/protocol.mjs";
+import { makeRegistry } from "../src/tools.mjs";
+import { makeInvoker } from "../src/invoker.mjs";
+import { makeQuota } from "../src/quota.mjs";
+import { localDayRange, formatLocal } from "../src/time.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '../../..');
-const ADMIN_URL = process.env.PG_ADMIN_URL ?? 'postgres://otto@localhost:5432/postgres';
+const repoRoot = path.resolve(here, "../../..");
+const ADMIN_URL =
+  process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_mcp_${process.pid}`;
 const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 let db;
 let account; // Jamie-like approved account with a claim on the fixture observer
-const OBSERVER = '#UVQ8RJYG9'; // with_path_of_legend.json battlelog observer
+const OBSERVER = "#UVQ8RJYG9"; // with_path_of_legend.json battlelog observer
 let registry;
 
 async function fixture(rel) {
-  return JSON.parse(await readFile(path.join(repoRoot, 'fixtures', rel), 'utf8'));
+  return JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures", rel), "utf8"),
+  );
 }
 
 function rpc(method, params = {}, id = 1) {
-  return { jsonrpc: '2.0', id, method, params };
+  return { jsonrpc: "2.0", id, method, params };
 }
 
 function context(overrides = {}) {
@@ -44,7 +51,10 @@ function context(overrides = {}) {
 }
 
 async function callTool(name, args = {}) {
-  const res = await handleMcpMessage(rpc('tools/call', { name, arguments: args }), context());
+  const res = await handleMcpMessage(
+    rpc("tools/call", { name, arguments: args }),
+    context(),
+  );
   const body = JSON.parse(res.payload.result.content[0].text);
   return { body, isError: res.payload.result.isError };
 }
@@ -55,7 +65,10 @@ before(async () => {
   await admin.query(`drop database if exists ${NAME} with (force)`);
   await admin.query(`create database ${NAME}`);
   await admin.end();
-  await migrate({ databaseUrl: URL, migrationsDir: path.join(repoRoot, 'db/migrations') });
+  await migrate({
+    databaseUrl: URL,
+    migrationsDir: path.join(repoRoot, "db/migrations"),
+  });
   db = new pg.Client({ connectionString: URL });
   await db.connect();
 
@@ -65,7 +78,7 @@ before(async () => {
   } = await db.query(
     `insert into account (email_hash, status, timezone) values ($1, 'approved', 'America/Chicago')
      returning account_id, email_hash, is_owner, timezone`,
-    [emailHash('mcp-test@example.com')],
+    [emailHash("mcp-test@example.com")],
   );
   account = {
     accountId: acct.account_id,
@@ -94,17 +107,24 @@ before(async () => {
   const send = async (endpoint, entityKey, payload, fetchedAt) => {
     const result = await processResult(db, {
       v: 1,
-      job: { endpoint, entity_key: entityKey, lane: 'bulk' },
+      job: { endpoint, entity_key: entityKey, lane: "bulk" },
       gateway_id: gw.gateway_id,
       fetched_at: fetchedAt,
-      status: 'ok',
-      body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString('base64'),
+      status: "ok",
+      body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+        "base64",
+      ),
     });
-    assert.equal(result.outcome, 'admitted');
+    assert.equal(result.outcome, "admitted");
   };
-  await send('player_battlelog', OBSERVER, await fixture('player_battlelog/with_path_of_legend.json'), '2026-09-03T14:00:34Z');
-  const profile = await fixture('player/profile.json');
-  await send('player', '#JYRQ8U92C', profile, '2026-09-03T14:40:34Z');
+  await send(
+    "player_battlelog",
+    OBSERVER,
+    await fixture("player_battlelog/with_path_of_legend.json"),
+    "2026-09-03T14:00:34Z",
+  );
+  const profile = await fixture("player/profile.json");
+  await send("player", "#JYRQ8U92C", profile, "2026-09-03T14:40:34Z");
 
   registry = makeRegistry();
 });
@@ -117,127 +137,185 @@ after(async () => {
   await admin.end();
 });
 
-test('initialize: cache-busting version, listChanged true, disclaimer in instructions', async () => {
-  const res = await handleMcpMessage(rpc('initialize', { protocolVersion: '2025-06-18' }), context());
+test("initialize: cache-busting version, listChanged true, disclaimer in instructions", async () => {
+  const res = await handleMcpMessage(
+    rpc("initialize", { protocolVersion: "2025-06-18" }),
+    context(),
+  );
   const result = res.payload.result;
-  assert.equal(result.protocolVersion, '2025-06-18');
+  assert.equal(result.protocolVersion, "2025-06-18");
   assert.equal(result.capabilities.tools.listChanged, true);
-  assert.match(result.serverInfo.version, new RegExp(`^${CONTRACT_VERSION.replaceAll('.', '\\.')}\\+tools\\.[0-9a-f]{12}$`));
+  assert.match(
+    result.serverInfo.version,
+    new RegExp(
+      `^${CONTRACT_VERSION.replaceAll(".", "\\.")}\\+tools\\.[0-9a-f]{12}$`,
+    ),
+  );
   assert.match(result.instructions, /not endorsed by Supercell/);
-  assert.equal(serverVersion(registry.declarations()), result.serverInfo.version);
+  assert.equal(
+    serverVersion(registry.declarations()),
+    result.serverInfo.version,
+  );
 });
 
-test('protocol basics: batching rejected, notifications 202, unknown method/tool', async () => {
-  const batch = await handleMcpMessage([rpc('ping')], context());
+test("protocol basics: batching rejected, notifications 202, unknown method/tool", async () => {
+  const batch = await handleMcpMessage([rpc("ping")], context());
   assert.equal(batch.statusCode, 400);
-  const note = await handleMcpMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }, context());
+  const note = await handleMcpMessage(
+    { jsonrpc: "2.0", method: "notifications/initialized" },
+    context(),
+  );
   assert.equal(note.statusCode, 202);
-  const unknown = await handleMcpMessage(rpc('resources/list'), context());
+  const unknown = await handleMcpMessage(rpc("resources/list"), context());
   assert.equal(unknown.payload.error.code, -32601);
-  const badTool = await handleMcpMessage(rpc('tools/call', { name: 'suggest_deck' }), context());
+  const badTool = await handleMcpMessage(
+    rpc("tools/call", { name: "suggest_deck" }),
+    context(),
+  );
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test('tools/list declares all 15 tools', async () => {
-  const res = await handleMcpMessage(rpc('tools/list'), context());
+test("tools/list declares all 15 tools", async () => {
+  const res = await handleMcpMessage(rpc("tools/list"), context());
   assert.equal(res.payload.result.tools.length, 15);
   const names = res.payload.result.tools.map((t) => t.name);
-  for (const required of ['list_my_players', 'get_coverage', 'get_player', 'query_battles', 'get_player_timeline', 'cr_api_live']) {
+  for (const required of [
+    "list_my_players",
+    "get_coverage",
+    "get_player",
+    "query_battles",
+    "get_player_timeline",
+    "cr_api_live",
+  ]) {
     assert.ok(names.includes(required), required);
   }
 });
 
-test('quota exhaustion returns -32029', async () => {
+test("quota exhaustion returns -32029", async () => {
   const res = await handleMcpMessage(
-    rpc('tools/call', { name: 'list_my_players', arguments: {} }),
-    context({ spendQuota: async () => ({ allowed: false, count: 501, max: 500 }) }),
+    rpc("tools/call", { name: "list_my_players", arguments: {} }),
+    context({
+      spendQuota: async () => ({ allowed: false, count: 501, max: 500 }),
+    }),
   );
   assert.equal(res.payload.error.code, MCP_QUOTA_ERROR_CODE);
 });
 
-test('list_my_players: primary claim, recording status, meta envelope', async () => {
-  const { body, isError } = await callTool('list_my_players');
+test("list_my_players: primary claim, recording status, meta envelope", async () => {
+  const { body, isError } = await callTool("list_my_players");
   assert.equal(isError, false);
   assert.equal(body.players.length, 1);
   const p = body.players[0];
   assert.equal(p.player_tag, OBSERVER);
   assert.equal(p.is_primary, true);
-  assert.equal(p.recording, 'active');
+  assert.equal(p.recording, "active");
   assert.equal(body.meta.contract_version, CONTRACT_VERSION);
   assert.match(body.meta.disclaimer, /not endorsed by Supercell/);
 });
 
-test('get_coverage: polls, appearances, recorded_since', async () => {
-  const { body } = await callTool('get_coverage');
+test("get_coverage: polls, appearances, recorded_since", async () => {
+  const { body } = await callTool("get_coverage");
   assert.ok(body.battles.recorded_appearances > 0);
   assert.match(body.battles.note, /appears in \d+ recorded battles/);
-  assert.ok(body.polls.some((p) => p.endpoint === 'player_battlelog' && p.last_admitted_at));
-  assert.ok(body.meta.recorded_since, 'recording start present');
-  assert.equal(body.meta.timezone_applied, 'America/Chicago');
+  assert.ok(
+    body.polls.some(
+      (p) => p.endpoint === "player_battlelog" && p.last_admitted_at,
+    ),
+  );
+  assert.ok(body.meta.recorded_since, "recording start present");
+  assert.equal(body.meta.timezone_applied, "America/Chicago");
 });
 
-test('get_player: serves the recorded snapshot; live is honestly unavailable', async () => {
-  const { body } = await callTool('get_player', { player_tag: '#JYRQ8U92C' }).catch(() => ({}));
+test("get_player: serves the recorded snapshot; live is honestly unavailable", async () => {
+  const { body } = await callTool("get_player", {
+    player_tag: "#JYRQ8U92C",
+  }).catch(() => ({}));
   // #JYRQ8U92C is not claimed by this account -> not_entitled
-  assert.equal(body.error.code, 'not_entitled');
+  assert.equal(body.error.code, "not_entitled");
 
-  const live = await callTool('get_player', { live: true });
+  const live = await callTool("get_player", { live: true });
   assert.equal(live.isError, true);
-  assert.equal(live.body.error.code, 'live_unavailable');
+  assert.equal(live.body.error.code, "live_unavailable");
 });
 
-test('query_battles: pagination, filters, both perspectives, local time', async () => {
-  const first = await callTool('query_battles', { limit: 5 });
+test("query_battles: pagination, filters, both perspectives, local time", async () => {
+  const first = await callTool("query_battles", { limit: 5 });
   assert.equal(first.isError, false);
   assert.equal(first.body.battles.length, 5);
-  assert.ok(first.body.next_cursor, 'full page carries a cursor');
+  assert.ok(first.body.next_cursor, "full page carries a cursor");
   const b = first.body.battles[0];
-  assert.ok(b.me.deck_hash || b.me.deck, 'subject perspective present');
-  assert.ok(Array.isArray(b.opponents) && b.opponents.length > 0, 'opponent perspective present');
+  assert.ok(b.me.deck_hash || b.me.deck, "subject perspective present");
+  assert.ok(
+    Array.isArray(b.opponents) && b.opponents.length > 0,
+    "opponent perspective present",
+  );
   assert.match(b.battle_time_local, /America\/Chicago/);
 
-  const second = await callTool('query_battles', { limit: 5, cursor: first.body.next_cursor });
+  const second = await callTool("query_battles", {
+    limit: 5,
+    cursor: first.body.next_cursor,
+  });
   assert.ok(
-    second.body.battles.every((x) => !first.body.battles.some((y) => y.battle_time === x.battle_time && y.type === x.type)) ||
-      second.body.battles.length > 0,
-    'cursor advances',
+    second.body.battles.every(
+      (x) =>
+        !first.body.battles.some(
+          (y) => y.battle_time === x.battle_time && y.type === x.type,
+        ),
+    ) || second.body.battles.length > 0,
+    "cursor advances",
   );
 
-  const wins = await callTool('query_battles', { outcome: 'win', limit: 50 });
-  assert.ok(wins.body.battles.every((x) => x.me.outcome === 'win'));
+  const wins = await callTool("query_battles", { outcome: "win", limit: 50 });
+  assert.ok(wins.body.battles.every((x) => x.me.outcome === "win"));
 
-  const ranked = await callTool('query_battles', { mode: 'ranked', limit: 50 });
-  assert.ok(ranked.body.battles.every((x) => x.type === 'pathOfLegend'));
+  const ranked = await callTool("query_battles", { mode: "ranked", limit: 50 });
+  assert.ok(ranked.body.battles.every((x) => x.type === "pathOfLegend"));
 
   const dh = wins.body.battles.find((x) => x.me.deck_hash)?.me.deck_hash;
   if (dh) {
-    const byDeck = await callTool('query_battles', { deck_hash: dh, limit: 50 });
+    const byDeck = await callTool("query_battles", {
+      deck_hash: dh,
+      limit: 50,
+    });
     assert.ok(byDeck.body.battles.every((x) => x.me.deck_hash === dh));
   }
 });
 
-test('query_battles: structured errors for bad input', async () => {
-  const bad = await callTool('query_battles', { player_tag: 'not-a-tag!' });
-  assert.equal(bad.body.error.code, 'invalid_tag');
-  const badDate = await callTool('query_battles', { from: 'yesterday-ish' });
-  assert.equal(badDate.body.error.code, 'bad_request');
+test("query_battles: structured errors for bad input", async () => {
+  const bad = await callTool("query_battles", { player_tag: "not-a-tag!" });
+  assert.equal(bad.body.error.code, "invalid_tag");
+  const badDate = await callTool("query_battles", { from: "yesterday-ish" });
+  assert.equal(badDate.body.error.code, "bad_request");
 });
 
-test('audit rows land for success and failure alike', async () => {
+test("audit rows land for success and failure alike", async () => {
   const { rows } = await db.query(
     `select tool, error_code from mcp_call_audit where account_id = $1 order by audit_id`,
     [account.accountId],
   );
   assert.ok(rows.length >= 5);
-  assert.ok(rows.some((r) => r.error_code === 'not_entitled'));
-  assert.ok(rows.some((r) => r.tool === 'query_battles' && r.error_code === null));
+  assert.ok(rows.some((r) => r.error_code === "not_entitled"));
+  assert.ok(
+    rows.some((r) => r.tool === "query_battles" && r.error_code === null),
+  );
 });
 
-test('local time helpers: DST-aware day bounds', () => {
-  const { start, end } = localDayRange('America/Chicago', '2026-09-03', '2026-09-03');
-  assert.equal(start.toISOString(), '2026-09-03T05:00:00.000Z', 'CDT is UTC-5');
-  assert.equal(end.toISOString(), '2026-09-04T05:00:00.000Z');
-  const winter = localDayRange('America/Chicago', '2026-01-15', '2026-01-15');
-  assert.equal(winter.start.toISOString(), '2026-01-15T06:00:00.000Z', 'CST is UTC-6');
-  assert.match(formatLocal('2026-09-03T14:00:34Z', 'America/Chicago'), /^2026-09-03 09:00:34/);
+test("local time helpers: DST-aware day bounds", () => {
+  const { start, end } = localDayRange(
+    "America/Chicago",
+    "2026-09-03",
+    "2026-09-03",
+  );
+  assert.equal(start.toISOString(), "2026-09-03T05:00:00.000Z", "CDT is UTC-5");
+  assert.equal(end.toISOString(), "2026-09-04T05:00:00.000Z");
+  const winter = localDayRange("America/Chicago", "2026-01-15", "2026-01-15");
+  assert.equal(
+    winter.start.toISOString(),
+    "2026-01-15T06:00:00.000Z",
+    "CST is UTC-6",
+  );
+  assert.match(
+    formatLocal("2026-09-03T14:00:34Z", "America/Chicago"),
+    /^2026-09-03 09:00:34/,
+  );
 });

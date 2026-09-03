@@ -17,7 +17,7 @@
  * budget the planner deliberately does not spend (live_reserve fraction).
  */
 
-import { inPreResetWindow, preResetWindowStart } from '@elixir-mcp/contracts';
+import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
 
 const MINUTE = 60_000;
 
@@ -38,17 +38,28 @@ const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
 
 function tier(heat) {
-  return heat >= 3 ? 'hot' : heat >= 1 ? 'warm' : 'cold';
+  return heat >= 3 ? "hot" : heat >= 1 ? "warm" : "cold";
 }
 
 export async function settleBudget(db, now) {
   const {
     rows: [b],
-  } = await db.query('select tokens, rate_per_sec, live_reserve, settled_at from budget_state');
-  const elapsedSec = Math.max(0, (now.getTime() - b.settled_at.getTime()) / 1000);
+  } = await db.query(
+    "select tokens, rate_per_sec, live_reserve, settled_at from budget_state",
+  );
+  const elapsedSec = Math.max(
+    0,
+    (now.getTime() - b.settled_at.getTime()) / 1000,
+  );
   const cap = Number(b.rate_per_sec) * BUCKET_CAP_SECONDS;
-  const tokens = Math.min(cap, Number(b.tokens) + Number(b.rate_per_sec) * elapsedSec);
-  await db.query('update budget_state set tokens = $1, settled_at = $2', [tokens, now]);
+  const tokens = Math.min(
+    cap,
+    Number(b.tokens) + Number(b.rate_per_sec) * elapsedSec,
+  );
+  await db.query("update budget_state set tokens = $1, settled_at = $2", [
+    tokens,
+    now,
+  ]);
   return { tokens, liveReserve: Number(b.live_reserve) };
 }
 
@@ -152,7 +163,7 @@ async function selectEligible(db, now) {
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
     const forcedPreReset =
       preReset &&
-      r.endpoint === 'player' &&
+      r.endpoint === "player" &&
       admittedMs < windowStartMs &&
       plannedMs < windowStartMs;
     const starved =
@@ -205,14 +216,16 @@ export async function planTick(db, now = new Date()) {
     );
   }
   if (selected.length > 0) {
-    await db.query('update budget_state set tokens = tokens - $1', [selected.length]);
+    await db.query("update budget_state set tokens = tokens - $1", [
+      selected.length,
+    ]);
   }
 
   return {
     jobs: selected.map((j) => ({
       endpoint: j.endpoint,
       entity_key: j.subject_tag,
-      lane: 'bulk',
+      lane: "bulk",
     })),
     tokens,
     bulkBudget,

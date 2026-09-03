@@ -1,7 +1,7 @@
 /** Lambda entrypoint: EventBridge tick -> plan -> SQS bulk lane. */
 
-import { SQSClient, SendMessageBatchCommand } from '@aws-sdk/client-sqs';
-import { makeHandler } from './handler.mjs';
+import { SQSClient, SendMessageBatchCommand } from "@aws-sdk/client-sqs";
+import { makeHandler } from "./handler.mjs";
 
 const sqs = new SQSClient({});
 
@@ -13,7 +13,10 @@ export const handler = makeHandler({
       await sqs.send(
         new SendMessageBatchCommand({
           QueueUrl: process.env.BULK_QUEUE_URL,
-          Entries: batch.map((job, n) => ({ Id: String(n), MessageBody: JSON.stringify(job) })),
+          Entries: batch.map((job, n) => ({
+            Id: String(n),
+            MessageBody: JSON.stringify(job),
+          })),
         }),
       );
     }

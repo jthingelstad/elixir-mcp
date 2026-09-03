@@ -8,3 +8,6 @@ fixtures/
 # Build output and lockfile.
 dist/
 package-lock.json
+
+# Hand-authored prose; prettier pairs glob asterisks as emphasis and corrupts them.
+*.md

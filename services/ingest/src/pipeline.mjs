@@ -11,18 +11,18 @@
  * polling window. Fetch errors write nothing durable; the scheduler replans.
  */
 
-import { gunzipSync } from 'node:zlib';
-import { validateResultMessage, normalizeTag } from '@elixir-mcp/contracts';
-import { payloadHash } from './hash.mjs';
-import { admit } from './admission.mjs';
-import { ingestBattlelog } from './battles.mjs';
-import { ingestClanRoster } from './roster.mjs';
-import { projectPlayerSnapshot } from './snapshots.mjs';
-import { refreshDailyRollups } from './rollups.mjs';
-import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from './war.mjs';
+import { gunzipSync } from "node:zlib";
+import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
+import { payloadHash } from "./hash.mjs";
+import { admit } from "./admission.mjs";
+import { ingestBattlelog } from "./battles.mjs";
+import { ingestClanRoster } from "./roster.mjs";
+import { projectPlayerSnapshot } from "./snapshots.mjs";
+import { refreshDailyRollups } from "./rollups.mjs";
+import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
 
 function subjectTag(endpoint, entityKey) {
-  if (entityKey === 'GLOBAL') return null;
+  if (entityKey === "GLOBAL") return null;
   try {
     return normalizeTag(entityKey);
   } catch {
@@ -54,7 +54,12 @@ const PROJECTORS = {
       [entityKey],
     );
     const windowStart = rows[0]?.last_admitted_at?.toISOString() ?? null;
-    return ingestClanRoster(db, { payload, observedAt: fetchedAt, windowStart, receiptId });
+    return ingestClanRoster(db, {
+      payload,
+      observedAt: fetchedAt,
+      windowStart,
+      receiptId,
+    });
   },
   async player(db, { entityKey, receiptId, payload, fetchedAt }) {
     // Identity refresh + clan auto-follow stamp (§4.2).
@@ -85,10 +90,14 @@ const PROJECTORS = {
       fetchedAt,
       receiptId,
     });
-    return { projected: 'player', clanTag, snapshot };
+    return { projected: "player", clanTag, snapshot };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
-    const race = await projectRiverRace(db, { clanTag: entityKey, payload, fetchedAt });
+    const race = await projectRiverRace(db, {
+      clanTag: entityKey,
+      payload,
+      fetchedAt,
+    });
     const stamps = await stampWarKeys(db, {
       clanTag: entityKey,
       payload,
@@ -101,7 +110,7 @@ const PROJECTORS = {
   },
   async cards() {
     // The catalog is served straight from the payload store (get_card_catalog).
-    return { projected: 'none' };
+    return { projected: "none" };
   },
 };
 
@@ -111,7 +120,8 @@ const PROJECTORS = {
  */
 export async function processResult(db, rawMessage) {
   const validated = validateResultMessage(rawMessage);
-  if (!validated.ok) return { outcome: 'bad_message', errors: validated.errors };
+  if (!validated.ok)
+    return { outcome: "bad_message", errors: validated.errors };
   const msg = validated.msg;
 
   // Lifecycle enforcement (§4.6): revocation is real because ingest stops
@@ -124,33 +134,37 @@ export async function processResult(db, rawMessage) {
     [msg.gateway_id],
   );
   if (gwRows.length === 0) {
-    return { outcome: 'gateway_refused', gateway_id: msg.gateway_id };
+    return { outcome: "gateway_refused", gateway_id: msg.gateway_id };
   }
 
-  if (msg.status !== 'ok') {
+  if (msg.status !== "ok") {
     // No receipt: receipts are one row per HTTP 200 (§4.3). The scheduler
     // replans on freshness; gateway health rides heartbeats/metrics.
-    return { outcome: 'fetch_error', kind: msg.error?.kind ?? 'unknown' };
+    return { outcome: "fetch_error", kind: msg.error?.kind ?? "unknown" };
   }
 
   let payload;
   let rawText;
   try {
-    rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, 'base64')).toString('utf8');
+    rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64")).toString(
+      "utf8",
+    );
     payload = JSON.parse(rawText);
   } catch {
     payload = undefined;
   }
 
   const endpoint = msg.job.endpoint;
-  const entityKey = subjectTag(endpoint, msg.job.entity_key) ?? msg.job.entity_key;
+  const entityKey =
+    subjectTag(endpoint, msg.job.entity_key) ?? msg.job.entity_key;
   const admission =
     payload === undefined
-      ? { ok: false, errors: ['body:unparseable'] }
+      ? { ok: false, errors: ["body:unparseable"] }
       : admit(endpoint, payload);
-  const hash = payload === undefined ? payloadHash(rawText ?? '') : payloadHash(payload);
+  const hash =
+    payload === undefined ? payloadHash(rawText ?? "") : payloadHash(payload);
 
-  await db.query('begin');
+  await db.query("begin");
   try {
     if (payload !== undefined) {
       await db.query(
@@ -174,13 +188,13 @@ export async function processResult(db, rawMessage) {
         msg.fetched_at,
         hash,
         msg.gateway_id,
-        admission.ok ? 'admitted' : 'rejected',
+        admission.ok ? "admitted" : "rejected",
         admission.ok ? null : JSON.stringify(admission.errors),
       ],
     );
     if (receiptRows.length === 0) {
-      await db.query('rollback');
-      return { outcome: 'duplicate' };
+      await db.query("rollback");
+      return { outcome: "duplicate" };
     }
     const receiptId = receiptRows[0].receipt_id;
 
@@ -211,14 +225,14 @@ export async function processResult(db, rawMessage) {
       }
     }
 
-    await db.query('commit');
+    await db.query("commit");
     return {
-      outcome: admission.ok ? 'admitted' : 'rejected',
+      outcome: admission.ok ? "admitted" : "rejected",
       receiptId,
       ...(admission.ok ? { projection } : { errors: admission.errors }),
     };
   } catch (err) {
-    await db.query('rollback').catch(() => {});
+    await db.query("rollback").catch(() => {});
     throw err;
   }
 }

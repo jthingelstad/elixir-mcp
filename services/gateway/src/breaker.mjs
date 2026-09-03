@@ -8,7 +8,11 @@
  */
 
 export class CircuitBreaker {
-  constructor({ threshold = 5, cooldownMs = 15 * 60_000, now = () => Date.now() } = {}) {
+  constructor({
+    threshold = 5,
+    cooldownMs = 15 * 60_000,
+    now = () => Date.now(),
+  } = {}) {
     this.threshold = threshold;
     this.cooldownMs = cooldownMs;
     this.now = now;

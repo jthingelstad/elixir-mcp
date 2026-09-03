@@ -8,15 +8,15 @@
  */
 
 export const EVENT_TYPES = {
-  member_joined: { stream: 'clan', timing: 'estimated' },
-  member_left: { stream: 'clan', timing: 'estimated' },
-  role_changed: { stream: 'clan', timing: 'estimated' },
-  donation_reset: { stream: 'player', timing: 'estimated' },
+  member_joined: { stream: "clan", timing: "estimated" },
+  member_left: { stream: "clan", timing: "estimated" },
+  role_changed: { stream: "clan", timing: "estimated" },
+  donation_reset: { stream: "player", timing: "estimated" },
 };
 
 const TABLE_BY_STREAM = {
-  clan: { table: 'clan_event', tagColumn: 'clan_tag' },
-  player: { table: 'player_event', tagColumn: 'player_tag' },
+  clan: { table: "clan_event", tagColumn: "clan_tag" },
+  player: { table: "player_event", tagColumn: "player_tag" },
 };
 
 export async function emitEvent(

@@ -9,10 +9,14 @@
 
 const POLL_INTERVAL_MS = 400;
 
-export function makeLive({ enqueue, timeoutMs = 8000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
+export function makeLive({
+  enqueue,
+  timeoutMs = 8000,
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+}) {
   return async function liveFetch(db, { endpoint, entityKey }) {
     const since = new Date();
-    await enqueue({ endpoint, entity_key: entityKey, lane: 'live' });
+    await enqueue({ endpoint, entity_key: entityKey, lane: "live" });
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);
@@ -27,30 +31,42 @@ export function makeLive({ enqueue, timeoutMs = 8000, sleep = (ms) => new Promis
       );
       const row = rows[0];
       if (row) {
-        if (row.admission === 'admitted' && row.payload_json) {
+        if (row.admission === "admitted" && row.payload_json) {
           return { ok: true, payload: row.payload_json };
         }
-        return { ok: false, reason: 'rejected', errors: row.admission_errors };
+        return { ok: false, reason: "rejected", errors: row.admission_errors };
       }
     }
-    return { ok: false, reason: 'timeout' };
+    return { ok: false, reason: "timeout" };
   };
 }
 
 /** Allowlisted live paths -> (endpoint, entity key). Mirrors cr_api_live. */
 export function livePathToJob(path, normalizeTag) {
-  const m = /^\/(players|clans)\/([^/]+)(\/(battlelog|currentriverrace|riverracelog))?$/.exec(path);
-  if (!m) return { error: 'bad_request', message: `Path not in the allowlist: ${path}` };
+  const m =
+    /^\/(players|clans)\/([^/]+)(\/(battlelog|currentriverrace|riverracelog))?$/.exec(
+      path,
+    );
+  if (!m)
+    return {
+      error: "bad_request",
+      message: `Path not in the allowlist: ${path}`,
+    };
   let tag;
   try {
     tag = normalizeTag(decodeURIComponent(m[2]));
   } catch {
-    return { error: 'invalid_tag', message: `Invalid tag in path: ${m[2]}` };
+    return { error: "invalid_tag", message: `Invalid tag in path: ${m[2]}` };
   }
-  if (m[1] === 'players') {
-    if (m[4] && m[4] !== 'battlelog') return { error: 'bad_request', message: `${m[4]} is a clan endpoint.` };
-    return { endpoint: m[4] === 'battlelog' ? 'player_battlelog' : 'player', entityKey: tag };
+  if (m[1] === "players") {
+    if (m[4] && m[4] !== "battlelog")
+      return { error: "bad_request", message: `${m[4]} is a clan endpoint.` };
+    return {
+      endpoint: m[4] === "battlelog" ? "player_battlelog" : "player",
+      entityKey: tag,
+    };
   }
-  if (m[4] === 'battlelog') return { error: 'bad_request', message: 'battlelog is a player endpoint.' };
-  return { endpoint: m[4] ?? 'clan', entityKey: tag };
+  if (m[4] === "battlelog")
+    return { error: "bad_request", message: "battlelog is a player endpoint." };
+  return { endpoint: m[4] ?? "clan", entityKey: tag };
 }

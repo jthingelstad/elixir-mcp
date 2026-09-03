@@ -4,12 +4,12 @@
  * the standing answer.
  */
 
-import { CONTRACT_VERSION } from './version.js';
+import { CONTRACT_VERSION } from "./version.js";
 
 export const DISCLAIMER =
-  'This material is unofficial and is not endorsed by Supercell. For more ' +
-  'information see Supercell’s Fan Content Policy: ' +
-  'www.supercell.com/fan-content-policy.';
+  "This material is unofficial and is not endorsed by Supercell. For more " +
+  "information see Supercell’s Fan Content Policy: " +
+  "www.supercell.com/fan-content-policy.";
 
 export interface ResponseMeta {
   /** When this answer was computed (ISO 8601 UTC). */
@@ -25,7 +25,11 @@ export interface ResponseMeta {
 }
 
 export function responseMeta(
-  fields: Omit<ResponseMeta, 'disclaimer' | 'contract_version'>,
+  fields: Omit<ResponseMeta, "disclaimer" | "contract_version">,
 ): ResponseMeta {
-  return { ...fields, disclaimer: DISCLAIMER, contract_version: CONTRACT_VERSION };
+  return {
+    ...fields,
+    disclaimer: DISCLAIMER,
+    contract_version: CONTRACT_VERSION,
+  };
 }

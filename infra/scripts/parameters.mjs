@@ -13,20 +13,20 @@
  */
 
 export const REQUIRED_PARAMETERS = [
-  'CodeBucket',
-  'WebApiCodeKey',
-  'McpCodeKey',
-  'SchedulerCodeKey',
-  'IngestCodeKey',
-  'EmailRelayCodeKey',
-  'MigrateCodeKey',
+  "CodeBucket",
+  "WebApiCodeKey",
+  "McpCodeKey",
+  "SchedulerCodeKey",
+  "IngestCodeKey",
+  "EmailRelayCodeKey",
+  "MigrateCodeKey",
 ];
 
 export const PRESERVED_PARAMETERS = [
-  'AppSecretName',
-  'SiteCertificateArn',
-  'MonthlyCostAlarmUsd',
-  'SchedulerTickMinutes',
+  "AppSecretName",
+  "SiteCertificateArn",
+  "MonthlyCostAlarmUsd",
+  "SchedulerTickMinutes",
 ];
 
 /**
@@ -35,7 +35,8 @@ export const PRESERVED_PARAMETERS = [
  */
 export function buildParameters(required, initial = null) {
   for (const key of REQUIRED_PARAMETERS) {
-    if (required[key] === undefined) throw new Error(`missing required parameter: ${key}`);
+    if (required[key] === undefined)
+      throw new Error(`missing required parameter: ${key}`);
   }
   const params = REQUIRED_PARAMETERS.map((key) => ({
     ParameterKey: key,
@@ -44,7 +45,10 @@ export function buildParameters(required, initial = null) {
   for (const key of PRESERVED_PARAMETERS) {
     if (initial) {
       if (initial[key] !== undefined) {
-        params.push({ ParameterKey: key, ParameterValue: String(initial[key]) });
+        params.push({
+          ParameterKey: key,
+          ParameterValue: String(initial[key]),
+        });
       }
       // Omitted at create: the template Default applies, once, visibly.
     } else {

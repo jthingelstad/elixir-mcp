@@ -11,7 +11,7 @@
  * identity: upgrading a card does not change which deck it is.
  */
 
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 export interface DeckCard {
   id: number;
@@ -30,9 +30,9 @@ export function canonicalDeckString(deck: DeckIdentity): string {
   const pairs = deck.cards
     .map((c) => `${c.id}:${c.evolutionLevel ?? 0}`)
     .sort();
-  return `${pairs.join(',')}|${deck.towerTroopId ?? 0}`;
+  return `${pairs.join(",")}|${deck.towerTroopId ?? 0}`;
 }
 
 export function deckHash(deck: DeckIdentity): string {
-  return createHash('sha256').update(canonicalDeckString(deck)).digest('hex');
+  return createHash("sha256").update(canonicalDeckString(deck)).digest("hex");
 }

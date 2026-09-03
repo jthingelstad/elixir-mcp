@@ -4,11 +4,18 @@
  * means anything (sign-out, 90-day absolute cap, account status).
  */
 
-import { createSessionToken, verifySessionToken, SESSION_TTL_SECONDS } from './session.mjs';
+import {
+  createSessionToken,
+  verifySessionToken,
+  SESSION_TTL_SECONDS,
+} from "./session.mjs";
 
 const ABSOLUTE_CAP_DAYS = 90;
 
-export async function createSession(db, { secret, accountId, emailHash, now = Date.now() }) {
+export async function createSession(
+  db,
+  { secret, accountId, emailHash, now = Date.now() },
+) {
   const minted = createSessionToken({ secret, sub: emailHash, now });
   await db.query(
     `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at)
@@ -55,7 +62,8 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
 }
 
 export async function revokeSession(db, sessionId) {
-  await db.query(`update session set revoked_at = now() where session_id = $1 and revoked_at is null`, [
-    sessionId,
-  ]);
+  await db.query(
+    `update session set revoked_at = now() where session_id = $1 and revoked_at is null`,
+    [sessionId],
+  );
 }

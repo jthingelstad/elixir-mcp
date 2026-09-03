@@ -16,7 +16,13 @@ const WINDOW_MINUTES = 60;
 export function nextDonationResetMs(from: Date): number {
   const d = new Date(from);
   const day = d.getUTCDay(); // 0 Sun .. 1 Mon
-  const candidate = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, RESET_UTC_MINUTES);
+  const candidate = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    0,
+    RESET_UTC_MINUTES,
+  );
   let daysAhead = (1 - day + 7) % 7;
   if (daysAhead === 0 && from.getTime() >= candidate) daysAhead = 7;
   return candidate + daysAhead * 86_400_000;

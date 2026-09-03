@@ -9,13 +9,13 @@
  * and duplicated across the day's mode rows by design.
  */
 
-import { MODE_GROUP_BY_TYPE } from '@elixir-mcp/contracts';
+import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 
 export { MODE_GROUP_BY_TYPE };
 
 const MODE_GROUP_CASE = `case b.type ${Object.entries(MODE_GROUP_BY_TYPE)
   .map(([t, g]) => `when '${t}' then '${g}'`)
-  .join(' ')} else 'casual' end`;
+  .join(" ")} else 'casual' end`;
 
 /** Recompute rollups for a set of {playerTag, day} pairs. */
 export async function refreshDailyRollups(db, pairs) {
@@ -71,7 +71,8 @@ export async function refreshCompleteness(db, { playerTag, day }) {
     [playerTag, day],
   );
   const expected = rows[0]?.expected;
-  if (expected === undefined || expected === null || expected < 0) return { expected: null };
+  if (expected === undefined || expected === null || expected < 0)
+    return { expected: null };
 
   await db.query(
     `with captured as (

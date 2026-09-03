@@ -1,20 +1,25 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
-import { migrate } from '../../migrate/src/migrate.mjs';
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
+import pg from "pg";
+import { migrate } from "../../migrate/src/migrate.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-export const repoRoot = path.resolve(here, '../../..');
+export const repoRoot = path.resolve(here, "../../..");
 
-const ADMIN_URL = process.env.PG_ADMIN_URL ?? 'postgres://otto@localhost:5432/postgres';
+const ADMIN_URL =
+  process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 
 export async function fixture(rel) {
-  return JSON.parse(await readFile(path.join(repoRoot, 'fixtures', rel), 'utf8'));
+  return JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures", rel), "utf8"),
+  );
 }
 
 export async function fixtureMeta() {
-  return JSON.parse(await readFile(path.join(repoRoot, 'fixtures/meta.json'), 'utf8'));
+  return JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
+  );
 }
 
 export async function scratchDb(suffix) {
@@ -25,7 +30,10 @@ export async function scratchDb(suffix) {
   await admin.query(`create database ${name}`);
   await admin.end();
   const url = ADMIN_URL.replace(/\/postgres$/, `/${name}`);
-  await migrate({ databaseUrl: url, migrationsDir: path.join(repoRoot, 'db/migrations') });
+  await migrate({
+    databaseUrl: url,
+    migrationsDir: path.join(repoRoot, "db/migrations"),
+  });
   const db = new pg.Client({ connectionString: url });
   await db.connect();
   return {
@@ -41,7 +49,10 @@ export async function scratchDb(suffix) {
 }
 
 /** A receipt needs an account + gateway; battles need a receipt. */
-export async function seedReceipt(db, { endpoint = 'player_battlelog', entityKey = '#TEST' } = {}) {
+export async function seedReceipt(
+  db,
+  { endpoint = "player_battlelog", entityKey = "#TEST" } = {},
+) {
   const {
     rows: [account],
   } = await db.query(
