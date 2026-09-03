@@ -90,7 +90,7 @@ export function Dashboard({ me, refresh, navigate }) {
         <h3>Connect your agent</h3>
         <p>
           Add this MCP server to Claude (or any MCP client) and sign in with your email when it
-          asks: <code>https://mcp.poapkings.com/mcp</code>
+          asks: <code>https://elixir.poapkings.com/mcp</code>
         </p>
         <p>
           Start with <code>list_my_players</code>, then try <em>&ldquo;what&rsquo;s my record this week?&rdquo;</em>

@@ -25,7 +25,6 @@ export const REQUIRED_PARAMETERS = [
 export const PRESERVED_PARAMETERS = [
   'AppSecretName',
   'SiteCertificateArn',
-  'McpCertificateArn',
   'MonthlyCostAlarmUsd',
   'SchedulerTickMinutes',
 ];

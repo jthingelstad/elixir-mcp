@@ -31,10 +31,6 @@ Parameters:
     Type: String
     Default: ''
     Description: ACM cert for elixir.poapkings.com (us-east-1); empty deploys without the alias
-  McpCertificateArn:
-    Type: String
-    Default: ''
-    Description: ACM cert for mcp.poapkings.com (us-east-1); empty deploys without the alias
   MonthlyCostAlarmUsd:
     Type: Number
     Default: 40
@@ -47,7 +43,6 @@ Parameters:
 
 Conditions:
   HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, '']]
-  HasMcpCert: !Not [!Equals [!Ref McpCertificateArn, '']]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
 
 Resources:
@@ -319,7 +314,7 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
-          OAUTH_ISSUER: https://mcp.poapkings.com
+          OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
 
   SchedulerLogGroup:
@@ -576,6 +571,11 @@ Resources:
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [TLSv1.2]
+          - Id: mcpapi
+            DomainName: !Sub ${McpApi}.execute-api.${AWS::Region}.amazonaws.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
         DefaultCacheBehavior:
           TargetOriginId: site
           ViewerProtocolPolicy: redirect-to-https
@@ -590,6 +590,27 @@ Resources:
             # AWS managed CachingDisabled
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
+          # The MCP/OAuth door, path-split on the one hostname. The
+          # no-cookie origin request policy is the structural guarantee:
+          # session cookies can never reach these routes (DESIGN §6.2).
+          - PathPattern: /mcp
+            TargetOriginId: mcpapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          - PathPattern: /oauth/*
+            TargetOriginId: mcpapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          - PathPattern: /.well-known/*
+            TargetOriginId: mcpapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
         CustomErrorResponses:
           # SPA routing: unknown paths serve the app shell.
           - ErrorCode: 403
@@ -598,33 +619,6 @@ Resources:
           - ErrorCode: 404
             ResponseCode: 200
             ResponsePagePath: /index.html
-
-  McpDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Comment: mcp.poapkings.com (no cookies forwarded, by construction)
-        HttpVersion: http2and3
-        Aliases: !If [HasMcpCert, [mcp.poapkings.com], !Ref 'AWS::NoValue']
-        ViewerCertificate: !If
-          - HasMcpCert
-          - AcmCertificateArn: !Ref McpCertificateArn
-            SslSupportMethod: sni-only
-            MinimumProtocolVersion: TLSv1.2_2021
-          - CloudFrontDefaultCertificate: true
-        Origins:
-          - Id: mcp
-            DomainName: !Sub ${McpApi}.execute-api.${AWS::Region}.amazonaws.com
-            CustomOriginConfig:
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [TLSv1.2]
-        DefaultCacheBehavior:
-          TargetOriginId: mcp
-          ViewerProtocolPolicy: https-only
-          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
-          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
-          OriginRequestPolicyId: !Ref McpOriginRequestPolicy
 
   # ------------------------------------------------------------ monitoring
   AlarmTopic:
@@ -824,10 +818,7 @@ Outputs:
     Value: !GetAtt Database.Endpoint.Address
   SiteDistributionDomain:
     Value: !GetAtt SiteDistribution.DomainName
-    Description: CNAME target for elixir.poapkings.com at Namecheap
-  McpDistributionDomain:
-    Value: !GetAtt McpDistribution.DomainName
-    Description: CNAME target for mcp.poapkings.com at Namecheap
+    Description: CNAME target for elixir.poapkings.com at Namecheap (serves site, /api, /mcp, /oauth, /.well-known)
   SiteBucketName:
     Value: !Ref SiteBucket
   MigrateFunctionName:

@@ -130,6 +130,6 @@ if (!skipWeb) {
 }
 
 console.log('\ndeploy complete.');
-console.log(`site:  https://${outputs.SiteDistributionDomain}  (CNAME elixir.poapkings.com here)`);
-console.log(`mcp:   https://${outputs.McpDistributionDomain}   (CNAME mcp.poapkings.com here)`);
+console.log(`site + mcp door: https://${outputs.SiteDistributionDomain}  (CNAME elixir.poapkings.com here)`);
+console.log(`connect URL: https://elixir.poapkings.com/mcp`);
 console.log(`alarm topic: ${outputs.AlarmTopicArn}`);

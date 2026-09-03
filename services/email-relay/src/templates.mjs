@@ -30,7 +30,7 @@ export function renderEmail(msg) {
       text:
         `You're in!\n\n` +
         `Sign in at https://elixir.poapkings.com/signin, claim your player tag, and turn on\n` +
-        `recording. Then connect your agent to https://mcp.poapkings.com/mcp and start asking\n` +
+        `recording. Then connect your agent to https://elixir.poapkings.com/mcp and start asking\n` +
         `questions the game itself can't answer.\n\n` +
         `${DISCLAIMER}\n`,
     };

@@ -1,4 +1,4 @@
-/** Lambda entrypoint for the MCP door (mcp.poapkings.com). */
+/** Lambda entrypoint for the MCP door (elixir.poapkings.com). */
 
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { makeHandler } from './handler.mjs';
@@ -7,7 +7,7 @@ const sqs = new SQSClient({});
 
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
-  issuer: process.env.OAUTH_ISSUER ?? 'https://mcp.poapkings.com',
+  issuer: process.env.OAUTH_ISSUER ?? 'https://elixir.poapkings.com',
   sendLoginEmail: ({ email, code, clientName }) =>
     sqs.send(
       new SendMessageCommand({

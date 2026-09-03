@@ -13,7 +13,7 @@ const repoRoot = path.resolve(here, '../../..');
 const ADMIN_URL = process.env.PG_ADMIN_URL ?? 'postgres://otto@localhost:5432/postgres';
 const NAME = `elixir_mcp_test_oroutes_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
-const ISSUER = 'https://mcp.poapkings.com';
+const ISSUER = 'https://elixir.poapkings.com';
 const EMAIL = 'oauth-routes@example.com';
 const REDIRECT = 'https://claude.ai/api/mcp/auth_callback';
 

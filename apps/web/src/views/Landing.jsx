@@ -83,7 +83,7 @@ export function Landing({ authed, navigate }) {
         <h3>How it works</h3>
         <p>
           1. Claim your player tag. 2. Opt into recording — an adaptive recorder starts watching
-          your battle log and profile. 3. Connect <code>https://mcp.poapkings.com/mcp</code> to
+          your battle log and profile. 3. Connect <code>https://elixir.poapkings.com/mcp</code> to
           Claude or any MCP client, and ask away. Free while in early access.
         </p>
       </div>

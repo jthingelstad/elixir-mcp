@@ -2,7 +2,9 @@
 
 Elixir MCP: records Clash Royale history (the official API is current-state
 only) and serves it to players' own agents through an authenticated remote MCP
-server. Web `elixir.poapkings.com`, MCP door `mcp.poapkings.com`.
+server. One hostname, `elixir.poapkings.com`: the site at /, the MCP/OAuth
+door path-split at /mcp, /oauth/*, /.well-known/* behind a no-cookie
+CloudFront behavior (consolidated from two hostnames 2026-09-03).
 
 `CLAUDE.md` is a symlink to this file. Do not fork them.
 

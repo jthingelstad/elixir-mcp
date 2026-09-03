@@ -76,7 +76,7 @@ test('dashboard renders claims, recording state, and the connect URL', async () 
   expect(await screen.findByText('#20JJJ2CCRU')).toBeTruthy();
   expect(screen.getByText('Jamie')).toBeTruthy();
   expect(screen.getByText('active')).toBeTruthy();
-  expect(screen.getByText(/mcp\.poapkings\.com\/mcp/)).toBeTruthy();
+  expect(screen.getByText(/elixir\.poapkings\.com\/mcp/)).toBeTruthy();
   expect(screen.getByText('Stop')).toBeTruthy();
 });
 

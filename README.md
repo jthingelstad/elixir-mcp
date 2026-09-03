@@ -8,7 +8,7 @@ records history for opted-in players and clans and exposes it through an
 authenticated remote MCP server you connect to Claude or any MCP client.
 
 - Web: `elixir.poapkings.com` (request access, claim your tag, dashboard)
-- MCP: `https://mcp.poapkings.com/mcp`
+- MCP: `https://elixir.poapkings.com/mcp`
 
 **Status: design complete, build starting.** Start with
 [docs/DESIGN.md](docs/DESIGN.md); working notes in

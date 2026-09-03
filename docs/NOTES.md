@@ -121,7 +121,9 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Email relay (JMAP sender + templates + SQS consumer; EmailMessage contract) — transport swappable behind the queue
 - [x] Season-roll watcher (shared pre-reset window fn; scheduler forces in-window profile polls; projector pins season_roll rows)
 - [x] infra/ DEPLOYED 2026-09-03 (Jamie's go): stack live, migrations 5/5, smoke 7/7. Fixed en route: RDS force-SSL (sslmode=no-verify) and gateway .env→process.env export for launchd. Owner account + jamie-mac gateway seeded via the migrate Lambda's explicit seed payload; gateway running under launchd (com.poapkings.elixir-mcp-gw).
-- [ ] DNS at Namecheap (Jamie): 2 ACM validation CNAMEs now; once certs issue, I flip SiteCertificateArn/McpCertificateArn params, then Jamie adds elixir→d3nauaye5ioxmf.cloudfront.net and mcp→d2wgneqckc8k1s.cloudfront.net.
+- **Hostname consolidation (Jamie, 2026-09-03 post-launch):** connect URL is `https://elixir.poapkings.com/mcp` — ONE hostname, path-split CloudFront behaviors (/mcp, /oauth/*, /.well-known/* forward no cookies). The mcp. distribution deleted before DNS existed; its issued cert sits unused (free). OAuth issuer = https://elixir.poapkings.com.
+- **Owner identity fixed (2026-09-03):** owner login is jamie@thingelstad.com; the AWS-only address was purged from prod DB, local dev, repo, and git history (filter-repo + force push).
+- [ ] DNS at Namecheap (Jamie): ONE record once I confirm aliases live — elixir → d3nauaye5ioxmf.cloudfront.net.
 - [ ] Jamie: sign in at https://d3nauaye5ioxmf.cloudfront.net, claim #20JJJ2CCRU, opt into recording (the real product flow — also live-tests the JMAP relay).
 - [ ] projects-sysadmin: subscribe elixir-mcp-alarms to projects-ops-alerts; add the gateway launchd service + backup verification to the rotations.
 - [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**

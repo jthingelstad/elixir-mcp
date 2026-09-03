@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/mcp",
   "version": "0.1.0",
-  "description": "The MCP door at mcp.poapkings.com/mcp: stateless streamable-HTTP protocol layer, the V1 tool registry over recorded history, quota, audit (DESIGN §3, §6.2, §11).",
+  "description": "The MCP door at elixir.poapkings.com/mcp: stateless streamable-HTTP protocol layer, the V1 tool registry over recorded history, quota, audit (DESIGN §3, §6.2, §11).",
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {

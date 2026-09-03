@@ -1,6 +1,6 @@
 /**
  * The /mcp Lambda shape (API Gateway behind the no-cookie CloudFront on
- * mcp.poapkings.com). Bearer only — cookies structurally never arrive.
+ * elixir.poapkings.com). Bearer only — cookies structurally never arrive.
  * 401s carry WWW-Authenticate with resource_metadata (RFC 9728) so
  * clients can discover the authorization server.
  */
@@ -15,7 +15,7 @@ import { makeOauthRoutes } from './oauth-routes.mjs';
 
 export const HOURLY_RATE_LIMIT = 300;
 
-export function makeHandler({ databaseUrl, issuer = 'https://mcp.poapkings.com', sendLoginEmail }) {
+export function makeHandler({ databaseUrl, issuer = 'https://elixir.poapkings.com', sendLoginEmail }) {
   const registry = makeRegistry();
   const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
   const unauthorized = () => ({
