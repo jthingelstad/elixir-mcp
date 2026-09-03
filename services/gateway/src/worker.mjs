@@ -13,6 +13,12 @@ import { crPath } from './cr-api.mjs';
 
 const MAX_RESULT_BYTES = 250_000; // headroom under the 256KB SQS cap
 
+// CR pacing (§5.2): the docs' ~2s guidance, and overage surfaces as 403.
+// The scheduler budget caps the AVERAGE rate; this floor caps the
+// INSTANTANEOUS rate — without it a queued burst rips at wire speed and
+// trips the breaker (learned live, 2026-09-03: 92-job fan-out, 5x403).
+const MIN_FETCH_INTERVAL_MS = 1500;
+
 export function makeWorker({
   sqs, // { receive(queueUrl, waitSeconds), send(queueUrl, body), delete(queueUrl, receiptHandle) }
   queues, // { live, bulk, results }
@@ -22,7 +28,16 @@ export function makeWorker({
   metrics = { fetchSucceeded() {}, overflow() {}, breakerOpen() {} },
   log = () => {},
   now = () => new Date(),
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 }) {
+  let lastFetchStartedAt = 0;
+
+  async function pacedFetch(path) {
+    const wait = lastFetchStartedAt + MIN_FETCH_INTERVAL_MS - now().getTime();
+    if (wait > 0) await sleep(wait);
+    lastFetchStartedAt = now().getTime();
+    return crFetch(path);
+  }
   function buildResult(job, fetched) {
     const base = {
       v: 1,
@@ -66,7 +81,7 @@ export function makeWorker({
       return { handled: false };
     }
 
-    const fetched = await crFetch(crPath(job));
+    const fetched = await pacedFetch(crPath(job));
     if (fetched.kind === 'http' && fetched.status === 403) {
       const opened = breaker.record403();
       if (opened) {

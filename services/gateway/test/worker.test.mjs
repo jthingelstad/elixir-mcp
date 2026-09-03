@@ -180,3 +180,27 @@ test('malformed job is left to re-lease toward the DLQ, no CR call spent', async
   assert.equal(box.queues.results.length, 0);
   assert.equal(box.sqs.deleted.length, 0, 'not deleted: visibility timeout re-leases it');
 });
+
+test('consecutive fetches are paced to the CR minimum interval', async () => {
+  const box = fakeSqs();
+  box.queues.bulk.push(JOB, JOB, JOB);
+  let clock = 1_000_000;
+  const sleeps = [];
+  const w = makeWorker({
+    sqs: box.sqs,
+    queues: box.urls,
+    crFetch: async () => ({ kind: 'http', status: 200, bodyText: '{}' }),
+    breaker: new CircuitBreaker(),
+    gatewayId: GW,
+    now: () => new Date(clock),
+    sleep: async (ms) => {
+      sleeps.push(ms);
+      clock += ms;
+    },
+  });
+  await w.pollOnce(); // first fetch: no wait
+  await w.pollOnce(); // immediate second: must pace
+  await w.pollOnce();
+  assert.equal(sleeps.length, 2, 'second and third fetches paced');
+  assert.ok(sleeps.every((ms) => ms > 0 && ms <= 1500));
+});
