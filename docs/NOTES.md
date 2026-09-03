@@ -118,7 +118,9 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] OAuth 2.1 HTTP shell + discovery on the MCP door (two-step authorize over the magic core; consent = entering the code; oracle-resistant; RFC 9207/8414/9728)
 - [x] Web-api service: full journey tested (request → approve → sign in → claim → record); CSRF contract header; neutral gate responses everywhere
 - [x] Web UI (apps/web): landing/sign-in/dashboard/admin/connect in Drop's token palette; 4 RTL tests; 49KB gzipped
-- [ ] infra/: CloudFormation stack + bootstrap/deploy/parameters/smoke — **GATE: first deploy needs Jamie's explicit go (billable resources)**
+- [x] Email relay (JMAP sender + templates + SQS consumer; EmailMessage contract) — transport swappable behind the queue
+- [x] Season-roll watcher (shared pre-reset window fn; scheduler forces in-window profile polls; projector pins season_roll rows)
+- [ ] infra/: CloudFormation stack + bootstrap/deploy/parameters/smoke — AUTHORING is fine; **GATE: the first actual deploy (create-stack) needs Jamie's explicit go (billable resources)**
 - [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**
 
 2026-09-03 audit outcomes (DESIGN.md §11–§12 added): versioning designed (migration ladder + fingerprint test; contracts package + serverInfo cache-buster + deprecation rules; audit-row tuning loop). Build-blockers closed: DB access path (migrate Lambda + break-glass), SQS 256KB (gateway gzip, alarm on overflow), live request lane (second queue, gateways drain first), budget state in Postgres. Scope changes ratified: `get_player_timeline` into V1 (11 tools), season-roll watcher into V1, **repo public from day one** (fixture discipline from first commit).
