@@ -149,6 +149,15 @@ Start every iteration with a recorder health glance (gateway FetchSucceeded/Brea
 - [x] Liveness-proof verification (deployed): favourite-card challenge, 15-min window, live-lane check; Dashboard Verify flow. Queued: flip CLAN_SCOPE_REQUIRES to 'verified' once members have used it (Jamie's call on timing).
 - [x] Web clan page (deployed): /clan — war standings (final rank order, our row highlighted), roster with trophies/donations/last-battle recency, share_battles toggle per claim. Recency policy mirrors get_clan: activity recency is roster-level; consent gates battle DETAIL only. Members reach it via open membership of a claimed tag in a recorded clan; owner falls back to first recorded clan. Leader self-serve clan-enroll folds into the gateway self-serve item below (same raise-hand pattern).
 - [x] Gateway self-serve enrollment (deployed): POST /api/gateways raise-hand (name+static IP, owner notified) + Dashboard panel; owner lifecycle actions (pending→probation→activate→drain→revoke, forward-only) in the Admin gateways panel; ingest now ENFORCES the lifecycle (refuses revoked/unknown gateway_ids, cleanly — no FK-throw retry loop) and stamps last_heartbeat_at on any valid message / last_success_at on admission, so the health panel is real; docs/OPERATORS.md is the public guided install (linked from README). **Jamie-manual per operator: create the IP-allowlisted Supercell key + a per-gateway IAM user (recv/delete on request queues, send on results, PutMetricData) and hand both over out of band; then click "Begin probation".**
-- [ ] V2 smoke on live data + DESIGN/NOTES/AGENTS updates + memory update
+- [x] V2 smoke on live data (2026-09-03 21:16Z): smoke.mjs all green; ops stats 8,008 players / 7,442 battles / 64 war weeks / 2,975 participation rows / 5 war anchors across 12 recordings; live MCP get_coverage answered with 31s freshness and pre-claim battle capture. DESIGN/NOTES/AGENTS + memory updated.
+
+**V2 build order COMPLETE.** Open Jamie-manual / later items:
+- Flip `CLAN_SCOPE_REQUIRES` to 'verified' once members have used the favourite-card verification (Jamie's timing call).
+- Per new gateway operator: IP-allowlisted Supercell key + per-gateway IAM user (recv/delete request queues, send results, PutMetricData), handed over out of band; then "Begin probation" in Admin.
+- Gateway auto-update (launchd runs from checkout; kickstart after gateway-code pulls) — a self-update or deploy reminder still wanted.
+- Subscribe elixir-mcp-alarms to the sysadmin projects-ops-alerts queue.
+- Delete the Fastmail draft that carried the JMAP token (Jamie).
+- Capacity: ~30 clans saturates one gateway's practical throughput; volunteer fleet is the lever.
+- Timeline 'season' granularity — contract-minor, when wanted.
 
 2026-09-03 audit outcomes (DESIGN.md §11–§12 added): versioning designed (migration ladder + fingerprint test; contracts package + serverInfo cache-buster + deprecation rules; audit-row tuning loop). Build-blockers closed: DB access path (migrate Lambda + break-glass), SQS 256KB (gateway gzip, alarm on overflow), live request lane (second queue, gateways drain first), budget state in Postgres. Scope changes ratified: `get_player_timeline` into V1 (11 tools), season-roll watcher into V1, **repo public from day one** (fixture discipline from first commit).
