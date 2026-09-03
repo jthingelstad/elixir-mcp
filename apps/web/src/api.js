@@ -29,6 +29,7 @@ export const api = {
     request("POST", "/api/recordings", { player_tag, action }),
   clan: () => request("GET", "/api/clan"),
   usage: () => request("GET", "/api/me/usage"),
+  activity: () => request("GET", "/api/me/activity"),
   connections: () => request("GET", "/api/me/connections"),
   revokeConnection: (family_id) =>
     request("POST", "/api/me/connections/revoke", { family_id }),

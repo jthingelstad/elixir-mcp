@@ -109,6 +109,18 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
         ],
       },
     ],
+    "GET /api/me/activity": [
+      200,
+      {
+        events: [
+          {
+            kind: "signed_in",
+            detail: null,
+            created_at: new Date().toISOString(),
+          },
+        ],
+      },
+    ],
     "GET /api/me/connections": [
       200,
       {

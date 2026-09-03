@@ -16,6 +16,7 @@ export function Dashboard({ me, refresh, navigate }) {
   const [gateways, setGateways] = useState(null); // null until first load
   const [usage, setUsage] = useState(null);
   const [connections, setConnections] = useState([]);
+  const [activity, setActivity] = useState([]);
   const [gwForm, setGwForm] = useState({
     name: "",
     ip: "",
@@ -31,6 +32,10 @@ export function Dashboard({ me, refresh, navigate }) {
     if (me?.authenticated)
       api.connections().then((r) => {
         if (r.ok) setConnections(r.data.connections);
+      });
+    if (me?.authenticated)
+      api.activity().then((r) => {
+        if (r.ok) setActivity(r.data.events);
       });
   }, [me?.authenticated]);
 
@@ -77,6 +82,7 @@ export function Dashboard({ me, refresh, navigate }) {
                 <th>Clan</th>
                 <th>Recording</th>
                 <th>Last poll</th>
+                <th>Fetches/24h</th>
                 <th></th>
               </tr>
             </thead>
@@ -105,6 +111,7 @@ export function Dashboard({ me, refresh, navigate }) {
                       </span>
                     </td>
                     <td>{freshness(rec?.freshest_poll)}</td>
+                    <td>{rec?.fetches_24h ?? ""}</td>
                     <td>
                       <button
                         className="quiet"
@@ -344,6 +351,23 @@ export function Dashboard({ me, refresh, navigate }) {
           </>
         )}
       </div>
+
+      {activity.length > 0 && (
+        <div className="panel">
+          <h3>Recent activity</h3>
+          <table>
+            <tbody>
+              {activity.map((e, i) => (
+                <tr key={i}>
+                  <td>{new Date(e.created_at).toLocaleString()}</td>
+                  <td>{e.kind.replaceAll("_", " ")}</td>
+                  <td>{e.detail?.player_tag ?? e.detail?.name ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="panel">
         <h3>Timezone</h3>

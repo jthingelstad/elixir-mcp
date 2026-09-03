@@ -80,6 +80,16 @@ export function makeHandler({
     return resolveSession(db, { secret, token });
   }
 
+  // The activity log must never break the action it records.
+  async function logEvent(db, accountId, kind, detail = null) {
+    await db
+      .query(
+        `insert into account_event (account_id, kind, detail) values ($1, $2, $3)`,
+        [accountId, kind, detail ? JSON.stringify(detail) : null],
+      )
+      .catch(() => {});
+  }
+
   async function mintSessionResponse(db, hash) {
     const account = await approvedAccount(db, hash);
     if (!account) return json(400, { error: "invalid_or_expired" });
@@ -88,6 +98,7 @@ export function makeHandler({
       accountId: account.account_id,
       emailHash: hash,
     });
+    await logEvent(db, account.account_id, "signed_in");
     return json(
       200,
       { authenticated: true },
@@ -179,7 +190,10 @@ export function makeHandler({
         ),
         db.query(
           `select r.subject_tag, r.status, r.created_at,
-                  (select max(last_admitted_at) from poll_state ps where ps.subject_tag = r.subject_tag) as freshest_poll
+                  (select max(last_admitted_at) from poll_state ps where ps.subject_tag = r.subject_tag) as freshest_poll,
+                  (select count(*)::int from api_receipt ar
+                   where ar.entity_key = r.subject_tag
+                     and ar.fetched_at > now() - interval '24 hours') as fetches_24h
            from recording r where r.requested_by = $1 and r.subject_type = 'player'`,
           [account.accountId],
         ),
@@ -243,7 +257,7 @@ export function makeHandler({
         `select count(*)::int as n from claim where account_id = $1`,
         [account.accountId],
       );
-      await db.query(
+      const { rowCount: claimed } = await db.query(
         `insert into claim (account_id, player_tag, status, is_primary)
          values ($1, $2, 'unverified', $3) on conflict (account_id, player_tag) do nothing`,
         [
@@ -252,6 +266,10 @@ export function makeHandler({
           existing[0].n === 0 || body.make_primary === true,
         ],
       );
+      if (claimed > 0)
+        await logEvent(db, account.accountId, "claim_added", {
+          player_tag: tag,
+        });
       if (body.make_primary === true) {
         await db.query(
           `update claim set is_primary = (player_tag = $2) where account_id = $1`,
@@ -278,18 +296,44 @@ export function makeHandler({
       );
       if (!claim[0]) return json(403, { error: "not_entitled" });
       if (body.action === "start") {
-        await db.query(
+        // Recordings spend the one global rate budget: cap active player
+        // recordings per account (default 5, column override, owner exempt).
+        if (!account.isOwner) {
+          const { rows: cap } = await db.query(
+            `select coalesce(a.max_player_recordings, 5) as cap,
+                    (select count(*)::int from recording r
+                     where r.requested_by = $1 and r.subject_type = 'player'
+                       and r.status = 'active') as active
+             from account a where a.account_id = $1`,
+            [account.accountId],
+          );
+          if (cap[0].active >= cap[0].cap) {
+            return json(429, {
+              error: "quota_exceeded",
+              message: `Active player recordings are capped at ${cap[0].cap} per account.`,
+            });
+          }
+        }
+        const { rowCount: started } = await db.query(
           `insert into recording (subject_type, subject_tag, requested_by)
            select 'player', $1, $2
            where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
           [tag, account.accountId],
         );
+        if (started > 0)
+          await logEvent(db, account.accountId, "recording_started", {
+            player_tag: tag,
+          });
       } else if (body.action === "stop") {
-        await db.query(
+        const { rowCount: stopped } = await db.query(
           `update recording set status = 'stopped'
            where subject_type = 'player' and subject_tag = $1 and status = 'active'`,
           [tag],
         );
+        if (stopped > 0)
+          await logEvent(db, account.accountId, "recording_stopped", {
+            player_tag: tag,
+          });
       } else {
         return json(400, { error: "bad_request" });
       }
@@ -379,7 +423,21 @@ export function makeHandler({
         [String(body.family_id ?? ""), account.accountId],
       );
       if (rowCount === 0) return json(404, { error: "not_found" });
+      await logEvent(db, account.accountId, "connection_revoked", {
+        family_id: body.family_id,
+      });
       return json(200, { ok: true });
+    },
+
+    "GET /api/me/activity": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select kind, detail, created_at from account_event
+         where account_id = $1 order by event_id desc limit 20`,
+        [account.accountId],
+      );
+      return json(200, { events: rows });
     },
 
     "GET /api/me/usage": async (db, event) => {
@@ -443,7 +501,27 @@ export function makeHandler({
          from mcp_call_audit where created_at > now() - interval '7 days'
          group by 1 order by 2 desc`,
       );
-      return json(200, { accounts, tools });
+      // Budget reality: the global 1 rps budget supports ~86,400
+      // fetches/day; show consumption and the heaviest subjects.
+      const { rows: budget } = await db.query(
+        `select count(*)::int as fetches_24h,
+                count(distinct entity_key)::int as subjects_24h
+         from api_receipt where fetched_at > now() - interval '24 hours'`,
+      );
+      const { rows: topSubjects } = await db.query(
+        `select entity_key, count(*)::int as fetches
+         from api_receipt where fetched_at > now() - interval '24 hours'
+         group by 1 order by 2 desc limit 10`,
+      );
+      return json(200, {
+        accounts,
+        tools,
+        budget: {
+          ...budget[0],
+          capacity_24h: 86400,
+          top_subjects: topSubjects,
+        },
+      });
     },
 
     "GET /api/admin/requests": async (db, event) => {
@@ -561,6 +639,7 @@ export function makeHandler({
         [account.accountId, name, ip],
       );
       await notifyOwner({ kind: "gateway_request", playerTag: name });
+      await logEvent(db, account.accountId, "gateway_raised", { name });
       return json(200, {
         ok: true,
         gateway_id: rows[0].gateway_id,
@@ -573,8 +652,11 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select gateway_id, name, status, static_ip, enrolled_at, last_heartbeat_at, last_success_at
-         from gateway where owner_account_id = $1 order by enrolled_at`,
+        `select g.gateway_id, g.name, g.status, g.static_ip, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
+                (select count(*)::int from api_receipt ar
+                 where ar.gateway_id = g.gateway_id
+                   and ar.fetched_at > now() - interval '24 hours') as fetches_24h
+         from gateway g where g.owner_account_id = $1 order by g.enrolled_at`,
         [account.accountId],
       );
       return json(200, { gateways: rows });

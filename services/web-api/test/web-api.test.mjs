@@ -629,3 +629,41 @@ test("connections: list shows OAuth families; revoke disconnects; others' famili
   );
   assert.equal(after.connections.length, 0);
 });
+
+test("activity log + recording cap: events accrue; the cap refuses politely", async () => {
+  const cookie = memberCookie;
+  const act = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/activity",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const kinds = act.events.map((e) => e.kind);
+  assert.ok(kinds.includes("signed_in"));
+  assert.ok(kinds.includes("claim_added"));
+  assert.ok(kinds.includes("recording_started"));
+  assert.ok(kinds.includes("gateway_raised"));
+  assert.ok(kinds.includes("connection_revoked"));
+
+  // Cap: one active recording exists; drop the cap to 1 and try another.
+  await db.query(
+    `update account set max_player_recordings = 1 where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  await handler(
+    event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
+  );
+  const refused = await handler(
+    event({
+      path: "/api/recordings",
+      cookie,
+      body: { player_tag: "#PLC220", action: "start" },
+    }),
+  );
+  assert.equal(refused.statusCode, 429);
+  assert.match(parse(refused).message, /capped at 1/);
+});

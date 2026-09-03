@@ -226,6 +226,14 @@ export async function mintTokens(
       [clientId, accountId, FAMILY_ABSOLUTE_DAYS],
     );
     family = rows[0].family_id;
+    // Activity log (0010): a new family = a newly authorized client.
+    await db
+      .query(
+        `insert into account_event (account_id, kind, detail)
+         values ($1, 'agent_connected', $2)`,
+        [accountId, JSON.stringify({ client_id: clientId })],
+      )
+      .catch(() => {});
   }
   const accessToken = secret(ACCESS_TOKEN_PREFIX);
   const refreshToken = secret(REFRESH_TOKEN_PREFIX);

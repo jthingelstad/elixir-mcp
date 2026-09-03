@@ -194,6 +194,17 @@ export function Admin({ me }) {
               ))}
             </tbody>
           </table>
+          {usage.budget && (
+            <p className="notice">
+              Budget: {usage.budget.fetches_24h.toLocaleString()} fetches /{" "}
+              {usage.budget.capacity_24h.toLocaleString()} capacity (24h) across{" "}
+              {usage.budget.subjects_24h} subjects. Heaviest:{" "}
+              {usage.budget.top_subjects
+                .slice(0, 5)
+                .map((t) => `${t.entity_key} (${t.fetches})`)
+                .join(", ")}
+            </p>
+          )}
           {usage.tools.length > 0 && (
             <>
               <h3>Tools (7 days)</h3>
