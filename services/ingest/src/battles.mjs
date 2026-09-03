@@ -101,11 +101,7 @@ function outcomeFor(entry, ownSide, otherSide, battle, isTeamSide) {
   return "unresolved";
 }
 
-function canonicalBattleId(
-  battleTimeCanonical,
-  participantTags,
-  typeClass,
-) {
+function canonicalBattleId(battleTimeCanonical, participantTags, typeClass) {
   const sorted = [...participantTags].sort();
   return createHash("sha256")
     .update(`${battleTimeCanonical}:${sorted.join(",")}:${typeClass}`)
