@@ -134,7 +134,7 @@ Jamie, 2026-09-03 (design session inputs):
 
 Start every iteration with a recorder health glance (gateway FetchSucceeded/BreakerOpen, DLQs, a get_coverage call) — we babysit while we build. Deploys are routine (`deploy.mjs --skip-web` unless web changed); no billable gates in V2. Jamie-manual steps get queued in NOTES, never blocked on.
 
-- [ ] War clock (contracts or ingest lib): period math (periodIndex//7=sectionIndex; 0-2 training, 3-6 battle), observed period anchors, season inference, resolve_war_keys from the BATTLE'S OWN time — pattern: elixir-bot engine/clock.py; verify vs recorded currentriverrace payloads (we have live ones now)
+- [x] War clock (services/ingest/war-clock.mjs): period grid + season inference + observed-anchor-with-fallback + resolveWarKeys from battle time (cross-section = honest nulls); verified against the three real captured riverrace payloads
 - [ ] Migration 0006: war_season / war_week / war_week_clan / war_participation (**points, not fame**) / war_attendance_day; share_battles_with_clan consent flag on claim (default: on for war battles, off otherwise per DESIGN §4.2)
 - [ ] War projector: currentriverrace → accumulate with MAX-merge (monotonic counters), week/season finalize, attendance days; stamp war keys onto battles at ingest
 - [ ] riverracelog backfill consumer (NET-NEW; paginate at enrollment, take what it gives) + run it for #J2RGCRVG against prod
