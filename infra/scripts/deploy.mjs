@@ -13,6 +13,7 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CloudFrontClient, CreateInvalidationCommand, ListDistributionsCommand } from '@aws-sdk/client-cloudfront';
 import {
   CloudFormationClient,
   CreateStackCommand,
@@ -127,6 +128,23 @@ if (!skipWeb) {
     ['s3', 'sync', path.join(repoRoot, 'apps/web/dist'), `s3://${outputs.SiteBucketName}`, '--delete'],
     { stdio: 'inherit' },
   );
+  // A synced site with a cached index.html pointing at deleted hashed
+  // assets is a silent blank page; every web deploy flushes the edge.
+  const cloudfront = new CloudFrontClient({ region: REGION });
+  const { DistributionList } = await cloudfront.send(new ListDistributionsCommand({}));
+  const dist = DistributionList.Items.find((d) => d.Comment === 'elixir.poapkings.com');
+  if (dist) {
+    await cloudfront.send(
+      new CreateInvalidationCommand({
+        DistributionId: dist.Id,
+        InvalidationBatch: {
+          CallerReference: String(Date.now()),
+          Paths: { Quantity: 1, Items: ['/*'] },
+        },
+      }),
+    );
+    console.error(`invalidated ${dist.Id}`);
+  }
 }
 
 console.log('\ndeploy complete.');
