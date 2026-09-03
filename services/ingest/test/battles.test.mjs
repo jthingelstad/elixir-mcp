@@ -135,5 +135,5 @@ test('empty battlelog is a clean no-op', async () => {
     receiptId,
     payload: await fixture('player_battlelog/empty.json'),
   });
-  assert.deepEqual(result, { battlesSeen: 0, battlesInserted: 0 });
+  assert.deepEqual(result, { battlesSeen: 0, battlesInserted: 0, affectedPairs: [] });
 });

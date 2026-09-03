@@ -9,9 +9,15 @@
  */
 
 import { normalizeTag } from '@elixir-mcp/contracts';
+import { emitEvent } from './events.mjs';
 
-/** Ingest one admitted clan payload. Caller owns the transaction. */
-export async function ingestClanRoster(db, { payload, observedAt }) {
+/**
+ * Ingest one admitted clan payload. Caller owns the transaction.
+ * windowStart (the previous admitted observation) brackets the emitted
+ * events honestly; first sight of a clan emits NO events (elixir-bot
+ * invariant: the seed observation is silent — there is no diff yet).
+ */
+export async function ingestClanRoster(db, { payload, observedAt, windowStart, receiptId }) {
   const clanTag = normalizeTag(payload.tag);
   const at = observedAt ?? new Date().toISOString();
 
@@ -43,6 +49,22 @@ export async function ingestClanRoster(db, { payload, observedAt }) {
   );
   const openByTag = new Map(open.map((r) => [r.player_tag, r]));
   const rosterTags = new Set(members.map((m) => m.tag));
+  const firstSight = open.length === 0;
+  const evidence = (extra) => ({
+    roster_size_before: open.length,
+    roster_size_after: members.length,
+    ...extra,
+  });
+  const emit = async (type, payload) => {
+    if (firstSight) return;
+    await emitEvent(db, type, {
+      tag: clanTag,
+      payload,
+      windowStart: windowStart ?? at,
+      windowEnd: at,
+      receiptId: receiptId ?? null,
+    });
+  };
 
   let joined = 0;
   let departed = 0;
@@ -62,12 +84,17 @@ export async function ingestClanRoster(db, { payload, observedAt }) {
          values ($1, $2, $3, $4)`,
         [clanTag, m.tag, at, m.role],
       );
+      await emit('member_joined', evidence({ player_tag: m.tag, name: m.name, role: m.role }));
       joined += 1;
     } else if (existing.role !== m.role) {
       await db.query(
         `update clan_membership set role = $3
          where clan_tag = $1 and player_tag = $2 and left_observed_at is null`,
         [clanTag, m.tag, m.role],
+      );
+      await emit(
+        'role_changed',
+        evidence({ player_tag: m.tag, name: m.name, role_before: existing.role, role_after: m.role }),
       );
     }
   }
@@ -78,6 +105,14 @@ export async function ingestClanRoster(db, { payload, observedAt }) {
         `update clan_membership set left_observed_at = $3
          where clan_tag = $1 and player_tag = $2 and left_observed_at is null`,
         [clanTag, r.player_tag, at],
+      );
+      await emit(
+        'member_left',
+        evidence({
+          player_tag: r.player_tag,
+          role_at_departure: r.role,
+          joined_observed_at: r.joined_observed_at,
+        }),
       );
       departed += 1;
     }

@@ -17,6 +17,8 @@ import { payloadHash } from './hash.mjs';
 import { admit } from './admission.mjs';
 import { ingestBattlelog } from './battles.mjs';
 import { ingestClanRoster } from './roster.mjs';
+import { projectPlayerSnapshot } from './snapshots.mjs';
+import { refreshDailyRollups } from './rollups.mjs';
 
 function subjectTag(endpoint, entityKey) {
   if (entityKey === 'GLOBAL') return null;
@@ -34,22 +36,27 @@ const PROJECTORS = {
       receiptId,
       payload,
     });
+    await refreshDailyRollups(db, result.affectedPairs);
     // New battles observed -> hot (elixir-bot heat model); the scheduler
     // owns decay, this is the only re-heat source for player endpoints.
     if (result.battlesInserted > 0) {
       await db.query(
-        `update poll_state set heat = 3 where subject_tag = $1`,
+        `update poll_state set heat = 3, heat_updated_at = now() where subject_tag = $1`,
         [entityKey],
       );
     }
     return result;
   },
-  async clan(db, { receiptId: _receiptId, payload, fetchedAt }) {
-    return ingestClanRoster(db, { payload, observedAt: fetchedAt });
+  async clan(db, { entityKey, receiptId, payload, fetchedAt }) {
+    const { rows } = await db.query(
+      `select last_admitted_at from poll_state where subject_tag = $1 and endpoint = 'clan'`,
+      [entityKey],
+    );
+    const windowStart = rows[0]?.last_admitted_at?.toISOString() ?? null;
+    return ingestClanRoster(db, { payload, observedAt: fetchedAt, windowStart, receiptId });
   },
-  async player(db, { entityKey, payload }) {
-    // v0 projection: identity refresh + clan auto-follow stamp (§4.2).
-    // The full snapshot/diff-event projector is a later build-order item.
+  async player(db, { entityKey, receiptId, payload, fetchedAt }) {
+    // Identity refresh + clan auto-follow stamp (§4.2).
     let clanTag = null;
     if (payload.clan?.tag) {
       try {
@@ -71,7 +78,13 @@ const PROJECTORS = {
              last_seen_at = now()`,
       [entityKey, payload.name ?? null, clanTag],
     );
-    return { projected: 'player_v0', clanTag };
+    const snapshot = await projectPlayerSnapshot(db, {
+      playerTag: entityKey,
+      payload,
+      fetchedAt,
+      receiptId,
+    });
+    return { projected: 'player', clanTag, snapshot };
   },
   async currentriverrace() {
     // War projection is V2; the receipt/payload record is the value today.

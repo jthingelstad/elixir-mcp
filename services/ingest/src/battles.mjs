@@ -203,6 +203,7 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   const observer = normalizeTag(observerTag);
   let battlesInserted = 0;
   let battlesSeen = 0;
+  const affected = new Set(); // "tag|day" pairs for rollup refresh
 
   // The observer may not appear in a battle (e.g. boat defense shapes);
   // its player row must exist for the observation FK regardless.
@@ -243,7 +244,17 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
        values ($1, $2, $3) on conflict do nothing`,
       [battle.battle_id, observer, receiptId],
     );
+
+    const day = battle.battle_time.slice(0, 10);
+    for (const p of participants) affected.add(`${p.player_tag}|${day}`);
   }
 
-  return { battlesSeen, battlesInserted };
+  return {
+    battlesSeen,
+    battlesInserted,
+    affectedPairs: [...affected].map((k) => {
+      const [playerTag, day] = k.split('|');
+      return { playerTag, day };
+    }),
+  };
 }
