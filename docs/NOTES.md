@@ -120,7 +120,10 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Web UI (apps/web): landing/sign-in/dashboard/admin/connect in Drop's token palette; 4 RTL tests; 49KB gzipped
 - [x] Email relay (JMAP sender + templates + SQS consumer; EmailMessage contract) — transport swappable behind the queue
 - [x] Season-roll watcher (shared pre-reset window fn; scheduler forces in-window profile polls; projector pins season_roll rows)
-- [x] infra/ AUTHORED (template validated vs the real CFN API; 6 bundles build; bootstrap/parameters/deploy/smoke scripts; CI w/ postgres:17). **GATE OPEN — awaiting Jamie's explicit go for: `AWS_PROFILE=jamie node infra/scripts/bootstrap.mjs` then `AWS_PROFILE=jamie node infra/scripts/deploy.mjs --create` (starts billing, RDS ~$15/mo). Pre-reqs on Jamie: ELIXIR_MCP_JMAP_TOKEN in .env; fresh aws login.**
+- [x] infra/ DEPLOYED 2026-09-03 (Jamie's go): stack live, migrations 5/5, smoke 7/7. Fixed en route: RDS force-SSL (sslmode=no-verify) and gateway .env→process.env export for launchd. Owner account + jamie-mac gateway seeded via the migrate Lambda's explicit seed payload; gateway running under launchd (com.poapkings.elixir-mcp-gw).
+- [ ] DNS at Namecheap (Jamie): 2 ACM validation CNAMEs now; once certs issue, I flip SiteCertificateArn/McpCertificateArn params, then Jamie adds elixir→d3nauaye5ioxmf.cloudfront.net and mcp→d2wgneqckc8k1s.cloudfront.net.
+- [ ] Jamie: sign in at https://d3nauaye5ioxmf.cloudfront.net, claim #20JJJ2CCRU, opt into recording (the real product flow — also live-tests the JMAP relay).
+- [ ] projects-sysadmin: subscribe elixir-mcp-alarms to projects-ops-alerts; add the gateway launchd service + backup verification to the rotations.
 - [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**
 
 2026-09-03 audit outcomes (DESIGN.md §11–§12 added): versioning designed (migration ladder + fingerprint test; contracts package + serverInfo cache-buster + deprecation rules; audit-row tuning loop). Build-blockers closed: DB access path (migrate Lambda + break-glass), SQS 256KB (gateway gzip, alarm on overflow), live request lane (second queue, gateways drain first), budget state in Postgres. Scope changes ratified: `get_player_timeline` into V1 (11 tools), season-roll watcher into V1, **repo public from day one** (fixture discipline from first commit).
