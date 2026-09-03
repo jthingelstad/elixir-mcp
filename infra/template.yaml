@@ -291,7 +291,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
           SESSION_SECRET: !Sub '{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}'
           EMAIL_QUEUE_URL: !Ref EmailQueue
 
@@ -318,7 +318,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
           OAUTH_ISSUER: https://mcp.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
 
@@ -346,7 +346,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
           BULK_QUEUE_URL: !Ref RequestsBulkQueue
 
   SchedulerRule:
@@ -395,7 +395,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
 
   IngestEventSource:
     Type: AWS::Lambda::EventSourceMapping
@@ -460,7 +460,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp'
+          DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
 
   # ------------------------------------------------------------ front doors
   SiteApi:
