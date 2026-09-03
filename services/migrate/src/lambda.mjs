@@ -40,8 +40,22 @@ async function seed(databaseUrl, spec) {
         rows[0]?.gateway_id ??
         (await db.query(`select gateway_id from gateway where name = $1`, [spec.gateway.name]))
           .rows[0].gateway_id;
+      // Re-seeding transfers ownership: the seeded account owns the gateway.
+      await db.query(`update gateway set owner_account_id = $1 where gateway_id = $2`, [
+        account.account_id,
+        gatewayId,
+      ]);
     }
-    return { seeded: true, accountId: account.account_id, gatewayId };
+    let demoted = 0;
+    if (spec.sole_owner === true) {
+      const { rowCount } = await db.query(
+        `update account set is_owner = false, status = 'disabled'
+         where is_owner and account_id <> $1`,
+        [account.account_id],
+      );
+      demoted = rowCount;
+    }
+    return { seeded: true, accountId: account.account_id, gatewayId, demoted };
   } finally {
     await db.end();
   }
