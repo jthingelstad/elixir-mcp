@@ -142,7 +142,9 @@ Start every iteration with a recorder health glance (gateway FetchSucceeded/Brea
 - [x] riverracelog backfill (deployed): the log is a daily recorded endpoint; enrollment backfill = first poll; items carry seasonId (genesis unlock); 0007 adds rank/trophy_change; participation clan-scoped to own members
 - [x] Entitlements module (deployed): rules 2-4; INTERIM soft claims count for clan scope until liveness ships (CLAN_SCOPE_REQUIRES flips then); owner administers all recorded clans, member consent still applies to owner
 - [x] Clan enrollment UI (Jamie's ask, deployed): owner-only /api/admin/clans + Recorded Clans admin panel; leader self-serve stays a later item
-- [ ] Tools: get_war, get_war_history, get_clan, compare_players (+ timeline granularity 'season'); tools respect entitlements + consent
+- [x] Tools (deployed): get_war, get_war_history, get_clan, compare_players; all 15 tools entitlement-aware (clanmate=summary, war-only battles without consent + scope_note); timeline 'season' granularity deferred to a contract-minor later. Ops stats read added to the migrate Lambda ({stats:true}).
+- **OPS GAP found live: the gateway runs launchd-from-source and does NOT pick up deploys — a gateway-code change needs `launchctl kickstart -k gui/$UID/com.poapkings.elixir-mcp-gw` (bit us: riverracelog jobs unleasable by the old process, 1 DLQ'd). Queue a proper fix (gateway self-update or a deploy-script reminder). Session MCP tool rosters are also start-frozen — new tools appear on reconnect (the serverInfo.version story working as designed).**
+- Prod observation 20:40Z: 7 active recordings (Jamie appears to be enrolling clans via the new panel), 1,572 players, 1,533 battles.
 - [ ] Live lane wiring: MCP enqueue → receipt poll (~8s bound) for cr_api_live and get_player live:true; opportunistic ingest of live fetches
 - [ ] Liveness-proof claim verification (favorite-card challenge over the live lane) — soft claims upgrade to verified
 - [ ] Web: clan page (war standings, roster w/ consent-aware freshness), leader clan-enroll UI, verification flow, share_battles toggle
