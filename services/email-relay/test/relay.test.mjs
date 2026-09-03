@@ -68,7 +68,7 @@ test('login template leads with the code and carries link, consent, disclaimer',
 });
 
 test('welcome and owner_notify templates render', () => {
-  assert.match(renderEmail({ v: 1, kind: 'welcome', to: 'j@x.com' }).text, /mcp\.poapkings\.com\/mcp/);
+  assert.match(renderEmail({ v: 1, kind: 'welcome', to: 'j@x.com' }).text, /elixir\.poapkings\.com\/mcp/);
   assert.match(renderEmail({ v: 1, kind: 'owner_notify', to: 'o@x.com', note: 'req from #TAG' }).text, /req from #TAG/);
 });
 
