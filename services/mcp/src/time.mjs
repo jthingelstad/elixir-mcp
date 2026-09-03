@@ -29,7 +29,7 @@ function tzOffsetMs(timeZone, utcMs) {
   return asUtc - utcMs;
 }
 
-export function validTimezone(timeZone) {
+function validTimezone(timeZone) {
   if (!timeZone) return false;
   try {
     Intl.DateTimeFormat("en-US", { timeZone });
@@ -40,7 +40,7 @@ export function validTimezone(timeZone) {
 }
 
 /** Local midnight of YYYY-MM-DD in tz, as a UTC Date (DST-aware). */
-export function localMidnightUtc(timeZone, ymd) {
+function localMidnightUtc(timeZone, ymd) {
   const guess = Date.parse(`${ymd}T00:00:00Z`);
   if (Number.isNaN(guess)) return null;
   let utc = guess - tzOffsetMs(timeZone, guess);

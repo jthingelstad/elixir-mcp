@@ -136,5 +136,3 @@ export function admit(endpoint, payload) {
   validator(payload, errors);
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
 }
-
-export const ADMITTED_ENDPOINTS = Object.keys(VALIDATORS);

@@ -5,7 +5,7 @@
  * (the OAuth gate precedes it), so no fail-closed pool is needed here.
  */
 
-export const MCP_DAILY_QUOTA_DEFAULT = 500;
+const MCP_DAILY_QUOTA_DEFAULT = 500;
 
 export function makeQuota({ db, account, max = MCP_DAILY_QUOTA_DEFAULT }) {
   return async function spendQuota() {

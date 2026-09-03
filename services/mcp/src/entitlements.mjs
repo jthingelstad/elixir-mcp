@@ -19,11 +19,16 @@
 
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
-export const CLAN_SCOPE_REQUIRES = "unverified"; // -> 'verified' after liveness ships
+// The flip is a deploy-time env change on the MCP Lambda, not a code edit:
+// set ELIXIR_CLAN_SCOPE_REQUIRES=verified once members can verify.
+const CLAN_SCOPE_REQUIRES =
+  process.env.ELIXIR_CLAN_SCOPE_REQUIRES === "verified"
+    ? "verified"
+    : "unverified";
 const LEADERSHIP_ROLES = new Set(["elder", "coLeader", "leader"]);
 
 /** Everything the account can see, resolved once per request. */
-export async function resolveEntitlements(db, account) {
+async function resolveEntitlements(db, account) {
   const { rows: claims } = await db.query(
     `select c.player_tag, c.status, c.share_battles_with_clan,
             cm.clan_tag, cm.role
@@ -33,8 +38,13 @@ export async function resolveEntitlements(db, account) {
      where c.account_id = $1`,
     [account.accountId],
   );
+  // Rule 1 (full own history) never depends on verification; rule 2 (clan
+  // cover) requires verified claims once the interim knob flips.
+  const clanEligible = (c) =>
+    c.clan_tag &&
+    (CLAN_SCOPE_REQUIRES !== "verified" || c.status === "verified");
   const clanTags = [
-    ...new Set(claims.filter((c) => c.clan_tag).map((c) => c.clan_tag)),
+    ...new Set(claims.filter(clanEligible).map((c) => c.clan_tag)),
   ];
   // Clan scope requires the clan to be actively recorded.
   const recordedClans = clanTags.length
@@ -48,7 +58,7 @@ export async function resolveEntitlements(db, account) {
     : [];
   const roles = new Map();
   for (const c of claims) {
-    if (c.clan_tag && recordedClans.includes(c.clan_tag)) {
+    if (clanEligible(c) && recordedClans.includes(c.clan_tag)) {
       const best = roles.get(c.clan_tag);
       if (
         !best ||

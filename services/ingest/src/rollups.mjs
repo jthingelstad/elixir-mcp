@@ -11,8 +11,6 @@
 
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 
-export { MODE_GROUP_BY_TYPE };
-
 const MODE_GROUP_CASE = `case b.type ${Object.entries(MODE_GROUP_BY_TYPE)
   .map(([t, g]) => `when '${t}' then '${g}'`)
   .join(" ")} else 'casual' end`;

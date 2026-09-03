@@ -101,7 +101,7 @@ function outcomeFor(entry, ownSide, otherSide, battle, isTeamSide) {
   return "unresolved";
 }
 
-export function canonicalBattleId(
+function canonicalBattleId(
   battleTimeCanonical,
   participantTags,
   typeClass,

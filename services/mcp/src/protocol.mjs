@@ -11,9 +11,9 @@
 import crypto from "node:crypto";
 import { CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
 
-export const MCP_PROTOCOL_VERSION = "2025-06-18";
+const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
-export const MCP_RESULT_MAX_CHARS = 48_000;
+const MCP_RESULT_MAX_CHARS = 48_000;
 export const MCP_QUOTA_ERROR_CODE = -32029;
 
 export function serverVersion(declarations) {
@@ -37,7 +37,7 @@ function rpcError(id, code, message, data) {
   };
 }
 
-export function initializeResult(registry, requestedVersion) {
+function initializeResult(registry, requestedVersion) {
   const declarations = registry.declarations();
   const requested = String(requestedVersion ?? "");
   return {
@@ -63,7 +63,7 @@ export function initializeResult(registry, requestedVersion) {
   };
 }
 
-export function renderToolResultText(registry, name, invoked) {
+function renderToolResultText(registry, name, invoked) {
   // Compact JSON: MCP clients pay tokens per byte, and battle results are
   // deck-dense — indent-1 doubled their size past the cap for no benefit.
   let text = JSON.stringify(invoked ?? null);

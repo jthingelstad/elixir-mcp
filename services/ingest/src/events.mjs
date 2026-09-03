@@ -7,7 +7,7 @@
  * 'estimated' with a [window_start, window_end] bracket.
  */
 
-export const EVENT_TYPES = {
+const EVENT_TYPES = {
   member_joined: { stream: "clan", timing: "estimated" },
   member_left: { stream: "clan", timing: "estimated" },
   role_changed: { stream: "clan", timing: "estimated" },

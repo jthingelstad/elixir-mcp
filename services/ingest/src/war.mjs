@@ -31,7 +31,7 @@ async function latestLoggedWeek(db, clanTag) {
 }
 
 /** Build the clan's current clock from recorded anchors + logged weeks. */
-export async function clanClock(db, clanTag, payload, nowMs) {
+async function clanClock(db, clanTag, payload, nowMs) {
   const { rows: anchors } = await db.query(
     `select period_index, first_observed_at from war_period_anchor
      where clan_tag = $1 and period_index = $2`,

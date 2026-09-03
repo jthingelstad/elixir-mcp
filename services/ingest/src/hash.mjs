@@ -6,7 +6,7 @@
 
 import { createHash } from "node:crypto";
 
-export function canonicalJson(value) {
+function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (value !== null && typeof value === "object") {
     const keys = Object.keys(value).sort();

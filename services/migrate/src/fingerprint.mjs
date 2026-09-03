@@ -12,7 +12,7 @@
 import { createHash } from "node:crypto";
 import pg from "pg";
 
-export async function schemaDescription(databaseUrl) {
+async function schemaDescription(databaseUrl) {
   const client = new pg.Client({ connectionString: databaseUrl });
   await client.connect();
   try {

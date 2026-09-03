@@ -17,10 +17,10 @@
  *  - battles get war keys from their OWN battle_time, never poll time.
  */
 
-export const PERIODS_PER_SECTION = 7;
-export const TRAINING_DAYS = 3;
-export const WAR_DAYS = 4;
-export const NOMINAL_RESET_HOUR_UTC = 10;
+const TRAINING_DAYS = 3;
+const WAR_DAYS = 4;
+const PERIODS_PER_SECTION = TRAINING_DAYS + WAR_DAYS;
+const NOMINAL_RESET_HOUR_UTC = 10;
 const DAY_MS = 24 * 3600_000;
 
 export function periodInfo(periodIndex) {

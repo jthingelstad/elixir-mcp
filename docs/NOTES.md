@@ -154,7 +154,7 @@ Start every iteration with a recorder health glance (gateway FetchSucceeded/Brea
 **CI note (2026-09-03):** validate had NEVER passed — `node --test test/` needs the directory-positional support local Node 26 has and CI/Lambda Node 24 lacks, so every workspace failed on every run. Fixed with no-arg `node --test` (9a298ee); first green run confirmed. Lesson: dev machine runs Node 26, prod runs Node 24 — CI is the version referee, so check it after the first push, not days later.
 
 **V2 build order COMPLETE.** Open Jamie-manual / later items:
-- Flip `CLAN_SCOPE_REQUIRES` to 'verified' once members have used the favourite-card verification (Jamie's timing call).
+- Flip clan scope to verified-claims-only once members have used the favourite-card verification (Jamie's timing call). The flip is now an env change, not a code edit: set `ELIXIR_CLAN_SCOPE_REQUIRES=verified` on McpFunction. (Knip triage found the old constant was declared but never consulted — the gate is now actually wired, with a flipped-knob regression test.)
 - Per new gateway operator: IP-allowlisted Supercell key + per-gateway IAM user (recv/delete request queues, send results, PutMetricData), handed over out of band; then "Begin probation" in Admin.
 - Gateway auto-update (launchd runs from checkout; kickstart after gateway-code pulls) — a self-update or deploy reminder still wanted.
 - Subscribe elixir-mcp-alarms to the sysadmin projects-ops-alerts queue.

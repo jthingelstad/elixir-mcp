@@ -10,7 +10,7 @@ const TIMEOUT_MS = 15_000;
 
 const enc = (tag) => encodeURIComponent(tag);
 
-export const PATH_BY_ENDPOINT = {
+const PATH_BY_ENDPOINT = {
   player: (key) => `/players/${enc(key)}`,
   player_battlelog: (key) => `/players/${enc(key)}/battlelog`,
   clan: (key) => `/clans/${enc(key)}`,
