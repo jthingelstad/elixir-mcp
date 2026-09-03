@@ -27,6 +27,7 @@ export const PRESERVED_PARAMETERS = [
   'SiteCertificateArn',
   'McpCertificateArn',
   'MonthlyCostAlarmUsd',
+  'SchedulerTickMinutes',
 ];
 
 /**

@@ -38,10 +38,17 @@ Parameters:
   MonthlyCostAlarmUsd:
     Type: Number
     Default: 40
+  SchedulerTickMinutes:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 60
+    Description: Planner tick cadence; tune with a parameter-only stack update, no code change
 
 Conditions:
   HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, '']]
   HasMcpCert: !Not [!Equals [!Ref McpCertificateArn, '']]
+  TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
 
 Resources:
   # ------------------------------------------------------------ networking
@@ -346,7 +353,11 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: elixir-mcp-scheduler-tick
-      ScheduleExpression: rate(1 minute)
+      # EventBridge insists on the singular unit for exactly 1.
+      ScheduleExpression: !If
+        - TickIsOneMinute
+        - rate(1 minute)
+        - !Sub rate(${SchedulerTickMinutes} minutes)
       State: ENABLED
       Targets:
         - Id: scheduler
@@ -723,7 +734,9 @@ Resources:
       MetricName: Invocations
       Dimensions: [{ Name: FunctionName, Value: !Ref SchedulerFunction }]
       Statistic: Sum
-      Period: 300
+      # 15-minute windows so any tick cadence up to rate(15 minutes) is
+      # covered without retuning the alarm alongside SchedulerTickMinutes.
+      Period: 900
       EvaluationPeriods: 2
       Threshold: 1
       ComparisonOperator: LessThanThreshold
