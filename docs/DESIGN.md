@@ -122,6 +122,8 @@ That is 15 tools; V1 ships 11 of them (§8).
 
 ## 4. Data model
 
+**API-shaped by default; deviations are named and few (Jamie, 2026-09-03).** How much application logic belongs in Elixir MCP? As little as survives scrutiny. Canonical tables mirror the CR API's current model (snake_cased names, jsonb for sub-shapes we don't interpret); when the game evolves its own model — expLevel deprecated in favor of Collection Level — we follow the API's current shape rather than inventing a progression abstraction of our own. The complete list of places we deliberately deviate is short, and each entry exists to resolve a documented trap: tag normalization, the minted canonical battle ID, outcome resolution, deck_hash, points-vs-fame naming, observed-tenure memberships, and timing honesty on events. Anything not on that list passes through as the API gives it, and adding to the list is a design decision, not a convenience. (Raw payloads stay byte-true regardless — the receipt/payload layer is the escape hatch when our model turns out wrong.)
+
 Postgres, one schema, tenancy from day one. (SQLite served elixir-bot well but is single-writer and single-tenant by construction — its author's own assessment. Multi-account + gateway fan-in + concurrent MCP reads is Postgres's home turf. No em-dash bikeshed: managed Postgres, smallest instance, `pgcrypto` for hashes.)
 
 ### 4.1 Identity & tenancy

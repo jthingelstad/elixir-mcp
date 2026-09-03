@@ -1,6 +1,7 @@
 {
   "_": "Provenance for test fixtures. entity_key is the polled subject (battlelog observer, clan tag, etc.). Payloads are verbatim CR API responses captured live by elixir-bot, exported 2026-09-03.",
   "player_battlelog/with_clanmate_2v2.json": { "entity_key": "#VGC22YGP", "fetched_at": "2026-09-02T11:10:50Z" },
+  "player_battlelog/counterpart_2v2_teammate.json": { "entity_key": "#YRC0J298J", "fetched_at": "2026-08-28T20:45:43Z", "_": "real cross-observer pair: contains the same clanMate2v2 battle (20260828T190619.000Z) as with_clanmate_2v2.json, seen from the teammate's log" },
   "player_battlelog/with_boat_and_duel.json": { "entity_key": "#2YG98VVQ", "fetched_at": "2026-09-02T08:00:49Z" },
   "player_battlelog/with_colosseum_duel.json": { "entity_key": "#JYRQ8U92C", "fetched_at": "2026-09-03T14:30:34Z" },
   "player_battlelog/with_path_of_legend.json": { "entity_key": "#UVQ8RJYG9", "fetched_at": "2026-09-03T14:00:34Z" },

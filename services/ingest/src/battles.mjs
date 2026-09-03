@@ -11,6 +11,12 @@
  *    never drift (elixir-bot's "deck_json stayed NULL" lesson);
  *  - outcome precedence: boatBattleWon -> trophyChange sign -> crown
  *    compare -> unresolved.
+ *
+ * `side` semantics: 0/1 labels partition participants into their two teams
+ * correctly, but WHICH team is 0 depends on whichever observer's log was
+ * ingested first (team=0 from that log's perspective). The labels are
+ * arbitrary; the partition is the fact. Readers must never assume side 0
+ * means "the subject" — locate subjects by tag (§4.4 team[0] trap).
  */
 
 import { createHash } from 'node:crypto';
