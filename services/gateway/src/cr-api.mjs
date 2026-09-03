@@ -15,6 +15,7 @@ export const PATH_BY_ENDPOINT = {
   player_battlelog: (key) => `/players/${enc(key)}/battlelog`,
   clan: (key) => `/clans/${enc(key)}`,
   currentriverrace: (key) => `/clans/${enc(key)}/currentriverrace`,
+  riverracelog: (key) => `/clans/${enc(key)}/riverracelog`,
 };
 
 export function crPath(job) {

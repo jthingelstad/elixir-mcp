@@ -19,7 +19,7 @@ import { ingestBattlelog } from './battles.mjs';
 import { ingestClanRoster } from './roster.mjs';
 import { projectPlayerSnapshot } from './snapshots.mjs';
 import { refreshDailyRollups } from './rollups.mjs';
-import { projectRiverRace, stampWarKeys } from './war.mjs';
+import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from './war.mjs';
 
 function subjectTag(endpoint, entityKey) {
   if (entityKey === 'GLOBAL') return null;
@@ -95,6 +95,9 @@ const PROJECTORS = {
       nowMs: Date.parse(fetchedAt),
     });
     return { ...race, warKeysStamped: stamps.stamped };
+  },
+  async riverracelog(db, { entityKey, payload }) {
+    return projectRiverRaceLog(db, { clanTag: entityKey, payload });
   },
   async cards() {
     // The catalog is served straight from the payload store (get_card_catalog).

@@ -26,9 +26,11 @@ export const CADENCE = {
   player_battlelog: { hot: 15, warm: 60, cold: 360, floor: 1440 },
   player: { hot: 120, warm: 480, cold: 1440, floor: 4320 },
   clan: { hot: 15, warm: 15, cold: 15, floor: 60 },
-  // V1.5 capture-only (projector is a no-op until V2 war work): fixed 30m;
-  // the warDay/training cadence split arrives with the war projector.
+  // Fixed 30m; the warDay/training cadence split can come later.
   currentriverrace: { hot: 30, warm: 30, cold: 30, floor: 120 },
+  // Daily log poll: backfill at enrollment IS the first poll; thereafter
+  // it heals gaps and delivers final standings (rank/trophyChange).
+  riverracelog: { hot: 1440, warm: 1440, cold: 1440, floor: 2880 },
 };
 
 export const DECAY_EPOCH_MINUTES = 60;
@@ -75,7 +77,7 @@ async function seedPollState(db) {
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
     select r.subject_tag, e.endpoint
-    from recording r cross join (values ('clan'), ('currentriverrace')) e(endpoint)
+    from recording r cross join (values ('clan'), ('currentriverrace'), ('riverracelog')) e(endpoint)
     where r.subject_type = 'clan' and r.status = 'active'
     on conflict do nothing`);
   await db.query(`
@@ -124,7 +126,7 @@ async function selectEligible(db, now) {
                or exists (
                  select 1 from recording r
                  where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
-         or (ps.endpoint = 'currentriverrace' and exists (
+         or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )

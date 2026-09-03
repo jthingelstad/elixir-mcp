@@ -126,3 +126,69 @@ test('colosseum week flags and rolls the season when the section walks back', as
   assert.equal(r2.seasonId, 137, 'section walking backwards = new season');
 });
 
+
+test('riverracelog backfill: ten real weeks, seasons, colosseum flags, points, standings', async () => {
+  const { projectRiverRaceLog } = await import('../src/war.mjs');
+  const log = await fixture('riverracelog/log.json');
+  const result = await projectRiverRaceLog(ctx.db, { clanTag: CLAN, payload: log });
+  assert.equal(result.projected, 'riverracelog');
+  assert.equal(result.weeks, 10);
+  assert.deepEqual(result.seasons, [132, 133, 134]);
+
+  const { rows: weeks } = await ctx.db.query(
+    `select season_id, section_index, is_colosseum, finished_observed_at from war_week
+     where clan_tag = $1 and season_id in (132, 133) order by season_id, section_index`,
+    [CLAN],
+  );
+  assert.ok(weeks.length > 0);
+  for (const season of [132, 133]) {
+    const inSeason = weeks.filter((w) => w.season_id === season);
+    const maxSection = Math.max(...inSeason.map((w) => w.section_index));
+    for (const w of inSeason) {
+      assert.equal(w.is_colosseum, w.section_index === maxSection, `colosseum = final section of complete season ${season}`);
+      assert.ok(w.finished_observed_at, 'log weeks carry their finish time');
+    }
+  }
+
+  const { rows: standings } = await ctx.db.query(
+    `select count(*)::int n, count(rank)::int ranked from war_week_clan
+     where clan_tag = $1 and season_id = 132`,
+    [CLAN],
+  );
+  assert.ok(standings[0].n >= 5, 'five clans per week recorded');
+  assert.equal(standings[0].ranked, standings[0].n, 'final ranks present from the log');
+
+  const { rows: own } = await ctx.db.query(
+    `select count(distinct player_tag)::int members, sum(points)::int points
+     from war_participation where clan_tag = $1 and season_id = 132`,
+    [CLAN],
+  );
+  assert.ok(own[0].members > 10, 'own members recorded');
+  assert.ok(own[0].points > 0, 'per-member fame stored as points');
+  const { rows: foreign } = await ctx.db.query(
+    `select count(*)::int n from war_participation wp
+     where wp.clan_tag = $1 and not exists (
+       select 1 from war_week_clan wwc
+       where wwc.participant_clan_tag = $1 and wwc.clan_tag = $1
+         and wwc.season_id = wp.season_id and wwc.section_index = wp.section_index)`,
+    [CLAN],
+  );
+  assert.equal(foreign[0].n, 0, 'participation is clan-scoped: own members only');
+
+  // Idempotent re-run: MAX/COALESCE merges, no duplicate growth.
+  const before = (await ctx.db.query(`select count(*)::int n from war_participation`)).rows[0].n;
+  await projectRiverRaceLog(ctx.db, { clanTag: CLAN, payload: log });
+  const after = (await ctx.db.query(`select count(*)::int n from war_participation`)).rows[0].n;
+  assert.equal(after, before);
+});
+
+test('admission accepts the real riverracelog and rejects corrupt items', async () => {
+  const { admit } = await import('../src/admission.mjs');
+  const log = await fixture('riverracelog/log.json');
+  assert.deepEqual(admit('riverracelog', log), { ok: true });
+  const corrupt = structuredClone(log);
+  delete corrupt.items[0].seasonId;
+  const result = admit('riverracelog', corrupt);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes('items[0].seasonId:missing'));
+});

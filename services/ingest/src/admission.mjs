@@ -91,11 +91,29 @@ function admitCards(payload, errors) {
   });
 }
 
+function admitRiverraceLog(payload, errors) {
+  if (!Array.isArray(payload?.items)) {
+    errors.push('items:missing');
+    return;
+  }
+  payload.items.forEach((item, i) => {
+    if (typeof item?.seasonId !== 'number') errors.push(`items[${i}].seasonId:missing`);
+    if (typeof item?.sectionIndex !== 'number') errors.push(`items[${i}].sectionIndex:missing`);
+    if (typeof item?.createdDate !== 'string') errors.push(`items[${i}].createdDate:missing`);
+    if (!Array.isArray(item?.standings) || item.standings.length === 0)
+      errors.push(`items[${i}].standings:missing`);
+    for (const [j, s] of (item?.standings ?? []).entries()) {
+      if (!tagOk(s?.clan?.tag)) errors.push(`items[${i}].standings[${j}].clan.tag:invalid`);
+    }
+  });
+}
+
 const VALIDATORS = {
   player: admitPlayer,
   player_battlelog: admitBattlelog,
   clan: admitClan,
   currentriverrace: admitRiverrace,
+  riverracelog: admitRiverraceLog,
   cards: admitCards,
 };
 

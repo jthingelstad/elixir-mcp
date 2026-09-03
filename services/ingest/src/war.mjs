@@ -124,6 +124,91 @@ export async function projectRiverRace(db, { clanTag, payload, fetchedAt }) {
   };
 }
 
+/**
+ * riverracelog backfill/maintenance — the log is just another recorded
+ * endpoint; its items carry seasonId, which is what unlocks live season
+ * inference at genesis. Multi-tenant: everything keys on the ENROLLED
+ * clan (the observer); participation is recorded for its members only.
+ * Colosseum flagging: within the log, a season is complete when a later
+ * season also appears; its highest section is the colosseum. The newest,
+ * possibly-running season is left to the live projector's periodType.
+ */
+export async function projectRiverRaceLog(db, { clanTag, payload }) {
+  const tag = normalizeTag(clanTag);
+  const items = payload.items ?? [];
+  const seasons = new Set(items.map((i) => i.seasonId));
+  const maxSection = new Map();
+  for (const i of items) {
+    maxSection.set(i.seasonId, Math.max(maxSection.get(i.seasonId) ?? -1, i.sectionIndex));
+  }
+  const newestSeason = Math.max(...seasons, -Infinity);
+
+  let weeks = 0;
+  for (const item of items) {
+    const finished = crTimeToIso(item.createdDate);
+    const isColosseum =
+      item.seasonId !== newestSeason && item.sectionIndex === maxSection.get(item.seasonId);
+    await db.query(
+      `insert into war_week (clan_tag, season_id, section_index, is_colosseum, finished_observed_at)
+       values ($1, $2, $3, $4, $5)
+       on conflict (clan_tag, season_id, section_index) do update set
+         is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
+         finished_observed_at = coalesce(war_week.finished_observed_at, excluded.finished_observed_at)`,
+      [tag, item.seasonId, item.sectionIndex, isColosseum, finished],
+    );
+    weeks += 1;
+
+    for (const standing of item.standings ?? []) {
+      const participantTag = normalizeTag(standing.clan.tag);
+      await db.query(
+        `insert into war_week_clan
+           (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
+            fame, finish_time, rank, trophy_change)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         on conflict (clan_tag, season_id, section_index, participant_clan_tag) do update set
+           fame = greatest(war_week_clan.fame, excluded.fame),
+           participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
+           finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time),
+           rank = coalesce(excluded.rank, war_week_clan.rank),
+           trophy_change = coalesce(excluded.trophy_change, war_week_clan.trophy_change)`,
+        [
+          tag,
+          item.seasonId,
+          item.sectionIndex,
+          participantTag,
+          standing.clan.name ?? null,
+          standing.clan.fame ?? 0,
+          standing.clan.finishTime ? crTimeToIso(standing.clan.finishTime) : null,
+          standing.rank ?? null,
+          standing.trophyChange ?? null,
+        ],
+      );
+
+      // Participation: the enrolled clan's OWN members only (clan-scoped).
+      if (participantTag === tag) {
+        for (const p of standing.clan.participants ?? []) {
+          const playerTag = normalizeTag(p.tag);
+          await db.query(
+            `insert into player (player_tag, name) values ($1, $2) on conflict do nothing`,
+            [playerTag, p.name ?? null],
+          );
+          await db.query(
+            `insert into war_participation
+               (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
+             values ($1, $2, $3, $4, $5, $6, $7)
+             on conflict (clan_tag, season_id, section_index, player_tag) do update set
+               points = greatest(war_participation.points, excluded.points),
+               decks_used = greatest(war_participation.decks_used, excluded.decks_used),
+               boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)`,
+            [tag, item.seasonId, item.sectionIndex, playerTag, p.fame ?? 0, p.decksUsed ?? 0, p.boatAttacks ?? 0],
+          );
+        }
+      }
+    }
+  }
+  return { projected: 'riverracelog', weeks, seasons: [...seasons].sort((a, b) => a - b) };
+}
+
 function crTimeToIso(crTime) {
   const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/.exec(crTime);
   return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;

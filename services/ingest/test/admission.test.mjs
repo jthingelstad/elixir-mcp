@@ -23,7 +23,7 @@ test('all fixture payloads admit', async () => {
 });
 
 test('unknown endpoints are rejected, never silently admitted', () => {
-  const result = admit('riverracelog', []);
+  const result = admit('leaderboards', []);
   assert.equal(result.ok, false);
   assert.match(result.errors[0], /endpoint:unknown/);
 });
