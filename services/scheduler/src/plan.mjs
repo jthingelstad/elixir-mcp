@@ -17,6 +17,8 @@
  * budget the planner deliberately does not spend (live_reserve fraction).
  */
 
+import { inPreResetWindow, preResetWindowStart } from '@elixir-mcp/contracts';
+
 const MINUTE = 60_000;
 
 // Cadence table (minutes) — §5.3. Data, not code.
@@ -97,6 +99,12 @@ async function selectEligible(db, now) {
   );
 
   const nowMs = now.getTime();
+  // Season-roll watcher (§5.3, V1): in the hour before the Monday-00:10Z
+  // donation reset, profile polls are forced for every recorded player not
+  // yet captured inside the window — the counter is irrecoverable after.
+  const preReset = inPreResetWindow(now);
+  const windowStartMs = preReset ? preResetWindowStart(now).getTime() : 0;
+
   const eligible = [];
   for (const r of rows) {
     const cadence = CADENCE[r.endpoint];
@@ -106,9 +114,15 @@ async function selectEligible(db, now) {
     const due = nowMs - referenceMs >= dueAfter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
+    const forcedPreReset =
+      preReset &&
+      r.endpoint === 'player' &&
+      admittedMs < windowStartMs &&
+      plannedMs < windowStartMs;
     const starved =
-      nowMs - admittedMs >= cadence.floor * MINUTE &&
-      nowMs - plannedMs >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE;
+      forcedPreReset ||
+      (nowMs - admittedMs >= cadence.floor * MINUTE &&
+        nowMs - plannedMs >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE);
     if (!due && !starved) continue;
     eligible.push({
       subject_tag: r.subject_tag,

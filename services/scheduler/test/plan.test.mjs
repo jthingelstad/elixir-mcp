@@ -176,3 +176,30 @@ test('budget accrues with elapsed time and caps at the carryover ceiling', async
   const result = await planTick(db, NOW);
   assert.equal(result.tokens, 300, '1 rps for an hour caps at 300 (5-minute carryover), never 3600');
 });
+
+test('season-roll watcher forces profile polls in the pre-reset hour', async () => {
+  const inWindow = new Date('2026-09-06T23:30:00Z'); // Sunday, reset in 40m
+  await addPlayer('#YYYYYYYY');
+  // Profile freshly admitted BEFORE the window; normal cadence says not due.
+  await setState('#YYYYYYYY', 'player', {
+    heat: 2,
+    admitted: new Date('2026-09-06T22:30:00Z'),
+    planned: new Date('2026-09-06T22:30:00Z'),
+  });
+  await setState('#YYYYYYYY', 'player_battlelog', {
+    heat: 2,
+    admitted: new Date('2026-09-06T23:25:00Z'),
+    planned: new Date('2026-09-06T23:25:00Z'),
+  });
+  await db.query('update budget_state set tokens = 100, settled_at = $1', [inWindow]);
+  const { jobs } = await planTick(db, inWindow);
+  assert.deepEqual(
+    jobs.map((j) => `${j.endpoint}:${j.entity_key}`),
+    ['player:#YYYYYYYY'],
+    'profile forced despite fresh cadence; battlelog untouched',
+  );
+  // Second tick inside the window: already planned in-window, no re-force.
+  await db.query('update budget_state set tokens = 100, settled_at = $1', [inWindow]);
+  const again = await planTick(db, new Date('2026-09-06T23:32:00Z'));
+  assert.equal(again.jobs.length, 0);
+});

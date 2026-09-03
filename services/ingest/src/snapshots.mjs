@@ -13,6 +13,7 @@
  * First sight emits nothing.
  */
 
+import { inPreResetWindow } from '@elixir-mcp/contracts';
 import { payloadHash } from './hash.mjs';
 import { emitEvent } from './events.mjs';
 import { refreshCompleteness } from './rollups.mjs';
@@ -69,6 +70,12 @@ export async function projectPlayerSnapshot(
       Array.isArray(payload.cards) ? payloadHash(payload.cards) : null,
     ],
   );
+
+  // In the pre-reset hour, also pin a season_roll row: the daily row will
+  // be overwritten by post-reset polls the same UTC day; this one won't.
+  if (kind === 'daily' && inPreResetWindow(new Date(fetchedAt))) {
+    await projectPlayerSnapshot(db, { playerTag, payload, fetchedAt, receiptId, kind: 'season_roll' });
+  }
 
   if (
     prev &&

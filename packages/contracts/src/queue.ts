@@ -26,6 +26,38 @@ export interface CrResultMessage {
   error?: { kind: 'transport' | 'http' | 'overflow' | 'breaker'; message?: string };
 }
 
+/** Email queue message — VPC Lambdas enqueue, the non-VPC relay sends
+ *  (DESIGN §7 NAT-free posture). Plaintext email address rides the queue
+ *  (SSE-encrypted at rest) because the relay must address the mail. */
+export interface EmailMessage {
+  v: 1;
+  kind: 'login' | 'welcome' | 'owner_notify';
+  to: string;
+  /** login: the 6-digit code. */
+  code?: string;
+  /** login: the magic token for the link. */
+  token?: string;
+  /** login (oauth shell): client display name for the consent line. */
+  client_name?: string;
+  /** owner_notify: what happened. */
+  note?: string;
+}
+
+const EMAIL_KINDS = new Set(['login', 'welcome', 'owner_notify']);
+
+export function validateEmailMessage(
+  msg: unknown,
+): { ok: true; msg: EmailMessage } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+  const m = msg as EmailMessage;
+  if (typeof m !== 'object' || m === null) return { ok: false, errors: [':not-an-object'] };
+  if (m.v !== 1) errors.push('v:unsupported');
+  if (!EMAIL_KINDS.has(m.kind as string)) errors.push('kind:invalid');
+  if (typeof m.to !== 'string' || !m.to.includes('@')) errors.push('to:invalid');
+  if (m.kind === 'login' && typeof m.code !== 'string') errors.push('code:missing');
+  return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
+}
+
 const LANES = new Set(['live', 'bulk']);
 const STATUSES = new Set(['ok', 'error']);
 

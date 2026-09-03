@@ -187,3 +187,19 @@ test('roster diffs emit clan events with evidence; first sight was silent', asyn
   assert.equal(left.payload.player_tag, departed.tag);
   assert.ok(left.payload.joined_observed_at, 'tenure evidence rides the event');
 });
+
+test('pre-reset window pins an extra season_roll snapshot', async () => {
+  const profile = structuredClone(await fixture('player/profile.json'));
+  const tag = meta['player/profile.json'].entity_key;
+  // Sunday 23:30Z: inside the final hour before the Monday 00:10Z reset.
+  await processResult(
+    ctx.db,
+    message({ endpoint: 'player', entityKey: tag, payload: profile, fetchedAt: '2026-09-06T23:30:00Z' }),
+  );
+  const { rows } = await ctx.db.query(
+    `select snapshot_kind from player_snapshot_daily
+     where player_tag = $1 and snapshot_date = '2026-09-06' order by snapshot_kind`,
+    [tag],
+  );
+  assert.deepEqual(rows.map((r) => r.snapshot_kind), ['daily', 'season_roll']);
+});
