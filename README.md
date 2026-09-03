@@ -10,9 +10,10 @@ authenticated remote MCP server you connect to Claude or any MCP client.
 - Web: `elixir.poapkings.com` (request access, claim your tag, dashboard)
 - MCP: `https://elixir.poapkings.com/mcp`
 
-**Status: design complete, build starting.** Start with
+**Status: live and recording.** Start with
 [docs/DESIGN.md](docs/DESIGN.md); working notes in
-[docs/NOTES.md](docs/NOTES.md).
+[docs/NOTES.md](docs/NOTES.md). Want to help run the fetch fleet? See
+[docs/OPERATORS.md](docs/OPERATORS.md).
 
 ## Repo shape
 

@@ -34,6 +34,8 @@ export const handler = makeHandler({
       note:
         kind === 'access_request'
           ? `New access request${playerTag ? ` from ${playerTag}` : ''}.`
-          : `Account approved (${emailHash}).`,
+          : kind === 'gateway_request'
+            ? `Gateway raise-hand: "${playerTag}". Issue an IP-bound CR key + IAM user (docs/OPERATORS.md).`
+            : `Account approved (${emailHash}).`,
     }),
 });

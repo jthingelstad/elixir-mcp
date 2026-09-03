@@ -14,6 +14,8 @@ export function Dashboard({ me, refresh, navigate }) {
   const [error, setError] = useState('');
   const [tzSaved, setTzSaved] = useState(false);
   const [challenge, setChallenge] = useState(null); // {tag, card_name, message?}
+  const [gateways, setGateways] = useState(null); // null until first load
+  const [gwForm, setGwForm] = useState({ name: '', ip: '', error: '', done: false });
 
   if (me === null) return <p className="notice">Loading…</p>;
   if (!me.authenticated) {
@@ -138,6 +140,71 @@ export function Dashboard({ me, refresh, navigate }) {
         <p>
           Start with <code>list_my_players</code>, then try <em>&ldquo;what&rsquo;s my record this week?&rdquo;</em>
         </p>
+      </div>
+
+      <div className="panel">
+        <h3>Run a gateway</h3>
+        <p>
+          Gateways are the machines that talk to the Clash Royale API — one shared rate budget,
+          more machines for redundancy. You need a machine with a static IP that stays on.
+        </p>
+        {gateways === null ? (
+          <button className="quiet" onClick={async () => { const r = await api.myGateways(); setGateways(r.ok ? r.data.gateways : []); }}>
+            Show my gateways
+          </button>
+        ) : (
+          <>
+            {gateways.length > 0 && (
+              <table>
+                <thead><tr><th>Name</th><th>Status</th><th>IP</th><th>Last success</th></tr></thead>
+                <tbody>
+                  {gateways.map((g) => (
+                    <tr key={g.gateway_id}>
+                      <td>{g.name}</td>
+                      <td><span className={`status ${g.status}`}>{g.status}</span></td>
+                      <td><code>{g.static_ip}</code></td>
+                      <td>{freshness(g.last_success_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {gwForm.done ? (
+              <p className="notice">
+                Hand raised. You&rsquo;ll get an email when your key is ready; then follow the
+                operator guide in the repo (docs/OPERATORS.md).
+              </p>
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const res = await api.raiseGateway(gwForm.name, gwForm.ip);
+                  if (res.ok) {
+                    setGwForm({ ...gwForm, error: '', done: true });
+                    const r = await api.myGateways();
+                    if (r.ok) setGateways(r.data.gateways);
+                  } else {
+                    setGwForm({
+                      ...gwForm,
+                      error: res.data.error === 'name_taken' ? 'That name is taken.' : 'Name (letters/digits/hyphens) and an IPv4 address, please.',
+                    });
+                  }
+                }}
+              >
+                <label>
+                  Gateway name
+                  <input placeholder="kitchen-mac" value={gwForm.name} onChange={(e) => setGwForm({ ...gwForm, name: e.target.value })} />
+                </label>
+                <label>
+                  Static IP
+                  <input placeholder="203.0.113.7" value={gwForm.ip} onChange={(e) => setGwForm({ ...gwForm, ip: e.target.value })} />
+                </label>
+                {gwForm.error && <p className="error">{gwForm.error}</p>}
+                <button>Raise my hand</button>
+              </form>
+            )}
+          </>
+        )}
       </div>
 
       <div className="panel">

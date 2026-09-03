@@ -200,3 +200,34 @@ test('player profile message projects the v0 identity refresh', async () => {
   ]);
   assert.equal(rows[0].name, profile.name);
 });
+
+test('gateway lifecycle at ingest: heartbeat/success stamped; revoked and unknown refused', async () => {
+  const clan = await fixture('clan/roster.json');
+  const msg = () =>
+    message({
+      endpoint: 'clan',
+      entityKey: meta['clan/roster.json'].entity_key,
+      payload: clan,
+      fetchedAt: new Date().toISOString(),
+    });
+
+  const ok = await processResult(ctx.db, msg());
+  assert.equal(ok.outcome, 'admitted');
+  const { rows } = await ctx.db.query(
+    `select last_heartbeat_at, last_success_at from gateway where gateway_id = $1`,
+    [gatewayId],
+  );
+  assert.ok(rows[0].last_heartbeat_at, 'any valid message proves liveness');
+  assert.ok(rows[0].last_success_at, 'admission stamps success');
+
+  // Revocation is real: ingest stops listening the moment the row flips.
+  await ctx.db.query(`update gateway set status = 'revoked' where gateway_id = $1`, [gatewayId]);
+  const refused = await processResult(ctx.db, msg());
+  assert.equal(refused.outcome, 'gateway_refused');
+
+  // Unknown ids die cleanly instead of throwing into the retry loop.
+  const unknown = await processResult(ctx.db, { ...msg(), gateway_id: 'not-a-gateway' });
+  assert.equal(unknown.outcome, 'gateway_refused');
+
+  await ctx.db.query(`update gateway set status = 'active' where gateway_id = $1`, [gatewayId]);
+});

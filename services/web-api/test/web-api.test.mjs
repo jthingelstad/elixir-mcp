@@ -288,3 +288,41 @@ test('clan page: entitled member sees war + roster; share toggle; outsiders refu
   const notMine = await handler(event({ path: '/api/me/share-battles', cookie, body: { player_tag: '#YYYYY', share: true } }));
   assert.equal(notMine.statusCode, 403);
 });
+
+test('gateway raise-hand and lifecycle: pending -> probation -> active; revoke; guards', async () => {
+  const cookie = await signIn(NEWCOMER);
+  const notesBefore = ownerNotes.length;
+
+  const bad = await handler(event({ path: '/api/gateways', cookie, body: { name: 'x!', static_ip: '1.2.3.4' } }));
+  assert.equal(bad.statusCode, 400);
+  const badIp = await handler(event({ path: '/api/gateways', cookie, body: { name: 'kitchen-mac', static_ip: 'not-an-ip' } }));
+  assert.equal(badIp.statusCode, 400);
+
+  const raise = parse(await handler(event({ path: '/api/gateways', cookie, body: { name: 'Kitchen-Mac', static_ip: '203.0.113.7' } })));
+  assert.equal(raise.status, 'pending');
+  assert.equal(ownerNotes.length, notesBefore + 1, 'owner notified');
+  const gwId = raise.gateway_id;
+
+  const dupe = await handler(event({ path: '/api/gateways', cookie, body: { name: 'kitchen-mac', static_ip: '203.0.113.8' } }));
+  assert.equal(dupe.statusCode, 409, 'names are unique among live gateways');
+
+  const mine = parse(await handler(event({ method: 'GET', path: '/api/me/gateways', cookie, body: undefined })));
+  assert.ok(mine.gateways.some((g) => g.gateway_id === gwId && g.name === 'kitchen-mac'));
+
+  // Lifecycle is owner-only and forward-only.
+  const ownerCookie = await signIn(JAMIE);
+  const nonOwner = await handler(event({ path: '/api/admin/gateways', cookie, body: { gateway_id: gwId, action: 'activate' } }));
+  assert.equal(nonOwner.statusCode, 403);
+  const skip = await handler(event({ path: '/api/admin/gateways', cookie: ownerCookie, body: { gateway_id: gwId, action: 'activate' } }));
+  assert.equal(skip.statusCode, 409, 'pending cannot jump straight to active');
+  const prob = parse(await handler(event({ path: '/api/admin/gateways', cookie: ownerCookie, body: { gateway_id: gwId, action: 'probation', cr_key_ref: 'supercell:kitchen-mac' } })));
+  assert.equal(prob.status, 'probation');
+  const act = parse(await handler(event({ path: '/api/admin/gateways', cookie: ownerCookie, body: { gateway_id: gwId, action: 'activate' } })));
+  assert.equal(act.status, 'active');
+  const rev = parse(await handler(event({ path: '/api/admin/gateways', cookie: ownerCookie, body: { gateway_id: gwId, action: 'revoke' } })));
+  assert.equal(rev.status, 'revoked');
+
+  // A revoked gateway's name is free again.
+  const again = await handler(event({ path: '/api/gateways', cookie, body: { name: 'kitchen-mac', static_ip: '203.0.113.7' } }));
+  assert.equal(again.statusCode, 200);
+});

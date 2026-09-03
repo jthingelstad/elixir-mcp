@@ -466,6 +466,70 @@ export function makeHandler({ databaseUrl, secret, sendLoginEmail, notifyOwner =
       );
       return json(200, { gateways: rows });
     },
+
+    // Raise your hand to run a gateway (§4.6 lifecycle: pending until Jamie
+    // issues an IP-bound key from his Supercell account + a per-gateway IAM
+    // user — both Jamie-manual). The key itself never touches this system.
+    'POST /api/gateways': async (db, event, body) => {
+      const account = await resolveAccount(db, event, { requireContractHeader: true });
+      if (!account) return json(401, { error: 'unauthenticated' });
+      const name = String(body.name ?? '').trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(name)) return json(400, { error: 'invalid_name' });
+      const ip = String(body.static_ip ?? '').trim();
+      if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return json(400, { error: 'invalid_ip' });
+      const dupe = await db.query(
+        `select 1 from gateway where name = $1 and status <> 'revoked'`,
+        [name],
+      );
+      if (dupe.rows.length > 0) return json(409, { error: 'name_taken' });
+      const { rows } = await db.query(
+        `insert into gateway (owner_account_id, name, static_ip)
+         values ($1, $2, $3) returning gateway_id`,
+        [account.accountId, name, ip],
+      );
+      await notifyOwner({ kind: 'gateway_request', playerTag: name });
+      return json(200, {
+        ok: true,
+        gateway_id: rows[0].gateway_id,
+        status: 'pending',
+        next: 'The owner issues an IP-bound CR key and credentials, then follow docs/OPERATORS.md.',
+      });
+    },
+
+    'GET /api/me/gateways': async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: 'unauthenticated' });
+      const { rows } = await db.query(
+        `select gateway_id, name, status, static_ip, enrolled_at, last_heartbeat_at, last_success_at
+         from gateway where owner_account_id = $1 order by enrolled_at`,
+        [account.accountId],
+      );
+      return json(200, { gateways: rows });
+    },
+
+    'POST /api/admin/gateways': async (db, event, body) => {
+      const account = await resolveAccount(db, event, { requireContractHeader: true });
+      if (!account?.isOwner) return json(403, { error: 'not_entitled' });
+      // Forward-only lifecycle; probation is the only entry to active.
+      const TRANSITIONS = {
+        probation: ['pending', 'draining'],
+        activate: ['probation'],
+        drain: ['probation', 'active'],
+        revoke: ['pending', 'probation', 'active', 'draining'],
+      };
+      const to = { probation: 'probation', activate: 'active', drain: 'draining', revoke: 'revoked' }[body.action];
+      const from = TRANSITIONS[body.action];
+      if (!to) return json(400, { error: 'bad_request' });
+      const { rows } = await db.query(
+        `update gateway set status = $2,
+                cr_key_ref = coalesce($3, cr_key_ref)
+         where gateway_id::text = $1 and status = any($4)
+         returning gateway_id, name, status`,
+        [String(body.gateway_id ?? ''), to, body.cr_key_ref ?? null, from],
+      );
+      if (rows.length === 0) return json(409, { error: 'bad_transition' });
+      return json(200, rows[0]);
+    },
   };
 
   return async function handler(event) {

@@ -114,6 +114,19 @@ export async function processResult(db, rawMessage) {
   if (!validated.ok) return { outcome: 'bad_message', errors: validated.errors };
   const msg = validated.msg;
 
+  // Lifecycle enforcement (§4.6): revocation is real because ingest stops
+  // listening. Unknown ids die here too — cheaper than an FK throw + retry.
+  // Any valid message proves liveness; success is stamped on admission below.
+  const { rows: gwRows } = await db.query(
+    `update gateway set last_heartbeat_at = now()
+     where gateway_id::text = $1 and status <> 'revoked'
+     returning status`,
+    [msg.gateway_id],
+  );
+  if (gwRows.length === 0) {
+    return { outcome: 'gateway_refused', gateway_id: msg.gateway_id };
+  }
+
   if (msg.status !== 'ok') {
     // No receipt: receipts are one row per HTTP 200 (§4.3). The scheduler
     // replans on freshness; gateway health rides heartbeats/metrics.
@@ -173,6 +186,10 @@ export async function processResult(db, rawMessage) {
 
     let projection = null;
     if (admission.ok) {
+      await db.query(
+        `update gateway set last_success_at = now() where gateway_id::text = $1`,
+        [msg.gateway_id],
+      );
       const projector = PROJECTORS[endpoint];
       projection = await projector(db, {
         entityKey,

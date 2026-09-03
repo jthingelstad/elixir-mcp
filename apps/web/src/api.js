@@ -34,4 +34,7 @@ export const api = {
   adminGateways: () => request('GET', '/api/admin/gateways'),
   adminClans: () => request('GET', '/api/admin/clans'),
   adminClanAction: (clan_tag, action) => request('POST', '/api/admin/clans', { clan_tag, action }),
+  adminGatewayAction: (gateway_id, action) => request('POST', '/api/admin/gateways', { gateway_id, action }),
+  myGateways: () => request('GET', '/api/me/gateways'),
+  raiseGateway: (name, static_ip) => request('POST', '/api/gateways', { name, static_ip }),
 };

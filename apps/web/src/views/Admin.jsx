@@ -98,20 +98,48 @@ export function Admin({ me }) {
 
       <div className="panel">
         <h3>Gateways</h3>
+        <p>
+          Lifecycle: pending → probation (key issued, installed, heartbeating) → active.
+          Issuing the IP-bound CR key and IAM user is manual — see docs/OPERATORS.md.
+        </p>
         <table>
           <thead>
-            <tr><th>Name</th><th>Status</th><th>IP</th><th>Heartbeat</th><th>Fetches (1h)</th></tr>
+            <tr><th>Name</th><th>Status</th><th>IP</th><th>Heartbeat</th><th>Fetches (1h)</th><th></th></tr>
           </thead>
           <tbody>
-            {gateways.map((g) => (
-              <tr key={g.gateway_id}>
-                <td>{g.name}</td>
-                <td><span className={`status ${g.status}`}>{g.status}</span></td>
-                <td><code>{g.static_ip}</code></td>
-                <td>{g.last_heartbeat_at ? new Date(g.last_heartbeat_at).toLocaleTimeString() : 'never'}</td>
-                <td>{g.fetches_last_hour}</td>
-              </tr>
-            ))}
+            {gateways.map((g) => {
+              const next = { pending: 'probation', probation: 'activate', active: 'drain', draining: 'probation' }[g.status];
+              const label = { probation: 'Begin probation', activate: 'Activate', drain: 'Drain' }[next];
+              return (
+                <tr key={g.gateway_id}>
+                  <td>{g.name}</td>
+                  <td><span className={`status ${g.status}`}>{g.status}</span></td>
+                  <td><code>{g.static_ip}</code></td>
+                  <td>{g.last_heartbeat_at ? new Date(g.last_heartbeat_at).toLocaleTimeString() : 'never'}</td>
+                  <td>{g.fetches_last_hour}</td>
+                  <td>
+                    {next && (
+                      <button className="quiet" onClick={async () => { await api.adminGatewayAction(g.gateway_id, next); load(); }}>
+                        {label ?? next}
+                      </button>
+                    )}{' '}
+                    {g.status !== 'revoked' && (
+                      <button
+                        className="quiet"
+                        onClick={async () => {
+                          if (window.confirm(`Revoke gateway "${g.name}"? Ingest stops accepting its results immediately.`)) {
+                            await api.adminGatewayAction(g.gateway_id, 'revoke');
+                            load();
+                          }
+                        }}
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
