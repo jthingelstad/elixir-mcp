@@ -31,7 +31,12 @@ async function loadEnv() {
     const text = await readFile(path.join(repoRoot, '.env'), 'utf8');
     for (const line of text.split('\n')) {
       const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-      if (m && env[m[1]] === undefined) env[m[1]] = m[2];
+      if (m && env[m[1]] === undefined) {
+        env[m[1]] = m[2];
+        // The AWS SDK reads process.env directly; under launchd there is
+        // no shell environment, so .env must be exported for real.
+        if (process.env[m[1]] === undefined) process.env[m[1]] = m[2];
+      }
     }
   } catch {
     /* env-only */
