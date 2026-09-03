@@ -111,7 +111,8 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Scheduler: heat model, fairness floors, budget settle, job planning; EventBridge handler shape (0004: epoch-anchored decay + last_known_clan_tag auto-follow stamp; bulk share only, live reserve untouched)
 - [x] Snapshots + events + rollups projectors (profile → snapshot + donation_reset; roster → clan events w/ evidence, first-sight silent; battles → daily rollups; completeness = day-level estimate from bracketing snapshots — refine if live gaps show)
 - [x] Gateway (services/gateway): lease loop (live-first), gzip results + loud overflow, 403 breaker w/ half-open probe, split heartbeats, queue-name indirection, launchd installer, .env.example
-- [ ] Auth plane: 0003 auth tables + magic-link/session core + OAuth 2.1 (port librarian logic to Postgres)
+- [x] Auth core: 0005 auth tables + magic-link/code + sessions (gate enforced in resolveSession) + rate limit (services/auth)
+- [ ] OAuth 2.1 routes on the auth core: DCR, /authorize (magic-code shell), /token (PKCE, rotation, family revocation), RFC 8414/9728 discovery
 - [ ] MCP server: protocol layer + first tools (list_my_players, get_coverage, get_player, query_battles) + quota + audit rows
 - [ ] Remaining V1 tools (get_player_timeline, get_performance, get_card_performance, get_deck_performance, get_collection, get_card_catalog, cr_api_live)
 - [ ] Web UI (request access, magic link, claim, dashboard, admin, connect page — dark CR theme)
