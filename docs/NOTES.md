@@ -110,7 +110,7 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Pipeline glue: results-message → txn(payload/receipt → admission → projections); poll_state freshness advance; ingest Lambda handler shape (queue contract v1 in packages/contracts; receipt redelivery dedup = 0003)
 - [x] Scheduler: heat model, fairness floors, budget settle, job planning; EventBridge handler shape (0004: epoch-anchored decay + last_known_clan_tag auto-follow stamp; bulk share only, live reserve untouched)
 - [x] Snapshots + events + rollups projectors (profile → snapshot + donation_reset; roster → clan events w/ evidence, first-sight silent; battles → daily rollups; completeness = day-level estimate from bracketing snapshots — refine if live gaps show)
-- [ ] Gateway (services/gateway): lease loop, gzip results, 403 breaker, split heartbeats, launchd installer — pattern-fresh from Drop
+- [x] Gateway (services/gateway): lease loop (live-first), gzip results + loud overflow, 403 breaker w/ half-open probe, split heartbeats, queue-name indirection, launchd installer, .env.example
 - [ ] Auth plane: 0003 auth tables + magic-link/session core + OAuth 2.1 (port librarian logic to Postgres)
 - [ ] MCP server: protocol layer + first tools (list_my_players, get_coverage, get_player, query_battles) + quota + audit rows
 - [ ] Remaining V1 tools (get_player_timeline, get_performance, get_card_performance, get_deck_performance, get_collection, get_card_catalog, cr_api_live)
