@@ -108,7 +108,7 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Migration runner + fingerprint + 0001 recorder core + 0002 timezone
 - [x] Fixtures (12 real payloads + cross-observer pair) + admission + battle/roster ingest
 - [x] Pipeline glue: results-message → txn(payload/receipt → admission → projections); poll_state freshness advance; ingest Lambda handler shape (queue contract v1 in packages/contracts; receipt redelivery dedup = 0003)
-- [ ] Scheduler: heat model, fairness floors, budget settle, job planning (fixtures: poll_state states); EventBridge handler shape
+- [x] Scheduler: heat model, fairness floors, budget settle, job planning; EventBridge handler shape (0004: epoch-anchored decay + last_known_clan_tag auto-follow stamp; bulk share only, live reserve untouched)
 - [ ] Snapshots + events + rollups projectors (profile → snapshot/diff events; battles → daily rollups w/ completeness)
 - [ ] Gateway (services/gateway): lease loop, gzip results, 403 breaker, split heartbeats, launchd installer — pattern-fresh from Drop
 - [ ] Auth plane: 0003 auth tables + magic-link/session core + OAuth 2.1 (port librarian logic to Postgres)
