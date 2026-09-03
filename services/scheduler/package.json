@@ -1,0 +1,14 @@
+{
+  "name": "@elixir-mcp/scheduler",
+  "version": "0.1.0",
+  "description": "The planning tick: heat decay, fairness floors, global budget settle, job selection (DESIGN §5.1-5.3). Runs as the EventBridge-scheduled Lambda, reserved concurrency 1.",
+  "type": "module",
+  "main": "src/plan.mjs",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@elixir-mcp/contracts": "0.1.0",
+    "pg": "^8.13.0"
+  }
+}

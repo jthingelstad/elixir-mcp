@@ -48,15 +48,30 @@ const PROJECTORS = {
     return ingestClanRoster(db, { payload, observedAt: fetchedAt });
   },
   async player(db, { entityKey, payload }) {
-    // v0 projection: identity refresh. The full snapshot/diff-event
-    // projector is the next build-order item and slots in here.
+    // v0 projection: identity refresh + clan auto-follow stamp (§4.2).
+    // The full snapshot/diff-event projector is a later build-order item.
+    let clanTag = null;
+    if (payload.clan?.tag) {
+      try {
+        clanTag = normalizeTag(payload.clan.tag);
+        await db.query(
+          `insert into clan (clan_tag, name) values ($1, $2) on conflict (clan_tag) do nothing`,
+          [clanTag, payload.clan.name ?? null],
+        );
+      } catch {
+        clanTag = null;
+      }
+    }
     await db.query(
-      `insert into player (player_tag, name, last_seen_at) values ($1, $2, now())
+      `insert into player (player_tag, name, last_known_clan_tag, last_seen_at)
+       values ($1, $2, $3, now())
        on conflict (player_tag) do update
-         set name = coalesce(excluded.name, player.name), last_seen_at = now()`,
-      [entityKey, payload.name ?? null],
+         set name = coalesce(excluded.name, player.name),
+             last_known_clan_tag = coalesce(excluded.last_known_clan_tag, player.last_known_clan_tag),
+             last_seen_at = now()`,
+      [entityKey, payload.name ?? null, clanTag],
     );
-    return { projected: 'player_v0' };
+    return { projected: 'player_v0', clanTag };
   },
   async currentriverrace() {
     // War projection is V2; the receipt/payload record is the value today.
