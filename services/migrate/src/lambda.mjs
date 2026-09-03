@@ -46,6 +46,18 @@ async function seed(databaseUrl, spec) {
         gatewayId,
       ]);
     }
+    let clanRecording = null;
+    if (spec.record_clan) {
+      await db.query(`insert into clan (clan_tag) values ($1) on conflict do nothing`, [spec.record_clan]);
+      await db.query(
+        `insert into recording (subject_type, subject_tag, requested_by)
+         select 'clan', $1, $2
+         where not exists (select 1 from recording
+                           where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
+        [spec.record_clan, account.account_id],
+      );
+      clanRecording = spec.record_clan;
+    }
     let purged = 0;
     if (spec.purge_email_hash) {
       // Hard delete of a mis-seeded account and everything it touches
@@ -67,7 +79,7 @@ async function seed(databaseUrl, spec) {
         purged += 1;
       }
     }
-    return { seeded: true, accountId: account.account_id, gatewayId, purged };
+    return { seeded: true, accountId: account.account_id, gatewayId, clanRecording, purged };
   } finally {
     await db.end();
   }

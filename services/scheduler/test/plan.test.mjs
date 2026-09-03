@@ -203,3 +203,39 @@ test('season-roll watcher forces profile polls in the pre-reset hour', async () 
   const again = await planTick(db, new Date('2026-09-06T23:32:00Z'));
   assert.equal(again.jobs.length, 0);
 });
+
+test('clan recording: heartbeat, riverrace capture, and every open member polled', async () => {
+  await db.query(`insert into clan (clan_tag) values ('#J2RGCRVG') on conflict do nothing`);
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by) values ('clan', '#J2RGCRVG', $1)`,
+    [accountId],
+  );
+  for (const tag of ['#YYYYYYYY', '#RRRRRRRR', '#22222222']) {
+    await db.query(`insert into player (player_tag) values ($1) on conflict do nothing`, [tag]);
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at) values ('#J2RGCRVG', $1, now())`,
+      [tag],
+    );
+  }
+  await setTokens(100);
+  const { jobs } = await planTick(db, NOW);
+  const keys = jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort();
+  assert.ok(keys.includes('clan:#J2RGCRVG'), 'clan heartbeat');
+  assert.ok(keys.includes('currentriverrace:#J2RGCRVG'), 'riverrace capture-only');
+  for (const tag of ['#YYYYYYYY', '#RRRRRRRR', '#22222222']) {
+    assert.ok(keys.includes(`player_battlelog:${tag}`), `${tag} battlelog`);
+    assert.ok(keys.includes(`player:${tag}`), `${tag} profile`);
+  }
+
+  // A member leaves: their membership closes and they stop being planned.
+  await db.query(
+    `update clan_membership set left_observed_at = now() where player_tag = '#22222222'`,
+  );
+  await db.query(`delete from clan_membership where player_tag = '#22222222' and left_observed_at is not null`);
+  await db.query(`update poll_state set last_planned_at = null, last_admitted_at = null`);
+  await setTokens(100);
+  const { jobs: jobs2 } = await planTick(db, NOW);
+  const keys2 = jobs2.map((j) => `${j.endpoint}:${j.entity_key}`);
+  assert.ok(!keys2.some((k) => k.endsWith('#22222222')), 'departed member not planned');
+  assert.ok(keys2.includes('player_battlelog:#YYYYYYYY'), 'remaining members still planned');
+});

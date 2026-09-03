@@ -26,6 +26,9 @@ export const CADENCE = {
   player_battlelog: { hot: 15, warm: 60, cold: 360, floor: 1440 },
   player: { hot: 120, warm: 480, cold: 1440, floor: 4320 },
   clan: { hot: 15, warm: 15, cold: 15, floor: 60 },
+  // V1.5 capture-only (projector is a no-op until V2 war work): fixed 30m;
+  // the warDay/training cadence split arrives with the war projector.
+  currentriverrace: { hot: 30, warm: 30, cold: 30, floor: 120 },
 };
 
 export const DECAY_EPOCH_MINUTES = 60;
@@ -65,6 +68,24 @@ async function seedPollState(db) {
     where r.subject_type = 'player' and r.status = 'active'
       and p.last_known_clan_tag is not null
     on conflict do nothing`);
+  // Clan recording (V1.5): the clan's own heartbeat + riverrace capture,
+  // and player endpoints for every OPEN member. Roster-driven: joins get
+  // seeded on the tick after the roster observes them; leavers fall out
+  // via the eligibility clause (their poll_state rows go dormant).
+  await db.query(`
+    insert into poll_state (subject_tag, endpoint)
+    select r.subject_tag, e.endpoint
+    from recording r cross join (values ('clan'), ('currentriverrace')) e(endpoint)
+    where r.subject_type = 'clan' and r.status = 'active'
+    on conflict do nothing`);
+  await db.query(`
+    insert into poll_state (subject_tag, endpoint)
+    select cm.player_tag, e.endpoint
+    from recording r
+    join clan_membership cm on cm.clan_tag = r.subject_tag and cm.left_observed_at is null
+    cross join (values ('player_battlelog'), ('player')) e(endpoint)
+    where r.subject_type = 'clan' and r.status = 'active'
+    on conflict do nothing`);
 }
 
 async function decayHeat(db, now) {
@@ -86,13 +107,26 @@ async function selectEligible(db, now) {
       select ps.subject_tag, ps.endpoint, ps.heat, ps.last_planned_at, ps.last_admitted_at,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
-      where (ps.endpoint in ('player_battlelog', 'player') and exists (
+      where (ps.endpoint in ('player_battlelog', 'player') and (
+               exists (
+                 select 1 from recording r
+                 where r.subject_type = 'player' and r.subject_tag = ps.subject_tag and r.status = 'active')
+               or exists (
+                 select 1 from recording r
+                 join clan_membership cm on cm.clan_tag = r.subject_tag
+                   and cm.player_tag = ps.subject_tag and cm.left_observed_at is null
+                 where r.subject_type = 'clan' and r.status = 'active')))
+         or (ps.endpoint = 'clan' and (
+               exists (
+                 select 1 from recording r join player p on p.player_tag = r.subject_tag
+                 where r.subject_type = 'player' and r.status = 'active'
+                   and p.last_known_clan_tag = ps.subject_tag)
+               or exists (
+                 select 1 from recording r
+                 where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
+         or (ps.endpoint = 'currentriverrace' and exists (
                select 1 from recording r
-               where r.subject_type = 'player' and r.subject_tag = ps.subject_tag and r.status = 'active'))
-         or (ps.endpoint = 'clan' and exists (
-               select 1 from recording r join player p on p.player_tag = r.subject_tag
-               where r.subject_type = 'player' and r.status = 'active'
-                 and p.last_known_clan_tag = ps.subject_tag))
+               where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
     select subject_tag, endpoint, heat, last_planned_at, last_admitted_at, reference
     from state`,
