@@ -88,3 +88,9 @@ code, .mono { font-family: var(--font-mono); font-size: 0.9em; color: var(--gold
 .error { color: var(--red); font-size: 0.9rem; }
 
 footer { margin-top: 3rem; color: var(--faint); font-size: 0.75rem; line-height: 1.5; }
+
+/* Clan war standings: our clan's row */
+tr.us td {
+  color: var(--gold-lite);
+  font-weight: 600;
+}

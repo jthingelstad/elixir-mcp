@@ -233,3 +233,58 @@ test('liveness verification: challenge -> wrong favourite -> right favourite -> 
   const again = parse(await handler(event({ path: '/api/claims/verify', cookie, body: { player_tag: '#2PP0V90Y' } })));
   assert.equal(again.already_verified, true);
 });
+
+test('clan page: entitled member sees war + roster; share toggle; outsiders refused', async () => {
+  const cookie = await signIn(NEWCOMER);
+
+  // Before any recorded clan membership: no clan for this account.
+  const before = await handler(event({ method: 'GET', path: '/api/clan', cookie, body: undefined }));
+  assert.equal(before.statusCode, 403);
+
+  // Seed a recorded clan the newcomer's claimed tag belongs to.
+  const CLAN = '#J2RGCRVG';
+  const { rows: [owner] } = await db.query(`select account_id from account where is_owner`);
+  await db.query(`insert into clan (clan_tag, name) values ($1, 'POAP KINGS') on conflict do nothing`, [CLAN]);
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status) values ('clan', $1, $2, 'active')`,
+    [CLAN, owner.account_id],
+  );
+  await db.query(`insert into player (player_tag, name) values ('#YYYYY', 'Rascal') on conflict do nothing`);
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     values ($1, '#2PP0V90Y', now(), 'member'), ($1, '#YYYYY', now(), 'leader')`,
+    [CLAN],
+  );
+  await db.query(
+    `insert into war_week (clan_tag, season_id, section_index, is_colosseum) values ($1, 135, 3, true)`,
+    [CLAN],
+  );
+  await db.query(
+    `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank)
+     values ($1, 135, 3, $1, 'POAP KINGS', 5050, 2), ($1, 135, 3, '#YRLQ', 'Rivals', 6000, 1)`,
+    [CLAN],
+  );
+
+  const res = parse(await handler(event({ method: 'GET', path: '/api/clan', cookie, body: undefined })));
+  assert.equal(res.clan_tag, CLAN);
+  assert.equal(res.name, 'POAP KINGS');
+  assert.equal(res.war.season_id, 135);
+  assert.equal(res.war.is_colosseum, true);
+  assert.equal(res.war.standings.length, 2);
+  assert.equal(res.war.standings[0].rank, 1, 'ordered by final rank');
+  assert.equal(res.members.length, 2);
+  assert.ok(res.my_claims.some((c) => c.player_tag === '#2PP0V90Y'));
+
+  // The owner falls back to the first active recorded clan.
+  const ownerCookie = await signIn(JAMIE);
+  const ownerView = parse(await handler(event({ method: 'GET', path: '/api/clan', cookie: ownerCookie, body: undefined })));
+  assert.equal(ownerView.clan_tag, CLAN);
+
+  // Consent toggle: flips the claim's share flag; unclaimed tags refused.
+  const on = parse(await handler(event({ path: '/api/me/share-battles', cookie, body: { player_tag: '#2PP0V90Y', share: true } })));
+  assert.equal(on.share, true);
+  const { rows } = await db.query(`select share_battles_with_clan from claim where player_tag = '#2PP0V90Y'`);
+  assert.equal(rows[0].share_battles_with_clan, true);
+  const notMine = await handler(event({ path: '/api/me/share-battles', cookie, body: { player_tag: '#YYYYY', share: true } }));
+  assert.equal(notMine.statusCode, 403);
+});

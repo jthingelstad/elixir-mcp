@@ -4,6 +4,7 @@ import { Landing } from './views/Landing.jsx';
 import { SignIn } from './views/SignIn.jsx';
 import { Dashboard } from './views/Dashboard.jsx';
 import { Admin } from './views/Admin.jsx';
+import { Clan } from './views/Clan.jsx';
 
 export const DISCLAIMER =
   'This material is unofficial and is not endorsed by Supercell. For more information see ' +
@@ -51,6 +52,9 @@ export function App() {
           {authed && (
             <a href="/dashboard" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>Dashboard</a>
           )}
+          {authed && (
+            <a href="/clan" onClick={(e) => { e.preventDefault(); navigate('/clan'); }}>Clan</a>
+          )}
           {authed && me.is_owner && (
             <a href="/admin" onClick={(e) => { e.preventDefault(); navigate('/admin'); }}>Admin</a>
           )}
@@ -74,8 +78,9 @@ export function App() {
 
       {path === '/signin' && <SignIn onAuthed={async () => { await refresh(); navigate('/dashboard'); }} />}
       {path === '/dashboard' && <Dashboard me={me} refresh={refresh} navigate={navigate} />}
+      {path === '/clan' && <Clan me={me} navigate={navigate} />}
       {path === '/admin' && <Admin me={me} />}
-      {path !== '/signin' && path !== '/dashboard' && path !== '/admin' && (
+      {path !== '/signin' && path !== '/dashboard' && path !== '/clan' && path !== '/admin' && (
         <Landing authed={authed} navigate={navigate} />
       )}
 

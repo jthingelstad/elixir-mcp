@@ -146,8 +146,8 @@ Start every iteration with a recorder health glance (gateway FetchSucceeded/Brea
 - **OPS GAP found live: the gateway runs launchd-from-source and does NOT pick up deploys — a gateway-code change needs `launchctl kickstart -k gui/$UID/com.poapkings.elixir-mcp-gw` (bit us: riverracelog jobs unleasable by the old process, 1 DLQ'd). Queue a proper fix (gateway self-update or a deploy-script reminder). Session MCP tool rosters are also start-frozen — new tools appear on reconnect (the serverInfo.version story working as designed).**
 - Prod observation 20:40Z: 7 active recordings (Jamie appears to be enrolling clans via the new panel), 1,572 players, 1,533 battles.
 - [x] Live lane (deployed + verified with a REAL end-to-end fetch from Claude Code: live colosseum data through the gateway in one tool call): enqueue → receipt poll; opportunistic recording confirmed; 50/day per-account live cap (owner exempt)
-- [ ] Liveness-proof claim verification (favorite-card challenge over the live lane) — soft claims upgrade to verified
-- [ ] Web: clan page (war standings, roster w/ consent-aware freshness), leader clan-enroll UI, verification flow, share_battles toggle
+- [x] Liveness-proof verification (deployed): favourite-card challenge, 15-min window, live-lane check; Dashboard Verify flow. Queued: flip CLAN_SCOPE_REQUIRES to 'verified' once members have used it (Jamie's call on timing).
+- [x] Web clan page (deployed): /clan — war standings (final rank order, our row highlighted), roster with trophies/donations/last-battle recency, share_battles toggle per claim. Recency policy mirrors get_clan: activity recency is roster-level; consent gates battle DETAIL only. Members reach it via open membership of a claimed tag in a recorded clan; owner falls back to first recorded clan. Leader self-serve clan-enroll folds into the gateway self-serve item below (same raise-hand pattern).
 - [ ] Gateway self-serve enrollment: raise-hand UI → admin key issuance (queues a Jamie-manual Supercell step per operator) → guided install → probation → active; operator docs (public repo!)
 - [ ] V2 smoke on live data + DESIGN/NOTES/AGENTS updates + memory update
 
