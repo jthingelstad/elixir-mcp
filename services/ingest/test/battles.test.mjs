@@ -233,3 +233,79 @@ test("deck levels are stored on the display scale, norm-stamped; 0011 backfill c
   ).rows[0].deck;
   assert.equal(second.cards[0].level, 14, "norm guard prevents double-shift");
 });
+
+test("0012 repair: pre-cutoff raw decks convert once; post-cutoff display decks untouched", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const sql = await readFile(
+    new URL(
+      "../../../db/migrations/0012_repair_deck_levels.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  await ctx.db.query(
+    `insert into api_payload (endpoint, entity_key, payload_hash, payload_json)
+     values ('cards', 'GLOBAL', 'repair-test',
+             '{"items": [{"id": 26000035, "maxLevel": 8}], "supportItems": []}')
+     on conflict do nothing`,
+  );
+  await ctx.db.query(
+    `insert into player (player_tag) values ('#20UU99G'), ('#20UU99R')`,
+  );
+  // One battle first observed BEFORE the cutoff (old-code raw deck, the
+  // 0011 stamp included), one after (new-code display deck).
+  for (const [id, tag, seen, deck] of [
+    [
+      "repair-old",
+      "#20UU99G",
+      "2026-09-03T20:00:00Z",
+      '{"norm": 1, "cards": [{"id": 26000035, "name": "Lumberjack", "level": 6}]}',
+    ],
+    [
+      "repair-new",
+      "#20UU99R",
+      "2026-09-03T23:00:00Z",
+      '{"norm": 1, "cards": [{"id": 26000035, "name": "Lumberjack", "level": 14}]}',
+    ],
+  ]) {
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ($1, now(), 'PvP', 'pvp')`,
+      [id],
+    );
+    await ctx.db.query(
+      `insert into battle_participant (battle_id, player_tag, side, deck)
+       values ($1, $2, 0, $3::jsonb)`,
+      [id, tag, deck],
+    );
+    const { rows: rec } = await ctx.db.query(
+      `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+       select 'player_battlelog', $2, $3, 'ph-' || $1, g.gateway_id, 'admitted'
+       from gateway g limit 1
+       returning receipt_id`,
+      [id, tag, seen],
+    );
+    await ctx.db.query(
+      `insert into battle_observation (battle_id, observer_tag, receipt_id)
+       values ($1, $2, $3)`,
+      [id, tag, rec[0].receipt_id],
+    );
+  }
+
+  await ctx.db.query(sql);
+  await ctx.db.query(sql); // idempotent: norm=2 guard
+
+  const deckOf = async (id) =>
+    (
+      await ctx.db.query(
+        `select deck from battle_participant where battle_id = $1`,
+        [id],
+      )
+    ).rows[0].deck;
+  const oldDeck = await deckOf("repair-old");
+  assert.equal(oldDeck.cards[0].level, 14, "raw 6/8 repaired to display 14");
+  assert.equal(oldDeck.norm, 2);
+  const newDeck = await deckOf("repair-new");
+  assert.equal(newDeck.cards[0].level, 14, "display deck left alone");
+  assert.equal(newDeck.norm, 1, "post-cutoff rows never touched");
+});
