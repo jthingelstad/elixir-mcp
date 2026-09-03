@@ -101,4 +101,21 @@ Jamie, 2026-09-03 (design session inputs):
 - [ ] Apply to Supercell for the `verifytoken` scope (parallel track; swap into the claim ladder if granted).
 - [ ] Postgres schema draft (DDL for §4) — first build artifact.
 
+## V1 build order (the standing work order — check off as chunks land green)
+
+- [x] Repo, gitignore-first, AGENTS.md/CLAUDE.md, workspace root
+- [x] packages/contracts core (tags, errors, deck_hash, meta, version)
+- [x] Migration runner + fingerprint + 0001 recorder core + 0002 timezone
+- [x] Fixtures (12 real payloads + cross-observer pair) + admission + battle/roster ingest
+- [ ] Pipeline glue: results-message → txn(payload/receipt → admission → projections); poll_state freshness advance; ingest Lambda handler shape
+- [ ] Scheduler: heat model, fairness floors, budget settle, job planning (fixtures: poll_state states); EventBridge handler shape
+- [ ] Snapshots + events + rollups projectors (profile → snapshot/diff events; battles → daily rollups w/ completeness)
+- [ ] Gateway (services/gateway): lease loop, gzip results, 403 breaker, split heartbeats, launchd installer — pattern-fresh from Drop
+- [ ] Auth plane: 0003 auth tables + magic-link/session core + OAuth 2.1 (port librarian logic to Postgres)
+- [ ] MCP server: protocol layer + first tools (list_my_players, get_coverage, get_player, query_battles) + quota + audit rows
+- [ ] Remaining V1 tools (get_player_timeline, get_performance, get_card_performance, get_deck_performance, get_collection, get_card_catalog, cr_api_live)
+- [ ] Web UI (request access, magic link, claim, dashboard, admin, connect page — dark CR theme)
+- [ ] infra/: CloudFormation stack + bootstrap/deploy/parameters/smoke — **GATE: first deploy needs Jamie's explicit go (billable resources)**
+- [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**
+
 2026-09-03 audit outcomes (DESIGN.md §11–§12 added): versioning designed (migration ladder + fingerprint test; contracts package + serverInfo cache-buster + deprecation rules; audit-row tuning loop). Build-blockers closed: DB access path (migrate Lambda + break-glass), SQS 256KB (gateway gzip, alarm on overflow), live request lane (second queue, gateways drain first), budget state in Postgres. Scope changes ratified: `get_player_timeline` into V1 (11 tools), season-roll watcher into V1, **repo public from day one** (fixture discipline from first commit).
