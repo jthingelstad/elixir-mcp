@@ -117,7 +117,7 @@ Jamie, 2026-09-03 (design session inputs):
 - [x] Remaining V1 tools — all 11 declared and tested. Open threads: live lane wiring (returns live_unavailable until infra), upgrade-gap fields need packages/game-data reference table (no invented constants), timeline granularity 'season' deferred to V2 war work.
 - [x] OAuth 2.1 HTTP shell + discovery on the MCP door (two-step authorize over the magic core; consent = entering the code; oracle-resistant; RFC 9207/8414/9728)
 - [x] Web-api service: full journey tested (request → approve → sign in → claim → record); CSRF contract header; neutral gate responses everywhere
-- [ ] Web UI (apps/web: request access, sign in, claim, dashboard, admin, connect page — dark CR theme)
+- [x] Web UI (apps/web): landing/sign-in/dashboard/admin/connect in Drop's token palette; 4 RTL tests; 49KB gzipped
 - [ ] infra/: CloudFormation stack + bootstrap/deploy/parameters/smoke — **GATE: first deploy needs Jamie's explicit go (billable resources)**
 - [ ] End-to-end on real recording (Jamie's tag via his gateway) — **GATE: dedicated CR key + DNS records from Jamie**
 
