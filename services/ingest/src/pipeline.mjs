@@ -212,8 +212,13 @@ export async function processResult(db, rawMessage) {
         fetchedAt: msg.fetched_at,
       });
 
-      // Freshness advances on admission only.
-      const subject = subjectTag(endpoint, msg.job.entity_key);
+      // Freshness advances on admission only. GLOBAL (the card catalog)
+      // is a subject too — without this it replans on cadence alone and
+      // a failed fetch waits a full day.
+      const subject =
+        msg.job.entity_key === "GLOBAL"
+          ? "GLOBAL"
+          : subjectTag(endpoint, msg.job.entity_key);
       if (subject) {
         await db.query(
           `insert into poll_state (subject_tag, endpoint, last_admitted_at)

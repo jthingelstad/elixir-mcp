@@ -58,6 +58,18 @@ async function setState(
   );
 }
 
+/** Park the always-eligible GLOBAL cards row so job-set assertions stay
+ *  about their own subjects. */
+async function freshenCards(at) {
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at, last_planned_at)
+     values ('GLOBAL', 'cards', $1, $1)
+     on conflict (subject_tag, endpoint)
+       do update set last_admitted_at = $1, last_planned_at = $1`,
+    [at],
+  );
+}
+
 async function setTokens(tokens) {
   await db.query("update budget_state set tokens = $1, settled_at = $2", [
     tokens,
@@ -105,6 +117,7 @@ test("new subject seeds warm and gets both player endpoints plus the followed cl
   const { jobs } = await planTick(db, NOW);
   const keys = jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort();
   assert.deepEqual(keys, [
+    "cards:GLOBAL",
     "clan:#J2RGCRVG",
     "player:#20JJJ2CCRU",
     "player_battlelog:#20JJJ2CCRU",
@@ -120,6 +133,7 @@ test("new subject seeds warm and gets both player endpoints plus the followed cl
 });
 
 test("budget caps selection and starved subjects strictly dominate hot ones", async () => {
+  await freshenCards(NOW);
   await addPlayer("#YYYYYYYY");
   await addPlayer("#RRRRRRRR");
   // Hot and merely due:
@@ -203,6 +217,7 @@ test("a planned job is not re-enqueued while in flight", async () => {
 });
 
 test("clan heartbeat respects its 15-minute cadence", async () => {
+  await freshenCards(NOW);
   await addPlayer("#20JJJ2CCRU", { clan: "#J2RGCRVG" });
   await setState("#20JJJ2CCRU", "player_battlelog", {
     heat: 2,
@@ -250,6 +265,7 @@ test("budget accrues with elapsed time and caps at the carryover ceiling", async
 
 test("season-roll watcher forces profile polls in the pre-reset hour", async () => {
   const inWindow = new Date("2026-09-06T23:30:00Z"); // Sunday, reset in 40m
+  await freshenCards(inWindow);
   await addPlayer("#YYYYYYYY");
   // Profile freshly admitted BEFORE the window; normal cadence says not due.
   await setState("#YYYYYYYY", "player", {

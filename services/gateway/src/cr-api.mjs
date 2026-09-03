@@ -16,6 +16,7 @@ const PATH_BY_ENDPOINT = {
   clan: (key) => `/clans/${enc(key)}`,
   currentriverrace: (key) => `/clans/${enc(key)}/currentriverrace`,
   riverracelog: (key) => `/clans/${enc(key)}/riverracelog`,
+  cards: () => `/cards`, // global catalog; entity_key is the GLOBAL sentinel
 };
 
 export function crPath(job) {

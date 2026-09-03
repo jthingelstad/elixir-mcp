@@ -31,6 +31,10 @@ export const CADENCE = {
   // Daily log poll: backfill at enrollment IS the first poll; thereafter
   // it heals gaps and delivers final standings (rank/trophyChange).
   riverracelog: { hot: 1440, warm: 1440, cold: 1440, floor: 2880 },
+  // Daily global catalog: one fetch serves every tenant (get_card_catalog,
+  // level normalization backfills). Missing this starved prod of maxLevel
+  // truth — found live 2026-09-03.
+  cards: { hot: 1440, warm: 1440, cold: 1440, floor: 2880 },
 };
 
 export const DECAY_EPOCH_MINUTES = 60;
@@ -80,6 +84,10 @@ async function seedPollState(db) {
     join player p on p.player_tag = r.subject_tag
     where r.subject_type = 'player' and r.status = 'active'
       and p.last_known_clan_tag is not null
+    on conflict do nothing`);
+  // The global card catalog is subject-less: one GLOBAL row.
+  await db.query(`
+    insert into poll_state (subject_tag, endpoint) values ('GLOBAL', 'cards')
     on conflict do nothing`);
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture,
   // and player endpoints for every OPEN member. Roster-driven: joins get
@@ -137,6 +145,7 @@ async function selectEligible(db, now) {
                or exists (
                  select 1 from recording r
                  where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
+         or (ps.endpoint = 'cards' and ps.subject_tag = 'GLOBAL')
          or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
