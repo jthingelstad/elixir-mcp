@@ -12,6 +12,12 @@
     "node": ">=24"
   },
   "devDependencies": {
+    "@aws-sdk/client-cloudformation": "^3.1125.0",
+    "@aws-sdk/client-iam": "^3.1125.0",
+    "@aws-sdk/client-lambda": "^3.1125.0",
+    "@aws-sdk/client-s3": "^3.1125.0",
+    "@aws-sdk/client-secrets-manager": "^3.1125.0",
+    "@aws-sdk/client-sts": "^3.1125.0",
     "esbuild": "^0.28.2"
   }
 }
