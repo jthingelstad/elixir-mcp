@@ -4,9 +4,55 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import pg from 'pg';
 import { migrate } from './migrate.mjs';
 
-export async function handler() {
+/**
+ * One-time production seeding, run by explicit invoke payload only
+ * ({seed: {owner_email_hash, gateway: {name, static_ip}}}): the owner
+ * account (approved, is_owner) and the first gateway row. Idempotent.
+ * Everything else (claims, recording opt-in) goes through the real
+ * product flow on the site.
+ */
+async function seed(databaseUrl, spec) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const {
+      rows: [account],
+    } = await db.query(
+      `insert into account (email_hash, status, is_owner, decided_at)
+       values ($1, 'approved', true, now())
+       on conflict (email_hash) do update set status = 'approved', is_owner = true
+       returning account_id`,
+      [spec.owner_email_hash],
+    );
+    let gatewayId = null;
+    if (spec.gateway) {
+      const { rows } = await db.query(
+        `insert into gateway (owner_account_id, name, static_ip, status)
+         select $1, $2, $3, 'active'
+         where not exists (select 1 from gateway where name = $2)
+         returning gateway_id`,
+        [account.account_id, spec.gateway.name, spec.gateway.static_ip],
+      );
+      gatewayId =
+        rows[0]?.gateway_id ??
+        (await db.query(`select gateway_id from gateway where name = $1`, [spec.gateway.name]))
+          .rows[0].gateway_id;
+    }
+    return { seeded: true, accountId: account.account_id, gatewayId };
+  } finally {
+    await db.end();
+  }
+}
+
+export async function handler(event) {
+  if (event?.seed) {
+    const result = await seed(process.env.DATABASE_URL, event.seed);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   const here = path.dirname(fileURLToPath(import.meta.url));
   const result = await migrate({
     databaseUrl: process.env.DATABASE_URL,
