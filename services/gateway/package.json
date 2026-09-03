@@ -1,0 +1,16 @@
+{
+  "name": "@elixir-mcp/gateway",
+  "version": "0.1.0",
+  "description": "elixir-mcp-gw: the operator-run fetcher (DESIGN §4.6, §5.1). Leases jobs (live lane first), calls the CR API with the operator's IP-bound token, posts gzipped results. launchd service on operator machines; never cloud-deployed, never in CI.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "scripts": {
+    "test": "node --test test/",
+    "start": "node src/index.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.600.0",
+    "@aws-sdk/client-sqs": "^3.600.0",
+    "@elixir-mcp/contracts": "0.1.0"
+  }
+}
