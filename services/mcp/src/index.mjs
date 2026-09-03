@@ -8,6 +8,12 @@ const sqs = new SQSClient({});
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
   issuer: process.env.OAUTH_ISSUER ?? 'https://elixir.poapkings.com',
+  enqueueLiveJob: process.env.LIVE_QUEUE_URL
+    ? (job) =>
+        sqs.send(
+          new SendMessageCommand({ QueueUrl: process.env.LIVE_QUEUE_URL, MessageBody: JSON.stringify(job) }),
+        )
+    : null,
   sendLoginEmail: ({ email, code, clientName }) =>
     sqs.send(
       new SendMessageCommand({

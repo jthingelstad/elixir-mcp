@@ -12,11 +12,13 @@ import { makeRegistry } from './tools.mjs';
 import { makeInvoker } from './invoker.mjs';
 import { makeQuota } from './quota.mjs';
 import { makeOauthRoutes, rawBody } from './oauth-routes.mjs';
+import { makeLive } from './live.mjs';
 
 export const HOURLY_RATE_LIMIT = 300;
 
-export function makeHandler({ databaseUrl, issuer = 'https://elixir.poapkings.com', sendLoginEmail }) {
+export function makeHandler({ databaseUrl, issuer = 'https://elixir.poapkings.com', sendLoginEmail, enqueueLiveJob = null }) {
   const registry = makeRegistry();
+  const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
   const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
   const unauthorized = () => ({
     statusCode: 401,
@@ -80,7 +82,7 @@ export function makeHandler({ databaseUrl, issuer = 'https://elixir.poapkings.co
       const result = await handleMcpMessage(message, {
         registry,
         spendQuota: makeQuota({ db, account }),
-        invokeTool: makeInvoker({ db, account, registry }),
+        invokeTool: makeInvoker({ db, account, registry, live }),
       });
       return {
         statusCode: result.statusCode,

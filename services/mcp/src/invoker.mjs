@@ -31,11 +31,11 @@ async function audit(db, { accountId, tool, args, startedAt, resultBytes, trunca
   }
 }
 
-export function makeInvoker({ db, account, registry }) {
+export function makeInvoker({ db, account, registry, live = null }) {
   return async function invokeTool(name, args) {
     const startedAt = Date.now();
     try {
-      const body = await registry.invoke(name, { db, account }, args);
+      const body = await registry.invoke(name, { db, account, live }, args);
       const resultBytes = JSON.stringify(body).length;
       await audit(db, { accountId: account.accountId, tool: name, args, startedAt, resultBytes });
       return { body, isError: false };

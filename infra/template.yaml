@@ -316,6 +316,7 @@ Resources:
           DATABASE_URL: !Sub 'postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify'
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
+          LIVE_QUEUE_URL: !Ref RequestsLiveQueue
 
   SchedulerLogGroup:
     Type: AWS::Logs::LogGroup

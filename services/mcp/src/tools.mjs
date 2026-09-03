@@ -18,6 +18,24 @@ import {
   resolveEntitledClan,
   requireLeadership,
 } from './entitlements.mjs';
+import { livePathToJob } from './live.mjs';
+
+const LIVE_DAILY_CAP = 50;
+
+/** The live lane spends real CR budget: tight per-account daily cap. */
+async function spendLiveQuota(ctx) {
+  if (ctx.account.isOwner) return;
+  const day = new Date().toISOString().slice(0, 10);
+  const { rows } = await ctx.db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)
+     on conflict (bucket, window_start) do update set count = rate_limit.count + 1
+     returning count`,
+    [`liveday#${ctx.account.accountId}`, day],
+  );
+  if (rows[0].count > LIVE_DAILY_CAP) {
+    throw new ToolFailure('quota_exceeded', `Live-fetch quota reached (${LIVE_DAILY_CAP}/day).`, 'Recorded-data tools are unlimited within the normal quota.');
+  }
+}
 
 export class ToolFailure extends Error {
   constructor(code, message, hint) {
@@ -178,11 +196,16 @@ const TOOLS = {
     async handler(ctx, args) {
       const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       if (args.live === true) {
-        throw new ToolFailure(
-          'live_unavailable',
-          'The live lane is not deployed yet; serving recorded data only.',
-          'Call again without live: true.',
-        );
+        if (!ctx.live) {
+          throw new ToolFailure('live_unavailable', 'The live lane is not configured here.', 'Call again without live: true.');
+        }
+        await spendLiveQuota(ctx);
+        // Fetch through the lane; the projector updates the snapshot the
+        // moment it's admitted, so the normal read below serves it fresh.
+        const result = await ctx.live(ctx.db, { endpoint: 'player', entityKey: tag });
+        if (!result.ok) {
+          throw new ToolFailure('live_unavailable', 'No gateway completed the live fetch in time.', 'Serving recorded data: call again without live: true.');
+        }
       }
       const { rows } = await ctx.db.query(
         `select p.player_tag, p.name, p.last_known_clan_tag, cl.name as clan_name,
@@ -724,23 +747,28 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const raw = String(args.path ?? '');
-      const m = /^\/(players|clans)\/([^/]+)(\/(battlelog|currentriverrace|riverracelog))?$/.exec(raw);
-      if (!m) throw new ToolFailure('bad_request', `Path not in the allowlist: ${raw}`);
-      if (m[1] === 'players' && m[4] && m[4] !== 'battlelog')
-        throw new ToolFailure('bad_request', `${m[4]} is a clan endpoint.`);
-      if (m[1] === 'clans' && m[4] === 'battlelog')
-        throw new ToolFailure('bad_request', 'battlelog is a player endpoint.');
-      try {
-        normalizeTag(decodeURIComponent(m[2]));
-      } catch {
-        throw new ToolFailure('invalid_tag', `Invalid tag in path: ${m[2]}`);
+      const job = livePathToJob(String(args.path ?? ''), normalizeTag);
+      if (job.error) throw new ToolFailure(job.error, job.message);
+      if (!ctx.live) {
+        throw new ToolFailure('live_unavailable', 'The live lane is not configured here.', 'Recorded-data tools remain available.');
       }
-      throw new ToolFailure(
-        'live_unavailable',
-        'The live lane is not deployed yet; recorded-data tools remain available.',
-        'Use get_player / query_battles / get_coverage against the record.',
-      );
+      await spendLiveQuota(ctx);
+      const result = await ctx.live(ctx.db, job);
+      if (!result.ok) {
+        throw new ToolFailure(
+          'live_unavailable',
+          result.reason === 'rejected'
+            ? 'The live fetch returned a payload our admission rejected.'
+            : 'No gateway completed the live fetch in time.',
+          'The recorded-data tools remain available; try again shortly.',
+        );
+      }
+      return {
+        path: String(args.path),
+        live: true,
+        data: result.payload,
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
     },
   },
   get_clan: {
