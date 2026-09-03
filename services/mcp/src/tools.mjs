@@ -13,6 +13,11 @@ import {
   typesForModeGroup,
 } from '@elixir-mcp/contracts';
 import { resolveInstant, formatLocal } from './time.mjs';
+import {
+  resolveSubject,
+  resolveEntitledClan,
+  requireLeadership,
+} from './entitlements.mjs';
 
 export class ToolFailure extends Error {
   constructor(code, message, hint) {
@@ -29,30 +34,24 @@ const TAG_SCHEMA = {
 
 // --- shared helpers --------------------------------------------------------
 
-async function resolveEntitledTag(db, account, inputTag) {
-  if (inputTag === undefined || inputTag === null || inputTag === '') {
-    const { rows } = await db.query(
-      `select player_tag from claim where account_id = $1 and is_primary`,
-      [account.accountId],
-    );
-    if (!rows[0]) throw new ToolFailure('not_found', 'No primary claimed tag on this account.', 'Claim a player tag on the website first.');
-    return rows[0].player_tag;
-  }
-  let tag;
+/** Entitlement resolution with plain-object errors converted to the
+ *  closed taxonomy. `need`: 'full' | 'summary' | 'battles' (§4.2). */
+async function subject(db, account, inputTag, need) {
   try {
-    tag = normalizeTag(String(inputTag));
+    return await resolveSubject(db, account, inputTag, need);
   } catch (err) {
-    if (err instanceof InvalidTagError) throw new ToolFailure('invalid_tag', err.message);
+    if (err?.code) throw new ToolFailure(err.code, err.message, err.hint);
     throw err;
   }
-  const { rows } = await db.query(
-    `select 1 from claim where account_id = $1 and player_tag = $2`,
-    [account.accountId, tag],
-  );
-  if (!rows[0]) {
-    throw new ToolFailure('not_entitled', `No claim on ${tag} for this account.`, 'V1 serves tags you have claimed; clan entitlements arrive in V2.');
+}
+
+async function entitledClan(db, account, inputTag) {
+  try {
+    return await resolveEntitledClan(db, account, inputTag);
+  } catch (err) {
+    if (err?.code) throw new ToolFailure(err.code, err.message, err.hint);
+    throw err;
   }
-  return tag;
 }
 
 async function buildMeta(db, account, tag) {
@@ -120,7 +119,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       const [polls, battles, completeness] = await Promise.all([
         ctx.db.query(
           `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
@@ -177,7 +176,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       if (args.live === true) {
         throw new ToolFailure(
           'live_unavailable',
@@ -247,11 +246,18 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const s = await subject(ctx.db, ctx.account, args.player_tag, 'battles');
+      const tag = s.tag;
       const tz = ctx.account.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
       const where = ['bp.player_tag = $1'];
       const params = [tag];
+      if (s.battles === 'war_only') {
+        // Rule 2: clanmate battle-level access covers war battles only
+        // unless the member opted into share_battles_with_clan.
+        params.push(typesForModeGroup('war'));
+        where.push(`b.type = any($${params.length})`);
+      }
       const add = (clause, value) => {
         params.push(value);
         where.push(clause.replace('?', `$${params.length}`));
@@ -354,6 +360,9 @@ const TOOLS = {
 
       return {
         player_tag: tag,
+        ...(s.battles === 'war_only'
+          ? { scope_note: 'Clanmate view: war battles only (this member has not shared their full battle history with the clan).' }
+          : {}),
         battles,
         ...(rows.length === limit ? { next_cursor: rows[rows.length - 1].cursor } : {}),
         meta: await buildMeta(ctx.db, ctx.account, tag),
@@ -379,7 +388,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       const metrics = Array.isArray(args.metrics) && args.metrics.length > 0 ? args.metrics : ['trophies'];
       const where = [`player_tag = $1`, `snapshot_kind = 'daily'`];
       const params = [tag];
@@ -443,7 +452,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       const tz = ctx.account.timezone;
 
       const segment = async ({ from, to, lastN }) => {
@@ -534,7 +543,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       const tz = ctx.account.timezone;
       const mine = args.perspective !== 'opponent';
       const where = ['bp.player_tag = $1', `bp.outcome in ('win','loss')`];
@@ -601,7 +610,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       const tz = ctx.account.timezone;
       const where = ['bp.player_tag = $1', 'bp.deck_hash is not null'];
       const params = [tag];
@@ -656,7 +665,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tag = await resolveEntitledTag(ctx.db, ctx.account, args.player_tag);
+      const tag = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
       const { rows } = await ctx.db.query(
         `select p.payload_json->'cards' as cards,
                 p.payload_json->'currentDeckSupportCards' as support_cards,
@@ -732,6 +741,254 @@ const TOOLS = {
         'The live lane is not deployed yet; recorded-data tools remain available.',
         'Use get_player / query_battles / get_coverage against the record.',
       );
+    },
+  },
+  get_clan: {
+    description:
+      'Your recorded clan: roster with roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Defaults to your clan.',
+    inputSchema: {
+      type: 'object',
+      properties: { clan_tag: { type: 'string', description: 'Clan tag; defaults to your recorded clan.' } },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      const [clanRow, roster, events] = await Promise.all([
+        ctx.db.query(`select name from clan where clan_tag = $1`, [clanTag]),
+        ctx.db.query(
+          `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
+                  s.trophies, s.donations,
+                  (select max(b.battle_time) from battle_participant bp
+                   join battle b on b.battle_id = bp.battle_id
+                   where bp.player_tag = cm.player_tag) as last_battle
+           from clan_membership cm
+           join player p on p.player_tag = cm.player_tag
+           left join lateral (
+             select trophies, donations from player_snapshot_daily
+             where player_tag = cm.player_tag order by snapshot_date desc, snapshot_kind desc limit 1
+           ) s on true
+           where cm.clan_tag = $1 and cm.left_observed_at is null
+           order by cm.role desc, s.trophies desc nulls last`,
+          [clanTag],
+        ),
+        ctx.db.query(
+          `select event_type, timing, window_end, payload from clan_event
+           where clan_tag = $1 order by event_id desc limit 20`,
+          [clanTag],
+        ),
+      ]);
+      const tz = ctx.account.timezone;
+      return {
+        clan_tag: clanTag,
+        name: clanRow.rows[0]?.name ?? null,
+        member_count: roster.rows.length,
+        members: roster.rows.map((m) => ({
+          player_tag: m.player_tag,
+          name: m.name,
+          role: m.role,
+          trophies: m.trophies,
+          donations_this_week: m.donations,
+          member_since_observed: m.joined_observed_at?.toISOString() ?? null,
+          last_recorded_battle: m.last_battle?.toISOString() ?? null,
+        })),
+        recent_events: events.rows.map((e) => ({
+          type: e.event_type,
+          at: e.window_end.toISOString(),
+          ...(tz ? { at_local: formatLocal(e.window_end, tz) } : {}),
+          detail: e.payload,
+        })),
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(ctx.account.timezone ? { timezone_applied: ctx.account.timezone } : {}),
+        }),
+      };
+    },
+  },
+
+  get_war: {
+    description:
+      'The current (latest recorded) river race for your clan: standings across the five clans, per-member points/decks used, war day and attendance so far. Defaults to your clan.',
+    inputSchema: {
+      type: 'object',
+      properties: { clan_tag: { type: 'string', description: 'Clan tag; defaults to your recorded clan.' } },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      const { rows: weekRows } = await ctx.db.query(
+        `select season_id, section_index, is_colosseum from war_week
+         where clan_tag = $1 order by season_id desc, section_index desc limit 1`,
+        [clanTag],
+      );
+      if (!weekRows[0]) {
+        throw new ToolFailure('not_recorded', 'No war weeks recorded for this clan yet.', 'The first riverracelog poll lands within a day of enrollment.');
+      }
+      const wk = weekRows[0];
+      const [standings, participation, attendance] = await Promise.all([
+        ctx.db.query(
+          `select participant_clan_tag, participant_name, fame, rank, trophy_change, finish_time
+           from war_week_clan
+           where clan_tag = $1 and season_id = $2 and section_index = $3
+           order by rank nulls last, fame desc`,
+          [clanTag, wk.season_id, wk.section_index],
+        ),
+        ctx.db.query(
+          `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks
+           from war_participation wp join player p on p.player_tag = wp.player_tag
+           where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+           order by wp.points desc`,
+          [clanTag, wk.season_id, wk.section_index],
+        ),
+        ctx.db.query(
+          `select war_day, count(*) filter (where decks_used_today > 0)::int as battled,
+                  count(*)::int as members
+           from war_attendance_day
+           where clan_tag = $1 and season_id = $2 and section_index = $3
+           group by war_day order by war_day`,
+          [clanTag, wk.season_id, wk.section_index],
+        ),
+      ]);
+      return {
+        clan_tag: clanTag,
+        season_id: wk.season_id,
+        section_index: wk.section_index,
+        is_colosseum: wk.is_colosseum,
+        standings: standings.rows,
+        participants: participation.rows,
+        attendance_by_war_day: attendance.rows,
+        note: 'points are per-member contributions; fame belongs to the boat (clan).',
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(ctx.account.timezone ? { timezone_applied: ctx.account.timezone } : {}),
+        }),
+      };
+    },
+  },
+
+  get_war_history: {
+    description:
+      'Recorded war weeks for your clan: final ranks, boat fame, and (optionally) one member’s per-week points and decks — "did I miss a war day?" lives here. Defaults to your clan.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        clan_tag: { type: 'string', description: 'Clan tag; defaults to your recorded clan.' },
+        player_tag: { type: 'string', description: 'Focus one member’s participation.' },
+        seasons: { type: 'integer', minimum: 1, maximum: 12, default: 3, description: 'How many seasons back.' },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      let focus = null;
+      if (args.player_tag) focus = (await subject(ctx.db, ctx.account, args.player_tag, 'summary')).tag;
+      const seasons = Math.min(Math.max(Number(args.seasons ?? 3), 1), 12);
+      const { rows: weeks } = await ctx.db.query(
+        `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at,
+                own.fame as our_fame, own.rank as our_rank, own.trophy_change
+         from war_week w
+         left join war_week_clan own on own.clan_tag = w.clan_tag
+           and own.season_id = w.season_id and own.section_index = w.section_index
+           and own.participant_clan_tag = w.clan_tag
+         where w.clan_tag = $1
+           and w.season_id > coalesce((select max(season_id) from war_week where clan_tag = $1), 0) - $2
+         order by w.season_id desc, w.section_index desc`,
+        [clanTag, seasons],
+      );
+      let memberWeeks = null;
+      if (focus) {
+        const { rows } = await ctx.db.query(
+          `select wp.season_id, wp.section_index, wp.points, wp.decks_used, wp.boat_attacks,
+                  (select count(*)::int from war_attendance_day ad
+                   where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
+                     and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
+                     and ad.decks_used_today > 0) as war_days_battled
+           from war_participation wp
+           where wp.clan_tag = $1 and wp.player_tag = $2
+           order by wp.season_id desc, wp.section_index desc limit 40`,
+          [clanTag, focus],
+        );
+        memberWeeks = rows;
+      }
+      return {
+        clan_tag: clanTag,
+        weeks: weeks.map((w) => ({
+          season_id: w.season_id,
+          section_index: w.section_index,
+          is_colosseum: w.is_colosseum,
+          finished: w.finished_observed_at?.toISOString() ?? null,
+          our_rank: w.our_rank,
+          our_fame: w.our_fame,
+          trophy_change: w.trophy_change,
+        })),
+        ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
+        note: 'points are per-member contributions; fame belongs to the boat (clan).',
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  compare_players: {
+    description:
+      'Side-by-side of 2–4 entitled tags (your claims or clanmates): latest snapshot topline plus a shared performance window.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        player_tags: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4 },
+        from: { type: 'string', description: 'ISO instant or YYYY-MM-DD (your timezone).' },
+        to: { type: 'string' },
+      },
+      required: ['player_tags'],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tags = [];
+      for (const raw of args.player_tags ?? []) {
+        tags.push((await subject(ctx.db, ctx.account, raw, 'summary')).tag);
+      }
+      if (tags.length < 2) throw new ToolFailure('bad_request', 'compare_players needs 2-4 tags.');
+      const tz = ctx.account.timezone;
+      const from = resolveInstant(tz, args.from);
+      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      const players = [];
+      for (const tag of tags) {
+        const { rows: snap } = await ctx.db.query(
+          `select p.name, s.trophies, s.donations, (s.lifetime->>'battleCount')::int as battle_count,
+                  (s.lifetime->>'collectionLevel')::int as collection_level
+           from player p
+           left join lateral (
+             select * from player_snapshot_daily where player_tag = p.player_tag
+             order by snapshot_date desc, snapshot_kind desc limit 1
+           ) s on true where p.player_tag = $1`,
+          [tag],
+        );
+        const params = [tag];
+        const where = [`bp.player_tag = $1`, `bp.outcome in ('win','loss','draw')`];
+        if (from) {
+          params.push(from);
+          where.push(`b.battle_time >= $${params.length}`);
+        }
+        if (to) {
+          params.push(to);
+          where.push(`b.battle_time < $${params.length}`);
+        }
+        const { rows: perf } = await ctx.db.query(
+          `select count(*)::int battles,
+                  count(*) filter (where bp.outcome = 'win')::int wins,
+                  count(*) filter (where bp.outcome = 'loss')::int losses,
+                  coalesce(sum(bp.trophy_change), 0)::int net_trophies
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where ${where.join(' and ')}`,
+          params,
+        );
+        players.push({ player_tag: tag, ...snap[0], window: perf[0] });
+      }
+      return {
+        players,
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(tz ? { timezone_applied: tz } : {}),
+        }),
+      };
     },
   },
 };

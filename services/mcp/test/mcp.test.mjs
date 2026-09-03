@@ -138,9 +138,9 @@ test('protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test('tools/list declares all 11 V1 tools', async () => {
+test('tools/list declares all 15 tools', async () => {
   const res = await handleMcpMessage(rpc('tools/list'), context());
-  assert.equal(res.payload.result.tools.length, 11);
+  assert.equal(res.payload.result.tools.length, 15);
   const names = res.payload.result.tools.map((t) => t.name);
   for (const required of ['list_my_players', 'get_coverage', 'get_player', 'query_battles', 'get_player_timeline', 'cr_api_live']) {
     assert.ok(names.includes(required), required);

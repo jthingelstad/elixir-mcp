@@ -173,22 +173,15 @@ test('cr_api_live: allowlist validation, then honest live_unavailable', async ()
   assert.equal(ok.body.error.code, 'live_unavailable');
 });
 
-test('the full V1 registry declares all 11 tools', () => {
+test('the V1 tools remain declared among the full registry', () => {
   const names = makeRegistry()
     .declarations()
-    .map((d) => d.name)
-    .sort();
-  assert.deepEqual(names, [
-    'cr_api_live',
-    'get_card_catalog',
-    'get_card_performance',
-    'get_collection',
-    'get_coverage',
-    'get_deck_performance',
-    'get_performance',
-    'get_player',
-    'get_player_timeline',
-    'query_battles',
-    'list_my_players',
-  ].sort());
+    .map((d) => d.name);
+  for (const required of [
+    'cr_api_live', 'get_card_catalog', 'get_card_performance', 'get_collection',
+    'get_coverage', 'get_deck_performance', 'get_performance', 'get_player',
+    'get_player_timeline', 'query_battles', 'list_my_players',
+  ]) {
+    assert.ok(names.includes(required), required);
+  }
 });
