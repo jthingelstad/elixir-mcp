@@ -139,8 +139,9 @@ Start every iteration with a recorder health glance (gateway FetchSucceeded/Brea
 - [x] War clock (services/ingest/war-clock.mjs): period grid + season inference + observed-anchor-with-fallback + resolveWarKeys from battle time (cross-section = honest nulls); verified against the three real captured riverrace payloads
 - [x] Migration 0006 (deployed): war_period_anchor / war_week / war_week_clan / war_participation (**points**) / war_attendance_day + claim.share_battles_with_clan
 - [x] War projector (deployed): anchors first-observation-wins; honest anchor_only genesis pending backfill; MAX-merge throughout; war keys stamped from battle time via per-clan clock; stale-payload-at-roll edge documented
-- [ ] riverracelog backfill consumer (NET-NEW; paginate at enrollment, take what it gives) + run it for #J2RGCRVG against prod
-- [ ] Entitlements module: rules 2-4 (clan-scoped reads for verified members, summary-level clanmates, battle-level needs consent flag, leadership scope = elder+ role from recorded roster)
+- [x] riverracelog backfill (deployed): the log is a daily recorded endpoint; enrollment backfill = first poll; items carry seasonId (genesis unlock); 0007 adds rank/trophy_change; participation clan-scoped to own members
+- [x] Entitlements module (deployed): rules 2-4; INTERIM soft claims count for clan scope until liveness ships (CLAN_SCOPE_REQUIRES flips then); owner administers all recorded clans, member consent still applies to owner
+- [x] Clan enrollment UI (Jamie's ask, deployed): owner-only /api/admin/clans + Recorded Clans admin panel; leader self-serve stays a later item
 - [ ] Tools: get_war, get_war_history, get_clan, compare_players (+ timeline granularity 'season'); tools respect entitlements + consent
 - [ ] Live lane wiring: MCP enqueue → receipt poll (~8s bound) for cr_api_live and get_player live:true; opportunistic ingest of live fetches
 - [ ] Liveness-proof claim verification (favorite-card challenge over the live lane) — soft claims upgrade to verified
