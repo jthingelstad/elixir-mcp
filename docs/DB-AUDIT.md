@@ -15,6 +15,35 @@ backfill completes (migrate Lambda {inspect} op).
   contract 0.2.0. The general lesson: never order user-facing output by
   surrogate identity.
 
+## Performance census — FINAL (12,309 instrumented payloads)
+
+| endpoint         | n     | total | projector | parse | store | commit |
+| ---------------- | ----- | ----- | --------- | ----- | ----- | ------ |
+| player_battlelog | 6,075 | 437ms | 408ms (93%) | 6ms | 17ms | 4ms |
+| currentriverrace | 1,080 | 286ms | 270ms (94%) | 1ms | 8ms  | 4ms |
+| player           | 5,149 | 30ms  | 13ms      | 2ms | 9ms  | 4ms |
+
+Growth curve confirmed: battlelog cost rose 153ms -> 378ms -> 437ms as
+player histories deepened — the career-length scaling defect (rollup
+refresh reads via (player_tag, battle_id), no time component). RDS
+never exceeded ~8% CPU: pure round-trip count.
+
+## Live storage census (post-import, {inspect} op)
+
+DB 569MB. api_payload 391MB (69% — R2 is THE storage decision).
+battle_participant 123MB / 74k rows (~1.7KB each, mostly deck jsonb —
+R4's case, quantified). Dead tuples modest everywhere (rollup 3.3k dead
+vs 44k live): autovacuum copes, R5 downgraded to watch-only. Every
+index earns its keep; battle_participant_player at 1.4M scans is the
+rollup workhorse and the scaling suspect.
+
+## Found by the replay at Aug 3 (fixed)
+
+currentriverrace for a roster-never-seen clan hit war_week's clan FK —
+the roster poll is the usual clan-row seeder and nothing guarantees
+ordering (live enrollment races it too). Both war projectors now seed
+an identity-only clan row first.
+
 ## Performance census (early numbers, ~160 payloads; full run overnight)
 
 Per-message phase means via processResult instrumentation:
