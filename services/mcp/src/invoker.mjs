@@ -13,14 +13,24 @@ const MAX_AUDIT_ARG_CHARS = 4000;
 
 async function audit(
   db,
-  { accountId, tool, args, startedAt, resultBytes, truncated, errorCode },
+  {
+    accountId,
+    surface,
+    tool,
+    args,
+    startedAt,
+    resultBytes,
+    truncated,
+    errorCode,
+  },
 ) {
   try {
     await db.query(
-      `insert into mcp_call_audit (account_id, tool, args, duration_ms, result_bytes, truncated, error_code)
-       values ($1, $2, $3, $4, $5, $6, $7)`,
+      `insert into mcp_call_audit (account_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         accountId,
+        surface,
         tool,
         JSON.stringify(args ?? {}).slice(0, MAX_AUDIT_ARG_CHARS),
         Date.now() - startedAt,
@@ -34,7 +44,13 @@ async function audit(
   }
 }
 
-export function makeInvoker({ db, account, registry, live = null }) {
+export function makeInvoker({
+  db,
+  account,
+  registry,
+  live = null,
+  surface = "mcp",
+}) {
   return async function invokeTool(name, args) {
     const startedAt = Date.now();
     try {
@@ -42,6 +58,7 @@ export function makeInvoker({ db, account, registry, live = null }) {
       const resultBytes = JSON.stringify(body).length;
       await audit(db, {
         accountId: account.accountId,
+        surface,
         tool: name,
         args,
         startedAt,
@@ -52,6 +69,7 @@ export function makeInvoker({ db, account, registry, live = null }) {
       if (err instanceof ToolFailure) {
         await audit(db, {
           accountId: account.accountId,
+          surface,
           tool: name,
           args,
           startedAt,
@@ -71,6 +89,7 @@ export function makeInvoker({ db, account, registry, live = null }) {
       }
       await audit(db, {
         accountId: account.accountId,
+        surface,
         tool: name,
         args,
         startedAt,

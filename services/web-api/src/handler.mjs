@@ -29,6 +29,8 @@ import {
   InvalidTagError,
   gatewayArena,
 } from "@elixir-mcp/contracts";
+import { makeRegistry } from "../../mcp/src/tools.mjs";
+import { makeInvoker } from "../../mcp/src/invoker.mjs";
 
 const COOKIE_NAME = "__Host-elixir_session";
 const CONTRACT_HEADER = "x-elixir-client";
@@ -82,6 +84,12 @@ export function makeHandler({
     )
       return null;
     return resolveSession(db, { secret, token });
+  }
+
+  let exploreRegistryCache = null;
+  function exploreRegistry() {
+    exploreRegistryCache ??= makeRegistry();
+    return exploreRegistryCache;
   }
 
   // The activity log must never break the action it records.
@@ -460,6 +468,37 @@ export function makeHandler({
           points: Number(g.fetch_points),
           arena: gatewayArena(Number(g.fetch_points)).name,
         })),
+      });
+    },
+
+    // The explorer bridge: the SAME tool registry the MCP serves,
+    // session-authed, audited as surface='web'. Users explore exactly
+    // what their agents see; every future tool is explorable for free.
+    "POST /api/explore": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const tool = String(body.tool ?? "");
+      const registry = exploreRegistry();
+      if (!registry.has(tool) || tool === "cr_api_live") {
+        return json(400, {
+          error: "bad_request",
+          message: `Unknown or non-explorable tool: ${tool}`,
+        });
+      }
+      const invoke = makeInvoker({
+        db,
+        account,
+        registry,
+        surface: "web",
+      });
+      const args = body.args && typeof body.args === "object" ? body.args : {};
+      const result = await invoke(tool, args);
+      return json(200, {
+        tool,
+        is_error: result.isError === true,
+        body: result.body,
       });
     },
 

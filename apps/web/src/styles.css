@@ -211,3 +211,63 @@ tr.us td {
   color: var(--gold-lite);
   font-weight: 600;
 }
+
+/* Explorer */
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+.tab {
+  background: transparent;
+  border: 1px solid var(--edge);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  font: inherit;
+}
+.tab.active {
+  background: var(--purple);
+  color: var(--ink);
+  border-color: var(--purple);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.tablewrap {
+  overflow-x: auto;
+}
+.cardgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 0.5rem;
+}
+.cardtile {
+  position: relative;
+  text-align: center;
+}
+.cardtile img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.cardtile span {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--gold-lite);
+  font-size: 0.7rem;
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.status.win {
+  color: var(--green);
+}
+.status.loss {
+  color: var(--red);
+}

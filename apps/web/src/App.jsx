@@ -5,6 +5,7 @@ import { SignIn } from "./views/SignIn.jsx";
 import { Dashboard } from "./views/Dashboard.jsx";
 import { Admin } from "./views/Admin.jsx";
 import { Clan } from "./views/Clan.jsx";
+import { Explore } from "./views/Explore.jsx";
 
 export const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see " +
@@ -69,6 +70,17 @@ export function App() {
           )}
           {authed && (
             <a
+              href="/explore"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/explore");
+              }}
+            >
+              Explore
+            </a>
+          )}
+          {authed && (
+            <a
               href="/clan"
               onClick={(e) => {
                 e.preventDefault();
@@ -126,11 +138,13 @@ export function App() {
       {path === "/dashboard" && (
         <Dashboard me={me} refresh={refresh} navigate={navigate} />
       )}
+      {path === "/explore" && <Explore me={me} navigate={navigate} />}
       {path === "/clan" && <Clan me={me} navigate={navigate} />}
       {path === "/admin" && <Admin me={me} />}
       {path !== "/signin" &&
         path !== "/dashboard" &&
         path !== "/clan" &&
+        path !== "/explore" &&
         path !== "/admin" && <Landing authed={authed} navigate={navigate} />}
 
       <footer>{DISCLAIMER}</footer>

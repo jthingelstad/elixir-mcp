@@ -705,3 +705,42 @@ test("gateway ladder: points rank gateways with arena tiers; scoring rides admis
   assert.equal(gw.arena.next.name, "Spell Valley Switch");
   assert.equal(gw.arena.next.points_needed, 5400);
 });
+
+test("explorer bridge: registry tools with session auth, audited as surface web", async () => {
+  const cookie = memberCookie;
+  const res = parse(
+    await handler(
+      event({
+        path: "/api/explore",
+        cookie,
+        body: { tool: "list_my_players", args: {} },
+      }),
+    ),
+  );
+  assert.equal(res.is_error, false);
+  assert.ok(Array.isArray(res.body.players));
+
+  // Entitlements ride along: a stranger tag (no shared clan) refuses.
+  const denied = parse(
+    await handler(
+      event({
+        path: "/api/explore",
+        cookie,
+        body: { tool: "query_battles", args: { player_tag: "#PYGRJC" } },
+      }),
+    ),
+  );
+  assert.equal(denied.is_error, true);
+
+  // Live passthrough is not explorable; unknown tools refuse.
+  const live = await handler(
+    event({ path: "/api/explore", cookie, body: { tool: "cr_api_live" } }),
+  );
+  assert.equal(live.statusCode, 400);
+
+  // Audit rows carry the web surface.
+  const { rows } = await db.query(
+    `select count(*)::int n from mcp_call_audit where surface = 'web'`,
+  );
+  assert.ok(rows[0].n >= 2, "explorer calls audited as web");
+});
