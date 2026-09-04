@@ -86,7 +86,7 @@ async function buildMeta(db, account, tag) {
   return responseMeta({
     as_of: new Date().toISOString(),
     ...(row.recorded_since
-      ? { recorded_since: row.recorded_since.toISOString() }
+      ? { recording_active_since: row.recorded_since.toISOString() }
       : {}),
     ...(row.freshness_seconds !== null && row.freshness_seconds !== undefined
       ? { freshness_seconds: row.freshness_seconds }
@@ -100,7 +100,7 @@ async function buildMeta(db, account, tag) {
 const TOOLS = {
   list_my_players: {
     description:
-      "Your session bootstrap: claimed tags, which is primary, verification and recording status, and current clan as recorded. Call this first.",
+      "Your session bootstrap: claimed tags, which is primary, and recording status, and current clan as recorded. claim_status is informational — claims are trust-based. Call this first.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -185,6 +185,11 @@ const TOOLS = {
         completeness_last_7_days: {
           average_ratio: completeness.rows[0].recent_ratio,
           incomplete_days: completeness.rows[0].incomplete_days,
+          ...(completeness.rows[0].recent_ratio === null
+            ? {
+                note: "Not yet computable: completeness needs consecutive daily snapshots to bracket each day; it fills in after a couple of days of recording.",
+              }
+            : {}),
         },
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
@@ -297,7 +302,8 @@ const TOOLS = {
         mode: {
           type: "string",
           enum: MODE_GROUPS,
-          description: "Mode group filter.",
+          description:
+            "Mode group filter. ladder = Trophy Road; ranked = Path of Legends.",
         },
         game_mode_id: { type: "integer" },
         opponent_tag: {
@@ -510,29 +516,36 @@ const TOOLS = {
         params.push(args.to);
         where.push(`snapshot_date <= $${params.length}::date`);
       }
+      // Week granularity: Postgres owns ISO-week truth (the hand-rolled
+      // formula this replaced drifted near year boundaries), and each
+      // point carries its iso_week so near-adjacent dates (a Saturday
+      // then the next Monday) self-explain — pilot-tester feedback.
+      const weekly = args.granularity === "week";
       const { rows } = await ctx.db.query(
-        `select snapshot_date, trophies, donations,
+        weekly
+          ? `select distinct on (date_trunc('week', snapshot_date))
+               snapshot_date, to_char(snapshot_date, 'IYYY-"W"IW') as iso_week,
+               trophies, donations,
+               (lifetime->>'battleCount')::int as battle_count,
+               (lifetime->>'collectionLevel')::int as collection_level
+             from player_snapshot_daily where ${where.join(" and ")}
+             order by date_trunc('week', snapshot_date), snapshot_date desc`
+          : `select snapshot_date, trophies, donations,
                 (lifetime->>'battleCount')::int as battle_count,
                 (lifetime->>'collectionLevel')::int as collection_level
-         from player_snapshot_daily where ${where.join(" and ")}
-         order by snapshot_date`,
+             from player_snapshot_daily where ${where.join(" and ")}
+             order by snapshot_date`,
         params,
       );
-      let points = rows;
-      if (args.granularity === "week") {
-        const byWeek = new Map();
-        for (const r of rows) {
-          const d = r.snapshot_date;
-          const week = `${d.getUTCFullYear()}-W${String(Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000 + new Date(Date.UTC(d.getUTCFullYear(), 0, 1)).getUTCDay() + 1) / 7)).padStart(2, "0")}`;
-          byWeek.set(week, r); // last snapshot of the week wins
-        }
-        points = [...byWeek.values()];
-      }
+      const points = weekly
+        ? rows.sort((a, z) => a.snapshot_date - z.snapshot_date)
+        : rows;
       return {
         player_tag: tag,
-        granularity: args.granularity === "week" ? "week" : "day",
+        granularity: weekly ? "week" : "day",
         series: points.map((r) => ({
           date: r.snapshot_date.toISOString().slice(0, 10),
+          ...(weekly ? { iso_week: r.iso_week } : {}),
           ...Object.fromEntries(metrics.map((m) => [m, r[m]])),
         })),
         note: metrics.includes("donations")
@@ -563,7 +576,7 @@ const TOOLS = {
         before_after: {
           type: "string",
           description:
-            "Date splitting two windows: [from..date) vs [date..to]. The Firecracker question.",
+            "Date splitting two windows: [from..date) vs [date..to] — e.g. performance before vs after a deck change.",
         },
       },
       additionalProperties: false,

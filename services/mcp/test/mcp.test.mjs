@@ -215,7 +215,7 @@ test("list_my_players: primary claim, recording status, meta envelope", async ()
   assert.ok(body.meta.quota.used >= 1);
 });
 
-test("get_coverage: polls, appearances, recorded_since", async () => {
+test("get_coverage: polls, appearances, recording_active_since", async () => {
   const { body } = await callTool("get_coverage");
   assert.ok(body.battles.recorded_appearances > 0);
   assert.match(body.battles.note, /appears in \d+ recorded battles/);
@@ -224,7 +224,7 @@ test("get_coverage: polls, appearances, recorded_since", async () => {
       (p) => p.endpoint === "player_battlelog" && p.last_admitted_at,
     ),
   );
-  assert.ok(body.meta.recorded_since, "recording start present");
+  assert.ok(body.meta.recording_active_since, "recording start present");
   assert.equal(body.meta.timezone_applied, "America/Chicago");
 });
 
