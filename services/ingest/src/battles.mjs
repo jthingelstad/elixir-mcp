@@ -280,7 +280,12 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
 
   let battlesInserted = 0;
   if (battles.size > 0) {
-    const battleRows = [...battles.values()];
+    // Deterministic lock order: concurrent observers of the SAME battles
+    // (concurrency 4) otherwise acquire row locks in payload order and
+    // stall each other — censused live as a 13s p99 on a 251ms p50.
+    const battleRows = [...battles.values()].sort((a, z) =>
+      a.battle_id < z.battle_id ? -1 : 1,
+    );
     const { rows } = await db.query(
       insertManySql(
         "battle",
@@ -293,7 +298,7 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
     );
     battlesInserted = rows.filter((r) => r.inserted).length;
 
-    const partRows = [...parts.values()];
+    const partRows = [...parts.keys()].sort().map((k) => parts.get(k));
     await db.query(
       insertManySql(
         "battle_participant",
