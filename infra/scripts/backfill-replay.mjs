@@ -28,7 +28,7 @@ const ARCHIVE_URI = `file:${ARCHIVE}?mode=ro`;
 const CUTOFF = "2026-09-03T18:00";
 const ENDPOINTS =
   "('player_battlelog','player','currentriverrace','riverracelog')";
-const BATCH = 25;
+const BATCH = 80;
 const PROGRESS_FILE = new URL("../../.backfill-progress.json", import.meta.url);
 
 const dryRun = process.argv.includes("--dry-run");
@@ -81,6 +81,18 @@ while (sent < limit) {
   );
   if (rows.length === 0) break;
 
+  // Invoke payloads cap at 6MB: trim the batch if gzipped bodies run big.
+  let budget = 4_500_000;
+  const keep = [];
+  for (const r of rows) {
+    const gz = gzipSync(Buffer.from(r.payload_json)).toString("base64");
+    if (budget - gz.length < 0 && keep.length > 0) break;
+    budget -= gz.length;
+    keep.push({ ...r, gz });
+  }
+  rows.length = 0;
+  rows.push(...keep);
+
   const messages = rows.map((r) => ({
     v: 1,
     job: { endpoint: r.endpoint, entity_key: r.entity_key, lane: "bulk" },
@@ -89,7 +101,7 @@ while (sent < limit) {
     // Archive timestamps are sometimes missing the Z; fetched_at is UTC.
     fetched_at: r.fetched_at.endsWith("Z") ? r.fetched_at : `${r.fetched_at}Z`,
     status: "ok",
-    body_gzip_b64: gzipSync(Buffer.from(r.payload_json)).toString("base64"),
+    body_gzip_b64: r.gz,
   }));
 
   const res = await lambda.send(

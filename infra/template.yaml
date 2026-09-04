@@ -458,7 +458,7 @@ Resources:
       Runtime: nodejs24.x
       Architectures: [arm64]
       Handler: index.handler
-      MemorySize: 256
+      MemorySize: 1024
       Timeout: 300
       ReservedConcurrentExecutions: 1
       Role: !GetAtt VpcLambdaRole.Arn
