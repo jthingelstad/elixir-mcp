@@ -135,6 +135,7 @@ export function canonicalizeBattle(entry) {
       const { deck, hash } = participantDeck(p);
       participants.push({
         player_tag: normalizeTag(p.tag),
+        name: p.name ?? null, // for the player upsert only, never a participant column
         side,
         crowns: p.crowns ?? null,
         trophy_change: p.trophyChange ?? null,
@@ -267,15 +268,23 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   }
 
   // Player rows for observer + every participant (game entities exist
-  // independent of accounts, §4.1).
+  // independent of accounts, §4.1). Battlelog names fill NULLs only —
+  // roster/profile observations stay authoritative for known players.
+  const nameByTag = new Map();
+  for (const p of parts.values()) {
+    if (p.name && !nameByTag.has(p.player_tag))
+      nameByTag.set(p.player_tag, p.name);
+  }
   const tags = [
     ...new Set([observer, ...[...parts.values()].map((p) => p.player_tag)]),
   ];
   await db.query(
-    `insert into player (player_tag)
-     select unnest($1::text[])
-     on conflict (player_tag) do update set last_seen_at = now()`,
-    [tags],
+    `insert into player (player_tag, name)
+     select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
+     on conflict (player_tag) do update set
+       last_seen_at = now(),
+       name = coalesce(player.name, excluded.name)`,
+    [tags, tags.map((t) => nameByTag.get(t) ?? null)],
   );
 
   let battlesInserted = 0;

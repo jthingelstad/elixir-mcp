@@ -235,3 +235,62 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
 test("the registry now declares 17 tools", () => {
   assert.equal(makeRegistry().declarations().length, 17);
 });
+
+test("round-3: seasons range refused loudly; attendance unions recorded battles", async () => {
+  const thirteen = await call(invoke, "get_war_history", { seasons: 13 });
+  assert.equal(thirteen.isError, true);
+  assert.equal(thirteen.body.error.code, "bad_request");
+
+  // A recorded war battle proves attendance even with NO decksUsedToday
+  // poll observation (sparse polls undercount — round-3 cross-check).
+  const wk = (
+    await db.query(
+      `select season_id, section_index from war_week where clan_tag = $1
+       order by season_id desc, section_index desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0];
+  const member = (
+    await db.query(
+      `select player_tag from war_participation
+       where clan_tag = $1 and season_id = $2 and section_index = $3 limit 1`,
+      [CLAN, wk.season_id, wk.section_index],
+    )
+  ).rows[0].player_tag;
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, season_id, section_index, war_day)
+     values ('r3-war-battle', now(), 'riverRacePvP', 'pvp', $1, $2, 1)`,
+    [wk.season_id, wk.section_index],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag)
+     values ('r3-war-battle', $1, now(), 0, $2)`,
+    [member, CLAN],
+  );
+
+  const war = await call(invoke, "get_war", {});
+  const day1 = war.body.attendance_by_war_day.find((d) => d.war_day === 1);
+  assert.ok(day1, "battle-derived war day appears");
+  assert.ok(day1.battled >= 1, "recorded battle counts as battled");
+  assert.ok(
+    typeof day1.participants === "number",
+    "attendance counts race participants, field renamed from members",
+  );
+
+  const focused = await call(invoke, "get_war_history", {
+    player_tag: member,
+    seasons: 1,
+  });
+  const cw = focused.body.member_weeks.find(
+    (w) => w.season_id === wk.season_id && w.section_index === wk.section_index,
+  );
+  assert.ok(
+    cw.war_days_battled >= 1,
+    "battle-derived day reaches war_days_battled",
+  );
+  assert.ok(
+    focused.body.weeks[0].in_progress === true ||
+      focused.body.weeks[0].finished !== null,
+    "latest week is either finished or marked in_progress",
+  );
+});

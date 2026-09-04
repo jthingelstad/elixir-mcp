@@ -164,7 +164,7 @@ const TOOLS = {
       const tag = (
         await subject(ctx.db, ctx.account, args.player_tag, "summary")
       ).tag;
-      const [snap, record, deck] = await Promise.all([
+      const [snap, record, deck, best] = await Promise.all([
         ctx.db.query(
           `select p.name, p.last_known_clan_tag, cl.name as clan_name,
                   s.trophies, s.snapshot_date
@@ -182,7 +182,9 @@ const TOOLS = {
           `select count(*)::int as battles,
                   count(*) filter (where outcome = 'win')::int as wins,
                   count(*) filter (where outcome = 'loss')::int as losses,
-                  coalesce(sum(trophy_change), 0)::int as net_trophies
+                  count(*) filter (where outcome = 'draw')::int as draws,
+                  coalesce(sum(trophy_change), 0)::int as net_trophies,
+                  min(battle_time) as first_recorded
            from battle_participant
            where player_tag = $1 and battle_time > now() - interval '30 days'`,
           [tag],
@@ -195,7 +197,22 @@ const TOOLS = {
            from battle_participant bp
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
-           group by bp.deck_hash order by count(*) desc limit 1`,
+           group by bp.deck_hash order by count(*) desc limit 2`,
+          [tag],
+        ),
+        ctx.db.query(
+          `select bp.deck_hash, count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  (array_agg(bp.deck order by bp.battle_time desc))[1] as deck
+           from battle_participant bp
+           where bp.player_tag = $1 and bp.deck_hash is not null
+             and bp.battle_time > now() - interval '30 days'
+           group by bp.deck_hash
+           having count(*) >= 10 and count(*) filter (where bp.outcome in ('win','loss')) > 0
+           order by (count(*) filter (where bp.outcome = 'win'))::numeric
+                    / greatest(count(*) filter (where bp.outcome in ('win','loss')), 1) desc
+           limit 1`,
           [tag],
         ),
       ]);
@@ -207,6 +224,22 @@ const TOOLS = {
         );
       const r = record.rows[0];
       const d = deck.rows[0];
+      const b = best.rows[0];
+      const deckShape = (row) =>
+        row
+          ? {
+              deck_hash: row.deck_hash,
+              cards: (row.deck?.cards ?? []).map((c) => ({
+                id: c.id,
+                name: c.name,
+              })),
+              battles: row.battles,
+              win_rate:
+                row.wins + row.losses > 0
+                  ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
+                  : null,
+            }
+          : null;
       return {
         player_tag: tag,
         name: p0.name,
@@ -221,26 +254,19 @@ const TOOLS = {
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
+          draws: r.draws,
           net_trophies: r.net_trophies,
           win_rate:
             r.wins + r.losses > 0
               ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
               : null,
+          first_recorded: r.first_recorded?.toISOString() ?? null,
         },
-        top_deck: d
-          ? {
-              deck_hash: d.deck_hash,
-              cards: (d.deck?.cards ?? []).map((c) => ({
-                id: c.id,
-                name: c.name,
-              })),
-              battles: d.battles,
-              win_rate:
-                d.wins + d.losses > 0
-                  ? Number((d.wins / (d.wins + d.losses)).toFixed(3))
-                  : null,
-            }
-          : null,
+        top_deck: deckShape(d),
+        // most-played is often NOT the best-performing deck - both
+        // headlines matter (round-3 casual finding).
+        best_deck: b && b.deck_hash !== d?.deck_hash ? deckShape(b) : null,
+        note: "counts include ALL recorded battles (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded. best_deck needs 10+ battles in the window and is omitted when it IS the top deck. History may predate active recording - get_coverage has the full capture story.",
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
@@ -462,7 +488,7 @@ const TOOLS = {
           enum: ["full", "compact"],
           default: "full",
           description:
-            "compact drops per-card deck arrays, support cards, and tower_hp (deck_hash remains) — use it for wide sweeps; full pages of duel battles can exceed the response size cap.",
+            "compact drops per-card deck arrays, support cards, and tower_hp (deck_hash remains) — use it for wide sweeps. full delivers both sides' decks and tower_hp and therefore caps limit at 25.",
         },
       },
       additionalProperties: false,
@@ -473,6 +499,16 @@ const TOOLS = {
       const tz = ctx.account.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
       const compact = args.verbosity === "compact";
+      // Full battles now carry BOTH sides' decks and tower_hp; above the
+      // default page size that reliably overruns the result cap and
+      // truncates mid-JSON. Refuse loudly instead.
+      if (!compact && Number(args.limit ?? 25) > 25) {
+        throw new ToolFailure(
+          "bad_request",
+          "limit above 25 requires verbosity: 'compact' (full battles carry both sides' decks).",
+          "Use compact for wide sweeps; deck_hash survives compaction.",
+        );
+      }
       const where = ["bp.player_tag = $1"];
       const params = [tag];
       const add = (clause, value) => {
@@ -535,6 +571,21 @@ const TOOLS = {
             "Cursors are opaque tokens; restart from the first page.",
           );
         }
+        // Integrity: the id half must be a real battle. A forged or
+        // corrupted-but-parseable cursor otherwise returns an empty page
+        // indistinguishable from end-of-data (round-3 finding). Battles
+        // are never deleted, so a genuine cursor always passes.
+        const { rows: cursorRow } = await ctx.db.query(
+          `select 1 from battle where battle_id = $1`,
+          [m[2]],
+        );
+        if (!cursorRow[0]) {
+          throw new ToolFailure(
+            "bad_request",
+            "Invalid cursor (not issued by this server, or corrupted).",
+            "Cursors are opaque tokens; restart from the first page.",
+          );
+        }
         params.push(m[1], m[2]);
         where.push(
           `(b.battle_time, b.battle_id) < ($${params.length - 1}, $${params.length})`,
@@ -558,7 +609,8 @@ const TOOLS = {
       if (rows.length > 0) {
         const ids = rows.map((r) => r.battle_id);
         const { rows: rest } = await ctx.db.query(
-          `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag, p.name
+          `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
+                  o.deck, o.tower_hp, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            where o.battle_id = any($1) and o.player_tag <> $2`,
           [ids, tag],
@@ -578,6 +630,9 @@ const TOOLS = {
           crowns: o.crowns,
           deck_hash: o.deck_hash,
           clan_tag: o.clan_tag,
+          // Full verbosity delivers the promised "both perspectives":
+          // participant rows are written symmetrically at ingest.
+          ...(compact ? {} : { deck: o.deck, tower_hp: o.tower_hp }),
         });
         return {
           battle_time: r.battle_time.toISOString(),
@@ -622,9 +677,26 @@ const TOOLS = {
         totalCount = cnt[0].n;
       }
 
+      // Empty page + a window that ends before the first recorded battle
+      // reads as "player was inactive" unless we say otherwise.
+      let warnings;
+      if (battles.length === 0 && to) {
+        const { rows: firstRec } = await ctx.db.query(
+          `select min(battle_time) as first from battle_participant where player_tag = $1`,
+          [tag],
+        );
+        const first = firstRec[0]?.first;
+        if (first && to.getTime() < first.getTime()) {
+          warnings = [
+            `window_precedes_recording: the window ends before this player's first recorded battle (${first.toISOString()}); emptiness means no COVERAGE, not inactivity.`,
+          ];
+        }
+      }
+
       return {
         player_tag: tag,
         battles,
+        ...(warnings ? { warnings } : {}),
         ...(totalCount !== undefined ? { total_count: totalCount } : {}),
         // Explicit null = end of results (absent-vs-null was ambiguous).
         next_cursor:
@@ -635,7 +707,7 @@ const TOOLS = {
           ? {}
           : {
               card_legend:
-                "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic.",
+                "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic. tower_hp is the hitpoints REMAINING on that player's towers when the battle ended (a margin signal, never a level); princess is an array of surviving princess-tower hp, and null means the game did not report tower data for this battle.",
             }),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
@@ -849,11 +921,12 @@ const TOOLS = {
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
           `select to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
-                  min(bp.battle_time)::date::text as week_of,
+                  date_trunc('week', bp.battle_time)::date::text as week_of,
                   count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(*) filter (where bp.outcome = 'draw')::int as draws,
+                  count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
            where ${where.join(" and ")}
@@ -869,12 +942,15 @@ const TOOLS = {
             wins: r.wins,
             losses: r.losses,
             draws: r.draws,
+            trophy_battles: r.trophy_battles,
             net_trophies: r.net_trophies,
             win_rate:
               r.wins + r.losses > 0
                 ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
                 : null,
           })),
+          weekly_note:
+            "week_of is the ISO week's Monday (UTC). win_rate = wins/(wins+losses), draws excluded. net_trophies covers only trophy_battles (war and special modes carry no trophies) — a rising win_rate with flat trophies usually means war-heavy weeks.",
           ...(args.before_after || args.compare_from || args.compare_to
             ? {
                 note: "group_by week takes precedence; before_after/compare_* were ignored.",
@@ -1314,6 +1390,15 @@ const TOOLS = {
           first_observed_in_clan: m.joined_observed_at?.toISOString() ?? null,
           last_recorded_battle: m.last_battle?.toISOString() ?? null,
         })),
+        // An empty event list means "none observed SINCE ROSTER RECORDING
+        // BEGAN", never "no joins/leaves ever" (round-3: a leader would
+        // have wrongly concluded no departures).
+        events_recorded_since:
+          roster.rows
+            .map((m) => m.joined_observed_at)
+            .filter(Boolean)
+            .sort((a, b) => a - b)[0]
+            ?.toISOString() ?? null,
         recent_events: events.rows.map((e) => ({
           type: e.event_type,
           at: e.window_end.toISOString(),
@@ -1373,14 +1458,36 @@ const TOOLS = {
                             and cm.left_observed_at is null) as in_clan
            from war_participation wp join player p on p.player_tag = wp.player_tag
            where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
-           order by wp.points desc`,
+           order by wp.points desc,
+                    exists (select 1 from clan_membership cm2
+                            where cm2.clan_tag = wp.clan_tag and cm2.player_tag = wp.player_tag
+                              and cm2.left_observed_at is null) desc,
+                    p.name nulls last`,
           [clanTag, wk.season_id, wk.section_index],
         ),
+        // Battled = decksUsedToday observed >0 at any poll, OR a recorded
+        // war battle by that member that day — polls alone undercount
+        // when the cadence misses a member's play window (round-3).
         ctx.db.query(
-          `select war_day, count(*) filter (where decks_used_today > 0)::int as battled,
-                  count(*)::int as members
-           from war_attendance_day
-           where clan_tag = $1 and season_id = $2 and section_index = $3
+          `with att as (
+             select war_day, player_tag, decks_used_today > 0 as battled
+             from war_attendance_day
+             where clan_tag = $1 and season_id = $2 and section_index = $3),
+           fought as (
+             select distinct b.war_day, bp.player_tag
+             from battle b join battle_participant bp on bp.battle_id = b.battle_id
+             where bp.clan_tag = $1 and b.season_id = $2 and b.section_index = $3
+               and b.war_day is not null),
+           merged as (
+             select war_day, player_tag, bool_or(battled) as battled from (
+               select war_day, player_tag, battled from att
+               union all
+               select war_day, player_tag, true from fought) x
+             group by war_day, player_tag)
+           select war_day,
+                  count(*) filter (where battled)::int as battled,
+                  count(*)::int as participants
+           from merged
            group by war_day order by war_day`,
           [clanTag, wk.season_id, wk.section_index],
         ),
@@ -1393,7 +1500,7 @@ const TOOLS = {
         standings: standings.rows,
         participants: participation.rows,
         attendance_by_war_day: attendance.rows,
-        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants include everyone who scored this week; in_clan is false for members who have since left.",
+        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles.",
         meta: responseMeta({
           as_of: new Date().toISOString(),
           ...(ctx.account.timezone
@@ -1434,7 +1541,12 @@ const TOOLS = {
       if (args.player_tag)
         focus = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
           .tag;
-      const seasons = Math.min(Math.max(Number(args.seasons ?? 3), 1), 12);
+      const seasons = Number(args.seasons ?? 3);
+      if (!Number.isInteger(seasons) || seasons < 1 || seasons > 12)
+        throw new ToolFailure(
+          "bad_request",
+          `seasons must be an integer from 1 to 12 (got ${args.seasons}).`,
+        );
       const { rows: weeks } = await ctx.db.query(
         `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at,
                 own.fame as our_fame, own.rank as our_rank, own.trophy_change
@@ -1449,20 +1561,35 @@ const TOOLS = {
       );
       let memberWeeks = null;
       if (focus) {
-        // Same season window as the weeks list. war_days_battled is null
-        // when the week has NO per-day attendance coverage at all (a week
-        // recorded from the log, not daily polls) — a zero there would be
-        // indistinguishable from "sat out every day".
+        // Same season window as the weeks list. war_days_battled unions
+        // TWO observation sources — decksUsedToday polls AND the member's
+        // own recorded war battles (sparse polls miss decksUsedToday
+        // windows; round-3 cross-check caught the undercount). Null when
+        // the week has NO coverage from either source — a zero there
+        // would be indistinguishable from "sat out every day".
         const { rows } = await ctx.db.query(
           `select wp.season_id, wp.section_index, wp.points, wp.decks_used, wp.boat_attacks,
                   case when exists (select 1 from war_attendance_day cov
                                     where cov.clan_tag = wp.clan_tag
                                       and cov.season_id = wp.season_id
                                       and cov.section_index = wp.section_index)
-                       then (select count(*)::int from war_attendance_day ad
-                             where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
-                               and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
-                               and ad.decks_used_today > 0)
+                         or exists (select 1 from battle_participant bpc
+                                    join battle bc on bc.battle_id = bpc.battle_id
+                                    where bpc.clan_tag = wp.clan_tag
+                                      and bc.season_id = wp.season_id
+                                      and bc.section_index = wp.section_index
+                                      and bc.war_day is not null)
+                       then (select count(distinct d.war_day)::int from (
+                               select ad.war_day from war_attendance_day ad
+                               where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
+                                 and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
+                                 and ad.decks_used_today > 0
+                               union
+                               select b.war_day from battle_participant bp2
+                               join battle b on b.battle_id = bp2.battle_id
+                               where bp2.player_tag = wp.player_tag and bp2.clan_tag = wp.clan_tag
+                                 and b.season_id = wp.season_id and b.section_index = wp.section_index
+                                 and b.war_day is not null) d)
                        end as war_days_battled
            from war_participation wp
            where wp.clan_tag = $1 and wp.player_tag = $2
@@ -1472,19 +1599,25 @@ const TOOLS = {
         );
         memberWeeks = rows;
       }
+      // The chronologically-latest unfinished week is the one still being
+      // fought; older null-standings weeks are capture gaps. The
+      // distinction matters to a skeptical reader (round-3 finding).
+      const newest = weeks[0];
       return {
         clan_tag: clanTag,
         weeks: weeks.map((w) => ({
           season_id: w.season_id,
           section_index: w.section_index,
           is_colosseum: w.is_colosseum,
+          in_progress:
+            w === newest && w.finished_observed_at === null ? true : undefined,
           finished: w.finished_observed_at?.toISOString() ?? null,
           our_rank: w.our_rank,
           our_fame: w.our_fame,
           trophy_change: w.trophy_change,
         })),
         ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
-        note: "points are per-member contributions; fame belongs to the boat (clan). null our_rank/our_fame means the week was observed without a standings capture; null war_days_battled means no per-day attendance was recorded that week (unknown, not zero).",
+        note: "points are per-member contributions; fame belongs to the boat (clan). in_progress marks the week still being fought (nulls there mean not-finished-yet); on OLDER weeks null our_rank/our_fame means the week was observed without a standings capture. null war_days_battled means per-day attendance is unknown for that week (unknown, not zero).",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -1512,6 +1645,8 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
+      if ((args.player_tags ?? []).length > 4)
+        throw new ToolFailure("bad_request", "compare_players needs 2-4 tags.");
       const tags = [];
       for (const raw of args.player_tags ?? []) {
         tags.push((await subject(ctx.db, ctx.account, raw, "summary")).tag);

@@ -252,7 +252,10 @@ test("round-1 tester fixes: inverted windows refuse; compact drops decks; null c
   );
   assert.ok(compactRes.body.battles[0].me.deck_hash, "hash stays");
 
-  const short = await call("query_battles", { limit: 50 });
+  const short = await call("query_battles", {
+    limit: 50,
+    verbosity: "compact",
+  });
   assert.equal(short.body.next_cursor, null, "explicit null on final page");
 
   const perf = await call("get_performance", {
@@ -293,4 +296,64 @@ test("wishlist batch: weekly trend, headline summary, deck ergonomics, total_cou
   });
   assert.equal(counted.isError, false);
   assert.ok(counted.body.total_count >= counted.body.battles.length);
+});
+
+test("round-3 fixes: honest validation and richer shapes", async () => {
+  // Empty player_tag is a caller bug, never a silent default.
+  const empty = await call("get_player", { player_tag: "" });
+  assert.equal(empty.isError, true);
+  assert.equal(empty.body.error.code, "invalid_tag");
+
+  // Forged-but-parseable cursor refused (the id half must be real).
+  const forged = await call("query_battles", {
+    cursor: `2026-01-01T00:00:00Z|${"0".repeat(64)}`,
+  });
+  assert.equal(forged.isError, true);
+  assert.equal(forged.body.error.code, "bad_request");
+
+  // Weekly rows: week_of is the ISO week's Monday; trophy-eligible count rides along.
+  const trend = await call("get_performance", { group_by: "week" });
+  assert.ok(trend.body.weekly.length > 0);
+  for (const w of trend.body.weekly) {
+    assert.equal(
+      new Date(`${w.week_of}T00:00:00Z`).getUTCDay(),
+      1,
+      `week_of ${w.week_of} is a Monday`,
+    );
+    assert.ok(typeof w.trophy_battles === "number");
+  }
+  assert.match(trend.body.weekly_note, /draws excluded/);
+
+  // Summary: draws counted, denominator explained, best_deck slot exists.
+  const sum = await call("get_player_summary", {});
+  assert.ok(typeof sum.body.last_30_days.draws === "number");
+  assert.match(sum.body.note, /draws excluded/);
+  assert.ok("best_deck" in sum.body);
+
+  // Full verbosity delivers the promised opponent perspective.
+  const full = await call("query_battles", { limit: 10 });
+  const withOpp = full.body.battles.find((b) => b.opponents.length > 0);
+  assert.ok(withOpp, "an opponent-bearing battle exists");
+  assert.ok(
+    withOpp.opponents[0].deck,
+    "opponent deck present at full verbosity",
+  );
+  assert.ok(withOpp.opponents[0].name, "opponent name stamped at ingest");
+  assert.match(full.body.card_legend, /tower_hp/);
+
+  // A window before recording says so instead of a bare empty page.
+  const ancient = await call("query_battles", {
+    from: "2020-01-01",
+    to: "2020-02-01",
+  });
+  assert.equal(ancient.isError, false);
+  assert.equal(ancient.body.battles.length, 0);
+  assert.match(ancient.body.warnings?.[0] ?? "", /window_precedes_recording/);
+
+  // compare_players enforces its upper bound server-side.
+  const five = await call("compare_players", {
+    player_tags: ["#20JJJ2CCRU", "#2PP", "#2PY", "#2PL", "#2PQ"],
+  });
+  assert.equal(five.isError, true);
+  assert.equal(five.body.error.code, "bad_request");
 });

@@ -86,7 +86,17 @@ async function resolveEntitlements(db, account) {
 export async function resolveSubject(db, account, inputTag, need = "full") {
   const ent = await resolveEntitlements(db, account);
   let tag;
-  if (inputTag === undefined || inputTag === null || inputTag === "") {
+  // Empty string is a CALLER BUG (an unset variable), not "use my
+  // default" — silently resolving it would hand back the wrong player's
+  // data with zero signal (round-3 adversarial finding).
+  if (typeof inputTag === "string" && inputTag.trim() === "") {
+    throw {
+      code: "invalid_tag",
+      message: "player_tag is an empty string.",
+      hint: "Omit the argument entirely to use your primary claimed tag.",
+    };
+  }
+  if (inputTag === undefined || inputTag === null) {
     const { rows } = await db.query(
       `select player_tag from claim where account_id = $1 and is_primary`,
       [account.accountId],

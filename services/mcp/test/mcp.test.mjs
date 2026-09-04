@@ -274,10 +274,18 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
     "cursor advances",
   );
 
-  const wins = await callTool("query_battles", { outcome: "win", limit: 50 });
+  const wins = await callTool("query_battles", {
+    outcome: "win",
+    limit: 50,
+    verbosity: "compact",
+  });
   assert.ok(wins.body.battles.every((x) => x.me.outcome === "win"));
 
-  const ranked = await callTool("query_battles", { mode: "ranked", limit: 50 });
+  const ranked = await callTool("query_battles", {
+    mode: "ranked",
+    limit: 50,
+    verbosity: "compact",
+  });
   assert.ok(ranked.body.battles.every((x) => x.type === "pathOfLegend"));
 
   const dh = wins.body.battles.find((x) => x.me.deck_hash)?.me.deck_hash;
@@ -285,6 +293,7 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
     const byDeck = await callTool("query_battles", {
       deck_hash: dh,
       limit: 50,
+      verbosity: "compact",
     });
     assert.ok(byDeck.body.battles.every((x) => x.me.deck_hash === dh));
   }

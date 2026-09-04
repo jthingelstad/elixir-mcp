@@ -309,3 +309,44 @@ test("0012 repair: pre-cutoff raw decks convert once; post-cutoff display decks 
   assert.equal(newDeck.cards[0].level, 14, "display deck left alone");
   assert.equal(newDeck.norm, 1, "post-cutoff rows never touched");
 });
+
+test("battlelog participants stamp player names (fill nulls, never overwrite)", async () => {
+  const payload = await fixture("player_battlelog/with_path_of_legend.json");
+  const observer = meta["player_battlelog/with_path_of_legend.json"].entity_key;
+  const named = payload
+    .flatMap((e) => [...(e.team ?? []), ...(e.opponent ?? [])])
+    .find(
+      (p) =>
+        p.tag &&
+        p.name &&
+        p.tag.toUpperCase().replace("O", "0") !== observer.toUpperCase(),
+    );
+  assert.ok(named, "fixture has a named participant");
+  const namedTag = named.tag.toUpperCase().replace("O", "0");
+
+  // Pre-set a DIFFERENT name for the observer: battlelog must not clobber it.
+  await ctx.db.query(
+    `insert into player (player_tag, name) values ($1, 'Authoritative Name')
+     on conflict (player_tag) do update set name = 'Authoritative Name'`,
+    [observer],
+  );
+  await ingestBattlelog(ctx.db, {
+    observerTag: observer,
+    receiptId,
+    payload,
+  });
+  const { rows } = await ctx.db.query(
+    `select name from player where player_tag = $1`,
+    [namedTag],
+  );
+  assert.equal(rows[0].name, named.name, "opponent name filled from battlelog");
+  const { rows: obs } = await ctx.db.query(
+    `select name from player where player_tag = $1`,
+    [observer],
+  );
+  assert.equal(
+    obs[0].name,
+    "Authoritative Name",
+    "existing name never overwritten",
+  );
+});
