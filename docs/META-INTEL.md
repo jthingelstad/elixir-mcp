@@ -270,3 +270,79 @@ domain, read-only annotations).
   fields on candidates it already ranks structurally — ranking stays
   levels-first (the 22-points-of-win-rate finding is bedrock and this
   design does not fight it).
+
+## 9. Track two: level economics (`battles_levels`) — REVIEW PENDING
+
+The impact hierarchy this whole doc rests on (levels ≈ 22 points,
+composition ≈ 7, matchup ≈ 3) says the most actionable number we can
+serve attacks the LEVELS tier. We uniquely can: 98.4% of the corpus
+(35,648 of 36,216 battles) carries BOTH sides' per-card display levels.
+
+**The estimator.** Per battle, side-average display level for each
+side; the gap g = own_avg − opp_avg (signed). The served object is a
+BINNED curve, not a parametric fit:
+
+    bins: (-∞,-1.5], (-1.5,-1], (-1,-0.75], ... , [1.5,∞)   (fine near 0)
+    per bin: n, raw win rate, skill-adjusted lift (win − p̂^(−) as §2,
+             cluster-robust se by player), interval
+
+Bin edges follow the measured support — the corpus gap distribution is
+TIGHT (median |g| 0.00, mean 0.27, p90 0.75; matchmaking compresses
+gaps), so the curve is dense exactly where members live (sub-one-level
+deficits) and the response REFUSES to extrapolate: bins below the n
+floor serve counts only, and a "no data beyond |g|≈2 in this band"
+basis line replaces any smooth line through empty space.
+
+**Two truths, both disclosed, never conflated:**
+
+1. *Within-match slope* — what the curve measures: given a matchup with
+   gap g, how win probability shifts. This is the number for "does my
+   0.5-level deficit matter tonight."
+2. *Positional effect* — what the curve does NOT measure: upgrades also
+   move WHERE you sit (matchmaking re-equilibrates; a maxed deck climbs
+   until gaps reappear). The causal value of an upgrade to climbing is
+   at least the within-match slope, realized as band movement. Stated
+   in the response basis; estimating it would need trajectory methods
+   we are not building (and would drift toward editorializing).
+
+Confounds: gap correlates with account age and possibly skill →
+skill-adjustment via the §2 baselines handles the player side;
+trophy-band conditioning handles the pocket-meta side; what remains
+(underleveled-but-skilled smurfs) widens intervals rather than biasing
+the headline, and is named in the basis string.
+
+**Player-facing use (bot-side):** position a member's actual decks'
+average level against their band's opponent distribution → where they
+sit on the curve → the measured cost of their current deficit. Which
+card to upgrade stays elixir-bot's structural logic (usage x
+levels-from-max) — our contribution is the exchange rate, not advice.
+
+## 10. Track three: war rival intelligence (`war_rivals`) — REVIEW PENDING
+
+Every recorded river race captures standings for ALL five clans in the
+bracket. Today that is 124 distinct rival clans fingerprinted (88 with
+3+ observed races, deduped across observers — two of our clans sharing
+a bracket see one race, not two), growing ~25 rival-races/week and
+with every clan that enrolls.
+
+**v1 (projected data, no schema change): clan-level fingerprints.**
+`war_rivals {clan_tags?}` — default: the current war's opponents from
+the caller's race. Per rival: races_observed, first/last_seen,
+fame stats (mean/median/max across observed races), finish
+distribution where ranks were captured, colosseum vs regular split,
+and an honest `basis` ("observed in N races shared with recorded
+clans; not their full history"). Pure aggregation of stored
+observations — no estimation, no floors beyond n disclosure, nothing
+to editorialize.
+
+**v2 (needs a projection extension, separate review): rival rosters.**
+The raw riverracelog payloads hold every bracket clan's PARTICIPANT
+lists (players, points, decks used); we currently project only our own
+clans' members (multi-tenant discipline). Projecting rival
+participation would light up "their top scorers historically" — deferred
+until v1 proves the surface, because it grows a table ~5x.
+
+**Dedup rule (the one subtlety):** rival observations key on
+(season_id, section_index, participant_clan_tag) BEFORE aggregation —
+observer-scoped duplication is a feature of the war tables (by design)
+and must never double-count a race in rival stats.
