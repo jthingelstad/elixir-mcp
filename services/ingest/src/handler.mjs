@@ -29,6 +29,12 @@ export function makeHandler({ databaseUrl }) {
               JSON.stringify({
                 perf: message?.job?.endpoint,
                 ...outcome.timings,
+                ...(outcome.projection?.phase_race_ms !== undefined
+                  ? {
+                      race_ms: outcome.projection.phase_race_ms,
+                      stamp_ms: outcome.projection.phase_stamp_ms,
+                    }
+                  : {}),
               }),
             );
           }

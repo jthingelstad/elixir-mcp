@@ -102,17 +102,26 @@ const PROJECTORS = {
     return { projected: "player", clanTag, snapshot };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
+    // Split timing: the census showed this projector at seconds and the
+    // first fix (0015) missed — attribute before optimizing again.
+    const t0 = Date.now();
     const race = await projectRiverRace(db, {
       clanTag: entityKey,
       payload,
       fetchedAt,
     });
+    const t1 = Date.now();
     const stamps = await stampWarKeys(db, {
       clanTag: entityKey,
       payload,
       nowMs: Date.parse(fetchedAt),
     });
-    return { ...race, warKeysStamped: stamps.stamped };
+    return {
+      ...race,
+      warKeysStamped: stamps.stamped,
+      phase_race_ms: t1 - t0,
+      phase_stamp_ms: Date.now() - t1,
+    };
   },
   async riverracelog(db, { entityKey, payload }) {
     return projectRiverRaceLog(db, { clanTag: entityKey, payload });
