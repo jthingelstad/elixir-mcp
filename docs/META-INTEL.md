@@ -62,10 +62,27 @@ essentially their true rate; a one-battle opponent's p̂ collapses to the
 population mean. Skill cancels where skill is known; unknowns contribute
 against the population baseline instead of polluting the estimate.
 
-**Deck lift.** For deck d with decided battles i = 1..n_d played by
-players p(i):
+**Deck lift — with leave-deck-out baselines (Jamie's loyalty
+challenge, 2026-09-04).** Measured in the live corpus, deck loyalty is
+mostly a myth for this population: the median member's top deck is only
+27.8% of their battles (p75 44.3%), 54/70 members run 2+ decks at 10+
+battles, and the game itself manufactures crossover (war demands four
+distinct decks weekly; duels more). But a loyal tail exists (one member
+at 100%), and for a loyal player a naive own-baseline IS the deck —
+their lift would be zero by construction. So the baseline for judging
+deck d EXCLUDES the player's battles with d:
 
-    lift_d = (1/n_d) · Σ ( win_i − p̂_p(i) )        [percentage points]
+    p̂_p^(−d) = (w_p − w_{p,d} + α) / (n_p − n_{p,d} + α + β)
+
+For the median member this rests on their ~72% other play (strong); for
+a pure loyalist it collapses to the population prior (weak — and the
+interval widens to say so). Each deck also reports
+`crossover_players`: contributors with ≥ 20 decided battles on OTHER
+decks — the count of players for whom skill and deck are actually
+separable. The de-confounding claim is only as strong as this number,
+so it ships on every row.
+
+    lift_d = (1/n_d) · Σ ( win_i − p̂_p(i)^(−d) )    [percentage points]
 
     se_d   = sqrt( Σ p̂_p(i) · (1 − p̂_p(i)) ) / n_d
     interval = lift_d ± 1.96 · se_d
@@ -79,7 +96,7 @@ removed), `lift`, `lift_interval`, `usage_share`.
 
 | Field | Served when | Otherwise |
 | --- | --- | --- |
-| `raw_win_rate`, `lift` | decided ≥ 30 AND distinct_players ≥ 5 | null + `insufficient_sample: true` with the real counts |
+| `raw_win_rate`, `lift` | decided ≥ 30 AND distinct_players ≥ 5 AND crossover_players ≥ 3 | null + `insufficient_sample: true` with the real counts |
 | `usage_share`, counts | always (usage is meaningful at any n) | — |
 
 The distinct-player floor is the de-confounder's teeth: a deck one
@@ -93,16 +110,26 @@ n = 1, and shared-deck observations across its 75 players: two).
 The bot's `player_adjusted_lift` design is correct; it is starved (52
 of 180 card-forms fail its ≥4-qualifying-players floor with 75 players).
 We compute the same estimator at the source, over every player with
-enough history, with one fix: **the baseline and the with-card rate use
-the SAME window** (the bot's baseline is accidentally all-time — a
-bug its own comments haven't caught; ours will not inherit it).
+enough history, with two fixes:
+
+1. **Same window** for baseline and with-card rate (the bot's baseline
+   is accidentally all-time).
+2. **Leave-card-out baseline** (found by Jamie's loyalty challenge): a
+   baseline that INCLUDES the with-card battles attenuates lift toward
+   zero in proportion to the player's usage of the card — at 100%
+   usage the delta is identically 0 however good the card is. Judging
+   against rate-WITHOUT-the-card removes the attenuation; the
+   without-side floor (≥ 30) keeps the contrast honest. This latent
+   attenuation exists in elixir-bot's shipped estimator today
+   (strongest on exactly the signature cards members ask about) and is
+   worth patching upstream regardless of this build.
 
 For card-form c (form-aware: (card_id, evolutionLevel) — Evo Knight and
 Knight are different cards, per house rule):
 
-    contributor j: n ≥ 30 decided battles WITH c in-window,
-                   and ≥ 100 decided battles overall in-window
-    delta_j = rate_j(with c) − rate_j(overall)
+    contributor j: ≥ 30 decided battles WITH c in-window,
+                   and ≥ 30 decided battles WITHOUT c in-window
+    delta_j = rate_j(with c) − rate_j(WITHOUT c)     [leave-card-out]
     lift_c  = mean(delta_j),  se via the sample sd of delta_j
     served when contributors ≥ 4 (below: counts only)
 
