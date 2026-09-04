@@ -1311,7 +1311,7 @@ const TOOLS = {
           role: m.role,
           trophies: m.trophies,
           donations_this_week: m.donations,
-          member_since_observed: m.joined_observed_at?.toISOString() ?? null,
+          first_observed_in_clan: m.joined_observed_at?.toISOString() ?? null,
           last_recorded_battle: m.last_battle?.toISOString() ?? null,
         })),
         recent_events: events.rows.map((e) => ({
@@ -1367,7 +1367,10 @@ const TOOLS = {
           [clanTag, wk.season_id, wk.section_index],
         ),
         ctx.db.query(
-          `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks
+          `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks,
+                  exists (select 1 from clan_membership cm
+                          where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
+                            and cm.left_observed_at is null) as in_clan
            from war_participation wp join player p on p.player_tag = wp.player_tag
            where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
            order by wp.points desc`,
@@ -1390,7 +1393,7 @@ const TOOLS = {
         standings: standings.rows,
         participants: participation.rows,
         attendance_by_war_day: attendance.rows,
-        note: "points are per-member contributions; fame belongs to the boat (clan).",
+        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants include everyone who scored this week; in_clan is false for members who have since left.",
         meta: responseMeta({
           as_of: new Date().toISOString(),
           ...(ctx.account.timezone
@@ -1446,16 +1449,26 @@ const TOOLS = {
       );
       let memberWeeks = null;
       if (focus) {
+        // Same season window as the weeks list. war_days_battled is null
+        // when the week has NO per-day attendance coverage at all (a week
+        // recorded from the log, not daily polls) — a zero there would be
+        // indistinguishable from "sat out every day".
         const { rows } = await ctx.db.query(
           `select wp.season_id, wp.section_index, wp.points, wp.decks_used, wp.boat_attacks,
-                  (select count(*)::int from war_attendance_day ad
-                   where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
-                     and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
-                     and ad.decks_used_today > 0) as war_days_battled
+                  case when exists (select 1 from war_attendance_day cov
+                                    where cov.clan_tag = wp.clan_tag
+                                      and cov.season_id = wp.season_id
+                                      and cov.section_index = wp.section_index)
+                       then (select count(*)::int from war_attendance_day ad
+                             where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
+                               and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
+                               and ad.decks_used_today > 0)
+                       end as war_days_battled
            from war_participation wp
            where wp.clan_tag = $1 and wp.player_tag = $2
+             and wp.season_id > coalesce((select max(season_id) from war_week where clan_tag = $1), 0) - $3
            order by wp.season_id desc, wp.section_index desc limit 40`,
-          [clanTag, focus],
+          [clanTag, focus, seasons],
         );
         memberWeeks = rows;
       }
@@ -1471,7 +1484,7 @@ const TOOLS = {
           trophy_change: w.trophy_change,
         })),
         ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
-        note: "points are per-member contributions; fame belongs to the boat (clan).",
+        note: "points are per-member contributions; fame belongs to the boat (clan). null our_rank/our_fame means the week was observed without a standings capture; null war_days_battled means no per-day attendance was recorded that week (unknown, not zero).",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -1546,6 +1559,7 @@ const TOOLS = {
       }
       return {
         players,
+        note: "window covers RECORDED battles only; net_trophies sums trophy changes across those battles, not the players' full ladder delta — recording start dates differ per player.",
         meta: responseMeta({
           as_of: new Date().toISOString(),
           ...(tz ? { timezone_applied: tz } : {}),

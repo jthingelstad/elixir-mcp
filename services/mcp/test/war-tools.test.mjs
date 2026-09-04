@@ -115,7 +115,7 @@ test("get_clan: roster with roles, snapshots slots, membership tenure", async ()
   const leader = body.members.find((m) => m.role === "leader");
   assert.ok(leader, "leader present from roster");
   assert.ok(
-    body.members.every((m) => m.member_since_observed),
+    body.members.every((m) => m.first_observed_in_clan),
     "observed tenure on every member",
   );
 });
@@ -127,16 +127,24 @@ test("get_war: latest recorded week with standings, points, note", async () => {
   assert.ok(body.standings.length >= 5);
   assert.ok(body.standings.every((s) => typeof s.fame === "number"));
   assert.ok(body.participants.length > 10);
+  assert.ok(
+    body.participants.every((p) => typeof p.in_clan === "boolean"),
+    "every participant carries in_clan",
+  );
   assert.match(body.note, /points are per-member/);
+  assert.match(body.note, /zero-fame opponent can be real/);
 });
 
 test("get_war_history: ranks per week and one member focus with attendance", async () => {
   const { body } = await call(invoke, "get_war_history", { seasons: 3 });
   assert.ok(body.weeks.length >= 9, "the log fixture spans ten weeks");
   assert.ok(body.weeks.every((w) => w.our_rank >= 1 && w.our_rank <= 5));
+  // A member with points across MORE than one season, so the seasons
+  // window has something to narrow.
   const focusTag = (
     await db.query(
-      `select player_tag from war_participation where clan_tag = $1 and points > 0 limit 1`,
+      `select player_tag from war_participation where clan_tag = $1 and points > 0
+       group by player_tag having count(distinct season_id) > 1 limit 1`,
       [CLAN],
     )
   ).rows[0].player_tag;
@@ -153,11 +161,52 @@ test("get_war_history: ranks per week and one member focus with attendance", asy
   });
   assert.equal(focused.isError, false, JSON.stringify(focused.body));
   assert.ok(focused.body.member_weeks.length > 0);
+  // The log fixture carries NO per-day attendance (it comes from daily
+  // currentriverrace polls), so war_days_battled must be null — unknown,
+  // never a false zero.
   assert.ok(
     focused.body.member_weeks.every(
-      (w) =>
-        typeof w.points === "number" && typeof w.war_days_battled === "number",
+      (w) => typeof w.points === "number" && w.war_days_battled === null,
     ),
+  );
+
+  // Give one week attendance coverage: that week turns numeric, others stay null.
+  const wk = focused.body.member_weeks[0];
+  await db.query(
+    `insert into war_attendance_day
+       (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+     values ($1, $2, $3, 0, $4, 4)`,
+    [CLAN, wk.season_id, wk.section_index, focusTag],
+  );
+  const covered = await call(invoke, "get_war_history", {
+    player_tag: focusTag,
+    seasons: 3,
+  });
+  const cw = covered.body.member_weeks.find(
+    (w) => w.season_id === wk.season_id && w.section_index === wk.section_index,
+  );
+  assert.equal(cw.war_days_battled, 1, "covered week counts battled days");
+  assert.ok(
+    covered.body.member_weeks
+      .filter((w) => w !== cw)
+      .every((w) => w.war_days_battled === null),
+    "uncovered weeks stay null",
+  );
+
+  // seasons scopes member_weeks the same as weeks (round-2 finding: it
+  // ignored the arg entirely).
+  const one = await call(invoke, "get_war_history", {
+    player_tag: focusTag,
+    seasons: 1,
+  });
+  const maxSeason = Math.max(...focused.body.weeks.map((w) => w.season_id));
+  assert.ok(
+    one.body.member_weeks.every((w) => w.season_id === maxSeason),
+    "seasons=1 keeps only the latest season's member weeks",
+  );
+  assert.ok(
+    one.body.member_weeks.length < focused.body.member_weeks.length,
+    "narrower window returns fewer member weeks",
   );
 });
 
