@@ -143,6 +143,52 @@ async function stats(databaseUrl) {
   }
 }
 
+/** Read-only yield census ({probe: true}) — hourly fetch volume vs
+ *  battles actually harvested, live gateways only (the backfill gateway
+ *  is history, not capture). Counts only, no row data; this is how the
+ *  monitoring loop measures fetch efficiency across scheduler modes. */
+async function probe(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `with fetches as (
+         select date_trunc('hour', r.fetched_at) as h,
+                count(*) filter (where r.endpoint = 'player_battlelog')::int as battlelog,
+                count(distinct r.entity_key)
+                  filter (where r.endpoint = 'player_battlelog')::int as battlelog_subjects,
+                count(*) filter (where r.endpoint = 'player')::int as player,
+                count(*) filter (where r.endpoint in
+                  ('currentriverrace', 'riverracelog', 'clan'))::int as clan_war,
+                count(*)::int as fetches
+         from api_receipt r
+         join gateway g on g.gateway_id = r.gateway_id
+         where r.fetched_at > now() - interval '48 hours'
+           and g.name <> 'backfill-elixir-bot'
+         group by 1),
+       harvests as (
+         select date_trunc('hour', created_at) as h,
+                count(*)::int as battles
+         from battle
+         where created_at > now() - interval '48 hours'
+         group by 1)
+       select to_char(h at time zone 'UTC', 'MM-DD"T"HH24"Z"') as hour,
+              coalesce(f.battlelog, 0) as battlelog,
+              coalesce(f.battlelog_subjects, 0) as battlelog_subjects,
+              coalesce(f.player, 0) as player,
+              coalesce(f.clan_war, 0) as clan_war,
+              coalesce(f.fetches, 0) as fetches,
+              coalesce(v.battles, 0) as battles
+       from fetches f
+       full join harvests v using (h)
+       order by h`,
+    );
+    return { hours: rows };
+  } finally {
+    await db.end();
+  }
+}
+
 /**
  * Ordered backfill replay ({replay: {messages: [...]}}) — the elixir-bot
  * archive lane (NOTES 2026-09-04). Each message is a CrResultMessage
@@ -246,6 +292,11 @@ export async function handler(event) {
   }
   if (event?.stats) {
     const result = await stats(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.probe) {
+    const result = await probe(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

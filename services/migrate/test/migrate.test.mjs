@@ -156,3 +156,36 @@ test("replay op: archive messages flow through the real pipeline in order, attri
   );
   await check.end();
 });
+
+test("probe op: hourly census counts live fetches, excludes the backfill gateway", async () => {
+  // Runs after the replay test: the scratch DB holds backfill receipts
+  // and battles. Those battles show as harvests; the backfill fetch must
+  // NOT show as capture volume.
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     select account_id, 'probe-live-gw', '10.0.0.9', 'active'
+     from account where email_hash = 'replay-owner'
+     returning gateway_id`,
+  );
+  await db.query(
+    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+     values ('player_battlelog', '#PROBE1', now(), 'probe-hash', $1, 'admitted')`,
+    [gw.gateway_id],
+  );
+  await db.end();
+
+  const result = await handler({ probe: true });
+  assert.ok(Array.isArray(result.hours), "hours array");
+  const totalBattlelog = result.hours.reduce((s, h) => s + h.battlelog, 0);
+  const totalBattles = result.hours.reduce((s, h) => s + h.battles, 0);
+  assert.equal(totalBattlelog, 1, "only the live gateway's fetch counts");
+  assert.ok(totalBattles > 0, "replayed battles appear as harvests");
+  assert.match(result.hours[0].hour, /^\d{2}-\d{2}T\d{2}Z$/);
+});
