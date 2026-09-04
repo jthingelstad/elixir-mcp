@@ -48,6 +48,25 @@ const PROJECTORS = {
         [entityKey],
       );
     }
+    // Yield signal (0017): battles-per-hour EWMA, the one activity
+    // number the yield scheduler ranks by. Hours are measured from the
+    // last admission; replayed history is excluded like re-heat is.
+    if (fresh) {
+      await db.query(
+        `update poll_state set yield_bph =
+           case when yield_bph is null then obs.bph
+                else 0.7 * yield_bph + 0.3 * obs.bph end
+         from (select
+             $2::numeric / greatest(
+               extract(epoch from ($3::timestamptz - coalesce(
+                 (select last_admitted_at from poll_state
+                  where subject_tag = $1 and endpoint = 'player_battlelog'),
+                 $3::timestamptz - interval '1 hour'))) / 3600.0,
+               0.25) as bph) obs
+         where subject_tag = $1 and endpoint = 'player_battlelog'`,
+        [entityKey, result.battlesInserted, fetchedAt],
+      );
+    }
     return result;
   },
   async clan(db, { entityKey, receiptId, payload, fetchedAt }) {
@@ -102,6 +121,15 @@ const PROJECTORS = {
     return { projected: "player", clanTag, snapshot };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
+    // Cadence hint (0017): the payload names the period type; war days
+    // poll tight, training days relax — no inference required.
+    if (payload.periodType) {
+      await db.query(
+        `update poll_state set hint = $2
+         where subject_tag = $1 and endpoint = 'currentriverrace'`,
+        [entityKey, payload.periodType],
+      );
+    }
     // Split timing: the census showed this projector at seconds and the
     // first fix (0015) missed — attribute before optimizing again.
     const t0 = Date.now();

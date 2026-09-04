@@ -37,6 +37,47 @@ export const CADENCE = {
   cards: { hot: 1440, warm: 1440, cold: 1440, floor: 2880 },
 };
 
+// Scheduler mode (NOTES: budget-efficiency redesign, Jamie GO
+// 2026-09-04). 'yield' spends the budget by expected value per call;
+// 'heat' is the legacy immediacy model, kept one release as fallback.
+export const SCHED_MODE =
+  process.env.ELIXIR_SCHED_MODE === "heat" ? "heat" : "yield";
+
+/**
+ * Yield-mode cadence in minutes for one poll_state row. One activity
+ * signal drives the player endpoints: yield_bph, the EWMA of observed
+ * battles-per-hour (0017, updated at admission).
+ *
+ *  - battlelog: poll when ~TARGET_BATCH battles are expected to have
+ *    accumulated (harvest efficiency), clamped [15m, 1440m]. Unknown
+ *    activity seeds at 60m — discovery, not dormancy.
+ *  - player: profile stretches with the same signal (a dormant player's
+ *    snapshot barely changes), clamped [120m, 4320m].
+ *  - currentriverrace: the payload NAMES war days (hint = periodType);
+ *    warDay/colosseum poll at 30m, training at 120m, unknown at 30m.
+ *  - clan / riverracelog / cards: fixed cadences unchanged — they are
+ *    already flat and cheap.
+ */
+const TARGET_BATCH = 5;
+export function yieldCadenceMinutes(row) {
+  const bph = row.yield_bph === null ? null : Number(row.yield_bph);
+  if (row.endpoint === "player_battlelog") {
+    if (bph === null) return 60;
+    if (bph <= 0.02) return 1440;
+    return Math.min(1440, Math.max(15, (TARGET_BATCH / bph) * 60));
+  }
+  if (row.endpoint === "player") {
+    if (bph === null) return 480;
+    if (bph <= 0.02) return 4320;
+    if (bph >= 0.5) return 120;
+    return 1440;
+  }
+  if (row.endpoint === "currentriverrace") {
+    return row.hint === "training" ? 120 : 30;
+  }
+  return CADENCE[row.endpoint][tier(row.heat)];
+}
+
 export const DECAY_EPOCH_MINUTES = 60;
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
@@ -126,6 +167,7 @@ async function selectEligible(db, now) {
     `
     with state as (
       select ps.subject_tag, ps.endpoint, ps.heat, ps.last_planned_at, ps.last_admitted_at,
+             ps.yield_bph, ps.hint,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
       where (ps.endpoint in ('player_battlelog', 'player') and (
@@ -150,7 +192,8 @@ async function selectEligible(db, now) {
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
-    select subject_tag, endpoint, heat, last_planned_at, last_admitted_at, reference
+    select subject_tag, endpoint, heat, last_planned_at, last_admitted_at, reference,
+           yield_bph, hint
     from state`,
   );
 
@@ -166,7 +209,10 @@ async function selectEligible(db, now) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
     const referenceMs = r.reference.getTime();
-    const dueAfter = cadence[tier(r.heat)] * MINUTE;
+    const dueAfter =
+      (SCHED_MODE === "yield"
+        ? yieldCadenceMinutes(r)
+        : cadence[tier(r.heat)]) * MINUTE;
     const due = nowMs - referenceMs >= dueAfter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
@@ -180,21 +226,30 @@ async function selectEligible(db, now) {
       (nowMs - admittedMs >= cadence.floor * MINUTE &&
         nowMs - plannedMs >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE);
     if (!due && !starved) continue;
+    const overdueMs = nowMs - referenceMs;
     eligible.push({
       subject_tag: r.subject_tag,
       endpoint: r.endpoint,
       heat: r.heat,
       starved,
-      overdueMs: nowMs - referenceMs,
+      overdueMs,
+      expectedYield:
+        (r.yield_bph === null ? 0.5 : Number(r.yield_bph)) *
+        (overdueMs / 3600_000),
     });
   }
 
-  // Starved first (fairness floors strictly dominate heat), then heat,
-  // then most-overdue, then deterministic tie-break.
+  // Starved first (fairness floors strictly dominate everything), then
+  // the mode's value signal, then most-overdue, then deterministic
+  // tie-break. In yield mode the value of a call is its expected
+  // harvest: bph x hours-overdue, so a busy subject a little overdue
+  // outranks a dormant one long overdue (the floors bound the wait).
   eligible.sort(
     (a, b) =>
       Number(b.starved) - Number(a.starved) ||
-      b.heat - a.heat ||
+      (SCHED_MODE === "yield"
+        ? b.expectedYield - a.expectedYield
+        : b.heat - a.heat) ||
       b.overdueMs - a.overdueMs ||
       a.endpoint.localeCompare(b.endpoint) ||
       a.subject_tag.localeCompare(b.subject_tag),

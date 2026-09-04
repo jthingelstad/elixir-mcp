@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { planTick, CADENCE } from "../src/plan.mjs";
+import { planTick, CADENCE, yieldCadenceMinutes } from "../src/plan.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -346,5 +346,65 @@ test("clan recording: heartbeat, riverrace capture, and every open member polled
   assert.ok(
     keys2.includes("player_battlelog:#YYYYYYYY"),
     "remaining members still planned",
+  );
+});
+
+test("yield cadence: harvest-target battlelog, stretched profiles, hinted war days", () => {
+  const c = (row) => yieldCadenceMinutes(row);
+  // Battlelog: poll when ~5 battles are expected.
+  assert.equal(c({ endpoint: "player_battlelog", yield_bph: null }), 60);
+  assert.equal(c({ endpoint: "player_battlelog", yield_bph: 0.01 }), 1440);
+  assert.equal(c({ endpoint: "player_battlelog", yield_bph: 20 }), 15);
+  assert.equal(
+    Math.round(c({ endpoint: "player_battlelog", yield_bph: 1 })),
+    300,
+  );
+  // Profiles ride the same signal.
+  assert.equal(c({ endpoint: "player", yield_bph: 0.005 }), 4320);
+  assert.equal(c({ endpoint: "player", yield_bph: 2 }), 120);
+  assert.equal(c({ endpoint: "player", yield_bph: 0.2 }), 1440);
+  // The payload names war days.
+  assert.equal(c({ endpoint: "currentriverrace", hint: "training" }), 120);
+  assert.equal(c({ endpoint: "currentriverrace", hint: "warDay" }), 30);
+  assert.equal(c({ endpoint: "currentriverrace", hint: null }), 30);
+});
+
+test("yield ranking: busy-and-a-bit-overdue beats dormant-and-long-overdue; floors still dominate", async () => {
+  await freshenCards(NOW);
+  await addPlayer("#PYGRJC");
+  await addPlayer("#PYGRJG");
+  // Busy: 6 bph, 2h overdue. Dormant: 0.01 bph, 20h overdue (below the
+  // 24h starvation floor so ranking decides, not fairness).
+  await setState("#PYGRJC", "player_battlelog", {
+    heat: 0,
+    admitted: min(120),
+    planned: min(120),
+  });
+  await setState("#PYGRJG", "player_battlelog", {
+    heat: 3,
+    admitted: min(1200),
+    planned: min(1200),
+  });
+  await db.query(
+    `update poll_state set yield_bph = 6 where subject_tag = '#PYGRJC'`,
+  );
+  await db.query(
+    `update poll_state set yield_bph = 0.01 where subject_tag = '#PYGRJG'`,
+  );
+  // Park their profile endpoints.
+  for (const t of ["#PYGRJC", "#PYGRJG"]) {
+    await setState(t, "player", { heat: 0, admitted: min(1), planned: min(1) });
+    await db.query(
+      `update poll_state set yield_bph = 0.01 where subject_tag = $1 and endpoint = 'player'`,
+      [t],
+    );
+  }
+  await setTokens(2); // one job after live reserve
+  const { jobs } = await planTick(db, NOW);
+  assert.equal(jobs.length, 1);
+  assert.equal(
+    jobs[0].entity_key,
+    "#PYGRJC",
+    "expected harvest outranks heat and raw overdue",
   );
 });
