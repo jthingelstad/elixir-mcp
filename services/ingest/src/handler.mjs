@@ -22,6 +22,16 @@ export function makeHandler({ databaseUrl }) {
         try {
           const message = JSON.parse(record.body);
           outcome = await processResult(client, message);
+          // One structured line per message: Logs Insights reads these
+          // for live-path performance (the census, permanently on).
+          if (outcome.timings) {
+            console.log(
+              JSON.stringify({
+                perf: message?.job?.endpoint,
+                ...outcome.timings,
+              }),
+            );
+          }
         } catch {
           batchItemFailures.push({ itemIdentifier: record.messageId });
           continue;

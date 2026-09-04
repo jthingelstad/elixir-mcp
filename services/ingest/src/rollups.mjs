@@ -41,7 +41,7 @@ export async function refreshDailyRollups(db, pairs) {
          where o.battle_id = bp.battle_id and o.side <> bp.side
        ) opp on true
        where bp.player_tag = $1
-         and b.battle_time >= $2::date and b.battle_time < $2::date + 1
+         and bp.battle_time >= $2::date and bp.battle_time < $2::date + 1
        group by bp.player_tag, ${MODE_GROUP_CASE}, coalesce(b.game_mode_id, 0)`,
       [playerTag, day],
     );

@@ -190,6 +190,7 @@ const BATTLE_ENRICH = BATTLE_COLS.filter((c) => !BATTLE_KEY.includes(c));
 const PARTICIPANT_COLS = [
   "battle_id",
   "player_tag",
+  "battle_time",
   "side",
   "crowns",
   "trophy_change",
@@ -202,22 +203,12 @@ const PARTICIPANT_COLS = [
   "outcome",
   "clan_tag",
 ];
-const PARTICIPANT_KEY = ["battle_id", "player_tag", "side"];
+const PARTICIPANT_KEY = ["battle_id", "player_tag", "battle_time", "side"];
 const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter(
   (c) => !PARTICIPANT_KEY.includes(c),
 );
 
 const JSONB_COLS = new Set(["modifiers", "deck", "support_cards", "tower_hp"]);
-
-function insertSql(table, cols, conflictTarget, enrichCols) {
-  const params = cols.map((_, i) => `$${i + 1}`).join(", ");
-  const sets = enrichCols
-    .map((c) => `${c} = coalesce(${table}.${c}, excluded.${c})`)
-    .join(", ");
-  return `insert into ${table} (${cols.join(", ")}) values (${params})
-          on conflict (${conflictTarget}) do update set ${sets}
-          returning (xmax = 0) as inserted`;
-}
 
 function paramValues(cols, row) {
   return cols.map((c) => {
@@ -228,13 +219,23 @@ function paramValues(cols, row) {
   });
 }
 
-const BATTLE_SQL = insertSql("battle", BATTLE_COLS, "battle_id", BATTLE_ENRICH);
-const PARTICIPANT_SQL = insertSql(
-  "battle_participant",
-  PARTICIPANT_COLS,
-  "battle_id, player_tag",
-  PARTICIPANT_ENRICH,
-);
+/** Multi-row variant: one statement for the whole payload (R1 — the
+ *  census showed the projector's sequential round trips are 93% of
+ *  ingest cost). Enrichment semantics identical to insertSql. */
+function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
+  const rows = [];
+  for (let r = 0; r < rowCount; r += 1) {
+    rows.push(
+      `(${cols.map((_, c) => `$${r * cols.length + c + 1}`).join(", ")})`,
+    );
+  }
+  const sets = enrichCols
+    .map((c) => `${c} = coalesce(${table}.${c}, excluded.${c})`)
+    .join(", ");
+  return `insert into ${table} (${cols.join(", ")}) values ${rows.join(", ")}
+          on conflict (${conflictTarget}) do update set ${sets}
+          returning (xmax = 0) as inserted`;
+}
 
 /**
  * Ingest one admitted battlelog payload for one observer.
@@ -242,52 +243,73 @@ const PARTICIPANT_SQL = insertSql(
  */
 export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   const observer = normalizeTag(observerTag);
-  let battlesInserted = 0;
   let battlesSeen = 0;
   const affected = new Set(); // "tag|day" pairs for rollup refresh
 
-  // The observer may not appear in a battle (e.g. boat defense shapes);
-  // its player row must exist for the observation FK regardless.
-  await db.query(
-    `insert into player (player_tag) values ($1)
-     on conflict (player_tag) do update set last_seen_at = now()`,
-    [observer],
-  );
-
+  // Canonicalize everything first; the writes go out as one statement
+  // per table (R1). Within-payload dedup matters: ON CONFLICT cannot
+  // touch the same row twice in one statement.
+  const battles = new Map(); // battle_id -> battle
+  const parts = new Map(); // battle_id|tag -> participant row
   for (const entry of payload) {
     const { battle, participants } = canonicalizeBattle(entry);
     battlesSeen += 1;
-
-    // Ensure player rows exist for all participants (game entities exist
-    // independent of accounts, §4.1).
+    battles.set(battle.battle_id, battle);
+    const day = battle.battle_time.slice(0, 10);
     for (const p of participants) {
-      await db.query(
-        `insert into player (player_tag) values ($1)
-         on conflict (player_tag) do update set last_seen_at = now()`,
-        [p.player_tag],
-      );
+      parts.set(`${battle.battle_id}|${p.player_tag}`, {
+        ...p,
+        battle_id: battle.battle_id,
+        battle_time: battle.battle_time,
+      });
+      affected.add(`${p.player_tag}|${day}`);
     }
+  }
 
-    const {
-      rows: [b],
-    } = await db.query(BATTLE_SQL, paramValues(BATTLE_COLS, battle));
-    if (b.inserted) battlesInserted += 1;
+  // Player rows for observer + every participant (game entities exist
+  // independent of accounts, §4.1).
+  const tags = [
+    ...new Set([observer, ...[...parts.values()].map((p) => p.player_tag)]),
+  ];
+  await db.query(
+    `insert into player (player_tag)
+     select unnest($1::text[])
+     on conflict (player_tag) do update set last_seen_at = now()`,
+    [tags],
+  );
 
-    for (const p of participants) {
-      await db.query(
-        PARTICIPANT_SQL,
-        paramValues(PARTICIPANT_COLS, { ...p, battle_id: battle.battle_id }),
-      );
-    }
+  let battlesInserted = 0;
+  if (battles.size > 0) {
+    const battleRows = [...battles.values()];
+    const { rows } = await db.query(
+      insertManySql(
+        "battle",
+        BATTLE_COLS,
+        "battle_id",
+        BATTLE_ENRICH,
+        battleRows.length,
+      ),
+      battleRows.flatMap((b) => paramValues(BATTLE_COLS, b)),
+    );
+    battlesInserted = rows.filter((r) => r.inserted).length;
+
+    const partRows = [...parts.values()];
+    await db.query(
+      insertManySql(
+        "battle_participant",
+        PARTICIPANT_COLS,
+        "battle_id, player_tag",
+        PARTICIPANT_ENRICH,
+        partRows.length,
+      ),
+      partRows.flatMap((p) => paramValues(PARTICIPANT_COLS, p)),
+    );
 
     await db.query(
       `insert into battle_observation (battle_id, observer_tag, receipt_id)
-       values ($1, $2, $3) on conflict do nothing`,
-      [battle.battle_id, observer, receiptId],
+       select unnest($1::text[]), $2, $3 on conflict do nothing`,
+      [[...battles.keys()], observer, receiptId],
     );
-
-    const day = battle.battle_time.slice(0, 10);
-    for (const p of participants) affected.add(`${p.player_tag}|${day}`);
   }
 
   return {
