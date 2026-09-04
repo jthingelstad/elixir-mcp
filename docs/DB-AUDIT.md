@@ -28,6 +28,17 @@ player histories deepened — the career-length scaling defect (rollup
 refresh reads via (player_tag, battle_id), no time component). RDS
 never exceeded ~8% CPU: pure round-trip count.
 
+## R1 outcome (measured live, steady state, 2026-09-04 09:45Z)
+
+| endpoint         | census baseline | after R1+0015 | change |
+| ---------------- | --------------- | ------------- | ------ |
+| player_battlelog | 437ms (project 408) | 283ms (project 204) | 2x on the projector, on 5x bigger tables |
+| currentriverrace | 286ms (project 270) | 287ms (race 219 + stamp 42) | steady; the 3-4s post-import readings were transitional backlog (first polls stamping newly-in-window archive battles), now bounded + indexed |
+| player           | 30ms | 58ms | history-depth priced in; fine |
+
+The R1 changes are on the live path permanently; the perf log line
+means any future regression shows in Logs Insights within a poll cycle.
+
 ## Live storage census (post-import, {inspect} op)
 
 DB 569MB. api_payload 391MB (69% — R2 is THE storage decision).
