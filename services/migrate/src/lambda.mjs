@@ -244,6 +244,92 @@ async function probe(databaseUrl) {
   }
 }
 
+/** Prototype intelligence preview ({preview_intel: {player_tag, clan_tag}}):
+ *  read-only flavor of the META-INTEL section 9/10 tools computed on live
+ *  data — the level-gap curve, one player's position on it, and rival
+ *  fingerprints for one clan's current bracket. Also the seed of the
+ *  section 6 validation harness. */
+async function previewIntel(databaseUrl, spec) {
+  const tag = spec?.player_tag ?? "#20JJJ2CCRU";
+  const clan = spec?.clan_tag ?? "#J2RGCRVG";
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const sides = `
+      with sides as (
+        select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
+               avg((c.value->>'level')::numeric) as lvl
+        from battle_participant bp
+        join battle b on b.battle_id = bp.battle_id
+        cross join lateral jsonb_array_elements(bp.deck->'cards') c
+        where bp.deck ? 'cards' and b.type_class = 'pvp'
+          and bp.outcome in ('win','loss')
+        group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
+      duos as (select battle_id from sides group by battle_id having count(*) = 2),
+      pairs as (
+        select a.battle_id, a.player_tag, a.outcome, a.battle_time,
+               round(a.lvl - o.lvl, 2) as gap
+        from sides a
+        join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
+        where a.battle_id in (select battle_id from duos))`;
+    const { rows: curve } = await db.query(
+      `${sides}
+       select width_bucket(gap, array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]) as bin,
+              min(gap) as gap_lo, max(gap) as gap_hi,
+              count(*)::int as n,
+              round(avg((outcome = 'win')::int)::numeric, 3) as win_rate
+       from pairs group by bin order by bin`,
+    );
+    const { rows: me } = await db.query(
+      `${sides}
+       select count(*)::int as n,
+              round(avg(gap)::numeric, 2) as mean_gap,
+              round(avg((outcome = 'win')::int)
+                filter (where gap >= 0.1)::numeric, 3) as wr_when_ahead,
+              round(avg((outcome = 'win')::int)
+                filter (where gap <= -0.1)::numeric, 3) as wr_when_behind,
+              round(avg((outcome = 'win')::int)
+                filter (where gap > -0.1 and gap < 0.1)::numeric, 3) as wr_when_even,
+              count(*) filter (where gap <= -0.1)::int as n_behind,
+              count(*) filter (where gap >= 0.1)::int as n_ahead
+       from pairs where player_tag = $1
+         and battle_time > now() - interval '60 days'`,
+      [tag],
+    );
+    const { rows: rivals } = await db.query(
+      `with bracket as (
+         select participant_clan_tag, participant_name
+         from war_week_clan
+         where clan_tag = $1 and participant_clan_tag <> $1
+           and (season_id, section_index) = (
+             select season_id, section_index from war_week
+             where clan_tag = $1
+             order by season_id desc, section_index desc limit 1)),
+       races as (
+         select distinct w.season_id, w.section_index, w.participant_clan_tag,
+                max(w.fame) as fame
+         from war_week_clan w
+         join bracket bk on bk.participant_clan_tag = w.participant_clan_tag
+         group by w.season_id, w.section_index, w.participant_clan_tag)
+       select b.participant_clan_tag as clan_tag, b.participant_name as name,
+              count(r.fame)::int as races_observed,
+              round(avg(r.fame) filter (where (r.season_id, r.section_index) <> (
+                select season_id, section_index from war_week where clan_tag = $1
+                order by season_id desc, section_index desc limit 1))::numeric)::int
+                as mean_fame_finished,
+              max(r.fame)::int as max_fame,
+              min(r.season_id)::int as first_season,
+              max(r.season_id)::int as last_season
+       from bracket b left join races r on r.participant_clan_tag = b.participant_clan_tag
+       group by 1, 2 order by races_observed desc`,
+      [clan],
+    );
+    return { curve, me: me[0], rivals };
+  } finally {
+    await db.end();
+  }
+}
+
 /** One-time payload-history export ({export_payloads: {after_id?, limit?}}):
  *  copy api_payload rows into the S3 archive under the ingest key scheme,
  *  keyed by payload_id cursor so a local loop can drive it to completion.
@@ -500,6 +586,14 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.preview_intel) {
+    const result = await previewIntel(
+      process.env.DATABASE_URL,
+      event.preview_intel,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
