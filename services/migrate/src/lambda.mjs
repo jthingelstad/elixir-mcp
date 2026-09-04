@@ -175,14 +175,22 @@ async function replay(databaseUrl, spec) {
     }
     const gatewayId = gw.gateway_id;
     const tally = {};
+    const perf = {}; // endpoint -> {count, phase sums}
     for (const msg of spec.messages ?? []) {
       const out = await processResult(db, { ...msg, gateway_id: gatewayId });
       tally[out.outcome] = (tally[out.outcome] ?? 0) + 1;
+      if (out.timings) {
+        const ep = (perf[msg.job.endpoint] ??= { count: 0 });
+        ep.count += 1;
+        for (const [k, v] of Object.entries(out.timings))
+          ep[k] = (ep[k] ?? 0) + v;
+      }
     }
     return {
       gateway_id: gatewayId,
       processed: (spec.messages ?? []).length,
       tally,
+      perf,
     };
   } finally {
     await db.end();

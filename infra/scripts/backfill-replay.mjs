@@ -30,6 +30,7 @@ const ENDPOINTS =
   "('player_battlelog','player','currentriverrace','riverracelog')";
 const BATCH = 80;
 const PROGRESS_FILE = new URL("../../.backfill-progress.json", import.meta.url);
+const PERF_FILE = new URL("../../.backfill-perf.json", import.meta.url);
 
 const dryRun = process.argv.includes("--dry-run");
 const limitArg = process.argv.indexOf("--limit");
@@ -68,6 +69,9 @@ if (dryRun) {
 const lambda = new LambdaClient({});
 let sent = 0;
 const tally = {};
+const perf = existsSync(PERF_FILE)
+  ? JSON.parse(readFileSync(PERF_FILE, "utf8"))
+  : {};
 
 while (sent < limit) {
   const rows = q(
@@ -117,6 +121,11 @@ while (sent < limit) {
   }
   for (const [k, v] of Object.entries(body.tally))
     tally[k] = (tally[k] ?? 0) + v;
+  for (const [ep, ph] of Object.entries(body.perf ?? {})) {
+    const agg = (perf[ep] ??= {});
+    for (const [k, v] of Object.entries(ph)) agg[k] = (agg[k] ?? 0) + v;
+  }
+  writeFileSync(PERF_FILE, JSON.stringify(perf));
   sent += rows.length;
   const last = rows[rows.length - 1];
   cursor = { fetched_at: last.fetched_at, payload_id: last.payload_id };

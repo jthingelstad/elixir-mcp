@@ -19,3 +19,4 @@ dist/
 # Build artifacts
 infra/dist/
 .backfill-progress.json
+.backfill-perf.json

@@ -128,6 +128,14 @@ const PROJECTORS = {
  * @returns {{outcome: string, [k: string]: unknown}}
  */
 export async function processResult(db, rawMessage) {
+  // Phase timings ride every outcome (a few Date.now() calls): the
+  // replay lane aggregates them, and they price the live path too.
+  const t0 = Date.now();
+  const timings = {};
+  const mark = (key, since) => {
+    timings[key] = (timings[key] ?? 0) + (Date.now() - since);
+    return Date.now();
+  };
   const validated = validateResultMessage(rawMessage);
   if (!validated.ok)
     return { outcome: "bad_message", errors: validated.errors };
@@ -152,6 +160,7 @@ export async function processResult(db, rawMessage) {
     return { outcome: "fetch_error", kind: msg.error?.kind ?? "unknown" };
   }
 
+  let t = mark("gateway_ms", t0);
   let payload;
   let rawText;
   try {
@@ -172,6 +181,7 @@ export async function processResult(db, rawMessage) {
       : admit(endpoint, payload);
   const hash =
     payload === undefined ? payloadHash(rawText ?? "") : payloadHash(payload);
+  t = mark("parse_admit_ms", t);
 
   await db.query("begin");
   try {
@@ -203,9 +213,10 @@ export async function processResult(db, rawMessage) {
     );
     if (receiptRows.length === 0) {
       await db.query("rollback");
-      return { outcome: "duplicate" };
+      return { outcome: "duplicate", timings };
     }
     const receiptId = receiptRows[0].receipt_id;
+    t = mark("store_ms", t);
 
     let projection = null;
     if (admission.ok) {
@@ -220,6 +231,7 @@ export async function processResult(db, rawMessage) {
         payload,
         fetchedAt: msg.fetched_at,
       });
+      t = mark("project_ms", t);
 
       // Freshness advances on admission only. GLOBAL (the card catalog)
       // is a subject too — without this it replans on cadence alone and
@@ -241,9 +253,12 @@ export async function processResult(db, rawMessage) {
     }
 
     await db.query("commit");
+    mark("commit_ms", t);
+    timings.total_ms = Date.now() - t0;
     return {
       outcome: admission.ok ? "admitted" : "rejected",
       receiptId,
+      timings,
       ...(admission.ok ? { projection } : { errors: admission.errors }),
     };
   } catch (err) {
