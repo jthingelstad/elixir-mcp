@@ -22,58 +22,62 @@ export interface ToolClass {
 
 export const TOOL_GROUPS: Record<string, ToolClass> = {
   // Players — profile-shaped views of one tag (docs: players.md).
-  get_player: { group: "Players", title: "Player profile", readOnly: true },
-  get_player_summary: {
+  players_profile: {
+    group: "Players",
+    title: "Player profile",
+    readOnly: true,
+  },
+  players_summary: {
     group: "Players",
     title: "Player summary",
     readOnly: true,
   },
-  get_player_timeline: {
+  players_timeline: {
     group: "Players",
     title: "Player timeline",
     readOnly: true,
   },
-  get_collection: {
+  players_collection: {
     group: "Players",
     title: "Card collection",
     readOnly: true,
   },
 
   // Battles — the recorded battle corpus and stats over it (docs: models/battles.md).
-  query_battles: { group: "Battles", title: "Query battles", readOnly: true },
-  get_performance: {
+  battles_query: { group: "Battles", title: "Query battles", readOnly: true },
+  battles_performance: {
     group: "Battles",
     title: "Performance windows",
     readOnly: true,
   },
-  get_deck_performance: {
+  battles_decks: {
     group: "Battles",
     title: "Deck performance",
     readOnly: true,
   },
-  get_card_performance: {
+  battles_cards: {
     group: "Battles",
     title: "Card performance",
     readOnly: true,
   },
-  compare_players: {
+  battles_compare: {
     group: "Battles",
     title: "Compare players",
     readOnly: true,
   },
 
   // Clans — roster-shaped views (docs: clans.md).
-  get_clan: { group: "Clans", title: "Clan roster", readOnly: true },
+  clans_roster: { group: "Clans", title: "Clan roster", readOnly: true },
 
   // War — river race, current and historical (docs: models/river-race.md).
-  get_war: { group: "War", title: "Current war", readOnly: true },
-  get_war_history: { group: "War", title: "War history", readOnly: true },
+  war_current: { group: "War", title: "Current war", readOnly: true },
+  war_history: { group: "War", title: "War history", readOnly: true },
 
   // Cards — the global catalog (docs: cards.md).
-  get_card_catalog: { group: "Cards", title: "Card catalog", readOnly: true },
+  cards_catalog: { group: "Cards", title: "Card catalog", readOnly: true },
 
   // Live — the ONE lane that spends real CR API budget.
-  cr_api_live: {
+  live_fetch: {
     group: "Live",
     title: "Live CR API fetch",
     readOnly: true,
@@ -82,19 +86,39 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
 
   // Elixir MCP — the service itself: your account's claims, how complete
   // the record is, and the feedback channel to the maintainer.
-  list_my_players: {
+  elixir_my_players: {
     group: "Elixir MCP",
     title: "My claimed players",
     readOnly: true,
   },
-  get_coverage: {
+  elixir_coverage: {
     group: "Elixir MCP",
     title: "Record coverage",
     readOnly: true,
   },
-  send_feedback: {
+  elixir_feedback: {
     group: "Elixir MCP",
     title: "Send feedback",
     readOnly: false,
+  },
+  elixir_watch_player: {
+    group: "Elixir MCP",
+    title: "Watch player",
+    readOnly: false,
+  },
+  elixir_watch_clan: {
+    group: "Elixir MCP",
+    title: "Watch clan",
+    readOnly: false,
+  },
+  elixir_data_insights: {
+    group: "Elixir MCP",
+    title: "Data insights",
+    readOnly: true,
+  },
+  elixir_collectors: {
+    group: "Elixir MCP",
+    title: "Collector ladder",
+    readOnly: true,
   },
 };

@@ -110,12 +110,12 @@ test("livePathToJob maps the allowlist and rejects the rest", () => {
   );
 });
 
-test("cr_api_live round-trips through the REAL pipeline and records opportunistically", async () => {
+test("live_fetch round-trips through the REAL pipeline and records opportunistically", async () => {
   const profile = await fixture("player/profile.json");
   const tag = normalizeTag(profile.tag);
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke("cr_api_live", {
+  const { body, isError } = await invoke("live_fetch", {
     path: `/players/${tag}`,
   });
   assert.equal(isError, false, JSON.stringify(body).slice(0, 200));
@@ -131,7 +131,7 @@ test("cr_api_live round-trips through the REAL pipeline and records opportunisti
   assert.ok(snaps > 0, "live fetch was recorded");
 });
 
-test("get_player live:true refreshes then serves the snapshot", async () => {
+test("players_profile live:true refreshes then serves the snapshot", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
   const tag = normalizeTag(profile.tag);
   await db.query(
@@ -142,7 +142,7 @@ test("get_player live:true refreshes then serves the snapshot", async () => {
   profile.trophies += 99;
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke("get_player", { live: true });
+  const { body, isError } = await invoke("players_profile", { live: true });
   assert.equal(isError, false, JSON.stringify(body).slice(0, 200));
   assert.equal(
     body.snapshot.trophies,
@@ -154,7 +154,7 @@ test("get_player live:true refreshes then serves the snapshot", async () => {
 test("an unfulfilled live job times out to a structured live_unavailable", async () => {
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke("cr_api_live", {
+  const { body, isError } = await invoke("live_fetch", {
     path: "/clans/#GQ0YLCYJ",
   });
   assert.equal(isError, true);
@@ -172,7 +172,7 @@ test("the live daily cap trips as quota_exceeded", async () => {
   );
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke("cr_api_live", {
+  const { body, isError } = await invoke("live_fetch", {
     path: `/players/${tag}`,
   });
   assert.equal(isError, true);

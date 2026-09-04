@@ -107,8 +107,8 @@ after(async () => {
   await admin.end();
 });
 
-test("get_clan: roster with roles, snapshots slots, membership tenure", async () => {
-  const { body, isError } = await call(invoke, "get_clan", {});
+test("clans_roster: roster with roles, snapshots slots, membership tenure", async () => {
+  const { body, isError } = await call(invoke, "clans_roster", {});
   assert.equal(isError, false);
   assert.equal(body.clan_tag, CLAN);
   assert.equal(body.member_count, 49);
@@ -120,8 +120,8 @@ test("get_clan: roster with roles, snapshots slots, membership tenure", async ()
   );
 });
 
-test("get_war: latest recorded week with standings, points, note", async () => {
-  const { body, isError } = await call(invoke, "get_war", {});
+test("war_current: latest recorded week with standings, points, note", async () => {
+  const { body, isError } = await call(invoke, "war_current", {});
   assert.equal(isError, false);
   assert.equal(body.season_id, 134, "latest week in the log fixture");
   assert.ok(body.standings.length >= 5);
@@ -135,8 +135,8 @@ test("get_war: latest recorded week with standings, points, note", async () => {
   assert.match(body.note, /zero-fame opponent can be real/);
 });
 
-test("get_war_history: ranks per week and one member focus with attendance", async () => {
-  const { body } = await call(invoke, "get_war_history", { seasons: 3 });
+test("war_history: ranks per week and one member focus with attendance", async () => {
+  const { body } = await call(invoke, "war_history", { seasons: 3 });
   assert.ok(body.weeks.length >= 9, "the log fixture spans ten weeks");
   assert.ok(body.weeks.every((w) => w.our_rank >= 1 && w.our_rank <= 5));
   // A member with points across MORE than one season, so the seasons
@@ -155,7 +155,7 @@ test("get_war_history: ranks per week and one member focus with attendance", asy
      where not exists (select 1 from clan_membership where player_tag = $2 and left_observed_at is null)`,
     [CLAN, focusTag],
   );
-  const focused = await call(invoke, "get_war_history", {
+  const focused = await call(invoke, "war_history", {
     player_tag: focusTag,
     seasons: 3,
   });
@@ -178,7 +178,7 @@ test("get_war_history: ranks per week and one member focus with attendance", asy
      values ($1, $2, $3, 0, $4, 4)`,
     [CLAN, wk.season_id, wk.section_index, focusTag],
   );
-  const covered = await call(invoke, "get_war_history", {
+  const covered = await call(invoke, "war_history", {
     player_tag: focusTag,
     seasons: 3,
   });
@@ -195,7 +195,7 @@ test("get_war_history: ranks per week and one member focus with attendance", asy
 
   // seasons scopes member_weeks the same as weeks (round-2 finding: it
   // ignored the arg entirely).
-  const one = await call(invoke, "get_war_history", {
+  const one = await call(invoke, "war_history", {
     player_tag: focusTag,
     seasons: 1,
   });
@@ -210,9 +210,9 @@ test("get_war_history: ranks per week and one member focus with attendance", asy
   );
 });
 
-test("compare_players: two clanmates side by side", async () => {
+test("battles_compare: two clanmates side by side", async () => {
   const roster = await fixture("clan/roster.json");
-  const { body, isError } = await call(invoke, "compare_players", {
+  const { body, isError } = await call(invoke, "battles_compare", {
     player_tags: [roster.memberList[0].tag, roster.memberList[1].tag],
   });
   assert.equal(isError, false);
@@ -221,20 +221,20 @@ test("compare_players: two clanmates side by side", async () => {
 });
 
 test("entitlements hold: outsiders get structured refusals on every clan tool", async () => {
-  for (const name of ["get_clan", "get_war", "get_war_history"]) {
+  for (const name of ["clans_roster", "war_current", "war_history"]) {
     const { body, isError } = await call(invokeOutsider, name, {});
     assert.equal(isError, true, name);
     assert.equal(body.error.code, "not_entitled", name);
   }
-  const cmp = await call(invokeOutsider, "compare_players", {
+  const cmp = await call(invokeOutsider, "battles_compare", {
     player_tags: ["#YYYYYYYY", "#RRRRRRRR"],
   });
   assert.equal(cmp.body.error.code, "not_entitled");
 });
 
-test("the registry declares 17 tools, every one classified and annotated", () => {
+test("the registry declares 21 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 17);
+  assert.equal(decls.length, 21);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -246,20 +246,20 @@ test("the registry declares 17 tools, every one classified and annotated", () =>
   }
   const writers = decls.filter((d) => d.annotations.readOnlyHint === false);
   assert.deepEqual(
-    writers.map((d) => d.name),
-    ["send_feedback"],
-    "send_feedback is the only write tool",
+    writers.map((d) => d.name).sort(),
+    ["elixir_feedback", "elixir_watch_clan", "elixir_watch_player"],
+    "the service domain owns all write tools",
   );
   const open = decls.filter((d) => d.annotations.openWorldHint === true);
   assert.deepEqual(
     open.map((d) => d.name),
-    ["cr_api_live"],
-    "cr_api_live is the only open-world tool",
+    ["live_fetch"],
+    "live_fetch is the only open-world tool",
   );
 });
 
 test("round-3: seasons range refused loudly; attendance unions recorded battles", async () => {
-  const thirteen = await call(invoke, "get_war_history", { seasons: 13 });
+  const thirteen = await call(invoke, "war_history", { seasons: 13 });
   assert.equal(thirteen.isError, true);
   assert.equal(thirteen.body.error.code, "bad_request");
 
@@ -290,7 +290,7 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
     [member, CLAN],
   );
 
-  const war = await call(invoke, "get_war", {});
+  const war = await call(invoke, "war_current", {});
   const day1 = war.body.attendance_by_war_day.find((d) => d.war_day === 1);
   assert.ok(day1, "battle-derived war day appears");
   assert.ok(day1.battled >= 1, "recorded battle counts as battled");
@@ -299,7 +299,7 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
     "attendance counts race participants, field renamed from members",
   );
 
-  const focused = await call(invoke, "get_war_history", {
+  const focused = await call(invoke, "war_history", {
     player_tag: member,
     seasons: 1,
   });

@@ -510,7 +510,7 @@ export function makeHandler({
       if (!account) return json(401, { error: "unauthenticated" });
       const tool = String(body.tool ?? "");
       const registry = exploreRegistry();
-      if (!registry.has(tool) || tool === "cr_api_live") {
+      if (!registry.has(tool) || tool === "live_fetch") {
         return json(400, {
           error: "bad_request",
           message: `Unknown or non-explorable tool: ${tool}`,

@@ -175,17 +175,17 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 17 tools", async () => {
+test("tools/list declares all 21 tools", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
-  assert.equal(res.payload.result.tools.length, 17);
+  assert.equal(res.payload.result.tools.length, 21);
   const names = res.payload.result.tools.map((t) => t.name);
   for (const required of [
-    "list_my_players",
-    "get_coverage",
-    "get_player",
-    "query_battles",
-    "get_player_timeline",
-    "cr_api_live",
+    "elixir_my_players",
+    "elixir_coverage",
+    "players_profile",
+    "battles_query",
+    "players_timeline",
+    "live_fetch",
   ]) {
     assert.ok(names.includes(required), required);
   }
@@ -193,7 +193,7 @@ test("tools/list declares all 17 tools", async () => {
 
 test("quota exhaustion returns -32029", async () => {
   const res = await handleMcpMessage(
-    rpc("tools/call", { name: "list_my_players", arguments: {} }),
+    rpc("tools/call", { name: "elixir_my_players", arguments: {} }),
     context({
       spendQuota: async () => ({ allowed: false, count: 501, max: 500 }),
     }),
@@ -201,8 +201,8 @@ test("quota exhaustion returns -32029", async () => {
   assert.equal(res.payload.error.code, MCP_QUOTA_ERROR_CODE);
 });
 
-test("list_my_players: primary claim, recording status, meta envelope", async () => {
-  const { body, isError } = await callTool("list_my_players");
+test("elixir_my_players: primary claim, recording status, meta envelope", async () => {
+  const { body, isError } = await callTool("elixir_my_players");
   assert.equal(isError, false);
   assert.equal(body.players.length, 1);
   const p = body.players[0];
@@ -215,8 +215,8 @@ test("list_my_players: primary claim, recording status, meta envelope", async ()
   assert.ok(body.meta.quota.used >= 1);
 });
 
-test("get_coverage: polls, appearances, recording_active_since", async () => {
-  const { body } = await callTool("get_coverage");
+test("elixir_coverage: polls, appearances, recording_active_since", async () => {
+  const { body } = await callTool("elixir_coverage");
   assert.ok(body.battles.recorded_appearances > 0);
   assert.match(body.battles.note, /appears in \d+ recorded battles/);
   assert.ok(
@@ -228,20 +228,20 @@ test("get_coverage: polls, appearances, recording_active_since", async () => {
   assert.equal(body.meta.timezone_applied, "America/Chicago");
 });
 
-test("get_player: serves the recorded snapshot; live is honestly unavailable", async () => {
-  const { body } = await callTool("get_player", {
+test("players_profile: serves the recorded snapshot; live is honestly unavailable", async () => {
+  const { body } = await callTool("players_profile", {
     player_tag: "#JYRQ8U92C",
   }).catch(() => ({}));
   // #JYRQ8U92C is not claimed by this account -> not_entitled
   assert.equal(body.error.code, "not_entitled");
 
-  const live = await callTool("get_player", { live: true });
+  const live = await callTool("players_profile", { live: true });
   assert.equal(live.isError, true);
   assert.equal(live.body.error.code, "live_unavailable");
 });
 
-test("query_battles: pagination, filters, both perspectives, local time", async () => {
-  const first = await callTool("query_battles", { limit: 5 });
+test("battles_query: pagination, filters, both perspectives, local time", async () => {
+  const first = await callTool("battles_query", { limit: 5 });
   assert.equal(first.isError, false);
   assert.equal(first.body.battles.length, 5);
   assert.ok(first.body.next_cursor, "full page carries a cursor");
@@ -260,7 +260,7 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
   );
   assert.match(b.battle_time_local, /America\/Chicago/);
 
-  const second = await callTool("query_battles", {
+  const second = await callTool("battles_query", {
     limit: 5,
     cursor: first.body.next_cursor,
   });
@@ -274,14 +274,14 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
     "cursor advances",
   );
 
-  const wins = await callTool("query_battles", {
+  const wins = await callTool("battles_query", {
     outcome: "win",
     limit: 50,
     verbosity: "compact",
   });
   assert.ok(wins.body.battles.every((x) => x.me.outcome === "win"));
 
-  const ranked = await callTool("query_battles", {
+  const ranked = await callTool("battles_query", {
     mode: "ranked",
     limit: 50,
     verbosity: "compact",
@@ -290,7 +290,7 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
 
   const dh = wins.body.battles.find((x) => x.me.deck_hash)?.me.deck_hash;
   if (dh) {
-    const byDeck = await callTool("query_battles", {
+    const byDeck = await callTool("battles_query", {
       deck_hash: dh,
       limit: 50,
       verbosity: "compact",
@@ -299,10 +299,10 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
   }
 });
 
-test("query_battles: structured errors for bad input", async () => {
-  const bad = await callTool("query_battles", { player_tag: "not-a-tag!" });
+test("battles_query: structured errors for bad input", async () => {
+  const bad = await callTool("battles_query", { player_tag: "not-a-tag!" });
   assert.equal(bad.body.error.code, "invalid_tag");
-  const badDate = await callTool("query_battles", { from: "yesterday-ish" });
+  const badDate = await callTool("battles_query", { from: "yesterday-ish" });
   assert.equal(badDate.body.error.code, "bad_request");
 });
 
@@ -314,7 +314,7 @@ test("audit rows land for success and failure alike", async () => {
   assert.ok(rows.length >= 5);
   assert.ok(rows.some((r) => r.error_code === "not_entitled"));
   assert.ok(
-    rows.some((r) => r.tool === "query_battles" && r.error_code === null),
+    rows.some((r) => r.tool === "battles_query" && r.error_code === null),
   );
 });
 

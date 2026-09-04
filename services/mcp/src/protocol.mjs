@@ -53,8 +53,8 @@ function initializeResult(registry, requestedVersion) {
     },
     instructions: [
       "Recorded Clash Royale history for claimed players: battles, performance,",
-      "snapshots, coverage. Start with list_my_players to see claimed tags and",
-      "recording status; get_coverage tells you how complete the record is —",
+      "snapshots, coverage. Start with elixir_my_players to see claimed tags and",
+      "recording status; elixir_coverage tells you how complete the record is —",
       "caveat answers when it says the capture is incomplete. All tags are CR",
       `tags like #20JJJ2CCRU. Tool schemas evolve; if serverInfo.version differs`,
       "from your cached value, re-fetch tools/list.",

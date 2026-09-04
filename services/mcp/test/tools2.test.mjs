@@ -124,8 +124,8 @@ after(async () => {
   await admin.end();
 });
 
-test("get_player_timeline: daily series with multiple metrics", async () => {
-  const { body, isError } = await call("get_player_timeline", {
+test("players_timeline: daily series with multiple metrics", async () => {
+  const { body, isError } = await call("players_timeline", {
     metrics: ["trophies", "battle_count"],
   });
   assert.equal(isError, false);
@@ -134,15 +134,17 @@ test("get_player_timeline: daily series with multiple metrics", async () => {
   assert.equal(body.series[1].battle_count - body.series[0].battle_count, 12);
 });
 
-test("get_performance: window totals reconcile and before_after splits", async () => {
-  const { body } = await call("get_performance", {});
+test("battles_performance: window totals reconcile and before_after splits", async () => {
+  const { body } = await call("battles_performance", {});
   const w = body.window;
   assert.ok(w.battles > 0);
   assert.equal(w.wins + w.losses + w.draws <= w.battles, true);
   assert.ok(typeof w.win_rate === "number");
   assert.ok(Number.isInteger(w.current_streak));
 
-  const split = await call("get_performance", { before_after: "2026-09-01" });
+  const split = await call("battles_performance", {
+    before_after: "2026-09-01",
+  });
   assert.ok(split.body.before && split.body.after && split.body.split_at);
   assert.equal(
     split.body.before.battles + split.body.after.battles,
@@ -151,21 +153,21 @@ test("get_performance: window totals reconcile and before_after splits", async (
   );
 });
 
-test("get_card_performance: mine and opponent perspectives, duels excluded", async () => {
-  const mine = await call("get_card_performance", { perspective: "mine" });
+test("battles_cards: mine and opponent perspectives, duels excluded", async () => {
+  const mine = await call("battles_cards", { perspective: "mine" });
   assert.equal(mine.isError, false);
   assert.ok(mine.body.cards.length > 0, "cards attributed");
   for (const c of mine.body.cards) {
     assert.equal(c.battles, c.wins + c.losses);
     assert.ok(c.win_rate >= 0 && c.win_rate <= 1);
   }
-  const opp = await call("get_card_performance", { perspective: "opponent" });
+  const opp = await call("battles_cards", { perspective: "opponent" });
   assert.equal(opp.isError, false);
   assert.match(opp.body.note, /OPPONENT/);
 });
 
-test("get_deck_performance: grouped by deck_hash with samples", async () => {
-  const { body, isError } = await call("get_deck_performance", {});
+test("battles_decks: grouped by deck_hash with samples", async () => {
+  const { body, isError } = await call("battles_decks", {});
   assert.equal(isError, false);
   assert.ok(body.decks.length > 0);
   const d = body.decks[0];
@@ -175,8 +177,8 @@ test("get_deck_performance: grouped by deck_hash with samples", async () => {
   assert.ok(d.first_used <= d.last_used);
 });
 
-test("get_collection: API-shaped passthrough of the latest payload", async () => {
-  const { body, isError } = await call("get_collection", {});
+test("players_collection: API-shaped passthrough of the latest payload", async () => {
+  const { body, isError } = await call("players_collection", {});
   assert.equal(isError, false);
   assert.ok(Array.isArray(body.cards) && body.cards.length > 50);
   assert.ok(body.cards[0].id && body.cards[0].name, "API shapes pass through");
@@ -192,23 +194,23 @@ test("get_collection: API-shaped passthrough of the latest payload", async () =>
   );
 });
 
-test("get_card_catalog: served from the recorded GLOBAL payload", async () => {
-  const { body, isError } = await call("get_card_catalog", {});
+test("cards_catalog: served from the recorded GLOBAL payload", async () => {
+  const { body, isError } = await call("cards_catalog", {});
   assert.equal(isError, false);
   assert.ok(Array.isArray(body.cards) && body.cards.length > 100);
   assert.ok(Array.isArray(body.tower_troops) && body.tower_troops.length > 0);
 });
 
-test("cr_api_live: allowlist validation, then honest live_unavailable", async () => {
-  const bad = await call("cr_api_live", { path: "/locations/global/rankings" });
+test("live_fetch: allowlist validation, then honest live_unavailable", async () => {
+  const bad = await call("live_fetch", { path: "/locations/global/rankings" });
   assert.equal(bad.body.error.code, "bad_request");
-  const badTag = await call("cr_api_live", { path: "/players/NOT-A-TAG!" });
+  const badTag = await call("live_fetch", { path: "/players/NOT-A-TAG!" });
   assert.equal(badTag.body.error.code, "invalid_tag");
-  const crossed = await call("cr_api_live", {
+  const crossed = await call("live_fetch", {
     path: "/clans/#J2RGCRVG/battlelog",
   });
   assert.equal(crossed.body.error.code, "bad_request");
-  const ok = await call("cr_api_live", { path: "/players/#20JJJ2CCRU" });
+  const ok = await call("live_fetch", { path: "/players/#20JJJ2CCRU" });
   assert.equal(ok.body.error.code, "live_unavailable");
 });
 
@@ -217,31 +219,31 @@ test("the V1 tools remain declared among the full registry", () => {
     .declarations()
     .map((d) => d.name);
   for (const required of [
-    "cr_api_live",
-    "get_card_catalog",
-    "get_card_performance",
-    "get_collection",
-    "get_coverage",
-    "get_deck_performance",
-    "get_performance",
-    "get_player",
-    "get_player_timeline",
-    "query_battles",
-    "list_my_players",
+    "live_fetch",
+    "cards_catalog",
+    "battles_cards",
+    "players_collection",
+    "elixir_coverage",
+    "battles_decks",
+    "battles_performance",
+    "players_profile",
+    "players_timeline",
+    "battles_query",
+    "elixir_my_players",
   ]) {
     assert.ok(names.includes(required), required);
   }
 });
 
 test("round-1 tester fixes: inverted windows refuse; compact drops decks; null cursor ends pages", async () => {
-  const inverted = await call("query_battles", {
+  const inverted = await call("battles_query", {
     from: "2026-09-10",
     to: "2026-09-01",
   });
   assert.equal(inverted.body.error.code, "bad_request");
   assert.match(inverted.body.error.message, /inverted/);
 
-  const compactRes = await call("query_battles", {
+  const compactRes = await call("battles_query", {
     limit: 2,
     verbosity: "compact",
   });
@@ -252,35 +254,35 @@ test("round-1 tester fixes: inverted windows refuse; compact drops decks; null c
   );
   assert.ok(compactRes.body.battles[0].me.deck_hash, "hash stays");
 
-  const short = await call("query_battles", {
+  const short = await call("battles_query", {
     limit: 50,
     verbosity: "compact",
   });
   assert.equal(short.body.next_cursor, null, "explicit null on final page");
 
-  const perf = await call("get_performance", {
+  const perf = await call("battles_performance", {
     before_after: "2026-09-01",
     compare_from: "2026-08-01",
   });
   assert.match(perf.body.note, /compare_from\/compare_to were ignored/);
   assert.ok(perf.body.filters_applied, "filters echoed");
 
-  const tl = await call("get_player_timeline", { from: "2026-05-01" });
+  const tl = await call("players_timeline", { from: "2026-05-01" });
   assert.ok(tl.body.snapshots_available_from, "epoch disclosed");
 });
 
 test("wishlist batch: weekly trend, headline summary, deck ergonomics, total_count", async () => {
-  const trend = await call("get_performance", { group_by: "week" });
+  const trend = await call("battles_performance", { group_by: "week" });
   assert.equal(trend.isError, false);
   assert.ok(Array.isArray(trend.body.weekly) && trend.body.weekly.length > 0);
   assert.ok(trend.body.weekly[0].iso_week.match(/^\d{4}-W\d{2}$/));
 
-  const sum = await call("get_player_summary", {});
+  const sum = await call("players_summary", {});
   assert.equal(sum.isError, false);
   assert.ok(sum.body.last_30_days.battles >= 0);
   assert.ok(sum.body.top_deck === null || sum.body.top_deck.deck_hash);
 
-  const decks = await call("get_deck_performance", {
+  const decks = await call("battles_decks", {
     sort: "win_rate",
     min_battles: 1,
   });
@@ -290,7 +292,7 @@ test("wishlist batch: weekly trend, headline summary, deck ergonomics, total_cou
     assert.ok(decks.body.decks[0].share_of_battles !== undefined);
   }
 
-  const counted = await call("query_battles", {
+  const counted = await call("battles_query", {
     limit: 1,
     include_total: true,
   });
@@ -300,19 +302,19 @@ test("wishlist batch: weekly trend, headline summary, deck ergonomics, total_cou
 
 test("round-3 fixes: honest validation and richer shapes", async () => {
   // Empty player_tag is a caller bug, never a silent default.
-  const empty = await call("get_player", { player_tag: "" });
+  const empty = await call("players_profile", { player_tag: "" });
   assert.equal(empty.isError, true);
   assert.equal(empty.body.error.code, "invalid_tag");
 
   // Forged-but-parseable cursor refused (the id half must be real).
-  const forged = await call("query_battles", {
+  const forged = await call("battles_query", {
     cursor: `2026-01-01T00:00:00Z|${"0".repeat(64)}`,
   });
   assert.equal(forged.isError, true);
   assert.equal(forged.body.error.code, "bad_request");
 
   // Weekly rows: week_of is the ISO week's Monday; trophy-eligible count rides along.
-  const trend = await call("get_performance", { group_by: "week" });
+  const trend = await call("battles_performance", { group_by: "week" });
   assert.ok(trend.body.weekly.length > 0);
   for (const w of trend.body.weekly) {
     assert.equal(
@@ -325,13 +327,13 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
   assert.match(trend.body.weekly_note, /draws excluded/);
 
   // Summary: draws counted, denominator explained, best_deck slot exists.
-  const sum = await call("get_player_summary", {});
+  const sum = await call("players_summary", {});
   assert.ok(typeof sum.body.last_30_days.draws === "number");
   assert.match(sum.body.note, /draws excluded/);
   assert.ok("best_deck" in sum.body);
 
   // Full verbosity delivers the promised opponent perspective.
-  const full = await call("query_battles", { limit: 10 });
+  const full = await call("battles_query", { limit: 10 });
   const withOpp = full.body.battles.find((b) => b.opponents.length > 0);
   assert.ok(withOpp, "an opponent-bearing battle exists");
   assert.ok(
@@ -342,7 +344,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
   assert.match(full.body.card_legend, /tower_hp/);
 
   // A window before recording says so instead of a bare empty page.
-  const ancient = await call("query_battles", {
+  const ancient = await call("battles_query", {
     from: "2020-01-01",
     to: "2020-02-01",
   });
@@ -350,10 +352,61 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
   assert.equal(ancient.body.battles.length, 0);
   assert.match(ancient.body.warnings?.[0] ?? "", /window_precedes_recording/);
 
-  // compare_players enforces its upper bound server-side.
-  const five = await call("compare_players", {
+  // battles_compare enforces its upper bound server-side.
+  const five = await call("battles_compare", {
     player_tags: ["#20JJJ2CCRU", "#2PP", "#2PY", "#2PL", "#2PQ"],
   });
   assert.equal(five.isError, true);
   assert.equal(five.body.error.code, "bad_request");
+});
+
+test("Elixir MCP service domain: watch player, watch clan, insights, collectors", async () => {
+  // Watch a new player: claim + recording in one call.
+  const watch = await call("elixir_watch_player", { player_tag: "#2PP0V90Y" });
+  assert.equal(watch.isError, false, JSON.stringify(watch.body));
+  assert.equal(watch.body.claimed, true);
+  assert.equal(watch.body.recording_started, true);
+
+  // Watching again: idempotent, shares the existing record.
+  const again = await call("elixir_watch_player", { player_tag: "#2PP0V90Y" });
+  assert.equal(again.body.claimed, false);
+  assert.equal(again.body.recording_started, false);
+
+  // The web flow's cap applies identically here.
+  await db.query(
+    `update account set max_player_recordings = 2 where account_id = $1`,
+    [account.accountId],
+  );
+  const capped = await call("elixir_watch_player", { player_tag: "#2PL" });
+  assert.equal(capped.isError, true);
+  assert.equal(capped.body.error.code, "quota_exceeded");
+  await db.query(
+    `update account set max_player_recordings = null where account_id = $1`,
+    [account.accountId],
+  );
+
+  // Watch clan: files a reviewed request (budget is shared), never starts alone.
+  const clanReq = await call("elixir_watch_clan", {
+    clan_tag: "#J2RGCRVG",
+    note: "I lead this clan",
+  });
+  assert.equal(clanReq.isError, false);
+  assert.equal(clanReq.body.recording, "requested");
+  const { rows: fb } = await db.query(
+    `select context->>'kind' as kind from feedback where feedback_id = $1`,
+    [clanReq.body.request_id],
+  );
+  assert.equal(fb[0].kind, "clan_watch_request");
+
+  // Insights: corpus-wide transparency counts.
+  const insights = await call("elixir_data_insights", {});
+  assert.ok(insights.body.players_observed > 0);
+  assert.ok(insights.body.battles.recorded > 0);
+  assert.ok(insights.body.battles.first <= insights.body.battles.last);
+
+  // Collectors: the ladder with arena names.
+  const collectors = await call("elixir_collectors", {});
+  assert.ok(collectors.body.collectors.length >= 1);
+  assert.equal(collectors.body.collectors[0].rank, 1);
+  assert.ok(collectors.body.collectors[0].arena.length > 0);
 });

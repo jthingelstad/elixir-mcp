@@ -1,6 +1,6 @@
 /**
- * Battle mode grouping — contract vocabulary: `query_battles`/
- * `get_performance` accept `mode` as one of these groups, and the rollup
+ * Battle mode grouping — contract vocabulary: `battles_query`/
+ * `battles_performance` accept `mode` as one of these groups, and the rollup
  * tables bucket by them. One mapping, shared by tools and ingest.
  */
 

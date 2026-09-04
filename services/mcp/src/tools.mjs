@@ -12,6 +12,7 @@ import {
   typesForModeGroup,
   displayCard,
   TOOL_GROUPS,
+  gatewayArena,
 } from "@elixir-mcp/contracts";
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
@@ -116,7 +117,7 @@ function requireOrderedWindow(from, to) {
 // --- tools -----------------------------------------------------------------
 
 const TOOLS = {
-  list_my_players: {
+  elixir_my_players: {
     description:
       "Your session bootstrap: claimed tags, which is primary, and recording status, and current clan as recorded. claim_status is informational — claims are trust-based. Call this first.",
     inputSchema: {
@@ -153,9 +154,9 @@ const TOOLS = {
     },
   },
 
-  get_player_summary: {
+  players_summary: {
     description:
-      "The headline in one call: current trophies and clan, last-30-days record and win rate, and the most-played deck with its record. Start here for \u201chow am I doing?\u201d; drill in with get_performance / get_deck_performance.",
+      "The headline in one call: current trophies and clan, last-30-days record and win rate, and the most-played deck with its record. Start here for \u201chow am I doing?\u201d; drill in with battles_performance / battles_decks.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA },
@@ -267,13 +268,13 @@ const TOOLS = {
         // most-played is often NOT the best-performing deck - both
         // headlines matter (round-3 casual finding).
         best_deck: b && b.deck_hash !== d?.deck_hash ? deckShape(b) : null,
-        note: "counts include ALL recorded battles (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded. best_deck needs 10+ battles in the window and is omitted when it IS the top deck. History may predate active recording - get_coverage has the full capture story.",
+        note: "counts include ALL recorded battles (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded. best_deck needs 10+ battles in the window and is omitted when it IS the top deck. History may predate active recording - elixir_coverage has the full capture story.",
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
   },
 
-  get_coverage: {
+  elixir_coverage: {
     description:
       "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before you claimed the tag), and recent capture completeness. Use it to caveat answers honestly.",
     inputSchema: {
@@ -346,7 +347,7 @@ const TOOLS = {
     },
   },
 
-  get_player: {
+  players_profile: {
     description:
       "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan. as-of the last profile poll.",
     inputSchema: {
@@ -411,7 +412,7 @@ const TOOLS = {
         throw new ToolFailure(
           "not_recorded",
           `${tag} is known but has no profile snapshot yet.`,
-          "Recording may have just started; try get_coverage.",
+          "Recording may have just started; try elixir_coverage.",
         );
       }
       return {
@@ -434,7 +435,7 @@ const TOOLS = {
     },
   },
 
-  query_battles: {
+  battles_query: {
     description:
       "The workhorse: canonical recorded battles for a tag with filters and cursor pagination. Returns both perspectives of every battle (your deck and the opponents’). from/to accept ISO instants or date-only strings resolved in your timezone.",
     inputSchema: {
@@ -471,7 +472,7 @@ const TOOLS = {
         },
         deck_hash: {
           type: "string",
-          description: "Exact deck identity (see get_deck_performance).",
+          description: "Exact deck identity (see battles_decks).",
         },
         cursor: {
           type: "string",
@@ -714,7 +715,7 @@ const TOOLS = {
       };
     },
   },
-  get_player_timeline: {
+  players_timeline: {
     description:
       "Time series from daily snapshots: trophies, donations (weekly counter — resets Mondays), battle_count, collection_level. The trophy-graph tool. Granularity week returns the last snapshot of each ISO week.",
     inputSchema: {
@@ -798,7 +799,7 @@ const TOOLS = {
         snapshots_available_from: snapshotsFrom,
         ...(snapshotsFrom && args.from && args.from < snapshotsFrom
           ? {
-              range_note: `Requested from ${args.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see get_coverage) but no snapshots.`,
+              range_note: `Requested from ${args.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`,
             }
           : {}),
         series: points.map((r) => ({
@@ -814,7 +815,7 @@ const TOOLS = {
     },
   },
 
-  get_performance: {
+  battles_performance: {
     description:
       'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side — built for "since X vs before" questions. Precedence: before_after wins over compare_*; the response echoes filters_applied.',
     inputSchema: {
@@ -1009,7 +1010,7 @@ const TOOLS = {
     },
   },
 
-  get_card_performance: {
+  battles_cards: {
     description:
       'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you — the nemesis question. Duels are excluded (no single deck).',
     inputSchema: {
@@ -1083,9 +1084,9 @@ const TOOLS = {
     },
   },
 
-  get_deck_performance: {
+  battles_decks: {
     description:
-      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. Some special modes field more or fewer than 8 cards — deck identity is always the exact card set played. The factual substrate for deck review — pass a deck_hash to query_battles or get_performance to drill in.",
+      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. Some special modes field more or fewer than 8 cards — deck identity is always the exact card set played. The factual substrate for deck review — pass a deck_hash to battles_query or battles_performance to drill in.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1174,7 +1175,7 @@ const TOOLS = {
     },
   },
 
-  get_collection: {
+  players_collection: {
     description:
       "Full card collection as last recorded: levels (in-game 1-16 scale), counts, evolutions, star levels, collection level. In THIS tool evolutionLevel/maxEvolutionLevel are evolution progress owned (unlike battle decks, where evolutionLevel is the form played); starLevel is cosmetic. API-shaped passthrough of the latest profile payload.",
     inputSchema: {
@@ -1216,7 +1217,7 @@ const TOOLS = {
     },
   },
 
-  get_card_catalog: {
+  cards_catalog: {
     description:
       "Current card and tower-troop catalog: ids, names, rarities, max levels, evolution availability. Use it to resolve card ids instead of guessing.",
     inputSchema: {
@@ -1242,7 +1243,7 @@ const TOOLS = {
     },
   },
 
-  send_feedback: {
+  elixir_feedback: {
     description:
       "Send feedback about Elixir MCP to its maintainers: bugs, data-quality issues, missing capabilities, or praise. Feedback from an agent is attributed to the account that connected it. Use freely — it directly drives what gets built.",
     inputSchema: {
@@ -1262,7 +1263,7 @@ const TOOLS = {
         context: {
           type: "string",
           description:
-            "Optional: which tool/question prompted this (e.g. 'query_battles pagination').",
+            "Optional: which tool/question prompted this (e.g. 'battles_query pagination').",
         },
       },
       required: ["message"],
@@ -1294,7 +1295,261 @@ const TOOLS = {
     },
   },
 
-  cr_api_live: {
+  elixir_watch_player: {
+    description:
+      "Start recording a player: claims the tag to your account (trust-based) and begins battle/profile capture. Same rules as the website — active player recordings are capped per account.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        player_tag: {
+          type: "string",
+          description: "The tag to watch, like #20JJJ2CCRU.",
+        },
+        make_primary: {
+          type: "boolean",
+          description: "Make this your primary claimed tag.",
+        },
+      },
+      required: ["player_tag"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      let tag;
+      try {
+        tag = normalizeTag(String(args.player_tag ?? ""));
+      } catch {
+        throw new ToolFailure(
+          "invalid_tag",
+          "Invalid player tag.",
+          TAG_RULE_HINT,
+        );
+      }
+      await ctx.db.query(
+        `insert into player (player_tag) values ($1) on conflict do nothing`,
+        [tag],
+      );
+      const { rows: existing } = await ctx.db.query(
+        `select count(*)::int as n from claim where account_id = $1`,
+        [ctx.account.accountId],
+      );
+      const { rowCount: claimed } = await ctx.db.query(
+        `insert into claim (account_id, player_tag, status, is_primary)
+         values ($1, $2, 'unverified', $3) on conflict (account_id, player_tag) do nothing`,
+        [
+          ctx.account.accountId,
+          tag,
+          existing[0].n === 0 || args.make_primary === true,
+        ],
+      );
+      if (claimed > 0) {
+        await ctx.db.query(
+          `insert into account_event (account_id, kind, detail) values ($1, 'claim_added', $2)`,
+          [
+            ctx.account.accountId,
+            JSON.stringify({ player_tag: tag, via: "mcp" }),
+          ],
+        );
+      }
+      if (args.make_primary === true) {
+        await ctx.db.query(
+          `update claim set is_primary = (player_tag = $2) where account_id = $1`,
+          [ctx.account.accountId, tag],
+        );
+      }
+      // Recordings spend the one global rate budget: same cap as the web
+      // flow (default 5 active player recordings, column override, owner
+      // exempt) — the two doors must never disagree.
+      const { rows: already } = await ctx.db.query(
+        `select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active'`,
+        [tag],
+      );
+      let recordingStarted = false;
+      if (!already[0]) {
+        if (!ctx.account.isOwner) {
+          const { rows: cap } = await ctx.db.query(
+            `select coalesce(a.max_player_recordings, 5) as cap,
+                    (select count(*)::int from recording r
+                     where r.requested_by = $1 and r.subject_type = 'player'
+                       and r.status = 'active') as active
+             from account a where a.account_id = $1`,
+            [ctx.account.accountId],
+          );
+          if (cap[0].active >= cap[0].cap) {
+            throw new ToolFailure(
+              "quota_exceeded",
+              `Active player recordings are capped at ${cap[0].cap} per account.`,
+              "Stop one on the website dashboard, or ask via elixir_feedback for a higher cap.",
+            );
+          }
+        }
+        await ctx.db.query(
+          `insert into recording (subject_type, subject_tag, requested_by)
+           select 'player', $1, $2
+           where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
+          [tag, ctx.account.accountId],
+        );
+        await ctx.db.query(
+          `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
+          [
+            ctx.account.accountId,
+            JSON.stringify({ player_tag: tag, via: "mcp" }),
+          ],
+        );
+        recordingStarted = true;
+      }
+      return {
+        player_tag: tag,
+        claimed: claimed > 0,
+        recording: "active",
+        recording_started: recordingStarted,
+        note: recordingStarted
+          ? "Watching. First battles land within the hour; history builds from here (the API has no past)."
+          : "This player was already being recorded — you now share the existing record.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  elixir_watch_clan: {
+    description:
+      "Ask Elixir MCP to record a whole clan (every member's battles, roster, war). Clan capture spends the shared collector budget, so this files a request the maintainer reviews rather than starting immediately.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        clan_tag: {
+          type: "string",
+          description: "The clan tag, like #J2RGCRVG.",
+        },
+        note: {
+          type: "string",
+          maxLength: 500,
+          description: "Optional: why, and your role in the clan.",
+        },
+      },
+      required: ["clan_tag"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      let tag;
+      try {
+        tag = normalizeTag(String(args.clan_tag ?? ""));
+      } catch {
+        throw new ToolFailure(
+          "invalid_tag",
+          "Invalid clan tag.",
+          TAG_RULE_HINT,
+        );
+      }
+      const { rows: active } = await ctx.db.query(
+        `select 1 from recording where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+        [tag],
+      );
+      if (active[0]) {
+        return {
+          clan_tag: tag,
+          recording: "active",
+          note: "This clan is already being recorded.",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
+      // The request rides the feedback triage lane the maintainer already
+      // watches; membership can't be verified for an unrecorded clan, so
+      // the reviewer is the gate.
+      const { rows: fb } = await ctx.db.query(
+        `insert into feedback (account_id, surface, category, message, context)
+         values ($1, 'mcp', 'feature', $2, $3)
+         returning feedback_id`,
+        [
+          ctx.account.accountId,
+          `Clan watch request: ${tag}${args.note ? ` — ${String(args.note).slice(0, 500)}` : ""}`,
+          JSON.stringify({ kind: "clan_watch_request", clan_tag: tag }),
+        ],
+      );
+      await ctx.db.query(
+        `insert into account_event (account_id, kind, detail) values ($1, 'clan_watch_requested', $2)`,
+        [ctx.account.accountId, JSON.stringify({ clan_tag: tag })],
+      );
+      return {
+        clan_tag: tag,
+        recording: "requested",
+        request_id: fb[0].feedback_id,
+        note: "Request filed for review — clan capture spends the shared collector budget, so the maintainer approves these by hand. You'll see it on your dashboard when it starts.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  elixir_data_insights: {
+    description:
+      "What the service holds: players, battles and their time span, snapshots, war weeks, recorded clans and players, and API observations. The transparency view of the whole corpus (not just your slice).",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+    async handler(ctx) {
+      const q = async (sql) => (await ctx.db.query(sql)).rows[0];
+      const [players, battles, snaps, weeks, recs, receipts] =
+        await Promise.all([
+          q(`select count(*)::int as n from player`),
+          q(
+            `select count(*)::int as n, min(battle_time) as first, max(battle_time) as last from battle`,
+          ),
+          q(`select count(*)::int as n from player_snapshot_daily`),
+          q(`select count(*)::int as n from war_week`),
+          q(`select count(*) filter (where subject_type = 'clan')::int as clans,
+                    count(*) filter (where subject_type = 'player')::int as players
+             from recording where status = 'active'`),
+          q(`select count(*)::int as n from api_receipt`),
+        ]);
+      return {
+        players_observed: players.n,
+        battles: {
+          recorded: battles.n,
+          first: battles.first?.toISOString() ?? null,
+          last: battles.last?.toISOString() ?? null,
+        },
+        daily_snapshots: snaps.n,
+        war_weeks: weeks.n,
+        active_recordings: { clans: recs.clans, players: recs.players },
+        api_observations: receipts.n,
+        note: "players_observed counts every tag ever seen in a recorded battle or roster — far more than the actively recorded set. Raw payload history is archived durably to S3 beyond these counts.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  elixir_collectors: {
+    description:
+      "The collector ladder: the operator-run machines that fetch from the CR API, each named for a Clash Royale card, earning a point per fetch and climbing arena tiers. More collectors = resilience, never more quota.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+    async handler(ctx) {
+      const { rows } = await ctx.db.query(
+        `select name, status, fetch_points, card_name, card_icon, last_success_at
+         from gateway where status <> 'revoked'
+         order by fetch_points desc, enrolled_at`,
+      );
+      return {
+        collectors: rows.map((g, i) => ({
+          rank: i + 1,
+          name: g.name,
+          card: g.card_name,
+          status: g.status,
+          points: Number(g.fetch_points),
+          arena: gatewayArena(Number(g.fetch_points)).name,
+          last_success: g.last_success_at?.toISOString() ?? null,
+        })),
+        note: "Run one yourself: raise your hand on the dashboard (a machine with a static IP is all it takes).",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  live_fetch: {
     description:
       "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s. RAW payloads: card levels here are the API's rarity-relative scale (a maxed legendary reads 8/8); every recorded-data tool serves the in-game 1-16 scale instead.",
     inputSchema: {
@@ -1338,7 +1593,7 @@ const TOOLS = {
       };
     },
   },
-  get_clan: {
+  clans_roster: {
     description:
       "Your recorded clan: roster with roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Defaults to your clan.",
     inputSchema: {
@@ -1416,7 +1671,7 @@ const TOOLS = {
     },
   },
 
-  get_war: {
+  war_current: {
     description:
       "The current (latest recorded) river race for your clan: standings across the five clans, per-member points/decks used, war day and attendance so far. Defaults to your clan.",
     inputSchema: {
@@ -1512,7 +1767,7 @@ const TOOLS = {
     },
   },
 
-  get_war_history: {
+  war_history: {
     description:
       'Recorded war weeks for your clan: final ranks, boat fame, and (optionally) one member’s per-week points and decks — "did I miss a war day?" lives here. Defaults to your clan.',
     inputSchema: {
@@ -1624,7 +1879,7 @@ const TOOLS = {
     },
   },
 
-  compare_players: {
+  battles_compare: {
     description:
       "Side-by-side of 2–4 entitled tags (your claims or clanmates): latest snapshot topline plus a shared performance window.",
     inputSchema: {
@@ -1647,13 +1902,13 @@ const TOOLS = {
     },
     async handler(ctx, args) {
       if ((args.player_tags ?? []).length > 4)
-        throw new ToolFailure("bad_request", "compare_players needs 2-4 tags.");
+        throw new ToolFailure("bad_request", "battles_compare needs 2-4 tags.");
       const tags = [];
       for (const raw of args.player_tags ?? []) {
         tags.push((await subject(ctx.db, ctx.account, raw, "summary")).tag);
       }
       if (tags.length < 2)
-        throw new ToolFailure("bad_request", "compare_players needs 2-4 tags.");
+        throw new ToolFailure("bad_request", "battles_compare needs 2-4 tags.");
       const tz = ctx.account.timezone;
       const from = resolveInstant(tz, args.from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });

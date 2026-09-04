@@ -526,12 +526,12 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   );
   await db.query(
     `insert into mcp_call_audit (account_id, tool, duration_ms, result_bytes)
-     values ($1, 'get_player', 120, 900), ($1, 'query_battles', 340, 4000)`,
+     values ($1, 'players_profile', 120, 900), ($1, 'battles_query', 340, 4000)`,
     [acct[0].account_id],
   );
   await db.query(
     `insert into mcp_call_audit (account_id, tool, error_code)
-     values ($1, 'get_war', 'not_entitled')`,
+     values ($1, 'war_current', 'not_entitled')`,
     [acct[0].account_id],
   );
 
@@ -543,7 +543,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   assert.equal(mine.today_calls, 3);
   assert.equal(mine.quota_max, 500, "default quota surfaced");
   assert.equal(mine.days[0].errors, 1);
-  assert.ok(mine.top_tools.some((t) => t.tool === "get_player"));
+  assert.ok(mine.top_tools.some((t) => t.tool === "players_profile"));
 
   const ownerCookie = bossCookie;
   const fleet = parse(
@@ -559,7 +559,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   const row = fleet.accounts.find((a) => a.primary_tag === "#2PP0V90Y");
   assert.equal(row.calls_7d, 3);
   assert.equal(row.errors_7d, 1);
-  assert.ok(fleet.tools.some((t) => t.tool === "query_battles"));
+  assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
 
   const nonOwner = await handler(
     event({ method: "GET", path: "/api/admin/usage", cookie, body: undefined }),
@@ -713,7 +713,7 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
       event({
         path: "/api/explore",
         cookie,
-        body: { tool: "list_my_players", args: {} },
+        body: { tool: "elixir_my_players", args: {} },
       }),
     ),
   );
@@ -726,7 +726,7 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
       event({
         path: "/api/explore",
         cookie,
-        body: { tool: "query_battles", args: { player_tag: "#PYGRJC" } },
+        body: { tool: "battles_query", args: { player_tag: "#PYGRJC" } },
       }),
     ),
   );
@@ -734,7 +734,7 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
 
   // Live passthrough is not explorable; unknown tools refuse.
   const live = await handler(
-    event({ path: "/api/explore", cookie, body: { tool: "cr_api_live" } }),
+    event({ path: "/api/explore", cookie, body: { tool: "live_fetch" } }),
   );
   assert.equal(live.statusCode, 400);
 
@@ -762,8 +762,8 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
         path: "/api/explore",
         cookie,
         body: {
-          tool: "send_feedback",
-          args: { message: "query_battles filters rock", category: "praise" },
+          tool: "elixir_feedback",
+          args: { message: "battles_query filters rock", category: "praise" },
         },
       }),
     ),

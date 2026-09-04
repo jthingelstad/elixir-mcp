@@ -99,7 +99,7 @@ export function Explore({ me, navigate }) {
 
   useEffect(() => {
     if (!me?.authenticated) return;
-    api.explore("list_my_players").then((r) => {
+    api.explore("elixir_my_players").then((r) => {
       if (r.ok && !r.data.is_error) {
         setPlayers(r.data.body.players);
         if (r.data.body.players[0]) {
@@ -122,13 +122,13 @@ export function Explore({ me, navigate }) {
       };
       try {
         let d;
-        if (whichTab === "Summary") d = await call("get_player_summary");
+        if (whichTab === "Summary") d = await call("players_summary");
         else if (whichTab === "Battles") {
           const args = { limit: 25, verbosity: "compact", include_total: true };
           if (battleFilters.mode) args.mode = battleFilters.mode;
           if (battleFilters.outcome) args.outcome = battleFilters.outcome;
           if (extraArgs.cursor) args.cursor = extraArgs.cursor;
-          const page = await call("query_battles", args);
+          const page = await call("battles_query", args);
           d = extraArgs.cursor
             ? {
                 ...page,
@@ -139,16 +139,17 @@ export function Explore({ me, navigate }) {
               }
             : page;
         } else if (whichTab === "Trend")
-          d = await call("get_performance", { group_by: "week" });
+          d = await call("battles_performance", { group_by: "week" });
         else if (whichTab === "Decks")
-          d = await call("get_deck_performance", { sort: "battles" });
-        else if (whichTab === "Collection") d = await call("get_collection");
-        else if (whichTab === "Coverage") d = await call("get_coverage");
+          d = await call("battles_decks", { sort: "battles" });
+        else if (whichTab === "Collection")
+          d = await call("players_collection");
+        else if (whichTab === "Coverage") d = await call("elixir_coverage");
         else if (whichTab === "War") {
-          const clan = await call("get_clan", { clan_tag: undefined });
+          const clan = await call("clans_roster", { clan_tag: undefined });
           let war = null;
           try {
-            war = await call("get_war", { clan_tag: undefined });
+            war = await call("war_current", { clan_tag: undefined });
           } catch {
             war = null;
           }

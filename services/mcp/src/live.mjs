@@ -41,7 +41,7 @@ export function makeLive({
   };
 }
 
-/** Allowlisted live paths -> (endpoint, entity key). Mirrors cr_api_live. */
+/** Allowlisted live paths -> (endpoint, entity key). Mirrors live_fetch. */
 export function livePathToJob(path, normalizeTag) {
   const m =
     /^\/(players|clans)\/([^/]+)(\/(battlelog|currentriverrace|riverracelog))?$/.exec(

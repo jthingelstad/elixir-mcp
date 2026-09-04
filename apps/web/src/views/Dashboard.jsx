@@ -255,7 +255,7 @@ export function Dashboard({ me, refresh, navigate }) {
           your email when it asks: <code>https://elixir.poapkings.com/mcp</code>
         </p>
         <p>
-          Start with <code>list_my_players</code>, then try{" "}
+          Start with <code>elixir_my_players</code>, then try{" "}
           <em>&ldquo;what&rsquo;s my record this week?&rdquo;</em>
         </p>
       </div>
@@ -412,7 +412,7 @@ export function Dashboard({ me, refresh, navigate }) {
         <p>
           Bugs, wrong-looking data, missing capabilities, praise — it all goes
           straight to the roadmap. Your agent can do this too, with the{" "}
-          <code>send_feedback</code> tool.
+          <code>elixir_feedback</code> tool.
         </p>
         {fb.sent ? (
           <p className="notice">Received — thank you.</p>
