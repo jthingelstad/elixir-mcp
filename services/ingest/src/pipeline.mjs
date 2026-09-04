@@ -221,7 +221,8 @@ export async function processResult(db, rawMessage) {
     let projection = null;
     if (admission.ok) {
       await db.query(
-        `update gateway set last_success_at = now() where gateway_id::text = $1`,
+        `update gateway set last_success_at = now(), fetch_points = fetch_points + 1
+         where gateway_id::text = $1`,
         [msg.gateway_id],
       );
       const projector = PROJECTORS[endpoint];

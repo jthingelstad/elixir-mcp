@@ -44,6 +44,7 @@ export const api = {
   adminGatewayAction: (gateway_id, action) =>
     request("POST", "/api/admin/gateways", { gateway_id, action }),
   myGateways: () => request("GET", "/api/me/gateways"),
+  gatewayLadder: () => request("GET", "/api/gateways/ladder"),
   raiseGateway: (name, static_ip) =>
     request("POST", "/api/gateways", { name, static_ip }),
 };

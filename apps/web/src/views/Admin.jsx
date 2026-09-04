@@ -283,6 +283,7 @@ export function Admin({ me }) {
                       : "never"}
                   </td>
                   <td>{g.fetches_last_hour}</td>
+                  <td>{Number(g.fetch_points).toLocaleString()}</td>
                   <td>
                     {next && (
                       <button

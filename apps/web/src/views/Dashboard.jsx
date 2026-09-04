@@ -17,6 +17,7 @@ export function Dashboard({ me, refresh, navigate }) {
   const [usage, setUsage] = useState(null);
   const [connections, setConnections] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [ladder, setLadder] = useState([]);
   const [gwForm, setGwForm] = useState({
     name: "",
     ip: "",
@@ -267,6 +268,8 @@ export function Dashboard({ me, refresh, navigate }) {
             onClick={async () => {
               const r = await api.myGateways();
               setGateways(r.ok ? r.data.gateways : []);
+              const l = await api.gatewayLadder();
+              if (l.ok) setLadder(l.data.ladder);
             }}
           >
             Show my gateways
@@ -279,7 +282,8 @@ export function Dashboard({ me, refresh, navigate }) {
                   <tr>
                     <th>Name</th>
                     <th>Status</th>
-                    <th>IP</th>
+                    <th>Arena</th>
+                    <th>Points</th>
                     <th>Last success</th>
                   </tr>
                 </thead>
@@ -291,13 +295,42 @@ export function Dashboard({ me, refresh, navigate }) {
                         <span className={`status ${g.status}`}>{g.status}</span>
                       </td>
                       <td>
-                        <code>{g.static_ip}</code>
+                        {g.arena?.name}
+                        {g.arena?.next
+                          ? ` (${g.arena.next.points_needed.toLocaleString()} to ${g.arena.next.name})`
+                          : " (max!)"}
                       </td>
+                      <td>{g.fetch_points?.toLocaleString()}</td>
                       <td>{freshness(g.last_success_at)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+            {ladder.length > 0 && (
+              <>
+                <h3>Gateway ladder</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Gateway</th>
+                      <th>Arena</th>
+                      <th>Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ladder.map((g) => (
+                      <tr key={g.name}>
+                        <td>{g.rank}</td>
+                        <td>{g.name}</td>
+                        <td>{g.arena}</td>
+                        <td>{g.points.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
             {gwForm.done ? (
               <p className="notice">

@@ -24,7 +24,11 @@ import {
   revokeSession,
   checkRateLimit,
 } from "@elixir-mcp/auth";
-import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
+import {
+  normalizeTag,
+  InvalidTagError,
+  gatewayArena,
+} from "@elixir-mcp/contracts";
 
 const COOKIE_NAME = "__Host-elixir_session";
 const CONTRACT_HEADER = "x-elixir-client";
@@ -440,6 +444,25 @@ export function makeHandler({
       return json(200, { events: rows });
     },
 
+    "GET /api/gateways/ladder": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select name, status, fetch_points from gateway
+         where status <> 'revoked'
+         order by fetch_points desc, enrolled_at`,
+      );
+      return json(200, {
+        ladder: rows.map((g, i) => ({
+          rank: i + 1,
+          name: g.name,
+          status: g.status,
+          points: Number(g.fetch_points),
+          arena: gatewayArena(Number(g.fetch_points)).name,
+        })),
+      });
+    },
+
     "GET /api/me/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
@@ -605,6 +628,7 @@ export function makeHandler({
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select gateway_id, name, status, static_ip, key_source, enrolled_at, last_heartbeat_at, last_success_at,
+                fetch_points,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
                  and r.fetched_at > now() - interval '1 hour') as fetches_last_hour
          from gateway g order by enrolled_at`,
@@ -653,13 +677,20 @@ export function makeHandler({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select g.gateway_id, g.name, g.status, g.static_ip, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
+                g.fetch_points,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
                    and ar.fetched_at > now() - interval '24 hours') as fetches_24h
          from gateway g where g.owner_account_id = $1 order by g.enrolled_at`,
         [account.accountId],
       );
-      return json(200, { gateways: rows });
+      return json(200, {
+        gateways: rows.map((g) => ({
+          ...g,
+          fetch_points: Number(g.fetch_points),
+          arena: gatewayArena(Number(g.fetch_points)),
+        })),
+      });
     },
 
     "POST /api/admin/gateways": async (db, event, body) => {

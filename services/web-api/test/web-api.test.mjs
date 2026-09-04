@@ -667,3 +667,41 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   assert.equal(refused.statusCode, 429);
   assert.match(parse(refused).message, /capped at 1/);
 });
+
+test("gateway ladder: points rank gateways with arena tiers; scoring rides admission", async () => {
+  await db.query(
+    `update gateway set fetch_points = 2600 where name = 'kitchen-mac' and status <> 'revoked'`,
+  );
+  const ladder = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/gateways/ladder",
+        cookie: memberCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const top = ladder.ladder[0];
+  assert.equal(top.name, "kitchen-mac");
+  assert.equal(top.arena, "Barbarian Bandwidth");
+  assert.equal(top.rank, 1);
+
+  const mine = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/gateways",
+        cookie: memberCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  // The lifecycle test left a revoked twin of the same name behind.
+  const gw = mine.gateways.find(
+    (g) => g.name === "kitchen-mac" && g.status !== "revoked",
+  );
+  assert.equal(gw.fetch_points, 2600);
+  assert.equal(gw.arena.next.name, "Spell Valley Switch");
+  assert.equal(gw.arena.next.points_needed, 5400);
+});
