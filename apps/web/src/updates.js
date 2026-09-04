@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-04",
+    title: "Documentation",
+    body: "A new Docs section: what Elixir MCP is, how privacy and terms work, and the architecture — maintained alongside the code, so it is always current.",
+  },
+  {
+    date: "2026-09-04",
     title: "Explore your data in the browser",
     body: "The new Explore page renders exactly what your agent sees: summary, battles, weekly trend, decks, collection, war, and coverage — every view is a real MCP tool call.",
   },

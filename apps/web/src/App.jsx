@@ -6,6 +6,7 @@ import { Dashboard } from "./views/Dashboard.jsx";
 import { Admin } from "./views/Admin.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Explore } from "./views/Explore.jsx";
+import { Docs } from "./views/Docs.jsx";
 
 export const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see " +
@@ -57,6 +58,15 @@ export function App() {
           </a>
         </h1>
         <nav>
+          <a
+            href="/docs"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/docs");
+            }}
+          >
+            Docs
+          </a>
           {authed && (
             <a
               href="/dashboard"
@@ -138,6 +148,7 @@ export function App() {
       {path === "/dashboard" && (
         <Dashboard me={me} refresh={refresh} navigate={navigate} />
       )}
+      {path === "/docs" && <Docs />}
       {path === "/explore" && <Explore me={me} navigate={navigate} />}
       {path === "/clan" && <Clan me={me} navigate={navigate} />}
       {path === "/admin" && <Admin me={me} />}
@@ -145,6 +156,7 @@ export function App() {
         path !== "/dashboard" &&
         path !== "/clan" &&
         path !== "/explore" &&
+        path !== "/docs" &&
         path !== "/admin" && <Landing authed={authed} navigate={navigate} />}
 
       <footer>{DISCLAIMER}</footer>

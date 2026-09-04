@@ -57,6 +57,9 @@ says which existing repo to read before writing each subsystem.
 ## Working style
 
 - Work lands on `main`; CI (validate workflow) must stay green.
+- **Docs ship with the change**: anything altering architecture or
+  user-facing behavior updates the site docs (`apps/web/src/docs/`) and
+  the What's-new list (`apps/web/src/updates.js`) in the same commit.
 - `npm run verify` (prettier check + oxlint + all workspace tests) is the
   pre-push gate; `npm run format` fixes style. `npm run knip` hunts dead
   exports/deps — run it when refactoring, not every push.
