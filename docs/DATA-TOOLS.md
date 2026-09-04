@@ -1,10 +1,42 @@
-# Data tools for Elixir MCP — design for review
+# Data tools for Elixir MCP
 
 Jamie's prompt (2026-09-04): raw payloads have proven their worth
 repeatedly; they're disk-shaped, not database-shaped. Store them in S3,
 consider S3-side query tooling, and step back: what data tools should
-Elixir MCP be using? This doc is the design + evaluation. NOTHING HERE
-IS BUILT — review first.
+Elixir MCP be using? This doc is the design + evaluation.
+
+**STATUS: BUILT 2026-09-04** (Jamie approved same day). Bucket
+`elixir-mcp-archive-999153317627`; ingest archives new payload content
+inside the admission txn before commit (put failure = SQS retry); Glue
+db `elixir_mcp_archive`, table `payloads` (partition projection —
+endpoint enum / entity injected / dt date); weekly Postgres sweep
+(EventBridge MON 08:15Z -> migrate lambda `{sweep_payloads: true}`,
+HEAD-verifies the twin before deleting); one-time history export via
+`{export_payloads: {after_id, limit}}` cursor loop.
+
+## Crib sheet
+
+Athena (queries must pin `entity` — injected projection; cross-entity
+scans are DuckDB's job):
+
+```sql
+select json_extract_scalar(json, '$.name') as name, dt
+from elixir_mcp_archive.payloads
+where endpoint = 'player' and entity = '20JJJ2CCRU'
+order by dt desc limit 10;
+```
+
+DuckDB (local archaeology, any shape — needs AWS creds in env):
+
+```sql
+install httpfs; load httpfs;
+select * from read_json_auto(
+  's3://elixir-mcp-archive-999153317627/payloads/endpoint=player/entity=20JJJ2CCRU/*/*.json.gz');
+```
+
+Key layout: `payloads/endpoint=E/entity=TAG_NO_HASH/dt=YYYY-MM-DD/<fetched>-<hash16>.json.gz`.
+Only NEW content is archived (content-identical refetches skip the put);
+dt is the first-fetch date of that content.
 
 ## 1. Payload tiering: Postgres hot set, S3 archive
 
