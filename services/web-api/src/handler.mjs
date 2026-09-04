@@ -444,7 +444,7 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows: days } = await db.query(
-        `select created_at::date::text as day, count(*)::int as calls,
+        `select (created_at at time zone 'UTC')::date::text as day, count(*)::int as calls,
                 count(*) filter (where error_code is not null)::int as errors
          from mcp_call_audit
          where account_id = $1 and created_at > now() - interval '7 days'
@@ -484,7 +484,7 @@ export function makeHandler({
                 (select c.player_tag from claim c
                  where c.account_id = a.account_id and c.is_primary) as primary_tag,
                 count(m.audit_id)::int as calls_7d,
-                count(m.audit_id) filter (where m.created_at > now() - interval '1 day')::int as calls_today,
+                count(m.audit_id) filter (where (m.created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date)::int as calls_today,
                 count(m.audit_id) filter (where m.error_code is not null)::int as errors_7d,
                 max(m.created_at) as last_call
          from account a

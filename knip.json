@@ -24,5 +24,6 @@
       ],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }
-  }
+  },
+  "ignoreBinaries": ["sqlite3"]
 }
