@@ -17,6 +17,7 @@ import {
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
 import { livePathToJob } from "./live.mjs";
+import { ensureGatewayCards } from "./gateway-cards.mjs";
 
 const LIVE_DAILY_CAP = 50;
 
@@ -1528,6 +1529,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx) {
+      await ensureGatewayCards(ctx.db).catch(() => {});
       const { rows } = await ctx.db.query(
         `select name, status, fetch_points, card_name, card_icon, last_success_at
          from gateway where status <> 'revoked'
