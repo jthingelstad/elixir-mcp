@@ -67,10 +67,12 @@ says which existing repo to read before writing each subsystem.
   (don't pipe commit output through `tail`).
 - Manual steps only Jamie can do (Supercell keys, DNS, Fastmail tokens,
   first-run bootstrap) get queued in `docs/NOTES.md`, not silently blocked on.
-- Gateways run launchd-from-checkout, NOT from deploys: after any change
-  under `services/gateway/`, restart with
-  `launchctl kickstart -k gui/$UID/com.poapkings.elixir-mcp-gw`
-  (operator steps: `docs/OPERATORS.md`).
+- Collector (gateway) code lives in its OWN repo:
+  `~/Projects/elixir-mcp-collector` (github jthingelstad/elixir-mcp-collector,
+  split 2026-09-04). Deploying collector code = push to that repo's main;
+  instances self-update hourly. The queue contract stays canonical here in
+  `packages/contracts` — contract changes land server-side first
+  (operator pointer: `docs/OPERATORS.md`).
 
 ---
 

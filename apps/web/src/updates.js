@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-04",
+    title: "The collector gets its own home",
+    body: "Running a collector now means cloning one small repo (elixir-mcp-collector on GitHub) instead of the whole server codebase. Existing collectors migrated in place and keep self-updating.",
+  },
+  {
+    date: "2026-09-04",
     title: "Raw history archives to S3",
     body: "Every payload the collectors fetch is now archived durably to S3 the moment it is admitted — the full raw history behind your record is kept forever and stays queryable, while the database keeps only the hot serving set.",
   },
