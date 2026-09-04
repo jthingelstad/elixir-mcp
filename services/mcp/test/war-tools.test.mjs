@@ -232,8 +232,30 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.error.code, "not_entitled");
 });
 
-test("the registry now declares 17 tools", () => {
-  assert.equal(makeRegistry().declarations().length, 17);
+test("the registry declares 17 tools, every one classified and annotated", () => {
+  const decls = makeRegistry().declarations();
+  assert.equal(decls.length, 17);
+  for (const d of decls) {
+    assert.ok(d.annotations, `${d.name} has annotations`);
+    assert.match(
+      d.annotations.title,
+      /^[A-Za-z ]+ · .+$/,
+      `${d.name} title carries its group`,
+    );
+    assert.equal(typeof d.annotations.readOnlyHint, "boolean", d.name);
+  }
+  const writers = decls.filter((d) => d.annotations.readOnlyHint === false);
+  assert.deepEqual(
+    writers.map((d) => d.name),
+    ["send_feedback"],
+    "send_feedback is the only write tool",
+  );
+  const open = decls.filter((d) => d.annotations.openWorldHint === true);
+  assert.deepEqual(
+    open.map((d) => d.name),
+    ["cr_api_live"],
+    "cr_api_live is the only open-world tool",
+  );
 });
 
 test("round-3: seasons range refused loudly; attendance unions recorded battles", async () => {

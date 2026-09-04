@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-04",
+    title: "Tools get a taxonomy",
+    body: "The 17 tools are now classified - Players, Battles, Clans, War, Cards, Live, and the Elixir MCP service itself - mirroring the Clash Royale API docs' outline. Groups ride each tool's title, read-only tools declare themselves, and the new Tools docs page lists everything.",
+  },
+  {
+    date: "2026-09-04",
     title: "Round-3 playtest fixes",
     body: "Three fresh agent testers, thirteen fixes: war attendance now counts recorded battles (polls alone undercounted), opponent decks and names appear in battle detail, weekly trends align to real ISO weeks and show trophy-eligible counts, summaries add best-deck and draw counts, and the validation layer rejects forged cursors, empty tags, and out-of-range arguments loudly.",
   },

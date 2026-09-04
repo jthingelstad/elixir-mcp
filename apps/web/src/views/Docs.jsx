@@ -4,11 +4,13 @@ import about from "../docs/about.md?raw";
 import privacy from "../docs/privacy.md?raw";
 import terms from "../docs/terms.md?raw";
 import architecture from "../docs/architecture.md?raw";
+import tools from "../docs/tools.md?raw";
 
 const PAGES = [
   { id: "about", title: "About", md: about },
   { id: "privacy", title: "Privacy", md: privacy },
   { id: "terms", title: "Terms", md: terms },
+  { id: "tools", title: "Tools", md: tools },
   { id: "architecture", title: "Architecture", md: architecture },
 ];
 

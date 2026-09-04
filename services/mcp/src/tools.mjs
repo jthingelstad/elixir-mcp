@@ -11,6 +11,7 @@ import {
   MODE_GROUPS,
   typesForModeGroup,
   displayCard,
+  TOOL_GROUPS,
 } from "@elixir-mcp/contracts";
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
@@ -1708,11 +1709,25 @@ export function makeRegistry() {
   return {
     has: (name) => Object.hasOwn(TOOLS, name),
     declarations: () =>
-      Object.entries(TOOLS).map(([name, t]) => ({
-        name,
-        description: t.description,
-        inputSchema: t.inputSchema,
-      })),
+      Object.entries(TOOLS).map(([name, t]) => {
+        // Classification is mandatory: an unclassified tool is a build
+        // error, not a silent "Other tools" entry (Jamie, 2026-09-04).
+        const cls = TOOL_GROUPS[name];
+        if (!cls) throw new Error(`tool ${name} missing from TOOL_GROUPS`);
+        return {
+          name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+          annotations: {
+            // Group rides the title: clients that sort tools by title
+            // cluster the groups; clients that ignore titles lose nothing.
+            title: `${cls.group} · ${cls.title}`,
+            readOnlyHint: cls.readOnly,
+            destructiveHint: false,
+            openWorldHint: cls.openWorld ?? false,
+          },
+        };
+      }),
     invoke: (name, ctx, args) => TOOLS[name].handler(ctx, args),
   };
 }
