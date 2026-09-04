@@ -183,7 +183,17 @@ async function probe(databaseUrl) {
        full join harvests v using (h)
        order by h`,
     );
-    return { hours: rows };
+    // War-stamp census: unstamped war battles can silently starve every
+    // reader that joins on war keys (attendance union, week focus).
+    const { rows: stamps } = await db.query(
+      `select coalesce(b.season_id::text, 'UNSTAMPED') as season,
+              b.section_index, b.war_day, count(*)::int as battles
+       from battle b
+       where (b.type like 'riverRace%' or b.type = 'boatBattle')
+         and b.battle_time > now() - interval '7 days'
+       group by 1, 2, 3 order by 1, 2, 3`,
+    );
+    return { hours: rows, war_stamps_7d: stamps };
   } finally {
     await db.end();
   }
