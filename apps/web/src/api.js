@@ -48,8 +48,8 @@ export const api = {
     request("POST", "/api/admin/decide", { email_hash, decision }),
   adminGateways: () => request("GET", "/api/admin/gateways"),
   adminClans: () => request("GET", "/api/admin/clans"),
-  adminClanAction: (clan_tag, action) =>
-    request("POST", "/api/admin/clans", { clan_tag, action }),
+  adminClanAction: (clan_tag, action, scope) =>
+    request("POST", "/api/admin/clans", { clan_tag, action, scope }),
   adminGatewayAction: (gateway_id, action) =>
     request("POST", "/api/admin/gateways", { gateway_id, action }),
   myGateways: () => request("GET", "/api/me/gateways"),

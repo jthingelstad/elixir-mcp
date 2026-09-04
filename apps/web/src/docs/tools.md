@@ -70,8 +70,10 @@ The service itself.
   maintainer, attributed to your account.
 - **Watch player** (`elixir_watch_player`) — claim a tag and start
   recording it, same caps as the website.
-- **Watch clan** (`elixir_watch_clan`) — request whole-clan recording
-  (reviewed by the maintainer; clan capture spends the shared budget).
+- **Watch clan** (`elixir_watch_clan`) — request clan recording at
+  either scope: `activity` (the clan itself) or `comprehensive` (plus
+  every member's battles, membership-following). Reviewed by the
+  maintainer; clan capture spends the shared budget.
 - **Data insights** (`elixir_data_insights`) — corpus-wide transparency:
   players, battles and their span, war weeks, active recordings.
 - **Collector ladder** (`elixir_collectors`) — the operator machines,

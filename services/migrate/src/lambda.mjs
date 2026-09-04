@@ -56,8 +56,8 @@ async function seed(databaseUrl, spec) {
         [spec.record_clan],
       );
       await db.query(
-        `insert into recording (subject_type, subject_tag, requested_by)
-         select 'clan', $1, $2
+        `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+         select 'clan', $1, $2, 'comprehensive'
          where not exists (select 1 from recording
                            where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
         [spec.record_clan, account.account_id],

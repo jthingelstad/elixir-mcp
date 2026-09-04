@@ -92,8 +92,10 @@ export function Admin({ me }) {
       <div className="panel">
         <h3>Recorded clans</h3>
         <p>
-          Each active clan records its roster, war race, and every open
-          member&rsquo;s battles and profile.
+          <strong>Comprehensive</strong> records the clan AND every open
+          member&rsquo;s battles and profile, following membership changes;
+          <strong> activity</strong> records only the clan itself (roster, war
+          race, standings).
         </p>
         {clans.length > 0 && (
           <table>
@@ -102,6 +104,7 @@ export function Admin({ me }) {
                 <th>Clan</th>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Scope</th>
                 <th>Members</th>
                 <th>Last roster poll</th>
                 <th></th>
@@ -116,6 +119,28 @@ export function Admin({ me }) {
                   <td>{c.name ?? "—"}</td>
                   <td>
                     <span className={`status ${c.status}`}>{c.status}</span>
+                  </td>
+                  <td>
+                    {c.status === "active" ? (
+                      <button
+                        className="quiet"
+                        title="Click to switch scope"
+                        onClick={async () => {
+                          await api.adminClanAction(
+                            c.clan_tag,
+                            "scope",
+                            c.clan_scope === "comprehensive"
+                              ? "activity"
+                              : "comprehensive",
+                          );
+                          load();
+                        }}
+                      >
+                        {c.clan_scope ?? "comprehensive"}
+                      </button>
+                    ) : (
+                      (c.clan_scope ?? "—")
+                    )}
                   </td>
                   <td>{c.open_members}</td>
                   <td>

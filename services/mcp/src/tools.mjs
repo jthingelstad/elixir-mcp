@@ -1426,6 +1426,13 @@ const TOOLS = {
           maxLength: 500,
           description: "Optional: why, and your role in the clan.",
         },
+        scope: {
+          type: "string",
+          enum: ["activity", "comprehensive"],
+          default: "comprehensive",
+          description:
+            "activity records the clan itself (roster, war); comprehensive additionally records every member's battles and profile, following membership changes.",
+        },
       },
       required: ["clan_tag"],
       additionalProperties: false,
@@ -1462,8 +1469,12 @@ const TOOLS = {
          returning feedback_id`,
         [
           ctx.account.accountId,
-          `Clan watch request: ${tag}${args.note ? ` — ${String(args.note).slice(0, 500)}` : ""}`,
-          JSON.stringify({ kind: "clan_watch_request", clan_tag: tag }),
+          `Clan watch request (${args.scope === "activity" ? "activity" : "comprehensive"}): ${tag}${args.note ? ` — ${String(args.note).slice(0, 500)}` : ""}`,
+          JSON.stringify({
+            kind: "clan_watch_request",
+            clan_tag: tag,
+            scope: args.scope === "activity" ? "activity" : "comprehensive",
+          }),
         ],
       );
       await ctx.db.query(

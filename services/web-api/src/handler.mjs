@@ -727,7 +727,7 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
-        `select r.subject_tag as clan_tag, r.status, r.created_at, cl.name,
+        `select r.subject_tag as clan_tag, r.status, r.clan_scope, r.created_at, cl.name,
                 (select count(*)::int from clan_membership cm
                  where cm.clan_tag = r.subject_tag and cm.left_observed_at is null) as open_members,
                 (select max(ps.last_admitted_at) from poll_state ps
@@ -751,17 +751,26 @@ export function makeHandler({
       } catch {
         return json(400, { error: "invalid_tag" });
       }
+      const scope = body.scope === "activity" ? "activity" : "comprehensive";
       if (body.action === "start") {
         await db.query(
           `insert into clan (clan_tag) values ($1) on conflict do nothing`,
           [tag],
         );
         await db.query(
-          `insert into recording (subject_type, subject_tag, requested_by)
-           select 'clan', $1, $2
+          `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+           select 'clan', $1, $2, $3
            where not exists (select 1 from recording
                              where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
-          [tag, account.accountId],
+          [tag, account.accountId, scope],
+        );
+      } else if (body.action === "scope") {
+        // Live scope change: downgrading to 'activity' lets member rows
+        // go dormant on the next tick; upgrading re-seeds them.
+        await db.query(
+          `update recording set clan_scope = $2
+           where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+          [tag, scope],
         );
       } else if (body.action === "stop") {
         await db.query(

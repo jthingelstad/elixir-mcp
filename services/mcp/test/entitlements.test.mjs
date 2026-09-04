@@ -65,7 +65,7 @@ before(async () => {
   await mkAccount("bob");
   await mkAccount("carol");
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by) values ('clan', $1, $2)`,
+    `insert into recording (subject_type, subject_tag, requested_by, clan_scope) values ('clan', $1, $2, 'comprehensive')`,
     [CLAN, owner.accountId],
   );
   await mkMember("alice", "#YYYYYYYY", { role: "member" });

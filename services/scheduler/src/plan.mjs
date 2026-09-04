@@ -130,10 +130,12 @@ async function seedPollState(db) {
   await db.query(`
     insert into poll_state (subject_tag, endpoint) values ('GLOBAL', 'cards')
     on conflict do nothing`);
-  // Clan recording (V1.5): the clan's own heartbeat + riverrace capture,
-  // and player endpoints for every OPEN member. Roster-driven: joins get
-  // seeded on the tick after the roster observes them; leavers fall out
-  // via the eligibility clause (their poll_state rows go dormant).
+  // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
+  // for EVERY clan scope; player endpoints for every OPEN member only at
+  // clan_scope 'comprehensive' (0023). Roster-driven: joins get seeded
+  // on the tick after the roster observes them; leavers (and members of
+  // clans downgraded to 'activity') fall out via the eligibility clause
+  // (their poll_state rows go dormant).
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
     select r.subject_tag, e.endpoint
@@ -147,6 +149,7 @@ async function seedPollState(db) {
     join clan_membership cm on cm.clan_tag = r.subject_tag and cm.left_observed_at is null
     cross join (values ('player_battlelog'), ('player')) e(endpoint)
     where r.subject_type = 'clan' and r.status = 'active'
+      and r.clan_scope = 'comprehensive'
     on conflict do nothing`);
 }
 
@@ -178,7 +181,8 @@ async function selectEligible(db, now) {
                  select 1 from recording r
                  join clan_membership cm on cm.clan_tag = r.subject_tag
                    and cm.player_tag = ps.subject_tag and cm.left_observed_at is null
-                 where r.subject_type = 'clan' and r.status = 'active')))
+                 where r.subject_type = 'clan' and r.status = 'active'
+                   and r.clan_scope = 'comprehensive')))
          or (ps.endpoint = 'clan' and (
                exists (
                  select 1 from recording r join player p on p.player_tag = r.subject_tag

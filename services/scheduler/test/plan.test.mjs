@@ -300,7 +300,7 @@ test("clan recording: heartbeat, riverrace capture, and every open member polled
     `insert into clan (clan_tag) values ('#J2RGCRVG') on conflict do nothing`,
   );
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by) values ('clan', '#J2RGCRVG', $1)`,
+    `insert into recording (subject_type, subject_tag, requested_by, clan_scope) values ('clan', '#J2RGCRVG', $1, 'comprehensive')`,
     [accountId],
   );
   for (const tag of ["#YYYYYYYY", "#RRRRRRRR", "#22222222"]) {
@@ -406,5 +406,54 @@ test("yield ranking: busy-and-a-bit-overdue beats dormant-and-long-overdue; floo
     jobs[0].entity_key,
     "#PYGRJC",
     "expected harvest outranks heat and raw overdue",
+  );
+});
+
+test("clan scope: 'activity' records the clan only; upgrade re-seeds members", async () => {
+  await db.query("delete from recording");
+  await db.query("delete from poll_state");
+  await db.query(
+    `insert into clan (clan_tag) values ('#2PP0V90Y') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+     values ('clan', '#2PP0V90Y', $1, 'activity')`,
+    [accountId],
+  );
+  await db.query(
+    `insert into player (player_tag) values ('#LLLLLLLL') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at)
+     values ('#2PP0V90Y', '#LLLLLLLL', now())
+     on conflict do nothing`,
+  );
+  await setTokens(100);
+  const { jobs } = await planTick(db, NOW);
+  const keys = jobs.map((j) => `${j.endpoint}:${j.entity_key}`);
+  assert.ok(keys.includes("clan:#2PP0V90Y"), "clan heartbeat still polled");
+  assert.ok(
+    keys.includes("currentriverrace:#2PP0V90Y"),
+    "war capture still polled",
+  );
+  assert.ok(
+    !keys.some((k) => k.endsWith(":#LLLLLLLL")),
+    "activity scope never polls members",
+  );
+
+  // Upgrade to comprehensive: members seed on the next tick.
+  await db.query(
+    `update recording set clan_scope = 'comprehensive'
+     where subject_type = 'clan' and subject_tag = '#2PP0V90Y'`,
+  );
+  await db.query(
+    `update poll_state set last_planned_at = null, last_admitted_at = null`,
+  );
+  await setTokens(100);
+  const { jobs: jobs2 } = await planTick(db, NOW);
+  const keys2 = jobs2.map((j) => `${j.endpoint}:${j.entity_key}`);
+  assert.ok(
+    keys2.includes("player_battlelog:#LLLLLLLL"),
+    "comprehensive polls members",
   );
 });
