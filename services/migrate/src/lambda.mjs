@@ -197,7 +197,48 @@ async function replay(databaseUrl, spec) {
   }
 }
 
+/** Read-only storage census for the DB audit ({inspect: true}). */
+async function inspect(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const tables = (
+      await db.query(
+        `select relname,
+                pg_size_pretty(pg_total_relation_size(relid)) as total,
+                pg_total_relation_size(relid) as bytes,
+                n_live_tup, n_dead_tup, seq_scan, idx_scan,
+                autovacuum_count, autoanalyze_count
+         from pg_stat_user_tables
+         order by pg_total_relation_size(relid) desc`,
+      )
+    ).rows;
+    const indexes = (
+      await db.query(
+        `select relname as table, indexrelname as index,
+                pg_size_pretty(pg_relation_size(indexrelid)) as size,
+                idx_scan
+         from pg_stat_user_indexes
+         order by pg_relation_size(indexrelid) desc limit 25`,
+      )
+    ).rows;
+    const dbsize = (
+      await db.query(
+        `select pg_size_pretty(pg_database_size(current_database())) s`,
+      )
+    ).rows[0].s;
+    return { database_size: dbsize, tables, indexes };
+  } finally {
+    await db.end();
+  }
+}
+
 export async function handler(event) {
+  if (event?.inspect) {
+    const result = await inspect(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.replay) {
     const result = await replay(process.env.DATABASE_URL, event.replay);
     console.log(JSON.stringify(result));
