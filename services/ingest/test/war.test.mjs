@@ -337,3 +337,27 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
   );
   assert.equal(part[0].decks_used, 16, "day-4 decks merged");
 });
+
+test("boat battles stamp war keys too (round-3: the like-pattern missed them)", async () => {
+  await ctx.db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('r3-boat', '2026-08-30T08:00:00Z', 'boatBattle', 'boat')
+     on conflict do nothing`,
+  );
+  await ctx.db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag)
+     values ('r3-boat', '#2YG98VVQ', '2026-08-30T08:00:00Z', 0, $1)
+     on conflict do nothing`,
+    [CLAN],
+  );
+  const war = await fixture("currentriverrace/war_day.json");
+  await stampWarKeys(ctx.db, {
+    clanTag: CLAN,
+    payload: war,
+    nowMs: Date.parse("2026-08-30T09:00:00Z"),
+  });
+  const { rows } = await ctx.db.query(
+    `select season_id, section_index from battle where battle_id = 'r3-boat'`,
+  );
+  assert.equal(rows[0].season_id, 135, "boat battle stamped");
+});
