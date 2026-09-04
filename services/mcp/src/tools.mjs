@@ -1653,7 +1653,7 @@ const TOOLS = {
         typeClause = `and b.type = any($${params.length})`;
       }
       const { rows } = await ctx.db.query(
-        `select cm.player_tag, p.name, s.battles, s.wins, s.losses, s.draws
+        `select cm.player_tag, p.name, p.years_played, s.battles, s.wins, s.losses, s.draws
          from clan_membership cm
          join player p on p.player_tag = cm.player_tag
          left join lateral (
@@ -1673,6 +1673,7 @@ const TOOLS = {
       const withRate = rows.map((r) => ({
         player_tag: r.player_tag,
         name: r.name,
+        years_played: r.years_played,
         battles: r.battles,
         wins: r.wins,
         losses: r.losses,
@@ -1927,6 +1928,73 @@ const TOOLS = {
            group by 1 having count(*) >= 20 order by 1`,
           params,
         );
+        // Experience cohort (0024): tenure from the YearsPlayed badge;
+        // percentile of pilot_score among corpus players (n >= 30 in
+        // this window) in the same tenure bucket. Absent badge = tenure
+        // UNKNOWN (real on old accounts too) -> no cohort claim.
+        const { rows: tenure } = await ctx.db.query(
+          `select years_played, account_age_days from player where player_tag = $1`,
+          [focus],
+        );
+        const exp = tenure[0] ?? {};
+        const experience = {
+          years_played: exp.years_played ?? null,
+          account_age_days: exp.account_age_days ?? null,
+          ...(exp.years_played === null || exp.years_played === undefined
+            ? {
+                note: "YearsPlayed badge absent - tenure unknown. Usually this means an account under 1 year (the badge appears at year one), but rare veteran exceptions exist (measured: accounts with 2024 event badges and no YearsPlayed), so null is served rather than 0.",
+              }
+            : {}),
+        };
+        let cohort;
+        if (exp.years_played !== null && exp.years_played !== undefined) {
+          const bucket =
+            exp.years_played <= 2
+              ? [0, 2, "years_1_2"]
+              : exp.years_played <= 5
+                ? [3, 5, "years_3_5"]
+                : [6, 99, "years_6_plus"];
+          const filterParams = params.slice(0, params.length - 1);
+          const cohortParams = [...filterParams, bucket[0], bucket[1]];
+          const { rows: cohortScores } = await ctx.db.query(
+            `${base},
+             curve as (
+               select width_bucket(gap, ${EDGES}) as bin,
+                      avg((outcome = 'win')::int) as wr
+               from pairs group by bin having count(*) >= ${CURVE_FLOOR})
+             select p.player_tag,
+                    round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot
+             from pairs p
+             join curve c on c.bin = width_bucket(p.gap, ${EDGES})
+             join player pl on pl.player_tag = p.player_tag
+             where pl.years_played between $${filterParams.length + 1} and $${filterParams.length + 2}
+             group by p.player_tag having count(*) >= 30`,
+            cohortParams,
+          );
+          const pilots = cohortScores
+            .map((r) => Number(r.pilot))
+            .sort((a, z) => a - z);
+          if (pilots.length >= 5 && score[0] && score[0].n >= 30) {
+            const mine = Number(score[0].pilot_score);
+            const below = pilots.filter((v) => v < mine).length;
+            cohort = {
+              bucket: bucket[2],
+              cohort_size: pilots.length,
+              percentile: Number((below / pilots.length).toFixed(2)),
+              cohort_median_pilot_score: Number(
+                pilots[Math.floor(pilots.length / 2)].toFixed(3),
+              ),
+              basis:
+                "corpus players with known tenure in the same bucket and >= 30 scored battles in this window",
+            };
+          } else {
+            cohort = {
+              bucket: bucket[2],
+              cohort_size: pilots.length,
+              insufficient_cohort: true,
+            };
+          }
+        }
         const s = score[0];
         player =
           s && s.n >= 30
@@ -1938,6 +2006,8 @@ const TOOLS = {
                 expected_from_levels: Number(s.expected_from_levels),
                 pilot_score: Number(s.pilot_score),
                 standard_error: Number(s.standard_error),
+                experience,
+                ...(cohort ? { cohort } : {}),
                 monthly_trend: trend.map((t) => ({
                   month: t.month,
                   n: t.n,
@@ -1947,6 +2017,7 @@ const TOOLS = {
             : {
                 player_tag: focus,
                 n: s?.n ?? 0,
+                experience,
                 insufficient_sample: true,
               };
       }

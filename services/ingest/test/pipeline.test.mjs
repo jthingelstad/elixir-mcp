@@ -431,3 +431,49 @@ test("S3 archive: new content is put once, dedup refetch adds no object, put fai
     .rows[0].n;
   assert.equal(after_, before, "no committed row without its S3 twin");
 });
+
+test("tenure stamps from the YearsPlayed badge; absent badge never clears it", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  const r = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: { ...profile, trophies: (profile.trophies ?? 0) + 21 },
+      fetchedAt: new Date().toISOString(),
+    }),
+  );
+  assert.equal(r.outcome, "admitted");
+  const { rows } = await ctx.db.query(
+    `select years_played, account_age_days from player where player_tag = $1`,
+    [tag],
+  );
+  assert.equal(rows[0].years_played, 4, "badge level stamped");
+  assert.equal(rows[0].account_age_days, 1712, "badge progress = account days");
+
+  // A later payload WITHOUT the badge must not null out known tenure.
+  const noBadge = {
+    ...profile,
+    trophies: (profile.trophies ?? 0) + 22,
+    badges: [],
+  };
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: noBadge,
+      fetchedAt: new Date().toISOString(),
+    }),
+  );
+  const { rows: after2 } = await ctx.db.query(
+    `select years_played from player where player_tag = $1`,
+    [tag],
+  );
+  assert.equal(
+    after2[0].years_played,
+    4,
+    "absent badge = unknown, never a wipe",
+  );
+});

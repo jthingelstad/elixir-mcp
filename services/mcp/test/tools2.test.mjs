@@ -436,3 +436,22 @@ test("battles_levels: symmetric curve with floors; Pilot Score honest under smal
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");
 });
+
+test("experience cohorts: tenure rides player block and standings; unknown stays null", async () => {
+  await db.query(
+    `update player set years_played = 4, account_age_days = 1712 where player_tag = $1`,
+    [OBSERVER],
+  );
+  const r = await call("battles_levels", { player_tag: OBSERVER, days: 365 });
+  assert.equal(r.isError, false, JSON.stringify(r.body));
+  assert.equal(r.body.player.experience.years_played, 4);
+  assert.equal(r.body.player.experience.account_age_days, 1712);
+
+  await db.query(
+    `update player set years_played = null, account_age_days = null where player_tag = $1`,
+    [OBSERVER],
+  );
+  const unk = await call("battles_levels", { player_tag: OBSERVER, days: 365 });
+  assert.equal(unk.body.player.experience.years_played, null);
+  assert.match(unk.body.player.experience.note, /unknown/);
+});

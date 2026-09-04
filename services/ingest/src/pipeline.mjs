@@ -112,6 +112,26 @@ const PROJECTORS = {
              last_seen_at = greatest(player.last_seen_at, $4)`,
       [entityKey, payload.name ?? null, clanTag, fetchedAt],
     );
+    // Tenure from the YearsPlayed badge (0024): level = completed years,
+    // progress = account age in days. Absent badge = UNKNOWN (verified
+    // absent on 4+year accounts too) - never write zero, never null-out
+    // a previously known value on an absent read.
+    const yearsBadge = (payload.badges ?? []).find(
+      (b) => b?.name === "YearsPlayed",
+    );
+    if (yearsBadge && Number.isFinite(Number(yearsBadge.level))) {
+      await db.query(
+        `update player set years_played = $2, account_age_days = $3
+         where player_tag = $1`,
+        [
+          entityKey,
+          Number(yearsBadge.level),
+          Number.isFinite(Number(yearsBadge.progress))
+            ? Number(yearsBadge.progress)
+            : null,
+        ],
+      );
+    }
     const snapshot = await projectPlayerSnapshot(db, {
       playerTag: entityKey,
       payload,
