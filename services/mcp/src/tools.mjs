@@ -152,6 +152,100 @@ const TOOLS = {
     },
   },
 
+  get_player_summary: {
+    description:
+      "The headline in one call: current trophies and clan, last-30-days record and win rate, and the most-played deck with its record. Start here for \u201chow am I doing?\u201d; drill in with get_performance / get_deck_performance.",
+    inputSchema: {
+      type: "object",
+      properties: { player_tag: TAG_SCHEMA },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tag = (
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+      ).tag;
+      const [snap, record, deck] = await Promise.all([
+        ctx.db.query(
+          `select p.name, p.last_known_clan_tag, cl.name as clan_name,
+                  s.trophies, s.snapshot_date
+           from player p
+           left join clan cl on cl.clan_tag = p.last_known_clan_tag
+           left join lateral (
+             select trophies, snapshot_date from player_snapshot_daily
+             where player_tag = p.player_tag
+             order by snapshot_date desc, snapshot_kind desc limit 1
+           ) s on true
+           where p.player_tag = $1`,
+          [tag],
+        ),
+        ctx.db.query(
+          `select count(*)::int as battles,
+                  count(*) filter (where outcome = 'win')::int as wins,
+                  count(*) filter (where outcome = 'loss')::int as losses,
+                  coalesce(sum(trophy_change), 0)::int as net_trophies
+           from battle_participant
+           where player_tag = $1 and battle_time > now() - interval '30 days'`,
+          [tag],
+        ),
+        ctx.db.query(
+          `select bp.deck_hash, count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  (array_agg(bp.deck order by bp.battle_time desc))[1] as deck
+           from battle_participant bp
+           where bp.player_tag = $1 and bp.deck_hash is not null
+             and bp.battle_time > now() - interval '30 days'
+           group by bp.deck_hash order by count(*) desc limit 1`,
+          [tag],
+        ),
+      ]);
+      const p0 = snap.rows[0];
+      if (!p0)
+        throw new ToolFailure(
+          "not_recorded",
+          `${tag} is not in the record yet.`,
+        );
+      const r = record.rows[0];
+      const d = deck.rows[0];
+      return {
+        player_tag: tag,
+        name: p0.name,
+        clan: p0.last_known_clan_tag
+          ? { clan_tag: p0.last_known_clan_tag, name: p0.clan_name }
+          : null,
+        trophies: p0.trophies,
+        trophies_as_of: p0.snapshot_date
+          ? p0.snapshot_date.toISOString().slice(0, 10)
+          : null,
+        last_30_days: {
+          battles: r.battles,
+          wins: r.wins,
+          losses: r.losses,
+          net_trophies: r.net_trophies,
+          win_rate:
+            r.wins + r.losses > 0
+              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+              : null,
+        },
+        top_deck: d
+          ? {
+              deck_hash: d.deck_hash,
+              cards: (d.deck?.cards ?? []).map((c) => ({
+                id: c.id,
+                name: c.name,
+              })),
+              battles: d.battles,
+              win_rate:
+                d.wins + d.losses > 0
+                  ? Number((d.wins / (d.wins + d.losses)).toFixed(3))
+                  : null,
+            }
+          : null,
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
   get_coverage: {
     description:
       "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before you claimed the tag), and recent capture completeness. Use it to caveat answers honestly.",
@@ -358,6 +452,11 @@ const TOOLS = {
             "Opaque pagination token from a previous response’s next_cursor.",
         },
         limit: { type: "integer", minimum: 1, maximum: 50, default: 25 },
+        include_total: {
+          type: "boolean",
+          description:
+            "Also return total_count: how many battles match the filters across ALL pages (one cheap count query).",
+        },
         verbosity: {
           type: "string",
           enum: ["full", "compact"],
@@ -507,9 +606,26 @@ const TOOLS = {
         };
       });
 
+      let totalCount;
+      if (args.include_total === true) {
+        // Same filters minus the cursor: the cursor positions a page, the
+        // total describes the whole match set.
+        const countWhere = where.filter(
+          (w) => !w.includes("(b.battle_time, b.battle_id) <"),
+        );
+        const { rows: cnt } = await ctx.db.query(
+          `select count(*)::int as n
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where ${countWhere.join(" and ")}`,
+          params.slice(0, countWhere.length),
+        );
+        totalCount = cnt[0].n;
+      }
+
       return {
         player_tag: tag,
         battles,
+        ...(totalCount !== undefined ? { total_count: totalCount } : {}),
         // Explicit null = end of results (absent-vs-null was ambiguous).
         next_cursor:
           rows.length === limit
@@ -642,6 +758,12 @@ const TOOLS = {
         deck_hash: { type: "string" },
         compare_from: { type: "string" },
         compare_to: { type: "string" },
+        group_by: {
+          type: "string",
+          enum: ["week"],
+          description:
+            "Weekly win-rate series over the window (ISO weeks) — the trend view. Combines with mode/deck_hash/from/to; overrides before_after and compare_*.",
+        },
         before_after: {
           type: "string",
           description:
@@ -714,7 +836,52 @@ const TOOLS = {
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       requireOrderedWindow(from, to);
       let result;
-      if (args.before_after) {
+      if (args.group_by === "week") {
+        const where = ["bp.player_tag = $1", "bp.outcome is not null"];
+        const params = [tag];
+        const add = (clause, value) => {
+          params.push(value);
+          where.push(clause.replace("?", `$${params.length}`));
+        };
+        if (from) add("bp.battle_time >= ?", from);
+        if (to) add("bp.battle_time < ?", to);
+        if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+        if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
+        const { rows } = await ctx.db.query(
+          `select to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
+                  min(bp.battle_time)::date::text as week_of,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  count(*) filter (where bp.outcome = 'draw')::int as draws,
+                  coalesce(sum(bp.trophy_change), 0)::int as net_trophies
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where ${where.join(" and ")}
+           group by date_trunc('week', bp.battle_time)
+           order by date_trunc('week', bp.battle_time)`,
+          params,
+        );
+        result = {
+          weekly: rows.map((r) => ({
+            iso_week: r.iso_week,
+            week_of: r.week_of,
+            battles: r.battles,
+            wins: r.wins,
+            losses: r.losses,
+            draws: r.draws,
+            net_trophies: r.net_trophies,
+            win_rate:
+              r.wins + r.losses > 0
+                ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+                : null,
+          })),
+          ...(args.before_after || args.compare_from || args.compare_to
+            ? {
+                note: "group_by week takes precedence; before_after/compare_* were ignored.",
+              }
+            : {}),
+        };
+      } else if (args.before_after) {
         const split = resolveInstant(tz, args.before_after);
         if (!split)
           throw new ToolFailure(
@@ -849,6 +1016,17 @@ const TOOLS = {
         from: { type: "string" },
         to: { type: "string" },
         mode: { type: "string", enum: MODE_GROUPS },
+        sort: {
+          type: "string",
+          enum: ["battles", "wins", "win_rate"],
+          default: "battles",
+          description: "win_rate sorting respects min_battles.",
+        },
+        min_battles: {
+          type: "integer",
+          minimum: 1,
+          description: "Drop decks with fewer battles than this.",
+        },
       },
       additionalProperties: false,
     },
@@ -880,12 +1058,23 @@ const TOOLS = {
          where ${where.join(" and ")}
          group by bp.deck_hash
          order by count(*) desc
-         limit 40`,
+         limit 100`,
         params,
       );
+      const totalBattles = rows.reduce((n, r) => n + r.battles, 0);
+      let shaped = rows;
+      if (args.min_battles) {
+        shaped = shaped.filter((r) => r.battles >= args.min_battles);
+      }
+      const wr = (r) =>
+        r.wins + r.losses > 0 ? r.wins / (r.wins + r.losses) : -1;
+      if (args.sort === "wins") shaped.sort((a, z) => z.wins - a.wins);
+      else if (args.sort === "win_rate") shaped.sort((a, z) => wr(z) - wr(a));
+      shaped = shaped.slice(0, 40);
       return {
         player_tag: tag,
-        decks: rows.map((r) => ({
+        total_battles_in_window: totalBattles,
+        decks: shaped.map((r) => ({
           deck_hash: r.deck_hash,
           cards: (r.deck?.cards ?? []).map((c) => ({ id: c.id, name: c.name })),
           battles: r.battles,
@@ -895,6 +1084,10 @@ const TOOLS = {
           win_rate:
             r.wins + r.losses > 0
               ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+              : null,
+          share_of_battles:
+            totalBattles > 0
+              ? Number((r.battles / totalBattles).toFixed(3))
               : null,
           first_used: r.first_used.toISOString(),
           last_used: r.last_used.toISOString(),

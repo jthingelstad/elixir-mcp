@@ -265,3 +265,32 @@ test("round-1 tester fixes: inverted windows refuse; compact drops decks; null c
   const tl = await call("get_player_timeline", { from: "2026-05-01" });
   assert.ok(tl.body.snapshots_available_from, "epoch disclosed");
 });
+
+test("wishlist batch: weekly trend, headline summary, deck ergonomics, total_count", async () => {
+  const trend = await call("get_performance", { group_by: "week" });
+  assert.equal(trend.isError, false);
+  assert.ok(Array.isArray(trend.body.weekly) && trend.body.weekly.length > 0);
+  assert.ok(trend.body.weekly[0].iso_week.match(/^\d{4}-W\d{2}$/));
+
+  const sum = await call("get_player_summary", {});
+  assert.equal(sum.isError, false);
+  assert.ok(sum.body.last_30_days.battles >= 0);
+  assert.ok(sum.body.top_deck === null || sum.body.top_deck.deck_hash);
+
+  const decks = await call("get_deck_performance", {
+    sort: "win_rate",
+    min_battles: 1,
+  });
+  assert.equal(decks.isError, false);
+  assert.ok(decks.body.total_battles_in_window >= 0);
+  if (decks.body.decks.length > 0) {
+    assert.ok(decks.body.decks[0].share_of_battles !== undefined);
+  }
+
+  const counted = await call("query_battles", {
+    limit: 1,
+    include_total: true,
+  });
+  assert.equal(counted.isError, false);
+  assert.ok(counted.body.total_count >= counted.body.battles.length);
+});
