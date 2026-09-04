@@ -361,3 +361,58 @@ test("boat battles stamp war keys too (round-3: the like-pattern missed them)", 
   );
   assert.equal(rows[0].season_id, 135, "boat battle stamped");
 });
+
+test("riverrace deck deltas raise battlelog yield (raise-only, replay-guarded)", async () => {
+  const war = structuredClone(await fixture("currentriverrace/war_day.json"));
+  const member = war.clan.participants[0];
+  const memberTag = member.tag.toUpperCase().replace("O", "0");
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint, yield_bph)
+     values ($1, 'player_battlelog', 0.01)
+     on conflict (subject_tag, endpoint) do update set yield_bph = 0.01`,
+    [memberTag],
+  );
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at)
+     values ($1, 'currentriverrace', now() - interval '30 minutes')
+     on conflict (subject_tag, endpoint)
+       do update set last_admitted_at = now() - interval '30 minutes'`,
+    [CLAN],
+  );
+
+  // Baseline poll, then a poll showing 4 NEW war decks.
+  member.decksUsed = 0;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: war,
+    fetchedAt: new Date(Date.now() - 60_000).toISOString(),
+  });
+  member.decksUsed = 4;
+  const r = await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: war,
+    fetchedAt: new Date().toISOString(),
+  });
+  assert.ok(r.battlers_signaled >= 1, "delta member signaled");
+  const { rows } = await ctx.db.query(
+    `select yield_bph::float as y from poll_state
+     where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [memberTag],
+  );
+  assert.ok(rows[0].y > 1, `yield raised from 0.01, got ${rows[0].y}`);
+
+  // Replayed history (old fetchedAt) must not touch the live signal.
+  const before = rows[0].y;
+  member.decksUsed = 8;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: war,
+    fetchedAt: "2026-07-05T12:00:00Z",
+  });
+  const { rows: after2 } = await ctx.db.query(
+    `select yield_bph::float as y from poll_state
+     where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [memberTag],
+  );
+  assert.equal(after2[0].y, before, "replay is history, not activity");
+});

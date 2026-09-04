@@ -109,6 +109,19 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   }
 
   // 4. Participation: the payload's per-member "fame" is POINTS here.
+  // Previous decks_used per member first: the DELTA is a free yield
+  // observation — one riverrace poll tells us exactly who just battled,
+  // covering the whole roster for the cost of a single fetch. Without
+  // this edge, a member whose battlelog cadence stretched to daily
+  // stays stale for hours DURING a war day (observed live 2026-09-04:
+  // battlelog fetches collapsed to ~3/hr mid-colosseum).
+  const { rows: prevPart } = await db.query(
+    `select player_tag, decks_used from war_participation
+     where clan_tag = $1 and season_id = $2 and section_index = $3`,
+    [tag, clock.seasonId, clock.sectionIndex],
+  );
+  const prevDecks = new Map(prevPart.map((r) => [r.player_tag, r.decks_used]));
+  const deckDeltas = new Map();
   let members = 0;
   for (const p of payload.clan.participants ?? []) {
     const playerTag = normalizeTag(p.tag);
@@ -151,7 +164,40 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
         ],
       );
     }
+    const delta = (p.decksUsed ?? 0) - (prevDecks.get(playerTag) ?? 0);
+    if (delta > 0) deckDeltas.set(playerTag, delta);
     members += 1;
+  }
+
+  // 5. Yield feedback: members with NEW war decks just battled — raise
+  // their battlelog yield signal so the scheduler tightens their cadence
+  // now, not at their next (possibly daily) poll. Raise-only: absence of
+  // war decks says nothing about ladder play. Replay guard mirrors the
+  // re-heat rule: history is not activity.
+  const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
+  if (fresh && deckDeltas.size > 0) {
+    const { rows: prevPoll } = await db.query(
+      `select last_admitted_at from poll_state
+       where subject_tag = $1 and endpoint = 'currentriverrace'`,
+      [tag],
+    );
+    const gapMs = prevPoll[0]?.last_admitted_at
+      ? Date.parse(fetchedAt) - prevPoll[0].last_admitted_at.getTime()
+      : 3600_000;
+    const hours = Math.min(Math.max(gapMs / 3600_000, 0.25), 6);
+    const tags2 = [...deckDeltas.keys()];
+    const bphs = tags2.map((t) => deckDeltas.get(t) / hours);
+    await db.query(
+      `update poll_state ps
+       set yield_bph = greatest(
+             coalesce(ps.yield_bph, 0),
+             0.7 * coalesce(ps.yield_bph, 0) + 0.3 * d.bph
+           ),
+           heat = 3, heat_updated_at = now()
+       from unnest($1::text[], $2::numeric[]) as d(tag, bph)
+       where ps.subject_tag = d.tag and ps.endpoint = 'player_battlelog'`,
+      [tags2, bphs],
+    );
   }
 
   return {
@@ -161,6 +207,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     warDay: clock.warDay,
     kind: clock.kind,
     members,
+    battlers_signaled: deckDeltas.size,
   };
 }
 
