@@ -245,6 +245,13 @@ test("query_battles: pagination, filters, both perspectives, local time", async 
   assert.equal(first.isError, false);
   assert.equal(first.body.battles.length, 5);
   assert.ok(first.body.next_cursor, "full page carries a cursor");
+  // Played-time order, NEVER insert order (the backfill scar: archive
+  // battles are inserted long after they were played).
+  const times = first.body.battles.map((x) => Date.parse(x.battle_time));
+  assert.deepEqual(
+    times,
+    [...times].sort((a, z) => z - a),
+  );
   const b = first.body.battles[0];
   assert.ok(b.me.deck_hash || b.me.deck, "subject perspective present");
   assert.ok(

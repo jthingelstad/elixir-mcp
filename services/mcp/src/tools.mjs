@@ -318,8 +318,9 @@ const TOOLS = {
           description: "Exact deck identity (see get_deck_performance).",
         },
         cursor: {
-          type: "integer",
-          description: "From a previous response’s next_cursor.",
+          type: "string",
+          description:
+            "Opaque pagination token from a previous response’s next_cursor.",
         },
         limit: { type: "integer", minimum: 1, maximum: 50, default: 25 },
       },
@@ -379,7 +380,23 @@ const TOOLS = {
           JSON.stringify([{ id: args.against_card }]),
         );
       }
-      if (args.cursor !== undefined) add("b.cursor < ?", args.cursor);
+      if (args.cursor !== undefined) {
+        // Keyset on (battle_time, battle_id): battles are ordered by when
+        // they were PLAYED, never by insert order — the archive backfill
+        // made those permanently different.
+        const m = /^(.+)\|([0-9a-f]{64})$/.exec(String(args.cursor));
+        if (!m || Number.isNaN(Date.parse(m[1]))) {
+          throw new ToolFailure(
+            "bad_request",
+            "Invalid cursor.",
+            "Cursors are opaque tokens; restart from the first page.",
+          );
+        }
+        params.push(m[1], m[2]);
+        where.push(
+          `(b.battle_time, b.battle_id) < ($${params.length - 1}, $${params.length})`,
+        );
+      }
 
       const { rows } = await ctx.db.query(
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
@@ -389,7 +406,7 @@ const TOOLS = {
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          where ${where.join(" and ")}
-         order by b.cursor desc
+         order by b.battle_time desc, b.battle_id desc
          limit ${limit}`,
         params,
       );
@@ -446,7 +463,9 @@ const TOOLS = {
         player_tag: tag,
         battles,
         ...(rows.length === limit
-          ? { next_cursor: rows[rows.length - 1].cursor }
+          ? {
+              next_cursor: `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`,
+            }
           : {}),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
