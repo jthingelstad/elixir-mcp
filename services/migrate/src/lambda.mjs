@@ -280,21 +280,36 @@ async function previewIntel(databaseUrl, spec) {
               round(avg((outcome = 'win')::int)::numeric, 3) as win_rate
        from pairs group by bin order by bin`,
     );
+    const tags = Array.isArray(spec?.player_tags) ? spec.player_tags : [tag];
+    // Score each player against the corpus curve: expected win rate at
+    // each battle's level gap -> actual minus expected = the win-rate
+    // the LEVELS cannot explain (level-adjusted skill signal). The
+    // player's own battles are a negligible share of the 66k-obs curve.
     const { rows: me } = await db.query(
-      `${sides}
-       select count(*)::int as n,
-              round(avg(gap)::numeric, 2) as mean_gap,
-              round(avg((outcome = 'win')::int)
-                filter (where gap >= 0.1)::numeric, 3) as wr_when_ahead,
-              round(avg((outcome = 'win')::int)
-                filter (where gap <= -0.1)::numeric, 3) as wr_when_behind,
-              round(avg((outcome = 'win')::int)
-                filter (where gap > -0.1 and gap < 0.1)::numeric, 3) as wr_when_even,
-              count(*) filter (where gap <= -0.1)::int as n_behind,
-              count(*) filter (where gap >= 0.1)::int as n_ahead
-       from pairs where player_tag = $1
-         and battle_time > now() - interval '60 days'`,
-      [tag],
+      `${sides},
+       curve as (
+         select width_bucket(gap, array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]) as bin,
+                avg((outcome = 'win')::int) as wr
+         from pairs group by bin)
+       select p.player_tag,
+              count(*)::int as n,
+              round(avg(p.gap)::numeric, 2) as mean_gap,
+              round(avg((p.outcome = 'win')::int)::numeric, 3) as actual_wr,
+              round(avg(c.wr)::numeric, 3) as expected_wr_from_levels,
+              round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as skill_residual,
+              round((1.0 / sqrt(count(*)) / 2)::numeric, 3) as residual_se_approx,
+              round(avg((p.outcome = 'win')::int)
+                filter (where p.gap >= 0.1)::numeric, 3) as wr_when_ahead,
+              round(avg((p.outcome = 'win')::int)
+                filter (where p.gap > -0.1 and p.gap < 0.1)::numeric, 3) as wr_when_even,
+              count(*) filter (where p.gap >= 0.1)::int as n_ahead,
+              count(*) filter (where p.gap > -0.1 and p.gap < 0.1)::int as n_even
+       from pairs p
+       join curve c on c.bin = width_bucket(p.gap, array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5])
+       where p.player_tag = any($1)
+         and p.battle_time > now() - interval '60 days'
+       group by p.player_tag`,
+      [tags],
     );
     const { rows: rivals } = await db.query(
       `with bracket as (
@@ -324,7 +339,7 @@ async function previewIntel(databaseUrl, spec) {
        group by 1, 2 order by races_observed desc`,
       [clan],
     );
-    return { curve, me: me[0], rivals };
+    return { curve, players: me, rivals };
   } finally {
     await db.end();
   }
