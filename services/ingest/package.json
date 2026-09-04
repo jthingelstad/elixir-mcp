@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/ingest",
   "version": "0.1.0",
-  "description": "Admission boundary + canonical projections: raw CR payloads in, receipts/battles/roster observations out (DESIGN §5.1, §4.3-4.5). Runs as the ingest Lambda on the results queue.",
+  "description": "Admission boundary + canonical projections: raw CR payloads in, receipts/battles/roster observations out (DESIGN \u00a75.1, \u00a74.3-4.5). Runs as the ingest Lambda on the results queue.",
   "type": "module",
   "main": "src/index.mjs",
   "scripts": {
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@elixir-mcp/contracts": "0.1.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "@aws-sdk/client-s3": "^3.600.0"
   }
 }

@@ -1,13 +1,14 @@
 {
   "name": "@elixir-mcp/migrate",
   "version": "0.1.0",
-  "description": "Migration runner: the only thing that ever applies db/migrations (DESIGN §11.1). Runs as the migrate Lambda in deploy; runnable locally via CLI.",
+  "description": "Migration runner: the only thing that ever applies db/migrations (DESIGN \u00a711.1). Runs as the migrate Lambda in deploy; runnable locally via CLI.",
   "type": "module",
   "main": "src/migrate.mjs",
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "@aws-sdk/client-s3": "^3.600.0"
   }
 }

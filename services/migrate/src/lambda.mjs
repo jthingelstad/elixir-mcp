@@ -189,6 +189,109 @@ async function probe(databaseUrl) {
   }
 }
 
+/** One-time payload-history export ({export_payloads: {after_id?, limit?}}):
+ *  copy api_payload rows into the S3 archive under the ingest key scheme,
+ *  keyed by payload_id cursor so a local loop can drive it to completion.
+ *  Bytes are the jsonb re-serialized + gzipped — the content hash (of
+ *  canonical JSON) is unchanged, which is what content-addressing keys on. */
+export async function exportPayloads(databaseUrl, spec, s3override) {
+  const bucket = process.env.ARCHIVE_BUCKET;
+  if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
+  const { archiveKey } = await import("../../ingest/src/pipeline.mjs");
+  const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+  const { gzipSync } = await import("node:zlib");
+  const s3 = s3override ?? new S3Client({});
+  const afterId = Number(spec?.after_id ?? 0);
+  const limit = Math.min(Number(spec?.limit ?? 500), 2000);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select payload_id, endpoint, entity_key, payload_hash, payload_json,
+              first_fetched_at
+       from api_payload where payload_id > $1
+       order by payload_id limit $2`,
+      [afterId, limit],
+    );
+    let exported = 0;
+    for (const r of rows) {
+      const key = archiveKey(
+        r.endpoint,
+        r.entity_key,
+        r.first_fetched_at.toISOString(),
+        r.payload_hash,
+      );
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: gzipSync(Buffer.from(JSON.stringify(r.payload_json))),
+          ContentType: "application/json",
+          ContentEncoding: "gzip",
+        }),
+      );
+      exported += 1;
+    }
+    return {
+      exported,
+      last_id: rows.length ? rows[rows.length - 1].payload_id : afterId,
+      done: rows.length < limit,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/** Weekly Postgres sweep ({sweep_payloads: true}, EventBridge MON 08:15Z):
+ *  superseded payload rows (not the latest per endpoint+entity) leave
+ *  Postgres only after their S3 twin HEAD-verifies. Bounded per run —
+ *  next week's run takes the next slice. */
+export async function sweepPayloads(databaseUrl, s3override) {
+  const bucket = process.env.ARCHIVE_BUCKET;
+  if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
+  const { archiveKey } = await import("../../ingest/src/pipeline.mjs");
+  const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+  const s3 = s3override ?? new S3Client({});
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select p.payload_id, p.endpoint, p.entity_key, p.payload_hash,
+              p.first_fetched_at
+       from api_payload p
+       where exists (select 1 from api_payload newer
+                     where newer.endpoint = p.endpoint
+                       and newer.entity_key = p.entity_key
+                       and (newer.last_fetched_at, newer.payload_id)
+                         > (p.last_fetched_at, p.payload_id))
+       order by p.payload_id limit 2000`,
+    );
+    let swept = 0;
+    let missing = 0;
+    for (const r of rows) {
+      const key = archiveKey(
+        r.endpoint,
+        r.entity_key,
+        r.first_fetched_at.toISOString(),
+        r.payload_hash,
+      );
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+      } catch {
+        missing += 1; // no twin -> the row stays; export fills the gap
+        continue;
+      }
+      await db.query(`delete from api_payload where payload_id = $1`, [
+        r.payload_id,
+      ]);
+      swept += 1;
+    }
+    return { candidates: rows.length, swept, missing };
+  } finally {
+    await db.end();
+  }
+}
+
 /**
  * Ordered backfill replay ({replay: {messages: [...]}}) — the elixir-bot
  * archive lane (NOTES 2026-09-04). Each message is a CrResultMessage
@@ -297,6 +400,19 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.export_payloads) {
+    const result = await exportPayloads(
+      process.env.DATABASE_URL,
+      event.export_payloads,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.sweep_payloads) {
+    const result = await sweepPayloads(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

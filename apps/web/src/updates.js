@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-04",
+    title: "Raw history archives to S3",
+    body: "Every payload the collectors fetch is now archived durably to S3 the moment it is admitted — the full raw history behind your record is kept forever and stays queryable, while the database keeps only the hot serving set.",
+  },
+  {
+    date: "2026-09-04",
     title: "War tools tell the whole truth",
     body: "Honesty batch from agent playtesting: unknown war-day attendance is now null instead of a false zero, war participants say whether they are still in the clan, the seasons filter applies to member weeks, and comparison windows state plainly that they cover recorded battles only.",
   },

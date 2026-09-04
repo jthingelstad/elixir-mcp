@@ -80,6 +80,14 @@ more collectors mean resilience, never more API load.
   and receipted with which collector fetched it and when. Projections
   (battles, snapshots, war tables) are derived from payloads and are
   rebuildable from source.
+- **The S3 payload archive.** New payload content is archived to S3 at
+  admission (Hive-partitioned by endpoint, entity, and date; gzip JSON;
+  lifecycle to Infrequent Access at 30 days) before the database commit
+  — a committed row always has its S3 twin. S3 is the system of record
+  for raw observations; Postgres keeps the latest payload per entity as
+  the hot serving set, and a weekly sweep retires superseded rows only
+  after verifying their archived copy. Athena (via one Glue table with
+  partition projection) and DuckDB both query the layout directly.
 - **Snapshots and events.** Daily profile snapshots feed trophy/donation
   timelines; diffs between polls emit events with honest time semantics
   (most things are "observed between polls", and the data says so).
@@ -122,5 +130,5 @@ system must never present a partial record as a complete one.
 CI-gated public repo; collectors self-update from green main; alarms
 route to an operations queue drained daily; performance is censused
 continuously (every ingest message logs phase timings). The database is
-audited (`docs/DB-AUDIT.md`) and raw payloads are bound for S3 archive
+audited (`docs/DB-AUDIT.md`) and raw payloads live in the S3 archive
 with SQL-over-S3 tooling (`docs/DATA-TOOLS.md`).

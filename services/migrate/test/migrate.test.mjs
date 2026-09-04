@@ -189,3 +189,79 @@ test("probe op: hourly census counts live fetches, excludes the backfill gateway
   assert.ok(totalBattles > 0, "replayed battles appear as harvests");
   assert.match(result.hours[0].hour, /^\d{2}-\d{2}T\d{2}Z$/);
 });
+
+test("export + sweep: history lands in S3 keys; only twinned superseded rows leave Postgres", async () => {
+  process.env.DATABASE_URL = SCRATCH_URL;
+  process.env.ARCHIVE_BUCKET = "test-archive";
+  const { exportPayloads, sweepPayloads } = await import("../src/lambda.mjs");
+
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  // Two versions of one entity: v1 superseded, v2 latest.
+  await db.query(
+    `insert into api_payload (endpoint, entity_key, payload_hash, payload_json, first_fetched_at, last_fetched_at)
+     values ('player', '#SWEEP1', 'hash-v1', '{"v":1}', '2026-09-01T10:00:00Z', '2026-09-01T10:00:00Z'),
+            ('player', '#SWEEP1', 'hash-v2', '{"v":2}', '2026-09-02T10:00:00Z', '2026-09-02T10:00:00Z')`,
+  );
+  await db.end();
+
+  const stored = new Map();
+  const fakeS3 = {
+    async send(cmd) {
+      const name = cmd.constructor.name;
+      if (name === "PutObjectCommand") {
+        stored.set(cmd.input.Key, cmd.input.Body);
+        return {};
+      }
+      if (name === "HeadObjectCommand") {
+        if (!stored.has(cmd.input.Key)) throw new Error("NotFound");
+        return {};
+      }
+      throw new Error(`unexpected ${name}`);
+    },
+  };
+
+  // Sweep BEFORE export: superseded row has no twin -> stays.
+  const dry = await sweepPayloads(SCRATCH_URL, fakeS3);
+  assert.equal(dry.swept, 0);
+  assert.ok(dry.missing >= 1, "untwinned rows are never deleted");
+
+  // Export everything (cursor loop).
+  let cursor = 0;
+  let total = 0;
+  for (;;) {
+    const r = await exportPayloads(
+      SCRATCH_URL,
+      { after_id: cursor, limit: 2 },
+      fakeS3,
+    );
+    total += r.exported;
+    cursor = r.last_id;
+    if (r.done) break;
+  }
+  assert.ok(total >= 2, "both versions exported");
+  const keys = [...stored.keys()];
+  assert.ok(
+    keys.some((k) =>
+      /^payloads\/endpoint=player\/entity=SWEEP1\/dt=2026-09-01\/20260901T100000Z-hash-v1/.test(
+        k,
+      ),
+    ),
+    `ingest key scheme, got: ${keys.join(", ")}`,
+  );
+
+  // Sweep again: v1 (superseded, twinned) leaves; v2 (latest) stays.
+  const swept = await sweepPayloads(SCRATCH_URL, fakeS3);
+  assert.ok(swept.swept >= 1);
+  const check = new pg.Client({ connectionString: SCRATCH_URL });
+  await check.connect();
+  const left = await check.query(
+    `select payload_hash from api_payload where entity_key = '#SWEEP1' order by payload_hash`,
+  );
+  assert.deepEqual(
+    left.rows.map((r) => r.payload_hash),
+    ["hash-v2"],
+    "latest content stays hot in Postgres",
+  );
+  await check.end();
+});

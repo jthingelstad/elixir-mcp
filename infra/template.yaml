@@ -109,6 +109,35 @@ Resources:
       SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
       SecurityGroupIds: [!Ref EndpointSecurityGroup]
 
+  # S3 reachability for the VPC Lambdas (payload archive). A Gateway
+  # endpoint is free; it needs an explicit route table, so the private
+  # subnets move off the VPC main table (local route is implicit).
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: elixir-mcp-private }]
+
+  PrivateSubnetARouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds: [!Ref PrivateRouteTable]
+
   # -------------------------------------------------------------- database
   DbSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -246,6 +275,16 @@ Resources:
                     sqs:GetQueueUrl,
                   ]
                 Resource: !GetAtt ResultsQueue.Arn
+              # Payload archive: ingest puts at admission; migrate exports
+              # history and HEAD-verifies twins before the Postgres sweep.
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject]
+                Resource: !Sub
+                  - ${Arn}/payloads/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt ArchiveBucket.Arn
 
   EmailRelayRole:
     Type: AWS::IAM::Role
@@ -404,6 +443,7 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
 
   IngestEventSource:
     Type: AWS::Lambda::EventSourceMapping
@@ -469,6 +509,27 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
+
+  # Weekly Postgres payload sweep (DATA-TOOLS section 1): superseded
+  # payload rows leave Postgres once their S3 twin is HEAD-verified.
+  PayloadSweepRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-payload-sweep
+      ScheduleExpression: cron(15 8 ? * MON *)
+      Targets:
+        - Arn: !GetAtt MigrateFunction.Arn
+          Id: payload-sweep
+          Input: '{"sweep_payloads": true}'
+
+  PayloadSweepPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MigrateFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt PayloadSweepRule.Arn
 
   # ------------------------------------------------------------ front doors
   SiteApi:
@@ -500,6 +561,73 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${McpApi}/*
+
+  # The payload archive (DATA-TOOLS): every admitted payload's raw bytes,
+  # Hive-partitioned, content-addressed. S3 is the system of record for
+  # raw observations; Postgres keeps the hot set.
+  ArchiveBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub elixir-mcp-archive-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: payloads-to-ia
+            Status: Enabled
+            Prefix: payloads/
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+
+  GlueArchiveDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: elixir_mcp_archive
+        Description: Athena over the S3 payload archive (raw CR API payloads, one JSON doc per object)
+
+  # One raw-JSON-lines table with partition projection - no crawler, no
+  # maintenance. Queries pin entity (injected projection); cross-entity
+  # archaeology is DuckDB's job (DATA-TOOLS section 2).
+  GlueArchivePayloadsTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref GlueArchiveDatabase
+      TableInput:
+        Name: payloads
+        TableType: EXTERNAL_TABLE
+        Parameters:
+          classification: json
+          projection.enabled: "true"
+          projection.endpoint.type: enum
+          projection.endpoint.values: player_battlelog,player,clan,currentriverrace,riverracelog,cards
+          projection.entity.type: injected
+          projection.dt.type: date
+          projection.dt.range: 2026-02-01,NOW
+          projection.dt.format: yyyy-MM-dd
+          storage.location.template: !Sub s3://elixir-mcp-archive-${AWS::AccountId}/payloads/endpoint=${!endpoint}/entity=${!entity}/dt=${!dt}
+        PartitionKeys:
+          - { Name: endpoint, Type: string }
+          - { Name: entity, Type: string }
+          - { Name: dt, Type: string }
+        StorageDescriptor:
+          Location: !Sub s3://elixir-mcp-archive-${AWS::AccountId}/payloads/
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            # LazySimpleSerDe's default field delimiter is \u0001, which
+            # never appears in JSON text - the whole line lands in `json`.
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+          Columns:
+            - { Name: json, Type: string }
 
   SiteBucket:
     Type: AWS::S3::Bucket

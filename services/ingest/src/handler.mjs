@@ -9,9 +9,32 @@
  */
 
 import pg from "pg";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { processResult } from "./pipeline.mjs";
 
-export function makeHandler({ databaseUrl }) {
+/** The S3 payload archive (DATA-TOOLS §1). Absent bucket = no archive
+ *  (local dev, tests); in prod the put is part of admission and a
+ *  failure fails the message so SQS retries. */
+function makeArchive(bucket) {
+  if (!bucket) return null;
+  const s3 = new S3Client({});
+  return {
+    async put(key, bodyGzip) {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: bodyGzip,
+          ContentType: "application/json",
+          ContentEncoding: "gzip",
+        }),
+      );
+    },
+  };
+}
+
+export function makeHandler({ databaseUrl, archiveBucket }) {
+  const archive = makeArchive(archiveBucket);
   return async function handler(event) {
     const client = new pg.Client({ connectionString: databaseUrl });
     await client.connect();
@@ -21,7 +44,11 @@ export function makeHandler({ databaseUrl }) {
         let outcome;
         try {
           const message = JSON.parse(record.body);
-          outcome = await processResult(client, message);
+          outcome = await processResult(
+            client,
+            message,
+            archive ? { archive } : {},
+          );
           // One structured line per message: Logs Insights reads these
           // for live-path performance (the census, permanently on).
           if (outcome.timings) {

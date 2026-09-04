@@ -359,3 +359,75 @@ test("gateway_sha on a result stamps the fleet-version column", async () => {
   );
   assert.equal(rows[0].last_seen_sha, "abc1234");
 });
+
+test("S3 archive: new content is put once, dedup refetch adds no object, put failure rolls back", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  const puts = [];
+  const archive = {
+    async put(key, body) {
+      puts.push({ key, body });
+    },
+  };
+  // Distinct content so this test owns its payload row.
+  const shaped = { ...profile, trophies: (profile.trophies ?? 0) + 7 };
+  const at = "2026-09-04T12:34:56Z";
+  const r1 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: shaped,
+      fetchedAt: at,
+    }),
+    { archive },
+  );
+  assert.equal(r1.outcome, "admitted");
+  assert.equal(puts.length, 1, "new content archived");
+  assert.match(
+    puts[0].key,
+    /^payloads\/endpoint=player\/entity=[0-9A-Z]+\/dt=2026-09-04\/20260904T123456Z-[0-9a-f]{16}\.json\.gz$/,
+    "hive-partitioned, content-addressed key",
+  );
+  assert.ok(typeof r1.timings.archive_ms === "number");
+
+  // Same content, later fetch: dedup path, no new object.
+  const r2 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: shaped,
+      fetchedAt: "2026-09-04T13:00:00Z",
+    }),
+    { archive },
+  );
+  assert.equal(r2.outcome, "admitted");
+  assert.equal(puts.length, 1, "content-identical refetch adds no object");
+
+  // Put failure: the whole message fails (SQS will retry) and nothing commits.
+  const before = (await ctx.db.query(`select count(*)::int n from api_payload`))
+    .rows[0].n;
+  const broken = { ...profile, trophies: (profile.trophies ?? 0) + 8 };
+  await assert.rejects(
+    processResult(
+      ctx.db,
+      message({
+        endpoint: "player",
+        entityKey: tag,
+        payload: broken,
+        fetchedAt: "2026-09-04T14:00:00Z",
+      }),
+      {
+        archive: {
+          async put() {
+            throw new Error("s3 unavailable");
+          },
+        },
+      },
+    ),
+  );
+  const after_ = (await ctx.db.query(`select count(*)::int n from api_payload`))
+    .rows[0].n;
+  assert.equal(after_, before, "no committed row without its S3 twin");
+});

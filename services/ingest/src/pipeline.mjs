@@ -161,10 +161,27 @@ const PROJECTORS = {
 };
 
 /**
+ * S3 archive key for one payload (DATA-TOOLS §1): Hive-partitioned by
+ * endpoint/entity/fetch date so Athena and DuckDB read the layout with
+ * no catalog crawl. Content-addressed — the hash rides the filename.
+ */
+export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
+  const entity = entityKey.replace(/^#/, "");
+  const dt = fetchedAt.slice(0, 10);
+  const stamp = fetchedAt.replace(/[-:]/g, "").replace(/\.\d+/, "");
+  return `payloads/endpoint=${endpoint}/entity=${entity}/dt=${dt}/${stamp}-${hash.slice(0, 16)}.json.gz`;
+}
+
+/**
  * Process one results-queue message. Owns its transaction.
+ * `deps.archive` (optional) is the S3 payload archive: NEW payload
+ * content is put before commit, so a committed row always has its S3
+ * twin (an orphan object from a rolled-back txn is harmless; the
+ * reverse is not). Put failure fails the message -> SQS retry — the
+ * archive is part of admission, not best-effort (DATA-TOOLS §1).
  * @returns {{outcome: string, [k: string]: unknown}}
  */
-export async function processResult(db, rawMessage) {
+export async function processResult(db, rawMessage, deps = {}) {
   // Phase timings ride every outcome (a few Date.now() calls): the
   // replay lane aggregates them, and they price the live path too.
   const t0 = Date.now();
@@ -224,13 +241,26 @@ export async function processResult(db, rawMessage) {
   await db.query("begin");
   try {
     if (payload !== undefined) {
-      await db.query(
+      // xmax = 0 marks a genuine insert (vs the dedup update path):
+      // only NEW content goes to the S3 archive — content-identical
+      // refetches add a receipt, never an object.
+      const {
+        rows: [payloadRow],
+      } = await db.query(
         `insert into api_payload (endpoint, entity_key, payload_hash, payload_json)
          values ($1, $2, $3, $4)
          on conflict (endpoint, entity_key, payload_hash)
-           do update set last_fetched_at = now()`,
+           do update set last_fetched_at = now()
+         returning (xmax = 0) as fresh_content`,
         [endpoint, entityKey, hash, JSON.stringify(payload)],
       );
+      if (payloadRow.fresh_content && deps.archive) {
+        await deps.archive.put(
+          archiveKey(endpoint, entityKey, msg.fetched_at, hash),
+          Buffer.from(msg.body_gzip_b64, "base64"),
+        );
+        t = mark("archive_ms", t);
+      }
     }
 
     const { rows: receiptRows } = await db.query(
