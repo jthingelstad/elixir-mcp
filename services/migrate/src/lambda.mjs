@@ -292,6 +292,51 @@ export async function sweepPayloads(databaseUrl, s3override) {
   }
 }
 
+/** Weekly operational-row sweep ({sweep_operational: true}, rides the
+ *  same EventBridge rule as the payload sweep): DB-AUDIT R3 — every
+ *  check is already expiry-aware, these rows are pure dead weight.
+ *  oauth_token keeps 90 days (not 30): rotated-token rows are the
+ *  memory behind family replay detection, and 90d is the absolute
+ *  family lifetime — never trim below it. */
+async function sweepOperational(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const out = {};
+    out.rate_limit = (
+      await db.query(
+        `delete from rate_limit where window_start < now() - interval '7 days'`,
+      )
+    ).rowCount;
+    out.magic_login = (
+      await db.query(
+        `delete from magic_login where expires_at < now() - interval '30 days'`,
+      )
+    ).rowCount;
+    out.session = (
+      await db.query(
+        `delete from session
+         where sliding_expires_at < now() - interval '30 days'
+            or (revoked_at is not null and revoked_at < now() - interval '30 days')`,
+      )
+    ).rowCount;
+    out.oauth_token = (
+      await db.query(
+        `delete from oauth_token where expires_at < now() - interval '90 days'`,
+      )
+    ).rowCount;
+    out.audit_args_nulled = (
+      await db.query(
+        `update mcp_call_audit set args = null
+         where created_at < now() - interval '90 days' and args is not null`,
+      )
+    ).rowCount;
+    return out;
+  } finally {
+    await db.end();
+  }
+}
+
 /**
  * Ordered backfill replay ({replay: {messages: [...]}}) — the elixir-bot
  * archive lane (NOTES 2026-09-04). Each message is a CrResultMessage
@@ -413,6 +458,14 @@ export async function handler(event) {
   }
   if (event?.sweep_payloads) {
     const result = await sweepPayloads(process.env.DATABASE_URL);
+    if (event?.sweep_operational) {
+      result.operational = await sweepOperational(process.env.DATABASE_URL);
+    }
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.sweep_operational) {
+    const result = await sweepOperational(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

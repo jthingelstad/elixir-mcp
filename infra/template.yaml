@@ -521,7 +521,7 @@ Resources:
       Targets:
         - Arn: !GetAtt MigrateFunction.Arn
           Id: payload-sweep
-          Input: '{"sweep_payloads": true}'
+          Input: '{"sweep_payloads": true, "sweep_operational": true}'
 
   PayloadSweepPermission:
     Type: AWS::Lambda::Permission

@@ -265,3 +265,65 @@ test("export + sweep: history lands in S3 keys; only twinned superseded rows lea
   );
   await check.end();
 });
+
+test("operational sweep: dead weight leaves, live rows and replay-memory stay", async () => {
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count)
+     values ('b-old', now() - interval '8 days', 1),
+            ('b-live', now() - interval '1 hour', 1)`,
+  );
+  await db.query(
+    `insert into magic_login (token_hash, email_hash, code_hash, expires_at)
+     values ('t-old', 'e', 'c', now() - interval '31 days'),
+            ('t-live', 'e', 'c', now() + interval '15 minutes')`,
+  );
+  const {
+    rows: [acct],
+  } = await db.query(
+    `insert into account (email_hash, status) values ('sweep-op', 'approved') returning account_id`,
+  );
+  await db.query(
+    `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at)
+     values ('s-old', $1, now() - interval '31 days', now() - interval '1 day'),
+            ('s-live', $1, now() + interval '5 days', now() + interval '80 days')`,
+    [acct.account_id],
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, args, created_at)
+     values ($1, 'old_tool', '{"x":1}', now() - interval '91 days'),
+            ($1, 'new_tool', '{"x":2}', now())`,
+    [acct.account_id],
+  );
+  await db.end();
+
+  const result = await handler({ sweep_operational: true });
+  assert.equal(result.rate_limit, 1);
+  assert.equal(result.magic_login, 1);
+  assert.equal(result.session, 1);
+  assert.equal(result.audit_args_nulled, 1);
+
+  const check = new pg.Client({ connectionString: SCRATCH_URL });
+  await check.connect();
+  const rl = await check.query(`select bucket from rate_limit`);
+  assert.deepEqual(
+    rl.rows.map((r) => r.bucket).filter((b) => b.startsWith("b-")),
+    ["b-live"],
+  );
+  const sess = await check.query(
+    `select session_id from session where session_id like 's-%'`,
+  );
+  assert.deepEqual(
+    sess.rows.map((r) => r.session_id),
+    ["s-live"],
+  );
+  const audit = await check.query(
+    `select tool, args from mcp_call_audit where tool in ('old_tool','new_tool') order by tool desc`,
+  );
+  assert.equal(audit.rows[0].args, null, "old args nulled, row kept");
+  assert.ok(audit.rows[1].args, "recent args untouched");
+  await check.end();
+});
