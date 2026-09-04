@@ -14,15 +14,15 @@ before(async () => {
 
 after(async () => ctx.drop());
 
-test("genesis: no logged season -> anchor recorded, projection honestly deferred", async () => {
+test("genesis: no logged season -> the calendar names it, projection proceeds", async () => {
   const war = await fixture("currentriverrace/war_day.json");
   const result = await projectRiverRace(ctx.db, {
     clanTag: CLAN,
     payload: war,
-    fetchedAt: "2026-08-31T07:37:36Z",
+    // Sunday Aug 30 07:37Z: calendar-true S135 section 3.
+    fetchedAt: "2026-08-30T07:37:36Z",
   });
-  assert.equal(result.projected, "anchor_only");
-  assert.equal(result.needsBackfill, true);
+  assert.notEqual(result.projected, "anchor_only");
   const anchors = await ctx.db.query(
     `select period_index from war_period_anchor where clan_tag = $1`,
     [CLAN],
@@ -31,13 +31,16 @@ test("genesis: no logged season -> anchor recorded, projection honestly deferred
     anchors.rows.map((r) => r.period_index),
     [war.periodIndex],
   );
-  const weeks = (await ctx.db.query(`select count(*)::int n from war_week`))
-    .rows[0].n;
-  assert.equal(weeks, 0, "no season invented");
+  const weeks = await ctx.db.query(
+    `select season_id, section_index from war_week where clan_tag = $1`,
+    [CLAN],
+  );
+  assert.deepEqual(weeks.rows, [{ season_id: 135, section_index: 3 }]);
 });
 
 test("with logged history: week, standings, POINTS participation, attendance", async () => {
-  // Backfill-style logged week: season 136, section 2 (before the live section 3).
+  // Logged history exists but the CALENDAR names the season now — a
+  // wrong logged season cannot mislead (phantom-season incident).
   await ctx.db.query(
     `insert into war_week (clan_tag, season_id, section_index) values ($1, 136, 2)`,
     [CLAN],
@@ -46,15 +49,15 @@ test("with logged history: week, standings, POINTS participation, attendance", a
   const result = await projectRiverRace(ctx.db, {
     clanTag: CLAN,
     payload: war,
-    fetchedAt: "2026-08-31T07:40:00Z",
+    fetchedAt: "2026-08-30T07:40:00Z",
   });
   assert.equal(result.projected, "war");
-  assert.equal(result.seasonId, 136, "same season: live section 3 >= logged 2");
+  assert.equal(result.seasonId, 135, "the calendar names Aug 30 as season 135");
   assert.equal(result.warDay, 4);
 
   const { rows: standings } = await ctx.db.query(
     `select count(*)::int n, max(fame)::int top from war_week_clan
-     where clan_tag = $1 and season_id = 136 and section_index = 3`,
+     where clan_tag = $1 and season_id = 135 and section_index = 3`,
     [CLAN],
   );
   assert.equal(standings[0].n, war.clans.length, "all race clans recorded");
@@ -62,7 +65,7 @@ test("with logged history: week, standings, POINTS participation, attendance", a
 
   const { rows: part } = await ctx.db.query(
     `select count(*)::int n, sum(points)::int total from war_participation
-     where clan_tag = $1 and season_id = 136 and section_index = 3`,
+     where clan_tag = $1 and season_id = 135 and section_index = 3`,
     [CLAN],
   );
   assert.equal(part[0].n, war.clan.participants.length);
@@ -91,7 +94,7 @@ test("MAX-merge: a lagging payload never regresses counters", async () => {
     fetchedAt: "2026-08-31T07:50:00Z",
   });
   const { rows } = await ctx.db.query(
-    `select points from war_participation where player_tag = $1 and season_id = 136 and section_index = 3`,
+    `select points from war_participation where player_tag = $1 and season_id = 135 and section_index = 3`,
     [someone.tag],
   );
   assert.equal(rows[0].points, before, "stale lower value ignored");
@@ -117,14 +120,14 @@ test("war keys stamp onto ingested war battles from their own time", async () =>
   const { stamped } = await stampWarKeys(ctx.db, {
     clanTag: CLAN,
     payload: war,
-    nowMs: Date.parse("2026-08-31T09:00:00Z"),
+    nowMs: Date.parse("2026-08-30T09:00:00Z"),
   });
   assert.ok(stamped > 0, "keys stamped");
   const { rows: post } = await ctx.db.query(
     `select distinct season_id, section_index from battle
      where type like 'riverRace%' and season_id is not null`,
   );
-  assert.ok(post.every((r) => r.season_id === 136 && r.section_index === 3));
+  assert.ok(post.every((r) => r.season_id === 135 && r.section_index === 3));
 });
 
 test("colosseum week flags and rolls the season when the section walks back", async () => {
@@ -134,10 +137,10 @@ test("colosseum week flags and rolls the season when the section walks back", as
     payload: col,
     fetchedAt: "2026-09-03T14:40:34Z",
   });
-  assert.equal(r1.seasonId, 136, "section 4 >= logged 3: same season");
+  assert.equal(r1.seasonId, 135, "the calendar names Sep 3 as season 135");
   assert.equal(r1.kind, "colosseum");
   const { rows } = await ctx.db.query(
-    `select is_colosseum from war_week where season_id = 136 and section_index = 4`,
+    `select is_colosseum from war_week where season_id = 135 and section_index = 4`,
   );
   assert.equal(rows[0].is_colosseum, true);
 
@@ -151,7 +154,11 @@ test("colosseum week flags and rolls the season when the section walks back", as
     payload: next,
     fetchedAt: "2026-09-07T12:00:00Z",
   });
-  assert.equal(r2.seasonId, 137, "section walking backwards = new season");
+  assert.equal(
+    r2.seasonId,
+    136,
+    "Sep 7 after the reset: the calendar rolls the season",
+  );
 });
 
 test("riverracelog backfill: ten real weeks, seasons, colosseum flags, points, standings", async () => {
@@ -251,4 +258,82 @@ test("riverrace for a never-seen clan seeds its identity row (no FK race)", asyn
     `select 1 from clan where clan_tag = '#RJ9UJ9L8'`,
   );
   assert.equal(rows.length, 1, "identity-only clan row created");
+});
+
+test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", async () => {
+  const base = structuredClone(
+    await fixture("currentriverrace/colosseum.json"),
+  );
+  base.clan.tag = "#20UUCC99";
+  await ctx.db.query(
+    `insert into clan (clan_tag) values ('#20UUCC99') on conflict do nothing`,
+  );
+  // The season's log is already recorded through section 3 (the state a
+  // real clan is in when colosseum starts): latest logged week (S, 3).
+  delete base.seasonId; // live payloads carry no seasonId
+  const season = 135; // the calendar's answer for 2026-09-01..04
+  await ctx.db.query(
+    `insert into war_week (clan_tag, season_id, section_index) values ('#20UUCC99', $1, 3)
+     on conflict do nothing`,
+    [season],
+  );
+
+  // Four colosseum war days: periodIndex walks grid 3..6 of the section,
+  // fame and member points grow each day.
+  const section = base.sectionIndex;
+  const me = "#20UU22CC";
+  for (let day = 0; day < 4; day += 1) {
+    const p = structuredClone(base);
+    p.periodIndex = section * 7 + 3 + day;
+    p.periodType = "colosseum";
+    p.clan.fame = 3000 * (day + 1);
+    p.clan.participants = [
+      {
+        tag: me,
+        name: "Nerd",
+        fame: 900 * (day + 1),
+        decksUsed: 4 * (day + 1),
+        boatAttacks: 0,
+        decksUsedToday: 4,
+      },
+    ];
+    p.clans = [
+      {
+        tag: "#20UUCC99",
+        fame: 3000 * (day + 1),
+        name: "Repro",
+        participants: [],
+      },
+    ];
+    const fetchedAt = new Date(
+      Date.parse("2026-09-01T12:00:00Z") + day * 86400_000,
+    ).toISOString();
+    const result = await projectRiverRace(ctx.db, { payload: p, fetchedAt });
+    assert.ok(result, `day ${day + 1} projected`);
+  }
+
+  const { rows: weeks } = await ctx.db.query(
+    `select season_id, section_index, is_colosseum from war_week
+     where clan_tag = '#20UUCC99' and section_index = $1`,
+    [section],
+  );
+  assert.equal(
+    weeks.length,
+    1,
+    `exactly ONE colosseum week row, got ${JSON.stringify(weeks)}`,
+  );
+  assert.equal(weeks[0].season_id, season, "filed under the right season");
+
+  const { rows: part } = await ctx.db.query(
+    `select points, decks_used from war_participation
+     where clan_tag = '#20UUCC99' and player_tag = $1 and section_index = $2`,
+    [me, section],
+  );
+  assert.equal(part.length, 1, "one participation row across all four days");
+  assert.equal(
+    part[0].points,
+    3600,
+    "day-4 points merged (not frozen at day 1)",
+  );
+  assert.equal(part[0].decks_used, 16, "day-4 decks merged");
 });

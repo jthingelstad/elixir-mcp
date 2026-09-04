@@ -37,16 +37,81 @@ export function periodInfo(periodIndex) {
 
 /** Live season id wins; otherwise infer from the latest logged (season,
  *  section): a live section LOWER than the logged one means we rolled. */
-export function inferSeasonId(liveSeasonId, logged) {
-  if (typeof liveSeasonId === "number") return liveSeasonId;
-  if (!logged) return null;
-  const currentSection = logged.liveSectionIndex;
-  if (
-    typeof currentSection === "number" &&
-    currentSection < logged.sectionIndex
-  ) {
-    return logged.seasonId + 1;
+
+/**
+ * The season calendar — stateless season/section derivation (the fix
+ * for the 2026-09-04 phantom-season incident). CR seasons run first
+ * Monday of month -> first Monday of next month, resetting ~09:30Z;
+ * sections are the Mondays between. Verified against riverracelog
+ * createdDate stamps: S134 = 2026-07-06 -> 2026-08-03 (sections
+ * finishing Jul 13/20/27, Aug 3), S135 = 2026-08-03 -> 2026-09-07.
+ * Stateful inference (rolling +1 on section walk-back) ran away when
+ * archive payloads replayed against future logged state, scattering
+ * nine real weeks across nine phantom seasons.
+ */
+const SEASON_ANCHOR = { id: 135, startMs: Date.UTC(2026, 7, 3, 9, 30) };
+const WEEK_MS = 7 * 24 * 3600_000;
+
+function firstMondayResetMs(year, month) {
+  const first = new Date(Date.UTC(year, month, 1, 9, 30));
+  const day = first.getUTCDay(); // 0 Sun .. 6 Sat
+  const offset = (8 - day) % 7;
+  return Date.UTC(year, month, 1 + offset, 9, 30);
+}
+
+/** Season id + section index for an instant. */
+export function seasonFromDate(atMs) {
+  // Find the season start (first-Monday reset) at or before atMs, and
+  // count seasons from the anchor.
+  let year = new Date(atMs).getUTCFullYear();
+  let month = new Date(atMs).getUTCMonth();
+  let startMs = firstMondayResetMs(year, month);
+  if (startMs > atMs) {
+    month -= 1;
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+    startMs = firstMondayResetMs(year, month);
   }
+  // Count month-boundaries between the anchor start and this start.
+  let seasonId = SEASON_ANCHOR.id;
+  let cursor = SEASON_ANCHOR.startMs;
+  while (cursor < startMs) {
+    const d = new Date(cursor);
+    let y = d.getUTCFullYear();
+    let m = d.getUTCMonth() + 1;
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    cursor = firstMondayResetMs(y, m);
+    seasonId += 1;
+  }
+  while (cursor > startMs) {
+    const d = new Date(cursor);
+    let y = d.getUTCFullYear();
+    let m = d.getUTCMonth() - 1;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    }
+    cursor = firstMondayResetMs(y, m);
+    seasonId -= 1;
+  }
+  return {
+    seasonId,
+    sectionIndex: Math.floor((atMs - startMs) / WEEK_MS),
+    seasonStartMs: startMs,
+  };
+}
+
+export function inferSeasonId(liveSeasonId, logged, atMs = null) {
+  if (typeof liveSeasonId === "number") return liveSeasonId;
+  // Stateless: the calendar decides. The old logged-state roll inference
+  // ran away under out-of-order processing (phantom-season incident).
+  if (atMs !== null) return seasonFromDate(atMs).seasonId;
+  if (!logged) return null;
   return logged.seasonId;
 }
 
@@ -85,6 +150,7 @@ export function warClock(
     seasonId: inferSeasonId(
       seasonId,
       logged ? { ...logged, liveSectionIndex: sectionIndex } : null,
+      nowMs,
     ),
     sectionIndex,
     periodIndex,
