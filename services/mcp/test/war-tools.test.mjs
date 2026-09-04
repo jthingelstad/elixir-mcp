@@ -232,9 +232,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.error.code, "not_entitled");
 });
 
-test("the registry declares 22 tools, every one classified and annotated", () => {
+test("the registry declares 24 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 22);
+  assert.equal(decls.length, 24);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -375,5 +375,33 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
 
   // Outsiders refused like every clan tool.
   const out = await call(invokeOutsider, "clans_standings", {});
+  assert.equal(out.body.error.code, "not_entitled");
+});
+
+test("war_rivals: bracket default, observer-deduped fingerprints, honest basis", async () => {
+  const { body, isError } = await call(invoke, "war_rivals", {});
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.ok(
+    body.rivals.length >= 1,
+    "bracket rivals found from the log fixture",
+  );
+  for (const r of body.rivals) {
+    assert.ok(r.races_observed >= 1);
+    assert.ok(r.races_shared_with_you <= r.races_observed);
+    assert.ok(typeof r.clan_tag === "string");
+  }
+  assert.match(body.basis, /count once/);
+
+  // Specific rival lookup works; junk tags refuse.
+  const one = await call(invoke, "war_rivals", {
+    rival_tags: [body.rivals[0].clan_tag],
+  });
+  assert.equal(one.body.rivals.length, 1);
+  const junk = await call(invoke, "war_rivals", { rival_tags: ["#NOPE!!"] });
+  assert.equal(junk.isError, true);
+  assert.equal(junk.body.error.code, "invalid_tag");
+
+  // Outsiders refused like every clan tool.
+  const out = await call(invokeOutsider, "war_rivals", {});
   assert.equal(out.body.error.code, "not_entitled");
 });

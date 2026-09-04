@@ -65,6 +65,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Compare players",
     readOnly: true,
   },
+  battles_levels: {
+    group: "Battles",
+    title: "Level Curve & Pilot Score",
+    readOnly: true,
+  },
 
   // Clans — roster-shaped views (docs: clans.md).
   clans_roster: { group: "Clans", title: "Clan roster", readOnly: true },
@@ -78,6 +83,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   // War — river race, current and historical (docs: models/river-race.md).
   war_current: { group: "War", title: "Current war", readOnly: true },
   war_history: { group: "War", title: "War history", readOnly: true },
+  war_rivals: { group: "War", title: "Scouting Report", readOnly: true },
 
   // Cards — the global catalog (docs: cards.md).
   cards_catalog: { group: "Cards", title: "Card catalog", readOnly: true },

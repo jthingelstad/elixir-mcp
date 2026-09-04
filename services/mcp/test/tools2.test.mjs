@@ -410,3 +410,29 @@ test("Elixir MCP service domain: watch player, watch clan, insights, collectors"
   assert.equal(collectors.body.collectors[0].rank, 1);
   assert.ok(collectors.body.collectors[0].arena.length > 0);
 });
+
+test("battles_levels: symmetric curve with floors; Pilot Score honest under small n", async () => {
+  const r = await call("battles_levels", { days: 365 });
+  assert.equal(r.isError, false, JSON.stringify(r.body));
+  assert.ok(Array.isArray(r.body.curve) && r.body.curve.length > 0);
+  for (const bin of r.body.curve) {
+    assert.ok(typeof bin.n === "number");
+    if (bin.n < 200) {
+      assert.equal(bin.win_rate, null, "below-floor bins serve counts only");
+      assert.equal(bin.insufficient_sample, true);
+    }
+  }
+  assert.match(r.body.note, /wins your card levels can't explain/);
+
+  // Fixture corpus is tiny: the player block must refuse, not guess.
+  const scored = await call("battles_levels", {
+    player_tag: OBSERVER,
+    days: 365,
+  });
+  assert.equal(scored.isError, false, JSON.stringify(scored.body));
+  assert.equal(scored.body.player.insufficient_sample, true);
+
+  const bad = await call("battles_levels", { days: 3 });
+  assert.equal(bad.isError, true);
+  assert.equal(bad.body.error.code, "bad_request");
+});

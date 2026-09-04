@@ -7,7 +7,16 @@ statistically sound, adapt as the game's card meta changes, and stay
 STRICTLY descriptive — "I have NO INTEREST in attempting to editorialize
 on meta, I just want to look at data and keep it grounded in that."
 
-**STATUS: DESIGN FOR REVIEW. NOTHING HERE IS BUILT.**
+**STATUS: sections 9-10 APPROVED and building (Jamie, 2026-09-04
+"I love this... let's build it"); sections 2-3 (meta deck/card tools)
+remain third in line, design reviewed.**
+
+**Branding (Jamie's ask):** metrics carry the brand, machinery stays
+technical. `pilot_score` = the skill residual ("wins your card levels
+can't explain" — pilot is native CR vocabulary). "Level Curve" = the
+gap-vs-win-rate table. "Scouting Report" = war_rivals output. Umbrella
+tagline territory: numbers with receipts — every stat ships its sample
+size.
 
 ## 0. The grounding principle
 
@@ -310,6 +319,22 @@ skill-adjustment via the §2 baselines handles the player side;
 trophy-band conditioning handles the pocket-meta side; what remains
 (underleveled-but-skilled smurfs) widens intervals rather than biasing
 the headline, and is named in the basis string.
+
+**Pilot Score and its trend (added at Jamie's review):** for a player,
+expected win rate = curve value at each battle's gap; `pilot_score` =
+actual − expected over the window (level-adjusted skill signal), with
+binomial se and a monthly trend series — "am I getting BETTER?" is the
+residual climbing over months, independent of spending. Cross-player
+comparisons condition on trophy band (an even-level match at 13k is a
+harder population than one at 6k — the pooled preview measured Jamie at
+−10.2 pts partly for this reason; banded curves are the fix). EXPERIENCE is the other disclosed
+component (Jamie: of the four previewed players, the -10.2 belongs to
+the only sub-1-year account; the others have 4+ years): pilot_score
+embeds reps, so the honest readings are (a) the TREND — a climbing
+residual is "getting better" regardless of tenure or spending — and
+(b) tenure context served alongside (the YearsPlayed badge rides
+recorded player profiles; cohort-relative comparison is a v2 once
+badges are projected into snapshots).
 
 **Player-facing use (bot-side):** position a member's actual decks'
 average level against their band's opponent distribution → where they

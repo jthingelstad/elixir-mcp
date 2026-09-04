@@ -33,6 +33,10 @@ The recorded battle corpus and statistics over it.
   impact, yours and opponents'.
 - **Compare players** (`battles_compare`) — 2–4 entitled tags side by
   side over a shared window.
+- **Level Curve & Pilot Score** (`battles_levels`) — how much card-level
+  advantage is worth, measured across the corpus; pass a tag for the
+  Pilot Score: wins your card levels can't explain, with a monthly
+  trend. Numbers with receipts — every bin ships its sample size.
 
 ## Clans
 
@@ -50,6 +54,9 @@ River race, current and historical.
   by war day.
 - **War history** (`war_history`) — recorded weeks with ranks and
   fame; optional one-member focus.
+- **Scouting Report** (`war_rivals`) — observed war history for rival
+  clans: every recorded race captures all five bracket clans, so rivals
+  accumulate fingerprints across seasons.
 
 ## Cards
 

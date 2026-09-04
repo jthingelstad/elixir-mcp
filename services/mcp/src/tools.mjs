@@ -1791,6 +1791,276 @@ const TOOLS = {
     },
   },
 
+  battles_levels: {
+    description:
+      'The Level Curve and Pilot Score (META-INTEL §9): how much card-level advantage is worth, measured — win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag for their Pilot Score: actual minus level-expected win rate ("wins your card levels can\'t explain") with a monthly trend — a CLIMBING trend is "getting better" independent of spending. Numbers with receipts: every bin and score ships its sample size.',
+    inputSchema: {
+      type: "object",
+      properties: {
+        player_tag: {
+          type: "string",
+          description:
+            "Optional: score this player against the curve (Pilot Score + monthly trend).",
+        },
+        days: {
+          type: "integer",
+          minimum: 7,
+          maximum: 365,
+          default: 90,
+          description: "Window for the curve and score.",
+        },
+        mode: { type: "string", enum: MODE_GROUPS },
+        trophy_band: {
+          type: "string",
+          enum: [
+            "under_5000",
+            "5000_8000",
+            "8000_11000",
+            "11000_13000",
+            "13000_plus",
+          ],
+          description:
+            "Condition the curve on the perspective player's starting trophies. An even-level match at 13k is a harder population than one at 6k.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const days = Number(args.days ?? 90);
+      if (!Number.isInteger(days) || days < 7 || days > 365)
+        throw new ToolFailure("bad_request", "days must be 7-365.");
+      let focus = null;
+      if (args.player_tag !== undefined)
+        focus = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+          .tag;
+      const BANDS = {
+        under_5000: [0, 5000],
+        "5000_8000": [5000, 8000],
+        "8000_11000": [8000, 11000],
+        "11000_13000": [11000, 13000],
+        "13000_plus": [13000, 100000],
+      };
+      const params = [`${days} days`];
+      const clauses = [];
+      if (args.mode) {
+        params.push(typesForModeGroup(args.mode));
+        clauses.push(`and b.type = any($${params.length})`);
+      }
+      if (args.trophy_band) {
+        const [lo, hi] = BANDS[args.trophy_band];
+        params.push(lo, hi);
+        clauses.push(
+          `and bp.starting_trophies >= $${params.length - 1} and bp.starting_trophies < $${params.length}`,
+        );
+      }
+      const EDGES =
+        "array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]";
+      const base = `
+        with sides as (
+          select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
+                 avg((c.value->>'level')::numeric) as lvl
+          from battle_participant bp
+          join battle b on b.battle_id = bp.battle_id
+          cross join lateral jsonb_array_elements(bp.deck->'cards') c
+          where bp.deck ? 'cards' and b.type_class = 'pvp'
+            and bp.outcome in ('win','loss')
+            and b.battle_time > now() - $1::interval
+            ${clauses.join(" ")}
+          group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
+        duos as (select battle_id from sides group by battle_id having count(*) = 2),
+        pairs as (
+          select a.battle_id, a.player_tag, a.outcome, a.battle_time,
+                 a.lvl - o.lvl as gap
+          from sides a
+          join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
+          where a.battle_id in (select battle_id from duos))`;
+      const CURVE_FLOOR = 200;
+      const { rows: curveRows } = await ctx.db.query(
+        `${base}
+         select width_bucket(gap, ${EDGES}) as bin,
+                round(min(gap), 2) as gap_lo, round(max(gap), 2) as gap_hi,
+                count(*)::int as n,
+                round(avg((outcome = 'win')::int)::numeric, 3) as win_rate
+         from pairs group by bin order by bin`,
+        params,
+      );
+      const curve = curveRows.map((r) => ({
+        gap_range: [Number(r.gap_lo), Number(r.gap_hi)],
+        n: r.n,
+        win_rate: r.n >= CURVE_FLOOR ? Number(r.win_rate) : null,
+        ...(r.n < CURVE_FLOOR ? { insufficient_sample: true } : {}),
+      }));
+
+      let player;
+      if (focus) {
+        params.push(focus);
+        const { rows: score } = await ctx.db.query(
+          `${base},
+           curve as (
+             select width_bucket(gap, ${EDGES}) as bin,
+                    avg((outcome = 'win')::int) as wr
+             from pairs group by bin having count(*) >= ${CURVE_FLOOR})
+           select count(*)::int as n,
+                  round(avg(p.gap)::numeric, 2) as mean_gap,
+                  round(avg((p.outcome = 'win')::int)::numeric, 3) as actual_win_rate,
+                  round(avg(c.wr)::numeric, 3) as expected_from_levels,
+                  round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score,
+                  case when count(*) > 0
+                       then round((0.5 / sqrt(count(*)))::numeric, 3) end as standard_error
+           from pairs p
+           join curve c on c.bin = width_bucket(p.gap, ${EDGES})
+           where p.player_tag = $${params.length}`,
+          params,
+        );
+        const { rows: trend } = await ctx.db.query(
+          `${base},
+           curve as (
+             select width_bucket(gap, ${EDGES}) as bin,
+                    avg((outcome = 'win')::int) as wr
+             from pairs group by bin having count(*) >= ${CURVE_FLOOR})
+           select to_char(date_trunc('month', p.battle_time), 'YYYY-MM') as month,
+                  count(*)::int as n,
+                  round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score
+           from pairs p
+           join curve c on c.bin = width_bucket(p.gap, ${EDGES})
+           where p.player_tag = $${params.length}
+           group by 1 having count(*) >= 20 order by 1`,
+          params,
+        );
+        const s = score[0];
+        player =
+          s && s.n >= 30
+            ? {
+                player_tag: focus,
+                n: s.n,
+                mean_gap: Number(s.mean_gap),
+                actual_win_rate: Number(s.actual_win_rate),
+                expected_from_levels: Number(s.expected_from_levels),
+                pilot_score: Number(s.pilot_score),
+                standard_error: Number(s.standard_error),
+                monthly_trend: trend.map((t) => ({
+                  month: t.month,
+                  n: t.n,
+                  pilot_score: Number(t.pilot_score),
+                })),
+              }
+            : {
+                player_tag: focus,
+                n: s?.n ?? 0,
+                insufficient_sample: true,
+              };
+      }
+
+      return {
+        window_days: days,
+        ...(args.trophy_band ? { trophy_band: args.trophy_band } : {}),
+        ...(args.mode ? { mode: args.mode } : {}),
+        curve,
+        ...(player ? { player } : {}),
+        note: "The curve measures the WITHIN-MATCH value of level advantage (each battle contributes both perspectives, so it is symmetric by construction); it does not measure the positional effect of upgrades on where you sit in matchmaking. pilot_score = actual minus level-expected win rate — wins your card levels can't explain. It embeds experience and opposition strength: compare your own TREND over months, or players of similar tenure and band, not raw scores across different careers. Bins below floor serve counts only — no extrapolation.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  war_rivals: {
+    description:
+      "The Scouting Report (META-INTEL §10): observed war history for rival clans — every recorded river race captures all five bracket clans, so rivals accumulate fingerprints across every race they ever shared with a recorded clan. Defaults to your clan's current bracket. Pure aggregation of stored observations: races seen, fame record, zero-fame races, seasons spanned.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        clan_tag: {
+          type: "string",
+          description:
+            "Your clan (entitlement anchor); defaults to your recorded clan.",
+        },
+        rival_tags: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          maxItems: 10,
+          description:
+            "Specific rival clans; defaults to your current bracket.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      let rivals = [];
+      if (args.rival_tags?.length) {
+        for (const raw of args.rival_tags) {
+          try {
+            rivals.push(normalizeTag(String(raw)));
+          } catch {
+            throw new ToolFailure(
+              "invalid_tag",
+              `Invalid clan tag: ${raw}`,
+              TAG_RULE_HINT,
+            );
+          }
+        }
+      } else {
+        const { rows } = await ctx.db.query(
+          `select participant_clan_tag from war_week_clan
+           where clan_tag = $1 and participant_clan_tag <> $1
+             and (season_id, section_index) = (
+               select season_id, section_index from war_week
+               where clan_tag = $1
+               order by season_id desc, section_index desc limit 1)`,
+          [clanTag],
+        );
+        rivals = rows.map((r) => r.participant_clan_tag);
+        if (rivals.length === 0)
+          throw new ToolFailure(
+            "not_recorded",
+            "No bracket recorded for this clan yet.",
+          );
+      }
+      // Observer-scoped duplication is by design in the war tables; rival
+      // stats dedupe on (season, section, rival) BEFORE aggregating so a
+      // race two recorded clans both saw counts once (META-INTEL §10).
+      const { rows } = await ctx.db.query(
+        `with latest as (
+           select season_id, section_index from war_week
+           where clan_tag = $1
+           order by season_id desc, section_index desc limit 1),
+         races as (
+           select w.participant_clan_tag, w.season_id, w.section_index,
+                  max(w.fame) as fame,
+                  max(w.participant_name) as name,
+                  bool_or(w.clan_tag = $1) as shared_with_you,
+                  (w.season_id, w.section_index) = (select season_id, section_index from latest)
+                    as in_progress
+           from war_week_clan w
+           where w.participant_clan_tag = any($2)
+           group by w.participant_clan_tag, w.season_id, w.section_index)
+         select participant_clan_tag as clan_tag,
+                max(name) as name,
+                count(*)::int as races_observed,
+                count(*) filter (where shared_with_you)::int as races_shared_with_you,
+                min(season_id)::int as first_season,
+                max(season_id)::int as last_season,
+                round(avg(fame) filter (where not in_progress))::int as mean_fame,
+                round(percentile_cont(0.5) within group (order by fame)
+                  filter (where not in_progress))::int as median_fame,
+                max(fame) filter (where not in_progress)::int as max_fame,
+                count(*) filter (where fame = 0 and not in_progress)::int as zero_fame_races,
+                max(fame) filter (where in_progress)::int as current_race_fame
+         from races group by participant_clan_tag
+         order by mean_fame desc nulls last`,
+        [clanTag, rivals],
+      );
+      return {
+        clan_tag: clanTag,
+        rivals: rows,
+        basis:
+          "Observed in races shared with recorded clans — a rival's races_observed is our sightings, not their full history. Fame stats cover finished races only; current_race_fame is the in-progress week. Races seen by two recorded clans count once.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   war_current: {
     description:
       "The current (latest recorded) river race for your clan: standings across the five clans, per-member points/decks used, war day and attendance so far. Defaults to your clan.",
