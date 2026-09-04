@@ -42,8 +42,21 @@ export async function currentSha() {
  * Returns true when an update was applied (caller should exit so
  * launchd restarts onto the new code).
  */
-export async function checkForUpdate(log) {
+export async function checkForUpdate(log, startupSha = null) {
   try {
+    // If the checkout has moved since this process started (a deploy on
+    // a dev machine, or a prior pull), restart regardless of origin —
+    // the running code is stale even when HEAD == origin/main.
+    if (startupSha) {
+      const headShort = await git("rev-parse", "--short", "HEAD");
+      if (headShort !== startupSha) {
+        log(
+          "info",
+          `self-update: checkout moved ${startupSha} -> ${headShort} under the running process; exiting for restart`,
+        );
+        return true;
+      }
+    }
     const dirty = await git("status", "--porcelain");
     if (dirty) {
       log("info", "self-update: checkout dirty, skipping");

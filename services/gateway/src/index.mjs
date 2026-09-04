@@ -166,8 +166,12 @@ console.error(
 // onto the new code. First check is delayed a minute so a crash-looping
 // bad release still gets updated by the NEXT push rather than blocking.
 const selfUpdate = setInterval(async () => {
-  const updated = await checkForUpdate((level, msg) =>
-    console.error(JSON.stringify({ t: new Date().toISOString(), level, msg })),
+  const updated = await checkForUpdate(
+    (level, msg) =>
+      console.error(
+        JSON.stringify({ t: new Date().toISOString(), level, msg }),
+      ),
+    workerSha,
   );
   if (updated) {
     clearInterval(heartbeat);
