@@ -628,7 +628,7 @@ export function makeHandler({
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select gateway_id, name, status, static_ip, key_source, enrolled_at, last_heartbeat_at, last_success_at,
-                fetch_points,
+                fetch_points, last_seen_sha,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
                  and r.fetched_at > now() - interval '1 hour') as fetches_last_hour
          from gateway g order by enrolled_at`,

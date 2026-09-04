@@ -24,6 +24,7 @@ import {
 import { makeWorker } from "./worker.mjs";
 import { makeCrFetch } from "./cr-api.mjs";
 import { CircuitBreaker } from "./breaker.mjs";
+import { checkForUpdate, currentSha } from "./self-update.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -105,7 +106,9 @@ const abort = new AbortController();
 process.on("SIGINT", () => abort.abort());
 process.on("SIGTERM", () => abort.abort());
 
+const workerSha = await currentSha();
 const worker = makeWorker({
+  gatewaySha: workerSha,
   sqs: {
     async receive(url, waitSeconds) {
       const { Messages } = await sqsClient.send(
@@ -155,8 +158,23 @@ console.error(
     t: new Date().toISOString(),
     level: "info",
     msg: "gateway up",
+    sha: workerSha,
   }),
 );
+
+// Self-update: hourly; on update, exit 0 and let KeepAlive restart us
+// onto the new code. First check is delayed a minute so a crash-looping
+// bad release still gets updated by the NEXT push rather than blocking.
+const selfUpdate = setInterval(async () => {
+  const updated = await checkForUpdate((level, msg) =>
+    console.error(JSON.stringify({ t: new Date().toISOString(), level, msg })),
+  );
+  if (updated) {
+    clearInterval(heartbeat);
+    clearInterval(selfUpdate);
+    abort.abort();
+  }
+}, 3_600_000);
 while (!abort.signal.aborted) {
   try {
     const r = await worker.pollOnce();

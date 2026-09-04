@@ -285,6 +285,9 @@ export function Admin({ me }) {
                   <td>{g.fetches_last_hour}</td>
                   <td>{Number(g.fetch_points).toLocaleString()}</td>
                   <td>
+                    <code>{g.last_seen_sha ?? "—"}</code>
+                  </td>
+                  <td>
                     {next && (
                       <button
                         className="quiet"

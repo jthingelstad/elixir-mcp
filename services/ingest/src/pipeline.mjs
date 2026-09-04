@@ -154,10 +154,11 @@ export async function processResult(db, rawMessage) {
   // listening. Unknown ids die here too — cheaper than an FK throw + retry.
   // Any valid message proves liveness; success is stamped on admission below.
   const { rows: gwRows } = await db.query(
-    `update gateway set last_heartbeat_at = now()
+    `update gateway set last_heartbeat_at = now(),
+            last_seen_sha = coalesce($2, last_seen_sha)
      where gateway_id::text = $1 and status <> 'revoked'
      returning status`,
-    [msg.gateway_id],
+    [msg.gateway_id, rawMessage?.gateway_sha ?? null],
   );
   if (gwRows.length === 0) {
     return { outcome: "gateway_refused", gateway_id: msg.gateway_id };

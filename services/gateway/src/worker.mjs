@@ -25,6 +25,7 @@ export function makeWorker({
   crFetch,
   breaker,
   gatewayId,
+  gatewaySha = null, // checkout SHA; rides results so the fleet-version panel is real
   metrics = { fetchSucceeded() {}, overflow() {}, breakerOpen() {} },
   log = () => {},
   now = () => new Date(),
@@ -43,6 +44,7 @@ export function makeWorker({
       v: 1,
       job,
       gateway_id: gatewayId,
+      ...(gatewaySha ? { gateway_sha: gatewaySha } : {}),
       fetched_at: now().toISOString(),
     };
     if (fetched.kind === "transport") {

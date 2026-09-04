@@ -340,3 +340,22 @@ test("replay guards: old payloads never regress freshness, heat, or identity", a
   );
   assert.equal(h.rows[0].heat, 0, "replayed history is not activity");
 });
+
+test("gateway_sha on a result stamps the fleet-version column", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  const msg = message({
+    endpoint: "player",
+    entityKey: tag,
+    payload: profile,
+    fetchedAt: new Date().toISOString(),
+  });
+  msg.gateway_sha = "abc1234";
+  const r = await processResult(ctx.db, msg);
+  assert.equal(r.outcome, "admitted");
+  const { rows } = await ctx.db.query(
+    `select last_seen_sha from gateway where gateway_id = $1`,
+    [gatewayId],
+  );
+  assert.equal(rows[0].last_seen_sha, "abc1234");
+});
