@@ -69,6 +69,12 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   // Clans — roster-shaped views (docs: clans.md).
   clans_roster: { group: "Clans", title: "Clan roster", readOnly: true },
 
+  clans_standings: {
+    group: "Clans",
+    title: "Clan standings",
+    readOnly: true,
+  },
+
   // War — river race, current and historical (docs: models/river-race.md).
   war_current: { group: "War", title: "Current war", readOnly: true },
   war_history: { group: "War", title: "War history", readOnly: true },

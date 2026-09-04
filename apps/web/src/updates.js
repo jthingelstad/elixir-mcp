@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-04",
+    title: "Clan standings",
+    body: "New clans_standings tool: every member's recorded win rate over a window, ranked against the clan median - the 'am I above average?' answer, built for agents (including Elixir, the POAP KINGS clan agent, whose stats answers are moving onto Elixir MCP).",
+  },
+  {
+    date: "2026-09-04",
     title: "Clan recording scopes",
     body: "Clan recording now comes in two scopes: activity (the clan itself - roster, war, standings) and comprehensive (all of that plus every member's battles and profile, following the roster as membership changes). Existing recorded clans stay comprehensive.",
   },

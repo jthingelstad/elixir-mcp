@@ -38,6 +38,9 @@ The recorded battle corpus and statistics over it.
 
 - **Clan roster** (`clans_roster`) — members, roles, donations, tenure as
   observed, recent joins/leaves.
+- **Clan standings** (`clans_standings`) — every member's recorded win
+  rate over a window, ranked with the clan median: the "am I above
+  average?" view.
 
 ## War
 

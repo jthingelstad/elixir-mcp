@@ -232,9 +232,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.error.code, "not_entitled");
 });
 
-test("the registry declares 21 tools, every one classified and annotated", () => {
+test("the registry declares 22 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 21);
+  assert.equal(decls.length, 22);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -315,4 +315,65 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
       focused.body.weeks[0].finished !== null,
     "latest week is either finished or marked in_progress",
   );
+});
+
+test("clans_standings: ranked by win rate with floor, median, and honest basis", async () => {
+  // Give two members decided battles inside the window; leave the rest below floor.
+  const members = (
+    await db.query(
+      `select player_tag from clan_membership
+       where clan_tag = $1 and left_observed_at is null limit 2`,
+      [CLAN],
+    )
+  ).rows.map((r) => r.player_tag);
+  const mkBattle = async (id, tag, outcome, i) => {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ($1, now() - make_interval(hours => $2), 'PvP', 'pvp')
+       on conflict do nothing`,
+      [id, i],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome)
+       values ($1, $2, now() - make_interval(hours => $3), 0, $4)
+       on conflict do nothing`,
+      [id, tag, i, outcome],
+    );
+  };
+  // Member A: 3-0. Member B: 1-2.
+  for (let i = 0; i < 3; i++)
+    await mkBattle(`st-a-${i}`, members[0], "win", i + 1);
+  await mkBattle("st-b-0", members[1], "win", 1);
+  await mkBattle("st-b-1", members[1], "loss", 2);
+  await mkBattle("st-b-2", members[1], "loss", 3);
+
+  const { body, isError } = await call(invoke, "clans_standings", {
+    days: 7,
+    min_battles: 3,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.ranked_members, 2, "exactly the two seeded members rank");
+  assert.equal(body.members[0].player_tag, members[0], "3-0 ranks first");
+  assert.equal(body.members[0].rank, 1);
+  assert.equal(body.members[0].win_rate, 1);
+  assert.equal(body.members[1].win_rate, 0.333);
+  assert.ok(
+    Math.abs(body.median_win_rate - 0.6665) < 0.001,
+    `median of the two ranked rates, got ${body.median_win_rate}`,
+  );
+  assert.ok(body.below_floor.length > 0, "quiet members listed without rank");
+  assert.ok(
+    body.below_floor.every((m) => m.rank === undefined),
+    "no ranks below the floor",
+  );
+  assert.match(body.note, /RECORDED battles only/);
+
+  // Bad window refused.
+  const bad = await call(invoke, "clans_standings", { days: 400 });
+  assert.equal(bad.isError, true);
+  assert.equal(bad.body.error.code, "bad_request");
+
+  // Outsiders refused like every clan tool.
+  const out = await call(invokeOutsider, "clans_standings", {});
+  assert.equal(out.body.error.code, "not_entitled");
 });
