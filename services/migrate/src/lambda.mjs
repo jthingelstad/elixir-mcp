@@ -193,7 +193,52 @@ async function probe(databaseUrl) {
          and b.battle_time > now() - interval '7 days'
        group by 1, 2, 3 order by 1, 2, 3`,
     );
-    return { hours: rows, war_stamps_7d: stamps };
+    // Level-economics data support (META-INTEL follow-on): how much of
+    // the corpus carries BOTH sides' per-card levels, and what the
+    // level-gap distribution looks like. Decks store slim cards with
+    // display-scale levels; duels (rounds) and deckless rows excluded.
+    const { rows: levels } = await db.query(
+      `with sides as (
+         select bp.battle_id,
+                avg((c.value->>'level')::numeric)
+                  filter (where bp.side = 0) as lvl0,
+                avg((c.value->>'level')::numeric)
+                  filter (where bp.side = 1) as lvl1
+         from battle_participant bp
+         cross join lateral jsonb_array_elements(bp.deck->'cards') c
+         where bp.deck ? 'cards'
+         group by bp.battle_id)
+       select count(*)::int as battles_with_both_side_levels,
+              (select count(*)::int from battle) as battles_total,
+              round(avg(abs(lvl0 - lvl1))::numeric, 2) as mean_abs_level_gap,
+              round(percentile_cont(0.5) within group (order by abs(lvl0 - lvl1))::numeric, 2) as median_abs_level_gap,
+              round(percentile_cont(0.9) within group (order by abs(lvl0 - lvl1))::numeric, 2) as p90_abs_level_gap
+       from sides where lvl0 is not null and lvl1 is not null`,
+    );
+    // War-rivals data support: how many DISTINCT rival clans the corpus
+    // already fingerprints, at what depth (races observed per rival),
+    // deduped across observers (two of our clans sharing a bracket see
+    // the same race twice).
+    const { rows: rivals } = await db.query(
+      `with races as (
+         select distinct season_id, section_index, participant_clan_tag, fame
+         from war_week_clan
+         where participant_clan_tag not in
+           (select subject_tag from recording where subject_type = 'clan'))
+       select count(distinct participant_clan_tag)::int as rival_clans_observed,
+              count(*)::int as rival_race_rows,
+              (select count(*)::int from (
+                 select participant_clan_tag from races
+                 group by participant_clan_tag having count(*) >= 3) x)
+                as rivals_with_3plus_races
+       from races`,
+    );
+    return {
+      hours: rows,
+      war_stamps_7d: stamps,
+      level_census: levels[0],
+      rival_census: rivals[0],
+    };
   } finally {
     await db.end();
   }
