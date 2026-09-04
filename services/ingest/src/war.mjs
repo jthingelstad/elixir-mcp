@@ -294,9 +294,15 @@ export async function stampWarKeys(db, { clanTag, payload, nowMs }) {
   const { rows } = await db.query(
     `select b.battle_id, b.battle_time from battle b
      join battle_participant bp on bp.battle_id = b.battle_id
-     where b.type like 'riverRace%' and b.season_id is null and bp.clan_tag = $1`,
+     where b.type like 'riverRace%' and b.season_id is null
+       and bp.clan_tag = $1
+       and b.battle_time > now() - interval '14 days'`,
     [tag],
   );
+  // The 14-day bound is semantic, not just fast: the live clock can only
+  // resolve recent periods (cross-section = honest nulls, §4.4), so
+  // older unstamped battles — e.g. archive imports beyond the log's
+  // reach — can never stamp here and would be re-probed forever.
   let stamped = 0;
   for (const b of rows) {
     const keys = resolveWarKeys(b.battle_time.getTime(), clock);
