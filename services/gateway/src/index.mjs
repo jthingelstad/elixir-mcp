@@ -30,8 +30,12 @@ const repoRoot = path.resolve(here, "../../..");
 
 async function loadEnv() {
   const env = { ...process.env };
+  // Multiple gateways on one host each get their own env file
+  // (ELIXIR_MCP_ENV_FILE in the LaunchAgent); default stays repo .env.
+  const envFile =
+    process.env.ELIXIR_MCP_ENV_FILE ?? path.join(repoRoot, ".env");
   try {
-    const text = await readFile(path.join(repoRoot, ".env"), "utf8");
+    const text = await readFile(envFile, "utf8");
     for (const line of text.split("\n")) {
       const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
       if (m && env[m[1]] === undefined) {

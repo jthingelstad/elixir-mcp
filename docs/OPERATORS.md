@@ -56,6 +56,10 @@ Then install the LaunchAgent (RunAtLoad + KeepAlive, logs to
 node services/gateway/scripts/install-launchd.mjs
 ```
 
+Running more than one gateway on a host (each with its own key and
+gateway_id): put the second instance's config in `.env.gw2` and install
+with `--instance 2` (own label `...-gw2`, own log).
+
 Check the log for `leased` / `fetched` lines within a couple of minutes.
 Note: launchd runs the worker **from your checkout** — after a `git pull`
 that touches `services/gateway/`, restart it:

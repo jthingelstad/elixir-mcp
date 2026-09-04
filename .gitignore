@@ -20,3 +20,4 @@ dist/
 infra/dist/
 .backfill-progress.json
 .backfill-perf.json
+.env.gw2
