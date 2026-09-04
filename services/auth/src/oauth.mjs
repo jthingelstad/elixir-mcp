@@ -360,3 +360,45 @@ export async function validateAccessToken(db, token) {
       }
     : null;
 }
+
+const SERVICE_TOKEN_PREFIX = "svt_";
+
+/** Issue a long-lived service token bound to an account. The raw token
+ *  is returned ONCE; only its sha256 is stored. */
+export async function issueServiceToken(db, { accountId, name }) {
+  const raw = secret(SERVICE_TOKEN_PREFIX);
+  await db.query(
+    `insert into service_token (account_id, name, token_hash) values ($1, $2, $3)`,
+    [accountId, name, sha256hex(raw)],
+  );
+  return raw;
+}
+
+/** Validate a service token; returns the account shape the MCP handler
+ *  expects, plus serviceName for per-token audit surfaces. */
+export async function validateServiceToken(db, token) {
+  const raw = validOpaque(token, SERVICE_TOKEN_PREFIX);
+  if (!raw) return null;
+  const { rows } = await db.query(
+    `select t.token_id, t.name, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota
+     from service_token t join account a on a.account_id = t.account_id
+     where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'`,
+    [sha256hex(raw)],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  await db
+    .query(
+      `update service_token set last_used_at = now() where token_id = $1`,
+      [row.token_id],
+    )
+    .catch(() => {});
+  return {
+    accountId: row.account_id,
+    emailHash: row.email_hash,
+    isOwner: row.is_owner,
+    timezone: row.timezone,
+    mcpDailyQuota: row.mcp_daily_quota,
+    serviceName: row.name,
+  };
+}

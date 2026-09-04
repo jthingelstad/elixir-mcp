@@ -795,3 +795,55 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   );
   assert.equal(triage.statusCode, 200);
 });
+
+test("service tokens: owner issues, token validates at the MCP door, revoke kills it", async () => {
+  const issued = parse(
+    await handler(
+      event({
+        path: "/api/admin/service-tokens",
+        cookie: bossCookie,
+        body: { name: "elixir-bot" },
+      }),
+    ),
+  );
+  assert.ok(issued.token.startsWith("svt_"));
+
+  const { validateServiceToken } = await import("../../auth/src/oauth.mjs");
+  const who = await validateServiceToken(db, issued.token);
+  assert.ok(who, "token validates");
+  assert.equal(who.serviceName, "elixir-bot");
+  assert.equal(who.isOwner, true);
+
+  const list = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/service-tokens",
+        cookie: bossCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const row = list.tokens.find((t) => t.name === "elixir-bot");
+  await handler(
+    event({
+      path: "/api/admin/service-tokens",
+      cookie: bossCookie,
+      body: { revoke_token_id: row.token_id },
+    }),
+  );
+  assert.equal(
+    await validateServiceToken(db, issued.token),
+    null,
+    "revoked token refuses",
+  );
+
+  const nonOwner = await handler(
+    event({
+      path: "/api/admin/service-tokens",
+      cookie: memberCookie,
+      body: { name: "sneaky" },
+    }),
+  );
+  assert.equal(nonOwner.statusCode, 403);
+});

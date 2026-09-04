@@ -33,6 +33,9 @@ export const api = {
   sendFeedback: (message, category, context) =>
     request("POST", "/api/feedback", { message, category, context }),
   adminFeedback: () => request("GET", "/api/admin/feedback"),
+  adminServiceTokens: () => request("GET", "/api/admin/service-tokens"),
+  adminServiceTokenAction: (body) =>
+    request("POST", "/api/admin/service-tokens", body),
   adminFeedbackStatus: (feedback_id, status) =>
     request("POST", "/api/admin/feedback", { feedback_id, status }),
   activity: () => request("GET", "/api/me/activity"),

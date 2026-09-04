@@ -7,22 +7,27 @@ export function Admin({ me }) {
   const [clans, setClans] = useState([]);
   const [usage, setUsage] = useState(null);
   const [feedback, setFeedback] = useState([]);
+  const [svcTokens, setSvcTokens] = useState([]);
+  const [newToken, setNewToken] = useState(null);
+  const [svcName, setSvcName] = useState("");
   const [clanTag, setClanTag] = useState("");
   const [clanError, setClanError] = useState("");
 
   const load = useCallback(async () => {
-    const [r, g, c, u, f] = await Promise.all([
+    const [r, g, c, u, f, st] = await Promise.all([
       api.adminRequests(),
       api.adminGateways(),
       api.adminClans(),
       api.adminUsage(),
       api.adminFeedback(),
+      api.adminServiceTokens(),
     ]);
     if (r.ok) setRequests(r.data.requests);
     if (g.ok) setGateways(g.data.gateways);
     if (c.ok) setClans(c.data.clans);
     if (u.ok) setUsage(u.data);
     if (f.ok) setFeedback(f.data.feedback);
+    if (st.ok) setSvcTokens(st.data.tokens);
   }, []);
 
   useEffect(() => {
@@ -286,6 +291,87 @@ export function Admin({ me }) {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="panel">
+        <h3>Service tokens</h3>
+        <p>
+          Long-lived API tokens for services (elixir-bot). Calls audit as{" "}
+          <code>svc:&lt;name&gt;</code>.
+        </p>
+        {newToken && (
+          <p className="notice">
+            <strong>{newToken.name}</strong>: <code>{newToken.token}</code>
+            <br />
+            Shown once — store it now.
+          </p>
+        )}
+        {svcTokens.length > 0 && (
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Created</th>
+                <th>Last used</th>
+                <th>Calls (7d)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {svcTokens.map((t) => (
+                <tr key={t.token_id}>
+                  <td>
+                    <code>{t.name}</code>
+                    {t.revoked_at ? " (revoked)" : ""}
+                  </td>
+                  <td>{new Date(t.created_at).toLocaleDateString()}</td>
+                  <td>
+                    {t.last_used_at
+                      ? new Date(t.last_used_at).toLocaleString()
+                      : "never"}
+                  </td>
+                  <td>{t.calls_7d}</td>
+                  <td>
+                    {!t.revoked_at && (
+                      <button
+                        className="quiet"
+                        onClick={async () => {
+                          await api.adminServiceTokenAction({
+                            revoke_token_id: t.token_id,
+                          });
+                          load();
+                        }}
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await api.adminServiceTokenAction({ name: svcName });
+            if (r.ok) {
+              setNewToken(r.data);
+              setSvcName("");
+              load();
+            }
+          }}
+        >
+          <label>
+            Issue token
+            <input
+              placeholder="elixir-bot"
+              value={svcName}
+              onChange={(e) => setSvcName(e.target.value)}
+            />
+          </label>
+          <button disabled={!svcName.trim()}>Issue</button>
+        </form>
       </div>
 
       <div className="panel">

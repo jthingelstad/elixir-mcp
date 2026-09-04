@@ -6,7 +6,11 @@
  */
 
 import pg from "pg";
-import { validateAccessToken, checkRateLimit } from "@elixir-mcp/auth";
+import {
+  validateAccessToken,
+  validateServiceToken,
+  checkRateLimit,
+} from "@elixir-mcp/auth";
 import { handleMcpMessage } from "./protocol.mjs";
 import { makeRegistry } from "./tools.mjs";
 import { makeInvoker } from "./invoker.mjs";
@@ -83,7 +87,13 @@ export function makeHandler({
     const db = new pg.Client({ connectionString: databaseUrl });
     await db.connect();
     try {
-      const account = await validateAccessToken(db, auth.slice(7).trim());
+      const presented = auth.slice(7).trim();
+      // Two credentials open this door: OAuth access tokens (agents via
+      // the browser flow) and Admin-issued service tokens (long-lived
+      // API-token users like elixir-bot; audit surface svc:<name>).
+      const account = presented.startsWith("svt_")
+        ? await validateServiceToken(db, presented)
+        : await validateAccessToken(db, presented);
       if (!account) return unauthorized();
       const withinRate = await checkRateLimit(db, {
         bucket: `mcp#${account.accountId}`,
@@ -109,7 +119,13 @@ export function makeHandler({
       const result = await handleMcpMessage(message, {
         registry,
         spendQuota: makeQuota({ db, account }),
-        invokeTool: makeInvoker({ db, account, registry, live }),
+        invokeTool: makeInvoker({
+          db,
+          account,
+          registry,
+          live,
+          surface: account.serviceName ? `svc:${account.serviceName}` : "mcp",
+        }),
       });
       return {
         statusCode: result.statusCode,

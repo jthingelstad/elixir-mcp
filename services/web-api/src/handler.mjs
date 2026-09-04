@@ -23,6 +23,7 @@ import {
   resolveSession,
   revokeSession,
   checkRateLimit,
+  issueServiceToken,
 } from "@elixir-mcp/auth";
 import {
   normalizeTag,
@@ -675,6 +676,50 @@ export function makeHandler({
           capacity_24h: 86400,
           top_subjects: topSubjects,
         },
+      });
+    },
+
+    "GET /api/admin/service-tokens": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const { rows } = await db.query(
+        `select t.token_id, t.name, t.created_at, t.last_used_at, t.revoked_at,
+                (select count(*)::int from mcp_call_audit m
+                 where m.surface = 'svc:' || t.name
+                   and m.created_at > now() - interval '7 days') as calls_7d
+         from service_token t order by t.token_id desc`,
+      );
+      return json(200, { tokens: rows });
+    },
+
+    "POST /api/admin/service-tokens": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (body.revoke_token_id) {
+        await db.query(
+          `update service_token set revoked_at = now() where token_id = $1`,
+          [body.revoke_token_id],
+        );
+        return json(200, { ok: true });
+      }
+      const name = String(body.name ?? "")
+        .trim()
+        .toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]{1,40}$/.test(name))
+        return json(400, { error: "invalid_name" });
+      // Bound to the OWNER's account by default (elixir-bot acts with
+      // Jamie's entitlements); a different binding can come later.
+      const token = await issueServiceToken(db, {
+        accountId: account.accountId,
+        name,
+      });
+      return json(200, {
+        ok: true,
+        name,
+        token,
+        note: "Shown once — store it in the consuming service's env now.",
       });
     },
 
