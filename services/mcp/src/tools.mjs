@@ -1856,47 +1856,53 @@ const TOOLS = {
       }
       const EDGES =
         "array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]";
-      const base = `
-        with sides as (
-          select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
-                 avg((c.value->>'level')::numeric) as lvl
-          from battle_participant bp
-          join battle b on b.battle_id = bp.battle_id
-          cross join lateral jsonb_array_elements(bp.deck->'cards') c
-          where bp.deck ? 'cards' and b.type_class = 'pvp'
-            and bp.outcome in ('win','loss')
-            and b.battle_time > now() - $1::interval
-            ${clauses.join(" ")}
-          group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
-        duos as (select battle_id from sides group by battle_id having count(*) = 2),
-        pairs as (
-          select a.battle_id, a.player_tag, a.outcome, a.battle_time,
-                 a.lvl - o.lvl as gap
-          from sides a
-          join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
-          where a.battle_id in (select battle_id from duos))`;
       const CURVE_FLOOR = 200;
-      const { rows: curveRows } = await ctx.db.query(
-        `${base}
+      // The pairs set is expensive (jsonb lateral over every deck); build
+      // it ONCE per request - curve, score, trend, and cohort all read it.
+      // Temp table is session-local; the txn drops it.
+      await ctx.db.query("begin");
+      try {
+        await ctx.db.query(
+          `create temp table lv_pairs on commit drop as
+         with sides as (
+           select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
+                  avg((c.value->>'level')::numeric) as lvl
+           from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
+           cross join lateral jsonb_array_elements(bp.deck->'cards') c
+           where bp.deck ? 'cards' and b.type_class = 'pvp'
+             and bp.outcome in ('win','loss')
+             and b.battle_time > now() - $1::interval
+             ${clauses.join(" ")}
+           group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
+         duos as (select battle_id from sides group by battle_id having count(*) = 2)
+         select a.battle_id, a.player_tag, a.outcome, a.battle_time,
+                a.lvl - o.lvl as gap
+         from sides a
+         join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
+         where a.battle_id in (select battle_id from duos)`,
+          params,
+        );
+        const base = `with pairs as (select * from lv_pairs)`;
+        const { rows: curveRows } = await ctx.db.query(
+          `${base}
          select width_bucket(gap, ${EDGES}) as bin,
                 round(min(gap), 2) as gap_lo, round(max(gap), 2) as gap_hi,
                 count(*)::int as n,
                 round(avg((outcome = 'win')::int)::numeric, 3) as win_rate
          from pairs group by bin order by bin`,
-        params,
-      );
-      const curve = curveRows.map((r) => ({
-        gap_range: [Number(r.gap_lo), Number(r.gap_hi)],
-        n: r.n,
-        win_rate: r.n >= CURVE_FLOOR ? Number(r.win_rate) : null,
-        ...(r.n < CURVE_FLOOR ? { insufficient_sample: true } : {}),
-      }));
+        );
+        const curve = curveRows.map((r) => ({
+          gap_range: [Number(r.gap_lo), Number(r.gap_hi)],
+          n: r.n,
+          win_rate: r.n >= CURVE_FLOOR ? Number(r.win_rate) : null,
+          ...(r.n < CURVE_FLOOR ? { insufficient_sample: true } : {}),
+        }));
 
-      let player;
-      if (focus) {
-        params.push(focus);
-        const { rows: score } = await ctx.db.query(
-          `${base},
+        let player;
+        if (focus) {
+          const { rows: score } = await ctx.db.query(
+            `${base},
            curve as (
              select width_bucket(gap, ${EDGES}) as bin,
                     avg((outcome = 'win')::int) as wr
@@ -1910,11 +1916,11 @@ const TOOLS = {
                        then round((0.5 / sqrt(count(*)))::numeric, 3) end as standard_error
            from pairs p
            join curve c on c.bin = width_bucket(p.gap, ${EDGES})
-           where p.player_tag = $${params.length}`,
-          params,
-        );
-        const { rows: trend } = await ctx.db.query(
-          `${base},
+           where p.player_tag = $1`,
+            [focus],
+          );
+          const { rows: trend } = await ctx.db.query(
+            `${base},
            curve as (
              select width_bucket(gap, ${EDGES}) as bin,
                     avg((outcome = 'win')::int) as wr
@@ -1924,40 +1930,38 @@ const TOOLS = {
                   round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score
            from pairs p
            join curve c on c.bin = width_bucket(p.gap, ${EDGES})
-           where p.player_tag = $${params.length}
+           where p.player_tag = $1
            group by 1 having count(*) >= 20 order by 1`,
-          params,
-        );
-        // Experience cohort (0024): tenure from the YearsPlayed badge;
-        // percentile of pilot_score among corpus players (n >= 30 in
-        // this window) in the same tenure bucket. Absent badge = tenure
-        // UNKNOWN (real on old accounts too) -> no cohort claim.
-        const { rows: tenure } = await ctx.db.query(
-          `select years_played, account_age_days from player where player_tag = $1`,
-          [focus],
-        );
-        const exp = tenure[0] ?? {};
-        const experience = {
-          years_played: exp.years_played ?? null,
-          account_age_days: exp.account_age_days ?? null,
-          ...(exp.years_played === null || exp.years_played === undefined
-            ? {
-                note: "YearsPlayed badge absent - tenure unknown. Usually this means an account under 1 year (the badge appears at year one), but rare veteran exceptions exist (measured: accounts with 2024 event badges and no YearsPlayed), so null is served rather than 0.",
-              }
-            : {}),
-        };
-        let cohort;
-        if (exp.years_played !== null && exp.years_played !== undefined) {
-          const bucket =
-            exp.years_played <= 2
-              ? [0, 2, "years_1_2"]
-              : exp.years_played <= 5
-                ? [3, 5, "years_3_5"]
-                : [6, 99, "years_6_plus"];
-          const filterParams = params.slice(0, params.length - 1);
-          const cohortParams = [...filterParams, bucket[0], bucket[1]];
-          const { rows: cohortScores } = await ctx.db.query(
-            `${base},
+            [focus],
+          );
+          // Experience cohort (0024): tenure from the YearsPlayed badge;
+          // percentile of pilot_score among corpus players (n >= 30 in
+          // this window) in the same tenure bucket. Absent badge = tenure
+          // UNKNOWN (real on old accounts too) -> no cohort claim.
+          const { rows: tenure } = await ctx.db.query(
+            `select years_played, account_age_days from player where player_tag = $1`,
+            [focus],
+          );
+          const exp = tenure[0] ?? {};
+          const experience = {
+            years_played: exp.years_played ?? null,
+            account_age_days: exp.account_age_days ?? null,
+            ...(exp.years_played === null || exp.years_played === undefined
+              ? {
+                  note: "YearsPlayed badge absent - tenure unknown. Usually this means an account under 1 year (the badge appears at year one), but rare veteran exceptions exist (measured: accounts with 2024 event badges and no YearsPlayed), so null is served rather than 0.",
+                }
+              : {}),
+          };
+          let cohort;
+          if (exp.years_played !== null && exp.years_played !== undefined) {
+            const bucket =
+              exp.years_played <= 2
+                ? [0, 2, "years_1_2"]
+                : exp.years_played <= 5
+                  ? [3, 5, "years_3_5"]
+                  : [6, 99, "years_6_plus"];
+            const { rows: cohortScores } = await ctx.db.query(
+              `${base},
              curve as (
                select width_bucket(gap, ${EDGES}) as bin,
                       avg((outcome = 'win')::int) as wr
@@ -1967,70 +1971,75 @@ const TOOLS = {
              from pairs p
              join curve c on c.bin = width_bucket(p.gap, ${EDGES})
              join player pl on pl.player_tag = p.player_tag
-             where pl.years_played between $${filterParams.length + 1} and $${filterParams.length + 2}
+             where pl.years_played between $1 and $2
              group by p.player_tag having count(*) >= 30`,
-            cohortParams,
-          );
-          const pilots = cohortScores
-            .map((r) => Number(r.pilot))
-            .sort((a, z) => a - z);
-          if (pilots.length >= 5 && score[0] && score[0].n >= 30) {
-            const mine = Number(score[0].pilot_score);
-            const below = pilots.filter((v) => v < mine).length;
-            cohort = {
-              bucket: bucket[2],
-              cohort_size: pilots.length,
-              percentile: Number((below / pilots.length).toFixed(2)),
-              cohort_median_pilot_score: Number(
-                pilots[Math.floor(pilots.length / 2)].toFixed(3),
-              ),
-              basis:
-                "corpus players with known tenure in the same bucket and >= 30 scored battles in this window",
-            };
-          } else {
-            cohort = {
-              bucket: bucket[2],
-              cohort_size: pilots.length,
-              insufficient_cohort: true,
-            };
-          }
-        }
-        const s = score[0];
-        player =
-          s && s.n >= 30
-            ? {
-                player_tag: focus,
-                n: s.n,
-                mean_gap: Number(s.mean_gap),
-                actual_win_rate: Number(s.actual_win_rate),
-                expected_from_levels: Number(s.expected_from_levels),
-                pilot_score: Number(s.pilot_score),
-                standard_error: Number(s.standard_error),
-                experience,
-                ...(cohort ? { cohort } : {}),
-                monthly_trend: trend.map((t) => ({
-                  month: t.month,
-                  n: t.n,
-                  pilot_score: Number(t.pilot_score),
-                })),
-              }
-            : {
-                player_tag: focus,
-                n: s?.n ?? 0,
-                experience,
-                insufficient_sample: true,
+              [bucket[0], bucket[1]],
+            );
+            const pilots = cohortScores
+              .map((r) => Number(r.pilot))
+              .sort((a, z) => a - z);
+            if (pilots.length >= 5 && score[0] && score[0].n >= 30) {
+              const mine = Number(score[0].pilot_score);
+              const below = pilots.filter((v) => v < mine).length;
+              cohort = {
+                bucket: bucket[2],
+                cohort_size: pilots.length,
+                percentile: Number((below / pilots.length).toFixed(2)),
+                cohort_median_pilot_score: Number(
+                  pilots[Math.floor(pilots.length / 2)].toFixed(3),
+                ),
+                basis:
+                  "corpus players with known tenure in the same bucket and >= 30 scored battles in this window",
               };
-      }
+            } else {
+              cohort = {
+                bucket: bucket[2],
+                cohort_size: pilots.length,
+                insufficient_cohort: true,
+              };
+            }
+          }
+          const s = score[0];
+          player =
+            s && s.n >= 30
+              ? {
+                  player_tag: focus,
+                  n: s.n,
+                  mean_gap: Number(s.mean_gap),
+                  actual_win_rate: Number(s.actual_win_rate),
+                  expected_from_levels: Number(s.expected_from_levels),
+                  pilot_score: Number(s.pilot_score),
+                  standard_error: Number(s.standard_error),
+                  experience,
+                  ...(cohort ? { cohort } : {}),
+                  monthly_trend: trend.map((t) => ({
+                    month: t.month,
+                    n: t.n,
+                    pilot_score: Number(t.pilot_score),
+                  })),
+                }
+              : {
+                  player_tag: focus,
+                  n: s?.n ?? 0,
+                  experience,
+                  insufficient_sample: true,
+                };
+        }
 
-      return {
-        window_days: days,
-        ...(args.trophy_band ? { trophy_band: args.trophy_band } : {}),
-        ...(args.mode ? { mode: args.mode } : {}),
-        curve,
-        ...(player ? { player } : {}),
-        note: "The curve measures the WITHIN-MATCH value of level advantage (each battle contributes both perspectives, so it is symmetric by construction); it does not measure the positional effect of upgrades on where you sit in matchmaking. pilot_score = actual minus level-expected win rate — wins your card levels can't explain. It embeds experience and opposition strength: compare your own TREND over months, or players of similar tenure and band, not raw scores across different careers. Bins below floor serve counts only — no extrapolation.",
-        meta: responseMeta({ as_of: new Date().toISOString() }),
-      };
+        await ctx.db.query("commit");
+        return {
+          window_days: days,
+          ...(args.trophy_band ? { trophy_band: args.trophy_band } : {}),
+          ...(args.mode ? { mode: args.mode } : {}),
+          curve,
+          ...(player ? { player } : {}),
+          note: "The curve measures the WITHIN-MATCH value of level advantage (each battle contributes both perspectives, so it is symmetric by construction); it does not measure the positional effect of upgrades on where you sit in matchmaking. pilot_score = actual minus level-expected win rate — wins your card levels can't explain. It embeds experience and opposition strength: compare your own TREND over months, or players of similar tenure and band, not raw scores across different careers. Bins below floor serve counts only — no extrapolation.",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      } catch (err) {
+        await ctx.db.query("rollback").catch(() => {});
+        throw err;
+      }
     },
   },
 
