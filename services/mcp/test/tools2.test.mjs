@@ -232,3 +232,36 @@ test("the V1 tools remain declared among the full registry", () => {
     assert.ok(names.includes(required), required);
   }
 });
+
+test("round-1 tester fixes: inverted windows refuse; compact drops decks; null cursor ends pages", async () => {
+  const inverted = await call("query_battles", {
+    from: "2026-09-10",
+    to: "2026-09-01",
+  });
+  assert.equal(inverted.body.error.code, "bad_request");
+  assert.match(inverted.body.error.message, /inverted/);
+
+  const compactRes = await call("query_battles", {
+    limit: 2,
+    verbosity: "compact",
+  });
+  assert.equal(compactRes.isError, false);
+  assert.ok(
+    compactRes.body.battles[0].me.deck === undefined,
+    "compact drops decks",
+  );
+  assert.ok(compactRes.body.battles[0].me.deck_hash, "hash stays");
+
+  const short = await call("query_battles", { limit: 50 });
+  assert.equal(short.body.next_cursor, null, "explicit null on final page");
+
+  const perf = await call("get_performance", {
+    before_after: "2026-09-01",
+    compare_from: "2026-08-01",
+  });
+  assert.match(perf.body.note, /compare_from\/compare_to were ignored/);
+  assert.ok(perf.body.filters_applied, "filters echoed");
+
+  const tl = await call("get_player_timeline", { from: "2026-05-01" });
+  assert.ok(tl.body.snapshots_available_from, "epoch disclosed");
+});

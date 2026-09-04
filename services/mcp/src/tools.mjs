@@ -55,10 +55,15 @@ const TAG_SCHEMA = {
 
 /** Entitlement resolution with plain-object errors converted to the
  *  closed taxonomy. `need`: 'full' | 'summary' | 'battles' (§4.2). */
+const TAG_RULE_HINT =
+  "Tags are # plus 3-12 characters from 0289PYLQGRJCUV (letter O folds to zero).";
+
 async function subject(db, account, inputTag, need) {
   try {
     return await resolveSubject(db, account, inputTag, need);
   } catch (err) {
+    if (err?.code === "invalid_tag")
+      throw new ToolFailure(err.code, err.message, TAG_RULE_HINT);
     if (err?.code) throw new ToolFailure(err.code, err.message, err.hint);
     throw err;
   }
@@ -93,6 +98,18 @@ async function buildMeta(db, account, tag) {
       : {}),
     ...(account.timezone ? { timezone_applied: account.timezone } : {}),
   });
+}
+
+/** Inverted date windows are never intent (edge-poker finding): refuse
+ *  loudly instead of returning an empty that reads as "you didn't play". */
+function requireOrderedWindow(from, to) {
+  if (from && to && from.getTime() > to.getTime()) {
+    throw new ToolFailure(
+      "bad_request",
+      "from is after to — the window is inverted.",
+      "Swap the bounds; from must be the earlier instant.",
+    );
+  }
 }
 
 // --- tools -----------------------------------------------------------------
@@ -147,7 +164,7 @@ const TOOLS = {
       const tag = (
         await subject(ctx.db, ctx.account, args.player_tag, "summary")
       ).tag;
-      const [polls, battles, completeness] = await Promise.all([
+      const [polls, battles, completeness, snapEpoch] = await Promise.all([
         ctx.db.query(
           `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
           [tag],
@@ -163,6 +180,11 @@ const TOOLS = {
                   count(*) filter (where is_complete is false)::int as incomplete_days
            from player_daily_battle_rollup
            where player_tag = $1 and day > current_date - 7 and completeness_ratio is not null`,
+          [tag],
+        ),
+        ctx.db.query(
+          `select min(snapshot_date)::text as first from player_snapshot_daily
+           where player_tag = $1 and snapshot_kind = 'daily'`,
           [tag],
         ),
       ]);
@@ -182,9 +204,16 @@ const TOOLS = {
               ? `This tag appears in ${b.appearances} recorded battles since ${b.first_seen?.toISOString()?.slice(0, 10)} — including any recorded before the tag was claimed.`
               : "No battles recorded yet for this tag.",
         },
+        snapshots: {
+          first_date: snapEpoch.rows[0]?.first ?? null,
+          note: "Battle capture, daily snapshots, and active recording can each begin at different times; timeline data exists only from first_date.",
+        },
         completeness_last_7_days: {
           average_ratio: completeness.rows[0].recent_ratio,
-          incomplete_days: completeness.rows[0].incomplete_days,
+          incomplete_days:
+            completeness.rows[0].recent_ratio === null
+              ? null
+              : completeness.rows[0].incomplete_days,
           ...(completeness.rows[0].recent_ratio === null
             ? {
                 note: "Not yet computable: completeness needs consecutive daily snapshots to bracket each day; it fills in after a couple of days of recording.",
@@ -329,6 +358,13 @@ const TOOLS = {
             "Opaque pagination token from a previous response’s next_cursor.",
         },
         limit: { type: "integer", minimum: 1, maximum: 50, default: 25 },
+        verbosity: {
+          type: "string",
+          enum: ["full", "compact"],
+          default: "full",
+          description:
+            "compact drops per-card deck arrays, support cards, and tower_hp (deck_hash remains) — use it for wide sweeps; full pages of duel battles can exceed the response size cap.",
+        },
       },
       additionalProperties: false,
     },
@@ -337,6 +373,7 @@ const TOOLS = {
       const tag = s.tag;
       const tz = ctx.account.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
+      const compact = args.verbosity === "compact";
       const where = ["bp.player_tag = $1"];
       const params = [tag];
       const add = (clause, value) => {
@@ -350,6 +387,7 @@ const TOOLS = {
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       if (args.to && !to)
         throw new ToolFailure("bad_request", `Unparseable to: ${args.to}`);
+      requireOrderedWindow(from, to);
       if (to) add("b.battle_time < ?", to);
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       if (args.game_mode_id !== undefined)
@@ -454,11 +492,15 @@ const TOOLS = {
             crowns: r.crowns,
             trophy_change: r.trophy_change,
             starting_trophies: r.starting_trophies,
-            deck: r.deck,
             deck_hash: r.deck_hash,
-            elixir_leaked:
-              r.elixir_leaked === null ? null : Number(r.elixir_leaked),
-            tower_hp: r.tower_hp,
+            ...(compact
+              ? {}
+              : {
+                  deck: r.deck,
+                  elixir_leaked:
+                    r.elixir_leaked === null ? null : Number(r.elixir_leaked),
+                  tower_hp: r.tower_hp,
+                }),
           },
           teammates: rest.filter((o) => o.side === r.side).map(shape),
           opponents: rest.filter((o) => o.side !== r.side).map(shape),
@@ -468,11 +510,17 @@ const TOOLS = {
       return {
         player_tag: tag,
         battles,
-        ...(rows.length === limit
-          ? {
-              next_cursor: `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`,
-            }
-          : {}),
+        // Explicit null = end of results (absent-vs-null was ambiguous).
+        next_cursor:
+          rows.length === limit
+            ? `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`
+            : null,
+        ...(compact
+          ? {}
+          : {
+              card_legend:
+                "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic.",
+            }),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
@@ -508,6 +556,13 @@ const TOOLS = {
           : ["trophies"];
       const where = [`player_tag = $1`, `snapshot_kind = 'daily'`];
       const params = [tag];
+      if (args.from && args.to && args.from > args.to) {
+        throw new ToolFailure(
+          "bad_request",
+          "from is after to — the window is inverted.",
+          "Swap the bounds; from must be the earlier date.",
+        );
+      }
       if (args.from) {
         params.push(args.from);
         where.push(`snapshot_date >= $${params.length}::date`);
@@ -516,6 +571,14 @@ const TOOLS = {
         params.push(args.to);
         where.push(`snapshot_date <= $${params.length}::date`);
       }
+      // Epoch disclosure (data-honesty finding): snapshots start later
+      // than battles; never let a truncated series read as smooth history.
+      const { rows: epoch } = await ctx.db.query(
+        `select min(snapshot_date)::text as first from player_snapshot_daily
+         where player_tag = $1 and snapshot_kind = 'daily'`,
+        [tag],
+      );
+      const snapshotsFrom = epoch[0]?.first ?? null;
       // Week granularity: Postgres owns ISO-week truth (the hand-rolled
       // formula this replaced drifted near year boundaries), and each
       // point carries its iso_week so near-adjacent dates (a Saturday
@@ -543,6 +606,12 @@ const TOOLS = {
       return {
         player_tag: tag,
         granularity: weekly ? "week" : "day",
+        snapshots_available_from: snapshotsFrom,
+        ...(snapshotsFrom && args.from && args.from < snapshotsFrom
+          ? {
+              range_note: `Requested from ${args.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see get_coverage) but no snapshots.`,
+            }
+          : {}),
         series: points.map((r) => ({
           date: r.snapshot_date.toISOString().slice(0, 10),
           ...(weekly ? { iso_week: r.iso_week } : {}),
@@ -558,7 +627,7 @@ const TOOLS = {
 
   get_performance: {
     description:
-      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side — built for "since X vs before" questions.',
+      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side — built for "since X vs before" questions. Precedence: before_after wins over compare_*; the response echoes filters_applied.',
     inputSchema: {
       type: "object",
       properties: {
@@ -643,6 +712,7 @@ const TOOLS = {
 
       const from = resolveInstant(tz, args.from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
+      requireOrderedWindow(from, to);
       let result;
       if (args.before_after) {
         const split = resolveInstant(tz, args.before_after);
@@ -655,6 +725,13 @@ const TOOLS = {
           before: await segment({ from, to: split }),
           after: await segment({ from: split, to }),
           split_at: split.toISOString(),
+          // Precedence made visible (edge-poker: silent resolution
+          // means trusting wrong numbers).
+          ...(args.compare_from || args.compare_to
+            ? {
+                note: "before_after takes precedence; compare_from/compare_to were ignored.",
+              }
+            : {}),
         };
       } else if (args.compare_from || args.compare_to) {
         result = {
@@ -671,6 +748,17 @@ const TOOLS = {
       }
       return {
         player_tag: tag,
+        // Echo of everything applied, so results are attributable
+        // (deck-tinkerer: could not verify which filters were live).
+        filters_applied: {
+          ...(args.mode ? { mode: args.mode } : {}),
+          ...(args.deck_hash ? { deck_hash: args.deck_hash } : {}),
+          ...(from ? { from: from.toISOString() } : {}),
+          ...(to ? { to: to.toISOString() } : {}),
+          ...(args.last_n_battles && !args.before_after
+            ? { last_n_battles: args.last_n_battles }
+            : {}),
+        },
         ...result,
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
@@ -753,7 +841,7 @@ const TOOLS = {
 
   get_deck_performance: {
     description:
-      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. The factual substrate for deck review — pass a deck_hash to query_battles or get_performance to drill in.",
+      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. Some special modes field more or fewer than 8 cards — deck identity is always the exact card set played. The factual substrate for deck review — pass a deck_hash to query_battles or get_performance to drill in.",
     inputSchema: {
       type: "object",
       properties: {
@@ -818,7 +906,7 @@ const TOOLS = {
 
   get_collection: {
     description:
-      "Full card collection as last recorded: levels, counts, evolutions, star levels, collection level. API-shaped passthrough of the latest profile payload; upgrade-gap math ships when the reference table lands.",
+      "Full card collection as last recorded: levels (in-game 1-16 scale), counts, evolutions, star levels, collection level. In THIS tool evolutionLevel/maxEvolutionLevel are evolution progress owned (unlike battle decks, where evolutionLevel is the form played); starLevel is cosmetic. API-shaped passthrough of the latest profile payload.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA },
