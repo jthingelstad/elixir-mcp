@@ -6,20 +6,23 @@ export function Admin({ me }) {
   const [gateways, setGateways] = useState([]);
   const [clans, setClans] = useState([]);
   const [usage, setUsage] = useState(null);
+  const [feedback, setFeedback] = useState([]);
   const [clanTag, setClanTag] = useState("");
   const [clanError, setClanError] = useState("");
 
   const load = useCallback(async () => {
-    const [r, g, c, u] = await Promise.all([
+    const [r, g, c, u, f] = await Promise.all([
       api.adminRequests(),
       api.adminGateways(),
       api.adminClans(),
       api.adminUsage(),
+      api.adminFeedback(),
     ]);
     if (r.ok) setRequests(r.data.requests);
     if (g.ok) setGateways(g.data.gateways);
     if (c.ok) setClans(c.data.clans);
     if (u.ok) setUsage(u.data);
+    if (f.ok) setFeedback(f.data.feedback);
   }, []);
 
   useEffect(() => {
@@ -236,6 +239,54 @@ export function Admin({ me }) {
           )}
         </div>
       )}
+
+      <div className="panel">
+        <h3>Feedback</h3>
+        {feedback.length === 0 && <p>No feedback yet.</p>}
+        {feedback.length > 0 && (
+          <table>
+            <thead>
+              <tr>
+                <th>From</th>
+                <th>Via</th>
+                <th>Category</th>
+                <th>Message</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {feedback.map((f) => (
+                <tr key={f.feedback_id}>
+                  <td>{f.from_player ? <code>{f.from_player}</code> : "—"}</td>
+                  <td>{f.surface}</td>
+                  <td>{f.category}</td>
+                  <td>{f.message}</td>
+                  <td>
+                    <select
+                      value={f.status}
+                      onChange={async (e) => {
+                        await api.adminFeedbackStatus(
+                          f.feedback_id,
+                          e.target.value,
+                        );
+                        load();
+                      }}
+                    >
+                      {["new", "seen", "planned", "done", "declined"].map(
+                        (st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       <div className="panel">
         <h3>Gateways</h3>

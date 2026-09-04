@@ -183,6 +183,6 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.error.code, "not_entitled");
 });
 
-test("the registry now declares 16 tools", () => {
-  assert.equal(makeRegistry().declarations().length, 16);
+test("the registry now declares 17 tools", () => {
+  assert.equal(makeRegistry().declarations().length, 17);
 });

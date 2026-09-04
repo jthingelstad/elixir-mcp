@@ -30,6 +30,11 @@ export const api = {
   clan: () => request("GET", "/api/clan"),
   usage: () => request("GET", "/api/me/usage"),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
+  sendFeedback: (message, category, context) =>
+    request("POST", "/api/feedback", { message, category, context }),
+  adminFeedback: () => request("GET", "/api/admin/feedback"),
+  adminFeedbackStatus: (feedback_id, status) =>
+    request("POST", "/api/admin/feedback", { feedback_id, status }),
   activity: () => request("GET", "/api/me/activity"),
   connections: () => request("GET", "/api/me/connections"),
   revokeConnection: (family_id) =>

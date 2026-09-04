@@ -17,6 +17,11 @@ export function Dashboard({ me, refresh, navigate }) {
   const [usage, setUsage] = useState(null);
   const [connections, setConnections] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [fb, setFb] = useState({
+    message: "",
+    category: "general",
+    sent: false,
+  });
   const [ladder, setLadder] = useState([]);
   const [gwForm, setGwForm] = useState({
     name: "",
@@ -401,6 +406,46 @@ export function Dashboard({ me, refresh, navigate }) {
           </table>
         </div>
       )}
+
+      <div className="panel">
+        <h3>Send feedback</h3>
+        <p>
+          Bugs, wrong-looking data, missing capabilities, praise — it all goes
+          straight to the roadmap. Your agent can do this too, with the{" "}
+          <code>send_feedback</code> tool.
+        </p>
+        {fb.sent ? (
+          <p className="notice">Received — thank you.</p>
+        ) : (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const r = await api.sendFeedback(fb.message, fb.category);
+              if (r.ok) setFb({ ...fb, sent: true });
+            }}
+          >
+            <select
+              value={fb.category}
+              onChange={(e) => setFb({ ...fb, category: e.target.value })}
+            >
+              <option value="general">general</option>
+              <option value="bug">bug</option>
+              <option value="data_quality">data quality</option>
+              <option value="feature">feature idea</option>
+              <option value="praise">praise</option>
+            </select>
+            <textarea
+              rows="3"
+              maxLength="4000"
+              placeholder="What should we know?"
+              value={fb.message}
+              onChange={(e) => setFb({ ...fb, message: e.target.value })}
+              style={{ display: "block", width: "100%", margin: ".5rem 0" }}
+            />
+            <button disabled={!fb.message.trim()}>Send</button>
+          </form>
+        )}
+      </div>
 
       <div className="panel">
         <h3>Timezone</h3>

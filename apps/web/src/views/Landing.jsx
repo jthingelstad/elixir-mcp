@@ -1,3 +1,4 @@
+import { UPDATES } from "../updates.js";
 import { useState } from "react";
 import { api } from "../api.js";
 
@@ -114,6 +115,17 @@ export function Landing({ authed, navigate }) {
           <code>https://elixir.poapkings.com/mcp</code> to Claude or any MCP
           client, and ask away. Free while in early access.
         </p>
+      </div>
+      <div className="panel">
+        <h3>What&rsquo;s new</h3>
+        {UPDATES.slice(0, 4).map((u) => (
+          <p key={u.title}>
+            <strong>{u.title}</strong>{" "}
+            <span className="notice">({u.date})</span>
+            <br />
+            {u.body}
+          </p>
+        ))}
       </div>
     </>
   );

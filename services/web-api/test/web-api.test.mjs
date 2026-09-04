@@ -744,3 +744,54 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
   );
   assert.ok(rows[0].n >= 2, "explorer calls audited as web");
 });
+
+test("feedback: web form + MCP tool land attributed rows; admin triages", async () => {
+  const cookie = memberCookie;
+  const web = await handler(
+    event({
+      path: "/api/feedback",
+      cookie,
+      body: { message: "Love the explorer", category: "praise" },
+    }),
+  );
+  assert.equal(web.statusCode, 200);
+
+  const viaMcp = parse(
+    await handler(
+      event({
+        path: "/api/explore",
+        cookie,
+        body: {
+          tool: "send_feedback",
+          args: { message: "query_battles filters rock", category: "praise" },
+        },
+      }),
+    ),
+  );
+  assert.equal(viaMcp.is_error, false);
+  assert.ok(viaMcp.body.feedback_id);
+
+  const list = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/feedback",
+        cookie: bossCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.ok(list.feedback.length >= 2);
+  assert.ok(list.feedback.some((f) => f.surface === "web"));
+  assert.ok(list.feedback.some((f) => f.surface === "mcp"));
+  assert.equal(list.feedback[0].from_player, "#2PP0V90Y");
+
+  const triage = await handler(
+    event({
+      path: "/api/admin/feedback",
+      cookie: bossCookie,
+      body: { feedback_id: list.feedback[0].feedback_id, status: "planned" },
+    }),
+  );
+  assert.equal(triage.statusCode, 200);
+});

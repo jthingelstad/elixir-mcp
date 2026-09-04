@@ -1165,6 +1165,58 @@ const TOOLS = {
     },
   },
 
+  send_feedback: {
+    description:
+      "Send feedback about Elixir MCP to its maintainers: bugs, data-quality issues, missing capabilities, or praise. Feedback from an agent is attributed to the account that connected it. Use freely — it directly drives what gets built.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          minLength: 1,
+          maxLength: 4000,
+          description: "The feedback itself. Specifics beat generalities.",
+        },
+        category: {
+          type: "string",
+          enum: ["general", "bug", "data_quality", "feature", "praise"],
+          default: "general",
+        },
+        context: {
+          type: "string",
+          description:
+            "Optional: which tool/question prompted this (e.g. 'query_battles pagination').",
+        },
+      },
+      required: ["message"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const message = String(args.message ?? "").trim();
+      if (!message)
+        throw new ToolFailure("bad_request", "Feedback message is empty.");
+      const { rows } = await ctx.db.query(
+        `insert into feedback (account_id, surface, category, message, context)
+         values ($1, 'mcp', $2, $3, $4)
+         returning feedback_id`,
+        [
+          ctx.account.accountId,
+          args.category ?? "general",
+          message.slice(0, 4000),
+          args.context
+            ? JSON.stringify({ context: String(args.context) })
+            : null,
+        ],
+      );
+      return {
+        ok: true,
+        feedback_id: rows[0].feedback_id,
+        note: "Received — feedback is reviewed and drives the roadmap. Thank you.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   cr_api_live: {
     description:
       "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s. RAW payloads: card levels here are the API's rarity-relative scale (a maxed legendary reads 8/8); every recorded-data tool serves the in-game 1-16 scale instead.",
