@@ -48,6 +48,15 @@ async function clanClock(db, clanTag, payload, nowMs) {
 export async function projectRiverRace(db, { payload, fetchedAt }) {
   const tag = normalizeTag(payload.clan.tag);
   const observedMs = Date.parse(fetchedAt);
+  // The observing clan must exist before any war row references it. The
+  // roster poll usually seeds it, but nothing guarantees the ordering —
+  // a fresh enrollment can race its first riverrace ahead of its first
+  // roster, and the archive replay skips clan payloads entirely
+  // (found live 2026-09-04: FK violation on an archive riverrace).
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [tag],
+  );
 
   // 1. Anchor: first observation of this period wins, forever.
   await db.query(
@@ -166,6 +175,15 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
  */
 export async function projectRiverRaceLog(db, { clanTag, payload }) {
   const tag = normalizeTag(clanTag);
+  // The observing clan must exist before any war row references it. The
+  // roster poll usually seeds it, but nothing guarantees the ordering —
+  // a fresh enrollment can race its first riverrace ahead of its first
+  // roster, and the archive replay skips clan payloads entirely
+  // (found live 2026-09-04: FK violation on an archive riverrace).
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [tag],
+  );
   const items = payload.items ?? [];
   const seasons = new Set(items.map((i) => i.seasonId));
   const maxSection = new Map();

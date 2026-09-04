@@ -238,3 +238,17 @@ test("admission accepts the real riverracelog and rejects corrupt items", async 
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("items[0].seasonId:missing"));
 });
+
+test("riverrace for a never-seen clan seeds its identity row (no FK race)", async () => {
+  const race = structuredClone(await fixture("currentriverrace/war_day.json"));
+  race.clan.tag = "#RJ9UJ9L8"; // no clan row, no roster ever observed
+  const result = await projectRiverRace(ctx.db, {
+    payload: race,
+    fetchedAt: "2026-08-03T09:00:00Z",
+  });
+  assert.ok(result);
+  const { rows } = await ctx.db.query(
+    `select 1 from clan where clan_tag = '#RJ9UJ9L8'`,
+  );
+  assert.equal(rows.length, 1, "identity-only clan row created");
+});
