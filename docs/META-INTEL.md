@@ -55,8 +55,18 @@ in the window, with w_p wins in n_p decided battles:
 
     p̂_p = (w_p + α) / (n_p + α + β)
 
-where (α, β) are fit once per response by method of moments on the
-window's player win-rate distribution (players with n ≥ 30). Behavior
+where (α, β) are fit once per response on the window's qualifying
+players (n ≥ 30) — with the moment fit done RIGHT: the observed
+variance of player rates mixes true skill spread with per-player
+binomial noise, and at n = 30 the noise sd (~9 pts) is comparable to
+the real skill spread, so naive moments would roughly double the
+variance estimate and under-shrink. Subtract the sampling component:
+
+    τ² = max( s²_rates − mean_j( p̄(1−p̄)/n_j ),  τ²_min )
+    α + β = p̄(1−p̄)/τ² − 1,   α = p̄·(α+β)
+
+with a small τ²_min floor so a fluke window can't produce infinite
+shrinkage. Behavior
 at the extremes is exactly what we want: a recorded member's p̂ is
 essentially their true rate; a one-battle opponent's p̂ collapses to the
 population mean. Skill cancels where skill is known; unknowns contribute
@@ -84,8 +94,16 @@ so it ships on every row.
 
     lift_d = (1/n_d) · Σ ( win_i − p̂_p(i)^(−d) )    [percentage points]
 
-    se_d   = sqrt( Σ p̂_p(i) · (1 − p̂_p(i)) ) / n_d
+    se_d   = sqrt( Σ_players ( Σ_{i∈p} (win_i − p̂_p^(−d)) )² ) / n_d
     interval = lift_d ± 1.96 · se_d
+
+The se is CLUSTERED BY PLAYER, not per-battle binomial: one player's
+baseline error is shared across all their battles with the deck, so
+battles are not independent draws — a 60-battle deck carried by two
+players has an effective sample nearer 2 than 60, and the naive
+binomial se would claim confidence the data does not hold. (The card
+estimator in §3 doesn't need this correction — its unit of analysis is
+already the player.)
 
 Reported per deck: `battles`, `decided`, `distinct_players`,
 `raw_win_rate`, `expected_win_rate` (mean p̂ — the "who plays this"
@@ -104,6 +122,20 @@ grinder spams 300 times still reads `insufficient_sample` on lift,
 because n_d ≥ 30 with 1 player measures the player. This is the field
 elixir-bot structurally cannot compute (90.3% of its deck pool is
 n = 1, and shared-deck observations across its 75 players: two).
+
+Definitions and residual confounds, stated rather than hidden:
+
+- `usage_share` denominator = participant rows with a known deck in the
+  window/filters (each battle contributes two sides). Mirror matches
+  add one win and one loss to the same deck — self-canceling on lift,
+  counted in n.
+- The expectation ignores OPPONENT strength: fine while most opponents
+  sit at the prior mean, imperfect for member-vs-member war battles. A
+  v2 refinement is a two-sided expectation (0.5 + (p̂_p − p̂_q)); v1
+  disclosure suffices at current corpus shape.
+- Within-player deck choice is not random (context confound): mode is
+  the big one and is a first-class filter; what remains (tilt, pushing,
+  time-of-season) is disclosed, not modeled.
 
 ## 3. Card estimator: within-player lift, corpus-wide
 
@@ -132,6 +164,13 @@ Knight are different cards, per house rule):
     delta_j = rate_j(with c) − rate_j(WITHOUT c)     [leave-card-out]
     lift_c  = mean(delta_j),  se via the sample sd of delta_j
     served when contributors ≥ 4 (below: counts only)
+
+Contributors are equal-weighted (robust to one heavy grinder
+dominating the mean; the between-contributor sd is then the honest se).
+A card's lift measures the card IN THE COMPANY IT KEEPS — cards travel
+in decks of eight, so deckmate effects are partially attributed to each
+other. That is a property of the game, not a fixable bias; the response
+says so.
 
 Reported: `usage_share`, `battles`, `contributors`, `pooled_win_rate`
 (labeled as confounded — served for transparency, never for ranking),
@@ -186,14 +225,17 @@ days stale — is the counterexample this design retires).
 
 ## 6. Validation before serving (build-gate, in order)
 
-1. **Split-half reliability**: compute card lift on odd/even battle
-   halves; require rank correlation strong enough that the floors are
-   doing their job (target ρ ≥ 0.6 on served cards; tighten floors if
-   missed).
-2. **Cross-engine sanity**: corpus card lift vs elixir-bot's local lift
-   on the 128 card-forms both can serve — the bot measured pooled-vs-
-   adjusted r ≈ +0.75; corpus-vs-local adjusted should land at least
-   there. Large disagreements get investigated, not shipped.
+1. **Split-half reliability**: split each contributor's battles
+   odd/even (contributor set held fixed — this isolates sampling noise
+   from population change); require rank correlation on served cards
+   ρ ≥ 0.6, tightening floors if missed.
+2. **Cross-engine sanity with a falsifiable prediction**: corpus card
+   lift vs elixir-bot's local lift on the card-forms both serve. The
+   two estimators differ exactly where the bot's attenuation bug bites,
+   so agreement should be strong at LOW usage share and the divergence
+   should GROW with usage share (bot pulled toward zero). If divergence
+   does not track usage share, our §3 attenuation theory is wrong and
+   we stop and re-derive rather than ship.
 3. **Confound kill-check**: verify expected_win_rate spread across decks
    is wide (it will be — that's the bias existing) and that lift's
    correlation with mean-player-skill is ~0, while raw_win_rate's is
