@@ -6,11 +6,29 @@
  */
 
 const MCP_DAILY_QUOTA_DEFAULT = 500;
+// Collector credits (Jamie, 2026-09-04): every 10 fetches your
+// collectors perform adds 1 to your daily quota, capped at 4x base.
+const CREDIT_DIVISOR = 10;
+const CREDIT_CAP_MULTIPLE = 4;
 
 export function makeQuota({ db, account }) {
-  const max = account.mcpDailyQuota ?? MCP_DAILY_QUOTA_DEFAULT;
+  const base = account.mcpDailyQuota ?? MCP_DAILY_QUOTA_DEFAULT;
   return async function spendQuota() {
     if (account.isOwner) return { allowed: true, count: 0, max: Infinity };
+    let max = base;
+    try {
+      const { rows } = await db.query(
+        `select coalesce(sum(fetch_points), 0)::bigint as points
+         from gateway where owner_account_id = $1 and status <> 'revoked'`,
+        [account.accountId],
+      );
+      max = Math.min(
+        base * CREDIT_CAP_MULTIPLE,
+        base + Math.floor(Number(rows[0].points) / CREDIT_DIVISOR),
+      );
+    } catch {
+      // Credits are a bonus; quota falls back to base if the read fails.
+    }
     const day = new Date().toISOString().slice(0, 10);
     try {
       const { rows } = await db.query(

@@ -86,6 +86,31 @@ export function makeHandler({
     return resolveSession(db, { secret, token });
   }
 
+  // Card avatars (0019): deterministic pick from the recorded catalog,
+  // persisted on first read so catalog reordering never reassigns.
+  async function ensureGatewayCards(db) {
+    const { rows: bare } = await db.query(
+      `select gateway_id from gateway where card_name is null limit 20`,
+    );
+    if (bare.length === 0) return;
+    const { rows: cat } = await db.query(
+      `select payload_json->'items' as items from api_payload
+       where endpoint = 'cards' and entity_key = 'GLOBAL'
+       order by last_fetched_at desc limit 1`,
+    );
+    const items = cat[0]?.items;
+    if (!items?.length) return;
+    for (const g of bare) {
+      const n = parseInt(g.gateway_id.replaceAll("-", "").slice(0, 8), 16);
+      const card = items[n % items.length];
+      await db.query(
+        `update gateway set card_name = $2, card_icon = $3
+         where gateway_id = $1 and card_name is null`,
+        [g.gateway_id, card.name, card.iconUrls?.medium ?? null],
+      );
+    }
+  }
+
   let exploreRegistryCache = null;
   function exploreRegistry() {
     exploreRegistryCache ??= makeRegistry();
@@ -455,8 +480,9 @@ export function makeHandler({
     "GET /api/gateways/ladder": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
+      await ensureGatewayCards(db);
       const { rows } = await db.query(
-        `select name, status, fetch_points from gateway
+        `select name, status, fetch_points, card_name, card_icon from gateway
          where status <> 'revoked'
          order by fetch_points desc, enrolled_at`,
       );
@@ -467,6 +493,8 @@ export function makeHandler({
           status: g.status,
           points: Number(g.fetch_points),
           arena: gatewayArena(Number(g.fetch_points)).name,
+          card: g.card_name,
+          card_icon: g.card_icon,
         })),
       });
     },
@@ -778,9 +806,10 @@ export function makeHandler({
     "GET /api/me/gateways": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
+      await ensureGatewayCards(db);
       const { rows } = await db.query(
         `select g.gateway_id, g.name, g.status, g.static_ip, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
-                g.fetch_points,
+                g.fetch_points, g.card_name, g.card_icon,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
                    and ar.fetched_at > now() - interval '24 hours') as fetches_24h

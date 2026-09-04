@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-04",
+    title: "Collectors earn their keep",
+    body: "Running a collector now raises your daily tool-call quota (every 10 fetches = +1 call, up to 4x), and every gateway gets a Clash Royale card as its avatar on the ladder.",
+  },
+  {
+    date: "2026-09-04",
     title: "Documentation",
     body: "A new Docs section: what Elixir MCP is, how privacy and terms work, and the architecture — maintained alongside the code, so it is always current.",
   },

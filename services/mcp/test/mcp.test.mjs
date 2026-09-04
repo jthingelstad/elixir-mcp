@@ -328,3 +328,21 @@ test("local time helpers: DST-aware day bounds", () => {
     /^2026-09-03 09:00:34/,
   );
 });
+
+test("collector credits raise the daily quota 10:1, capped at 4x base", async () => {
+  await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status, fetch_points)
+     values ($1, 'credit-gw', '127.0.0.1', 'active', 1230)`,
+    [account.accountId],
+  );
+  const quota = makeQuota({ db, account });
+  const r = await quota();
+  assert.equal(r.max, 623, "500 base + floor(1230/10)");
+
+  await db.query(
+    `update gateway set fetch_points = 999999 where name = 'credit-gw'`,
+  );
+  const capped = await makeQuota({ db, account })();
+  assert.equal(capped.max, 2000, "capped at 4x base");
+  await db.query(`delete from gateway where name = 'credit-gw'`);
+});
