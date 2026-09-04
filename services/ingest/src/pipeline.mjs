@@ -31,7 +31,7 @@ function subjectTag(endpoint, entityKey) {
 }
 
 const PROJECTORS = {
-  async player_battlelog(db, { entityKey, receiptId, payload }) {
+  async player_battlelog(db, { entityKey, receiptId, payload, fetchedAt }) {
     const result = await ingestBattlelog(db, {
       observerTag: entityKey,
       receiptId,
@@ -40,7 +40,9 @@ const PROJECTORS = {
     await refreshDailyRollups(db, result.affectedPairs);
     // New battles observed -> hot (elixir-bot heat model); the scheduler
     // owns decay, this is the only re-heat source for player endpoints.
-    if (result.battlesInserted > 0) {
+    // Backfill guard: a replayed OLD payload is history, not activity.
+    const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
+    if (fresh && result.battlesInserted > 0) {
       await db.query(
         `update poll_state set heat = 3, heat_updated_at = now() where subject_tag = $1`,
         [entityKey],
@@ -75,14 +77,21 @@ const PROJECTORS = {
         clanTag = null;
       }
     }
+    // Observation-time semantics so replayed old payloads can never
+    // regress identity: stamps apply only when this observation is the
+    // newest; first/last_seen bracket honestly.
     await db.query(
-      `insert into player (player_tag, name, last_known_clan_tag, last_seen_at)
-       values ($1, $2, $3, now())
+      `insert into player (player_tag, name, last_known_clan_tag, first_seen_at, last_seen_at)
+       values ($1, $2, $3, $4, $4)
        on conflict (player_tag) do update
-         set name = coalesce(excluded.name, player.name),
-             last_known_clan_tag = coalesce(excluded.last_known_clan_tag, player.last_known_clan_tag),
-             last_seen_at = now()`,
-      [entityKey, payload.name ?? null, clanTag],
+         set name = case when $4 >= player.last_seen_at
+                         then coalesce(excluded.name, player.name) else player.name end,
+             last_known_clan_tag = case when $4 >= player.last_seen_at
+                         then coalesce(excluded.last_known_clan_tag, player.last_known_clan_tag)
+                         else player.last_known_clan_tag end,
+             first_seen_at = least(player.first_seen_at, $4),
+             last_seen_at = greatest(player.last_seen_at, $4)`,
+      [entityKey, payload.name ?? null, clanTag, fetchedAt],
     );
     const snapshot = await projectPlayerSnapshot(db, {
       playerTag: entityKey,
@@ -224,7 +233,8 @@ export async function processResult(db, rawMessage) {
           `insert into poll_state (subject_tag, endpoint, last_admitted_at)
            values ($1, $2, $3)
            on conflict (subject_tag, endpoint)
-             do update set last_admitted_at = excluded.last_admitted_at`,
+             do update set last_admitted_at =
+               greatest(coalesce(poll_state.last_admitted_at, 'epoch'), excluded.last_admitted_at)`,
           [subject, endpoint, msg.fetched_at],
         );
       }

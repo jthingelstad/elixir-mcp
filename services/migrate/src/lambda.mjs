@@ -143,7 +143,58 @@ async function stats(databaseUrl) {
   }
 }
 
+/**
+ * Ordered backfill replay ({replay: {messages: [...]}}) — the elixir-bot
+ * archive lane (NOTES 2026-09-04). Each message is a CrResultMessage
+ * (real API payload, gzipped by the orchestrator) processed STRICTLY in
+ * order through the same processResult the results queue uses — SQS
+ * cannot guarantee chronology and stage-2 projections need it. The
+ * gateway row 'backfill-elixir-bot' is the provenance: every receipt is
+ * attributed and one-click revocable like any gateway.
+ */
+async function replay(databaseUrl, spec) {
+  const { processResult } = await import("../../ingest/src/pipeline.mjs");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    // gateway.name has no unique constraint: check-then-insert.
+    let gw = (
+      await db.query(
+        `select gateway_id from gateway where name = 'backfill-elixir-bot' limit 1`,
+      )
+    ).rows[0];
+    if (!gw) {
+      gw = (
+        await db.query(
+          `insert into gateway (owner_account_id, name, static_ip, cr_key_ref, status)
+           select account_id, 'backfill-elixir-bot', '127.0.0.1', 'none: archive replay, no CR key', 'active'
+           from account where is_owner limit 1
+           returning gateway_id`,
+        )
+      ).rows[0];
+    }
+    const gatewayId = gw.gateway_id;
+    const tally = {};
+    for (const msg of spec.messages ?? []) {
+      const out = await processResult(db, { ...msg, gateway_id: gatewayId });
+      tally[out.outcome] = (tally[out.outcome] ?? 0) + 1;
+    }
+    return {
+      gateway_id: gatewayId,
+      processed: (spec.messages ?? []).length,
+      tally,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
 export async function handler(event) {
+  if (event?.replay) {
+    const result = await replay(process.env.DATABASE_URL, event.replay);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.stats) {
     const result = await stats(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));

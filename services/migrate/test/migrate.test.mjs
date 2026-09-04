@@ -91,3 +91,68 @@ test("core invariants hold", async () => {
     await db.end();
   }
 });
+
+test("replay op: archive messages flow through the real pipeline in order, attributed to the backfill gateway", async () => {
+  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  await db.query(
+    `insert into account (email_hash, status, is_owner) values ('replay-owner', 'approved', true)
+     on conflict (email_hash) do nothing`,
+  );
+  await db.end();
+
+  const { gzipSync } = await import("node:zlib");
+  const payload = JSON.parse(
+    await readFile(
+      path.join(repoRoot, "fixtures/player_battlelog/with_path_of_legend.json"),
+      "utf8",
+    ),
+  );
+  const metaJson = JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
+  );
+  const tag = metaJson[
+    "player_battlelog/with_path_of_legend.json"
+  ].entity_key.replace("#", ""); // archive keys are bare tags
+  const msg = {
+    v: 1,
+    job: { endpoint: "player_battlelog", entity_key: tag, lane: "bulk" },
+    gateway_id: "backfill",
+    fetched_at: "2026-07-20T12:00:00Z",
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+      "base64",
+    ),
+  };
+
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const first = await handler({ replay: { messages: [msg] } });
+  assert.equal(first.tally.admitted, 1);
+
+  // Second run: gateway row reused, message dedupes.
+  const second = await handler({ replay: { messages: [msg] } });
+  assert.equal(second.gateway_id, first.gateway_id);
+  assert.equal(second.tally.duplicate, 1);
+
+  const check = new pg.Client({ connectionString: SCRATCH_URL });
+  await check.connect();
+  const gw = await check.query(
+    `select count(*)::int n from gateway where name = 'backfill-elixir-bot'`,
+  );
+  assert.equal(gw.rows[0].n, 1, "exactly one backfill gateway row");
+  const battles = await check.query(`select count(*)::int n from battle`);
+  assert.ok(battles.rows[0].n > 0, "archive battles landed");
+  const receipts = await check.query(
+    `select count(*)::int n from api_receipt r
+     join gateway g on g.gateway_id = r.gateway_id
+     where g.name = 'backfill-elixir-bot'`,
+  );
+  assert.equal(
+    receipts.rows[0].n,
+    1,
+    "receipt attributed to the backfill gateway",
+  );
+  await check.end();
+});

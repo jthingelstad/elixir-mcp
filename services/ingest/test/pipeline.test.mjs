@@ -7,6 +7,9 @@ import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 let ctx;
 let gatewayId;
 let meta;
+// Re-heat requires a FRESH observation (24h guard); shared so the
+// redelivery test reuses the exact same receipt identity.
+const FRESH_AT = new Date(Date.now() - 3600_000).toISOString();
 
 function message({
   endpoint,
@@ -67,7 +70,7 @@ test("battlelog message flows end to end: payload, receipt, battles, freshness, 
       endpoint: "player_battlelog",
       entityKey: observer,
       payload,
-      fetchedAt: "2026-09-02T08:00:49Z",
+      fetchedAt: FRESH_AT,
     }),
   );
   assert.equal(result.outcome, "admitted");
@@ -90,10 +93,7 @@ test("battlelog message flows end to end: payload, receipt, battles, freshness, 
     [observer],
   );
   assert.equal(ps[0].heat, 3, "new battles re-heat the subject");
-  assert.equal(
-    ps[0].last_admitted_at.toISOString(),
-    "2026-09-02T08:00:49.000Z",
-  );
+  assert.equal(ps[0].last_admitted_at.toISOString(), FRESH_AT);
 });
 
 test("SQS redelivery is a duplicate: no second receipt, no double ingest", async () => {
@@ -105,7 +105,7 @@ test("SQS redelivery is a duplicate: no second receipt, no double ingest", async
       endpoint: "player_battlelog",
       entityKey: meta[file].entity_key,
       payload,
-      fetchedAt: "2026-09-02T08:00:49Z",
+      fetchedAt: FRESH_AT,
     }),
   );
   assert.equal(result.outcome, "duplicate");
@@ -264,4 +264,79 @@ test("gateway lifecycle at ingest: heartbeat/success stamped; revoked and unknow
     `update gateway set status = 'active' where gateway_id = $1`,
     [gatewayId],
   );
+});
+
+test("replay guards: old payloads never regress freshness, heat, or identity", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  // Current state from earlier tests: last poll 2026-09-03T15:40:00Z.
+  const before = await ctx.db.query(
+    `select last_admitted_at from poll_state where subject_tag = $1 and endpoint = 'player'`,
+    [tag],
+  );
+  const old = structuredClone(profile);
+  old.name = "Ancient Name";
+  const result = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: old,
+      fetchedAt: "2026-07-15T12:00:00Z",
+    }),
+  );
+  assert.equal(result.outcome, "admitted");
+
+  // Freshness did not regress.
+  const after = await ctx.db.query(
+    `select last_admitted_at from poll_state where subject_tag = $1 and endpoint = 'player'`,
+    [tag],
+  );
+  assert.equal(
+    after.rows[0].last_admitted_at.toISOString(),
+    before.rows[0].last_admitted_at.toISOString(),
+  );
+
+  // Identity did not regress; first_seen brackets backwards honestly.
+  const p = await ctx.db.query(
+    `select name, first_seen_at from player where player_tag = $1`,
+    [tag],
+  );
+  assert.notEqual(p.rows[0].name, "Ancient Name");
+  assert.ok(p.rows[0].first_seen_at.toISOString().startsWith("2026-07-15"));
+
+  // A snapshot for the old day DID land (that's the point of the replay).
+  const s = await ctx.db.query(
+    `select 1 from player_snapshot_daily where player_tag = $1 and snapshot_date = '2026-07-15'`,
+    [tag],
+  );
+  assert.equal(s.rows.length, 1);
+
+  // Old battlelog does not re-heat.
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint, heat)
+     values ($1, 'player_battlelog', 0)
+     on conflict (subject_tag, endpoint) do update set heat = 0`,
+    [meta["player_battlelog/with_path_of_legend.json"].entity_key],
+  );
+  const log = await fixture("player_battlelog/with_path_of_legend.json");
+  const shifted = structuredClone(log).map((b, i) => ({
+    ...b,
+    battleTime: `20260710T${String(i % 24).padStart(2, "0")}0000.000Z`,
+  }));
+  const r2 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: meta["player_battlelog/with_path_of_legend.json"].entity_key,
+      payload: shifted,
+      fetchedAt: "2026-07-10T12:00:00Z",
+    }),
+  );
+  assert.equal(r2.outcome, "admitted");
+  const h = await ctx.db.query(
+    `select heat from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [meta["player_battlelog/with_path_of_legend.json"].entity_key],
+  );
+  assert.equal(h.rows[0].heat, 0, "replayed history is not activity");
 });
