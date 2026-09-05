@@ -10,3 +10,4 @@ export * from "./levels.js";
 export * from "./ladder.js";
 export * from "./tool-groups.js";
 export * from "./changelog.js";
+export * from "./roles.js";

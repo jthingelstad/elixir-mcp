@@ -20,6 +20,10 @@ export interface ResponseMeta {
   freshness_seconds?: number;
   /** Honest caveat when capture is known incomplete (DESIGN §5.4). */
   completeness_note?: string;
+  /** Maintainer replies to your feedback awaiting elixir_my_feedback. */
+  feedback_responses_pending?: number;
+  /** Unread push-lane events awaiting elixir_events. */
+  events_pending?: number;
   disclaimer: typeof DISCLAIMER;
   contract_version: typeof CONTRACT_VERSION;
 }

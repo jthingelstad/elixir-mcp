@@ -899,3 +899,167 @@ test("admin collections: owner curates; non-owner refused", async () => {
   );
   assert.equal(res.statusCode, 403);
 });
+
+let ladderNewcomerCookie; // shared with the collections test (send limit)
+
+test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin sets roles", async () => {
+  const ownerCookie = await signIn(JAMIE);
+  const cookie = await signIn(NEWCOMER);
+  ladderNewcomerCookie = cookie;
+  // Clear the hand-tuned override from the cap test above: the role
+  // default (member: 3) must take over when no override is set.
+  await db.query(
+    `update account set max_player_recordings = null where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+
+  // NEWCOMER defaults to member with the ratified limits on the wire.
+  let me = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+    ),
+  );
+  assert.equal(me.role, "member");
+  assert.equal(me.entitlements.player_slots.limit, 3);
+  assert.equal(me.entitlements.comprehensive_clans.limit, 0);
+  assert.equal(me.entitlements.collections.limit, 0);
+
+  // Self-serve upgrade request: files once, refuses duplicates and
+  // sideways moves.
+  const sideways = await handler(
+    event({ path: "/api/me/role-request", cookie, body: { role: "member" } }),
+  );
+  assert.equal(sideways.statusCode, 400);
+  const req = await handler(
+    event({
+      path: "/api/me/role-request",
+      cookie,
+      body: { role: "family", note: "clan family of three" },
+    }),
+  );
+  assert.equal(req.statusCode, 200, req.body);
+  const dup = await handler(
+    event({ path: "/api/me/role-request", cookie, body: { role: "leader" } }),
+  );
+  assert.equal(dup.statusCode, 409);
+
+  // The admin sees the pending request on the accounts surface and
+  // grants the tier; a feed event records the change.
+  const accounts = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/accounts",
+        cookie: ownerCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const row = accounts.accounts.find(
+    (a) => a.role === "member" && a.pending_role_request,
+  );
+  assert.ok(row, "pending upgrade request visible to admin");
+  const set = await handler(
+    event({
+      path: "/api/admin/accounts",
+      cookie: ownerCookie,
+      body: { account_id: row.account_id, role: "family" },
+    }),
+  );
+  assert.equal(set.statusCode, 200, set.body);
+  const { rows: feed } = await db.query(
+    `select topic from event_feed where account_id = $1 order by event_id desc`,
+    [row.account_id],
+  );
+  assert.ok(feed.some((e) => e.topic === "role_changed"));
+
+  me = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+    ),
+  );
+  assert.equal(me.role, "family");
+  assert.equal(me.entitlements.collections.limit, 5);
+
+  // Non-role strings and non-owner setters are refused.
+  const bogus = await handler(
+    event({
+      path: "/api/admin/accounts",
+      cookie: ownerCookie,
+      body: { account_id: row.account_id, role: "emperor" },
+    }),
+  );
+  assert.equal(bogus.statusCode, 400);
+  const sneaky = await handler(
+    event({
+      path: "/api/admin/accounts",
+      cookie,
+      body: { account_id: row.account_id, role: "admin" },
+    }),
+  );
+  assert.equal(sneaky.statusCode, 403);
+});
+
+test("self-serve collections: family curates within its cap, touches only its own", async () => {
+  const cookie = ladderNewcomerCookie; // family tier from the prior test
+  const make = (slug) =>
+    handler(
+      event({
+        path: "/api/me/collections",
+        cookie,
+        body: { action: "upsert", slug, title: slug, kind: "player" },
+      }),
+    );
+  for (const slug of ["fam-a", "fam-b", "fam-c", "fam-d", "fam-e"]) {
+    const r = await make(slug);
+    assert.equal(r.statusCode, 200, r.body);
+  }
+  const over = await make("fam-f");
+  assert.equal(over.statusCode, 429, "cap of 5 for family");
+
+  const add = await handler(
+    event({
+      path: "/api/me/collections",
+      cookie,
+      body: { action: "add", slug: "fam-a", tags: ["#PYGRJC0", "#2PLQVU"] },
+    }),
+  );
+  assert.equal(parse(add).changed, 2);
+
+  // The admin-owned 'creators' collection is not theirs to touch.
+  const foreign = await handler(
+    event({
+      path: "/api/me/collections",
+      cookie,
+      body: { action: "add", slug: "creators", tags: ["#2PLQVU"] },
+    }),
+  );
+  assert.equal(foreign.statusCode, 403);
+
+  // A plain member cannot create at all.
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  await db.query(`update account set role = 'member' where account_id = $1`, [
+    acct[0].account_id,
+  ]);
+  const blocked = await make("fam-g");
+  assert.equal(blocked.statusCode, 403);
+  await db.query(`update account set role = 'family' where account_id = $1`, [
+    acct[0].account_id,
+  ]);
+
+  const mine = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/collections",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(mine.collections.length, 5);
+  assert.equal(mine.limit, 5);
+});

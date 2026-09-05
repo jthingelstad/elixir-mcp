@@ -59,4 +59,11 @@ export const api = {
   gatewayLadder: () => request("GET", "/api/gateways/ladder"),
   raiseGateway: (name, static_ip) =>
     request("POST", "/api/gateways", { name, static_ip }),
+  requestRole: (role, note) =>
+    request("POST", "/api/me/role-request", { role, note }),
+  adminAccounts: () => request("GET", "/api/admin/accounts"),
+  adminSetRole: (account_id, role) =>
+    request("POST", "/api/admin/accounts", { account_id, role }),
+  myCollections: () => request("GET", "/api/me/collections"),
+  myCollectionAction: (body) => request("POST", "/api/me/collections", body),
 };

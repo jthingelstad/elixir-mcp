@@ -74,6 +74,7 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
 
   return (
     <>
+      <TierPanel me={me} page={page} />
       <div className="panel" hidden={page !== "overview"}>
         <h3>Your players</h3>
         {me.claims.length === 0 && (
@@ -467,5 +468,83 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
         {tzSaved && <p className="notice">Saved.</p>}
       </div>
     </>
+  );
+}
+
+/** The entitlement ladder, made visible: your tier, what it includes,
+ *  how full each slot is, and the self-serve upgrade request. */
+function TierPanel({ me, page }) {
+  const [reqRole, setReqRole] = useState("");
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState("");
+  const e = me.entitlements;
+  if (!e) return null;
+  const ladder = ["member", "leader", "family", "partner"];
+  const higher = ladder.slice(ladder.indexOf(me.role) + 1);
+  const slot = (label, s) =>
+    s && (
+      <li>
+        {label}: <strong>{s.used}</strong> of{" "}
+        <strong>{s.limit === null ? "unlimited" : s.limit}</strong>
+      </li>
+    );
+  return (
+    <div className="panel" hidden={page !== "overview"}>
+      <h3>Your tier</h3>
+      <p>
+        You are on the <strong>{me.role}</strong> tier
+        {e.operator_bonus_applied
+          ? " (collector bonus applied — thanks for running one)"
+          : ""}
+        . Tiers set what Elixir records for you and your daily call budget —
+        never what you can read; all recorded game data is open to every
+        account. <a href="/docs">Full ladder in the docs.</a>
+      </p>
+      <ul>
+        {slot("Player recordings", e.player_slots)}
+        {slot("Clan watches (activity)", e.activity_clans)}
+        {slot("Clan watches (comprehensive)", e.comprehensive_clans)}
+        {slot("Collections", e.collections)}
+        <li>
+          Tool calls per day:{" "}
+          <strong>{e.mcp_calls_per_day ?? "unlimited"}</strong> · live CR
+          fetches: <strong>{e.live_fetches_per_day ?? "unlimited"}</strong>
+        </li>
+      </ul>
+      {higher.length > 0 && (
+        <form
+          onSubmit={async (ev) => {
+            ev.preventDefault();
+            const r = await api.requestRole(reqRole, note || undefined);
+            setSent(
+              r.ok
+                ? "Request sent — the maintainer reviews these by hand."
+                : (r.data?.message ?? "Could not send the request."),
+            );
+          }}
+        >
+          <strong>Request an upgrade</strong>{" "}
+          <select
+            value={reqRole}
+            onChange={(ev) => setReqRole(ev.target.value)}
+          >
+            <option value="">choose a tier…</option>
+            {higher.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>{" "}
+          <input
+            placeholder="Why? (your clan, your project…)"
+            value={note}
+            onChange={(ev) => setNote(ev.target.value)}
+            style={{ width: "16rem" }}
+          />{" "}
+          <button disabled={!reqRole}>Request</button>
+          {sent && <p className="fine">{sent}</p>}
+        </form>
+      )}
+    </div>
   );
 }

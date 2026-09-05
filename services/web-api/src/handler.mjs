@@ -29,10 +29,14 @@ import {
   normalizeTag,
   InvalidTagError,
   gatewayArena,
+  roleQuotas,
+  isRole,
+  ROLE_ORDER,
 } from "@elixir-mcp/contracts";
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { ensureGatewayCards } from "../../mcp/src/gateway-cards.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
+import { emitFeedEvent } from "../../mcp/src/feed.mjs";
 
 const COOKIE_NAME = "__Host-elixir_session";
 const CONTRACT_HEADER = "x-elixir-client";
@@ -212,10 +216,55 @@ export function makeHandler({
           [account.accountId],
         ),
       ]);
+      const { rows: ent } = await db.query(
+        `select a.role, a.max_player_recordings, a.mcp_daily_quota, a.live_daily_quota,
+                exists (select 1 from gateway g
+                        where g.owner_account_id = $1 and g.status = 'active') as operator,
+                (select count(*)::int from recording r
+                 where r.requested_by = $1 and r.subject_type = 'player' and r.status = 'active') as players_used,
+                (select count(*)::int from recording r
+                 where r.requested_by = $1 and r.subject_type = 'clan' and r.status = 'active'
+                   and r.clan_scope = 'activity') as activity_used,
+                (select count(*)::int from recording r
+                 where r.requested_by = $1 and r.subject_type = 'clan' and r.status = 'active'
+                   and r.clan_scope = 'comprehensive') as comprehensive_used,
+                (select count(*)::int from collection c
+                 where c.owner_account = $1) as collections_used
+         from account a where a.account_id = $1`,
+        [account.accountId],
+      );
+      const e = ent[0];
+      const q = roleQuotas(e.role, { operator: e.operator });
+      const lim = (v) => (v === Infinity ? null : v); // null = unlimited on the wire
       return json(200, {
         authenticated: true,
         is_owner: account.isOwner,
         timezone: account.timezone,
+        role: e.role,
+        entitlements: {
+          operator_bonus_applied:
+            e.operator && !["partner", "admin"].includes(e.role),
+          player_slots: {
+            used: e.players_used,
+            limit: lim(e.max_player_recordings ?? q.player_slots),
+          },
+          activity_clans: {
+            used: e.activity_used,
+            limit: lim(q.activity_clans),
+          },
+          comprehensive_clans: {
+            used: e.comprehensive_used,
+            limit: lim(q.comprehensive_clans),
+          },
+          mcp_calls_per_day: lim(e.mcp_daily_quota ?? q.mcp_calls_per_day),
+          live_fetches_per_day: lim(
+            e.live_daily_quota ?? q.live_fetches_per_day,
+          ),
+          collections: {
+            used: e.collections_used,
+            limit: lim(q.collections_max),
+          },
+        },
         claims: claims.rows,
         recordings: recordings.rows,
       });
@@ -312,19 +361,25 @@ export function makeHandler({
       if (body.action === "start") {
         // Recordings spend the one global rate budget: cap active player
         // recordings per account (default 5, column override, owner exempt).
-        if (!account.isOwner) {
+        if (!account.isOwner && account.role !== "admin") {
           const { rows: cap } = await db.query(
-            `select coalesce(a.max_player_recordings, 5) as cap,
+            `select a.max_player_recordings as override,
+                    exists (select 1 from gateway g
+                            where g.owner_account_id = $1 and g.status = 'active') as operator,
                     (select count(*)::int from recording r
                      where r.requested_by = $1 and r.subject_type = 'player'
                        and r.status = 'active') as active
              from account a where a.account_id = $1`,
             [account.accountId],
           );
-          if (cap[0].active >= cap[0].cap) {
+          const limit =
+            cap[0].override ??
+            roleQuotas(account.role, { operator: cap[0].operator })
+              .player_slots;
+          if (cap[0].active >= limit) {
             return json(429, {
               error: "quota_exceeded",
-              message: `Active player recordings are capped at ${cap[0].cap} per account.`,
+              message: `Active player recordings are capped at ${limit} for the ${account.role ?? "member"} tier. Request an upgrade below, or run a collector for bonus slots.`,
             });
           }
         }
@@ -334,20 +389,24 @@ export function makeHandler({
            where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
           [tag, account.accountId],
         );
-        if (started > 0)
+        if (started > 0) {
           await logEvent(db, account.accountId, "recording_started", {
             player_tag: tag,
           });
+          await emitFeedEvent(db, account.accountId, "recording_started", tag);
+        }
       } else if (body.action === "stop") {
         const { rowCount: stopped } = await db.query(
           `update recording set status = 'stopped'
            where subject_type = 'player' and subject_tag = $1 and status = 'active'`,
           [tag],
         );
-        if (stopped > 0)
+        if (stopped > 0) {
           await logEvent(db, account.accountId, "recording_stopped", {
             player_tag: tag,
           });
+          await emitFeedEvent(db, account.accountId, "recording_stopped", tag);
+        }
       } else {
         return json(400, { error: "bad_request" });
       }
@@ -580,13 +639,26 @@ export function makeHandler({
       const response = body.response
         ? String(body.response).slice(0, 4000)
         : null;
-      await db.query(
+      const { rows: updated } = await db.query(
         `update feedback set status = $2,
                 response = coalesce($3, response),
                 responded_at = case when $3 is not null then now() else responded_at end
-         where feedback_id = $1`,
+         where feedback_id = $1
+         returning account_id`,
         [body.feedback_id, status, response],
       );
+      if (updated[0] && response) {
+        await emitFeedEvent(
+          db,
+          updated[0].account_id,
+          "feedback_responded",
+          null,
+          {
+            feedback_id: Number(body.feedback_id),
+            status,
+          },
+        );
+      }
       return json(200, { ok: true });
     },
 
@@ -886,6 +958,214 @@ export function makeHandler({
       }
       if (body.action === "delete") {
         await db.query(`delete from collection where slug = $1`, [slug]);
+        return json(200, { ok: true });
+      }
+      return json(400, { error: "bad_request" });
+    },
+
+    "GET /api/admin/accounts": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const { rows } = await db.query(
+        `select a.account_id, a.email_hash, a.status, a.role, a.is_owner,
+                a.created_at, a.max_player_recordings, a.mcp_daily_quota,
+                a.live_daily_quota,
+                (select count(*)::int from recording r
+                 where r.requested_by = a.account_id and r.subject_type = 'player'
+                   and r.status = 'active') as players_recording,
+                (select count(*)::int from recording r
+                 where r.requested_by = a.account_id and r.subject_type = 'clan'
+                   and r.status = 'active') as clans_recording,
+                exists (select 1 from gateway g
+                        where g.owner_account_id = a.account_id
+                          and g.status = 'active') as operator,
+                (select f.feedback_id from feedback f
+                 where f.account_id = a.account_id and f.status = 'new'
+                   and f.context->>'kind' = 'role_upgrade_request'
+                 order by f.created_at desc limit 1) as pending_role_request
+         from account a order by a.created_at`,
+      );
+      return json(200, { accounts: rows, roles: ROLE_ORDER });
+    },
+
+    "POST /api/admin/accounts": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const role = String(body.role ?? "");
+      if (!isRole(role))
+        return json(400, { error: "bad_request", message: "unknown role" });
+      const { rows } = await db.query(
+        `update account set role = $2 where account_id = $1
+         returning account_id, role`,
+        [String(body.account_id ?? ""), role],
+      );
+      if (!rows[0]) return json(404, { error: "not_found" });
+      await logEvent(db, rows[0].account_id, "role_changed", { role });
+      await emitFeedEvent(db, rows[0].account_id, "role_changed", null, {
+        role,
+      });
+      return json(200, { ok: true, account_id: rows[0].account_id, role });
+    },
+
+    "POST /api/me/role-request": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const role = String(body.role ?? "");
+      if (!isRole(role) || role === "admin")
+        return json(400, { error: "bad_request", message: "unknown tier" });
+      if (
+        ROLE_ORDER.indexOf(role) <= ROLE_ORDER.indexOf(account.role ?? "member")
+      )
+        return json(400, {
+          error: "bad_request",
+          message: "That tier is not above your current one.",
+        });
+      const { rows: pending } = await db.query(
+        `select feedback_id from feedback
+         where account_id = $1 and status = 'new'
+           and context->>'kind' = 'role_upgrade_request'`,
+        [account.accountId],
+      );
+      if (pending[0])
+        return json(409, {
+          error: "conflict",
+          message: "You already have an upgrade request pending review.",
+        });
+      const note = body.note ? String(body.note).slice(0, 500) : null;
+      const { rows: fb } = await db.query(
+        `insert into feedback (account_id, surface, category, message, context)
+         values ($1, 'web', 'feature', $2, $3) returning feedback_id`,
+        [
+          account.accountId,
+          `Tier upgrade request: ${account.role ?? "member"} -> ${role}${note ? ` — ${note}` : ""}`,
+          JSON.stringify({
+            kind: "role_upgrade_request",
+            requested_role: role,
+          }),
+        ],
+      );
+      await logEvent(db, account.accountId, "role_upgrade_requested", { role });
+      return json(200, { ok: true, request_id: fb[0].feedback_id });
+    },
+
+    "GET /api/me/collections": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select c.collection_id, c.slug, c.title, c.kind, c.description,
+                c.visibility, c.created_at,
+                (select count(*)::int from collection_member m
+                 where m.collection_id = c.collection_id) as member_count,
+                (select array_agg(m.subject_tag order by m.added_at)
+                 from collection_member m
+                 where m.collection_id = c.collection_id) as members
+         from collection c where c.owner_account = $1 order by c.created_at`,
+        [account.accountId],
+      );
+      const limit = roleQuotas(account.role).collections_max;
+      return json(200, {
+        collections: rows,
+        limit: limit === Infinity ? null : limit,
+      });
+    },
+
+    "POST /api/me/collections": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const limit = roleQuotas(account.role).collections_max;
+      if (limit === 0 && !account.isOwner)
+        return json(403, {
+          error: "not_entitled",
+          message:
+            "Creating collections needs the family tier or above — request an upgrade from Account > Overview.",
+        });
+      const slug = String(body.slug ?? "")
+        .toLowerCase()
+        .trim();
+      if (!/^[a-z0-9][a-z0-9-]{1,38}$/.test(slug))
+        return json(400, { error: "bad_request", message: "invalid slug" });
+      // Ownership is the governance model: you touch only your own.
+      const { rows: owned } = await db.query(
+        `select collection_id, owner_account from collection where slug = $1`,
+        [slug],
+      );
+      if (owned[0] && owned[0].owner_account !== account.accountId)
+        return json(403, {
+          error: "not_entitled",
+          message: "Not your collection.",
+        });
+      if (body.action === "upsert") {
+        if (!body.title || !["player", "clan"].includes(body.kind))
+          return json(400, { error: "bad_request" });
+        if (!owned[0]) {
+          const { rows: mine } = await db.query(
+            `select count(*)::int as n from collection where owner_account = $1`,
+            [account.accountId],
+          );
+          if (mine[0].n >= limit)
+            return json(429, {
+              error: "quota_exceeded",
+              message: `The ${account.role ?? "member"} tier can curate up to ${limit} collections.`,
+            });
+        }
+        await db.query(
+          `insert into collection (slug, title, kind, description, visibility, owner_account)
+           values ($1, $2, $3, $4, coalesce($5, 'public'), $6)
+           on conflict (slug) do update set
+             title = excluded.title,
+             description = coalesce(excluded.description, collection.description),
+             visibility = coalesce($5, collection.visibility)`,
+          [
+            slug,
+            String(body.title).slice(0, 80),
+            body.kind,
+            body.description ? String(body.description).slice(0, 500) : null,
+            ["public", "private"].includes(body.visibility)
+              ? body.visibility
+              : null,
+            account.accountId,
+          ],
+        );
+        return json(200, { ok: true, slug });
+      }
+      if (!owned[0]) return json(404, { error: "not_found" });
+      if (body.action === "add" || body.action === "remove") {
+        let n = 0;
+        for (const raw of body.tags ?? []) {
+          let tag;
+          try {
+            tag = normalizeTag(String(raw));
+          } catch {
+            continue;
+          }
+          if (body.action === "add") {
+            const r = await db.query(
+              `insert into collection_member (collection_id, subject_tag)
+               values ($1, $2) on conflict do nothing`,
+              [owned[0].collection_id, tag],
+            );
+            n += r.rowCount;
+          } else {
+            const r = await db.query(
+              `delete from collection_member
+               where collection_id = $1 and subject_tag = $2`,
+              [owned[0].collection_id, tag],
+            );
+            n += r.rowCount;
+          }
+        }
+        return json(200, { ok: true, changed: n });
+      }
+      if (body.action === "delete") {
+        await db.query(`delete from collection where collection_id = $1`, [
+          owned[0].collection_id,
+        ]);
         return json(200, { ok: true });
       }
       return json(400, { error: "bad_request" });

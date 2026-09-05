@@ -338,7 +338,7 @@ export async function validateAccessToken(db, token) {
   const raw = validOpaque(token, ACCESS_TOKEN_PREFIX);
   if (!raw) return null;
   const { rows } = await db.query(
-    `select f.client_id, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota
+    `select f.client_id, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota, a.role, a.live_daily_quota
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
      join account a on a.account_id = f.account_id
@@ -356,6 +356,8 @@ export async function validateAccessToken(db, token) {
         isOwner: row.is_owner,
         timezone: row.timezone,
         mcpDailyQuota: row.mcp_daily_quota,
+        role: row.role,
+        liveDailyQuota: row.live_daily_quota,
         clientId: row.client_id,
       }
     : null;
@@ -380,7 +382,7 @@ export async function validateServiceToken(db, token) {
   const raw = validOpaque(token, SERVICE_TOKEN_PREFIX);
   if (!raw) return null;
   const { rows } = await db.query(
-    `select t.token_id, t.name, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota
+    `select t.token_id, t.name, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota, a.role, a.live_daily_quota
      from service_token t join account a on a.account_id = t.account_id
      where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'`,
     [sha256hex(raw)],
@@ -399,6 +401,8 @@ export async function validateServiceToken(db, token) {
     isOwner: row.is_owner,
     timezone: row.timezone,
     mcpDailyQuota: row.mcp_daily_quota,
+    role: row.role,
+    liveDailyQuota: row.live_daily_quota,
     serviceName: row.name,
   };
 }

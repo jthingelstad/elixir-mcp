@@ -339,13 +339,14 @@ async function feedbackRespond(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const { rowCount } = await db.query(
+    const { rows: updated } = await db.query(
       `update feedback set status = $2,
               response = coalesce($3, response),
               responded_at = case when $3 is not null then now() else responded_at end,
               shipped_in = coalesce($4, shipped_in),
               related_tools = coalesce($5, related_tools)
-       where feedback_id = $1`,
+       where feedback_id = $1
+       returning account_id`,
       [
         spec.feedback_id,
         status,
@@ -354,7 +355,20 @@ async function feedbackRespond(databaseUrl, spec) {
         spec.related_tools ?? null,
       ],
     );
-    return { updated: rowCount };
+    if (updated[0] && spec.response) {
+      const { emitFeedEvent } = await import("../../mcp/src/feed.mjs");
+      await emitFeedEvent(
+        db,
+        updated[0].account_id,
+        "feedback_responded",
+        null,
+        {
+          feedback_id: Number(spec.feedback_id),
+          status,
+        },
+      );
+    }
+    return { updated: updated.length };
   } finally {
     await db.end();
   }
@@ -650,6 +664,11 @@ async function sweepOperational(databaseUrl) {
     out.oauth_token = (
       await db.query(
         `delete from oauth_token where expires_at < now() - interval '90 days'`,
+      )
+    ).rowCount;
+    out.event_feed = (
+      await db.query(
+        `delete from event_feed where created_at < now() - interval '30 days'`,
       )
     ).rowCount;
     out.audit_args_nulled = (

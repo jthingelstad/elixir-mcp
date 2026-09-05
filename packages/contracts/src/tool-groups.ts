@@ -145,6 +145,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Changelog",
     readOnly: true,
   },
+  elixir_events: {
+    group: "Elixir MCP",
+    title: "Event feed",
+    readOnly: false, // advances your seen-cursor
+  },
   elixir_watch_player: {
     group: "Elixir MCP",
     title: "Watch player",

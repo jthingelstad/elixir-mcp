@@ -5,16 +5,21 @@
  * (the OAuth gate precedes it), so no fail-closed pool is needed here.
  */
 
-const MCP_DAILY_QUOTA_DEFAULT = 500;
+import { roleQuotas } from "@elixir-mcp/contracts";
+
 // Collector credits (Jamie, 2026-09-04): every 10 fetches your
 // collectors perform adds 1 to your daily quota, capped at 4x base.
 const CREDIT_DIVISOR = 10;
 const CREDIT_CAP_MULTIPLE = 4;
 
 export function makeQuota({ db, account }) {
-  const base = account.mcpDailyQuota ?? MCP_DAILY_QUOTA_DEFAULT;
+  // Role default (contracts roles.ts), beaten by the per-account
+  // override column when set. Admin role = unlimited, like the owner.
+  const roleMax = roleQuotas(account.role).mcp_calls_per_day;
+  const base = account.mcpDailyQuota ?? roleMax;
   return async function spendQuota() {
-    if (account.isOwner) return { allowed: true, count: 0, max: Infinity };
+    if (account.isOwner || account.role === "admin" || base === Infinity)
+      return { allowed: true, count: 0, max: Infinity };
     let max = base;
     try {
       const { rows } = await db.query(

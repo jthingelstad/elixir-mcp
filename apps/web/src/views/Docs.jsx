@@ -5,12 +5,14 @@ import privacy from "../docs/privacy.md?raw";
 import terms from "../docs/terms.md?raw";
 import architecture from "../docs/architecture.md?raw";
 import tools from "../docs/tools.md?raw";
+import roles from "../docs/roles.md?raw";
 
 const PAGES = [
   { id: "about", title: "About", md: about },
   { id: "privacy", title: "Privacy", md: privacy },
   { id: "terms", title: "Terms", md: terms },
   { id: "tools", title: "Tools", md: tools },
+  { id: "roles", title: "Roles", md: roles },
   { id: "architecture", title: "Architecture", md: architecture },
 ];
 

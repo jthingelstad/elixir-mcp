@@ -11,6 +11,7 @@
  * polling window. Fetch errors write nothing durable; the scheduler replans.
  */
 
+import { emitToTagWatchers } from "../../mcp/src/feed.mjs";
 import { gunzipSync } from "node:zlib";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
@@ -70,6 +71,11 @@ const PROJECTORS = {
     // Backfill guard: a replayed OLD payload is history, not activity.
     const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
     if (fresh && result.battlesInserted > 0) {
+      // Push lane: one coalesced event per capture, fanned out to the
+      // accounts watching this tag (backfill-guarded like heat).
+      await emitToTagWatchers(db, entityKey, "battles_recorded", {
+        count: result.battlesInserted,
+      });
       await db.query(
         `update poll_state set heat = 3, heat_updated_at = now() where subject_tag = $1`,
         [entityKey],

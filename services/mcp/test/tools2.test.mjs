@@ -385,12 +385,26 @@ test("Elixir MCP service domain: watch player, watch clan, insights, collectors"
     [account.accountId],
   );
 
-  // Watch clan: files a reviewed request (budget is shared), never starts alone.
+  // Watch clan at comprehensive scope: the member tier has no
+  // comprehensive slots - refused with an upgrade hint, nothing filed.
+  const tierBlocked = await call("elixir_watch_clan", {
+    clan_tag: "#J2RGCRVG",
+    note: "I lead this clan",
+  });
+  assert.equal(tierBlocked.isError, true);
+  assert.equal(tierBlocked.body.error.code, "quota_exceeded");
+  assert.match(tierBlocked.body.error.hint, /upgrade|leader/i);
+
+  // The leader tier has the slot: the request files for review.
+  await db.query(`update account set role = 'leader' where account_id = $1`, [
+    account.accountId,
+  ]);
+  account.role = "leader";
   const clanReq = await call("elixir_watch_clan", {
     clan_tag: "#J2RGCRVG",
     note: "I lead this clan",
   });
-  assert.equal(clanReq.isError, false);
+  assert.equal(clanReq.isError, false, JSON.stringify(clanReq.body));
   assert.equal(clanReq.body.recording, "requested");
   const { rows: fb } = await db.query(
     `select context->>'kind' as kind from feedback where feedback_id = $1`,
@@ -605,4 +619,48 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
     undefined,
     "hint clears once responses are read",
   );
+});
+
+test("push lane: implicit subscriptions feed elixir_events; cursor advances; meta hints", async () => {
+  // The account claims OBSERVER (from setup), so a battles_recorded
+  // fan-out for that tag reaches it.
+  const { emitToTagWatchers, emitFeedEvent } = await import("../src/feed.mjs");
+  await emitToTagWatchers(db, OBSERVER, "battles_recorded", { count: 3 });
+  await emitFeedEvent(db, account.accountId, "feedback_responded", null, {
+    feedback_id: 1,
+    status: "done",
+  });
+
+  // Any data-tool response now hints at pending events.
+  const perf = await call("players_summary", { player_tag: OBSERVER });
+  assert.equal(perf.isError, false);
+  assert.ok(
+    perf.body.meta.events_pending >= 2,
+    `events_pending: ${perf.body.meta.events_pending}`,
+  );
+
+  // Read the feed: both events, in order, then the cursor advances.
+  const feed = await call("elixir_events", {});
+  assert.equal(feed.isError, false, JSON.stringify(feed.body));
+  const topics = feed.body.events.map((e) => e.topic);
+  assert.ok(topics.includes("battles_recorded"));
+  assert.ok(topics.includes("feedback_responded"));
+  const battles = feed.body.events.find((e) => e.topic === "battles_recorded");
+  assert.equal(battles.subject_tag, OBSERVER);
+  assert.equal(battles.payload.count, 3);
+
+  // mark_seen (default) cleared the hint; the feed reads empty from
+  // the stored cursor.
+  const after = await call("elixir_events", {});
+  assert.equal(after.body.events.length, 0);
+  const perf2 = await call("players_summary", { player_tag: OBSERVER });
+  assert.equal(perf2.body.meta.events_pending, undefined);
+
+  // Explicit cursor + topic filter replays selectively.
+  const replay = await call("elixir_events", {
+    since: 0,
+    topics: ["feedback_responded"],
+  });
+  assert.equal(replay.body.events.length, 1);
+  assert.equal(replay.body.events[0].topic, "feedback_responded");
 });

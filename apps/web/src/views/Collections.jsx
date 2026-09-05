@@ -3,7 +3,7 @@ import { api } from "../api.js";
 
 /** Curated collections — browse (everyone) via the explorer bridge, the
  *  same registry tools agents call. */
-export function Collections({ navigate }) {
+export function Collections({ me, navigate }) {
   const [list, setList] = useState(null);
   const [open, setOpen] = useState(null); // {slug, ...collections_get body}
   const [err, setErr] = useState("");
@@ -60,6 +60,8 @@ export function Collections({ navigate }) {
           </table>
         )}
       </div>
+
+      <MyCollections me={me} />
 
       {open && (
         <div className="panel">
@@ -127,5 +129,140 @@ export function Collections({ navigate }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Curation for the family tier and above: your own collections,
+ *  created and managed right where everyone browses them. */
+function MyCollections({ me }) {
+  const canCurate =
+    me?.entitlements?.collections && me.entitlements.collections.limit !== 0;
+  const [mine, setMine] = useState([]);
+  const [form, setForm] = useState({ slug: "", title: "", kind: "player" });
+  const [tagsText, setTagsText] = useState({});
+  const [err, setErr] = useState("");
+  const load = async () => {
+    const r = await api.myCollections();
+    if (r.ok) setMine(r.data.collections ?? []);
+  };
+  useEffect(() => {
+    if (canCurate) load();
+  }, [canCurate]);
+  if (!canCurate) return null;
+  const act = async (body) => {
+    setErr("");
+    const r = await api.myCollectionAction(body);
+    if (!r.ok) setErr(r.data?.message ?? "failed");
+    await load();
+  };
+  const limit = me.entitlements.collections.limit;
+  return (
+    <div className="panel">
+      <h3>Your collections</h3>
+      <p>
+        Curate up to {limit === null ? "unlimited" : limit} — public ones appear
+        above for everyone.
+      </p>
+      {err && <p className="error">{err}</p>}
+      {mine.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Slug</th>
+              <th>Members</th>
+              <th>Add / remove tags</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {mine.map((c) => (
+              <tr key={c.slug}>
+                <td>
+                  <code>{c.slug}</code>
+                </td>
+                <td title={(c.members ?? []).join(" ")}>{c.member_count}</td>
+                <td>
+                  <input
+                    placeholder="#TAG #TAG ..."
+                    value={tagsText[c.slug] ?? ""}
+                    onChange={(e) =>
+                      setTagsText({ ...tagsText, [c.slug]: e.target.value })
+                    }
+                    style={{ width: "11rem" }}
+                  />{" "}
+                  <button
+                    className="quiet"
+                    onClick={() => {
+                      act({
+                        action: "add",
+                        slug: c.slug,
+                        tags: (tagsText[c.slug] ?? "")
+                          .split(/[\s,]+/)
+                          .filter(Boolean),
+                      });
+                      setTagsText({ ...tagsText, [c.slug]: "" });
+                    }}
+                  >
+                    Add
+                  </button>{" "}
+                  <button
+                    className="quiet"
+                    onClick={() => {
+                      act({
+                        action: "remove",
+                        slug: c.slug,
+                        tags: (tagsText[c.slug] ?? "")
+                          .split(/[\s,]+/)
+                          .filter(Boolean),
+                      });
+                      setTagsText({ ...tagsText, [c.slug]: "" });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </td>
+                <td>
+                  <button
+                    className="quiet"
+                    onClick={() => act({ action: "delete", slug: c.slug })}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          await act({ action: "upsert", ...form });
+          setForm({ ...form, slug: "", title: "" });
+        }}
+        style={{ marginTop: "0.8rem" }}
+      >
+        <input
+          placeholder="slug"
+          value={form.slug}
+          onChange={(e) => setForm({ ...form, slug: e.target.value })}
+          style={{ width: "8rem" }}
+        />{" "}
+        <input
+          placeholder="Title"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          style={{ width: "10rem" }}
+        />{" "}
+        <select
+          value={form.kind}
+          onChange={(e) => setForm({ ...form, kind: e.target.value })}
+        >
+          <option value="player">player</option>
+          <option value="clan">clan</option>
+        </select>{" "}
+        <button disabled={!form.slug || !form.title}>Create</button>
+      </form>
+    </div>
   );
 }

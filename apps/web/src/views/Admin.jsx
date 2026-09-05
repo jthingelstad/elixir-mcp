@@ -490,7 +490,96 @@ export function Admin({ me, page = "requests" }) {
       </div>
 
       <AdminCollections page={page} />
+
+      <AdminAccounts page={page} />
     </>
+  );
+}
+
+/** Role management: the entitlement ladder applied to real accounts.
+ *  Pending upgrade requests surface here; the picker grants them. */
+function AdminAccounts({ page }) {
+  const [accounts, setAccounts] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const load = useCallback(async () => {
+    const r = await api.adminAccounts();
+    if (r.ok) {
+      setAccounts(r.data.accounts ?? []);
+      setRoles(r.data.roles ?? []);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  return (
+    <div className="panel" hidden={page !== "accounts"}>
+      <h3>Accounts</h3>
+      <p>
+        Tiers set collection slots and call budgets — never read access. Upgrade
+        requests land in Feedback and are flagged here.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Status</th>
+            <th>Tier</th>
+            <th>Recording</th>
+            <th>Collector</th>
+            <th>Overrides</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accounts.map((a) => (
+            <tr key={a.account_id}>
+              <td title={a.account_id}>
+                <code>{a.email_hash.slice(0, 10)}</code>
+                {a.is_owner ? " (owner)" : ""}
+              </td>
+              <td>{a.status}</td>
+              <td>
+                <select
+                  value={a.role}
+                  onChange={async (e) => {
+                    await api.adminSetRole(a.account_id, e.target.value);
+                    load();
+                  }}
+                >
+                  {roles.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+                {a.pending_role_request ? (
+                  <span
+                    className="status active"
+                    title={`Upgrade requested — feedback #${a.pending_role_request}`}
+                    style={{ marginLeft: "0.4rem" }}
+                  >
+                    requested
+                  </span>
+                ) : null}
+              </td>
+              <td>
+                {a.players_recording}p / {a.clans_recording}c
+              </td>
+              <td>{a.operator ? "yes" : "—"}</td>
+              <td className="fine">
+                {[
+                  a.max_player_recordings != null &&
+                    `players=${a.max_player_recordings}`,
+                  a.mcp_daily_quota != null && `calls=${a.mcp_daily_quota}`,
+                  a.live_daily_quota != null && `live=${a.live_daily_quota}`,
+                ]
+                  .filter(Boolean)
+                  .join(" ") || "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

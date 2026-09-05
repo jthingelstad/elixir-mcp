@@ -47,6 +47,7 @@ const SECTIONS = {
     ownerOnly: true,
     pages: [
       { slug: "requests", label: "Requests" },
+      { slug: "accounts", label: "Accounts" },
       { slug: "clans", label: "Clans" },
       { slug: "collections", label: "Collections" },
       { slug: "gateways", label: "Collectors" },

@@ -15,17 +15,23 @@ import {
   gatewayArena,
   CHANGELOG,
   CONTRACT_VERSION,
+  roleQuotas,
 } from "@elixir-mcp/contracts";
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
 import { livePathToJob } from "./live.mjs";
+import { emitFeedEvent, FEED_TOPICS } from "./feed.mjs";
 import { ensureGatewayCards } from "./gateway-cards.mjs";
 
-const LIVE_DAILY_CAP = 50;
-
-/** The live lane spends real CR budget: tight per-account daily cap. */
+/** The live lane spends real CR budget: tight per-account daily cap,
+ *  defaulted by role (contracts roles.ts), beaten by the per-account
+ *  live_daily_quota override. */
 async function spendLiveQuota(ctx) {
-  if (ctx.account.isOwner) return;
+  if (ctx.account.isOwner || ctx.account.role === "admin") return;
+  const cap =
+    ctx.account.liveDailyQuota ??
+    roleQuotas(ctx.account.role).live_fetches_per_day;
+  if (cap === Infinity) return;
   const day = new Date().toISOString().slice(0, 10);
   const { rows } = await ctx.db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)
@@ -33,11 +39,11 @@ async function spendLiveQuota(ctx) {
      returning count`,
     [`liveday#${ctx.account.accountId}`, day],
   );
-  if (rows[0].count > LIVE_DAILY_CAP) {
+  if (rows[0].count > cap) {
     throw new ToolFailure(
       "quota_exceeded",
-      `Live-fetch quota reached (${LIVE_DAILY_CAP}/day).`,
-      "Recorded-data tools are unlimited within the normal quota.",
+      `Live-fetch quota reached (${cap}/day for the ${ctx.account.role ?? "member"} tier).`,
+      "Recorded-data tools are unlimited within the normal quota. Higher tiers get more - see /docs (Roles) or ask via elixir_feedback.",
     );
   }
 }
@@ -92,7 +98,11 @@ async function buildMeta(db, account, tag) {
         where subject_tag = $1) as freshness_seconds,
        (select count(*)::int from feedback
         where account_id = $2 and responded_at is not null
-          and response_seen_at is null) as fb_pending`,
+          and response_seen_at is null) as fb_pending,
+       (select count(*)::int from event_feed ef
+        where ef.account_id = $2
+          and ef.event_id > (select events_seen_through from account
+                             where account_id = $2)) as events_pending`,
     [tag, account.accountId],
   );
   const row = rows[0] ?? {};
@@ -107,6 +117,7 @@ async function buildMeta(db, account, tag) {
     ...(row.fb_pending > 0
       ? { feedback_responses_pending: row.fb_pending }
       : {}),
+    ...(row.events_pending > 0 ? { events_pending: row.events_pending } : {}),
     ...(account.timezone ? { timezone_applied: account.timezone } : {}),
   });
 }
@@ -1452,6 +1463,94 @@ const TOOLS = {
     },
   },
 
+  elixir_events: {
+    description:
+      "Your event feed - the push lane. Subscriptions are implicit: players you claim or record, clans you watch, and your feedback are your subscriptions. Topics: battles_recorded (coalesced per capture), feedback_responded, recording_started/stopped, role_changed, clan_war_week_finished. Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        since: {
+          type: "integer",
+          minimum: 0,
+          description:
+            "Cursor: return events after this event_id. Omit to resume from your last-seen position.",
+        },
+        topics: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: 6,
+          description: "Only these topics (default: all).",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+        mark_seen: {
+          type: "boolean",
+          default: true,
+          description:
+            "Advance your seen-cursor past the returned events (clears meta.events_pending).",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const { rows: acct } = await ctx.db.query(
+        `select events_seen_through from account where account_id = $1`,
+        [ctx.account.accountId],
+      );
+      const cursor =
+        args.since !== undefined
+          ? Number(args.since)
+          : Number(acct[0]?.events_seen_through ?? 0);
+      const limit = Math.min(Math.max(Number(args.limit ?? 50), 1), 200);
+      const topics =
+        Array.isArray(args.topics) && args.topics.length > 0
+          ? args.topics.map(String)
+          : null;
+      const unknown = topics?.find((t) => !FEED_TOPICS.includes(t));
+      if (unknown) {
+        throw new ToolFailure(
+          "bad_request",
+          `Unknown topic '${unknown}'.`,
+          `Topics: ${FEED_TOPICS.join(", ")}.`,
+        );
+      }
+      const { rows } = await ctx.db.query(
+        `select event_id, topic, subject_tag, payload, created_at
+         from event_feed
+         where account_id = $1 and event_id > $2
+           and ($3::text[] is null or topic = any($3))
+         order by event_id
+         limit $4`,
+        [ctx.account.accountId, cursor, topics, limit + 1],
+      );
+      const events = rows.slice(0, limit).map((r) => ({
+        event_id: Number(r.event_id),
+        topic: r.topic,
+        ...(r.subject_tag ? { subject_tag: r.subject_tag } : {}),
+        ...(r.payload ? { payload: r.payload } : {}),
+        at: r.created_at.toISOString(),
+      }));
+      const nextCursor =
+        events.length > 0 ? events[events.length - 1].event_id : cursor;
+      if (args.mark_seen !== false && events.length > 0) {
+        await ctx.db.query(
+          `update account set events_seen_through = greatest(events_seen_through, $2)
+           where account_id = $1`,
+          [ctx.account.accountId, nextCursor],
+        );
+      }
+      return {
+        events,
+        next_cursor: nextCursor,
+        has_more: rows.length > limit,
+        note:
+          events.length === 0
+            ? "Nothing new. Your subscriptions are implicit - watch a player or clan and its events start arriving."
+            : "Pass next_cursor as since to continue; events prune after ~30 days.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   elixir_watch_player: {
     description:
       "Start recording a player: claims the tag to your account (trust-based) and begins battle/profile capture. Same rules as the website — active player recordings are capped per account.",
@@ -1522,20 +1621,26 @@ const TOOLS = {
       );
       let recordingStarted = false;
       if (!already[0]) {
-        if (!ctx.account.isOwner) {
+        if (!ctx.account.isOwner && ctx.account.role !== "admin") {
           const { rows: cap } = await ctx.db.query(
-            `select coalesce(a.max_player_recordings, 5) as cap,
+            `select a.max_player_recordings as override,
+                    exists (select 1 from gateway g
+                            where g.owner_account_id = $1 and g.status = 'active') as operator,
                     (select count(*)::int from recording r
                      where r.requested_by = $1 and r.subject_type = 'player'
                        and r.status = 'active') as active
              from account a where a.account_id = $1`,
             [ctx.account.accountId],
           );
-          if (cap[0].active >= cap[0].cap) {
+          const limit =
+            cap[0].override ??
+            roleQuotas(ctx.account.role, { operator: cap[0].operator })
+              .player_slots;
+          if (cap[0].active >= limit) {
             throw new ToolFailure(
               "quota_exceeded",
-              `Active player recordings are capped at ${cap[0].cap} per account.`,
-              "Stop one on the website dashboard, or ask via elixir_feedback for a higher cap.",
+              `Active player recordings are capped at ${limit} for the ${ctx.account.role ?? "member"} tier.`,
+              "Stop one on the website, request a tier upgrade there, or run a collector for bonus slots - see /docs (Roles).",
             );
           }
         }
@@ -1551,6 +1656,12 @@ const TOOLS = {
             ctx.account.accountId,
             JSON.stringify({ player_tag: tag, via: "mcp" }),
           ],
+        );
+        await emitFeedEvent(
+          ctx.db,
+          ctx.account.accountId,
+          "recording_started",
+          tag,
         );
         recordingStarted = true;
       }
@@ -1615,6 +1726,40 @@ const TOOLS = {
           note: "This clan is already being recorded.",
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
+      }
+      // Tier gate BEFORE filing: clan slots come from the role ladder
+      // (activity vs comprehensive are separate budgets). Approval
+      // stays manual either way - this just refuses honestly instead
+      // of filing a request the reviewer must decline.
+      const scope = args.scope === "activity" ? "activity" : "comprehensive";
+      if (!ctx.account.isOwner && ctx.account.role !== "admin") {
+        const { rows: slots } = await ctx.db.query(
+          `select exists (select 1 from gateway g
+                          where g.owner_account_id = $1 and g.status = 'active') as operator,
+                  count(*) filter (where r.clan_scope = $2)::int as used
+           from account a
+           left join recording r on r.requested_by = a.account_id
+             and r.subject_type = 'clan' and r.status = 'active'
+           where a.account_id = $1
+           group by a.account_id`,
+          [ctx.account.accountId, scope],
+        );
+        const q = roleQuotas(ctx.account.role, {
+          operator: slots[0]?.operator ?? false,
+        });
+        const limit =
+          scope === "activity" ? q.activity_clans : q.comprehensive_clans;
+        if ((slots[0]?.used ?? 0) >= limit) {
+          throw new ToolFailure(
+            "quota_exceeded",
+            limit === 0
+              ? `The ${ctx.account.role ?? "member"} tier has no ${scope}-scope clan slots.`
+              : `Your ${scope}-scope clan slots are full (${limit} for the ${ctx.account.role ?? "member"} tier).`,
+            scope === "comprehensive"
+              ? "Comprehensive capture records every member's battles - the leader tier and above include it. Request an upgrade on the website (Account > Overview), or watch at scope 'activity'."
+              : "Request a tier upgrade on the website (Account > Overview) - see /docs (Roles).",
+          );
+        }
       }
       // The request rides the feedback triage lane the maintainer already
       // watches; membership can't be verified for an unrecorded clan, so

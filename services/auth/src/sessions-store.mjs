@@ -46,7 +46,7 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
        and s.revoked_at is null
        and s.sliding_expires_at > now()
        and s.absolute_expires_at > now()
-     returning a.account_id, a.email_hash, a.is_owner, a.timezone`,
+     returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role`,
     [claims.sid, claims.sub, SESSION_TTL_SECONDS],
   );
   const row = rows[0] ?? null;
@@ -56,6 +56,7 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
         emailHash: row.email_hash,
         isOwner: row.is_owner,
         timezone: row.timezone,
+        role: row.role,
         sessionId: claims.sid,
       }
     : null;
