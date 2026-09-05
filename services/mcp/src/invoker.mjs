@@ -55,7 +55,10 @@ export function makeInvoker({
   return async function invokeTool(name, args) {
     const startedAt = Date.now();
     // Ambient product signal (Tinylytics): tool name only, never args.
-    if (track) {
+    // Fired AFTER the tool runs (finally) so the ping's SQS round-trip
+    // never sits in front of the answer (review item 1).
+    const ping = async () => {
+      if (!track) return;
       try {
         await track(
           surface === "web" ? "explore.tool_call" : "mcp.tool_call",
@@ -64,7 +67,7 @@ export function makeInvoker({
       } catch {
         // Analytics must never break serving (house rule).
       }
-    }
+    };
     try {
       const body = await registry.invoke(name, { db, account, live }, args);
       const resultBytes = JSON.stringify(body).length;
@@ -117,6 +120,8 @@ export function makeInvoker({
         },
         isError: true,
       };
+    } finally {
+      await ping();
     }
   };
 }

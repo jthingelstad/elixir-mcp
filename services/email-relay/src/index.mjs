@@ -28,6 +28,9 @@ function makeTinylyticsTracker({ token, siteId }) {
             ...(e.value ? { value: e.value } : {}),
           })),
         ),
+        // A hung analytics endpoint must never delay the emails that
+        // share this batch (review item 1).
+        signal: AbortSignal.timeout(3_000),
       },
     );
     if (!res.ok) throw new Error(`tinylytics ${res.status}`);
