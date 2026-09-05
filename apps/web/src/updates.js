@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Click into things",
+    body: "Feedback items are now real pages - open one from your feedback list (or the admin queue) to see the whole conversation at a linkable URL, and maintainer responses are now composed right there. Collections opened up the same way: open a collection to edit it in place - members as rows, add and remove where you can see them - instead of the old squint-and-type row controls.",
+  },
+  {
+    date: "2026-09-06",
     title: "Docs worth reading",
     body: "The Architecture page grew real depth: collectors in detail (card identities, credits, self-update, the capture audit), the push lane and Clan Pulse, how the feedback loop actually closes, and the no-NAT outbound relay design. It also now maps the public GitHub repos - Elixir MCP, the collector, Elixir Agent, and Elixir Drop - so you can read the code behind any of it.",
   },
