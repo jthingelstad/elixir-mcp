@@ -232,9 +232,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.error.code, "not_entitled");
 });
 
-test("the registry declares 25 tools, every one classified and annotated", () => {
+test("the registry declares 27 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 25);
+  assert.equal(decls.length, 27);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -404,4 +404,81 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
   // Outsiders refused like every clan tool.
   const out = await call(invokeOutsider, "war_rivals", {});
   assert.equal(out.body.error.code, "not_entitled");
+});
+
+test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () => {
+  // Give two members enough leveled 1v1s to clear the floor.
+  const members = (
+    await db.query(
+      `select player_tag from clan_membership
+       where clan_tag = $1 and left_observed_at is null limit 2`,
+      [CLAN],
+    )
+  ).rows.map((r) => r.player_tag);
+  const ALPHA = "0289PYLQGRJCUV";
+  const otag = (j, i) =>
+    `#0PP${ALPHA[j]}${ALPHA[i % 14]}${ALPHA[Math.floor(i / 14)]}`;
+  for (let i = 0; i < 55; i++) {
+    for (const [j, tag] of members.entries()) {
+      const id = `cps-${j}-${i}`;
+      await db.query(
+        `insert into battle (battle_id, battle_time, type, type_class)
+         values ($1, now() - make_interval(hours => $2), 'PvP', 'pvp')
+         on conflict do nothing`,
+        [id, i * 2 + j],
+      );
+      await db.query(
+        `insert into player (player_tag) values ($1) on conflict do nothing`,
+        [otag(j, i)],
+      );
+      await db.query(
+        `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_avg_level)
+         values ($1, $2, now() - make_interval(hours => $3), 0, $4, 14.0),
+                ($1, $5, now() - make_interval(hours => $3), 1, $6, 14.0)
+         on conflict do nothing`,
+        [
+          id,
+          tag,
+          i * 2 + j,
+          i % 2 === j % 2 ? "win" : "loss",
+          otag(j, i),
+          i % 2 === j % 2 ? "loss" : "win",
+        ],
+      );
+    }
+  }
+  const { body, isError } = await call(invoke, "clans_pilot_scores", {
+    days: 30,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.ok(body.scored_members >= 2, "both seeded members scored");
+  assert.ok(body.members[0].rank === 1);
+  assert.ok(
+    body.members.every((m) => typeof m.pilot_score === "number" && m.n >= 30),
+  );
+  assert.match(body.note, /can't explain/);
+});
+
+test("players_search: names resolve in scope; unknowns honest-empty", async () => {
+  const member = (
+    await db.query(
+      `select cm.player_tag, p.name from clan_membership cm
+       join player p on p.player_tag = cm.player_tag
+       where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null limit 1`,
+      [CLAN],
+    )
+  ).rows[0];
+  const hit = await call(invoke, "players_search", {
+    query: member.name.slice(0, 4),
+  });
+  assert.equal(hit.isError, false);
+  assert.ok(
+    hit.body.matches.some((m) => m.player_tag === member.player_tag),
+    "clanmate found by name fragment",
+  );
+  const miss = await call(invoke, "players_search", {
+    query: "KenDoesNotExist",
+  });
+  assert.equal(miss.body.matches.length, 0);
+  assert.match(miss.body.note, /No one in your entitled scope/);
 });

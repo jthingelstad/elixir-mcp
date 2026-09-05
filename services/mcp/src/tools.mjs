@@ -1801,6 +1801,145 @@ const TOOLS = {
     },
   },
 
+  clans_pilot_scores: {
+    description:
+      "Every open member's Pilot Score in ONE call (agent feedback #1: ranking a clan took 18 battles_levels calls). Scores each member with >= 30 decided leveled battles against the corpus Level Curve; includes tenure. Wins their card levels can't explain, clan-wide.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        clan_tag: {
+          type: "string",
+          description: "Clan tag; defaults to your recorded clan.",
+        },
+        days: {
+          type: "integer",
+          minimum: 7,
+          maximum: 365,
+          default: 90,
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      const days = Number(args.days ?? 90);
+      if (!Number.isInteger(days) || days < 7 || days > 365)
+        throw new ToolFailure("bad_request", "days must be 7-365.");
+      const EDGES =
+        "array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]";
+      await ctx.db.query("begin");
+      try {
+        await ctx.db.query(
+          `create temp table cps_pairs on commit drop as
+           with sides as (
+             select bp.battle_id, bp.player_tag, bp.outcome, bp.deck_avg_level as lvl
+             from battle_participant bp
+             join battle b on b.battle_id = bp.battle_id
+             where bp.deck_avg_level is not null and b.type_class = 'pvp'
+               and bp.outcome in ('win','loss')
+               and b.battle_time > now() - $1::interval),
+           duos as (select battle_id from sides group by battle_id having count(*) = 2)
+           select a.player_tag, a.outcome, a.lvl - o.lvl as gap
+           from sides a
+           join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
+           where a.battle_id in (select battle_id from duos)`,
+          [`${days} days`],
+        );
+        const { rows } = await ctx.db.query(
+          `with curve as (
+             select width_bucket(gap, ${EDGES}) as bin,
+                    avg((outcome = 'win')::int) as wr
+             from cps_pairs group by bin having count(*) >= 200)
+           select cm.player_tag, pl.name, pl.years_played,
+                  count(p.*)::int as n,
+                  round(avg(p.gap)::numeric, 2) as mean_gap,
+                  round(avg((p.outcome = 'win')::int)::numeric, 3) as actual_win_rate,
+                  round(avg(c.wr)::numeric, 3) as expected_from_levels,
+                  round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score,
+                  round((0.5 / sqrt(greatest(count(p.*), 1)))::numeric, 3) as standard_error
+           from clan_membership cm
+           join player pl on pl.player_tag = cm.player_tag
+           join cps_pairs p on p.player_tag = cm.player_tag
+           join curve c on c.bin = width_bucket(p.gap, ${EDGES})
+           where cm.clan_tag = $1 and cm.left_observed_at is null
+           group by cm.player_tag, pl.name, pl.years_played
+           having count(p.*) >= 30
+           order by (avg((p.outcome = 'win')::int) - avg(c.wr)) desc`,
+          [clanTag],
+        );
+        await ctx.db.query("commit");
+        return {
+          clan_tag: clanTag,
+          window_days: days,
+          scored_members: rows.length,
+          members: rows.map((r, i) => ({
+            rank: i + 1,
+            player_tag: r.player_tag,
+            name: r.name,
+            years_played: r.years_played,
+            n: r.n,
+            mean_gap: Number(r.mean_gap),
+            actual_win_rate: Number(r.actual_win_rate),
+            expected_from_levels: Number(r.expected_from_levels),
+            pilot_score: Number(r.pilot_score),
+            standard_error: Number(r.standard_error),
+          })),
+          note: "pilot_score = actual minus level-expected win rate (wins card levels can't explain). Members below 30 decided leveled battles in the window are not scored. Scores embed experience and band - compare trends or similar tenures, not raw scores across careers. Deeper single-player detail (cohort percentile, monthly trend): battles_levels.",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      } catch (err) {
+        await ctx.db.query("rollback").catch(() => {});
+        throw err;
+      }
+    },
+  },
+
+  players_search: {
+    description:
+      'Name-to-tag resolution within your entitled scope (agent feedback #2): matches your claims and open clanmates by display name, case-insensitive substring. "raquaza" finds the tag; unknown names return an honest empty list, never a guess.',
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", minLength: 1, maxLength: 50 },
+        limit: { type: "integer", minimum: 1, maximum: 20, default: 5 },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const q = String(args.query ?? "").trim();
+      if (!q) throw new ToolFailure("bad_request", "query is empty.");
+      const limit = Math.min(Math.max(Number(args.limit ?? 5), 1), 20);
+      const { rows } = await ctx.db.query(
+        `with scope as (
+           select c.player_tag, 'claim' as source, null::text as clan_tag
+           from claim c where c.account_id = $1
+           union
+           select cm2.player_tag, 'clanmate', cm2.clan_tag
+           from claim c
+           join clan_membership cm on cm.player_tag = c.player_tag and cm.left_observed_at is null
+           join recording r on r.subject_type = 'clan' and r.subject_tag = cm.clan_tag and r.status = 'active'
+           join clan_membership cm2 on cm2.clan_tag = cm.clan_tag and cm2.left_observed_at is null
+           where c.account_id = $1)
+         select distinct on (s.player_tag) s.player_tag, p.name, s.source, s.clan_tag
+         from scope s join player p on p.player_tag = s.player_tag
+         where p.name ilike $2
+         order by s.player_tag, s.source
+         limit $3`,
+        [ctx.account.accountId, `%${q}%`, limit],
+      );
+      return {
+        query: q,
+        matches: rows,
+        note:
+          rows.length === 0
+            ? "No one in your entitled scope (your claims + open members of your recorded clan) matches that name. Names change; tags are permanent - clans_roster lists everyone."
+            : "Search covers your claims and open clanmates only. Names are as last observed.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   clans_roster: {
     description:
       "Your recorded clan: roster with roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Defaults to your clan.",
@@ -2118,7 +2257,7 @@ const TOOLS = {
           window_days: days,
           ...(args.trophy_band ? { trophy_band: args.trophy_band } : {}),
           ...(args.mode ? { mode: args.mode } : {}),
-          curve,
+          ...(args.include_curve === false ? {} : { curve }),
           ...(player ? { player } : {}),
           note: "The curve measures the WITHIN-MATCH value of level advantage (each battle contributes both perspectives, so it is symmetric by construction); it does not measure the positional effect of upgrades on where you sit in matchmaking. pilot_score = actual minus level-expected win rate — wins your card levels can't explain. It embeds experience and opposition strength: compare your own TREND over months, or players of similar tenure and band, not raw scores across different careers. Bins below floor serve counts only — no extrapolation.",
           meta: responseMeta({ as_of: new Date().toISOString() }),

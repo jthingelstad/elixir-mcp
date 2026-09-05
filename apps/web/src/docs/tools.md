@@ -19,6 +19,8 @@ Profile-shaped views of one tag.
 - **Player timeline** (`players_timeline`) — daily trophy/donation
   series from snapshots.
 - **Card collection** (`players_collection`) — owned cards at in-game levels.
+- **Find player by name** (`players_search`) — name-to-tag within your
+  entitled scope; unknown names return an honest empty, never a guess.
 
 ## Battles
 
@@ -47,6 +49,8 @@ The recorded battle corpus and statistics over it.
 - **Clan standings** (`clans_standings`) — every member's recorded win
   rate over a window, ranked with the clan median: the "am I above
   average?" view.
+- **Clan Pilot Scores** (`clans_pilot_scores`) — every member's Pilot
+  Score in one call: wins their card levels can't explain, clan-wide.
 
 ## War
 

@@ -42,6 +42,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Card collection",
     readOnly: true,
   },
+  players_search: {
+    group: "Players",
+    title: "Find player by name",
+    readOnly: true,
+  },
 
   // Battles — the recorded battle corpus and stats over it (docs: models/battles.md).
   battles_query: { group: "Battles", title: "Query battles", readOnly: true },
@@ -77,6 +82,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   clans_standings: {
     group: "Clans",
     title: "Clan standings",
+    readOnly: true,
+  },
+  clans_pilot_scores: {
+    group: "Clans",
+    title: "Clan Pilot Scores",
     readOnly: true,
   },
 
