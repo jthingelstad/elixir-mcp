@@ -226,15 +226,18 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
     assert.equal(isError, true, name);
     assert.equal(body.error.code, "not_entitled", name);
   }
+  // Universal reads: comparing arbitrary tags now resolves (empty
+  // records serve honestly rather than refusing).
   const cmp = await call(invokeOutsider, "battles_compare", {
     player_tags: ["#YYYYYYYY", "#RRRRRRRR"],
   });
-  assert.equal(cmp.body.error.code, "not_entitled");
+  assert.equal(cmp.isError, false, JSON.stringify(cmp.body));
+  assert.equal(cmp.body.players.length, 2);
 });
 
-test("the registry declares 27 tools, every one classified and annotated", () => {
+test("the registry declares 29 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 27);
+  assert.equal(decls.length, 29);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(

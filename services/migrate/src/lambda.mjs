@@ -244,6 +244,68 @@ async function probe(databaseUrl) {
   }
 }
 
+/** Collection curation ({collection: {op, slug, ...}}), owner ops path
+ *  (v1: creation is owner-only - Jamie, 2026-09-05). ops:
+ *  upsert {slug,title,kind,description?,visibility?} | add {slug,tags[]}
+ *  | remove {slug,tags[]}. */
+async function collectionOp(databaseUrl, spec) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const slug = String(spec?.slug ?? "").toLowerCase();
+    if (spec.op === "upsert") {
+      const { rows } = await db.query(
+        `insert into collection (slug, title, kind, description, visibility, owner_account)
+         values ($1, $2, $3, $4, coalesce($5, 'public'),
+                 (select account_id from account where is_owner limit 1))
+         on conflict (slug) do update set
+           title = excluded.title,
+           description = coalesce(excluded.description, collection.description),
+           visibility = coalesce($5, collection.visibility)
+         returning collection_id`,
+        [
+          slug,
+          spec.title,
+          spec.kind,
+          spec.description ?? null,
+          spec.visibility ?? null,
+        ],
+      );
+      return { collection_id: rows[0].collection_id, slug };
+    }
+    if (spec.op === "add" || spec.op === "remove") {
+      const { rows: col } = await db.query(
+        `select collection_id from collection where slug = $1`,
+        [slug],
+      );
+      if (!col[0]) throw new Error(`no collection ${slug}`);
+      const { normalizeTag } = await import("@elixir-mcp/contracts");
+      const tags = (spec.tags ?? []).map((t) => normalizeTag(String(t)));
+      let n = 0;
+      for (const tag of tags) {
+        if (spec.op === "add") {
+          const r = await db.query(
+            `insert into collection_member (collection_id, subject_tag)
+             values ($1, $2) on conflict do nothing`,
+            [col[0].collection_id, tag],
+          );
+          n += r.rowCount;
+        } else {
+          const r = await db.query(
+            `delete from collection_member where collection_id = $1 and subject_tag = $2`,
+            [col[0].collection_id, tag],
+          );
+          n += r.rowCount;
+        }
+      }
+      return { slug, [spec.op === "add" ? "added" : "removed"]: n };
+    }
+    throw new Error(`unknown collection op ${spec?.op}`);
+  } finally {
+    await db.end();
+  }
+}
+
 /** Maintainer feedback response ({feedback_respond: {feedback_id,
  *  status, response}}): the ops-side path to close a feedback item so
  *  the requester sees status + reply (0026). The admin web panel is the
@@ -686,6 +748,14 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.collection) {
+    const result = await collectionOp(
+      process.env.DATABASE_URL,
+      event.collection,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

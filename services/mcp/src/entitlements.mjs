@@ -1,19 +1,19 @@
 /**
- * Entitlement rules — DESIGN §4.2, the whole policy:
- *  1. A claim entitles the account to FULL history for that tag.
- *  2. Clan cover: while P is an open member of recorded clan C, accounts
- *     claiming any member tag of C read C's clan-scoped data and fellow
- *     members' history — being in a clan IS sharing your battles with it
- *     (Jamie, 2026-09-03; the retired consent toggle gated public data).
- *  3. A battle is readable by anyone entitled to either participant.
- *  4. Leadership-sensitive analytics need the claimed tag to hold elder+
- *     in the recorded clan.
+ * Access policy — UNIVERSAL READS (Jamie, 2026-09-05):
+ *  1. All recorded GAME data — players, battles, clans, war — is readable
+ *     by every approved account. The RoyaleAPI posture: the underlying
+ *     API is public and unrestricted; once a player is in the data, they
+ *     are in the data. This superseded the launch-era claims/clanmate
+ *     read gating (and the 2026-09-03 clan-sharing rule on the way).
+ *  2. ACCOUNT data stays private: claims, watches, quotas, feedback,
+ *     usage — yours only.
+ *  3. Leadership-sensitive analytics still need an elder+ claimed tag in
+ *     the recorded clan (requireLeadership).
+ *  4. 'own' scope still marks the caller's claimed tags for tools that
+ *     personalize; defaults (no tag given) resolve to the primary claim.
  *
  * Claims are TRUST-BASED (Jamie, 2026-09-03): accounts are owner-approved
- * and a claim is taken at its word. The favourite-card liveness challenge
- * was retired the day it shipped — currentFavouriteCard is not reliably
- * player-settable (cr-agent-api-docs). claim.status stays in the schema
- * unused.
+ * and a claim is taken at its word.
  */
 
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
@@ -77,13 +77,12 @@ async function resolveEntitlements(db, account) {
 }
 
 /**
- * Resolve a subject tag against a need:
- *  - 'full': own claims only (rule 1);
- *  - 'summary': own claims OR open members of an entitled clan (rule 2);
- * Returns { tag, scope: 'own'|'clanmate' }.
+ * Resolve a subject tag. Universal reads: any valid tag resolves; the
+ * 'need' parameter is retained for call-site compatibility but no longer
+ * gates. Returns { tag, scope: 'own'|'public' }.
  * Throws {code} objects matching the closed error taxonomy.
  */
-export async function resolveSubject(db, account, inputTag, need = "full") {
+export async function resolveSubject(db, account, inputTag, _need = "full") {
   const ent = await resolveEntitlements(db, account);
   let tag;
   // Empty string is a CALLER BUG (an unset variable), not "use my
@@ -120,29 +119,15 @@ export async function resolveSubject(db, account, inputTag, need = "full") {
   }
 
   if (ent.ownTags.includes(tag)) return { tag, scope: "own" };
-  if (need === "full") {
-    throw {
-      code: "not_entitled",
-      message: `No claim on ${tag} for this account.`,
-    };
-  }
-
-  // Fellow member of an entitled clan? Being in a clan IS sharing your
-  // battles with it (Jamie, 2026-09-03) — open membership is the whole
-  // gate, and it closes when the membership does.
-  const { rows: membership } = await db.query(
-    `select cm.clan_tag from clan_membership cm
-     where cm.player_tag = $1 and cm.left_observed_at is null and cm.clan_tag = any($2)`,
-    [tag, ent.clans.length ? ent.clans : ["#NONE"]],
-  );
-  if (!membership[0]) {
-    throw {
-      code: "not_entitled",
-      message: `${tag} is not a fellow member of a clan you belong to.`,
-      hint: "Clan-scoped reads cover open members of your recorded clan.",
-    };
-  }
-  return { tag, scope: "clanmate" };
+  // UNIVERSAL READS (Jamie, 2026-09-05): all recorded game data is
+  // readable by every approved account — the RoyaleAPI posture. The
+  // underlying API is public and unrestricted; once a player is in the
+  // data, they are in the data. This supersedes the launch-era
+  // claims/clanmate read gating (the 2026-09-03 clan-sharing rule was a
+  // step on the way here). Account-scoped things (claims, watches,
+  // quotas, feedback) remain private; 'own' scope still marks the
+  // caller's own tags for tools that care.
+  return { tag, scope: "public" };
 }
 
 /** Rule 4: leadership analytics gate. */
@@ -169,10 +154,18 @@ export async function resolveEntitledClan(db, account, inputTag) {
     } catch {
       throw { code: "invalid_tag", message: `Invalid clan tag: ${inputTag}` };
     }
-    if (!ent.clans.includes(tag)) {
+    // Universal reads (2026-09-05): any actively recorded clan is
+    // readable by every approved account.
+    const { rows } = await db.query(
+      `select 1 from recording
+       where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+      [tag],
+    );
+    if (!rows[0]) {
       throw {
-        code: "not_entitled",
-        message: `${tag} is not a recorded clan you belong to.`,
+        code: "not_recorded",
+        message: `${tag} is not a recorded clan.`,
+        hint: "elixir_watch_clan requests recording; recorded clans are readable by everyone.",
       };
     }
     return tag;

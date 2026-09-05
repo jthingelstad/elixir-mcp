@@ -64,6 +64,13 @@ River race, current and historical.
   clans: every recorded race captures all five bracket clans, so rivals
   accumulate fingerprints across seasons.
 
+## Collections
+
+- **Browse collections** (`collections_browse`) — curated,
+  owner-published groupings: pros, creators, clan families.
+- **Collection members** (`collections_get`) — one collection's members,
+  enriched; fan into the player tools per tag from there.
+
 ## Cards
 
 - **Card catalog** (`cards_catalog`) — the global card list as the

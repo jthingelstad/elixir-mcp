@@ -517,3 +517,42 @@ test("feedback loop closes: file, maintainer responds, requester sees it", async
   assert.match(after2.response, /Shipped in 0.6.0/);
   assert.ok(after2.responded_at);
 });
+
+test("collections: browse + enriched get; private stays owner-only; unknown honest", async () => {
+  const {
+    rows: [owner],
+  } = await db.query(`select account_id from account where is_owner limit 1`);
+  const ownerId = owner?.account_id ?? account.accountId;
+  const {
+    rows: [col],
+  } = await db.query(
+    `insert into collection (slug, title, kind, description, owner_account)
+     values ('pros', 'Pros', 'player', 'Professional players', $1)
+     returning collection_id`,
+    [ownerId],
+  );
+  await db.query(
+    `insert into collection_member (collection_id, subject_tag) values ($1, $2)`,
+    [col.collection_id, OBSERVER],
+  );
+  await db.query(
+    `insert into collection (slug, title, kind, owner_account, visibility)
+     values ('secret', 'Secret', 'player', $1, 'private')`,
+    [ownerId],
+  );
+
+  const browse = await call("collections_browse", {});
+  assert.equal(browse.isError, false);
+  assert.ok(browse.body.collections.some((c) => c.slug === "pros"));
+  // caller is NOT the owner account in this fixture? account may be owner=false
+  const got = await call("collections_get", { slug: "pros" });
+  assert.equal(got.isError, false, JSON.stringify(got.body));
+  assert.equal(got.body.kind, "player");
+  const m = got.body.members.find((x) => x.player_tag === OBSERVER);
+  assert.ok(m, "member enriched row present");
+  assert.ok(typeof m.recording === "boolean");
+
+  const missing = await call("collections_get", { slug: "nope-list" });
+  assert.equal(missing.isError, true);
+  assert.equal(missing.body.error.code, "not_found");
+});

@@ -9,11 +9,12 @@ records of your own activity: sign-ins, claims, recording changes, and
 your agent's tool calls (used for quotas and product improvement — you
 can see your own usage on the dashboard).
 
-**Who can see what.** Access follows the game's own social boundaries:
-a claim gives you your own full history; being an open member of a
-recorded clan shares your clan-visible data — including battles — with
-clanmates, exactly as the game itself does. Access ends when you leave
-the clan. Nobody can look up arbitrary tags.
+**Who can see what.** All recorded game data — battles, profiles,
+clans, war — is readable by every approved account, the same way the
+game's own public API serves it to anyone with a key. We add history,
+not new exposure: nothing here is visible that the game itself does not
+publish. Your account data — claims, watches, quotas, usage, feedback —
+is yours alone.
 
 **What we never do.** No selling data, no advertising, no tracking
 pixels, no third-party analytics on your gameplay. Feedback you send is

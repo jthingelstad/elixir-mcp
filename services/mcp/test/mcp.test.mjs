@@ -175,9 +175,9 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 27 tools", async () => {
+test("tools/list declares all 29 tools", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
-  assert.equal(res.payload.result.tools.length, 27);
+  assert.equal(res.payload.result.tools.length, 29);
   const names = res.payload.result.tools.map((t) => t.name);
   for (const required of [
     "elixir_my_players",
@@ -229,11 +229,11 @@ test("elixir_coverage: polls, appearances, recording_active_since", async () => 
 });
 
 test("players_profile: serves the recorded snapshot; live is honestly unavailable", async () => {
-  const { body } = await callTool("players_profile", {
+  // Universal reads (2026-09-05): unclaimed tags resolve for anyone.
+  const other = await callTool("players_profile", {
     player_tag: "#JYRQ8U92C",
-  }).catch(() => ({}));
-  // #JYRQ8U92C is not claimed by this account -> not_entitled
-  assert.equal(body.error.code, "not_entitled");
+  });
+  assert.equal(other.isError, false, JSON.stringify(other.body));
 
   const live = await callTool("players_profile", { live: true });
   assert.equal(live.isError, true);
@@ -312,7 +312,10 @@ test("audit rows land for success and failure alike", async () => {
     [account.accountId],
   );
   assert.ok(rows.length >= 5);
-  assert.ok(rows.some((r) => r.error_code === "not_entitled"));
+  assert.ok(
+    rows.some((r) => r.error_code !== null),
+    "failures audited too",
+  );
   assert.ok(
     rows.some((r) => r.tool === "battles_query" && r.error_code === null),
   );

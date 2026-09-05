@@ -730,7 +730,10 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
       }),
     ),
   );
-  assert.equal(denied.is_error, true);
+  // Universal reads (2026-09-05): any tag serves; an unobserved one is
+  // an honest empty, not a refusal.
+  assert.equal(denied.is_error, false);
+  assert.equal(denied.body.battles.length, 0);
 
   // Live passthrough is not explorable; unknown tools refuse.
   const live = await handler(

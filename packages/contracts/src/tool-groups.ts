@@ -95,6 +95,18 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   war_history: { group: "War", title: "War history", readOnly: true },
   war_rivals: { group: "War", title: "Scouting Report", readOnly: true },
 
+  // Collections — curated groupings (owner-published lists + your own).
+  collections_browse: {
+    group: "Collections",
+    title: "Browse collections",
+    readOnly: true,
+  },
+  collections_get: {
+    group: "Collections",
+    title: "Collection members",
+    readOnly: true,
+  },
+
   // Cards — the global catalog (docs: cards.md).
   cards_catalog: { group: "Cards", title: "Card catalog", readOnly: true },
 
