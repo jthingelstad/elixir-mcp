@@ -133,10 +133,20 @@ export function canonicalizeBattle(entry) {
     for (const p of entries) {
       if (p.tag === undefined) continue; // boat defenses may lack real participants
       const { deck, hash } = participantDeck(p);
+      const cardLevels = (deck?.cards ?? [])
+        .map((c) => c.level)
+        .filter((l) => typeof l === "number");
       participants.push({
         player_tag: normalizeTag(p.tag),
         name: p.name ?? null, // for the player upsert only, never a participant column
         side,
+        deck_avg_level: cardLevels.length
+          ? Number(
+              (
+                cardLevels.reduce((s2, l) => s2 + l, 0) / cardLevels.length
+              ).toFixed(2),
+            )
+          : null,
         crowns: p.crowns ?? null,
         trophy_change: p.trophyChange ?? null,
         starting_trophies: p.startingTrophies ?? null,
@@ -198,6 +208,7 @@ const PARTICIPANT_COLS = [
   "starting_trophies",
   "deck",
   "deck_hash",
+  "deck_avg_level",
   "support_cards",
   "elixir_leaked",
   "tower_hp",

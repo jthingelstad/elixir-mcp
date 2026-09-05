@@ -1700,22 +1700,26 @@ const TOOLS = {
         params.push(typesForModeGroup(args.mode));
         typeClause = `and b.type = any($${params.length})`;
       }
+      // One grouped pass instead of a per-member lateral scan (audit
+      // census: 2.5s avg). The subquery keeps roster rows for members
+      // with zero matching battles.
       const { rows } = await ctx.db.query(
-        `select cm.player_tag, p.name, p.years_played, s.battles, s.wins, s.losses, s.draws
+        `select cm.player_tag, p.name, p.years_played,
+                count(s.battle_id)::int as battles,
+                count(*) filter (where s.outcome = 'win')::int as wins,
+                count(*) filter (where s.outcome = 'loss')::int as losses,
+                count(*) filter (where s.outcome = 'draw')::int as draws
          from clan_membership cm
          join player p on p.player_tag = cm.player_tag
-         left join lateral (
-           select count(*)::int as battles,
-                  count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  count(*) filter (where bp.outcome = 'draw')::int as draws
+         left join (
+           select bp.player_tag, bp.battle_id, bp.outcome
            from battle_participant bp
            join battle b on b.battle_id = bp.battle_id
-           where bp.player_tag = cm.player_tag
-             and bp.battle_time > now() - $2::interval
+           where bp.battle_time > now() - $2::interval
              ${typeClause}
-         ) s on true
-         where cm.clan_tag = $1 and cm.left_observed_at is null`,
+         ) s on s.player_tag = cm.player_tag
+         where cm.clan_tag = $1 and cm.left_observed_at is null
+         group by cm.player_tag, p.name, p.years_played`,
         params,
       );
       const withRate = rows.map((r) => ({
