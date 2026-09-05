@@ -25,8 +25,7 @@ export const api = {
   signOut: () => request("POST", "/api/session/signout", {}),
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
-  setRecording: (player_tag, action) =>
-    request("POST", "/api/recordings", { player_tag, action }),
+  claimAction: (body) => request("POST", "/api/claims", body),
   clan: () => request("GET", "/api/clan"),
   usage: () => request("GET", "/api/me/usage"),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),

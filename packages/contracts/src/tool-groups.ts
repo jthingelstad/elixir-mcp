@@ -164,14 +164,14 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Event feed",
     readOnly: false, // advances your seen-cursor
   },
-  elixir_watch_player: {
+  elixir_add_player: {
     group: "Elixir MCP",
-    title: "Watch player",
+    title: "Add player",
     readOnly: false,
   },
-  elixir_watch_clan: {
+  elixir_add_clan: {
     group: "Elixir MCP",
-    title: "Watch clan",
+    title: "Add clan",
     readOnly: false,
   },
   elixir_data_insights: {

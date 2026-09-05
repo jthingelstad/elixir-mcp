@@ -4,4 +4,4 @@
  * breaking = major with a deprecation window. serverInfo.version is
  * `${CONTRACT_VERSION}+tools.<fingerprint>` computed by the server.
  */
-export const CONTRACT_VERSION = "0.18.0";
+export const CONTRACT_VERSION = "0.19.0";

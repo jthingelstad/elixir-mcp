@@ -5,7 +5,7 @@ the [Clash Royale API agent docs](https://github.com/jthingelstad/cr-agent-api-d
 outline the game's surface — plus two groups of our own. The same
 grouping rides each tool's title (`Players · Player profile`), so
 clients that list tools alphabetically cluster them. Write tools all
-live in the Elixir MCP group (feedback and the two watch requests);
+live in the Elixir MCP group (feedback and the two add tools);
 only **Live CR API fetch** reaches outside the recorded corpus.
 
 ## Players
@@ -96,10 +96,12 @@ The service itself.
   actioned invisibly.
 - **Changelog** (`elixir_changelog`) — what shipped since any contract
   version; how agents discover capabilities that landed mid-session.
-- **Watch player** (`elixir_watch_player`) — claim a tag and start
-  recording it, same caps as the website.
-- **Watch clan** (`elixir_watch_clan`) — request clan recording at
-  either scope: `activity` (the clan itself) or `comprehensive` (plus
+- **Add player** (`elixir_add_player`) — add a tag to your account:
+  claimed AND recorded in one act, within your tier's slots; the only
+  per-tag setting is notify (your event pipe).
+- **Add clan** (`elixir_add_clan`) — add a clan: recorded immediately
+  at activity or comprehensive scope, within your tier's slots; notify
+  controls your event pipe; remove settles the shared recording.
   every member's battles, membership-following). Reviewed by the
   maintainer; clan capture spends the shared budget.
 - **Data insights** (`elixir_data_insights`) — corpus-wide transparency:

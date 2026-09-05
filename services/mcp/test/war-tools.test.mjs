@@ -251,10 +251,10 @@ test("the registry declares 31 tools, every one classified and annotated", () =>
   assert.deepEqual(
     writers.map((d) => d.name).sort(),
     [
+      "elixir_add_clan",
+      "elixir_add_player",
       "elixir_events",
       "elixir_feedback",
-      "elixir_watch_clan",
-      "elixir_watch_player",
     ],
     "the service domain owns all write tools",
   );

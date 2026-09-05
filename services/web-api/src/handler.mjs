@@ -42,6 +42,10 @@ import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { ensureGatewayCards } from "../../mcp/src/gateway-cards.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
 import { emitFeedEvent } from "../../mcp/src/feed.mjs";
+import {
+  ensureClanRecording,
+  settleClanRecording,
+} from "../../mcp/src/tools.mjs";
 
 const COOKIE_NAME = "__Host-elixir_session";
 const CONTRACT_HEADER = "x-elixir-client";
@@ -206,7 +210,7 @@ export function makeHandler({
       if (!account) return json(200, { authenticated: false });
       const [claims, recordings] = await Promise.all([
         db.query(
-          `select c.player_tag, c.status, c.is_primary, p.name, p.last_known_clan_tag
+          `select c.player_tag, c.status, c.is_primary, c.notify, p.name, p.last_known_clan_tag
            from claim c join player p on p.player_tag = c.player_tag
            where c.account_id = $1 order by c.is_primary desc, c.player_tag`,
           [account.accountId],
@@ -225,14 +229,12 @@ export function makeHandler({
         `select a.role, a.max_player_recordings, a.mcp_daily_quota, a.live_daily_quota,
                 exists (select 1 from gateway g
                         where g.owner_account_id = $1 and g.status = 'active') as operator,
-                (select count(*)::int from recording r
-                 where r.requested_by = $1 and r.subject_type = 'player' and r.status = 'active') as players_used,
-                (select count(*)::int from recording r
-                 where r.requested_by = $1 and r.subject_type = 'clan' and r.status = 'active'
-                   and r.clan_scope = 'activity') as activity_used,
-                (select count(*)::int from recording r
-                 where r.requested_by = $1 and r.subject_type = 'clan' and r.status = 'active'
-                   and r.clan_scope = 'comprehensive') as comprehensive_used,
+                (select count(*)::int from claim c
+                 where c.account_id = $1) as players_used,
+                (select count(*)::int from account_clan ac
+                 where ac.account_id = $1 and ac.scope = 'activity') as activity_used,
+                (select count(*)::int from account_clan ac
+                 where ac.account_id = $1 and ac.scope = 'comprehensive') as comprehensive_used,
                 (select count(*)::int from collection c
                  where c.owner_account = $1) as collections_used
          from account a where a.account_id = $1`,
@@ -318,6 +320,63 @@ export function makeHandler({
           return json(400, { error: "invalid_tag" });
         throw err;
       }
+      const action = body.action ?? "add";
+      if (action === "notify_on" || action === "notify_off") {
+        const { rowCount } = await db.query(
+          `update claim set notify = $3 where account_id = $1 and player_tag = $2`,
+          [account.accountId, tag, action === "notify_on"],
+        );
+        if (rowCount === 0) return json(404, { error: "not_found" });
+        return json(200, { ok: true, notify: action === "notify_on" });
+      }
+      if (action === "remove") {
+        const { rowCount } = await db.query(
+          `delete from claim where account_id = $1 and player_tag = $2`,
+          [account.accountId, tag],
+        );
+        let recordingStopped = false;
+        if (rowCount > 0) {
+          const { rowCount: stopped } = await db.query(
+            `update recording set status = 'stopped'
+             where subject_type = 'player' and subject_tag = $1
+               and status = 'active' and requested_by = $2
+               and not exists (select 1 from claim where player_tag = $1)`,
+            [tag, account.accountId],
+          );
+          recordingStopped = stopped > 0;
+          if (recordingStopped)
+            await logEvent(db, account.accountId, "recording_stopped", {
+              player_tag: tag,
+            });
+        }
+        return json(200, {
+          ok: true,
+          removed: rowCount > 0,
+          recording_stopped: recordingStopped,
+        });
+      }
+      // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
+      // you've ADDED (your claims); the MCP door applies the same rule.
+      if (!account.isOwner && account.role !== "admin") {
+        const { rows: cap } = await db.query(
+          `select a.max_player_recordings as override,
+                  exists (select 1 from gateway g
+                          where g.owner_account_id = $1 and g.status = 'active') as operator,
+                  (select count(*)::int from claim c
+                   where c.account_id = $1 and c.player_tag <> $2) as added
+           from account a where a.account_id = $1`,
+          [account.accountId, tag],
+        );
+        const limit =
+          cap[0].override ??
+          roleQuotas(account.role, { operator: cap[0].operator }).player_slots;
+        if (cap[0].added >= limit) {
+          return json(429, {
+            error: "quota_exceeded",
+            message: `Added players are capped at ${limit} for the ${account.role ?? "member"} tier. Remove one, request an upgrade below, or run a collector for bonus slots.`,
+          });
+        }
+      }
       await db.query(
         `insert into player (player_tag) values ($1) on conflict do nothing`,
         [tag],
@@ -345,78 +404,24 @@ export function makeHandler({
           [account.accountId, tag],
         );
       }
-      return json(200, { ok: true, player_tag: tag });
-    },
-
-    "POST /api/recordings": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account) return json(401, { error: "unauthenticated" });
-      let tag;
-      try {
-        tag = normalizeTag(String(body.player_tag ?? ""));
-      } catch {
-        return json(400, { error: "invalid_tag" });
-      }
-      const { rows: claim } = await db.query(
-        `select 1 from claim where account_id = $1 and player_tag = $2`,
-        [account.accountId, tag],
+      const { rowCount: started } = await db.query(
+        `insert into recording (subject_type, subject_tag, requested_by)
+         select 'player', $1, $2
+         where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
+        [tag, account.accountId],
       );
-      if (!claim[0]) return json(403, { error: "not_entitled" });
-      if (body.action === "start") {
-        // Recordings spend the one global rate budget: cap active player
-        // recordings per account (default 5, column override, owner exempt).
-        if (!account.isOwner && account.role !== "admin") {
-          const { rows: cap } = await db.query(
-            `select a.max_player_recordings as override,
-                    exists (select 1 from gateway g
-                            where g.owner_account_id = $1 and g.status = 'active') as operator,
-                    (select count(*)::int from recording r
-                     where r.requested_by = $1 and r.subject_type = 'player'
-                       and r.status = 'active') as active
-             from account a where a.account_id = $1`,
-            [account.accountId],
-          );
-          const limit =
-            cap[0].override ??
-            roleQuotas(account.role, { operator: cap[0].operator })
-              .player_slots;
-          if (cap[0].active >= limit) {
-            return json(429, {
-              error: "quota_exceeded",
-              message: `Active player recordings are capped at ${limit} for the ${account.role ?? "member"} tier. Request an upgrade below, or run a collector for bonus slots.`,
-            });
-          }
-        }
-        const { rowCount: started } = await db.query(
-          `insert into recording (subject_type, subject_tag, requested_by)
-           select 'player', $1, $2
-           where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
-          [tag, account.accountId],
-        );
-        if (started > 0) {
-          await logEvent(db, account.accountId, "recording_started", {
-            player_tag: tag,
-          });
-          await emitFeedEvent(db, account.accountId, "recording_started", tag);
-        }
-      } else if (body.action === "stop") {
-        const { rowCount: stopped } = await db.query(
-          `update recording set status = 'stopped'
-           where subject_type = 'player' and subject_tag = $1 and status = 'active'`,
-          [tag],
-        );
-        if (stopped > 0) {
-          await logEvent(db, account.accountId, "recording_stopped", {
-            player_tag: tag,
-          });
-          await emitFeedEvent(db, account.accountId, "recording_stopped", tag);
-        }
-      } else {
-        return json(400, { error: "bad_request" });
+      if (started > 0) {
+        await logEvent(db, account.accountId, "recording_started", {
+          player_tag: tag,
+        });
+        await emitFeedEvent(db, account.accountId, "recording_started", tag);
       }
-      return json(200, { ok: true });
+      return json(200, {
+        ok: true,
+        player_tag: tag,
+        recording: "active",
+        recording_started: started > 0,
+      });
     },
 
     "GET /api/clan": async (db, event) => {
@@ -824,29 +829,44 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select f.clan_tag, c.name, f.created_at,
-                r.status as recording_status, r.clan_scope,
-                (r.requested_by = $1) as watched_by_me
-         from clan_follow f
-         left join clan c on c.clan_tag = f.clan_tag
+        `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
+                r.status as recording_status, r.clan_scope as effective_scope
+         from account_clan ac
+         left join clan c on c.clan_tag = ac.clan_tag
          left join recording r on r.subject_type = 'clan'
-           and r.subject_tag = f.clan_tag and r.status = 'active'
-         where f.account_id = $1 order by f.created_at`,
+           and r.subject_tag = ac.clan_tag and r.status = 'active'
+         where ac.account_id = $1 order by ac.created_at`,
         [account.accountId],
       );
       const { rows: slots } = await db.query(
         `select exists (select 1 from gateway g
                         where g.owner_account_id = $1 and g.status = 'active') as operator,
-                count(*) filter (where r.clan_scope = 'activity')::int as activity_used,
-                count(*) filter (where r.clan_scope = 'comprehensive')::int as comprehensive_used
-         from recording r
-         where r.requested_by = $1 and r.subject_type = 'clan' and r.status = 'active'`,
+                count(*) filter (where ac.scope = 'activity')::int as activity_used,
+                count(*) filter (where ac.scope = 'comprehensive')::int as comprehensive_used
+         from account_clan ac where ac.account_id = $1`,
+        [account.accountId],
+      );
+      // The starred suggestion (Jamie, 2026-09-05): your primary
+      // player's current clan - "we know your clan from your account".
+      const { rows: home } = await db.query(
+        `select coalesce(cm.clan_tag, p.last_known_clan_tag) as clan_tag,
+                cl.name
+         from claim c
+         join player p on p.player_tag = c.player_tag
+         left join clan_membership cm on cm.player_tag = c.player_tag
+           and cm.left_observed_at is null
+         left join clan cl on cl.clan_tag = coalesce(cm.clan_tag, p.last_known_clan_tag)
+         where c.account_id = $1 and c.is_primary
+         limit 1`,
         [account.accountId],
       );
       const q = roleQuotas(account.role, { operator: slots[0]?.operator });
       const lim = (v) => (v === Infinity ? null : v);
       return json(200, {
         clans: rows,
+        home_clan: home[0]?.clan_tag
+          ? { clan_tag: home[0].clan_tag, name: home[0].name }
+          : null,
         slots: {
           activity: {
             used: slots[0]?.activity_used ?? 0,
@@ -871,78 +891,70 @@ export function makeHandler({
       } catch {
         return json(400, { error: "invalid_tag" });
       }
-      // Adding (following) is free - it is an association, not capture.
-      // WATCHING spends a role slot and starts recording directly: the
-      // ladder is the gate, purely a user function (Jamie, 2026-09-05).
-      if (body.action === "follow") {
-        await db.query(
-          `insert into clan_follow (account_id, clan_tag) values ($1, $2)
-           on conflict do nothing`,
+      const action = body.action ?? "add";
+      if (action === "notify_on" || action === "notify_off") {
+        const { rowCount } = await db.query(
+          `update account_clan set notify = $3 where account_id = $1 and clan_tag = $2`,
+          [account.accountId, tag, action === "notify_on"],
+        );
+        if (rowCount === 0) return json(404, { error: "not_found" });
+        return json(200, { ok: true, notify: action === "notify_on" });
+      }
+      if (action === "remove") {
+        const { rowCount } = await db.query(
+          `delete from account_clan where account_id = $1 and clan_tag = $2`,
           [account.accountId, tag],
         );
-        await db.query(
-          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
-          [tag],
-        );
-        return json(200, { ok: true, clan_tag: tag });
-      }
-      if (body.action === "unfollow") {
-        await db.query(
-          `delete from clan_follow where account_id = $1 and clan_tag = $2`,
-          [account.accountId, tag],
-        );
-        return json(200, { ok: true });
-      }
-      if (body.action === "watch") {
-        const scope = body.scope === "activity" ? "activity" : "comprehensive";
-        const { rows: active } = await db.query(
-          `select 1 from recording
-           where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
-          [tag],
-        );
-        if (active[0])
-          return json(200, {
-            ok: true,
-            clan_tag: tag,
-            note: "Already being recorded - you share the existing record.",
-          });
-        if (!account.isOwner && account.role !== "admin") {
-          const { rows: slots } = await db.query(
-            `select exists (select 1 from gateway g
-                            where g.owner_account_id = $1 and g.status = 'active') as operator,
-                    (select count(*)::int from recording r
-                     where r.requested_by = $1 and r.subject_type = 'clan'
-                       and r.status = 'active' and r.clan_scope = $2) as used`,
-            [account.accountId, scope],
-          );
-          const q = roleQuotas(account.role, { operator: slots[0].operator });
-          const limit =
-            scope === "activity" ? q.activity_clans : q.comprehensive_clans;
-          if (slots[0].used >= limit)
-            return json(429, {
-              error: "quota_exceeded",
-              message:
-                limit === 0
-                  ? `The ${account.role ?? "member"} tier has no ${scope}-scope clan slots - request an upgrade from Account > Overview.`
-                  : `Your ${scope}-scope clan slots are full (${limit} for the ${account.role ?? "member"} tier).`,
+        let recordingStopped = false;
+        if (rowCount > 0) {
+          recordingStopped = await settleClanRecording(db, tag);
+          if (recordingStopped)
+            await logEvent(db, account.accountId, "recording_stopped", {
+              clan_tag: tag,
             });
         }
-        await db.query(
-          `insert into clan_follow (account_id, clan_tag) values ($1, $2)
-           on conflict do nothing`,
-          [account.accountId, tag],
+        return json(200, {
+          ok: true,
+          removed: rowCount > 0,
+          recording_stopped: recordingStopped,
+        });
+      }
+      if (action !== "add") return json(400, { error: "bad_request" });
+      // Added = recorded: slots count clans you've ADDED, per scope -
+      // the MCP door (elixir_add_clan) applies the same rule.
+      const scope = body.scope === "activity" ? "activity" : "comprehensive";
+      if (!account.isOwner && account.role !== "admin") {
+        const { rows: slots } = await db.query(
+          `select exists (select 1 from gateway g
+                          where g.owner_account_id = $1 and g.status = 'active') as operator,
+                  (select count(*)::int from account_clan ac
+                   where ac.account_id = $1 and ac.scope = $2
+                     and ac.clan_tag <> $3) as used`,
+          [account.accountId, scope, tag],
         );
-        await db.query(
-          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
-          [tag],
-        );
-        await db.query(
-          `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
-           select 'clan', $1, $2, $3
-           where not exists (select 1 from recording
-                             where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
-          [tag, account.accountId, scope],
-        );
+        const q = roleQuotas(account.role, { operator: slots[0].operator });
+        const limit =
+          scope === "activity" ? q.activity_clans : q.comprehensive_clans;
+        if (slots[0].used >= limit)
+          return json(429, {
+            error: "quota_exceeded",
+            message:
+              limit === 0
+                ? `The ${account.role ?? "member"} tier has no ${scope}-scope clan slots - request an upgrade from Account > Overview.`
+                : `Your ${scope}-scope clan slots are full (${limit} for the ${account.role ?? "member"} tier).`,
+          });
+      }
+      await db.query(
+        `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+        [tag],
+      );
+      await db.query(
+        `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, $3)
+         on conflict (account_id, clan_tag) do update set scope = excluded.scope`,
+        [account.accountId, tag, scope],
+      );
+      const started = await ensureClanRecording(db, tag, account.accountId);
+      if (started) {
         await logEvent(db, account.accountId, "recording_started", {
           clan_tag: tag,
           scope,
@@ -950,26 +962,8 @@ export function makeHandler({
         await emitFeedEvent(db, account.accountId, "recording_started", tag, {
           scope,
         });
-        return json(200, { ok: true, clan_tag: tag, scope });
       }
-      if (body.action === "unwatch") {
-        // You stop only a watch YOU hold - the shared record survives
-        // if someone else also holds one.
-        const { rowCount } = await db.query(
-          `update recording set status = 'stopped'
-           where subject_type = 'clan' and subject_tag = $1
-             and status = 'active' and requested_by = $2`,
-          [tag, account.accountId],
-        );
-        if (rowCount > 0) {
-          await logEvent(db, account.accountId, "recording_stopped", {
-            clan_tag: tag,
-          });
-          await emitFeedEvent(db, account.accountId, "recording_stopped", tag);
-        }
-        return json(200, { ok: true, stopped: rowCount > 0 });
-      }
-      return json(400, { error: "bad_request" });
+      return json(200, { ok: true, clan_tag: tag, scope });
     },
 
     "GET /api/admin/collections": async (db, event) => {

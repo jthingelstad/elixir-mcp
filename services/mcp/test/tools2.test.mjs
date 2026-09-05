@@ -360,24 +360,25 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
   assert.equal(five.body.error.code, "bad_request");
 });
 
-test("Elixir MCP service domain: watch player, watch clan, insights, collectors", async () => {
-  // Watch a new player: claim + recording in one call.
-  const watch = await call("elixir_watch_player", { player_tag: "#2PP0V90Y" });
-  assert.equal(watch.isError, false, JSON.stringify(watch.body));
-  assert.equal(watch.body.claimed, true);
-  assert.equal(watch.body.recording_started, true);
+test("Elixir MCP service domain: added = recorded, notify is the only toggle", async () => {
+  // Add a player: claim + recording in ONE act.
+  const add = await call("elixir_add_player", { player_tag: "#2PP0V90Y" });
+  assert.equal(add.isError, false, JSON.stringify(add.body));
+  assert.equal(add.body.added, true);
+  assert.equal(add.body.recording_started, true);
+  assert.equal(add.body.notify, true);
 
-  // Watching again: idempotent, shares the existing record.
-  const again = await call("elixir_watch_player", { player_tag: "#2PP0V90Y" });
-  assert.equal(again.body.claimed, false);
+  // Adding again: idempotent, shares the existing record.
+  const again = await call("elixir_add_player", { player_tag: "#2PP0V90Y" });
+  assert.equal(again.body.added, false);
   assert.equal(again.body.recording_started, false);
 
-  // The web flow's cap applies identically here.
+  // Slots count what you've ADDED (claims); the web door agrees.
   await db.query(
     `update account set max_player_recordings = 2 where account_id = $1`,
     [account.accountId],
   );
-  const capped = await call("elixir_watch_player", { player_tag: "#2PL" });
+  const capped = await call("elixir_add_player", { player_tag: "#2PL" });
   assert.equal(capped.isError, true);
   assert.equal(capped.body.error.code, "quota_exceeded");
   await db.query(
@@ -385,34 +386,45 @@ test("Elixir MCP service domain: watch player, watch clan, insights, collectors"
     [account.accountId],
   );
 
-  // Watch clan at comprehensive scope: the member tier has no
-  // comprehensive slots - refused with an upgrade hint, nothing filed.
-  const tierBlocked = await call("elixir_watch_clan", {
+  // Notify is the only per-subject setting; my_players shows it.
+  const mute = await call("elixir_add_player", {
+    player_tag: "#2PP0V90Y",
+    action: "notify_off",
+  });
+  assert.equal(mute.body.notify, false);
+  const mine = await call("elixir_my_players", {});
+  const row = mine.body.players.find((x) => x.player_tag === "#2PP0V90Y");
+  assert.equal(row.notify, false);
+  await call("elixir_add_player", {
+    player_tag: "#2PP0V90Y",
+    action: "notify_on",
+  });
+
+  // Remove releases the claim and stops the recording it justified.
+  const removed = await call("elixir_add_player", {
+    player_tag: "#2PP0V90Y",
+    action: "remove",
+  });
+  assert.equal(removed.body.removed, true);
+  assert.equal(removed.body.recording_stopped, true);
+
+  // Clan add at comprehensive scope: member tier has no slots.
+  const tierBlocked = await call("elixir_add_clan", {
     clan_tag: "#J2RGCRVG",
-    note: "I lead this clan",
   });
   assert.equal(tierBlocked.isError, true);
   assert.equal(tierBlocked.body.error.code, "quota_exceeded");
   assert.match(tierBlocked.body.error.hint, /upgrade|leader/i);
 
-  // Follow is free at any tier: association, not capture.
-  const follow = await call("elixir_watch_clan", {
-    clan_tag: "#J2RGCRVG",
-    action: "follow",
-  });
-  assert.equal(follow.isError, false);
-  assert.equal(follow.body.recording, "not_requested");
-
-  // The leader tier has the slot: watching starts recording DIRECTLY -
-  // the ladder is the gate, not a maintainer approval (2026-09-05).
+  // The leader tier has the slot: added = recorded, immediately.
   await db.query(`update account set role = 'leader' where account_id = $1`, [
     account.accountId,
   ]);
   account.role = "leader";
-  const clanReq = await call("elixir_watch_clan", { clan_tag: "#J2RGCRVG" });
-  assert.equal(clanReq.isError, false, JSON.stringify(clanReq.body));
-  assert.equal(clanReq.body.recording, "active");
-  assert.equal(clanReq.body.scope, "comprehensive");
+  const clanAdd = await call("elixir_add_clan", { clan_tag: "#J2RGCRVG" });
+  assert.equal(clanAdd.isError, false, JSON.stringify(clanAdd.body));
+  assert.equal(clanAdd.body.recording, "active");
+  assert.equal(clanAdd.body.scope, "comprehensive");
   const { rows: rec } = await db.query(
     `select clan_scope, requested_by from recording
      where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
@@ -420,18 +432,26 @@ test("Elixir MCP service domain: watch player, watch clan, insights, collectors"
   assert.equal(rec[0].clan_scope, "comprehensive");
   assert.equal(rec[0].requested_by, account.accountId);
 
-  // Unwatch stops only YOUR watch and frees the slot.
-  const unwatch = await call("elixir_watch_clan", {
-    clan_tag: "#J2RGCRVG",
-    action: "unwatch",
-  });
-  assert.equal(unwatch.body.recording, "stopped");
-  const rewatch = await call("elixir_watch_clan", {
+  // Re-adding with a narrower scope settles the recording down too
+  // (single adder), and remove stops it entirely.
+  const readd = await call("elixir_add_clan", {
     clan_tag: "#J2RGCRVG",
     scope: "activity",
   });
-  assert.equal(rewatch.body.recording, "active");
-  assert.equal(rewatch.body.scope, "activity");
+  assert.equal(readd.body.scope, "activity");
+  const { rows: settled } = await db.query(
+    `select clan_scope from recording
+     where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
+  );
+  assert.equal(settled[0].clan_scope, "activity");
+  const gone = await call("elixir_add_clan", {
+    clan_tag: "#J2RGCRVG",
+    action: "remove",
+  });
+  assert.equal(gone.body.removed, true);
+  assert.equal(gone.body.recording_stopped, true);
+  const back = await call("elixir_add_clan", { clan_tag: "#J2RGCRVG" });
+  assert.equal(back.body.recording, "active");
 
   // Insights: corpus-wide transparency counts.
   const insights = await call("elixir_data_insights", {});

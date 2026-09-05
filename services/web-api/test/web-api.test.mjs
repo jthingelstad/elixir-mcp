@@ -151,18 +151,12 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   assert.equal(parse(me).authenticated, true);
   assert.equal(parse(me).is_owner, false);
 
+  // Added = recorded: one act claims AND starts capture.
   const claim = await handler(
     event({ path: "/api/claims", cookie, body: { player_tag: "#2PP0V90Y" } }),
   );
   assert.equal(parse(claim).ok, true);
-  const rec = await handler(
-    event({
-      path: "/api/recordings",
-      cookie,
-      body: { player_tag: "#2PP0V90Y", action: "start" },
-    }),
-  );
-  assert.equal(parse(rec).ok, true);
+  assert.equal(parse(claim).recording_started, true);
 
   const me2 = parse(
     await handler(
@@ -175,16 +169,16 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   assert.equal(me2.recordings[0].status, "active");
 });
 
-test("recording opt-in requires a claim on the tag", async () => {
+test("notify toggle requires the tag to be added first", async () => {
   const cookie = newcomerCookie;
   const res = await handler(
     event({
-      path: "/api/recordings",
+      path: "/api/claims",
       cookie,
-      body: { player_tag: "#J2RGCRVG", action: "start" },
+      body: { player_tag: "#J2RGCRVG", action: "notify_off" },
     }),
   );
-  assert.equal(res.statusCode, 403);
+  assert.equal(res.statusCode, 404);
 });
 
 test("cookie-authed state changes require the contract header (CSRF)", async () => {
@@ -586,23 +580,20 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   assert.ok(kinds.includes("gateway_raised"));
   assert.ok(kinds.includes("connection_revoked"));
 
-  // Cap: one active recording exists; drop the cap to 1 and try another.
+  // Cap: one tag added; drop the cap to 1 and the next ADD refuses.
   await db.query(
     `update account set max_player_recordings = 1 where email_hash = $1`,
     [emailHash(NEWCOMER)],
   );
-  await handler(
-    event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
-  );
   const refused = await handler(
-    event({
-      path: "/api/recordings",
-      cookie,
-      body: { player_tag: "#PLC220", action: "start" },
-    }),
+    event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
   );
   assert.equal(refused.statusCode, 429);
   assert.match(parse(refused).message, /capped at 1/);
+  await db.query(
+    `update account set max_player_recordings = null where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
 });
 
 test("gateway ladder: points rank gateways with arena tiers; scoring rides admission", async () => {
@@ -1001,25 +992,17 @@ test("self-serve collections: family curates within its cap, touches only its ow
   assert.equal(mine.limit, 5);
 });
 
-test("clan watching is a user function: follow free, watch within slots, unwatch frees", async () => {
+test("clans: added = recorded within slots; notify is the toggle; remove settles the recording", async () => {
   const cookie = bossCookie; // owner: unlimited slots
-  const follow = await handler(
+  const add = await handler(
     event({
       path: "/api/me/clans",
       cookie,
-      body: { clan_tag: "gq0ylcyj", action: "follow" },
+      body: { clan_tag: "gq0ylcyj", action: "add", scope: "activity" },
     }),
   );
-  assert.equal(parse(follow).clan_tag, "#GQ0YLCYJ", "normalized at the door");
-  const watch = await handler(
-    event({
-      path: "/api/me/clans",
-      cookie,
-      body: { clan_tag: "#GQ0YLCYJ", action: "watch", scope: "activity" },
-    }),
-  );
-  assert.equal(watch.statusCode, 200, watch.body);
-  assert.equal(parse(watch).scope, "activity");
+  assert.equal(parse(add).clan_tag, "#GQ0YLCYJ", "normalized at the door");
+  assert.equal(parse(add).scope, "activity");
   const list = parse(
     await handler(
       event({ method: "GET", path: "/api/me/clans", cookie, body: undefined }),
@@ -1027,9 +1010,9 @@ test("clan watching is a user function: follow free, watch within slots, unwatch
   );
   const row = list.clans.find((c) => c.clan_tag === "#GQ0YLCYJ");
   assert.equal(row.recording_status, "active");
-  assert.equal(row.watched_by_me, true);
+  assert.equal(row.notify, true);
 
-  // A member has no comprehensive slots: refused with the tier message.
+  // A member has no comprehensive slots: the ADD refuses.
   const memberCookie2 = memberCookie;
   const { rows: acct } = await db.query(
     `select account_id from account where email_hash = $1`,
@@ -1042,7 +1025,7 @@ test("clan watching is a user function: follow free, watch within slots, unwatch
     event({
       path: "/api/me/clans",
       cookie: memberCookie2,
-      body: { clan_tag: "#2PPC220", action: "watch", scope: "comprehensive" },
+      body: { clan_tag: "#2PPC220", action: "add", scope: "comprehensive" },
     }),
   );
   assert.equal(refused.statusCode, 429);
@@ -1051,25 +1034,32 @@ test("clan watching is a user function: follow free, watch within slots, unwatch
     acct[0].account_id,
   ]);
 
-  // Unwatch stops only the holder's watch; the follow row remains.
-  const unwatch = await handler(
+  // Notify off, then remove: removal stops the recording (last adder).
+  const mute = await handler(
     event({
       path: "/api/me/clans",
       cookie,
-      body: { clan_tag: "#GQ0YLCYJ", action: "unwatch" },
+      body: { clan_tag: "#GQ0YLCYJ", action: "notify_off" },
     }),
   );
-  assert.equal(parse(unwatch).stopped, true);
+  assert.equal(parse(mute).notify, false);
+  const removed = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { clan_tag: "#GQ0YLCYJ", action: "remove" },
+    }),
+  );
+  assert.equal(parse(removed).removed, true);
+  assert.equal(parse(removed).recording_stopped, true);
   const after = parse(
     await handler(
       event({ method: "GET", path: "/api/me/clans", cookie, body: undefined }),
     ),
   );
-  const kept = after.clans.find((c) => c.clan_tag === "#GQ0YLCYJ");
-  assert.ok(kept, "still followed");
-  assert.equal(kept.recording_status, null);
+  assert.ok(!after.clans.some((c) => c.clan_tag === "#GQ0YLCYJ"));
 
-  // The admin clan surface is GONE - purely a user function.
+  // The admin clan surface stays GONE - purely a user function.
   const gone = await handler(
     event({
       method: "GET",

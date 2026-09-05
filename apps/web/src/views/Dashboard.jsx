@@ -123,15 +123,28 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
                     <td>
                       <button
                         className="quiet"
+                        title="Toggle whether this tag feeds your notification pipe"
                         onClick={async () => {
-                          await api.setRecording(
-                            c.player_tag,
-                            rec?.status === "active" ? "stop" : "start",
-                          );
+                          await api.claimAction({
+                            player_tag: c.player_tag,
+                            action: c.notify ? "notify_off" : "notify_on",
+                          });
                           refresh();
                         }}
                       >
-                        {rec?.status === "active" ? "Stop" : "Record"}
+                        {c.notify ? "🔔 on" : "🔕 off"}
+                      </button>{" "}
+                      <button
+                        className="quiet"
+                        onClick={async () => {
+                          await api.claimAction({
+                            player_tag: c.player_tag,
+                            action: "remove",
+                          });
+                          refresh();
+                        }}
+                      >
+                        Remove
                       </button>
                     </td>
                   </tr>
@@ -152,7 +165,7 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
           }}
         >
           <label>
-            Claim a player tag
+            Add a player (added = recorded)
             <input
               placeholder="#20JJJ2CCRU"
               value={tag}
@@ -160,7 +173,7 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
             />
           </label>
           {error && <p className="error">{error}</p>}
-          <button>Claim</button>
+          <button>Add</button>
         </form>
       </div>
 
@@ -550,12 +563,12 @@ function TierPanel({ me, page }) {
   );
 }
 
-/** Add-vs-watch for clans (Jamie, 2026-09-05): following is free;
- *  watching starts recording within your tier's clan slots, toggled
- *  right here - no maintainer approval. */
+/** Added = recorded (Jamie, 2026-09-05): adding a clan starts capture
+ *  within your tier's slots; the only per-clan setting is notify. */
 function ClansPanel({ page }) {
   const [data, setData] = useState(null);
   const [tag, setTag] = useState("");
+  const [scope, setScope] = useState("comprehensive");
   const [err, setErr] = useState("");
   const load = async () => {
     const r = await api.myClans();
@@ -574,21 +587,56 @@ function ClansPanel({ page }) {
     <div className="panel" hidden={page !== "overview"}>
       <h3>Your clans</h3>
       <p>
-        Adding a clan is free. <strong>Watching</strong> records it — activity
-        (roster + war) or comprehensive (every member&rsquo;s battles) — and
-        spends a tier slot
+        Added means recorded — activity (roster + war) or comprehensive (every
+        member&rsquo;s battles) — within your tier&rsquo;s slots
         {data
           ? ` (activity ${data.slots.activity.used}/${data.slots.activity.limit ?? "∞"}, comprehensive ${data.slots.comprehensive.used}/${data.slots.comprehensive.limit ?? "∞"})`
           : ""}
-        .
+        . The bell controls your notification pipe.
       </p>
       {err && <p className="error">{err}</p>}
+      {data?.home_clan &&
+        !data.clans.some((c) => c.clan_tag === data.home_clan.clan_tag) && (
+          <p>
+            ★ Your clan: <strong>{data.home_clan.name ?? "—"}</strong>{" "}
+            <code>{data.home_clan.clan_tag}</code>{" "}
+            {["comprehensive", "activity"].map((sc) => {
+              const slot = data.slots[sc];
+              const full = slot.limit !== null && slot.used >= slot.limit;
+              return (
+                <button
+                  key={sc}
+                  className="quiet"
+                  disabled={full}
+                  style={full ? { opacity: 0.45 } : undefined}
+                  title={
+                    full
+                      ? slot.limit === 0
+                        ? `Your tier has no ${sc} slots — request an upgrade above.`
+                        : `Your ${sc} slots are full.`
+                      : `Add your clan at ${sc} scope`
+                  }
+                  onClick={() =>
+                    act({
+                      action: "add",
+                      clan_tag: data.home_clan.clan_tag,
+                      scope: sc,
+                    })
+                  }
+                >
+                  Add {sc}
+                </button>
+              );
+            })}
+          </p>
+        )}
       {data?.clans?.length > 0 && (
         <table>
           <thead>
             <tr>
               <th>Clan</th>
               <th>Tag</th>
+              <th>Scope</th>
               <th>Recording</th>
               <th></th>
             </tr>
@@ -596,58 +644,37 @@ function ClansPanel({ page }) {
           <tbody>
             {data.clans.map((c) => (
               <tr key={c.clan_tag}>
-                <td>{c.name ?? "—"}</td>
+                <td>
+                  {data.home_clan?.clan_tag === c.clan_tag ? "★ " : ""}
+                  {c.name ?? "—"}
+                </td>
                 <td>
                   <code>{c.clan_tag}</code>
                 </td>
                 <td>
-                  {c.recording_status === "active"
-                    ? `● ${c.clan_scope}${c.watched_by_me ? "" : " (shared)"}`
-                    : "—"}
+                  {c.scope}
+                  {c.effective_scope && c.effective_scope !== c.scope
+                    ? ` (running ${c.effective_scope})`
+                    : ""}
                 </td>
+                <td>{c.recording_status === "active" ? "●" : "—"}</td>
                 <td>
-                  {c.recording_status !== "active" && (
-                    <>
-                      <button
-                        className="quiet"
-                        onClick={() =>
-                          act({
-                            action: "watch",
-                            clan_tag: c.clan_tag,
-                            scope: "activity",
-                          })
-                        }
-                      >
-                        Watch activity
-                      </button>{" "}
-                      <button
-                        className="quiet"
-                        onClick={() =>
-                          act({
-                            action: "watch",
-                            clan_tag: c.clan_tag,
-                            scope: "comprehensive",
-                          })
-                        }
-                      >
-                        Watch all
-                      </button>{" "}
-                    </>
-                  )}
-                  {c.watched_by_me && (
-                    <button
-                      className="quiet"
-                      onClick={() =>
-                        act({ action: "unwatch", clan_tag: c.clan_tag })
-                      }
-                    >
-                      Stop watching
-                    </button>
-                  )}{" "}
+                  <button
+                    className="quiet"
+                    title="Toggle whether this clan feeds your notification pipe"
+                    onClick={() =>
+                      act({
+                        clan_tag: c.clan_tag,
+                        action: c.notify ? "notify_off" : "notify_on",
+                      })
+                    }
+                  >
+                    {c.notify ? "🔔 on" : "🔕 off"}
+                  </button>{" "}
                   <button
                     className="quiet"
                     onClick={() =>
-                      act({ action: "unfollow", clan_tag: c.clan_tag })
+                      act({ clan_tag: c.clan_tag, action: "remove" })
                     }
                   >
                     Remove
@@ -661,7 +688,7 @@ function ClansPanel({ page }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          await act({ action: "follow", clan_tag: tag });
+          await act({ action: "add", clan_tag: tag, scope });
           setTag("");
         }}
         style={{ marginTop: "0.8rem" }}
@@ -672,6 +699,10 @@ function ClansPanel({ page }) {
           onChange={(e) => setTag(e.target.value)}
           style={{ width: "9rem" }}
         />{" "}
+        <select value={scope} onChange={(e) => setScope(e.target.value)}>
+          <option value="comprehensive">comprehensive</option>
+          <option value="activity">activity</option>
+        </select>{" "}
         <button disabled={!tag}>Add clan</button>
       </form>
     </div>

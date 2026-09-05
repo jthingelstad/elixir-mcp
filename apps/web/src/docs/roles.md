@@ -46,13 +46,14 @@ plus granting or revoking the admin role, service tokens, collectors,
 and quota overrides. No admin can change the owner's account — or
 another admin's.
 
-## Adding is free; watching spends a slot
+## Added means recorded
 
-Adding a player or clan to your account is a free association. **Watching**
-— recording — is the separate act your tier's slots bound, and you toggle
-it yourself: player recordings from Account ▸ Overview, clan watches from
-the Your clans panel (or the `elixir_watch_clan` tool). Watching starts
-immediately within your slots; no approval step.
+Adding a player or clan to your account IS the act of recording it —
+there is no separate watch step and no approval queue; your tier's slots
+are the only gate, and capture starts immediately. The one per-subject
+setting is **notify**: whether that player or clan feeds your event pipe
+(`elixir_events`). Remove a subject and its slot frees; a clan's shared
+recording stops only when no account has it added.
 
 ## Why comprehensive is the scarce thing
 

@@ -96,6 +96,7 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
             player_tag: "#20JJJ2CCRU",
             status: "verified",
             is_primary: true,
+            notify: true,
             name: "Jamie",
             last_known_clan_tag: "#J2RGCRVG",
           },
@@ -149,6 +150,7 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
       200,
       {
         clans: [],
+        home_clan: null,
         slots: {
           activity: { used: 0, limit: 1 },
           comprehensive: { used: 0, limit: 0 },
@@ -161,7 +163,8 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
   expect(screen.getByText("Jamie")).toBeTruthy();
   expect(screen.getByText("active")).toBeTruthy();
   expect(screen.getByText(/elixir\.poapkings\.com\/mcp/)).toBeTruthy();
-  expect(screen.getByText("Stop")).toBeTruthy();
+  expect(screen.getByText("🔔 on")).toBeTruthy();
+  expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
   expect(await screen.findByText(/of 500 tool calls/)).toBeTruthy();
 });
 

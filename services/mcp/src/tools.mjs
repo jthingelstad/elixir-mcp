@@ -148,7 +148,7 @@ const TOOLS = {
     },
     async handler(ctx) {
       const { rows } = await ctx.db.query(
-        `select c.player_tag, c.status as claim_status, c.is_primary,
+        `select c.player_tag, c.status as claim_status, c.is_primary, c.notify,
                 p.name, p.last_known_clan_tag,
                 r.status as recording_status,
                 cm.clan_tag as member_of, cm.role
@@ -166,6 +166,7 @@ const TOOLS = {
           name: r.name,
           is_primary: r.is_primary,
           claim_status: r.claim_status,
+          notify: r.notify,
           recording: r.recording_status ?? "not_recording",
           clan_tag: r.member_of ?? r.last_known_clan_tag,
           clan_role: r.role,
@@ -1552,25 +1553,24 @@ const TOOLS = {
     },
   },
 
-  elixir_watch_player: {
+  elixir_add_player: {
     description:
-      "Start recording a player: claims the tag to your account (trust-based) and begins battle/profile capture. Same rules as the website — active player recordings are capped per account.",
+      "Add a player to your account: claims the tag AND starts recording in one act - added means recorded, within your tier's player slots. The only per-subject setting is notify (whether captures feed your elixir_events pipe). action 'remove' releases the claim (recording stops if you were its only reason to exist).",
     inputSchema: {
       type: "object",
       properties: {
         player_tag: {
           type: "string",
-          description: "The tag to watch, like #20JJJ2CCRU.",
+          description: "The tag, like #20JJJ2CCRU.",
+        },
+        action: {
+          type: "string",
+          enum: ["add", "remove", "notify_on", "notify_off"],
+          default: "add",
         },
         make_primary: {
           type: "boolean",
-          description: "Make this your primary claimed tag.",
-        },
-        record: {
-          type: "boolean",
-          default: true,
-          description:
-            "false claims the tag WITHOUT starting recording (add now, watch later - recording is a separate, slotted act you can toggle on the website or by calling again).",
+          description: "With 'add': make this your primary claimed tag.",
         },
       },
       required: ["player_tag"],
@@ -1586,6 +1586,84 @@ const TOOLS = {
           "Invalid player tag.",
           TAG_RULE_HINT,
         );
+      }
+      const action = args.action ?? "add";
+      if (action === "notify_on" || action === "notify_off") {
+        const { rowCount } = await ctx.db.query(
+          `update claim set notify = $3 where account_id = $1 and player_tag = $2`,
+          [ctx.account.accountId, tag, action === "notify_on"],
+        );
+        if (rowCount === 0) {
+          throw new ToolFailure(
+            "not_entitled",
+            "You haven't added this player.",
+            "Add the tag first; notify is a setting on YOUR copy of it.",
+          );
+        }
+        return {
+          player_tag: tag,
+          notify: action === "notify_on",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
+      if (action === "remove") {
+        const { rowCount } = await ctx.db.query(
+          `delete from claim where account_id = $1 and player_tag = $2`,
+          [ctx.account.accountId, tag],
+        );
+        // Recording stops only when this account requested it and no
+        // other claim keeps the tag added (ops-created recordings -
+        // pros, clan fan-out - are untouched: no claims involved).
+        let recordingStopped = false;
+        if (rowCount > 0) {
+          const { rowCount: stopped } = await ctx.db.query(
+            `update recording set status = 'stopped'
+             where subject_type = 'player' and subject_tag = $1
+               and status = 'active' and requested_by = $2
+               and not exists (select 1 from claim where player_tag = $1)`,
+            [tag, ctx.account.accountId],
+          );
+          recordingStopped = stopped > 0;
+          if (recordingStopped) {
+            await ctx.db.query(
+              `insert into account_event (account_id, kind, detail) values ($1, 'recording_stopped', $2)`,
+              [
+                ctx.account.accountId,
+                JSON.stringify({ player_tag: tag, via: "mcp" }),
+              ],
+            );
+          }
+        }
+        return {
+          player_tag: tag,
+          removed: rowCount > 0,
+          recording_stopped: recordingStopped,
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
+      // action 'add': added = recorded. Slots count what you've ADDED
+      // (your claims), owner/admin exempt - same rule as the website.
+      if (!ctx.account.isOwner && ctx.account.role !== "admin") {
+        const { rows: cap } = await ctx.db.query(
+          `select a.max_player_recordings as override,
+                  exists (select 1 from gateway g
+                          where g.owner_account_id = $1 and g.status = 'active') as operator,
+                  (select count(*)::int from claim c
+                   where c.account_id = $1 and c.player_tag <> $2) as added
+           from account a where a.account_id = $1`,
+          [ctx.account.accountId, tag],
+        );
+        const limit =
+          cap[0].override ??
+          roleQuotas(ctx.account.role, { operator: cap[0].operator })
+            .player_slots;
+        if (cap[0].added >= limit) {
+          throw new ToolFailure(
+            "quota_exceeded",
+            `Added players are capped at ${limit} for the ${ctx.account.role ?? "member"} tier.`,
+            "Remove one, request a tier upgrade on the website, or run a collector for bonus slots.",
+          );
+        }
       }
       await ctx.db.query(
         `insert into player (player_tag) values ($1) on conflict do nothing`,
@@ -1619,54 +1697,13 @@ const TOOLS = {
           [ctx.account.accountId, tag],
         );
       }
-      // Recordings spend the one global rate budget: same cap as the web
-      // flow (default 5 active player recordings, column override, owner
-      // exempt) — the two doors must never disagree.
-      const { rows: already } = await ctx.db.query(
-        `select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active'`,
-        [tag],
+      const { rowCount: started } = await ctx.db.query(
+        `insert into recording (subject_type, subject_tag, requested_by)
+         select 'player', $1, $2
+         where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
+        [tag, ctx.account.accountId],
       );
-      let recordingStarted = false;
-      if (args.record === false) {
-        return {
-          player_tag: tag,
-          claimed: claimed > 0,
-          recording: already[0] ? "active" : "not_requested",
-          recording_started: false,
-          note: "Claimed without recording. Call again (or use the website) to start capture - player history only builds while recording.",
-          meta: responseMeta({ as_of: new Date().toISOString() }),
-        };
-      }
-      if (!already[0]) {
-        if (!ctx.account.isOwner && ctx.account.role !== "admin") {
-          const { rows: cap } = await ctx.db.query(
-            `select a.max_player_recordings as override,
-                    exists (select 1 from gateway g
-                            where g.owner_account_id = $1 and g.status = 'active') as operator,
-                    (select count(*)::int from recording r
-                     where r.requested_by = $1 and r.subject_type = 'player'
-                       and r.status = 'active') as active
-             from account a where a.account_id = $1`,
-            [ctx.account.accountId],
-          );
-          const limit =
-            cap[0].override ??
-            roleQuotas(ctx.account.role, { operator: cap[0].operator })
-              .player_slots;
-          if (cap[0].active >= limit) {
-            throw new ToolFailure(
-              "quota_exceeded",
-              `Active player recordings are capped at ${limit} for the ${ctx.account.role ?? "member"} tier.`,
-              "Stop one on the website, request a tier upgrade there, or run a collector for bonus slots - see /docs (Roles).",
-            );
-          }
-        }
-        await ctx.db.query(
-          `insert into recording (subject_type, subject_tag, requested_by)
-           select 'player', $1, $2
-           where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
-          [tag, ctx.account.accountId],
-        );
+      if (started > 0) {
         await ctx.db.query(
           `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
           [
@@ -1680,24 +1717,25 @@ const TOOLS = {
           "recording_started",
           tag,
         );
-        recordingStarted = true;
       }
       return {
         player_tag: tag,
-        claimed: claimed > 0,
+        added: claimed > 0,
         recording: "active",
-        recording_started: recordingStarted,
-        note: recordingStarted
-          ? "Watching. First battles land within the hour; history builds from here (the API has no past)."
-          : "This player was already being recorded — you now share the existing record.",
+        recording_started: started > 0,
+        notify: true,
+        note:
+          started > 0
+            ? "Added and recording. First battles land within the hour; history builds from here (the API has no past). Captures feed your elixir_events pipe - notify_off silences this tag."
+            : "Added - this player was already being recorded, so you share the existing record from here on.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
   },
 
-  elixir_watch_clan: {
+  elixir_add_clan: {
     description:
-      "Follow or watch a clan. Following is a free association; WATCHING starts recording immediately within your tier's clan slots (activity: roster + war; comprehensive: additionally every member's battles and profile, following membership changes). Same rules as the website - the role ladder is the gate.",
+      "Add a clan to your account: starts recording in one act - added means recorded, within your tier's clan slots (activity: roster + war; comprehensive: additionally every member's battles and profile, following membership). The only per-subject setting is notify. action 'remove' takes it off your account (recording stops when no account has it added).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1707,17 +1745,15 @@ const TOOLS = {
         },
         action: {
           type: "string",
-          enum: ["watch", "follow", "unwatch"],
-          default: "watch",
-          description:
-            "watch starts recording (spends a clan slot); follow just adds the clan to your account without recording; unwatch stops a watch YOU hold (the shared record survives if others hold one).",
+          enum: ["add", "remove", "notify_on", "notify_off"],
+          default: "add",
         },
         scope: {
           type: "string",
           enum: ["activity", "comprehensive"],
           default: "comprehensive",
           description:
-            "activity records the clan itself (roster, war); comprehensive additionally records every member's battles and profile.",
+            "With 'add': activity records the clan itself; comprehensive additionally records every member. Re-adding with a different scope updates yours.",
         },
       },
       required: ["clan_tag"],
@@ -1734,85 +1770,61 @@ const TOOLS = {
           TAG_RULE_HINT,
         );
       }
-      const action = args.action ?? "watch";
-      if (action === "follow") {
-        await ctx.db.query(
-          `insert into clan_follow (account_id, clan_tag) values ($1, $2)
-           on conflict do nothing`,
-          [ctx.account.accountId, tag],
-        );
-        await ctx.db.query(
-          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
-          [tag],
-        );
-        return {
-          clan_tag: tag,
-          following: true,
-          recording: "not_requested",
-          note: "Followed without recording. Use action 'watch' when you want capture to start.",
-          meta: responseMeta({ as_of: new Date().toISOString() }),
-        };
-      }
-      if (action === "unwatch") {
+      const action = args.action ?? "add";
+      if (action === "notify_on" || action === "notify_off") {
         const { rowCount } = await ctx.db.query(
-          `update recording set status = 'stopped'
-           where subject_type = 'clan' and subject_tag = $1
-             and status = 'active' and requested_by = $2`,
-          [tag, ctx.account.accountId],
+          `update account_clan set notify = $3 where account_id = $1 and clan_tag = $2`,
+          [ctx.account.accountId, tag, action === "notify_on"],
         );
-        if (rowCount > 0) {
-          await ctx.db.query(
-            `insert into account_event (account_id, kind, detail) values ($1, 'recording_stopped', $2)`,
-            [
-              ctx.account.accountId,
-              JSON.stringify({ clan_tag: tag, via: "mcp" }),
-            ],
-          );
-          await emitFeedEvent(
-            ctx.db,
-            ctx.account.accountId,
-            "recording_stopped",
-            tag,
+        if (rowCount === 0) {
+          throw new ToolFailure(
+            "not_entitled",
+            "You haven't added this clan.",
+            "Add the clan first; notify is a setting on YOUR copy of it.",
           );
         }
         return {
           clan_tag: tag,
-          recording: rowCount > 0 ? "stopped" : "not_yours",
-          note:
-            rowCount > 0
-              ? "Your watch is stopped; the slot is free."
-              : "No active watch of yours on this clan - only the holder of a watch can stop it.",
+          notify: action === "notify_on",
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
-      const { rows: active } = await ctx.db.query(
-        `select 1 from recording where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
-        [tag],
-      );
-      if (active[0]) {
+      if (action === "remove") {
+        const { rowCount } = await ctx.db.query(
+          `delete from account_clan where account_id = $1 and clan_tag = $2`,
+          [ctx.account.accountId, tag],
+        );
+        let recordingStopped = false;
+        if (rowCount > 0) {
+          recordingStopped = await settleClanRecording(ctx.db, tag);
+          if (recordingStopped) {
+            await ctx.db.query(
+              `insert into account_event (account_id, kind, detail) values ($1, 'recording_stopped', $2)`,
+              [
+                ctx.account.accountId,
+                JSON.stringify({ clan_tag: tag, via: "mcp" }),
+              ],
+            );
+          }
+        }
         return {
           clan_tag: tag,
-          recording: "active",
-          note: "This clan is already being recorded - you share the existing record.",
+          removed: rowCount > 0,
+          recording_stopped: recordingStopped,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
-      // The role ladder is the gate (Jamie, 2026-09-05): watching
-      // starts recording directly within your tier's clan slots -
-      // activity and comprehensive are separate budgets. The two doors
-      // (web /api/me/clans and this tool) must never disagree.
+      // action 'add': slots count clans you've ADDED, per scope.
       const scope = args.scope === "activity" ? "activity" : "comprehensive";
       if (!ctx.account.isOwner && ctx.account.role !== "admin") {
         const { rows: slots } = await ctx.db.query(
           `select exists (select 1 from gateway g
                           where g.owner_account_id = $1 and g.status = 'active') as operator,
-                  count(*) filter (where r.clan_scope = $2)::int as used
-           from account a
-           left join recording r on r.requested_by = a.account_id
-             and r.subject_type = 'clan' and r.status = 'active'
-           where a.account_id = $1
-           group by a.account_id`,
-          [ctx.account.accountId, scope],
+                  (select count(*)::int from account_clan ac
+                   where ac.account_id = $1 and ac.scope = $2
+                     and ac.clan_tag <> $3) as used
+           from account a where a.account_id = $1`,
+          [ctx.account.accountId, scope, tag],
         );
         const q = roleQuotas(ctx.account.role, {
           operator: slots[0]?.operator ?? false,
@@ -1826,48 +1838,50 @@ const TOOLS = {
               ? `The ${ctx.account.role ?? "member"} tier has no ${scope}-scope clan slots.`
               : `Your ${scope}-scope clan slots are full (${limit} for the ${ctx.account.role ?? "member"} tier).`,
             scope === "comprehensive"
-              ? "Comprehensive capture records every member's battles - the leader tier and above include it. Request an upgrade on the website (Account > Overview), or watch at scope 'activity'."
+              ? "Comprehensive capture records every member's battles - the leader tier and above include it. Request an upgrade on the website (Account > Overview), or add at scope 'activity'."
               : "Request a tier upgrade on the website (Account > Overview) - see the Roles doc.",
           );
         }
       }
       await ctx.db.query(
-        `insert into clan_follow (account_id, clan_tag) values ($1, $2)
-         on conflict do nothing`,
-        [ctx.account.accountId, tag],
-      );
-      await ctx.db.query(
         `insert into clan (clan_tag) values ($1) on conflict do nothing`,
         [tag],
       );
-      await ctx.db.query(
-        `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
-         select 'clan', $1, $2, $3
-         where not exists (select 1 from recording
-                           where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
-        [tag, ctx.account.accountId, scope],
+      const { rowCount: added } = await ctx.db.query(
+        `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, $3)
+         on conflict (account_id, clan_tag) do update set scope = excluded.scope`,
+        [ctx.account.accountId, tag, scope],
       );
-      await ctx.db.query(
-        `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
-        [
-          ctx.account.accountId,
-          JSON.stringify({ clan_tag: tag, scope, via: "mcp" }),
-        ],
-      );
-      await emitFeedEvent(
+      const started = await ensureClanRecording(
         ctx.db,
-        ctx.account.accountId,
-        "recording_started",
         tag,
-        {
-          scope,
-        },
+        ctx.account.accountId,
       );
+      if (started) {
+        await ctx.db.query(
+          `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
+          [
+            ctx.account.accountId,
+            JSON.stringify({ clan_tag: tag, scope, via: "mcp" }),
+          ],
+        );
+        await emitFeedEvent(
+          ctx.db,
+          ctx.account.accountId,
+          "recording_started",
+          tag,
+          { scope },
+        );
+      }
       return {
         clan_tag: tag,
+        added: added > 0,
         recording: "active",
         scope,
-        note: "Watching. Roster and war capture begin within minutes; comprehensive member fan-out follows on the next scheduler pass.",
+        notify: true,
+        note: started
+          ? "Added and recording. Roster and war capture begin within minutes; comprehensive member fan-out follows on the next scheduler pass."
+          : "Added - this clan was already being recorded, so you share the existing record (the effective scope is the widest any adder requested).",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -3072,6 +3086,59 @@ const TOOLS = {
     },
   },
 };
+
+/** Added = recorded, shared honestly: the clan's recording exists while
+ *  ANY account has it added, at the widest requested scope. Returns
+ *  true when this call started the recording. */
+export async function ensureClanRecording(db, tag, requestedBy) {
+  const { rows: eff } = await db.query(
+    `select max(scope) as scope from account_clan where clan_tag = $1`,
+    [tag],
+  );
+  const scope = eff[0]?.scope ?? "comprehensive"; // 'comprehensive' > 'activity' lexically
+  const { rowCount: started } = await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+     select 'clan', $1, $2, $3
+     where not exists (select 1 from recording
+                       where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
+    [tag, requestedBy, scope],
+  );
+  if (started === 0) {
+    await db.query(
+      `update recording set clan_scope = $2
+       where subject_type = 'clan' and subject_tag = $1 and status = 'active'
+         and clan_scope <> $2`,
+      [tag, scope],
+    );
+  }
+  return started > 0;
+}
+
+/** After a removal: stop the recording when no account has the clan
+ *  added any more, else settle scope to the widest remaining request.
+ *  Returns true when the recording stopped. */
+export async function settleClanRecording(db, tag) {
+  const { rows: eff } = await db.query(
+    `select max(scope) as scope, count(*)::int as n
+     from account_clan where clan_tag = $1`,
+    [tag],
+  );
+  if (eff[0].n === 0) {
+    const { rowCount } = await db.query(
+      `update recording set status = 'stopped'
+       where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+      [tag],
+    );
+    return rowCount > 0;
+  }
+  await db.query(
+    `update recording set clan_scope = $2
+     where subject_type = 'clan' and subject_tag = $1 and status = 'active'
+       and clan_scope <> $2`,
+    [tag, eff[0].scope],
+  );
+  return false;
+}
 
 export function makeRegistry() {
   return {
