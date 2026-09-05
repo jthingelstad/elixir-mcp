@@ -39,8 +39,12 @@ export const api = {
   adminServiceTokens: () => request("GET", "/api/admin/service-tokens"),
   adminServiceTokenAction: (body) =>
     request("POST", "/api/admin/service-tokens", body),
-  adminFeedbackStatus: (feedback_id, status) =>
-    request("POST", "/api/admin/feedback", { feedback_id, status }),
+  adminFeedbackStatus: (feedback_id, status, response) =>
+    request("POST", "/api/admin/feedback", {
+      feedback_id,
+      status,
+      ...(response ? { response } : {}),
+    }),
   activity: () => request("GET", "/api/me/activity"),
   connections: () => request("GET", "/api/me/connections"),
   revokeConnection: (family_id) =>

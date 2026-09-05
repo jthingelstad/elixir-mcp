@@ -280,10 +280,16 @@ export function App() {
             refresh={refresh}
             navigate={navigate}
             page={activePage ?? "overview"}
+            itemId={effectivePath.split("/")[3]}
           />
         ) : section === "admin" ? (
           me?.is_admin ? (
-            <Admin me={me} page={activePage ?? "requests"} />
+            <Admin
+              me={me}
+              page={activePage ?? "requests"}
+              navigate={navigate}
+              itemId={effectivePath.split("/")[3]}
+            />
           ) : (
             <SignInWall navigate={navigate} />
           )

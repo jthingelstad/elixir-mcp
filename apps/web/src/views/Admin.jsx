@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 
-export function Admin({ me, page = "requests" }) {
+export function Admin({ me, page = "requests", navigate, itemId }) {
   const [requests, setRequests] = useState([]);
   const [gateways, setGateways] = useState([]);
   const [usage, setUsage] = useState(null);
@@ -30,6 +30,13 @@ export function Admin({ me, page = "requests" }) {
   }, [me, load]);
 
   if (!me?.is_admin) return <p className="notice">Admins only.</p>;
+
+  // Detail routes (detail-views sweep, Jamie 2026-09-05): one item,
+  // one addressable page.
+  if (page === "feedback" && itemId)
+    return <AdminFeedbackItem id={itemId} navigate={navigate} />;
+  if (page === "collections" && itemId)
+    return <CollectionEditor slug={itemId} navigate={navigate} />;
 
   return (
     <>
@@ -190,7 +197,29 @@ export function Admin({ me, page = "requests" }) {
                   <td>{f.from_player ? <code>{f.from_player}</code> : "—"}</td>
                   <td>{f.surface}</td>
                   <td>{f.category}</td>
-                  <td>{f.message}</td>
+                  <td>
+                    <a
+                      onClick={() =>
+                        navigate(`/admin/feedback/${f.feedback_id}`)
+                      }
+                    >
+                      {f.message.length > 90
+                        ? f.message.slice(0, 90) + "…"
+                        : f.message}
+                    </a>
+                    {f.response ? (
+                      <span
+                        className="mono"
+                        style={{
+                          marginLeft: "6px",
+                          fontSize: "10.5px",
+                          color: "var(--dim)",
+                        }}
+                      >
+                        responded
+                      </span>
+                    ) : null}
+                  </td>
                   <td>
                     <select
                       value={f.status}
@@ -407,7 +436,7 @@ export function Admin({ me, page = "requests" }) {
         </table>
       </div>
 
-      <AdminCollections page={page} />
+      <AdminCollections page={page} navigate={navigate} />
 
       <AdminAccounts page={page} />
     </>
@@ -508,7 +537,7 @@ function AdminAccounts({ page }) {
 }
 
 /** Collections curation (Jamie, 2026-09-05): owner-only create/manage. */
-function AdminCollections({ page }) {
+function AdminCollections({ page, navigate }) {
   const [cols, setCols] = useState([]);
   const [form, setForm] = useState({
     slug: "",
@@ -517,7 +546,6 @@ function AdminCollections({ page }) {
     description: "",
     visibility: "public",
   });
-  const [tagsText, setTagsText] = useState({});
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
@@ -554,75 +582,20 @@ function AdminCollections({ page }) {
               <th>Kind</th>
               <th>Visibility</th>
               <th>Members</th>
-              <th>Add / remove tags</th>
             </tr>
           </thead>
           <tbody>
             {cols.map((c) => (
               <tr key={c.slug}>
                 <td>
-                  <code>{c.slug}</code>
+                  <a onClick={() => navigate(`/admin/collections/${c.slug}`)}>
+                    <code>{c.slug}</code> ›
+                  </a>
                 </td>
                 <td>{c.title}</td>
                 <td>{c.kind}</td>
-                <td>
-                  <button
-                    className="btn--text"
-                    onClick={() =>
-                      act({
-                        action: "upsert",
-                        slug: c.slug,
-                        title: c.title,
-                        kind: c.kind,
-                        visibility:
-                          c.visibility === "public" ? "private" : "public",
-                      })
-                    }
-                  >
-                    {c.visibility}
-                  </button>
-                </td>
-                <td title={(c.members ?? []).join(" ")}>{c.member_count}</td>
-                <td>
-                  <input
-                    placeholder="#TAG #TAG ..."
-                    value={tagsText[c.slug] ?? ""}
-                    onChange={(e) =>
-                      setTagsText({ ...tagsText, [c.slug]: e.target.value })
-                    }
-                    style={{ width: "12rem" }}
-                  />{" "}
-                  <button
-                    className="btn--text"
-                    onClick={async () => {
-                      await act({
-                        action: "add",
-                        slug: c.slug,
-                        tags: (tagsText[c.slug] ?? "")
-                          .split(/[\s,]+/)
-                          .filter(Boolean),
-                      });
-                      setTagsText({ ...tagsText, [c.slug]: "" });
-                    }}
-                  >
-                    Add
-                  </button>{" "}
-                  <button
-                    className="btn--text"
-                    onClick={async () => {
-                      await act({
-                        action: "remove",
-                        slug: c.slug,
-                        tags: (tagsText[c.slug] ?? "")
-                          .split(/[\s,]+/)
-                          .filter(Boolean),
-                      });
-                      setTagsText({ ...tagsText, [c.slug]: "" });
-                    }}
-                  >
-                    Remove
-                  </button>
-                </td>
+                <td>{c.visibility}</td>
+                <td>{c.member_count}</td>
               </tr>
             ))}
           </tbody>
@@ -631,8 +604,10 @@ function AdminCollections({ page }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          const slug = form.slug;
           await act({ action: "upsert", ...form });
           setForm({ ...form, slug: "", title: "", description: "" });
+          navigate(`/admin/collections/${slug}`);
         }}
         style={{ marginTop: "1rem" }}
       >
@@ -665,5 +640,382 @@ function AdminCollections({ page }) {
         <button disabled={!form.slug || !form.title}>Create</button>
       </form>
     </div>
+  );
+}
+
+/** One feedback item, admin lane: the full record plus the moderation
+ *  acts — status and the maintainer response (which lands in the
+ *  filer's event feed). The response box finally exposes what the API
+ *  supported all along. */
+function AdminFeedbackItem({ id, navigate }) {
+  const [item, setItem] = useState(null);
+  const [missed, setMissed] = useState(false);
+  const [response, setResponse] = useState("");
+  const [saved, setSaved] = useState("");
+  const load = useCallback(async () => {
+    const r = await api.adminFeedback();
+    const found = (r.data?.feedback ?? []).find(
+      (f) => String(f.feedback_id) === String(id),
+    );
+    if (found) {
+      setItem(found);
+      setResponse((prev) => prev || found.response || "");
+    } else setMissed(true);
+  }, [id]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  if (missed)
+    return (
+      <div className="panel">
+        <div className="panel__body">
+          No feedback item #{id}.{" "}
+          <a onClick={() => navigate("/admin/feedback")}>All feedback ›</a>
+        </div>
+      </div>
+    );
+  if (!item) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  const setStatus = async (status, withResponse) => {
+    setSaved("");
+    const r = await api.adminFeedbackStatus(
+      item.feedback_id,
+      status,
+      withResponse ? response.trim() || undefined : undefined,
+    );
+    if (r.ok) {
+      setSaved(withResponse ? "Response sent." : "Status saved.");
+      load();
+    }
+  };
+  return (
+    <>
+      <p style={{ margin: "0 0 10px" }}>
+        <a
+          className="mono"
+          style={{ fontSize: "12px" }}
+          onClick={() => navigate("/admin/feedback")}
+        >
+          ‹ All feedback
+        </a>
+      </p>
+      <section className="panel" style={{ maxWidth: "680px" }}>
+        <div className="panel__head">
+          <span className="mono" style={{ color: "var(--dim)" }}>
+            #{item.feedback_id}
+          </span>
+          <span className="tag-chip">{item.category}</span>
+          <span
+            className={`chip ${item.status === "done" ? "chip--active" : item.status === "new" ? "chip--pending" : ""}`}
+          >
+            {item.status}
+          </span>
+          <span
+            className="mono"
+            style={{
+              marginLeft: "auto",
+              fontSize: "11px",
+              color: "var(--dim)",
+            }}
+          >
+            {item.from_player ?? "unknown filer"} · via {item.surface} ·{" "}
+            {item.created_at?.slice(0, 10)}
+          </span>
+        </div>
+        <div
+          className="panel__body"
+          style={{ fontSize: "13px", lineHeight: 1.6 }}
+        >
+          {item.message}
+        </div>
+        {item.context && (
+          <div
+            className="panel__body"
+            style={{ borderTop: "1px solid var(--edge-soft)" }}
+          >
+            <div
+              className="mono"
+              style={{
+                fontSize: "11px",
+                color: "var(--dim)",
+                marginBottom: "6px",
+              }}
+            >
+              CONTEXT
+            </div>
+            <pre
+              className="mono"
+              style={{
+                fontSize: "11.5px",
+                overflowX: "auto",
+                margin: 0,
+              }}
+            >
+              {JSON.stringify(item.context, null, 2)}
+            </pre>
+          </div>
+        )}
+        <div
+          className="panel__body"
+          style={{
+            borderTop: "1px solid var(--edge-soft)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+          }}
+        >
+          <label>
+            <span className="label">Maintainer response</span>
+            <textarea
+              rows={4}
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder="Lands in the filer's feed as feedback_responded."
+              style={{ width: "100%" }}
+            />
+          </label>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <select
+              value={item.status}
+              onChange={(e) => setStatus(e.target.value, false)}
+            >
+              {["new", "seen", "planned", "done", "declined"].map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn"
+              disabled={!response.trim()}
+              onClick={() =>
+                setStatus(item.status === "new" ? "seen" : item.status, true)
+              }
+            >
+              Send response
+            </button>
+            {saved && (
+              <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+                {saved}
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** Open-and-edit collection page (Jamie: "the add remove is very odd,
+ *  there should be a way to just open the collection and edit it
+ *  there"). Members are rows with their own remove; the meta form
+ *  edits in place; Explore shows the same collection as users see it. */
+function CollectionEditor({ slug, navigate }) {
+  const [col, setCol] = useState(null);
+  const [missed, setMissed] = useState(false);
+  const [meta, setMeta] = useState(null);
+  const [addText, setAddText] = useState("");
+  const [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    const r = await api.adminCollections();
+    const found = (r.data?.collections ?? []).find((c) => c.slug === slug);
+    if (found) {
+      setCol(found);
+      setMeta(
+        (prev) =>
+          prev ?? {
+            title: found.title,
+            description: found.description ?? "",
+            visibility: found.visibility,
+          },
+      );
+    } else setMissed(true);
+  }, [slug]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const act = async (body) => {
+    setErr("");
+    const r = await api.adminCollectionAction(body);
+    if (!r.ok) setErr(r.data?.message ?? r.data?.error ?? "failed");
+    await load();
+  };
+  if (missed)
+    return (
+      <div className="panel">
+        <div className="panel__body">
+          No collection “{slug}”.{" "}
+          <a onClick={() => navigate("/admin/collections")}>
+            All collections ›
+          </a>
+        </div>
+      </div>
+    );
+  if (!col || !meta) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  return (
+    <>
+      <p style={{ margin: "0 0 10px" }}>
+        <a
+          className="mono"
+          style={{ fontSize: "12px" }}
+          onClick={() => navigate("/admin/collections")}
+        >
+          ‹ All collections
+        </a>
+      </p>
+      {err && <p className="field-error">{err}</p>}
+      <div className="cols">
+        <div className="cols__main">
+          <section className="panel">
+            <div className="panel__head">
+              <span className="panel-title">
+                <code>{col.slug}</code> · {col.kind}s
+              </span>
+              <a
+                className="mono"
+                style={{ marginLeft: "auto", fontSize: "11.5px" }}
+                onClick={() => navigate(`/explore/collection/${col.slug}`)}
+              >
+                view in Explore ›
+              </a>
+            </div>
+            <div
+              className="panel__body"
+              style={{ display: "flex", gap: "8px", alignItems: "center" }}
+            >
+              <input
+                placeholder={col.kind === "clan" ? "#CLANTAG" : "#PLAYERTAG"}
+                className="mono"
+                value={addText}
+                onChange={(e) => setAddText(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button
+                className="btn"
+                disabled={!addText.trim()}
+                onClick={async () => {
+                  await act({
+                    action: "add",
+                    slug: col.slug,
+                    tags: addText.split(/[\s,]+/).filter(Boolean),
+                  });
+                  setAddText("");
+                }}
+              >
+                Add
+              </button>
+            </div>
+            {(col.members ?? []).length === 0 && (
+              <div className="panel__body" style={{ color: "var(--faint)" }}>
+                Empty collection — add tags above.
+              </div>
+            )}
+            {(col.members ?? []).length > 0 && (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tag</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(col.members ?? []).map((tag) => (
+                    <tr key={tag}>
+                      <td>
+                        <a
+                          className="mono"
+                          onClick={() =>
+                            navigate(
+                              `/explore/${col.kind}/${encodeURIComponent(tag)}`,
+                            )
+                          }
+                        >
+                          {tag}
+                        </a>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <button
+                          className="btn--text"
+                          onClick={() =>
+                            act({
+                              action: "remove",
+                              slug: col.slug,
+                              tags: [tag],
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </div>
+        <div className="cols__rail">
+          <section className="panel">
+            <div className="panel__head">
+              <span className="panel-title">Details</span>
+            </div>
+            <form
+              className="panel__body"
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                await act({
+                  action: "upsert",
+                  slug: col.slug,
+                  kind: col.kind,
+                  ...meta,
+                });
+              }}
+            >
+              <label>
+                <span className="label">Title</span>
+                <input
+                  value={meta.title}
+                  onChange={(e) => setMeta({ ...meta, title: e.target.value })}
+                />
+              </label>
+              <label>
+                <span className="label">Description</span>
+                <textarea
+                  rows={3}
+                  value={meta.description}
+                  onChange={(e) =>
+                    setMeta({ ...meta, description: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                <span className="label">Visibility</span>
+                <select
+                  value={meta.visibility}
+                  onChange={(e) =>
+                    setMeta({ ...meta, visibility: e.target.value })
+                  }
+                >
+                  <option value="public">public</option>
+                  <option value="private">private</option>
+                </select>
+              </label>
+              <div>
+                <button className="btn" disabled={!meta.title.trim()}>
+                  Save details
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </>
   );
 }

@@ -84,14 +84,134 @@ function Switch({ on, onToggle, label }) {
   );
 }
 
-export function Dashboard({ me, refresh, navigate, page }) {
+export function Dashboard({ me, refresh, navigate, page, itemId }) {
   if (me === null) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
   if (page === "activity") return <Activity />;
   if (page === "collector") return <CollectorPage />;
   if (page === "agents") return <Agents />;
   if (page === "usage") return <Usage me={me} />;
-  if (page === "feedback") return <Feedback navigate={navigate} />;
+  if (page === "feedback")
+    return itemId ? (
+      <FeedbackItem id={itemId} navigate={navigate} />
+    ) : (
+      <Feedback navigate={navigate} />
+    );
   return <Overview me={me} refresh={refresh} navigate={navigate} />;
+}
+
+/** One feedback item as an addressable page (detail-views sweep,
+ *  Jamie 2026-09-05): the whole conversation about one filed item —
+ *  message, maintainer response, status — at a linkable URL. */
+function FeedbackItem({ id, navigate }) {
+  const [item, setItem] = useState(null);
+  const [missed, setMissed] = useState(false);
+  useEffect(() => {
+    api.myFeedback().then((r) => {
+      const found = (r.data?.feedback ?? []).find(
+        (f) => String(f.feedback_id) === String(id),
+      );
+      if (found) setItem(found);
+      else setMissed(true);
+    });
+  }, [id]);
+  if (missed)
+    return (
+      <div className="panel">
+        <div className="panel__body">
+          No feedback item #{id} on your account.{" "}
+          <a onClick={() => navigate("/account/feedback")}>All feedback ›</a>
+        </div>
+      </div>
+    );
+  if (!item) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  return (
+    <>
+      <p style={{ margin: "0 0 10px" }}>
+        <a
+          className="mono"
+          style={{ fontSize: "12px" }}
+          onClick={() => navigate("/account/feedback")}
+        >
+          ‹ All feedback
+        </a>
+      </p>
+      <section className="panel" style={{ maxWidth: "640px" }}>
+        <div className="panel__head">
+          <span className="mono" style={{ color: "var(--dim)" }}>
+            #{item.feedback_id}
+          </span>
+          <span className="tag-chip">{item.category}</span>
+          <span
+            className={`chip ${
+              item.status === "done"
+                ? "chip--active"
+                : item.status === "new"
+                  ? "chip--pending"
+                  : ""
+            }`}
+          >
+            {item.status}
+          </span>
+          <span
+            className="mono"
+            style={{
+              marginLeft: "auto",
+              fontSize: "11px",
+              color: "var(--dim)",
+            }}
+          >
+            filed {item.created_at?.slice(0, 10)} · via {item.surface}
+          </span>
+        </div>
+        <div
+          className="panel__body"
+          style={{ fontSize: "13px", lineHeight: 1.6 }}
+        >
+          {item.message}
+        </div>
+        {item.response ? (
+          <div
+            className="panel__body"
+            style={{ borderTop: "1px solid var(--edge-soft)" }}
+          >
+            <div
+              className="mono"
+              style={{
+                fontSize: "11px",
+                color: "var(--dim)",
+                marginBottom: "6px",
+              }}
+            >
+              MAINTAINER RESPONSE
+              {item.responded_at ? ` · ${item.responded_at.slice(0, 10)}` : ""}
+            </div>
+            <div style={{ fontSize: "12.5px", lineHeight: 1.6 }}>
+              {item.response}
+            </div>
+            {item.shipped_in && (
+              <p style={{ marginTop: "8px" }}>
+                <a
+                  className="mono"
+                  style={{ fontSize: "11.5px" }}
+                  onClick={() => navigate("/data/changelog")}
+                >
+                  shipped in {item.shipped_in} ›
+                </a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div
+            className="panel__foot"
+            style={{ fontSize: "12px", color: "var(--faint)" }}
+          >
+            Awaiting a maintainer response — every item gets one, and a response
+            lands in your event feed.
+          </div>
+        )}
+      </section>
+    </>
+  );
 }
 
 /* ── Overview ────────────────────────────────────────────── */
@@ -886,12 +1006,13 @@ function Feedback({ navigate }) {
                   flexWrap: "wrap",
                 }}
               >
-                <span
+                <a
                   className="mono"
-                  style={{ color: "var(--dim)", fontSize: "11.5px" }}
+                  style={{ fontSize: "11.5px" }}
+                  onClick={() => navigate(`/account/feedback/${f.feedback_id}`)}
                 >
-                  #{f.feedback_id}
-                </span>
+                  #{f.feedback_id} ›
+                </a>
                 <span className="tag-chip">{f.category}</span>
                 <span
                   className={`chip ${
