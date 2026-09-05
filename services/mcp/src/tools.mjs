@@ -1344,6 +1344,41 @@ const TOOLS = {
     },
   },
 
+  elixir_my_feedback: {
+    description:
+      "Your feedback and what happened to it: every item you (or your agent) filed, its status (new/seen/planned/done/declined), and the maintainer's response when there is one. Check back after filing - feedback here is never actioned invisibly.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 50);
+      const { rows } = await ctx.db.query(
+        `select feedback_id, surface, category, message, status,
+                response, responded_at, created_at
+         from feedback where account_id = $1
+         order by feedback_id desc limit $2`,
+        [ctx.account.accountId, limit],
+      );
+      return {
+        feedback: rows.map((r) => ({
+          feedback_id: r.feedback_id,
+          created_at: r.created_at.toISOString(),
+          surface: r.surface,
+          category: r.category,
+          message: r.message,
+          status: r.status,
+          response: r.response,
+          responded_at: r.responded_at?.toISOString() ?? null,
+        })),
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   elixir_watch_player: {
     description:
       "Start recording a player: claims the tag to your account (trust-based) and begins battle/profile capture. Same rules as the website — active player recordings are capped per account.",

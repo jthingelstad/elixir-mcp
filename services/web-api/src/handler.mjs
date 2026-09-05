@@ -507,6 +507,19 @@ export function makeHandler({
       });
     },
 
+    "GET /api/me/feedback": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select feedback_id, surface, category, message, status,
+                response, responded_at, created_at
+         from feedback where account_id = $1
+         order by feedback_id desc limit 50`,
+        [account.accountId],
+      );
+      return json(200, { feedback: rows });
+    },
+
     "POST /api/feedback": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
@@ -544,7 +557,7 @@ export function makeHandler({
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select f.feedback_id, f.surface, f.category, f.message, f.context,
-                f.status, f.created_at,
+                f.status, f.response, f.responded_at, f.created_at,
                 (select c.player_tag from claim c
                  where c.account_id = f.account_id and c.is_primary) as from_player
          from feedback f order by f.feedback_id desc limit 100`,
@@ -564,10 +577,16 @@ export function makeHandler({
         : null;
       if (!status || !body.feedback_id)
         return json(400, { error: "bad_request" });
-      await db.query(`update feedback set status = $2 where feedback_id = $1`, [
-        body.feedback_id,
-        status,
-      ]);
+      const response = body.response
+        ? String(body.response).slice(0, 4000)
+        : null;
+      await db.query(
+        `update feedback set status = $2,
+                response = coalesce($3, response),
+                responded_at = case when $3 is not null then now() else responded_at end
+         where feedback_id = $1`,
+        [body.feedback_id, status, response],
+      );
       return json(200, { ok: true });
     },
 

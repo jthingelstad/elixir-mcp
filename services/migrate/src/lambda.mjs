@@ -244,6 +244,36 @@ async function probe(databaseUrl) {
   }
 }
 
+/** Maintainer feedback response ({feedback_respond: {feedback_id,
+ *  status, response}}): the ops-side path to close a feedback item so
+ *  the requester sees status + reply (0026). The admin web panel is the
+ *  interactive equivalent. */
+async function feedbackRespond(databaseUrl, spec) {
+  const status = ["seen", "planned", "done", "declined"].includes(spec?.status)
+    ? spec.status
+    : null;
+  if (!status || !spec?.feedback_id)
+    throw new Error("feedback_respond needs feedback_id and a valid status");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rowCount } = await db.query(
+      `update feedback set status = $2,
+              response = coalesce($3, response),
+              responded_at = case when $3 is not null then now() else responded_at end
+       where feedback_id = $1`,
+      [
+        spec.feedback_id,
+        status,
+        spec.response ? String(spec.response).slice(0, 4000) : null,
+      ],
+    );
+    return { updated: rowCount };
+  } finally {
+    await db.end();
+  }
+}
+
 /** MCP request effectiveness census ({audit_census: {days?}}): the
  *  product-signal read of mcp_call_audit (Jamie, 2026-09-05) - per-tool
  *  volume, errors, truncation, latency, and reach across surfaces, plus
@@ -656,6 +686,14 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.feedback_respond) {
+    const result = await feedbackRespond(
+      process.env.DATABASE_URL,
+      event.feedback_respond,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

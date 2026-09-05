@@ -80,6 +80,9 @@ The service itself.
   a tag; use it to caveat answers honestly.
 - **Send feedback** (`elixir_feedback`) — file feedback with the
   maintainer, attributed to your account.
+- **My feedback** (`elixir_my_feedback`) — everything you've filed with
+  its status and the maintainer's response; feedback is never actioned
+  invisibly.
 - **Watch player** (`elixir_watch_player`) — claim a tag and start
   recording it, same caps as the website.
 - **Watch clan** (`elixir_watch_clan`) — request clan recording at

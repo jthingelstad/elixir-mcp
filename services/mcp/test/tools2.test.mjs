@@ -492,3 +492,28 @@ test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS 
   );
   assert.ok(q.body.battles.every((b) => b.game_mode.name.startsWith("Chaos_")));
 });
+
+test("feedback loop closes: file, maintainer responds, requester sees it", async () => {
+  const filed = await call("elixir_feedback", {
+    message: "The trend view is great but I want draws broken out.",
+    category: "feature",
+  });
+  assert.equal(filed.isError, false);
+  const id = filed.body.feedback_id;
+
+  let mine = await call("elixir_my_feedback", {});
+  const row = mine.body.feedback.find((f) => f.feedback_id === id);
+  assert.equal(row.status, "new");
+  assert.equal(row.response, null);
+
+  await db.query(
+    `update feedback set status = 'done', response = 'Shipped in 0.6.0 - draws ride every window now.', responded_at = now()
+     where feedback_id = $1`,
+    [id],
+  );
+  mine = await call("elixir_my_feedback", {});
+  const after2 = mine.body.feedback.find((f) => f.feedback_id === id);
+  assert.equal(after2.status, "done");
+  assert.match(after2.response, /Shipped in 0.6.0/);
+  assert.ok(after2.responded_at);
+});

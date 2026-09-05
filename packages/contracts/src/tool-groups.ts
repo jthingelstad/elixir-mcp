@@ -113,6 +113,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Send feedback",
     readOnly: false,
   },
+  elixir_my_feedback: {
+    group: "Elixir MCP",
+    title: "My feedback",
+    readOnly: true,
+  },
   elixir_watch_player: {
     group: "Elixir MCP",
     title: "Watch player",
