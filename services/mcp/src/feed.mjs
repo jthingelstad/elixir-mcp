@@ -16,6 +16,8 @@ export const FEED_TOPICS = [
   "member_joined",
   "member_left",
   "member_role_changed",
+  "war_day_open",
+  "clan_pulse",
 ];
 
 /** Emit one event to one account. */

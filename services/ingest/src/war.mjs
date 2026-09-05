@@ -59,15 +59,38 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   );
 
   // 1. Anchor: first observation of this period wins, forever.
-  await db.query(
+  const { rows: anchorInsert } = await db.query(
     `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
-     values ($1, $2, $3) on conflict do nothing`,
+     values ($1, $2, $3) on conflict do nothing returning period_index`,
     [tag, payload.periodIndex, fetchedAt],
   );
 
   const clock = await clanClock(db, tag, payload, observedMs);
   if (clock.seasonId === null) {
-    return { projected: "anchor_only", needsBackfill: true };
+    return { projected: "anchor_only", needsBackfill: true, feedEvents: [] };
+  }
+
+  // Push lane (CLAN-PULSE.md): the first observation of a war-day period
+  // is the "war day opened" moment. Recency-guarded so an archive replay
+  // never announces ancient days; collected here, emitted by the
+  // pipeline AFTER commit like every clan topic.
+  const feedEvents = [];
+  if (
+    anchorInsert.length > 0 &&
+    clock.warDay !== null &&
+    Date.parse(fetchedAt) > Date.now() - 24 * 3600_000
+  ) {
+    feedEvents.push({
+      kind: "clan",
+      tag,
+      topic: "war_day_open",
+      payload: {
+        season_id: clock.seasonId,
+        section_index: clock.sectionIndex,
+        war_day: clock.warDay,
+        is_colosseum: clock.kind === "colosseum",
+      },
+    });
   }
 
   // 2. The week row.
@@ -208,6 +231,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     kind: clock.kind,
     members,
     battlers_signaled: deckDeltas.size,
+    feedEvents,
   };
 }
 

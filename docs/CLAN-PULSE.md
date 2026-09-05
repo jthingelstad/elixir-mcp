@@ -1,6 +1,7 @@
 # Clan Pulse — clan-management signals for agent routines
 
-**Design gate — awaiting Jamie's review (2026-09-06).**
+**Ratified by Jamie 2026-09-06 ("a good v1") — shipped in contract
+0.22.0.**
 
 ## The intent
 

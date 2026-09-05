@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Clan Pulse: run your clan with a routine",
+    body: "Every clan you've added now sends one daily clan_pulse digest to your event feed: 24-hour battle activity, top players, members quiet five or more recorded days, war-day deck counts, and roster changes - facts only, the judgment stays yours. A war_day_open event fires the moment a new war day is first observed, and war_current now returns decks_today: named untouched/partial/finished lists, the nudge list. Point a scheduled agent at elixir_events and it can genuinely help run the clan - the recipe is in Docs > Tools.",
+  },
+  {
+    date: "2026-09-06",
     title: "Clan notifications that actually notify, and a measured miss rate",
     body: "Two honesty upgrades. Clans you've added now feed your notification pipe with the things that actually happen: members joining, leaving, and changing role (before this, the only clan event was the weekly war boundary - technically working, practically silent). And every fresh battlelog poll is now capture-audited: if the rotating log fully rolled between polls, that's flagged as a possible gap, and the 24-hour gap count is public on Data > Status - so 'no gaps' is a measurement, not a promise.",
   },

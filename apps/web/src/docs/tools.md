@@ -116,3 +116,32 @@ The service itself.
   players, battles and their span, war weeks, active recordings.
 - **Collectors** (`elixir_collectors`) — the operator machines,
   their card names, points, and the quota credits their fetches earn.
+- **Nicknames** (`elixir_nickname`) — your private name for a player
+  (account-scoped; nobody else ever sees it). Search ranks nickname
+  matches first.
+- **Events** (`elixir_events`) — your event feed, the push lane.
+  Everything you add feeds it while notify is on: battles recorded
+  (coalesced per tag), clan membership changes, `war_day_open` when a
+  new war day is first observed, `clan_war_week_finished`, feedback
+  responses, tier changes — and one `clan_pulse` digest per added clan
+  each day (~07:00 UTC).
+
+## Running a clan with a routine
+
+The feed is built so a **scheduled agent routine** can do real clan
+management. The daily `clan_pulse` digest carries facts only: battles
+and active members in the last 24 hours, the top three players, members
+quiet ≥5 recorded days (with the honest caveat that recording start
+dates differ), war-day deck counts, and roster changes. What to DO
+about a member on day 6 versus day 9 is deliberately your routine's
+judgment, never the service's.
+
+A working recipe:
+
+1. Call `elixir_events` from your saved cursor.
+2. On `clan_pulse`, read the digest; drill with `clans_standings` or
+   `battles_trends` when something moved; draft your leader brief.
+3. On `war_day_open`, plan an evening check: `war_current` returns
+   `decks_today` — named untouched / partial / finished lists for the
+   current war day. That is the nudge list.
+4. On `member_joined` / `member_left`, update your own notes.

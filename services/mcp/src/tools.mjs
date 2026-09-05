@@ -1929,7 +1929,7 @@ const TOOLS = {
 
   elixir_events: {
     description:
-      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Event TYPES this feed can carry (schema, not news - their presence here never means one occurred): battles_recorded (coalesced per tag until read), member_joined / member_left / member_role_changed (clans you've added), clan_war_week_finished, feedback_responded, recording_started/stopped, role_changed (your tier). Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
+      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Event TYPES this feed can carry (schema, not news - their presence here never means one occurred): battles_recorded (coalesced per tag until read), member_joined / member_left / member_role_changed (clans you've added), clan_pulse (daily per-clan digest ~07:00Z: 24h battle activity, quiet members, war-day deck counts, roster changes - facts for YOUR clan-management judgment), war_day_open (a new war day was first observed), clan_war_week_finished, feedback_responded, recording_started/stopped, role_changed (your tier). Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new. For a scheduled clan-management routine: read this feed from your cursor, then drill with war_current (decks_today), clans_roster, and battles_query.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1942,7 +1942,7 @@ const TOOLS = {
         topics: {
           type: "array",
           items: { type: "string" },
-          maxItems: 6,
+          maxItems: 12,
           description: "Only these topics (default: all).",
         },
         limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
@@ -3340,7 +3340,7 @@ const TOOLS = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far.",
+      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far. On a live war day, decks_today names who is untouched/partial/finished - the nudge list for clan management.",
     inputSchema: {
       type: "object",
       properties: {
@@ -3449,6 +3449,59 @@ const TOOLS = {
           [clanTag, wk.season_id, wk.section_index],
         ),
       ]);
+      // Today's remaining-decks picture (CLAN-PULSE.md): only while the
+      // anchored war-day period is nominally still open — a stale anchor
+      // must never present an old day as "today". Attendance polls are
+      // unioned with recorded war battles (polls alone undercount,
+      // round-3); duels make battle counts a floor, so greatest() keeps
+      // the poll number authoritative when present.
+      let decksToday = null;
+      if (
+        period?.war_day &&
+        Date.now() < Date.parse(period.period_end_nominal)
+      ) {
+        const { rows: dayRows } = await ctx.db.query(
+          `with base as (
+             select wp.player_tag, p.name
+             from war_participation wp join player p on p.player_tag = wp.player_tag
+             where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+               and exists (select 1 from clan_membership cm
+                           where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
+                             and cm.left_observed_at is null)),
+           att as (
+             select player_tag, decks_used_today from war_attendance_day
+             where clan_tag = $1 and season_id = $2 and section_index = $3 and war_day = $4),
+           fought as (
+             select bp.player_tag, count(distinct b.battle_id)::int as n
+             from battle b join battle_participant bp on bp.battle_id = b.battle_id
+             where bp.clan_tag = $1 and b.season_id = $2 and b.section_index = $3
+               and b.war_day = $4
+             group by bp.player_tag)
+           select base.player_tag, base.name,
+                  least(greatest(coalesce(att.decks_used_today, 0),
+                                 coalesce(fought.n, 0)), 4)::int as decks_used
+           from base
+           left join att on att.player_tag = base.player_tag
+           left join fought on fought.player_tag = base.player_tag
+           order by decks_used, base.name nulls last`,
+          [clanTag, wk.season_id, wk.section_index, period.war_day],
+        );
+        const pick = (lo, hi) =>
+          dayRows.filter((r) => r.decks_used >= lo && r.decks_used <= hi);
+        decksToday = {
+          war_day: period.war_day,
+          untouched: pick(0, 0),
+          partial: pick(1, 3),
+          finished: pick(4, 4),
+          counts: {
+            untouched: pick(0, 0).length,
+            partial: pick(1, 3).length,
+            finished: pick(4, 4).length,
+            participants: dayRows.length,
+          },
+          note: "Decks used TODAY per current member in this week's race roster: riverrace polls unioned with recorded war battles. Early in a war day the counts trail actual play - cite as 'observed so far', never as final.",
+        };
+      }
       return {
         clan_tag: clanTag,
         season_id: wk.season_id,
@@ -3457,6 +3510,7 @@ const TOOLS = {
         standings: standings.rows,
         participants: participation.rows,
         ...(period ? { period } : {}),
+        ...(decksToday ? { decks_today: decksToday } : {}),
         attendance_by_war_day: attendance.rows,
         note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles.",
         meta: responseMeta({

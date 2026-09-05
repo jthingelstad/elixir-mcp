@@ -416,3 +416,50 @@ test("riverrace deck deltas raise battlelog yield (raise-only, replay-guarded)",
   );
   assert.equal(after2[0].y, before, "replay is history, not activity");
 });
+
+test("war_day_open: first sight of a war-day period emits once, guarded", async () => {
+  const clan = "#PYLQGR88";
+  await ctx.db.query(`insert into clan (clan_tag) values ($1)`, [clan]);
+  const war = await fixture("currentriverrace/war_day.json"); // periodIndex 27 -> war day 4
+  war.clan = { ...war.clan, tag: clan };
+  const fresh = new Date(Date.now() - 3600_000).toISOString();
+
+  const r1 = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: war,
+    fetchedAt: fresh,
+  });
+  assert.equal(r1.feedEvents.length, 1, "first sight of a war day emits");
+  const ev = r1.feedEvents[0];
+  assert.equal(ev.kind, "clan");
+  assert.equal(ev.tag, clan);
+  assert.equal(ev.topic, "war_day_open");
+  assert.equal(ev.payload.war_day, 4);
+  assert.equal(typeof ev.payload.season_id, "number");
+
+  // Re-observing the same period is not a new day.
+  const r2 = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: war,
+    fetchedAt: new Date().toISOString(),
+  });
+  assert.equal(r2.feedEvents.length, 0, "known anchor stays silent");
+
+  // A training period opens no war day.
+  const training = { ...war, periodIndex: 28, sectionIndex: 4 }; // 28 % 7 = 0 -> training
+  const r3 = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: training,
+    fetchedAt: new Date().toISOString(),
+  });
+  assert.equal(r3.feedEvents.length, 0, "training day stays silent");
+
+  // Replayed history (old fetchedAt) never announces an ancient day.
+  const replay = { ...war, periodIndex: 20, sectionIndex: 2 }; // 20 % 7 = 6 -> a war day
+  const r4 = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: replay,
+    fetchedAt: "2026-08-30T07:37:36Z",
+  });
+  assert.equal(r4.feedEvents.length, 0, "replay is history, not news");
+});

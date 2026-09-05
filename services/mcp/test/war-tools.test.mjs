@@ -491,3 +491,75 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
   assert.equal(miss.body.matches.length, 0);
   assert.match(miss.body.note, /No recorded player matches/);
 });
+
+test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
+  // Anchor a war-day period as freshly observed: periodInfo(4) -> war day 2,
+  // and a one-hour-old anchor keeps the nominal 10:00Z end in the future.
+  await db.query(
+    `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
+     values ($1, 4, now() - interval '1 hour')
+     on conflict (clan_tag, period_index)
+       do update set first_observed_at = excluded.first_observed_at`,
+    [CLAN],
+  );
+  const wk = (
+    await db.query(
+      `select season_id, section_index from war_week where clan_tag = $1
+       order by season_id desc, section_index desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0];
+  const members = (
+    await db.query(
+      `select wp.player_tag from war_participation wp
+       where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+         and exists (select 1 from clan_membership cm
+                     where cm.clan_tag = $1 and cm.player_tag = wp.player_tag
+                       and cm.left_observed_at is null)
+       order by wp.player_tag limit 2`,
+      [CLAN, wk.season_id, wk.section_index],
+    )
+  ).rows.map((r) => r.player_tag);
+  assert.equal(members.length, 2, "two current members in the race roster");
+  const [partialTag, finishedTag] = members;
+  await db.query(
+    `insert into war_attendance_day
+       (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+     values ($1, $2, $3, 2, $4, 2), ($1, $2, $3, 2, $5, 4)
+     on conflict do nothing`,
+    [CLAN, wk.season_id, wk.section_index, partialTag, finishedTag],
+  );
+
+  const { body, isError } = await call(invoke, "war_current", {});
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.period.war_day, 2);
+  const dt = body.decks_today;
+  assert.ok(dt, "live war day carries decks_today");
+  assert.equal(dt.war_day, 2);
+  const partial = dt.partial.find((m) => m.player_tag === partialTag);
+  assert.ok(partial && partial.decks_used === 2, "2 decks -> partial");
+  assert.ok(
+    dt.finished.some((m) => m.player_tag === finishedTag),
+    "4 decks -> finished",
+  );
+  assert.ok(
+    dt.untouched.every((m) => m.decks_used === 0),
+    "untouched means zero observed decks",
+  );
+  assert.equal(
+    dt.counts.untouched + dt.counts.partial + dt.counts.finished,
+    dt.counts.participants,
+    "buckets partition the day's roster",
+  );
+  assert.match(dt.note, /observed so far/);
+
+  // A stale anchor (nominal end passed) must not present an old day as
+  // today: decks_today disappears rather than mislead.
+  await db.query(
+    `update war_period_anchor set first_observed_at = now() - interval '3 days'
+     where clan_tag = $1 and period_index = 4`,
+    [CLAN],
+  );
+  const stale = await call(invoke, "war_current", {});
+  assert.equal(stale.body.decks_today, undefined, "stale day says nothing");
+});
