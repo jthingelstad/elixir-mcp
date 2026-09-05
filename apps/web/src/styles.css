@@ -50,7 +50,7 @@
   --dim: #8a81b3; /* NEW: footnotes, mono labels, chart axes */
 
   /* Brand metal — gold. Wordmark, page titles, ★ "yours",
-     achievement moments, arena tiers. NEVER a data value. */
+     achievement moments. NEVER a data value. */
   --gold: #f5c84c;
   --gold-lite: #ffe99a;
   --ink-on-gold: #2a1500;

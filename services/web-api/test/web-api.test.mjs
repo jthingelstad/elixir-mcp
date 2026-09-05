@@ -596,7 +596,7 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   );
 });
 
-test("gateway ladder: points rank gateways with arena tiers; scoring rides admission", async () => {
+test("collector fleet: card-derived identity, quota credits; scoring rides admission", async () => {
   await db.query(
     `update gateway set fetch_points = 2600 where name = 'kitchen-mac' and status <> 'revoked'`,
   );
@@ -610,10 +610,10 @@ test("gateway ladder: points rank gateways with arena tiers; scoring rides admis
       }),
     ),
   );
-  const top = ladder.ladder[0];
-  assert.equal(top.name, "kitchen-mac");
-  assert.equal(top.arena, "Barbarian Bandwidth");
-  assert.equal(top.rank, 1);
+  const top = ladder.ladder.find((g) => g.machine === "kitchen-mac");
+  assert.ok(top, "machine label preserved");
+  assert.equal(top.credits, 260, "10 fetches = +1 daily call");
+  assert.ok(!("arena" in top), "arenas are gone");
 
   const mine = parse(
     await handler(
@@ -630,8 +630,8 @@ test("gateway ladder: points rank gateways with arena tiers; scoring rides admis
     (g) => g.name === "kitchen-mac" && g.status !== "revoked",
   );
   assert.equal(gw.fetch_points, 2600);
-  assert.equal(gw.arena.next.name, "Spell Valley Switch");
-  assert.equal(gw.arena.next.points_needed, 5400);
+  assert.equal(gw.credits, 260);
+  assert.ok(!("arena" in gw));
 });
 
 test("explorer bridge: registry tools with session auth, audited as surface web", async () => {

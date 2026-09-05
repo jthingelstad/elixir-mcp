@@ -5,8 +5,13 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Collectors: cards stay, arenas go",
+    body: "The arena-climb was confusing flavor, so it's gone. What running a collector actually earns is now front and center: every 10 fetches adds +1 to your daily tool-call quota (capped at 4x your base), plus bonus recording slots while it runs. Each collector keeps its Clash Royale card identity - the card is its name; your machine label stays underneath.",
+  },
+  {
+    date: "2026-09-06",
     title: "The redesign: an instrument, not a brochure",
-    body: "The whole site moved to the new design language - Clash display type for the brand shell, gold reserved for what's YOURS (the star on your tag, your clan, your collector's arena), purple as the working accent, denser tables with honest footnotes as first-class components. The headline change: Explore is no longer eight tabs of charts. It's a lookup - 'Do we have it?' - that opens deep-linkable records you traverse by clicking references: player to clan to war week to battle to deck. Every record page is one tool call, the same one your agent makes, with a raw-JSON view and a copy link. Charts now live only in Data, where corpus scale is the subject.",
+    body: "The whole site moved to the new design language - Clash display type for the brand shell, gold reserved for what's YOURS (the star on your tag, your clan), purple as the working accent, denser tables with honest footnotes as first-class components. The headline change: Explore is no longer eight tabs of charts. It's a lookup - 'Do we have it?' - that opens deep-linkable records you traverse by clicking references: player to clan to war week to battle to deck. Every record page is one tool call, the same one your agent makes, with a raw-JSON view and a copy link. Charts now live only in Data, where corpus scale is the subject.",
   },
   {
     date: "2026-09-06",

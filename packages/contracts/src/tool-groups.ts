@@ -196,7 +196,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   },
   elixir_collectors: {
     group: "Elixir MCP",
-    title: "Collector ladder",
+    title: "Collectors",
     readOnly: true,
   },
 };

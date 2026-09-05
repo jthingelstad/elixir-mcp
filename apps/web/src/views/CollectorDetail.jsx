@@ -4,9 +4,9 @@ import { Fresh } from "./Dashboard.jsx";
 
 /** Account ▸ Collector (design handoff §10): deliberately small — the
  *  ladder is a joke, not a product. Per collector: avatar slot, status,
- *  points, a gold meter toward the next arena; beside it the
- *  raise-my-hand CTA. Arenas borrow the game's ladder for fun and mean
- *  nothing for the data. */
+ *  points, and the QUOTA CREDITS its fetches earn (the real benefit;
+ *  Jamie dropped arenas 2026-09-06). Card-derived identity: the card is
+ *  the public name, the operator name is the machine label. */
 
 export function CollectorPage() {
   const [gateways, setGateways] = useState(null);
@@ -67,8 +67,7 @@ export function CollectorPage() {
           )}
           {(gateways ?? []).map((g) => {
             const d = details[g.gateway_id];
-            const rank = ladder.findIndex((l) => l.name === g.name) + 1;
-            const mine = ladder.find((l) => l.name === g.name);
+            const mine = ladder.find((l) => l.machine === g.name);
             const daily = d?.daily ?? [];
             const max = Math.max(...daily.map((x) => x.fetches), 1);
             return (
@@ -101,12 +100,14 @@ export function CollectorPage() {
                     </span>
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>{g.name}</div>
+                    <div style={{ fontWeight: 600 }}>
+                      {g.card_name ?? mine?.card ?? g.name}
+                    </div>
                     <div
                       className="mono"
                       style={{ fontSize: "11.5px", color: "var(--dim)" }}
                     >
-                      {mine?.card ?? "no card yet"}
+                      {g.name}
                       {d?.gateway.last_seen_sha
                         ? ` · ${d.gateway.last_seen_sha.slice(0, 7)}`
                         : ""}
@@ -162,46 +163,34 @@ export function CollectorPage() {
                     </div>
                   </div>
                 )}
-                {mine?.arena && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "12px",
-                      alignItems: "center",
-                      padding: "10px 16px",
-                      borderTop: "1px solid var(--edge-soft)",
-                      flexWrap: "wrap",
-                    }}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    alignItems: "center",
+                    padding: "10px 16px",
+                    borderTop: "1px solid var(--edge-soft)",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    className="yours"
+                    style={{ fontSize: "12.5px", fontWeight: 600 }}
                   >
-                    <span
-                      className="yours"
-                      style={{ fontSize: "12.5px", fontWeight: 600 }}
-                    >
-                      {rank > 0
-                        ? `${rank}${["st", "nd", "rd"][rank - 1] ?? "th"} of ${total}`
-                        : ""}{" "}
-                      · {mine.arena}
-                    </span>
-                    <div
-                      className="meter meter--gold"
-                      style={{ flex: "1 1 120px" }}
-                    >
-                      <div
-                        className="meter__fill"
-                        style={{
-                          width: `${Math.min(100, ((g.fetch_points % 1000) / 1000) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span
-                      className="mono"
-                      style={{ fontSize: "11px", color: "var(--dim)" }}
-                    >
-                      {(1000 - (g.fetch_points % 1000)).toLocaleString()} to the
-                      next arena
-                    </span>
-                  </div>
-                )}
+                    +
+                    {(
+                      g.credits ?? Math.floor((g.fetch_points ?? 0) / 10)
+                    ).toLocaleString()}{" "}
+                    daily tool calls earned
+                  </span>
+                  <span
+                    className="mono"
+                    style={{ fontSize: "11px", color: "var(--dim)" }}
+                  >
+                    10 fetches = +1 call · capped at 4× your base quota · plus
+                    +2 player slots and +1 clan slot while it runs
+                  </span>
+                </div>
                 {daily.length > 0 && (
                   <div className="chart">
                     <div className="chart__head">
@@ -315,8 +304,8 @@ export function CollectorPage() {
               )}
             </div>
             <div className="panel__note">
-              Arenas borrow the game&rsquo;s ladder for fun and mean nothing for
-              the data.
+              Every collector is named for a Clash Royale card; fetches convert
+              to real quota — daily tool calls and bonus recording slots.
             </div>
           </section>
         </div>

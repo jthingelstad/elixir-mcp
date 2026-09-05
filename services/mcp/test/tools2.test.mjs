@@ -459,11 +459,12 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.ok(insights.body.battles.recorded > 0);
   assert.ok(insights.body.battles.first <= insights.body.battles.last);
 
-  // Collectors: the ladder with arena names.
+  // Collectors: card-derived identity + quota credits, no arenas.
   const collectors = await call("elixir_collectors", {});
   assert.ok(collectors.body.collectors.length >= 1);
-  assert.equal(collectors.body.collectors[0].rank, 1);
-  assert.ok(collectors.body.collectors[0].arena.length > 0);
+  const c0 = collectors.body.collectors[0];
+  assert.ok("quota_credits" in c0 && "machine" in c0);
+  assert.ok(!("arena" in c0), "arenas are gone");
 });
 
 test("battles_levels: symmetric curve with floors; Pilot Score honest under small n", async () => {

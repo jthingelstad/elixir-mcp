@@ -28,7 +28,6 @@ import {
 import {
   normalizeTag,
   InvalidTagError,
-  gatewayArena,
   roleQuotas,
   isRole,
   ROLE_ORDER,
@@ -590,13 +589,17 @@ export function makeHandler({
          where status <> 'revoked'
          order by fetch_points desc, enrolled_at`,
       );
+      // Card-derived identity (Jamie, 2026-09-06): the CARD is the
+      // collector's public name; the operator-chosen name stays as the
+      // machine label. Arenas are gone - the real benefit is quota
+      // credits (10 fetches = +1 daily call).
       return json(200, {
-        ladder: rows.map((g, i) => ({
-          rank: i + 1,
-          name: g.name,
+        ladder: rows.map((g) => ({
+          name: g.card_name ?? g.name,
+          machine: g.name,
           status: g.status,
           points: Number(g.fetch_points),
-          arena: gatewayArena(Number(g.fetch_points)).name,
+          credits: Math.floor(Number(g.fetch_points) / 10),
           card: g.card_name,
           card_icon: g.card_icon,
         })),
@@ -1505,7 +1508,7 @@ export function makeHandler({
         gateways: rows.map((g) => ({
           ...g,
           fetch_points: Number(g.fetch_points),
-          arena: gatewayArena(Number(g.fetch_points)),
+          credits: Math.floor(Number(g.fetch_points) / 10),
         })),
       });
     },

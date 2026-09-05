@@ -13,7 +13,6 @@ import {
   displayCard,
   TOOL_GROUPS,
   GROUP_ORDER,
-  gatewayArena,
   CHANGELOG,
   CONTRACT_VERSION,
   roleQuotas,
@@ -2389,7 +2388,7 @@ const TOOLS = {
 
   elixir_collectors: {
     description:
-      "The collector ladder: the operator-run machines that fetch from the CR API, each named for a Clash Royale card, earning a point per fetch and climbing arena tiers. More collectors = resilience - the global CR budget never multiplies, though operators earn personal perks (bonus add slots, daily call credits).",
+      "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors = resilience - the global CR budget never multiplies; what operators DO earn is quota (10 fetches = +1 daily tool call, capped at 4x base) and bonus recording slots.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -2403,16 +2402,16 @@ const TOOLS = {
          order by fetch_points desc, enrolled_at`,
       );
       return {
-        collectors: rows.map((g, i) => ({
-          rank: i + 1,
-          name: g.name,
+        collectors: rows.map((g) => ({
+          name: g.card_name ?? g.name,
+          machine: g.name,
           card: g.card_name,
           status: g.status,
           points: Number(g.fetch_points),
-          arena: gatewayArena(Number(g.fetch_points)).name,
+          quota_credits: Math.floor(Number(g.fetch_points) / 10),
           last_success: g.last_success_at?.toISOString() ?? null,
         })),
-        note: "Run one yourself: raise your hand on the dashboard (a machine with a static IP is all it takes).",
+        note: "Each collector is named for a Clash Royale card. Running one earns real quota: every 10 fetches adds +1 to the operator's daily tool calls (capped at 4x base), plus bonus recording slots. Raise your hand on the website - a machine with a static IP is all it takes.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

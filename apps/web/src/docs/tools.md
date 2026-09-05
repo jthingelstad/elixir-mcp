@@ -114,5 +114,5 @@ The service itself.
   maintainer; clan capture spends the shared budget.
 - **Data insights** (`elixir_data_insights`) — corpus-wide transparency:
   players, battles and their span, war weeks, active recordings.
-- **Collector ladder** (`elixir_collectors`) — the operator machines,
-  their card names, points, and arena tiers.
+- **Collectors** (`elixir_collectors`) — the operator machines,
+  their card names, points, and the quota credits their fetches earn.

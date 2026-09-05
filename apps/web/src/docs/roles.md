@@ -66,9 +66,10 @@ gate.
 ## Earn more by running a collector
 
 Any account operating a healthy collector gets **+2 player slots and +1
-activity clan watch** on top of its tier, and collector fetches also earn
-daily tool-call credits (1 per 10 fetches, up to 4× your base). Capacity
-begets collection: the fleet is the lever that grows the whole service.
+activity clan watch** on top of its tier, and collector fetches earn
+daily tool-call credits (1 per 10 fetches, up to 4× your base) — the
+real, compounding benefit of running one. Capacity begets collection:
+the fleet is the lever that grows the whole service.
 
 ## Upgrades
 
