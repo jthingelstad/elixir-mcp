@@ -21,6 +21,7 @@ import {
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
 import { livePathToJob } from "./live.mjs";
+import { periodInfo } from "../../ingest/src/war-clock.mjs";
 import { emitFeedEvent, FEED_TOPICS } from "./feed.mjs";
 import { ensureGatewayCards } from "./gateway-cards.mjs";
 
@@ -1685,7 +1686,14 @@ const TOOLS = {
         },
         category: {
           type: "string",
-          enum: ["general", "bug", "data_quality", "feature", "praise"],
+          enum: [
+            "general",
+            "bug",
+            "data_quality",
+            "feature",
+            "praise",
+            "other",
+          ],
           default: "general",
         },
         context: {
@@ -1701,6 +1709,21 @@ const TOOLS = {
       const message = String(args.message ?? "").trim();
       if (!message)
         throw new ToolFailure("bad_request", "Feedback message is empty.");
+      const CATEGORIES = [
+        "general",
+        "bug",
+        "data_quality",
+        "feature",
+        "praise",
+        "other",
+      ];
+      if (args.category !== undefined && !CATEGORIES.includes(args.category)) {
+        throw new ToolFailure(
+          "bad_request",
+          `Unknown category '${args.category}'.`,
+          `Valid categories: ${CATEGORIES.join(", ")}.`,
+        );
+      }
       const { rows } = await ctx.db.query(
         `insert into feedback (account_id, surface, category, message, context)
          values ($1, 'mcp', $2, $3, $4)
@@ -1825,7 +1848,7 @@ const TOOLS = {
 
   elixir_events: {
     description:
-      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Topics: battles_recorded (coalesced per tag until read), feedback_responded, recording_started/stopped, role_changed, clan_war_week_finished. Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
+      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Event TYPES this feed can carry (schema, not news - their presence here never means one occurred): battles_recorded (coalesced per tag until read), feedback_responded, recording_started/stopped, role_changed, clan_war_week_finished. Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
     inputSchema: {
       type: "object",
       properties: {
@@ -3197,6 +3220,40 @@ const TOOLS = {
         );
       }
       const wk = weekRows[0];
+      // Grounded time (feedback #8: an agent asserted "the week just
+      // finished" from schema alone): the current period anchor gives
+      // fields a temporal claim can CITE instead of infer.
+      const { rows: anchorRows } = await ctx.db.query(
+        `select period_index, first_observed_at from war_period_anchor
+         where clan_tag = $1 order by period_index desc limit 1`,
+        [clanTag],
+      );
+      let period = null;
+      if (anchorRows[0]) {
+        const idx = Number(anchorRows[0].period_index);
+        const info = periodInfo(idx);
+        const anchor = anchorRows[0].first_observed_at;
+        // Nominal boundary: the next ~10:00 UTC after the period was
+        // first seen open; observed boundaries drift around it.
+        const nominalEnd = new Date(anchor);
+        nominalEnd.setUTCHours(10, 0, 0, 0);
+        if (nominalEnd <= anchor)
+          nominalEnd.setUTCDate(nominalEnd.getUTCDate() + 1);
+        const weekEnd = new Date(
+          nominalEnd.getTime() + (6 - info.dayInSection) * 86400_000,
+        );
+        period = {
+          period_index: idx,
+          kind: info.kind,
+          ...(info.warDay ? { war_day: info.warDay } : {}),
+          day_in_week: info.dayInSection,
+          started_observed_at: anchor.toISOString(),
+          period_end_nominal: nominalEnd.toISOString(),
+          week_end_nominal: weekEnd.toISOString(),
+          as_observed_note:
+            "started_observed_at is when the recorder first saw this period open (true start is at or before it). *_nominal assumes the ~10:00 UTC reset; observed boundaries drift. Cite these fields for any claim about where the war week stands - never infer from day counts or event schemas.",
+        };
+      }
       const [standings, participation, attendance] = await Promise.all([
         ctx.db.query(
           `select participant_clan_tag, participant_name, fame, rank, trophy_change, finish_time
@@ -3253,6 +3310,7 @@ const TOOLS = {
         is_colosseum: wk.is_colosseum,
         standings: standings.rows,
         participants: participation.rows,
+        ...(period ? { period } : {}),
         attendance_by_war_day: attendance.rows,
         note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles.",
         meta: responseMeta({
