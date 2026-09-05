@@ -203,6 +203,7 @@ export function Explore({ me, navigate, path }) {
 function Lookup({ me, navigate }) {
   const [q, setQ] = useState("");
   const [miss, setMiss] = useState(null);
+  const [matches, setMatches] = useState(null);
   const [busy, setBusy] = useState(false);
   const [collections, setCollections] = useState([]);
   const [corpus, setCorpus] = useState(null);
@@ -226,11 +227,25 @@ function Lookup({ me, navigate }) {
     [navigate],
   );
 
+  const searchNames = async (query) => {
+    const r = await api.explore("players_search", { query, limit: 8 });
+    if (!r.ok || r.data.is_error) return false;
+    const found = r.data.body?.matches ?? [];
+    if (found.length === 0) return false;
+    if (found.length === 1) {
+      go("player", encTag(found[0].player_tag));
+      return true;
+    }
+    setMatches({ query, found });
+    return true;
+  };
+
   const resolve = async (raw) => {
     const query = raw.trim();
     if (!query) return;
     setBusy(true);
     setMiss(null);
+    setMatches(null);
     try {
       const slug = query.toLowerCase();
       if (collections.some((c) => c.slug === slug)) {
@@ -263,9 +278,14 @@ function Lookup({ me, navigate }) {
           go("clan", encTag(tag));
           return;
         }
+        // Not a recorded tag - maybe it was a NAME all along ("tyler").
+        if (await searchNames(query)) return;
         setMiss(tag);
         return;
       }
+      // Names and nicknames resolve too - players_search ranks YOUR
+      // nicknames first, then your people, then the corpus.
+      if (await searchNames(query)) return;
       setMiss(query);
     } finally {
       setBusy(false);
@@ -286,10 +306,10 @@ function Lookup({ me, navigate }) {
           Do we have it?
         </div>
         <p className="record__sub" style={{ fontSize: "14px" }}>
-          Paste a player tag, a clan tag, a deck hash, or an ISO week. Elixir
-          answers what it has recorded, then lets you click straight through the
-          records — so when your agent says something surprising, you can go
-          check.
+          Paste a player tag, a clan tag, a deck hash, an ISO week — or just
+          type a name or one of your nicknames. Elixir answers what it has
+          recorded, then lets you click straight through the records — so when
+          your agent says something surprising, you can go check.
         </p>
         <form
           style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -337,6 +357,63 @@ function Lookup({ me, navigate }) {
             ))}
           </div>
         )}
+        {matches && (
+          <div
+            className="panel"
+            style={{ marginTop: "18px", overflow: "hidden" }}
+          >
+            <div className="panel__head">
+              <span className="panel-title">
+                {matches.found.length} players match
+              </span>
+              <span
+                className="mono"
+                style={{
+                  marginLeft: "auto",
+                  fontSize: "11px",
+                  color: "var(--dim)",
+                }}
+              >
+                &ldquo;{matches.query}&rdquo;
+              </span>
+            </div>
+            {matches.found.map((m) => (
+              <a
+                key={m.player_tag}
+                onClick={() => go("player", encTag(m.player_tag))}
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  padding: "10px 16px",
+                  borderTop: "1px solid var(--edge-soft)",
+                  fontSize: "12.5px",
+                  color: "var(--ink)",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>{m.name ?? "—"}</span>
+                {m.nickname && (
+                  <span className="tag-chip">&ldquo;{m.nickname}&rdquo;</span>
+                )}
+                <span className="tag">{m.player_tag}</span>
+                <span className="kind-chip">{m.source}</span>
+                {m.clan_tag && (
+                  <span
+                    className="mono"
+                    style={{
+                      marginLeft: "auto",
+                      fontSize: "11px",
+                      color: "var(--dim)",
+                    }}
+                  >
+                    {m.clan_tag}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
         {miss && (
           <div
             className="empty"
@@ -362,8 +439,9 @@ function Lookup({ me, navigate }) {
               </span>
             </div>
             <div className="empty__body" style={{ textAlign: "left" }}>
-              Nothing in the corpus for that. Elixir only records players and
-              clans someone added — it does not crawl the game. Add it from{" "}
+              Nothing in the corpus matches that tag or name. Elixir only
+              records players and clans someone added — it does not crawl the
+              game. Add it from{" "}
               <a onClick={() => navigate("/account/overview")}>
                 Account ▸ Overview
               </a>{" "}
