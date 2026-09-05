@@ -244,6 +244,26 @@ async function probe(databaseUrl) {
   }
 }
 
+/** Pending feedback ({feedback_pending: true}): every status='new' item
+ *  across all accounts - the loop's standing check (Jamie, 2026-09-05:
+ *  "make checking for new feedback part of your regular check"). */
+async function feedbackPending(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select f.feedback_id, f.surface, f.category, f.message, f.created_at,
+              (select c.player_tag from claim c
+               where c.account_id = f.account_id and c.is_primary) as from_player
+       from feedback f where f.status = 'new'
+       order by f.feedback_id`,
+    );
+    return { pending: rows.length, items: rows };
+  } finally {
+    await db.end();
+  }
+}
+
 /** Collection curation ({collection: {op, slug, ...}}), owner ops path
  *  (v1: creation is owner-only - Jamie, 2026-09-05). ops:
  *  upsert {slug,title,kind,description?,visibility?} | add {slug,tags[]}
@@ -748,6 +768,11 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.feedback_pending) {
+    const result = await feedbackPending(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
