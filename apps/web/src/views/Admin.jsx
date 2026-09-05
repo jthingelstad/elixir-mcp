@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 
-export function Admin({ me }) {
+export function Admin({ me, page = "requests" }) {
   const [requests, setRequests] = useState([]);
   const [gateways, setGateways] = useState([]);
   const [clans, setClans] = useState([]);
@@ -38,7 +38,7 @@ export function Admin({ me }) {
 
   return (
     <>
-      <div className="panel">
+      <div className="panel" hidden={page !== "requests"}>
         <h3>Access requests</h3>
         {requests.length === 0 && <p>Queue is empty.</p>}
         {requests.length > 0 && (
@@ -89,7 +89,7 @@ export function Admin({ me }) {
         )}
       </div>
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "clans"}>
         <h3>Recorded clans</h3>
         <p>
           <strong>Comprehensive</strong> records the clan AND every open
@@ -191,7 +191,7 @@ export function Admin({ me }) {
       </div>
 
       {usage && (
-        <div className="panel">
+        <div className="panel" hidden={page !== "usage"}>
           <h3>MCP usage (7 days)</h3>
           <table>
             <thead>
@@ -270,7 +270,7 @@ export function Admin({ me }) {
         </div>
       )}
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "feedback"}>
         <h3>Feedback</h3>
         {feedback.length === 0 && <p>No feedback yet.</p>}
         {feedback.length > 0 && (
@@ -318,7 +318,7 @@ export function Admin({ me }) {
         )}
       </div>
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "tokens"}>
         <h3>Service tokens</h3>
         <p>
           Long-lived API tokens for services (elixir-bot). Calls audit as{" "}
@@ -399,7 +399,7 @@ export function Admin({ me }) {
         </form>
       </div>
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "gateways"}>
         <h3>Gateways</h3>
         <p>
           Lifecycle: pending → probation (key issued, installed, heartbeating) →
@@ -488,6 +488,167 @@ export function Admin({ me }) {
           </tbody>
         </table>
       </div>
+
+      <AdminCollections page={page} />
     </>
+  );
+}
+
+/** Collections curation (Jamie, 2026-09-05): owner-only create/manage. */
+function AdminCollections({ page }) {
+  const [cols, setCols] = useState([]);
+  const [form, setForm] = useState({
+    slug: "",
+    title: "",
+    kind: "player",
+    description: "",
+    visibility: "public",
+  });
+  const [tagsText, setTagsText] = useState({});
+  const [err, setErr] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await api.adminCollections();
+    if (r.ok) setCols(r.data.collections ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const act = async (body) => {
+    setErr("");
+    const r = await api.adminCollectionAction(body);
+    if (!r.ok) setErr(r.data?.message ?? r.data?.error ?? "failed");
+    await load();
+  };
+
+  return (
+    <div className="panel" hidden={page !== "collections"}>
+      <h3>Collections</h3>
+      <p>
+        Curated groupings served to every user via{" "}
+        <code>collections_browse</code> and Explore ▸ Collections.
+      </p>
+      {err && <p className="error">{err}</p>}
+      {cols.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Slug</th>
+              <th>Title</th>
+              <th>Kind</th>
+              <th>Visibility</th>
+              <th>Members</th>
+              <th>Add / remove tags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cols.map((c) => (
+              <tr key={c.slug}>
+                <td>
+                  <code>{c.slug}</code>
+                </td>
+                <td>{c.title}</td>
+                <td>{c.kind}</td>
+                <td>
+                  <button
+                    className="quiet"
+                    onClick={() =>
+                      act({
+                        action: "upsert",
+                        slug: c.slug,
+                        title: c.title,
+                        kind: c.kind,
+                        visibility:
+                          c.visibility === "public" ? "private" : "public",
+                      })
+                    }
+                  >
+                    {c.visibility}
+                  </button>
+                </td>
+                <td title={(c.members ?? []).join(" ")}>{c.member_count}</td>
+                <td>
+                  <input
+                    placeholder="#TAG #TAG ..."
+                    value={tagsText[c.slug] ?? ""}
+                    onChange={(e) =>
+                      setTagsText({ ...tagsText, [c.slug]: e.target.value })
+                    }
+                    style={{ width: "12rem" }}
+                  />{" "}
+                  <button
+                    className="quiet"
+                    onClick={async () => {
+                      await act({
+                        action: "add",
+                        slug: c.slug,
+                        tags: (tagsText[c.slug] ?? "")
+                          .split(/[\s,]+/)
+                          .filter(Boolean),
+                      });
+                      setTagsText({ ...tagsText, [c.slug]: "" });
+                    }}
+                  >
+                    Add
+                  </button>{" "}
+                  <button
+                    className="quiet"
+                    onClick={async () => {
+                      await act({
+                        action: "remove",
+                        slug: c.slug,
+                        tags: (tagsText[c.slug] ?? "")
+                          .split(/[\s,]+/)
+                          .filter(Boolean),
+                      });
+                      setTagsText({ ...tagsText, [c.slug]: "" });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          await act({ action: "upsert", ...form });
+          setForm({ ...form, slug: "", title: "", description: "" });
+        }}
+        style={{ marginTop: "1rem" }}
+      >
+        <strong>New collection</strong>{" "}
+        <input
+          placeholder="slug"
+          value={form.slug}
+          onChange={(e) => setForm({ ...form, slug: e.target.value })}
+          style={{ width: "8rem" }}
+        />{" "}
+        <input
+          placeholder="Title"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          style={{ width: "10rem" }}
+        />{" "}
+        <select
+          value={form.kind}
+          onChange={(e) => setForm({ ...form, kind: e.target.value })}
+        >
+          <option value="player">player</option>
+          <option value="clan">clan</option>
+        </select>{" "}
+        <input
+          placeholder="Description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          style={{ width: "14rem" }}
+        />{" "}
+        <button disabled={!form.slug || !form.title}>Create</button>
+      </form>
+    </div>
   );
 }

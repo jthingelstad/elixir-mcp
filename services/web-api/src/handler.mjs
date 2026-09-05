@@ -803,6 +803,94 @@ export function makeHandler({
       return json(200, { ok: true, clan_tag: tag });
     },
 
+    "GET /api/admin/collections": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const { rows } = await db.query(
+        `select c.collection_id, c.slug, c.title, c.kind, c.description,
+                c.visibility, c.created_at,
+                (select count(*)::int from collection_member m
+                 where m.collection_id = c.collection_id) as member_count,
+                (select array_agg(m.subject_tag order by m.added_at)
+                 from collection_member m
+                 where m.collection_id = c.collection_id) as members
+         from collection c order by c.created_at`,
+      );
+      return json(200, { collections: rows });
+    },
+
+    "POST /api/admin/collections": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      const slug = String(body.slug ?? "")
+        .toLowerCase()
+        .trim();
+      if (!/^[a-z0-9][a-z0-9-]{1,38}$/.test(slug))
+        return json(400, { error: "bad_request", message: "invalid slug" });
+      if (body.action === "upsert") {
+        if (!body.title || !["player", "clan"].includes(body.kind))
+          return json(400, { error: "bad_request" });
+        await db.query(
+          `insert into collection (slug, title, kind, description, visibility, owner_account)
+           values ($1, $2, $3, $4, coalesce($5, 'public'), $6)
+           on conflict (slug) do update set
+             title = excluded.title,
+             description = coalesce(excluded.description, collection.description),
+             visibility = coalesce($5, collection.visibility)`,
+          [
+            slug,
+            String(body.title).slice(0, 80),
+            body.kind,
+            body.description ? String(body.description).slice(0, 500) : null,
+            ["public", "private"].includes(body.visibility)
+              ? body.visibility
+              : null,
+            account.accountId,
+          ],
+        );
+        return json(200, { ok: true, slug });
+      }
+      if (body.action === "add" || body.action === "remove") {
+        const { rows: col } = await db.query(
+          `select collection_id from collection where slug = $1`,
+          [slug],
+        );
+        if (!col[0]) return json(404, { error: "not_found" });
+        let n = 0;
+        for (const raw of body.tags ?? []) {
+          let tag;
+          try {
+            tag = normalizeTag(String(raw));
+          } catch {
+            continue;
+          }
+          if (body.action === "add") {
+            const r = await db.query(
+              `insert into collection_member (collection_id, subject_tag)
+               values ($1, $2) on conflict do nothing`,
+              [col[0].collection_id, tag],
+            );
+            n += r.rowCount;
+          } else {
+            const r = await db.query(
+              `delete from collection_member
+               where collection_id = $1 and subject_tag = $2`,
+              [col[0].collection_id, tag],
+            );
+            n += r.rowCount;
+          }
+        }
+        return json(200, { ok: true, changed: n });
+      }
+      if (body.action === "delete") {
+        await db.query(`delete from collection where slug = $1`, [slug]);
+        return json(200, { ok: true });
+      }
+      return json(400, { error: "bad_request" });
+    },
+
     "GET /api/admin/gateways": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isOwner) return json(403, { error: "not_entitled" });

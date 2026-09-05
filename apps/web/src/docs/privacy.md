@@ -7,7 +7,7 @@ also store your email as a salted hash (never plaintext in the
 application tables), your timezone if you set one, and operational
 records of your own activity: sign-ins, claims, recording changes, and
 your agent's tool calls (used for quotas and product improvement — you
-can see your own usage on the dashboard).
+can see your own usage under Account > Usage).
 
 **Who can see what.** All recorded game data — battles, profiles,
 clans, war — is readable by every approved account, the same way the

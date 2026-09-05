@@ -30,6 +30,9 @@ export const api = {
   clan: () => request("GET", "/api/clan"),
   usage: () => request("GET", "/api/me/usage"),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
+  adminCollections: () => request("GET", "/api/admin/collections"),
+  adminCollectionAction: (body) =>
+    request("POST", "/api/admin/collections", body),
   sendFeedback: (message, category, context) =>
     request("POST", "/api/feedback", { message, category, context }),
   adminFeedback: () => request("GET", "/api/admin/feedback"),

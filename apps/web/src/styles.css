@@ -70,6 +70,35 @@ header.site a {
 header.site a:hover {
   color: var(--ink);
 }
+header.site a.active {
+  color: var(--gold-lite);
+}
+
+/* Two-tier nav: tier 2 pages within the active section */
+nav.subnav {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: -0.35rem 0 1.1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--edge);
+}
+nav.subnav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+}
+nav.subnav a:hover {
+  color: var(--ink);
+}
+nav.subnav a.active {
+  background: var(--purple);
+  color: var(--ink);
+  border-color: var(--purple);
+}
 
 .hero {
   padding: 2.5rem 0 1rem;

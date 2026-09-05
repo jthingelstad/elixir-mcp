@@ -850,3 +850,52 @@ test("service tokens: owner issues, token validates at the MCP door, revoke kill
   );
   assert.equal(nonOwner.statusCode, 403);
 });
+
+test("admin collections: owner curates; non-owner refused", async () => {
+  const ownerCookie = await signIn(JAMIE);
+  let res = await handler(
+    event({
+      path: "/api/admin/collections",
+      method: "POST",
+      cookie: ownerCookie,
+      body: {
+        action: "upsert",
+        slug: "creators",
+        title: "Creators",
+        kind: "player",
+      },
+    }),
+  );
+  assert.equal(JSON.parse(res.body).ok, true);
+  res = await handler(
+    event({
+      path: "/api/admin/collections",
+      method: "POST",
+      cookie: ownerCookie,
+      body: { action: "add", slug: "creators", tags: ["#PYGRJC0"] },
+    }),
+  );
+  assert.equal(JSON.parse(res.body).changed, 1);
+  res = await handler(
+    event({
+      path: "/api/admin/collections",
+      method: "GET",
+      cookie: ownerCookie,
+    }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  const list = JSON.parse(res.body).collections;
+  const c = list.find((x) => x.slug === "creators");
+  assert.equal(c.member_count, 1);
+  assert.deepEqual(c.members, ["#PYGRJC0"]);
+
+  const memberCookie = await signIn(NEWCOMER);
+  res = await handler(
+    event({
+      path: "/api/admin/collections",
+      method: "GET",
+      cookie: memberCookie,
+    }),
+  );
+  assert.equal(res.statusCode, 403);
+});

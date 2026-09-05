@@ -4,13 +4,66 @@ import { Landing } from "./views/Landing.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { Dashboard } from "./views/Dashboard.jsx";
 import { Admin } from "./views/Admin.jsx";
-import { Clan } from "./views/Clan.jsx";
-import { Explore } from "./views/Explore.jsx";
 import { Docs } from "./views/Docs.jsx";
+import { Explore } from "./views/Explore.jsx";
+import { Clan } from "./views/Clan.jsx";
+import { Collections } from "./views/Collections.jsx";
+import { Collectors } from "./views/Collectors.jsx";
 
 export const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see " +
   "Supercell’s Fan Content Policy: www.supercell.com/fan-content-policy.";
+
+/**
+ * Two-tier navigation (Jamie, 2026-09-05): tier 1 = stable product areas
+ * (Explore the data / your Account / Docs / Admin ops); tier 2 = the
+ * pages within, where growth lands. Old flat paths redirect.
+ */
+const SECTIONS = {
+  explore: {
+    label: "Explore",
+    authed: true,
+    pages: [
+      { slug: "player", label: "Player" },
+      { slug: "clan", label: "Clan & War" },
+      { slug: "collections", label: "Collections" },
+      { slug: "collectors", label: "Collectors" },
+    ],
+  },
+  account: {
+    label: "Account",
+    authed: true,
+    pages: [
+      { slug: "overview", label: "Overview" },
+      { slug: "agents", label: "Agents" },
+      { slug: "usage", label: "Usage" },
+      { slug: "feedback", label: "Feedback" },
+    ],
+  },
+  docs: { label: "Docs", authed: false, pages: [] }, // Docs owns its own ToC
+  admin: {
+    label: "Admin",
+    authed: true,
+    ownerOnly: true,
+    pages: [
+      { slug: "requests", label: "Requests" },
+      { slug: "clans", label: "Clans" },
+      { slug: "collections", label: "Collections" },
+      { slug: "gateways", label: "Collectors" },
+      { slug: "tokens", label: "Tokens" },
+      { slug: "feedback", label: "Feedback" },
+      { slug: "usage", label: "Usage" },
+    ],
+  },
+};
+
+const REDIRECTS = {
+  "/dashboard": "/account/overview",
+  "/clan": "/explore/clan",
+  "/explore": "/explore/player",
+  "/account": "/account/overview",
+  "/admin": "/admin/requests",
+};
 
 function useRoute() {
   const [path, setPath] = useState(window.location.pathname);
@@ -41,6 +94,26 @@ export function App() {
   }, [refresh]);
 
   const authed = me?.authenticated === true;
+  const effectivePath = REDIRECTS[path] ?? path;
+  const [, section, page] = effectivePath.split("/");
+  const sec = SECTIONS[section];
+  const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
+
+  const link = (to, label, key, isActive) => (
+    <a
+      key={key ?? to}
+      href={to}
+      className={
+        (isActive ?? effectivePath.startsWith(to)) ? "active" : undefined
+      }
+      onClick={(e) => {
+        e.preventDefault();
+        navigate(to);
+      }}
+    >
+      {label}
+    </a>
+  );
 
   return (
     <main>
@@ -58,59 +131,24 @@ export function App() {
           </a>
         </h1>
         <nav>
-          <a
-            href="/docs"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/docs");
-            }}
-          >
-            Docs
-          </a>
-          {authed && (
-            <a
-              href="/dashboard"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/dashboard");
-              }}
-            >
-              Dashboard
-            </a>
-          )}
-          {authed && (
-            <a
-              href="/explore"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/explore");
-              }}
-            >
-              Explore
-            </a>
-          )}
-          {authed && (
-            <a
-              href="/clan"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/clan");
-              }}
-            >
-              Clan
-            </a>
-          )}
-          {authed && me.is_owner && (
-            <a
-              href="/admin"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/admin");
-              }}
-            >
-              Admin
-            </a>
-          )}
+          {authed &&
+            link(
+              "/explore/player",
+              "Explore",
+              "explore",
+              section === "explore",
+            )}
+          {authed &&
+            link(
+              "/account/overview",
+              "Account",
+              "account",
+              section === "account",
+            )}
+          {link("/docs", "Docs", "docs", section === "docs")}
+          {authed &&
+            me.is_owner &&
+            link("/admin/requests", "Admin", "admin", section === "admin")}
           {authed ? (
             <a
               href="/signout"
@@ -137,27 +175,46 @@ export function App() {
         </nav>
       </header>
 
-      {path === "/signin" && (
+      {sec && sec.pages.length > 0 && (
+        <nav className="subnav" aria-label={`${sec.label} pages`}>
+          {sec.pages.map((p) =>
+            link(`/${section}/${p.slug}`, p.label, `${section}-${p.slug}`),
+          )}
+        </nav>
+      )}
+
+      {effectivePath === "/signin" && (
         <SignIn
           onAuthed={async () => {
             await refresh();
-            navigate("/dashboard");
+            navigate("/account/overview");
           }}
         />
       )}
-      {path === "/dashboard" && (
-        <Dashboard me={me} refresh={refresh} navigate={navigate} />
+      {section === "docs" && <Docs />}
+      {section === "explore" && activePage === "player" && (
+        <Explore me={me} navigate={navigate} />
       )}
-      {path === "/docs" && <Docs />}
-      {path === "/explore" && <Explore me={me} navigate={navigate} />}
-      {path === "/clan" && <Clan me={me} navigate={navigate} />}
-      {path === "/admin" && <Admin me={me} />}
-      {path !== "/signin" &&
-        path !== "/dashboard" &&
-        path !== "/clan" &&
-        path !== "/explore" &&
-        path !== "/docs" &&
-        path !== "/admin" && <Landing authed={authed} navigate={navigate} />}
+      {section === "explore" && activePage === "clan" && (
+        <Clan me={me} navigate={navigate} />
+      )}
+      {section === "explore" && activePage === "collections" && (
+        <Collections me={me} navigate={navigate} />
+      )}
+      {section === "explore" && activePage === "collectors" && <Collectors />}
+      {section === "account" && (
+        <Dashboard
+          me={me}
+          refresh={refresh}
+          navigate={navigate}
+          page={activePage ?? "overview"}
+        />
+      )}
+      {section === "admin" && <Admin me={me} page={activePage ?? "requests"} />}
+      {effectivePath !== "/signin" &&
+        !["docs", "explore", "account", "admin"].includes(section) && (
+          <Landing authed={authed} navigate={navigate} />
+        )}
 
       <footer>{DISCLAIMER}</footer>
     </main>

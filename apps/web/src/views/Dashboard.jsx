@@ -9,7 +9,7 @@ function freshness(ts) {
   return `${Math.round(mins / 60)}h ago`;
 }
 
-export function Dashboard({ me, refresh, navigate }) {
+export function Dashboard({ me, refresh, navigate, page = "overview" }) {
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
   const [tzSaved, setTzSaved] = useState(false);
@@ -74,7 +74,7 @@ export function Dashboard({ me, refresh, navigate }) {
 
   return (
     <>
-      <div className="panel">
+      <div className="panel" hidden={page !== "overview"}>
         <h3>Your players</h3>
         {me.claims.length === 0 && (
           <p>No tags claimed yet — add yours below.</p>
@@ -163,7 +163,7 @@ export function Dashboard({ me, refresh, navigate }) {
       </div>
 
       {usage && (
-        <div className="panel">
+        <div className="panel" hidden={page !== "usage"}>
           <h3>Usage</h3>
           <p>
             Today: <strong>{usage.today_calls}</strong>
@@ -204,7 +204,7 @@ export function Dashboard({ me, refresh, navigate }) {
       )}
 
       {connections.length > 0 && (
-        <div className="panel">
+        <div className="panel" hidden={page !== "agents"}>
           <h3>Connected agents</h3>
           <p>
             MCP clients authorized on your account. Disconnecting revokes their
@@ -248,7 +248,7 @@ export function Dashboard({ me, refresh, navigate }) {
         </div>
       )}
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "agents"}>
         <h3>Connect your agent</h3>
         <p>
           Add this MCP server to Claude (or any MCP client) and sign in with
@@ -260,7 +260,7 @@ export function Dashboard({ me, refresh, navigate }) {
         </p>
       </div>
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "overview"}>
         <h3>Run a gateway</h3>
         <p>
           Gateways are the machines that talk to the Clash Royale API — one
@@ -391,7 +391,7 @@ export function Dashboard({ me, refresh, navigate }) {
       </div>
 
       {activity.length > 0 && (
-        <div className="panel">
+        <div className="panel" hidden={page !== "usage"}>
           <h3>Recent activity</h3>
           <table>
             <tbody>
@@ -407,7 +407,7 @@ export function Dashboard({ me, refresh, navigate }) {
         </div>
       )}
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "feedback"}>
         <h3>Send feedback</h3>
         <p>
           Bugs, wrong-looking data, missing capabilities, praise — it all goes
@@ -447,7 +447,7 @@ export function Dashboard({ me, refresh, navigate }) {
         )}
       </div>
 
-      <div className="panel">
+      <div className="panel" hidden={page !== "overview"}>
         <h3>Timezone</h3>
         <p>Battle times and daily windows resolve in your local time.</p>
         <select
