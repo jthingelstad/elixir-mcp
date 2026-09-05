@@ -39,7 +39,6 @@ maintained distillation.
   <text class="sub" x="510" y="260" text-anchor="middle">PostgreSQL</text>
   <rect class="store" x="605" y="222" width="160" height="66"/>
   <text class="sub" x="685" y="252" text-anchor="middle">S3 archive</text>
-  <text class="sub" x="685" y="270" text-anchor="middle">(building)</text>
   <!-- queue -->
   <line class="edge" x1="240" y1="310" x2="180" y2="390"/>
   <line class="edge" x1="440" y1="310" x2="440" y2="390"/>
@@ -69,6 +68,75 @@ queue, fetch with their IP-allowlisted key, and post results back. They
 never choose their own targets, hold no user data, and earn ladder
 points per call. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load.
+
+## Collectors, in depth
+
+A collector is a single static Go binary (its own public repo,
+[elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector))
+that runs anywhere with a static IP — a Mac in a closet, a Synology NAS
+at a cabin. What makes the fleet interesting:
+
+- **Card identities.** Every collector is named after a Clash Royale
+  card and appears publicly only by that card name — machine labels and
+  IPs stay private. The public [Status](/data/status) page shows each
+  card's heartbeat and hourly fetch rate.
+- **Credits.** Fetches earn points, and points convert to the
+  operator's own daily tool-call quota at 10:1 (capped at 4× the tier
+  base). Running a collector literally buys your agent more questions.
+- **Self-serve provisioning.** Raising your hand on the site stages a
+  one-time-download `.env` for your machine; each collector gets its
+  own IAM user scoped to exactly three things (lease requests, post
+  results, publish a heartbeat metric). The Clash Royale key is the one
+  thing that never passes through the service — operators create their
+  own, IP-bound.
+- **Self-update.** Collectors check GitHub Releases hourly, verify the
+  SHA-256, swap themselves atomically, and exit for the supervisor to
+  restart. An update failure never stops collection; a dev build never
+  self-updates.
+- **Capture audit.** Every fresh battle-log poll with prior coverage is
+  audited: if the payload's *oldest* battle was previously unseen, the
+  rotating log may have rolled past something — recorded as a possible
+  gap. The 24-hour gap count is public on Status, so "no gaps" is a
+  measurement, not a promise.
+
+## The push lane and the Clan Pulse
+
+Recording is pull; noticing is push. Everything you add feeds a
+per-account **event feed** (`elixir_events`) while its notify switch is
+on: battles recorded (coalesced per tag), clan membership changes, war
+weeks finishing, feedback responses. Two events exist specifically so a
+**scheduled agent routine can help run a clan**: a real-time
+`war_day_open` when a new war day is first observed, and one
+`clan_pulse` digest per added clan each day — 24-hour battle activity,
+quiet members, war-day deck counts, roster changes. The digest carries
+facts, never judgments; what to do about a member quiet six days is
+deliberately your agent's call, not the service's. The recipe lives in
+[Docs › Tools](/docs/tools).
+
+## The feedback loop
+
+Feedback is a first-class product surface, not a mailbox. Agents file
+it mid-session with `elixir_feedback` (attributed to the connecting
+account); people file it on the site. Every item gets a maintainer
+response — `elixir_my_feedback` shows the full ledger, a
+`feedback_responded` event lands in your feed, and shipped fixes link
+the change. The same loop feeds the public
+[Changelog](/data/changelog): contract versions are machine-readable
+(`elixir_changelog`), so an agent can ask "what changed since 0.20?"
+and discover capabilities that landed mid-session. Several shipped
+tools trace directly to agent-filed feedback.
+
+## The outbound relay
+
+The VPC has no NAT — cloud components cannot reach the internet at
+all, which is a security posture worth keeping. The one exception is a
+small non-VPC **relay** Lambda fed by a queue. It does three jobs with
+deliberately different guarantees: transactional email (magic-link
+codes via JMAP — retried hard, dead-lettered loudly), anonymous
+[Tinylytics](https://tinylytics.app) product events (best-effort,
+dropped on failure), and newsletter enrollment at sign-in (Buttondown;
+idempotent, and an unsubscribed address is never re-subscribed). An
+analytics outage can never page anyone or delay a login email.
 
 ## Recording: record once, entitle many
 
@@ -127,8 +195,28 @@ system must never present a partial record as a complete one.
 
 ## Operations
 
-CI-gated public repo; collectors self-update from green main; alarms
-route to an operations queue drained daily; performance is censused
-continuously (every ingest message logs phase timings). The database is
-audited (`docs/DB-AUDIT.md`) and raw payloads live in the S3 archive
-with SQL-over-S3 tooling (`docs/DATA-TOOLS.md`).
+CI-gated public repo; collectors self-update from released builds;
+alarms route to an operations queue drained daily; performance is
+censused continuously (every ingest message logs phase timings). The
+database is audited (`docs/DB-AUDIT.md`) and raw payloads live in the
+S3 archive with SQL-over-S3 tooling (`docs/DATA-TOOLS.md`). Site visits
+are counted anonymously with Tinylytics — see [Privacy](/docs/privacy)
+for exactly what that means.
+
+## The code, and the family
+
+Elixir MCP is built in the open:
+
+- [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
+  — this service: recorder, MCP door, web app, and the design docs
+  (`docs/DESIGN.md` is the spec of record).
+- [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
+  — the collector binary operators run.
+- [jthingelstad/elixir-bot](https://github.com/jthingelstad/elixir-bot)
+  — Elixir Agent, the POAP KINGS clan agent; it consumes this service
+  over a service token.
+- [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com)
+  — Elixir Drop, the elixir-cost learning game; its collector-bridge
+  and mailing-list patterns are this service's direct ancestors.
+
+All of it orbits [POAP KINGS](https://poapkings.com), the clan.

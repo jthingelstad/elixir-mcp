@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Docs worth reading",
+    body: "The Architecture page grew real depth: collectors in detail (card identities, credits, self-update, the capture audit), the push lane and Clan Pulse, how the feedback loop actually closes, and the no-NAT outbound relay design. It also now maps the public GitHub repos - Elixir MCP, the collector, Elixir Agent, and Elixir Drop - so you can read the code behind any of it.",
+  },
+  {
+    date: "2026-09-06",
     title: "The Elixir MCP newsletter",
     body: "Elixir MCP now has a mailing list for occasional product updates, run on Buttondown the same way Elixir Drop's is: signing in enrolls you, every issue carries an unsubscribe link, unsubscribing sticks forever, and the email is pixel-free. Details on the privacy page.",
   },

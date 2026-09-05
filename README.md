@@ -17,12 +17,14 @@ authenticated remote MCP server you connect to Claude or any MCP client.
 
 ## Repo shape
 
-npm workspaces monorepo: `apps/web` (site), `services/` (web-api, mcp,
-scheduler, ingest, email-relay, gateway), `packages/` (contracts, game-data),
-`db/migrations`, `infra/`.
+npm workspaces monorepo: `apps/web` (site), `services/` (web-api, mcp, auth,
+scheduler, ingest, migrate, email-relay), `packages/` (contracts, game-data),
+`db/migrations`, `infra/`. The collector operators run lives in its own repo:
+[elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
+(the queue contract stays canonical here in `packages/contracts`).
 
 Secrets are never committed — see `.gitignore` and DESIGN.md §7. CR API keys
-exist only in gateway operators' local `.env` files.
+exist only in collector operators' local `.env` files.
 
 ---
 

@@ -19,7 +19,16 @@ agent sees.
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad
 for the POAP KINGS clan and friends. It is free, and paid tiers are not
-planned (see [Terms](#terms)).
+planned (see [Terms](#terms)). Occasional product updates go out on the
+Elixir MCP newsletter (you're enrolled at sign-in; every issue has an
+unsubscribe link, and unsubscribing sticks).
+
+**The family:** Elixir MCP is one of the POAP KINGS projects, alongside
+[Elixir Drop](https://drop.poapkings.com) (the elixir-cost learning
+game) and Elixir Agent (the clan's own agent, which reads its game
+facts from this service). The code is public — start at
+[jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp);
+the [Architecture](/docs/architecture) page maps the related repos.
 
 *This material is unofficial and is not endorsed by Supercell. For more
 information see Supercell's Fan Content Policy:
