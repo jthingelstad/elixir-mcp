@@ -71,6 +71,15 @@ export async function ingestClanRoster(
 
   let joined = 0;
   let departed = 0;
+  // Push lane (Jamie, 2026-09-06: "clan notifications aren't working" -
+  // the only clan topic was the WEEKLY war boundary): roster changes
+  // are the clan happenings people mean. Collected here, emitted by
+  // the pipeline AFTER commit; firstSight stays silent like emit().
+  const feedEvents = [];
+  const feed = (topic, payload) => {
+    if (firstSight) return;
+    feedEvents.push({ kind: "clan", tag: clanTag, topic, payload });
+  };
 
   for (const m of members) {
     const existing = openByTag.get(m.tag);
@@ -91,6 +100,7 @@ export async function ingestClanRoster(
         "member_joined",
         evidence({ player_tag: m.tag, name: m.name, role: m.role }),
       );
+      feed("member_joined", { player_tag: m.tag, name: m.name });
       joined += 1;
     } else if (existing.role !== m.role) {
       await db.query(
@@ -107,6 +117,11 @@ export async function ingestClanRoster(
           role_after: m.role,
         }),
       );
+      feed("member_role_changed", {
+        player_tag: m.tag,
+        name: m.name,
+        role: m.role,
+      });
     }
   }
 
@@ -125,9 +140,10 @@ export async function ingestClanRoster(
           joined_observed_at: r.joined_observed_at,
         }),
       );
+      feed("member_left", { player_tag: r.player_tag });
       departed += 1;
     }
   }
 
-  return { members: members.length, joined, departed };
+  return { members: members.length, joined, departed, feedEvents };
 }

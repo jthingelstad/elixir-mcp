@@ -255,6 +255,13 @@ function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
  */
 export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   const observer = normalizeTag(observerTag);
+  // Capture audit: only meaningful when we HAD coverage before this
+  // poll - a first poll's all-new log is history arriving, not a gap.
+  const { rows: prior } = await db.query(
+    `select 1 from battle_observation where observer_tag = $1 limit 1`,
+    [observer],
+  );
+  const hadPriorCoverage = prior.length > 0;
   let battlesSeen = 0;
   const affected = new Set(); // "tag|day" pairs for rollup refresh
 
@@ -299,6 +306,7 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   );
 
   let battlesInserted = 0;
+  let oldestWasNew = false;
   if (battles.size > 0) {
     // Deterministic lock order: concurrent observers of the SAME battles
     // (concurrency 4) otherwise acquire row locks in payload order and
@@ -317,6 +325,13 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
       battleRows.flatMap((b) => paramValues(BATTLE_COLS, b)),
     );
     battlesInserted = rows.filter((r) => r.inserted).length;
+    // The payload's oldest battle: if it was previously UNSEEN, the
+    // rotating log may have rolled past battles we never captured.
+    let oldestIdx = 0;
+    battleRows.forEach((b, i) => {
+      if (b.battle_time < battleRows[oldestIdx].battle_time) oldestIdx = i;
+    });
+    oldestWasNew = rows[oldestIdx]?.inserted === true;
 
     const partRows = [...parts.keys()].sort().map((k) => parts.get(k));
     await db.query(
@@ -340,6 +355,10 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   return {
     battlesSeen,
     battlesInserted,
+    captureAudit:
+      hadPriorCoverage && battles.size > 0
+        ? { audited: true, gap: oldestWasNew }
+        : { audited: false, gap: false },
     affectedPairs: [...affected].map((k) => {
       const [playerTag, day] = k.split("|");
       return { playerTag, day };

@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Clan notifications that actually notify, and a measured miss rate",
+    body: "Two honesty upgrades. Clans you've added now feed your notification pipe with the things that actually happen: members joining, leaving, and changing role (before this, the only clan event was the weekly war boundary - technically working, practically silent). And every fresh battlelog poll is now capture-audited: if the rotating log fully rolled between polls, that's flagged as a possible gap, and the 24-hour gap count is public on Data > Status - so 'no gaps' is a measurement, not a promise.",
+  },
+  {
+    date: "2026-09-06",
     title: "Look people up by name",
     body: "The Explore lookup now resolves names and your private nicknames, not just tags - type 'tyler' and land on the player you call Tyler (nicknames rank first), type a game name and get the record or a short pick-list when several match. Same honest miss when the corpus has nobody by that name.",
   },

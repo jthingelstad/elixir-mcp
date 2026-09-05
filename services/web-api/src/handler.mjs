@@ -568,6 +568,11 @@ export function makeHandler({
         `select count(*)::int as battles_1h from battle
          where created_at > now() - interval '1 hour'`,
       );
+      const audit = await q(
+        `select count(*)::int as polls,
+                count(*) filter (where gap)::int as gaps
+         from capture_audit where fetched_at > now() - interval '24 hours'`,
+      );
       const queues = await queueStats();
       // Health verdict derived from data, never vibes: pipeline is OK
       // when something was admitted recently and no DLQ holds messages.
@@ -586,6 +591,10 @@ export function makeHandler({
             last_admission_seconds: lastAdmit ?? null,
             dlq_messages: dlqDepth,
             battles_last_hour: hourTotals[0]?.battles_1h ?? 0,
+            capture_audit_24h: {
+              polls: audit[0]?.polls ?? 0,
+              gaps: audit[0]?.gaps ?? 0,
+            },
           },
           queues,
           collectors: collectors.map((c) => ({

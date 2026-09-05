@@ -72,6 +72,13 @@ const PROJECTORS = {
     // Backfill guard: a replayed OLD payload is history, not activity
     // (heat retired 2026-09-05; yield_bph is the one activity signal).
     const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
+    if (fresh && result.captureAudit?.audited) {
+      await db.query(
+        `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)
+         values ($1, $2, $3, $4) on conflict do nothing`,
+        [receiptId, entityKey, result.captureAudit.gap, fetchedAt],
+      );
+    }
     if (fresh && result.battlesInserted > 0) {
       // Push lane: collected here, emitted after commit (a failed
       // insert inside the txn would abort the whole ingest).

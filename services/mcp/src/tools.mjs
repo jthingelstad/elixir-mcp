@@ -1929,7 +1929,7 @@ const TOOLS = {
 
   elixir_events: {
     description:
-      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Event TYPES this feed can carry (schema, not news - their presence here never means one occurred): battles_recorded (coalesced per tag until read), feedback_responded, recording_started/stopped, role_changed, clan_war_week_finished. Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
+      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Event TYPES this feed can carry (schema, not news - their presence here never means one occurred): battles_recorded (coalesced per tag until read), member_joined / member_left / member_role_changed (clans you've added), clan_war_week_finished, feedback_responded, recording_started/stopped, role_changed (your tier). Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
     inputSchema: {
       type: "object",
       properties: {

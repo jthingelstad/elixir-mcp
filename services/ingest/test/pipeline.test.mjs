@@ -502,3 +502,79 @@ test("rankings payloads admit and accrete player identity (feedback #6)", async 
   );
   assert.equal(rows[0].name, "Top One");
 });
+
+function crCompact(d) {
+  return d
+    .toISOString()
+    .replaceAll("-", "")
+    .replaceAll(":", "")
+    .replace("Z", "Z");
+}
+
+test("capture audit: overlapping polls are gapless; a fully-rolled log flags a gap", async () => {
+  const file = "player_battlelog/with_boat_and_duel.json";
+  const log = await fixture(file);
+  const tag = "#PQPQPQ99"; // fresh observer: no prior coverage from other tests
+  const now = Date.now();
+  const iso = (offsetMin, i) =>
+    new Date(now - offsetMin * 60000 + i).toISOString();
+
+  // First poll: history arriving, not audited.
+  const first = structuredClone(log).map((b, i) => ({
+    ...b,
+    battleTime: crCompact(new Date(now - 120 * 60000 + i * 60000)),
+  }));
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: first,
+      fetchedAt: iso(100, 1),
+    }),
+  );
+  let { rows } = await ctx.db.query(
+    `select count(*)::int n from capture_audit where subject_tag = $1`,
+    [tag],
+  );
+  assert.equal(rows[0].n, 0, "first poll is never audited");
+
+  // Second poll overlaps (oldest battle already known): gapless.
+  const second = structuredClone(first);
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: second,
+      fetchedAt: iso(90, 2),
+    }),
+  );
+  ({ rows } = await ctx.db.query(
+    `select gap from capture_audit where subject_tag = $1 order by fetched_at`,
+    [tag],
+  ));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].gap, false, "overlap = no gap");
+
+  // Third poll: the log fully rolled - every battle new -> gap flagged.
+  const rolled = structuredClone(log).map((b, i) => ({
+    ...b,
+    battleTime: crCompact(new Date(now - 30 * 60000 + i * 60000)),
+  }));
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: rolled,
+      fetchedAt: iso(10, 3),
+    }),
+  );
+  ({ rows } = await ctx.db.query(
+    `select gap from capture_audit where subject_tag = $1 order by fetched_at`,
+    [tag],
+  ));
+  assert.equal(rows.length, 2);
+  assert.equal(rows[1].gap, true, "fully-rolled log = potential gap");
+});

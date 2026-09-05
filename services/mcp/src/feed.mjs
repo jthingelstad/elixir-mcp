@@ -13,6 +13,9 @@ export const FEED_TOPICS = [
   "recording_stopped",
   "role_changed",
   "clan_war_week_finished",
+  "member_joined",
+  "member_left",
+  "member_role_changed",
 ];
 
 /** Emit one event to one account. */

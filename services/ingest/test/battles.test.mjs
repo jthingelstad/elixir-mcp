@@ -174,6 +174,7 @@ test("empty battlelog is a clean no-op", async () => {
   assert.deepEqual(result, {
     battlesSeen: 0,
     battlesInserted: 0,
+    captureAudit: { audited: false, gap: false },
     affectedPairs: [],
   });
 });

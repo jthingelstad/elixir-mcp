@@ -244,6 +244,37 @@ test("roster diffs emit clan events with evidence; first sight was silent", asyn
   const left = rows.find((r) => r.event_type === "member_left");
   assert.equal(left.payload.player_tag, departed.tag);
   assert.ok(left.payload.joined_observed_at, "tenure evidence rides the event");
+
+  // Push lane (2026-09-06): the same roster changes feed accounts that
+  // ADDED this clan - the fix for "clan notifications aren't working".
+  const { rows: acct } = await ctx.db.query(
+    `insert into account (email_hash, status) values ('roster-feed', 'approved')
+     returning account_id`,
+  );
+  await ctx.db.query(
+    `insert into account_clan (account_id, clan_tag) values ($1, '#J2RGCRVG')`,
+    [acct[0].account_id],
+  );
+  const changed2 = structuredClone(changed);
+  const departed2 = changed2.memberList.pop();
+  changed2.members = changed2.memberList.length;
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "clan",
+      entityKey: "#J2RGCRVG",
+      payload: changed2,
+      fetchedAt: "2026-09-03T15:10:34Z",
+    }),
+  );
+  const { rows: feed } = await ctx.db.query(
+    `select topic, subject_tag, payload from event_feed where account_id = $1`,
+    [acct[0].account_id],
+  );
+  assert.equal(feed.length, 1, "one member_left notification");
+  assert.equal(feed[0].topic, "member_left");
+  assert.equal(feed[0].subject_tag, "#J2RGCRVG");
+  assert.equal(feed[0].payload.player_tag, departed2.tag);
 });
 
 test("pre-reset window pins an extra season_roll snapshot", async () => {
