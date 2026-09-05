@@ -135,6 +135,85 @@ function requireOrderedWindow(from, to) {
   }
 }
 
+/** Segment resolution shared by the meta and trends tools: exactly one
+ *  of player_tag / clan_tag / collection, or none = the whole recorded
+ *  corpus (universal reads). Returns a WHERE fragment + params slice
+ *  that scopes battle_participant rows to the segment's players. */
+async function segmentFilter(ctx, args, params) {
+  const picked = ["player_tag", "clan_tag", "collection"].filter(
+    (k) => args[k] !== undefined,
+  );
+  if (picked.length > 1) {
+    throw new ToolFailure(
+      "bad_request",
+      "Pick at most one of player_tag, clan_tag, collection.",
+    );
+  }
+  if (args.player_tag !== undefined) {
+    const tag = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+      .tag;
+    params.push(tag);
+    return { where: `bp.player_tag = $${params.length}`, label: tag };
+  }
+  if (args.clan_tag !== undefined) {
+    const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+    params.push(clanTag);
+    return {
+      where: `bp.player_tag in (select cm.player_tag from clan_membership cm
+               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
+      label: clanTag,
+    };
+  }
+  if (args.collection !== undefined) {
+    const slug = String(args.collection).toLowerCase().trim();
+    const { rows } = await ctx.db.query(
+      `select c.collection_id from collection c
+       where c.slug = $1 and c.kind = 'player'
+         and (c.visibility = 'public' or c.owner_account = $2)`,
+      [slug, ctx.account.accountId],
+    );
+    if (!rows[0]) {
+      throw new ToolFailure(
+        "not_found",
+        `No player collection '${slug}'.`,
+        "collections_browse lists what exists.",
+      );
+    }
+    params.push(rows[0].collection_id);
+    return {
+      where: `bp.player_tag in (select m.subject_tag from collection_member m
+               where m.collection_id = $${params.length})`,
+      label: slug,
+    };
+  }
+  return { where: null, label: "corpus" };
+}
+
+/** Empirical-Bayes shrinkage (META-INTEL): pull small samples toward
+ *  the segment mean so a 3-0 deck never outranks a 60-40 one. */
+function ebShrink(wins, decided, segmentMean, m = 20) {
+  if (decided === 0) return null;
+  return Number(((wins + m * segmentMean) / (decided + m)).toFixed(3));
+}
+
+const SEGMENT_ARGS = {
+  player_tag: {
+    type: "string",
+    description: "Scope to one recorded player.",
+  },
+  clan_tag: {
+    type: "string",
+    description: "Scope to a recorded clan's current members.",
+  },
+  collection: {
+    type: "string",
+    description: "Scope to a player collection's members (e.g. 'pros').",
+  },
+};
+
+const SEGMENT_NOTE =
+  "Pure observation, never opinion: rates are computed from recorded battles with sample sizes attached. shrunk_win_rate is empirical-Bayes (prior = the segment mean, strength 20) so tiny samples never top the list. players counts distinct pilots - a rate carried by one player is composition, not the deck.";
+
 // --- tools -----------------------------------------------------------------
 
 const TOOLS = {
@@ -1283,6 +1362,285 @@ const TOOLS = {
         support_cards: (row.support_cards ?? []).map(displayCard),
         as_of_payload: row.last_fetched_at.toISOString(),
         meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
+  battles_meta_decks: {
+    description:
+      "Observed deck meta for a segment - the whole corpus, one clan, one player, or a collection like 'pros'. Per exact deck identity (deck_hash): battles, record, distinct players, usage share, raw and EB-shrunk win rates. No tier lists, no opinions - what the recorded data shows, with sample sizes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...SEGMENT_ARGS,
+        from: { type: "string", description: "Default: 28 days ago." },
+        to: { type: "string" },
+        mode: { type: "string", enum: MODE_GROUPS },
+        min_battles: { type: "integer", minimum: 1, default: 5 },
+        sort: {
+          type: "string",
+          enum: ["battles", "shrunk_win_rate", "players"],
+          default: "battles",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 40, default: 20 },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tz = ctx.account.timezone;
+      const params = [];
+      const seg = await segmentFilter(ctx, args, params);
+      const where = ["bp.deck_hash is not null", "bp.outcome is not null"];
+      if (seg.where) where.push(seg.where);
+      const from =
+        resolveInstant(tz, args.from) ??
+        new Date(Date.now() - 28 * 86400_000).toISOString();
+      params.push(from);
+      where.push(`b.battle_time >= $${params.length}`);
+      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      if (to) {
+        params.push(to);
+        where.push(`b.battle_time < $${params.length}`);
+      }
+      if (args.mode) {
+        params.push(typesForModeGroup(args.mode));
+        where.push(`b.type = any($${params.length})`);
+      }
+      requireOrderedWindow(new Date(from), to ? new Date(to) : null);
+      const { rows } = await ctx.db.query(
+        `select bp.deck_hash,
+                count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses,
+                count(distinct bp.player_tag)::int as players,
+                min(b.battle_time) as first_used,
+                max(b.battle_time) as last_used,
+                (array_agg(bp.deck order by b.battle_time desc))[1] as deck
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+         where ${where.join(" and ")}
+         group by bp.deck_hash`,
+        params,
+      );
+      const totalDecided = rows.reduce((n, r) => n + r.battles, 0);
+      const totalWins = rows.reduce((n, r) => n + r.wins, 0);
+      const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
+      const minBattles = args.min_battles ?? 5;
+      let shaped = rows
+        .filter((r) => r.battles >= minBattles)
+        .map((r) => ({
+          deck_hash: r.deck_hash,
+          cards: (r.deck?.cards ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+          })),
+          battles: r.battles,
+          wins: r.wins,
+          losses: r.losses,
+          players: r.players,
+          usage_share:
+            totalDecided > 0
+              ? Number((r.battles / totalDecided).toFixed(3))
+              : null,
+          win_rate:
+            r.wins + r.losses > 0
+              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+              : null,
+          shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, mean),
+          first_used: r.first_used.toISOString(),
+          last_used: r.last_used.toISOString(),
+        }));
+      const sort = args.sort ?? "battles";
+      shaped.sort((a, z) =>
+        sort === "shrunk_win_rate"
+          ? z.shrunk_win_rate - a.shrunk_win_rate
+          : sort === "players"
+            ? z.players - a.players
+            : z.battles - a.battles,
+      );
+      shaped = shaped.slice(0, Math.min(args.limit ?? 20, 40));
+      return {
+        segment: seg.label,
+        window_from: from,
+        decided_battles: totalDecided,
+        segment_win_rate: Number(mean.toFixed(3)),
+        decks: shaped,
+        note: SEGMENT_NOTE,
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  battles_meta_cards: {
+    description:
+      "Observed card meta for a segment - corpus, clan, player, or a collection like 'pros'. Per card AND evolution form (forms never merge): usage share among decided battles, distinct players, raw and EB-shrunk win rates. What the recorded data shows, with sample sizes - never a tier list.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...SEGMENT_ARGS,
+        from: { type: "string", description: "Default: 28 days ago." },
+        to: { type: "string" },
+        mode: { type: "string", enum: MODE_GROUPS },
+        min_battles: { type: "integer", minimum: 1, default: 10 },
+        sort: {
+          type: "string",
+          enum: ["usage", "shrunk_win_rate"],
+          default: "usage",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 130, default: 30 },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const tz = ctx.account.timezone;
+      const params = [];
+      const seg = await segmentFilter(ctx, args, params);
+      const where = ["bp.deck ? 'cards'", "bp.outcome is not null"];
+      if (seg.where) where.push(seg.where);
+      const from =
+        resolveInstant(tz, args.from) ??
+        new Date(Date.now() - 28 * 86400_000).toISOString();
+      params.push(from);
+      where.push(`b.battle_time >= $${params.length}`);
+      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      if (to) {
+        params.push(to);
+        where.push(`b.battle_time < $${params.length}`);
+      }
+      if (args.mode) {
+        params.push(typesForModeGroup(args.mode));
+        where.push(`b.type = any($${params.length})`);
+      }
+      const { rows } = await ctx.db.query(
+        `with sides as (
+           select bp.player_tag, bp.outcome,
+                  (c.value->>'id')::bigint as card_id,
+                  c.value->>'name' as name,
+                  coalesce((c.value->>'evolutionLevel')::int, 0) as evolution
+           from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
+           cross join lateral jsonb_array_elements(bp.deck->'cards') c
+           where ${where.join(" and ")}),
+         totals as (
+           select count(*)::int as decided,
+                  count(*) filter (where bp.outcome = 'win')::int as wins
+           from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
+           where ${where.join(" and ")})
+         select s.card_id, s.name, s.evolution,
+                count(*)::int as battles,
+                count(*) filter (where s.outcome = 'win')::int as wins,
+                count(*) filter (where s.outcome = 'loss')::int as losses,
+                count(distinct s.player_tag)::int as players,
+                (select decided from totals) as total_decided,
+                (select wins from totals) as total_wins
+         from sides s
+         group by s.card_id, s.name, s.evolution`,
+        params,
+      );
+      const totalDecided = rows[0]?.total_decided ?? 0;
+      const mean =
+        totalDecided > 0 ? (rows[0]?.total_wins ?? 0) / totalDecided : 0.5;
+      const minBattles = args.min_battles ?? 10;
+      let shaped = rows
+        .filter((r) => r.battles >= minBattles)
+        .map((r) => ({
+          card_id: Number(r.card_id),
+          name: r.name,
+          ...(r.evolution > 0 ? { evolution: r.evolution } : {}),
+          battles: r.battles,
+          wins: r.wins,
+          losses: r.losses,
+          players: r.players,
+          usage_share:
+            totalDecided > 0
+              ? Number((r.battles / totalDecided).toFixed(3))
+              : null,
+          win_rate:
+            r.wins + r.losses > 0
+              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+              : null,
+          shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, mean),
+        }));
+      const sort = args.sort ?? "usage";
+      shaped.sort((a, z) =>
+        sort === "shrunk_win_rate"
+          ? z.shrunk_win_rate - a.shrunk_win_rate
+          : z.battles - a.battles,
+      );
+      shaped = shaped.slice(0, Math.min(args.limit ?? 30, 130));
+      return {
+        segment: seg.label,
+        window_from: from,
+        decided_battles: totalDecided,
+        segment_win_rate: Number(mean.toFixed(3)),
+        cards: shaped,
+        note:
+          SEGMENT_NOTE +
+          " evolution distinguishes card FORM (1 = Evolution, 2 = Hero form) - the same card's forms are different rows by design. Card win rates are heavily skill-confounded (who plays it matters as much as the card): compare shrunk rates within similar usage, never across segments.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  battles_trends: {
+    description:
+      "Weekly time series for a segment - corpus, clan, player, or a collection like 'pros': battles, record, aggregate win rate, distinct active players, net trophies per ISO week. The trend view of any group; single-player weekly detail also lives in battles_performance group_by 'week'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...SEGMENT_ARGS,
+        weeks: { type: "integer", minimum: 1, maximum: 52, default: 12 },
+        mode: { type: "string", enum: MODE_GROUPS },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const params = [];
+      const seg = await segmentFilter(ctx, args, params);
+      const where = ["bp.outcome is not null"];
+      if (seg.where) where.push(seg.where);
+      const weeks = Math.min(Math.max(Number(args.weeks ?? 12), 1), 52);
+      params.push(`${weeks * 7} days`);
+      where.push(
+        `b.battle_time >= date_trunc('week', now()) - $${params.length}::interval`,
+      );
+      if (args.mode) {
+        params.push(typesForModeGroup(args.mode));
+        where.push(`b.type = any($${params.length})`);
+      }
+      const { rows } = await ctx.db.query(
+        `select to_char(date_trunc('week', b.battle_time), 'IYYY-"W"IW') as iso_week,
+                date_trunc('week', b.battle_time)::date::text as week_of,
+                count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses,
+                count(distinct bp.player_tag)::int as players,
+                count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
+                coalesce(sum(bp.trophy_change), 0)::int as net_trophies
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+         where ${where.join(" and ")}
+         group by date_trunc('week', b.battle_time)
+         order by date_trunc('week', b.battle_time)`,
+        params,
+      );
+      return {
+        segment: seg.label,
+        weeks: rows.map((r) => ({
+          iso_week: r.iso_week,
+          week_of: r.week_of,
+          battles: r.battles,
+          wins: r.wins,
+          losses: r.losses,
+          players: r.players,
+          win_rate:
+            r.wins + r.losses > 0
+              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+              : null,
+          trophy_battles: r.trophy_battles,
+          net_trophies: r.net_trophies,
+        })),
+        note: "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill - players per week is the tell. Recording start dates differ per player; early weeks may be thin because capture was, not because play was.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
   },

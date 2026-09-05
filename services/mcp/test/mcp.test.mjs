@@ -175,9 +175,9 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 31 tools", async () => {
+test("tools/list declares all 34 tools", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
-  assert.equal(res.payload.result.tools.length, 31);
+  assert.equal(res.payload.result.tools.length, 34);
   const names = res.payload.result.tools.map((t) => t.name);
   for (const required of [
     "elixir_my_players",

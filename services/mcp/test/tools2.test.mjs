@@ -730,3 +730,70 @@ test("battles_recorded coalesces: one unread row per tag, count accumulates unti
   assert.equal(fresh.length, 1);
   assert.equal(fresh[0].payload.count, 2, "read rows are never folded");
 });
+
+test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct", async () => {
+  // A collection segment containing the observer.
+  await db.query(
+    `insert into collection (slug, title, kind, owner_account)
+     values ('test-pros', 'Test Pros', 'player', $1)
+     on conflict (slug) do nothing`,
+    [account.accountId],
+  );
+  await db.query(
+    `insert into collection_member (collection_id, subject_tag)
+     select collection_id, $1 from collection where slug = 'test-pros'
+     on conflict do nothing`,
+    [OBSERVER],
+  );
+
+  const corpus = await call("battles_meta_decks", {
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  assert.equal(corpus.isError, false, JSON.stringify(corpus.body));
+  assert.equal(corpus.body.segment, "corpus");
+  assert.ok(corpus.body.decks.length > 0, "corpus decks");
+  const top = corpus.body.decks[0];
+  assert.ok(top.shrunk_win_rate !== null && top.players >= 1);
+  // Shrinkage pulls toward the mean: a small sample never sits at 0 or 1.
+  const small = corpus.body.decks.find((d) => d.wins + d.losses <= 3);
+  if (small) {
+    assert.ok(
+      small.shrunk_win_rate > 0.05 && small.shrunk_win_rate < 0.95,
+      `shrunk ${small.shrunk_win_rate}`,
+    );
+  }
+
+  const seg = await call("battles_meta_decks", {
+    collection: "test-pros",
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  assert.equal(seg.body.segment, "test-pros");
+  assert.ok(seg.body.decided_battles <= corpus.body.decided_battles);
+
+  const both = await call("battles_meta_decks", {
+    collection: "test-pros",
+    clan_tag: "#J2RGCRVG",
+  });
+  assert.equal(both.isError, true);
+  assert.equal(both.body.error.code, "bad_request");
+
+  const cards = await call("battles_meta_cards", {
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  assert.equal(cards.isError, false, JSON.stringify(cards.body));
+  assert.ok(cards.body.cards.length > 0);
+  assert.ok(cards.body.cards.every((c) => c.usage_share !== null));
+
+  const trends = await call("battles_trends", { weeks: 52 });
+  assert.equal(trends.isError, false, JSON.stringify(trends.body));
+  assert.ok(trends.body.weeks.length > 0, "weekly rows");
+  const wk = trends.body.weeks.at(-1);
+  assert.ok(wk.players >= 1 && wk.battles >= wk.wins + wk.losses);
+
+  const missing = await call("battles_meta_decks", { collection: "nope" });
+  assert.equal(missing.isError, true);
+  assert.equal(missing.body.error.code, "not_found");
+});

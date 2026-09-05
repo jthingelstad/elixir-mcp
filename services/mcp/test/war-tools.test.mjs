@@ -235,9 +235,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.players.length, 2);
 });
 
-test("the registry declares 31 tools, every one classified and annotated", () => {
+test("the registry declares 34 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 31);
+  assert.equal(decls.length, 34);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(

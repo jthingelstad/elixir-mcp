@@ -37,6 +37,14 @@ The recorded battle corpus and statistics over it.
   impact, yours and opponents'.
 - **Compare players** (`battles_compare`) — 2–4 entitled tags side by
   side over a shared window.
+- **Meta decks / Meta cards (observed)** (`battles_meta_decks`,
+  `battles_meta_cards`) — the observed meta for any segment (corpus,
+  clan, player, or a collection like the pros): usage shares,
+  distinct-pilot counts, and EB-shrunk win rates; evolution forms never
+  merge. Observation, never opinion.
+- **Segment trends** (`battles_trends`) — weekly series (battles,
+  record, win rate, active players, net trophies) for the same
+  segments.
 - **Level Curve & Pilot Score** (`battles_levels`) — how much card-level
   advantage is worth, measured across the corpus; pass a tag for the
   Pilot Score: wins your card levels can't explain, with a monthly

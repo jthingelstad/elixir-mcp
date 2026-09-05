@@ -89,6 +89,21 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Level Curve & Pilot Score",
     readOnly: true,
   },
+  battles_meta_decks: {
+    group: "Battles",
+    title: "Meta decks (observed)",
+    readOnly: true,
+  },
+  battles_meta_cards: {
+    group: "Battles",
+    title: "Meta cards (observed)",
+    readOnly: true,
+  },
+  battles_trends: {
+    group: "Battles",
+    title: "Segment trends",
+    readOnly: true,
+  },
 
   // Clans — roster-shaped views (docs: clans.md).
   clans_roster: { group: "Clans", title: "Clan roster", readOnly: true },
