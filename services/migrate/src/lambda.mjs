@@ -268,6 +268,61 @@ async function feedbackPending(databaseUrl) {
  *  (v1: creation is owner-only - Jamie, 2026-09-05). ops:
  *  upsert {slug,title,kind,description?,visibility?} | add {slug,tags[]}
  *  | remove {slug,tags[]}. */
+/** Role ops ({account_role: {...}}): the ops-lane view and lever for
+ *  the entitlement ladder. {list: true} reports every account's role
+ *  and slot usage; {account_id | service, role} sets a role (the same
+ *  act as Admin > Accounts, for the operator console). */
+async function accountRoleOp(databaseUrl, spec) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    if (spec?.list) {
+      const { rows } = await db.query(
+        `select a.account_id, left(a.email_hash, 10) as email_hash, a.status,
+                a.role, a.is_owner,
+                (select string_agg(t.name, ',') from service_token t
+                 where t.account_id = a.account_id and t.revoked_at is null) as services,
+                (select count(*)::int from recording r
+                 where r.requested_by = a.account_id and r.subject_type = 'player'
+                   and r.status = 'active') as players_recording
+         from account a order by a.created_at`,
+      );
+      return { accounts: rows };
+    }
+    const { isRole } = await import("@elixir-mcp/contracts");
+    if (!isRole(spec?.role)) throw new Error(`unknown role ${spec?.role}`);
+    let accountId = spec.account_id ?? null;
+    if (!accountId && spec.service) {
+      const { rows } = await db.query(
+        `select account_id from service_token
+         where name = $1 and revoked_at is null`,
+        [String(spec.service)],
+      );
+      if (!rows[0])
+        throw new Error(`no live service token named ${spec.service}`);
+      accountId = rows[0].account_id;
+    }
+    if (!accountId) throw new Error("account_role needs account_id or service");
+    const { rows } = await db.query(
+      `update account set role = $2 where account_id = $1
+       returning account_id, role`,
+      [accountId, spec.role],
+    );
+    if (!rows[0]) throw new Error("no such account");
+    await db.query(
+      `insert into account_event (account_id, kind, detail) values ($1, 'role_changed', $2)`,
+      [rows[0].account_id, JSON.stringify({ role: spec.role, via: "ops" })],
+    );
+    const { emitFeedEvent } = await import("../../mcp/src/feed.mjs");
+    await emitFeedEvent(db, rows[0].account_id, "role_changed", null, {
+      role: spec.role,
+    });
+    return { account_id: rows[0].account_id, role: rows[0].role };
+  } finally {
+    await db.end();
+  }
+}
+
 async function collectionOp(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -796,6 +851,14 @@ export async function handler(event) {
   }
   if (event?.feedback_pending) {
     const result = await feedbackPending(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.account_role) {
+    const result = await accountRoleOp(
+      process.env.DATABASE_URL,
+      event.account_role,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
