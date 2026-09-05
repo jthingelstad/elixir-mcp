@@ -193,7 +193,8 @@ test("probe op: hourly census counts live fetches, excludes the backfill gateway
 test("export + sweep: history lands in S3 keys; only twinned superseded rows leave Postgres", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   process.env.ARCHIVE_BUCKET = "test-archive";
-  const { exportPayloads, sweepPayloads } = await import("../src/lambda.mjs");
+  const { exportPayloads } = await import("../src/lambda.mjs");
+  const { sweepPayloads } = await import("../../jobs/src/index.mjs");
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
@@ -268,7 +269,6 @@ test("export + sweep: history lands in S3 keys; only twinned superseded rows lea
 
 test("operational sweep: dead weight leaves, live rows and replay-memory stay", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
-  const { handler } = await import("../src/lambda.mjs");
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
   await db.query(
@@ -300,7 +300,9 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
   );
   await db.end();
 
-  const result = await handler({ sweep_operational: true });
+  // The operational sweep moved to the jobs Lambda (review item 5).
+  const { handler: jobsHandler } = await import("../../jobs/src/index.mjs");
+  const result = await jobsHandler({ sweep_operational: true });
   assert.equal(result.rate_limit, 1);
   assert.equal(result.magic_login, 1);
   assert.equal(result.session, 1);

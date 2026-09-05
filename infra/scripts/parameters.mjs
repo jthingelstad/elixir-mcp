@@ -20,6 +20,7 @@ export const REQUIRED_PARAMETERS = [
   "IngestCodeKey",
   "EmailRelayCodeKey",
   "MigrateCodeKey",
+  "JobsCodeKey",
 ];
 
 export const PRESERVED_PARAMETERS = [

@@ -78,6 +78,7 @@ const required = {
   IngestCodeKey: codeKeys.ingest,
   EmailRelayCodeKey: codeKeys["email-relay"],
   MigrateCodeKey: codeKeys.migrate,
+  JobsCodeKey: codeKeys.jobs,
 };
 
 if (isCreate) {

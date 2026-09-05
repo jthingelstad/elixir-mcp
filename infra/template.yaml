@@ -23,6 +23,8 @@ Parameters:
     Type: String
   MigrateCodeKey:
     Type: String
+  JobsCodeKey:
+    Type: String
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
@@ -525,6 +527,36 @@ Resources:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
 
+  # Scheduled product jobs (review item 5): the timer-driven work —
+  # clan pulse, weekly sweeps — runs in its own Lambda so the
+  # schema-capable migrate function never fires on a schedule.
+  JobsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-jobs
+      RetentionInDays: 30
+
+  JobsFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: JobsLogGroup
+    Properties:
+      FunctionName: elixir-mcp-jobs
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 1024
+      Timeout: 300
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt VpcLambdaRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref JobsCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
+
   # Weekly Postgres payload sweep (DATA-TOOLS section 1): superseded
   # payload rows leave Postgres once their S3 twin is HEAD-verified.
   PayloadSweepRule:
@@ -533,14 +565,14 @@ Resources:
       Name: elixir-mcp-payload-sweep
       ScheduleExpression: cron(15 8 ? * MON *)
       Targets:
-        - Arn: !GetAtt MigrateFunction.Arn
+        - Arn: !GetAtt JobsFunction.Arn
           Id: payload-sweep
           Input: '{"sweep_payloads": true, "sweep_operational": true}'
 
   PayloadSweepPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref MigrateFunction
+      FunctionName: !Ref JobsFunction
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt PayloadSweepRule.Arn
@@ -555,14 +587,14 @@ Resources:
       Name: elixir-mcp-clan-pulse
       ScheduleExpression: cron(0 7 * * ? *)
       Targets:
-        - Arn: !GetAtt MigrateFunction.Arn
+        - Arn: !GetAtt JobsFunction.Arn
           Id: clan-pulse
           Input: '{"clan_pulse": true}'
 
   ClanPulsePermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref MigrateFunction
+      FunctionName: !Ref JobsFunction
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ClanPulseRule.Arn

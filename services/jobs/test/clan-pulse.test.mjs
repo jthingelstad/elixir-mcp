@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../src/migrate.mjs";
-import { clanPulse } from "../src/lambda.mjs";
+import { migrate } from "../../migrate/src/migrate.mjs";
+import { clanPulse } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

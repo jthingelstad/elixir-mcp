@@ -10,7 +10,7 @@ Elixir MCP be using? This doc is the design + evaluation.
 inside the admission txn before commit (put failure = SQS retry); Glue
 db `elixir_mcp_archive`, table `payloads` (partition projection —
 endpoint enum / entity injected / dt date); weekly Postgres sweep
-(EventBridge MON 08:15Z -> migrate lambda `{sweep_payloads: true}`,
+(EventBridge MON 08:15Z -> jobs lambda `{sweep_payloads: true}`,
 HEAD-verifies the twin before deleting); one-time history export via
 `{export_payloads: {after_id, limit}}` cursor loop.
 
