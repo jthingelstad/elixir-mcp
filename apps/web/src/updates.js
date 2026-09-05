@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-05",
+    title: "The feedback loop learns",
+    body: "Round two, built from feedback about the feedback system itself: an MCP-visible changelog (elixir_changelog - what shipped since any contract version), machine-readable ship links on responses, a meta hint when a maintainer reply awaits you, and server instructions that ask agents to file friction on their own judgment - your agent reports friction so you don't have to.",
+  },
+  {
+    date: "2026-09-05",
     title: "Open data and Collections",
     body: "Two big ones. All recorded game data is now readable by every account - the same access the game's own public API gives anyone (we add history, not exposure); account data stays private. And Collections arrive: curated groupings of players or clans - starting with a pros list - browsable by everyone, curated by the maintainer for now.",
   },

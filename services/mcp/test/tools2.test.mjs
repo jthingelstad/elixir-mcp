@@ -556,3 +556,53 @@ test("collections: browse + enriched get; private stays owner-only; unknown hone
   assert.equal(missing.isError, true);
   assert.equal(missing.body.error.code, "not_found");
 });
+
+test("feedback round two: changelog since-filter, ship links, pending hint clears on read", async () => {
+  const log = await call("elixir_changelog", { since: "0.14.0" });
+  assert.equal(log.isError, false);
+  assert.ok(
+    log.body.entries.every(
+      (e) =>
+        e.version > "0.14.0" ||
+        e.version.startsWith("0.15") ||
+        e.version.startsWith("0.16"),
+    ),
+  );
+  assert.ok(
+    log.body.entries.some((e) =>
+      (e.tools_added ?? []).includes("elixir_changelog"),
+    ),
+  );
+  assert.ok(
+    !log.body.entries.some((e) => e.version === "0.14.0"),
+    "since is exclusive",
+  );
+
+  // Ship links + pending hint: respond to an item, see the hint, read, hint clears.
+  const filed = await call("elixir_feedback", {
+    message: "changelog test item",
+  });
+  await db.query(
+    `update feedback set status='done', response='Shipped.', responded_at=now(),
+            shipped_in='0.16.0', related_tools=array['elixir_changelog']
+     where feedback_id = $1`,
+    [filed.body.feedback_id],
+  );
+  const anyTool = await call("players_summary", {});
+  assert.ok(
+    anyTool.body.meta.feedback_responses_pending >= 1,
+    "pending hint rides ordinary tool meta",
+  );
+  const mine = await call("elixir_my_feedback", { status: "done" });
+  const row = mine.body.feedback.find(
+    (f) => f.feedback_id === filed.body.feedback_id,
+  );
+  assert.equal(row.shipped_in, "0.16.0");
+  assert.deepEqual(row.related_tools, ["elixir_changelog"]);
+  const after2 = await call("players_summary", {});
+  assert.equal(
+    after2.body.meta.feedback_responses_pending,
+    undefined,
+    "hint clears once responses are read",
+  );
+});

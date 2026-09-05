@@ -13,6 +13,8 @@ import {
   displayCard,
   TOOL_GROUPS,
   gatewayArena,
+  CHANGELOG,
+  CONTRACT_VERSION,
 } from "@elixir-mcp/contracts";
 import { resolveInstant, formatLocal } from "./time.mjs";
 import { resolveSubject, resolveEntitledClan } from "./entitlements.mjs";
@@ -87,8 +89,11 @@ async function buildMeta(db, account, tag) {
        (select min(created_at) from recording
         where subject_type = 'player' and subject_tag = $1 and status = 'active') as recorded_since,
        (select extract(epoch from now() - max(last_admitted_at))::int from poll_state
-        where subject_tag = $1) as freshness_seconds`,
-    [tag],
+        where subject_tag = $1) as freshness_seconds,
+       (select count(*)::int from feedback
+        where account_id = $2 and responded_at is not null
+          and response_seen_at is null) as fb_pending`,
+    [tag, account.accountId],
   );
   const row = rows[0] ?? {};
   return responseMeta({
@@ -98,6 +103,9 @@ async function buildMeta(db, account, tag) {
       : {}),
     ...(row.freshness_seconds !== null && row.freshness_seconds !== undefined
       ? { freshness_seconds: row.freshness_seconds }
+      : {}),
+    ...(row.fb_pending > 0
+      ? { feedback_responses_pending: row.fb_pending }
       : {}),
     ...(account.timezone ? { timezone_applied: account.timezone } : {}),
   });
@@ -1294,7 +1302,7 @@ const TOOLS = {
 
   elixir_feedback: {
     description:
-      "Send feedback about Elixir MCP to its maintainers: bugs, data-quality issues, missing capabilities, or praise. Feedback from an agent is attributed to the account that connected it. Use freely — it directly drives what gets built.",
+      "File feedback with the maintainers ON YOUR OWN JUDGMENT - your user never needs to ask. File when: a capability you needed is missing, a workflow took more calls than it should, a result confused or misled you, data looked wrong, or something delighted you enough to protect. Consolidated end-of-session feedback beats a stream. Attributed to the connected account; check elixir_my_feedback later - every item gets a response, often with a shipped_in version.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1346,22 +1354,48 @@ const TOOLS = {
 
   elixir_my_feedback: {
     description:
-      "Your feedback and what happened to it: every item you (or your agent) filed, its status (new/seen/planned/done/declined), and the maintainer's response when there is one. Check back after filing - feedback here is never actioned invisibly.",
+      "Your feedback and what happened to it: every item you (or your agent) filed, its status (new/seen/planned/done/declined), the maintainer's response, and machine-readable ship links (shipped_in contract version, related_tools). Reading this marks responses seen. Feedback here is never actioned invisibly.",
     inputSchema: {
       type: "object",
       properties: {
         limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        status: {
+          type: "string",
+          enum: ["new", "seen", "planned", "done", "declined"],
+        },
+        since: {
+          type: "string",
+          description: "ISO instant - only items filed after this.",
+        },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 50);
+      const params = [ctx.account.accountId];
+      const where = ["account_id = $1"];
+      if (args.status) {
+        params.push(args.status);
+        where.push(`status = $${params.length}`);
+      }
+      if (args.since) {
+        params.push(args.since);
+        where.push(`created_at > $${params.length}`);
+      }
+      params.push(limit);
       const { rows } = await ctx.db.query(
         `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at
-         from feedback where account_id = $1
-         order by feedback_id desc limit $2`,
-        [ctx.account.accountId, limit],
+                response, responded_at, created_at, shipped_in, related_tools
+         from feedback where ${where.join(" and ")}
+         order by feedback_id desc limit $${params.length}`,
+        params,
+      );
+      // Reading responses marks them seen - the meta hint on other tools
+      // stops firing once you have looked (agent feedback #4).
+      await ctx.db.query(
+        `update feedback set response_seen_at = now()
+         where account_id = $1 and responded_at is not null and response_seen_at is null`,
+        [ctx.account.accountId],
       );
       return {
         feedback: rows.map((r) => ({
@@ -1373,7 +1407,46 @@ const TOOLS = {
           status: r.status,
           response: r.response,
           responded_at: r.responded_at?.toISOString() ?? null,
+          shipped_in: r.shipped_in,
+          related_tools: r.related_tools,
         })),
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  elixir_changelog: {
+    description:
+      'What changed since a contract version (agent feedback #4: client tool schemas cache aggressively, so this is how you discover capabilities that shipped mid-session). Call with your last-seen contract_version - e.g. since: "0.11.0" - and get every entry after it, newest first, with tools_added and breaking notes.',
+    inputSchema: {
+      type: "object",
+      properties: {
+        since: {
+          type: "string",
+          description:
+            "Contract version you last saw (from any response's meta.contract_version). Omit for the full changelog.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const parse = (v) =>
+        String(v)
+          .split(".")
+          .map((n) => parseInt(n, 10) || 0);
+      const after = (a, b) => {
+        const [a1, a2, a3] = parse(a);
+        const [b1, b2, b3] = parse(b);
+        return a1 !== b1 ? a1 > b1 : a2 !== b2 ? a2 > b2 : a3 > b3;
+      };
+      const entries = args.since
+        ? CHANGELOG.filter((e) => after(e.version, args.since))
+        : CHANGELOG;
+      return {
+        current: CONTRACT_VERSION,
+        ...(args.since ? { since: String(args.since) } : {}),
+        entries,
+        note: "Tool schemas cache client-side - if tools_added lists something you can't see, ask your user to refresh the connector.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

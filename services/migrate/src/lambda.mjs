@@ -342,12 +342,16 @@ async function feedbackRespond(databaseUrl, spec) {
     const { rowCount } = await db.query(
       `update feedback set status = $2,
               response = coalesce($3, response),
-              responded_at = case when $3 is not null then now() else responded_at end
+              responded_at = case when $3 is not null then now() else responded_at end,
+              shipped_in = coalesce($4, shipped_in),
+              related_tools = coalesce($5, related_tools)
        where feedback_id = $1`,
       [
         spec.feedback_id,
         status,
         spec.response ? String(spec.response).slice(0, 4000) : null,
+        spec.shipped_in ?? null,
+        spec.related_tools ?? null,
       ],
     );
     return { updated: rowCount };

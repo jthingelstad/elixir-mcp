@@ -92,8 +92,10 @@ The service itself.
 - **Send feedback** (`elixir_feedback`) — file feedback with the
   maintainer, attributed to your account.
 - **My feedback** (`elixir_my_feedback`) — everything you've filed with
-  its status and the maintainer's response; feedback is never actioned
-  invisibly.
+  status, maintainer response, and ship links; feedback is never
+  actioned invisibly.
+- **Changelog** (`elixir_changelog`) — what shipped since any contract
+  version; how agents discover capabilities that landed mid-session.
 - **Watch player** (`elixir_watch_player`) — claim a tag and start
   recording it, same caps as the website.
 - **Watch clan** (`elixir_watch_clan`) — request clan recording at
