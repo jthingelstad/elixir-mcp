@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Nicknames — how YOU know them",
+    body: "To you, Raquaza is Tyler. Now Elixir knows that too - privately. Set a nickname on any player's record page (or have your agent call elixir_nickname), and it's yours alone: search finds 'tyler' and ranks it first, summaries and rosters show the nickname beside the real name, and no other account ever sees it.",
+  },
+  {
+    date: "2026-09-06",
     title: "Collectors: cards stay, arenas go",
     body: "The arena-climb was confusing flavor, so it's gone. What running a collector actually earns is now front and center: every 10 fetches adds +1 to your daily tool-call quota (capped at 4x your base), plus bonus recording slots while it runs. Each collector keeps its Clash Royale card identity - the card is its name; your machine label stays underneath.",
   },

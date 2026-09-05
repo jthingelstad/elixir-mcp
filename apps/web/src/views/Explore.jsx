@@ -121,6 +121,55 @@ function callString(tool, args) {
   return `${tool}(${parts.join(", ")})`;
 }
 
+function NicknameEditor({ nick, onSaved }) {
+  const [value, setValue] = useState(nick.current ?? "");
+  const [busy, setBusy] = useState(false);
+  const save = async (v) => {
+    setBusy(true);
+    await api.explore("elixir_nickname", {
+      player_tag: nick.tag,
+      nickname: v,
+    });
+    setBusy(false);
+    onSaved();
+  };
+  return (
+    <div className="panel__actions">
+      <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+        Your nickname
+      </span>
+      <input
+        value={value}
+        maxLength={40}
+        placeholder="how YOU know them"
+        onChange={(e) => setValue(e.target.value)}
+        style={{ flex: "0 1 180px" }}
+      />
+      <button
+        className="btn btn--quiet"
+        disabled={busy || value.trim() === (nick.current ?? "")}
+        onClick={() => save(value.trim() || null)}
+      >
+        Save
+      </button>
+      {nick.current && (
+        <button
+          className="btn--text"
+          disabled={busy}
+          onClick={() => save(null)}
+        >
+          Clear
+        </button>
+      )}
+      <span
+        style={{ marginLeft: "auto", fontSize: "11.5px", color: "var(--dim)" }}
+      >
+        private to your account
+      </span>
+    </div>
+  );
+}
+
 function CopyLink() {
   const [copied, setCopied] = useState(false);
   return (
@@ -461,6 +510,7 @@ function saveTrail(t) {
 function RecordPage({ me, navigate, kind, rawId }) {
   const [state, setState] = useState({ loading: true });
   const [raw, setRaw] = useState(false);
+  const [bump, setBump] = useState(0);
   const href = `/explore/${kind}/${rawId}`;
 
   useEffect(() => {
@@ -490,7 +540,7 @@ function RecordPage({ me, navigate, kind, rawId }) {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, rawId]);
+  }, [kind, rawId, bump]);
 
   if (state.loading) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
   if (state.error) {
@@ -536,6 +586,11 @@ function RecordPage({ me, navigate, kind, rawId }) {
           {view.title}
         </h1>
         {view.tag && <span className="tag">{view.tag}</span>}
+        {view.nickEdit?.current && (
+          <span className="tag-chip" title="your private nickname">
+            &ldquo;{view.nickEdit.current}&rdquo;
+          </span>
+        )}
         {view.chip && (
           <span className={`chip ${view.chip.cls ?? ""}`}>
             {view.chip.label}
@@ -642,6 +697,12 @@ function RecordPage({ me, navigate, kind, rawId }) {
                 </span>
               ))}
             </dl>
+            {view.nickEdit && (
+              <NicknameEditor
+                nick={view.nickEdit}
+                onSaved={() => setBump((b) => b + 1)}
+              />
+            )}
             {view.note && <div className="panel__note">{view.note}</div>}
           </section>
 
@@ -765,9 +826,10 @@ function buildView(kind, rawId, res, me) {
       });
     return {
       kindLabel: "PLAYER",
-      crumb: `${b.name ?? tag} ${tag}`,
+      crumb: `${b.nickname ?? b.name ?? tag} ${tag}`,
       title: (yours ? "★ " : "") + (b.name ?? tag),
       tag,
+      nickEdit: { tag, current: b.nickname ?? null },
       chip: b.meta?.recording_active_since
         ? { label: "recording", cls: "chip--active" }
         : { label: "observed only" },

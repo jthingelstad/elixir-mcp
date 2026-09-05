@@ -270,16 +270,18 @@ const TOOLS = {
       const [snap, record, deck, best] = await Promise.all([
         ctx.db.query(
           `select p.name, p.last_known_clan_tag, cl.name as clan_name,
-                  s.trophies, s.snapshot_date
+                  s.trophies, s.snapshot_date, nn.nickname
            from player p
            left join clan cl on cl.clan_tag = p.last_known_clan_tag
+           left join player_nickname nn on nn.account_id = $2
+             and nn.player_tag = p.player_tag
            left join lateral (
              select trophies, snapshot_date from player_snapshot_daily
              where player_tag = p.player_tag
              order by snapshot_date desc, snapshot_kind desc limit 1
            ) s on true
            where p.player_tag = $1`,
-          [tag],
+          [tag, ctx.account.accountId],
         ),
         ctx.db.query(
           `select count(*)::int as battles,
@@ -346,6 +348,7 @@ const TOOLS = {
       return {
         player_tag: tag,
         name: p0.name,
+        ...(p0.nickname ? { nickname: p0.nickname } : {}),
         clan: p0.last_known_clan_tag
           ? { clan_tag: p0.last_known_clan_tag, name: p0.clan_name }
           : null,
@@ -2012,6 +2015,64 @@ const TOOLS = {
     },
   },
 
+  elixir_nickname: {
+    description:
+      "Give a player YOUR nickname - private to your account, visible only to you and your agents. 'To me Raquaza is Tyler.' Nicknames ride along wherever names appear (search matches them, summary and rosters show them) but never leave your account. Pass nickname: null to clear.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        player_tag: {
+          type: "string",
+          description: "The tag to nickname, like #9L0V2QPC.",
+        },
+        nickname: {
+          type: ["string", "null"],
+          maxLength: 40,
+          description: "Your name for them; null clears it.",
+        },
+      },
+      required: ["player_tag", "nickname"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      let tag;
+      try {
+        tag = normalizeTag(String(args.player_tag ?? ""));
+      } catch {
+        throw new ToolFailure(
+          "invalid_tag",
+          "Invalid player tag.",
+          TAG_RULE_HINT,
+        );
+      }
+      if (args.nickname === null || String(args.nickname).trim() === "") {
+        const { rowCount } = await ctx.db.query(
+          `delete from player_nickname where account_id = $1 and player_tag = $2`,
+          [ctx.account.accountId, tag],
+        );
+        return {
+          player_tag: tag,
+          nickname: null,
+          cleared: rowCount > 0,
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
+      const nickname = String(args.nickname).trim().slice(0, 40);
+      await ctx.db.query(
+        `insert into player_nickname (account_id, player_tag, nickname)
+         values ($1, $2, $3)
+         on conflict (account_id, player_tag) do update set nickname = excluded.nickname`,
+        [ctx.account.accountId, tag, nickname],
+      );
+      return {
+        player_tag: tag,
+        nickname,
+        note: "Private to your account - your agents see it in search, summaries, and rosters; nobody else ever does.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   elixir_add_player: {
     description:
       "Add a player to your account: claims the tag AND starts recording in one act - added means recorded, within your tier's player slots. The only per-subject setting is notify (whether captures feed your elixir_events pipe). action 'remove' releases the claim (recording stops if you were its only reason to exist).",
@@ -2786,7 +2847,7 @@ const TOOLS = {
 
   players_search: {
     description:
-      'Name-to-tag resolution across the whole recorded corpus (universal reads): case-insensitive substring on last-observed display names. Your own players and clanmates rank first, then everyone recorded (source: claim | clanmate | corpus). "raquaza" finds the tag; unknown names return an honest empty list, never a guess.',
+      'Name-to-tag resolution across the whole recorded corpus (universal reads): case-insensitive substring on last-observed display names AND your private nicknames (elixir_nickname) - "tyler" finds the player you call Tyler, ranked first (source: nickname | claim | clanmate | corpus). Unknown names return an honest empty list, never a guess.',
     inputSchema: {
       type: "object",
       properties: {
@@ -2805,8 +2866,9 @@ const TOOLS = {
       // to the people you mean.
       const { rows } = await ctx.db.query(
         `with hits as (
-           select p.player_tag, p.name,
+           select p.player_tag, p.name, nn.nickname,
                   case
+                    when nn.nickname ilike $2 then 'nickname'
                     when exists (select 1 from claim c
                                  where c.account_id = $1 and c.player_tag = p.player_tag)
                       then 'claim'
@@ -2820,13 +2882,15 @@ const TOOLS = {
                     else 'corpus'
                   end as source
            from player p
-           where p.name ilike $2)
-         select h.player_tag, h.name, h.source,
+           left join player_nickname nn on nn.account_id = $1
+             and nn.player_tag = p.player_tag
+           where p.name ilike $2 or nn.nickname ilike $2)
+         select h.player_tag, h.name, h.nickname, h.source,
                 (select cm.clan_tag from clan_membership cm
                  where cm.player_tag = h.player_tag and cm.left_observed_at is null
                  limit 1) as clan_tag
          from hits h
-         order by case h.source when 'claim' then 0 when 'clanmate' then 1 else 2 end,
+         order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
                   h.name
          limit $3`,
         [ctx.account.accountId, `%${q}%`, limit],
@@ -2862,19 +2926,22 @@ const TOOLS = {
         ctx.db.query(`select name from clan where clan_tag = $1`, [clanTag]),
         ctx.db.query(
           `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
+                  nn.nickname,
                   s.trophies, s.donations,
                   (select max(b.battle_time) from battle_participant bp
                    join battle b on b.battle_id = bp.battle_id
                    where bp.player_tag = cm.player_tag) as last_battle
            from clan_membership cm
            join player p on p.player_tag = cm.player_tag
+           left join player_nickname nn on nn.account_id = $2
+             and nn.player_tag = cm.player_tag
            left join lateral (
              select trophies, donations from player_snapshot_daily
              where player_tag = cm.player_tag order by snapshot_date desc, snapshot_kind desc limit 1
            ) s on true
            where cm.clan_tag = $1 and cm.left_observed_at is null
            order by cm.role desc, s.trophies desc nulls last`,
-          [clanTag],
+          [clanTag, ctx.account.accountId],
         ),
         ctx.db.query(
           `select event_type, timing, window_end, payload from clan_event
@@ -2890,6 +2957,7 @@ const TOOLS = {
         members: roster.rows.map((m) => ({
           player_tag: m.player_tag,
           name: m.name,
+          ...(m.nickname ? { nickname: m.nickname } : {}),
           role: m.role,
           trophies: m.trophies,
           donations_this_week: m.donations,

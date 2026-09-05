@@ -822,3 +822,48 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
   assert.ok(!("win_rate" in ds), "no pooled win rate by design");
   assert.match(byDeck.body.deck_note, /who plays it/);
 });
+
+test("nicknames: private to the account, matched first in search, shown in summary and roster", async () => {
+  const set = await call("elixir_nickname", {
+    player_tag: OBSERVER,
+    nickname: "Tyler",
+  });
+  assert.equal(set.isError, false, JSON.stringify(set.body));
+  assert.equal(set.body.nickname, "Tyler");
+
+  // Search resolves the nickname, ranked first.
+  const hit = await call("players_search", { query: "tyler" });
+  assert.equal(hit.isError, false);
+  assert.equal(hit.body.matches[0]?.player_tag, OBSERVER);
+  assert.equal(hit.body.matches[0]?.source, "nickname");
+  assert.equal(hit.body.matches[0]?.nickname, "Tyler");
+
+  // Summary carries it.
+  const sum = await call("players_summary", { player_tag: OBSERVER });
+  assert.equal(sum.body.nickname, "Tyler");
+
+  // Another account sees NOTHING - nicknames are how YOU know someone.
+  const { rows: other } = await db.query(
+    `insert into account (email_hash, status) values ('nick-other', 'approved')
+     returning account_id`,
+  );
+  const { rows: leak } = await db.query(
+    `select nickname from player_nickname where account_id = $1`,
+    [other[0].account_id],
+  );
+  assert.equal(leak.length, 0);
+  const { rows: scoped } = await db.query(
+    `select count(*)::int as n from player_nickname where player_tag = $1`,
+    [OBSERVER],
+  );
+  assert.equal(scoped[0].n, 1, "one row, one owner");
+
+  // Clear works.
+  const clr = await call("elixir_nickname", {
+    player_tag: OBSERVER,
+    nickname: null,
+  });
+  assert.equal(clr.body.cleared, true);
+  const gone = await call("players_summary", { player_tag: OBSERVER });
+  assert.ok(!("nickname" in gone.body));
+});

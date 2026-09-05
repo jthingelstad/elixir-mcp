@@ -174,6 +174,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Changelog",
     readOnly: true,
   },
+  elixir_nickname: {
+    group: "Elixir MCP",
+    title: "Nicknames",
+    readOnly: false,
+  },
   elixir_events: {
     group: "Elixir MCP",
     title: "Event feed",
