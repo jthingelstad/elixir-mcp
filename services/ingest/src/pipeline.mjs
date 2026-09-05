@@ -3,7 +3,7 @@
  *
  *   result message -> validate -> gunzip/parse -> payload (content-addressed)
  *     -> receipt (append-only, idempotent vs redelivery)
- *     -> admission -> projections -> poll_state freshness/heat
+ *     -> admission -> projections -> poll_state freshness/yield
  *
  * One transaction per message: a mid-payload failure must never leave a
  * battle without its participants. Freshness advances ONLY on admission
@@ -69,9 +69,8 @@ const PROJECTORS = {
       payload,
     });
     await refreshDailyRollups(db, result.affectedPairs);
-    // New battles observed -> hot (elixir-bot heat model); the scheduler
-    // owns decay, this is the only re-heat source for player endpoints.
-    // Backfill guard: a replayed OLD payload is history, not activity.
+    // Backfill guard: a replayed OLD payload is history, not activity
+    // (heat retired 2026-09-05; yield_bph is the one activity signal).
     const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
     if (fresh && result.battlesInserted > 0) {
       // Push lane: collected here, emitted after commit (a failed
@@ -83,14 +82,10 @@ const PROJECTORS = {
           count: result.battlesInserted,
         },
       ];
-      await db.query(
-        `update poll_state set heat = 3, heat_updated_at = now() where subject_tag = $1`,
-        [entityKey],
-      );
     }
     // Yield signal (0017): battles-per-hour EWMA, the one activity
     // number the yield scheduler ranks by. Hours are measured from the
-    // last admission; replayed history is excluded like re-heat is.
+    // last admission; replayed history is excluded (backfill guard).
     if (fresh) {
       await db.query(
         `update poll_state set yield_bph =

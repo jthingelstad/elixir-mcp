@@ -7,7 +7,7 @@ import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 let ctx;
 let gatewayId;
 let meta;
-// Re-heat requires a FRESH observation (24h guard); shared so the
+// The freshness guard (24h) gates activity signals; shared so the
 // redelivery test reuses the exact same receipt identity.
 const FRESH_AT = new Date(Date.now() - 3600_000).toISOString();
 
@@ -55,12 +55,12 @@ before(async () => {
 
 after(async () => ctx.drop());
 
-test("battlelog message flows end to end: payload, receipt, battles, freshness, heat", async () => {
+test("battlelog message flows end to end: payload, receipt, battles, freshness, yield", async () => {
   const file = "player_battlelog/with_boat_and_duel.json";
   const observer = meta[file].entity_key;
   const payload = await fixture(file);
   await ctx.db.query(
-    `insert into poll_state (subject_tag, endpoint, heat) values ($1, 'player_battlelog', 0)`,
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog')`,
     [observer],
   );
 
@@ -89,10 +89,10 @@ test("battlelog message flows end to end: payload, receipt, battles, freshness, 
   assert.ok(battles > 0);
 
   const { rows: ps } = await ctx.db.query(
-    `select heat, last_admitted_at from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    `select yield_bph, last_admitted_at from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
     [observer],
   );
-  assert.equal(ps[0].heat, 3, "new battles re-heat the subject");
+  assert.ok(Number(ps[0].yield_bph) > 0, "fresh battles feed the yield signal");
   assert.equal(ps[0].last_admitted_at.toISOString(), FRESH_AT);
 });
 
@@ -266,7 +266,7 @@ test("gateway lifecycle at ingest: heartbeat/success stamped; revoked and unknow
   );
 });
 
-test("replay guards: old payloads never regress freshness, heat, or identity", async () => {
+test("replay guards: old payloads never regress freshness, yield, or identity", async () => {
   const profile = await fixture("player/profile.json");
   const tag = meta["player/profile.json"].entity_key;
   // Current state from earlier tests: last poll 2026-09-03T15:40:00Z.
@@ -312,11 +312,11 @@ test("replay guards: old payloads never regress freshness, heat, or identity", a
   );
   assert.equal(s.rows.length, 1);
 
-  // Old battlelog does not re-heat.
+  // Old battlelog is history, not activity: yield_bph stays untouched.
   await ctx.db.query(
-    `insert into poll_state (subject_tag, endpoint, heat)
-     values ($1, 'player_battlelog', 0)
-     on conflict (subject_tag, endpoint) do update set heat = 0`,
+    `insert into poll_state (subject_tag, endpoint, yield_bph)
+     values ($1, 'player_battlelog', null)
+     on conflict (subject_tag, endpoint) do update set yield_bph = null`,
     [meta["player_battlelog/with_path_of_legend.json"].entity_key],
   );
   const log = await fixture("player_battlelog/with_path_of_legend.json");
@@ -335,10 +335,10 @@ test("replay guards: old payloads never regress freshness, heat, or identity", a
   );
   assert.equal(r2.outcome, "admitted");
   const h = await ctx.db.query(
-    `select heat from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    `select yield_bph from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
     [meta["player_battlelog/with_path_of_legend.json"].entity_key],
   );
-  assert.equal(h.rows[0].heat, 0, "replayed history is not activity");
+  assert.equal(h.rows[0].yield_bph, null, "replayed history is not activity");
 });
 
 test("gateway_sha on a result stamps the fleet-version column", async () => {

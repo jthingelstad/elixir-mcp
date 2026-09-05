@@ -36,25 +36,14 @@ async function addPlayer(tag, { clan = null } = {}) {
   );
 }
 
-async function setState(
-  tag,
-  endpoint,
-  { heat, admitted, planned, heatUpdated } = {},
-) {
+async function setState(tag, endpoint, { yieldBph, admitted, planned } = {}) {
   await db.query(
-    `insert into poll_state (subject_tag, endpoint, heat, last_admitted_at, last_planned_at, heat_updated_at)
-     values ($1, $2, $3, $4, $5, $6)
+    `insert into poll_state (subject_tag, endpoint, yield_bph, last_admitted_at, last_planned_at)
+     values ($1, $2, $3, $4, $5)
      on conflict (subject_tag, endpoint) do update set
-       heat = excluded.heat, last_admitted_at = excluded.last_admitted_at,
-       last_planned_at = excluded.last_planned_at, heat_updated_at = excluded.heat_updated_at`,
-    [
-      tag,
-      endpoint,
-      heat ?? 2,
-      admitted ?? null,
-      planned ?? null,
-      heatUpdated ?? NOW,
-    ],
+       yield_bph = excluded.yield_bph, last_admitted_at = excluded.last_admitted_at,
+       last_planned_at = excluded.last_planned_at`,
+    [tag, endpoint, yieldBph ?? null, admitted ?? null, planned ?? null],
   );
 }
 
@@ -111,7 +100,7 @@ after(async () => {
   await admin.end();
 });
 
-test("new subject seeds warm and gets both player endpoints plus the followed clan", async () => {
+test("new subject seeds both player endpoints plus the followed clan", async () => {
   await addPlayer("#20JJJ2CCRU", { clan: "#J2RGCRVG" });
   await setTokens(100);
   const { jobs } = await planTick(db, NOW);
@@ -123,39 +112,30 @@ test("new subject seeds warm and gets both player endpoints plus the followed cl
     "player_battlelog:#20JJJ2CCRU",
   ]);
   assert.ok(jobs.every((j) => j.lane === "bulk"));
-  const { rows } = await db.query(
-    `select heat from poll_state where subject_tag = '#20JJJ2CCRU'`,
-  );
-  assert.ok(
-    rows.every((r) => r.heat === 2),
-    "seeded warm",
-  );
 });
 
-test("budget caps selection and starved subjects strictly dominate hot ones", async () => {
+test("budget caps selection and starved subjects strictly dominate busy ones", async () => {
   await freshenCards(NOW);
   await addPlayer("#YYYYYYYY");
   await addPlayer("#RRRRRRRR");
-  // Hot and merely due:
+  // Busy (high yield) and merely due:
   await setState("#YYYYYYYY", "player_battlelog", {
-    heat: 3,
-    admitted: min(20),
-    planned: min(20),
+    yieldBph: 5,
+    admitted: min(90),
+    planned: min(90),
   });
-  // Cold and starved past the 24h floor:
+  // Dormant and starved past the 24h floor:
   await setState("#RRRRRRRR", "player_battlelog", {
-    heat: 0,
+    yieldBph: 0,
     admitted: min(CADENCE.player_battlelog.floor + 60),
     planned: min(CADENCE.player_battlelog.floor + 60),
   });
   // Make profiles ineligible so the comparison is clean:
   await setState("#YYYYYYYY", "player", {
-    heat: 2,
     admitted: min(1),
     planned: min(1),
   });
   await setState("#RRRRRRRR", "player", {
-    heat: 2,
     admitted: min(1),
     planned: min(1),
   });
@@ -167,30 +147,11 @@ test("budget caps selection and starved subjects strictly dominate hot ones", as
   await setTokens(2); // floor(2 * 0.9) = 1 job
   const { jobs: jobs2 } = await planTick(db, NOW);
   assert.equal(jobs2.length, 1);
-  assert.equal(jobs2[0].entity_key, "#RRRRRRRR", "starvation floor beats heat");
-});
-
-test("heat decays one tier per epoch, before planning", async () => {
-  await addPlayer("#YYYYYYYY");
-  await setState("#YYYYYYYY", "player_battlelog", {
-    heat: 3,
-    admitted: min(20),
-    planned: min(20),
-    heatUpdated: min(90),
-  });
-  await setState("#YYYYYYYY", "player", {
-    heat: 2,
-    admitted: min(1),
-    planned: min(1),
-  });
-  await setTokens(100);
-  // heat 3 -> 2 (warm, cadence 60m); 20m since reference -> NOT due.
-  const { jobs } = await planTick(db, NOW);
-  assert.equal(jobs.filter((j) => j.endpoint === "player_battlelog").length, 0);
-  const { rows } = await db.query(
-    `select heat from poll_state where subject_tag = '#YYYYYYYY' and endpoint = 'player_battlelog'`,
+  assert.equal(
+    jobs2[0].entity_key,
+    "#RRRRRRRR",
+    "starvation floor beats yield",
   );
-  assert.equal(rows[0].heat, 2);
 });
 
 test("tokens are consumed and an immediate second tick has no budget", async () => {
@@ -220,17 +181,14 @@ test("clan heartbeat respects its 15-minute cadence", async () => {
   await freshenCards(NOW);
   await addPlayer("#20JJJ2CCRU", { clan: "#J2RGCRVG" });
   await setState("#20JJJ2CCRU", "player_battlelog", {
-    heat: 2,
     admitted: min(1),
     planned: min(1),
   });
   await setState("#20JJJ2CCRU", "player", {
-    heat: 2,
     admitted: min(1),
     planned: min(1),
   });
   await setState("#J2RGCRVG", "clan", {
-    heat: 2,
     admitted: min(10),
     planned: min(10),
   });
@@ -239,7 +197,6 @@ test("clan heartbeat respects its 15-minute cadence", async () => {
   assert.equal(jobs.length, 0, "10 minutes since clan poll: not yet due");
 
   await setState("#J2RGCRVG", "clan", {
-    heat: 2,
     admitted: min(16),
     planned: min(16),
   });
@@ -269,12 +226,10 @@ test("season-roll watcher forces profile polls in the pre-reset hour", async () 
   await addPlayer("#YYYYYYYY");
   // Profile freshly admitted BEFORE the window; normal cadence says not due.
   await setState("#YYYYYYYY", "player", {
-    heat: 2,
     admitted: new Date("2026-09-06T22:30:00Z"),
     planned: new Date("2026-09-06T22:30:00Z"),
   });
   await setState("#YYYYYYYY", "player_battlelog", {
-    heat: 2,
     admitted: new Date("2026-09-06T23:25:00Z"),
     planned: new Date("2026-09-06T23:25:00Z"),
   });
@@ -376,12 +331,10 @@ test("yield ranking: busy-and-a-bit-overdue beats dormant-and-long-overdue; floo
   // Busy: 6 bph, 2h overdue. Dormant: 0.01 bph, 20h overdue (below the
   // 24h starvation floor so ranking decides, not fairness).
   await setState("#PYGRJC", "player_battlelog", {
-    heat: 0,
     admitted: min(120),
     planned: min(120),
   });
   await setState("#PYGRJG", "player_battlelog", {
-    heat: 3,
     admitted: min(1200),
     planned: min(1200),
   });
@@ -393,7 +346,7 @@ test("yield ranking: busy-and-a-bit-overdue beats dormant-and-long-overdue; floo
   );
   // Park their profile endpoints.
   for (const t of ["#PYGRJC", "#PYGRJG"]) {
-    await setState(t, "player", { heat: 0, admitted: min(1), planned: min(1) });
+    await setState(t, "player", { admitted: min(1), planned: min(1) });
     await db.query(
       `update poll_state set yield_bph = 0.01 where subject_tag = $1 and endpoint = 'player'`,
       [t],
@@ -405,7 +358,7 @@ test("yield ranking: busy-and-a-bit-overdue beats dormant-and-long-overdue; floo
   assert.equal(
     jobs[0].entity_key,
     "#PYGRJC",
-    "expected harvest outranks heat and raw overdue",
+    "expected harvest outranks raw overdue",
   );
 });
 

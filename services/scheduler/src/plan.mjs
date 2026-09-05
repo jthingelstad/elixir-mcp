@@ -1,16 +1,17 @@
 /**
- * The planning tick — DESIGN §5.1-§5.3, elixir-bot's polling.py pattern
- * re-expressed for Postgres + a ~1-minute serverless tick.
+ * The planning tick — DESIGN §5.1-§5.3. Yield-only since 2026-09-05:
+ * the legacy heat model retired after the full-day A/B (half the spend
+ * at equal-or-better per-fetch yield; NOTES). The heat COLUMN remains
+ * in poll_state, dormant.
  *
  * Order within a tick (the ordering IS the design):
  *   1. settle the global token bucket (budget_state singleton row);
- *   2. seed poll_state rows for new subjects (warm, heat=2);
- *   3. decay heat — epoch-anchored (one tier per DECAY_EPOCH without
- *      activity), BEFORE planning (elixir-bot's ordering lesson);
- *   4. select eligible work: due (past tier cadence) OR starved (past the
- *      fairness floor). Sort: starved FIRST (floors strictly dominate
- *      heat), then heat, then overdue, then endpoint/tag for determinism;
- *   5. take at most the bulk share of available tokens, stamp
+ *   2. seed poll_state rows for new subjects;
+ *   3. select eligible work: due (past the yield cadence) OR starved
+ *      (past the fairness floor). Sort: starved FIRST (floors strictly
+ *      dominate), then expected yield (bph x hours overdue), then
+ *      overdue, then endpoint/tag for determinism;
+ *   4. take at most the bulk share of available tokens, stamp
  *      last_planned_at, decrement tokens, return jobs.
  *
  * The live lane never goes through this planner — its reserve is the
@@ -23,25 +24,21 @@ const MINUTE = 60_000;
 
 // Cadence table (minutes) — §5.3. Data, not code.
 export const CADENCE = {
-  player_battlelog: { hot: 15, warm: 60, cold: 360, floor: 1440 },
-  player: { hot: 120, warm: 480, cold: 1440, floor: 4320 },
-  clan: { hot: 15, warm: 15, cold: 15, floor: 60 },
-  // Fixed 30m; the warDay/training cadence split can come later.
-  currentriverrace: { hot: 30, warm: 30, cold: 30, floor: 120 },
+  // Player endpoints: cadence comes from yieldCadenceMinutes (yield_bph
+  // signal with explicit unknown-activity defaults); only the fairness
+  // floor lives here.
+  player_battlelog: { floor: 1440 },
+  player: { floor: 4320 },
+  clan: { every: 15, floor: 60 },
+  currentriverrace: { every: 30, floor: 120 },
   // Daily log poll: backfill at enrollment IS the first poll; thereafter
   // it heals gaps and delivers final standings (rank/trophyChange).
-  riverracelog: { hot: 1440, warm: 1440, cold: 1440, floor: 2880 },
+  riverracelog: { every: 1440, floor: 2880 },
   // Daily global catalog: one fetch serves every tenant (get_card_catalog,
   // level normalization backfills). Missing this starved prod of maxLevel
   // truth — found live 2026-09-03.
-  cards: { hot: 1440, warm: 1440, cold: 1440, floor: 2880 },
+  cards: { every: 1440, floor: 2880 },
 };
-
-// Scheduler mode (NOTES: budget-efficiency redesign, Jamie GO
-// 2026-09-04). 'yield' spends the budget by expected value per call;
-// 'heat' is the legacy immediacy model, kept one release as fallback.
-export const SCHED_MODE =
-  process.env.ELIXIR_SCHED_MODE === "heat" ? "heat" : "yield";
 
 /**
  * Yield-mode cadence in minutes for one poll_state row. One activity
@@ -75,16 +72,11 @@ export function yieldCadenceMinutes(row) {
   if (row.endpoint === "currentriverrace") {
     return row.hint === "training" ? 120 : 30;
   }
-  return CADENCE[row.endpoint][tier(row.heat)];
+  return CADENCE[row.endpoint].every;
 }
 
-export const DECAY_EPOCH_MINUTES = 60;
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
-
-function tier(heat) {
-  return heat >= 3 ? "hot" : heat >= 1 ? "warm" : "cold";
-}
 
 export async function settleBudget(db, now) {
   const {
@@ -153,15 +145,6 @@ async function seedPollState(db) {
     on conflict do nothing`);
 }
 
-async function decayHeat(db, now) {
-  await db.query(
-    `update poll_state
-     set heat = heat - 1, heat_updated_at = $1
-     where heat > 0 and heat_updated_at < $1::timestamptz - make_interval(mins => $2)`,
-    [now, DECAY_EPOCH_MINUTES],
-  );
-}
-
 async function selectEligible(db, now) {
   // reference freshness = the later of last plan and last admission; due
   // and starved both respect a short in-flight window so a pending job
@@ -169,7 +152,7 @@ async function selectEligible(db, now) {
   const { rows } = await db.query(
     `
     with state as (
-      select ps.subject_tag, ps.endpoint, ps.heat, ps.last_planned_at, ps.last_admitted_at,
+      select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
              ps.yield_bph, ps.hint,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
@@ -196,7 +179,7 @@ async function selectEligible(db, now) {
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
-    select subject_tag, endpoint, heat, last_planned_at, last_admitted_at, reference,
+    select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
            yield_bph, hint
     from state`,
   );
@@ -213,10 +196,7 @@ async function selectEligible(db, now) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
     const referenceMs = r.reference.getTime();
-    const dueAfter =
-      (SCHED_MODE === "yield"
-        ? yieldCadenceMinutes(r)
-        : cadence[tier(r.heat)]) * MINUTE;
+    const dueAfter = yieldCadenceMinutes(r) * MINUTE;
     const due = nowMs - referenceMs >= dueAfter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
@@ -234,7 +214,6 @@ async function selectEligible(db, now) {
     eligible.push({
       subject_tag: r.subject_tag,
       endpoint: r.endpoint,
-      heat: r.heat,
       starved,
       overdueMs,
       expectedYield:
@@ -244,16 +223,13 @@ async function selectEligible(db, now) {
   }
 
   // Starved first (fairness floors strictly dominate everything), then
-  // the mode's value signal, then most-overdue, then deterministic
-  // tie-break. In yield mode the value of a call is its expected
-  // harvest: bph x hours-overdue, so a busy subject a little overdue
-  // outranks a dormant one long overdue (the floors bound the wait).
+  // expected harvest (bph x hours-overdue: a busy subject a little
+  // overdue outranks a dormant one long overdue - floors bound the
+  // wait), then most-overdue, then deterministic tie-break.
   eligible.sort(
     (a, b) =>
       Number(b.starved) - Number(a.starved) ||
-      (SCHED_MODE === "yield"
-        ? b.expectedYield - a.expectedYield
-        : b.heat - a.heat) ||
+      b.expectedYield - a.expectedYield ||
       b.overdueMs - a.overdueMs ||
       a.endpoint.localeCompare(b.endpoint) ||
       a.subject_tag.localeCompare(b.subject_tag),
@@ -269,7 +245,6 @@ async function selectEligible(db, now) {
 export async function planTick(db, now = new Date()) {
   const { tokens, liveReserve } = await settleBudget(db, now);
   await seedPollState(db);
-  await decayHeat(db, now);
 
   const bulkBudget = Math.floor(tokens * (1 - liveReserve));
   if (bulkBudget <= 0) return { jobs: [], tokens, bulkBudget };
