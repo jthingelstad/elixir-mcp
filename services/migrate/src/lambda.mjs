@@ -404,6 +404,12 @@ async function accountRoleOp(databaseUrl, spec) {
   await db.connect();
   try {
     if (spec?.list) {
+      const { rows: gateways } = await db.query(
+        `select name, status, static_ip, enrolled_at,
+                (provision_env is not null) as provision_staged,
+                provision_claimed_at is not null as provision_claimed
+         from gateway order by enrolled_at`,
+      );
       const { rows } = await db.query(
         `select a.account_id, left(a.email_hash, 10) as email_hash, a.status,
                 a.role, a.is_owner,
@@ -414,7 +420,7 @@ async function accountRoleOp(databaseUrl, spec) {
                    and r.status = 'active') as players_recording
          from account a order by a.created_at`,
       );
-      return { accounts: rows };
+      return { accounts: rows, gateways };
     }
     const { isRole } = await import("@elixir-mcp/contracts");
     if (!isRole(spec?.role)) throw new Error(`unknown role ${spec?.role}`);
