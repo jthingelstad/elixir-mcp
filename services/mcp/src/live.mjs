@@ -11,7 +11,7 @@ const POLL_INTERVAL_MS = 400;
 
 export function makeLive({
   enqueue,
-  timeoutMs = 8000,
+  timeoutMs = 12000,
   sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
 }) {
   return async function liveFetch(db, { endpoint, entityKey }) {
