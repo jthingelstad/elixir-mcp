@@ -488,6 +488,7 @@ Resources:
           FROM_EMAIL: elixir@poapkings.com
           TINYLYTICS_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:tinylytics_api_token}}"
           TINYLYTICS_SITE_ID: "3762"
+          BUTTONDOWN_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:buttondown_api_token}}"
 
   EmailEventSource:
     Type: AWS::Lambda::EventSourceMapping

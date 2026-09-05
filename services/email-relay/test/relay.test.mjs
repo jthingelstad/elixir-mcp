@@ -172,3 +172,43 @@ test("analytics pings: batched to track, best-effort, never dead-lettered", asyn
   });
   assert.deepEqual(out2.batchItemFailures, [], "outage never dead-letters");
 });
+
+test("login sends enroll the address in the mailing list; failures never resend", async () => {
+  const sent = [];
+  const enrolled = [];
+  const handler = makeHandler({
+    send: async (m) => sent.push(m),
+    enroll: async (email) => enrolled.push(email),
+  });
+  const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  const out = await handler({
+    Records: [
+      rec("a", { v: 1, kind: "login", to: "member@x.com", code: "123456" }),
+      rec("b", {
+        v: 1,
+        kind: "owner_notify",
+        to: "elixir@poapkings.com",
+        note: "x",
+      }),
+    ],
+  });
+  assert.deepEqual(out.batchItemFailures, []);
+  assert.equal(sent.length, 2);
+  assert.deepEqual(enrolled, ["member@x.com"], "only login recipients enroll");
+
+  // A Buttondown outage never fails the batch - retrying would RESEND
+  // the login email for a side effect that self-heals at next sign-in.
+  const boom = makeHandler({
+    send: async (m) => sent.push(m),
+    enroll: async () => {
+      throw new Error("503");
+    },
+  });
+  const out2 = await boom({
+    Records: [
+      rec("c", { v: 1, kind: "login", to: "member2@x.com", code: "654321" }),
+    ],
+  });
+  assert.deepEqual(out2.batchItemFailures, [], "enroll failure never retries");
+  assert.equal(sent.at(-1).to, "member2@x.com", "the login email still sent");
+});

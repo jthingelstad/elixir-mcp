@@ -25,6 +25,12 @@ and categories only, never your data. The service also counts a few of
 its own events server-side (how many MCP calls happened) with no
 account attached. The sign-in page loads no analytics at all.
 
+**The newsletter.** Signing in adds your address to the Elixir MCP
+mailing list (hosted at Buttondown), used for occasional product
+updates. Every issue carries an unsubscribe link, unsubscribing is
+honored permanently — the service never re-subscribes an address that
+opted out — and newsletter email carries no tracking pixels.
+
 **What we never do.** No selling data, no advertising, no ad or
 cross-site tracking, no analytics attached to your gameplay or your
 identity. Feedback you send is read by the maintainer and used to

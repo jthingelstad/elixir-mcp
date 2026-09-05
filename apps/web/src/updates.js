@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "The Elixir MCP newsletter",
+    body: "Elixir MCP now has a mailing list for occasional product updates, run on Buttondown the same way Elixir Drop's is: signing in enrolls you, every issue carries an unsubscribe link, unsubscribing sticks forever, and the email is pixel-free. Details on the privacy page.",
+  },
+  {
+    date: "2026-09-06",
     title: "Anonymous visit counting",
     body: "The site now counts visits with Tinylytics - anonymous page hits, visitor countries, and a few product events (a tool call happened, feedback was filed). No cookies, no identifiers, nothing attached to your account or gameplay, and the sign-in page loads no analytics at all. The privacy page has the full story.",
   },

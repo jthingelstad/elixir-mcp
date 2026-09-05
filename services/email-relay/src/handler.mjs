@@ -12,7 +12,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { renderEmail } from "./templates.mjs";
 
-export function makeHandler({ send, track = null }) {
+export function makeHandler({ send, track = null, enroll = null }) {
   return async function handler(event) {
     const batchItemFailures = [];
     const analytics = [];
@@ -30,6 +30,20 @@ export function makeHandler({ send, track = null }) {
           } else {
             const { subject, text } = renderEmail(validated.msg);
             await send({ to: validated.msg.to, subject, text });
+            // Mailing list (Drop's model): a login email only ever goes
+            // to an APPROVED account, so its send is the enrollment
+            // moment — the list mirrors people who actually sign in.
+            // Best-effort AFTER the send: an enrollment failure must
+            // never retry the batch (that would resend the login email)
+            // and Buttondown's own unsubscribe state is never fought —
+            // an existing address (HTTP 400) is left exactly as it is.
+            if (validated.msg.kind === "login" && enroll) {
+              try {
+                await enroll(validated.msg.to);
+              } catch (err) {
+                console.error("buttondown_drop", err?.message);
+              }
+            }
           }
         }
       } catch {
