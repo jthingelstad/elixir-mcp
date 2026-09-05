@@ -2,600 +2,1195 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 
 /**
- * The data explorer: the MCP tool surface, rendered. Every view is one
- * bridge call to the same registry agents use — identical entitlements,
- * freshness honesty, and shapes. Users see exactly what their agents see.
+ * Explore — the record browser (design handoff 2026-09-05). Not a
+ * reporting product: the agent is the analyst; this page answers "is
+ * the data there, and is it right?" A lookup box resolves to records
+ * you traverse by clicking references. Every record is one bridge call
+ * to the same registry tools agents use — render nothing the contract
+ * doesn't return. Deep linking is the feature: every record has a real
+ * URL and copy-link reopens exactly this record.
  */
 
-const TABS = [
-  "Summary",
-  "Battles",
-  "Trend",
-  "Pilot Score",
-  "Decks",
-  "Collection",
-  "War",
-  "Coverage",
-];
+const TAG_RE = /^#?[0-9a-zA-Z]{3,12}$/;
+const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
+const WEEK_RE = /^\d{4}-W\d{2}$/i;
 
-function WinRateChart({ weekly }) {
-  if (!weekly || weekly.length === 0) return null;
-  const W = 640;
-  const H = 160;
-  const pad = 28;
-  const xs = weekly.map((_, i) =>
-    weekly.length === 1
-      ? W / 2
-      : pad + (i * (W - 2 * pad)) / (weekly.length - 1),
-  );
-  const y = (rate) => H - pad - (rate ?? 0) * (H - 2 * pad);
-  const line = weekly
-    .map((w, i) => `${i === 0 ? "M" : "L"}${xs[i]},${y(w.win_rate ?? 0)}`)
-    .join(" ");
-  const maxBattles = Math.max(...weekly.map((w) => w.battles));
+function normTag(q) {
+  return "#" + q.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0");
+}
+const encTag = (t) => encodeURIComponent(t.replace(/^#/, ""));
+const decTag = (t) => "#" + decodeURIComponent(t).replace(/^#/, "");
+
+function Freshness({ meta }) {
+  const s = meta?.freshness_seconds;
+  if (s === null || s === undefined)
+    return <span className="freshness freshness--never">never polled</span>;
+  const cls =
+    s < 900
+      ? "freshness freshness--fresh"
+      : s < 86400
+        ? "freshness freshness--stale"
+        : "freshness";
+  const label =
+    s < 90
+      ? `${Math.round(s)}s ago`
+      : s < 5400
+        ? `${Math.round(s / 60)}m ago`
+        : s < 172800
+          ? `${Math.round(s / 3600)}h ago`
+          : `${Math.round(s / 86400)}d ago`;
+  return <span className={cls}>polled {label}</span>;
+}
+
+function recent() {
+  try {
+    return JSON.parse(localStorage.getItem("elixir-recent") || "[]");
+  } catch {
+    return [];
+  }
+}
+function pushRecent(entry) {
+  const cur = recent().filter((r) => r.href !== entry.href);
+  cur.unshift(entry);
+  localStorage.setItem("elixir-recent", JSON.stringify(cur.slice(0, 6)));
+}
+
+/** One bridge call per record — the toolbar shows exactly this call. */
+async function fetchRecord(kind, id) {
+  const call = async (tool, args) => {
+    const r = await api.explore(tool, args);
+    if (!r.ok) throw new Error("request failed");
+    if (r.data.is_error) {
+      const e = new Error(r.data.body?.error?.message ?? "error");
+      e.code = r.data.body?.error?.code;
+      throw e;
+    }
+    return { tool, args, body: r.data.body };
+  };
+  switch (kind) {
+    case "player":
+      return call("players_summary", { player_tag: id });
+    case "clan":
+      return call("clans_roster", { clan_tag: id });
+    case "battle":
+      return call("battles_query", { battle_id: id });
+    case "deck":
+      return call("battles_query", { deck_hash: id, limit: 10 });
+    case "collection":
+      return call("collections_get", { slug: id });
+    case "week": {
+      const [clan, season, section] = id.split("~");
+      const res = await call("war_history", {
+        clan_tag: decTag(clan),
+        seasons: 12,
+      });
+      return { ...res, weekKey: { season, section } };
+    }
+    case "list": {
+      const [what, key] = id.split(":");
+      if (what === "battles")
+        return call("battles_query", {
+          player_tag: decTag(key),
+          verbosity: "compact",
+          include_total: true,
+        });
+      if (what === "decks")
+        return call("battles_decks", { player_tag: decTag(key) });
+      if (what === "members")
+        return call("clans_roster", { clan_tag: decTag(key) });
+      if (what === "weeks")
+        return call("war_history", { clan_tag: decTag(key), seasons: 12 });
+      if (what === "deckbattles")
+        return call("battles_query", {
+          deck_hash: key,
+          verbosity: "compact",
+          include_total: true,
+        });
+      if (what === "colmembers") return call("collections_get", { slug: key });
+      throw new Error(`unknown list ${what}`);
+    }
+    default:
+      throw new Error(`unknown record kind ${kind}`);
+  }
+}
+
+function callString(tool, args) {
+  const parts = Object.entries(args)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
+  return `${tool}(${parts.join(", ")})`;
+}
+
+function CopyLink() {
+  const [copied, setCopied] = useState(false);
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ width: "100%", height: "auto" }}
-      role="img"
-      aria-label="Weekly win rate"
+    <button
+      className="btn--text"
+      onClick={() => {
+        navigator.clipboard?.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
     >
-      <line
-        x1={pad}
-        x2={W - pad}
-        y1={y(0.5)}
-        y2={y(0.5)}
-        stroke="var(--edge)"
-        strokeDasharray="4 4"
-      />
-      <text x={W - pad + 4} y={y(0.5) + 4} fontSize="10" fill="var(--faint)">
-        50%
-      </text>
-      {weekly.map((w, i) => (
-        <rect
-          key={w.iso_week}
-          x={xs[i] - 6}
-          width="12"
-          y={H - pad - (w.battles / maxBattles) * 30}
-          height={(w.battles / maxBattles) * 30}
-          fill="var(--purple-glow)"
-        />
-      ))}
-      <path d={line} fill="none" stroke="var(--gold)" strokeWidth="2.5" />
-      {weekly.map((w, i) => (
-        <g key={w.iso_week}>
-          <circle
-            cx={xs[i]}
-            cy={y(w.win_rate ?? 0)}
-            r="3.5"
-            fill="var(--gold)"
-          />
-          <text
-            x={xs[i]}
-            y={H - 6}
-            fontSize="9"
-            fill="var(--faint)"
-            textAnchor="middle"
-          >
-            {w.iso_week.slice(5)}
-          </text>
-        </g>
-      ))}
-    </svg>
+      {copied ? "copied" : "copy link"}
+    </button>
   );
 }
 
-function pct(x) {
-  return x === null || x === undefined ? "—" : `${(x * 100).toFixed(1)}%`;
+export function Explore({ me, navigate, path }) {
+  // /explore | /explore/:kind/:id(+)
+  const segs = path.split("/").filter(Boolean).slice(1); // after 'explore'
+  const kind = segs[0] ?? null;
+  const id = segs.slice(1).join("/") ?? null;
+
+  if (!kind) return <Lookup me={me} navigate={navigate} />;
+  return (
+    <RecordPage key={path} me={me} navigate={navigate} kind={kind} rawId={id} />
+  );
 }
 
-export function Explore({ me, navigate }) {
-  const [players, setPlayers] = useState(null);
-  const [subject, setSubject] = useState(null);
-  const [tab, setTab] = useState("Summary");
-  const [data, setData] = useState({});
+/* ── Lookup ──────────────────────────────────────────────── */
+
+function Lookup({ me, navigate }) {
+  const [q, setQ] = useState("");
+  const [miss, setMiss] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [battleFilters, setBattleFilters] = useState({ mode: "", outcome: "" });
+  const [collections, setCollections] = useState([]);
+  const [corpus, setCorpus] = useState(null);
 
   useEffect(() => {
-    if (!me?.authenticated) return;
-    api.explore("elixir_my_players").then((r) => {
-      if (r.ok && !r.data.is_error) {
-        setPlayers(r.data.body.players);
-        if (r.data.body.players[0]) {
-          setSubject(r.data.body.players[0].player_tag);
-        }
-      }
+    api.explore("collections_browse").then((r) => {
+      if (r.ok && !r.data.is_error)
+        setCollections(r.data.body?.collections ?? []);
     });
-  }, [me?.authenticated]);
+    api.publicStats().then((r) => {
+      if (r.ok) setCorpus(r.data.totals);
+    });
+  }, []);
 
-  const load = useCallback(
-    async (whichTab, extraArgs = {}) => {
-      if (!subject) return;
-      setBusy(true);
-      setError(null);
-      const call = async (tool, args) => {
-        const r = await api.explore(tool, { player_tag: subject, ...args });
-        if (!r.ok) throw new Error("request failed");
-        if (r.data.is_error) throw new Error(r.data.body.error.message);
-        return r.data.body;
-      };
-      try {
-        let d;
-        if (whichTab === "Summary") d = await call("players_summary");
-        else if (whichTab === "Battles") {
-          const args = { limit: 25, verbosity: "compact", include_total: true };
-          if (battleFilters.mode) args.mode = battleFilters.mode;
-          if (battleFilters.outcome) args.outcome = battleFilters.outcome;
-          if (extraArgs.cursor) args.cursor = extraArgs.cursor;
-          const page = await call("battles_query", args);
-          d = extraArgs.cursor
-            ? {
-                ...page,
-                battles: [
-                  ...(data[`Battles:${subject}`]?.battles ?? []),
-                  ...page.battles,
-                ],
-              }
-            : page;
-        } else if (whichTab === "Trend")
-          d = await call("battles_performance", { group_by: "week" });
-        else if (whichTab === "Pilot Score")
-          d = await call("battles_levels", {});
-        else if (whichTab === "Decks")
-          d = await call("battles_decks", { sort: "battles" });
-        else if (whichTab === "Collection")
-          d = await call("players_collection");
-        else if (whichTab === "Coverage") d = await call("elixir_coverage");
-        else if (whichTab === "War") {
-          const clan = await call("clans_roster", { clan_tag: undefined });
-          let war = null;
-          try {
-            war = await call("war_current", { clan_tag: undefined });
-          } catch {
-            war = null;
-          }
-          d = { clan, war };
-        }
-        setData((prev) => ({ ...prev, [`${whichTab}:${subject}`]: d }));
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setBusy(false);
-      }
+  const go = useCallback(
+    (kind, recId) => {
+      // trail restarts from the lookup
+      sessionStorage.removeItem("elixir-trail");
+      navigate(`/explore/${kind}/${recId}`);
     },
-    [subject, battleFilters, data],
+    [navigate],
   );
 
-  useEffect(() => {
-    if (subject && !data[`${tab}:${subject}`]) load(tab);
-    // eslint-disable-next-line react/exhaustive-deps
-  }, [tab, subject]);
+  const resolve = async (raw) => {
+    const query = raw.trim();
+    if (!query) return;
+    setBusy(true);
+    setMiss(null);
+    try {
+      const slug = query.toLowerCase();
+      if (collections.some((c) => c.slug === slug)) {
+        go("collection", slug);
+        return;
+      }
+      if (HASH_RE.test(query)) {
+        go("deck", query.replace(/^deck:/i, "").toLowerCase());
+        return;
+      }
+      if (WEEK_RE.test(query)) {
+        const mine = await api.myClans();
+        const home = mine.ok ? mine.data.home_clan?.clan_tag : null;
+        if (home) {
+          go("list", `weeks:${encTag(home)}`);
+          return;
+        }
+        setMiss(query);
+        return;
+      }
+      if (TAG_RE.test(query)) {
+        const tag = normTag(query);
+        const p = await api.explore("players_summary", { player_tag: tag });
+        if (p.ok && !p.data.is_error) {
+          go("player", encTag(tag));
+          return;
+        }
+        const c = await api.explore("clans_roster", { clan_tag: tag });
+        if (c.ok && !c.data.is_error) {
+          go("clan", encTag(tag));
+          return;
+        }
+        setMiss(tag);
+        return;
+      }
+      setMiss(query);
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  if (me === null) return <p className="notice">Loading…</p>;
-  if (!me.authenticated) {
-    return (
-      <div className="panel">
-        <h3>Sign in first</h3>
-        <p>
-          <a
-            href="/signin"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/signin");
+  const tryChips = [
+    ...(me?.claims?.[0]
+      ? [{ label: me.claims[0].player_tag, q: me.claims[0].player_tag }]
+      : []),
+    ...collections.slice(0, 2).map((c) => ({ label: c.slug, q: c.slug })),
+  ];
+
+  return (
+    <>
+      <div style={{ maxWidth: "620px", padding: "32px 0 8px" }}>
+        <div className="hero-title" style={{ fontSize: "30px" }}>
+          Do we have it?
+        </div>
+        <p className="record__sub" style={{ fontSize: "14px" }}>
+          Paste a player tag, a clan tag, a deck hash, or an ISO week. Elixir
+          answers what it has recorded, then lets you click straight through the
+          records — so when your agent says something surprising, you can go
+          check.
+        </p>
+        <form
+          style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            resolve(q);
+          }}
+        >
+          <input
+            className="mono"
+            placeholder="#20JJJ2CCRU"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            style={{
+              flex: "1 1 240px",
+              padding: "11px 12px",
+              fontSize: "14px",
+            }}
+          />
+          <button
+            className="btn"
+            disabled={busy}
+            style={{ padding: "11px 18px" }}
+          >
+            {busy ? "Looking…" : "Look up"}
+          </button>
+        </form>
+        {tryChips.length > 0 && (
+          <div
+            className="mono"
+            style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "10px",
+              flexWrap: "wrap",
+              color: "var(--dim)",
+              fontSize: "11.5px",
             }}
           >
-            Sign in
-          </a>{" "}
-          to explore your data.
-        </p>
+            <span>try:</span>
+            {tryChips.map((t) => (
+              <a key={t.label} onClick={() => resolve(t.q)}>
+                {t.label}
+              </a>
+            ))}
+          </div>
+        )}
+        {miss && (
+          <div
+            className="empty"
+            style={{
+              marginTop: "18px",
+              textAlign: "left",
+              padding: "14px 16px",
+            }}
+          >
+            <div
+              style={{ display: "flex", gap: "10px", alignItems: "baseline" }}
+            >
+              <span className="tag">{miss}</span>
+              <span
+                className="mono"
+                style={{
+                  color: "var(--red)",
+                  fontWeight: 600,
+                  fontSize: "11.5px",
+                }}
+              >
+                no records
+              </span>
+            </div>
+            <div className="empty__body" style={{ textAlign: "left" }}>
+              Nothing in the corpus for that. Elixir only records players and
+              clans someone added — it does not crawl the game. Add it from{" "}
+              <a onClick={() => navigate("/account/overview")}>
+                Account ▸ Overview
+              </a>{" "}
+              and recording starts on the next poll.
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="cols" style={{ marginTop: "28px" }}>
+        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
+          <div className="panel__head">
+            <span className="panel-title">Recent lookups</span>
+            <span
+              className="mono"
+              style={{
+                marginLeft: "auto",
+                fontSize: "11px",
+                color: "var(--dim)",
+              }}
+            >
+              this browser only
+            </span>
+          </div>
+          {recent().length === 0 && (
+            <div className="panel__body" style={{ color: "var(--faint)" }}>
+              Nothing yet.
+            </div>
+          )}
+          {recent().map((r) => (
+            <a
+              key={r.href}
+              onClick={() => navigate(r.href)}
+              style={{
+                display: "flex",
+                gap: "10px",
+                padding: "10px 16px",
+                borderTop: "1px solid var(--edge-soft)",
+                fontSize: "12.5px",
+                color: "var(--ink)",
+                flexWrap: "wrap",
+              }}
+            >
+              <span className="tag">{r.tag}</span>
+              <span style={{ color: "var(--faint)" }}>{r.name}</span>
+              <span className="kind-chip">{r.kind}</span>
+            </a>
+          ))}
+        </section>
+
+        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
+          <div className="panel__head">
+            <span className="panel-title">Collections</span>
+            <span
+              className="mono"
+              style={{
+                marginLeft: "auto",
+                fontSize: "11px",
+                color: "var(--dim)",
+              }}
+            >
+              curator lists
+            </span>
+          </div>
+          {collections.map((c) => (
+            <a
+              key={c.slug}
+              onClick={() => go("collection", c.slug)}
+              style={{
+                display: "flex",
+                gap: "10px",
+                padding: "10px 16px",
+                borderTop: "1px solid var(--edge-soft)",
+                fontSize: "12.5px",
+                color: "var(--ink)",
+              }}
+            >
+              <span>{c.title}</span>
+              <span className="tag">{c.slug}</span>
+              <span
+                className="mono"
+                style={{
+                  marginLeft: "auto",
+                  color: "var(--dim)",
+                  fontSize: "11.5px",
+                }}
+              >
+                {c.member_count} members
+              </span>
+            </a>
+          ))}
+        </section>
+
+        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
+          <div className="panel__head">
+            <span className="panel-title">What the corpus holds</span>
+            <a
+              onClick={() => navigate("/data/dashboard")}
+              className="mono"
+              style={{ marginLeft: "auto", fontSize: "11px" }}
+            >
+              Data ›
+            </a>
+          </div>
+          <div className="panel__body">
+            {corpus && (
+              <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                {[
+                  ["battles", corpus.battles],
+                  ["players", corpus.players],
+                  ["clans", corpus.clans],
+                ].map(([label, v]) => (
+                  <div key={label}>
+                    <div className="stat__label">{label}</div>
+                    <div className="stat__value">{v?.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="panel__note">
+            Explore is a coverage check, not a report — your agent is the
+            analyst.
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
+/* ── Record page ─────────────────────────────────────────── */
+
+function loadTrail() {
+  try {
+    return JSON.parse(sessionStorage.getItem("elixir-trail") || "[]");
+  } catch {
+    return [];
+  }
+}
+function saveTrail(t) {
+  sessionStorage.setItem("elixir-trail", JSON.stringify(t));
+}
+
+function RecordPage({ me, navigate, kind, rawId }) {
+  const [state, setState] = useState({ loading: true });
+  const [raw, setRaw] = useState(false);
+  const href = `/explore/${kind}/${rawId}`;
+
+  useEffect(() => {
+    let live = true;
+    fetchRecord(kind, rawId)
+      .then((res) => {
+        if (!live) return;
+        const view = buildView(kind, rawId, res, me);
+        // trail: truncate on revisit, else append
+        let trail = loadTrail();
+        const at = trail.findIndex((c) => c.href === href);
+        if (at >= 0) trail = trail.slice(0, at + 1);
+        else trail = [...trail, { href, label: view.crumb }];
+        saveTrail(trail);
+        pushRecent({
+          href,
+          tag: view.tag ?? "",
+          name: view.title,
+          kind: view.kindLabel.toLowerCase(),
+        });
+        setState({ view, res, trail });
+      })
+      .catch((err) => {
+        if (live) setState({ error: err.message, code: err.code });
+      });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, rawId]);
+
+  if (state.loading) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (state.error) {
+    return (
+      <div className="empty" style={{ maxWidth: "560px", margin: "32px auto" }}>
+        <div className="empty__mark">×</div>
+        <div className="empty__title">
+          {state.code === "not_recorded" || state.code === "not_found"
+            ? "No records"
+            : "Could not load this record"}
+        </div>
+        <div className="empty__body">
+          {state.error}{" "}
+          <a onClick={() => navigate("/explore")}>Back to lookup</a>
+        </div>
       </div>
     );
   }
 
-  const d = data[`${tab}:${subject}`];
+  const { view, res, trail } = state;
+  const goRef = (to) => navigate(to);
 
   return (
     <>
-      <div className="panel">
-        <h3>Explore</h3>
-        <p>
-          Browsing exactly what your agent sees — every view below is one MCP
-          tool call.
-        </p>
-        {players && (
-          <label>
-            Player{" "}
-            <select
-              value={subject ?? ""}
-              onChange={(e) => setSubject(e.target.value)}
+      <div className="trail">
+        <a onClick={() => navigate("/explore")}>corpus</a>
+        {trail.map((c, i) => (
+          <span key={c.href} style={{ display: "contents" }}>
+            <span className="trail__sep">/</span>
+            <a
+              aria-current={i === trail.length - 1 ? "page" : undefined}
+              onClick={() => (i === trail.length - 1 ? null : navigate(c.href))}
             >
-              {players.map((p) => (
-                <option key={p.player_tag} value={p.player_tag}>
-                  {p.name ?? p.player_tag} ({p.player_tag})
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <nav className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              className={t === tab ? "tab active" : "tab"}
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ))}
-        </nav>
-        {busy && <p className="notice">Loading…</p>}
-        {error && <p className="error">{error}</p>}
+              {c.label}
+            </a>
+          </span>
+        ))}
       </div>
 
-      {tab === "Summary" && d && (
-        <div className="panel">
-          <h3>
-            {d.name ?? d.player_tag}{" "}
-            {d.clan && <span className="notice">· {d.clan.name}</span>}
-          </h3>
-          <p>
-            <strong>{d.trophies?.toLocaleString() ?? "—"}</strong> trophies
-            {d.trophies_as_of ? ` (as of ${d.trophies_as_of})` : ""}
-          </p>
-          <p>
-            Last 30 days: {d.last_30_days.wins}W–{d.last_30_days.losses}L (
-            {pct(d.last_30_days.win_rate)}),{" "}
-            {d.last_30_days.net_trophies >= 0 ? "+" : ""}
-            {d.last_30_days.net_trophies} trophies
-          </p>
-          {d.top_deck && (
-            <p>
-              Top deck ({d.top_deck.battles} battles, {pct(d.top_deck.win_rate)}
-              ): {d.top_deck.cards.map((c) => c.name).join(", ")}
-            </p>
-          )}
-        </div>
-      )}
+      <div className="record__head">
+        <span className="kind-chip">{view.kindLabel}</span>
+        <h1 className="page-title" style={{ fontSize: "24px" }}>
+          {view.title}
+        </h1>
+        {view.tag && <span className="tag">{view.tag}</span>}
+        {view.chip && (
+          <span className={`chip ${view.chip.cls ?? ""}`}>
+            {view.chip.label}
+          </span>
+        )}
+        <span style={{ marginLeft: "auto" }}>
+          <Freshness meta={res.body.meta} />
+        </span>
+      </div>
+      {view.sub && <div className="record__sub">{view.sub}</div>}
 
-      {tab === "Battles" && d && (
-        <div className="panel">
-          <h3>
-            Battles{" "}
-            {d.total_count !== undefined && (
-              <span className="notice">({d.total_count} match filters)</span>
-            )}
-          </h3>
-          <p>
-            <select
-              value={battleFilters.mode}
-              onChange={(e) => {
-                setBattleFilters({ ...battleFilters, mode: e.target.value });
-                setData((prev) => ({ ...prev, [`Battles:${subject}`]: null }));
-              }}
-            >
-              <option value="">all modes</option>
-              {["ladder", "ranked", "war", "challenge", "casual"].map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>{" "}
-            <select
-              value={battleFilters.outcome}
-              onChange={(e) => {
-                setBattleFilters({ ...battleFilters, outcome: e.target.value });
-                setData((prev) => ({ ...prev, [`Battles:${subject}`]: null }));
-              }}
-            >
-              <option value="">any outcome</option>
-              <option value="win">wins</option>
-              <option value="loss">losses</option>
-            </select>
-          </p>
+      {view.table && (
+        <section className="panel">
           <div className="tablewrap">
-            <table>
+            <table style={{ minWidth: "640px" }}>
               <thead>
                 <tr>
-                  <th>When</th>
-                  <th>Mode</th>
-                  <th>Result</th>
-                  <th>Crowns</th>
-                  <th>Trophies</th>
-                  <th>Opponent</th>
+                  {view.table.cols.map((c) => (
+                    <th key={c.label} className={c.num ? "num" : undefined}>
+                      {c.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {d.battles.map((b, i) => (
+                {view.table.rows.map((row, i) => (
                   <tr key={i}>
-                    <td>{b.battle_time_local ?? b.battle_time}</td>
-                    <td>{b.game_mode?.name ?? b.type}</td>
-                    <td>
-                      <span className={`status ${b.me.outcome}`}>
-                        {b.me.outcome}
-                      </span>
-                    </td>
-                    <td>
-                      {b.me.crowns}–
-                      {Math.max(...b.opponents.map((o) => o.crowns ?? 0), 0)}
-                    </td>
-                    <td>
-                      {b.me.trophy_change > 0 ? "+" : ""}
-                      {b.me.trophy_change ?? ""}
-                    </td>
-                    <td>
-                      {b.opponents
-                        .map((o) => o.name ?? o.player_tag)
-                        .join(", ")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {d.next_cursor && (
-            <button
-              className="quiet"
-              onClick={() => load("Battles", { cursor: d.next_cursor })}
-            >
-              Load more
-            </button>
-          )}
-        </div>
-      )}
-
-      {tab === "Trend" && d && (
-        <div className="panel">
-          <h3>Weekly win rate</h3>
-          <WinRateChart weekly={d.weekly} />
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Week</th>
-                  <th>Battles</th>
-                  <th>W–L</th>
-                  <th>Win rate</th>
-                  <th>Net trophies</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(d.weekly ?? []).map((w) => (
-                  <tr key={w.iso_week}>
-                    <td>{w.iso_week}</td>
-                    <td>{w.battles}</td>
-                    <td>
-                      {w.wins}–{w.losses}
-                    </td>
-                    <td>{pct(w.win_rate)}</td>
-                    <td>
-                      {w.net_trophies > 0 ? "+" : ""}
-                      {w.net_trophies}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {tab === "Pilot Score" && d && (
-        <div className="panel">
-          <h3>Pilot Score</h3>
-          {d.player?.insufficient_sample ? (
-            <p>
-              Not enough leveled battles yet ({d.player.n} of 30 needed in the
-              window) — keep playing, the score unlocks itself.
-            </p>
-          ) : d.player ? (
-            <>
-              <p>
-                <strong style={{ fontSize: "1.6rem" }}>
-                  {d.player.pilot_score > 0 ? "+" : ""}
-                  {(d.player.pilot_score * 100).toFixed(1)}
-                </strong>{" "}
-                <span className="fine">
-                  ± {(d.player.standard_error * 100).toFixed(1)} pts — wins your
-                  card levels can&rsquo;t explain
-                </span>
-              </p>
-              <p>
-                Actual win rate {pct(d.player.actual_win_rate)} vs{" "}
-                {pct(d.player.expected_from_levels)} expected from levels alone,
-                over {d.player.n} decided battles (avg level gap{" "}
-                {d.player.mean_gap > 0 ? "+" : ""}
-                {d.player.mean_gap}).
-                {d.player.experience?.years_played != null &&
-                  ` ${d.player.experience.years_played}+ years played.`}
-              </p>
-              {d.player.cohort && (
-                <p className="fine">
-                  Cohort ({d.player.cohort.label ?? "experience peers"}):{" "}
-                  {d.player.cohort.percentile != null
-                    ? `${Math.round(d.player.cohort.percentile * 100)}th percentile`
-                    : ""}
-                </p>
-              )}
-              {d.player.monthly_trend?.length > 1 && (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Month</th>
-                      <th>Battles</th>
-                      <th>Pilot Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {d.player.monthly_trend.map((t) => (
-                      <tr key={t.month}>
-                        <td>{t.month}</td>
-                        <td>{t.n}</td>
-                        <td>
-                          {t.pilot_score > 0 ? "+" : ""}
-                          {(t.pilot_score * 100).toFixed(1)}
-                        </td>
-                      </tr>
+                    {row.map((cell, j) => (
+                      <td
+                        key={j}
+                        className={view.table.cols[j].num ? "num" : undefined}
+                      >
+                        {cell.href ? (
+                          <a
+                            className={cell.mono ? "tag" : undefined}
+                            onClick={() => goRef(cell.href)}
+                            style={cell.style}
+                          >
+                            {cell.text}
+                          </a>
+                        ) : (
+                          <span
+                            className={
+                              cell.outcome
+                                ? `outcome outcome--${cell.outcome}`
+                                : cell.mono
+                                  ? "tag"
+                                  : cell.nil
+                                    ? "nil"
+                                    : undefined
+                            }
+                            style={cell.style}
+                          >
+                            {cell.text}
+                          </span>
+                        )}
+                      </td>
                     ))}
-                  </tbody>
-                </table>
-              )}
-            </>
-          ) : (
-            <p>No score available for this window.</p>
-          )}
-          {Array.isArray(d.curve) && d.curve.length > 0 && (
-            <>
-              <h3>The Level Curve</h3>
-              <p className="fine">
-                Win rate by deck-average level gap, measured across the recorded
-                corpus — what a level of advantage is actually worth.
-              </p>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Level gap</th>
-                    <th>Battles</th>
-                    <th>Win rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.curve.map((b, i) => (
-                    <tr key={i}>
-                      <td>
-                        {b.gap_range[0]} to {b.gap_range[1]}
-                      </td>
-                      <td>{b.n}</td>
-                      <td>
-                        {b.insufficient_sample
-                          ? "thin sample"
-                          : pct(b.win_rate)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-          {d.note && <p className="fine">{d.note}</p>}
-        </div>
-      )}
-
-      {tab === "Decks" && d && (
-        <div className="panel">
-          <h3>Decks ({d.total_battles_in_window} battles)</h3>
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cards</th>
-                  <th>Battles</th>
-                  <th>Share</th>
-                  <th>W–L</th>
-                  <th>Win rate</th>
-                  <th>Last used</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.decks.map((k) => (
-                  <tr key={k.deck_hash}>
-                    <td>{k.cards.map((c) => c.name).join(", ")}</td>
-                    <td>{k.battles}</td>
-                    <td>{pct(k.share_of_battles)}</td>
-                    <td>
-                      {k.wins}–{k.losses}
-                    </td>
-                    <td>{pct(k.win_rate)}</td>
-                    <td>{k.last_used.slice(0, 10)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+          {view.note && <div className="panel__note">{view.note}</div>}
+        </section>
       )}
 
-      {tab === "Collection" && d && (
-        <div className="panel">
-          <h3>
-            Collection{" "}
-            <span className="notice">level {d.collection_level}</span>
-          </h3>
-          <div className="cardgrid">
-            {(d.cards ?? []).map((c) => (
-              <div key={c.id} className="cardtile" title={c.name}>
-                {c.iconUrls?.medium && (
-                  <img src={c.iconUrls.medium} alt={c.name} loading="lazy" />
-                )}
-                <span>
-                  {c.level}
-                  {c.evolutionLevel ? "★" : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="notice">
-            Levels shown on the in-game 1–16 scale. ★ = evolution owned.
-          </p>
-        </div>
-      )}
-
-      {tab === "War" && d && (
-        <div className="panel">
-          <h3>{d.clan?.name ?? "War"}</h3>
-          {d.war?.standings ? (
-            <div className="tablewrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Clan</th>
-                    <th>Fame</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.war.standings.map((s2, i) => (
-                    <tr key={s2.tag ?? i}>
-                      <td>{s2.rank ?? i + 1}</td>
-                      <td>{s2.clan ?? s2.tag}</td>
-                      <td>{s2.fame?.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {view.fields && (
+        <div className="cols">
+          <section className="panel" style={{ flex: "1 1 380px", minWidth: 0 }}>
+            <div className="panel__head">
+              <span className="panel-title">Fields</span>
+              <span
+                className="mono"
+                style={{
+                  marginLeft: "auto",
+                  fontSize: "11px",
+                  color: "var(--dim)",
+                }}
+              >
+                references are links
+              </span>
             </div>
-          ) : (
-            <p>No current war data for your clan.</p>
-          )}
-          {d.clan?.members && (
-            <p className="notice">{d.clan.members.length} members recorded.</p>
+            <dl className="fields" style={{ margin: 0 }}>
+              {view.fields.map((f) => (
+                <span key={f.label} style={{ display: "contents" }}>
+                  <dt>{f.label}</dt>
+                  <dd>
+                    {f.href ? (
+                      <a
+                        className={f.mono ? "tag" : undefined}
+                        onClick={() => goRef(f.href)}
+                      >
+                        {f.value}
+                      </a>
+                    ) : (
+                      <span className={f.mono ? "tag" : undefined}>
+                        {f.value}
+                      </span>
+                    )}{" "}
+                    {f.hint && <span className="hint">{f.hint}</span>}
+                    {f.sample && <span className="sample">{f.sample}</span>}
+                  </dd>
+                </span>
+              ))}
+            </dl>
+            {view.note && <div className="panel__note">{view.note}</div>}
+          </section>
+
+          {view.tiles?.length > 0 && (
+            <section
+              className="panel"
+              style={{ flex: "1 1 280px", minWidth: 0 }}
+            >
+              <div className="panel__head">
+                <span className="panel-title">What we have</span>
+              </div>
+              <div className="tiles">
+                {view.tiles.map((t) =>
+                  t.href ? (
+                    <a
+                      key={t.label}
+                      className="tile"
+                      href={t.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        goRef(t.href);
+                      }}
+                    >
+                      <span
+                        className={
+                          typeof t.value === "number"
+                            ? "stat__value"
+                            : "stat__value--text"
+                        }
+                        style={{
+                          fontSize:
+                            typeof t.value === "number" ? "22px" : undefined,
+                        }}
+                      >
+                        {typeof t.value === "number"
+                          ? t.value.toLocaleString()
+                          : t.value}
+                      </span>
+                      <span className="tile__label">{t.label} ›</span>
+                    </a>
+                  ) : (
+                    <div key={t.label} className="tile">
+                      <span
+                        className="stat__value"
+                        style={{ fontSize: "22px" }}
+                      >
+                        {typeof t.value === "number"
+                          ? t.value.toLocaleString()
+                          : t.value}
+                      </span>
+                      <span className="tile__label">{t.label}</span>
+                    </div>
+                  ),
+                )}
+              </div>
+            </section>
           )}
         </div>
       )}
 
-      {tab === "Coverage" && d && (
-        <div className="panel">
-          <h3>Coverage</h3>
-          <p>{d.battles.note}</p>
-          <ul>
-            {d.polls.map((p2) => (
-              <li key={p2.endpoint}>
-                <code>{p2.endpoint}</code> last admitted{" "}
-                {p2.last_admitted_at ?? "never"}
-              </li>
-            ))}
-          </ul>
-          {d.snapshots?.first_date && (
-            <p className="notice">
-              Daily snapshots begin {d.snapshots.first_date}.
-            </p>
-          )}
-          {d.completeness_last_7_days?.note && (
-            <p className="notice">{d.completeness_last_7_days.note}</p>
-          )}
+      <section className="panel" style={{ marginTop: "20px" }}>
+        <div className="toolbar">
+          <code>{callString(res.tool, res.args)}</code>
+          <button className="btn--text" onClick={() => setRaw(!raw)}>
+            {raw ? "hide raw" : "raw JSON"}
+          </button>
+          <CopyLink />
         </div>
-      )}
+        {raw && <pre className="raw">{JSON.stringify(res.body, null, 1)}</pre>}
+        <div className="panel__note">
+          One tool call produced this page — the same one your agent makes, with
+          your entitlements applied.
+        </div>
+      </section>
     </>
   );
+}
+
+/* ── View builders: shape each record from the REAL payload ── */
+
+function buildView(kind, rawId, res, me) {
+  const b = res.body;
+  const meFirstTag = me?.claims?.find((c) => c.is_primary)?.player_tag;
+  const fmt = (t) =>
+    t ? new Date(t).toISOString().replace("T", " ").slice(0, 16) + "Z" : "—";
+
+  if (kind === "player") {
+    const tag = decTag(rawId);
+    const yours = tag === meFirstTag;
+    const fields = [];
+    if (b.name !== undefined)
+      fields.push({ label: "name", value: b.name ?? "—" });
+    fields.push({ label: "player_tag", value: tag, mono: true });
+    if (b.clan?.tag ?? b.clan_tag)
+      fields.push({
+        label: "clan_tag",
+        value: b.clan?.tag ?? b.clan_tag,
+        mono: true,
+        href: `/explore/clan/${encTag(b.clan?.tag ?? b.clan_tag)}`,
+        hint: b.clan?.name,
+      });
+    if (b.trophies !== undefined)
+      fields.push({ label: "trophies", value: String(b.trophies) });
+    if (b.last_30_days) {
+      const r = b.last_30_days;
+      fields.push({
+        label: "last 30 days",
+        value: `${r.wins}–${r.losses}${r.draws ? `–${r.draws}` : ""}`,
+        sample:
+          (r.wins ?? 0) + (r.losses ?? 0) < 10
+            ? "n<10"
+            : `n=${r.wins + r.losses}`,
+      });
+    }
+    if (b.most_played_deck?.deck_hash)
+      fields.push({
+        label: "top deck",
+        value: b.most_played_deck.deck_hash.slice(0, 12) + "…",
+        mono: true,
+        href: `/explore/deck/${b.most_played_deck.deck_hash}`,
+      });
+    return {
+      kindLabel: "PLAYER",
+      crumb: `${b.name ?? tag} ${tag}`,
+      title: (yours ? "★ " : "") + (b.name ?? tag),
+      tag,
+      chip: b.meta?.recording_active_since
+        ? { label: "recording", cls: "chip--active" }
+        : { label: "observed only" },
+      sub: "What the recorder holds for this player. Coverage tiles open the underlying records.",
+      fields,
+      tiles: [
+        {
+          label: "battles",
+          value: "browse",
+          href: `/explore/list/battles:${encTag(tag)}`,
+        },
+        {
+          label: "decks",
+          value: "browse",
+          href: `/explore/list/decks:${encTag(tag)}`,
+        },
+      ],
+      note: b.note,
+    };
+  }
+
+  if (kind === "clan") {
+    const tag = decTag(rawId);
+    const members = b.members ?? [];
+    return {
+      kindLabel: "CLAN",
+      crumb: `${b.name ?? tag} ${tag}`,
+      title: b.name ?? tag,
+      tag,
+      chip: { label: "recorded", cls: "chip--active" },
+      sub: "The clan as recorded: roster and war history.",
+      fields: [
+        { label: "name", value: b.name ?? "—" },
+        { label: "clan_tag", value: tag, mono: true },
+        { label: "members", value: String(members.length) },
+      ],
+      tiles: [
+        {
+          label: "members",
+          value: members.length,
+          href: `/explore/list/members:${encTag(tag)}`,
+        },
+        {
+          label: "war weeks",
+          value: "browse",
+          href: `/explore/list/weeks:${encTag(tag)}`,
+        },
+      ],
+      note: b.note,
+    };
+  }
+
+  if (kind === "battle") {
+    const bt = b.battles?.[0];
+    if (!bt) {
+      const e = new Error("battle not found");
+      e.code = "not_found";
+      throw e;
+    }
+    const myTag = bt.me.player_tag ?? b.player_tag;
+    const opp = bt.opponents?.[0];
+    const fields = [
+      { label: "battle_time", value: fmt(bt.battle_time) },
+      { label: "type", value: bt.type },
+      { label: "game_mode", value: bt.game_mode?.name ?? "—" },
+      ...(bt.arena ? [{ label: "arena", value: bt.arena }] : []),
+      {
+        label: "player",
+        value: myTag,
+        mono: true,
+        href: `/explore/player/${encTag(myTag)}`,
+      },
+      ...(opp
+        ? [
+            {
+              label: "opponent_tag",
+              value: opp.player_tag,
+              mono: true,
+              href: `/explore/player/${encTag(opp.player_tag)}`,
+              hint: opp.name,
+            },
+          ]
+        : []),
+      { label: "crowns", value: `${bt.me.crowns}–${opp?.crowns ?? "?"}` },
+      ...(bt.me.trophy_change !== null && bt.me.trophy_change !== undefined
+        ? [{ label: "trophy_change", value: String(bt.me.trophy_change) }]
+        : []),
+      ...(bt.me.deck_hash
+        ? [
+            {
+              label: "deck_hash",
+              value: bt.me.deck_hash.slice(0, 16) + "…",
+              mono: true,
+              href: `/explore/deck/${bt.me.deck_hash}`,
+            },
+          ]
+        : []),
+      ...(opp?.deck_hash
+        ? [
+            {
+              label: "opp deck_hash",
+              value: opp.deck_hash.slice(0, 16) + "…",
+              mono: true,
+              href: `/explore/deck/${opp.deck_hash}`,
+            },
+          ]
+        : []),
+    ];
+    return {
+      kindLabel: "BATTLE",
+      crumb: `battle ${fmt(bt.battle_time)}`,
+      title: `battle ${fmt(bt.battle_time)}`,
+      tag: null,
+      chip: bt.me.outcome
+        ? {
+            label: bt.me.outcome,
+            cls:
+              bt.me.outcome === "win"
+                ? "chip--active"
+                : bt.me.outcome === "loss"
+                  ? "chip--error"
+                  : "",
+          }
+        : null,
+      sub: `As recorded from ${myTag}'s perspective. A battle has no children — every value here is the record itself.`,
+      fields,
+      tiles: [],
+      note: b.card_legend,
+    };
+  }
+
+  if (kind === "deck") {
+    const ds = b.deck_stats ?? {};
+    const cards =
+      b.battles?.[0]?.me?.deck?.cards?.map((c) => c.name).join(", ") ?? null;
+    return {
+      kindLabel: "DECK",
+      crumb: `deck ${rawId.slice(0, 10)}…`,
+      title: `deck ${rawId.slice(0, 10)}…`,
+      tag: null,
+      chip: { label: "public" },
+      sub: "One exact deck identity across the whole corpus.",
+      fields: [
+        { label: "deck_hash", value: rawId, mono: true },
+        ...(cards ? [{ label: "cards", value: cards }] : []),
+        { label: "battles", value: String(ds.battles ?? 0) },
+        { label: "record", value: `${ds.wins ?? 0}–${ds.losses ?? 0}` },
+        { label: "distinct players", value: String(ds.players ?? 0) },
+        { label: "first used", value: fmt(ds.first_used) },
+        { label: "last used", value: fmt(ds.last_used) },
+      ],
+      tiles: [
+        {
+          label: "battles with this deck",
+          value: ds.battles ?? 0,
+          href: `/explore/list/deckbattles:${rawId}`,
+        },
+      ],
+      note: b.deck_note,
+    };
+  }
+
+  if (kind === "collection") {
+    const members = b.members ?? [];
+    return {
+      kindLabel: "COLLECTION",
+      crumb: b.title ?? rawId,
+      title: b.title ?? rawId,
+      tag: rawId,
+      chip: { label: b.kind ?? "player" },
+      sub:
+        b.description ??
+        "A curator's list — membership is editorial, never a global fact.",
+      table: {
+        cols: [
+          { label: "MEMBER" },
+          { label: "TAG" },
+          { label: "TROPHIES", num: true },
+          { label: "RECORDING" },
+        ],
+        rows: members.map((m) => [
+          {
+            text: m.name ?? "—",
+            href: m.player_tag
+              ? `/explore/player/${encTag(m.player_tag)}`
+              : undefined,
+          },
+          { text: m.player_tag ?? m.clan_tag, mono: true },
+          m.trophies !== undefined && m.trophies !== null
+            ? { text: String(m.trophies) }
+            : { text: "—", nil: true },
+          {
+            text: m.recording ? "recording" : "observed",
+            style: m.recording
+              ? { color: "var(--green)" }
+              : { color: "var(--faint)" },
+          },
+        ]),
+      },
+      note: b.note,
+    };
+  }
+
+  if (kind === "week") {
+    const wk = (b.weeks ?? []).find(
+      (w) =>
+        String(w.season_id) === res.weekKey?.season &&
+        String(w.section_index) === res.weekKey?.section,
+    );
+    if (!wk) {
+      const e = new Error("war week not in the recorded log");
+      e.code = "not_found";
+      throw e;
+    }
+    return {
+      kindLabel: "WAR WEEK",
+      crumb: `S${wk.season_id} W${Number(wk.section_index) + 1}`,
+      title: `Season ${wk.season_id}, week ${Number(wk.section_index) + 1}`,
+      tag: b.clan_tag,
+      chip: wk.is_colosseum
+        ? { label: "colosseum", cls: "chip--pending" }
+        : null,
+      sub: "One recorded river-race week for this clan.",
+      fields: [
+        { label: "season", value: String(wk.season_id) },
+        { label: "week", value: String(Number(wk.section_index) + 1) },
+        ...(wk.rank ? [{ label: "final rank", value: String(wk.rank) }] : []),
+        ...(wk.fame !== undefined
+          ? [{ label: "boat fame", value: String(wk.fame) }]
+          : []),
+        {
+          label: "clan_tag",
+          value: b.clan_tag,
+          mono: true,
+          href: `/explore/clan/${encTag(b.clan_tag)}`,
+        },
+      ],
+      tiles: [],
+      note: b.note,
+    };
+  }
+
+  if (kind === "list") return buildListView(rawId, res);
+  throw new Error(`unknown kind ${kind}`);
+}
+
+function buildListView(rawId, res) {
+  const [what, key] = rawId.split(":");
+  const b = res.body;
+  const fmt = (t) =>
+    t ? new Date(t).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
+
+  if (what === "battles" || what === "deckbattles") {
+    const rows = (b.battles ?? []).map((bt) => {
+      const myTag = bt.me.player_tag ?? b.player_tag;
+      const opp = bt.opponents?.[0];
+      return [
+        {
+          text: fmt(bt.battle_time),
+          mono: true,
+          href: bt.battle_id ? `/explore/battle/${bt.battle_id}` : undefined,
+        },
+        ...(what === "deckbattles"
+          ? [
+              {
+                text: myTag,
+                mono: true,
+                href: `/explore/player/${encTag(myTag)}`,
+              },
+            ]
+          : [
+              opp
+                ? {
+                    text: `${opp.name ?? opp.player_tag}`,
+                    href: `/explore/player/${encTag(opp.player_tag)}`,
+                  }
+                : { text: "—", nil: true },
+            ]),
+        { text: bt.me.outcome ?? "—", outcome: bt.me.outcome },
+        { text: bt.game_mode?.name ?? bt.type },
+        bt.me.deck_hash
+          ? {
+              text: bt.me.deck_hash.slice(0, 10) + "…",
+              mono: true,
+              href: `/explore/deck/${bt.me.deck_hash}`,
+            }
+          : { text: "—", nil: true },
+        bt.me.trophy_change !== null && bt.me.trophy_change !== undefined
+          ? { text: String(bt.me.trophy_change) }
+          : { text: "—", nil: true },
+      ];
+    });
+    return {
+      kindLabel: "BATTLES",
+      crumb: "battles",
+      title:
+        what === "deckbattles"
+          ? `battles · deck ${key.slice(0, 10)}…`
+          : `battles · ${decTag(key)}`,
+      tag: what === "deckbattles" ? null : decTag(key),
+      chip: null,
+      sub: b.total_count
+        ? `${b.total_count.toLocaleString()} recorded battles match; newest first, 25 per page.`
+        : "Newest first, 25 per page.",
+      table: {
+        cols: [
+          { label: "TIME" },
+          { label: what === "deckbattles" ? "PLAYER" : "VS" },
+          { label: "RESULT" },
+          { label: "MODE" },
+          { label: "DECK" },
+          { label: "ΔTROPHIES", num: true },
+        ],
+        rows,
+      },
+      note: b.warnings?.join(" ") ?? b.card_legend ?? b.deck_note,
+    };
+  }
+
+  if (what === "decks") {
+    return {
+      kindLabel: "DECKS",
+      crumb: "decks",
+      title: `decks · ${decTag(key)}`,
+      tag: decTag(key),
+      sub: `${b.total_battles_in_window?.toLocaleString?.() ?? ""} battles across ${b.decks?.length ?? 0} distinct decks in the window.`,
+      table: {
+        cols: [
+          { label: "DECK" },
+          { label: "BATTLES", num: true },
+          { label: "W", num: true },
+          { label: "L", num: true },
+          { label: "SHARE", num: true },
+          { label: "LAST USED" },
+        ],
+        rows: (b.decks ?? []).map((d) => [
+          {
+            text:
+              d.cards?.map((c) => c.name).join(", ") ||
+              d.deck_hash.slice(0, 12),
+            href: `/explore/deck/${d.deck_hash}`,
+          },
+          { text: String(d.battles) },
+          { text: String(d.wins) },
+          { text: String(d.losses) },
+          {
+            text:
+              d.share_of_battles != null
+                ? `${(d.share_of_battles * 100).toFixed(0)}%`
+                : "—",
+          },
+          { text: fmt(d.last_used), mono: true },
+        ]),
+      },
+      note: b.note,
+    };
+  }
+
+  if (what === "members") {
+    return {
+      kindLabel: "MEMBERS",
+      crumb: "members",
+      title: `members · ${b.name ?? decTag(key)}`,
+      tag: decTag(key),
+      sub: "Open membership as recorded.",
+      table: {
+        cols: [
+          { label: "MEMBER" },
+          { label: "TAG" },
+          { label: "ROLE" },
+          { label: "TROPHIES", num: true },
+          { label: "LAST BATTLE" },
+        ],
+        rows: (b.members ?? []).map((m) => [
+          {
+            text: m.name ?? "—",
+            href: `/explore/player/${encTag(m.player_tag)}`,
+          },
+          { text: m.player_tag, mono: true },
+          { text: m.role ?? "—" },
+          m.trophies != null
+            ? { text: String(m.trophies) }
+            : { text: "—", nil: true },
+          m.last_battle
+            ? { text: fmt(m.last_battle), mono: true }
+            : { text: "never", nil: true },
+        ]),
+      },
+      note: b.note,
+    };
+  }
+
+  if (what === "weeks") {
+    return {
+      kindLabel: "WAR WEEKS",
+      crumb: "weeks",
+      title: `war weeks · ${decTag(key)}`,
+      tag: decTag(key),
+      sub: "Recorded river-race weeks, newest first.",
+      table: {
+        cols: [
+          { label: "WEEK" },
+          { label: "RANK", num: true },
+          { label: "FAME", num: true },
+          { label: "" },
+        ],
+        rows: (b.weeks ?? []).map((w) => [
+          {
+            text: `S${w.season_id} W${Number(w.section_index) + 1}${w.is_colosseum ? " · colosseum" : ""}`,
+            mono: true,
+            href: `/explore/week/${encTag(decTag(key))}~${w.season_id}~${w.section_index}`,
+          },
+          w.rank != null ? { text: String(w.rank) } : { text: "—", nil: true },
+          w.fame != null ? { text: String(w.fame) } : { text: "—", nil: true },
+          { text: "" },
+        ]),
+      },
+      note: b.note,
+    };
+  }
+
+  if (what === "colmembers") {
+    return buildView("collection", key, res);
+  }
+  throw new Error(`unknown list ${what}`);
 }

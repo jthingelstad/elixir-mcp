@@ -539,7 +539,7 @@ const TOOLS = {
 
   battles_query: {
     description:
-      "The workhorse: canonical recorded battles for a tag with filters and cursor pagination. Returns both perspectives of every battle (your deck and the opponents’). from/to accept ISO instants or date-only strings resolved in your timezone.",
+      "The workhorse: canonical recorded battles with filters and cursor pagination. Returns both perspectives of every battle. Three addressing modes: a player_tag (the usual sweep); battle_id alone (ONE battle, both sides - the record-browser lookup); deck_hash alone (corpus-wide battles for that exact deck, with a deck_stats aggregate - counts, W-L, distinct pilots; deliberately no win rate: a deck's pooled rate describes who plays it, see docs/META-INTEL). from/to accept ISO instants or date-only strings resolved in your timezone.",
     inputSchema: {
       type: "object",
       properties: {
@@ -574,7 +574,13 @@ const TOOLS = {
         },
         deck_hash: {
           type: "string",
-          description: "Exact deck identity (see battles_decks).",
+          description:
+            "Exact deck identity (see battles_decks). Without player_tag: corpus-wide.",
+        },
+        battle_id: {
+          type: "string",
+          description:
+            "Fetch exactly this battle (both perspectives). No player_tag needed.",
         },
         game_mode: {
           type: "string",
@@ -603,8 +609,21 @@ const TOOLS = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const s = await subject(ctx.db, ctx.account, args.player_tag, "battles");
-      const tag = s.tag;
+      // Addressing modes (design handoff 2026-09-05): battle_id and
+      // corpus-wide deck_hash need no subject tag - recorded battles
+      // are universal reads.
+      const byBattle = args.battle_id !== undefined;
+      const corpusDeck = !byBattle && args.deck_hash && !args.player_tag;
+      let tag = null;
+      if (!byBattle && !corpusDeck) {
+        const s = await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "battles",
+        );
+        tag = s.tag;
+      }
       const tz = ctx.account.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
       const compact = args.verbosity === "compact";
@@ -618,8 +637,18 @@ const TOOLS = {
           "Use compact for wide sweeps; deck_hash survives compaction.",
         );
       }
-      const where = ["bp.player_tag = $1"];
-      const params = [tag];
+      const where = [];
+      const params = [];
+      if (byBattle) {
+        params.push(String(args.battle_id));
+        where.push(`bp.battle_id = $1`, `bp.side = 0`);
+      } else if (corpusDeck) {
+        // deck filter added below via the shared deck_hash clause
+        where.push("bp.side is not null");
+      } else {
+        params.push(tag);
+        where.push("bp.player_tag = $1");
+      }
       const add = (clause, value) => {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
@@ -706,7 +735,7 @@ const TOOLS = {
       const { rows } = await ctx.db.query(
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
                 b.arena, b.league_number,
-                bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck, bp.deck_hash,
+                bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck, bp.deck_hash,
                 bp.elixir_leaked, bp.tower_hp, bp.outcome
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
@@ -719,12 +748,20 @@ const TOOLS = {
       let others = new Map();
       if (rows.length > 0) {
         const ids = rows.map((r) => r.battle_id);
+        const sides = rows.map((r) => r.side);
         const { rows: rest } = await ctx.db.query(
-          `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
+          tag
+            ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
                   o.deck, o.tower_hp, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
-           where o.battle_id = any($1) and o.player_tag <> $2`,
-          [ids, tag],
+           where o.battle_id = any($1) and o.player_tag <> $2`
+            : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
+                  o.deck, o.tower_hp, p.name
+           from battle_participant o join player p on p.player_tag = o.player_tag
+           join unnest($1::text[], $2::int[]) me(battle_id, side)
+             on me.battle_id = o.battle_id
+           where o.side <> me.side`,
+          tag ? [ids, tag] : [ids, sides],
         );
         others = rest.reduce((map, r) => {
           if (!map.has(r.battle_id)) map.set(r.battle_id, []);
@@ -746,6 +783,7 @@ const TOOLS = {
           ...(compact ? {} : { deck: o.deck, tower_hp: o.tower_hp }),
         });
         return {
+          battle_id: r.battle_id,
           battle_time: r.battle_time.toISOString(),
           ...(tz ? { battle_time_local: formatLocal(r.battle_time, tz) } : {}),
           type: r.type,
@@ -753,6 +791,7 @@ const TOOLS = {
           arena: r.arena,
           league_number: r.league_number,
           me: {
+            ...(tag ? {} : { player_tag: r.player_tag }),
             outcome: r.outcome,
             crowns: r.crowns,
             trophy_change: r.trophy_change,
@@ -771,6 +810,33 @@ const TOOLS = {
           opponents: rest.filter((o) => o.side !== r.side).map(shape),
         };
       });
+
+      let deckStats;
+      if (corpusDeck) {
+        // The honest aggregate: counts, W-L, distinct pilots, span.
+        // Deliberately NO win rate - a deck's pooled rate describes who
+        // plays it (docs/META-INTEL §2); lift with a sample size is an
+        // agent tool (battles_meta_decks).
+        const { rows: ds } = await ctx.db.query(
+          `select count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  count(distinct bp.player_tag)::int as players,
+                  min(b.battle_time) as first_used,
+                  max(b.battle_time) as last_used
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where bp.deck_hash = $1`,
+          [String(args.deck_hash)],
+        );
+        deckStats = {
+          battles: ds[0].battles,
+          wins: ds[0].wins,
+          losses: ds[0].losses,
+          players: ds[0].players,
+          first_used: ds[0].first_used?.toISOString() ?? null,
+          last_used: ds[0].last_used?.toISOString() ?? null,
+        };
+      }
 
       let totalCount;
       if (args.include_total === true) {
@@ -791,7 +857,7 @@ const TOOLS = {
       // Empty page + a window that ends before the first recorded battle
       // reads as "player was inactive" unless we say otherwise.
       let warnings;
-      if (battles.length === 0 && to) {
+      if (battles.length === 0 && to && tag) {
         const { rows: firstRec } = await ctx.db.query(
           `select min(battle_time) as first from battle_participant where player_tag = $1`,
           [tag],
@@ -805,7 +871,16 @@ const TOOLS = {
       }
 
       return {
-        player_tag: tag,
+        ...(tag ? { player_tag: tag } : {}),
+        ...(byBattle ? { battle_id: String(args.battle_id) } : {}),
+        ...(deckStats
+          ? {
+              deck_hash: String(args.deck_hash),
+              deck_stats: deckStats,
+              deck_note:
+                "No pooled win rate by design: a deck's rate describes who plays it. Ask battles_meta_decks for shrunk rates with sample sizes.",
+            }
+          : {}),
         battles,
         ...(warnings ? { warnings } : {}),
         ...(totalCount !== undefined ? { total_count: totalCount } : {}),
@@ -820,7 +895,11 @@ const TOOLS = {
               card_legend:
                 "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic. tower_hp is the hitpoints REMAINING on that player's towers when the battle ended (a margin signal, never a level); princess is an array of surviving princess-tower hp, and null means the game did not report tower data for this battle.",
             }),
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        meta: await buildMeta(
+          ctx.db,
+          ctx.account,
+          tag ?? rows[0]?.player_tag ?? "#",
+        ),
       };
     },
   },

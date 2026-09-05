@@ -20,23 +20,19 @@ export function Docs({ page: slug, navigate }) {
   const page = PAGES.find((p) => p.id === slug) ?? PAGES[0];
   return (
     <div className="docs">
-      <nav className="panel docs-toc" aria-label="Documentation">
-        <h3>Documentation</h3>
-        <ul>
-          {PAGES.map((p) => (
-            <li key={p.id}>
-              <button
-                className={p.id === page.id ? "tab active" : "tab"}
-                onClick={() => navigate(`/docs/${p.id}`)}
-              >
-                {p.title}
-              </button>
-            </li>
-          ))}
-        </ul>
+      <nav className="docs__toc" aria-label="Documentation">
+        {PAGES.map((p) => (
+          <a
+            key={p.id}
+            aria-current={p.id === page.id ? "page" : undefined}
+            onClick={() => navigate(`/docs/${p.id}`)}
+          >
+            {p.title}
+          </a>
+        ))}
       </nav>
       <article
-        className="panel docs-body"
+        className="docs__body"
         // Our own repo-reviewed markdown, no user content.
         dangerouslySetInnerHTML={{ __html: marked.parse(page.md) }}
       />

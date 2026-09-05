@@ -7,32 +7,24 @@ import { Admin } from "./views/Admin.jsx";
 import { Docs } from "./views/Docs.jsx";
 import { Data } from "./views/Data.jsx";
 import { Explore } from "./views/Explore.jsx";
-import { Clan } from "./views/Clan.jsx";
-import { Collections } from "./views/Collections.jsx";
-import { Meta } from "./views/Meta.jsx";
-import { Collectors } from "./views/Collectors.jsx";
-
-export const DISCLAIMER =
-  "This material is unofficial and is not endorsed by Supercell. For more information see " +
-  "Supercell’s Fan Content Policy: www.supercell.com/fan-content-policy.";
 
 /**
- * Two-tier navigation (Jamie, 2026-09-05): tier 1 = stable product areas
- * (Explore the data / your Account / Docs / Admin ops); tier 2 = the
- * pages within, where growth lands. Old flat paths redirect.
+ * Shell + three-tier navigation (design handoff 2026-09-05): tier 1 is
+ * a gold underline, tier 2 a purple underline, in-page tabs a segmented
+ * well — three tiers, three shapes. Explore has no tier-2 row: it is a
+ * lookup plus addressable records (the trail replaces the page row).
  */
 const SECTIONS = {
-  explore: {
-    label: "Explore",
-    authed: true,
+  home: { label: "Home", authed: false, pages: [] },
+  data: {
+    label: "Data",
+    authed: false,
     pages: [
-      { slug: "player", label: "Player" },
-      { slug: "clan", label: "Clan & War" },
-      { slug: "meta", label: "Meta" },
-      { slug: "collections", label: "Collections" },
-      { slug: "collectors", label: "Collectors" },
+      { slug: "dashboard", label: "Dashboard" },
+      { slug: "changelog", label: "Changelog" },
     ],
   },
+  explore: { label: "Explore", authed: true, pages: [] },
   account: {
     label: "Account",
     authed: true,
@@ -45,39 +37,49 @@ const SECTIONS = {
       { slug: "feedback", label: "Feedback" },
     ],
   },
-  data: {
-    label: "Data",
-    authed: false,
-    pages: [
-      { slug: "dashboard", label: "Dashboard" },
-      { slug: "changelog", label: "Changelog" },
-    ],
-  },
-  docs: { label: "Docs", authed: false, pages: [] }, // Docs owns its own ToC (URL-addressable: /docs/<page>)
+  docs: { label: "Docs", authed: false, pages: [] },
   admin: {
     label: "Admin",
     authed: true,
-    ownerOnly: true,
+    adminOnly: true,
     pages: [
       { slug: "requests", label: "Requests" },
       { slug: "accounts", label: "Accounts" },
       { slug: "collections", label: "Collections" },
-      { slug: "gateways", label: "Collectors", ownerOnly: true },
-      { slug: "tokens", label: "Tokens", ownerOnly: true },
       { slug: "feedback", label: "Feedback" },
       { slug: "usage", label: "Usage" },
+      { slug: "gateways", label: "Collectors", ownerOnly: true },
+      { slug: "tokens", label: "Tokens", ownerOnly: true },
     ],
   },
 };
 
 const REDIRECTS = {
   "/dashboard": "/account/overview",
-  "/clan": "/explore/clan",
-  "/explore": "/explore/player",
+  "/clan": "/explore",
   "/account": "/account/overview",
   "/admin": "/admin/requests",
   "/data": "/data/dashboard",
+  "/explore/player": "/explore",
+  "/explore/clan": "/explore",
+  "/explore/meta": "/explore",
+  "/explore/collections": "/explore",
+  "/explore/collectors": "/account/collector",
 };
+
+/** Guard restored/bookmarked routes: a stale path to a removed section
+ *  must fall back to a known-good route, never an empty main. */
+function legalRoute(path) {
+  const [, section, page] = path.split("/");
+  if (path === "/" || path === "" || path === "/signin") return path;
+  const sec = SECTIONS[section];
+  if (!sec) return "/";
+  if (section === "explore") return path; // records are addressable
+  if (section === "docs") return path; // docs own their pages
+  if (sec.pages.length === 0) return `/${section}`;
+  if (sec.pages.some((p) => p.slug === page)) return path;
+  return `/${section}/${sec.pages[0].slug}`;
+}
 
 function useRoute() {
   const [path, setPath] = useState(window.location.pathname);
@@ -91,6 +93,46 @@ function useRoute() {
     setPath(to);
   }, []);
   return { path, navigate };
+}
+
+function Disclaimer() {
+  return (
+    <footer className="disclaimer">
+      <span className="disclaimer__tag">UNOFFICIAL</span>
+      <span className="disclaimer__text">
+        This material is unofficial and is not endorsed by Supercell. For more
+        information see Supercell&rsquo;s Fan Content Policy:{" "}
+        <a href="https://www.supercell.com/fan-content-policy">
+          www.supercell.com/fan-content-policy
+        </a>
+        .
+      </span>
+      <span className="disclaimer__family">a POAP KINGS product</span>
+    </footer>
+  );
+}
+
+function SignInWall({ navigate }) {
+  return (
+    <div className="panel" style={{ maxWidth: "420px", margin: "48px auto 0" }}>
+      <div className="panel__body" style={{ textAlign: "center" }}>
+        <h1 className="page-title" style={{ marginBottom: "8px" }}>
+          Sign in first
+        </h1>
+        <p style={{ color: "var(--faint)", fontSize: "13px" }}>
+          This part of Elixir MCP shows your recorded history. Sign in with the
+          email on your access request.
+        </p>
+        <button
+          className="btn"
+          onClick={() => navigate("/signin")}
+          style={{ marginTop: "8px" }}
+        >
+          Sign in
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function App() {
@@ -108,18 +150,20 @@ export function App() {
   }, [refresh]);
 
   const authed = me?.authenticated === true;
-  const effectivePath = REDIRECTS[path] ?? path;
-  const [, section, page] = effectivePath.split("/");
+  const effectivePath = legalRoute(REDIRECTS[path] ?? path);
+  const [, sectionRaw, page] = effectivePath.split("/");
+  const section = effectivePath === "/" ? "home" : sectionRaw;
   const sec = SECTIONS[section];
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
+  const tier2Pages = (sec?.pages ?? []).filter(
+    (p) => !p.ownerOnly || me?.is_owner,
+  );
 
-  const link = (to, label, key, isActive) => (
+  const t1 = (to, label, key, active) => (
     <a
-      key={key ?? to}
+      key={key}
       href={to}
-      className={
-        (isActive ?? effectivePath.startsWith(to)) ? "active" : undefined
-      }
+      aria-current={active ? "page" : undefined}
       onClick={(e) => {
         e.preventDefault();
         navigate(to);
@@ -129,13 +173,16 @@ export function App() {
     </a>
   );
 
+  const needsAuth = sec?.authed && !authed && me !== null;
+
   return (
-    <main>
-      <header className="site">
-        <h1>
+    <div className="shell">
+      <header className="nav1">
+        <div className="nav1__inner wrap">
           <a
+            className="wordmark"
             href="/"
-            style={{ color: "inherit", textDecoration: "none" }}
+            style={{ padding: "14px 0" }}
             onClick={(e) => {
               e.preventDefault();
               navigate("/");
@@ -143,99 +190,108 @@ export function App() {
           >
             Elixir MCP
           </a>
-        </h1>
-        <nav>
-          {authed &&
-            link(
-              "/explore/player",
-              "Explore",
-              "explore",
-              section === "explore",
+          <nav>
+            {t1("/", "Home", "home", section === "home")}
+            {t1("/data/dashboard", "Data", "data", section === "data")}
+            {authed &&
+              t1("/explore", "Explore", "explore", section === "explore")}
+            {authed &&
+              t1(
+                "/account/overview",
+                "Account",
+                "account",
+                section === "account",
+              )}
+            {t1("/docs", "Docs", "docs", section === "docs")}
+            {authed &&
+              me.is_admin &&
+              t1("/admin/requests", "Admin", "admin", section === "admin")}
+          </nav>
+          <div className="nav1__meta">
+            {authed ? (
+              <a
+                href="/signout"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  await api.signOut();
+                  await refresh();
+                  navigate("/");
+                }}
+              >
+                Sign out
+              </a>
+            ) : (
+              <a
+                href="/signin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/signin");
+                }}
+              >
+                Sign in
+              </a>
             )}
-          {authed &&
-            link(
-              "/account/overview",
-              "Account",
-              "account",
-              section === "account",
-            )}
-          {link("/data/dashboard", "Data", "data", section === "data")}
-          {link("/docs", "Docs", "docs", section === "docs")}
-          {authed &&
-            me.is_admin &&
-            link("/admin/requests", "Admin", "admin", section === "admin")}
-          {authed ? (
-            <a
-              href="/signout"
-              onClick={async (e) => {
-                e.preventDefault();
-                await api.signOut();
-                await refresh();
-                navigate("/");
-              }}
-            >
-              Sign out
-            </a>
-          ) : (
-            <a
-              href="/signin"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/signin");
-              }}
-            >
-              Sign in
-            </a>
-          )}
-        </nav>
+          </div>
+        </div>
       </header>
 
-      {sec && sec.pages.length > 0 && (
-        <nav className="subnav" aria-label={`${sec.label} pages`}>
-          {sec.pages
-            .filter((p) => !p.ownerOnly || me?.is_owner)
-            .map((p) =>
-              link(`/${section}/${p.slug}`, p.label, `${section}-${p.slug}`),
-            )}
+      {tier2Pages.length > 0 && !needsAuth && (
+        <nav className="nav2" aria-label={`${sec.label} pages`}>
+          <div className="nav2__inner wrap">
+            {tier2Pages.map((p) => (
+              <a
+                key={p.slug}
+                href={`/${section}/${p.slug}`}
+                aria-current={activePage === p.slug ? "page" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/${section}/${p.slug}`);
+                }}
+              >
+                {p.label}
+              </a>
+            ))}
+          </div>
         </nav>
       )}
 
-      {effectivePath === "/signin" && (
-        <SignIn
-          onAuthed={async () => {
-            await refresh();
-            navigate("/account/overview");
-          }}
-        />
-      )}
-      {section === "docs" && <Docs page={page} navigate={navigate} />}
-      {section === "data" && <Data page={activePage ?? "dashboard"} />}
-      {section === "explore" && activePage === "player" && (
-        <Explore me={me} navigate={navigate} />
-      )}
-      {section === "explore" && activePage === "clan" && (
-        <Clan me={me} navigate={navigate} />
-      )}
-      {section === "explore" && activePage === "meta" && <Meta me={me} />}
-      {section === "explore" && activePage === "collections" && (
-        <Collections me={me} navigate={navigate} />
-      )}
-      {section === "explore" && activePage === "collectors" && <Collectors />}
-      {section === "account" && (
-        <Dashboard
-          me={me}
-          refresh={refresh}
-          navigate={navigate}
-          page={activePage ?? "overview"}
-        />
-      )}
-      {section === "admin" && <Admin me={me} page={activePage ?? "requests"} />}
-      {effectivePath !== "/signin" &&
-        !["docs", "data", "explore", "account", "admin"].includes(section) && (
+      <main className="wrap">
+        {effectivePath === "/signin" ? (
+          <SignIn
+            onAuthed={async () => {
+              await refresh();
+              navigate("/account/overview");
+            }}
+          />
+        ) : needsAuth ? (
+          <SignInWall navigate={navigate} />
+        ) : section === "home" ? (
+          <Landing authed={authed} navigate={navigate} />
+        ) : section === "data" ? (
+          <Data page={activePage ?? "dashboard"} />
+        ) : section === "docs" ? (
+          <Docs page={page} navigate={navigate} />
+        ) : section === "explore" ? (
+          <Explore me={me} navigate={navigate} path={effectivePath} />
+        ) : section === "account" ? (
+          <Dashboard
+            me={me}
+            refresh={refresh}
+            navigate={navigate}
+            page={activePage ?? "overview"}
+          />
+        ) : section === "admin" ? (
+          me?.is_admin ? (
+            <Admin me={me} page={activePage ?? "requests"} />
+          ) : (
+            <SignInWall navigate={navigate} />
+          )
+        ) : (
           <Landing authed={authed} navigate={navigate} />
         )}
+      </main>
 
-      <footer>{DISCLAIMER}</footer>
-    </main>
+      <Disclaimer />
+    </div>
   );
 }

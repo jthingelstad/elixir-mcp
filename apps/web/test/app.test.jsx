@@ -6,7 +6,7 @@ import {
   waitFor,
   cleanup,
 } from "@testing-library/react";
-import { App, DISCLAIMER } from "../src/App.jsx";
+import { App } from "../src/App.jsx";
 
 function mockFetch(routes) {
   return vi.fn(async (path, init = {}) => {
@@ -53,7 +53,7 @@ test("landing renders the pitch, the disclaimer, and posts request-access", asyn
   expect(
     await screen.findByText(/Clash Royale history, recorded/),
   ).toBeTruthy();
-  expect(screen.getByText(DISCLAIMER)).toBeTruthy();
+  expect(screen.getByText("UNOFFICIAL")).toBeTruthy();
 
   fireEvent.change(screen.getByLabelText(/Email/), {
     target: { value: "a@b.com" },
@@ -114,7 +114,7 @@ test("sign-in flow: email step then code step authenticates", async () => {
   );
 });
 
-test("dashboard renders claims, recording state, and the connect URL", async () => {
+test("account overview renders claims, recording state, and notify switches", async () => {
   window.history.pushState({}, "", "/dashboard");
   global.fetch = mockFetch({
     "GET /api/me": [
@@ -194,10 +194,10 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
   expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
   expect(screen.getByText("Jamie")).toBeTruthy();
   expect(screen.getByText("active")).toBeTruthy();
-  expect(screen.getByText(/elixir\.poapkings\.com\/mcp/)).toBeTruthy();
-  expect(screen.getByText("🔔 on")).toBeTruthy();
+  expect(screen.getByText("Add a player")).toBeTruthy();
+  expect(screen.getAllByRole("switch").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
-  expect(await screen.findByText(/of 500 tool calls/)).toBeTruthy();
+  expect(await screen.findByText("Your players")).toBeTruthy();
 });
 
 test("admin view is admin-gated in the UI", async () => {
@@ -209,5 +209,5 @@ test("admin view is admin-gated in the UI", async () => {
     ],
   });
   render(<App />);
-  expect(await screen.findByText("Admins only.")).toBeTruthy();
+  expect(await screen.findByText("Sign in first")).toBeTruthy();
 });

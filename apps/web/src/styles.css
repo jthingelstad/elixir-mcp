@@ -1,339 +1,1130 @@
-/* elixir.poapkings.com — the poapkings.com family look (Drop's token
-   family: deep purple-black stage, gold headline metal, lavender ink). */
+/* elixir.poapkings.com — evolved token system + component styles
+   Design handoff, 2026-09-05. Replaces apps/web/src/styles.css.
+
+   What changed from the current file, in one paragraph: the Drop palette
+   is intact (same bg0/bg1/panel/edge/ink/muted/purple/gold hexes); added
+   are a --well surface, a --panel-2 raised surface, a three-step edge
+   scale, --dim for footnotes and chart axes, --purple-bright for chart
+   ink and links, --amber and --neutral for status. Radii shrink
+   (20 -> 12 for panels), the drop shadow is gone from panels (edges do
+   the work; the only shadow left is on popovers), the content column
+   widens 46rem -> 70rem for console and data pages, body type drops
+   16 -> 14px with 13px table rows, and every number carries
+   tabular-nums. The Clash display face (Supercell Fan Kit, already
+   vendored in Drop) carries the brand shell only: wordmark, page
+   titles, hero, and big single numerals. It never touches a table.
+
+   Fonts: "Clash" is Supercell's official Clash Royale display font from
+   the Supercell Fan Kit, used under the Fan Content Policy. Copy
+   Clash_Regular.otf to /assets/fonts/ (same file Drop ships) along with
+   its README.md compliance note. */
+
+@font-face {
+  font-family: "Clash Royale";
+  src: url("/assets/fonts/Clash_Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Tokens ───────────────────────────────────────────────── */
+
 :root {
-  --bg0: #070610;
-  --bg1: #0b0920;
-  --panel: #120f2a;
-  --edge: #2a2450;
+  /* Surfaces — unchanged from Drop, plus two new steps */
+  --bg0: #070610; /* stage */
+  --bg1: #0b0920; /* stage glow */
+  --well: #0a0818; /* NEW: inputs, code, chart plots, table footers */
+  --panel: #120f2a; /* panel */
+  --panel-2: #181439; /* NEW: raised — active tab, popover, CTA panel */
+  --panel-foot: #0e0b22; /* NEW: panel action bars */
+
+  /* Edges — a three-step scale replaces the single --edge */
+  --edge-soft: #1f1a42; /* NEW: table row rules, internal dividers */
+  --edge: #2a2450; /* panel borders, inputs */
+  --edge-strong: #3b3370; /* NEW: hover, caveat chips, empty states */
+
+  /* Ink */
   --ink: #f7f4ff;
-  --muted: #c8c1e6;
-  --faint: #a99fce;
-  --purple: #6d28d9;
-  --purple-glow: rgba(109, 40, 217, 0.35);
+  --muted: #c8c1e6; /* body copy, CR tags */
+  --faint: #a99fce; /* labels, secondary values */
+  --dim: #8a81b3; /* NEW: footnotes, mono labels, chart axes */
+
+  /* Brand metal — gold. Wordmark, page titles, ★ "yours",
+     achievement moments, arena tiers. NEVER a data value. */
   --gold: #f5c84c;
   --gold-lite: #ffe99a;
   --ink-on-gold: #2a1500;
-  --red: #ef4444;
-  --green: #22c55e;
-  --r-md: 14px;
-  --r-lg: 20px;
-  --shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  --gold-grad: linear-gradient(180deg, var(--gold-lite), var(--gold));
+
+  /* Working accent — purple. Tier-2 nav, focus, primary buttons,
+     chart ink, meters. */
+  --purple: #6d28d9;
+  --purple-bright: #8b5cf6; /* NEW: chart bars, links, meters */
+  --purple-link: #a78bfa; /* NEW: link ink on dark */
+  --purple-soft: rgba(139, 92, 246, 0.16);
+  --purple-row: rgba(139, 92, 246, 0.08); /* NEW: table row hover */
+  --purple-glow: rgba(109, 40, 217, 0.35);
+
+  /* Status */
+  --green: #34d399; /* active, win, fresh */
+  --amber: #fbbf24; /* NEW: stale, pending */
+  --red: #f87171; /* error, loss */
+  --neutral: #5b5486; /* NEW: off, stopped, never */
+
+  /* Radius — panels come down from 20px */
+  --r-sm: 4px; /* chips, code, mono tags */
+  --r-md: 8px; /* inputs, buttons */
+  --r-lg: 12px; /* panels */
+  --r-pill: 999px; /* status chips only */
+
+  /* Elevation — edges, not shadows */
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55); /* popovers only */
+  --ring: 0 0 0 3px var(--purple-glow); /* focus */
+  --inset: inset 0 1px 0 rgba(0, 0, 0, 0.5); /* wells */
+
+  /* Spacing — 4pt */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-12: 48px;
+
+  --col: 70rem; /* 1120px — console + data pages */
+  --col-prose: 46rem; /* docs, sign-in, single-form pages */
+
+  --font-display: "Clash Royale", "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
-  background: radial-gradient(
-    80rem 40rem at 50% -10rem,
-    var(--bg1),
-    var(--bg0)
-  );
   min-height: 100vh;
+  background: radial-gradient(80rem 40rem at 50% -10rem, var(--bg1), var(--bg0))
+    var(--bg0);
   color: var(--ink);
-  font: 16px/1.55 var(--font-body);
-}
-main {
-  max-width: 46rem;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 4rem;
+  font: 14px/1.5 var(--font-body);
+  -webkit-font-smoothing: antialiased;
 }
 
-header.site {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 1.25rem 0;
+a {
+  color: var(--purple-link);
+  text-decoration: none;
+  cursor: pointer;
 }
-header.site h1 {
-  margin: 0;
-  font-size: 1.35rem;
+a:hover {
+  color: #c4b5fd;
+}
+
+/* ── Type ─────────────────────────────────────────────────── */
+
+/* The brand shell: display face, weight 400 (Clash has one weight),
+   positive letter-spacing (it is a wide face, negative tracking fights
+   it). Everything else is Inter. */
+.wordmark {
+  font: 400 19px/1 var(--font-display);
   letter-spacing: 0.02em;
-  background: linear-gradient(180deg, var(--gold-lite), var(--gold));
+  background: var(--gold-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-header.site nav {
+h1,
+.page-title {
+  margin: 0;
+  font: 400 22px/1.3 var(--font-display);
+  letter-spacing: 0.01em;
+}
+.hero-title {
+  margin: 0 0 18px;
+  font: 400 clamp(32px, 5vw, 46px) / 1.1 var(--font-display);
+  letter-spacing: 0.01em;
+  text-wrap: pretty;
+}
+.panel-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Big single numerals — Clash. Grouped stat values only; never a table
+   cell, and never a non-numeric value (a clan name in the display face
+   next to 1,204 reads wrong — use .stat__value--text). */
+.stat__value {
+  font: 400 27px/1.1 var(--font-display);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.stat__value--big {
+  font-size: 42px;
+  line-height: 1;
+}
+.stat__value--text {
+  font: 600 13px/1.3 var(--font-body);
+  letter-spacing: 0;
+}
+.stat__label {
+  font: 600 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+.stat__sub {
+  margin-top: 6px;
+  font: 11px var(--font-mono);
+  color: var(--faint);
+}
+
+.lede {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 560px;
+  text-wrap: pretty;
+}
+.eyebrow {
+  font: 600 11px var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--purple-link);
+}
+code,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* CR tags are identifiers, not achievements — lavender mono, not gold.
+   This is a change from the current file. */
+.tag {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* ★ marks what is YOURS: primary player tag, home clan, your row. */
+.yours {
+  color: var(--gold);
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.wrap {
+  width: 100%;
+  max-width: var(--col);
+  margin: 0 auto;
+  padding: 0 var(--s-6);
+}
+main.wrap {
+  flex: 1;
+  padding: var(--s-6) var(--s-6) var(--s-12);
+}
+.wrap--prose {
+  max-width: var(--col-prose);
+}
+
+/* Page head: title, one line of context, freshness pushed right */
+.page-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.page-head__note {
+  font-size: 13px;
+  color: var(--faint);
+  text-wrap: pretty;
+}
+.page-head .freshness {
+  margin-left: auto;
+}
+
+/* Two-column console: content + rail. Reflows at narrow widths —
+   do not use fixed pixel widths. */
+.cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+.cols__main {
+  flex: 1 1 480px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cols__rail {
+  flex: 1 1 300px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Navigation: three tiers that must not look alike ─────── */
+
+/* Tier 1 — product areas. Gold underline, gold ink. */
+.nav1 {
+  border-bottom: 1px solid var(--edge-soft);
+}
+.nav1__inner {
+  display: flex;
+  align-items: center;
+  gap: 0 24px;
+  min-height: 56px;
+  flex-wrap: wrap;
+}
+.nav1 nav {
+  display: flex;
+  gap: 22px;
+  align-self: stretch;
+  flex-wrap: wrap;
+}
+.nav1 a {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  font-size: 13.5px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.nav1 a:hover {
+  color: var(--ink);
+}
+.nav1 a[aria-current] {
+  color: var(--gold-lite);
+  font-weight: 600;
+  border-bottom-color: var(--gold);
+}
+.nav1__meta {
   margin-left: auto;
   display: flex;
-  gap: 0.9rem;
-}
-header.site a {
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 0.92rem;
-}
-header.site a:hover {
-  color: var(--ink);
-}
-header.site a.active {
-  color: var(--gold-lite);
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--faint);
 }
 
-/* Two-tier nav: tier 2 pages within the active section */
-nav.subnav {
+/* Tier 2 — pages within a section. Purple underline, tighter, smaller.
+   NOT pills: pills are what the current file uses for both tier 2 and
+   in-page tabs, which is why they read the same. */
+.nav2 {
+  border-bottom: 1px solid var(--edge-soft);
+}
+.nav2__inner {
   display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin: -0.35rem 0 1.1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--edge);
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden; /* the -1px margin below would spawn a v-scrollbar */
+  white-space: nowrap;
+  scrollbar-width: none;
 }
-nav.subnav a {
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 0.88rem;
-  border: 1px solid var(--edge);
-  border-radius: 999px;
-  padding: 0.25rem 0.85rem;
+.nav2 a {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--faint);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
 }
-nav.subnav a:hover {
+.nav2 a:hover {
   color: var(--ink);
 }
-nav.subnav a.active {
-  background: var(--purple);
+.nav2 a[aria-current] {
   color: var(--ink);
-  border-color: var(--purple);
+  border-bottom-color: var(--purple-bright);
 }
 
-.hero {
-  padding: 2.5rem 0 1rem;
+/* In-page tabs — a segmented control sunk in a well. Third distinct
+   shape; used for tab sets inside a page (Activity's three tabs, meta
+   filters). */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--well);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-md);
+  max-width: 100%;
+  overflow-x: auto;
 }
-.hero h2 {
-  font-size: 2rem;
-  line-height: 1.15;
-  margin: 0 0 0.75rem;
+.segmented button {
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.hero p {
-  color: var(--muted);
-  max-width: 34rem;
+.segmented button[aria-selected="true"] {
+  background: var(--panel-2);
+  border-color: var(--edge-strong);
+  color: var(--ink);
+  font-weight: 600;
 }
+
+/* Breadcrumb trail — the record browser's navigation. On record pages
+   the tier-2 row is hidden and this replaces it. */
+.trail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--s-4);
+  font: 11.5px var(--font-mono);
+  flex-wrap: wrap;
+}
+.trail__sep {
+  color: var(--edge-strong);
+}
+.trail a[aria-current] {
+  color: var(--ink);
+  cursor: default;
+}
+
+/* ── Panel ────────────────────────────────────────────────── */
 
 .panel {
-  background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: var(--r-lg);
-  padding: 1.4rem;
-  margin: 1.25rem 0;
-  box-shadow: var(--shadow);
+  background: var(--panel);
+  overflow: hidden; /* keeps table corners inside the radius */
 }
-.panel h3 {
-  margin: 0 0 0.6rem;
-  font-size: 1.05rem;
+.panel__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px var(--s-4);
+  border-bottom: 1px solid var(--edge);
+  flex-wrap: wrap;
+}
+.panel__body {
+  padding: 14px var(--s-4);
+}
+/* Action bar at the foot of a panel (add-a-player, add-a-clan) */
+.panel__actions {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  padding: 12px var(--s-4);
+  border-top: 1px solid var(--edge-soft);
+  background: var(--panel-foot);
+  flex-wrap: wrap;
+}
+/* The honesty footnote. Every panel that shows a derived number gets
+   one. 12px, --dim, keyed with † to the value it qualifies. Never a
+   tooltip — a caveat you have to hover for is a caveat you hid. */
+.panel__note {
+  padding: 10px var(--s-4);
+  border-top: 1px solid var(--edge-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.panel--cta {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+
+/* ── Stat strip ───────────────────────────────────────────── */
+
+/* Corpus totals, player summary. 1px gaps over --edge-soft give hairline
+   dividers without per-cell border bookkeeping. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--edge-soft);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.stats > * {
+  padding: var(--s-4);
+  background: var(--panel);
+}
+
+/* ── Table ────────────────────────────────────────────────── */
+
+.tablewrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+th {
+  text-align: left;
+  padding: var(--s-2) var(--s-3);
+  font: 600 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+td {
+  padding: 9px var(--s-3);
+  border-top: 1px solid var(--edge-soft);
+}
+tbody tr:hover td {
+  background: var(--purple-row);
+}
+.num {
+  text-align: right;
+}
+/* Your row (your clan in war standings, your player in a roster) */
+tr.yours td {
   color: var(--gold-lite);
 }
-.panel p {
-  color: var(--muted);
-  font-size: 0.95rem;
+/* Empty weeks and null values stay in the table so gaps are visible */
+.nil {
+  color: var(--neutral);
 }
+
+/* ── Chips ────────────────────────────────────────────────── */
+
+/* Status — state, never judgment. Dot + lowercase mono. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-pill);
+  font: 11.5px var(--font-mono);
+  color: var(--faint);
+}
+.chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neutral);
+}
+.chip--active {
+  color: var(--green);
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.08);
+}
+.chip--active::before {
+  background: var(--green);
+}
+.chip--pending {
+  color: var(--amber);
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+.chip--pending::before {
+  background: var(--amber);
+}
+.chip--error {
+  color: var(--red);
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+.chip--error::before {
+  background: var(--red);
+}
+
+/* Outcomes are text colour only — a win chip on every battle row is
+   noise. */
+.outcome {
+  font: 600 11.5px var(--font-mono);
+}
+.outcome--win {
+  color: var(--green);
+}
+.outcome--loss {
+  color: var(--red);
+}
+.outcome--draw {
+  color: var(--faint);
+}
+
+/* Scope, role, kind — neutral square mono tags, no dot */
+.tag-chip {
+  padding: 2px var(--s-2);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--well);
+  font: 11.5px var(--font-mono);
+  color: var(--muted);
+}
+.kind-chip {
+  padding: 3px 7px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  font: 600 10px var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--dim);
+}
+
+/* ── The honesty set ─────────────────────────────────────────
+   Three components carry the product's voice. Use them everywhere the
+   copy already says "recorded battles only", "estimate", "as of". */
+
+/* Sample size — sits immediately after any rate. n<10 variant flags a
+   thin sample without hiding the number. */
+.sample {
+  padding: 1px 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  font: 11px var(--font-mono);
+  color: var(--dim);
+}
+
+/* Caveat — dashed edge, always lowercase, in the panel head or a column
+   header. Dashed is the signal: this is a qualification, not a state. */
+.caveat {
+  padding: 1px 7px;
+  border: 1px dashed var(--edge-strong);
+  border-radius: var(--r-sm);
+  font: 11px var(--font-mono);
+  color: var(--dim);
+}
+
+/* Freshness — how old is this number. green < 15m, amber < 24h,
+   neutral beyond, and "as of <date>" for snapshots. */
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 11.5px var(--font-mono);
+  color: var(--muted);
+}
+.freshness::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neutral);
+}
+.freshness--fresh::before {
+  background: var(--green);
+}
+.freshness--stale::before {
+  background: var(--amber);
+}
+.freshness--never {
+  color: var(--faint);
+}
+
+/* Disclaimer — the Supercell fan-content note, on every surface. Given
+   a dignified home: its own mono UNOFFICIAL tag, above the fold of the
+   footer, never below 11.5px. */
+.disclaimer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: var(--s-4) var(--s-6) var(--s-6);
+  border-top: 1px solid var(--edge-soft);
+  flex-wrap: wrap;
+}
+.disclaimer__tag {
+  flex: none;
+  margin-top: 1px;
+  padding: 2px 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  font: 600 10px var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--dim);
+}
+.disclaimer__text {
+  flex: 1 1 320px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.disclaimer__family {
+  font: 11px var(--font-mono);
+  color: var(--neutral);
+  white-space: nowrap;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 7px 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--purple);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.4);
+}
+.btn:hover {
+  filter: brightness(1.1);
+}
+.btn--quiet {
+  background: transparent;
+  border: 1px solid var(--edge);
+  color: var(--muted);
+  font-weight: 500;
+  box-shadow: none;
+}
+.btn--quiet:hover {
+  border-color: var(--edge-strong);
+  color: var(--ink);
+}
+.btn--text {
+  padding: 4px var(--s-2);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 400;
+  box-shadow: none;
+}
+/* Gold is reserved for the two brand moments: request access, and
+   raise my hand to run a collector. Nothing else. */
+.btn--gold {
+  background: var(--gold-grad);
+  color: var(--ink-on-gold);
+  font-weight: 700;
+  box-shadow: none;
+}
+.btn:disabled {
+  background: var(--edge);
+  color: var(--faint);
+  cursor: default;
+  filter: none;
+}
+
+/* ── Forms ────────────────────────────────────────────────── */
 
 label {
   display: block;
-  font-size: 0.85rem;
+}
+.label {
+  display: block;
+  margin-bottom: var(--s-1);
+  font-size: 12px;
   color: var(--faint);
-  margin-top: 0.75rem;
 }
 input,
 select,
 textarea {
   width: 100%;
-  padding: 0.6rem 0.7rem;
-  margin-top: 0.3rem;
-  background: var(--bg0);
-  color: var(--ink);
+  padding: 7px 10px;
+  background: var(--well);
   border: 1px solid var(--edge);
   border-radius: var(--r-md);
+  color: var(--ink);
   font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+input.mono,
+input[data-tag] {
+  font-family: var(--font-mono);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--neutral);
 }
 input:focus,
-select:focus {
-  outline: 2px solid var(--purple);
+select:focus,
+textarea:focus {
   border-color: var(--purple);
+  box-shadow: var(--ring);
+}
+textarea {
+  resize: vertical;
+}
+.field-error {
+  font-size: 12.5px;
+  color: var(--red);
+}
+input[aria-invalid="true"] {
+  border-color: var(--red);
 }
 
-button {
-  margin-top: 1rem;
-  padding: 0.65rem 1.2rem;
-  background: linear-gradient(180deg, var(--gold-lite), var(--gold));
-  color: var(--ink-on-gold);
-  font-weight: 700;
-  font-size: 1rem;
+/* The notify bell becomes a switch — a bell glyph is a notification,
+   not a setting. */
+.switch {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  padding: 0;
   border: 0;
-  border-radius: var(--r-md);
-  cursor: pointer;
-  box-shadow: 0 4px 18px var(--purple-glow);
+  border-radius: var(--r-pill);
+  background: var(--edge);
+  vertical-align: middle;
 }
-button.quiet {
-  background: none;
-  color: var(--muted);
-  border: 1px solid var(--edge);
-  box-shadow: none;
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: left 0.15s ease;
 }
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
+.switch[aria-checked="true"] {
+  background: var(--purple);
 }
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-}
-th {
-  text-align: left;
-  color: var(--faint);
-  font-weight: 600;
-  padding: 0.4rem 0.5rem;
-}
-td {
-  padding: 0.45rem 0.5rem;
-  border-top: 1px solid var(--edge);
-}
-code,
-.mono {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  color: var(--gold-lite);
+.switch[aria-checked="true"]::after {
+  left: 14px;
+  background: var(--ink);
 }
 
-.status {
-  font-size: 0.8rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid var(--edge);
+/* Quota / slot meters */
+.meter {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--well);
+  overflow: hidden;
 }
-.status.active {
-  color: var(--green);
-  border-color: var(--green);
+.meter__fill {
+  height: 100%;
+  background: var(--purple-bright);
 }
-.status.stopped,
-.status.not_recording {
-  color: var(--faint);
+.meter--gold .meter__fill {
+  background: linear-gradient(90deg, var(--gold), var(--gold-lite));
 }
+
+/* ── Notices and empty states ─────────────────────────────── */
 
 .notice {
-  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  padding: 10px var(--s-3);
   background: var(--bg1);
   border: 1px solid var(--edge);
   border-radius: var(--r-md);
-  padding: 0.7rem 0.9rem;
-  font-size: 0.92rem;
-}
-.error {
-  color: var(--red);
-  font-size: 0.9rem;
-}
-
-footer {
-  margin-top: 3rem;
-  color: var(--faint);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
-/* Clan war standings: our clan's row */
-tr.us td {
-  color: var(--gold-lite);
-  font-weight: 600;
-}
-
-/* Explorer */
-.tabs {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-top: 0.8rem;
-}
-.tab {
-  background: transparent;
-  border: 1px solid var(--edge);
+  font-size: 12.5px;
   color: var(--muted);
-  border-radius: 999px;
-  padding: 0.3rem 0.9rem;
-  cursor: pointer;
-  font: inherit;
 }
-.tab.active {
-  background: var(--purple);
-  color: var(--ink);
-  border-color: var(--purple);
+.notice::before {
+  content: "";
+  flex: none;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--purple-bright);
 }
-.tab:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-}
-.tablewrap {
-  overflow-x: auto;
-}
-.cardgrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 0.5rem;
-}
-.cardtile {
-  position: relative;
+
+.empty {
+  padding: 28px 20px;
+  border: 1px dashed var(--edge-strong);
+  border-radius: var(--r-lg);
+  background: var(--well);
   text-align: center;
 }
-.cardtile img {
-  width: 100%;
-  height: auto;
-  border-radius: 6px;
+.empty__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto var(--s-3);
+  border: 1px solid var(--edge-strong);
+  border-radius: 50%;
+  font: 600 14px var(--font-mono);
+  color: var(--dim);
 }
-.cardtile span {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background: rgba(0, 0, 0, 0.7);
-  color: var(--gold-lite);
-  font-size: 0.7rem;
-  padding: 0 0.3rem;
-  border-radius: 4px;
-  font-variant-numeric: tabular-nums;
+.empty__title {
+  font-size: 14px;
+  font-weight: 600;
 }
-.status.win {
-  color: var(--green);
-}
-.status.loss {
-  color: var(--red);
+.empty__body {
+  margin-top: var(--s-1);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--faint);
 }
 
-/* Docs */
-.docs {
+/* ── Record browser (Explore) ─────────────────────────────── */
+
+.record__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.record__sub {
+  max-width: 640px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--faint);
+  text-wrap: pretty;
+}
+/* Field table: label gutter in --panel-foot, value column with links */
+.fields {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 1rem;
-  align-items: start;
+  grid-template-columns: minmax(120px, 150px) 1fr;
 }
-@media (max-width: 700px) {
-  .docs {
-    grid-template-columns: 1fr;
-  }
+.fields dt {
+  padding: 9px var(--s-3);
+  border-top: 1px solid var(--edge-soft);
+  background: var(--panel-foot);
+  font: 11px var(--font-mono);
+  color: var(--dim);
 }
-.docs-toc ul {
-  list-style: none;
-  padding: 0;
+.fields dd {
   margin: 0;
+  padding: 9px var(--s-3);
+  border-top: 1px solid var(--edge-soft);
+  font-size: 12.5px;
+}
+.fields dd .hint {
+  font: 11px var(--font-mono);
+  color: var(--dim);
+}
+
+/* "What we have" coverage tiles. Hide the whole panel when a record has
+   none (a battle has no children) rather than rendering an empty card. */
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+  padding: 14px var(--s-4);
+}
+.tile {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 2px;
+  padding: 10px var(--s-3);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-md);
+  color: var(--ink);
 }
-.docs-body {
-  line-height: 1.6;
+.tile[href] {
+  border-color: var(--edge-strong);
 }
-.docs-body h1 {
-  margin-top: 0;
+.tile[href]:hover {
+  background: var(--purple-row);
 }
-.docs-body pre {
+.tile__label {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* Tool-call bar: the call that produced this page, plus raw JSON and a
+   deep link. The parity claim — do not render anything the contract
+   does not return. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px var(--s-4);
+  flex-wrap: wrap;
+}
+.toolbar code {
+  flex: 1 1 260px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.raw {
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--edge-soft);
+  background: var(--well);
+  font: 11.5px/1.6 var(--font-mono);
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Charts (Data section only) ───────────────────────────────
+   Inline SVG, no libraries. Plot bars at --purple-bright 85%; today's
+   partial bar at 35% so an unfinished day never reads as a drop.
+   Baseline solid --edge, two dotted gridlines with mono labels in the
+   right gutter, x ticks at month starts. One hover index drives every
+   small multiple; the hovered value prints in the panel head, not in a
+   floating tooltip (nothing to clip on mobile).
+
+   Rate lines: --gold-lite when the series is YOURS, --purple-bright for
+   corpus-level rates, with battles/week as faint bars behind so the
+   sample size is always visible. 0.500 reference dotted --edge-strong.
+   Table-cell sparklines are 64x18, purple, no axes. */
+
+.chart {
+  padding: 14px var(--s-4) 6px;
+  border-top: 1px solid var(--edge-soft);
+}
+.chart__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.chart__value {
+  margin-left: auto;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.chart__at {
+  min-width: 80px;
+  font: 11.5px var(--font-mono);
+  color: var(--dim);
+}
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.chart .bar {
+  fill: rgba(139, 92, 246, 0.85);
+}
+.chart .bar--hover {
+  fill: #c4b5fd;
+}
+.chart .bar--partial {
+  fill: rgba(139, 92, 246, 0.35);
+}
+.chart .grid {
+  stroke: var(--edge-soft);
+  stroke-dasharray: 2 4;
+}
+.chart .axis {
+  stroke: var(--edge);
+}
+.chart .ref {
+  stroke: var(--edge-strong);
+  stroke-dasharray: 3 3;
+}
+.chart .rule {
+  stroke: var(--muted);
+  stroke-dasharray: 3 3;
+}
+.chart .line-yours {
+  fill: none;
+  stroke: var(--gold-lite);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.chart .line-corpus {
+  fill: none;
+  stroke: var(--purple-bright);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.chart .sample-bar {
+  fill: rgba(139, 92, 246, 0.22);
+}
+.chart text {
+  font: 10px var(--font-mono);
+  fill: var(--dim);
+}
+
+/* ── Placeholders ─────────────────────────────────────────────
+   Card art comes from the CR API icon URLs at runtime. Until an icon
+   loads, this striped fill holds the slot — do not draw card art. */
+.card-slot {
+  aspect-ratio: 5 / 6;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--panel-2) 0 4px,
+    var(--panel) 4px 8px
+  );
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: var(--s-2);
+}
+
+/* ── Docs ─────────────────────────────────────────────────── */
+
+.docs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-6);
+  align-items: flex-start;
+}
+.docs__toc {
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.docs__toc a {
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--faint);
+}
+.docs__toc a[aria-current] {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+.docs__body {
+  flex: 1 1 420px;
+  min-width: 0;
+  max-width: 720px;
+  line-height: 1.65;
+}
+.docs__body pre {
+  padding: var(--s-3);
+  background: var(--well);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-md);
   overflow-x: auto;
-  background: var(--bg1);
-  padding: 0.8rem;
-  border-radius: 8px;
 }
-.docs-body code {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
+
+/* ── Mobile ───────────────────────────────────────────────────
+   Player-facing pages must work on a phone: stat strips go two-up, tap
+   targets stay >= 44px, tables scroll horizontally inside .tablewrap
+   rather than shrinking type. Console pages may stay desktop-first. */
+
+@media (max-width: 700px) {
+  .wrap {
+    padding: 0 var(--s-4);
+  }
+  main.wrap {
+    padding: var(--s-4) var(--s-4) var(--s-8);
+  }
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .nav1__inner {
+    min-height: 52px;
+  }
+  .segmented button {
+    padding: 8px 12px;
+  } /* 44px row */
+  .fields {
+    grid-template-columns: 1fr;
+  }
+  .fields dt {
+    border-top: 1px solid var(--edge-soft);
+    padding-bottom: 0;
+    background: transparent;
+  }
+  .fields dd {
+    border-top: 0;
+    padding-top: 2px;
+  }
+  .tiles {
+    grid-template-columns: 1fr;
+  }
 }

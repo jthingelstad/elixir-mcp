@@ -24,8 +24,10 @@ export function SignIn({ onAuthed }) {
   }, [onAuthed]);
 
   return (
-    <div className="panel">
-      <h3>Sign in</h3>
+    <div className="panel" style={{ maxWidth: "420px", margin: "48px auto 0" }}>
+      <div className="panel__head">
+        <span className="panel-title">Sign in</span>
+      </div>
       {step === "redeeming" && <p className="notice">Signing you in…</p>}
       {step === "email" && (
         <form
@@ -50,7 +52,7 @@ export function SignIn({ onAuthed }) {
               onChange={(e) => setEmail(e.target.value)}
             />
           </label>
-          {error && <p className="error">{error}</p>}
+          {error && <p className="field-error">{error}</p>}
           <button>Send sign-in email</button>
         </form>
       )}
@@ -80,7 +82,7 @@ export function SignIn({ onAuthed }) {
               onChange={(e) => setCode(e.target.value)}
             />
           </label>
-          {error && <p className="error">{error}</p>}
+          {error && <p className="field-error">{error}</p>}
           <button>Sign in</button>
         </form>
       )}

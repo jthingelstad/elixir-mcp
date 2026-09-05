@@ -797,3 +797,27 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.equal(missing.isError, true);
   assert.equal(missing.body.error.code, "not_found");
 });
+
+test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", async () => {
+  const { rows: one } = await db.query(
+    `select bp.battle_id, bp.deck_hash from battle_participant bp
+     where bp.deck_hash is not null limit 1`,
+  );
+  const byId = await call("battles_query", { battle_id: one[0].battle_id });
+  assert.equal(byId.isError, false, JSON.stringify(byId.body));
+  assert.equal(byId.body.battle_id, one[0].battle_id);
+  assert.equal(byId.body.battles.length, 1, "one battle, one perspective row");
+  assert.ok(byId.body.battles[0].me.player_tag, "perspective identity present");
+  assert.ok(byId.body.battles[0].opponents.length >= 1, "both sides returned");
+
+  const byDeck = await call("battles_query", {
+    deck_hash: one[0].deck_hash,
+    verbosity: "compact",
+  });
+  assert.equal(byDeck.isError, false, JSON.stringify(byDeck.body));
+  assert.equal(byDeck.body.deck_hash, one[0].deck_hash);
+  const ds = byDeck.body.deck_stats;
+  assert.ok(ds.battles >= 1 && ds.players >= 1);
+  assert.ok(!("win_rate" in ds), "no pooled win rate by design");
+  assert.match(byDeck.body.deck_note, /who plays it/);
+});

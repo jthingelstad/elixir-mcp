@@ -34,7 +34,9 @@ export function Admin({ me, page = "requests" }) {
   return (
     <>
       <div className="panel" hidden={page !== "requests"}>
-        <h3>Access requests</h3>
+        <div className="panel__head">
+          <span className="panel-title">Access requests</span>
+        </div>
         {requests.length === 0 && <p>Queue is empty.</p>}
         {requests.length > 0 && (
           <table>
@@ -68,7 +70,7 @@ export function Admin({ me, page = "requests" }) {
                       Approve
                     </button>{" "}
                     <button
-                      className="quiet"
+                      className="btn--text"
                       onClick={async () => {
                         await api.adminDecide(r.email_hash, "denied");
                         load();
@@ -86,7 +88,9 @@ export function Admin({ me, page = "requests" }) {
 
       {usage && (
         <div className="panel" hidden={page !== "usage"}>
-          <h3>MCP usage (7 days)</h3>
+          <div className="panel__head">
+            <span className="panel-title">MCP usage (7 days)</span>
+          </div>
           <table>
             <thead>
               <tr>
@@ -165,7 +169,9 @@ export function Admin({ me, page = "requests" }) {
       )}
 
       <div className="panel" hidden={page !== "feedback"}>
-        <h3>Feedback</h3>
+        <div className="panel__head">
+          <span className="panel-title">Feedback</span>
+        </div>
         {feedback.length === 0 && <p>No feedback yet.</p>}
         {feedback.length > 0 && (
           <table>
@@ -213,7 +219,19 @@ export function Admin({ me, page = "requests" }) {
       </div>
 
       <div className="panel" hidden={page !== "tokens"}>
-        <h3>Service tokens</h3>
+        <div className="panel__head">
+          <span className="panel-title">Service tokens</span>
+          <span
+            className="mono"
+            style={{
+              marginLeft: "auto",
+              fontSize: "11px",
+              color: "var(--red)",
+            }}
+          >
+            shown once at issue — never recoverable
+          </span>
+        </div>
         <p>
           Long-lived API tokens for services (elixir-bot). Calls audit as{" "}
           <code>svc:&lt;name&gt;</code>.
@@ -253,7 +271,7 @@ export function Admin({ me, page = "requests" }) {
                   <td>
                     {!t.revoked_at && (
                       <button
-                        className="quiet"
+                        className="btn--text"
                         onClick={async () => {
                           await api.adminServiceTokenAction({
                             revoke_token_id: t.token_id,
@@ -294,7 +312,9 @@ export function Admin({ me, page = "requests" }) {
       </div>
 
       <div className="panel" hidden={page !== "gateways"}>
-        <h3>Gateways</h3>
+        <div className="panel__head">
+          <span className="panel-title">Gateways</span>
+        </div>
         <p>
           Lifecycle: pending → probation (key issued, installed, heartbeating) →
           active. Issuing the IP-bound CR key and IAM user is manual — see
@@ -328,7 +348,11 @@ export function Admin({ me, page = "requests" }) {
                 <tr key={g.gateway_id}>
                   <td>{g.name}</td>
                   <td>
-                    <span className={`status ${g.status}`}>{g.status}</span>
+                    <span
+                      className={`chip ${g.status === "active" ? "chip--active" : g.status === "pending" ? "chip--pending" : ""}`}
+                    >
+                      {g.status}
+                    </span>
                   </td>
                   <td>
                     <code>{g.static_ip}</code>
@@ -346,7 +370,7 @@ export function Admin({ me, page = "requests" }) {
                   <td>
                     {next && (
                       <button
-                        className="quiet"
+                        className="btn--text"
                         onClick={async () => {
                           await api.adminGatewayAction(g.gateway_id, next);
                           load();
@@ -357,7 +381,7 @@ export function Admin({ me, page = "requests" }) {
                     )}{" "}
                     {g.status !== "revoked" && (
                       <button
-                        className="quiet"
+                        className="btn--text"
                         onClick={async () => {
                           if (
                             window.confirm(
@@ -407,7 +431,9 @@ function AdminAccounts({ page }) {
   }, [load]);
   return (
     <div className="panel" hidden={page !== "accounts"}>
-      <h3>Accounts</h3>
+      <div className="panel__head">
+        <span className="panel-title">Accounts</span>
+      </div>
       <p>
         Tiers set collection slots and call budgets — never read access. Upgrade
         requests land in Feedback and are flagged here.
@@ -451,7 +477,7 @@ function AdminAccounts({ page }) {
                 )}
                 {a.pending_role_request ? (
                   <span
-                    className="status active"
+                    className="chip chip--pending"
                     title={`Upgrade requested — feedback #${a.pending_role_request}`}
                     style={{ marginLeft: "0.4rem" }}
                   >
@@ -463,7 +489,7 @@ function AdminAccounts({ page }) {
                 {a.players_recording}p / {a.clans_recording}c
               </td>
               <td>{a.operator ? "yes" : "—"}</td>
-              <td className="fine">
+              <td className="panel__note">
                 {[
                   a.max_player_recordings != null &&
                     `players=${a.max_player_recordings}`,
@@ -511,12 +537,14 @@ function AdminCollections({ page }) {
 
   return (
     <div className="panel" hidden={page !== "collections"}>
-      <h3>Collections</h3>
+      <div className="panel__head">
+        <span className="panel-title">Collections</span>
+      </div>
       <p>
         Curated groupings served to every user via{" "}
         <code>collections_browse</code> and Explore ▸ Collections.
       </p>
-      {err && <p className="error">{err}</p>}
+      {err && <p className="field-error">{err}</p>}
       {cols.length > 0 && (
         <table>
           <thead>
@@ -539,7 +567,7 @@ function AdminCollections({ page }) {
                 <td>{c.kind}</td>
                 <td>
                   <button
-                    className="quiet"
+                    className="btn--text"
                     onClick={() =>
                       act({
                         action: "upsert",
@@ -565,7 +593,7 @@ function AdminCollections({ page }) {
                     style={{ width: "12rem" }}
                   />{" "}
                   <button
-                    className="quiet"
+                    className="btn--text"
                     onClick={async () => {
                       await act({
                         action: "add",
@@ -580,7 +608,7 @@ function AdminCollections({ page }) {
                     Add
                   </button>{" "}
                   <button
-                    className="quiet"
+                    className="btn--text"
                     onClick={async () => {
                       await act({
                         action: "remove",

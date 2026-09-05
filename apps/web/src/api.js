@@ -32,6 +32,7 @@ export const api = {
   adminCollections: () => request("GET", "/api/admin/collections"),
   adminCollectionAction: (body) =>
     request("POST", "/api/admin/collections", body),
+  myFeedback: () => request("GET", "/api/me/feedback"),
   sendFeedback: (message, category, context) =>
     request("POST", "/api/feedback", { message, category, context }),
   adminFeedback: () => request("GET", "/api/admin/feedback"),
