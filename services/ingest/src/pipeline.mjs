@@ -11,7 +11,10 @@
  * polling window. Fetch errors write nothing durable; the scheduler replans.
  */
 
-import { emitToTagWatchers } from "../../mcp/src/feed.mjs";
+import {
+  emitBattlesRecorded,
+  emitToClanWatchers,
+} from "../../mcp/src/feed.mjs";
 import { gunzipSync } from "node:zlib";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
@@ -71,11 +74,15 @@ const PROJECTORS = {
     // Backfill guard: a replayed OLD payload is history, not activity.
     const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
     if (fresh && result.battlesInserted > 0) {
-      // Push lane: one coalesced event per capture, fanned out to the
-      // accounts watching this tag (backfill-guarded like heat).
-      await emitToTagWatchers(db, entityKey, "battles_recorded", {
-        count: result.battlesInserted,
-      });
+      // Push lane: collected here, emitted after commit (a failed
+      // insert inside the txn would abort the whole ingest).
+      result.feedEvents = [
+        {
+          kind: "battles",
+          tag: entityKey,
+          count: result.battlesInserted,
+        },
+      ];
       await db.query(
         `update poll_state set heat = 3, heat_updated_at = now() where subject_tag = $1`,
         [entityKey],
@@ -381,6 +388,15 @@ export async function processResult(db, rawMessage, deps = {}) {
     }
 
     await db.query("commit");
+    // Push-lane flush: only after commit, so an emit failure can never
+    // poison the ingest transaction. Emitters swallow their own errors.
+    for (const ev of projection?.feedEvents ?? []) {
+      if (ev.kind === "battles") {
+        await emitBattlesRecorded(db, ev.tag, ev.count);
+      } else if (ev.kind === "clan") {
+        await emitToClanWatchers(db, ev.tag, ev.topic, ev.payload);
+      }
+    }
     mark("commit_ms", t);
     timings.total_ms = Date.now() - t0;
     return {

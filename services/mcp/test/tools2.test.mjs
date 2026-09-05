@@ -664,3 +664,28 @@ test("push lane: implicit subscriptions feed elixir_events; cursor advances; met
   assert.equal(replay.body.events.length, 1);
   assert.equal(replay.body.events[0].topic, "feedback_responded");
 });
+
+test("battles_recorded coalesces: one unread row per tag, count accumulates until read", async () => {
+  const { emitBattlesRecorded } = await import("../src/feed.mjs");
+  // Start from a clean cursor so this test owns its unread window.
+  await call("elixir_events", {});
+
+  await emitBattlesRecorded(db, OBSERVER, 4);
+  await emitBattlesRecorded(db, OBSERVER, 3);
+  const first = await call("elixir_events", { mark_seen: false });
+  const unread = first.body.events.filter(
+    (e) => e.topic === "battles_recorded" && e.subject_tag === OBSERVER,
+  );
+  assert.equal(unread.length, 1, "folded into a single unread row");
+  assert.equal(unread[0].payload.count, 7, "counts summed");
+
+  // Reading (mark_seen) freezes the row; the next capture starts a new one.
+  await call("elixir_events", {});
+  await emitBattlesRecorded(db, OBSERVER, 2);
+  const second = await call("elixir_events", { mark_seen: false });
+  const fresh = second.body.events.filter(
+    (e) => e.topic === "battles_recorded" && e.subject_tag === OBSERVER,
+  );
+  assert.equal(fresh.length, 1);
+  assert.equal(fresh[0].payload.count, 2, "read rows are never folded");
+});

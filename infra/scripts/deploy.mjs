@@ -184,6 +184,19 @@ if (!skipWeb) {
   }
 }
 
+// Smoke gate (review 2026-09-05): a deploy is not done until the
+// read-only checks pass against the live doors.
+const { spawnSync } = await import("node:child_process");
+const smoke = spawnSync(
+  process.execPath,
+  [new URL("./smoke.mjs", import.meta.url).pathname],
+  { stdio: "inherit" },
+);
+if (smoke.status !== 0) {
+  console.error("SMOKE FAILED - the stack deployed but the doors misbehave.");
+  process.exit(1);
+}
+
 console.log("\ndeploy complete.");
 console.log(
   `site + mcp door: https://${outputs.SiteDistributionDomain}  (CNAME elixir.poapkings.com here)`,

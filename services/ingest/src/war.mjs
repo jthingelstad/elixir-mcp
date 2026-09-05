@@ -18,7 +18,6 @@
 
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { warClock, resolveWarKeys } from "./war-clock.mjs";
-import { emitToClanWatchers } from "../../mcp/src/feed.mjs";
 
 async function latestLoggedWeek(db, clanTag) {
   const { rows } = await db.query(
@@ -233,6 +232,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     [tag],
   );
   const items = payload.items ?? [];
+  const feedEvents = [];
   const seasons = new Set(items.map((i) => i.seasonId));
   const maxSection = new Map();
   for (const i of items) {
@@ -265,11 +265,18 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     );
     // Push lane: fire on the null->set transition only, recency-guarded
     // so a history backfill never floods the feed with ancient weeks.
+    // Collected here, emitted by the pipeline AFTER commit — an insert
+    // error inside the txn would abort the whole ingest.
     if (newlyFinished && Date.parse(finished) > Date.now() - 7 * 86400_000) {
-      await emitToClanWatchers(db, tag, "clan_war_week_finished", {
-        season_id: item.seasonId,
-        section_index: item.sectionIndex,
-        is_colosseum: isColosseum,
+      feedEvents.push({
+        kind: "clan",
+        tag,
+        topic: "clan_war_week_finished",
+        payload: {
+          season_id: item.seasonId,
+          section_index: item.sectionIndex,
+          is_colosseum: isColosseum,
+        },
       });
     }
     weeks += 1;
@@ -336,6 +343,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     projected: "riverracelog",
     weeks,
     seasons: [...seasons].sort((a, b) => a - b),
+    feedEvents,
   };
 }
 

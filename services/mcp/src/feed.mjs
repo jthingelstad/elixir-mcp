@@ -64,3 +64,45 @@ export async function emitToClanWatchers(db, clanTag, topic, payload) {
     )
     .catch(() => {});
 }
+
+/** battles_recorded is high-volume for heavy watchers, so it coalesces:
+ *  any UNREAD battles_recorded row for the same (account, tag) is
+ *  folded into the new event (counts summed, fresh event_id at the
+ *  cursor tail). Rows already read are never touched — an account sees
+ *  at most one unread row per tag, with a running count. Call this
+ *  AFTER the ingest transaction commits: an error inside a txn aborts
+ *  the whole txn, so the swallow-catch is only safe outside one. */
+export async function emitBattlesRecorded(db, playerTag, count) {
+  await db
+    .query(
+      `with subs as (
+         select c.account_id from claim c where c.player_tag = $1
+         union
+         select r.requested_by from recording r
+         where r.subject_type = 'player' and r.subject_tag = $1
+           and r.status = 'active' and r.requested_by is not null
+       ),
+       folded as (
+         delete from event_feed ef
+         using account a
+         where a.account_id = ef.account_id
+           and ef.account_id in (select account_id from subs)
+           and ef.topic = 'battles_recorded'
+           and ef.subject_tag = $1
+           and ef.event_id > a.events_seen_through
+         returning ef.account_id,
+                   coalesce((ef.payload->>'count')::int, 0) as prior
+       ),
+       folded_sum as (
+         select account_id, sum(prior)::int as prior
+         from folded group by account_id
+       )
+       insert into event_feed (account_id, topic, subject_tag, payload)
+       select s.account_id, 'battles_recorded', $1,
+              jsonb_build_object('count', $2::int + coalesce(f.prior, 0))
+       from subs s
+       left join folded_sum f on f.account_id = s.account_id`,
+      [playerTag, count],
+    )
+    .catch(() => {});
+}
