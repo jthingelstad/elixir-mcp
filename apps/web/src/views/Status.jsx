@@ -27,23 +27,6 @@ export function Status() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    // Installable from this page: a page-scoped manifest makes
-    // add-to-Home-Screen yield a status app that opens right here.
-    const link = document.createElement("link");
-    link.rel = "manifest";
-    link.href = "/status.webmanifest";
-    document.head.appendChild(link);
-    const touch = document.createElement("link");
-    touch.rel = "apple-touch-icon";
-    touch.href = "/apple-touch-icon.png";
-    document.head.appendChild(touch);
-    return () => {
-      link.remove();
-      touch.remove();
-    };
-  }, []);
-
-  useEffect(() => {
     let live = true;
     const load = () =>
       api.publicStatus().then((r) => {
@@ -139,7 +122,6 @@ export function Status() {
                   <th>QUEUE</th>
                   <th className="num">DEPTH</th>
                   <th className="num">IN FLIGHT</th>
-                  <th className="num">OLDEST</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,14 +144,9 @@ export function Status() {
                             {q.depth}
                           </td>
                           <td className="num">{q.in_flight}</td>
-                          <td className="num mono">
-                            {q.depth + q.in_flight > 0
-                              ? `${q.oldest_seconds}s`
-                              : "—"}
-                          </td>
                         </>
                       ) : (
-                        <td colSpan={3} className="nil">
+                        <td colSpan={2} className="nil">
                           unavailable
                         </td>
                       )}
@@ -292,11 +269,6 @@ export function Status() {
           the yield scheduler polls where battles actually happen.
         </div>
       </section>
-
-      <p style={{ fontSize: "12px", color: "var(--dim)", marginTop: "16px" }}>
-        Tip: add this page to your Home Screen — it installs as a standalone
-        status app.
-      </p>
     </>
   );
 }

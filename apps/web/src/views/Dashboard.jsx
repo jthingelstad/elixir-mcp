@@ -36,6 +36,42 @@ export function Fresh({ ts }) {
   return <span className={cls}>{ago(ts)}</span>;
 }
 
+function NickCell({ tag, current, refresh }) {
+  const [value, setValue] = useState(current ?? "");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    const v = value.trim();
+    if (v === (current ?? "")) return;
+    setBusy(true);
+    await api.explore("elixir_nickname", {
+      player_tag: tag,
+      nickname: v || null,
+    });
+    setBusy(false);
+    refresh();
+  };
+  return (
+    <input
+      className="mono"
+      value={value}
+      placeholder="—"
+      maxLength={40}
+      disabled={busy}
+      aria-label={`nickname for ${tag}`}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      style={{
+        width: "7.5rem",
+        padding: "3px 8px",
+        fontSize: "12px",
+        background: "transparent",
+        borderColor: "transparent",
+      }}
+    />
+  );
+}
+
 function Switch({ on, onToggle, label }) {
   return (
     <button
@@ -105,6 +141,7 @@ function Overview({ me, refresh, navigate }) {
                   <tr>
                     <th>TAG</th>
                     <th>NAME</th>
+                    <th>NICKNAME</th>
                     <th>CLAN</th>
                     <th>RECORDING</th>
                     <th>LAST POLL</th>
@@ -123,6 +160,13 @@ function Overview({ me, refresh, navigate }) {
                           <span className="tag">{c.player_tag}</span>
                         </td>
                         <td>{c.name ?? "—"}</td>
+                        <td>
+                          <NickCell
+                            tag={c.player_tag}
+                            current={c.nickname}
+                            refresh={refresh}
+                          />
+                        </td>
                         <td>
                           {c.last_known_clan_tag ? (
                             <span className="tag">{c.last_known_clan_tag}</span>

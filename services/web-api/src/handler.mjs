@@ -210,8 +210,11 @@ export function makeHandler({
       if (!account) return json(200, { authenticated: false });
       const [claims, recordings] = await Promise.all([
         db.query(
-          `select c.player_tag, c.status, c.is_primary, c.notify, p.name, p.last_known_clan_tag
+          `select c.player_tag, c.status, c.is_primary, c.notify, p.name, p.last_known_clan_tag,
+                  nn.nickname
            from claim c join player p on p.player_tag = c.player_tag
+           left join player_nickname nn on nn.account_id = c.account_id
+             and nn.player_tag = c.player_tag
            where c.account_id = $1 order by c.is_primary desc, c.player_tag`,
           [account.accountId],
         ),

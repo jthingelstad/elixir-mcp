@@ -52,7 +52,6 @@ async function queueStats() {
             AttributeNames: [
               "ApproximateNumberOfMessages",
               "ApproximateNumberOfMessagesNotVisible",
-              "ApproximateAgeOfOldestMessage",
             ],
           }),
         );
@@ -61,7 +60,6 @@ async function queueStats() {
           in_flight: Number(
             Attributes.ApproximateNumberOfMessagesNotVisible ?? 0,
           ),
-          oldest_seconds: Number(Attributes.ApproximateAgeOfOldestMessage ?? 0),
         };
       } catch (err) {
         console.error(`queueStats ${name}: ${err.name}: ${err.message}`);
