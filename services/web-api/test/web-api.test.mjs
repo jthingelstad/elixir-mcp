@@ -1191,3 +1191,19 @@ test("gateway config download is strictly one-time and owner-scoped", async () =
   assert.equal(after[0].provision_env, null);
   assert.ok(after[0].provision_claimed_at);
 });
+
+test("public status: no auth, 60s cache, no confidential fields", async () => {
+  const res = await handler(
+    event({ method: "GET", path: "/api/public/status", body: undefined }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  assert.match(res.headers["cache-control"], /max-age=60/);
+  const body = parse(res);
+  assert.ok("ok" in body.health);
+  assert.ok(Array.isArray(body.collectors));
+  assert.ok(Array.isArray(body.capture_5m));
+  const blob = JSON.stringify(body);
+  assert.ok(!blob.includes("static_ip"), "no IPs on the public surface");
+  assert.ok(!blob.includes("email_hash"), "no account data");
+  assert.ok(!blob.includes("kitchen-mac"), "machine labels stay private");
+});

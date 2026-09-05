@@ -21,6 +21,7 @@ const SECTIONS = {
     authed: false,
     pages: [
       { slug: "dashboard", label: "Dashboard" },
+      { slug: "status", label: "Status" },
       { slug: "changelog", label: "Changelog" },
     ],
   },

@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "A status page you can put on your phone",
+    body: "Data > Status is the live operational dashboard: pipeline health at a glance, every queue's depth and age (DLQ above zero shows red - that's an incident), each collector's heartbeat and hourly fetch rate, and the last hour of capture in 5-minute buckets with rejects in amber. Public by design, refreshes every minute, and installs from that page as a standalone Home Screen app.",
+  },
+  {
+    date: "2026-09-06",
     title: "Nicknames — how YOU know them",
     body: "To you, Raquaza is Tyler. Now Elixir knows that too - privately. Set a nickname on any player's record page (or have your agent call elixir_nickname), and it's yours alone: search finds 'tyler' and ranks it first, summaries and rosters show the nickname beside the real name, and no other account ever sees it.",
   },

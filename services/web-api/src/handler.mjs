@@ -82,6 +82,7 @@ export function makeHandler({
   secret,
   sendLoginEmail,
   notifyOwner = async () => {},
+  queueStats = async () => null,
 }) {
   async function resolveAccount(
     db,
@@ -521,6 +522,83 @@ export function makeHandler({
         [account.accountId],
       );
       return json(200, { events: rows });
+    },
+
+    "GET /api/public/status": async (db) => {
+      // The operational dashboard (Jamie, 2026-09-06): current system
+      // health, PUBLIC by design - queues, collectors, an hour of
+      // capture. Nothing confidential: no IPs, no machine labels, no
+      // account data; collectors go by their card names.
+      const q = async (sql, params = []) => (await db.query(sql, params)).rows;
+      const [collectors, hour, latest, hourTotals] = await Promise.all([
+        q(
+          `select coalesce(card_name, 'unnamed') as name, card_icon, status,
+                  last_success_at, last_heartbeat_at,
+                  (select count(*)::int from api_receipt ar
+                   where ar.gateway_id = g.gateway_id
+                     and ar.fetched_at > now() - interval '1 hour') as fetches_1h
+           from gateway g
+           where status in ('active', 'probation', 'pending')
+             and name <> 'backfill-elixir-bot'
+           order by fetch_points desc`,
+        ),
+        q(
+          `select to_char(date_trunc('minute', fetched_at)
+                    - make_interval(mins => extract(minute from fetched_at)::int % 5),
+                  'HH24:MI') as bucket,
+                  count(*)::int as fetches,
+                  count(*) filter (where admission = 'admitted')::int as admitted,
+                  count(*) filter (where admission = 'rejected')::int as rejected
+           from api_receipt r
+           join gateway g on g.gateway_id = r.gateway_id
+           where r.fetched_at > now() - interval '75 minutes'
+             and g.name <> 'backfill-elixir-bot'
+           group by 1 order by 1`,
+        ),
+        q(
+          `select extract(epoch from now() - max(fetched_at))::int as last_fetch_s,
+                  extract(epoch from now() - max(fetched_at)
+                    filter (where admission = 'admitted'))::int as last_admit_s
+           from api_receipt`,
+        ),
+        q(
+          `select count(*)::int as battles_1h from battle
+           where created_at > now() - interval '1 hour'`,
+        ),
+      ]);
+      const queues = await queueStats();
+      // Health verdict derived from data, never vibes: pipeline is OK
+      // when something was admitted recently and no DLQ holds messages.
+      const dlqDepth = ["live_dlq", "bulk_dlq", "results_dlq", "email_dlq"]
+        .map((k) => queues?.[k]?.depth ?? 0)
+        .reduce((a, b) => a + b, 0);
+      const lastAdmit = latest[0]?.last_admit_s;
+      const healthy = dlqDepth === 0 && lastAdmit !== null && lastAdmit < 1800;
+      return json(
+        200,
+        {
+          as_of: new Date().toISOString(),
+          health: {
+            ok: healthy,
+            last_fetch_seconds: latest[0]?.last_fetch_s ?? null,
+            last_admission_seconds: lastAdmit ?? null,
+            dlq_messages: dlqDepth,
+            battles_last_hour: hourTotals[0]?.battles_1h ?? 0,
+          },
+          queues,
+          collectors: collectors.map((c) => ({
+            name: c.name,
+            card_icon: c.card_icon,
+            status: c.status,
+            last_success_at: c.last_success_at?.toISOString() ?? null,
+            last_heartbeat_at: c.last_heartbeat_at?.toISOString() ?? null,
+            fetches_1h: c.fetches_1h,
+          })),
+          capture_5m: hour,
+          note: "Live operational snapshot, ~60s cache. Collectors go by their card names; the backfill lane is excluded.",
+        },
+        { "cache-control": "public, max-age=60" },
+      );
     },
 
     "GET /api/public/stats": async (db) => {

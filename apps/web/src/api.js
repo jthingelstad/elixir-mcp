@@ -64,6 +64,7 @@ export const api = {
   myCollections: () => request("GET", "/api/me/collections"),
   myClans: () => request("GET", "/api/me/clans"),
   publicStats: () => request("GET", "/api/public/stats"),
+  publicStatus: () => request("GET", "/api/public/status"),
   myRequests: () => request("GET", "/api/me/requests"),
   myEvents: () => request("GET", "/api/me/events"),
   gatewayEnv: (id) =>

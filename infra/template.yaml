@@ -275,6 +275,17 @@ Resources:
                     sqs:GetQueueUrl,
                   ]
                 Resource: !GetAtt ResultsQueue.Arn
+              # Public status page: depth + oldest-message age across the
+              # pipeline (read-only attribute peeks, no message access).
+              - Effect: Allow
+                Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl]
+                Resource:
+                  - !GetAtt RequestsLiveQueue.Arn
+                  - !GetAtt RequestsBulkQueue.Arn
+                  - !GetAtt RequestsLiveDlq.Arn
+                  - !GetAtt RequestsBulkDlq.Arn
+                  - !GetAtt ResultsDlq.Arn
+                  - !GetAtt EmailDlq.Arn
               # Payload archive: ingest puts at admission; migrate exports
               # history and HEAD-verifies twins before the Postgres sweep.
               - Effect: Allow

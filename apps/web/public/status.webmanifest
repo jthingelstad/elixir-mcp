@@ -1,0 +1,14 @@
+{
+  "name": "Elixir Status",
+  "short_name": "Elixir Status",
+  "description": "Operational health of the Elixir MCP recorder: queues, collectors, capture.",
+  "start_url": "/data/status",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070610",
+  "theme_color": "#070610",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

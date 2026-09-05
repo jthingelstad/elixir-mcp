@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 // Subpath import: the contracts barrel pulls node:crypto (deck.js).
 import { CHANGELOG } from "@elixir-mcp/contracts/dist/changelog.js";
+import { Status } from "./Status.jsx";
 
 /** Data (design handoff §2–3): the ONLY place charts belong. Full
  *  recorded history, daily, UTC; today's partial bar at 35% so an
@@ -89,6 +90,7 @@ export function Data({ page }) {
     });
   }, []);
 
+  if (page === "status") return <Status />;
   if (page === "changelog") {
     return (
       <>
