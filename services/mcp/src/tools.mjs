@@ -475,6 +475,11 @@ const TOOLS = {
           type: "string",
           description: "Exact deck identity (see battles_decks).",
         },
+        game_mode: {
+          type: "string",
+          description:
+            "Case-insensitive match on the game's mode name (substring): 'chaos' finds Chaos_1v1_Draft and friends, 'crazy' the Crazy Arena events. Discover names with battles_performance group_by: 'mode'.",
+        },
         cursor: {
           type: "string",
           description:
@@ -530,6 +535,8 @@ const TOOLS = {
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       if (args.game_mode_id !== undefined)
         add("b.game_mode_id = ?", args.game_mode_id);
+      if (args.game_mode)
+        add("b.game_mode_name ilike ?", `%${String(args.game_mode)}%`);
       if (args.outcome) add("bp.outcome = ?", args.outcome);
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
       if (args.with_card !== undefined) {
@@ -835,9 +842,9 @@ const TOOLS = {
         compare_to: { type: "string" },
         group_by: {
           type: "string",
-          enum: ["week"],
+          enum: ["week", "mode"],
           description:
-            "Weekly win-rate series over the window (ISO weeks) — the trend view. Combines with mode/deck_hash/from/to; overrides before_after and compare_*.",
+            "week: weekly win-rate series (ISO weeks) — the trend view. mode: per-game-mode record (every named mode played — Ladder, Ranked, war modes, and event modes like Chaos/KHAOS drafts or Crazy Arena — the 'what have I been playing?' discovery view). Combines with mode/deck_hash/from/to; overrides before_after and compare_*.",
         },
         before_after: {
           type: "string",
@@ -911,7 +918,48 @@ const TOOLS = {
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       requireOrderedWindow(from, to);
       let result;
-      if (args.group_by === "week") {
+      if (args.group_by === "mode") {
+        const where = ["bp.player_tag = $1", "bp.outcome is not null"];
+        const params = [tag];
+        const add = (clause, value) => {
+          params.push(value);
+          where.push(clause.replace("?", `$${params.length}`));
+        };
+        if (from) add("bp.battle_time >= ?", from);
+        if (to) add("bp.battle_time < ?", to);
+        if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+        if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
+        const { rows } = await ctx.db.query(
+          `select b.game_mode_name as game_mode, b.type,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  count(*) filter (where bp.outcome = 'draw')::int as draws,
+                  max(b.battle_time) as last_played
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where ${where.join(" and ")}
+           group by b.game_mode_name, b.type
+           order by count(*) desc`,
+          params,
+        );
+        result = {
+          by_mode: rows.map((r) => ({
+            game_mode: r.game_mode,
+            type: r.type,
+            battles: r.battles,
+            wins: r.wins,
+            losses: r.losses,
+            draws: r.draws,
+            win_rate:
+              r.wins + r.losses > 0
+                ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+                : null,
+            last_played: r.last_played?.toISOString() ?? null,
+          })),
+          mode_note:
+            "game_mode is the game's own mode name (event modes rotate - Chaos drafts, Crazy Arena, Showdown and so on appear here the day they are played); type is the API battle type it rode in on. Filter battles_query by game_mode to drill into any of them.",
+        };
+      } else if (args.group_by === "week") {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
         const params = [tag];
         const add = (clause, value) => {

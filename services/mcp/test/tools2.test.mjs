@@ -455,3 +455,40 @@ test("experience cohorts: tenure rides player block and standings; unknown stays
   assert.equal(unk.body.player.experience.years_played, null);
   assert.match(unk.body.player.experience.note, /unknown/);
 });
+
+test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS gap)", async () => {
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, game_mode_id, game_mode_name)
+     values ('khaos-1', now() - interval '2 days', 'trail', 'pvp', 72001001, 'Chaos_1v1_Draft'),
+            ('khaos-2', now() - interval '1 day', 'trail', 'pvp', 72001001, 'Chaos_1v1_MegaDraft_All')
+     on conflict do nothing`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome)
+     values ('khaos-1', $1, now() - interval '2 days', 0, 'win'),
+            ('khaos-2', $1, now() - interval '1 day', 0, 'loss')
+     on conflict do nothing`,
+    [OBSERVER],
+  );
+
+  const perf = await call("battles_performance", { group_by: "mode" });
+  assert.equal(perf.isError, false, JSON.stringify(perf.body));
+  const chaos = perf.body.by_mode.filter((m) =>
+    (m.game_mode ?? "").startsWith("Chaos_"),
+  );
+  assert.equal(chaos.length, 2, "both Chaos modes surface in discovery");
+  assert.match(perf.body.mode_note, /Chaos/);
+
+  const q = await call("battles_query", {
+    game_mode: "chaos",
+    verbosity: "compact",
+    limit: 10,
+  });
+  assert.equal(q.isError, false);
+  assert.equal(
+    q.body.battles.length,
+    2,
+    "substring filter finds KHAOS battles",
+  );
+  assert.ok(q.body.battles.every((b) => b.game_mode.name.startsWith("Chaos_")));
+});

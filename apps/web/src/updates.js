@@ -4,6 +4,11 @@
  */
 export const UPDATES = [
   {
+    date: "2026-09-05",
+    title: "Event modes, findable",
+    body: "KHAOS drafts, Crazy Arena, Showdown - the rotating event modes were recorded all along but hard to discover. battles_performance group_by 'mode' now lists every named mode you've played with its record, and battles_query takes a game_mode filter ('chaos' finds all the Chaos drafts).",
+  },
+  {
     date: "2026-09-04",
     title: "Level Curve, Pilot Score, Scouting Report",
     body: "Two new intelligence tools, grounded entirely in recorded battles. battles_levels measures what card-level advantage is actually worth (a 66,000-observation curve) and scores any player's Pilot Score - wins your card levels can't explain, with a monthly trend that shows real improvement independent of spending. war_rivals is the Scouting Report: observed war history for every rival clan your brackets have ever contained. No tiers, no opinions - every number ships its sample size.",

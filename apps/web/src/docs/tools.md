@@ -25,9 +25,11 @@ Profile-shaped views of one tag.
 The recorded battle corpus and statistics over it.
 
 - **Query battles** (`battles_query`) — the workhorse: filtered,
-  cursor-paginated battles with both sides' decks.
+  cursor-paginated battles with both sides' decks; `game_mode` filters
+  by the game's own mode names (event modes included).
 - **Performance windows** (`battles_performance`) — win rates over windows,
-  weekly trend, before/after splits.
+  weekly trend, before/after splits, and per-mode discovery
+  (`group_by: mode` — every named mode played, event rotations included).
 - **Deck performance** (`battles_decks`) — per-deck records.
 - **Card performance** (`battles_cards`) — per-card win-rate
   impact, yours and opponents'.
