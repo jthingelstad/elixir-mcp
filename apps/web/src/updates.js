@@ -4,6 +4,11 @@
  */
 export const UPDATES = [
   {
+    date: "2026-09-06",
+    title: "The intelligence tools reach the browser",
+    body: "Web/agent parity closes out. The player explorer gains a Pilot Score tab - your score with its error bar, the monthly trend, and the full Level Curve. Explore > Meta shows the observed deck and card meta plus weekly trends for any segment: the whole corpus, a clan, or a collection like the pros. And Clan & War now carries Standings (win rates vs the clan median), clan-wide Pilot Scores, and the war Scouting Report. Every view is the same registry call your agent makes.",
+  },
+  {
     date: "2026-09-05",
     title: "Your activity, your collector, on screen",
     body: "Account gained two pages. Activity shows three views of your own account: every MCP request your agents made (tool, timing, errors - the debugging view), your account's event history, and your notification pipe (with unread rows past your agents' cursor bolded; reading here never marks anything seen for them). Collector shows what your machines have actually done: a 30-day fetch chart per collector, endpoint mix, points, and the running version.",

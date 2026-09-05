@@ -9,6 +9,7 @@ import { Data } from "./views/Data.jsx";
 import { Explore } from "./views/Explore.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Collections } from "./views/Collections.jsx";
+import { Meta } from "./views/Meta.jsx";
 import { Collectors } from "./views/Collectors.jsx";
 
 export const DISCLAIMER =
@@ -27,6 +28,7 @@ const SECTIONS = {
     pages: [
       { slug: "player", label: "Player" },
       { slug: "clan", label: "Clan & War" },
+      { slug: "meta", label: "Meta" },
       { slug: "collections", label: "Collections" },
       { slug: "collectors", label: "Collectors" },
     ],
@@ -214,6 +216,7 @@ export function App() {
       {section === "explore" && activePage === "clan" && (
         <Clan me={me} navigate={navigate} />
       )}
+      {section === "explore" && activePage === "meta" && <Meta me={me} />}
       {section === "explore" && activePage === "collections" && (
         <Collections me={me} navigate={navigate} />
       )}

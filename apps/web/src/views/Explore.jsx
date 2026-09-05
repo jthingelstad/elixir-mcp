@@ -11,6 +11,7 @@ const TABS = [
   "Summary",
   "Battles",
   "Trend",
+  "Pilot Score",
   "Decks",
   "Collection",
   "War",
@@ -140,6 +141,8 @@ export function Explore({ me, navigate }) {
             : page;
         } else if (whichTab === "Trend")
           d = await call("battles_performance", { group_by: "week" });
+        else if (whichTab === "Pilot Score")
+          d = await call("battles_levels", {});
         else if (whichTab === "Decks")
           d = await call("battles_decks", { sort: "battles" });
         else if (whichTab === "Collection")
@@ -375,6 +378,107 @@ export function Explore({ me, navigate }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {tab === "Pilot Score" && d && (
+        <div className="panel">
+          <h3>Pilot Score</h3>
+          {d.player?.insufficient_sample ? (
+            <p>
+              Not enough leveled battles yet ({d.player.n} of 30 needed in the
+              window) — keep playing, the score unlocks itself.
+            </p>
+          ) : d.player ? (
+            <>
+              <p>
+                <strong style={{ fontSize: "1.6rem" }}>
+                  {d.player.pilot_score > 0 ? "+" : ""}
+                  {(d.player.pilot_score * 100).toFixed(1)}
+                </strong>{" "}
+                <span className="fine">
+                  ± {(d.player.standard_error * 100).toFixed(1)} pts — wins your
+                  card levels can&rsquo;t explain
+                </span>
+              </p>
+              <p>
+                Actual win rate {pct(d.player.actual_win_rate)} vs{" "}
+                {pct(d.player.expected_from_levels)} expected from levels alone,
+                over {d.player.n} decided battles (avg level gap{" "}
+                {d.player.mean_gap > 0 ? "+" : ""}
+                {d.player.mean_gap}).
+                {d.player.experience?.years_played != null &&
+                  ` ${d.player.experience.years_played}+ years played.`}
+              </p>
+              {d.player.cohort && (
+                <p className="fine">
+                  Cohort ({d.player.cohort.label ?? "experience peers"}):{" "}
+                  {d.player.cohort.percentile != null
+                    ? `${Math.round(d.player.cohort.percentile * 100)}th percentile`
+                    : ""}
+                </p>
+              )}
+              {d.player.monthly_trend?.length > 1 && (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Battles</th>
+                      <th>Pilot Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.player.monthly_trend.map((t) => (
+                      <tr key={t.month}>
+                        <td>{t.month}</td>
+                        <td>{t.n}</td>
+                        <td>
+                          {t.pilot_score > 0 ? "+" : ""}
+                          {(t.pilot_score * 100).toFixed(1)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          ) : (
+            <p>No score available for this window.</p>
+          )}
+          {Array.isArray(d.curve) && d.curve.length > 0 && (
+            <>
+              <h3>The Level Curve</h3>
+              <p className="fine">
+                Win rate by deck-average level gap, measured across the recorded
+                corpus — what a level of advantage is actually worth.
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Level gap</th>
+                    <th>Battles</th>
+                    <th>Win rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.curve.map((b, i) => (
+                    <tr key={i}>
+                      <td>
+                        {b.gap_range[0]} to {b.gap_range[1]}
+                      </td>
+                      <td>{b.n}</td>
+                      <td>
+                        {b.insufficient_sample
+                          ? "thin sample"
+                          : pct(b.win_rate)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          {d.note && <p className="fine">{d.note}</p>}
         </div>
       )}
 
