@@ -233,11 +233,40 @@ async function probe(databaseUrl) {
                 as rivals_with_3plus_races
        from races`,
     );
+    // Push-lane pulse (shipped 2026-09-05): rows by topic, and how
+    // much sits unread past each account's cursor.
+    const { rows: feed } = await db.query(
+      `select topic, count(*)::int as rows,
+              min(ef.created_at) as first, max(ef.created_at) as last,
+              count(*) filter (where ef.event_id > a.events_seen_through)::int as unread
+       from event_feed ef join account a on a.account_id = ef.account_id
+       group by topic order by topic`,
+    );
+    // Pros-collection capture ramp: recording coverage and 24h battle
+    // flow for every member of the 'pros' collection.
+    const { rows: pros } = await db.query(
+      `select count(*)::int as members,
+              count(*) filter (where r.subject_tag is not null)::int as recording,
+              count(*) filter (where b24.n > 0)::int as active_24h,
+              coalesce(sum(b24.n), 0)::int as battles_24h
+       from collection c
+       join collection_member m on m.collection_id = c.collection_id
+       left join recording r on r.subject_type = 'player'
+         and r.subject_tag = m.subject_tag and r.status = 'active'
+       left join lateral (
+         select count(*)::int as n from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id
+         where bp.player_tag = m.subject_tag
+           and b.battle_time > now() - interval '24 hours') b24 on true
+       where c.slug = 'pros'`,
+    );
     return {
       hours: rows,
       war_stamps_7d: stamps,
       level_census: levels[0],
       rival_census: rivals[0],
+      feed_census: feed,
+      pros_census: pros[0],
     };
   } finally {
     await db.end();
