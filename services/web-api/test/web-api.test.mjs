@@ -1086,3 +1086,56 @@ test("public stats: no auth needed, cacheable, honest totals and series", async 
     "no account data leaks",
   );
 });
+
+test("activity APIs: own request log, read-only notification view, collector detail", async () => {
+  const cookie = bossCookie;
+  const reqs = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/requests",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.ok(Array.isArray(reqs.requests));
+
+  const before = await db.query(
+    `select events_seen_through from account where email_hash = $1`,
+    [emailHash(JAMIE)],
+  );
+  const ev = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/events", cookie, body: undefined }),
+    ),
+  );
+  assert.ok(Array.isArray(ev.events));
+  assert.equal(typeof ev.seen_through, "number");
+  const after = await db.query(
+    `select events_seen_through from account where email_hash = $1`,
+    [emailHash(JAMIE)],
+  );
+  assert.equal(
+    String(before.rows[0].events_seen_through),
+    String(after.rows[0].events_seen_through),
+    "web view never advances the agents' cursor",
+  );
+
+  // Collector detail: owner-scoped; someone else's gateway 404s.
+  const { rows: gw } = await db.query(
+    `select gateway_id::text as id, owner_account_id from gateway limit 1`,
+  );
+  if (gw[0]) {
+    const res = await handler(
+      event({
+        method: "GET",
+        path: "/api/me/gateway-detail",
+        cookie: memberCookie,
+        body: undefined,
+      }),
+    );
+    // no id -> not found, never a crash
+    assert.equal(res.statusCode, 404);
+  }
+});

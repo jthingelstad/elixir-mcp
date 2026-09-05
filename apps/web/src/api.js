@@ -63,6 +63,10 @@ export const api = {
   myCollections: () => request("GET", "/api/me/collections"),
   myClans: () => request("GET", "/api/me/clans"),
   publicStats: () => request("GET", "/api/public/stats"),
+  myRequests: () => request("GET", "/api/me/requests"),
+  myEvents: () => request("GET", "/api/me/events"),
+  gatewayDetail: (id) =>
+    request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
   myClanAction: (body) => request("POST", "/api/me/clans", body),
   myCollectionAction: (body) => request("POST", "/api/me/collections", body),
 };

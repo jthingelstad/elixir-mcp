@@ -1218,6 +1218,78 @@ export function makeHandler({
       return json(200, { ok: true, request_id: fb[0].feedback_id });
     },
 
+    "GET /api/me/requests": async (db, event) => {
+      // Activity tab 1 (SITE-IA): the MCP requests this account's
+      // agents made - the user's own audit slice, newest first.
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select tool, surface, args, duration_ms, result_bytes, truncated,
+                error_code, created_at
+         from mcp_call_audit
+         where account_id = $1
+         order by created_at desc limit 200`,
+        [account.accountId],
+      );
+      return json(200, { requests: rows });
+    },
+
+    "GET /api/me/events": async (db, event) => {
+      // Activity tab 3: the notification pipe, read-only. The web view
+      // NEVER advances events_seen_through - that cursor belongs to
+      // the account's agents (elixir_events mark_seen).
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select event_id, topic, subject_tag, payload, created_at
+         from event_feed where account_id = $1
+         order by event_id desc limit 100`,
+        [account.accountId],
+      );
+      const { rows: seen } = await db.query(
+        `select events_seen_through from account where account_id = $1`,
+        [account.accountId],
+      );
+      return json(200, {
+        events: rows,
+        seen_through: Number(seen[0]?.events_seen_through ?? 0),
+      });
+    },
+
+    "GET /api/me/gateway-detail": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const id = String(event.queryStringParameters?.id ?? "");
+      const { rows: gw } = await db.query(
+        `select gateway_id, name, status, fetch_points, last_success_at,
+                last_seen_sha, enrolled_at
+         from gateway
+         where gateway_id::text = $1 and owner_account_id = $2`,
+        [id, account.accountId],
+      );
+      if (!gw[0]) return json(404, { error: "not_found" });
+      const { rows: daily } = await db.query(
+        `select (fetched_at at time zone 'UTC')::date::text as day,
+                count(*)::int as fetches,
+                count(*) filter (where admission = 'admitted')::int as admitted,
+                count(*) filter (where admission = 'rejected')::int as rejected
+         from api_receipt
+         where gateway_id = $1
+           and fetched_at > now() - interval '30 days'
+         group by 1 order by 1`,
+        [gw[0].gateway_id],
+      );
+      const { rows: endpoints } = await db.query(
+        `select endpoint, count(*)::int as fetches
+         from api_receipt
+         where gateway_id = $1
+           and fetched_at > now() - interval '7 days'
+         group by 1 order by 2 desc`,
+        [gw[0].gateway_id],
+      );
+      return json(200, { gateway: gw[0], daily, endpoints_7d: endpoints });
+    },
+
     "GET /api/me/collections": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });

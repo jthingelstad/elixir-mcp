@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Activity } from "./Activity.jsx";
+import { CollectorDetail } from "./CollectorDetail.jsx";
 
 function freshness(ts) {
   if (!ts) return "never";
@@ -16,7 +18,6 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
   const [gateways, setGateways] = useState(null); // null until first load
   const [usage, setUsage] = useState(null);
   const [connections, setConnections] = useState([]);
-  const [activity, setActivity] = useState([]);
   const [fb, setFb] = useState({
     message: "",
     category: "general",
@@ -38,10 +39,6 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
     if (me?.authenticated)
       api.connections().then((r) => {
         if (r.ok) setConnections(r.data.connections);
-      });
-    if (me?.authenticated)
-      api.activity().then((r) => {
-        if (r.ok) setActivity(r.data.events);
       });
   }, [me?.authenticated]);
 
@@ -76,6 +73,8 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
     <>
       <TierPanel me={me} page={page} />
       <ClansPanel page={page} />
+      {page === "activity" && <Activity />}
+      {page === "collector" && <CollectorDetail />}
       <div className="panel" hidden={page !== "overview"}>
         <h3>Your players</h3>
         {me.claims.length === 0 && (
@@ -275,7 +274,7 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
         </p>
       </div>
 
-      <div className="panel" hidden={page !== "overview"}>
+      <div className="panel" hidden={page !== "collector"}>
         <h3>Run a gateway</h3>
         <p>
           Gateways are the machines that talk to the Clash Royale API — one
@@ -404,23 +403,6 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
           </>
         )}
       </div>
-
-      {activity.length > 0 && (
-        <div className="panel" hidden={page !== "usage"}>
-          <h3>Recent activity</h3>
-          <table>
-            <tbody>
-              {activity.map((e, i) => (
-                <tr key={i}>
-                  <td>{new Date(e.created_at).toLocaleString()}</td>
-                  <td>{e.kind.replaceAll("_", " ")}</td>
-                  <td>{e.detail?.player_tag ?? e.detail?.name ?? ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       <div className="panel" hidden={page !== "feedback"}>
         <h3>Send feedback</h3>

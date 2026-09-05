@@ -37,7 +37,9 @@ const SECTIONS = {
     pages: [
       { slug: "overview", label: "Overview" },
       { slug: "agents", label: "Agents" },
+      { slug: "activity", label: "Activity" },
       { slug: "usage", label: "Usage" },
+      { slug: "collector", label: "Collector" },
       { slug: "feedback", label: "Feedback" },
     ],
   },
