@@ -1139,3 +1139,55 @@ test("activity APIs: own request log, read-only notification view, collector det
     assert.equal(res.statusCode, 404);
   }
 });
+
+test("gateway config download is strictly one-time and owner-scoped", async () => {
+  const cookie = memberCookie; // NEWCOMER raised kitchen-mac earlier
+  const { rows: gw } = await db.query(
+    `select gateway_id::text as id, owner_account_id from gateway
+     where name = 'kitchen-mac' limit 1`,
+  );
+  await db.query(
+    `update gateway set provision_env = 'ELIXIR_MCP_GATEWAY_ID=test', provision_claimed_at = null
+     where gateway_id::text = $1`,
+    [gw[0].id],
+  );
+  // Someone else's session can't claim it.
+  const foreign = await handler(
+    event({
+      method: "GET",
+      path: `/api/me/gateway-env`,
+      cookie: bossCookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(foreign.statusCode, 404);
+  // The owner claims it once...
+  const first = await handler({
+    ...event({
+      method: "GET",
+      path: "/api/me/gateway-env",
+      cookie,
+      body: undefined,
+    }),
+    queryStringParameters: { id: gw[0].id },
+  });
+  assert.equal(first.statusCode, 200, first.body);
+  assert.match(parse(first).env, /GATEWAY_ID=test/);
+  // ...and only once: the stored copy is gone.
+  const second = await handler({
+    ...event({
+      method: "GET",
+      path: "/api/me/gateway-env",
+      cookie,
+      body: undefined,
+    }),
+    queryStringParameters: { id: gw[0].id },
+  });
+  assert.equal(second.statusCode, 404, "one-time means one time");
+  const { rows: after } = await db.query(
+    `select provision_env, provision_claimed_at from gateway where gateway_id::text = $1`,
+    [gw[0].id],
+  );
+  assert.equal(after[0].provision_env, null);
+  assert.ok(after[0].provision_claimed_at);
+});

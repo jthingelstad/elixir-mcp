@@ -31,8 +31,33 @@ export function CollectorDetail() {
         return (
           <div className="panel" key={g.gateway_id}>
             <h3>Collector: {g.name}</h3>
+            {g.provision_ready && (
+              <p className="notice">
+                Your configuration is ready.{" "}
+                <button
+                  className="quiet"
+                  onClick={async () => {
+                    const r = await api.gatewayEnv(g.gateway_id);
+                    if (!r.ok) return;
+                    const blob = new Blob([r.data.env], {
+                      type: "text/plain",
+                    });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = ".env";
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                  }}
+                >
+                  Download .env (one time)
+                </button>{" "}
+                It disappears from the server the moment you fetch it — add your
+                own CR API key to the file, then start the collector.
+              </p>
+            )}
             <p className="fine">
-              status <span className={`status ${g.status}`}>{g.status}</span>
+              id <code>{g.gateway_id}</code> · status{" "}
+              <span className={`status ${g.status}`}>{g.status}</span>
               {" · "}
               {Number(d?.gateway.fetch_points ?? 0).toLocaleString()} points
               {" · last success "}

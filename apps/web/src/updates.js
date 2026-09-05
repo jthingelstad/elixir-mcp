@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Collector config from the website",
+    body: "Provisioning a collector no longer means credentials over a side channel. Once the maintainer provisions your gateway, Account > Collector offers your complete configuration as a ONE-TIME download - it disappears from the server the moment you fetch it. You add exactly one thing yourself: your own Clash Royale API key. Pairs with the new Go collector: a single binary for Mac, Linux, and ARM NAS boxes, self-updating from signed releases.",
+  },
+  {
+    date: "2026-09-06",
     title: "The intelligence tools reach the browser",
     body: "Web/agent parity closes out. The player explorer gains a Pilot Score tab - your score with its error bar, the monthly trend, and the full Level Curve. Explore > Meta shows the observed deck and card meta plus weekly trends for any segment: the whole corpus, a clan, or a collection like the pros. And Clan & War now carries Standings (win rates vs the clan median), clan-wide Pilot Scores, and the war Scouting Report. Every view is the same registry call your agent makes.",
   },

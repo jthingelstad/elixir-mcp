@@ -1256,6 +1256,35 @@ export function makeHandler({
       });
     },
 
+    "GET /api/me/gateway-env": async (db, event) => {
+      // ONE-TIME config download (0034): the rendered .env the owner
+      // provisioned for this collector. Reading it CLAIMS it - the
+      // stored copy is nulled in the same statement, so the secret
+      // exists in the database only between provisioning and first
+      // download. The CR token is deliberately absent (operator
+      // pastes their own - the one exception, per Jamie).
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const id = String(event.queryStringParameters?.id ?? "");
+      // RETURNING sees post-update values, so the pre-update secret
+      // comes from a locked self-join (prev) instead.
+      const { rows } = await db.query(
+        `update gateway g set provision_env = null, provision_claimed_at = now()
+         from (select gateway_id, name, provision_env from gateway
+               where gateway_id::text = $1 and owner_account_id = $2
+                 and provision_env is not null
+               for update) prev
+         where g.gateway_id = prev.gateway_id
+         returning prev.name, prev.provision_env as env`,
+        [id, account.accountId],
+      );
+      if (!rows[0]) return json(404, { error: "not_found" });
+      await logEvent(db, account.accountId, "gateway_config_claimed", {
+        gateway: rows[0].name,
+      });
+      return json(200, { name: rows[0].name, env: rows[0].env });
+    },
+
     "GET /api/me/gateway-detail": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
@@ -1465,6 +1494,7 @@ export function makeHandler({
       const { rows } = await db.query(
         `select g.gateway_id, g.name, g.status, g.static_ip, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
                 g.fetch_points, g.card_name, g.card_icon,
+                (g.provision_env is not null) as provision_ready,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
                    and ar.fetched_at > now() - interval '24 hours') as fetches_24h
