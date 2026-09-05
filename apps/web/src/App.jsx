@@ -40,7 +40,7 @@ const SECTIONS = {
       { slug: "feedback", label: "Feedback" },
     ],
   },
-  docs: { label: "Docs", authed: false, pages: [] }, // Docs owns its own ToC
+  docs: { label: "Docs", authed: false, pages: [] }, // Docs owns its own ToC (URL-addressable: /docs/<page>)
   admin: {
     label: "Admin",
     authed: true,
@@ -48,10 +48,9 @@ const SECTIONS = {
     pages: [
       { slug: "requests", label: "Requests" },
       { slug: "accounts", label: "Accounts" },
-      { slug: "clans", label: "Clans" },
       { slug: "collections", label: "Collections" },
-      { slug: "gateways", label: "Collectors" },
-      { slug: "tokens", label: "Tokens" },
+      { slug: "gateways", label: "Collectors", ownerOnly: true },
+      { slug: "tokens", label: "Tokens", ownerOnly: true },
       { slug: "feedback", label: "Feedback" },
       { slug: "usage", label: "Usage" },
     ],
@@ -148,7 +147,7 @@ export function App() {
             )}
           {link("/docs", "Docs", "docs", section === "docs")}
           {authed &&
-            me.is_owner &&
+            me.is_admin &&
             link("/admin/requests", "Admin", "admin", section === "admin")}
           {authed ? (
             <a
@@ -178,9 +177,11 @@ export function App() {
 
       {sec && sec.pages.length > 0 && (
         <nav className="subnav" aria-label={`${sec.label} pages`}>
-          {sec.pages.map((p) =>
-            link(`/${section}/${p.slug}`, p.label, `${section}-${p.slug}`),
-          )}
+          {sec.pages
+            .filter((p) => !p.ownerOnly || me?.is_owner)
+            .map((p) =>
+              link(`/${section}/${p.slug}`, p.label, `${section}-${p.slug}`),
+            )}
         </nav>
       )}
 
@@ -192,7 +193,7 @@ export function App() {
           }}
         />
       )}
-      {section === "docs" && <Docs />}
+      {section === "docs" && <Docs page={page} navigate={navigate} />}
       {section === "explore" && activePage === "player" && (
         <Explore me={me} navigate={navigate} />
       )}

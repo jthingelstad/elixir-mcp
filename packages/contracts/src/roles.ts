@@ -12,7 +12,8 @@
  * must never be persisted — compare, don't store.
  */
 
-export type Role = "member" | "leader" | "family" | "partner" | "admin";
+export type Role =
+  "member" | "leader" | "family" | "partner" | "admin" | "owner";
 
 export interface RoleQuotas {
   /** Active player recordings the account may hold. */
@@ -37,6 +38,7 @@ export const ROLE_ORDER: Role[] = [
   "family",
   "partner",
   "admin",
+  "owner",
 ];
 
 export const ROLES: Record<Role, RoleQuotas> = {
@@ -85,7 +87,49 @@ export const ROLES: Record<Role, RoleQuotas> = {
     collections_max: Infinity,
     service_tokens: Infinity,
   },
+  owner: {
+    player_slots: Infinity,
+    activity_clans: Infinity,
+    comprehensive_clans: Infinity,
+    mcp_calls_per_day: Infinity,
+    live_fetches_per_day: Infinity,
+    collections_max: Infinity,
+    service_tokens: Infinity,
+  },
 };
+
+/** One entitlements system (Jamie, 2026-09-05): the console is a role
+ *  power, not a separate flag. Admins run day-to-day (requests,
+ *  feedback, collections, clan recordings, roles up to partner); the
+ *  owner — exactly one, whom no admin can affect — additionally holds
+ *  admin grants, service tokens, gateways, and quota overrides. */
+export type ConsoleAccess = "none" | "admin" | "owner";
+
+export function consoleAccess(role: string | null | undefined): ConsoleAccess {
+  if (role === "owner") return "owner";
+  if (role === "admin") return "admin";
+  return "none";
+}
+
+/** Roles an admin-level actor may assign. Owner may assign anything
+ *  except "owner" itself (exactly one, held, never granted by API);
+ *  admins stop at partner and may not touch admin/owner accounts. */
+export const ADMIN_SETTABLE: Role[] = ["member", "leader", "family", "partner"];
+
+export function canSetRole(
+  actorRole: string | null | undefined,
+  targetCurrentRole: string,
+  newRole: string,
+): boolean {
+  if (!isRole(newRole) || newRole === "owner") return false;
+  if (targetCurrentRole === "owner") return false;
+  if (actorRole === "owner") return true;
+  if (actorRole !== "admin") return false;
+  return (
+    ADMIN_SETTABLE.includes(targetCurrentRole as Role) &&
+    ADMIN_SETTABLE.includes(newRole as Role)
+  );
+}
 
 /** Running a live collector earns extra capture — capacity begets
  *  collection. Stacks on member/leader/family; partner's tier already
@@ -106,7 +150,8 @@ export function roleQuotas(
   { operator = false }: { operator?: boolean } = {},
 ): RoleQuotas {
   const base = ROLES[isRole(role) ? role : "member"];
-  if (!operator || role === "admin" || role === "partner") return base;
+  if (!operator || role === "admin" || role === "owner" || role === "partner")
+    return base;
   return {
     ...base,
     player_slots: base.player_slots + OPERATOR_BONUS.player_slots,

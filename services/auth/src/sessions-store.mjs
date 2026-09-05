@@ -54,7 +54,9 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
     ? {
         accountId: row.account_id,
         emailHash: row.email_hash,
-        isOwner: row.is_owner,
+        // One entitlements system: the console is a role power.
+        isOwner: row.role === "owner",
+        isAdmin: row.role === "owner" || row.role === "admin",
         timezone: row.timezone,
         role: row.role,
         sessionId: claims.sid,

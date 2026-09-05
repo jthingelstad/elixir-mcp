@@ -44,7 +44,7 @@ before(async () => {
   db = new pg.Client({ connectionString: URL });
   await db.connect();
   const { rows } = await db.query(
-    `insert into account (email_hash, status, is_owner) values ($1, 'approved', true) returning account_id`,
+    `insert into account (email_hash, status, is_owner, role) values ($1, 'approved', true, 'owner') returning account_id`,
     [JAMIE],
   );
   accountId = rows[0].account_id;

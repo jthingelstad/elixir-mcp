@@ -75,6 +75,7 @@ export function Dashboard({ me, refresh, navigate, page = "overview" }) {
   return (
     <>
       <TierPanel me={me} page={page} />
+      <ClansPanel page={page} />
       <div className="panel" hidden={page !== "overview"}>
         <h3>Your players</h3>
         {me.claims.length === 0 && (
@@ -545,6 +546,134 @@ function TierPanel({ me, page }) {
           {sent && <p className="fine">{sent}</p>}
         </form>
       )}
+    </div>
+  );
+}
+
+/** Add-vs-watch for clans (Jamie, 2026-09-05): following is free;
+ *  watching starts recording within your tier's clan slots, toggled
+ *  right here - no maintainer approval. */
+function ClansPanel({ page }) {
+  const [data, setData] = useState(null);
+  const [tag, setTag] = useState("");
+  const [err, setErr] = useState("");
+  const load = async () => {
+    const r = await api.myClans();
+    if (r.ok) setData(r.data);
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const act = async (body) => {
+    setErr("");
+    const r = await api.myClanAction(body);
+    if (!r.ok) setErr(r.data?.message ?? "failed");
+    await load();
+  };
+  return (
+    <div className="panel" hidden={page !== "overview"}>
+      <h3>Your clans</h3>
+      <p>
+        Adding a clan is free. <strong>Watching</strong> records it — activity
+        (roster + war) or comprehensive (every member&rsquo;s battles) — and
+        spends a tier slot
+        {data
+          ? ` (activity ${data.slots.activity.used}/${data.slots.activity.limit ?? "∞"}, comprehensive ${data.slots.comprehensive.used}/${data.slots.comprehensive.limit ?? "∞"})`
+          : ""}
+        .
+      </p>
+      {err && <p className="error">{err}</p>}
+      {data?.clans?.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Clan</th>
+              <th>Tag</th>
+              <th>Recording</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.clans.map((c) => (
+              <tr key={c.clan_tag}>
+                <td>{c.name ?? "—"}</td>
+                <td>
+                  <code>{c.clan_tag}</code>
+                </td>
+                <td>
+                  {c.recording_status === "active"
+                    ? `● ${c.clan_scope}${c.watched_by_me ? "" : " (shared)"}`
+                    : "—"}
+                </td>
+                <td>
+                  {c.recording_status !== "active" && (
+                    <>
+                      <button
+                        className="quiet"
+                        onClick={() =>
+                          act({
+                            action: "watch",
+                            clan_tag: c.clan_tag,
+                            scope: "activity",
+                          })
+                        }
+                      >
+                        Watch activity
+                      </button>{" "}
+                      <button
+                        className="quiet"
+                        onClick={() =>
+                          act({
+                            action: "watch",
+                            clan_tag: c.clan_tag,
+                            scope: "comprehensive",
+                          })
+                        }
+                      >
+                        Watch all
+                      </button>{" "}
+                    </>
+                  )}
+                  {c.watched_by_me && (
+                    <button
+                      className="quiet"
+                      onClick={() =>
+                        act({ action: "unwatch", clan_tag: c.clan_tag })
+                      }
+                    >
+                      Stop watching
+                    </button>
+                  )}{" "}
+                  <button
+                    className="quiet"
+                    onClick={() =>
+                      act({ action: "unfollow", clan_tag: c.clan_tag })
+                    }
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          await act({ action: "follow", clan_tag: tag });
+          setTag("");
+        }}
+        style={{ marginTop: "0.8rem" }}
+      >
+        <input
+          placeholder="#CLANTAG"
+          value={tag}
+          onChange={(e) => setTag(e.target.value)}
+          style={{ width: "9rem" }}
+        />{" "}
+        <button disabled={!tag}>Add clan</button>
+      </form>
     </div>
   );
 }

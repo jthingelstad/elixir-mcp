@@ -10,15 +10,15 @@ spends the one shared Clash Royale API budget).
 
 ## The ladder
 
-| Quota | member | leader | family | partner | admin |
-|---|---|---|---|---|---|
-| Player recordings | 3 | 5 | 10 | 25 | unlimited |
-| Clan watches — activity | 1 | 1 | 3 | 10 | unlimited |
-| Clan watches — comprehensive | — | 1 | 3 | 5 | unlimited |
-| Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited |
-| Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited |
-| Collections you curate | — | — | 5 | 20 | unlimited |
-| Service tokens | — | — | — | 1 | unlimited |
+| Quota | member | leader | family | partner | admin | owner |
+|---|---|---|---|---|---|---|
+| Player recordings | 3 | 5 | 10 | 25 | unlimited | unlimited |
+| Clan watches — activity | 1 | 1 | 3 | 10 | unlimited | unlimited |
+| Clan watches — comprehensive | — | 1 | 3 | 5 | unlimited | unlimited |
+| Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
+| Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
+| Collections you curate | — | — | 5 | 20 | unlimited | unlimited |
+| Service tokens | — | — | — | 1 | unlimited | unlimited |
 
 **member** — the default. You, a couple of alts, and your clan at
 activity scope (roster + war, no member fan-out).
@@ -37,15 +37,30 @@ on top of Elixir. A service token for headless auth, community-scale
 slots — and an expectation: partners run a collector. At this scale you
 should be adding capacity to the fleet, not only consuming it.
 
-**admin** — the maintainer. Unlimited, and exempt from every cap.
+**admin** — runs the console day-to-day: approves access requests,
+answers feedback, curates collections, manages clan recordings, and
+sets roles up to partner. Unlimited quotas, exempt from every cap.
+
+**owner** — the super admin; exactly one. Everything an admin can do,
+plus granting or revoking the admin role, service tokens, collectors,
+and quota overrides. No admin can change the owner's account — or
+another admin's.
+
+## Adding is free; watching spends a slot
+
+Adding a player or clan to your account is a free association. **Watching**
+— recording — is the separate act your tier's slots bound, and you toggle
+it yourself: player recordings from Account ▸ Overview, clan watches from
+the Your clans panel (or the `elixir_watch_clan` tool). Watching starts
+immediately within your slots; no approval step.
 
 ## Why comprehensive is the scarce thing
 
 A comprehensive watch on a 50-member clan is effectively fifty player
 recordings that follow the roster. It is the most expensive promise the
-service makes, which is why the slots grow slowly up the ladder and why
-clan watches are approved by hand — clan capture spends the shared
-collector budget.
+service makes, which is why those slots grow slowly up the ladder —
+clan capture spends the shared collector budget, and the ladder is the
+gate.
 
 ## Earn more by running a collector
 

@@ -353,7 +353,9 @@ export async function validateAccessToken(db, token) {
     ? {
         accountId: row.account_id,
         emailHash: row.email_hash,
-        isOwner: row.is_owner,
+        // One entitlements system: the console is a role power.
+        isOwner: row.role === "owner",
+        isAdmin: row.role === "owner" || row.role === "admin",
         timezone: row.timezone,
         mcpDailyQuota: row.mcp_daily_quota,
         role: row.role,
@@ -398,7 +400,8 @@ export async function validateServiceToken(db, token) {
   return {
     accountId: row.account_id,
     emailHash: row.email_hash,
-    isOwner: row.is_owner,
+    isOwner: row.role === "owner",
+    isAdmin: row.role === "owner" || row.role === "admin",
     timezone: row.timezone,
     mcpDailyQuota: row.mcp_daily_quota,
     role: row.role,

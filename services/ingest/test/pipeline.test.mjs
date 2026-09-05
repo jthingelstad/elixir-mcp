@@ -39,7 +39,7 @@ before(async () => {
   const {
     rows: [account],
   } = await ctx.db.query(
-    `insert into account (email_hash, status, is_owner) values ('pipeline-owner', 'approved', true)
+    `insert into account (email_hash, status, is_owner, role) values ('pipeline-owner', 'approved', true, 'owner')
      returning account_id`,
   );
   const {

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { marked } from "marked";
 import about from "../docs/about.md?raw";
 import privacy from "../docs/privacy.md?raw";
@@ -16,8 +15,9 @@ const PAGES = [
   { id: "architecture", title: "Architecture", md: architecture },
 ];
 
-export function Docs() {
-  const [page, setPage] = useState(PAGES[0]);
+export function Docs({ page: slug, navigate }) {
+  // URL-addressable (/docs/<id>); unknown or missing slug lands on About.
+  const page = PAGES.find((p) => p.id === slug) ?? PAGES[0];
   return (
     <div className="docs">
       <nav className="panel docs-toc" aria-label="Documentation">
@@ -27,7 +27,7 @@ export function Docs() {
             <li key={p.id}>
               <button
                 className={p.id === page.id ? "tab active" : "tab"}
-                onClick={() => setPage(p)}
+                onClick={() => navigate(`/docs/${p.id}`)}
               >
                 {p.title}
               </button>

@@ -23,7 +23,8 @@ const accounts = {};
 
 async function mkAccount(key, { owner = false } = {}) {
   const { rows } = await db.query(
-    `insert into account (email_hash, status, is_owner) values ($1, 'approved', $2)
+    `insert into account (email_hash, status, is_owner, role)
+     values ($1, 'approved', $2, case when $2 then 'owner' else 'member' end)
      returning account_id, is_owner`,
     [`ent-${key}`, owner],
   );

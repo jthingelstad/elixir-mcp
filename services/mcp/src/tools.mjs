@@ -12,6 +12,7 @@ import {
   typesForModeGroup,
   displayCard,
   TOOL_GROUPS,
+  GROUP_ORDER,
   gatewayArena,
   CHANGELOG,
   CONTRACT_VERSION,
@@ -1565,6 +1566,12 @@ const TOOLS = {
           type: "boolean",
           description: "Make this your primary claimed tag.",
         },
+        record: {
+          type: "boolean",
+          default: true,
+          description:
+            "false claims the tag WITHOUT starting recording (add now, watch later - recording is a separate, slotted act you can toggle on the website or by calling again).",
+        },
       },
       required: ["player_tag"],
       additionalProperties: false,
@@ -1620,6 +1627,16 @@ const TOOLS = {
         [tag],
       );
       let recordingStarted = false;
+      if (args.record === false) {
+        return {
+          player_tag: tag,
+          claimed: claimed > 0,
+          recording: already[0] ? "active" : "not_requested",
+          recording_started: false,
+          note: "Claimed without recording. Call again (or use the website) to start capture - player history only builds while recording.",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
       if (!already[0]) {
         if (!ctx.account.isOwner && ctx.account.role !== "admin") {
           const { rows: cap } = await ctx.db.query(
@@ -1680,7 +1697,7 @@ const TOOLS = {
 
   elixir_watch_clan: {
     description:
-      "Ask Elixir MCP to record a whole clan (every member's battles, roster, war). Clan capture spends the shared collector budget, so this files a request the maintainer reviews rather than starting immediately.",
+      "Follow or watch a clan. Following is a free association; WATCHING starts recording immediately within your tier's clan slots (activity: roster + war; comprehensive: additionally every member's battles and profile, following membership changes). Same rules as the website - the role ladder is the gate.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1688,17 +1705,19 @@ const TOOLS = {
           type: "string",
           description: "The clan tag, like #J2RGCRVG.",
         },
-        note: {
+        action: {
           type: "string",
-          maxLength: 500,
-          description: "Optional: why, and your role in the clan.",
+          enum: ["watch", "follow", "unwatch"],
+          default: "watch",
+          description:
+            "watch starts recording (spends a clan slot); follow just adds the clan to your account without recording; unwatch stops a watch YOU hold (the shared record survives if others hold one).",
         },
         scope: {
           type: "string",
           enum: ["activity", "comprehensive"],
           default: "comprehensive",
           description:
-            "activity records the clan itself (roster, war); comprehensive additionally records every member's battles and profile, following membership changes.",
+            "activity records the clan itself (roster, war); comprehensive additionally records every member's battles and profile.",
         },
       },
       required: ["clan_tag"],
@@ -1715,6 +1734,57 @@ const TOOLS = {
           TAG_RULE_HINT,
         );
       }
+      const action = args.action ?? "watch";
+      if (action === "follow") {
+        await ctx.db.query(
+          `insert into clan_follow (account_id, clan_tag) values ($1, $2)
+           on conflict do nothing`,
+          [ctx.account.accountId, tag],
+        );
+        await ctx.db.query(
+          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+          [tag],
+        );
+        return {
+          clan_tag: tag,
+          following: true,
+          recording: "not_requested",
+          note: "Followed without recording. Use action 'watch' when you want capture to start.",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
+      if (action === "unwatch") {
+        const { rowCount } = await ctx.db.query(
+          `update recording set status = 'stopped'
+           where subject_type = 'clan' and subject_tag = $1
+             and status = 'active' and requested_by = $2`,
+          [tag, ctx.account.accountId],
+        );
+        if (rowCount > 0) {
+          await ctx.db.query(
+            `insert into account_event (account_id, kind, detail) values ($1, 'recording_stopped', $2)`,
+            [
+              ctx.account.accountId,
+              JSON.stringify({ clan_tag: tag, via: "mcp" }),
+            ],
+          );
+          await emitFeedEvent(
+            ctx.db,
+            ctx.account.accountId,
+            "recording_stopped",
+            tag,
+          );
+        }
+        return {
+          clan_tag: tag,
+          recording: rowCount > 0 ? "stopped" : "not_yours",
+          note:
+            rowCount > 0
+              ? "Your watch is stopped; the slot is free."
+              : "No active watch of yours on this clan - only the holder of a watch can stop it.",
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
       const { rows: active } = await ctx.db.query(
         `select 1 from recording where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
         [tag],
@@ -1723,14 +1793,14 @@ const TOOLS = {
         return {
           clan_tag: tag,
           recording: "active",
-          note: "This clan is already being recorded.",
+          note: "This clan is already being recorded - you share the existing record.",
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
-      // Tier gate BEFORE filing: clan slots come from the role ladder
-      // (activity vs comprehensive are separate budgets). Approval
-      // stays manual either way - this just refuses honestly instead
-      // of filing a request the reviewer must decline.
+      // The role ladder is the gate (Jamie, 2026-09-05): watching
+      // starts recording directly within your tier's clan slots -
+      // activity and comprehensive are separate budgets. The two doors
+      // (web /api/me/clans and this tool) must never disagree.
       const scope = args.scope === "activity" ? "activity" : "comprehensive";
       if (!ctx.account.isOwner && ctx.account.role !== "admin") {
         const { rows: slots } = await ctx.db.query(
@@ -1757,36 +1827,47 @@ const TOOLS = {
               : `Your ${scope}-scope clan slots are full (${limit} for the ${ctx.account.role ?? "member"} tier).`,
             scope === "comprehensive"
               ? "Comprehensive capture records every member's battles - the leader tier and above include it. Request an upgrade on the website (Account > Overview), or watch at scope 'activity'."
-              : "Request a tier upgrade on the website (Account > Overview) - see /docs (Roles).",
+              : "Request a tier upgrade on the website (Account > Overview) - see the Roles doc.",
           );
         }
       }
-      // The request rides the feedback triage lane the maintainer already
-      // watches; membership can't be verified for an unrecorded clan, so
-      // the reviewer is the gate.
-      const { rows: fb } = await ctx.db.query(
-        `insert into feedback (account_id, surface, category, message, context)
-         values ($1, 'mcp', 'feature', $2, $3)
-         returning feedback_id`,
-        [
-          ctx.account.accountId,
-          `Clan watch request (${args.scope === "activity" ? "activity" : "comprehensive"}): ${tag}${args.note ? ` — ${String(args.note).slice(0, 500)}` : ""}`,
-          JSON.stringify({
-            kind: "clan_watch_request",
-            clan_tag: tag,
-            scope: args.scope === "activity" ? "activity" : "comprehensive",
-          }),
-        ],
+      await ctx.db.query(
+        `insert into clan_follow (account_id, clan_tag) values ($1, $2)
+         on conflict do nothing`,
+        [ctx.account.accountId, tag],
       );
       await ctx.db.query(
-        `insert into account_event (account_id, kind, detail) values ($1, 'clan_watch_requested', $2)`,
-        [ctx.account.accountId, JSON.stringify({ clan_tag: tag })],
+        `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+        [tag],
+      );
+      await ctx.db.query(
+        `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+         select 'clan', $1, $2, $3
+         where not exists (select 1 from recording
+                           where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
+        [tag, ctx.account.accountId, scope],
+      );
+      await ctx.db.query(
+        `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
+        [
+          ctx.account.accountId,
+          JSON.stringify({ clan_tag: tag, scope, via: "mcp" }),
+        ],
+      );
+      await emitFeedEvent(
+        ctx.db,
+        ctx.account.accountId,
+        "recording_started",
+        tag,
+        {
+          scope,
+        },
       );
       return {
         clan_tag: tag,
-        recording: "requested",
-        request_id: fb[0].feedback_id,
-        note: "Request filed for review — clan capture spends the shared collector budget, so the maintainer approves these by hand. You'll see it on your dashboard when it starts.",
+        recording: "active",
+        scope,
+        note: "Watching. Roster and war capture begin within minutes; comprehensive member fan-out follows on the next scheduler pass.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -2996,25 +3077,36 @@ export function makeRegistry() {
   return {
     has: (name) => Object.hasOwn(TOOLS, name),
     declarations: () =>
-      Object.entries(TOOLS).map(([name, t]) => {
-        // Classification is mandatory: an unclassified tool is a build
-        // error, not a silent "Other tools" entry (Jamie, 2026-09-04).
-        const cls = TOOL_GROUPS[name];
-        if (!cls) throw new Error(`tool ${name} missing from TOOL_GROUPS`);
-        return {
-          name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-          annotations: {
-            // Group rides the title: clients that sort tools by title
-            // cluster the groups; clients that ignore titles lose nothing.
-            title: `${cls.group} · ${cls.title}`,
-            readOnlyHint: cls.readOnly,
-            destructiveHint: false,
-            openWorldHint: cls.openWorld ?? false,
-          },
-        };
-      }),
+      Object.entries(TOOLS)
+        .map(([name, t]) => {
+          // Classification is mandatory: an unclassified tool is a build
+          // error, not a silent "Other tools" entry (Jamie, 2026-09-04).
+          const cls = TOOL_GROUPS[name];
+          if (!cls) throw new Error(`tool ${name} missing from TOOL_GROUPS`);
+          return {
+            name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+            annotations: {
+              // Group rides the title: clients that sort tools by title
+              // cluster the groups; clients that ignore titles lose nothing.
+              title: `${cls.group} · ${cls.title}`,
+              readOnlyHint: cls.readOnly,
+              destructiveHint: false,
+              openWorldHint: cls.openWorld ?? false,
+            },
+          };
+        })
+        // Publish the TREE (Jamie, 2026-09-05): group order then title,
+        // so clients preserving server order render the domain
+        // structure - never a read-only/read-write split.
+        .sort((a, b) => {
+          const ga = GROUP_ORDER.indexOf(TOOL_GROUPS[a.name].group);
+          const gb = GROUP_ORDER.indexOf(TOOL_GROUPS[b.name].group);
+          return ga !== gb
+            ? ga - gb
+            : a.annotations.title.localeCompare(b.annotations.title);
+        }),
     invoke: (name, ctx, args) => TOOLS[name].handler(ctx, args),
   };
 }

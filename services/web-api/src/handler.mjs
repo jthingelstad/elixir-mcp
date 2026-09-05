@@ -32,7 +32,12 @@ import {
   roleQuotas,
   isRole,
   ROLE_ORDER,
+  ADMIN_SETTABLE,
+  canSetRole,
 } from "@elixir-mcp/contracts";
+
+// Every role but "owner" — the owner grants anything except ownership.
+const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { ensureGatewayCards } from "../../mcp/src/gateway-cards.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
@@ -239,6 +244,7 @@ export function makeHandler({
       return json(200, {
         authenticated: true,
         is_owner: account.isOwner,
+        is_admin: account.isAdmin,
         timezone: account.timezone,
         role: e.role,
         entitlements: {
@@ -613,7 +619,7 @@ export function makeHandler({
 
     "GET /api/admin/feedback": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select f.feedback_id, f.surface, f.category, f.message, f.context,
                 f.status, f.response, f.responded_at, f.created_at,
@@ -628,7 +634,7 @@ export function makeHandler({
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const status = ["seen", "planned", "done", "declined"].includes(
         body.status,
       )
@@ -700,7 +706,7 @@ export function makeHandler({
 
     "GET /api/admin/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows: accounts } = await db.query(
         `select a.email_hash, a.mcp_daily_quota,
                 (select c.player_tag from claim c
@@ -792,7 +798,7 @@ export function makeHandler({
 
     "GET /api/admin/requests": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       return json(200, { requests: await pendingRequests(db) });
     },
 
@@ -800,7 +806,7 @@ export function makeHandler({
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const decided = await decideAccess(db, {
         emailHash: String(body.email_hash ?? ""),
         decision: String(body.decision ?? ""),
@@ -814,36 +820,118 @@ export function makeHandler({
       return json(200, { ok: true, status: decided.status });
     },
 
-    "GET /api/admin/clans": async (db, event) => {
+    "GET /api/me/clans": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select r.subject_tag as clan_tag, r.status, r.clan_scope, r.created_at, cl.name,
-                (select count(*)::int from clan_membership cm
-                 where cm.clan_tag = r.subject_tag and cm.left_observed_at is null) as open_members,
-                (select max(ps.last_admitted_at) from poll_state ps
-                 where ps.subject_tag = r.subject_tag and ps.endpoint = 'clan') as last_roster_poll
-         from recording r
-         left join clan cl on cl.clan_tag = r.subject_tag
-         where r.subject_type = 'clan'
-         order by r.created_at`,
+        `select f.clan_tag, c.name, f.created_at,
+                r.status as recording_status, r.clan_scope,
+                (r.requested_by = $1) as watched_by_me
+         from clan_follow f
+         left join clan c on c.clan_tag = f.clan_tag
+         left join recording r on r.subject_type = 'clan'
+           and r.subject_tag = f.clan_tag and r.status = 'active'
+         where f.account_id = $1 order by f.created_at`,
+        [account.accountId],
       );
-      return json(200, { clans: rows });
+      const { rows: slots } = await db.query(
+        `select exists (select 1 from gateway g
+                        where g.owner_account_id = $1 and g.status = 'active') as operator,
+                count(*) filter (where r.clan_scope = 'activity')::int as activity_used,
+                count(*) filter (where r.clan_scope = 'comprehensive')::int as comprehensive_used
+         from recording r
+         where r.requested_by = $1 and r.subject_type = 'clan' and r.status = 'active'`,
+        [account.accountId],
+      );
+      const q = roleQuotas(account.role, { operator: slots[0]?.operator });
+      const lim = (v) => (v === Infinity ? null : v);
+      return json(200, {
+        clans: rows,
+        slots: {
+          activity: {
+            used: slots[0]?.activity_used ?? 0,
+            limit: lim(q.activity_clans),
+          },
+          comprehensive: {
+            used: slots[0]?.comprehensive_used ?? 0,
+            limit: lim(q.comprehensive_clans),
+          },
+        },
+      });
     },
 
-    "POST /api/admin/clans": async (db, event, body) => {
+    "POST /api/me/clans": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account) return json(401, { error: "unauthenticated" });
       let tag;
       try {
         tag = normalizeTag(String(body.clan_tag ?? ""));
       } catch {
         return json(400, { error: "invalid_tag" });
       }
-      const scope = body.scope === "activity" ? "activity" : "comprehensive";
-      if (body.action === "start") {
+      // Adding (following) is free - it is an association, not capture.
+      // WATCHING spends a role slot and starts recording directly: the
+      // ladder is the gate, purely a user function (Jamie, 2026-09-05).
+      if (body.action === "follow") {
+        await db.query(
+          `insert into clan_follow (account_id, clan_tag) values ($1, $2)
+           on conflict do nothing`,
+          [account.accountId, tag],
+        );
+        await db.query(
+          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+          [tag],
+        );
+        return json(200, { ok: true, clan_tag: tag });
+      }
+      if (body.action === "unfollow") {
+        await db.query(
+          `delete from clan_follow where account_id = $1 and clan_tag = $2`,
+          [account.accountId, tag],
+        );
+        return json(200, { ok: true });
+      }
+      if (body.action === "watch") {
+        const scope = body.scope === "activity" ? "activity" : "comprehensive";
+        const { rows: active } = await db.query(
+          `select 1 from recording
+           where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+          [tag],
+        );
+        if (active[0])
+          return json(200, {
+            ok: true,
+            clan_tag: tag,
+            note: "Already being recorded - you share the existing record.",
+          });
+        if (!account.isOwner && account.role !== "admin") {
+          const { rows: slots } = await db.query(
+            `select exists (select 1 from gateway g
+                            where g.owner_account_id = $1 and g.status = 'active') as operator,
+                    (select count(*)::int from recording r
+                     where r.requested_by = $1 and r.subject_type = 'clan'
+                       and r.status = 'active' and r.clan_scope = $2) as used`,
+            [account.accountId, scope],
+          );
+          const q = roleQuotas(account.role, { operator: slots[0].operator });
+          const limit =
+            scope === "activity" ? q.activity_clans : q.comprehensive_clans;
+          if (slots[0].used >= limit)
+            return json(429, {
+              error: "quota_exceeded",
+              message:
+                limit === 0
+                  ? `The ${account.role ?? "member"} tier has no ${scope}-scope clan slots - request an upgrade from Account > Overview.`
+                  : `Your ${scope}-scope clan slots are full (${limit} for the ${account.role ?? "member"} tier).`,
+            });
+        }
+        await db.query(
+          `insert into clan_follow (account_id, clan_tag) values ($1, $2)
+           on conflict do nothing`,
+          [account.accountId, tag],
+        );
         await db.query(
           `insert into clan (clan_tag) values ($1) on conflict do nothing`,
           [tag],
@@ -855,29 +943,38 @@ export function makeHandler({
                              where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
           [tag, account.accountId, scope],
         );
-      } else if (body.action === "scope") {
-        // Live scope change: downgrading to 'activity' lets member rows
-        // go dormant on the next tick; upgrading re-seeds them.
-        await db.query(
-          `update recording set clan_scope = $2
-           where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
-          [tag, scope],
-        );
-      } else if (body.action === "stop") {
-        await db.query(
-          `update recording set status = 'stopped'
-           where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
-          [tag],
-        );
-      } else {
-        return json(400, { error: "bad_request" });
+        await logEvent(db, account.accountId, "recording_started", {
+          clan_tag: tag,
+          scope,
+        });
+        await emitFeedEvent(db, account.accountId, "recording_started", tag, {
+          scope,
+        });
+        return json(200, { ok: true, clan_tag: tag, scope });
       }
-      return json(200, { ok: true, clan_tag: tag });
+      if (body.action === "unwatch") {
+        // You stop only a watch YOU hold - the shared record survives
+        // if someone else also holds one.
+        const { rowCount } = await db.query(
+          `update recording set status = 'stopped'
+           where subject_type = 'clan' and subject_tag = $1
+             and status = 'active' and requested_by = $2`,
+          [tag, account.accountId],
+        );
+        if (rowCount > 0) {
+          await logEvent(db, account.accountId, "recording_stopped", {
+            clan_tag: tag,
+          });
+          await emitFeedEvent(db, account.accountId, "recording_stopped", tag);
+        }
+        return json(200, { ok: true, stopped: rowCount > 0 });
+      }
+      return json(400, { error: "bad_request" });
     },
 
     "GET /api/admin/collections": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select c.collection_id, c.slug, c.title, c.kind, c.description,
                 c.visibility, c.created_at,
@@ -895,7 +992,7 @@ export function makeHandler({
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const slug = String(body.slug ?? "")
         .toLowerCase()
         .trim();
@@ -965,7 +1062,7 @@ export function makeHandler({
 
     "GET /api/admin/accounts": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select a.account_id, a.email_hash, a.status, a.role, a.is_owner,
                 a.created_at, a.max_player_recordings, a.mcp_daily_quota,
@@ -985,17 +1082,35 @@ export function makeHandler({
                  order by f.created_at desc limit 1) as pending_role_request
          from account a order by a.created_at`,
       );
-      return json(200, { accounts: rows, roles: ROLE_ORDER });
+      return json(200, {
+        accounts: rows,
+        roles: ROLE_ORDER,
+        settable_roles:
+          account.role === "owner" ? SETTABLE_BY_OWNER : ADMIN_SETTABLE,
+      });
     },
 
     "POST /api/admin/accounts": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
-      if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const role = String(body.role ?? "");
       if (!isRole(role))
         return json(400, { error: "bad_request", message: "unknown role" });
+      const { rows: target } = await db.query(
+        `select role from account where account_id = $1`,
+        [String(body.account_id ?? "")],
+      );
+      if (!target[0]) return json(404, { error: "not_found" });
+      // One entitlements system: admins set roles up to partner and
+      // never touch admin/owner accounts; the owner grants anything
+      // except "owner" itself (exactly one, never assigned by API).
+      if (!canSetRole(account.role, target[0].role, role))
+        return json(403, {
+          error: "not_entitled",
+          message: "That role change is above your grant.",
+        });
       const { rows } = await db.query(
         `update account set role = $2 where account_id = $1
          returning account_id, role`,

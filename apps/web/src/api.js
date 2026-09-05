@@ -50,9 +50,6 @@ export const api = {
   adminDecide: (email_hash, decision) =>
     request("POST", "/api/admin/decide", { email_hash, decision }),
   adminGateways: () => request("GET", "/api/admin/gateways"),
-  adminClans: () => request("GET", "/api/admin/clans"),
-  adminClanAction: (clan_tag, action, scope) =>
-    request("POST", "/api/admin/clans", { clan_tag, action, scope }),
   adminGatewayAction: (gateway_id, action) =>
     request("POST", "/api/admin/gateways", { gateway_id, action }),
   myGateways: () => request("GET", "/api/me/gateways"),
@@ -65,5 +62,7 @@ export const api = {
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
   myCollections: () => request("GET", "/api/me/collections"),
+  myClans: () => request("GET", "/api/me/clans"),
+  myClanAction: (body) => request("POST", "/api/me/clans", body),
   myCollectionAction: (body) => request("POST", "/api/me/collections", body),
 };

@@ -20,6 +20,20 @@ export interface ToolClass {
   openWorld?: boolean;
 }
 
+/** The published tree (Jamie, 2026-09-05): tools/list declares in this
+ *  group order (then by title) so clients that preserve server order
+ *  render the domain structure - never a read-only/read-write split. */
+export const GROUP_ORDER = [
+  "Elixir MCP",
+  "Collections",
+  "Battles",
+  "Cards",
+  "Clans",
+  "Live",
+  "Players",
+  "War",
+] as const;
+
 export const TOOL_GROUPS: Record<string, ToolClass> = {
   // Players — profile-shaped views of one tag (docs: players.md).
   players_profile: {

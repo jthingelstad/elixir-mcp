@@ -395,22 +395,43 @@ test("Elixir MCP service domain: watch player, watch clan, insights, collectors"
   assert.equal(tierBlocked.body.error.code, "quota_exceeded");
   assert.match(tierBlocked.body.error.hint, /upgrade|leader/i);
 
-  // The leader tier has the slot: the request files for review.
+  // Follow is free at any tier: association, not capture.
+  const follow = await call("elixir_watch_clan", {
+    clan_tag: "#J2RGCRVG",
+    action: "follow",
+  });
+  assert.equal(follow.isError, false);
+  assert.equal(follow.body.recording, "not_requested");
+
+  // The leader tier has the slot: watching starts recording DIRECTLY -
+  // the ladder is the gate, not a maintainer approval (2026-09-05).
   await db.query(`update account set role = 'leader' where account_id = $1`, [
     account.accountId,
   ]);
   account.role = "leader";
-  const clanReq = await call("elixir_watch_clan", {
-    clan_tag: "#J2RGCRVG",
-    note: "I lead this clan",
-  });
+  const clanReq = await call("elixir_watch_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(clanReq.isError, false, JSON.stringify(clanReq.body));
-  assert.equal(clanReq.body.recording, "requested");
-  const { rows: fb } = await db.query(
-    `select context->>'kind' as kind from feedback where feedback_id = $1`,
-    [clanReq.body.request_id],
+  assert.equal(clanReq.body.recording, "active");
+  assert.equal(clanReq.body.scope, "comprehensive");
+  const { rows: rec } = await db.query(
+    `select clan_scope, requested_by from recording
+     where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
   );
-  assert.equal(fb[0].kind, "clan_watch_request");
+  assert.equal(rec[0].clan_scope, "comprehensive");
+  assert.equal(rec[0].requested_by, account.accountId);
+
+  // Unwatch stops only YOUR watch and frees the slot.
+  const unwatch = await call("elixir_watch_clan", {
+    clan_tag: "#J2RGCRVG",
+    action: "unwatch",
+  });
+  assert.equal(unwatch.body.recording, "stopped");
+  const rewatch = await call("elixir_watch_clan", {
+    clan_tag: "#J2RGCRVG",
+    scope: "activity",
+  });
+  assert.equal(rewatch.body.recording, "active");
+  assert.equal(rewatch.body.scope, "activity");
 
   // Insights: corpus-wide transparency counts.
   const insights = await call("elixir_data_insights", {});

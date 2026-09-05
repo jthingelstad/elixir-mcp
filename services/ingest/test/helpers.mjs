@@ -56,7 +56,7 @@ export async function seedReceipt(
   const {
     rows: [account],
   } = await db.query(
-    `insert into account (email_hash, status, is_owner) values ('test-owner', 'approved', true)
+    `insert into account (email_hash, status, is_owner, role) values ('test-owner', 'approved', true, 'owner')
      on conflict (email_hash) do update set status = 'approved' returning account_id`,
   );
   const {

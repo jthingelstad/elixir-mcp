@@ -145,6 +145,16 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
         quota_max: 500,
       },
     ],
+    "GET /api/me/clans": [
+      200,
+      {
+        clans: [],
+        slots: {
+          activity: { used: 0, limit: 1 },
+          comprehensive: { used: 0, limit: 0 },
+        },
+      },
+    ],
   });
   render(<App />);
   expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
@@ -155,7 +165,7 @@ test("dashboard renders claims, recording state, and the connect URL", async () 
   expect(await screen.findByText(/of 500 tool calls/)).toBeTruthy();
 });
 
-test("admin view is owner-gated in the UI", async () => {
+test("admin view is admin-gated in the UI", async () => {
   window.history.pushState({}, "", "/admin");
   global.fetch = mockFetch({
     "GET /api/me": [
@@ -164,5 +174,5 @@ test("admin view is owner-gated in the UI", async () => {
     ],
   });
   render(<App />);
-  expect(await screen.findByText("Owner only.")).toBeTruthy();
+  expect(await screen.findByText("Admins only.")).toBeTruthy();
 });

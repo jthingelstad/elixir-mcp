@@ -4,37 +4,32 @@ import { api } from "../api.js";
 export function Admin({ me, page = "requests" }) {
   const [requests, setRequests] = useState([]);
   const [gateways, setGateways] = useState([]);
-  const [clans, setClans] = useState([]);
   const [usage, setUsage] = useState(null);
   const [feedback, setFeedback] = useState([]);
   const [svcTokens, setSvcTokens] = useState([]);
   const [newToken, setNewToken] = useState(null);
   const [svcName, setSvcName] = useState("");
-  const [clanTag, setClanTag] = useState("");
-  const [clanError, setClanError] = useState("");
 
   const load = useCallback(async () => {
-    const [r, g, c, u, f, st] = await Promise.all([
+    const [r, g, u, f, st] = await Promise.all([
       api.adminRequests(),
       api.adminGateways(),
-      api.adminClans(),
       api.adminUsage(),
       api.adminFeedback(),
       api.adminServiceTokens(),
     ]);
     if (r.ok) setRequests(r.data.requests);
     if (g.ok) setGateways(g.data.gateways);
-    if (c.ok) setClans(c.data.clans);
     if (u.ok) setUsage(u.data);
     if (f.ok) setFeedback(f.data.feedback);
     if (st.ok) setSvcTokens(st.data.tokens);
   }, []);
 
   useEffect(() => {
-    if (me?.is_owner) load();
+    if (me?.is_admin) load();
   }, [me, load]);
 
-  if (!me?.is_owner) return <p className="notice">Owner only.</p>;
+  if (!me?.is_admin) return <p className="notice">Admins only.</p>;
 
   return (
     <>
@@ -87,107 +82,6 @@ export function Admin({ me, page = "requests" }) {
             </tbody>
           </table>
         )}
-      </div>
-
-      <div className="panel" hidden={page !== "clans"}>
-        <h3>Recorded clans</h3>
-        <p>
-          <strong>Comprehensive</strong> records the clan AND every open
-          member&rsquo;s battles and profile, following membership changes;
-          <strong> activity</strong> records only the clan itself (roster, war
-          race, standings).
-        </p>
-        {clans.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Clan</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Scope</th>
-                <th>Members</th>
-                <th>Last roster poll</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {clans.map((c) => (
-                <tr key={`${c.clan_tag}-${c.status}`}>
-                  <td>
-                    <code>{c.clan_tag}</code>
-                  </td>
-                  <td>{c.name ?? "—"}</td>
-                  <td>
-                    <span className={`status ${c.status}`}>{c.status}</span>
-                  </td>
-                  <td>
-                    {c.status === "active" ? (
-                      <button
-                        className="quiet"
-                        title="Click to switch scope"
-                        onClick={async () => {
-                          await api.adminClanAction(
-                            c.clan_tag,
-                            "scope",
-                            c.clan_scope === "comprehensive"
-                              ? "activity"
-                              : "comprehensive",
-                          );
-                          load();
-                        }}
-                      >
-                        {c.clan_scope ?? "comprehensive"}
-                      </button>
-                    ) : (
-                      (c.clan_scope ?? "—")
-                    )}
-                  </td>
-                  <td>{c.open_members}</td>
-                  <td>
-                    {c.last_roster_poll
-                      ? new Date(c.last_roster_poll).toLocaleTimeString()
-                      : "never"}
-                  </td>
-                  <td>
-                    {c.status === "active" && (
-                      <button
-                        className="quiet"
-                        onClick={async () => {
-                          await api.adminClanAction(c.clan_tag, "stop");
-                          load();
-                        }}
-                      >
-                        Stop
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setClanError("");
-            const res = await api.adminClanAction(clanTag, "start");
-            if (res.ok) {
-              setClanTag("");
-              load();
-            } else setClanError("That doesn’t look like a CR clan tag.");
-          }}
-        >
-          <label>
-            Record a clan
-            <input
-              placeholder="#J2RGCRVG"
-              value={clanTag}
-              onChange={(e) => setClanTag(e.target.value)}
-            />
-          </label>
-          {clanError && <p className="error">{clanError}</p>}
-          <button>Start recording</button>
-        </form>
       </div>
 
       {usage && (
@@ -500,12 +394,12 @@ export function Admin({ me, page = "requests" }) {
  *  Pending upgrade requests surface here; the picker grants them. */
 function AdminAccounts({ page }) {
   const [accounts, setAccounts] = useState([]);
-  const [roles, setRoles] = useState([]);
+  const [settable, setSettable] = useState([]);
   const load = useCallback(async () => {
     const r = await api.adminAccounts();
     if (r.ok) {
       setAccounts(r.data.accounts ?? []);
-      setRoles(r.data.roles ?? []);
+      setSettable(r.data.settable_roles ?? []);
     }
   }, []);
   useEffect(() => {
@@ -538,19 +432,23 @@ function AdminAccounts({ page }) {
               </td>
               <td>{a.status}</td>
               <td>
-                <select
-                  value={a.role}
-                  onChange={async (e) => {
-                    await api.adminSetRole(a.account_id, e.target.value);
-                    load();
-                  }}
-                >
-                  {roles.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                {settable.includes(a.role) ? (
+                  <select
+                    value={a.role}
+                    onChange={async (e) => {
+                      await api.adminSetRole(a.account_id, e.target.value);
+                      load();
+                    }}
+                  >
+                    {settable.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <strong>{a.role}</strong>
+                )}
                 {a.pending_role_request ? (
                   <span
                     className="status active"

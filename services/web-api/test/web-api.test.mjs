@@ -57,7 +57,7 @@ before(async () => {
   await db.connect();
   // Jamie pre-approved as owner (bootstrap seed in real life).
   await db.query(
-    `insert into account (email_hash, status, is_owner) values ($1, 'approved', true)`,
+    `insert into account (email_hash, status, is_owner, role) values ($1, 'approved', true, 'owner')`,
     [emailHash(JAMIE)],
   );
   handler = makeHandler({
@@ -260,69 +260,6 @@ test("request-access is rate limited per IP", async () => {
     if (res.statusCode === 429) limited += 1;
   }
   assert.ok(limited > 0);
-});
-
-test("owner enrolls and stops clan recordings; non-owners refused", async () => {
-  const ownerCookie = await signIn(JAMIE);
-  const start = await handler(
-    event({
-      path: "/api/admin/clans",
-      cookie: ownerCookie,
-      body: { clan_tag: "gq0ylcyj", action: "start" },
-    }),
-  );
-  assert.equal(parse(start).clan_tag, "#GQ0YLCYJ", "normalized at the door");
-  const list = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/admin/clans",
-        cookie: ownerCookie,
-        body: undefined,
-      }),
-    ),
-  );
-  const row = list.clans.find((c) => c.clan_tag === "#GQ0YLCYJ");
-  assert.equal(row.status, "active");
-  const dupe = await handler(
-    event({
-      path: "/api/admin/clans",
-      cookie: ownerCookie,
-      body: { clan_tag: "#GQ0YLCYJ", action: "start" },
-    }),
-  );
-  assert.equal(dupe.statusCode, 200, "idempotent");
-  await handler(
-    event({
-      path: "/api/admin/clans",
-      cookie: ownerCookie,
-      body: { clan_tag: "#GQ0YLCYJ", action: "stop" },
-    }),
-  );
-  const after = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/admin/clans",
-        cookie: ownerCookie,
-        body: undefined,
-      }),
-    ),
-  );
-  assert.ok(
-    after.clans.some(
-      (c) => c.clan_tag === "#GQ0YLCYJ" && c.status === "stopped",
-    ),
-  );
-
-  const nonOwner = await handler(
-    event({
-      path: "/api/admin/clans",
-      cookie: newcomerCookie,
-      body: { clan_tag: "#J2RGCRVG", action: "start" },
-    }),
-  );
-  assert.equal(nonOwner.statusCode, 403);
 });
 
 test("clan page: entitled member sees war + roster; outsiders refused", async () => {
@@ -903,8 +840,8 @@ test("admin collections: owner curates; non-owner refused", async () => {
 let ladderNewcomerCookie; // shared with the collections test (send limit)
 
 test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin sets roles", async () => {
-  const ownerCookie = await signIn(JAMIE);
-  const cookie = await signIn(NEWCOMER);
+  const ownerCookie = bossCookie;
+  const cookie = memberCookie;
   ladderNewcomerCookie = cookie;
   // Clear the hand-tuned override from the cap test above: the role
   // default (member: 3) must take over when no override is set.
@@ -1062,4 +999,84 @@ test("self-serve collections: family curates within its cap, touches only its ow
   );
   assert.equal(mine.collections.length, 5);
   assert.equal(mine.limit, 5);
+});
+
+test("clan watching is a user function: follow free, watch within slots, unwatch frees", async () => {
+  const cookie = bossCookie; // owner: unlimited slots
+  const follow = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { clan_tag: "gq0ylcyj", action: "follow" },
+    }),
+  );
+  assert.equal(parse(follow).clan_tag, "#GQ0YLCYJ", "normalized at the door");
+  const watch = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { clan_tag: "#GQ0YLCYJ", action: "watch", scope: "activity" },
+    }),
+  );
+  assert.equal(watch.statusCode, 200, watch.body);
+  assert.equal(parse(watch).scope, "activity");
+  const list = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/clans", cookie, body: undefined }),
+    ),
+  );
+  const row = list.clans.find((c) => c.clan_tag === "#GQ0YLCYJ");
+  assert.equal(row.recording_status, "active");
+  assert.equal(row.watched_by_me, true);
+
+  // A member has no comprehensive slots: refused with the tier message.
+  const memberCookie2 = memberCookie;
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  await db.query(`update account set role = 'member' where account_id = $1`, [
+    acct[0].account_id,
+  ]);
+  const refused = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie: memberCookie2,
+      body: { clan_tag: "#2PPC220", action: "watch", scope: "comprehensive" },
+    }),
+  );
+  assert.equal(refused.statusCode, 429);
+  assert.match(parse(refused).message, /no comprehensive-scope clan slots/);
+  await db.query(`update account set role = 'family' where account_id = $1`, [
+    acct[0].account_id,
+  ]);
+
+  // Unwatch stops only the holder's watch; the follow row remains.
+  const unwatch = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { clan_tag: "#GQ0YLCYJ", action: "unwatch" },
+    }),
+  );
+  assert.equal(parse(unwatch).stopped, true);
+  const after = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/clans", cookie, body: undefined }),
+    ),
+  );
+  const kept = after.clans.find((c) => c.clan_tag === "#GQ0YLCYJ");
+  assert.ok(kept, "still followed");
+  assert.equal(kept.recording_status, null);
+
+  // The admin clan surface is GONE - purely a user function.
+  const gone = await handler(
+    event({
+      method: "GET",
+      path: "/api/admin/clans",
+      cookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(gone.statusCode, 404);
 });
