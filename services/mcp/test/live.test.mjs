@@ -178,3 +178,21 @@ test("the live daily cap trips as quota_exceeded", async () => {
   assert.equal(isError, true);
   assert.equal(body.error.code, "quota_exceeded");
 });
+
+test("rankings paths map to leaderboard jobs; bad locations refuse (feedback #6)", async (t) => {
+  const { livePathToJob } = await import("../src/live.mjs");
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const g = livePathToJob("/locations/global/rankings/players", normalizeTag);
+  t.assert.deepStrictEqual(g, {
+    endpoint: "rankings_players",
+    entityKey: "global",
+  });
+  const pol = livePathToJob(
+    "/locations/57000249/pathoflegend/players",
+    normalizeTag,
+  );
+  t.assert.strictEqual(pol.endpoint, "rankings_pol");
+  t.assert.strictEqual(pol.entityKey, "57000249");
+  const bad = livePathToJob("/locations/nope!/rankings/players", normalizeTag);
+  t.assert.strictEqual(bad.error, "bad_request");
+});

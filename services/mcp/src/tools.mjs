@@ -1720,7 +1720,7 @@ const TOOLS = {
 
   live_fetch: {
     description:
-      "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Fetched results are recorded opportunistically. Expect 1–3s. RAW payloads: card levels here are the API's rarity-relative scale (a maxed legendary reads 8/8); every recorded-data tool serves the in-game 1-16 scale instead.",
+      "Allowlisted live GET passthrough to the CR API through the recording budget (tight per-account quota): /players/{tag}, /players/{tag}/battlelog, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog, /locations/{id}/rankings/players and /locations/{id}/pathoflegend/players (id: 'global' or numeric; top-100, ranked tags accrete into the corpus). Fetched results are recorded opportunistically. Expect 1–3s. RAW payloads: card levels here are the API's rarity-relative scale (a maxed legendary reads 8/8); every recorded-data tool serves the in-game 1-16 scale instead.",
     inputSchema: {
       type: "object",
       properties: {

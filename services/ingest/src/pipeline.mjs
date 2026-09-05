@@ -30,6 +30,33 @@ function subjectTag(endpoint, entityKey) {
   }
 }
 
+/** Leaderboard payloads accrete identity (agent feedback #6): every
+ *  ranked tag lands a player row (name fill-null-only), so top-N tags
+ *  are immediately addressable by the player tools. */
+async function projectRankings(db, payload) {
+  const items = (payload?.items ?? []).filter((i) => i?.tag);
+  if (items.length === 0) return { projected: "rankings", players: 0 };
+  const tags = [];
+  const names = [];
+  for (const i of items) {
+    try {
+      tags.push(normalizeTag(i.tag));
+      names.push(i.name ?? null);
+    } catch {
+      /* skip malformed tags */
+    }
+  }
+  await db.query(
+    `insert into player (player_tag, name)
+     select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
+     on conflict (player_tag) do update set
+       last_seen_at = now(),
+       name = coalesce(player.name, excluded.name)`,
+    [tags, names],
+  );
+  return { projected: "rankings", players: tags.length };
+}
+
 const PROJECTORS = {
   async player_battlelog(db, { entityKey, receiptId, payload, fetchedAt }) {
     const result = await ingestBattlelog(db, {
@@ -173,6 +200,12 @@ const PROJECTORS = {
   },
   async riverracelog(db, { entityKey, payload }) {
     return projectRiverRaceLog(db, { clanTag: entityKey, payload });
+  },
+  async rankings_players(db, { payload }) {
+    return projectRankings(db, payload);
+  },
+  async rankings_pol(db, { payload }) {
+    return projectRankings(db, payload);
   },
   async cards() {
     // The catalog is served straight from the payload store (get_card_catalog).

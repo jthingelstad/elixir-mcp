@@ -43,6 +43,24 @@ export function makeLive({
 
 /** Allowlisted live paths -> (endpoint, entity key). Mirrors live_fetch. */
 export function livePathToJob(path, normalizeTag) {
+  // Leaderboards (agent feedback #6): location id, not a CR tag.
+  const rank =
+    /^\/locations\/([a-zA-Z0-9]+)\/(rankings\/players|pathoflegend\/players)$/.exec(
+      path,
+    );
+  if (rank) {
+    const loc = rank[1].toLowerCase();
+    if (!/^(global|[0-9]+)$/.test(loc))
+      return {
+        error: "bad_request",
+        message: `Location must be 'global' or a numeric id: ${rank[1]}`,
+      };
+    return {
+      endpoint:
+        rank[2] === "rankings/players" ? "rankings_players" : "rankings_pol",
+      entityKey: loc,
+    };
+  }
   const m =
     /^\/(players|clans)\/([^/]+)(\/(battlelog|currentriverrace|riverracelog))?$/.exec(
       path,

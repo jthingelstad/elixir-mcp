@@ -477,3 +477,28 @@ test("tenure stamps from the YearsPlayed badge; absent badge never clears it", a
     "absent badge = unknown, never a wipe",
   );
 });
+
+test("rankings payloads admit and accrete player identity (feedback #6)", async () => {
+  const payload = {
+    items: [
+      { tag: "#99GU92P0", name: "Top One", rank: 1 },
+      { tag: "#2PPLQQ", name: "Top Two", rank: 2 },
+    ],
+    paging: {},
+  };
+  const r = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_players",
+      entityKey: "global",
+      payload,
+      fetchedAt: new Date().toISOString(),
+    }),
+  );
+  assert.equal(r.outcome, "admitted", JSON.stringify(r));
+  assert.equal(r.projection.players, 2);
+  const { rows } = await ctx.db.query(
+    `select name from player where player_tag = '#99GU92P0'`,
+  );
+  assert.equal(rows[0].name, "Top One");
+});

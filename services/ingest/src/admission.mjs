@@ -116,6 +116,12 @@ function admitRiverraceLog(payload, errors) {
   });
 }
 
+function admitRankings(payload, errors) {
+  // Leaderboards (agent feedback #6): { items: [...] }; empty is valid
+  // (docs: early-season rankings can be empty).
+  if (!Array.isArray(payload?.items)) errors.push("items:missing");
+}
+
 const VALIDATORS = {
   player: admitPlayer,
   player_battlelog: admitBattlelog,
@@ -123,6 +129,8 @@ const VALIDATORS = {
   currentriverrace: admitRiverrace,
   riverracelog: admitRiverraceLog,
   cards: admitCards,
+  rankings_players: admitRankings,
+  rankings_pol: admitRankings,
 };
 
 /**
