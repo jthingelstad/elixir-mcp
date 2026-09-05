@@ -63,7 +63,8 @@ async function queueStats() {
           ),
           oldest_seconds: Number(Attributes.ApproximateAgeOfOldestMessage ?? 0),
         };
-      } catch {
+      } catch (err) {
+        console.error(`queueStats ${name}: ${err.name}: ${err.message}`);
         out[key] = null;
       }
     }),

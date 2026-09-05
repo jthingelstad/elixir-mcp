@@ -529,43 +529,42 @@ export function makeHandler({
       // health, PUBLIC by design - queues, collectors, an hour of
       // capture. Nothing confidential: no IPs, no machine labels, no
       // account data; collectors go by their card names.
+      // One pg.Client per invocation: queries run sequentially by design.
       const q = async (sql, params = []) => (await db.query(sql, params)).rows;
-      const [collectors, hour, latest, hourTotals] = await Promise.all([
-        q(
-          `select coalesce(card_name, 'unnamed') as name, card_icon, status,
-                  last_success_at, last_heartbeat_at,
-                  (select count(*)::int from api_receipt ar
-                   where ar.gateway_id = g.gateway_id
-                     and ar.fetched_at > now() - interval '1 hour') as fetches_1h
-           from gateway g
-           where status in ('active', 'probation', 'pending')
-             and name <> 'backfill-elixir-bot'
-           order by fetch_points desc`,
-        ),
-        q(
-          `select to_char(date_trunc('minute', fetched_at)
-                    - make_interval(mins => extract(minute from fetched_at)::int % 5),
-                  'HH24:MI') as bucket,
-                  count(*)::int as fetches,
-                  count(*) filter (where admission = 'admitted')::int as admitted,
-                  count(*) filter (where admission = 'rejected')::int as rejected
-           from api_receipt r
-           join gateway g on g.gateway_id = r.gateway_id
-           where r.fetched_at > now() - interval '75 minutes'
-             and g.name <> 'backfill-elixir-bot'
-           group by 1 order by 1`,
-        ),
-        q(
-          `select extract(epoch from now() - max(fetched_at))::int as last_fetch_s,
-                  extract(epoch from now() - max(fetched_at)
-                    filter (where admission = 'admitted'))::int as last_admit_s
-           from api_receipt`,
-        ),
-        q(
-          `select count(*)::int as battles_1h from battle
-           where created_at > now() - interval '1 hour'`,
-        ),
-      ]);
+      const collectors = await q(
+        `select coalesce(card_name, 'unnamed') as name, card_icon, status,
+                last_success_at, last_heartbeat_at,
+                (select count(*)::int from api_receipt ar
+                 where ar.gateway_id = g.gateway_id
+                   and ar.fetched_at > now() - interval '1 hour') as fetches_1h
+         from gateway g
+         where status in ('active', 'probation', 'pending')
+           and name <> 'backfill-elixir-bot'
+         order by fetch_points desc`,
+      );
+      const hour = await q(
+        `select to_char(date_trunc('minute', fetched_at)
+                  - make_interval(mins => extract(minute from fetched_at)::int % 5),
+                'HH24:MI') as bucket,
+                count(*)::int as fetches,
+                count(*) filter (where admission = 'admitted')::int as admitted,
+                count(*) filter (where admission = 'rejected')::int as rejected
+         from api_receipt r
+         join gateway g on g.gateway_id = r.gateway_id
+         where r.fetched_at > now() - interval '75 minutes'
+           and g.name <> 'backfill-elixir-bot'
+         group by 1 order by 1`,
+      );
+      const latest = await q(
+        `select extract(epoch from now() - max(fetched_at))::int as last_fetch_s,
+                extract(epoch from now() - max(fetched_at)
+                  filter (where admission = 'admitted'))::int as last_admit_s
+         from api_receipt`,
+      );
+      const hourTotals = await q(
+        `select count(*)::int as battles_1h from battle
+         where created_at > now() - interval '1 hour'`,
+      );
       const queues = await queueStats();
       // Health verdict derived from data, never vibes: pipeline is OK
       // when something was admitted recently and no DLQ holds messages.
