@@ -486,6 +486,8 @@ Resources:
         Variables:
           JMAP_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:jmap_token}}"
           FROM_EMAIL: elixir@poapkings.com
+          TINYLYTICS_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:tinylytics_api_token}}"
+          TINYLYTICS_SITE_ID: "3762"
 
   EmailEventSource:
     Type: AWS::Lambda::EventSourceMapping

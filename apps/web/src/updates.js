@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Anonymous visit counting",
+    body: "The site now counts visits with Tinylytics - anonymous page hits, visitor countries, and a few product events (a tool call happened, feedback was filed). No cookies, no identifiers, nothing attached to your account or gameplay, and the sign-in page loads no analytics at all. The privacy page has the full story.",
+  },
+  {
+    date: "2026-09-06",
     title: "Clan Pulse: run your clan with a routine",
     body: "Every clan you've added now sends one daily clan_pulse digest to your event feed: 24-hour battle activity, top players, members quiet five or more recorded days, war-day deck counts, and roster changes - facts only, the judgment stays yours. A war_day_open event fires the moment a new war day is first observed, and war_current now returns decks_today: named untouched/partial/finished lists, the nudge list. Point a scheduled agent at elixir_events and it can genuinely help run the clan - the recipe is in Docs > Tools.",
   },

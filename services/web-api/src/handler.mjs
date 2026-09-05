@@ -83,7 +83,17 @@ export function makeHandler({
   sendLoginEmail,
   notifyOwner = async () => {},
   queueStats = async () => null,
+  track = null,
 }) {
+  // Tinylytics ping (best-effort by contract; never blocks a response).
+  const ping = async (eventName, value) => {
+    if (!track) return;
+    try {
+      await track(eventName, value);
+    } catch {
+      // Analytics must never break serving (house rule).
+    }
+  };
   async function resolveAccount(
     db,
     event,
@@ -154,8 +164,10 @@ export function makeHandler({
         playerTag,
         note: String(body.note ?? "").slice(0, 500) || null,
       });
-      if (result.created)
+      if (result.created) {
         await notifyOwner({ kind: "access_request", playerTag });
+        await ping("site.access_request");
+      }
       // Identical response for new, repeat, denied, and already-approved.
       return json(200, {
         ok: true,
@@ -191,6 +203,7 @@ export function makeHandler({
       const row = await redeemMagicToken(db, body.token);
       if (!row || row.purpose !== "web")
         return json(400, { error: "invalid_or_expired" });
+      await ping("site.signin", "magic_link");
       return mintSessionResponse(db, row.email_hash);
     },
 
@@ -202,6 +215,7 @@ export function makeHandler({
       });
       if (!row || row.purpose !== "web")
         return json(400, { error: "invalid_or_expired" });
+      await ping("site.signin", "code");
       return mintSessionResponse(db, hash);
     },
 
@@ -716,6 +730,7 @@ export function makeHandler({
         account,
         registry,
         surface: "web",
+        track,
       });
       const args = body.args && typeof body.args === "object" ? body.args : {};
       const result = await invoke(tool, args);
@@ -768,6 +783,7 @@ export function makeHandler({
             : null,
         ],
       );
+      await ping("site.feedback", category);
       return json(200, { ok: true });
     },
 

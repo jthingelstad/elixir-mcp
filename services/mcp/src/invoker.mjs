@@ -50,9 +50,21 @@ export function makeInvoker({
   registry,
   live = null,
   surface = "mcp",
+  track = null,
 }) {
   return async function invokeTool(name, args) {
     const startedAt = Date.now();
+    // Ambient product signal (Tinylytics): tool name only, never args.
+    if (track) {
+      try {
+        await track(
+          surface === "web" ? "explore.tool_call" : "mcp.tool_call",
+          name,
+        );
+      } catch {
+        // Analytics must never break serving (house rule).
+      }
+    }
     try {
       const body = await registry.invoke(name, { db, account, live }, args);
       const resultBytes = JSON.stringify(body).length;

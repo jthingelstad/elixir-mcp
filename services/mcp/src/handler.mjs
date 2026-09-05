@@ -25,6 +25,7 @@ export function makeHandler({
   issuer = "https://elixir.poapkings.com",
   sendLoginEmail,
   enqueueLiveJob = null,
+  track = null,
 }) {
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
@@ -125,6 +126,7 @@ export function makeHandler({
           registry,
           live,
           surface: account.serviceName ? `svc:${account.serviceName}` : "mcp",
+          track,
         }),
       });
       return {

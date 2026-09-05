@@ -64,6 +64,35 @@ export function validateEmailMessage(
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
 
+/** Analytics event riding the SAME queue as email (the relay is the one
+ *  non-VPC egress worker). Semantics differ deliberately: email retries
+ *  hard and dead-letters; analytics is best-effort and DROPS on failure
+ *  — a Tinylytics outage must never page anyone. Names are dotted
+ *  category.action; values carry tool names and status classes, never
+ *  user text (Thingy's rule). */
+export interface AnalyticsEventMessage {
+  v: 1;
+  kind: "tinylytics_event";
+  /** Dotted category.action, e.g. "mcp.tool_call". */
+  event: string;
+  value?: string;
+}
+
+export function isAnalyticsEventMessage(
+  msg: unknown,
+): msg is AnalyticsEventMessage {
+  const m = msg as AnalyticsEventMessage;
+  return (
+    typeof m === "object" &&
+    m !== null &&
+    m.v === 1 &&
+    m.kind === "tinylytics_event" &&
+    typeof m.event === "string" &&
+    m.event.includes(".") &&
+    (m.value === undefined || typeof m.value === "string")
+  );
+}
+
 const LANES = new Set(["live", "bulk"]);
 const STATUSES = new Set(["ok", "error"]);
 

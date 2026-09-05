@@ -16,9 +16,19 @@ not new exposure: nothing here is visible that the game itself does not
 publish. Your account data — claims, watches, quotas, usage, feedback —
 is yours alone.
 
-**What we never do.** No selling data, no advertising, no tracking
-pixels, no third-party analytics on your gameplay. Feedback you send is
-read by the maintainer and used to improve the product.
+**Website analytics.** The site uses Tinylytics, a small
+privacy-focused analytics service, to count visits anonymously: page
+hits, visitor country, and product events such as "a tool call
+happened" or "feedback was filed". No cookies, no personal
+identifiers, no cross-site tracking — event values carry tool names
+and categories only, never your data. The service also counts a few of
+its own events server-side (how many MCP calls happened) with no
+account attached. The sign-in page loads no analytics at all.
+
+**What we never do.** No selling data, no advertising, no ad or
+cross-site tracking, no analytics attached to your gameplay or your
+identity. Feedback you send is read by the maintainer and used to
+improve the product.
 
 **Retention.** Recorded game history is kept indefinitely (it is the
 product). Raw API payloads are archived. Operational logs are pruned

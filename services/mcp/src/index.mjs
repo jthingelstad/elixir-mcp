@@ -30,4 +30,19 @@ export const handler = makeHandler({
         }),
       }),
     ),
+  // Tinylytics ping via the relay queue (best-effort by contract).
+  track: process.env.EMAIL_QUEUE_URL
+    ? (eventName, value) =>
+        sqs.send(
+          new SendMessageCommand({
+            QueueUrl: process.env.EMAIL_QUEUE_URL,
+            MessageBody: JSON.stringify({
+              v: 1,
+              kind: "tinylytics_event",
+              event: eventName,
+              ...(value ? { value } : {}),
+            }),
+          }),
+        )
+    : null,
 });

@@ -122,3 +122,53 @@ test("handler: sends valid messages, DLQs malformed, retries transport failures"
   );
   assert.equal(sent.length, 1);
 });
+
+test("analytics pings: batched to track, best-effort, never dead-lettered", async () => {
+  const sent = [];
+  const tracked = [];
+  const handler = makeHandler({
+    send: async (m) => sent.push(m),
+    track: async (events) => tracked.push(events),
+  });
+  const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  const out = await handler({
+    Records: [
+      rec("a", {
+        v: 1,
+        kind: "tinylytics_event",
+        event: "mcp.tool_call",
+        value: "war_current",
+      }),
+      rec("b", { v: 1, kind: "tinylytics_event", event: "site.signin" }),
+      rec("c", { v: 1, kind: "tinylytics_event", event: "nodot" }), // invalid: drops
+      rec("d", {
+        v: 1,
+        kind: "owner_notify",
+        to: "elixir@poapkings.com",
+        note: "x",
+      }),
+    ],
+  });
+  assert.deepEqual(out.batchItemFailures, [], "pings never retry");
+  assert.equal(sent.length, 1, "the email in the batch still sends");
+  assert.equal(tracked.length, 1, "one batched track call");
+  assert.deepEqual(
+    tracked[0].map((e) => e.event),
+    ["mcp.tool_call", "site.signin"],
+    "invalid ping dropped, valid ones forwarded",
+  );
+
+  // A Tinylytics outage drops pings and still never fails the batch.
+  const boom = makeHandler({
+    send: async (m) => sent.push(m),
+    track: async () => {
+      throw new Error("503");
+    },
+  });
+  const out2 = await boom({
+    Records: [
+      rec("e", { v: 1, kind: "tinylytics_event", event: "mcp.tool_call" }),
+    ],
+  });
+  assert.deepEqual(out2.batchItemFailures, [], "outage never dead-letters");
+});

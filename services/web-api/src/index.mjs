@@ -76,6 +76,16 @@ export const handler = makeHandler({
   sendLoginEmail: ({ email, code, token }) =>
     enqueueEmail({ v: 1, kind: "login", to: email, code, token }),
   queueStats,
+  // Tinylytics ping via the relay queue (best-effort by contract).
+  track: queueUrl
+    ? (eventName, value) =>
+        enqueueEmail({
+          v: 1,
+          kind: "tinylytics_event",
+          event: eventName,
+          ...(value ? { value } : {}),
+        })
+    : null,
   notifyOwner: ({ kind, playerTag, emailHash }) =>
     enqueueEmail({
       v: 1,
