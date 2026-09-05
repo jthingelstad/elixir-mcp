@@ -244,6 +244,61 @@ async function probe(databaseUrl) {
   }
 }
 
+/** MCP request effectiveness census ({audit_census: {days?}}): the
+ *  product-signal read of mcp_call_audit (Jamie, 2026-09-05) - per-tool
+ *  volume, errors, truncation, latency, and reach across surfaces, plus
+ *  declared tools nobody has called. Read-only, counts only. */
+async function auditCensus(databaseUrl, spec) {
+  const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
+  const { TOOL_GROUPS } = await import("@elixir-mcp/contracts");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: perTool } = await db.query(
+      `select tool,
+              count(*)::int as calls,
+              count(distinct account_id)::int as accounts,
+              count(*) filter (where error_code is not null)::int as errors,
+              round(avg(duration_ms))::int as avg_ms,
+              max(duration_ms)::int as max_ms,
+              round(avg(result_bytes))::int as avg_bytes,
+              count(*) filter (where truncated)::int as truncated,
+              max(created_at) as last_called
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+       group by tool order by calls desc`,
+      [days],
+    );
+    const { rows: perSurface } = await db.query(
+      `select surface, count(*)::int as calls,
+              count(*) filter (where error_code is not null)::int as errors
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+       group by surface order by calls desc`,
+      [days],
+    );
+    const { rows: errors } = await db.query(
+      `select tool, error_code, count(*)::int as n
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+         and error_code is not null
+       group by tool, error_code order by n desc limit 20`,
+      [days],
+    );
+    const called = new Set(perTool.map((r) => r.tool));
+    const never_called = Object.keys(TOOL_GROUPS).filter((t) => !called.has(t));
+    return {
+      days,
+      per_tool: perTool,
+      per_surface: perSurface,
+      top_errors: errors,
+      never_called,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
 /** Prototype intelligence preview ({preview_intel: {player_tag, clan_tag}}):
  *  read-only flavor of the META-INTEL section 9/10 tools computed on live
  *  data — the level-gap curve, one player's position on it, and rival
@@ -601,6 +656,14 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.audit_census) {
+    const result = await auditCensus(
+      process.env.DATABASE_URL,
+      event.audit_census,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
