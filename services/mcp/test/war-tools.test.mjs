@@ -467,7 +467,7 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
   assert.match(body.note, /can't explain/);
 });
 
-test("players_search: names resolve in scope; unknowns honest-empty", async () => {
+test("players_search: corpus-wide names resolve; unknowns honest-empty", async () => {
   const member = (
     await db.query(
       `select cm.player_tag, p.name from clan_membership cm
@@ -488,5 +488,5 @@ test("players_search: names resolve in scope; unknowns honest-empty", async () =
     query: "KenDoesNotExist",
   });
   assert.equal(miss.body.matches.length, 0);
-  assert.match(miss.body.note, /No one in your entitled scope/);
+  assert.match(miss.body.note, /No recorded player matches/);
 });

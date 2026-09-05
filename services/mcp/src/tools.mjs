@@ -140,7 +140,7 @@ function requireOrderedWindow(from, to) {
 const TOOLS = {
   elixir_my_players: {
     description:
-      "Your session bootstrap: claimed tags, which is primary, and recording status, and current clan as recorded. claim_status is informational — claims are trust-based. Call this first.",
+      "Your session bootstrap: the players you've added (added = recorded), which is primary (the starred \"me\" tag), each one's notify setting and recording status, and current clan as recorded. claim_status is informational - claims are trust-based. Call this first.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -298,7 +298,7 @@ const TOOLS = {
 
   elixir_coverage: {
     description:
-      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before you claimed the tag), and recent capture completeness. Use it to caveat answers honestly.",
+      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was added), and recent capture completeness. Use it to caveat answers honestly.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA },
@@ -1467,7 +1467,7 @@ const TOOLS = {
 
   elixir_events: {
     description:
-      "Your event feed - the push lane. Subscriptions are implicit: players you claim or record, clans you watch, and your feedback are your subscriptions. Topics: battles_recorded (coalesced per capture), feedback_responded, recording_started/stopped, role_changed, clan_war_week_finished. Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
+      "Your event feed - the push lane. Everything you ADD (players via elixir_add_player, clans via elixir_add_clan) feeds this pipe while its notify setting is on; notify_off silences a subject without touching its recording. Topics: battles_recorded (coalesced per tag until read), feedback_responded, recording_started/stopped, role_changed, clan_war_week_finished. Poll this instead of re-polling data tools; meta.events_pending on any response tells you when there is something new.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1546,7 +1546,7 @@ const TOOLS = {
         has_more: rows.length > limit,
         note:
           events.length === 0
-            ? "Nothing new. Your subscriptions are implicit - watch a player or clan and its events start arriving."
+            ? "Nothing new. Add a player or clan (notify defaults on) and its events start arriving."
             : "Pass next_cursor as since to continue; events prune after ~30 days.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
@@ -1929,7 +1929,7 @@ const TOOLS = {
 
   elixir_collectors: {
     description:
-      "The collector ladder: the operator-run machines that fetch from the CR API, each named for a Clash Royale card, earning a point per fetch and climbing arena tiers. More collectors = resilience, never more quota.",
+      "The collector ladder: the operator-run machines that fetch from the CR API, each named for a Clash Royale card, earning a point per fetch and climbing arena tiers. More collectors = resilience - the global CR budget never multiplies, though operators earn personal perks (bonus add slots, daily call credits).",
     inputSchema: {
       type: "object",
       properties: {},
@@ -2327,7 +2327,7 @@ const TOOLS = {
 
   players_search: {
     description:
-      'Name-to-tag resolution within your entitled scope (agent feedback #2): matches your claims and open clanmates by display name, case-insensitive substring. "raquaza" finds the tag; unknown names return an honest empty list, never a guess.',
+      'Name-to-tag resolution across the whole recorded corpus (universal reads): case-insensitive substring on last-observed display names. Your own players and clanmates rank first, then everyone recorded (source: claim | clanmate | corpus). "raquaza" finds the tag; unknown names return an honest empty list, never a guess.',
     inputSchema: {
       type: "object",
       properties: {
@@ -2341,21 +2341,34 @@ const TOOLS = {
       const q = String(args.query ?? "").trim();
       if (!q) throw new ToolFailure("bad_request", "query is empty.");
       const limit = Math.min(Math.max(Number(args.limit ?? 5), 1), 20);
+      // Universal reads: the whole recorded corpus is searchable. Your
+      // own players and clanmates rank first so ambiguous names resolve
+      // to the people you mean.
       const { rows } = await ctx.db.query(
-        `with scope as (
-           select c.player_tag, 'claim' as source, null::text as clan_tag
-           from claim c where c.account_id = $1
-           union
-           select cm2.player_tag, 'clanmate', cm2.clan_tag
-           from claim c
-           join clan_membership cm on cm.player_tag = c.player_tag and cm.left_observed_at is null
-           join recording r on r.subject_type = 'clan' and r.subject_tag = cm.clan_tag and r.status = 'active'
-           join clan_membership cm2 on cm2.clan_tag = cm.clan_tag and cm2.left_observed_at is null
-           where c.account_id = $1)
-         select distinct on (s.player_tag) s.player_tag, p.name, s.source, s.clan_tag
-         from scope s join player p on p.player_tag = s.player_tag
-         where p.name ilike $2
-         order by s.player_tag, s.source
+        `with hits as (
+           select p.player_tag, p.name,
+                  case
+                    when exists (select 1 from claim c
+                                 where c.account_id = $1 and c.player_tag = p.player_tag)
+                      then 'claim'
+                    when exists (select 1 from claim c
+                                 join clan_membership cm on cm.player_tag = c.player_tag
+                                   and cm.left_observed_at is null
+                                 join clan_membership cm2 on cm2.clan_tag = cm.clan_tag
+                                   and cm2.left_observed_at is null
+                                 where c.account_id = $1 and cm2.player_tag = p.player_tag)
+                      then 'clanmate'
+                    else 'corpus'
+                  end as source
+           from player p
+           where p.name ilike $2)
+         select h.player_tag, h.name, h.source,
+                (select cm.clan_tag from clan_membership cm
+                 where cm.player_tag = h.player_tag and cm.left_observed_at is null
+                 limit 1) as clan_tag
+         from hits h
+         order by case h.source when 'claim' then 0 when 'clanmate' then 1 else 2 end,
+                  h.name
          limit $3`,
         [ctx.account.accountId, `%${q}%`, limit],
       );
@@ -2364,8 +2377,8 @@ const TOOLS = {
         matches: rows,
         note:
           rows.length === 0
-            ? "No one in your entitled scope (your claims + open members of your recorded clan) matches that name. Names change; tags are permanent - clans_roster lists everyone."
-            : "Search covers your claims and open clanmates only. Names are as last observed.",
+            ? "No recorded player matches that name. Names change; tags are permanent - and only players the service has observed are findable."
+            : "Search covers every recorded player (universal reads); your own players and clanmates rank first (source: claim | clanmate | corpus). Names are as last observed.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -2373,7 +2386,7 @@ const TOOLS = {
 
   clans_roster: {
     description:
-      "Your recorded clan: roster with roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Defaults to your clan.",
+      "A recorded clan's roster (defaults to YOUR clan): roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Any recorded clan works - universal reads.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2800,7 +2813,7 @@ const TOOLS = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for your clan: standings across the five clans, per-member points/decks used, war day and attendance so far. Defaults to your clan.",
+      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2896,7 +2909,7 @@ const TOOLS = {
 
   war_history: {
     description:
-      'Recorded war weeks for your clan: final ranks, boat fame, and (optionally) one member’s per-week points and decks — "did I miss a war day?" lives here. Defaults to your clan.',
+      'Recorded war weeks for a recorded clan (defaults to YOURS): final ranks, boat fame, and (optionally) one member\u2019s per-week points and decks — "did I miss a war day?" lives here.',
     inputSchema: {
       type: "object",
       properties: {
@@ -3008,7 +3021,7 @@ const TOOLS = {
 
   battles_compare: {
     description:
-      "Side-by-side of 2–4 entitled tags (your claims or clanmates): latest snapshot topline plus a shared performance window.",
+      "Side-by-side of 2-4 recorded tags (any player the service records - universal reads): latest snapshot topline plus a shared performance window.",
     inputSchema: {
       type: "object",
       properties: {

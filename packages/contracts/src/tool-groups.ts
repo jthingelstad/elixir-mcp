@@ -2,8 +2,8 @@
  * Tool taxonomy — the ONE place tools are classified (Jamie, 2026-09-04:
  * "right now they are just one big blob"). Groups follow the
  * cr-agent-api-docs outline (players / battles / clans / river-race /
- * cards) plus two of our own: the live lane and the Elixir MCP service
- * itself. Consumed by the MCP server (tool annotations: grouped titles,
+ * cards) plus our own: Collections, the live lane, and the Elixir MCP
+ * service itself. Consumed by the MCP server (tool annotations: grouped titles,
  * read-only hints) and the site docs; a new tool MUST be added here —
  * the registry test enforces it.
  */
@@ -136,7 +136,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   // the record is, and the feedback channel to the maintainer.
   elixir_my_players: {
     group: "Elixir MCP",
-    title: "My claimed players",
+    title: "My players",
     readOnly: true,
   },
   elixir_coverage: {
