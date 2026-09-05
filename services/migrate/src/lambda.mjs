@@ -301,6 +301,71 @@ async function feedbackPending(databaseUrl) {
  *  the entitlement ladder. {list: true} reports every account's role
  *  and slot usage; {account_id | service, role} sets a role (the same
  *  act as Admin > Accounts, for the operator console). */
+/** Yield A/B ({ab_yield: {a_start, b_start, hours?}}): same-clock-hours
+ *  comparison of two capture windows (heat model vs yield scheduler).
+ *  Each battle is attributed to its FIRST LIVE observation (earliest
+ *  battle_observation receipt from a non-backfill gateway), so archive
+ *  replays never contaminate either side. Read-only. */
+async function abYield(databaseUrl, spec) {
+  const hours = Math.min(Math.max(Number(spec?.hours ?? 24), 1), 72);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const windowStats = async (startIso) => {
+      const { rows } = await db.query(
+        `with live as (
+           select r.receipt_id, r.endpoint, r.entity_key, r.fetched_at
+           from api_receipt r
+           join gateway g on g.gateway_id = r.gateway_id
+           where g.name <> 'backfill-elixir-bot'
+             and r.fetched_at >= $1::timestamptz
+             and r.fetched_at < $1::timestamptz + make_interval(hours => $2)),
+         first_obs as (
+           select bo.battle_id, min(bo.receipt_id) as receipt_id
+           from battle_observation bo group by bo.battle_id)
+         select
+           (select count(*)::int from live) as fetches,
+           (select count(*)::int from live where endpoint = 'player_battlelog') as battlelog_fetches,
+           (select count(distinct entity_key)::int from live
+            where endpoint = 'player_battlelog') as battlelog_subjects,
+           (select count(*)::int from live
+            where endpoint in ('currentriverrace', 'riverracelog')) as war_fetches,
+           (select count(*)::int from first_obs fo
+            join live l on l.receipt_id = fo.receipt_id
+            where l.endpoint = 'player_battlelog') as battles_captured`,
+        [startIso, hours],
+      );
+      return rows[0];
+    };
+    const a = await windowStats(spec.a_start);
+    const b = await windowStats(spec.b_start);
+    const per = (w) =>
+      w.battlelog_fetches > 0
+        ? Math.round((w.battles_captured / w.battlelog_fetches) * 1000) / 1000
+        : null;
+    return {
+      hours,
+      a: { start: spec.a_start, ...a, battles_per_battlelog_fetch: per(a) },
+      b: { start: spec.b_start, ...b, battles_per_battlelog_fetch: per(b) },
+      deltas: {
+        fetch_spend_ratio:
+          a.fetches > 0
+            ? Math.round((b.fetches / a.fetches) * 1000) / 1000
+            : null,
+        battles_ratio:
+          a.battles_captured > 0
+            ? Math.round((b.battles_captured / a.battles_captured) * 1000) /
+              1000
+            : null,
+        yield_per_fetch_ratio:
+          per(a) > 0 ? Math.round((per(b) / per(a)) * 1000) / 1000 : null,
+      },
+    };
+  } finally {
+    await db.end();
+  }
+}
+
 async function accountRoleOp(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -880,6 +945,11 @@ export async function handler(event) {
   }
   if (event?.feedback_pending) {
     const result = await feedbackPending(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.ab_yield) {
+    const result = await abYield(process.env.DATABASE_URL, event.ab_yield);
     console.log(JSON.stringify(result));
     return result;
   }
