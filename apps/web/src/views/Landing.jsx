@@ -1,11 +1,17 @@
 import { UPDATES } from "../updates.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
 export function Landing({ authed, navigate }) {
   const [form, setForm] = useState({ email: "", player_tag: "", note: "" });
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    api.publicStats().then((r) => {
+      if (r.ok) setStats(r.data.totals);
+    });
+  }, []);
 
   return (
     <>
@@ -28,6 +34,24 @@ export function Landing({ authed, navigate }) {
           <em> &ldquo;show my trophy graph this season&rdquo;</em> — questions
           the game itself cannot answer.
         </p>
+        {stats && (
+          <p>
+            <strong>{stats.battles.toLocaleString()}</strong> battles recorded
+            across <strong>{stats.players.toLocaleString()}</strong> players and{" "}
+            <strong>{stats.clans.toLocaleString()}</strong> clans, by{" "}
+            <strong>{stats.collectors_active}</strong> collectors — and
+            counting.{" "}
+            <a
+              href="/data/dashboard"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/data/dashboard");
+              }}
+            >
+              See the data →
+            </a>
+          </p>
+        )}
       </section>
 
       {authed ? (

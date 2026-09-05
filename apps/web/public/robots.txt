@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /mcp
+Disallow: /oauth/
+Sitemap: https://elixir.poapkings.com/sitemap.xml

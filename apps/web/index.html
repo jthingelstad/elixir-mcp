@@ -11,6 +11,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Crawlable content (SITE-IA): the deploy bakes live corpus stats
+         and site text here; the app removes it after mount. -->
+    <div id="prerender"><!--BAKE--></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

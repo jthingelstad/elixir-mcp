@@ -62,6 +62,7 @@ export const api = {
     request("POST", "/api/admin/accounts", { account_id, role }),
   myCollections: () => request("GET", "/api/me/collections"),
   myClans: () => request("GET", "/api/me/clans"),
+  publicStats: () => request("GET", "/api/public/stats"),
   myClanAction: (body) => request("POST", "/api/me/clans", body),
   myCollectionAction: (body) => request("POST", "/api/me/collections", body),
 };

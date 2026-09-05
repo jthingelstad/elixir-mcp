@@ -150,6 +150,34 @@ if (!skipWeb) {
     cwd: repoRoot,
     stdio: "inherit",
   });
+  // Crawlability bake (SITE-IA 2026-09-05): Home and Data must be
+  // readable without JS, so live corpus stats and the site's text get
+  // baked into index.html; the app removes the block after mount.
+  // First-deploy chicken-and-egg: if the stats endpoint isn't live yet,
+  // the bake is skipped, not fatal.
+  try {
+    const res = await fetch("https://elixir.poapkings.com/api/public/stats");
+    if (res.ok) {
+      const stats = await res.json();
+      const t = stats.totals;
+      const { readFileSync, writeFileSync } = await import("node:fs");
+      const idx = path.join(repoRoot, "apps/web/dist/index.html");
+      const html = readFileSync(idx, "utf8").replace(
+        "<!--BAKE-->",
+        `<h1>Elixir MCP - Clash Royale history, recorded</h1>` +
+          `<p>The official Clash Royale API only knows the present. Elixir MCP records battles, progression, and clan life as they happen, and serves the history to your own AI agent over MCP.</p>` +
+          `<p>${t.battles.toLocaleString()} battles recorded across ${t.players.toLocaleString()} players and ${t.clans.toLocaleString()} clans by ${t.collectors_active} collectors, from ${String(t.oldest_battle).slice(0, 10)} to ${String(t.newest_battle).slice(0, 10)}.</p>` +
+          `<nav><a href="/data/dashboard">Data dashboard</a> <a href="/data/changelog">Contract changelog</a> <a href="/docs/about">About</a> <a href="/docs/roles">Roles</a> <a href="/docs/tools">Tools</a> <a href="/docs/privacy">Privacy</a> <a href="/docs/terms">Terms</a></nav>` +
+          `<p>This material is unofficial and is not endorsed by Supercell.</p>`,
+      );
+      writeFileSync(idx, html);
+      console.error("baked crawlable stats into index.html");
+    } else {
+      console.error(`bake skipped: stats endpoint ${res.status}`);
+    }
+  } catch (err) {
+    console.error(`bake skipped: ${err.message}`);
+  }
   execFileSync(
     "aws",
     [

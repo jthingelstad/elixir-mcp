@@ -1070,3 +1070,19 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
   );
   assert.equal(gone.statusCode, 404);
 });
+
+test("public stats: no auth needed, cacheable, honest totals and series", async () => {
+  const res = await handler(
+    event({ method: "GET", path: "/api/public/stats", body: undefined }),
+  );
+  assert.equal(res.statusCode, 200);
+  assert.match(res.headers["cache-control"], /max-age=3600/);
+  const body = parse(res);
+  assert.ok(body.totals.players >= 1);
+  assert.ok(Array.isArray(body.series.battles_daily));
+  assert.ok(Array.isArray(body.series.fetches_daily));
+  assert.ok(
+    !JSON.stringify(body).includes("email_hash"),
+    "no account data leaks",
+  );
+});

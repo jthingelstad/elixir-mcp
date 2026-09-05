@@ -5,6 +5,7 @@ import { SignIn } from "./views/SignIn.jsx";
 import { Dashboard } from "./views/Dashboard.jsx";
 import { Admin } from "./views/Admin.jsx";
 import { Docs } from "./views/Docs.jsx";
+import { Data } from "./views/Data.jsx";
 import { Explore } from "./views/Explore.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Collections } from "./views/Collections.jsx";
@@ -40,6 +41,14 @@ const SECTIONS = {
       { slug: "feedback", label: "Feedback" },
     ],
   },
+  data: {
+    label: "Data",
+    authed: false,
+    pages: [
+      { slug: "dashboard", label: "Dashboard" },
+      { slug: "changelog", label: "Changelog" },
+    ],
+  },
   docs: { label: "Docs", authed: false, pages: [] }, // Docs owns its own ToC (URL-addressable: /docs/<page>)
   admin: {
     label: "Admin",
@@ -63,6 +72,7 @@ const REDIRECTS = {
   "/explore": "/explore/player",
   "/account": "/account/overview",
   "/admin": "/admin/requests",
+  "/data": "/data/dashboard",
 };
 
 function useRoute() {
@@ -145,6 +155,7 @@ export function App() {
               "account",
               section === "account",
             )}
+          {link("/data/dashboard", "Data", "data", section === "data")}
           {link("/docs", "Docs", "docs", section === "docs")}
           {authed &&
             me.is_admin &&
@@ -194,6 +205,7 @@ export function App() {
         />
       )}
       {section === "docs" && <Docs page={page} navigate={navigate} />}
+      {section === "data" && <Data page={activePage ?? "dashboard"} />}
       {section === "explore" && activePage === "player" && (
         <Explore me={me} navigate={navigate} />
       )}
@@ -214,7 +226,7 @@ export function App() {
       )}
       {section === "admin" && <Admin me={me} page={activePage ?? "requests"} />}
       {effectivePath !== "/signin" &&
-        !["docs", "explore", "account", "admin"].includes(section) && (
+        !["docs", "data", "explore", "account", "admin"].includes(section) && (
           <Landing authed={authed} navigate={navigate} />
         )}
 

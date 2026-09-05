@@ -27,6 +27,22 @@ test("landing renders the pitch, the disclaimer, and posts request-access", asyn
   const calls = [];
   global.fetch = mockFetch({
     "GET /api/me": [200, { authenticated: false }],
+    "GET /api/public/stats": [
+      200,
+      {
+        totals: {
+          battles: 1,
+          players: 1,
+          clans: 1,
+          collectors_active: 1,
+        },
+        series: {
+          battles_daily: [],
+          players_observed_daily: [],
+          fetches_daily: [],
+        },
+      },
+    ],
     "POST /api/request-access": (init) => {
       calls.push(JSON.parse(init.body));
       expect(init.headers["x-elixir-client"]).toBe("web");
@@ -55,6 +71,22 @@ test("landing renders the pitch, the disclaimer, and posts request-access", asyn
 test("sign-in flow: email step then code step authenticates", async () => {
   global.fetch = mockFetch({
     "GET /api/me": [200, { authenticated: false }],
+    "GET /api/public/stats": [
+      200,
+      {
+        totals: {
+          battles: 1,
+          players: 1,
+          clans: 1,
+          collectors_active: 1,
+        },
+        series: {
+          battles_daily: [],
+          players_observed_daily: [],
+          fetches_daily: [],
+        },
+      },
+    ],
     "POST /api/auth": [200, { ok: true }],
     "POST /api/auth/code": (init) => {
       expect(JSON.parse(init.body)).toEqual({

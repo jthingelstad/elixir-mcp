@@ -524,6 +524,63 @@ export function makeHandler({
       return json(200, { events: rows });
     },
 
+    "GET /api/public/stats": async (db) => {
+      // The public data story (SITE-IA 2026-09-05): corpus scale and
+      // full-history daily series. No auth, no account data - the
+      // universal-reads boundary applied to aggregates. CloudFront
+      // caches it for an hour.
+      const q = async (sql) => (await db.query(sql)).rows;
+      const [totals] = await q(
+        `select (select count(*)::int from battle) as battles,
+                (select count(*)::int from player) as players,
+                (select count(*)::int from clan) as clans,
+                (select count(*)::int from war_week) as war_weeks,
+                (select count(*)::int from player_snapshot_daily) as snapshots,
+                (select min(battle_time) from battle) as oldest_battle,
+                (select max(battle_time) from battle) as newest_battle,
+                (select count(*)::int from gateway where status = 'active') as collectors_active,
+                (select count(*) filter (where subject_type = 'player')::int
+                 from recording where status = 'active') as players_recording,
+                (select count(*) filter (where subject_type = 'clan')::int
+                 from recording where status = 'active') as clans_recording`,
+      );
+      const battlesDaily = await q(
+        `select (battle_time at time zone 'UTC')::date::text as day,
+                count(*)::int as battles
+         from battle group by 1 order by 1`,
+      );
+      const observedDaily = await q(
+        `select (first_seen_at at time zone 'UTC')::date::text as day,
+                count(*)::int as players
+         from player group by 1 order by 1`,
+      );
+      const fetchesDaily = await q(
+        `select (r.fetched_at at time zone 'UTC')::date::text as day,
+                count(*)::int as fetches,
+                count(distinct r.gateway_id)::int as collectors
+         from api_receipt r join gateway g on g.gateway_id = r.gateway_id
+         where g.name <> 'backfill-elixir-bot'
+         group by 1 order by 1`,
+      );
+      return json(
+        200,
+        {
+          totals: {
+            ...totals,
+            oldest_battle: totals.oldest_battle?.toISOString() ?? null,
+            newest_battle: totals.newest_battle?.toISOString() ?? null,
+          },
+          series: {
+            battles_daily: battlesDaily,
+            players_observed_daily: observedDaily,
+            fetches_daily: fetchesDaily,
+          },
+          note: "Recorded history only - the corpus began 2026-09-03 plus imported archives; battle days predate observation days where archives were replayed.",
+        },
+        { "cache-control": "public, max-age=3600" },
+      );
+    },
+
     "GET /api/gateways/ladder": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
