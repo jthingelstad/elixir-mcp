@@ -49,6 +49,58 @@ function sha256hex(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+/** Pull a numeric version out of whatever a client calls itself.
+ *
+ *  Clients report a build string, not a bare semver: the Go binary says
+ *  "v2.0.19" and the Python twin says "py-v2.0.19". Both mean the same
+ *  generation. A local build says "dev" or "py-dev" and yields null.
+ */
+export function parseClientVersion(raw) {
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(String(raw ?? ""));
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+/** Is `raw` at least `min`? Unknown versions are ALLOWED.
+ *
+ *  Fail-open is deliberate. This gate exists to retire clients that
+ *  cannot speak the current contract, not to authenticate anyone - the
+ *  bearer token does that. Refusing a version we failed to parse would
+ *  turn a formatting slip into a fleet-wide outage, which is exactly
+ *  the failure this is supposed to prevent.
+ */
+export function clientMeetsMinimum(raw, min) {
+  const got = parseClientVersion(raw);
+  const want = parseClientVersion(min);
+  if (!got || !want) return true;
+  for (let i = 0; i < 3; i += 1) {
+    if (got[i] !== want[i]) return got[i] > want[i];
+  }
+  return true;
+}
+
+/** Refuse work to a client below the minimum - but never refuse CONFIG,
+ *  which is the channel it self-updates through. Locking a stale client
+ *  out of the only route that could fix it is how a version gate turns
+ *  into a brick.
+ *
+ *  Off unless COLLECTOR_MIN_ENFORCE is set, so the minimum can be moved
+ *  and observed before it bites.
+ */
+function versionRefusal(event) {
+  if (process.env.COLLECTOR_MIN_ENFORCE !== "1") return null;
+  const raw = String(event.headers?.["x-collector-version"] ?? "").slice(0, 64);
+  if (clientMeetsMinimum(raw, CONFIG.min_client_version)) return null;
+  return {
+    status: 426,
+    body: {
+      error: "client_too_old",
+      min_client_version: CONFIG.min_client_version,
+      your_version: raw,
+      hint: "This collector is below the minimum client version. Released binaries update themselves from /api/collector/config within the hour; the Python twin must be re-downloaded from the latest release.",
+    },
+  };
+}
+
 async function authGateway(db, event, statuses) {
   const header =
     event.headers?.authorization ?? event.headers?.Authorization ?? "";
@@ -137,6 +189,8 @@ export function makeCollectorDoor({
     async lease(db, event, body) {
       const gw = await authGateway(db, event, ["probation", "active"]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
+      const tooOld = versionRefusal(event);
+      if (tooOld) return tooOld;
       const { streak } = await settleAndInspect(db, gw.gateway_id);
       if (streak >= MISSED_STREAK_QUARANTINE) {
         // Black-hole quarantine: stop serving, drain, tell the owner.
@@ -213,6 +267,12 @@ export function makeCollectorDoor({
         "draining",
       ]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
+      // Submit is gated too, but AFTER auth: a client that leased work
+      // before the minimum moved still gets to hand back what it holds
+      // only if it is current. Anything it cannot submit expires and is
+      // re-queued by the ledger, so no job is lost either way.
+      const tooOldSubmit = versionRefusal(event);
+      if (tooOldSubmit) return tooOldSubmit;
       const jobId = Number(body?.lease);
       if (!Number.isInteger(jobId) || jobId <= 0) {
         return { status: 400, body: { error: "bad_lease" } };

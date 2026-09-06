@@ -5,7 +5,11 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { makeCollectorDoor } from "../src/collector-door.mjs";
+import {
+  makeCollectorDoor,
+  parseClientVersion,
+  clientMeetsMinimum,
+} from "../src/collector-door.mjs";
 import {
   enqueueJob,
   ledgerStats,
@@ -374,4 +378,79 @@ test("owner-first settlement charges the same (issue #6)", async () => {
   });
   assert.equal(quarantined.status, 409);
   assert.equal((await gatewayRow("abandon-owner")).missed_streak, 10);
+});
+
+test("client version gate: parses real client strings, fails open on unknown", () => {
+  // Clients report a build string, not a bare semver.
+  assert.deepEqual(parseClientVersion("v2.0.19"), [2, 0, 19]);
+  assert.deepEqual(parseClientVersion("py-v2.0.19"), [2, 0, 19]);
+  assert.deepEqual(parseClientVersion("2.0.0"), [2, 0, 0]);
+  // A local build names no version, and must not be judged as one.
+  assert.equal(parseClientVersion("dev"), null);
+  assert.equal(parseClientVersion("py-dev"), null);
+  assert.equal(parseClientVersion(""), null);
+  assert.equal(parseClientVersion(undefined), null);
+
+  // The generation that predates the rename is below 2.0.0.
+  assert.equal(clientMeetsMinimum("v0.1.16", "2.0.0"), false);
+  assert.equal(clientMeetsMinimum("py-v0.1.17", "2.0.0"), false);
+  // The current generation clears it, in both clients.
+  assert.equal(clientMeetsMinimum("v2.0.19", "2.0.0"), true);
+  assert.equal(clientMeetsMinimum("py-v2.0.19", "2.0.0"), true);
+  // Exactly the minimum is allowed; "at least" is not "greater than".
+  assert.equal(clientMeetsMinimum("2.0.0", "2.0.0"), true);
+  // Ordering is numeric, not lexical: 10 > 9 even though "10" < "9".
+  assert.equal(clientMeetsMinimum("v2.0.10", "2.0.9"), true);
+  assert.equal(clientMeetsMinimum("v2.0.9", "2.0.10"), false);
+  assert.equal(clientMeetsMinimum("v3.0.0", "2.9.9"), true);
+  assert.equal(clientMeetsMinimum("v1.9.9", "2.0.0"), false);
+
+  // FAIL OPEN. An unparseable version, on either side, is allowed
+  // through: this gate retires stale clients, it does not authenticate
+  // anyone, and a formatting slip must never become a fleet outage.
+  assert.equal(clientMeetsMinimum("dev", "2.0.0"), true);
+  assert.equal(clientMeetsMinimum("", "2.0.0"), true);
+  assert.equal(clientMeetsMinimum("v2.0.19", "not-a-version"), true);
+});
+
+test("a too-old client is refused work but NEVER refused config", async (t) => {
+  const stale = {
+    ...authed(TOKEN_BULK),
+    headers: {
+      ...authed(TOKEN_BULK).headers,
+      "x-collector-version": "v0.1.16",
+    },
+  };
+  const current = {
+    ...authed(TOKEN_BULK),
+    headers: {
+      ...authed(TOKEN_BULK).headers,
+      "x-collector-version": "v2.0.19",
+    },
+  };
+
+  // Off by default: the gate cannot bite until it is switched on.
+  delete process.env.COLLECTOR_MIN_ENFORCE;
+  assert.equal((await door.lease(db, stale, {})).status !== 426, true);
+
+  process.env.COLLECTOR_MIN_ENFORCE = "1";
+  t.after(() => delete process.env.COLLECTOR_MIN_ENFORCE);
+
+  const leased = await door.lease(db, stale, {});
+  assert.equal(leased.status, 426);
+  assert.equal(leased.body.error, "client_too_old");
+  assert.equal(leased.body.min_client_version, "2.0.0");
+
+  const submitted = await door.submit(db, stale, { lease: 1 });
+  assert.equal(submitted.status, 426);
+
+  // The one route that must always answer: it is how a stale client
+  // learns which binary to install. Locking it out here would strand
+  // the collector permanently.
+  const cfg = await door.config(db, stale);
+  assert.equal(cfg.status, 200);
+  assert.equal(cfg.body.update["go-darwin-arm64"].version, "2.0.0");
+
+  // A current client is unaffected.
+  assert.notEqual((await door.lease(db, current, {})).status, 426);
 });
