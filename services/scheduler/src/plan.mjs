@@ -104,11 +104,15 @@ async function seedPollState(db) {
   // Player endpoints for actively recorded players; clan endpoint for
   // followed clans (clan auto-follow: derived from recorded players'
   // profile stamps, §4.2).
+  // scope decides whether we go and get the battles. 'activity' on a
+  // player is profile-only; 'comprehensive' adds the battlelog. Same
+  // word, same meaning as on a clan (0043).
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
     select r.subject_tag, e.endpoint
     from recording r cross join (values ('player_battlelog'), ('player')) e(endpoint)
     where r.subject_type = 'player' and r.status = 'active'
+      and (e.endpoint = 'player' or r.scope = 'comprehensive')
     on conflict do nothing`);
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
@@ -124,7 +128,7 @@ async function seedPollState(db) {
     on conflict do nothing`);
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
   // for EVERY clan scope; player endpoints for every OPEN member only at
-  // clan_scope 'comprehensive' (0023). Roster-driven: joins get seeded
+  // scope 'comprehensive' (0023). Roster-driven: joins get seeded
   // on the tick after the roster observes them; leavers (and members of
   // clans downgraded to 'activity') fall out via the eligibility clause
   // (their poll_state rows go dormant).
@@ -141,7 +145,7 @@ async function seedPollState(db) {
     join clan_membership cm on cm.clan_tag = r.subject_tag and cm.left_observed_at is null
     cross join (values ('player_battlelog'), ('player')) e(endpoint)
     where r.subject_type = 'clan' and r.status = 'active'
-      and r.clan_scope = 'comprehensive'
+      and r.scope = 'comprehensive'
     on conflict do nothing`);
 }
 
@@ -159,13 +163,14 @@ async function selectEligible(db, now) {
       where (ps.endpoint in ('player_battlelog', 'player') and (
                exists (
                  select 1 from recording r
-                 where r.subject_type = 'player' and r.subject_tag = ps.subject_tag and r.status = 'active')
+                 where r.subject_type = 'player' and r.subject_tag = ps.subject_tag and r.status = 'active'
+                   and (ps.endpoint = 'player' or r.scope = 'comprehensive'))
                or exists (
                  select 1 from recording r
                  join clan_membership cm on cm.clan_tag = r.subject_tag
                    and cm.player_tag = ps.subject_tag and cm.left_observed_at is null
                  where r.subject_type = 'clan' and r.status = 'active'
-                   and r.clan_scope = 'comprehensive')))
+                   and r.scope = 'comprehensive')))
          or (ps.endpoint = 'clan' and (
                exists (
                  select 1 from recording r join player p on p.player_tag = r.subject_tag

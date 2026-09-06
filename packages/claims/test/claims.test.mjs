@@ -9,7 +9,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../../services/migrate/src/migrate.mjs";
-import { addPlayer, removePlayer } from "../src/index.mjs";
+import {
+  addPlayer,
+  removePlayer,
+  setCollectionMembers,
+} from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -97,7 +101,42 @@ after(async () => {
   await admin.end();
 });
 
+async function collection(kind = "player", owner, scope = "comprehensive") {
+  const {
+    rows: [c],
+  } = await db.query(
+    `insert into collection (slug, title, kind, owner_account, scope)
+     values ($1, 'A collection', $2, $3, $4) returning collection_id`,
+    [
+      `c-${Math.random().toString(36).slice(2, 10)}`,
+      kind,
+      owner.accountId,
+      scope,
+    ],
+  );
+  return { collectionId: c.collection_id, kind, ownerAccount: owner.accountId };
+}
+
+const scopeOf = async (tag, kind = "player") =>
+  (
+    await db.query(
+      `select scope from recording
+       where subject_type = $2 and subject_tag = $1 and status = 'active'`,
+      [tag, kind],
+    )
+  ).rows[0]?.scope;
+
+const members = async (col) =>
+  (
+    await db.query(
+      `select subject_tag from collection_member where collection_id = $1 order by subject_tag`,
+      [col.collectionId],
+    )
+  ).rows.map((r) => r.subject_tag);
+
 beforeEach(async () => {
+  await db.query(`delete from collection_member`);
+  await db.query(`delete from collection`);
   await db.query(`delete from account_event`);
   await db.query(`delete from claim`);
   await db.query(`delete from recording`);
@@ -408,4 +447,115 @@ test("an account lock still holds under cross-subject concurrency", async () => 
   } finally {
     await Promise.all([ca.end(), cb.end()]);
   }
+});
+
+// ------------------------------------------- collections are recorded
+test("naming a player in a collection records it", async () => {
+  const col = await collection("player", alice);
+  // Jamie, 2026-09-06: curating a tag used to record nothing, so you had
+  // to add the player to your account as well to get any data.
+  const r = await setCollectionMembers(db, col, [A, B]);
+  assert.equal(r.added, 2);
+  assert.equal(r.recordingsStarted, 2);
+  assert.equal(await isRecording(A), true);
+  assert.equal((await latestRecording(A)).origin, "collection");
+});
+
+test("a collection edit is a set: absent tags leave and stop recording", async () => {
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A, B, C]);
+  const r = await setCollectionMembers(db, col, [B, D]);
+  assert.deepEqual(await members(col), [D, B].sort());
+  assert.equal(r.added, 1);
+  assert.equal(r.removed, 2);
+  assert.equal(await isRecording(A), false, "dropped from the collection");
+  assert.equal(await isRecording(B), true, "still a member");
+  assert.equal(await isRecording(D), true, "newly a member");
+});
+
+test("a collection keeps recording a player somebody also claims", async () => {
+  const col = await collection("player", alice);
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  await setCollectionMembers(db, col, [A]);
+  // Two reasons to record; removing one must not stop it.
+  await setCollectionMembers(db, col, []);
+  assert.equal(await isRecording(A), true, "bob still claims it");
+  const r = await removePlayer(db, bob, { tag: A, via: "test" });
+  assert.equal(r.recordingStopped, true, "the last reason is gone");
+});
+
+test("a claim removal leaves a collected player recorded", async () => {
+  const col = await collection("player", alice);
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  await setCollectionMembers(db, col, [A]);
+  const r = await removePlayer(db, bob, { tag: A, via: "test" });
+  assert.equal(r.removed, true);
+  assert.equal(r.recordingStopped, false, "the collection still wants it");
+  assert.equal(await isRecording(A), true);
+});
+
+test("an ops recording is never touched by collection edits", async () => {
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A]);
+  await db.query(`update recording set origin = 'ops' where subject_tag = $1`, [
+    A,
+  ]);
+  const r = await setCollectionMembers(db, col, []);
+  assert.equal(r.recordingsStopped, 0);
+  assert.equal(await isRecording(A), true);
+});
+
+test("re-setting the same membership changes nothing", async () => {
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A, B]);
+  const r = await setCollectionMembers(db, col, [B, A]);
+  assert.deepEqual([r.added, r.removed], [0, 0]);
+  assert.equal(r.total, 2);
+});
+
+test("a collection records at the depth it asks for", async () => {
+  const deep = await collection("player", alice, "comprehensive");
+  const shallow = await collection("player", bob, "activity");
+  await setCollectionMembers(db, deep, [A]);
+  await setCollectionMembers(db, shallow, [B]);
+  assert.equal(await scopeOf(A), "comprehensive", "battles too");
+  assert.equal(await scopeOf(B), "activity", "profile only");
+});
+
+test("depth is upgraded by a deeper collection, never downgraded", async () => {
+  const shallow = await collection("player", alice, "activity");
+  const deep = await collection("player", bob, "comprehensive");
+  await setCollectionMembers(db, shallow, [A]);
+  assert.equal(await scopeOf(A), "activity");
+  // A second collection wanting more deepens it...
+  await setCollectionMembers(db, deep, [A]);
+  assert.equal(await scopeOf(A), "comprehensive");
+  // ...and the shallow one re-saving must not take the battles away.
+  await setCollectionMembers(db, shallow, [A]);
+  assert.equal(await scopeOf(A), "comprehensive");
+});
+
+test("a claim always means full capture", async () => {
+  const shallow = await collection("player", alice, "activity");
+  await setCollectionMembers(db, shallow, [A]);
+  assert.equal(await scopeOf(A), "activity");
+  // Adding the player to an account is an explicit ask for their data.
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  assert.equal(await scopeOf(A), "comprehensive");
+});
+
+test("a clan collection records clans at its chosen depth", async () => {
+  const col = await collection("clan", alice, "comprehensive");
+  const CLAN = "#J2RGCRVG";
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [CLAN],
+  );
+  await setCollectionMembers(db, col, [CLAN]);
+  assert.equal(await scopeOf(CLAN, "clan"), "comprehensive");
+  const { rows } = await db.query(
+    `select origin from recording where subject_type = 'clan' and subject_tag = $1`,
+    [CLAN],
+  );
+  assert.equal(rows[0].origin, "collection");
 });

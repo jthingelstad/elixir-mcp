@@ -15,7 +15,7 @@ export const collectionsTools = {
     },
     async handler(ctx) {
       const { rows } = await ctx.db.query(
-        `select c.slug, c.title, c.kind, c.description, c.visibility,
+        `select c.slug, c.title, c.kind, c.description, c.visibility, c.scope,
                 c.created_at,
                 (select count(*)::int from collection_member m
                  where m.collection_id = c.collection_id) as member_count

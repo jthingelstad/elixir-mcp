@@ -55,7 +55,7 @@ before(async () => {
     `insert into account (email_hash, status, is_owner) values ('wt-owner', 'approved', true) returning account_id`,
   );
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, clan_scope) values ('clan', $1, $2, 'comprehensive')`,
+    `insert into recording (subject_type, subject_tag, requested_by, scope) values ('clan', $1, $2, 'comprehensive')`,
     [CLAN, owner.account_id],
   );
   const roster = await fixture("clan/roster.json");

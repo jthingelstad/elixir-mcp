@@ -426,10 +426,10 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.equal(clanAdd.body.recording, "active");
   assert.equal(clanAdd.body.scope, "comprehensive");
   const { rows: rec } = await db.query(
-    `select clan_scope, requested_by from recording
+    `select scope, requested_by from recording
      where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
   );
-  assert.equal(rec[0].clan_scope, "comprehensive");
+  assert.equal(rec[0].scope, "comprehensive");
   assert.equal(rec[0].requested_by, account.accountId);
 
   // Re-adding with a narrower scope settles the recording down too
@@ -440,10 +440,10 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   });
   assert.equal(readd.body.scope, "activity");
   const { rows: settled } = await db.query(
-    `select clan_scope from recording
+    `select scope from recording
      where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
   );
-  assert.equal(settled[0].clan_scope, "activity");
+  assert.equal(settled[0].scope, "activity");
   const gone = await call("elixir_add_clan", {
     clan_tag: "#J2RGCRVG",
     action: "remove",

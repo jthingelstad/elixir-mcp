@@ -255,7 +255,7 @@ test("clan recording: heartbeat, riverrace capture, and every open member polled
     `insert into clan (clan_tag) values ('#J2RGCRVG') on conflict do nothing`,
   );
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, clan_scope) values ('clan', '#J2RGCRVG', $1, 'comprehensive')`,
+    `insert into recording (subject_type, subject_tag, requested_by, scope) values ('clan', '#J2RGCRVG', $1, 'comprehensive')`,
     [accountId],
   );
   for (const tag of ["#YYYYYYYY", "#RRRRRRRR", "#22222222"]) {
@@ -369,7 +369,7 @@ test("clan scope: 'activity' records the clan only; upgrade re-seeds members", a
     `insert into clan (clan_tag) values ('#2PP0V90Y') on conflict do nothing`,
   );
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
      values ('clan', '#2PP0V90Y', $1, 'activity')`,
     [accountId],
   );
@@ -396,7 +396,7 @@ test("clan scope: 'activity' records the clan only; upgrade re-seeds members", a
 
   // Upgrade to comprehensive: members seed on the next tick.
   await db.query(
-    `update recording set clan_scope = 'comprehensive'
+    `update recording set scope = 'comprehensive'
      where subject_type = 'clan' and subject_tag = '#2PP0V90Y'`,
   );
   await db.query(

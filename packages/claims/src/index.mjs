@@ -1,4 +1,11 @@
 /**
+ * Who is subscribed to what, and therefore what gets recorded.
+ *
+ * Two things create a subscription: an account CLAIMS a player, or a
+ * COLLECTION names a subject. Either is a reason to record it, and a
+ * recording ends only when no reason is left. Both live here so the
+ * two can never disagree about it.
+ *
  * Adding and removing a player, for BOTH entry points.
  *
  * The MCP tool and the website route each carried their own copy of this
@@ -54,6 +61,83 @@ async function logEvent(db, accountId, kind, detail) {
     `insert into account_event (account_id, kind, detail) values ($1, $2, $3)`,
     [accountId, kind, JSON.stringify(detail)],
   );
+}
+
+/**
+ * Make the recording match the reasons to record.
+ *
+ * A subject is recorded while ANY reason holds: an account claims it, or
+ * a collection names it. When the last one goes, the recording stops.
+ * An ops recording is never touched - it exists precisely because
+ * somebody decided to record a subject nobody subscribes to.
+ *
+ * Callers must already hold the subject lock.
+ */
+export async function reconcileRecording(db, subjectType, tag, requestedBy) {
+  const { rows } = await db.query(
+    `select
+       exists (select 1 from claim where player_tag = $1) as claimed,
+       exists (select 1 from collection_member m
+               join collection c on c.collection_id = m.collection_id
+               where m.subject_tag = $1 and c.kind = $2) as collected,
+       -- How deep any collection asks this subject to be recorded. Two
+       -- collections can name it at different depths; the deepest wins,
+       -- and nothing is ever downgraded.
+       exists (select 1 from collection_member m
+               join collection c on c.collection_id = m.collection_id
+               where m.subject_tag = $1 and c.kind = $2
+                 and c.scope = 'comprehensive') as wants_comprehensive,
+       exists (select 1 from recording
+               where subject_type = $2 and subject_tag = $1
+                 and status = 'active' and origin = 'ops') as ops,
+       exists (select 1 from recording
+               where subject_type = $2 and subject_tag = $1
+                 and status = 'active') as active`,
+    [tag, subjectType],
+  );
+  const { claimed, collected, ops, active, wants_comprehensive } = rows[0];
+  const wanted = claimed || collected;
+  // A claim means somebody added this player to their account, which has
+  // always meant full capture. A collection gets the depth it asked for.
+  const scope = claimed || wants_comprehensive ? "comprehensive" : "activity";
+
+  if (ops) return { started: false, stopped: false };
+
+  if (wanted && !active) {
+    if (subjectType === "player") {
+      await db.query(
+        `insert into player (player_tag) values ($1) on conflict do nothing`,
+        [tag],
+      );
+    }
+    await db.query(
+      `insert into recording (subject_type, subject_tag, requested_by, origin, scope)
+       values ($2, $1, $3, $4, $5)`,
+      [tag, subjectType, requestedBy, claimed ? "claim" : "collection", scope],
+    );
+    return { started: true, stopped: false };
+  }
+  // Upgrade only. A collection asking for more depth deepens an existing
+  // recording; one asking for less never takes capture away from
+  // whoever is already relying on it.
+  if (wanted && active && scope === "comprehensive") {
+    await db.query(
+      `update recording set scope = 'comprehensive'
+       where subject_type = $2 and subject_tag = $1
+         and status = 'active' and scope = 'activity'`,
+      [tag, subjectType],
+    );
+  }
+  if (!wanted && active) {
+    const { rowCount } = await db.query(
+      `update recording set status = 'stopped'
+       where subject_type = $2 and subject_tag = $1
+         and status = 'active' and origin <> 'ops'`,
+      [tag, subjectType],
+    );
+    return { started: false, stopped: rowCount > 0 };
+  }
+  return { started: false, stopped: false };
 }
 
 /**
@@ -139,15 +223,13 @@ export async function addPlayer(db, account, { tag, makePrimary, via }) {
       });
     }
 
-    const { rowCount: started } = await db.query(
-      `insert into recording (subject_type, subject_tag, requested_by, origin)
-       select 'player', $1, $2, 'claim'
-       where not exists (select 1 from recording
-                         where subject_type = 'player' and subject_tag = $1
-                           and status = 'active')`,
-      [tag, account.accountId],
+    const { started } = await reconcileRecording(
+      db,
+      "player",
+      tag,
+      account.accountId,
     );
-    if (started > 0) {
+    if (started) {
       await logEvent(db, account.accountId, "recording_started", {
         player_tag: tag,
         via,
@@ -159,7 +241,7 @@ export async function addPlayer(db, account, { tag, makePrimary, via }) {
       ok: true,
       added: claimed > 0,
       isPrimary: wantPrimary,
-      recordingStarted: started > 0,
+      recordingStarted: started,
     };
   } catch (err) {
     await db.query("rollback").catch(() => {});
@@ -212,14 +294,13 @@ export async function removePlayer(db, account, { tag, via }) {
       promotedPrimary = promoted[0]?.player_tag ?? null;
     }
 
-    const { rowCount: stopped } = await db.query(
-      `update recording set status = 'stopped'
-       where subject_type = 'player' and subject_tag = $1
-         and status = 'active' and origin = 'claim'
-         and not exists (select 1 from claim where player_tag = $1)`,
-      [tag],
+    const { stopped } = await reconcileRecording(
+      db,
+      "player",
+      tag,
+      account.accountId,
     );
-    if (stopped > 0) {
+    if (stopped) {
       await logEvent(db, account.accountId, "recording_stopped", {
         player_tag: tag,
         via,
@@ -229,8 +310,83 @@ export async function removePlayer(db, account, { tag, via }) {
     await db.query("commit");
     return {
       removed: true,
-      recordingStopped: stopped > 0,
+      recordingStopped: stopped,
       promotedPrimary,
+    };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/**
+ * Replace a collection's membership wholesale.
+ *
+ * `tags` is the membership the caller wants, already normalized. What is
+ * absent leaves, what is new arrives, and every affected subject has its
+ * recording reconciled: naming a tag in a collection is a reason to
+ * record it, and removing the last reason stops it.
+ *
+ * Wholesale replacement is what a textarea edit means, and it is also
+ * the shape an external manager wants ("here is the current roster"),
+ * so it can be driven by a service token later without a second code
+ * path. Adds and removes are diffed rather than delete-then-insert, so
+ * added_at survives for members that stay.
+ */
+export async function setCollectionMembers(db, collection, tags) {
+  const wanted = [...new Set(tags)];
+  await db.query("begin");
+  try {
+    await db.query(
+      `select collection_id from collection where collection_id = $1 for update`,
+      [collection.collectionId],
+    );
+    const { rows: current } = await db.query(
+      `select subject_tag from collection_member where collection_id = $1`,
+      [collection.collectionId],
+    );
+    const have = new Set(current.map((r) => r.subject_tag));
+    const added = wanted.filter((t) => !have.has(t));
+    const removed = [...have].filter((t) => !wanted.includes(t));
+
+    // Touch subjects in a stable order so two concurrent edits queue
+    // rather than deadlock on the per-subject locks.
+    for (const tag of [...added, ...removed].sort()) {
+      await lockSubject(db, tag);
+    }
+    if (added.length > 0) {
+      await db.query(
+        `insert into collection_member (collection_id, subject_tag)
+         select $1, unnest($2::text[]) on conflict do nothing`,
+        [collection.collectionId, added],
+      );
+    }
+    if (removed.length > 0) {
+      await db.query(
+        `delete from collection_member
+         where collection_id = $1 and subject_tag = any($2::text[])`,
+        [collection.collectionId, removed],
+      );
+    }
+    let started = 0;
+    let stopped = 0;
+    for (const tag of [...added, ...removed].sort()) {
+      const r = await reconcileRecording(
+        db,
+        collection.kind,
+        tag,
+        collection.ownerAccount,
+      );
+      if (r.started) started += 1;
+      if (r.stopped) stopped += 1;
+    }
+    await db.query("commit");
+    return {
+      added: added.length,
+      removed: removed.length,
+      total: wanted.length,
+      recordingsStarted: started,
+      recordingsStopped: stopped,
     };
   } catch (err) {
     await db.query("rollback").catch(() => {});

@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Collections collect",
+    body: "Putting a player or clan in a collection now records it, for as long as it stays there. Until today a collection was only a list, so curating one recorded nothing and you had to add every subject to your account separately. Each collection also says how deeply to record what it names: everything including battles, or just the surface - a clan's roster, war and standings, or a player's profile. Editing membership is now a single box, one tag per line, and collection descriptions have room for real writing.",
+  },
+  {
+    date: "2026-09-06",
     title: "Collectors credit the people who run them",
     body: "Every collector is somebody's machine, quietly fetching on a home connection so the archive keeps growing. The status page now says whose: each collector is credited to the player who runs it, beside the Clash Royale card it was named for. Only the game identity appears, never the account behind it.",
   },

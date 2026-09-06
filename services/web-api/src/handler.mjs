@@ -11,7 +11,11 @@
 
 import crypto from "node:crypto";
 import pg from "pg";
-import { addPlayer, removePlayer } from "@elixir-mcp/claims";
+import {
+  addPlayer,
+  removePlayer,
+  setCollectionMembers,
+} from "@elixir-mcp/claims";
 import {
   emailHash,
   requestAccess,
@@ -1049,7 +1053,7 @@ export function makeHandler({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
-                r.status as recording_status, r.clan_scope as effective_scope
+                r.status as recording_status, r.scope as effective_scope
          from account_clan ac
          left join clan c on c.clan_tag = ac.clan_tag
          left join recording r on r.subject_type = 'clan'
@@ -1190,7 +1194,7 @@ export function makeHandler({
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select c.collection_id, c.slug, c.title, c.kind, c.description,
-                c.visibility, c.created_at,
+                c.visibility, c.scope, c.created_at,
                 (select count(*)::int from collection_member m
                  where m.collection_id = c.collection_id) as member_count,
                 (select array_agg(m.subject_tag order by m.added_at)
@@ -1214,57 +1218,92 @@ export function makeHandler({
       if (body.action === "upsert") {
         if (!body.title || !["player", "clan"].includes(body.kind))
           return json(400, { error: "bad_request" });
+        const scope = ["activity", "comprehensive"].includes(body.scope)
+          ? body.scope
+          : null;
         await db.query(
-          `insert into collection (slug, title, kind, description, visibility, owner_account)
-           values ($1, $2, $3, $4, coalesce($5, 'public'), $6)
+          `insert into collection (slug, title, kind, description, visibility, owner_account, scope)
+           values ($1, $2, $3, $4, coalesce($5, 'public'), $6, coalesce($7, 'comprehensive'))
            on conflict (slug) do update set
              title = excluded.title,
              description = coalesce(excluded.description, collection.description),
-             visibility = coalesce($5, collection.visibility)`,
+             visibility = coalesce($5, collection.visibility),
+             scope = coalesce($7, collection.scope)`,
           [
             slug,
             String(body.title).slice(0, 80),
             body.kind,
-            body.description ? String(body.description).slice(0, 500) : null,
+            body.description ? String(body.description).slice(0, 2000) : null,
             ["public", "private"].includes(body.visibility)
               ? body.visibility
               : null,
             account.accountId,
+            scope,
           ],
         );
+        // Deepening applies to what is already in the collection, not
+        // only to what is added next.
+        if (scope) {
+          const { rows: col } = await db.query(
+            `select collection_id, kind from collection where slug = $1`,
+            [slug],
+          );
+          const { rows: mem } = await db.query(
+            `select subject_tag from collection_member where collection_id = $1`,
+            [col[0].collection_id],
+          );
+          await setCollectionMembers(
+            db,
+            {
+              collectionId: col[0].collection_id,
+              kind: col[0].kind,
+              ownerAccount: account.accountId,
+            },
+            mem.map((m) => m.subject_tag),
+          );
+        }
         return json(200, { ok: true, slug });
       }
-      if (body.action === "add" || body.action === "remove") {
+      if (["set", "add", "remove"].includes(body.action)) {
         const { rows: col } = await db.query(
-          `select collection_id from collection where slug = $1`,
+          `select collection_id, kind, owner_account from collection where slug = $1`,
           [slug],
         );
         if (!col[0]) return json(404, { error: "not_found" });
-        let n = 0;
+        const parsed = [];
         for (const raw of body.tags ?? []) {
-          let tag;
+          const text = String(raw).trim();
+          if (!text) continue;
           try {
-            tag = normalizeTag(String(raw));
+            parsed.push(normalizeTag(text));
           } catch {
-            continue;
-          }
-          if (body.action === "add") {
-            const r = await db.query(
-              `insert into collection_member (collection_id, subject_tag)
-               values ($1, $2) on conflict do nothing`,
-              [col[0].collection_id, tag],
-            );
-            n += r.rowCount;
-          } else {
-            const r = await db.query(
-              `delete from collection_member
-               where collection_id = $1 and subject_tag = $2`,
-              [col[0].collection_id, tag],
-            );
-            n += r.rowCount;
+            /* admin edits skip junk rather than refusing the batch */
           }
         }
-        return json(200, { ok: true, changed: n });
+        let wanted = parsed;
+        if (body.action !== "set") {
+          const { rows: cur } = await db.query(
+            `select subject_tag from collection_member where collection_id = $1`,
+            [col[0].collection_id],
+          );
+          const have = cur.map((r) => r.subject_tag);
+          wanted =
+            body.action === "add"
+              ? [...new Set([...have, ...parsed])]
+              : have.filter((t) => !parsed.includes(t));
+        }
+        // Same function as the owner route: membership and recording
+        // are decided in one place, never twice.
+        const r = await setCollectionMembers(
+          db,
+          {
+            collectionId: col[0].collection_id,
+            kind: col[0].kind,
+            ownerAccount: col[0].owner_account,
+          },
+          wanted,
+        );
+        return json(200, { ok: true, changed: r.added + r.removed, ...r });
       }
       if (body.action === "delete") {
         await db.query(`delete from collection where slug = $1`, [slug]);
@@ -1486,7 +1525,7 @@ export function makeHandler({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select c.collection_id, c.slug, c.title, c.kind, c.description,
-                c.visibility, c.created_at,
+                c.visibility, c.scope, c.created_at,
                 (select count(*)::int from collection_member m
                  where m.collection_id = c.collection_id) as member_count,
                 (select array_agg(m.subject_tag order by m.added_at)
@@ -1521,7 +1560,7 @@ export function makeHandler({
         return json(400, { error: "bad_request", message: "invalid slug" });
       // Ownership is the governance model: you touch only your own.
       const { rows: owned } = await db.query(
-        `select collection_id, owner_account from collection where slug = $1`,
+        `select collection_id, owner_account, kind from collection where slug = $1`,
         [slug],
       );
       if (owned[0] && owned[0].owner_account !== account.accountId)
@@ -1543,53 +1582,105 @@ export function makeHandler({
               message: `The ${account.role ?? "member"} tier can curate up to ${limit} collections.`,
             });
         }
+        const scope = ["activity", "comprehensive"].includes(body.scope)
+          ? body.scope
+          : null;
         await db.query(
-          `insert into collection (slug, title, kind, description, visibility, owner_account)
-           values ($1, $2, $3, $4, coalesce($5, 'public'), $6)
+          `insert into collection (slug, title, kind, description, visibility, owner_account, scope)
+           values ($1, $2, $3, $4, coalesce($5, 'public'), $6, coalesce($7, 'comprehensive'))
            on conflict (slug) do update set
              title = excluded.title,
              description = coalesce(excluded.description, collection.description),
-             visibility = coalesce($5, collection.visibility)`,
+             visibility = coalesce($5, collection.visibility),
+             scope = coalesce($7, collection.scope)`,
           [
             slug,
             String(body.title).slice(0, 80),
             body.kind,
-            body.description ? String(body.description).slice(0, 500) : null,
+            body.description ? String(body.description).slice(0, 2000) : null,
             ["public", "private"].includes(body.visibility)
               ? body.visibility
               : null,
             account.accountId,
+            scope,
           ],
         );
+        // Deepening applies to what is already in the collection, not
+        // only to what is added next.
+        if (scope) {
+          const { rows: col } = await db.query(
+            `select collection_id, kind from collection where slug = $1`,
+            [slug],
+          );
+          const { rows: mem } = await db.query(
+            `select subject_tag from collection_member where collection_id = $1`,
+            [col[0].collection_id],
+          );
+          await setCollectionMembers(
+            db,
+            {
+              collectionId: col[0].collection_id,
+              kind: col[0].kind,
+              ownerAccount: account.accountId,
+            },
+            mem.map((m) => m.subject_tag),
+          );
+        }
         return json(200, { ok: true, slug });
       }
       if (!owned[0]) return json(404, { error: "not_found" });
-      if (body.action === "add" || body.action === "remove") {
-        let n = 0;
+      // Every membership change goes through one wholesale set, so a
+      // tag named in a collection is always recorded and a tag that
+      // leaves stops being recorded unless something else still wants
+      // it. add/remove are expressed as a set against what is there.
+      if (["set", "add", "remove"].includes(body.action)) {
+        const kind = owned[0].kind;
+        const parsed = [];
+        const rejected = [];
         for (const raw of body.tags ?? []) {
-          let tag;
+          const text = String(raw).trim();
+          if (!text) continue;
           try {
-            tag = normalizeTag(String(raw));
+            parsed.push(normalizeTag(text));
           } catch {
-            continue;
-          }
-          if (body.action === "add") {
-            const r = await db.query(
-              `insert into collection_member (collection_id, subject_tag)
-               values ($1, $2) on conflict do nothing`,
-              [owned[0].collection_id, tag],
-            );
-            n += r.rowCount;
-          } else {
-            const r = await db.query(
-              `delete from collection_member
-               where collection_id = $1 and subject_tag = $2`,
-              [owned[0].collection_id, tag],
-            );
-            n += r.rowCount;
+            rejected.push(text.slice(0, 24));
           }
         }
-        return json(200, { ok: true, changed: n });
+        // A typo must not silently delete somebody's curation.
+        if (body.action === "set" && rejected.length > 0) {
+          return json(400, {
+            error: "bad_request",
+            message: `Not a valid Clash Royale tag: ${rejected.slice(0, 5).join(", ")}${rejected.length > 5 ? ` and ${rejected.length - 5} more` : ""}.`,
+            rejected,
+          });
+        }
+        let wanted = parsed;
+        if (body.action !== "set") {
+          const { rows: cur } = await db.query(
+            `select subject_tag from collection_member where collection_id = $1`,
+            [owned[0].collection_id],
+          );
+          const have = cur.map((r) => r.subject_tag);
+          wanted =
+            body.action === "add"
+              ? [...new Set([...have, ...parsed])]
+              : have.filter((t) => !parsed.includes(t));
+        }
+        const r = await setCollectionMembers(
+          db,
+          {
+            collectionId: owned[0].collection_id,
+            kind,
+            ownerAccount: account.accountId,
+          },
+          wanted,
+        );
+        return json(200, {
+          ok: true,
+          changed: r.added + r.removed,
+          ...r,
+          rejected,
+        });
       }
       if (body.action === "delete") {
         await db.query(`delete from collection where collection_id = $1`, [

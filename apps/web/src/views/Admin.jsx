@@ -935,19 +935,24 @@ function CollectionEditor({ slug, navigate }) {
   const [col, setCol] = useState(null);
   const [missed, setMissed] = useState(false);
   const [meta, setMeta] = useState(null);
-  const [addText, setAddText] = useState("");
+  const [tagText, setTagText] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const load = useCallback(async () => {
     const r = await api.adminCollections();
     const found = (r.data?.collections ?? []).find((c) => c.slug === slug);
     if (found) {
       setCol(found);
+      // Reset the editor to what the server has, unless the operator is
+      // mid-edit: a background reload must not eat typing.
+      setTagText((prev) => prev ?? (found.members ?? []).join("\n"));
       setMeta(
         (prev) =>
           prev ?? {
             title: found.title,
             description: found.description ?? "",
             visibility: found.visibility,
+            scope: found.scope ?? "comprehensive",
           },
       );
     } else setMissed(true);
@@ -972,7 +977,14 @@ function CollectionEditor({ slug, navigate }) {
         </div>
       </div>
     );
-  if (!col || !meta) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (!col || !meta || tagText === null)
+    return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  const membersText = (col.members ?? []).join("\n");
+  const pending = tagText
+    .split(/\n/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const dirty = pending.join("\n") !== membersText;
   return (
     <>
       <p style={{ margin: "0 0 10px" }}>
@@ -1000,79 +1012,86 @@ function CollectionEditor({ slug, navigate }) {
                 view in Explore ›
               </a>
             </div>
-            <div
-              className="panel__body"
-              style={{ display: "flex", gap: "8px", alignItems: "center" }}
-            >
-              <input
-                placeholder={col.kind === "clan" ? "#CLANTAG" : "#PLAYERTAG"}
-                className="mono"
-                value={addText}
-                onChange={(e) => setAddText(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <button
-                className="btn"
-                disabled={!addText.trim()}
-                onClick={async () => {
-                  await act({
-                    action: "add",
-                    slug: col.slug,
-                    tags: addText.split(/[\s,]+/).filter(Boolean),
-                  });
-                  setAddText("");
+            {/* One textarea, one tag per line, saved as a SET (Jamie,
+                2026-09-06). Editing a list by adding one box at a time
+                and clicking Remove per row was the wrong shape for the
+                thing: you think about the membership, not the diff. */}
+            <div className="panel__body">
+              <label>
+                <span className="label">
+                  Members — one {col.kind} tag per line
+                </span>
+                <textarea
+                  className="mono"
+                  rows={Math.min(
+                    24,
+                    Math.max(8, tagText.split("\n").length + 2),
+                  )}
+                  value={tagText}
+                  onChange={(e) => setTagText(e.target.value)}
+                  placeholder={
+                    col.kind === "clan"
+                      ? "#CLANTAG\n#CLANTAG"
+                      : "#PLAYERTAG\n#PLAYERTAG"
+                  }
+                  style={{ width: "100%", resize: "vertical" }}
+                />
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "center",
+                  marginTop: "10px",
+                  flexWrap: "wrap",
                 }}
               >
-                Add
-              </button>
-            </div>
-            {(col.members ?? []).length === 0 && (
-              <div className="panel__body" style={{ color: "var(--faint)" }}>
-                Empty collection — add tags above.
+                <button
+                  className="btn"
+                  disabled={!dirty || saving}
+                  onClick={async () => {
+                    setSaving(true);
+                    await act({
+                      action: "set",
+                      slug: col.slug,
+                      tags: tagText
+                        .split(/\n/)
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    });
+                    setSaving(false);
+                  }}
+                >
+                  {saving ? "Saving…" : "Save members"}
+                </button>
+                {dirty && (
+                  <button
+                    className="btn--text"
+                    onClick={() => setTagText(membersText)}
+                    disabled={saving}
+                  >
+                    Discard changes
+                  </button>
+                )}
+                <span style={{ color: "var(--faint)", fontSize: "11.5px" }}>
+                  {dirty
+                    ? `${pending.length} tag${pending.length === 1 ? "" : "s"} — unsaved`
+                    : `${pending.length} tag${pending.length === 1 ? "" : "s"}`}
+                </span>
               </div>
-            )}
-            {(col.members ?? []).length > 0 && (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tag</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(col.members ?? []).map((tag) => (
-                    <tr key={tag}>
-                      <td>
-                        <a
-                          className="mono"
-                          onClick={() =>
-                            navigate(
-                              `/explore/${col.kind}/${encodeURIComponent(tag)}`,
-                            )
-                          }
-                        >
-                          {tag}
-                        </a>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <button
-                          className="btn--text"
-                          onClick={() =>
-                            act({
-                              action: "remove",
-                              slug: col.slug,
-                              tags: [tag],
-                            })
-                          }
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+              <p
+                style={{
+                  color: "var(--faint)",
+                  fontSize: "11.5px",
+                  marginBottom: 0,
+                }}
+              >
+                Saving replaces the membership with exactly what is above. Every{" "}
+                {col.kind} listed here is recorded for as long as it stays; a{" "}
+                {col.kind} nobody else is watching stops being recorded when you
+                remove it.
+              </p>
+            </div>
           </section>
         </div>
         <div className="cols__rail">
@@ -1103,12 +1122,51 @@ function CollectionEditor({ slug, navigate }) {
               <label>
                 <span className="label">Description</span>
                 <textarea
-                  rows={3}
+                  rows={10}
+                  maxLength={2000}
                   value={meta.description}
                   onChange={(e) =>
                     setMeta({ ...meta, description: e.target.value })
                   }
+                  style={{ resize: "vertical" }}
                 />
+                <span
+                  className="label"
+                  style={{ color: "var(--faint)", fontWeight: 400 }}
+                >
+                  {meta.description.length}/2000
+                </span>
+              </label>
+              <label>
+                <span className="label">How deeply to record</span>
+                <select
+                  value={meta.scope ?? "comprehensive"}
+                  onChange={(e) => setMeta({ ...meta, scope: e.target.value })}
+                >
+                  <option value="comprehensive">
+                    comprehensive —{" "}
+                    {col.kind === "clan"
+                      ? "every member's battles too"
+                      : "profile and every battle"}
+                  </option>
+                  <option value="activity">
+                    activity —{" "}
+                    {col.kind === "clan"
+                      ? "the clan itself only"
+                      : "profile only, no battles"}
+                  </option>
+                </select>
+                <span
+                  className="label"
+                  style={{ color: "var(--faint)", fontWeight: 400 }}
+                >
+                  {col.kind === "clan"
+                    ? "Comprehensive follows membership as it changes and records each member's battles and profile. Activity records the clan itself: roster, war, standings, participation."
+                    : "Comprehensive records each player's profile and every battle they play. Activity records the profile only."}{" "}
+                  Deepening applies to everything listed here and takes effect
+                  on save. It never takes capture away from a subject somebody
+                  else is already recording.
+                </span>
               </label>
               <label>
                 <span className="label">Visibility</span>

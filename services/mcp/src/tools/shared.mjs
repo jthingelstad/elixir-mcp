@@ -224,7 +224,7 @@ export async function ensureClanRecording(db, tag, requestedBy) {
   );
   const scope = eff[0]?.scope ?? "comprehensive"; // 'comprehensive' > 'activity' lexically
   const { rowCount: started } = await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, clan_scope)
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
      select 'clan', $1, $2, $3
      where not exists (select 1 from recording
                        where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
@@ -232,9 +232,9 @@ export async function ensureClanRecording(db, tag, requestedBy) {
   );
   if (started === 0) {
     await db.query(
-      `update recording set clan_scope = $2
+      `update recording set scope = $2
        where subject_type = 'clan' and subject_tag = $1 and status = 'active'
-         and clan_scope <> $2`,
+         and scope <> $2`,
       [tag, scope],
     );
   }
@@ -259,9 +259,9 @@ export async function settleClanRecording(db, tag) {
     return rowCount > 0;
   }
   await db.query(
-    `update recording set clan_scope = $2
+    `update recording set scope = $2
      where subject_type = 'clan' and subject_tag = $1 and status = 'active'
-       and clan_scope <> $2`,
+       and scope <> $2`,
     [tag, eff[0].scope],
   );
   return false;

@@ -278,7 +278,7 @@ test("clan page: entitled member sees war + roster; outsiders refused", async ()
     [CLAN],
   );
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, status, clan_scope) values ('clan', $1, $2, 'active', 'comprehensive')`,
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope) values ('clan', $1, $2, 'active', 'comprehensive')`,
     [CLAN, owner.account_id],
   );
   await db.query(
