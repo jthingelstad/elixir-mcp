@@ -17,7 +17,6 @@ export const REQUIRED_PARAMETERS = [
   "WebApiCodeKey",
   "McpCodeKey",
   "SchedulerCodeKey",
-  "IngestCodeKey",
   "EmailRelayCodeKey",
   "MigrateCodeKey",
   "JobsCodeKey",

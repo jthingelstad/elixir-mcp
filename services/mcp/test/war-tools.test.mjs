@@ -494,10 +494,13 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
 
 test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
   // Anchor a war-day period as freshly observed: periodInfo(4) -> war day 2,
-  // and a one-hour-old anchor keeps the nominal 10:00Z end in the future.
+  // A FRESH anchor: the nominal ~10:00Z end is always future (the next
+  // reset strictly after now), so this stays live regardless of what
+  // time the suite runs - a stale anchor's past nominal end is the
+  // SEPARATE staleness-guard case tested below.
   await db.query(
     `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
-     values ($1, 4, now() - interval '1 hour')
+     values ($1, 4, now())
      on conflict (clan_tag, period_index)
        do update set first_observed_at = excluded.first_observed_at`,
     [CLAN],

@@ -17,8 +17,6 @@ Parameters:
     Type: String
   SchedulerCodeKey:
     Type: String
-  IngestCodeKey:
-    Type: String
   EmailRelayCodeKey:
     Type: String
   MigrateCodeKey:
@@ -187,60 +185,6 @@ Resources:
       AutoMinorVersionUpgrade: true
 
   # ---------------------------------------------------------------- queues
-  RequestsLiveQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-cr-requests-live
-      VisibilityTimeout: 60
-      MessageRetentionPeriod: 345600
-      SqsManagedSseEnabled: true
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt RequestsLiveDlq.Arn
-        maxReceiveCount: 5
-
-  RequestsLiveDlq:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-cr-requests-live-dlq
-      MessageRetentionPeriod: 1209600
-      SqsManagedSseEnabled: true
-
-  RequestsBulkQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-cr-requests-bulk
-      VisibilityTimeout: 60
-      MessageRetentionPeriod: 345600
-      SqsManagedSseEnabled: true
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt RequestsBulkDlq.Arn
-        maxReceiveCount: 5
-
-  RequestsBulkDlq:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-cr-requests-bulk-dlq
-      MessageRetentionPeriod: 1209600
-      SqsManagedSseEnabled: true
-
-  ResultsQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-cr-results
-      VisibilityTimeout: 180
-      MessageRetentionPeriod: 345600
-      SqsManagedSseEnabled: true
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt ResultsDlq.Arn
-        maxReceiveCount: 5
-
-  ResultsDlq:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-cr-results-dlq
-      MessageRetentionPeriod: 1209600
-      SqsManagedSseEnabled: true
-
   EmailQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -277,32 +221,14 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              # Email is the one queue left: the VPC->internet bridge to
+              # the relay (SQS collector plumbing retired with the job
+              # ledger, 0040). Send to enqueue mail; read the email DLQ
+              # for the public status page.
               - Effect: Allow
                 Action: [sqs:SendMessage, sqs:GetQueueUrl]
-                Resource:
-                  - !GetAtt RequestsLiveQueue.Arn
-                  - !GetAtt RequestsBulkQueue.Arn
-                  - !GetAtt EmailQueue.Arn
-              - Effect: Allow
-                Action:
-                  [
-                    sqs:ReceiveMessage,
-                    sqs:DeleteMessage,
-                    sqs:GetQueueAttributes,
-                    sqs:GetQueueUrl,
-                  ]
-                Resource: !GetAtt ResultsQueue.Arn
-              # Zero-trust collector door: web-api leases (receive/delete)
-              # from the request queues and posts results ON BEHALF of
-              # token-authenticated collectors - operators hold no AWS
-              # credentials at all (COLLECTOR-ZERO-TRUST.md).
-              - Effect: Allow
-                Action: [sqs:ReceiveMessage, sqs:DeleteMessage]
-                Resource:
-                  - !GetAtt RequestsLiveQueue.Arn
-                  - !GetAtt RequestsBulkQueue.Arn
-              # Ledger health metrics (0040) - namespace-pinned, the
-              # lesson from the unscoped PutMetricData zero-trust killed.
+                Resource: !GetAtt EmailQueue.Arn
+              # Ledger health metrics (0040) - namespace-pinned.
               - Effect: Allow
                 Action: cloudwatch:PutMetricData
                 Resource: "*"
@@ -310,18 +236,8 @@ Resources:
                   StringEquals:
                     cloudwatch:namespace: ElixirMCP/Ledger
               - Effect: Allow
-                Action: [sqs:SendMessage]
-                Resource: !GetAtt ResultsQueue.Arn
-              # Public status page: depth + oldest-message age across the
-              # pipeline (read-only attribute peeks, no message access).
-              - Effect: Allow
                 Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl]
                 Resource:
-                  - !GetAtt RequestsLiveQueue.Arn
-                  - !GetAtt RequestsBulkQueue.Arn
-                  - !GetAtt RequestsLiveDlq.Arn
-                  - !GetAtt RequestsBulkDlq.Arn
-                  - !GetAtt ResultsDlq.Arn
                   - !GetAtt EmailDlq.Arn
               # Payload archive: ingest puts at admission; migrate exports
               # history and HEAD-verifies twins before the Postgres sweep.
@@ -416,7 +332,6 @@ Resources:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
-          LIVE_QUEUE_URL: !Ref RequestsLiveQueue
 
   SchedulerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -443,7 +358,6 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
-          BULK_QUEUE_URL: !Ref RequestsBulkQueue
 
   SchedulerRule:
     Type: AWS::Events::Rule
@@ -466,41 +380,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt SchedulerRule.Arn
-
-  IngestLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/elixir-mcp-ingest
-      RetentionInDays: 30
-
-  IngestFunction:
-    Type: AWS::Lambda::Function
-    DependsOn: IngestLogGroup
-    Properties:
-      FunctionName: elixir-mcp-ingest
-      Runtime: nodejs24.x
-      Architectures: [arm64]
-      Handler: index.handler
-      MemorySize: 512
-      Timeout: 120
-      ReservedConcurrentExecutions: 4
-      Role: !GetAtt VpcLambdaRole.Arn
-      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref IngestCodeKey }
-      VpcConfig:
-        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
-        SecurityGroupIds: [!Ref LambdaSecurityGroup]
-      Environment:
-        Variables:
-          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
-          ARCHIVE_BUCKET: !Ref ArchiveBucket
-
-  IngestEventSource:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      FunctionName: !Ref IngestFunction
-      EventSourceArn: !GetAtt ResultsQueue.Arn
-      BatchSize: 5
-      FunctionResponseTypes: [ReportBatchItemFailures]
 
   EmailRelayLogGroup:
     Type: AWS::Logs::LogGroup
@@ -874,70 +753,6 @@ Resources:
       # Routing of record is the sysadmin projects-ops-alerts queue; that
       # subscription is managed in the projects-sysadmin repo. No email.
 
-  RequestsBulkAgeAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-bulk-queue-age
-      AlarmDescription: Bulk request queue oldest message age high; gateways down or drowning
-      Namespace: AWS/SQS
-      MetricName: ApproximateAgeOfOldestMessage
-      Dimensions:
-        [{ Name: QueueName, Value: !GetAtt RequestsBulkQueue.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 900
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DlqAlarmLive:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-dlq-requests-live
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        [{ Name: QueueName, Value: !GetAtt RequestsLiveDlq.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DlqAlarmBulk:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-dlq-requests-bulk
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        [{ Name: QueueName, Value: !GetAtt RequestsBulkDlq.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DlqAlarmResults:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-dlq-results
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions: [{ Name: QueueName, Value: !GetAtt ResultsDlq.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
   DlqAlarmEmail:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -1029,21 +844,6 @@ Resources:
       Threshold: 1
       ComparisonOperator: LessThanThreshold
       TreatMissingData: breaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  IngestErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-ingest-errors
-      Namespace: AWS/Lambda
-      MetricName: Errors
-      Dimensions: [{ Name: FunctionName, Value: !Ref IngestFunction }]
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
   # The user-facing doors (review 2026-09-05): the pipeline was fully

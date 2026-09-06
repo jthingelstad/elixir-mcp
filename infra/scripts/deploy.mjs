@@ -126,7 +126,6 @@ const required = {
   WebApiCodeKey: codeKeys["web-api"],
   McpCodeKey: codeKeys.mcp,
   SchedulerCodeKey: codeKeys.scheduler,
-  IngestCodeKey: codeKeys.ingest,
   EmailRelayCodeKey: codeKeys["email-relay"],
   MigrateCodeKey: codeKeys.migrate,
   JobsCodeKey: codeKeys.jobs,

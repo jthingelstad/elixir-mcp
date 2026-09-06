@@ -25,15 +25,10 @@ async function enqueueEmail(msg) {
   );
 }
 
-const STATUS_QUEUES = [
-  ["live", "elixir-mcp-cr-requests-live"],
-  ["bulk", "elixir-mcp-cr-requests-bulk"],
-  ["results", "elixir-mcp-cr-results"],
-  ["live_dlq", "elixir-mcp-cr-requests-live-dlq"],
-  ["bulk_dlq", "elixir-mcp-cr-requests-bulk-dlq"],
-  ["results_dlq", "elixir-mcp-cr-results-dlq"],
-  ["email_dlq", "elixir-mcp-email-dlq"],
-];
+// Only the email queue remains (0040 retired the collector queues for
+// the Postgres job ledger). The status page reads job health from the
+// ledger now; this covers the email DLQ.
+const STATUS_QUEUES = [["email_dlq", "elixir-mcp-email-dlq"]];
 const queueUrlCache = new Map();
 
 /** Depth + oldest-message age per pipeline queue. Any failure yields

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Admission boundary + canonical projections: raw CR payloads in, receipts/battles/roster observations out (DESIGN \u00a75.1, \u00a74.3-4.5). Runs as the ingest Lambda on the results queue.",
   "type": "module",
-  "main": "src/index.mjs",
+  "main": "src/handler.mjs",
   "scripts": {
     "test": "node --test"
   },

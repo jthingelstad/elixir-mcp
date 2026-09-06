@@ -21,7 +21,6 @@ export const LAMBDAS = [
   { name: "web-api", entry: "services/web-api/src/index.mjs" },
   { name: "mcp", entry: "services/mcp/src/index.mjs" },
   { name: "scheduler", entry: "services/scheduler/src/index.mjs" },
-  { name: "ingest", entry: "services/ingest/src/index.mjs" },
   { name: "email-relay", entry: "services/email-relay/src/index.mjs" },
   { name: "migrate", entry: "services/migrate/src/lambda.mjs" },
   { name: "jobs", entry: "services/jobs/src/index.mjs" },
