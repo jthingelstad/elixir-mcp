@@ -1015,3 +1015,56 @@ test("collections_edit will not let you curate somebody else's collection", asyn
   assert.match(JSON.stringify(denied.body), /belongs to someone else/);
   await db.query(`delete from collection where slug = 'theirs'`);
 });
+
+test("players_profile answers the player as a game entity, not just a name (§7.2)", async () => {
+  // The projection itself is covered in the ingest suite against the
+  // real fixture; this pins that the tool actually SERVES it, which is
+  // the half a consumer sees.
+  const tag = "#2YG98VVQ";
+  await db.query(
+    `insert into clan (clan_tag, name, badge_id) values ('#J2RGCRVG', 'POAP KINGS', 16000107)
+     on conflict (clan_tag) do update set badge_id = 16000107`,
+  );
+  await db.query(
+    `insert into player (player_tag, name, last_known_clan_tag, last_known_clan_role,
+                        years_played, account_age_days)
+     values ($1, 'Alfablack', '#J2RGCRVG', 'coLeader', 4, 1637)
+     on conflict (player_tag) do update set
+       last_known_clan_tag = '#J2RGCRVG', last_known_clan_role = 'coLeader',
+       years_played = 4, account_age_days = 1637`,
+    [tag],
+  );
+  await db.query(
+    `insert into player_snapshot_daily
+       (player_tag, snapshot_date, snapshot_kind, trophies, arena_id, best_trophies,
+        favorite_card_id, observed_at)
+     values ($1, current_date, 'daily', 8000, 54000144, 9001, 26000000, now())
+     on conflict (player_tag, snapshot_date, snapshot_kind) do update set
+       arena_id = 54000144, best_trophies = 9001, favorite_card_id = 26000000`,
+    [tag],
+  );
+  await db.query(
+    `insert into player_badge (player_tag, name, level, max_level, progress, target, observed_at)
+     values ($1, 'YearsPlayed', 4, 11, 1637, 1825, now())
+     on conflict (player_tag, name) do nothing`,
+    [tag],
+  );
+
+  const { body, isError } = await call("players_profile", { player_tag: tag });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.clan.badge_id, 16000107, "the badge belongs to the clan");
+  assert.equal(body.clan.role, "coLeader", "the player's own standing");
+  assert.equal(body.attributes.arena_id, 54000144);
+  assert.equal(body.attributes.best_trophies, 9001);
+  assert.equal(body.attributes.favorite_card_id, 26000000);
+  assert.equal(body.attributes.account_age_days, 1637);
+  assert.equal(body.attributes.years_played, 4);
+
+  const years = body.badges.find((b) => b.name === "YearsPlayed");
+  assert.equal(years.progress, 1637, "account age in days");
+  assert.equal(years.max_level, 11);
+
+  // Ids only: a renamed arena or a new icon must never leave stale
+  // copies here, so nothing resolves to an asset URL.
+  assert.doesNotMatch(JSON.stringify(body), /api-assets\.clashroyale\.com/);
+});

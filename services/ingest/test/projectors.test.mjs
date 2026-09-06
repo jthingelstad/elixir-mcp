@@ -346,3 +346,80 @@ test("snapshots: an older delayed observation never regresses the day (sol-6 F7)
   );
   assert.equal(after[0].trophies, 6200);
 });
+
+test("the profile message projects the player as a game entity (§7.2)", async () => {
+  // Every one of these arrives in the payload we already record and was
+  // thrown away, so a consumer wanting the clan badge, the clan role or
+  // an account age had to spend a LIVE Clash Royale read on facts we
+  // already held.
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: "2026-09-02T12:00:00Z",
+    }),
+  );
+
+  const { rows: snap } = await ctx.db.query(
+    `select arena_id, best_trophies, favorite_card_id from player_snapshot_daily
+     where player_tag = $1 and snapshot_date = '2026-09-02' and snapshot_kind = 'daily'`,
+    [tag],
+  );
+  assert.equal(snap[0].arena_id, profile.arena.id);
+  assert.equal(snap[0].best_trophies, profile.bestTrophies);
+  assert.equal(snap[0].favorite_card_id, profile.currentFavouriteCard.id);
+
+  const { rows: who } = await ctx.db.query(
+    `select p.last_known_clan_role, c.badge_id
+     from player p left join clan c on c.clan_tag = p.last_known_clan_tag
+     where p.player_tag = $1`,
+    [tag],
+  );
+  // The role is the player's; the badge is the clan's.
+  assert.equal(who[0].last_known_clan_role, profile.role);
+  assert.equal(who[0].badge_id, profile.clan.badgeId);
+
+  const { rows: badges } = await ctx.db.query(
+    `select count(*)::int as n from player_badge where player_tag = $1`,
+    [tag],
+  );
+  assert.equal(badges[0].n, profile.badges.length, "one row per badge");
+
+  const { rows: years } = await ctx.db.query(
+    `select level, max_level, progress, target from player_badge
+     where player_tag = $1 and name = 'YearsPlayed'`,
+    [tag],
+  );
+  // progress is DAYS played: this is where account age comes from.
+  assert.equal(years[0].progress, 1712);
+  assert.equal(years[0].max_level, 11);
+
+  // Badges are current state, upserted only when something moved: a
+  // second identical payload must not rewrite 139 rows.
+  const before = await ctx.db.query(
+    `select max(observed_at) as at from player_badge where player_tag = $1`,
+    [tag],
+  );
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: "2026-09-02T18:00:00Z",
+    }),
+  );
+  const after = await ctx.db.query(
+    `select max(observed_at) as at from player_badge where player_tag = $1`,
+    [tag],
+  );
+  assert.deepEqual(
+    after.rows[0].at,
+    before.rows[0].at,
+    "unchanged badges are not rewritten",
+  );
+});

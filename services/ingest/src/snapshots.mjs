@@ -18,6 +18,51 @@ import { payloadHash } from "./hash.mjs";
 import { emitEvent } from "./events.mjs";
 import { refreshCompleteness } from "./rollups.mjs";
 
+/**
+ * Badges are CURRENT STATE, not a daily blob (§7.2). ~139 per player
+ * per day would be the largest thing we write to say almost nothing;
+ * this touches only the ones that actually moved.
+ */
+export async function projectPlayerBadges(
+  db,
+  { playerTag, payload, fetchedAt },
+) {
+  if (!Array.isArray(payload.badges) || payload.badges.length === 0) return 0;
+  const rows = payload.badges.filter(
+    (badge) => badge && typeof badge.name === "string" && badge.name,
+  );
+  if (rows.length === 0) return 0;
+  const { rowCount } = await db.query(
+    `insert into player_badge (player_tag, name, level, max_level, progress, target, observed_at)
+     select $1, b.name, b.level, b.max_level, b.progress, b.target, $3::timestamptz
+     from jsonb_to_recordset($2::jsonb)
+       as b(name text, level int, max_level int, progress int, target int)
+     on conflict (player_tag, name) do update set
+       level = excluded.level, max_level = excluded.max_level,
+       progress = excluded.progress, target = excluded.target,
+       observed_at = excluded.observed_at
+     where player_badge.observed_at < excluded.observed_at
+       and (player_badge.level is distinct from excluded.level
+         or player_badge.progress is distinct from excluded.progress
+         or player_badge.target is distinct from excluded.target
+         or player_badge.max_level is distinct from excluded.max_level)`,
+    [
+      playerTag,
+      JSON.stringify(
+        rows.map((badge) => ({
+          name: badge.name,
+          level: badge.level ?? null,
+          max_level: badge.maxLevel ?? null,
+          progress: badge.progress ?? null,
+          target: badge.target ?? null,
+        })),
+      ),
+      fetchedAt,
+    ],
+  );
+  return rowCount;
+}
+
 export async function projectPlayerSnapshot(
   db,
   { playerTag, payload, fetchedAt, receiptId = null, kind = "daily" },
@@ -46,14 +91,18 @@ export async function projectPlayerSnapshot(
   await db.query(
     `insert into player_snapshot_daily
        (player_tag, snapshot_date, snapshot_kind, trophies, pol, league_stats,
-        donations, donations_received, lifetime, collection_hash, observed_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        donations, donations_received, lifetime, collection_hash, observed_at,
+        arena_id, best_trophies, favorite_card_id)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
        trophies = excluded.trophies, pol = excluded.pol,
        league_stats = excluded.league_stats, donations = excluded.donations,
        donations_received = excluded.donations_received,
        lifetime = excluded.lifetime, collection_hash = excluded.collection_hash,
        observed_at = excluded.observed_at,
+       arena_id = excluded.arena_id,
+       best_trophies = excluded.best_trophies,
+       favorite_card_id = excluded.favorite_card_id,
        created_at = now()
      where player_snapshot_daily.observed_at is null
         or excluded.observed_at >= player_snapshot_daily.observed_at`,
@@ -72,6 +121,10 @@ export async function projectPlayerSnapshot(
       JSON.stringify(lifetime),
       Array.isArray(payload.cards) ? payloadHash(payload.cards) : null,
       fetchedAt,
+      // Ids only; names and icons resolve from the catalog at read time.
+      payload.arena?.id ?? null,
+      payload.bestTrophies ?? null,
+      payload.currentFavouriteCard?.id ?? null,
     ],
   );
 

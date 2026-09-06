@@ -137,7 +137,7 @@ export const playersTools = {
 
   players_profile: {
     description:
-      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan. as-of the last profile poll.",
+      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan (with its badge and the player's role), the player's attributes (arena, best trophies, favourite card, account age) and current badge state. as-of the last profile poll.",
     inputSchema: {
       type: "object",
       properties: {
@@ -179,8 +179,16 @@ export const playersTools = {
       }
       const { rows } = await ctx.db.query(
         `select p.player_tag, p.name, p.last_known_clan_tag, cl.name as clan_name,
+                cl.badge_id as clan_badge_id, p.last_known_clan_role,
+                p.years_played, p.account_age_days,
                 s.snapshot_date, s.snapshot_kind, s.trophies, s.pol, s.league_stats,
-                s.donations, s.donations_received, s.lifetime, s.created_at as snapshot_at
+                s.donations, s.donations_received, s.lifetime, s.created_at as snapshot_at,
+                s.arena_id, s.best_trophies, s.favorite_card_id,
+                (select coalesce(jsonb_agg(jsonb_build_object(
+                    'name', b.name, 'level', b.level, 'max_level', b.max_level,
+                    'progress', b.progress, 'target', b.target)
+                  order by b.name), '[]'::jsonb)
+                 from player_badge b where b.player_tag = p.player_tag) as badges
          from player p
          left join clan cl on cl.clan_tag = p.last_known_clan_tag
          left join lateral (
@@ -207,8 +215,28 @@ export const playersTools = {
         player_tag: row.player_tag,
         name: row.name,
         clan: row.last_known_clan_tag
-          ? { clan_tag: row.last_known_clan_tag, name: row.clan_name }
+          ? {
+              clan_tag: row.last_known_clan_tag,
+              name: row.clan_name,
+              badge_id: row.clan_badge_id,
+              // The player's own account of their standing, as of the
+              // last profile poll. Null once they leave a clan.
+              role: row.last_known_clan_role,
+            }
           : null,
+        // The player as a game entity, separate from the daily numbers.
+        // Ids only: names and icons resolve from cards_catalog, so a
+        // renamed arena or a new icon never leaves stale copies here.
+        attributes: {
+          arena_id: row.arena_id,
+          best_trophies: row.best_trophies,
+          favorite_card_id: row.favorite_card_id,
+          years_played: row.years_played,
+          account_age_days: row.account_age_days,
+        },
+        // Current badge state, newest observation per badge. YearsPlayed
+        // carries account age in days as its progress.
+        badges: row.badges ?? [],
         snapshot: {
           date: row.snapshot_date.toISOString().slice(0, 10),
           trophies: row.trophies,

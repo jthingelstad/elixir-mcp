@@ -21,7 +21,7 @@ import { payloadHash } from "./hash.mjs";
 import { admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
-import { projectPlayerSnapshot } from "./snapshots.mjs";
+import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
 
@@ -130,9 +130,13 @@ const PROJECTORS = {
     if (payload.clan?.tag) {
       try {
         clanTag = normalizeTag(payload.clan.tag);
+        // The badge belongs to the CLAN. Keep the newest non-null we
+        // have seen rather than letting a payload without one erase it.
         await db.query(
-          `insert into clan (clan_tag, name) values ($1, $2) on conflict (clan_tag) do nothing`,
-          [clanTag, payload.clan.name ?? null],
+          `insert into clan (clan_tag, name, badge_id) values ($1, $2, $3)
+           on conflict (clan_tag) do update
+             set badge_id = coalesce(excluded.badge_id, clan.badge_id)`,
+          [clanTag, payload.clan.name ?? null, payload.clan.badgeId ?? null],
         );
       } catch {
         clanTag = null;
@@ -142,17 +146,29 @@ const PROJECTORS = {
     // regress identity: stamps apply only when this observation is the
     // newest; first/last_seen bracket honestly.
     await db.query(
-      `insert into player (player_tag, name, last_known_clan_tag, first_seen_at, last_seen_at)
-       values ($1, $2, $3, $4, $4)
+      `insert into player (player_tag, name, last_known_clan_tag, first_seen_at, last_seen_at, last_known_clan_role)
+       values ($1, $2, $3, $4, $4, $5)
        on conflict (player_tag) do update
          set name = case when $4 >= player.last_seen_at
                          then coalesce(excluded.name, player.name) else player.name end,
              last_known_clan_tag = case when $4 >= player.last_seen_at
                          then coalesce(excluded.last_known_clan_tag, player.last_known_clan_tag)
                          else player.last_known_clan_tag end,
+             last_known_clan_role = case when $4 >= player.last_seen_at
+                         then excluded.last_known_clan_role
+                         else player.last_known_clan_role end,
              first_seen_at = least(player.first_seen_at, $4),
              last_seen_at = greatest(player.last_seen_at, $4)`,
-      [entityKey, payload.name ?? null, clanTag, fetchedAt],
+      // The role is the player's own account of their standing in the
+      // clan they are in NOW. Unlike the tag it is not coalesced: a
+      // player who left has no role, and saying so is the honest read.
+      [
+        entityKey,
+        payload.name ?? null,
+        clanTag,
+        fetchedAt,
+        clanTag ? (payload.role ?? null) : null,
+      ],
     );
     // Tenure from the YearsPlayed badge (0024): level = completed years,
     // progress = account age in days. Absent badge = UNKNOWN (verified
@@ -174,6 +190,11 @@ const PROJECTORS = {
         ],
       );
     }
+    await projectPlayerBadges(db, {
+      playerTag: entityKey,
+      payload,
+      fetchedAt,
+    });
     const snapshot = await projectPlayerSnapshot(db, {
       playerTag: entityKey,
       payload,
