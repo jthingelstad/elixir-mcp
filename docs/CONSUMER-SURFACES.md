@@ -10,10 +10,20 @@ build order but starting with Drop at Jamie's direction:
 - Drop holds a small MCP JSON-RPC client and adds every player who has saved
   a Clash Royale tag to the `elixir-drop` collection, on tag save and on each
   login. Membership is what makes the hub record them.
-- **Not yet done:** player enrichment still runs through the SQS bridge, the
-  war clock still comes from the bridge's own CR polling, and `cards[]` is
-  still collected and stored. The bridge, its two queue pairs, its IAM user
-  and its Mac host all remain.
+- §7.2 shipped (contract 0.25.0): `players_profile` answers the clan badge,
+  the player's clan role, arena, best trophies, favourite card, account age
+  and current badge state. All of it already arrived in recorded payloads and
+  was discarded.
+- Drop's player enrichment reads `live_fetch`, its Clan Wars clock reads
+  `war_current`, and `cards[]` is no longer stored.
+- **The bridge is retired (2026-09-06).** Its request queue pair, IAM user,
+  launch agent and alarms are deleted. Drop makes zero Clash Royale calls at
+  runtime. The result queue survives as the manual season-repair channel
+  only: podium-finalize has no producer in the repo, and deleting it would
+  have removed a working repair path.
+- **Open:** Drop still live-fetches enrichment rather than reading the
+  recorded profile now that §7.2 landed. Moving it would drop 1-3s from a
+  cold login and stop spending CR budget on cosmetic data.
 
 Record deltas in `NOTES.md` as usual.
 
