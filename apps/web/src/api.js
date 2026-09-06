@@ -58,8 +58,7 @@ export const api = {
     request("POST", "/api/admin/gateways", { gateway_id, action }),
   myGateways: () => request("GET", "/api/me/gateways"),
   gatewayLadder: () => request("GET", "/api/gateways/ladder"),
-  raiseGateway: (name, static_ip) =>
-    request("POST", "/api/gateways", { name, static_ip }),
+  raiseGateway: (name) => request("POST", "/api/gateways", { name }),
   requestRole: (role, note) =>
     request("POST", "/api/me/role-request", { role, note }),
   adminAccounts: () => request("GET", "/api/admin/accounts"),

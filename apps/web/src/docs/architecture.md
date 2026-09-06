@@ -83,16 +83,25 @@ at a cabin. What makes the fleet interesting:
 - **Credits.** Fetches earn points, and points convert to the
   operator's own daily tool-call quota at 10:1 (capped at 4× the tier
   base). Running a collector literally buys your agent more questions.
-- **Self-serve provisioning.** Raising your hand on the site stages a
-  one-time-download `.env` for your machine; each collector gets its
-  own IAM user scoped to exactly three things (lease requests, post
-  results, publish a heartbeat metric). The Clash Royale key is the one
-  thing that never passes through the service — operators create their
-  own, IP-bound.
-- **Self-update.** Collectors check GitHub Releases hourly, verify the
-  SHA-256, swap themselves atomically, and exit for the supervisor to
-  restart. An update failure never stops collection; a dev build never
-  self-updates.
+- **Zero trust, zero AWS.** A collector holds exactly two secrets: its
+  operator's own IP-bound Clash Royale key, and a bearer token we
+  issue. It speaks three HTTPS routes (config / lease / submit) —
+  no AWS credentials, no queues, nothing that touches the tenant. The
+  server computes each job's CR path and stamps the collector's
+  identity onto results itself, so impersonation is structurally
+  impossible and collection changes never require a client update.
+- **Channels.** Operator collectors serve the bulk channel only —
+  scheduler-chosen work, polled lazily. The live channel (user-facing
+  fetches) runs exclusively on machines we operate.
+- **Self-update, server-authorized.** The config endpoint names the one
+  binary version and SHA-256 a collector may install — a compromised
+  release page alone cannot push code to operators. An update failure
+  never stops collection; a dev build never self-updates.
+- **Misbehavior is bounded.** At most two unsubmitted leases at a time;
+  leases that expire unsubmitted redeliver their jobs and count against
+  the collector, and a collapsing submit ratio quarantines it
+  automatically. Every payload is provenance-stamped forever, so even a
+  late-discovered bad actor's data can be purged and replayed away.
 - **Capture audit.** Every fresh battle-log poll with prior coverage is
   audited: if the payload's *oldest* battle was previously unseen, the
   rotating log may have rolled past something — recorded as a possible

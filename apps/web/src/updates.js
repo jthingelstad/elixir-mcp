@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Collectors go zero-trust",
+    body: "The collector fleet was rebuilt overnight around a simple rule: operators cannot be assumed safe. Collectors are now pure API clients - a bearer token we issue, three HTTPS routes, no AWS credentials of any kind - and the server computes what to fetch, stamps identity on every result, caps outstanding work, and quarantines a collector that takes jobs without returning them. Enrollment is just a name now (no IP collected), provisioning is a one-time download, and self-updates only install the exact binary hash the server names. Our two home collectors already run the new model - one in Go, one in Python, deliberately different so no single bad release can silence the fleet.",
+  },
+  {
+    date: "2026-09-06",
     title: "Hardening pass from an outside assessment",
     body: "An independent review of the whole system produced a punch list, now shipped: war-day events and the current-war view survive season rollover (the period index resets each season - the anchors now know that), staying signed in actually works (sessions slide with activity up to 90 days instead of dying at day nine), every recorded payload is verified to be ABOUT the player or clan it was requested for, delayed data can no longer overwrite newer snapshots, and deploys now run schema migrations before new code goes live.",
   },

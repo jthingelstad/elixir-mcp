@@ -12,7 +12,7 @@ export function CollectorPage() {
   const [gateways, setGateways] = useState(null);
   const [ladder, setLadder] = useState([]);
   const [details, setDetails] = useState({});
-  const [form, setForm] = useState({ name: "", static_ip: "" });
+  const [form, setForm] = useState({ name: "" });
   const [raised, setRaised] = useState(false);
   const [err, setErr] = useState("");
 
@@ -270,27 +270,14 @@ export function CollectorPage() {
                       }
                     />
                   </label>
-                  <label>
-                    <span className="label">Static IP</span>
-                    <input
-                      className="mono"
-                      placeholder="203.0.113.7"
-                      value={form.static_ip}
-                      onChange={(e) =>
-                        setForm({ ...form, static_ip: e.target.value })
-                      }
-                    />
-                  </label>
+
                   {err && <span className="field-error">{err}</span>}
                   <div>
                     <button
                       className="btn btn--gold"
                       onClick={async () => {
                         setErr("");
-                        const r = await api.raiseGateway(
-                          form.name.trim(),
-                          form.static_ip.trim(),
-                        );
+                        const r = await api.raiseGateway(form.name.trim());
                         if (r.ok) {
                           setRaised(true);
                           load();

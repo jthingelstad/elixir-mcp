@@ -338,21 +338,15 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
     }),
   );
   assert.equal(bad.statusCode, 400);
-  const badIp = await handler(
-    event({
-      path: "/api/gateways",
-      cookie,
-      body: { name: "kitchen-mac", static_ip: "not-an-ip" },
-    }),
-  );
-  assert.equal(badIp.statusCode, 400);
 
+  // Zero-trust enrollment is a NAME only - no IP collected; a stray
+  // static_ip field is simply ignored (COLLECTOR-ZERO-TRUST.md).
   const raise = parse(
     await handler(
       event({
         path: "/api/gateways",
         cookie,
-        body: { name: "Kitchen-Mac", static_ip: "203.0.113.7" },
+        body: { name: "Kitchen-Mac" },
       }),
     ),
   );

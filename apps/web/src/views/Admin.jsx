@@ -354,7 +354,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
             <tr>
               <th>Name</th>
               <th>Status</th>
-              <th>IP</th>
+              <th>Channel</th>
               <th>Heartbeat</th>
               <th>Fetches (1h)</th>
               <th></th>
@@ -384,7 +384,11 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                     </span>
                   </td>
                   <td>
-                    <code>{g.static_ip}</code>
+                    <span
+                      className={`chip ${g.channel === "live" ? "chip--active" : ""}`}
+                    >
+                      {g.channel ?? "bulk"}
+                    </span>
                   </td>
                   <td>
                     {g.last_heartbeat_at

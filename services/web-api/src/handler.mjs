@@ -1592,18 +1592,17 @@ export function makeHandler({
         .toLowerCase();
       if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(name))
         return json(400, { error: "invalid_name" });
-      const ip = String(body.static_ip ?? "").trim();
-      if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip))
-        return json(400, { error: "invalid_ip" });
+      // Zero-trust: no IP collected - the CR key's IP binding is
+      // operator<->Supercell business (COLLECTOR-ZERO-TRUST.md).
       const dupe = await db.query(
         `select 1 from gateway where name = $1 and status <> 'revoked'`,
         [name],
       );
       if (dupe.rows.length > 0) return json(409, { error: "name_taken" });
       const { rows } = await db.query(
-        `insert into gateway (owner_account_id, name, static_ip)
-         values ($1, $2, $3) returning gateway_id`,
-        [account.accountId, name, ip],
+        `insert into gateway (owner_account_id, name)
+         values ($1, $2) returning gateway_id`,
+        [account.accountId, name],
       );
       await notifyOwner({ kind: "gateway_request", playerTag: name });
       await logEvent(db, account.accountId, "gateway_raised", { name });
@@ -1620,7 +1619,7 @@ export function makeHandler({
       if (!account) return json(401, { error: "unauthenticated" });
       await ensureGatewayCards(db);
       const { rows } = await db.query(
-        `select g.gateway_id, g.name, g.status, g.static_ip, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
+        `select g.gateway_id, g.name, g.status, g.channel, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
                 g.fetch_points, g.card_name, g.card_icon,
                 (g.provision_env is not null) as provision_ready,
                 (select count(*)::int from api_receipt ar
