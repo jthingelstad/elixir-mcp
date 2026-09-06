@@ -159,7 +159,7 @@ async function computeClanPulse(db, tag, periodInfo) {
   let war = null;
   const { rows: anchorRows } = await db.query(
     `select period_index, first_observed_at from war_period_anchor
-     where clan_tag = $1 order by period_index desc limit 1`,
+     where clan_tag = $1 order by first_observed_at desc limit 1`,
     [tag],
   );
   if (anchorRows[0]) {

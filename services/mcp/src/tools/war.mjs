@@ -142,7 +142,7 @@ export const warTools = {
       // fields a temporal claim can CITE instead of infer.
       const { rows: anchorRows } = await ctx.db.query(
         `select period_index, first_observed_at from war_period_anchor
-         where clan_tag = $1 order by period_index desc limit 1`,
+         where clan_tag = $1 order by first_observed_at desc limit 1`,
         [clanTag],
       );
       let period = null;

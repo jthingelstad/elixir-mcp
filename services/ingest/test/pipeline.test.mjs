@@ -76,6 +76,20 @@ test("battlelog message flows end to end: payload, receipt, battles, freshness, 
   assert.equal(result.outcome, "admitted");
   assert.equal(result.projection.battlesSeen, payload.length);
 
+  // The S3 archive key is built from the collector's fetched_at and the
+  // weekly sweep reconstructs it from first_fetched_at - the two must
+  // agree or every twin lookup misses (sol-6 finding 6).
+  const { rows: ts } = await ctx.db.query(
+    `select first_fetched_at from api_payload
+     where endpoint = 'player_battlelog' and entity_key = $1`,
+    [observer],
+  );
+  assert.equal(
+    ts[0].first_fetched_at.toISOString(),
+    new Date(FRESH_AT).toISOString(),
+    "first_fetched_at is the collector's fetch time, not ingest now()",
+  );
+
   const payloads = (
     await ctx.db.query(`select count(*)::int n from api_payload`)
   ).rows[0].n;

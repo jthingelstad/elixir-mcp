@@ -463,3 +463,67 @@ test("war_day_open: first sight of a war-day period emits once, guarded", async 
   });
   assert.equal(r4.feedEvents.length, 0, "replay is history, not news");
 });
+
+test("season rollover: a stale same-index anchor refreshes and re-arms war_day_open", async () => {
+  const clan = "#PYLQGR99";
+  await ctx.db.query(`insert into clan (clan_tag) values ($1)`, [clan]);
+  const war = await fixture("currentriverrace/war_day.json"); // periodIndex 27
+  war.clan = { ...war.clan, tag: clan };
+
+  // Last season observed this index five weeks ago (periodIndex resets
+  // each season, so the key collides at rollover).
+  const staleIso = new Date(Date.now() - 35 * 86400_000).toISOString();
+  await ctx.db.query(
+    `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
+     values ($1, $2, $3)`,
+    [clan, war.periodIndex, staleIso],
+  );
+
+  const fresh = new Date(Date.now() - 3600_000).toISOString();
+  const r = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: war,
+    fetchedAt: fresh,
+  });
+  assert.equal(
+    r.feedEvents.filter((e) => e.topic === "war_day_open").length,
+    1,
+    "the new season's first sight of the index re-arms war_day_open",
+  );
+  const { rows } = await ctx.db.query(
+    `select first_observed_at from war_period_anchor
+     where clan_tag = $1 and period_index = $2`,
+    [clan, war.periodIndex],
+  );
+  assert.equal(
+    rows[0].first_observed_at.toISOString(),
+    new Date(fresh).toISOString(),
+    "anchor refreshed to the new season's observation",
+  );
+
+  // A same-season re-poll (minutes later) must NOT refresh or re-emit.
+  const rePoll = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: war,
+    fetchedAt: new Date().toISOString(),
+  });
+  assert.equal(rePoll.feedEvents.length, 0, "same-season anchor holds");
+
+  // A replayed OLD payload can never walk the anchor backwards.
+  const replayOld = await projectRiverRace(ctx.db, {
+    clanTag: clan,
+    payload: war,
+    fetchedAt: staleIso,
+  });
+  assert.equal(replayOld.feedEvents.length, 0);
+  const { rows: after } = await ctx.db.query(
+    `select first_observed_at from war_period_anchor
+     where clan_tag = $1 and period_index = $2`,
+    [clan, war.periodIndex],
+  );
+  assert.equal(
+    after[0].first_observed_at.toISOString(),
+    new Date(fresh).toISOString(),
+    "replay is history, not a new period",
+  );
+});

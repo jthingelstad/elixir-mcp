@@ -58,10 +58,22 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     [tag],
   );
 
-  // 1. Anchor: first observation of this period wins, forever.
+  // 1. Anchor: first observation of this period wins — WITHIN a season.
+  // periodIndex is season-monotonic and RESETS each season (cr docs),
+  // so the same (clan, index) key returns every ~5 weeks. An anchor
+  // more than 7 days older than the new observation is last season's:
+  // refresh it, and treat the period as newly opened (this is also
+  // what re-arms war_day_open after a season rolls). A replayed OLD
+  // payload can never refresh (its fetchedAt is not newer). Found by
+  // the sol-6 assessment, 2026-09-05.
   const { rows: anchorInsert } = await db.query(
     `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
-     values ($1, $2, $3) on conflict do nothing returning period_index`,
+     values ($1, $2, $3)
+     on conflict (clan_tag, period_index) do update
+       set first_observed_at = excluded.first_observed_at
+       where excluded.first_observed_at
+             > war_period_anchor.first_observed_at + interval '7 days'
+     returning period_index`,
     [tag, payload.periodIndex, fetchedAt],
   );
 

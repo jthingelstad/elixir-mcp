@@ -315,12 +315,16 @@ export async function processResult(db, rawMessage, deps = {}) {
       const {
         rows: [payloadRow],
       } = await db.query(
-        `insert into api_payload (endpoint, entity_key, payload_hash, payload_json)
-         values ($1, $2, $3, $4)
+        `insert into api_payload (endpoint, entity_key, payload_hash, payload_json, first_fetched_at)
+         values ($1, $2, $3, $4, $5)
          on conflict (endpoint, entity_key, payload_hash)
            do update set last_fetched_at = now()
          returning (xmax = 0) as fresh_content`,
-        [endpoint, entityKey, hash, JSON.stringify(payload)],
+        // first_fetched_at is the COLLECTOR's fetch time, not ingest
+        // now(): the S3 archive key below is built from it, and the
+        // weekly sweep reconstructs that key from this column — the
+        // two must agree or every twin lookup misses (sol-6 finding 6).
+        [endpoint, entityKey, hash, JSON.stringify(payload), msg.fetched_at],
       );
       if (payloadRow.fresh_content && deps.archive) {
         await deps.archive.put(
