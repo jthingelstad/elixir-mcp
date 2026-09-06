@@ -133,7 +133,7 @@ channel. If our live collectors are down, `live_fetch` degrades to its
 structured `live_unavailable` while operator bulk recording continues
 untouched.
 
-### Option: live fetches served internally, no collector at all
+### Considered and REJECTED (Jamie, 2026-09-06): internal live fetches
 
 Could Elixir MCP make live fetches itself? Technically yes, and it
 would delete the live channel entirely — but it changes two deliberate
@@ -156,10 +156,9 @@ collectors anyway, so the machine dependency leaves only the live
 path — a path that already degrades to a structured
 `live_unavailable` rather than failing.
 
-**Recommendation:** ship the channels split now (clear win, no rule
-changes); treat internal live as a later phase to take only if
-owner-machine uptime for the live lane actually proves annoying —
-and with the NAT-instance variant, not managed NAT, if we do.
+**Decision (Jamie):** rejected — the IP-allowlist/egress cost plus the
+privacy angle settle it. Live stays on private collectors WE run; the
+channels split above is the ratified shape.
 
 ### Costs and trade-offs, stated honestly
 
