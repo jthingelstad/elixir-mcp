@@ -184,6 +184,20 @@ bodies) defends against replay and tampering that TLS already prevents;
 submits are additionally idempotent at ingest (receipt dedup). Neither
 earns its operational weight here.
 
+### Client code attestation ("prove the binary is unmodified"): NO
+
+Any integrity proof produced ON an untrusted machine is answered BY
+that machine — a modified client reports the clean binary's hash.
+Unforgeable attestation needs a hardware root of trust (TPM/enclave),
+which is enterprise machinery this fleet will never justify. It is
+also the wrong target: a byte-perfect binary behind a lying proxy
+still poisons data, and a modified binary that submits truth is
+harmless. Integrity of BEHAVIOR is what matters, and the
+output-side defenses below are how it is checked. Hashing earns its
+keep only in the download direction (the server names the SHA-256 the
+client must install), and `gateway_sha` stays in heartbeats as an
+honest what-are-you-running signal — telemetry, never proof.
+
 ### Self-update signing: YES — and the server is the root of trust
 
 The one real signing gap is the update path: today the collector
