@@ -89,6 +89,7 @@ export function makeHandler({
   secret,
   sendLoginEmail,
   notifyOwner = async () => {},
+  sendWelcomeEmail = async () => {},
   queueStats = async () => null,
   track = null,
   collectorDoor = null,
@@ -190,6 +191,9 @@ export function makeHandler({
         emailHash: emailHash(email),
         playerTag,
         note: String(body.note ?? "").slice(0, 500) || null,
+        // Held only until this request is decided, so the approval mail
+        // this page promises can reach them. decideAccess clears it.
+        email: email.toLowerCase(),
       });
       if (result.created) {
         await notifyOwner({ kind: "access_request", playerTag });
@@ -1040,12 +1044,23 @@ export function makeHandler({
         decision: String(body.decision ?? ""),
       });
       if (!decided) return json(404, { error: "not_found" });
-      if (decided.status === "approved")
+      let notified = false;
+      if (decided.status === "approved") {
+        // The applicant is the one who was promised an email. Sending
+        // this to the owner instead is why an approved account heard
+        // nothing at all.
+        if (decided.email) {
+          await sendWelcomeEmail({ email: decided.email });
+          notified = true;
+        }
         await notifyOwner({
           kind: "approved_welcome",
           emailHash: body.email_hash,
         });
-      return json(200, { ok: true, status: decided.status });
+      }
+      // Say whether they were actually told. An account approved before
+      // the address was held has none, and re-approving cannot resend.
+      return json(200, { ok: true, status: decided.status, notified });
     },
 
     "GET /api/me/clans": async (db, event) => {

@@ -22,6 +22,7 @@ let db;
 let handler;
 const sentEmails = [];
 const ownerNotes = [];
+const welcomeEmails = [];
 
 function event({
   method = "POST",
@@ -66,6 +67,7 @@ before(async () => {
     secret: SECRET,
     sendLoginEmail: async (m) => sentEmails.push(m),
     notifyOwner: async (n) => ownerNotes.push(n),
+    sendWelcomeEmail: async (m) => welcomeEmails.push(m),
   });
 });
 
@@ -139,6 +141,16 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
     }),
   );
   assert.equal(parse(decide).status, "approved");
+  // The request page promises "if your request is approved, you'll hear
+  // from us by email". Approval used to notify the OWNER instead, so an
+  // approved applicant heard nothing: the welcome template existed and
+  // nothing ever queued it.
+  assert.equal(parse(decide).notified, true, "the applicant was told");
+  assert.deepEqual(
+    welcomeEmails.map((m) => m.email),
+    [NEWCOMER.toLowerCase()],
+    "the welcome goes to the applicant, not the owner",
+  );
 
   // 4. Newcomer signs in with the emailed code and lands a __Host- cookie.
   const cookie = await signIn(NEWCOMER);
@@ -1329,4 +1341,29 @@ test("admin provisioning says what it did: staged state and ownership on the adm
     true,
     "the admin owns this one: the reveal is theirs",
   );
+});
+
+test("the held address survives exactly one decision", async () => {
+  // Minimum retention: the address exists only between requesting and
+  // being decided, so an approved account stores none and re-approving
+  // cannot mail anybody twice.
+  const hash = emailHash(NEWCOMER.toLowerCase());
+  const { rows } = await db.query(
+    `select pending_email, status from account where email_hash = $1`,
+    [hash],
+  );
+  assert.equal(rows[0].status, "approved");
+  assert.equal(rows[0].pending_email, null, "the address is not retained");
+
+  welcomeEmails.length = 0;
+  const ownerCookie = await signIn(JAMIE);
+  const again = await handler(
+    event({
+      path: "/api/admin/decide",
+      cookie: ownerCookie,
+      body: { email_hash: hash, decision: "approved" },
+    }),
+  );
+  assert.equal(parse(again).notified, false, "nothing left to send to");
+  assert.deepEqual(welcomeEmails, []);
 });

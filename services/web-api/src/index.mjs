@@ -89,6 +89,10 @@ export const handler = makeHandler({
   secret: process.env.SESSION_SECRET,
   sendLoginEmail: ({ email, code, token }) =>
     enqueueEmail({ v: 1, kind: "login", to: email, code, token }),
+  // The template has existed since the gate shipped and nothing ever
+  // queued it; approval mailed the owner instead.
+  sendWelcomeEmail: ({ email }) =>
+    enqueueEmail({ v: 1, kind: "welcome", to: email }),
   queueStats,
   // Tinylytics ping via the relay queue (best-effort by contract).
   track: queueUrl
