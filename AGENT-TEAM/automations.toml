@@ -1,0 +1,48 @@
+version = 2
+repo = "."
+timezone = "America/Chicago"
+
+# Stable ids preserve Codex task history while names express durable
+# objectives. Minute offsets deliberately avoid the elixir-bot team's
+# slots (:10 twelve-hourly, 06:30, 08:00) and the sysadmin Sunday runs
+# (06:00, 07:00) so runs on the same host interleave.
+
+[[automation]]
+id = "elixir-mcp-operations"
+name = "Run Elixir MCP"
+objective = "run"
+objective_file = "AGENT-TEAM/run-elixir-mcp.md"
+status = "ACTIVE"
+rrule = "RRULE:FREQ=HOURLY;INTERVAL=12;BYMINUTE=40"
+model = "gpt-5.6-terra"
+reasoning_effort = "high"
+
+[[automation]]
+id = "elixir-mcp-record-truth"
+name = "Keep the Record True"
+objective = "record"
+objective_file = "AGENT-TEAM/keep-the-record-true.md"
+status = "ACTIVE"
+rrule = "RRULE:FREQ=DAILY;BYHOUR=6;BYMINUTE=50"
+model = "gpt-5.6-terra"
+reasoning_effort = "high"
+
+[[automation]]
+id = "elixir-mcp-close-loop"
+name = "Close the Loop"
+objective = "loop"
+objective_file = "AGENT-TEAM/close-the-loop.md"
+status = "ACTIVE"
+rrule = "RRULE:FREQ=DAILY;BYHOUR=8;BYMINUTE=20"
+model = "gpt-5.6-sol"
+reasoning_effort = "xhigh"
+
+[[automation]]
+id = "elixir-mcp-guard-door"
+name = "Guard the Door"
+objective = "guard"
+objective_file = "AGENT-TEAM/guard-the-door.md"
+status = "ACTIVE"
+rrule = "RRULE:FREQ=WEEKLY;BYDAY=SU;BYHOUR=7;BYMINUTE=30"
+model = "gpt-5.6-terra"
+reasoning_effort = "high"

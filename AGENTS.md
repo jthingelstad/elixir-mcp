@@ -54,6 +54,16 @@ says which existing repo to read before writing each subsystem.
   queue. No email subscriptions.
 - Store UTC everywhere; timezone is a display concern.
 
+## AGENT-TEAM
+
+Standing maintenance is objective-owned: four owners defined in
+`AGENT-TEAM/` (Run Elixir MCP, Keep the Record True, Close the Loop,
+Guard the Door) run on the `automations.toml` schedules. Read order for
+any objective run: this file -> `AGENT-TEAM/WORKFLOW.md` ->
+`AGENT-TEAM/README.md` -> the objective file. EVERY mutating actor on
+this checkout - objective run or interactive session - claims the
+checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
+
 ## Working style
 
 - Work lands on `main`; CI (validate workflow) must stay green.
