@@ -232,7 +232,20 @@ scalars to typed columns; expose via a `clans_timeline` tool mirroring
 one-shot backfill of the recorded era. **poapkings keeps no /clans poll.**
 
 **7.2 Payload-projection shape → game attributes, normalized; avoid the badge
-blob.** The player payload carries `arena{id,name}`, `bestTrophies`, `expLevel`,
+blob.** **PRIORITY RAISED 2026-09-06 (Jamie): three of these fields are the
+reason Drop still pays for a live fetch.** `players_profile` returns name and
+`clan{clan_tag,name}` and nothing else about the player as a game entity, so
+the hub cannot answer **clan badgeId**, **clan role**, or **account age**
+(the `YearsPlayed` badge, whose `progress` is days played). Drop renders all
+three, so its enrichment reads `live_fetch` instead of recorded history:
+1-3s on the path, and a slice of the shared CR budget, for facts the hub
+already receives in every player payload and throws away. Jamie: "clan badge,
+clan role, and account age are things that we definitely want Elixir MCP to
+know." They pass §1 on their own — they are game facts about a player, not
+Drop's presentation. Closing this lets Drop's login path read recorded data
+and stop live-fetching entirely.
+
+ The player payload carries `arena{id,name}`, `bestTrophies`, `expLevel`,
 `currentFavouriteCard{id}`, and ~139 `badges` (level/progress/target/iconUrls).
 Decisions: `arena_id`, `best_trophies`, `favorite_card_id` become typed columns
 on the daily snapshot, with names/icons resolved via the catalog at read time
