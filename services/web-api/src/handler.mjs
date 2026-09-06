@@ -191,8 +191,6 @@ export function makeHandler({
         emailHash: emailHash(email),
         playerTag,
         note: String(body.note ?? "").slice(0, 500) || null,
-        // Held only until this request is decided, so the approval mail
-        // this page promises can reach them. decideAccess clears it.
         email: email.toLowerCase(),
       });
       if (result.created) {
@@ -217,6 +215,15 @@ export function makeHandler({
       if (okIp && okEmail && email.includes("@")) {
         const account = await approvedAccount(db, emailHash(email));
         if (account) {
+          // Record the address on the way past. Accounts that predate us
+          // keeping it fill in the first time their holder signs in,
+          // rather than staying unreachable forever. The hash still
+          // decided which account this is.
+          await db.query(
+            `update account set email = $2
+             where account_id = $1 and email is distinct from $2`,
+            [account.account_id, email.toLowerCase()],
+          );
           const { token, code } = await startMagicLogin(db, {
             emailHash: emailHash(email),
             purpose: "web",

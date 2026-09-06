@@ -1212,6 +1212,8 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
   const blob = JSON.stringify(body);
   assert.ok(!blob.includes("static_ip"), "no IPs on the public surface");
   assert.ok(!blob.includes("email_hash"), "no account data");
+  // We keep addresses now (0046). A public surface must never carry one.
+  assert.ok(!blob.includes("@"), "no email address on a public surface");
   assert.ok(!blob.includes("kitchen-mac"), "machine labels stay private");
 });
 
@@ -1343,27 +1345,28 @@ test("admin provisioning says what it did: staged state and ownership on the adm
   );
 });
 
-test("the held address survives exactly one decision", async () => {
-  // Minimum retention: the address exists only between requesting and
-  // being decided, so an approved account stores none and re-approving
-  // cannot mail anybody twice.
+test("the address is kept, and sign-in fills it in for older accounts", async () => {
   const hash = emailHash(NEWCOMER.toLowerCase());
-  const { rows } = await db.query(
-    `select pending_email, status from account where email_hash = $1`,
+  const kept = await db.query(
+    `select email, status from account where email_hash = $1`,
     [hash],
   );
-  assert.equal(rows[0].status, "approved");
-  assert.equal(rows[0].pending_email, null, "the address is not retained");
-
-  welcomeEmails.length = 0;
-  const ownerCookie = await signIn(JAMIE);
-  const again = await handler(
-    event({
-      path: "/api/admin/decide",
-      cookie: ownerCookie,
-      body: { email_hash: hash, decision: "approved" },
-    }),
+  assert.equal(kept.rows[0].status, "approved");
+  assert.equal(
+    kept.rows[0].email,
+    NEWCOMER.toLowerCase(),
+    "we keep the address so we can write to this person again",
   );
-  assert.equal(parse(again).notified, false, "nothing left to send to");
-  assert.deepEqual(welcomeEmails, []);
+
+  // An account approved before addresses were kept has none, and cannot
+  // be told retroactively. Signing in records it.
+  await db.query(`update account set email = null where email_hash = $1`, [
+    hash,
+  ]);
+  await handler(event({ path: "/api/auth", body: { email: NEWCOMER } }));
+  const backfilled = await db.query(
+    `select email from account where email_hash = $1`,
+    [hash],
+  );
+  assert.equal(backfilled.rows[0].email, NEWCOMER.toLowerCase());
 });
