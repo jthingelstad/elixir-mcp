@@ -31,6 +31,7 @@ export const collectionsTools = {
           kind: r.kind,
           description: r.description,
           visibility: r.visibility,
+          scope: r.scope,
           member_count: r.member_count,
         })),
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -116,8 +117,9 @@ export const collectionsTools = {
         title: c.title,
         kind: c.kind,
         description: c.description,
+        scope: c.scope,
         members,
-        note: "A collection is its curator's grouping. recording=false members may have thin or no data yet - elixir_coverage tells the capture story per tag.",
+        note: "A collection is its curator's grouping, and everything in it is recorded for as long as it stays. scope says how deeply: comprehensive captures battles, activity only the surface (a clan's roster/war/standings, a player's profile). recording=false members may have thin or no data yet - elixir_coverage tells the capture story per tag.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
