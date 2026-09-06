@@ -1651,14 +1651,31 @@ export function makeHandler({
       // UI links straight there (Jamie 2026-09-06: the silent refresh
       // read as "it does nothing").
       const { rows } = await db.query(
-        `select gateway_id, name, status, channel, owner_account_id, static_ip, key_source,
-                enrolled_at, last_heartbeat_at, last_success_at,
-                fetch_points, last_seen_sha,
-                (provision_env is not null) as provision_ready,
-                (owner_account_id = $1) as owner_is_me,
+        `select g.gateway_id, g.name, g.card_name, g.card_icon, g.status, g.channel,
+                g.owner_account_id, g.static_ip, g.key_source,
+                g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
+                g.fetch_points, g.last_seen_sha,
+                (g.provision_env is not null) as provision_ready,
+                (g.owner_account_id = $1) as owner_is_me,
+                -- Who runs this machine. The account table holds only a hash
+                -- of the email, by design, so the readable half is the
+                -- operator's primary claimed player; the hash prefix is the
+                -- stable identifier Admin already uses elsewhere.
+                a.email_hash as owner_email_hash,
+                op.name as owner_player_name,
+                op.player_tag as owner_player_tag,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
                  and r.fetched_at > now() - interval '1 hour') as fetches_last_hour
-         from gateway g order by enrolled_at`,
+         from gateway g
+         left join account a on a.account_id = g.owner_account_id
+         left join lateral (
+           select p.name, p.player_tag
+           from claim c join player p on p.player_tag = c.player_tag
+           where c.account_id = g.owner_account_id
+           order by c.is_primary desc, (c.status = 'verified') desc, c.created_at
+           limit 1
+         ) op on true
+         order by g.enrolled_at`,
         [account.accountId],
       );
       return json(200, { gateways: rows });

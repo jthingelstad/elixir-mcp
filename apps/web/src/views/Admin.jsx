@@ -362,7 +362,8 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
         <table>
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Collector</th>
+              <th>Operator</th>
               <th>Status</th>
               <th>Channel</th>
               <th>Heartbeat</th>
@@ -388,7 +389,53 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
               }[next];
               return (
                 <tr key={g.gateway_id}>
-                  <td>{g.name}</td>
+                  <td>
+                    {/* Card name is the public identity everywhere else -
+                        the status page, the ladder, the MCP tools - while
+                        the machine name is what you SSH into. Admin is the
+                        one screen that has to join the two. */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "7px",
+                      }}
+                    >
+                      {g.card_icon && (
+                        <img
+                          src={g.card_icon}
+                          alt=""
+                          style={{ height: "22px", borderRadius: "3px" }}
+                        />
+                      )}
+                      <span style={{ fontWeight: 600 }}>
+                        {g.card_name ?? "unnamed"}
+                      </span>
+                    </div>
+                    <code style={{ color: "var(--dim)" }}>{g.name}</code>
+                  </td>
+                  <td>
+                    {g.owner_account_id ? (
+                      <>
+                        <div>
+                          {g.owner_player_name ?? "no player claimed"}
+                          {g.owner_is_me && (
+                            <span
+                              className="chip"
+                              style={{ marginLeft: "6px" }}
+                            >
+                              you
+                            </span>
+                          )}
+                        </div>
+                        <code style={{ color: "var(--dim)" }}>
+                          {g.owner_email_hash?.slice(0, 10) ?? "—"}
+                        </code>
+                      </>
+                    ) : (
+                      <span className="nil">unowned</span>
+                    )}
+                  </td>
                   <td>
                     <span
                       className={`chip ${g.status === "active" ? "chip--active" : g.status === "pending" ? "chip--pending" : ""}`}
