@@ -15,7 +15,14 @@ export function makeLive({
   sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
 }) {
   return async function liveFetch(db, { endpoint, entityKey }) {
-    const since = new Date();
+    // Receipts carry the collector's SECOND-precision fetched_at, so a
+    // fetch that completes in the same wall-clock second as this request
+    // sorts BEFORE a millisecond `since` and would be dropped (prod
+    // verification 2026-09-06: two healthy live collectors, an admitted
+    // receipt at 13:19:09.000, since=13:19:09.2xx -> timeout). Floor to
+    // the second with a small margin. The job_id binding below is the
+    // real correctness guard; this only bounds the scan.
+    const since = new Date(Math.floor(Date.now() / 1000) * 1000 - 5000);
     const enqueued = await enqueue(db, {
       endpoint,
       entity_key: entityKey,

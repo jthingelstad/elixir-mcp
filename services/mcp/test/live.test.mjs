@@ -288,3 +288,35 @@ test("an overlapping bulk collector's receipt can never satisfy a live wait (iss
     "a matching live-channel receipt completes the wait",
   );
 });
+
+test("a second-precision collector clock in the same second as the request still completes the wait (prod 2026-09-06)", async () => {
+  await db.query(`delete from job`);
+  const profile = await fixture("player/profile.json");
+  const tag = normalizeTag(profile.tag);
+  const body = gzipSync(Buffer.from(JSON.stringify(profile))).toString(
+    "base64",
+  );
+  const live = makeLive({
+    timeoutMs: 3000,
+    enqueue: async (_db, job) => {
+      const row = await enqueueJob(db, job);
+      // Collectors format fetched_at at second precision: the same second
+      // as `since`, truncated below its milliseconds.
+      const sameSecond = new Date(
+        Math.floor(Date.now() / 1000) * 1000,
+      ).toISOString();
+      await processResult(db, {
+        v: 1,
+        job,
+        job_id: Number(row.job_id),
+        gateway_id: gatewayId,
+        fetched_at: sameSecond,
+        status: "ok",
+        body_gzip_b64: body,
+      });
+      return row;
+    },
+  });
+  const r = await live(db, { endpoint: "player", entityKey: tag });
+  assert.equal(r.ok, true, "same-second truncation must not drop the receipt");
+});
