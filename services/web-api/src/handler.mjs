@@ -11,6 +11,7 @@
 
 import crypto from "node:crypto";
 import pg from "pg";
+import { addPlayer, removePlayer } from "@elixir-mcp/claims";
 import {
   emailHash,
   requestAccess,
@@ -369,97 +370,36 @@ export function makeHandler({
         return json(200, { ok: true, notify: action === "notify_on" });
       }
       if (action === "remove") {
-        const { rowCount } = await db.query(
-          `delete from claim where account_id = $1 and player_tag = $2`,
-          [account.accountId, tag],
-        );
-        let recordingStopped = false;
-        if (rowCount > 0) {
-          const { rowCount: stopped } = await db.query(
-            `update recording set status = 'stopped'
-             where subject_type = 'player' and subject_tag = $1
-               and status = 'active' and requested_by = $2
-               and not exists (select 1 from claim where player_tag = $1)`,
-            [tag, account.accountId],
-          );
-          recordingStopped = stopped > 0;
-          if (recordingStopped)
-            await logEvent(db, account.accountId, "recording_stopped", {
-              player_tag: tag,
-            });
-        }
+        const r = await removePlayer(db, account, { tag, via: "web" });
         return json(200, {
           ok: true,
-          removed: rowCount > 0,
-          recording_stopped: recordingStopped,
+          removed: r.removed,
+          recording_stopped: r.recordingStopped,
+          primary_player_tag: r.promotedPrimary,
         });
       }
       // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
-      // you've ADDED (your claims); the MCP door applies the same rule.
-      if (!account.isOwner && account.role !== "admin") {
-        const { rows: cap } = await db.query(
-          `select a.max_player_recordings as override,
-                  exists (select 1 from gateway g
-                          where g.owner_account_id = $1 and g.status = 'active') as operator,
-                  (select count(*)::int from claim c
-                   where c.account_id = $1 and c.player_tag <> $2) as added
-           from account a where a.account_id = $1`,
-          [account.accountId, tag],
-        );
-        const limit =
-          cap[0].override ??
-          roleQuotas(account.role, { operator: cap[0].operator }).player_slots;
-        if (cap[0].added >= limit) {
-          return json(429, {
-            error: "quota_exceeded",
-            message: `Added players are capped at ${limit} for the ${account.role ?? "member"} tier. Remove one, request an upgrade below, or run a collector for bonus slots.`,
-          });
-        }
-      }
-      await db.query(
-        `insert into player (player_tag) values ($1) on conflict do nothing`,
-        [tag],
-      );
-      const { rows: existing } = await db.query(
-        `select count(*)::int as n from claim where account_id = $1`,
-        [account.accountId],
-      );
-      const { rowCount: claimed } = await db.query(
-        `insert into claim (account_id, player_tag, status, is_primary)
-         values ($1, $2, 'unverified', $3) on conflict (account_id, player_tag) do nothing`,
-        [
-          account.accountId,
-          tag,
-          existing[0].n === 0 || body.make_primary === true,
-        ],
-      );
-      if (claimed > 0)
-        await logEvent(db, account.accountId, "claim_added", {
-          player_tag: tag,
+      // you've ADDED (your claims); the MCP door runs the same function.
+      const r = await addPlayer(db, account, {
+        tag,
+        makePrimary: body.make_primary === true,
+        via: "web",
+      });
+      if (!r.ok && r.error === "quota_exceeded") {
+        return json(429, {
+          error: "quota_exceeded",
+          message: `Added players are capped at ${r.limit} for the ${r.role} tier. Remove one, request an upgrade below, or run a collector for bonus slots.`,
         });
-      if (body.make_primary === true) {
-        await db.query(
-          `update claim set is_primary = (player_tag = $2) where account_id = $1`,
-          [account.accountId, tag],
-        );
       }
-      const { rowCount: started } = await db.query(
-        `insert into recording (subject_type, subject_tag, requested_by)
-         select 'player', $1, $2
-         where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
-        [tag, account.accountId],
-      );
-      if (started > 0) {
-        await logEvent(db, account.accountId, "recording_started", {
-          player_tag: tag,
-        });
+      if (!r.ok) return json(404, { error: "not_found" });
+      if (r.recordingStarted) {
         await emitFeedEvent(db, account.accountId, "recording_started", tag);
       }
       return json(200, {
         ok: true,
         player_tag: tag,
         recording: "active",
-        recording_started: started > 0,
+        recording_started: r.recordingStarted,
       });
     },
 

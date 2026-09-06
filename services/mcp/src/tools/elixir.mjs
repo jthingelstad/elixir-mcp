@@ -8,6 +8,7 @@ import {
   CONTRACT_VERSION,
   roleQuotas,
 } from "@elixir-mcp/contracts";
+import { addPlayer, removePlayer } from "@elixir-mcp/claims";
 import { emitFeedEvent, FEED_TOPICS } from "../feed.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
 import {
@@ -506,110 +507,34 @@ export const elixirTools = {
         };
       }
       if (action === "remove") {
-        const { rowCount } = await ctx.db.query(
-          `delete from claim where account_id = $1 and player_tag = $2`,
-          [ctx.account.accountId, tag],
-        );
-        // Recording stops only when this account requested it and no
-        // other claim keeps the tag added (ops-created recordings -
-        // pros, clan fan-out - are untouched: no claims involved).
-        let recordingStopped = false;
-        if (rowCount > 0) {
-          const { rowCount: stopped } = await ctx.db.query(
-            `update recording set status = 'stopped'
-             where subject_type = 'player' and subject_tag = $1
-               and status = 'active' and requested_by = $2
-               and not exists (select 1 from claim where player_tag = $1)`,
-            [tag, ctx.account.accountId],
-          );
-          recordingStopped = stopped > 0;
-          if (recordingStopped) {
-            await ctx.db.query(
-              `insert into account_event (account_id, kind, detail) values ($1, 'recording_stopped', $2)`,
-              [
-                ctx.account.accountId,
-                JSON.stringify({ player_tag: tag, via: "mcp" }),
-              ],
-            );
-          }
-        }
+        const r = await removePlayer(ctx.db, ctx.account, { tag, via: "mcp" });
         return {
           player_tag: tag,
-          removed: rowCount > 0,
-          recording_stopped: recordingStopped,
+          removed: r.removed,
+          recording_stopped: r.recordingStopped,
+          primary_player_tag: r.promotedPrimary,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
-      // action 'add': added = recorded. Slots count what you've ADDED
-      // (your claims), owner/admin exempt - same rule as the website.
-      if (!ctx.account.isOwner && ctx.account.role !== "admin") {
-        const { rows: cap } = await ctx.db.query(
-          `select a.max_player_recordings as override,
-                  exists (select 1 from gateway g
-                          where g.owner_account_id = $1 and g.status = 'active') as operator,
-                  (select count(*)::int from claim c
-                   where c.account_id = $1 and c.player_tag <> $2) as added
-           from account a where a.account_id = $1`,
-          [ctx.account.accountId, tag],
-        );
-        const limit =
-          cap[0].override ??
-          roleQuotas(ctx.account.role, { operator: cap[0].operator })
-            .player_slots;
-        if (cap[0].added >= limit) {
-          throw new ToolFailure(
-            "quota_exceeded",
-            `Added players are capped at ${limit} for the ${ctx.account.role ?? "member"} tier.`,
-            "Remove one, request a tier upgrade on the website, or run a collector for bonus slots.",
-          );
-        }
-      }
-      await ctx.db.query(
-        `insert into player (player_tag) values ($1) on conflict do nothing`,
-        [tag],
-      );
-      const { rows: existing } = await ctx.db.query(
-        `select count(*)::int as n from claim where account_id = $1`,
-        [ctx.account.accountId],
-      );
-      const { rowCount: claimed } = await ctx.db.query(
-        `insert into claim (account_id, player_tag, status, is_primary)
-         values ($1, $2, 'unverified', $3) on conflict (account_id, player_tag) do nothing`,
-        [
-          ctx.account.accountId,
-          tag,
-          existing[0].n === 0 || args.make_primary === true,
-        ],
-      );
-      if (claimed > 0) {
-        await ctx.db.query(
-          `insert into account_event (account_id, kind, detail) values ($1, 'claim_added', $2)`,
-          [
-            ctx.account.accountId,
-            JSON.stringify({ player_tag: tag, via: "mcp" }),
-          ],
+      // 'add': added = recorded. Slots count what you've ADDED (your
+      // claims); owner/admin exempt - the website applies the same rule
+      // through the same function.
+      const r = await addPlayer(ctx.db, ctx.account, {
+        tag,
+        makePrimary: args.make_primary === true,
+        via: "mcp",
+      });
+      if (!r.ok && r.error === "quota_exceeded") {
+        throw new ToolFailure(
+          "quota_exceeded",
+          `Added players are capped at ${r.limit} for the ${r.role} tier.`,
+          "Remove one, request a tier upgrade on the website, or run a collector for bonus slots.",
         );
       }
-      if (args.make_primary === true) {
-        await ctx.db.query(
-          `update claim set is_primary = (player_tag = $2) where account_id = $1`,
-          [ctx.account.accountId, tag],
-        );
+      if (!r.ok) {
+        throw new ToolFailure("not_found", "Account not found.");
       }
-      const { rowCount: started } = await ctx.db.query(
-        `insert into recording (subject_type, subject_tag, requested_by)
-         select 'player', $1, $2
-         where not exists (select 1 from recording where subject_type = 'player' and subject_tag = $1 and status = 'active')`,
-        [tag, ctx.account.accountId],
-      );
-      if (started > 0) {
-        await ctx.db.query(
-          `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
-          [
-            ctx.account.accountId,
-            JSON.stringify({ player_tag: tag, via: "mcp" }),
-          ],
-        );
+      if (r.recordingStarted) {
         await emitFeedEvent(
           ctx.db,
           ctx.account.accountId,
@@ -619,14 +544,13 @@ export const elixirTools = {
       }
       return {
         player_tag: tag,
-        added: claimed > 0,
+        added: r.added,
         recording: "active",
-        recording_started: started > 0,
+        recording_started: r.recordingStarted,
         notify: true,
-        note:
-          started > 0
-            ? "Added and recording. First battles land within the hour; history builds from here (the API has no past). Captures feed your elixir_events pipe - notify_off silences this tag."
-            : "Added - this player was already being recorded, so you share the existing record from here on.",
+        note: r.recordingStarted
+          ? "Added and recording. First battles land within the hour; history builds from here (the API has no past). Captures feed your elixir_events pipe - notify_off silences this tag."
+          : "Added - this player was already being recorded, so you share the existing record from here on.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

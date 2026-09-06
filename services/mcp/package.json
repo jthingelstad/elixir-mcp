@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/mcp",
   "version": "0.1.0",
-  "description": "The MCP door at elixir.poapkings.com/mcp: stateless streamable-HTTP protocol layer, the V1 tool registry over recorded history, quota, audit (DESIGN \u00a73, \u00a76.2, \u00a711).",
+  "description": "The MCP door at elixir.poapkings.com/mcp: stateless streamable-HTTP protocol layer, the V1 tool registry over recorded history, quota, audit (DESIGN §3, §6.2, §11).",
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {
@@ -10,6 +10,7 @@
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.600.0",
     "@elixir-mcp/auth": "0.1.0",
+    "@elixir-mcp/claims": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "pg": "^8.13.0"
   }
