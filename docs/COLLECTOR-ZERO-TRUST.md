@@ -172,6 +172,75 @@ channels split above is the ratified shape.
 - The bearer token is still a secret in the operator's .env — but
   single-purpose, instantly revocable, and worthless against AWS.
 
+## Certificates, signing, and the two bad collectors (Jamie's stress-test, 2026-09-06)
+
+### mTLS / request signing: NO
+
+Bearer-over-TLS already gives us authenticated, confidential transport;
+mTLS would add a client-certificate lifecycle (issue, renew, revoke)
+for a hobby fleet with no gain — the token IS the client identity, and
+the server's identity comes from public TLS. Request signing (HMAC over
+bodies) defends against replay and tampering that TLS already prevents;
+submits are additionally idempotent at ingest (receipt dedup). Neither
+earns its operational weight here.
+
+### Self-update signing: YES — and the server is the root of trust
+
+The one real signing gap is the update path: today the collector
+verifies a SHA-256 that ships in the SAME GitHub release as the binary
+— whoever can forge the release can forge the hash. GO-PORT deferred
+key-based signing because a key in GH secrets dies in the same
+compromise. The zero-trust door solves this more cleanly than a key
+ceremony: **the config endpoint becomes the update authority.**
+`/api/collector/config` gains `update: {version, sha256, url}`; the
+client only installs a binary whose hash the SERVER named. Pushing
+malicious code to operators then requires compromising Elixir MCP
+itself, not just a GitHub release — and it costs operators nothing and
+us no signing ritual. (Sigstore/cosign can layer on later if the fleet
+ever includes strangers at scale.)
+
+### The black-hole collector (takes work, never responds)
+
+The visibility timeout already guarantees no job is LOST — an
+unsubmitted lease redelivers in 60s. What it doesn't stop is a
+persistent black-holer grabbing jobs repeatedly: five failed
+deliveries dead-letters a job, so a determined black-holer could walk
+the queue into the DLQ. Because leasing is now server-mediated, we can
+do what the SQS-direct model never could:
+
+- **Outstanding-lease cap**: at most 2 unsubmitted leases per token —
+  a black-holer holds 2 jobs, ever, not the queue.
+- **Yield accounting**: the door counts leases issued vs results
+  submitted per token. A collector whose submit ratio collapses (or
+  goes N consecutive leases without a submit) is **auto-quarantined**:
+  the server simply stops issuing it leases, flips it to drain, and
+  notifies the owner (existing owner_notify path + feed event). Honest
+  collectors are unaffected; the failure is visible in minutes instead
+  of as mysteriously falling yield.
+
+### The lying collector (submits plausible garbage)
+
+Defense in depth, layered by cost:
+
+1. **Already shipped**: admission shape validation; identity binding
+   (the payload must be ABOUT the requested entity); monotonic
+   MAX-merge counters (a lie cannot walk recorded numbers backwards);
+   content-derived battle ids (fabricated battles need a
+   cross-observer-consistent story, and shared subjects get
+   cross-checked by every clanmate's log).
+2. **Probation becomes real**: today probation is just a status. Under
+   v2 it means **shadow verification** — a probation collector's jobs
+   are sampled and double-fetched by a trusted (our) collector, and
+   semantically stable fields (name, trophies within tolerance, badge
+   counts, roster membership) are compared. Activation is EARNED by
+   agreement with trusted observers, not by time served. Post-
+   activation, a low sampling rate continues forever.
+3. **Provenance quarantine is the backstop**: every payload's receipt
+   carries its gateway forever, and projections are rebuildable from
+   the S3 archive. If a liar is discovered late, the incident path is:
+   revoke the token, purge that gateway's receipts/payloads, replay
+   the archive without them. Lies are removable, not permanent.
+
 ## Migration (end state ratified by Jamie, 2026-09-06)
 
 End state: **Node is retired entirely** — it was the bootstrap
