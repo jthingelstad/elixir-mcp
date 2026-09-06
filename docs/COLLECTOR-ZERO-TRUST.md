@@ -106,12 +106,67 @@ instantly). **Can no longer:** touch any AWS API, impersonate another
 collector, delete work unprocessed, forge metrics, or learn anything
 about the tenant beyond three HTTPS endpoints.
 
+### Channels: bulk for operators, live for us (Jamie, 2026-09-06)
+
+Instead of one lease door with QoS, the fleet splits into two
+**server-assigned channels**, carried in the config payload so it is
+not even a client fork — same binary, different config:
+
+- **`bulk`** — the default and the ONLY channel open to outside
+  operators. Bulk jobs are scheduler-chosen, latency-irrelevant work:
+  the client polls lazily (drain-until-empty, then idle backoff from
+  config — no held connections at all). An operator collector never
+  sees which subjects users are asking about in real time, and can
+  never serve a payload straight into a user's live answer.
+- **`live`** — grantable only by the owner, run only on our own
+  machines. These long-poll for the 1–3s live-lane SLA.
+
+This is better than QoS on three axes. **Security:** live jobs reveal
+user intent (who is being asked about, right now) and their results
+flow directly into answers — exactly the surface to keep out of
+untrusted hands; bulk operators only ever learn what the recorder
+already decided to poll. **Scale:** standing long-polls now scale with
+OUR machines (one or two), not the open fleet — the concurrency
+concern below evaporates for the part that grows. **Semantics:** the
+two SQS queues already exist; the door simply serves each token its
+channel. If our live collectors are down, `live_fetch` degrades to its
+structured `live_unavailable` while operator bulk recording continues
+untouched.
+
+### Option: live fetches served internally, no collector at all
+
+Could Elixir MCP make live fetches itself? Technically yes, and it
+would delete the live channel entirely — but it changes two deliberate
+postures, so it is a separate decision:
+
+1. **A CR key would live in the cloud.** Golden rule 2 today: the CR
+   key exists only on operator machines, never in Lambda. Internal
+   live means a Supercell key in Secrets Manager, resolved into a
+   fetcher Lambda. IP-bound and revocable, but a rule change.
+2. **The VPC would need egress.** NAT-free is a security posture. A
+   managed NAT gateway is ~$32/mo (material against the $40 cost
+   alarm); the hobby-honest alternative is a t4g.nano NAT instance
+   with an Elastic IP (~$4/mo) — which is a small pet to keep.
+   Supercell allowlists the EIP.
+
+What it buys: the live lane stops depending on any home machine's
+uptime, and the collector story collapses to "operators do bulk,
+full stop." What it doesn't buy: our machines still run bulk
+collectors anyway, so the machine dependency leaves only the live
+path — a path that already degrades to a structured
+`live_unavailable` rather than failing.
+
+**Recommendation:** ship the channels split now (clear win, no rule
+changes); treat internal live as a later phase to take only if
+owner-machine uptime for the live lane actually proves annoying —
+and with the NAT-instance variant, not managed NAT, if we do.
+
 ### Costs and trade-offs, stated honestly
 
-- Each idle collector holds one ~10s web-api invocation open
-  continuously (long-poll). At fleet sizes below ~20 this is noise;
-  past that, a dedicated collector-door Lambda or shorter waits with
-  idle backoff (already in config) contain it.
+- Long-poll concurrency is confined to the owner-run live channel
+  (one or two machines) — the open fleet holds no connections. Bulk
+  jobs gain up to one idle-backoff interval of latency, irrelevant
+  against cadences measured in minutes.
 - One extra HTTPS hop per job (~50–150ms) against a 1.5s pace — negligible.
 - web-api's role gains receive/delete on request queues + send on
   results (an internal role, not an operator credential).
