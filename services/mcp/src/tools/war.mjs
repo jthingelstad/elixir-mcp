@@ -168,7 +168,7 @@ export const warTools = {
           period_end_nominal: nominalEnd.toISOString(),
           week_end_nominal: weekEnd.toISOString(),
           as_observed_note:
-            "started_observed_at is when the recorder first saw this period open (true start is at or before it). *_nominal assumes the ~10:00 UTC reset; observed boundaries drift. Cite these fields for any claim about where the war week stands - never infer from day counts or event schemas.",
+            "started_observed_at is when the recorder first saw this period open (true start is at or before it). *_nominal assumes the ~10:00 UTC reset; observed boundaries drift. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Cite these fields for any claim about where the war week stands - never infer from day counts or event schemas.",
         };
       }
       const [standings, participation, attendance] = await Promise.all([
@@ -397,10 +397,24 @@ export const warTools = {
           finished: w.finished_observed_at?.toISOString() ?? null,
           our_rank: w.our_rank,
           our_fame: w.our_fame,
+          // A regular week that hit the 10,000-fame finish line stopped
+          // earning member points; decks_used keeps counting (war
+          // auditor pass, 2026-09-06) - per-deck math there is wrong.
+          ...(w.our_fame === 10000 && !w.is_colosseum
+            ? { finished_early: true }
+            : {}),
           trophy_change: w.trophy_change,
         })),
+        ...(weeks.length > 0
+          ? {
+              history_starts_at: {
+                season_id: weeks[weeks.length - 1].season_id,
+                section_index: weeks[weeks.length - 1].section_index,
+              },
+            }
+          : {}),
         ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
-        note: "points are per-member contributions; fame belongs to the boat (clan). in_progress marks the week still being fought (nulls there mean not-finished-yet); on OLDER weeks null our_rank/our_fame means the week was observed without a standings capture. null war_days_battled means per-day attendance is unknown for that week (unknown, not zero).",
+        note: "points are per-member contributions; fame belongs to the boat (clan). in_progress marks the week still being fought (nulls there mean not-finished-yet); on OLDER weeks null our_rank/our_fame means the week was observed without a standings capture. null war_days_battled means per-day attendance is unknown for that week (unknown, not zero). finished_early marks regular weeks where the boat hit the 10,000-fame finish line: decks used after the finish earn ZERO points, so per-deck efficiency math on those weeks is invalid. history_starts_at is the recording horizon - weeks before it were never observed, so fewer seasons than requested is coverage, not absence.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

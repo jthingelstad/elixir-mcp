@@ -110,6 +110,19 @@ export async function buildMeta(db, account, tag) {
 
 /** Inverted date windows are never intent (edge-poker finding): refuse
  *  loudly instead of returning an empty that reads as "you didn't play". */
+/** Unknown enum values must refuse loudly - a silent empty result is a
+ *  lie an agent will repeat (adversarial pass, 2026-09-06). */
+export function requireEnum(value, allowed, argName) {
+  if (value === undefined || value === null) return;
+  if (!allowed.includes(value)) {
+    throw new ToolFailure(
+      "bad_request",
+      `Unknown ${argName}: ${value}`,
+      `Valid values: ${allowed.join(", ")}.`,
+    );
+  }
+}
+
 export function requireOrderedWindow(from, to) {
   if (from && to && from.getTime() > to.getTime()) {
     throw new ToolFailure(

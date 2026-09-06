@@ -563,3 +563,62 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   const stale = await call(invoke, "war_current", {});
   assert.equal(stale.body.decks_today, undefined, "stale day says nothing");
 });
+
+test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 + persona passes)", async () => {
+  const badMode = await call(invoke, "battles_query", { mode: "2v2" });
+  assert.equal(badMode.isError, true);
+  assert.match(badMode.body.error.message, /Unknown mode: 2v2/);
+  assert.match(badMode.body.error.hint, /Valid values/);
+
+  const badOutcome = await call(invoke, "battles_query", {
+    outcome: "victory",
+  });
+  assert.equal(badOutcome.isError, true);
+  assert.match(badOutcome.body.error.message, /Unknown outcome/);
+
+  const badCard = await call(invoke, "battles_query", { with_card: 99999999 });
+  assert.equal(badCard.isError, true);
+  assert.match(badCard.body.error.hint, /cards_catalog/);
+
+  const zeroWindow = await call(invoke, "battles_performance", {
+    last_n_battles: 0,
+  });
+  assert.equal(zeroWindow.isError, true, "falsy zero refuses, never all-time");
+  assert.match(zeroWindow.body.error.message, /1 to 500/);
+
+  const badSort = await call(invoke, "battles_decks", { sort: "losses" });
+  assert.equal(badSort.isError, true);
+
+  const badDate = await call(invoke, "players_timeline", {
+    from: "not-a-date",
+  });
+  assert.equal(badDate.isError, true);
+  assert.match(
+    badDate.body.error.message,
+    /Unparseable from/,
+    "structured refusal, never 'failed unexpectedly'",
+  );
+
+  const clamped = await call(invoke, "battles_query", {
+    limit: 10000,
+    verbosity: "compact",
+  });
+  assert.equal(clamped.isError, false);
+  assert.equal(clamped.body.limit_applied, 50, "the clamp is visible now");
+});
+
+test("war_history: finished_early flags 10000-fame regular weeks; horizon named", async () => {
+  const { body } = await call(invoke, "war_history", { seasons: 12 });
+  assert.ok(body.history_starts_at, "recording horizon is explicit");
+  const flagged = body.weeks.filter((w) => w.finished_early);
+  const tenK = body.weeks.filter(
+    (w) => w.our_fame === 10000 && !w.is_colosseum,
+  );
+  assert.equal(
+    flagged.length,
+    tenK.length,
+    "every 10000-fame regular week carries the flag",
+  );
+  assert.match(body.note, /finished_early/);
+  assert.match(body.note, /history_starts_at/);
+});

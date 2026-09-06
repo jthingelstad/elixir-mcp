@@ -140,7 +140,16 @@ export async function ingestClanRoster(
           joined_observed_at: r.joined_observed_at,
         }),
       );
-      feed("member_left", { player_tag: r.player_tag });
+      // Stamp the last-known name at the source: the tag alone forces
+      // every reader to reconstruct who left (casual pass, 2026-09-06).
+      const { rows: leftName } = await db.query(
+        `select name from player where player_tag = $1`,
+        [r.player_tag],
+      );
+      feed("member_left", {
+        player_tag: r.player_tag,
+        name: leftName[0]?.name ?? null,
+      });
       departed += 1;
     }
   }

@@ -3,6 +3,7 @@
 
 import { displayCard, responseMeta } from "@elixir-mcp/contracts";
 import {
+  requireEnum,
   ToolFailure,
   spendLiveQuota,
   TAG_SCHEMA,
@@ -247,6 +248,23 @@ export const playersTools = {
       const tag = (
         await subject(ctx.db, ctx.account, args.player_tag, "summary")
       ).tag;
+      for (const d of ["from", "to"]) {
+        if (args[d] !== undefined && Number.isNaN(Date.parse(args[d]))) {
+          throw new ToolFailure(
+            "bad_request",
+            `Unparseable ${d}: ${args[d]}`,
+            "Dates are YYYY-MM-DD.",
+          );
+        }
+      }
+      requireEnum(args.granularity, ["day", "week"], "granularity");
+      for (const metric of args.metrics ?? []) {
+        requireEnum(
+          metric,
+          ["trophies", "donations", "battle_count", "collection_level"],
+          "metric",
+        );
+      }
       const metrics =
         Array.isArray(args.metrics) && args.metrics.length > 0
           ? args.metrics

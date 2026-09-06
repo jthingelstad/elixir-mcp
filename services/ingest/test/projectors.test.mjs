@@ -275,6 +275,10 @@ test("roster diffs emit clan events with evidence; first sight was silent", asyn
   assert.equal(feed[0].topic, "member_left");
   assert.equal(feed[0].subject_tag, "#J2RGCRVG");
   assert.equal(feed[0].payload.player_tag, departed2.tag);
+  assert.ok(
+    typeof feed[0].payload.name === "string" && feed[0].payload.name.length > 0,
+    "member_left carries the last-known name (normalize at the source)",
+  );
 });
 
 test("pre-reset window pins an extra season_roll snapshot", async () => {

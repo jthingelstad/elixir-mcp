@@ -9,6 +9,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { resolveInstant, formatLocal } from "../time.mjs";
 import {
+  requireEnum,
   ToolFailure,
   TAG_SCHEMA,
   subject,
@@ -145,6 +146,22 @@ export const battlesTools = {
       if (args.to && !to)
         throw new ToolFailure("bad_request", `Unparseable to: ${args.to}`);
       requireOrderedWindow(from, to);
+      requireEnum(args.mode, MODE_GROUPS, "mode");
+      requireEnum(args.outcome, ["win", "loss", "draw"], "outcome");
+      if (args.with_card !== undefined) {
+        const cardId = Number(args.with_card);
+        if (
+          !Number.isInteger(cardId) ||
+          cardId < 26000000 ||
+          cardId >= 29000000
+        ) {
+          throw new ToolFailure(
+            "bad_request",
+            `with_card ${args.with_card} is not a Clash Royale card id.`,
+            "Card ids are 8-digit values like 26000000; resolve names to ids with cards_catalog.",
+          );
+        }
+      }
       if (to) add("b.battle_time < ?", to);
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       if (args.game_mode_id !== undefined)
@@ -366,6 +383,9 @@ export const battlesTools = {
             }
           : {}),
         battles,
+        // The clamp was silent (adversarial pass, 2026-09-06): agents
+        // asking for 10000 got 50 rows that looked like everything.
+        limit_applied: limit,
         ...(warnings ? { warnings } : {}),
         ...(totalCount !== undefined ? { total_count: totalCount } : {}),
         // Explicit null = end of results (absent-vs-null was ambiguous).
@@ -433,6 +453,7 @@ export const battlesTools = {
         };
         if (from) add("b.battle_time >= ?", from);
         if (to) add("b.battle_time < ?", to);
+        requireEnum(args.mode, MODE_GROUPS, "mode");
         if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
@@ -478,6 +499,17 @@ export const battlesTools = {
         };
       };
 
+      if (
+        args.last_n_battles !== undefined &&
+        (!Number.isInteger(args.last_n_battles) ||
+          args.last_n_battles < 1 ||
+          args.last_n_battles > 500)
+      ) {
+        throw new ToolFailure(
+          "bad_request",
+          `last_n_battles must be an integer from 1 to 500 (got ${args.last_n_battles}).`,
+        );
+      }
       const from = resolveInstant(tz, args.from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       requireOrderedWindow(from, to);
@@ -491,6 +523,7 @@ export const battlesTools = {
         };
         if (from) add("bp.battle_time >= ?", from);
         if (to) add("bp.battle_time < ?", to);
+        requireEnum(args.mode, MODE_GROUPS, "mode");
         if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
@@ -532,6 +565,7 @@ export const battlesTools = {
         };
         if (from) add("bp.battle_time >= ?", from);
         if (to) add("bp.battle_time < ?", to);
+        requireEnum(args.mode, MODE_GROUPS, "mode");
         if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
@@ -657,6 +691,7 @@ export const battlesTools = {
       if (from) add("b.battle_time >= ?", from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       if (to) add("b.battle_time < ?", to);
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
 
       const deckSource = mine
@@ -736,6 +771,7 @@ export const battlesTools = {
       if (from) add("b.battle_time >= ?", from);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       if (to) add("b.battle_time < ?", to);
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
@@ -759,6 +795,7 @@ export const battlesTools = {
       }
       const wr = (r) =>
         r.wins + r.losses > 0 ? r.wins / (r.wins + r.losses) : -1;
+      requireEnum(args.sort, ["battles", "wins", "win_rate"], "sort");
       if (args.sort === "wins") shaped.sort((a, z) => z.wins - a.wins);
       else if (args.sort === "win_rate") shaped.sort((a, z) => wr(z) - wr(a));
       shaped = shaped.slice(0, 40);
