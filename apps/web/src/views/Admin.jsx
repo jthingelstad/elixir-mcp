@@ -8,6 +8,10 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
   const [feedback, setFeedback] = useState([]);
   const [svcTokens, setSvcTokens] = useState([]);
   const [newToken, setNewToken] = useState(null);
+  // Provision-click outcome per gateway: the token is staged server-side
+  // for the operator's one-time reveal, so Admin must SAY so (or show the
+  // error) instead of silently refreshing.
+  const [staged, setStaged] = useState({});
   const [svcName, setSvcName] = useState("");
 
   const load = useCallback(async () => {
@@ -416,10 +420,16 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                       <button
                         className="btn--text"
                         onClick={async () => {
-                          await api.adminGatewayAction(
+                          const r = await api.adminGatewayAction(
                             g.gateway_id,
                             "provision_token",
                           );
+                          setStaged((s) => ({
+                            ...s,
+                            [g.gateway_id]: r.ok
+                              ? { ok: true }
+                              : { error: r.data?.error ?? `HTTP ${r.status}` },
+                          }));
                           load();
                         }}
                       >
@@ -445,6 +455,32 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                       >
                         Revoke
                       </button>
+                    )}
+                    {(staged[g.gateway_id] || g.provision_ready) && (
+                      <div>
+                        <small>
+                          {staged[g.gateway_id]?.error ? (
+                            <>
+                              Provisioning failed: {staged[g.gateway_id].error}
+                            </>
+                          ) : g.owner_is_me ? (
+                            <>
+                              Token staged.{" "}
+                              <button
+                                className="btn--text"
+                                onClick={() => navigate("/account/collector")}
+                              >
+                                Reveal it once on your Collector page →
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              Token staged — the operator reveals it once on
+                              their Collector page.
+                            </>
+                          )}
+                        </small>
+                      </div>
                     )}
                   </td>
                 </tr>

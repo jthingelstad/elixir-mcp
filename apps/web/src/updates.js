@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Provisioning tells you what it did",
+    body: "Provisioning a collector token in Admin used to succeed silently: the token is staged for the operator's one-time reveal on their Collector page, so the Admin table just refreshed and looked like nothing happened. Admin now confirms the token is staged, keeps a 'token staged' note until it is revealed, links straight to the reveal when you own the collector yourself, and surfaces any failure instead of swallowing it.",
+  },
+  {
+    date: "2026-09-06",
     title: "Collectors go zero-trust",
     body: "The collector fleet was rebuilt overnight around a simple rule: operators cannot be assumed safe. Collectors are now pure API clients - a bearer token we issue, three HTTPS routes, no AWS credentials of any kind - and the server computes what to fetch, stamps identity on every result, caps outstanding work, and quarantines a collector that takes jobs without returning them. Enrollment is just a name now (no IP collected), provisioning is a one-time download, and self-updates only install the exact binary hash the server names. Our two home collectors already run the new model - one in Go, one in Python, deliberately different so no single bad release can silence the fleet.",
   },

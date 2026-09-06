@@ -1578,12 +1578,21 @@ export function makeHandler({
     "GET /api/admin/gateways": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      // provision_ready + owner_is_me let Admin say what a provision click
+      // did: the token is staged for the OPERATOR's one-time reveal on
+      // their Collector page, and when the admin owns the collector the
+      // UI links straight there (Jamie 2026-09-06: the silent refresh
+      // read as "it does nothing").
       const { rows } = await db.query(
-        `select gateway_id, name, status, static_ip, key_source, enrolled_at, last_heartbeat_at, last_success_at,
+        `select gateway_id, name, status, channel, owner_account_id, static_ip, key_source,
+                enrolled_at, last_heartbeat_at, last_success_at,
                 fetch_points, last_seen_sha,
+                (provision_env is not null) as provision_ready,
+                (owner_account_id = $1) as owner_is_me,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
                  and r.fetched_at > now() - interval '1 hour') as fetches_last_hour
          from gateway g order by enrolled_at`,
+        [account.accountId],
       );
       return json(200, { gateways: rows });
     },

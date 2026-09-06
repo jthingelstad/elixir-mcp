@@ -1249,3 +1249,84 @@ test("provision_token: one click mints, one look claims (zero-trust copy flow)",
   const again = await handler(againEvent);
   assert.equal(again.statusCode, 404, "second look finds nothing");
 });
+
+test("admin provisioning says what it did: staged state and ownership on the admin list (2026-09-06)", async () => {
+  // A member's collector, provisioned by the owner.
+  const raise = parse(
+    await handler(
+      event({
+        path: "/api/gateways",
+        cookie: memberCookie,
+        body: { name: "regress-op-nas" },
+      }),
+    ),
+  );
+  assert.equal(raise.status, "pending");
+  const id = raise.gateway_id;
+  const staged = parse(
+    await handler(
+      event({
+        path: "/api/admin/gateways",
+        cookie: bossCookie,
+        body: { gateway_id: id, action: "provision_token" },
+      }),
+    ),
+  );
+  assert.equal(staged.staged, true, "the click reports what it did");
+
+  const list = async () =>
+    parse(
+      await handler(
+        event({
+          method: "GET",
+          path: "/api/admin/gateways",
+          cookie: bossCookie,
+          body: undefined,
+        }),
+      ),
+    );
+  let row = (await list()).gateways.find((g) => g.gateway_id === id);
+  assert.equal(row.provision_ready, true, "admin sees the token is staged");
+  assert.equal(row.owner_is_me, false, "...and that someone else reveals it");
+  assert.equal(row.channel, "bulk", "channel rides the admin list");
+
+  // The operator's one-time reveal clears the staged state.
+  const revealEvent = event({
+    method: "GET",
+    path: "/api/me/gateway-env",
+    cookie: memberCookie,
+    body: undefined,
+  });
+  revealEvent.queryStringParameters = { id };
+  const revealed = parse(await handler(revealEvent));
+  assert.match(revealed.env, /^emcg_/, "the operator gets the raw token once");
+  row = (await list()).gateways.find((g) => g.gateway_id === id);
+  assert.equal(row.provision_ready, false, "staged state clears on reveal");
+
+  // The owner's own collector: the admin list points at their own reveal.
+  const own = parse(
+    await handler(
+      event({
+        path: "/api/gateways",
+        cookie: bossCookie,
+        body: { name: "regress-boss-nas" },
+      }),
+    ),
+  );
+  await handler(
+    event({
+      path: "/api/admin/gateways",
+      cookie: bossCookie,
+      body: { gateway_id: own.gateway_id, action: "provision_token" },
+    }),
+  );
+  const mine = (await list()).gateways.find(
+    (g) => g.gateway_id === own.gateway_id,
+  );
+  assert.equal(mine.provision_ready, true);
+  assert.equal(
+    mine.owner_is_me,
+    true,
+    "the admin owns this one: the reveal is theirs",
+  );
+});
