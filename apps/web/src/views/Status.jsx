@@ -11,6 +11,169 @@ import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
  *  those queues with the Postgres job ledger, so six of the seven rows
  *  had been rendering "unavailable" ever since. */
 
+/** Colours follow the collector, assigned from the server's stable
+ *  enrolment order — never from rank, so a busier week cannot repaint
+ *  the fleet. Past six, the tail folds into one neutral rather than
+ *  inventing hues nobody can tell apart. */
+const SERIES_COLORS = [
+  "var(--series-1)",
+  "var(--series-2)",
+  "var(--series-3)",
+  "var(--series-4)",
+  "var(--series-5)",
+  "var(--series-6)",
+];
+const colorFor = (i) => SERIES_COLORS[i] ?? "var(--neutral)";
+
+/** Rounded top on the data-end only: the cap belongs to the stack, not
+ *  to every segment inside it. */
+function topCapPath(x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h));
+  return `M${x},${y + h} L${x},${y + rr} Q${x},${y} ${x + rr},${y} L${x + w - rr},${y} Q${x + w},${y} ${x + w},${y + rr} L${x + w},${y + h} Z`;
+}
+
+/** One capture chart: fetches per bucket, stacked by collector, with a
+ *  hover/focus tooltip breaking the bucket down. Buckets arrive
+ *  gap-filled from the server, so a quiet stretch is a visible zero
+ *  rather than a hole that compresses the axis. */
+function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
+  const [at, setAt] = useState(null);
+  const n = buckets.length || 1;
+  const W = 680;
+  const BASE = 72;
+  const TOP = 8;
+  const slot = W / n;
+  const bw = Math.max(3, slot - 3);
+  const max = Math.max(...buckets.map((b) => b.fetches), 1);
+  const hovered = at == null ? null : buckets[at];
+
+  return (
+    <div className="chartwrap">
+      <div className="chart">
+        <svg viewBox={`0 0 720 84`} role="img" aria-label={ariaLabel}>
+          <line className="axis" x1={0} x2={W} y1={BASE} y2={BASE} />
+          {buckets.map((b, i) => {
+            const x = i * slot;
+            // Stack in the stable series order so a segment keeps its
+            // place and colour from bucket to bucket.
+            const parts = series
+              .map((name, si) => ({ name, si, v: b.by[name] ?? 0 }))
+              .filter((p) => p.v > 0);
+            const full = (b.fetches / max) * (BASE - TOP);
+            let y = BASE;
+            const drawn = parts.map((p, k) => {
+              const h = (p.v / b.fetches) * full;
+              y -= h;
+              return { ...p, y, h, top: k === parts.length - 1 };
+            });
+            return (
+              <g key={b.bucket}>
+                {drawn.map((d) =>
+                  d.top ? (
+                    <path
+                      key={d.name}
+                      className="seg"
+                      d={topCapPath(x, d.y, bw, d.h, 4)}
+                      fill={colorFor(d.si)}
+                    />
+                  ) : (
+                    <rect
+                      key={d.name}
+                      className="seg"
+                      x={x}
+                      y={d.y}
+                      width={bw}
+                      height={d.h}
+                      fill={colorFor(d.si)}
+                    />
+                  ),
+                )}
+                {b.rejected > 0 && (
+                  <line
+                    className="reject-tick"
+                    x1={x}
+                    x2={x + bw}
+                    y1={BASE + 3}
+                    y2={BASE + 3}
+                  />
+                )}
+                {i % labelEvery === 0 && (
+                  <text x={x} y={BASE + 12} fontSize="9">
+                    {b.bucket}
+                  </text>
+                )}
+                <rect
+                  className="hit"
+                  x={x}
+                  y={0}
+                  width={Math.max(slot, 6)}
+                  height={BASE}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${b.bucket}, ${b.fetches} ${unit}`}
+                  onMouseEnter={() => setAt(i)}
+                  onFocus={() => setAt(i)}
+                  onMouseLeave={() => setAt((c) => (c === i ? null : c))}
+                  onBlur={() => setAt((c) => (c === i ? null : c))}
+                />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      {hovered && (
+        <div
+          className="charttip"
+          style={{ left: `${((at + 0.5) / n) * (W / 720) * 100}%` }}
+        >
+          <div className="charttip__head">
+            {hovered.bucket}Z · {hovered.fetches} {unit}
+          </div>
+          {series
+            .map((name, si) => ({ name, si, v: hovered.by[name] ?? 0 }))
+            .filter((p) => p.v > 0)
+            .reverse()
+            .map((p) => (
+              <div className="charttip__row" key={p.name}>
+                <span
+                  className="charttip__sw"
+                  style={{ background: colorFor(p.si) }}
+                />
+                {p.name}
+                <span className="num">{p.v}</span>
+              </div>
+            ))}
+          {hovered.fetches === 0 && (
+            <div className="charttip__row">nothing fetched</div>
+          )}
+          {hovered.rejected > 0 && (
+            <div className="charttip__foot">
+              {hovered.rejected} rejected of {hovered.fetches}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChartLegend({ series }) {
+  return (
+    <div className="chart-legend">
+      {series.map((name, i) => (
+        <span className="chart-legend__item" key={name}>
+          <span
+            className="charttip__sw"
+            style={{ background: colorFor(i) }}
+            aria-hidden="true"
+          />
+          {name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function Status() {
   const [data, setData] = useState(null);
   const [now, setNow] = useState(() => Date.now());
@@ -38,7 +201,16 @@ export function Status() {
   if (!data) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
 
   const h = data.health;
-  const captureMax = Math.max(...data.capture_5m.map((b) => b.fetches), 1);
+  const series =
+    data.capture_series?.length > 0
+      ? data.capture_series
+      : [
+          ...new Set(
+            [...data.capture_5m, ...data.capture_24h].flatMap((b) =>
+              Object.keys(b.by ?? {}),
+            ),
+          ),
+        ];
 
   return (
     <>
@@ -180,43 +352,37 @@ export function Status() {
           <span className="panel-title">Capture, last hour</span>
           <span className="caveat">5-minute buckets</span>
         </div>
-        <div className="chart">
-          <svg
-            viewBox="0 0 720 80"
-            role="img"
-            aria-label="fetches per 5 minutes"
-          >
-            <line className="axis" x1={0} x2={680} y1={72} y2={72} />
-            {data.capture_5m.map((b, i) => {
-              const n = data.capture_5m.length;
-              const bw = Math.max(4, 680 / n - 3);
-              const hgt = Math.max(1, (b.fetches / captureMax) * 62);
-              const bad = b.rejected > 0;
-              return (
-                <g key={b.bucket}>
-                  <rect
-                    className="bar"
-                    style={bad ? { fill: "var(--amber)" } : undefined}
-                    x={(i * 680) / n}
-                    y={72 - hgt}
-                    width={bw}
-                    height={hgt}
-                  >
-                    <title>{`${b.bucket}Z — ${b.fetches} fetches, ${b.admitted} admitted${b.rejected ? `, ${b.rejected} rejected` : ""}`}</title>
-                  </rect>
-                  {i % 3 === 0 && (
-                    <text x={(i * 680) / n} y={80} fontSize="9">
-                      {b.bucket}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+        <CaptureChart
+          buckets={data.capture_5m}
+          series={series}
+          labelEvery={3}
+          unit="fetches"
+          ariaLabel="fetches per 5 minutes, stacked by collector"
+        />
+        <ChartLegend series={series} />
         <div className="panel__note">
-          Amber buckets contain rejected payloads. Quiet stretches are normal —
-          the yield scheduler polls where battles actually happen.
+          Hover a bucket for the per-collector split. A red tick under a bucket
+          marks rejected payloads. Quiet stretches are normal — the yield
+          scheduler polls where battles actually happen.
+        </div>
+      </section>
+
+      <section className="panel" style={{ marginTop: "20px" }}>
+        <div className="panel__head">
+          <span className="panel-title">Capture, last 24 hours</span>
+          <span className="caveat">hourly buckets</span>
+        </div>
+        <CaptureChart
+          buckets={data.capture_24h}
+          series={series}
+          labelEvery={3}
+          unit="fetches"
+          ariaLabel="fetches per hour over the last 24 hours, stacked by collector"
+        />
+        <ChartLegend series={series} />
+        <div className="panel__note">
+          The same stack over a longer window: this is where a collector that
+          quietly stopped pulling its weight overnight shows up.
         </div>
       </section>
     </>

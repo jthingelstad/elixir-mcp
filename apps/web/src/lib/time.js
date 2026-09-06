@@ -8,15 +8,20 @@
  *  after a day. Import from here rather than writing another one.
  */
 
-/** Seconds since `ts`, or null when there is no timestamp. */
+/** Seconds since `ts`, or null when there is no timestamp.
+ *
+ *  Clamped at zero: the browser clock and the server clock disagree by
+ *  a second or two, and a collector that just heartbeated would
+ *  otherwise render "-1s ago". */
 export function secsSince(ts, now = Date.now()) {
-  return ts ? (now - Date.parse(ts)) / 1000 : null;
+  return ts ? Math.max(0, (now - Date.parse(ts)) / 1000) : null;
 }
 
 /** Coarse relative time: "12s ago", "4m ago", "3h ago", "2d ago". */
 export function ago(ts, now = Date.now()) {
   if (!ts) return "never";
   const s = secsSince(ts, now);
+  if (s < 1) return "just now";
   if (s < 90) return `${Math.round(s)}s ago`;
   if (s < 5400) return `${Math.round(s / 60)}m ago`;
   if (s < 172800) return `${Math.round(s / 3600)}h ago`;

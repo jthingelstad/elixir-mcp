@@ -65,6 +65,21 @@
   --purple-row: rgba(139, 92, 246, 0.08); /* NEW: table row hover */
   --purple-glow: rgba(109, 40, 217, 0.35);
 
+  /* Categorical series — collectors on the capture charts. Fixed
+     order, assigned by the collector's enrolment (never its rank), so
+     a new collector appends a colour instead of repainting everyone.
+     Validated against the --well plot surface for the dark-mode
+     lightness band, chroma floor, colourblind separation of every
+     ADJACENT pair (they touch in a stack) and 3:1 contrast. Do not
+     reorder or substitute by eye — re-run the check. Beyond six
+     collectors the rest fold into --neutral. */
+  --series-1: #8b5cf6;
+  --series-2: #65a30d;
+  --series-3: #db2777;
+  --series-4: #0891b2;
+  --series-5: #ea580c;
+  --series-6: #3b82f6;
+
   /* Status */
   --green: #34d399; /* active, win, fresh */
   --amber: #fbbf24; /* NEW: stale, pending */
@@ -1032,6 +1047,85 @@ input[aria-invalid="true"] {
 .chart text {
   font: 10px var(--font-mono);
   fill: var(--dim);
+}
+.chart .seg {
+  /* A 2px surface-coloured gap keeps touching segments legible; it is
+     what makes the stack readable without outlining every rectangle. */
+  stroke: var(--well);
+  stroke-width: 2;
+}
+.chart .hit {
+  fill: transparent;
+  cursor: default;
+}
+.chart .hit:hover,
+.chart .hit:focus-visible {
+  fill: rgba(139, 92, 246, 0.1);
+  outline: none;
+}
+.chart .reject-tick {
+  stroke: var(--red);
+  stroke-width: 2;
+}
+
+.chartwrap {
+  position: relative;
+}
+.charttip {
+  position: absolute;
+  bottom: calc(100% - 6px);
+  transform: translateX(-50%);
+  z-index: 5;
+  min-width: 150px;
+  padding: 8px 10px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
+  pointer-events: none;
+  font-size: 11.5px;
+}
+.charttip__head {
+  color: var(--faint);
+  font: 11px var(--font-mono);
+  margin-bottom: 5px;
+}
+.charttip__row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 1px 0;
+  color: var(--muted);
+}
+.charttip__row .num {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.charttip__sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+.charttip__foot {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--edge-soft);
+  color: var(--faint);
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 0 var(--s-4) 10px;
+}
+.chart-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--faint);
 }
 
 /* ── Placeholders ─────────────────────────────────────────────

@@ -581,18 +581,83 @@ export function makeHandler({
            and name <> 'backfill-elixir-bot'
          order by fetch_points desc`,
       );
-      const hour = await q(
-        `select to_char(date_trunc('minute', fetched_at)
-                  - make_interval(mins => extract(minute from fetched_at)::int % 5),
-                'HH24:MI') as bucket,
-                count(*)::int as fetches,
-                count(*) filter (where admission = 'admitted')::int as admitted,
-                count(*) filter (where admission = 'rejected')::int as rejected
-         from api_receipt r
-         join gateway g on g.gateway_id = r.gateway_id
-         where r.fetched_at > now() - interval '75 minutes'
-           and g.name <> 'backfill-elixir-bot'
-         group by 1 order by 1`,
+      // Stack order and colour follow the COLLECTOR, never its rank:
+      // keyed on enrolled_at, which never changes, so a new collector
+      // appends a colour instead of repainting everyone else's.
+      const captureSeries = (
+        await q(
+          `select coalesce(card_name, 'unnamed') as name
+           from gateway
+           where name <> 'backfill-elixir-bot'
+           order by enrolled_at, gateway_id`,
+        )
+      ).map((r) => r.name);
+      // Capture is charted STACKED BY COLLECTOR, so both series carry a
+      // per-collector breakdown. Empty slots are generated rather than
+      // omitted: a quiet stretch is a real zero on a time axis, not a
+      // gap that silently compresses it.
+      const captureRows = async (truncSql, sinceSql, stepSql) =>
+        q(
+          `with slots as (
+             select generate_series(${truncSql("$since$")}, ${truncSql("now()")},
+                                    interval '${stepSql}') as slot
+           ),
+           agg as (
+             select ${truncSql("r.fetched_at")} as slot,
+                    coalesce(g.card_name, 'unnamed') as name,
+                    count(*)::int as fetches,
+                    count(*) filter (where r.admission = 'admitted')::int as admitted,
+                    count(*) filter (where r.admission = 'rejected')::int as rejected
+             from api_receipt r
+             join gateway g on g.gateway_id = r.gateway_id
+             where r.fetched_at >= ${truncSql("$since$")}
+               and g.name <> 'backfill-elixir-bot'
+             group by 1, 2
+           )
+           select to_char(s.slot, 'HH24:MI') as bucket, a.name,
+                  coalesce(a.fetches, 0) as fetches,
+                  coalesce(a.admitted, 0) as admitted,
+                  coalesce(a.rejected, 0) as rejected
+           from slots s
+           left join agg a on a.slot = s.slot
+           order by s.slot, a.name`.replaceAll("$since$", sinceSql),
+        );
+      // Fold (slot, collector) rows into one object per bucket carrying a
+      // `by` map the chart stacks.
+      const foldCapture = (rows) => {
+        const out = new Map();
+        for (const r of rows) {
+          let b = out.get(r.bucket);
+          if (!b) {
+            b = {
+              bucket: r.bucket,
+              fetches: 0,
+              admitted: 0,
+              rejected: 0,
+              by: {},
+            };
+            out.set(r.bucket, b);
+          }
+          if (!r.name) continue; // generated empty slot
+          b.fetches += r.fetches;
+          b.admitted += r.admitted;
+          b.rejected += r.rejected;
+          b.by[r.name] = (b.by[r.name] ?? 0) + r.fetches;
+        }
+        return [...out.values()];
+      };
+      const FIVE_MIN = (col) =>
+        `(date_trunc('minute', ${col}) - make_interval(mins => extract(minute from ${col})::int % 5))`;
+      const HOURLY = (col) => `date_trunc('hour', ${col})`;
+      const hour = foldCapture(
+        await captureRows(
+          FIVE_MIN,
+          "(now() - interval '70 minutes')",
+          "5 minutes",
+        ),
+      );
+      const day = foldCapture(
+        await captureRows(HOURLY, "(now() - interval '23 hours')", "1 hour"),
       );
       const latest = await q(
         `select extract(epoch from now() - max(fetched_at))::int as last_fetch_s,
@@ -648,7 +713,9 @@ export function makeHandler({
             last_heartbeat_at: c.last_heartbeat_at?.toISOString() ?? null,
             fetches_1h: c.fetches_1h,
           })),
+          capture_series: captureSeries,
           capture_5m: hour,
+          capture_24h: day,
           note: "Live operational snapshot, ~60s cache. Collectors go by their card names; the backfill lane is excluded.",
         },
         { "cache-control": "public, max-age=60" },

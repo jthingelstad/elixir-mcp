@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Capture charts stack by collector, and go back a day",
+    body: "The capture chart told you how much was fetched but not by whom. Both charts are now stacked by collector, and hovering any bucket breaks it down - who fetched how many, and how many were rejected. Underneath it sits a second chart covering the last 24 hours in hourly buckets, which is where a collector that quietly stopped pulling its weight overnight becomes obvious. Empty stretches now draw as real zeroes instead of vanishing, so the time axis no longer lies about quiet periods.",
+  },
+  {
+    date: "2026-09-06",
     title:
       "Collectors say both when they last spoke and when they last delivered",
     body: "The status page and the admin table were showing different times for the same collector, and both were right: one counted the last data we accepted, the other counted the last time the collector said hello. A collector that is polling happily but has nothing to fetch is idle, not broken, and only one of those numbers could tell you so. Both surfaces now show both times, labelled, on the same clock. The status page also dropped its queue panel - the queues it listed were retired weeks ago and six of the seven rows had been reading 'unavailable' ever since.",
