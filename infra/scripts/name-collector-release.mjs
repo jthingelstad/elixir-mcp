@@ -22,6 +22,14 @@
  * Naming it here is what ships it to the fleet, within the hour. Run a
  * canary on that build and look at its log before naming it.
  *
+ * Naming also MARKS the release in the collector repo: candidates are
+ * published as prereleases, and a named one is promoted to Latest with
+ * a note saying when and for which platforms. That keeps one fact in
+ * one place - `releases/latest` is what install.sh hands a new
+ * operator, so promoting on naming means a fresh install gets the
+ * version the fleet actually runs, and a candidate nobody named stays
+ * out of everyone's way.
+ *
  * Requires the `gh` CLI (authenticated) for release metadata, and owner
  * AWS credentials for the lambda invoke.
  */
@@ -60,13 +68,42 @@ const KEY_BY_ASSET = {
 const gh = (...a) =>
   execFileSync("gh", a, { encoding: "utf8", maxBuffer: 8 << 20 });
 
+// With candidates published as prereleases, `release view` with no tag
+// resolves to the last PROMOTED release - never the one you mean to
+// name next. So default to the newest release of any kind.
+let wanted = tag;
+if (!wanted) {
+  try {
+    const [newest] = JSON.parse(
+      gh(
+        "release",
+        "list",
+        "--repo",
+        REPO,
+        "--limit",
+        "1",
+        "--json",
+        "tagName",
+      ),
+    );
+    wanted = newest?.tagName;
+  } catch (err) {
+    console.error(`could not list releases from ${REPO}: ${err.message}`);
+    process.exit(1);
+  }
+  if (!wanted) {
+    console.error(`no releases found in ${REPO}.`);
+    process.exit(1);
+  }
+}
+
 let release;
 try {
   release = JSON.parse(
     gh(
       "release",
       "view",
-      ...(tag ? [tag] : []),
+      wanted,
       "--repo",
       REPO,
       "--json",
@@ -75,15 +112,15 @@ try {
   );
 } catch (err) {
   console.error(
-    `could not read ${tag ? `release ${tag}` : "the latest release"} from ${REPO}: ${err.message}`,
+    `could not read release ${wanted} from ${REPO}: ${err.message}`,
   );
   process.exit(1);
 }
 
-if (release.isDraft || release.isPrerelease) {
-  console.error(
-    `refusing to name ${release.tagName}: it is a ${release.isDraft ? "draft" : "prerelease"}.`,
-  );
+// A prerelease is exactly what we expect to name - that is the
+// candidate state. A draft has no assets to serve, so it is refused.
+if (release.isDraft) {
+  console.error(`refusing to name ${release.tagName}: it is still a draft.`);
   process.exit(1);
 }
 
@@ -177,6 +214,32 @@ if (failures) {
   console.error(`\n${failures} platform(s) failed; the rest are named.`);
   process.exit(1);
 }
+// Mark it in the collector repo too, so "what is named" is visible from
+// the release page and not only from a database row.
+const stamp = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+try {
+  gh(
+    "release",
+    "edit",
+    release.tagName,
+    "--repo",
+    REPO,
+    "--prerelease=false",
+    "--latest",
+    "--notes",
+    `Named as the update authority ${stamp} for ${rows.length} platform(s).\n\n` +
+      `Collectors install this build and no other. Released binaries pick it up on ` +
+      `their next hourly config call; the Python twin must be re-downloaded.`,
+  );
+  console.error(`  promoted ${release.tagName} to Latest in ${REPO}`);
+} catch (err) {
+  // The rows are already written, so the fleet WILL update. Marking is
+  // bookkeeping: say it failed, do not pretend the naming did.
+  console.error(
+    `  WARNING: named, but could not promote the release page: ${err.message}`,
+  );
+}
+
 console.error(
   `\nNamed ${release.tagName}. Collectors pick it up on their next hourly config call.`,
 );
