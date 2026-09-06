@@ -148,3 +148,58 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
   assert.equal(stats.dead, 1);
   assert.ok(stats.queued_bulk >= 1);
 });
+
+test("two expired leases for one subject settle to at most one queued row (issue #2)", async () => {
+  const subject = { endpoint: "player", entity_key: "#DUPSUBJ1", lane: "bulk" };
+  await db.query(`delete from job`);
+  await enqueueJob(db, subject);
+  const a = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  // A is leased, not queued, so the partial index lets a second row in.
+  await enqueueJob(db, subject);
+  const b = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.notEqual(a.job_id, b.job_id, "two leases for one subject");
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes' where job_id = any($1::bigint[])`,
+    [[a.job_id, b.job_id]],
+  );
+  // Pre-fix this threw a unique violation and blocked fleet-wide leasing.
+  const s = await settleLeases(db);
+  const { rows } = await db.query(
+    `select count(*)::int n from job where status = 'queued' and entity_key = $1`,
+    ["#DUPSUBJ1"],
+  );
+  assert.equal(rows[0].n, 1, "exactly one queued row for the subject");
+  assert.equal(s.requeued, 1);
+  assert.equal(s.folded, 1, "the redundant expired lease folds");
+  // Leasing keeps working afterwards.
+  const next = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.ok(next, "fleet leasing is not blocked");
+  await completeJob(db, { jobId: next.job_id, gatewayId: gw });
+});
+
+test("settlement charges every abandoned lease to its gateway exactly once, whichever actor settles (issue #6)", async () => {
+  await db.query(`delete from job`);
+  const streak = async () =>
+    (
+      await db.query(
+        `select missed_streak from gateway where gateway_id = $1`,
+        [gw],
+      )
+    ).rows[0].missed_streak;
+  const before = await streak();
+  for (const t of ["#ABND1", "#ABND2", "#ABND3"]) {
+    await enqueueJob(db, { endpoint: "player", entity_key: t, lane: "bulk" });
+    await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  }
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes' where status = 'leased'`,
+  );
+  // Two actors settle concurrently on separate connections (scheduler +
+  // another collector): the three expiries are attributed once in total.
+  const db2 = new pg.Client({ connectionString: DB_URL });
+  await db2.connect();
+  const [s1, s2] = await Promise.all([settleLeases(db), settleLeases(db2)]);
+  await db2.end();
+  assert.equal(s1.missed + s2.missed, 3, "three abandonments, counted once");
+  assert.equal((await streak()) - before, 3, "streak charged exactly once");
+});

@@ -598,3 +598,114 @@ test("capture audit: overlapping polls are gapless; a fully-rolled log flags a g
   assert.equal(rows.length, 2);
   assert.equal(rows[1].gap, true, "fully-rolled log = potential gap");
 });
+
+test("decompression is bounded: a compression bomb is rejected as body:too_large with no payload row (issue #4)", async () => {
+  const before = (await ctx.db.query(`select count(*)::int n from api_payload`))
+    .rows[0].n;
+  // 4 MiB of one byte gzips to a few KB: tiny on the wire, huge inflated.
+  const bomb = gzipSync(Buffer.alloc(4 * 1024 * 1024, 0x30)).toString("base64");
+  assert.ok(bomb.length < 50_000, "the bomb is small on the wire");
+  const result = await processResult(ctx.db, {
+    v: 1,
+    job: { endpoint: "player", entity_key: "#20JJJ2CCRU", lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: "2026-09-06T12:00:00Z",
+    status: "ok",
+    body_gzip_b64: bomb,
+  });
+  assert.equal(result.outcome, "rejected");
+  assert.ok(result.errors.includes("body:too_large"));
+  const after = (await ctx.db.query(`select count(*)::int n from api_payload`))
+    .rows[0].n;
+  assert.equal(after, before, "nothing inflated was stored");
+  const { rows } = await ctx.db.query(
+    `select admission from api_receipt
+     where gateway_id = $1 and fetched_at = '2026-09-06T12:00:00Z'`,
+    [gatewayId],
+  );
+  assert.equal(
+    rows[0]?.admission,
+    "rejected",
+    "the attempt is an observable receipt",
+  );
+});
+
+test("last_success_at is owned by admission: rejections, fetch errors, and re-deliveries never advance it; admitted and content-identical refetches do (issue #7)", async () => {
+  await ctx.db.query(
+    `update gateway set last_success_at = null where gateway_id = $1`,
+    [gatewayId],
+  );
+  const success = async () =>
+    (
+      await ctx.db.query(
+        `select last_success_at from gateway where gateway_id = $1`,
+        [gatewayId],
+      )
+    ).rows[0].last_success_at;
+  const clan = await fixture("clan/roster.json");
+  const entityKey = meta["clan/roster.json"].entity_key;
+  const at = (m) => `2026-09-06T12:0${m}:00Z`;
+
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "clan",
+      entityKey,
+      payload: "nope {{",
+      fetchedAt: at(1),
+    }),
+  );
+  assert.equal(await success(), null, "unparseable never counts");
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "clan",
+      entityKey,
+      payload: clan,
+      fetchedAt: at(2),
+      status: "error",
+    }),
+  );
+  assert.equal(await success(), null, "a fetch error never counts");
+  const rejected = await processResult(
+    ctx.db,
+    message({
+      endpoint: "clan",
+      entityKey,
+      payload: { ...clan, members: (clan.members ?? 0) + 7 },
+      fetchedAt: at(3),
+    }),
+  );
+  assert.equal(rejected.outcome, "rejected");
+  assert.equal(await success(), null, "a rejected payload is not a success");
+
+  const admitted = await processResult(
+    ctx.db,
+    message({ endpoint: "clan", entityKey, payload: clan, fetchedAt: at(4) }),
+  );
+  assert.equal(admitted.outcome, "admitted");
+  const t1 = await success();
+  assert.ok(t1, "admission stamps success");
+
+  const dup = await processResult(
+    ctx.db,
+    message({ endpoint: "clan", entityKey, payload: clan, fetchedAt: at(4) }),
+  );
+  assert.equal(dup.outcome, "duplicate");
+  assert.equal(
+    String(await success()),
+    String(t1),
+    "a re-delivery is not new work",
+  );
+
+  await new Promise((r) => setTimeout(r, 5));
+  const again = await processResult(
+    ctx.db,
+    message({ endpoint: "clan", entityKey, payload: clan, fetchedAt: at(5) }),
+  );
+  assert.equal(again.outcome, "admitted");
+  assert.ok(
+    new Date(await success()) > new Date(t1),
+    "a content-identical refetch is a real, successful fetch",
+  );
+});

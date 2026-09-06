@@ -6,7 +6,11 @@ import crypto from "node:crypto";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeCollectorDoor } from "../src/collector-door.mjs";
-import { enqueueJob, ledgerStats } from "../../scheduler/src/ledger.mjs";
+import {
+  enqueueJob,
+  ledgerStats,
+  settleLeases,
+} from "../../scheduler/src/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -19,6 +23,8 @@ const sha256 = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const TOKEN_BULK = "emcg_bulk_operator_token";
 const TOKEN_LIVE = "emcg_live_owner_token";
 const TOKEN_REVOKED = "emcg_revoked_token";
+const TOKEN_ABANDON_OTHER = "emcg_abandon_other_settles_token";
+const TOKEN_ABANDON_OWNER = "emcg_abandon_owner_settles_token";
 
 let db;
 let door;
@@ -27,6 +33,15 @@ const ingested = [];
 
 const authed = (token) => ({ headers: { authorization: `Bearer ${token}` } });
 const JOB = { endpoint: "player", entity_key: "#20JJJ2CCRU", lane: "bulk" };
+
+async function gatewayRow(name) {
+  const { rows } = await db.query(
+    `select gateway_id, status, missed_streak, last_success_at, results_submitted
+     from gateway where name = $1`,
+    [name],
+  );
+  return rows[0];
+}
 
 before(async () => {
   const admin = new pg.Client({ connectionString: ADMIN_URL });
@@ -50,6 +65,8 @@ before(async () => {
     ["bulk-op", TOKEN_BULK, "bulk", "active"],
     ["live-own", TOKEN_LIVE, "live", "active"],
     ["revoked-op", TOKEN_REVOKED, "bulk", "revoked"],
+    ["abandon-other", TOKEN_ABANDON_OTHER, "bulk", "active"],
+    ["abandon-owner", TOKEN_ABANDON_OWNER, "bulk", "active"],
   ]) {
     await db.query(
       `insert into gateway (owner_account_id, name, token_hash, channel, status)
@@ -132,7 +149,6 @@ test("lease: bulk collectors never receive live jobs; server computes cr_path", 
   const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
   assert.equal(live.body.job.lane, "live");
 
-  // Submit both to clean up.
   for (const [tok, lease] of [
     [TOKEN_BULK, r.body.lease],
     [TOKEN_LIVE, live.body.lease],
@@ -147,7 +163,7 @@ test("lease: bulk collectors never receive live jobs; server computes cr_path", 
   }
 });
 
-test("submit: inline ingest, server-stamped identity, DB-bound lease", async () => {
+test("submit: inline ingest, server-stamped identity and job id, DB-bound lease", async () => {
   await enqueueJob(db, { ...JOB, entity_key: "#8U2P0JPR" });
   const r = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
   const before = ingested.length;
@@ -176,14 +192,17 @@ test("submit: inline ingest, server-stamped identity, DB-bound lease", async () 
   assert.equal(good.body.outcome, "admitted", "pipeline outcome surfaces");
   assert.equal(ingested.length, before + 1);
   const envelope = ingested.at(-1);
-  const { rows } = await db.query(
-    `select gateway_id from gateway where name = 'bulk-op'`,
-  );
-  assert.equal(envelope.gateway_id, rows[0].gateway_id, "identity from token");
+  const bulk = await gatewayRow("bulk-op");
+  assert.equal(envelope.gateway_id, bulk.gateway_id, "identity from token");
   assert.equal(
     envelope.job.entity_key,
     "#8U2P0JPR",
     "job identity from the row",
+  );
+  assert.equal(
+    envelope.job_id,
+    Number(r.body.lease),
+    "job id stamped server-side from the lease row (issue #3)",
   );
   const { rows: closed } = await db.query(
     `select status from job where job_id = $1`,
@@ -217,31 +236,142 @@ test("ingest exception leaves the lease held for expiry-requeue", async () => {
   );
 });
 
-test("lease cap and quarantine ride the ledger", async () => {
-  for (const t of ["#U08P889Y0", "#2LRYLQPL", "#JRVV9VC0C"]) {
+test("concurrent lease calls from one token never exceed the cap (issue #5)", async () => {
+  await db.query(`delete from job`);
+  for (const t of ["#U08P889Y0", "#2LRYLQPL", "#JRVV9VC0C", "#Y9CQ8VRV"]) {
     await enqueueJob(db, { ...JOB, entity_key: t });
   }
-  const a = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
-  const b = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
-  assert.equal(a.status, 200);
-  assert.equal(b.status, 200);
-  const capped = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
-  assert.equal(capped.status, 429, "third outstanding lease refused");
+  // Three simultaneous calls on three separate connections — the race
+  // the sequential cap test never exercised.
+  const conns = await Promise.all(
+    [1, 2, 3].map(async () => {
+      const c = new pg.Client({ connectionString: DB_URL });
+      await c.connect();
+      return c;
+    }),
+  );
+  try {
+    const results = await Promise.all(
+      conns.map((c) => door.lease(c, authed(TOKEN_BULK), { wait_s: 0 })),
+    );
+    const granted = results.filter((r) => r.status === 200 && r.body.job);
+    const capped = results.filter((r) => r.status === 429);
+    assert.equal(granted.length, 2, "exactly the cap is granted");
+    assert.equal(capped.length, 1, "the third is refused, never a third lease");
+    const { rows: outstanding } = await db.query(
+      `select count(*)::int n from job j join gateway g on g.gateway_id = j.leased_by
+       where g.name = 'bulk-op' and j.status = 'leased'`,
+    );
+    assert.equal(outstanding[0].n, 2);
 
-  // Age the leases and prime the streak; the next lease call charges
-  // the expiries and crosses the threshold.
+    // A different gateway is independent of bulk-op's lock and cap.
+    const other = await door.lease(conns[0], authed(TOKEN_LIVE), { wait_s: 0 });
+    assert.equal(other.status, 200);
+    assert.ok(other.body.job, "another gateway still leases concurrently");
+
+    // Submitting releases capacity: the next lease succeeds.
+    const done = await door.submit(db, authed(TOKEN_BULK), {
+      lease: granted[0].body.lease,
+      status: "ok",
+      body_gzip_b64: Buffer.from("z").toString("base64"),
+      fetched_at: new Date().toISOString(),
+    });
+    assert.equal(done.status, 200);
+    const again = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+    assert.equal(again.status, 200);
+    assert.ok(again.body.job, "capacity released by the submit");
+    for (const r of [granted[1], again, other]) {
+      const tok = r === other ? TOKEN_LIVE : TOKEN_BULK;
+      await door.submit(db, authed(tok), {
+        lease: r.body.lease,
+        status: "ok",
+        body_gzip_b64: Buffer.from("z").toString("base64"),
+        fetched_at: new Date().toISOString(),
+      });
+    }
+  } finally {
+    await Promise.all(conns.map((c) => c.end()));
+  }
+});
+
+test("a rejected admission never advances last_success_at; contact is still recorded (issue #7)", async () => {
+  const rejecting = makeCollectorDoor({
+    ingest: async () => ({ outcome: "rejected", errors: ["body:unparseable"] }),
+    notifyOwner: async () => {},
+  });
+  await db.query(`delete from job`);
+  await enqueueJob(db, { ...JOB, entity_key: "#REJECT1" });
+  const before = await gatewayRow("bulk-op");
+  assert.equal(
+    before.last_success_at,
+    null,
+    "mocked ingest never stamped success",
+  );
+  const r = await rejecting.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  const res = await rejecting.submit(db, authed(TOKEN_BULK), {
+    lease: r.body.lease,
+    status: "ok", // the client SAYS ok...
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.outcome, "rejected");
+  assert.deepEqual(res.body.admission_errors, ["body:unparseable"]);
+  const after = await gatewayRow("bulk-op");
+  assert.equal(after.last_success_at, null, "...but admission decides success");
+  assert.equal(
+    Number(after.results_submitted),
+    Number(before.results_submitted) + 1,
+    "contact is still counted",
+  );
+  assert.equal(after.missed_streak, 0, "a submit resets the streak");
+});
+
+test("abandoned leases reach quarantine when ANOTHER actor settles first (issue #6)", async () => {
+  await db.query(`delete from job`);
+  await db.query(
+    `update gateway set missed_streak = 8 where name = 'abandon-other'`,
+  );
+  for (const t of ["#ABN1", "#ABN2"]) {
+    await enqueueJob(db, { ...JOB, entity_key: t });
+    const r = await door.lease(db, authed(TOKEN_ABANDON_OTHER), { wait_s: 0 });
+    assert.equal(r.status, 200);
+  }
   await db.query(
     `update job set leased_at = now() - interval '10 minutes' where status = 'leased'`,
   );
-  await db.query(`update gateway set missed_streak = 8 where name = 'bulk-op'`);
-  const quarantined = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
-  assert.equal(quarantined.status, 409);
-  const { rows } = await db.query(
-    `select status from gateway where name = 'bulk-op'`,
-  );
-  assert.equal(rows[0].status, "draining");
-  assert.equal(notices.at(-1).kind, "gateway_quarantined");
+  // The scheduler (or any other collector) settles before the owner polls.
+  const settled = await settleLeases(db);
+  assert.equal(settled.missed, 2, "the expiries are attributed at settlement");
+  assert.equal((await gatewayRow("abandon-other")).missed_streak, 10);
 
+  // Pre-fix: ownership was already cleared, so this poll saw streak 8.
+  const quarantined = await door.lease(db, authed(TOKEN_ABANDON_OTHER), {
+    wait_s: 0,
+  });
+  assert.equal(quarantined.status, 409);
+  const gw = await gatewayRow("abandon-other");
+  assert.equal(gw.status, "draining");
+  assert.equal(gw.missed_streak, 10, "no double count on the owner's poll");
+  assert.equal(notices.at(-1).kind, "gateway_quarantined");
   const stats = await ledgerStats(db);
   assert.ok(stats.queued_bulk >= 1, "expired leases requeued, not lost");
+});
+
+test("owner-first settlement charges the same (issue #6)", async () => {
+  await db.query(`delete from job`);
+  await db.query(
+    `update gateway set missed_streak = 9 where name = 'abandon-owner'`,
+  );
+  await enqueueJob(db, { ...JOB, entity_key: "#ABN3" });
+  const r = await door.lease(db, authed(TOKEN_ABANDON_OWNER), { wait_s: 0 });
+  assert.equal(r.status, 200);
+  await db.query(
+    `update job set leased_at = now() - interval '10 minutes' where status = 'leased'`,
+  );
+  const quarantined = await door.lease(db, authed(TOKEN_ABANDON_OWNER), {
+    wait_s: 0,
+  });
+  assert.equal(quarantined.status, 409);
+  assert.equal((await gatewayRow("abandon-owner")).missed_streak, 10);
 });

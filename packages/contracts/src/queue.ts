@@ -15,6 +15,10 @@ export interface CrJob {
 export interface CrResultMessage {
   v: 1;
   job: CrJob;
+  /** Ledger job this result fulfils (0040/0041). Server-stamped by the
+   *  collector door from the lease row; binds a live wait to ITS job so
+   *  a bulk receipt for the same subject can never satisfy it. */
+  job_id?: number;
   gateway_id: string;
   /** ISO 8601 UTC; stable across SQS redeliveries — the idempotency key
    *  component (unique with gateway_id + endpoint + entity_key). */

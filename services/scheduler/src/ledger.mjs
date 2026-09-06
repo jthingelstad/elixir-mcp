@@ -25,36 +25,93 @@ export async function enqueueJob(db, { endpoint, entity_key, lane }) {
   return rows[0];
 }
 
-/** Requeue expired leases (bounded retries), dead the exhausted. */
+/**
+ * Settle expired leases in ONE transaction: requeue (bounded retries),
+ * dead the exhausted, fold the redundant — and charge every abandoned
+ * lease to its gateway's missed_streak exactly once, regardless of
+ * which actor settles (scheduler or any collector; issue #6). Requeue
+ * picks at most ONE lease per subject, deterministically, so two leases
+ * for one subject expiring together can never race the
+ * one-queued-per-subject index (issue #2); the other folds.
+ *
+ * Requeue is an in-place UPDATE so job_id is stable across retries —
+ * the live waiter binds to it (issue #3). The residual physical race
+ * (an enqueue committing a queued twin between our snapshot and the
+ * index insert) surfaces as 23505; we retry once, and the twin makes
+ * the lease fold instead. Callers run this on an autocommit
+ * connection: it opens its own transaction.
+ */
 export async function settleLeases(db) {
-  const { rowCount: requeued } = await db.query(
-    `update job set status = 'queued', leased_at = null, leased_by = null
-     where status = 'leased'
-       and leased_at < now() - make_interval(secs => $1)
-       and attempts < $2
-       -- the one-queued-per-subject index must hold: if a NEWER queued
-       -- row exists for the subject, this stale lease is redundant.
-       and not exists (select 1 from job q
-                       where q.endpoint = job.endpoint
-                         and q.entity_key = job.entity_key
-                         and q.status = 'queued')`,
-    [LEASE_TTL_S, MAX_ATTEMPTS],
-  );
-  const { rowCount: died } = await db.query(
-    `update job set status = 'dead', done_at = now()
-     where status = 'leased'
-       and leased_at < now() - make_interval(secs => $1)
-       and attempts >= $2`,
-    [LEASE_TTL_S, MAX_ATTEMPTS],
-  );
-  // Expired-but-redundant leases (a queued twin already exists) just close.
-  const { rowCount: folded } = await db.query(
-    `update job set status = 'done', done_at = now()
-     where status = 'leased'
-       and leased_at < now() - make_interval(secs => $1)`,
-    [LEASE_TTL_S],
-  );
-  return { requeued, died, folded };
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await settleOnce(db);
+    } catch (err) {
+      if (err?.code === "23505" && attempt === 0) continue;
+      throw err;
+    }
+  }
+}
+
+async function settleOnce(db) {
+  await db.query("begin");
+  try {
+    const expired = `status = 'leased' and leased_at < now() - make_interval(secs => $1)`;
+    const { rows: requeuedRows } = await db.query(
+      `with picked as (
+         select distinct on (endpoint, entity_key) job_id, leased_by
+         from job
+         where ${expired} and attempts < $2
+           and not exists (select 1 from job q
+                           where q.endpoint = job.endpoint
+                             and q.entity_key = job.entity_key
+                             and q.status = 'queued')
+         order by endpoint, entity_key, attempts, job_id)
+       update job set status = 'queued', leased_at = null, leased_by = null
+       from picked
+       where job.job_id = picked.job_id and job.status = 'leased'
+       returning picked.leased_by`,
+      [LEASE_TTL_S, MAX_ATTEMPTS],
+    );
+    const { rows: diedRows } = await db.query(
+      `update job set status = 'dead', done_at = now()
+       where ${expired} and attempts >= $2
+       returning leased_by`,
+      [LEASE_TTL_S, MAX_ATTEMPTS],
+    );
+    // Whatever is still expired-and-leased is redundant (a queued twin
+    // exists, or it lost the one-per-subject pick): it just closes.
+    const { rows: foldedRows } = await db.query(
+      `update job set status = 'done', done_at = now()
+       where ${expired}
+       returning leased_by`,
+      [LEASE_TTL_S],
+    );
+    // Exactly-once attribution: each expired lease transitioned in
+    // exactly one statement above, and each carried its abandoning
+    // gateway out with it.
+    const abandoned = [...requeuedRows, ...diedRows, ...foldedRows]
+      .map((r) => r.leased_by)
+      .filter(Boolean);
+    if (abandoned.length) {
+      await db.query(
+        `update gateway g set missed_streak = g.missed_streak + c.n
+         from (select gid, count(*)::int as n
+               from unnest($1::uuid[]) as gid group by gid) c
+         where g.gateway_id = c.gid`,
+        [abandoned],
+      );
+    }
+    await db.query("commit");
+    return {
+      requeued: requeuedRows.length,
+      died: diedRows.length,
+      folded: foldedRows.length,
+      missed: abandoned.length,
+    };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
 }
 
 /** Lease the next job for a collector. lanes ordered live-first for

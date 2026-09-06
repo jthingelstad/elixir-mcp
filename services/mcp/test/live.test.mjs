@@ -8,6 +8,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { makeLive, livePathToJob } from "../src/live.mjs";
+import { enqueueJob, leaseJob } from "../../scheduler/src/ledger.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -29,17 +30,21 @@ async function fixture(rel) {
   );
 }
 
-/** A fake gateway: on enqueue, run the REAL results pipeline as if the
- *  fetch completed — the exact round trip, minus SQS and the wire. */
+/** A fake LIVE-channel gateway: enqueue the real ledger job, then run the
+ *  REAL results pipeline as if THAT job's fetch completed — the exact
+ *  round trip, minus the wire. The receipt carries the job id and the
+ *  live gateway, which is what the waiter binds to (issue #3). */
 function fakeGatewayLive(payloadByKey) {
   return makeLive({
     timeoutMs: 3000,
     enqueue: async (_db, job) => {
+      const row = await enqueueJob(db, job);
       const payload = payloadByKey[`${job.endpoint}:${job.entity_key}`];
-      if (!payload) return; // never fulfilled -> timeout path
+      if (!payload) return row; // never fulfilled -> timeout path
       await processResult(db, {
         v: 1,
         job,
+        job_id: Number(row.job_id),
         gateway_id: gatewayId,
         fetched_at: new Date().toISOString(),
         status: "ok",
@@ -47,6 +52,7 @@ function fakeGatewayLive(payloadByKey) {
           "base64",
         ),
       });
+      return row;
     },
   });
 }
@@ -73,8 +79,8 @@ before(async () => {
   const {
     rows: [gw],
   } = await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status)
-     values ($1, 'live-gw', '127.0.0.1', 'active') returning gateway_id`,
+    `insert into gateway (owner_account_id, name, static_ip, status, channel)
+     values ($1, 'live-gw', '127.0.0.1', 'active', 'live') returning gateway_id`,
     [acct.account_id],
   );
   gatewayId = gw.gateway_id;
@@ -195,4 +201,90 @@ test("rankings paths map to leaderboard jobs; bad locations refuse (feedback #6)
   t.assert.strictEqual(pol.entityKey, "57000249");
   const bad = livePathToJob("/locations/nope!/rankings/players", normalizeTag);
   t.assert.strictEqual(bad.error, "bad_request");
+});
+
+test("an overlapping bulk collector's receipt can never satisfy a live wait (issue #3)", async () => {
+  await db.query(`delete from job`); // earlier tests leave a queued live row for this subject
+  const profile = await fixture("player/profile.json");
+  const tag = normalizeTag(profile.tag);
+  const body = gzipSync(Buffer.from(JSON.stringify(profile))).toString(
+    "base64",
+  );
+  // A bulk-channel operator already holds a lease on this subject.
+  const {
+    rows: [bulkGw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status, channel)
+     values ($1, 'bulk-op', '127.0.0.2', 'active', 'bulk') returning gateway_id`,
+    [account.accountId],
+  );
+  await enqueueJob(db, { endpoint: "player", entity_key: tag, lane: "bulk" });
+  const bulkJob = await leaseJob(db, {
+    gatewayId: bulkGw.gateway_id,
+    lanes: ["bulk"],
+  });
+  assert.ok(bulkJob, "the bulk operator holds the subject");
+
+  // The live request mints its OWN row (the bulk one is leased), and the
+  // BULK result lands first: admitted, recorded — and ignored by the wait.
+  let liveJobId;
+  const live = makeLive({
+    timeoutMs: 1500,
+    enqueue: async (_db, job) => {
+      const row = await enqueueJob(db, job);
+      liveJobId = Number(row.job_id);
+      assert.notEqual(
+        liveJobId,
+        Number(bulkJob.job_id),
+        "live got its own row",
+      );
+      await processResult(db, {
+        v: 1,
+        job: { ...job, lane: "bulk" },
+        job_id: Number(bulkJob.job_id),
+        gateway_id: bulkGw.gateway_id,
+        fetched_at: new Date().toISOString(),
+        status: "ok",
+        body_gzip_b64: body,
+      });
+      return row;
+    },
+  });
+  const r = await live(db, { endpoint: "player", entityKey: tag });
+  assert.equal(r.ok, false);
+  assert.equal(
+    r.reason,
+    "timeout",
+    "the bulk receipt neither completes nor rejects the live wait",
+  );
+  const { rows: recorded } = await db.query(
+    `select 1 from api_receipt where job_id = $1 and admission = 'admitted'`,
+    [Number(bulkJob.job_id)],
+  );
+  assert.equal(recorded.length, 1, "...yet the bulk fetch WAS recorded");
+
+  // The authorized live-channel result for the live job completes it.
+  const live2 = makeLive({
+    timeoutMs: 3000,
+    enqueue: async (_db, job) => {
+      const row = await enqueueJob(db, job); // upgrades to the queued live row
+      assert.equal(Number(row.job_id), liveJobId, "same pending live job");
+      await processResult(db, {
+        v: 1,
+        job,
+        job_id: Number(row.job_id),
+        gateway_id: gatewayId,
+        fetched_at: new Date().toISOString(),
+        status: "ok",
+        body_gzip_b64: body,
+      });
+      return row;
+    },
+  });
+  const ok = await live2(db, { endpoint: "player", entityKey: tag });
+  assert.equal(
+    ok.ok,
+    true,
+    "a matching live-channel receipt completes the wait",
+  );
 });

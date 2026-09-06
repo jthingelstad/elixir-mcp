@@ -16,18 +16,32 @@ export function makeLive({
 }) {
   return async function liveFetch(db, { endpoint, entityKey }) {
     const since = new Date();
-    await enqueue(db, { endpoint, entity_key: entityKey, lane: "live" });
+    const enqueued = await enqueue(db, {
+      endpoint,
+      entity_key: entityKey,
+      lane: "live",
+    });
+    // Bind the wait to THIS job (issue #3): the receipt must carry our
+    // job_id AND come from a live-channel collector. A bulk collector's
+    // receipt for the same subject — leased before we asked — is still
+    // recorded opportunistically, but it never serves a live answer
+    // (the ratified channel boundary). No job id = nothing can match.
+    const jobId = Number.isInteger(enqueued?.job_id)
+      ? enqueued.job_id
+      : Number(enqueued?.job_id) || null;
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);
       const { rows } = await db.query(
         `select r.admission, r.admission_errors, p.payload_json
          from api_receipt r
+         join gateway g on g.gateway_id = r.gateway_id and g.channel = 'live'
          left join api_payload p on p.endpoint = r.endpoint
            and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash
          where r.endpoint = $1 and r.entity_key = $2 and r.fetched_at >= $3
+           and r.job_id = $4
          order by r.receipt_id desc limit 1`,
-        [endpoint, entityKey, since],
+        [endpoint, entityKey, since, jobId],
       );
       const row = rows[0];
       if (row) {

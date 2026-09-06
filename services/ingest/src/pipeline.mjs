@@ -249,6 +249,12 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
  * archive is part of admission, not best-effort (DATA-TOOLS §1).
  * @returns {{outcome: string, [k: string]: unknown}}
  */
+// Bound on the DECOMPRESSED body (issue #4). The largest legitimate CR
+// payload is a ~300 KB raw battlelog (DESIGN §5.1); a 400 KB compressed
+// submission could otherwise expand far past the shared web API Lambda's
+// memory. Enforced inside zlib, before any string or JSON work.
+const MAX_DECOMPRESSED_BYTES = 2 * 1024 * 1024;
+
 export async function processResult(db, rawMessage, deps = {}) {
   // Phase timings ride every outcome (a few Date.now() calls): the
   // replay lane aggregates them, and they price the live path too.
@@ -286,12 +292,16 @@ export async function processResult(db, rawMessage, deps = {}) {
   let t = mark("gateway_ms", t0);
   let payload;
   let rawText;
+  let tooLarge = false;
   try {
-    rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64")).toString(
-      "utf8",
-    );
+    rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64"), {
+      maxOutputLength: MAX_DECOMPRESSED_BYTES,
+    }).toString("utf8");
     payload = JSON.parse(rawText);
-  } catch {
+  } catch (err) {
+    // zlib aborts at the bound with ERR_BUFFER_TOO_LARGE — a deliberate,
+    // observable rejection, not an allocation.
+    tooLarge = err?.code === "ERR_BUFFER_TOO_LARGE";
     payload = undefined;
   }
 
@@ -300,10 +310,15 @@ export async function processResult(db, rawMessage, deps = {}) {
     subjectTag(endpoint, msg.job.entity_key) ?? msg.job.entity_key;
   const admission =
     payload === undefined
-      ? { ok: false, errors: ["body:unparseable"] }
+      ? {
+          ok: false,
+          errors: [tooLarge ? "body:too_large" : "body:unparseable"],
+        }
       : admit(endpoint, payload, entityKey);
   const hash =
-    payload === undefined ? payloadHash(rawText ?? "") : payloadHash(payload);
+    payload === undefined
+      ? payloadHash(tooLarge ? msg.body_gzip_b64 : (rawText ?? ""))
+      : payloadHash(payload);
   t = mark("parse_admit_ms", t);
 
   await db.query("begin");
@@ -337,8 +352,8 @@ export async function processResult(db, rawMessage, deps = {}) {
 
     const { rows: receiptRows } = await db.query(
       `insert into api_receipt
-         (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission, admission_errors)
-       values ($1, $2, $3, $4, $5, $6, $7)
+         (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission, admission_errors, job_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
        on conflict (gateway_id, endpoint, entity_key, fetched_at) do nothing
        returning receipt_id`,
       [
@@ -349,6 +364,7 @@ export async function processResult(db, rawMessage, deps = {}) {
         msg.gateway_id,
         admission.ok ? "admitted" : "rejected",
         admission.ok ? null : JSON.stringify(admission.errors),
+        Number.isInteger(msg.job_id) ? msg.job_id : null,
       ],
     );
     if (receiptRows.length === 0) {
