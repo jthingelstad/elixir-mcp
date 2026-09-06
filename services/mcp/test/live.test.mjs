@@ -34,7 +34,7 @@ async function fixture(rel) {
 function fakeGatewayLive(payloadByKey) {
   return makeLive({
     timeoutMs: 3000,
-    enqueue: async (job) => {
+    enqueue: async (_db, job) => {
       const payload = payloadByKey[`${job.endpoint}:${job.entity_key}`];
       if (!payload) return; // never fulfilled -> timeout path
       await processResult(db, {

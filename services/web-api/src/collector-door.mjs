@@ -18,6 +18,11 @@
 
 import crypto from "node:crypto";
 import { crPathForJob } from "@elixir-mcp/contracts";
+import {
+  leaseJob,
+  completeJob,
+  settleLeases as settleLedger,
+} from "../../scheduler/src/ledger.mjs";
 
 const TOKEN_PREFIX = "emcg_";
 const LEASE_TTL_S = 90; // SQS visibility is 60s; expired rows are noise
@@ -37,30 +42,6 @@ function sha256hex(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-function hmac(secret, value) {
-  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
-}
-
-/** Signed lease token: the collector cannot alter the job it echoes. */
-export function encodeLease(secret, payload) {
-  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  return `${body}.${hmac(secret, body)}`;
-}
-
-export function decodeLease(secret, token) {
-  const [body, sig] = String(token ?? "").split(".", 2);
-  if (!body || !sig) return null;
-  const expected = hmac(secret, body);
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  try {
-    return JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
-  } catch {
-    return null;
-  }
-}
-
 async function authGateway(db, event, statuses) {
   const header =
     event.headers?.authorization ?? event.headers?.Authorization ?? "";
@@ -76,36 +57,33 @@ async function authGateway(db, event, statuses) {
   return rows[0] ?? null;
 }
 
-/** Expire stale leases and charge them to the streak; then count live ones. */
-async function settleLeases(db, gatewayId) {
-  const { rowCount: expired } = await db.query(
-    `delete from gateway_lease
-     where gateway_id = $1 and issued_at < now() - make_interval(secs => $2)`,
+/** Settle the ledger, charge THIS gateway's newly expired leases to
+ *  its streak, and report its outstanding count. */
+async function settleForGateway(db, gatewayId) {
+  const { rowCount: expiredMine } = await db.query(
+    `update gateway g set missed_streak = g.missed_streak + exp.n
+     from (select count(*)::int as n from job
+           where leased_by = $1 and status = 'leased'
+             and leased_at < now() - make_interval(secs => $2)) exp
+     where g.gateway_id = $1 and exp.n > 0`,
     [gatewayId, LEASE_TTL_S],
   );
-  if (expired > 0) {
-    await db.query(
-      `update gateway set missed_streak = missed_streak + $2
-       where gateway_id = $1`,
-      [gatewayId, expired],
-    );
-  }
+  void expiredMine;
+  await settleLedger(db);
   const { rows } = await db.query(
-    `select count(*)::int as outstanding,
-            (select missed_streak from gateway where gateway_id = $1) as streak
-     from gateway_lease where gateway_id = $1`,
+    `select
+       (select count(*)::int from job
+        where leased_by = $1 and status = 'leased') as outstanding,
+       (select missed_streak from gateway where gateway_id = $1) as streak`,
     [gatewayId],
   );
   return { outstanding: rows[0].outstanding, streak: rows[0].streak };
 }
 
 export function makeCollectorDoor({
-  secret,
-  sqs,
+  ingest, // async (db, resultEnvelope) -> pipeline outcome (0040 inline)
   notifyOwner = async () => {},
 }) {
-  // sqs: { receive(queue: 'live'|'bulk'|'results', waitSeconds) -> {body, receiptHandle} | null,
-  //        send(queue, body), delete(queue, receiptHandle) }
   return {
     async config(db, event) {
       const gw = await authGateway(db, event, [
@@ -135,7 +113,7 @@ export function makeCollectorDoor({
     async lease(db, event, body) {
       const gw = await authGateway(db, event, ["probation", "active"]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
-      const { outstanding, streak } = await settleLeases(db, gw.gateway_id);
+      const { outstanding, streak } = await settleForGateway(db, gw.gateway_id);
       if (streak >= MISSED_STREAK_QUARANTINE) {
         // Black-hole quarantine: stop serving, drain, tell the owner.
         await db.query(
@@ -169,59 +147,38 @@ export function makeCollectorDoor({
           ? CONFIG.poll.live_wait_s
           : CONFIG.poll.bulk_wait_s,
       );
-      // Live-eligible collectors drain live first. The peeks use a 1s
-      // wait deliberately: WaitTimeSeconds=0 is an SQS SHORT poll that
-      // samples a server subset and can MISS waiting messages (found
-      // live at cutover, 2026-09-06); any wait >= 1s long-polls all.
-      let queue = "bulk";
-      let msg = null;
-      if (gw.channel === "live") {
-        msg = await sqs.receive("live", 1);
-        if (msg) queue = "live";
+      const lanes = gw.channel === "live" ? ["live", "bulk"] : ["bulk"];
+      // Ledger lease with a short re-check loop standing in for the
+      // old SQS long poll: 500ms cadence up to the wait budget - it
+      // cannot miss the way SQS short polls did (0040).
+      const deadline = Date.now() + wait * 1000;
+      let job = await leaseJob(db, { gatewayId: gw.gateway_id, lanes });
+      while (!job && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 500));
+        job = await leaseJob(db, { gatewayId: gw.gateway_id, lanes });
       }
-      if (!msg)
-        msg = await sqs.receive(
-          "bulk",
-          gw.channel === "live" ? Math.min(wait, 4) : wait,
-        );
-      if (!msg && gw.channel === "live") {
-        // One more live poll after the bulk wait: a live job that
-        // arrived mid-wait beats returning empty.
-        msg = await sqs.receive("live", 1);
-        if (msg) queue = "live";
-      }
-      if (!msg) return { status: 200, body: { empty: true } };
-
-      let job;
-      try {
-        job = JSON.parse(msg.body);
-      } catch {
-        // Malformed queue content: drop it toward the DLQ path by
-        // leaving it un-deleted; tell the collector to come back.
+      if (!job) return { status: 200, body: { empty: true } };
+      const crPath = crPathForJob(job);
+      if (!crPath) {
+        // Unmappable endpoint: close it out rather than bouncing forever.
+        await completeJob(db, { jobId: job.job_id, gatewayId: gw.gateway_id });
         return { status: 200, body: { empty: true } };
       }
-      const crPath = crPathForJob(job);
-      if (!crPath) return { status: 200, body: { empty: true } };
-      const {
-        rows: [leaseRow],
-      } = await db.query(
-        `insert into gateway_lease (gateway_id) values ($1) returning lease_id`,
-        [gw.gateway_id],
-      );
       await db.query(
         `update gateway set leases_issued = leases_issued + 1 where gateway_id = $1`,
         [gw.gateway_id],
       );
-      const lease = encodeLease(secret, {
-        g: gw.gateway_id,
-        l: leaseRow.lease_id,
-        q: queue,
-        rh: msg.receiptHandle,
-        job,
-      });
       return {
         status: 200,
-        body: { job, cr_path: crPath, lease },
+        body: {
+          job: {
+            endpoint: job.endpoint,
+            entity_key: job.entity_key,
+            lane: job.lane,
+          },
+          cr_path: crPath,
+          lease: String(job.job_id),
+        },
       };
     },
 
@@ -232,10 +189,21 @@ export function makeCollectorDoor({
         "draining",
       ]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
-      const lease = decodeLease(secret, body?.lease);
-      if (!lease || lease.g !== gw.gateway_id) {
+      const jobId = Number(body?.lease);
+      if (!Number.isInteger(jobId) || jobId <= 0) {
         return { status: 400, body: { error: "bad_lease" } };
       }
+      // The lease is a DB fact: only the leasing gateway holds it, and
+      // the job identity comes from the row - nothing client-supplied
+      // to sign or verify (0040 replaced the HMAC lease token).
+      const { rows: leased } = await db.query(
+        `select job_id, endpoint, entity_key, lane from job
+         where job_id = $1 and leased_by = $2 and status = 'leased'`,
+        [jobId, gw.gateway_id],
+      );
+      if (!leased[0]) return { status: 400, body: { error: "bad_lease" } };
+      const job = leased[0];
+
       const status = body?.status === "ok" ? "ok" : "error";
       if (
         status === "ok" &&
@@ -255,7 +223,11 @@ export function makeCollectorDoor({
       ).slice(0, 64);
       const envelope = {
         v: 1,
-        job: lease.job,
+        job: {
+          endpoint: job.endpoint,
+          entity_key: job.entity_key,
+          lane: job.lane,
+        },
         gateway_id: gw.gateway_id, // SERVER-stamped: spoofing dies here
         ...(version ? { gateway_sha: version } : {}),
         fetched_at,
@@ -276,15 +248,24 @@ export function makeCollectorDoor({
               },
             }),
       };
-      await sqs.send("results", JSON.stringify(envelope));
-      await sqs.delete(lease.q, lease.rh).catch(() => {
-        // Visibility may have expired; the request message redelivers
-        // and ingest dedups the receipt — annoying, never harmful.
-      });
-      await db.query(
-        `delete from gateway_lease where lease_id = $1 and gateway_id = $2`,
-        [lease.l, gw.gateway_id],
-      );
+      // INLINE INGEST (0040): the admission-and-projection transaction
+      // runs here, and the door answers only after commit. Rejections
+      // are recorded receipts (job done, structured feedback to the
+      // collector); an exception leaves the lease held so expiry
+      // requeues a bounded refetch.
+      let outcome;
+      try {
+        outcome = await ingest(db, envelope);
+      } catch (err) {
+        console.error(
+          "submit_ingest_error",
+          job.endpoint,
+          job.entity_key,
+          err?.message,
+        );
+        return { status: 500, body: { error: "ingest_failed" } };
+      }
+      await completeJob(db, { jobId, gatewayId: gw.gateway_id });
       await db.query(
         `update gateway set results_submitted = results_submitted + 1,
                 missed_streak = 0,
@@ -292,7 +273,14 @@ export function makeCollectorDoor({
          where gateway_id = $1`,
         [gw.gateway_id, status],
       );
-      return { status: 200, body: { ok: true } };
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          outcome: outcome?.outcome ?? "processed",
+          ...(outcome?.errors ? { admission_errors: outcome.errors } : {}),
+        },
+      };
     },
   };
 }

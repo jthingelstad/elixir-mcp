@@ -16,7 +16,7 @@ export function makeLive({
 }) {
   return async function liveFetch(db, { endpoint, entityKey }) {
     const since = new Date();
-    await enqueue({ endpoint, entity_key: entityKey, lane: "live" });
+    await enqueue(db, { endpoint, entity_key: entityKey, lane: "live" });
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);

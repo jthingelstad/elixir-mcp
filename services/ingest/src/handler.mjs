@@ -15,7 +15,7 @@ import { processResult } from "./pipeline.mjs";
 /** The S3 payload archive (DATA-TOOLS §1). Absent bucket = no archive
  *  (local dev, tests); in prod the put is part of admission and a
  *  failure fails the message so SQS retries. */
-function makeArchive(bucket) {
+export function makeArchive(bucket) {
   if (!bucket) return null;
   const s3 = new S3Client({});
   return {

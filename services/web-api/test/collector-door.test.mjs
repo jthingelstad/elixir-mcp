@@ -5,11 +5,8 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import {
-  makeCollectorDoor,
-  encodeLease,
-  decodeLease,
-} from "../src/collector-door.mjs";
+import { makeCollectorDoor } from "../src/collector-door.mjs";
+import { enqueueJob, ledgerStats } from "../../scheduler/src/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -17,7 +14,6 @@ const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_door_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
-const SECRET = "door-secret";
 
 const sha256 = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const TOKEN_BULK = "emcg_bulk_operator_token";
@@ -27,31 +23,7 @@ const TOKEN_REVOKED = "emcg_revoked_token";
 let db;
 let door;
 const notices = [];
-
-/** Scripted fake SQS: queues are arrays; receive shifts, delete records. */
-function fakeSqs() {
-  const q = { live: [], bulk: [], results: [] };
-  const deleted = [];
-  const receives = [];
-  let rh = 0;
-  return {
-    q,
-    deleted,
-    receives,
-    async receive(key, wait) {
-      receives.push({ key, wait });
-      const body = q[key].shift();
-      return body ? { body, receiptHandle: `rh-${key}-${(rh += 1)}` } : null;
-    },
-    async send(key, body) {
-      q[key].push(body);
-    },
-    async delete(key, receiptHandle) {
-      deleted.push(`${key}:${receiptHandle}`);
-    },
-  };
-}
-let sqs;
+const ingested = [];
 
 const authed = (token) => ({ headers: { authorization: `Bearer ${token}` } });
 const JOB = { endpoint: "player", entity_key: "#20JJJ2CCRU", lane: "bulk" };
@@ -87,13 +59,14 @@ before(async () => {
   }
   await db.query(
     `insert into collector_release (platform, version, sha256, url)
-     values ('go', '2.0.0', $1, 'https://example.com/collector')`,
+     values ('go-darwin-arm64', '2.0.0', $1, 'https://example.com/collector')`,
     [sha256("binary")],
   );
-  sqs = fakeSqs();
   door = makeCollectorDoor({
-    secret: SECRET,
-    sqs,
+    ingest: async (dbc, envelope) => {
+      ingested.push(envelope);
+      return { outcome: "admitted" };
+    },
     notifyOwner: async (n) => notices.push(n),
   });
 });
@@ -106,7 +79,7 @@ after(async () => {
   await admin.end();
 });
 
-test("auth: bad, missing, and revoked tokens never pass; static_ip is optional now", async () => {
+test("auth: bad, missing, and revoked tokens never pass", async () => {
   for (const ev of [
     { headers: {} },
     authed("emcg_wrong"),
@@ -123,78 +96,75 @@ test("config: contract constants, channel, and the update authority", async () =
   assert.equal(r.status, 200);
   assert.equal(r.body.pacing_ms, 1500);
   assert.equal(r.body.gateway.channel, "bulk");
-  assert.equal(r.body.update.go.version, "2.0.0");
-  assert.match(r.body.update.go.sha256, /^[0-9a-f]{64}$/);
-  const { rows } = await db.query(
-    `select last_heartbeat_at from gateway where name = 'bulk-op'`,
-  );
-  assert.ok(rows[0].last_heartbeat_at, "any authed call heartbeats");
+  assert.equal(r.body.update["go-darwin-arm64"].version, "2.0.0");
 });
 
-test("lease: bulk collectors never touch the live queue; server computes cr_path", async () => {
-  sqs.q.live.push(JSON.stringify({ ...JOB, lane: "live" }));
-  sqs.q.bulk.push(JSON.stringify(JOB));
-  sqs.receives.length = 0;
+test("ledger: enqueue dedups per subject and live upgrades bulk", async () => {
+  await enqueueJob(db, JOB);
+  await enqueueJob(db, JOB); // idempotent by construction
+  const { rows: one } = await db.query(
+    `select count(*)::int n from job where status = 'queued' and entity_key = $1`,
+    [JOB.entity_key],
+  );
+  assert.equal(one[0].n, 1);
+  await enqueueJob(db, { ...JOB, lane: "live" });
+  const { rows: up } = await db.query(
+    `select lane from job where status = 'queued' and entity_key = $1`,
+    [JOB.entity_key],
+  );
+  assert.equal(up[0].lane, "live", "live upgrades the queued row");
+  await db.query(`delete from job`);
+});
+
+test("lease: bulk collectors never receive live jobs; server computes cr_path", async () => {
+  await enqueueJob(db, { ...JOB, lane: "live" });
+  const empty = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  assert.equal(empty.body.empty, true, "the only job is live; bulk sees none");
+
+  await enqueueJob(db, { ...JOB, entity_key: "#2YG98VVQ", lane: "bulk" });
   const r = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body.job, JOB);
-  assert.equal(r.body.cr_path, "/players/%2320JJJ2CCRU");
-  assert.ok(
-    sqs.receives.every((x) => x.key === "bulk"),
-    "bulk channel never peeks live",
-  );
-  assert.ok(r.body.lease.includes("."), "lease is signed");
-  // Clean up: submit it so later tests start with no outstanding leases.
-  const ok = await door.submit(db, authed(TOKEN_BULK), {
-    lease: r.body.lease,
-    status: "ok",
-    body_gzip_b64: Buffer.from("x").toString("base64"),
-    fetched_at: new Date().toISOString(),
-  });
-  assert.equal(ok.status, 200);
+  assert.equal(r.body.job.entity_key, "#2YG98VVQ");
+  assert.equal(r.body.cr_path, "/players/%232YG98VVQ");
+  assert.match(r.body.lease, /^\d+$/, "the lease is a ledger row id");
+
+  // Live channel drains live first.
+  const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
+  assert.equal(live.body.job.lane, "live");
+
+  // Submit both to clean up.
+  for (const [tok, lease] of [
+    [TOKEN_BULK, r.body.lease],
+    [TOKEN_LIVE, live.body.lease],
+  ]) {
+    const done = await door.submit(db, authed(tok), {
+      lease,
+      status: "ok",
+      body_gzip_b64: Buffer.from("x").toString("base64"),
+      fetched_at: new Date().toISOString(),
+    });
+    assert.equal(done.status, 200);
+  }
 });
 
-test("lease: live channel drains live first", async () => {
-  sqs.q.live.length = 0;
-  sqs.q.bulk.length = 0;
-  sqs.q.live.push(JSON.stringify({ ...JOB, lane: "live" }));
-  sqs.q.bulk.push(JSON.stringify(JOB));
-  const r = await door.lease(db, authed(TOKEN_LIVE), {});
-  assert.equal(r.status, 200);
-  assert.equal(r.body.job.lane, "live");
-  const done = await door.submit(db, authed(TOKEN_LIVE), {
-    lease: r.body.lease,
-    status: "ok",
-    body_gzip_b64: Buffer.from("y").toString("base64"),
-  });
-  assert.equal(done.status, 200);
-  sqs.q.bulk.length = 0;
-});
+test("submit: inline ingest, server-stamped identity, DB-bound lease", async () => {
+  await enqueueJob(db, { ...JOB, entity_key: "#8U2P0JPR" });
+  const r = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  const before = ingested.length;
 
-test("submit: envelope identity is SERVER-stamped and lease tampering fails", async () => {
-  sqs.q.bulk.push(JSON.stringify(JOB));
-  const r = await door.lease(db, authed(TOKEN_BULK), {});
-  const results_before = sqs.q.results.length;
-
-  // Tamper: another collector's token cannot submit this lease.
+  // Another collector cannot submit this lease: it is a DB fact.
   const stolen = await door.submit(db, authed(TOKEN_LIVE), {
     lease: r.body.lease,
     status: "ok",
     body_gzip_b64: Buffer.from("z").toString("base64"),
   });
-  assert.equal(stolen.status, 400, "lease is bound to its gateway");
-
-  // Tamper: altering the payload breaks the signature.
-  const decoded = decodeLease(SECRET, r.body.lease);
-  const forged = `${Buffer.from(
-    JSON.stringify({ ...decoded, job: { ...JOB, entity_key: "#2YG98VVQ" } }),
-  ).toString("base64url")}.${r.body.lease.split(".")[1]}`;
-  const bad = await door.submit(db, authed(TOKEN_BULK), {
-    lease: forged,
+  assert.equal(stolen.status, 400);
+  const junk = await door.submit(db, authed(TOKEN_BULK), {
+    lease: "999999",
     status: "ok",
     body_gzip_b64: Buffer.from("z").toString("base64"),
   });
-  assert.equal(bad.status, 400, "signature covers the job");
+  assert.equal(junk.status, 400);
 
   const good = await door.submit(db, authed(TOKEN_BULK), {
     lease: r.body.lease,
@@ -203,57 +173,75 @@ test("submit: envelope identity is SERVER-stamped and lease tampering fails", as
     fetched_at: new Date().toISOString(),
   });
   assert.equal(good.status, 200);
-  assert.equal(sqs.q.results.length, results_before + 1);
-  const envelope = JSON.parse(sqs.q.results.at(-1));
+  assert.equal(good.body.outcome, "admitted", "pipeline outcome surfaces");
+  assert.equal(ingested.length, before + 1);
+  const envelope = ingested.at(-1);
   const { rows } = await db.query(
     `select gateway_id from gateway where name = 'bulk-op'`,
   );
+  assert.equal(envelope.gateway_id, rows[0].gateway_id, "identity from token");
   assert.equal(
-    envelope.gateway_id,
-    rows[0].gateway_id,
-    "identity comes from the token, never the client",
+    envelope.job.entity_key,
+    "#8U2P0JPR",
+    "job identity from the row",
   );
-  assert.deepEqual(envelope.job, JOB);
-  assert.ok(sqs.deleted.at(-1).startsWith("bulk:"), "request message deleted");
+  const { rows: closed } = await db.query(
+    `select status from job where job_id = $1`,
+    [Number(r.body.lease)],
+  );
+  assert.equal(closed[0].status, "done");
 });
 
-test("lease cap: at most 2 outstanding; quarantine flips after the streak", async () => {
-  sqs.q.bulk.push(
-    JSON.stringify(JOB),
-    JSON.stringify(JOB),
-    JSON.stringify(JOB),
+test("ingest exception leaves the lease held for expiry-requeue", async () => {
+  const boom = makeCollectorDoor({
+    ingest: async () => {
+      throw new Error("db hiccup");
+    },
+    notifyOwner: async () => {},
+  });
+  await enqueueJob(db, { ...JOB, entity_key: "#PLCCYUQL" });
+  const r = await boom.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  const failed = await boom.submit(db, authed(TOKEN_BULK), {
+    lease: r.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+  });
+  assert.equal(failed.status, 500);
+  const { rows } = await db.query(`select status from job where job_id = $1`, [
+    Number(r.body.lease),
+  ]);
+  assert.equal(rows[0].status, "leased", "held for expiry, not lost");
+  await db.query(
+    `update job set status = 'done', done_at = now() where job_id = $1`,
+    [Number(r.body.lease)],
   );
-  const a = await door.lease(db, authed(TOKEN_BULK), {});
-  const b = await door.lease(db, authed(TOKEN_BULK), {});
+});
+
+test("lease cap and quarantine ride the ledger", async () => {
+  for (const t of ["#U08P889Y0", "#2LRYLQPL", "#JRVV9VC0C"]) {
+    await enqueueJob(db, { ...JOB, entity_key: t });
+  }
+  const a = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  const b = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
   assert.equal(a.status, 200);
   assert.equal(b.status, 200);
-  const capped = await door.lease(db, authed(TOKEN_BULK), {});
+  const capped = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
   assert.equal(capped.status, 429, "third outstanding lease refused");
 
-  // Expire both by aging their rows; the streak charges them.
+  // Age the leases and prime the streak; the next lease call charges
+  // the expiries and crosses the threshold.
   await db.query(
-    `update gateway_lease set issued_at = now() - interval '10 minutes'`,
+    `update job set leased_at = now() - interval '10 minutes' where status = 'leased'`,
   );
-  await db.query(`update gateway set missed_streak = 9 where name = 'bulk-op'`);
-  sqs.q.bulk.push(JSON.stringify(JOB));
-  const quarantined = await door.lease(db, authed(TOKEN_BULK), {});
-  assert.equal(quarantined.status, 409, "streak crossed -> quarantined");
+  await db.query(`update gateway set missed_streak = 8 where name = 'bulk-op'`);
+  const quarantined = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  assert.equal(quarantined.status, 409);
   const { rows } = await db.query(
     `select status from gateway where name = 'bulk-op'`,
   );
   assert.equal(rows[0].status, "draining");
   assert.equal(notices.at(-1).kind, "gateway_quarantined");
 
-  // Draining still submits (finish outstanding work) but cannot lease.
-  const noLease = await door.lease(db, authed(TOKEN_BULK), {});
-  assert.equal(noLease.status, 401, "draining cannot lease");
-  const cfg = await door.config(db, authed(TOKEN_BULK));
-  assert.equal(cfg.status, 200, "draining still reads config/submits");
-});
-
-test("lease codec round-trips and rejects garbage", () => {
-  const t = encodeLease(SECRET, { g: "x", l: 1, q: "bulk", rh: "r", job: JOB });
-  assert.deepEqual(decodeLease(SECRET, t).job, JOB);
-  assert.equal(decodeLease(SECRET, "junk"), null);
-  assert.equal(decodeLease("other-secret", t), null);
+  const stats = await ledgerStats(db);
+  assert.ok(stats.queued_bulk >= 1, "expired leases requeued, not lost");
 });

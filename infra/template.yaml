@@ -301,6 +301,14 @@ Resources:
                 Resource:
                   - !GetAtt RequestsLiveQueue.Arn
                   - !GetAtt RequestsBulkQueue.Arn
+              # Ledger health metrics (0040) - namespace-pinned, the
+              # lesson from the unscoped PutMetricData zero-trust killed.
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: ElixirMCP/Ledger
               - Effect: Allow
                 Action: [sqs:SendMessage]
                 Resource: !GetAtt ResultsQueue.Arn
@@ -379,6 +387,7 @@ Resources:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
           EMAIL_QUEUE_URL: !Ref EmailQueue
 
   McpLogGroup:
@@ -953,6 +962,36 @@ Resources:
       Dimensions: [{ Name: FunctionName, Value: !Ref JobsFunction }]
       Statistic: Sum
       Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  LedgerOldestJobAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-ledger-oldest-job
+      AlarmDescription: Oldest queued job is stale; the fleet is down or drowning
+      Namespace: ElixirMCP/Ledger
+      MetricName: OldestQueuedAgeSeconds
+      Statistic: Maximum
+      Period: 900
+      EvaluationPeriods: 2
+      Threshold: 1800
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  LedgerDeadJobsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-ledger-dead-jobs
+      AlarmDescription: Jobs exhausted their retries; inspect the job table
+      Namespace: ElixirMCP/Ledger
+      MetricName: DeadJobs
+      Statistic: Maximum
+      Period: 900
       EvaluationPeriods: 1
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold

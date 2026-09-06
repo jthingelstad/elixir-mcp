@@ -8,8 +8,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@aws-sdk/client-sqs": "^3.600.0",
     "@elixir-mcp/contracts": "0.1.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "@aws-sdk/client-cloudwatch": "^3.600.0"
   }
 }

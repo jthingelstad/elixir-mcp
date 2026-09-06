@@ -7,11 +7,11 @@ import {
   SendMessageCommand,
   GetQueueUrlCommand,
   GetQueueAttributesCommand,
-  ReceiveMessageCommand,
-  DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 import { makeHandler } from "./handler.mjs";
 import { makeCollectorDoor } from "./collector-door.mjs";
+import { processResult } from "../../ingest/src/pipeline.mjs";
+import { makeArchive } from "../../ingest/src/handler.mjs";
 
 const sqs = new SQSClient({});
 const queueUrl = process.env.EMAIL_QUEUE_URL;
@@ -24,53 +24,6 @@ async function enqueueEmail(msg) {
     }),
   );
 }
-
-const COLLECTOR_QUEUES = {
-  live: "elixir-mcp-cr-requests-live",
-  bulk: "elixir-mcp-cr-requests-bulk",
-  results: "elixir-mcp-cr-results",
-};
-
-async function collectorQueueUrl(key) {
-  const name = COLLECTOR_QUEUES[key];
-  if (!queueUrlCache.has(name)) {
-    const { QueueUrl } = await sqs.send(
-      new GetQueueUrlCommand({ QueueName: name }),
-    );
-    queueUrlCache.set(name, QueueUrl);
-  }
-  return queueUrlCache.get(name);
-}
-
-const collectorSqs = {
-  async receive(key, waitSeconds) {
-    const { Messages } = await sqs.send(
-      new ReceiveMessageCommand({
-        QueueUrl: await collectorQueueUrl(key),
-        MaxNumberOfMessages: 1,
-        WaitTimeSeconds: Math.min(Math.max(waitSeconds, 0), 8),
-      }),
-    );
-    const m = Messages?.[0];
-    return m ? { body: m.Body, receiptHandle: m.ReceiptHandle } : null;
-  },
-  async send(key, body) {
-    await sqs.send(
-      new SendMessageCommand({
-        QueueUrl: await collectorQueueUrl(key),
-        MessageBody: body,
-      }),
-    );
-  },
-  async delete(key, receiptHandle) {
-    await sqs.send(
-      new DeleteMessageCommand({
-        QueueUrl: await collectorQueueUrl(key),
-        ReceiptHandle: receiptHandle,
-      }),
-    );
-  },
-};
 
 const STATUS_QUEUES = [
   ["live", "elixir-mcp-cr-requests-live"],
@@ -154,8 +107,10 @@ export const handler = makeHandler({
     : null,
   notifyOwner,
   collectorDoor: makeCollectorDoor({
-    secret: process.env.SESSION_SECRET,
-    sqs: collectorSqs,
+    ingest: (db, envelope) => {
+      const archive = makeArchive(process.env.ARCHIVE_BUCKET);
+      return processResult(db, envelope, archive ? { archive } : {});
+    },
     notifyOwner,
   }),
 });

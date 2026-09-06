@@ -269,6 +269,16 @@ async function sweepOperational(databaseUrl) {
         `delete from oauth_token where expires_at < now() - interval '90 days'`,
       )
     ).rowCount;
+    out.job_done = (
+      await db.query(
+        `delete from job where status = 'done' and done_at < now() - interval '7 days'`,
+      )
+    ).rowCount;
+    out.job_dead = (
+      await db.query(
+        `delete from job where status = 'dead' and done_at < now() - interval '30 days'`,
+      )
+    ).rowCount;
     out.event_feed = (
       await db.query(
         `delete from event_feed where created_at < now() - interval '30 days'`,

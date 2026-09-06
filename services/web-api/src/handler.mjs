@@ -41,6 +41,7 @@ const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { ensureGatewayCards } from "../../mcp/src/gateway-cards.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
+import { ledgerStats } from "../../scheduler/src/ledger.mjs";
 import { emitFeedEvent } from "../../mcp/src/feed.mjs";
 import {
   ensureClanRecording,
@@ -609,13 +610,19 @@ export function makeHandler({
          from capture_audit where fetched_at > now() - interval '24 hours'`,
       );
       const queues = await queueStats();
+      const jobs = await ledgerStats(db).catch(() => null);
       // Health verdict derived from data, never vibes: pipeline is OK
-      // when something was admitted recently and no DLQ holds messages.
+      // when something was admitted recently, no DLQ holds messages,
+      // and no ledger job has died (0040).
       const dlqDepth = ["live_dlq", "bulk_dlq", "results_dlq", "email_dlq"]
         .map((k) => queues?.[k]?.depth ?? 0)
         .reduce((a, b) => a + b, 0);
       const lastAdmit = latest[0]?.last_admit_s;
-      const healthy = dlqDepth === 0 && lastAdmit !== null && lastAdmit < 1800;
+      const healthy =
+        dlqDepth === 0 &&
+        (jobs?.dead ?? 0) === 0 &&
+        lastAdmit !== null &&
+        lastAdmit < 1800;
       return json(
         200,
         {
@@ -632,6 +639,7 @@ export function makeHandler({
             },
           },
           queues,
+          jobs,
           collectors: collectors.map((c) => ({
             name: c.name,
             card_icon: c.card_icon,
