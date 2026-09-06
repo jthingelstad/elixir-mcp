@@ -416,6 +416,20 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                       <button
                         className="btn--text"
                         onClick={async () => {
+                          await api.adminGatewayAction(
+                            g.gateway_id,
+                            "provision_token",
+                          );
+                          load();
+                        }}
+                      >
+                        Provision token
+                      </button>
+                    )}{" "}
+                    {g.status !== "revoked" && (
+                      <button
+                        className="btn--text"
+                        onClick={async () => {
                           if (
                             window.confirm(
                               `Revoke gateway "${g.name}"? Ingest stops accepting its results immediately.`,

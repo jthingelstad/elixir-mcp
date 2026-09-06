@@ -9,6 +9,7 @@
  * emails everywhere — never an oracle.
  */
 
+import crypto from "node:crypto";
 import pg from "pg";
 import {
   emailHash,
@@ -1642,6 +1643,28 @@ export function makeHandler({
         requireContractHeader: true,
       });
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
+      // Zero-trust provisioning is one click: mint the bearer token
+      // server-side, store its hash, stage the raw for the OPERATOR's
+      // one-time reveal (Jamie 2026-09-06: just a token to copy - the
+      // file-download flow was IAM-era baggage). The raw token exists
+      // in the database only between this click and the reveal.
+      if (body.action === "provision_token") {
+        const raw = "emcg_" + crypto.randomBytes(32).toString("base64url");
+        const { rows: minted } = await db.query(
+          `update gateway
+           set token_hash = $2, provision_env = $3,
+               provision_claimed_at = null
+           where gateway_id::text = $1 and status <> 'revoked'
+           returning gateway_id, name, channel, status`,
+          [
+            String(body.gateway_id ?? ""),
+            crypto.createHash("sha256").update(raw).digest("hex"),
+            raw,
+          ],
+        );
+        if (!minted[0]) return json(404, { error: "not_found" });
+        return json(200, { ok: true, staged: true, gateway: minted[0] });
+      }
       // Forward-only lifecycle; probation is the only entry to active.
       const TRANSITIONS = {
         probation: ["pending", "draining"],

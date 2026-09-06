@@ -19,11 +19,15 @@ key and the bearer token Elixir MCP issues you.
    https://elixir.poapkings.com — pick a machine name. Your collector
    gets a Clash Royale CARD identity from us (that card is its public
    name; your machine name stays private to you and the operator).
-2. When the maintainer approves, the same page offers your
-   configuration as a **one-time download** — it disappears from the
-   server the moment you fetch it. It contains your bearer token and a
-   placeholder for your CR key. Save it as `.env` (mode 0600) next to
-   the binary and paste your CR key in.
+2. When the maintainer approves, the same page offers your collector
+   **token as a one-time reveal** — copy it, because it disappears
+   from the server the moment you look. Put it in a `.env` (mode 0600)
+   next to the binary alongside your own CR key:
+
+   ```
+   CR_API_TOKEN=your-clash-royale-key
+   ELIXIR_API_TOKEN=emcg_...
+   ```
 3. **Download the collector binary** for your platform from the
    repository releases
    (https://github.com/jthingelstad/elixir-mcp-collector/releases) and

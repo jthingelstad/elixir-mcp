@@ -13,6 +13,7 @@ export function CollectorPage() {
   const [ladder, setLadder] = useState([]);
   const [details, setDetails] = useState({});
   const [form, setForm] = useState({ name: "" });
+  const [revealed, setRevealed] = useState({});
   const [raised, setRaised] = useState(false);
   const [err, setErr] = useState("");
 
@@ -134,32 +135,55 @@ export function CollectorPage() {
                     </div>
                   </div>
                 </div>
-                {g.provision_ready && (
+                {g.provision_ready && !revealed[g.gateway_id] && (
                   <div className="panel__body" style={{ paddingTop: 0 }}>
                     <div className="notice">
                       <span>
-                        Your configuration is ready.{" "}
+                        Your collector token is ready.{" "}
                         <button
                           className="btn--text"
                           onClick={async () => {
                             const r = await api.gatewayEnv(g.gateway_id);
                             if (!r.ok) return;
-                            const blob = new Blob([r.data.env], {
-                              type: "text/plain",
+                            setRevealed({
+                              ...revealed,
+                              [g.gateway_id]: r.data.env.trim(),
                             });
-                            const a = document.createElement("a");
-                            a.href = URL.createObjectURL(blob);
-                            a.download = ".env";
-                            a.click();
-                            URL.revokeObjectURL(a.href);
-                            load();
                           }}
                         >
-                          Download .env (one time)
+                          Reveal it (one time)
                         </button>{" "}
-                        — it disappears from the server the moment you fetch it.
-                        Add your own CR API key, then start the collector.
+                        — it disappears from the server the moment you look.
                       </span>
+                    </div>
+                  </div>
+                )}
+                {revealed[g.gateway_id] && (
+                  <div className="panel__body" style={{ paddingTop: 0 }}>
+                    <div className="notice">
+                      <div style={{ marginBottom: "6px" }}>
+                        Copy this into <code>.env</code> next to the collector,
+                        with your own CR API key beside it. It will not be shown
+                        again.
+                      </div>
+                      <pre
+                        className="mono"
+                        style={{ fontSize: "11.5px", overflowX: "auto" }}
+                      >
+                        {`CR_API_TOKEN=your-clash-royale-key
+ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`}
+                      </pre>
+                      <button
+                        className="btn"
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            `CR_API_TOKEN=your-clash-royale-key
+ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`,
+                          )
+                        }
+                      >
+                        Copy
+                      </button>
                     </div>
                   </div>
                 )}

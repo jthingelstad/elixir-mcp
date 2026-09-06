@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import crypto from "node:crypto";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { emailHash } from "../../auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
@@ -1200,4 +1201,51 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
   assert.ok(!blob.includes("static_ip"), "no IPs on the public surface");
   assert.ok(!blob.includes("email_hash"), "no account data");
   assert.ok(!blob.includes("kitchen-mac"), "machine labels stay private");
+});
+
+test("provision_token: one click mints, one look claims (zero-trust copy flow)", async () => {
+  // Owner provisions; the raw token exists in the DB only until reveal.
+  const { rows: gw } = await db.query(
+    `select gateway_id from gateway where name = 'kitchen-mac'`,
+  );
+  const id = gw[0].gateway_id;
+  const minted = parse(
+    await handler(
+      event({
+        path: "/api/admin/gateways",
+        cookie: bossCookie,
+        body: { gateway_id: id, action: "provision_token" },
+      }),
+    ),
+  );
+  assert.equal(minted.ok, true);
+  const { rows: after } = await db.query(
+    `select token_hash, provision_env from gateway where gateway_id = $1`,
+    [id],
+  );
+  assert.match(after[0].token_hash, /^[0-9a-f]{64}$/);
+  assert.ok(after[0].provision_env.startsWith("emcg_"), "raw staged");
+  assert.equal(
+    after[0].token_hash,
+    crypto.createHash("sha256").update(after[0].provision_env).digest("hex"),
+    "staged raw hashes to the stored hash",
+  );
+
+  // Operator reveal is one-time (existing claim-and-null flow).
+  const revealEvent = event({
+    method: "GET",
+    path: "/api/me/gateway-env",
+    cookie: memberCookie,
+  });
+  revealEvent.queryStringParameters = { id };
+  const reveal = parse(await handler(revealEvent));
+  assert.ok(reveal.env.startsWith("emcg_"));
+  const againEvent = event({
+    method: "GET",
+    path: "/api/me/gateway-env",
+    cookie: memberCookie,
+  });
+  againEvent.queryStringParameters = { id };
+  const again = await handler(againEvent);
+  assert.equal(again.statusCode, 404, "second look finds nothing");
 });
