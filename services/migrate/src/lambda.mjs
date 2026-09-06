@@ -399,6 +399,41 @@ async function abYield(databaseUrl, spec) {
   }
 }
 
+/** Set an account's contact address ({account_email: {email}}).
+ *
+ *  Accounts created before 0046 have no address, so we cannot write to
+ *  them until their holder next signs in. This fills one in by hand for
+ *  the case that cannot wait, and it is also how a wrong address gets
+ *  corrected. The email_hash is derived from the address itself, so this
+ *  can only ever set an account's OWN address: there is no way to point
+ *  one account at another person's inbox.
+ */
+export async function accountEmailOp(databaseUrl, spec) {
+  const email = String(spec?.email ?? "")
+    .trim()
+    .toLowerCase();
+  if (!email.includes("@")) return { error: "email required" };
+  const { emailHash } = await import("../../auth/src/crypto.mjs");
+  const hash = emailHash(email);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `update account set email = $2 where email_hash = $1
+       returning account_id, status, left(email_hash, 10) as account_ref`,
+      [hash, email],
+    );
+    if (!rows[0]) return { error: "no account for that address" };
+    await db.query(
+      `insert into account_event (account_id, kind, detail) values ($1, 'email_recorded', $2)`,
+      [rows[0].account_id, JSON.stringify({ via: "ops" })],
+    );
+    return { ok: true, ...rows[0] };
+  } finally {
+    await db.end();
+  }
+}
+
 async function accountRoleOp(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -968,6 +1003,14 @@ export async function handler(event) {
   }
   if (event?.ab_yield) {
     const result = await abYield(process.env.DATABASE_URL, event.ab_yield);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.account_email) {
+    const result = await accountEmailOp(
+      process.env.DATABASE_URL,
+      event.account_email,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
