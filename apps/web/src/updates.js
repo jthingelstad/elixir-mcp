@@ -5,6 +5,17 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title:
+      "Collectors say both when they last spoke and when they last delivered",
+    body: "The status page and the admin table were showing different times for the same collector, and both were right: one counted the last data we accepted, the other counted the last time the collector said hello. A collector that is polling happily but has nothing to fetch is idle, not broken, and only one of those numbers could tell you so. Both surfaces now show both times, labelled, on the same clock. The status page also dropped its queue panel - the queues it listed were retired weeks ago and six of the seven rows had been reading 'unavailable' ever since.",
+  },
+  {
+    date: "2026-09-06",
+    title: "Collector updates actually reach collectors",
+    body: "Collectors only install the exact binary version and hash this server names, which is what stops a compromised release page from pushing code to operators. That naming step had never been used, so released collectors were quietly staying on whatever version they were installed with. We can now name a release in one command, and have named the current one.",
+  },
+  {
+    date: "2026-09-06",
     title: "Provisioning tells you what it did",
     body: "Provisioning a collector token in Admin used to succeed silently: the token is staged for the operator's one-time reveal on their Collector page, so the Admin table just refreshed and looked like nothing happened. Admin now confirms the token is staged, keeps a 'token staged' note until it is revealed, links straight to the reveal when you own the collector yourself, and surfaces any failure instead of swallowing it.",
   },

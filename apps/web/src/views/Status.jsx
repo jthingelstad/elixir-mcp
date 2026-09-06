@@ -1,25 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
 
 /** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard —
  *  public, mobile-first, installable (add to Home Screen from this
- *  page). Queues, collectors, and roughly an hour of system health,
- *  refreshed every 60s. Health is derived from data, never vibes. */
-
-function ago(ts, now) {
-  if (!ts) return "never";
-  const s = (now - Date.parse(ts)) / 1000;
-  if (s < 90) return `${Math.round(s)}s ago`;
-  if (s < 5400) return `${Math.round(s / 60)}m ago`;
-  if (s < 172800) return `${Math.round(s / 3600)}h ago`;
-  return `${Math.round(s / 86400)}d ago`;
-}
-function freshCls(seconds) {
-  if (seconds == null) return "freshness freshness--never";
-  if (seconds < 900) return "freshness freshness--fresh";
-  if (seconds < 86400) return "freshness freshness--stale";
-  return "freshness";
-}
+ *  page). Collectors and roughly an hour of system health, refreshed
+ *  every 60s. Health is derived from data, never vibes.
+ *
+ *  The SQS queue panel was dropped 2026-09-06: migration 0040 replaced
+ *  those queues with the Postgres job ledger, so six of the seven rows
+ *  had been rendering "unavailable" ever since. */
 
 export function Status() {
   const [data, setData] = useState(null);
@@ -49,22 +39,13 @@ export function Status() {
 
   const h = data.health;
   const captureMax = Math.max(...data.capture_5m.map((b) => b.fetches), 1);
-  const QUEUES = [
-    ["live", "live requests"],
-    ["bulk", "bulk requests"],
-    ["results", "results"],
-    ["live_dlq", "live DLQ"],
-    ["bulk_dlq", "bulk DLQ"],
-    ["results_dlq", "results DLQ"],
-    ["email_dlq", "email DLQ"],
-  ];
 
   return (
     <>
       <div className="page-head">
         <h1 className="page-title">Status</h1>
         <span className="page-head__note">
-          queues · collectors · the last hour — refreshes every 60s
+          collectors · the last hour — refreshes every 60s
         </span>
         <span
           className="mono"
@@ -111,58 +92,7 @@ export function Status() {
       </div>
 
       <div className="cols">
-        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
-          <div className="panel__head">
-            <span className="panel-title">Queues</span>
-          </div>
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>QUEUE</th>
-                  <th className="num">DEPTH</th>
-                  <th className="num">IN FLIGHT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {QUEUES.map(([key, label]) => {
-                  const q = data.queues?.[key];
-                  const dlq = key.endsWith("_dlq");
-                  return (
-                    <tr key={key}>
-                      <td className={dlq ? "mono" : undefined}>{label}</td>
-                      {q ? (
-                        <>
-                          <td
-                            className="num"
-                            style={
-                              dlq && q.depth > 0
-                                ? { color: "var(--red)", fontWeight: 600 }
-                                : undefined
-                            }
-                          >
-                            {q.depth}
-                          </td>
-                          <td className="num">{q.in_flight}</td>
-                        </>
-                      ) : (
-                        <td colSpan={2} className="nil">
-                          unavailable
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="panel__note">
-            A DLQ above zero is an incident; request-queue depth is normal
-            backlog the collectors drain.
-          </div>
-        </section>
-
-        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
+        <section className="panel" style={{ flex: "1 1 100%", minWidth: 0 }}>
           <div className="panel__head">
             <span className="panel-title">Collectors</span>
           </div>
@@ -205,23 +135,43 @@ export function Status() {
                 {c.status}
               </span>
               <span
-                className={freshCls(
-                  c.last_success_at
-                    ? (now - Date.parse(c.last_success_at)) / 1000
-                    : null,
-                )}
-                style={{ marginLeft: "auto" }}
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  gap: "14px",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
               >
-                {ago(c.last_success_at, now)}
-              </span>
-              <span
-                className="mono"
-                style={{ fontSize: "11.5px", color: "var(--dim)" }}
-              >
-                {c.fetches_1h}/h
+                <span
+                  className={beatCls(secsSince(c.last_heartbeat_at, now))}
+                  title="Last contact of any kind with the door, including polls that found no work."
+                >
+                  <span style={{ color: "var(--dim)" }}>heartbeat </span>
+                  {ago(c.last_heartbeat_at, now)}
+                </span>
+                <span
+                  className={freshCls(secsSince(c.last_success_at, now))}
+                  title="Last payload this collector fetched that we accepted and recorded."
+                >
+                  <span style={{ color: "var(--dim)" }}>data </span>
+                  {ago(c.last_success_at, now)}
+                </span>
+                <span
+                  className="mono"
+                  style={{ fontSize: "11.5px", color: "var(--dim)" }}
+                >
+                  {c.fetches_1h}/h
+                </span>
               </span>
             </div>
           ))}
+          <div className="panel__note">
+            Heartbeat is any contact with the door, so it stays fresh even when
+            a collector polls and finds nothing to do. Data is the last payload
+            we actually accepted and recorded. A live heartbeat with old data
+            means idle, not broken; a stale heartbeat means the process is gone.
+          </div>
         </section>
       </div>
 

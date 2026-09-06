@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Activity } from "./Activity.jsx";
 import { CollectorPage } from "./CollectorDetail.jsx";
+import { ago, freshCls, secsSince } from "../lib/time.js";
 
 /**
  * Account (design handoff §6–11). Overview is a two-column console:
@@ -12,28 +13,12 @@ import { CollectorPage } from "./CollectorDetail.jsx";
 
 const TAG_OK = /^#?[0289PYLQGRJCUVOo]{3,12}$/;
 
-function ago(ts, now = Date.now()) {
-  if (!ts) return null;
-  const s = (now - Date.parse(ts)) / 1000;
-  if (s < 90) return `${Math.round(s)}s ago`;
-  if (s < 5400) return `${Math.round(s / 60)}m ago`;
-  if (s < 172800) return `${Math.round(s / 3600)}h ago`;
-  return `${Math.round(s / 86400)}d ago`;
-}
-
 export function Fresh({ ts }) {
   // Render-time clock read is deliberate but the linter is right that
   // it must be stable per mount: capture once.
   const [now] = useState(() => Date.now());
   if (!ts) return <span className="freshness freshness--never">never</span>;
-  const s = (now - Date.parse(ts)) / 1000;
-  const cls =
-    s < 900
-      ? "freshness freshness--fresh"
-      : s < 86400
-        ? "freshness freshness--stale"
-        : "freshness";
-  return <span className={cls}>{ago(ts)}</span>;
+  return <span className={freshCls(secsSince(ts, now))}>{ago(ts, now)}</span>;
 }
 
 function NickCell({ tag, current, refresh }) {

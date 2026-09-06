@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
+import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
 
 export function Admin({ me, page = "requests", navigate, itemId }) {
   const [requests, setRequests] = useState([]);
@@ -353,6 +354,11 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
           active. Issuing the IP-bound CR key and IAM user is manual — see
           docs/OPERATORS.md.
         </p>
+        <p style={{ color: "var(--dim)" }}>
+          Heartbeat is any contact with the door, including polls that found no
+          work; Data is the last payload we accepted and recorded. Both are the
+          same relative clock the public status page shows.
+        </p>
         <table>
           <thead>
             <tr>
@@ -360,7 +366,10 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
               <th>Status</th>
               <th>Channel</th>
               <th>Heartbeat</th>
+              <th>Data</th>
               <th>Fetches (1h)</th>
+              <th>Points</th>
+              <th>Version</th>
               <th></th>
             </tr>
           </thead>
@@ -395,9 +404,14 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                     </span>
                   </td>
                   <td>
-                    {g.last_heartbeat_at
-                      ? new Date(g.last_heartbeat_at).toLocaleTimeString()
-                      : "never"}
+                    <span className={beatCls(secsSince(g.last_heartbeat_at))}>
+                      {ago(g.last_heartbeat_at)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={freshCls(secsSince(g.last_success_at))}>
+                      {ago(g.last_success_at)}
+                    </span>
                   </td>
                   <td>{g.fetches_last_hour}</td>
                   <td>{Number(g.fetch_points).toLocaleString()}</td>

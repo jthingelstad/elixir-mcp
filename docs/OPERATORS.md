@@ -39,6 +39,23 @@ everything else at launch — pacing, backoff, what to fetch (it even
 sends the exact URL paths) — so collection changes never require you to
 update anything. When a new binary IS required, the collector updates
 itself: the server names the exact version and SHA-256 it may install.
+There is no pin and no opt-out; the fleet shares one rate budget and one
+contract, so a stale client is everyone's problem.
+
+### Naming a release (maintainer only)
+
+Publishing a release does NOT ship it. Every green push to the collector
+repo's main publishes one, and collectors ignore all of them until this
+server names a version:
+
+```sh
+AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs --dry-run
+AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs [tag]
+```
+
+With no tag it names the latest release. Naming is what reaches the
+fleet, on each collector's next hourly config call, so soak the build on
+one canary and read its log before naming it.
 
 ## What your collector can and cannot do
 
