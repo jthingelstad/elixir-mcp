@@ -306,6 +306,15 @@ export function Status() {
               >
                 {c.status}
               </span>
+              {c.operator && (
+                <span
+                  style={{ fontSize: "11.5px", color: "var(--faint)" }}
+                  title={c.operator_tag ?? undefined}
+                >
+                  run by{" "}
+                  <span style={{ color: "var(--muted)" }}>{c.operator}</span>
+                </span>
+              )}
               <span
                 style={{
                   marginLeft: "auto",
@@ -339,10 +348,12 @@ export function Status() {
             </div>
           ))}
           <div className="panel__note">
-            Heartbeat is any contact with the door, so it stays fresh even when
-            a collector polls and finds nothing to do. Data is the last payload
-            we actually accepted and recorded. A live heartbeat with old data
-            means idle, not broken; a stale heartbeat means the process is gone.
+            Every collector is a volunteer's machine, named for the Clash Royale
+            card it was given and credited to the player who runs it. Heartbeat
+            is any contact with the door, so it stays fresh even when a
+            collector polls and finds nothing to do. Data is the last payload we
+            actually accepted and recorded. A live heartbeat with old data means
+            idle, not broken; a stale heartbeat means the process is gone.
           </div>
         </section>
       </div>

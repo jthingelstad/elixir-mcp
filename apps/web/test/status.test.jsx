@@ -29,6 +29,8 @@ const PAYLOAD = {
       // idle, not broken, and the page has to be able to say so.
       last_heartbeat_at: "2026-09-06T14:59:57.000Z",
       last_success_at: "2026-09-06T14:40:00.000Z",
+      operator: "Thingelstad",
+      operator_tag: "#20JJJ2CCRU",
       fetches_1h: 161,
     },
     {
@@ -37,6 +39,9 @@ const PAYLOAD = {
       status: "active",
       last_heartbeat_at: "2026-09-06T14:59:55.000Z",
       last_success_at: "2026-09-06T14:59:00.000Z",
+      // No owner, or an owner who claimed no player: no credit to give.
+      operator: null,
+      operator_tag: null,
       fetches_1h: 137,
     },
   ],
@@ -93,6 +98,18 @@ test("collectors show heartbeat AND data, so idle never reads as broken", async 
   expect(within(row).getByText("3s ago")).toBeTruthy();
   expect(within(row).getByText(/^data$/)).toBeTruthy();
   expect(within(row).getByText("20m ago")).toBeTruthy();
+});
+
+test("a collector credits the player who runs it, and stays quiet when there is none", async () => {
+  await paint();
+  const panel = screen.getByText("Collectors").closest(".panel");
+  const credited = within(panel).getByText("Ram Rider").closest("div");
+  expect(within(credited).getByText(/run by/)).toBeTruthy();
+  expect(within(credited).getByText("Thingelstad")).toBeTruthy();
+  // The account is never named on a public page, only the game identity.
+  expect(panel.textContent).not.toMatch(/@|email/i);
+  const uncredited = within(panel).getByText("Wall Breakers").closest("div");
+  expect(within(uncredited).queryByText(/run by/)).toBeNull();
 });
 
 test("the retired SQS queue panel is gone", async () => {

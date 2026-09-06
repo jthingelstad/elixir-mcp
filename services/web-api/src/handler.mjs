@@ -570,16 +570,32 @@ export function makeHandler({
       // account data; collectors go by their card names.
       // One pg.Client per invocation: queries run sequentially by design.
       const q = async (sql, params = []) => (await db.query(sql, params)).rows;
+      // Operators are credited by name on the public page - Jamie's
+      // call, 2026-09-06, asked for and reaffirmed: running a collector
+      // is volunteer work and the page should say whose. The credit is
+      // the operator's claimed PLAYER, which is public game data
+      // already. The account never appears: its email hash has no
+      // business on an unauthenticated page. A collector with no owner,
+      // or an owner who has claimed no player, simply shows no credit.
       const collectors = await q(
-        `select coalesce(card_name, 'unnamed') as name, card_icon, status,
-                last_success_at, last_heartbeat_at,
+        `select coalesce(g.card_name, 'unnamed') as name, g.card_icon, g.status,
+                g.last_success_at, g.last_heartbeat_at,
+                op.name as operator,
+                op.player_tag as operator_tag,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
                    and ar.fetched_at > now() - interval '1 hour') as fetches_1h
          from gateway g
-         where status in ('active', 'probation', 'pending')
-           and name <> 'backfill-elixir-bot'
-         order by fetch_points desc`,
+         left join lateral (
+           select p.name, p.player_tag
+           from claim c join player p on p.player_tag = c.player_tag
+           where c.account_id = g.owner_account_id
+           order by c.is_primary desc, (c.status = 'verified') desc, c.created_at
+           limit 1
+         ) op on true
+         where g.status in ('active', 'probation', 'pending')
+           and g.name <> 'backfill-elixir-bot'
+         order by g.fetch_points desc`,
       );
       // Stack order and colour follow the COLLECTOR, never its rank:
       // keyed on enrolled_at, which never changes, so a new collector
@@ -711,6 +727,8 @@ export function makeHandler({
             status: c.status,
             last_success_at: c.last_success_at?.toISOString() ?? null,
             last_heartbeat_at: c.last_heartbeat_at?.toISOString() ?? null,
+            operator: c.operator ?? null,
+            operator_tag: c.operator_tag ?? null,
             fetches_1h: c.fetches_1h,
           })),
           capture_series: captureSeries,
