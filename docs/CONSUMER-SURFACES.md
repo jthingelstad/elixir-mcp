@@ -1,10 +1,21 @@
 # Consumer Surfaces — how third parties use Elixir MCP
 
-**Status:** design / assessment (2026-09-06). Ratified principles below are
-Jamie's; the two migration assessments are read-only analysis. **Nothing here
-is built yet** — no code, stack, or contract has moved for it. When work
-starts, this file is the design of record for the consumer story; record
-deltas in `NOTES.md` as usual.
+**Status:** design of record; the Drop migration is UNDER WAY (2026-09-06).
+Ratified principles below are Jamie's. What has shipped so far, against §7's
+build order but starting with Drop at Jamie's direction:
+
+- `collections_edit` (contract 0.24.0) — curate a collection over the seam.
+  Domain-shaped, per §1: an action verb on a domain resource, not a Drop
+  endpoint.
+- Drop holds a small MCP JSON-RPC client and adds every player who has saved
+  a Clash Royale tag to the `elixir-drop` collection, on tag save and on each
+  login. Membership is what makes the hub record them.
+- **Not yet done:** player enrichment still runs through the SQS bridge, the
+  war clock still comes from the bridge's own CR polling, and `cards[]` is
+  still collected and stored. The bridge, its two queue pairs, its IAM user
+  and its Mac host all remain.
+
+Record deltas in `NOTES.md` as usual.
 
 This document answers one question: *how should other systems — first-party and
 third-party — consume Elixir MCP?* It grew out of assessing whether Elixir Drop
@@ -115,6 +126,12 @@ hours-to-daily). Both Drop and poapkings already hold a freshly-minted but
 ---
 
 ## 5. Assessment — Elixir Drop (archetype #4)
+
+**Correction found while building (2026-09-06):** "everyone who signs up" is
+not achievable and was never the shape of Drop's data. The CR tag is OPTIONAL,
+deliberately kept out of setup, and UNVERIFIED. Of 26 accounts, 14 have a tag
+and 13 are distinct. So the collection holds *every account that has saved a
+tag*, and a member is a tag somebody typed rather than a proven identity.
 
 **What Drop needs:** (a) low-volume player enrichment — name, clan, YearsPlayed
 account age — triggered by login/refresh/tag-edit, 6h-deduped, cosmetic (profile
