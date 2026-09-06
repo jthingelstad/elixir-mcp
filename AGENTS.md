@@ -79,10 +79,15 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   first-run bootstrap) get queued in `docs/NOTES.md`, not silently blocked on.
 - Collector (gateway) code lives in its OWN repo:
   `~/Projects/elixir-mcp-collector` (github jthingelstad/elixir-mcp-collector,
-  split 2026-09-04). Deploying collector code = push to that repo's main;
-  instances self-update hourly. The queue contract stays canonical here in
-  `packages/contracts` — contract changes land server-side first
-  (operator pointer: `docs/OPERATORS.md`).
+  split 2026-09-04). Pushing to that repo's main does NOT deploy it: a
+  green push publishes a CANDIDATE (prerelease) that nobody runs, and it
+  reaches the fleet only when this repo names it, which also promotes it
+  to Latest. Named versions land on collectors within the hour. Follow
+  `docs/RELEASING-COLLECTOR.md` — candidate, soak, name, verify, roll
+  back — it carries the platform-key trap that fails silently. The queue
+  contract stays canonical here in `packages/contracts` — contract
+  changes land server-side first (operator pointer:
+  `docs/OPERATORS.md`).
 
 ---
 

@@ -45,17 +45,19 @@ contract, so a stale client is everyone's problem.
 ### Naming a release (maintainer only)
 
 Publishing a release does NOT ship it. Every green push to the collector
-repo's main publishes one, and collectors ignore all of them until this
-server names a version:
+repo's main publishes a candidate (a prerelease) that nobody runs, and
+collectors ignore all of them until this server names a version. Naming
+promotes that release to Latest, so `releases/latest` always means "what
+the fleet runs".
+
+The full procedure, including how to soak a candidate, verify the
+rollout and roll back, is **`docs/RELEASING-COLLECTOR.md`**. The short
+version:
 
 ```sh
 AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs --dry-run
 AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs [tag]
 ```
-
-With no tag it names the latest release. Naming is what reaches the
-fleet, on each collector's next hourly config call, so soak the build on
-one canary and read its log before naming it.
 
 ## What your collector can and cannot do
 
