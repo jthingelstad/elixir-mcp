@@ -197,18 +197,59 @@ elixir-bot's own seam; (4) settle clan-daily history.
 
 ---
 
-## 7. Open questions / next steps
+## 7. Resolved design questions (2026-09-06)
 
-- Should the hub retain a clan-daily snapshot series (completes the hub) or does
-  poapkings keep one /clans poll/day?
-- The payload-projection tool for game-domain player vanity fields — shape it as
-  a player-attributes resource, not a roster row.
-- Whether/when to stand up the small REST `/v1` read lane (Drop is its first
-  consumer); MCP-first is fine until a second thin-service consumer appears.
-- elixir-bot's recognition seam — its own read boundary, replacing the
-  cross-repo DB file read.
+Each was settled against the §1 test. None of this moves code yet.
 
-None of the above moves code yet. Related repos:
+**7.1 Clan-daily retention → the hub, by finishing its own V1 table.**
+`clan_daily_metrics(clan_tag, day, member_count, donations_total, metrics
+jsonb)` has existed since migration 0001 with **zero writers** — a
+designed-but-unwired table (the "cards endpoint was never scheduled" class). The
+clan payload is already polled every 15 min and retained in `api_payload`,
+carrying `clanScore`, `clanWarTrophies`, `donationsPerWeek`, `requiredTrophies`,
+`members`, `type`, `location`. A clan's facts over time are core recorded game
+history regardless of any consumer, so this passes §1 on its own. Design: a
+projector at clan-payload admission upserts `(clan_tag, day)`, promoting the four
+scalars to typed columns; expose via a `clans_timeline` tool mirroring
+`players_timeline`. Retained payloads (Postgres latest + S3 archive twins) allow a
+one-shot backfill of the recorded era. **poapkings keeps no /clans poll.**
+
+**7.2 Payload-projection shape → game attributes, normalized; avoid the badge
+blob.** The player payload carries `arena{id,name}`, `bestTrophies`, `expLevel`,
+`currentFavouriteCard{id}`, and ~139 `badges` (level/progress/target/iconUrls).
+Decisions: `arena_id`, `best_trophies`, `favorite_card_id` become typed columns
+on the daily snapshot, with names/icons resolved via the catalog at read time
+(never store icon URLs). **`expLevel` is not projected** — deprecated in the 2026
+progression model; `collectionLevel` (already recorded) is its replacement.
+**Badges go in a normalized `player_badge` current-state table** (`player_tag,
+badge_name, level, max_level, progress, target, observed_at`), upserted on
+change — not a jsonb of 139 badges per member per day. `players_profile` gains an
+`attributes` block and a `badges` list shaped as the game's player model;
+consumers select what they render.
+
+**7.3 REST `/v1` → defer; Drop goes MCP-first.** This revises §4's implication
+that Drop uses REST. A REST lane is justified by *breadth* of thin consumers and
+there is exactly one today; a small JSON-RPC client in Drop is cheaper than a
+facade to secure, version, and maintain, and the caching argument is weak at
+Drop's volume (~12 recorded reads/hour for the war clock). Build REST when a
+second thin-service consumer appears or one genuinely cannot speak JSON-RPC —
+domain resources only, same-token-same-bucket from day one.
+
+**7.4 elixir-bot's recognition seam → a versioned artifact elixir-bot publishes;
+delivery is a deployment detail.** The projection moves into the owner: at
+`season_closed` (an existing hard-post floor event) elixir-bot emits
+`recognition.json` v1 — completed seasons only, the privacy-safe honors shape
+poapkings' importer computes today. elixir-bot owns the contract; poapkings reads
+the artifact, never the DB. Start as a same-host file at a known path (both apps
+live on this Mac; zero new infra), shaped identically to what a URL would serve.
+Downstream consequence: once poapkings reads game data from Elixir MCP it no
+longer needs the IP-restricted CR key and could build entirely in GitHub
+Actions; if it does, the artifact moves to a fetchable URL (S3/GitHub) as a
+delivery swap, not a redesign. Elixir MCP stays pure game history throughout.
+
+**Build order when Jamie says go:** 7.1 clan-daily projector + backfill →
+7.2 attributes/badges projection (expand migrations) → poapkings migration →
+Drop migration (MCP-first) → 7.4 recognition artifact. REST stays deferred. Related repos:
 [elixir-mcp](https://github.com/jthingelstad/elixir-mcp) (this hub),
 [elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector),
 Elixir Drop (`drop.poapkings.com`), poapkings.com, elixir-bot.
