@@ -21,9 +21,14 @@ build order but starting with Drop at Jamie's direction:
   runtime. The result queue survives as the manual season-repair channel
   only: podium-finalize has no producer in the repo, and deleting it would
   have removed a working repair path.
-- **Open:** Drop still live-fetches enrichment rather than reading the
-  recorded profile now that §7.2 landed. Moving it would drop 1-3s from a
-  cold login and stop spending CR budget on cosmetic data.
+- Enrichment now reads the RECORD first and falls back to `live_fetch` only
+  for a tag the hub has never seen — the ordinary cold case, whose result the
+  hub records opportunistically, so the same player reads from history
+  afterwards. Drop's steady state spends no CR budget and no login latency on
+  enrichment.
+
+**Drop's migration is complete.** The remaining consumer work in §7's build
+order is 7.1 (clan-daily projector), poapkings, and 7.4 (recognition artifact).
 
 Record deltas in `NOTES.md` as usual.
 
