@@ -42,7 +42,7 @@ export function loadTinylytics() {
  *  pushState). Paths are coarsened to their first two segments so
  *  record ids and player tags never become analytics dimensions —
  *  /explore/player/#TAG reports as /explore/player. */
-export function analyticsPagePath(pathname = window.location.pathname) {
+function analyticsPagePath(pathname = window.location.pathname) {
   if (pathname.startsWith("/signin")) return null;
   const segments = pathname.split("/").filter(Boolean).slice(0, 2);
   return segments.length ? `/${segments.join("/")}` : "/";
