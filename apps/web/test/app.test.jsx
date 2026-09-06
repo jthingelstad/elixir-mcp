@@ -211,3 +211,25 @@ test("admin view is admin-gated in the UI", async () => {
   render(<App />);
   expect(await screen.findByText("Sign in first")).toBeTruthy();
 });
+
+test("the tab title names the page, most specific part first", async () => {
+  // A browser tab truncates from the right, so the distinguishing word
+  // has to lead or every Elixir MCP tab looks identical.
+  const { titleFor, SECTIONS } = await import("../src/App.jsx");
+  const t = (path) => {
+    const section = path === "/" ? "home" : path.split("/")[1];
+    return titleFor(section, SECTIONS[section], path);
+  };
+  expect(t("/")).toBe("Elixir MCP");
+  expect(t("/data/status")).toBe("Status - Data - Elixir MCP");
+  expect(t("/data/dashboard")).toBe("Dashboard - Data - Elixir MCP");
+  expect(t("/admin/gateways")).toBe("Collectors - Admin - Elixir MCP");
+  expect(t("/account/collector")).toBe("Collector - Account - Elixir MCP");
+  expect(t("/docs")).toBe("Docs - Elixir MCP");
+  // Docs and explore own their sub-pages, so the slug is prettified.
+  expect(t("/docs/architecture")).toBe("Architecture - Docs - Elixir MCP");
+  // A record beats the page slug: it is the most specific thing shown.
+  expect(t("/explore/player/%2320JJJ2CCRU")).toBe(
+    "#20JJJ2CCRU - Explore - Elixir MCP",
+  );
+});

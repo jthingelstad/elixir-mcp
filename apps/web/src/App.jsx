@@ -14,7 +14,7 @@ import { Explore } from "./views/Explore.jsx";
  * well — three tiers, three shapes. Explore has no tier-2 row: it is a
  * lookup plus addressable records (the trail replaces the page row).
  */
-const SECTIONS = {
+export const SECTIONS = {
   home: { label: "Home", authed: false, pages: [] },
   data: {
     label: "Data",
@@ -80,6 +80,32 @@ function legalRoute(path) {
   if (sec.pages.length === 0) return `/${section}`;
   if (sec.pages.some((p) => p.slug === page)) return path;
   return `/${section}/${sec.pages[0].slug}`;
+}
+
+/** Tab titles. The distinguishing word goes FIRST, because a browser
+ *  tab truncates from the right - "Elixir MCP - Status" is useless at
+ *  tab width, "Status - Elixir MCP" is not. Sections that own their own
+ *  sub-pages (explore records, docs) name the record instead. */
+const SITE = "Elixir MCP";
+const prettify = (seg) =>
+  /^[#%]/.test(seg)
+    ? decodeURIComponent(seg)
+    : decodeURIComponent(seg)
+        .replace(/-/g, " ")
+        .replace(/^./, (c) => c.toUpperCase());
+
+export function titleFor(section, sec, path) {
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length === 0 || section === "home") return SITE;
+  if (!sec) return SITE;
+  const pageSlug = parts[1];
+  const known = sec.pages?.find((p) => p.slug === pageSlug)?.label;
+  // A record deeper than the page slug is the most specific thing on
+  // screen, so it wins the front of the title.
+  const record = parts[2] ? prettify(parts[2]) : null;
+  const lead = record ?? known ?? (pageSlug ? prettify(pageSlug) : null);
+  if (!lead || lead === sec.label) return `${sec.label} - ${SITE}`;
+  return `${lead} - ${sec.label} - ${SITE}`;
 }
 
 function useRoute() {
@@ -156,6 +182,10 @@ export function App() {
   const section = effectivePath === "/" ? "home" : sectionRaw;
   const sec = SECTIONS[section];
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
+
+  useEffect(() => {
+    document.title = titleFor(section, sec, effectivePath);
+  }, [section, sec, effectivePath]);
   const tier2Pages = (sec?.pages ?? []).filter(
     (p) => !p.ownerOnly || me?.is_owner,
   );
