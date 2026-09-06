@@ -32,4 +32,49 @@ export function loadTinylytics() {
   script.defer = true;
   script.src = `https://tinylytics.app/embed/${SITE_ID}/min.js?hits&countries&events&beacon`;
   document.body.appendChild(script);
+
+  bridgeRouteChanges();
+}
+
+/** The embed records one hit at document load; pushState navigation is
+ *  invisible to it. Bridge route changes to the collector as virtual
+ *  page hits (Elixir Drop's technique, adapted from hash routing to
+ *  pushState). Paths are coarsened to their first two segments so
+ *  record ids and player tags never become analytics dimensions —
+ *  /explore/player/#TAG reports as /explore/player. */
+export function analyticsPagePath(pathname = window.location.pathname) {
+  if (pathname.startsWith("/signin")) return null;
+  const segments = pathname.split("/").filter(Boolean).slice(0, 2);
+  return segments.length ? `/${segments.join("/")}` : "/";
+}
+
+function bridgeRouteChanges() {
+  let last = analyticsPagePath();
+  const send = () => {
+    const next = analyticsPagePath();
+    if (next === null || next === last) return;
+    const referrer = last
+      ? new URL(last, window.location.origin).toString()
+      : document.referrer;
+    last = next;
+    try {
+      if (typeof navigator.sendBeacon !== "function") return;
+      const collector = new URL(`https://tinylytics.app/collector/${SITE_ID}`);
+      collector.searchParams.set(
+        "url",
+        new URL(next, window.location.origin).toString(),
+      );
+      collector.searchParams.set("path", next);
+      collector.searchParams.set("referrer", referrer);
+      navigator.sendBeacon(collector.toString());
+    } catch {
+      // Analytics is best-effort and must never interrupt navigation.
+    }
+  };
+  const original = history.pushState.bind(history);
+  history.pushState = (...args) => {
+    original(...args);
+    send();
+  };
+  window.addEventListener("popstate", send);
 }
