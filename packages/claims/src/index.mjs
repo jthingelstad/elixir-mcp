@@ -350,9 +350,16 @@ export async function setCollectionMembers(db, collection, tags) {
     const removed = [...have].filter((t) => !wanted.includes(t));
 
     // Touch subjects in a stable order so two concurrent edits queue
-    // rather than deadlock on the per-subject locks.
-    for (const tag of [...added, ...removed].sort()) {
-      await lockSubject(db, tag);
+    // rather than deadlock on the per-subject locks. One round trip:
+    // an externally managed collection syncs hundreds of tags at once,
+    // and a query per tag would hold the transaction open for as long
+    // as the network takes, times the roster.
+    const touched = [...added, ...removed].sort();
+    if (touched.length > 0) {
+      await db.query(
+        `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
+        [touched],
+      );
     }
     if (added.length > 0) {
       await db.query(
@@ -370,7 +377,7 @@ export async function setCollectionMembers(db, collection, tags) {
     }
     let started = 0;
     let stopped = 0;
-    for (const tag of [...added, ...removed].sort()) {
+    for (const tag of touched) {
       const r = await reconcileRecording(
         db,
         collection.kind,

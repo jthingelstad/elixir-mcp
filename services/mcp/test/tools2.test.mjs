@@ -923,3 +923,95 @@ test("mark_seen:false still acknowledges nothing, filtered or not", async () => 
   const again = await call("elixir_events", {});
   assert.equal(again.body.events.length, 1, "a peek leaves it pending");
 });
+
+test("collections_edit curates a collection you own, and records what it names", async () => {
+  const {
+    rows: [c],
+  } = await db.query(
+    `insert into collection (slug, title, kind, owner_account, scope, visibility)
+     values ('edit-me', 'Edit Me', 'player', $1, 'comprehensive', 'private')
+     returning collection_id`,
+    [account.accountId],
+  );
+
+  const added = await call("collections_edit", {
+    slug: "edit-me",
+    tags: ["#2YG98VVQ", "20JJJ2CCRU"], // the second is missing its hash
+  });
+  assert.equal(added.isError, false, JSON.stringify(added.body));
+  assert.equal(added.body.added, 2, "tags are folded to canonical form");
+  assert.equal(added.body.members, 2);
+  assert.equal(added.body.recordings_started, 2, "membership means recording");
+  assert.equal(added.body.scope, "comprehensive");
+
+  // Idempotent: syncing the same roster again changes nothing.
+  const again = await call("collections_edit", {
+    slug: "edit-me",
+    tags: ["#2YG98VVQ", "#20JJJ2CCRU"],
+  });
+  assert.equal(again.body.added, 0);
+  assert.equal(again.body.members, 2);
+
+  // 'set' is the roster shape: what is absent leaves.
+  const set = await call("collections_edit", {
+    slug: "edit-me",
+    action: "set",
+    tags: ["#2YG98VVQ"],
+  });
+  assert.equal(set.body.removed, 1);
+  assert.equal(set.body.members, 1);
+
+  const removed = await call("collections_edit", {
+    slug: "edit-me",
+    action: "remove",
+    tags: ["#2YG98VVQ"],
+  });
+  assert.equal(removed.body.members, 0);
+
+  await db.query(`delete from collection where collection_id = $1`, [
+    c.collection_id,
+  ]);
+});
+
+test("collections_edit refuses a bad tag outright rather than skipping it", async () => {
+  await db.query(
+    `insert into collection (slug, title, kind, owner_account, scope)
+     values ('strict', 'Strict', 'player', $1, 'activity')`,
+    [account.accountId],
+  );
+  // Silently skipping would quietly drop somebody from a synced roster.
+  const bad = await call("collections_edit", {
+    slug: "strict",
+    tags: ["#2YG98VVQ", "not-a-tag"],
+  });
+  assert.equal(bad.isError, true);
+  assert.match(JSON.stringify(bad.body), /not a valid Clash Royale tag/);
+  const { rows } = await db.query(
+    `select count(*)::int as n from collection_member m
+     join collection c on c.collection_id = m.collection_id where c.slug = 'strict'`,
+  );
+  assert.equal(rows[0].n, 0, "nothing was changed");
+  await db.query(`delete from collection where slug = 'strict'`);
+});
+
+test("collections_edit will not let you curate somebody else's collection", async () => {
+  const {
+    rows: [other],
+  } = await db.query(
+    `insert into account (email_hash, status) values ($1, 'approved')
+     returning account_id`,
+    [`someone-else-${Math.random()}`],
+  );
+  await db.query(
+    `insert into collection (slug, title, kind, owner_account, scope, visibility)
+     values ('theirs', 'Theirs', 'player', $1, 'activity', 'public')`,
+    [other.account_id],
+  );
+  const denied = await call("collections_edit", {
+    slug: "theirs",
+    tags: ["#2YG98VVQ"],
+  });
+  assert.equal(denied.isError, true);
+  assert.match(JSON.stringify(denied.body), /belongs to someone else/);
+  await db.query(`delete from collection where slug = 'theirs'`);
+});

@@ -235,9 +235,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.players.length, 2);
 });
 
-test("the registry declares 35 tools, every one classified and annotated", () => {
+test("the registry declares 36 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 35);
+  assert.equal(decls.length, 36);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -251,13 +251,19 @@ test("the registry declares 35 tools, every one classified and annotated", () =>
   assert.deepEqual(
     writers.map((d) => d.name).sort(),
     [
+      // Curation of a collection YOU OWN is the one write outside the
+      // service domain: a collection is a domain resource, and editing
+      // one is editing the domain, not administering the service.
+      // Recorded game history stays read-only to every tool here - the
+      // recording pipeline is the only writer of facts.
+      "collections_edit",
       "elixir_add_clan",
       "elixir_add_player",
       "elixir_events",
       "elixir_feedback",
       "elixir_nickname",
     ],
-    "the service domain owns all write tools",
+    "writes are service-domain, plus curating your own collections",
   );
   const open = decls.filter((d) => d.annotations.openWorldHint === true);
   assert.deepEqual(

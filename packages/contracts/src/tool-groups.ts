@@ -130,6 +130,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Browse collections",
     readOnly: true,
   },
+  collections_edit: {
+    group: "Collections",
+    title: "Edit a collection",
+    readOnly: false,
+  },
   collections_get: {
     group: "Collections",
     title: "Collection members",
