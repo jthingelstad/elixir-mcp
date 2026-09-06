@@ -1,33 +1,12 @@
 /** Lambda entrypoint: EventBridge tick -> plan -> job ledger. */
 
-import {
-  CloudWatchClient,
-  PutMetricDataCommand,
-} from "@aws-sdk/client-cloudwatch";
 import { makeHandler } from "./handler.mjs";
+import { emitLedgerMetrics } from "./metrics.mjs";
 
-const cw = new CloudWatchClient({});
-
+// Ledger health goes out as CloudWatch EMF on stdout, never the CloudWatch API:
+// the NAT-free VPC has no CloudWatch endpoint, so an awaited PutMetricData call
+// hung every tick to the 50s timeout (issue #1). See metrics.mjs.
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
-  putMetrics: async (stats) => {
-    await cw.send(
-      new PutMetricDataCommand({
-        Namespace: "ElixirMCP/Ledger",
-        MetricData: [
-          {
-            MetricName: "OldestQueuedAgeSeconds",
-            Value: stats.oldest_queued_s,
-            Unit: "Seconds",
-          },
-          { MetricName: "DeadJobs", Value: stats.dead, Unit: "Count" },
-          {
-            MetricName: "QueuedJobs",
-            Value: stats.queued_bulk + stats.queued_live,
-            Unit: "Count",
-          },
-        ],
-      }),
-    );
-  },
+  emitMetrics: (stats) => emitLedgerMetrics(stats),
 });

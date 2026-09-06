@@ -228,13 +228,10 @@ Resources:
               - Effect: Allow
                 Action: [sqs:SendMessage, sqs:GetQueueUrl]
                 Resource: !GetAtt EmailQueue.Arn
-              # Ledger health metrics (0040) - namespace-pinned.
-              - Effect: Allow
-                Action: cloudwatch:PutMetricData
-                Resource: "*"
-                Condition:
-                  StringEquals:
-                    cloudwatch:namespace: ElixirMCP/Ledger
+              # Ledger health metrics ride CloudWatch EMF on stdout (issue #1),
+              # not the CloudWatch API - so no cloudwatch:PutMetricData grant.
+              # The NAT-free VPC has no CloudWatch endpoint anyway; an awaited
+              # PutMetricData call hung every scheduler tick to the 50s timeout.
               - Effect: Allow
                 Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl]
                 Resource:
