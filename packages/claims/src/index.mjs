@@ -25,6 +25,30 @@ async function lockAccount(db, accountId) {
   return rows[0] ?? null;
 }
 
+/**
+ * Serialize every mutation touching ONE subject, across all accounts.
+ *
+ * The account lock protects the slot count, which is per account. The
+ * recording and its subscriber count are per TAG and shared by everyone
+ * watching it, so account locks alone leave two accounts free to decide
+ * its fate simultaneously (#12). Two interleavings both broke:
+ *
+ *   A removes its last claim and stops the recording; B adds the same
+ *   player, cannot see A's uncommitted stop, finds an active recording
+ *   and creates none. Both commit: one subscriber, nothing recorded.
+ *
+ *   A and B each remove their claim; each still sees the other's
+ *   uncommitted claim and declines to stop. Both commit: no
+ *   subscribers, recording still running.
+ *
+ * ALWAYS TAKEN AFTER the account lock. Every mutation here touches at
+ * most one account and one subject, so one fixed order is enough to
+ * rule out a deadlock cycle - do not reverse it in a new caller.
+ */
+async function lockSubject(db, tag) {
+  await db.query(`select pg_advisory_xact_lock(hashtext($1))`, [tag]);
+}
+
 async function logEvent(db, accountId, kind, detail) {
   await db.query(
     `insert into account_event (account_id, kind, detail) values ($1, $2, $3)`,
@@ -47,6 +71,7 @@ export async function addPlayer(db, account, { tag, makePrimary, via }) {
       await db.query("rollback");
       return { ok: false, error: "not_found" };
     }
+    await lockSubject(db, tag);
 
     const exempt = acct.is_owner || acct.role === "admin";
     if (!exempt) {
@@ -161,6 +186,7 @@ export async function removePlayer(db, account, { tag, via }) {
   await db.query("begin");
   try {
     await lockAccount(db, account.accountId);
+    await lockSubject(db, tag);
 
     const { rows: deleted } = await db.query(
       `delete from claim where account_id = $1 and player_tag = $2

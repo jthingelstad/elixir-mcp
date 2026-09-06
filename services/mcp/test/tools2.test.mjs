@@ -867,3 +867,59 @@ test("nicknames: private to the account, matched first in search, shown in summa
   const gone = await call("players_summary", { player_tag: OBSERVER });
   assert.ok(!("nickname" in gone.body));
 });
+
+test("a topics filter never acknowledges the events it hid (#13)", async () => {
+  const { emitFeedEvent } = await import("../src/feed.mjs");
+  // Drain anything left by earlier tests so the ordering below is exact.
+  await call("elixir_events", {});
+
+  // An unread event of one topic, then a later one of another.
+  await emitFeedEvent(db, account.accountId, "feedback_responded", null, {
+    feedback_id: 99,
+    status: "done",
+  });
+  await emitFeedEvent(db, account.accountId, "war_day_open", null, {
+    war_day: 1,
+  });
+
+  // Poll only the war topic, with mark_seen defaulting on.
+  const warOnly = await call("elixir_events", { topics: ["war_day_open"] });
+  assert.equal(warOnly.isError, false, JSON.stringify(warOnly.body));
+  assert.deepEqual(
+    warOnly.body.events.map((e) => e.topic),
+    ["war_day_open"],
+  );
+  // The cursor must stop BELOW the feedback event it never showed.
+  assert.ok(
+    warOnly.body.seen_through < warOnly.body.next_cursor,
+    "acknowledgement stops at the first excluded event",
+  );
+
+  // Reported: this returned nothing, and the feedback reply was gone
+  // from normal polling for good.
+  const everything = await call("elixir_events", {});
+  assert.deepEqual(
+    everything.body.events.map((e) => e.topic),
+    ["feedback_responded", "war_day_open"],
+    "the hidden event is still pending, and the war event replays after it",
+  );
+
+  // And a full read does acknowledge everything.
+  const drained = await call("elixir_events", {});
+  assert.equal(drained.body.events.length, 0);
+});
+
+test("mark_seen:false still acknowledges nothing, filtered or not", async () => {
+  const { emitFeedEvent } = await import("../src/feed.mjs");
+  await call("elixir_events", {});
+  await emitFeedEvent(db, account.accountId, "war_day_open", null, {
+    war_day: 2,
+  });
+  const peek = await call("elixir_events", {
+    topics: ["war_day_open"],
+    mark_seen: false,
+  });
+  assert.equal(peek.body.events.length, 1);
+  const again = await call("elixir_events", {});
+  assert.equal(again.body.events.length, 1, "a peek leaves it pending");
+});

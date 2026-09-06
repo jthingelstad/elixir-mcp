@@ -330,7 +330,7 @@ export const elixirTools = {
           type: "boolean",
           default: true,
           description:
-            "Advance your seen-cursor past the returned events (clears meta.events_pending).",
+            "Advance your seen-cursor past the returned events (clears meta.events_pending). With a topics filter the cursor stops at the first event the filter excluded, so a topic-specific poll can never acknowledge notifications it did not show you; see seen_through in the response.",
         },
       },
       additionalProperties: false,
@@ -375,21 +375,42 @@ export const elixirTools = {
       }));
       const nextCursor =
         events.length > 0 ? events[events.length - 1].event_id : cursor;
+      // Acknowledge only the contiguous run we actually returned. The
+      // seen-cursor is ONE number per account, so advancing it to the
+      // last returned event silently acknowledged everything a topics
+      // filter had skipped over: a war-only routine could clear an
+      // account's unread feedback reply, and normal resumed polling
+      // would never show it again (#13). Stop at the first excluded
+      // event instead.
+      let seenThrough = nextCursor;
+      if (topics && events.length > 0) {
+        const { rows: gap } = await ctx.db.query(
+          `select coalesce(min(event_id) - 1, $3::bigint) as seen_to
+           from event_feed
+           where account_id = $1 and event_id > $2 and event_id <= $3
+             and not (topic = any($4))`,
+          [ctx.account.accountId, cursor, nextCursor, topics],
+        );
+        seenThrough = Number(gap[0].seen_to);
+      }
       if (args.mark_seen !== false && events.length > 0) {
         await ctx.db.query(
           `update account set events_seen_through = greatest(events_seen_through, $2)
            where account_id = $1`,
-          [ctx.account.accountId, nextCursor],
+          [ctx.account.accountId, seenThrough],
         );
       }
       return {
         events,
         next_cursor: nextCursor,
+        seen_through: args.mark_seen === false ? cursor : seenThrough,
         has_more: rows.length > limit,
         note:
           events.length === 0
             ? "Nothing new. Add a player or clan (notify defaults on) and its events start arriving."
-            : "Pass next_cursor as since to continue; events prune after ~30 days.",
+            : seenThrough < nextCursor
+              ? "Pass next_cursor as since to continue. Your seen-cursor stopped at seen_through because earlier events of other topics are still unread - poll without a topics filter to see them."
+              : "Pass next_cursor as since to continue; events prune after ~30 days.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
