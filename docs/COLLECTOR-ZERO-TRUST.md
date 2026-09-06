@@ -172,19 +172,28 @@ channels split above is the ratified shape.
 - The bearer token is still a secret in the operator's .env — but
   single-purpose, instantly revocable, and worthless against AWS.
 
-## Migration
+## Migration (end state ratified by Jamie, 2026-09-06)
 
-1. **Server first**: routes + token issuance + `static_ip` optional;
-   SQS path keeps working (both doors live).
-2. **Collector v2**: Go client speaks HTTPS only. The cabin
-   (magic-pines) has never started — it begins life on the zero-trust
-   client and **never receives AWS credentials at all**.
-3. **Mac cutover**: the two Node collectors move to the Go v2 client
-   (this is the Go fleet cutover GO-PORT §5 was waiting on, with a
-   better reason).
-4. **Teardown**: delete the per-collector IAM users and the minting
-   script; remove the SQS/metrics grants from OPERATORS.md; admin UI
-   drops the IP column.
+End state: **Node is retired entirely** — it was the bootstrap
+implementation and v2 removes its last reason to exist (the server
+computes cr_path and pins the wire shape; no shared-JS contract
+argument remains). The Mac runs TWO v2 collectors on the existing CR
+keys — **one Python, one Go** — deliberate runtime diversity, so a bad
+release of either client can never silence the whole home fleet. The
+cabin runs the same Go binary.
+
+1. **Server first**: routes + token issuance + `static_ip` optional +
+   channels; SQS path keeps working (both doors live).
+2. **Collector v2 clients**: the Go client speaks HTTPS only; a small
+   Python twin (~150 lines) joins it. The cabin (magic-pines) has
+   never started — it begins life on the zero-trust Go client and
+   **never receives AWS credentials at all**.
+3. **Mac cutover**: the two Node collectors are REPLACED by one Python
+   and one Go v2 client on the existing keys. Node runs the old SQS
+   path until this moment and is never ported to v2.
+4. **Teardown**: delete the per-collector IAM users, the minting
+   script, and the collector repo's Node source; remove the
+   SQS/metrics grants from OPERATORS.md; admin UI drops the IP column.
 
 ## Deliberately out (v1)
 
