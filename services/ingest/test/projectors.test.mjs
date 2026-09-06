@@ -300,3 +300,45 @@ test("pre-reset window pins an extra season_roll snapshot", async () => {
     ["daily", "season_roll"],
   );
 });
+
+test("snapshots: an older delayed observation never regresses the day (sol-6 F7)", async () => {
+  const { projectPlayerSnapshot } = await import("../src/snapshots.mjs");
+  const tag = "#P0P2P8P9";
+  await ctx.db.query(`insert into player (player_tag) values ($1)`, [tag]);
+  const payload = (trophies) => ({
+    tag,
+    name: "Guarded",
+    battleCount: 100,
+    trophies,
+  });
+  await projectPlayerSnapshot(ctx.db, {
+    playerTag: tag,
+    payload: payload(6100),
+    fetchedAt: "2026-09-05T18:00:00Z",
+  });
+  // A delayed message observed EARLIER the same day arrives second.
+  await projectPlayerSnapshot(ctx.db, {
+    playerTag: tag,
+    payload: payload(6000),
+    fetchedAt: "2026-09-05T09:00:00Z",
+  });
+  const { rows } = await ctx.db.query(
+    `select trophies, observed_at from player_snapshot_daily
+     where player_tag = $1 and snapshot_date = '2026-09-05'`,
+    [tag],
+  );
+  assert.equal(rows[0].trophies, 6100, "older observation ignored");
+  assert.equal(rows[0].observed_at.toISOString(), "2026-09-05T18:00:00.000Z");
+  // A newer observation still overwrites.
+  await projectPlayerSnapshot(ctx.db, {
+    playerTag: tag,
+    payload: payload(6200),
+    fetchedAt: "2026-09-05T21:00:00Z",
+  });
+  const { rows: after } = await ctx.db.query(
+    `select trophies from player_snapshot_daily
+     where player_tag = $1 and snapshot_date = '2026-09-05'`,
+    [tag],
+  );
+  assert.equal(after[0].trophies, 6200);
+});

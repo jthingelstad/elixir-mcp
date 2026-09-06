@@ -136,11 +136,42 @@ const VALIDATORS = {
 /**
  * @returns {{ok: true} | {ok: false, errors: string[]}}
  */
-export function admit(endpoint, payload) {
+/** Payload identity per endpoint - who this payload is ABOUT. Used to
+ *  bind the body to the requested entity: a mis-routed collector result
+ *  must never be projected under another subject's key (sol-6 F4). */
+const IDENTITY = {
+  player: (p) => p?.tag,
+  clan: (p) => p?.tag,
+  currentriverrace: (p) => p?.clan?.tag,
+};
+
+function sameTag(a, b) {
+  try {
+    return normalizeTag(a) === normalizeTag(b);
+  } catch {
+    return false;
+  }
+}
+
+export function admit(endpoint, payload, entityKey = null) {
   const validator = VALIDATORS[endpoint];
   if (!validator)
     return { ok: false, errors: [`endpoint:unknown:${endpoint}`] };
   const errors = [];
   validator(payload, errors);
+  if (entityKey && errors.length === 0) {
+    const found = IDENTITY[endpoint]?.(payload);
+    if (found && !sameTag(found, entityKey)) {
+      errors.push(`identity:mismatch:${found}`);
+    }
+    // A battlelog is the OBSERVER's log: every battle includes them.
+    if (endpoint === "player_battlelog" && Array.isArray(payload)) {
+      payload.forEach((battle, i) => {
+        const team = Array.isArray(battle?.team) ? battle.team : [];
+        if (team.length > 0 && !team.some((t) => sameTag(t?.tag, entityKey)))
+          errors.push(`[${i}].team:observer-missing`);
+      });
+    }
+  }
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
 }

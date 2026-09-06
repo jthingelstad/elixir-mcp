@@ -134,10 +134,22 @@ test("session tokens: sign/verify round-trip, tamper and expiry rejected", () =>
     verifySessionToken({ secret: SECRET, token: `${encoded}x.${sig}` }),
     null,
   );
-  const expired = createSessionToken({
+  // Sliding sessions (sol-6): the TOKEN lasts to the 90-day absolute
+  // cap - the DB row (checked every request) owns the 9-day sliding
+  // truth. A 10-day-old token still verifies; a 91-day-old one never.
+  const aged = createSessionToken({
     secret: SECRET,
     sub: JAMIE,
     now: Date.now() - 10 * 24 * 3600 * 1000,
+  });
+  assert.ok(
+    verifySessionToken({ secret: SECRET, token: aged.token }),
+    "inside the absolute cap the token holds; the DB row does the sliding",
+  );
+  const expired = createSessionToken({
+    secret: SECRET,
+    sub: JAMIE,
+    now: Date.now() - 91 * 24 * 3600 * 1000,
   });
   assert.equal(
     verifySessionToken({ secret: SECRET, token: expired.token }),

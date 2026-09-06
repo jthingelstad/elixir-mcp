@@ -28,7 +28,12 @@ import {
   waitUntilStackUpdateComplete,
 } from "@aws-sdk/client-cloudformation";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import {
+  LambdaClient,
+  InvokeCommand,
+  UpdateFunctionCodeCommand,
+  waitUntilFunctionUpdatedV2,
+} from "@aws-sdk/client-lambda";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { buildAll } from "./build.mjs";
 import { buildParameters } from "./parameters.mjs";
@@ -63,7 +68,44 @@ for (const { name, zipPath } of artifacts) {
   console.error(`uploaded ${key}`);
 }
 
-// 2. Stack ------------------------------------------------------------------
+// 2. Migrate BEFORE the flip (sol-6 F2) -------------------------------------
+// Migrations are expand-and-contract by policy: applying them first
+// means the currently-serving code (which tolerates the expanded
+// schema by construction) never races a schema it predates, and a
+// failed migration stops the deploy before any application code flips.
+// On --create the stack doesn't exist yet; migrations run after create.
+const lambda = new LambdaClient({ region: REGION });
+async function runMigrations(functionName) {
+  console.error("running migrations via the migrate lambda...");
+  const invoked = await lambda.send(
+    new InvokeCommand({ FunctionName: functionName, Payload: "{}" }),
+  );
+  const migrateResult = JSON.parse(
+    Buffer.from(invoked.Payload).toString() || "null",
+  );
+  if (invoked.FunctionError) {
+    console.error(`MIGRATE FAILED: ${JSON.stringify(migrateResult)}`);
+    process.exit(1);
+  }
+  console.error(`migrations: ${JSON.stringify(migrateResult)}`);
+}
+if (!isCreate) {
+  console.error("pushing migrate bundle ahead of the stack flip...");
+  await lambda.send(
+    new UpdateFunctionCodeCommand({
+      FunctionName: "elixir-mcp-migrate",
+      S3Bucket: codeBucket,
+      S3Key: codeKeys.migrate,
+    }),
+  );
+  await waitUntilFunctionUpdatedV2(
+    { client: lambda, maxWaitTime: 120 },
+    { FunctionName: "elixir-mcp-migrate" },
+  );
+  await runMigrations("elixir-mcp-migrate");
+}
+
+// 3. Stack ------------------------------------------------------------------
 const templateBody = await readFile(
   path.join(repoRoot, "infra/template.yaml"),
   "utf8",
@@ -126,23 +168,10 @@ const outputs = Object.fromEntries(
   Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]),
 );
 
-// 3. Migrate (code deployed above; schema follows; nothing serves stale) ----
-console.error("running migrations via the migrate lambda...");
-const lambda = new LambdaClient({ region: REGION });
-const invoked = await lambda.send(
-  new InvokeCommand({
-    FunctionName: outputs.MigrateFunctionName,
-    Payload: "{}",
-  }),
-);
-const migrateResult = JSON.parse(
-  Buffer.from(invoked.Payload).toString() || "null",
-);
-if (invoked.FunctionError) {
-  console.error(`MIGRATE FAILED: ${JSON.stringify(migrateResult)}`);
-  process.exit(1);
+// 4. First-create migrations (the update path migrated pre-flip) -----------
+if (isCreate) {
+  await runMigrations(outputs.MigrateFunctionName);
 }
-console.error(`migrations: ${JSON.stringify(migrateResult)}`);
 
 // 4. Web --------------------------------------------------------------------
 if (!skipWeb) {

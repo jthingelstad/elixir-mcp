@@ -13,8 +13,20 @@ export function makeHandler({ databaseUrl, sendJobs }) {
     await client.connect();
     try {
       const result = await planTick(client, new Date());
-      if (result.jobs.length > 0) await sendJobs(result.jobs);
-      return { planned: result.jobs.length };
+      let sendFailed = [];
+      if (result.jobs.length > 0)
+        sendFailed = (await sendJobs(result.jobs)) ?? [];
+      // A planned-but-unsent subject would otherwise wait a full
+      // cadence for its next chance: clear the plan stamp so the next
+      // tick retries it (sol-6 F5).
+      for (const job of sendFailed) {
+        await client.query(
+          `update poll_state set last_planned_at = null
+           where subject_tag = $1 and endpoint = $2`,
+          [job.entity_key, job.endpoint],
+        );
+      }
+      return { planned: result.jobs.length, send_failed: sendFailed.length };
     } finally {
       await client.end();
     }

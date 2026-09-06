@@ -46,14 +46,17 @@ export async function projectPlayerSnapshot(
   await db.query(
     `insert into player_snapshot_daily
        (player_tag, snapshot_date, snapshot_kind, trophies, pol, league_stats,
-        donations, donations_received, lifetime, collection_hash)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        donations, donations_received, lifetime, collection_hash, observed_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
        trophies = excluded.trophies, pol = excluded.pol,
        league_stats = excluded.league_stats, donations = excluded.donations,
        donations_received = excluded.donations_received,
        lifetime = excluded.lifetime, collection_hash = excluded.collection_hash,
-       created_at = now()`,
+       observed_at = excluded.observed_at,
+       created_at = now()
+     where player_snapshot_daily.observed_at is null
+        or excluded.observed_at >= player_snapshot_daily.observed_at`,
     [
       playerTag,
       day,
@@ -68,6 +71,7 @@ export async function projectPlayerSnapshot(
       payload.donationsReceived ?? null,
       JSON.stringify(lifetime),
       Array.isArray(payload.cards) ? payloadHash(payload.cards) : null,
+      fetchedAt,
     ],
   );
 

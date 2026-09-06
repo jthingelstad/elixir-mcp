@@ -68,3 +68,36 @@ test("riverrace periodIndex/sectionIndex cross-check enforced", async () => {
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("periodIndex:section-cross-check-failed"));
 });
+
+test("identity binding: a payload about someone else never admits (sol-6 F4)", async () => {
+  const { admit } = await import("../src/admission.mjs");
+  const player = {
+    tag: "#20JJJ2CCRU",
+    name: "King Thing",
+    battleCount: 5000,
+  };
+  assert.equal(admit("player", player, "#20JJJ2CCRU").ok, true);
+  const wrong = admit("player", player, "#2YG98VVQ");
+  assert.equal(wrong.ok, false);
+  assert.ok(wrong.errors.some((e) => e.startsWith("identity:mismatch")));
+
+  // Battlelog: every battle must include the observer.
+  const battle = (tag) => ({
+    battleTime: "20260905T120000.000Z",
+    type: "PvP",
+    team: [{ tag, cards: [] }],
+    opponent: [{ tag: "#2YG98VVQ", cards: [] }],
+  });
+  const own = admit("player_battlelog", [battle("#20JJJ2CCRU")], "#20JJJ2CCRU");
+  assert.equal(own.ok, true);
+  const foreign = admit(
+    "player_battlelog",
+    [battle("#20JJJ2CCRU"), battle("#8U2P0JPR")],
+    "#20JJJ2CCRU",
+  );
+  assert.equal(foreign.ok, false);
+  assert.ok(foreign.errors.some((e) => e.includes("observer-missing")));
+
+  // Without an entity key (legacy callers), shape-only admission holds.
+  assert.equal(admit("player", player).ok, true);
+});

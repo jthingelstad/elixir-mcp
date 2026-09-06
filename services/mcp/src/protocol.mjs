@@ -13,7 +13,7 @@ import { CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
-const MCP_RESULT_MAX_CHARS = 48_000;
+export const MCP_RESULT_MAX_CHARS = 48_000;
 export const MCP_QUOTA_ERROR_CODE = -32029;
 
 export function serverVersion(declarations) {

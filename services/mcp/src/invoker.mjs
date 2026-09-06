@@ -8,6 +8,7 @@
 
 import { responseMeta } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
+import { MCP_RESULT_MAX_CHARS } from "./protocol.mjs";
 
 const MAX_AUDIT_ARG_CHARS = 4000;
 
@@ -78,6 +79,9 @@ export function makeInvoker({
         args,
         startedAt,
         resultBytes,
+        // Mirror the protocol renderer's condition: auditing runs
+        // before rendering, so compute rather than observe (sol-6 F8).
+        truncated: surface !== "web" && resultBytes > MCP_RESULT_MAX_CHARS,
       });
       return { body, isError: false };
     } catch (err) {

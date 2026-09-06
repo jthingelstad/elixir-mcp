@@ -179,9 +179,11 @@ yield.
 - A **claim** on your tag (trust-based; accounts are owner-approved)
   gives your agent your full history — including battles recorded
   before you joined.
-- **Clan cover**: open members of a recorded clan read clan data and
-  fellow members' history, ending the moment membership ends. Being in
-  a clan *is* sharing your battles with it, exactly as in the game.
+- **Universal game reads**: recorded player data — battles, profiles,
+  timelines — is readable by every approved account, the same posture
+  as the game's own public API. **Clan cover** gates the clan-scoped
+  tools (roster, war): open members of a recorded clan use them, and
+  that access ends the moment membership ends.
 - The MCP door is OAuth 2.1 with rotating refresh tokens; the site uses
   cookie sessions; every tool call is audited per surface with visible
   per-account quotas.

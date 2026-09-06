@@ -10,7 +10,7 @@ import {
   SESSION_TTL_SECONDS,
 } from "./session.mjs";
 
-const ABSOLUTE_CAP_DAYS = 90;
+import { ABSOLUTE_CAP_DAYS } from "./session.mjs";
 
 export async function createSession(
   db,
@@ -20,7 +20,7 @@ export async function createSession(
   await db.query(
     `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at)
      values ($1, $2, to_timestamp($3), now() + make_interval(days => $4))`,
-    [minted.sessionId, accountId, minted.expiresAt, ABSOLUTE_CAP_DAYS],
+    [minted.sessionId, accountId, minted.slidingExpiresAt, ABSOLUTE_CAP_DAYS],
   );
   return minted;
 }

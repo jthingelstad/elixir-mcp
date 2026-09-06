@@ -3,7 +3,7 @@
 **What we store.** Game data from the public Clash Royale API: battles,
 profiles, clan rosters, war standings. All of it is publicly queryable
 by anyone with a tag and an API key — we add history, not access. We
-also store your email as a salted hash (never plaintext in the
+also store your email only as a one-way hash (never plaintext in the
 application tables), your timezone if you set one, and operational
 records of your own activity: sign-ins, claims, recording changes, and
 your agent's tool calls (used for quotas and product improvement — you

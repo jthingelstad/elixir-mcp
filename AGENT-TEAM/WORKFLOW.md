@@ -53,8 +53,11 @@ Read order for every run:
    commit for user-visible changes; a contracts version bump appends a
    changelog entry. Commit small and message-first, push `main`, and
    when runtime code changed, deploy:
-   `AWS_PROFILE=jamie node infra/scripts/deploy.mjs` (smoke-gated —
-   a failed smoke aborts the flip). Verify the deployed behavior with a
+   `AWS_PROFILE=jamie node infra/scripts/deploy.mjs`. Migrations run
+   BEFORE the code flip (expand-and-contract makes that safe) and a
+   failed migration stops the deploy; the smoke checks after the flip
+   REPORT failure loudly but do not roll back — a red smoke means fix
+   forward now, not walk away. Verify the deployed behavior with a
    read.
 8. **Record the run.** Append what happened to `docs/NOTES.md` when it
    changes durable state or a decision, and to `AGENT-TEAM/notes/` for

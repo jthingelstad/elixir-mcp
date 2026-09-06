@@ -301,7 +301,7 @@ export async function processResult(db, rawMessage, deps = {}) {
   const admission =
     payload === undefined
       ? { ok: false, errors: ["body:unparseable"] }
-      : admit(endpoint, payload);
+      : admit(endpoint, payload, entityKey);
   const hash =
     payload === undefined ? payloadHash(rawText ?? "") : payloadHash(payload);
   t = mark("parse_admit_ms", t);

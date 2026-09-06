@@ -534,8 +534,14 @@ test("capture audit: overlapping polls are gapless; a fully-rolled log flags a g
     new Date(now - offsetMin * 60000 + i).toISOString();
 
   // First poll: history arriving, not audited.
-  const first = structuredClone(log).map((b, i) => ({
+  // Identity binding (sol-6 F4): a battlelog only admits when the
+  // observer appears in every battle's team - stamp them in.
+  const asObserver = (b) => ({
     ...b,
+    team: [{ ...b.team[0], tag }, ...b.team.slice(1)],
+  });
+  const first = structuredClone(log).map((b, i) => ({
+    ...asObserver(b),
     battleTime: crCompact(new Date(now - 120 * 60000 + i * 60000)),
   }));
   await processResult(
@@ -573,7 +579,7 @@ test("capture audit: overlapping polls are gapless; a fully-rolled log flags a g
 
   // Third poll: the log fully rolled - every battle new -> gap flagged.
   const rolled = structuredClone(log).map((b, i) => ({
-    ...b,
+    ...asObserver(b),
     battleTime: crCompact(new Date(now - 30 * 60000 + i * 60000)),
   }));
   await processResult(

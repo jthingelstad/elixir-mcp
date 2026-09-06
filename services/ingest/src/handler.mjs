@@ -65,7 +65,10 @@ export function makeHandler({ databaseUrl, archiveBucket }) {
               }),
             );
           }
-        } catch {
+        } catch (err) {
+          // The retry path must leave a trace: Lambda's Errors metric
+          // never fires for handled batch failures (sol-6 F8).
+          console.error("ingest_retry", record.messageId, err?.message);
           batchItemFailures.push({ itemIdentifier: record.messageId });
           continue;
         }

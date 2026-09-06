@@ -12,6 +12,11 @@
 import crypto from "node:crypto";
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 9; // sliding ~9 days
+// The signed token and cookie last to the ABSOLUTE cap; the DB row -
+// checked on every request - is the sliding + revocation truth. A
+// token whose exp matched the sliding window made "sliding" a fixed
+// 9-day ceiling (sol-6 finding): the row slid, the cookie died.
+export const ABSOLUTE_CAP_DAYS = 90;
 
 function b64url(value) {
   return Buffer.from(value).toString("base64url");
@@ -42,10 +47,11 @@ export function createSessionToken({
 }) {
   const sid = sessionId ?? crypto.randomBytes(18).toString("base64url");
   const iat = Math.floor(now / 1000);
-  const exp = iat + SESSION_TTL_SECONDS;
+  const exp = iat + ABSOLUTE_CAP_DAYS * 86400;
   return {
     sessionId: sid,
     expiresAt: exp,
+    slidingExpiresAt: iat + SESSION_TTL_SECONDS,
     token: signPayload(secret, { sid, sub, iat, exp }),
   };
 }

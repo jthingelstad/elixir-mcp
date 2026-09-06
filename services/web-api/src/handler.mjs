@@ -139,7 +139,7 @@ export function makeHandler({
     return json(
       200,
       { authenticated: true },
-      { "set-cookie": sessionCookie(minted.token, 9 * 24 * 3600) },
+      { "set-cookie": sessionCookie(minted.token, 90 * 24 * 3600) },
     );
   }
 

@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-06",
+    title: "Hardening pass from an outside assessment",
+    body: "An independent review of the whole system produced a punch list, now shipped: war-day events and the current-war view survive season rollover (the period index resets each season - the anchors now know that), staying signed in actually works (sessions slide with activity up to 90 days instead of dying at day nine), every recorded payload is verified to be ABOUT the player or clan it was requested for, delayed data can no longer overwrite newer snapshots, and deploys now run schema migrations before new code goes live.",
+  },
+  {
+    date: "2026-09-06",
     title: "Click into things",
     body: "Feedback items are now real pages - open one from your feedback list (or the admin queue) to see the whole conversation at a linkable URL, and maintainer responses are now composed right there. Collections opened up the same way: open a collection to edit it in place - members as rows, add and remove where you can see them - instead of the old squint-and-type row controls.",
   },
