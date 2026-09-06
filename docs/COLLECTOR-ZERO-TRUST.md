@@ -1,0 +1,139 @@
+# Collector Zero-Trust — kill the IAM users
+
+**Design gate — awaiting Jamie's ratification (2026-09-06).** Jamie's
+directive: operators cannot be assumed safe; collectors must have NO
+AWS connectivity — pure API clients of Elixir MCP with a token we
+issue, a launch-time contract so collection changes need no client
+update, and no IP collection at enrollment.
+
+## Assessment of the current model — the worry is justified
+
+Today each collector holds a per-collector **IAM user** (a principal
+inside the AWS account) plus the operator's own CR key. Verified
+against the shipped code, three concrete problems:
+
+1. **`cloudwatch:PutMetricData` on `Resource: "*"`**
+   (provision-gateway.mjs). PutMetricData cannot be resource-scoped and
+   the policy sets no namespace condition — any collector can write
+   metrics into ANY namespace in the account: fake another collector's
+   heartbeat, pollute billing/ops metrics, trip or silence
+   metric-based alarms.
+2. **Results are attributed by an unauthenticated field.** Ingest
+   trusts `msg.gateway_id` from the message body; every collector holds
+   send-rights on the same results queue. Any operator can submit
+   results AS any other collector (only `revoked` is refused).
+   Admission's new identity binding limits data damage, but
+   attribution, credits, and lifecycle trust are all spoofable.
+3. **Request-queue rights allow silent denial.** `ReceiveMessage` +
+   `DeleteMessage` on the shared request queues means a hostile
+   collector can drain jobs and delete them unprocessed — invisible
+   except as falling yield.
+
+Beyond the concrete holes: IAM users are long-lived credentials whose
+misuse surface is "the AWS control plane said no," not "the request
+never reached AWS"; every enrollment requires the owner to run a local
+IAM-minting script (the whole provisioning dance exists only because
+NAT-free VPC Lambdas cannot call IAM); and key revocation is an IAM
+operation rather than a row update. **Verdict: the zero-trust direction
+is right, and it also deletes our most complex operational flow.**
+
+## The design: collectors as pure Elixir MCP API clients
+
+### Doors
+
+Three routes on the existing hostname, served by web-api (which already
+sits in the VPC with SQS + DB access), Bearer-authenticated by a
+per-collector token:
+
+- **`GET /api/collector/config`** — the launch-time contract:
+  `{contract_version, pacing_ms, breaker: {threshold_403, cooldown_s},
+  overflow_bytes, poll: {live_wait_s, bulk_wait_s, idle_backoff_s},
+  min_client_version}`. Fetched at startup and re-fetched
+  opportunistically; `min_client_version` is the kill switch that can
+  force a self-update.
+- **`POST /api/collector/lease`** — long-polls live-then-bulk
+  server-side (SQS wait bounded ~10s, inside CloudFront's origin
+  timeout) and returns `{job, cr_path, lease}` or `{empty: true}`.
+  **`cr_path` is computed by the server** — the client never learns
+  endpoint→path mapping, so new CR endpoints and collection changes
+  ship with zero client changes. `lease` is the opaque SQS receipt
+  handle; the 60s visibility timeout means a leased-but-never-submitted
+  job redelivers itself — an operator can no longer black-hole work.
+- **`POST /api/collector/submit`** — `{lease, status, body_gzip_b64 |
+  error}`. The server builds the result envelope, **stamps gateway_id
+  and gateway_sha server-side from the token** (spoofing dies), sends
+  to the results queue, deletes the request message. Every
+  authenticated call also stamps `last_heartbeat_at` in the DB.
+
+The client loop collapses to: config → `lease → fetch cr_path (paced)
+→ submit`. No AWS SDK in either runtime — the Go binary drops
+aws-sdk-go entirely, the Node worker drops @aws-sdk. Pacing, breaker,
+and overflow constants come from config, not compiled-in.
+
+### Tokens
+
+Server-generated at approval, stored as a **hash** in the gateway row
+(the service-token pattern), shown once via the existing one-time
+claim-and-null download. Lifecycle unchanged (pending → probation →
+active → drain → revoke) and enforced at the door on every call —
+revocation is a row update with instant effect. Per-token rate limits
+ride the existing rate_limit table. Ingest keeps its gateway checks as
+defense in depth.
+
+### Enrollment simplifies to almost nothing
+
+Raise a hand with a **name only** (the card identity stays
+server-assigned, as today). No static IP — the CR key's IP binding is
+between the operator and Supercell and never our business. No IAM
+minting, no owner-side script, no migrate-lambda staging op: approval
+generates the token and the one-time download IS the provisioning.
+`static_ip` becomes nullable and leaves the form and admin display.
+
+### Heartbeat telemetry
+
+The per-gateway CloudWatch namespaces (`ElixirMCP/Gateway/<name>`) go
+away with the permission that fed them. DB heartbeats (already shown on
+the public Status page) become the single fleet-health truth; fleet
+death is already alarmed via bulk-queue age. One less credential use,
+one less unpinnable permission, no custom-metric spend.
+
+### What a hostile operator can still do — and can't
+
+Still can: fetch wrong/garbage data (admission + identity binding +
+lifecycle quarantine bound it), sit on leases (visibility timeout
+redelivers), hammer the API (rate-limited per token, revocable
+instantly). **Can no longer:** touch any AWS API, impersonate another
+collector, delete work unprocessed, forge metrics, or learn anything
+about the tenant beyond three HTTPS endpoints.
+
+### Costs and trade-offs, stated honestly
+
+- Each idle collector holds one ~10s web-api invocation open
+  continuously (long-poll). At fleet sizes below ~20 this is noise;
+  past that, a dedicated collector-door Lambda or shorter waits with
+  idle backoff (already in config) contain it.
+- One extra HTTPS hop per job (~50–150ms) against a 1.5s pace — negligible.
+- web-api's role gains receive/delete on request queues + send on
+  results (an internal role, not an operator credential).
+- The bearer token is still a secret in the operator's .env — but
+  single-purpose, instantly revocable, and worthless against AWS.
+
+## Migration
+
+1. **Server first**: routes + token issuance + `static_ip` optional;
+   SQS path keeps working (both doors live).
+2. **Collector v2**: Go client speaks HTTPS only. The cabin
+   (magic-pines) has never started — it begins life on the zero-trust
+   client and **never receives AWS credentials at all**.
+3. **Mac cutover**: the two Node collectors move to the Go v2 client
+   (this is the Go fleet cutover GO-PORT §5 was waiting on, with a
+   better reason).
+4. **Teardown**: delete the per-collector IAM users and the minting
+   script; remove the SQS/metrics grants from OPERATORS.md; admin UI
+   drops the IP column.
+
+## Deliberately out (v1)
+
+mTLS or signed requests (bearer over TLS matches the threat model at
+this scale); token auto-rotation (owner-triggered regeneration only);
+multi-region doors; per-collector work partitioning.
