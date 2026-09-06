@@ -42,9 +42,17 @@ Parameters:
     MinValue: 1
     MaxValue: 60
     Description: Planner tick cadence; tune with a parameter-only stack update, no code change
+  DbSnapshotIdentifier:
+    Type: String
+    Default: ""
+    Description: >-
+      Set ONCE (2026-09-06 encryption migration) to restore the instance
+      from an encrypted snapshot; PRESERVED thereafter. Changing it
+      REPLACES the database - never let it reset to default.
 
 Conditions:
   HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, ""]]
+  HasDbSnapshot: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
 
 Resources:
@@ -152,15 +160,22 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      DBInstanceIdentifier: elixir-mcp
+      # Renamed at the 2026-09-06 encryption migration: restoring from
+      # the encrypted snapshot is a REPLACEMENT, and the retained old
+      # instance still holds the original identifier.
+      DBInstanceIdentifier: elixir-mcp-enc
       Engine: postgres
       EngineVersion: "17"
       DBInstanceClass: db.t4g.micro
       AllocatedStorage: "20"
       MaxAllocatedStorage: 100
       StorageType: gp3
-      DBName: elixir_mcp
-      MasterUsername: elixir
+      DBSnapshotIdentifier:
+        !If [HasDbSnapshot, !Ref DbSnapshotIdentifier, !Ref AWS::NoValue]
+      # Snapshot restores take name/encryption from the snapshot itself.
+      DBName: !If [HasDbSnapshot, !Ref AWS::NoValue, elixir_mcp]
+      StorageEncrypted: !If [HasDbSnapshot, !Ref AWS::NoValue, true]
+      MasterUsername: !If [HasDbSnapshot, !Ref AWS::NoValue, elixir]
       MasterUserPassword: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}"
       DBSubnetGroupName: !Ref DbSubnetGroup
       VPCSecurityGroups: [!Ref DbSecurityGroup]

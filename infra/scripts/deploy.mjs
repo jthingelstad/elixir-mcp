@@ -112,6 +112,15 @@ const templateBody = await readFile(
 );
 await cfn.send(new ValidateTemplateCommand({ TemplateBody: templateBody }));
 
+// --param=Key=Value: one-time explicit values for PRESERVED parameters
+// (a parameter's first deploy cannot UsePreviousValue).
+const paramOverrides = {};
+for (const arg of process.argv) {
+  if (!arg.startsWith("--param=")) continue;
+  const [key, ...rest] = arg.slice("--param=".length).split("=");
+  paramOverrides[key] = rest.join("=");
+}
+
 const required = {
   CodeBucket: codeBucket,
   WebApiCodeKey: codeKeys["web-api"],
@@ -144,7 +153,7 @@ if (isCreate) {
       new UpdateStackCommand({
         StackName: STACK,
         TemplateBody: templateBody,
-        Parameters: buildParameters(required),
+        Parameters: buildParameters(required, null, paramOverrides),
         Capabilities: ["CAPABILITY_NAMED_IAM"],
       }),
     );

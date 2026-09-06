@@ -28,13 +28,15 @@ export const PRESERVED_PARAMETERS = [
   "SiteCertificateArn",
   "MonthlyCostAlarmUsd",
   "SchedulerTickMinutes",
+  // Replacement trigger: must never reset to default (see template).
+  "DbSnapshotIdentifier",
 ];
 
 /**
  * @param {Record<string,string>} required values for REQUIRED_PARAMETERS
  * @param {Record<string,string>} [initial] PRESERVED values (create only)
  */
-export function buildParameters(required, initial = null) {
+export function buildParameters(required, initial = null, overrides = {}) {
   for (const key of REQUIRED_PARAMETERS) {
     if (required[key] === undefined)
       throw new Error(`missing required parameter: ${key}`);
@@ -44,6 +46,16 @@ export function buildParameters(required, initial = null) {
     ParameterValue: required[key],
   }));
   for (const key of PRESERVED_PARAMETERS) {
+    if (overrides[key] !== undefined) {
+      // Explicit one-time set (e.g. a parameter's FIRST deploy, where
+      // UsePreviousValue has nothing to point at). Preserved as usual
+      // on every later deploy.
+      params.push({
+        ParameterKey: key,
+        ParameterValue: String(overrides[key]),
+      });
+      continue;
+    }
     if (initial) {
       if (initial[key] !== undefined) {
         params.push({
