@@ -169,18 +169,25 @@ export function makeCollectorDoor({
           ? CONFIG.poll.live_wait_s
           : CONFIG.poll.bulk_wait_s,
       );
-      // Live-eligible collectors drain live first (0s peek), then bulk.
+      // Live-eligible collectors drain live first. The peeks use a 1s
+      // wait deliberately: WaitTimeSeconds=0 is an SQS SHORT poll that
+      // samples a server subset and can MISS waiting messages (found
+      // live at cutover, 2026-09-06); any wait >= 1s long-polls all.
       let queue = "bulk";
       let msg = null;
       if (gw.channel === "live") {
-        msg = await sqs.receive("live", 0);
+        msg = await sqs.receive("live", 1);
         if (msg) queue = "live";
       }
-      if (!msg) msg = await sqs.receive("bulk", wait);
+      if (!msg)
+        msg = await sqs.receive(
+          "bulk",
+          gw.channel === "live" ? Math.min(wait, 4) : wait,
+        );
       if (!msg && gw.channel === "live") {
-        // One more live peek after the bulk wait: a live job that
+        // One more live poll after the bulk wait: a live job that
         // arrived mid-wait beats returning empty.
-        msg = await sqs.receive("live", 0);
+        msg = await sqs.receive("live", 1);
         if (msg) queue = "live";
       }
       if (!msg) return { status: 200, body: { empty: true } };
