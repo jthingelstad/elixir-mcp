@@ -40,6 +40,11 @@ Parameters:
     MinValue: 1
     MaxValue: 60
     Description: Planner tick cadence; tune with a parameter-only stack update, no code change
+  CollectorMinEnforce:
+    Type: String
+    Default: "0"
+    AllowedValues: ["0", "1"]
+    Description: Refuse lease and submit to a collector below min_client_version. Config is never refused, since it is the channel a stale client updates through. Flip only when every collector reports a version at or above the minimum.
   DbSnapshotIdentifier:
     Type: String
     Default: ""
@@ -302,6 +307,7 @@ Resources:
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           EMAIL_QUEUE_URL: !Ref EmailQueue
+          COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
 
   McpLogGroup:
     Type: AWS::Logs::LogGroup

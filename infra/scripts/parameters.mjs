@@ -29,6 +29,9 @@ export const PRESERVED_PARAMETERS = [
   "SchedulerTickMinutes",
   // Replacement trigger: must never reset to default (see template).
   "DbSnapshotIdentifier",
+  // Operational switch: a deploy must never silently turn the version
+  // gate back off, or on.
+  "CollectorMinEnforce",
 ];
 
 /**
