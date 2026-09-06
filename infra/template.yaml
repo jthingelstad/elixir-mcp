@@ -292,6 +292,18 @@ Resources:
                     sqs:GetQueueUrl,
                   ]
                 Resource: !GetAtt ResultsQueue.Arn
+              # Zero-trust collector door: web-api leases (receive/delete)
+              # from the request queues and posts results ON BEHALF of
+              # token-authenticated collectors - operators hold no AWS
+              # credentials at all (COLLECTOR-ZERO-TRUST.md).
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage]
+                Resource:
+                  - !GetAtt RequestsLiveQueue.Arn
+                  - !GetAtt RequestsBulkQueue.Arn
+              - Effect: Allow
+                Action: [sqs:SendMessage]
+                Resource: !GetAtt ResultsQueue.Arn
               # Public status page: depth + oldest-message age across the
               # pipeline (read-only attribute peeks, no message access).
               - Effect: Allow
@@ -755,7 +767,8 @@ Resources:
         CookiesConfig: { CookieBehavior: all }
         HeadersConfig:
           HeaderBehavior: whitelist
-          Headers: [x-elixir-client, content-type, authorization]
+          Headers:
+            [x-elixir-client, content-type, authorization, x-collector-version]
         QueryStringsConfig: { QueryStringBehavior: all }
 
   # The structural guarantee: the MCP door forwards NO cookies, ever.

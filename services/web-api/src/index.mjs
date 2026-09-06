@@ -7,8 +7,11 @@ import {
   SendMessageCommand,
   GetQueueUrlCommand,
   GetQueueAttributesCommand,
+  ReceiveMessageCommand,
+  DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 import { makeHandler } from "./handler.mjs";
+import { makeCollectorDoor } from "./collector-door.mjs";
 
 const sqs = new SQSClient({});
 const queueUrl = process.env.EMAIL_QUEUE_URL;
@@ -21,6 +24,53 @@ async function enqueueEmail(msg) {
     }),
   );
 }
+
+const COLLECTOR_QUEUES = {
+  live: "elixir-mcp-cr-requests-live",
+  bulk: "elixir-mcp-cr-requests-bulk",
+  results: "elixir-mcp-cr-results",
+};
+
+async function collectorQueueUrl(key) {
+  const name = COLLECTOR_QUEUES[key];
+  if (!queueUrlCache.has(name)) {
+    const { QueueUrl } = await sqs.send(
+      new GetQueueUrlCommand({ QueueName: name }),
+    );
+    queueUrlCache.set(name, QueueUrl);
+  }
+  return queueUrlCache.get(name);
+}
+
+const collectorSqs = {
+  async receive(key, waitSeconds) {
+    const { Messages } = await sqs.send(
+      new ReceiveMessageCommand({
+        QueueUrl: await collectorQueueUrl(key),
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: Math.min(Math.max(waitSeconds, 0), 8),
+      }),
+    );
+    const m = Messages?.[0];
+    return m ? { body: m.Body, receiptHandle: m.ReceiptHandle } : null;
+  },
+  async send(key, body) {
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: await collectorQueueUrl(key),
+        MessageBody: body,
+      }),
+    );
+  },
+  async delete(key, receiptHandle) {
+    await sqs.send(
+      new DeleteMessageCommand({
+        QueueUrl: await collectorQueueUrl(key),
+        ReceiptHandle: receiptHandle,
+      }),
+    );
+  },
+};
 
 const STATUS_QUEUES = [
   ["live", "elixir-mcp-cr-requests-live"],
@@ -70,6 +120,22 @@ async function queueStats() {
   return out;
 }
 
+function notifyOwner({ kind, playerTag, emailHash }) {
+  return enqueueEmail({
+    v: 1,
+    kind: "owner_notify",
+    to: "elixir@poapkings.com",
+    note:
+      kind === "access_request"
+        ? `New access request${playerTag ? ` from ${playerTag}` : ""}.`
+        : kind === "gateway_request"
+          ? `Gateway raise-hand: "${playerTag}". Provision a collector token in Admin (docs/OPERATORS.md).`
+          : kind === "gateway_quarantined"
+            ? `Collector "${playerTag}" QUARANTINED: too many leases expired unsubmitted; now draining.`
+            : `Account approved (${emailHash}).`,
+  });
+}
+
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
   secret: process.env.SESSION_SECRET,
@@ -86,16 +152,10 @@ export const handler = makeHandler({
           ...(value ? { value } : {}),
         })
     : null,
-  notifyOwner: ({ kind, playerTag, emailHash }) =>
-    enqueueEmail({
-      v: 1,
-      kind: "owner_notify",
-      to: "elixir@poapkings.com",
-      note:
-        kind === "access_request"
-          ? `New access request${playerTag ? ` from ${playerTag}` : ""}.`
-          : kind === "gateway_request"
-            ? `Gateway raise-hand: "${playerTag}". Issue an IP-bound CR key + IAM user (docs/OPERATORS.md).`
-            : `Account approved (${emailHash}).`,
-    }),
+  notifyOwner,
+  collectorDoor: makeCollectorDoor({
+    secret: process.env.SESSION_SECRET,
+    sqs: collectorSqs,
+    notifyOwner,
+  }),
 });

@@ -84,6 +84,7 @@ export function makeHandler({
   notifyOwner = async () => {},
   queueStats = async () => null,
   track = null,
+  collectorDoor = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
   const ping = async (eventName, value) => {
@@ -144,6 +145,25 @@ export function makeHandler({
   }
 
   const routes = {
+    // Zero-trust collector door (COLLECTOR-ZERO-TRUST.md): Bearer
+    // gateway tokens, no cookies, no contract header - pure API
+    // clients. Handlers live in collector-door.mjs.
+    "GET /api/collector/config": async (db, event) => {
+      if (!collectorDoor) return json(503, { error: "unavailable" });
+      const r = await collectorDoor.config(db, event);
+      return json(r.status, r.body);
+    },
+    "POST /api/collector/lease": async (db, event, body) => {
+      if (!collectorDoor) return json(503, { error: "unavailable" });
+      const r = await collectorDoor.lease(db, event, body);
+      return json(r.status, r.body);
+    },
+    "POST /api/collector/submit": async (db, event, body) => {
+      if (!collectorDoor) return json(503, { error: "unavailable" });
+      const r = await collectorDoor.submit(db, event, body);
+      return json(r.status, r.body);
+    },
+
     "POST /api/request-access": async (db, event, body) => {
       const ip = event.requestContext?.http?.sourceIp ?? "unknown";
       if (!(await checkRateLimit(db, { bucket: `reqaccess#${ip}`, max: 5 }))) {

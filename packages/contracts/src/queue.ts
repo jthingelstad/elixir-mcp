@@ -119,3 +119,29 @@ export function validateResultMessage(
     errors.push("body_gzip_b64:missing");
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
+
+/** The one job->CR-path mapping (zero-trust door: the SERVER computes
+ *  the path and hands it to the collector, so collection changes never
+ *  require a client update). Kept beside the queue contract because it
+ *  IS part of the wire agreement with collectors. */
+const CR_PATH_BY_ENDPOINT: Record<string, (key: string) => string> = {
+  player: (key) => `/players/${encodeURIComponent(key)}`,
+  player_battlelog: (key) => `/players/${encodeURIComponent(key)}/battlelog`,
+  clan: (key) => `/clans/${encodeURIComponent(key)}`,
+  currentriverrace: (key) =>
+    `/clans/${encodeURIComponent(key)}/currentriverrace`,
+  riverracelog: (key) => `/clans/${encodeURIComponent(key)}/riverracelog`,
+  cards: () => `/cards`,
+  rankings_players: (key) =>
+    `/locations/${encodeURIComponent(key)}/rankings/players?limit=100`,
+  rankings_pol: (key) =>
+    `/locations/${encodeURIComponent(key)}/pathoflegend/players?limit=100`,
+};
+
+export function crPathForJob(job: {
+  endpoint: string;
+  entity_key: string;
+}): string | null {
+  const build = CR_PATH_BY_ENDPOINT[job.endpoint];
+  return build ? build(job.entity_key) : null;
+}
