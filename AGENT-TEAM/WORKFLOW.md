@@ -49,9 +49,11 @@ Read order for every run:
    any push. Against live data: reads and refusal paths only — never
    verify with writes.
 7. **Ship it whole.** Docs ship with the change: site docs
-   (`apps/web/src/docs/`) and `apps/web/src/updates.js` in the same
-   commit for user-visible changes; a contracts version bump appends a
-   changelog entry. Commit small and message-first, push `main`, and
+   (`apps/site/src/docs/`) and `apps/site/src/_data/updates.js` in the
+   same commit for user-visible changes; a contracts version bump
+   appends a changelog entry. The tool reference (`/docs/tools`) is
+   GENERATED from the MCP registry - never hand-edit it; fix the tool's
+   declaration instead. Commit small and message-first, push `main`, and
    when runtime code changed, deploy:
    `AWS_PROFILE=jamie node infra/scripts/deploy.mjs`. Migrations run
    BEFORE the code flip (expand-and-contract makes that safe) and a

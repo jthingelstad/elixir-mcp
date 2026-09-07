@@ -1,5 +1,11 @@
 /* elixir.poapkings.com — evolved token system + component styles
-   Design handoff, 2026-09-05. Replaces apps/web/src/styles.css.
+   Design handoff, 2026-09-05.
+
+   THE single stylesheet for both halves of the site (split 2026-09-07):
+   apps/web imports it through Vite, apps/site copies it to
+   /assets/site.css. It lives in its own package so neither half owns
+   it and neither can fork it; a test asserts the served copy is these
+   exact bytes.
 
    What changed from the current file, in one paragraph: the Drop palette
    is intact (same bg0/bg1/panel/edge/ink/muted/purple/gold hexes); added
