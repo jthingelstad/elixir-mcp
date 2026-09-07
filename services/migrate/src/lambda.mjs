@@ -143,6 +143,57 @@ async function stats(databaseUrl) {
   }
 }
 
+/**
+ * War-reset drift census ({war_drift: true}) — read-only.
+ *
+ * Supercell's policy reset is 10:00 UTC, but clans are matched into
+ * races of five as matchmaking fills, so each clan's periods start a
+ * little off the policy hour and the offset differs per clan. This
+ * measures the offset we actually observe, per clan, from
+ * war_period_anchor.
+ *
+ * CAVEAT the numbers cannot escape: first_observed_at is when the
+ * RECORDER first saw the period open, so every offset here is
+ * (true drift + polling latency) and is an UPPER bound on the drift.
+ * riverrace polling is cadence-driven, so a clan we poll less often
+ * looks like it drifts more. Read the spread across clans, not any
+ * single clan's number.
+ */
+async function warDrift(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    // Offset in minutes from the 10:00Z policy hour, normalized into
+    // (-720, +720] so an anchor just BEFORE the hour reads negative
+    // rather than as nearly a full day late.
+    const offset = `((extract(epoch from (first_observed_at - date_trunc('day', first_observed_at)))/60
+                      - 600 + 720)::int % 1440) - 720`;
+    const { rows: perClan } = await db.query(
+      `select clan_tag, count(*)::int as anchors,
+              min(${offset})::int as min_off_min,
+              max(${offset})::int as max_off_min,
+              round(percentile_cont(0.5) within group (order by ${offset}))::int as median_off_min
+       from war_period_anchor group by clan_tag order by clan_tag`,
+    );
+    const { rows: overall } = await db.query(
+      `select count(*)::int as anchors,
+              count(distinct clan_tag)::int as clans,
+              min(${offset})::int as min_off_min,
+              max(${offset})::int as max_off_min,
+              round(percentile_cont(0.5) within group (order by ${offset}))::int as median_off_min,
+              round(percentile_cont(0.9) within group (order by ${offset}))::int as p90_off_min
+       from war_period_anchor`,
+    );
+    return {
+      note: "Offsets are minutes from the 10:00Z policy reset and INCLUDE polling latency, so they are an upper bound on true drift.",
+      overall: overall[0],
+      per_clan: perClan,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
 /** Read-only yield census ({probe: true}) — hourly fetch volume vs
  *  battles actually harvested, live gateways only (the backfill gateway
  *  is history, not capture). Counts only, no row data; this is how the
@@ -1052,6 +1103,11 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.feedback_respond,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.war_drift) {
+    const result = await warDrift(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
