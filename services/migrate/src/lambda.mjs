@@ -379,7 +379,8 @@ async function gatewayProvision(databaseUrl, spec) {
     );
     const { rows } = await db.query(
       `update gateway
-       set provision_env = $2, iam_user_name = $3, provision_claimed_at = null
+       set provision_env = $2, iam_user_name = $3, provision_claimed_at = null,
+           provision_expires_at = now() + interval '72 hours'
        where gateway_id = $1
        returning gateway_id, name`,
       [found[0].gateway_id, env, spec.iam_user_name ?? null],
@@ -492,7 +493,8 @@ async function accountRoleOp(databaseUrl, spec) {
     if (spec?.list) {
       const { rows: gateways } = await db.query(
         `select name, status, static_ip, enrolled_at,
-                (provision_env is not null) as provision_staged,
+                (provision_env is not null
+                 and provision_expires_at > now()) as provision_staged,
                 provision_claimed_at is not null as provision_claimed
          from gateway order by enrolled_at`,
       );

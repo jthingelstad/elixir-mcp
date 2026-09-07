@@ -80,8 +80,10 @@ export const api = {
   publicStatus: () => request("GET", "/api/public/status"),
   myRequests: () => request("GET", "/api/me/requests"),
   myEvents: () => request("GET", "/api/me/events"),
-  gatewayEnv: (id) =>
-    request("GET", `/api/me/gateway-env?id=${encodeURIComponent(id)}`),
+  // A POST: claiming spends a one-time credential, so it must not be
+  // reachable by a link scanner, a prefetch, or a cross-site top-level
+  // navigation (#31).
+  gatewayEnv: (id) => request("POST", "/api/me/gateway-env", { id }),
   gatewayDetail: (id) =>
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
   myClanAction: (body) => request("POST", "/api/me/clans", body),

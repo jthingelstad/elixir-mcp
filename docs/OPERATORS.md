@@ -31,7 +31,11 @@ key and the bearer token Elixir MCP issues you.
    enroll. Your email address and IP are never published.
 2. When the maintainer approves, the same page offers your collector
    **token as a one-time reveal** — copy it, because it disappears
-   from the server the moment you look. Put it in a `.env` (mode 0600)
+   from the server the moment you claim it. The offer is good for
+   **72 hours**: after that the staged token is discarded unclaimed
+   and the maintainer mints you a fresh one. Claiming is a deliberate
+   click, so nothing you paste into a chat window or a link preview
+   can spend it for you. Put it in a `.env` (mode 0600)
    next to the binary alongside your own CR key:
 
    ```

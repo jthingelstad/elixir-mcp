@@ -1512,23 +1512,37 @@ export function makeHandler({
       });
     },
 
-    "GET /api/me/gateway-env": async (db, event) => {
-      // ONE-TIME config download (0034): the rendered .env the owner
-      // provisioned for this collector. Reading it CLAIMS it - the
-      // stored copy is nulled in the same statement, so the secret
-      // exists in the database only between provisioning and first
-      // download. The CR token is deliberately absent (operator
-      // pastes their own - the one exception, per Jamie).
-      const account = await resolveAccount(db, event);
+    // ONE-TIME config claim (0034). Reading it CLAIMS it: the stored
+    // copy is nulled in the same statement, so the secret exists in the
+    // database only between provisioning and this call. The CR token is
+    // deliberately absent (operator pastes their own - Jamie's one
+    // exception).
+    //
+    // A POST, not a GET (#31). Consuming a credential is a state
+    // change, and as a GET it could be spent by a link scanner, a
+    // prefetch, or a cross-site top-level navigation under SameSite=Lax
+    // by anyone who knew the gateway id. It now requires the web
+    // contract header like every other cookie-authed mutation, and the
+    // staging window has an end (0050).
+    "POST /api/me/gateway-env": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
       if (!account) return json(401, { error: "unauthenticated" });
-      const id = String(event.queryStringParameters?.id ?? "");
+      const id = String(body.id ?? "");
+      if (!UUID_RE.test(id)) return json(404, { error: "not_found" });
       // RETURNING sees post-update values, so the pre-update secret
-      // comes from a locked self-join (prev) instead.
+      // comes from a locked self-join (prev) instead. Expiry rides the
+      // same predicate: an expired stage is not claimable, and NULL
+      // fails the comparison, so it fails closed.
       const { rows } = await db.query(
-        `update gateway g set provision_env = null, provision_claimed_at = now()
+        `update gateway g
+         set provision_env = null, provision_expires_at = null,
+             provision_claimed_at = now()
          from (select gateway_id, name, provision_env from gateway
-               where gateway_id::text = $1 and owner_account_id = $2
+               where gateway_id = $1 and owner_account_id = $2
                  and provision_env is not null
+                 and provision_expires_at > now()
                for update) prev
          where g.gateway_id = prev.gateway_id
          returning prev.name, prev.provision_env as env`,
@@ -1538,7 +1552,12 @@ export function makeHandler({
       await logEvent(db, account.accountId, "gateway_config_claimed", {
         gateway: rows[0].name,
       });
-      return json(200, { name: rows[0].name, env: rows[0].env });
+      // Never let a one-time secret sit in a shared cache.
+      return json(
+        200,
+        { name: rows[0].name, env: rows[0].env },
+        { "cache-control": "no-store" },
+      );
     },
 
     "GET /api/me/gateway-detail": async (db, event) => {
@@ -1750,7 +1769,8 @@ export function makeHandler({
                 g.owner_account_id, g.static_ip, g.key_source,
                 g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
                 g.fetch_points, g.last_seen_sha,
-                (g.provision_env is not null) as provision_ready,
+                (g.provision_env is not null
+                 and g.provision_expires_at > now()) as provision_ready,
                 (g.owner_account_id = $1) as owner_is_me,
                 -- Who runs this machine. The account table holds only a hash
                 -- of the email, by design, so the readable half is the
@@ -1818,7 +1838,8 @@ export function makeHandler({
       const { rows } = await db.query(
         `select g.gateway_id, g.name, g.status, g.channel, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
                 g.fetch_points, g.card_name, g.card_icon,
-                (g.provision_env is not null) as provision_ready,
+                (g.provision_env is not null
+                 and g.provision_expires_at > now()) as provision_ready,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
                    and ar.fetched_at > now() - interval '24 hours') as fetches_24h
@@ -1849,7 +1870,8 @@ export function makeHandler({
         const { rows: minted } = await db.query(
           `update gateway
            set token_hash = $2, provision_env = $3,
-               provision_claimed_at = null
+               provision_claimed_at = null,
+               provision_expires_at = now() + interval '72 hours'
            where gateway_id::text = $1 and status <> 'revoked'
            returning gateway_id, name, channel, status`,
           [

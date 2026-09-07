@@ -1173,42 +1173,39 @@ test("gateway config download is strictly one-time and owner-scoped", async () =
      where name = 'kitchen-mac' limit 1`,
   );
   await db.query(
-    `update gateway set provision_env = 'ELIXIR_MCP_GATEWAY_ID=test', provision_claimed_at = null
+    `update gateway set provision_env = 'ELIXIR_MCP_GATEWAY_ID=test',
+       provision_claimed_at = null,
+       provision_expires_at = now() + interval '72 hours'
      where gateway_id::text = $1`,
     [gw[0].id],
   );
   // Someone else's session can't claim it.
   const foreign = await handler(
     event({
-      method: "GET",
-      path: `/api/me/gateway-env`,
+      path: "/api/me/gateway-env",
       cookie: bossCookie,
-      body: undefined,
+      body: { id: gw[0].id },
     }),
   );
   assert.equal(foreign.statusCode, 404);
   // The owner claims it once...
-  const first = await handler({
-    ...event({
-      method: "GET",
+  const first = await handler(
+    event({
       path: "/api/me/gateway-env",
       cookie,
-      body: undefined,
+      body: { id: gw[0].id },
     }),
-    queryStringParameters: { id: gw[0].id },
-  });
+  );
   assert.equal(first.statusCode, 200, first.body);
   assert.match(parse(first).env, /GATEWAY_ID=test/);
   // ...and only once: the stored copy is gone.
-  const second = await handler({
-    ...event({
-      method: "GET",
+  const second = await handler(
+    event({
       path: "/api/me/gateway-env",
       cookie,
-      body: undefined,
+      body: { id: gw[0].id },
     }),
-    queryStringParameters: { id: gw[0].id },
-  });
+  );
   assert.equal(second.statusCode, 404, "one-time means one time");
   const { rows: after } = await db.query(
     `select provision_env, provision_claimed_at from gateway where gateway_id::text = $1`,
@@ -1265,22 +1262,24 @@ test("provision_token: one click mints, one look claims (zero-trust copy flow)",
   );
 
   // Operator reveal is one-time (existing claim-and-null flow).
-  const revealEvent = event({
-    method: "GET",
-    path: "/api/me/gateway-env",
-    cookie: memberCookie,
-  });
-  revealEvent.queryStringParameters = { id };
-  const reveal = parse(await handler(revealEvent));
+  const reveal = parse(
+    await handler(
+      event({
+        path: "/api/me/gateway-env",
+        cookie: memberCookie,
+        body: { id },
+      }),
+    ),
+  );
   assert.ok(reveal.env.startsWith("emcg_"));
-  const againEvent = event({
-    method: "GET",
-    path: "/api/me/gateway-env",
-    cookie: memberCookie,
-  });
-  againEvent.queryStringParameters = { id };
-  const again = await handler(againEvent);
-  assert.equal(again.statusCode, 404, "second look finds nothing");
+  const again = await handler(
+    event({
+      path: "/api/me/gateway-env",
+      cookie: memberCookie,
+      body: { id },
+    }),
+  );
+  assert.equal(again.statusCode, 404, "second claim finds nothing");
 });
 
 test("admin provisioning says what it did: staged state and ownership on the admin list (2026-09-06)", async () => {
@@ -1324,14 +1323,15 @@ test("admin provisioning says what it did: staged state and ownership on the adm
   assert.equal(row.channel, "bulk", "channel rides the admin list");
 
   // The operator's one-time reveal clears the staged state.
-  const revealEvent = event({
-    method: "GET",
-    path: "/api/me/gateway-env",
-    cookie: memberCookie,
-    body: undefined,
-  });
-  revealEvent.queryStringParameters = { id };
-  const revealed = parse(await handler(revealEvent));
+  const revealed = parse(
+    await handler(
+      event({
+        path: "/api/me/gateway-env",
+        cookie: memberCookie,
+        body: { id },
+      }),
+    ),
+  );
   assert.match(revealed.env, /^emcg_/, "the operator gets the raw token once");
   row = (await list()).gateways.find((g) => g.gateway_id === id);
   assert.equal(row.provision_ready, false, "staged state clears on reveal");
@@ -1927,4 +1927,155 @@ test("one operator cannot read another operator's machine label", async () => {
     true,
     "an operator can still pick their own row out of the ladder",
   );
+});
+
+// --------------------------------------------------------------- #31
+test("a staged collector credential expires, and is claimed by POST only", async () => {
+  const OP = "stage-op@example.com";
+  const {
+    rows: [acct],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash(OP)],
+  );
+  const cookie = await signIn(OP, "203.0.113.31");
+  const stage = async (name, expiresSql) => {
+    const {
+      rows: [g],
+    } = await db.query(
+      `insert into gateway (owner_account_id, name, status, provision_env,
+                            provision_expires_at)
+       values ($1, $2, 'pending', 'ELIXIR_TOKEN=emcg_staged', ${expiresSql})
+       returning gateway_id`,
+      [acct.account_id, name],
+    );
+    return g.gateway_id;
+  };
+
+  // A GET must not spend the credential: link scanners, prefetch and
+  // cross-site top-level navigation all issue GETs, and SameSite=Lax
+  // sends the session cookie with them.
+  const live = await stage("stage-live", "now() + interval '72 hours'");
+  const viaGet = await handler({
+    ...event({ path: "/api/me/gateway-env", cookie, body: undefined }),
+    requestContext: { http: { method: "GET", sourceIp: "8.8.4.4" } },
+    queryStringParameters: { id: live },
+  });
+  assert.notEqual(viaGet.statusCode, 200, "a GET never claims");
+  const { rows: untouched } = await db.query(
+    `select provision_env from gateway where gateway_id = $1`,
+    [live],
+  );
+  assert.ok(untouched[0].provision_env, "and leaves the secret staged");
+
+  // The POST needs the web contract header, like every other mutation.
+  const noHeader = await handler(
+    event({
+      path: "/api/me/gateway-env",
+      cookie,
+      contractHeader: false,
+      body: { id: live },
+    }),
+  );
+  assert.equal(noHeader.statusCode, 401);
+
+  // The real claim works, once, and refuses to be cached anywhere.
+  const claimed = await handler(
+    event({ path: "/api/me/gateway-env", cookie, body: { id: live } }),
+  );
+  assert.equal(claimed.statusCode, 200);
+  assert.match(parse(claimed).env, /emcg_staged/);
+  assert.equal(claimed.headers["cache-control"], "no-store");
+  const repeat = await handler(
+    event({ path: "/api/me/gateway-env", cookie, body: { id: live } }),
+  );
+  assert.equal(repeat.statusCode, 404, "one-time means one time");
+
+  // An expired stage is not claimable at all - this is the window that
+  // used to have no end.
+  const stale = await stage("stage-stale", "now() - interval '1 minute'");
+  const tooLate = await handler(
+    event({ path: "/api/me/gateway-env", cookie, body: { id: stale } }),
+  );
+  assert.equal(tooLate.statusCode, 404, "the staging window closed");
+  const { rows: still } = await db.query(
+    `select provision_env from gateway where gateway_id = $1`,
+    [stale],
+  );
+  assert.ok(still[0].provision_env, "refused, but the sweep is what clears it");
+
+  // A stage with no clock fails CLOSED rather than living forever.
+  const clockless = await stage("stage-clockless", "null");
+  assert.equal(
+    (
+      await handler(
+        event({ path: "/api/me/gateway-env", cookie, body: { id: clockless } }),
+      )
+    ).statusCode,
+    404,
+    "no expiry reads as expired, never as unlimited",
+  );
+
+  // And an expired stage does not advertise itself as ready.
+  const mine = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/gateways",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(
+    mine.gateways.find((g) => g.name === "stage-stale").provision_ready,
+    false,
+    "provision_ready means claimable, not merely staged",
+  );
+});
+
+test("re-provisioning invalidates the previous bearer in the same statement", async () => {
+  const OWNER_G = "reprov@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role, is_owner)
+     values ($1, 'approved', 'owner', true)`,
+    [emailHash(OWNER_G)],
+  );
+  const ownerCookie = await signIn(OWNER_G, "203.0.113.32");
+  const {
+    rows: [g],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, status)
+     values ((select account_id from account where email_hash = $1),
+             'reprov-box', 'pending')
+     returning gateway_id`,
+    [emailHash(OWNER_G)],
+  );
+  const provision = () =>
+    handler(
+      event({
+        path: "/api/admin/gateways",
+        cookie: ownerCookie,
+        body: { action: "provision_token", gateway_id: g.gateway_id },
+      }),
+    );
+  assert.equal((await provision()).statusCode, 200);
+  const { rows: first } = await db.query(
+    `select token_hash, provision_env, provision_expires_at from gateway where gateway_id = $1`,
+    [g.gateway_id],
+  );
+  assert.ok(first[0].provision_expires_at > new Date(), "staged with a clock");
+
+  assert.equal((await provision()).statusCode, 200);
+  const { rows: second } = await db.query(
+    `select token_hash, provision_env from gateway where gateway_id = $1`,
+    [g.gateway_id],
+  );
+  assert.notEqual(
+    second[0].token_hash,
+    first[0].token_hash,
+    "the old bearer stops working the moment a new one is minted",
+  );
+  assert.notEqual(second[0].provision_env, first[0].provision_env);
 });

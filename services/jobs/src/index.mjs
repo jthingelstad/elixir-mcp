@@ -292,6 +292,15 @@ async function sweepOperational(databaseUrl) {
         `delete from event_feed where created_at < now() - interval '30 days'`,
       )
     ).rowCount;
+    // An unclaimed collector bearer is a live credential sitting in
+    // plaintext. Past its window it is unclaimable already (#31); this
+    // stops it being READABLE too.
+    out.provision_env_expired = (
+      await db.query(
+        `update gateway set provision_env = null, provision_expires_at = null
+         where provision_env is not null and provision_expires_at <= now()`,
+      )
+    ).rowCount;
     out.audit_args_nulled = (
       await db.query(
         `update mcp_call_audit set args = null
