@@ -269,8 +269,16 @@ export const warTools = {
            order by decks_used, base.name nulls last`,
           [clanTag, wk.season_id, wk.section_index, period.war_day],
         );
+        // decks_raw is the uncapped count, used only to detect the
+        // over-cap case; members carry the capped display value.
         const pick = (lo, hi) =>
-          dayRows.filter((r) => r.decks_used >= lo && r.decks_used <= hi);
+          dayRows
+            .filter((r) => r.decks_used >= lo && r.decks_used <= hi)
+            .map(({ player_tag, name, decks_used }) => ({
+              player_tag,
+              name,
+              decks_used,
+            }));
         // A day holds four decks, so the display value is capped. That
         // cap was silently swallowing its own evidence: following the
         // 10:00Z POLICY reset rather than each clan's drifted start

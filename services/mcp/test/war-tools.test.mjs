@@ -664,6 +664,17 @@ test("war_current: a period first seen just BEFORE the reset ends a day later", 
   );
   assert.match(period.as_observed_note, /POLICY reset for every clan/);
   assert.match(body.decks_today.note, /POLICY day/);
+  // The uncapped count is machinery for the over-cap check, not a field
+  // consumers should see on every member.
+  for (const bucket of ["untouched", "partial", "finished"]) {
+    for (const m of body.decks_today[bucket]) {
+      assert.deepEqual(
+        Object.keys(m).sort(),
+        ["decks_used", "name", "player_tag"],
+        `${bucket} members carry only the capped display value`,
+      );
+    }
+  }
 });
 
 test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 + persona passes)", async () => {
