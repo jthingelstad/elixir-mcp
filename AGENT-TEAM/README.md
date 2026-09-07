@@ -74,10 +74,12 @@ Cross-cutting work keeps one originating owner through acceptance.
   queue contract stays canonical here.
 - `~/Projects/cr-agent-api-docs` — CR API truth; patch it when the live
   API surprises us.
-- Live evidence: `https://elixir.poapkings.com/api/public/status`,
-  the migrate lambda ops (`{probe}`, `{stats}`, `{feedback_pending}`…),
-  the jobs lambda (`{clan_pulse}`, sweeps), CloudWatch
-  `ElixirMCP/Gateway/<name>` metrics, and `mcp_call_audit`.
+- Live evidence: `https://elixir.poapkings.com/api/public/status` (including
+  DB-backed collector heartbeat, admission, and recent-fetch signals), the
+  migrate lambda ops (`{probe}`, `{stats}`, `{feedback_pending}`…), the jobs
+  lambda (`{clan_pulse}`, sweeps), CloudWatch alarms and service metrics, and
+  `mcp_call_audit`. Per-gateway CloudWatch metrics were retired with the
+  zero-trust collector door.
 - Gates: `npm run verify` before push; deploys via
   `AWS_PROFILE=jamie node infra/scripts/deploy.mjs` (smoke-gated).
 

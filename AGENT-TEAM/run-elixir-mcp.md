@@ -14,11 +14,14 @@ Establish, with receipts:
   — health verdict, last admission age, battles last hour, every queue's
   depth/in-flight, all four DLQs (any DLQ > 0 is an incident, not a
   curiosity), capture-audit 24h gaps/polls.
-- **Collector fleet.** CloudWatch `ElixirMCP/Gateway/<name>` Heartbeat /
-  FetchSucceeded / BreakerOpen per collector; the Admin gateways view.
-  A silent collector is degraded redundancy even while the other one
-  carries the load. A `pending` collector that should be live (its
-  operator finished setup) is a follow-up, not a shrug.
+- **Collector fleet.** The DB-backed collector status is the fleet-health
+  source of truth: inspect each collector's `status`, last heartbeat, last
+  successful admission, and recent fetch count on the public Status page and
+  in the Admin gateways view. The former per-gateway CloudWatch metrics were
+  removed with the zero-trust collector door. A silent collector is degraded
+  redundancy even while the other one carries the load. A `pending` collector
+  that should be live (its operator finished setup) is a follow-up, not a
+  shrug.
 - **Yield and budget.** Migrate lambda `{probe: true}` (48h fetch/harvest
   census; battlelog fetches vs battles harvested) and `{stats: true}`.
   The whole fleet must stay within roughly one API key's budget — that
