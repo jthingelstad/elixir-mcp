@@ -4,8 +4,9 @@ timezone = "America/Chicago"
 
 # Stable ids preserve Codex task history while names express durable
 # objectives. Minute offsets deliberately avoid the elixir-bot team's
-# slots (:10 twelve-hourly, 06:30, 08:00) and the sysadmin Sunday runs
-# (06:00, 07:00) so runs on the same host interleave.
+# slots (:10 twelve-hourly, 06:30, 08:00), the Librarian's daily 08:20,
+# and the sysadmin Sunday runs (06:00, 07:00) so runs on the same host
+# interleave.
 
 [[automation]]
 id = "elixir-mcp-operations"
@@ -16,6 +17,8 @@ status = "ACTIVE"
 rrule = "RRULE:FREQ=HOURLY;INTERVAL=12;BYMINUTE=40"
 model = "gpt-5.6-terra"
 reasoning_effort = "high"
+execution_environment = "local"
+prompt = "Follow the project instructions already loaded by Codex. Read `/Users/otto/Projects/elixir-mcp/docs/DESIGN.md`, the newest ratified decisions in `/Users/otto/Projects/elixir-mcp/docs/NOTES.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/WORKFLOW.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/README.md`, and `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/run-elixir-mcp.md` completely, then pursue the `run` objective exactly as written. Run preflight first and measure current production evidence before changing anything; a healthy no-op is success. Own a clear operational gap through source fix, regression coverage, `npm run verify`, deployment when required, and read-only live acceptance. Acquire the `run` checkout lease only immediately before mutation, check it before the first edit and before push, never clear or break another holder's lease, never publish pre-existing work, release only from a clean checkout, and preserve the public-repo, secret-safety, privacy, one-budget, and live-read-only boundaries. If collector code must change, follow `docs/RELEASING-COLLECTOR.md`; a collector-repo push is only a candidate until this repo names the release. Record evidence and durable decisions in the prescribed notes."
 
 [[automation]]
 id = "elixir-mcp-record-truth"
@@ -26,6 +29,8 @@ status = "ACTIVE"
 rrule = "RRULE:FREQ=DAILY;BYHOUR=6;BYMINUTE=50"
 model = "gpt-5.6-terra"
 reasoning_effort = "high"
+execution_environment = "local"
+prompt = "Follow the project instructions already loaded by Codex. Read `/Users/otto/Projects/elixir-mcp/docs/DESIGN.md`, the newest ratified decisions in `/Users/otto/Projects/elixir-mcp/docs/NOTES.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/WORKFLOW.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/README.md`, and `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/keep-the-record-true.md` completely, then pursue the `record` objective exactly as written. Run preflight first and measure current payload, capture, projection, clock, and CR API evidence before changing anything; a healthy no-op is success. Own a clear truth gap through a source-level fix, real-fixture regression coverage, migration or backfill analysis when applicable, `npm run verify`, deployment when required, and read-only live acceptance. Acquire the `record` checkout lease only immediately before mutation, check it before the first edit and before push, never clear or break another holder's lease, never publish pre-existing work, release only from a clean checkout, and preserve raw evidence, the public-repo and secret boundaries, and the rule that live verification uses reads and refusal paths only. Patch `~/Projects/cr-agent-api-docs` under its own repo rules when the live API contradicts the documented model. Record evidence and durable decisions in the prescribed notes."
 
 [[automation]]
 id = "elixir-mcp-close-loop"
@@ -33,9 +38,11 @@ name = "Close the Loop"
 objective = "loop"
 objective_file = "AGENT-TEAM/close-the-loop.md"
 status = "ACTIVE"
-rrule = "RRULE:FREQ=DAILY;BYHOUR=8;BYMINUTE=20"
+rrule = "RRULE:FREQ=DAILY;BYHOUR=8;BYMINUTE=35"
 model = "gpt-5.6-sol"
 reasoning_effort = "xhigh"
+execution_environment = "local"
+prompt = "Follow the project instructions already loaded by Codex. Read `/Users/otto/Projects/elixir-mcp/docs/DESIGN.md`, the newest ratified decisions in `/Users/otto/Projects/elixir-mcp/docs/NOTES.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/WORKFLOW.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/README.md`, and `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/close-the-loop.md` completely, then pursue the `loop` objective exactly as written. Run preflight first and measure the current feedback queue, MCP call audit, event feed, and shipped documentation before changing anything; a healthy no-op is success. Triage every new feedback item honestly this run, respond through the documented feedback operation, and own an authorized gap through source fix, regression coverage, contract changelog and user docs when applicable, `npm run verify`, deployment when required, and read-only live acceptance. On Friday also complete the documented weekly deep pass and write the weekly summary. Acquire the `loop` checkout lease only immediately before repository mutation, check it before the first edit and before push, never clear or break another holder's lease, never publish pre-existing work, and release only from a clean checkout. Preserve account privacy, public-repo and secret boundaries, and do not mark feedback done until the named change is shipped."
 
 [[automation]]
 id = "elixir-mcp-guard-door"
@@ -46,3 +53,5 @@ status = "ACTIVE"
 rrule = "RRULE:FREQ=WEEKLY;BYDAY=SU;BYHOUR=7;BYMINUTE=30"
 model = "gpt-5.6-terra"
 reasoning_effort = "high"
+execution_environment = "local"
+prompt = "Follow the project instructions already loaded by Codex. Read `/Users/otto/Projects/elixir-mcp/docs/DESIGN.md`, the newest ratified decisions in `/Users/otto/Projects/elixir-mcp/docs/NOTES.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/WORKFLOW.md`, `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/README.md`, and `/Users/otto/Projects/elixir-mcp/AGENT-TEAM/guard-the-door.md` completely, then pursue the `guard` objective exactly as written. Run preflight first and establish evidence for tracked-secret hygiene, entitlement and account isolation, OAuth and service-token boundaries, third-party data minimization, IAM and outbound-call blast radius, and the one-key global budget posture; a clean evidenced no-op is success. Guard the Door is independent: never waive or weaken a boundary for another objective. Own a confirmed defect through a failing regression test, fix at the gate that should have held, `npm run verify`, deployment when required, and read-only or refusal-path live acceptance; route boundary changes to Jamie as one concrete decision. Acquire the `guard` checkout lease only immediately before mutation, check it before the first edit and before push, never clear or break another holder's lease, never publish pre-existing work, release only from a clean checkout, and never expose secret values to agent context. Record commands, probes, findings, and durable decisions in the prescribed notes."
