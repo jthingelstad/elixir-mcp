@@ -795,14 +795,15 @@ export const elixirTools = {
     async handler(ctx) {
       await ensureGatewayCards(ctx.db).catch(() => {});
       const { rows } = await ctx.db.query(
-        `select name, status, fetch_points, card_name, card_icon, last_success_at
+        `select status, fetch_points, card_name, card_icon, last_success_at
          from gateway where status <> 'revoked'
          order by fetch_points desc, enrolled_at`,
       );
+      // No machine label here either (#28): the operator-chosen name is
+      // private, and this tool served it to every connected agent.
       return {
         collectors: rows.map((g) => ({
-          name: g.card_name ?? g.name,
-          machine: g.name,
+          name: g.card_name ?? "Collector",
           card: g.card_name,
           status: g.status,
           points: Number(g.fetch_points),

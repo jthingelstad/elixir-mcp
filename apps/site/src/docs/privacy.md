@@ -55,6 +55,12 @@ permanently — the service never re-subscribes an address that opted out
 — and newsletter email carries no tracking pixels. Sign-in codes and
 account notices are service mail and arrive whatever you choose here.
 
+**Running a collector.** If you volunteer a machine for the fleet, its
+Clash Royale card name, status, and fetch counts are public, and it is
+credited publicly to your primary claimed player name and tag. The name
+you give your own machine is not published — it stays between you and
+the maintainer — and neither is your IP address.
+
 **What we never do.** No selling data, no advertising, no ad or
 cross-site tracking, no analytics attached to your gameplay or your
 identity. Feedback you send is read by the maintainer and used to

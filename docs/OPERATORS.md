@@ -17,8 +17,18 @@ key and the bearer token Elixir MCP issues you.
 
 1. **Raise your hand** at Account > Collector on
    https://elixir.poapkings.com — pick a machine name. Your collector
-   gets a Clash Royale CARD identity from us (that card is its public
-   name; your machine name stays private to you and the operator).
+   gets a Clash Royale CARD identity from us, and that card is its
+   public name.
+
+   **What is public and what is not.** The card name, the collector's
+   status, and its fetch counts are public. Your **machine name is
+   private** — it is visible to you and the maintainer, and to nobody
+   else, which is why you can safely call it whatever your box is
+   actually called. Your **primary claimed player name and tag are
+   public** on the fleet status page: collectors are credited to the
+   player who runs them, so running one attaches your CR identity to
+   it. If you would rather not be named there, say so before you
+   enroll. Your email address and IP are never published.
 2. When the maintainer approves, the same page offers your collector
    **token as a one-time reveal** — copy it, because it disappears
    from the server the moment you look. Put it in a `.env` (mode 0600)

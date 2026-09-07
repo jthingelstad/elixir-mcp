@@ -624,10 +624,14 @@ test("collector fleet: card-derived identity, quota credits; scoring rides admis
       }),
     ),
   );
-  const top = ladder.ladder.find((g) => g.machine === "kitchen-mac");
-  assert.ok(top, "machine label preserved");
+  // The machine label is PRIVATE (#28) - the ladder is found by points,
+  // not by the operator's name for their own box.
+  const top = ladder.ladder.find((g) => g.points === 2600);
+  assert.ok(top, "the collector is on the ladder");
   assert.equal(top.credits, 260, "10 fetches = +1 daily call");
   assert.ok(!("arena" in top), "arenas are gone");
+  assert.ok(!("machine" in top), "machine labels never leave the owner");
+  assert.equal(top.mine, true, "an operator can still find their own row");
 
   const mine = parse(
     await handler(
@@ -1848,4 +1852,79 @@ test("a refused role change is not reported, logged, or announced as one", async
     }),
   );
   assert.equal(missing.statusCode, 404);
+});
+
+// --------------------------------------------------------------- #28
+test("one operator cannot read another operator's machine label", async () => {
+  const OPERATOR = "gw-operator@example.com";
+  const SNOOP = "gw-snoop@example.com";
+  const {
+    rows: [op],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash(OPERATOR)],
+  );
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')`,
+    [emailHash(SNOOP)],
+  );
+  // A label of exactly the kind that makes this matter: a hostname with
+  // a username and a location in it.
+  await db.query(
+    `insert into gateway (owner_account_id, name, status, fetch_points, card_name)
+     values ($1, 'jamies-imac-basement', 'active', 40, 'Mega Knight')`,
+    [op.account_id],
+  );
+  const snoopCookie = await signIn(SNOOP, "203.0.113.28");
+
+  const ladder = await handler(
+    event({
+      method: "GET",
+      path: "/api/gateways/ladder",
+      cookie: snoopCookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(ladder.statusCode, 200);
+  assert.ok(
+    !ladder.body.includes("jamies-imac-basement"),
+    "the machine label is nowhere in the response",
+  );
+  const row = parse(ladder).ladder.find((g) => g.card === "Mega Knight");
+  assert.ok(row, "the collector is still on the ladder under its card");
+  assert.equal(row.mine, false, "and it is not the snoop's");
+  assert.ok(!("machine" in row));
+
+  // The operator still sees their own, on their own surface.
+  const opCookie = await signIn(OPERATOR, "203.0.113.30");
+  const own = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/gateways",
+        cookie: opCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.ok(
+    own.gateways.some((g) => g.name === "jamies-imac-basement"),
+    "your own machine label is yours to see",
+  );
+  const ownLadder = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/gateways/ladder",
+        cookie: opCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(
+    ownLadder.ladder.find((g) => g.card === "Mega Knight").mine,
+    true,
+    "an operator can still pick their own row out of the ladder",
+  );
 });

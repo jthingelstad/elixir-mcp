@@ -6,7 +6,9 @@ import { Fresh } from "./Dashboard.jsx";
  *  ladder is a joke, not a product. Per collector: avatar slot, status,
  *  points, and the QUOTA CREDITS its fetches earn (the real benefit;
  *  Jamie dropped arenas 2026-09-06). Card-derived identity: the card is
- *  the public name, the operator name is the machine label. */
+ *  the public name; the operator name is a PRIVATE machine label and
+ *  never leaves the owner's own surfaces (#28). Your own gateways come
+ *  from /api/me/gateways, which is why this page can show yours. */
 
 export function CollectorPage() {
   const [gateways, setGateways] = useState(null);
@@ -68,7 +70,6 @@ export function CollectorPage() {
           )}
           {(gateways ?? []).map((g) => {
             const d = details[g.gateway_id];
-            const mine = ladder.find((l) => l.machine === g.name);
             const daily = d?.daily ?? [];
             const max = Math.max(...daily.map((x) => x.fetches), 1);
             return (
@@ -102,7 +103,7 @@ export function CollectorPage() {
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600 }}>
-                      {g.card_name ?? mine?.card ?? g.name}
+                      {g.card_name ?? g.name}
                     </div>
                     <div
                       className="mono"

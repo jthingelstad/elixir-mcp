@@ -459,12 +459,19 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.ok(insights.body.battles.recorded > 0);
   assert.ok(insights.body.battles.first <= insights.body.battles.last);
 
-  // Collectors: card-derived identity + quota credits, no arenas.
+  // Collectors: card-derived identity + quota credits, no arenas, and
+  // no machine label - the operator's name for their own box is private
+  // and this tool used to hand it to every connected agent (#28).
   const collectors = await call("elixir_collectors", {});
   assert.ok(collectors.body.collectors.length >= 1);
   const c0 = collectors.body.collectors[0];
-  assert.ok("quota_credits" in c0 && "machine" in c0);
+  assert.ok("quota_credits" in c0);
   assert.ok(!("arena" in c0), "arenas are gone");
+  assert.ok(!("machine" in c0), "machine labels are not fleet data");
+  assert.ok(
+    collectors.body.collectors.every((c) => c.name === (c.card ?? "Collector")),
+    "the card is the only name that leaves",
+  );
 });
 
 test("battles_levels: symmetric curve with floors; Pilot Score honest under small n", async () => {

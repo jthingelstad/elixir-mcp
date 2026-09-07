@@ -798,23 +798,30 @@ export function makeHandler({
       if (!account) return json(401, { error: "unauthenticated" });
       await ensureGatewayCards(db);
       const { rows } = await db.query(
-        `select name, status, fetch_points, card_name, card_icon from gateway
-         where status <> 'revoked'
+        `select gateway_id, status, fetch_points, card_name, card_icon,
+                (owner_account_id = $1) as mine
+         from gateway where status <> 'revoked'
          order by fetch_points desc, enrolled_at`,
+        [account.accountId],
       );
       // Card-derived identity (Jamie, 2026-09-06): the CARD is the
-      // collector's public name; the operator-chosen name stays as the
-      // machine label. Arenas are gone - the real benefit is quota
-      // credits (10 fetches = +1 daily call).
+      // collector's public name; the operator-chosen name is a MACHINE
+      // LABEL and stays private (#28). Machine labels routinely carry
+      // hostnames, usernames or locations, and this response used to
+      // hand every approved account the whole fleet's. The card is the
+      // only name that leaves here, and an unnamed collector is
+      // "Collector" rather than a fallback to the private label.
+      // `mine` replaces it for the one legitimate client use: telling
+      // an operator which rows are theirs.
       return json(200, {
         ladder: rows.map((g) => ({
-          name: g.card_name ?? g.name,
-          machine: g.name,
+          name: g.card_name ?? "Collector",
           status: g.status,
           points: Number(g.fetch_points),
           credits: Math.floor(Number(g.fetch_points) / 10),
           card: g.card_name,
           card_icon: g.card_icon,
+          mine: g.mine === true,
         })),
       });
     },
