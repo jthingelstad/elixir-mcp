@@ -11,3 +11,7 @@ package-lock.json
 
 # Hand-authored prose; prettier pairs glob asterisks as emphasis and corrupts them.
 *.md
+
+# Upstream mirror (git subtree of jthingelstad/cr-agent-api-docs). Verbatim
+# or every subtree pull conflicts -- same rule as fixtures/.
+docs/cr-api-docs/
