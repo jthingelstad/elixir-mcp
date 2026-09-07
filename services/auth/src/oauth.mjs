@@ -15,8 +15,9 @@
  */
 
 import crypto from "node:crypto";
+import { DEFAULT_OAUTH_SCOPE, OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
-export const OAUTH_SCOPES = ["cr:read"];
+export { OAUTH_SCOPES };
 export const ACCESS_TOKEN_PREFIX = "eat_";
 export const REFRESH_TOKEN_PREFIX = "ert_";
 export const AUTH_CODE_PREFIX = "eac_";
@@ -98,9 +99,36 @@ export function validCodeChallenge(value) {
 
 export function normalizeScope(value) {
   const raw = String(value ?? "").trim();
-  if (!raw) return OAUTH_SCOPES.join(" ");
+  if (!raw) return DEFAULT_OAUTH_SCOPE;
   const unique = [...new Set(raw.split(/\s+/))];
-  return unique.some((s) => !OAUTH_SCOPES.includes(s)) ? "" : unique.join(" ");
+  if (
+    !unique.includes(DEFAULT_OAUTH_SCOPE) ||
+    unique.some((s) => !OAUTH_SCOPES.includes(s))
+  )
+    return "";
+  return OAUTH_SCOPES.filter((scope) => unique.includes(scope)).join(" ");
+}
+
+/** Canonical absolute HTTPS resource URI (RFC 8707). Queries, fragments,
+ *  and credentials cannot name this server's one protected resource. */
+export function canonicalResource(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.length > 2048) return "";
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return "";
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  )
+    return "";
+  return url.toString();
 }
 
 export function verifyPkce(codeVerifier, codeChallenge) {
@@ -162,19 +190,23 @@ export async function getClient(db, clientId) {
 
 export async function createAuthCode(
   db,
-  { clientId, accountId, redirectUri, scope, codeChallenge },
+  { clientId, accountId, redirectUri, scope, resource, codeChallenge },
 ) {
+  const grantedScope = normalizeScope(scope);
+  const audience = canonicalResource(resource);
+  if (!grantedScope || !audience) throw new Error("invalid OAuth grant");
   const code = secret(AUTH_CODE_PREFIX);
   await db.query(
-    `insert into oauth_code (code_hash, client_id, account_id, code_challenge, redirect_uri, scope, expires_at)
-     values ($1, $2, $3, $4, $5, $6, now() + make_interval(secs => $7))`,
+    `insert into oauth_code (code_hash, client_id, account_id, code_challenge, redirect_uri, scope, resource, expires_at)
+     values ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(secs => $8))`,
     [
       sha256hex(code),
       clientId,
       accountId,
       codeChallenge,
       redirectUri,
-      scope,
+      grantedScope,
+      audience,
       AUTH_CODE_TTL_SECONDS,
     ],
   );
@@ -188,7 +220,7 @@ export async function redeemAuthCode(db, code) {
   const { rows } = await db.query(
     `update oauth_code set used_at = now()
      where code_hash = $1 and used_at is null and expires_at > now()
-     returning client_id, account_id, code_challenge, redirect_uri, scope`,
+     returning client_id, account_id, code_challenge, redirect_uri, scope, resource`,
     [sha256hex(raw)],
   );
   const row = rows[0];
@@ -199,6 +231,7 @@ export async function redeemAuthCode(db, code) {
         codeChallenge: row.code_challenge,
         redirectUri: row.redirect_uri,
         scope: row.scope,
+        resource: row.resource,
       }
     : null;
 }
@@ -213,28 +246,25 @@ async function insertToken(db, { kind, familyId, token, ttlSeconds }) {
   );
 }
 
-export async function mintTokens(
-  db,
-  { clientId, accountId, scope, familyId = null },
-) {
-  let family = familyId;
-  if (!family) {
-    const { rows } = await db.query(
-      `insert into oauth_family (client_id, account_id, absolute_expires_at)
-       values ($1, $2, now() + make_interval(days => $3))
-       returning family_id`,
-      [clientId, accountId, FAMILY_ABSOLUTE_DAYS],
-    );
-    family = rows[0].family_id;
-    // Activity log (0010): a new family = a newly authorized client.
-    await db
-      .query(
-        `insert into account_event (account_id, kind, detail)
-         values ($1, 'agent_connected', $2)`,
-        [accountId, JSON.stringify({ client_id: clientId })],
-      )
-      .catch(() => {});
-  }
+export async function mintTokens(db, { clientId, accountId, scope, resource }) {
+  const grantedScope = normalizeScope(scope);
+  const audience = canonicalResource(resource);
+  if (!grantedScope || !audience) throw new Error("invalid OAuth grant");
+  const { rows } = await db.query(
+    `insert into oauth_family (client_id, account_id, scope, resource, absolute_expires_at)
+     values ($1, $2, $3, $4, now() + make_interval(days => $5))
+     returning family_id`,
+    [clientId, accountId, grantedScope, audience, FAMILY_ABSOLUTE_DAYS],
+  );
+  const family = rows[0].family_id;
+  // Activity log (0010): a new family = a newly authorized client.
+  await db
+    .query(
+      `insert into account_event (account_id, kind, detail)
+       values ($1, 'agent_connected', $2)`,
+      [accountId, JSON.stringify({ client_id: clientId })],
+    )
+    .catch(() => {});
   const accessToken = secret(ACCESS_TOKEN_PREFIX);
   const refreshToken = secret(REFRESH_TOKEN_PREFIX);
   await insertToken(db, {
@@ -253,7 +283,8 @@ export async function mintTokens(
     accessToken,
     refreshToken,
     expiresIn: ACCESS_TOKEN_TTL_SECONDS,
-    scope,
+    scope: grantedScope,
+    resource: audience,
     familyId: family,
   };
 }
@@ -265,12 +296,16 @@ async function revokeFamily(db, familyId) {
   );
 }
 
-export async function redeemRefreshToken(db, { refreshToken, clientId }) {
+export async function redeemRefreshToken(
+  db,
+  { refreshToken, clientId, resource },
+) {
   const raw = validOpaque(refreshToken, REFRESH_TOKEN_PREFIX);
   if (!raw) return { status: "invalid" };
   const { rows } = await db.query(
     `select t.token_hash, t.expires_at, t.rotated_to, t.revoked_at,
-            f.family_id, f.client_id, f.account_id, f.absolute_expires_at, f.revoked_at as family_revoked_at
+            f.family_id, f.client_id, f.account_id, f.scope, f.resource,
+            f.absolute_expires_at, f.revoked_at as family_revoked_at
      from oauth_token t join oauth_family f on f.family_id = t.family_id
      where t.token_hash = $1 and t.kind = 'refresh'`,
     [sha256hex(raw)],
@@ -279,6 +314,8 @@ export async function redeemRefreshToken(db, { refreshToken, clientId }) {
   if (!row || row.revoked_at || row.family_revoked_at)
     return { status: "invalid" };
   if (row.client_id !== clientId) return { status: "invalid" };
+  if (row.resource !== canonicalResource(resource))
+    return { status: "invalid_target" };
   if (row.expires_at.getTime() < Date.now()) return { status: "invalid" };
   if (row.rotated_to) {
     // Replay of an already-rotated token (RFC 9700 §4.14.2): kill the family.
@@ -322,6 +359,8 @@ export async function redeemRefreshToken(db, { refreshToken, clientId }) {
       accessToken,
       refreshToken: newRefresh,
       expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      scope: row.scope,
+      resource: row.resource,
       familyId: row.family_id,
     },
     accountId: row.account_id,
@@ -334,19 +373,22 @@ export async function redeemRefreshToken(db, { refreshToken, clientId }) {
  * family revocation/absolute lifetime, AND the access gate — a token for
  * a no-longer-approved account validates to nothing, on every request.
  */
-export async function validateAccessToken(db, token) {
+export async function validateAccessToken(db, token, { resource } = {}) {
   const raw = validOpaque(token, ACCESS_TOKEN_PREFIX);
-  if (!raw) return null;
+  const audience = canonicalResource(resource);
+  if (!raw || !audience) return null;
   const { rows } = await db.query(
-    `select f.client_id, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota, a.role, a.live_daily_quota
+    `select f.client_id, f.scope, f.resource,
+            a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota, a.role, a.live_daily_quota
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
      join account a on a.account_id = f.account_id
      where t.token_hash = $1 and t.kind = 'access'
        and t.expires_at > now() and t.revoked_at is null
        and f.revoked_at is null and f.absolute_expires_at > now()
+       and f.resource = $2
        and a.status = 'approved'`,
-    [sha256hex(raw)],
+    [sha256hex(raw), audience],
   );
   const row = rows[0];
   return row
@@ -361,6 +403,10 @@ export async function validateAccessToken(db, token) {
         role: row.role,
         liveDailyQuota: row.live_daily_quota,
         clientId: row.client_id,
+        scope: row.scope,
+        scopes: row.scope.split(" "),
+        resource: row.resource,
+        credentialType: "oauth",
       }
     : null;
 }
@@ -407,5 +453,8 @@ export async function validateServiceToken(db, token) {
     role: row.role,
     liveDailyQuota: row.live_daily_quota,
     serviceName: row.name,
+    scope: OAUTH_SCOPES.join(" "),
+    scopes: [...OAUTH_SCOPES],
+    credentialType: "service",
   };
 }

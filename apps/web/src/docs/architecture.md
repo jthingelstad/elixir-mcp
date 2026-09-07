@@ -193,9 +193,15 @@ yield.
   as the game's own public API. **Clan cover** gates the clan-scoped
   tools (roster, war): open members of a recorded clan use them, and
   that access ends the moment membership ends.
-- The MCP door is OAuth 2.1 with rotating refresh tokens; the site uses
-  cookie sessions; every tool call is audited per surface with visible
-  per-account quotas.
+- The MCP door is OAuth 2.1 with rotating refresh tokens. Grants are
+  audience-bound to `https://elixir.poapkings.com/mcp`; `cr:read` is the
+  baseline, while recordings, collections, account preferences, and
+  feedback each require their own write capability. The consent page
+  names every requested capability, refresh never expands it, and an
+  insufficient tool call is refused before it spends rate or daily
+  quota. Owner-issued service tokens are explicitly full-capability
+  administrative credentials. The site uses cookie sessions; every
+  tool call is audited per surface with visible per-account quotas.
 
 ## Honesty machinery
 

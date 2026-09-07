@@ -5,7 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { emailHash, validateAccessToken } from "../../auth/src/index.mjs";
+import {
+  emailHash,
+  mintTokens,
+  validateAccessToken,
+} from "../../auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +21,7 @@ const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 const ISSUER = "https://elixir.poapkings.com";
 const EMAIL = "oauth-routes@example.com";
 const REDIRECT = "https://claude.ai/api/mcp/auth_callback";
+const RESOURCE = `${ISSUER}/mcp`;
 
 let db;
 let handler;
@@ -78,12 +83,20 @@ test("discovery documents are well-formed and cacheable", async () => {
   assert.equal(meta.issuer, ISSUER);
   assert.deepEqual(meta.code_challenge_methods_supported, ["S256"]);
   assert.deepEqual(meta.token_endpoint_auth_methods_supported, ["none"]);
+  assert.deepEqual(meta.scopes_supported, [
+    "cr:read",
+    "recordings:write",
+    "collections:write",
+    "account:write",
+    "feedback:write",
+  ]);
   const pr = await handler(
     event({ method: "GET", path: "/.well-known/oauth-protected-resource" }),
   );
   const prMeta = JSON.parse(pr.body);
   assert.equal(prMeta.resource, `${ISSUER}/mcp`);
   assert.deepEqual(prMeta.authorization_servers, [ISSUER]);
+  assert.deepEqual(prMeta.scopes_supported, ["cr:read"]);
 });
 
 test("full flow: register -> authorize (email, code) -> 303 with iss -> token -> live bearer", async () => {
@@ -111,6 +124,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     code_challenge: challenge,
     code_challenge_method: "S256",
     scope: "cr:read",
+    resource: RESOURCE,
   };
 
   const start = await handler(
@@ -128,6 +142,8 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   );
   assert.equal(emailStep.statusCode, 200);
   assert.match(emailStep.body, /authorizes Claude/);
+  assert.match(emailStep.body, /Read recorded game data/);
+  assert.doesNotMatch(emailStep.body, /Change recordings/);
   assert.equal(sentEmails.length, 1);
   const { code: loginCode } = sentEmails[0];
 
@@ -145,7 +161,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   const authCode = redirect.searchParams.get("code");
   assert.match(authCode, /^eac_/);
 
-  const token = await handler(
+  const missingTokenResource = await handler(
     event({
       path: "/oauth/token",
       form: {
@@ -157,12 +173,31 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
       },
     }),
   );
+  assert.equal(missingTokenResource.statusCode, 400);
+  assert.equal(JSON.parse(missingTokenResource.body).error, "invalid_target");
+
+  const token = await handler(
+    event({
+      path: "/oauth/token",
+      form: {
+        grant_type: "authorization_code",
+        code: authCode,
+        code_verifier: verifier,
+        client_id,
+        redirect_uri: REDIRECT,
+        resource: RESOURCE,
+      },
+    }),
+  );
   assert.equal(token.statusCode, 200);
   const tokens = JSON.parse(token.body);
   assert.match(tokens.access_token, /^eat_/);
   assert.match(tokens.refresh_token, /^ert_/);
+  assert.equal(tokens.scope, "cr:read");
 
-  const ctx = await validateAccessToken(db, tokens.access_token);
+  const ctx = await validateAccessToken(db, tokens.access_token, {
+    resource: RESOURCE,
+  });
   assert.equal(
     ctx.emailHash,
     emailHash(EMAIL),
@@ -179,6 +214,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
         code_verifier: verifier,
         client_id,
         redirect_uri: REDIRECT,
+        resource: RESOURCE,
       },
     }),
   );
@@ -188,7 +224,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     "auth code is single-use",
   );
 
-  const refreshed = await handler(
+  const missingRefreshResource = await handler(
     event({
       path: "/oauth/token",
       form: {
@@ -198,8 +234,220 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
       },
     }),
   );
+  assert.equal(missingRefreshResource.statusCode, 400);
+  assert.equal(JSON.parse(missingRefreshResource.body).error, "invalid_target");
+
+  const refreshed = await handler(
+    event({
+      path: "/oauth/token",
+      form: {
+        grant_type: "refresh_token",
+        refresh_token: tokens.refresh_token,
+        client_id,
+        resource: RESOURCE,
+      },
+    }),
+  );
   assert.equal(refreshed.statusCode, 200);
-  assert.match(JSON.parse(refreshed.body).access_token, /^eat_/);
+  const refreshedTokens = JSON.parse(refreshed.body);
+  assert.match(refreshedTokens.access_token, /^eat_/);
+  assert.equal(refreshedTokens.scope, "cr:read");
+
+  const listedTools = await handler({
+    ...event({
+      path: "/mcp",
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      }),
+    }),
+    headers: { authorization: `Bearer ${refreshedTokens.access_token}` },
+  });
+  assert.equal(listedTools.statusCode, 200, listedTools.body);
+  const declarations = JSON.parse(listedTools.body).result.tools;
+  const readTools = declarations.filter(
+    ({ annotations }) => annotations.readOnlyHint,
+  );
+  const writeTools = declarations.filter(
+    ({ annotations }) => !annotations.readOnlyHint,
+  );
+  assert.ok(readTools.length > 0);
+  assert.deepEqual(writeTools.map(({ name }) => name).sort(), [
+    "collections_edit",
+    "elixir_add_clan",
+    "elixir_add_player",
+    "elixir_events",
+    "elixir_feedback",
+    "elixir_nickname",
+  ]);
+
+  for (const [index, tool] of readTools.entries()) {
+    const response = await handler({
+      ...event({
+        path: "/mcp",
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 100 + index,
+          method: "tools/call",
+          params: { name: tool.name, arguments: {} },
+        }),
+      }),
+      headers: { authorization: `Bearer ${refreshedTokens.access_token}` },
+    });
+    assert.equal(
+      response.statusCode,
+      200,
+      `${tool.name} is available under cr:read: ${response.body}`,
+    );
+  }
+
+  const rateBeforeRefusal = await db.query(
+    `select count from rate_limit where bucket like 'mcp#%' order by window_start desc limit 1`,
+  );
+  const requiredScopes = {
+    collections_edit: "collections:write",
+    elixir_add_clan: "recordings:write",
+    elixir_add_player: "recordings:write",
+    elixir_events: "account:write",
+    elixir_feedback: "feedback:write",
+    elixir_nickname: "account:write",
+  };
+  for (const [index, tool] of writeTools.entries()) {
+    const response = await handler({
+      ...event({
+        path: "/mcp",
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 200 + index,
+          method: "tools/call",
+          params: { name: tool.name, arguments: {} },
+        }),
+      }),
+      headers: { authorization: `Bearer ${refreshedTokens.access_token}` },
+    });
+    assert.equal(response.statusCode, 403, tool.name);
+    assert.match(
+      response.headers["www-authenticate"],
+      /error="insufficient_scope"/,
+    );
+    assert.match(
+      response.headers["www-authenticate"],
+      new RegExp(`scope="cr:read ${requiredScopes[tool.name]}"`),
+    );
+    assert.equal(
+      JSON.parse(response.body).error.data.required_scope,
+      requiredScopes[tool.name],
+    );
+  }
+  const rateAfterRefusal = await db.query(
+    `select count from rate_limit where bucket like 'mcp#%' order by window_start desc limit 1`,
+  );
+  assert.equal(
+    rateAfterRefusal.rows[0].count,
+    rateBeforeRefusal.rows[0].count,
+    "scope refusal spends no hourly allowance",
+  );
+
+  const elevated = await mintTokens(db, {
+    clientId: client_id,
+    accountId: ctx.accountId,
+    scope: "cr:read feedback:write",
+    resource: RESOURCE,
+  });
+  const allowedWrite = await handler({
+    ...event({
+      path: "/mcp",
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: {
+          name: "elixir_feedback",
+          arguments: { message: "authorized scope regression" },
+        },
+      }),
+    }),
+    headers: { authorization: `Bearer ${elevated.accessToken}` },
+  });
+  assert.equal(allowedWrite.statusCode, 200, allowedWrite.body);
+});
+
+test("authorize rejects missing or wrong resource indicators", async () => {
+  const reg = await handler(
+    event({
+      path: "/oauth/register",
+      body: JSON.stringify({
+        client_name: "Audience test",
+        redirect_uris: [REDIRECT],
+      }),
+    }),
+  );
+  const { client_id } = JSON.parse(reg.body);
+  const base = {
+    client_id,
+    redirect_uri: REDIRECT,
+    code_challenge: crypto
+      .createHash("sha256")
+      .update("r".repeat(43))
+      .digest("base64url"),
+    code_challenge_method: "S256",
+    scope: "cr:read",
+  };
+  for (const resource of [undefined, "https://other.example/mcp"]) {
+    const response = await handler(
+      event({
+        method: "GET",
+        path: "/oauth/authorize",
+        query: { ...base, ...(resource ? { resource } : {}) },
+      }),
+    );
+    assert.equal(response.statusCode, 400);
+    assert.match(response.body, /invalid_target/);
+  }
+});
+
+test("consent enumerates every requested mutation capability", async () => {
+  const reg = await handler(
+    event({
+      path: "/oauth/register",
+      body: JSON.stringify({
+        client_name: "Full client",
+        redirect_uris: [REDIRECT],
+      }),
+    }),
+  );
+  const { client_id } = JSON.parse(reg.body);
+  const response = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: {
+        step: "email",
+        email: EMAIL,
+        client_id,
+        redirect_uri: REDIRECT,
+        code_challenge: crypto
+          .createHash("sha256")
+          .update("s".repeat(43))
+          .digest("base64url"),
+        code_challenge_method: "S256",
+        scope:
+          "feedback:write account:write cr:read collections:write recordings:write",
+        resource: RESOURCE,
+      },
+    }),
+  );
+  assert.equal(response.statusCode, 200);
+  for (const title of [
+    "Read recorded game data",
+    "Change recordings",
+    "Edit collections",
+    "Update account preferences",
+    "Send feedback",
+  ]) {
+    assert.match(response.body, new RegExp(title));
+  }
 });
 
 test("unapproved emails get the identical page and no email — never an oracle", async () => {
@@ -221,6 +469,7 @@ test("unapproved emails get the identical page and no email — never an oracle"
     code_challenge: challenge,
     code_challenge_method: "S256",
     scope: "",
+    resource: RESOURCE,
   };
   const before = sentEmails.length;
   const res = await handler(
@@ -304,6 +553,7 @@ test("base64-encoded form bodies (API Gateway v2 reality) parse correctly", asyn
     code_challenge: challenge,
     code_challenge_method: "S256",
     scope: "",
+    resource: RESOURCE,
   }).toString();
   const res = await handler({
     rawPath: "/oauth/authorize",

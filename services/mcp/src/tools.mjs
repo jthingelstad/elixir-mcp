@@ -7,7 +7,11 @@
  * invoker renders them as {error, meta} bodies with isError: true.
  */
 
-import { TOOL_GROUPS, GROUP_ORDER } from "@elixir-mcp/contracts";
+import {
+  TOOL_GROUPS,
+  GROUP_ORDER,
+  requiredOAuthScope,
+} from "@elixir-mcp/contracts";
 import { elixirTools } from "./tools/elixir.mjs";
 import { collectionsTools } from "./tools/collections.mjs";
 import { battlesTools } from "./tools/battles.mjs";
@@ -37,6 +41,7 @@ const TOOLS = {
 export function makeRegistry() {
   return {
     has: (name) => Object.hasOwn(TOOLS, name),
+    requiredScope: (name) => requiredOAuthScope(name),
     declarations: () =>
       Object.entries(TOOLS)
         .map(([name, t]) => {

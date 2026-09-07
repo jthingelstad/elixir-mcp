@@ -750,6 +750,7 @@ function Agents() {
                 <thead>
                   <tr>
                     <th>CLIENT</th>
+                    <th>CAPABILITIES</th>
                     <th>CONNECTED</th>
                     <th>LAST ACTIVE</th>
                     <th></th>
@@ -759,6 +760,7 @@ function Agents() {
                   {connections.map((c) => (
                     <tr key={c.family_id}>
                       <td>{c.client_name ?? "agent"}</td>
+                      <td className="mono">{c.scope ?? "cr:read"}</td>
                       <td className="mono">
                         {new Date(c.created_at).toISOString().slice(0, 10)}
                       </td>

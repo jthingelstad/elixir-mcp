@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-07",
+    title: "Connected agents get only what you approve",
+    body: "Connecting an agent used to ask for read access while its token could also change recordings, collections, nicknames, event state, and feedback. That mismatch is closed. The authorization page now lists each capability before you enter the code, read-only access stays read-only, and write actions require their own explicit grants. Tokens are also bound to this MCP server, so one minted for another resource cannot be replayed here. Existing connections keep read access; reconnect when an agent needs to make changes.",
+  },
+  {
+    date: "2026-09-07",
     title: "One war clock for every clan",
     body: "Clash Royale resets war days at 10:00 UTC as policy, but it matches clans into races of five as matchmaking fills, so every clan's day really starts a little off that hour by its own amount. Following each clan's own drift is right for a single clan and wrong for an archive covering many: war day 3 ended up meaning a different twenty-four hours for every clan, so no two clans could be compared and a re-run of the same data could land on a different day. Elixir MCP now follows the policy hour for every clan. We still record and report when each clan's race was actually seen to open, and by how many minutes it differed, so anyone working with a single clan can correct for it.",
   },

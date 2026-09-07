@@ -18,6 +18,7 @@ import {
   mintTokens,
   redeemRefreshToken,
   validateAccessToken,
+  OAUTH_SCOPES,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +27,7 @@ const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_oauth_${process.pid}`;
 const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
+const RESOURCE = "https://elixir.poapkings.com/mcp";
 
 let db;
 let accountId;
@@ -74,7 +76,21 @@ test("redirect URI validation: https or localhost http only, no fragments", () =
 test("scope normalization is a closed set", () => {
   assert.equal(normalizeScope(""), "cr:read");
   assert.equal(normalizeScope("cr:read"), "cr:read");
-  assert.equal(normalizeScope("cr:read cr:write"), "");
+  assert.equal(
+    normalizeScope("feedback:write cr:read feedback:write"),
+    "cr:read feedback:write",
+  );
+  assert.equal(
+    normalizeScope(OAUTH_SCOPES.toReversed().join(" ")),
+    OAUTH_SCOPES.join(" "),
+    "stored scopes have one canonical order",
+  );
+  assert.equal(normalizeScope("cr:read cr:admin"), "");
+  assert.equal(
+    normalizeScope("feedback:write"),
+    "",
+    "mutation capabilities never imply the baseline read grant",
+  );
 });
 
 test("PKCE S256 verifies the RFC vector shape and rejects mismatches", () => {
@@ -114,6 +130,7 @@ test("auth codes are single-use; the raced second redemption loses", async () =>
     accountId,
     redirectUri: "https://a.example/cb",
     scope: "cr:read",
+    resource: RESOURCE,
     codeChallenge: crypto
       .createHash("sha256")
       .update("v".repeat(43))
@@ -121,6 +138,8 @@ test("auth codes are single-use; the raced second redemption loses", async () =>
   });
   const first = await redeemAuthCode(db, code);
   assert.equal(first.accountId, accountId);
+  assert.equal(first.scope, "cr:read");
+  assert.equal(first.resource, RESOURCE);
   assert.equal(await redeemAuthCode(db, code), null);
 });
 
@@ -132,19 +151,41 @@ test("access tokens validate to account context; the gate applies here too", asy
   const tokens = await mintTokens(db, {
     clientId,
     accountId,
-    scope: "cr:read",
+    scope: "cr:read feedback:write",
+    resource: RESOURCE,
   });
-  const ctx = await validateAccessToken(db, tokens.accessToken);
+  const ctx = await validateAccessToken(db, tokens.accessToken, {
+    resource: RESOURCE,
+  });
   assert.equal(ctx.accountId, accountId);
   assert.equal(ctx.isOwner, true);
-  assert.equal(await validateAccessToken(db, "eat_bogus"), null);
+  assert.equal(ctx.scope, "cr:read feedback:write");
+  assert.deepEqual(ctx.scopes, ["cr:read", "feedback:write"]);
+  assert.equal(ctx.resource, RESOURCE);
+  assert.equal(ctx.credentialType, "oauth");
+  assert.equal(
+    await validateAccessToken(db, tokens.accessToken),
+    null,
+    "resource servers must name the audience they are validating",
+  );
+  assert.equal(
+    await validateAccessToken(db, tokens.accessToken, {
+      resource: "https://other.example/mcp",
+    }),
+    null,
+    "an access token is valid only at its intended audience",
+  );
+  assert.equal(
+    await validateAccessToken(db, "eat_bogus", { resource: RESOURCE }),
+    null,
+  );
 
   await db.query(
     `update account set status = 'disabled' where account_id = $1`,
     [accountId],
   );
   assert.equal(
-    await validateAccessToken(db, tokens.accessToken),
+    await validateAccessToken(db, tokens.accessToken, { resource: RESOURCE }),
     null,
     "gate on every request",
   );
@@ -154,32 +195,49 @@ test("access tokens validate to account context; the gate applies here too", asy
   );
 });
 
-test("refresh rotation works and replaying the old token revokes the family", async () => {
+test("refresh rotation preserves scope/resource and replaying the old token revokes the family", async () => {
   const { clientId } = await registerClient(db, {
     clientName: "c3",
     redirectUris: ["https://c.example/cb"],
   });
-  const first = await mintTokens(db, { clientId, accountId, scope: "cr:read" });
+  const first = await mintTokens(db, {
+    clientId,
+    accountId,
+    scope: "cr:read collections:write",
+    resource: RESOURCE,
+  });
   const rotated = await redeemRefreshToken(db, {
     refreshToken: first.refreshToken,
     clientId,
+    resource: RESOURCE,
   });
   assert.equal(rotated.status, "ok");
-  assert.ok(await validateAccessToken(db, rotated.tokens.accessToken));
+  assert.equal(rotated.tokens.scope, "cr:read collections:write");
+  assert.equal(rotated.tokens.resource, RESOURCE);
+  const rotatedContext = await validateAccessToken(
+    db,
+    rotated.tokens.accessToken,
+    { resource: RESOURCE },
+  );
+  assert.deepEqual(rotatedContext.scopes, ["cr:read", "collections:write"]);
 
   const replay = await redeemRefreshToken(db, {
     refreshToken: first.refreshToken,
     clientId,
+    resource: RESOURCE,
   });
   assert.equal(replay.status, "reuse_revoked");
   assert.equal(
-    await validateAccessToken(db, rotated.tokens.accessToken),
+    await validateAccessToken(db, rotated.tokens.accessToken, {
+      resource: RESOURCE,
+    }),
     null,
     "family revocation kills every descendant, including the newest access token",
   );
   const again = await redeemRefreshToken(db, {
     refreshToken: rotated.tokens.refreshToken,
     clientId,
+    resource: RESOURCE,
   });
   assert.equal(
     again.status,
@@ -201,14 +259,16 @@ test("client mismatch is invalid, not a revocation", async () => {
     clientId,
     accountId,
     scope: "cr:read",
+    resource: RESOURCE,
   });
   const result = await redeemRefreshToken(db, {
     refreshToken: tokens.refreshToken,
     clientId: other,
+    resource: RESOURCE,
   });
   assert.equal(result.status, "invalid");
   assert.ok(
-    await validateAccessToken(db, tokens.accessToken),
+    await validateAccessToken(db, tokens.accessToken, { resource: RESOURCE }),
     "family untouched",
   );
 });
@@ -222,6 +282,7 @@ test("absolute family lifetime forces re-consent", async () => {
     clientId,
     accountId,
     scope: "cr:read",
+    resource: RESOURCE,
   });
   await db.query(
     `update oauth_family set absolute_expires_at = now() - interval '1 minute' where family_id = $1`,
@@ -230,10 +291,11 @@ test("absolute family lifetime forces re-consent", async () => {
   const result = await redeemRefreshToken(db, {
     refreshToken: tokens.refreshToken,
     clientId,
+    resource: RESOURCE,
   });
   assert.equal(result.status, "invalid");
   assert.equal(
-    await validateAccessToken(db, tokens.accessToken),
+    await validateAccessToken(db, tokens.accessToken, { resource: RESOURCE }),
     null,
     "expired family invalidates access too",
   );

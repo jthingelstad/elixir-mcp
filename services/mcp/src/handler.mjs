@@ -10,7 +10,9 @@ import {
   validateAccessToken,
   validateServiceToken,
   checkRateLimit,
+  normalizeScope,
 } from "@elixir-mcp/auth";
+import { DEFAULT_OAUTH_SCOPE } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
 import { makeRegistry } from "./tools.mjs";
 import { makeInvoker } from "./invoker.mjs";
@@ -30,11 +32,13 @@ export function makeHandler({
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
   const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
+  const resource = new URL("/mcp", issuer).toString();
+  const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
   const unauthorized = () => ({
     statusCode: 401,
     headers: {
       "content-type": "application/json",
-      "www-authenticate": `Bearer resource_metadata="${issuer}/.well-known/oauth-protected-resource"`,
+      "www-authenticate": `Bearer resource_metadata="${resourceMetadata}", scope="${DEFAULT_OAUTH_SCOPE}"`,
     },
     body: JSON.stringify({ error: "invalid_token" }),
   });
@@ -94,8 +98,46 @@ export function makeHandler({
       // API-token users like elixir-bot; audit surface svc:<name>).
       const account = presented.startsWith("svt_")
         ? await validateServiceToken(db, presented)
-        : await validateAccessToken(db, presented);
+        : await validateAccessToken(db, presented, { resource });
       if (!account) return unauthorized();
+      let message;
+      try {
+        message = JSON.parse(rawBody(event));
+      } catch {
+        return {
+          statusCode: 400,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ error: "invalid_json" }),
+        };
+      }
+      if (message?.method === "tools/call" && message.id !== undefined) {
+        const tool = String(message.params?.name ?? "");
+        if (registry.has(tool)) {
+          const requiredScope = registry.requiredScope(tool);
+          if (!account.scopes.includes(requiredScope)) {
+            const challengeScope = normalizeScope(
+              `${account.scope} ${requiredScope}`,
+            );
+            return {
+              statusCode: 403,
+              headers: {
+                "content-type": "application/json",
+                "www-authenticate": `Bearer error="insufficient_scope", scope="${challengeScope}", resource_metadata="${resourceMetadata}"`,
+              },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: message.id ?? null,
+                error: {
+                  code: -32003,
+                  message:
+                    "The access token lacks the capability required by this tool.",
+                  data: { required_scope: requiredScope },
+                },
+              }),
+            };
+          }
+        }
+      }
       const withinRate = await checkRateLimit(db, {
         bucket: `mcp#${account.accountId}`,
         max: HOURLY_RATE_LIMIT,
@@ -105,16 +147,6 @@ export function makeHandler({
           statusCode: 429,
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ error: "rate_limited" }),
-        };
-      }
-      let message;
-      try {
-        message = JSON.parse(rawBody(event));
-      } catch {
-        return {
-          statusCode: 400,
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ error: "invalid_json" }),
         };
       }
       const result = await handleMcpMessage(message, {

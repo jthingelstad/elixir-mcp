@@ -168,6 +168,7 @@ test("account overview renders claims, recording state, and notify switches", as
           {
             family_id: "fam1",
             client_name: "Claude",
+            scope: "cr:read",
             created_at: new Date().toISOString(),
             last_token_at: new Date().toISOString(),
           },

@@ -26,6 +26,7 @@ import {
   validState,
   validCodeChallenge,
   normalizeScope,
+  canonicalResource,
   verifyPkce,
   createAuthCode,
   redeemAuthCode,
@@ -33,6 +34,10 @@ import {
   redeemRefreshToken,
   OAUTH_SCOPES,
 } from "@elixir-mcp/auth";
+import {
+  DEFAULT_OAUTH_SCOPE,
+  OAUTH_SCOPE_DETAILS,
+} from "@elixir-mcp/contracts";
 
 const DCR_GLOBAL_DAILY_CAP = 200;
 
@@ -55,6 +60,7 @@ h1{font-size:1.2rem;color:#f5c944;margin:0 0 .75rem}
 input{width:100%;box-sizing:border-box;padding:.6rem;margin:.5rem 0;background:#10131c;color:#e8e4d8;border:1px solid #2c3450;border-radius:8px;font-size:1rem}
 button{width:100%;padding:.65rem;margin-top:.5rem;background:#f5c944;color:#10131c;border:0;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
 p{font-size:.9rem;color:#a9a493}small{display:block;margin-top:1rem;font-size:.72rem;color:#6d6a5e}
+ul{padding-left:1.25rem;color:#a9a493}li{margin:.45rem 0}li strong{color:#e8e4d8}
 </style></head><body><main>${body}
 <small>This material is unofficial and is not endorsed by Supercell. For more information see Supercell&rsquo;s Fan Content Policy: www.supercell.com/fan-content-policy.</small>
 </main></body></html>`;
@@ -104,12 +110,25 @@ function hiddenAuthFields(q) {
     "code_challenge",
     "code_challenge_method",
     "scope",
+    "resource",
   ]
     .map((k) => `<input type="hidden" name="${k}" value="${esc(q[k] ?? "")}">`)
     .join("");
 }
 
-async function validatedAuthRequest(db, q) {
+function consentCapabilities(scope) {
+  const granted = new Set(scope.split(" "));
+  return `<ul>${OAUTH_SCOPE_DETAILS.filter(({ scope: value }) =>
+    granted.has(value),
+  )
+    .map(
+      ({ title, description }) =>
+        `<li><strong>${esc(title)}</strong> — ${esc(description)}</li>`,
+    )
+    .join("")}</ul>`;
+}
+
+async function validatedAuthRequest(db, q, expectedResource) {
   const client = await getClient(db, q.client_id);
   if (!client) return { error: "unknown client_id" };
   const redirectUri = validRedirectUri(q.redirect_uri);
@@ -120,17 +139,21 @@ async function validatedAuthRequest(db, q) {
   const codeChallenge = validCodeChallenge(q.code_challenge);
   if (!codeChallenge) return { error: "invalid code_challenge" };
   const scope = normalizeScope(q.scope);
-  if (!scope) return { error: "unsupported scope" };
+  if (!scope) return { error: "invalid_scope" };
+  const resource = canonicalResource(q.resource);
+  if (resource !== expectedResource) return { error: "invalid_target" };
   return {
     client,
     redirectUri,
     codeChallenge,
     scope,
+    resource,
     state: validState(q.state),
   };
 }
 
 export function makeOauthRoutes({ issuer, sendLoginEmail }) {
+  const resource = new URL("/mcp", issuer).toString();
   return {
     async register(db, event) {
       const ip = event.requestContext?.http?.sourceIp ?? "unknown";
@@ -171,7 +194,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
     async authorizeGet(db, event) {
       const q = event.queryStringParameters ?? {};
-      const v = await validatedAuthRequest(db, q);
+      const v = await validatedAuthRequest(db, q, resource);
       if (v.error)
         return html(
           400,
@@ -197,7 +220,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
     async authorizePost(db, event) {
       const form = parseForm(event);
-      const v = await validatedAuthRequest(db, form);
+      const v = await validatedAuthRequest(db, form, resource);
       if (v.error)
         return html(
           400,
@@ -223,6 +246,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
               client_id: v.client.clientId,
               redirect_uri: v.redirectUri,
               scope: v.scope,
+              resource: v.resource,
               state: v.state,
               code_challenge: v.codeChallenge,
             },
@@ -241,7 +265,8 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             "Enter your code",
             `<h1>Check your email</h1>
              <p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>
-             <p><strong>Entering it authorizes ${esc(v.client.clientName)} to read your recorded Clash Royale data.</strong></p>
+             <p><strong>Entering it authorizes ${esc(v.client.clientName)} to:</strong></p>
+             ${consentCapabilities(v.scope)}
              <form method="post" action="/oauth/authorize">
                <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
                <input type="hidden" name="email" value="${esc(form.email)}">
@@ -264,6 +289,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           !account ||
           ctx.client_id !== v.client.clientId ||
           ctx.redirect_uri !== v.redirectUri ||
+          ctx.resource !== v.resource ||
           ctx.code_challenge !== v.codeChallenge
         ) {
           return html(
@@ -279,6 +305,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           accountId: account.account_id,
           redirectUri: v.redirectUri,
           scope: ctx.scope,
+          resource: ctx.resource,
           codeChallenge: v.codeChallenge,
         });
         const url = new URL(v.redirectUri);
@@ -296,6 +323,9 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
     async token(db, event) {
       const form = parseForm(event);
+      const requestedResource = canonicalResource(form.resource);
+      if (requestedResource !== resource)
+        return json(400, { error: "invalid_target" });
       const clientId = String(form.client_id ?? "");
       const client = await getClient(db, clientId);
       if (!client) return json(400, { error: "invalid_client" });
@@ -306,12 +336,15 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           return json(400, { error: "invalid_grant" });
         if (redeemed.redirectUri !== String(form.redirect_uri ?? ""))
           return json(400, { error: "invalid_grant" });
+        if (redeemed.resource !== requestedResource)
+          return json(400, { error: "invalid_target" });
         if (!verifyPkce(form.code_verifier, redeemed.codeChallenge))
           return json(400, { error: "invalid_grant" });
         const tokens = await mintTokens(db, {
           clientId,
           accountId: redeemed.accountId,
           scope: redeemed.scope,
+          resource: redeemed.resource,
         });
         return json(200, {
           access_token: tokens.accessToken,
@@ -325,7 +358,10 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         const result = await redeemRefreshToken(db, {
           refreshToken: form.refresh_token,
           clientId,
+          resource: requestedResource,
         });
+        if (result.status === "invalid_target")
+          return json(400, { error: "invalid_target" });
         if (result.status !== "ok")
           return json(400, { error: "invalid_grant" });
         return json(200, {
@@ -333,6 +369,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           refresh_token: result.tokens.refreshToken,
           token_type: "Bearer",
           expires_in: result.tokens.expiresIn,
+          scope: result.tokens.scope,
         });
       }
       return json(400, { error: "unsupported_grant_type" });
@@ -362,7 +399,9 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         {
           resource: `${issuer}/mcp`,
           authorization_servers: [issuer],
-          scopes_supported: OAUTH_SCOPES,
+          // The initial challenge is deliberately read-only. General MCP
+          // clients can step up from a per-tool insufficient_scope response.
+          scopes_supported: [DEFAULT_OAUTH_SCOPE],
           bearer_methods_supported: ["header"],
         },
         { "cache-control": "public, max-age=300" },

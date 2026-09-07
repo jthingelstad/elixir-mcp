@@ -5,8 +5,28 @@ the [Clash Royale API agent docs](https://github.com/jthingelstad/cr-agent-api-d
 outline the game's surface — plus two groups of our own. The same
 grouping rides each tool's title (`Players · Player profile`), so
 clients that list tools alphabetically cluster them. Write tools all
-live in the Elixir MCP group (feedback and the two add tools);
-only **Live CR API fetch** reaches outside the recorded corpus.
+carry an explicit OAuth capability; only **Live CR API fetch** reaches
+outside the recorded corpus.
+
+## Authorization capabilities
+
+The connection page lists these before you enter your sign-in code.
+Every OAuth grant includes `cr:read`; the others are added only when the
+client requests them. If a connected agent needs a capability it does
+not have, Elixir MCP refuses the call and asks the client to reconnect
+for that specific permission.
+
+- `cr:read` — every read-only tool, including the live-fetch allowance
+- `recordings:write` — add or remove players and clans
+- `collections:write` — change membership in collections you own
+- `account:write` — change private nicknames and advance the event cursor
+- `feedback:write` — file attributed feedback
+
+Existing connections created before this boundary shipped remain
+`cr:read`-only because that is what their original consent page
+promised. Owner-issued service tokens are different: they are
+full-capability administrative credentials for trusted headless
+integrations, shown once and revocable from the console.
 
 ## Players
 
@@ -78,6 +98,8 @@ River race, current and historical.
   owner-published groupings: pros, creators, clan families.
 - **Collection members** (`collections_get`) — one collection's members,
   enriched; fan into the player tools per tag from there.
+- **Edit a collection** (`collections_edit`) — change membership in a
+  collection you own; requires `collections:write`.
 
 ## Cards
 

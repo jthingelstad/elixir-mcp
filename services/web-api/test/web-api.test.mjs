@@ -535,6 +535,11 @@ test("connections: list shows OAuth families; revoke disconnects; others' famili
   );
   assert.equal(list.connections.length, 1);
   assert.equal(list.connections[0].client_name, "Claude");
+  assert.equal(
+    list.connections[0].scope,
+    "cr:read",
+    "legacy/default families are visibly read-only",
+  );
 
   // The owner cannot revoke someone else's family through this route.
   const ownerCookie = bossCookie;
@@ -753,6 +758,14 @@ test("service tokens: owner issues, token validates at the MCP door, revoke kill
   assert.ok(who, "token validates");
   assert.equal(who.serviceName, "elixir-bot");
   assert.equal(who.isOwner, true);
+  assert.equal(who.credentialType, "service");
+  assert.deepEqual(who.scopes, [
+    "cr:read",
+    "recordings:write",
+    "collections:write",
+    "account:write",
+    "feedback:write",
+  ]);
 
   const list = parse(
     await handler(

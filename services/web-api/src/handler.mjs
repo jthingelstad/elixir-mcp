@@ -480,7 +480,7 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select f.family_id, c.client_name, f.created_at, f.absolute_expires_at,
+        `select f.family_id, c.client_name, f.scope, f.created_at, f.absolute_expires_at,
                 (select max(t.created_at) from oauth_token t
                  where t.family_id = f.family_id) as last_token_at
          from oauth_family f join oauth_client c on c.client_id = f.client_id
