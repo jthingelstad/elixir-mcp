@@ -321,6 +321,46 @@ test("audit rows land for success and failure alike", async () => {
   );
 });
 
+// --------------------------------------------------------------- #30
+test("an oversized call cannot delete its own audit row", async () => {
+  // The client picks the length. Under the old slice(0, 4000) this cut
+  // mid-string, Postgres refused the fragment as invalid jsonb, and the
+  // catch swallowed it - so choosing this length erased the evidence.
+  const huge = "#2PP".padEnd(9000, "Q");
+  const before = await db.query(
+    `select count(*)::int as n from mcp_call_audit where account_id = $1`,
+    [account.accountId],
+  );
+  const res = await callTool("battles_query", {
+    player_tag: huge,
+    limit: 5,
+  });
+  assert.ok(res.isError, "the call itself is still refused");
+
+  const after = await db.query(
+    `select count(*)::int as n from mcp_call_audit where account_id = $1`,
+    [account.accountId],
+  );
+  assert.equal(after.rows[0].n, before.rows[0].n + 1, "the row landed");
+
+  // And it is real jsonb: Postgres itself reads inside it.
+  const { rows } = await db.query(
+    `select tool,
+            args -> '_audit' ->> 'truncated' as truncated,
+            (args -> '_audit' ->> 'original_bytes')::int as original_bytes,
+            args -> '_audit' ->> 'sha256' as sha256,
+            args ->> 'limit' as kept_limit
+     from mcp_call_audit
+     where account_id = $1 order by audit_id desc limit 1`,
+    [account.accountId],
+  );
+  assert.equal(rows[0].tool, "battles_query");
+  assert.equal(rows[0].truncated, "true");
+  assert.ok(rows[0].original_bytes > 9000);
+  assert.match(rows[0].sha256, /^[0-9a-f]{64}$/);
+  assert.equal(rows[0].kept_limit, "5", "small fields survive the cut");
+});
+
 test("local time helpers: DST-aware day bounds", () => {
   const { start, end } = localDayRange(
     "America/Chicago",

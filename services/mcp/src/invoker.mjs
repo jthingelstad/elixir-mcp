@@ -6,11 +6,81 @@
  * boundary) and still audit.
  */
 
+import { createHash } from "node:crypto";
 import { responseMeta } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./protocol.mjs";
 
-const MAX_AUDIT_ARG_CHARS = 4000;
+const MAX_AUDIT_ARG_BYTES = 4000;
+
+/** Nothing in the tool surface is named any of these, and nothing
+ *  should be: an audit row is evidence, not a place for a credential to
+ *  turn up because some future tool took one as an argument. Checked by
+ *  key name before anything is serialized. */
+const REDACTED_KEYS =
+  /^(token|secret|password|passwd|authorization|bearer|api_?key|credential|code|session)$/i;
+
+function redactArgs(value) {
+  if (Array.isArray(value)) return value.map(redactArgs);
+  if (value === null || typeof value !== "object") return value;
+  const out = {};
+  for (const [k, v] of Object.entries(value))
+    out[k] = REDACTED_KEYS.test(k) ? "[redacted]" : redactArgs(v);
+  return out;
+}
+
+/**
+ * Bound the arguments to something that is ALWAYS valid jsonb.
+ *
+ * This used to be JSON.stringify(args).slice(0, 4000), which cuts
+ * wherever 4,000 characters happen to land — usually mid-string or
+ * mid-object. Postgres rejected the fragment, the insert threw, and the
+ * catch below swallowed it, so a caller could pick an argument length
+ * that made its own audit row disappear (issue #30).
+ *
+ * Oversized calls keep as much as fits rather than collapsing to a
+ * hash: top-level fields are kept in order while they fit, and the
+ * envelope names what was dropped and pins the whole original with a
+ * digest, so two identical oversized calls are still recognisable as
+ * the same call.
+ */
+export function boundedArgs(args) {
+  const source = redactArgs(args ?? {});
+  const whole = JSON.stringify(source ?? {});
+  const bytes = Buffer.byteLength(whole);
+  if (bytes <= MAX_AUDIT_ARG_BYTES) return source ?? {};
+
+  const digest = createHash("sha256").update(whole).digest("hex");
+  const envelope = {
+    truncated: true,
+    original_bytes: bytes,
+    sha256: digest,
+    dropped_keys: [],
+  };
+  // An oversized array or scalar has no fields to keep - the envelope
+  // alone is the record, and it is still valid jsonb.
+  if (source === null || typeof source !== "object" || Array.isArray(source))
+    return { _audit: envelope };
+
+  const kept = {};
+  const dropped = [];
+  // Reserve room for the envelope itself so the result cannot exceed
+  // the budget by describing how it exceeded the budget.
+  let budget = MAX_AUDIT_ARG_BYTES - 512;
+  for (const [k, v] of Object.entries(source ?? {})) {
+    const cost = Buffer.byteLength(JSON.stringify({ [k]: v })) + 1;
+    if (cost <= budget) {
+      kept[k] = v;
+      budget -= cost;
+    } else {
+      dropped.push(k);
+    }
+  }
+  return {
+    ...kept,
+    _audit: { ...envelope, dropped_keys: dropped.slice(0, 32) },
+  };
+}
 
 async function audit(
   db,
@@ -33,15 +103,18 @@ async function audit(
         accountId,
         surface,
         tool,
-        JSON.stringify(args ?? {}).slice(0, MAX_AUDIT_ARG_CHARS),
+        JSON.stringify(boundedArgs(args)),
         Date.now() - startedAt,
         resultBytes ?? null,
         truncated ?? false,
         errorCode ?? null,
       ],
     );
-  } catch {
-    // Telemetry must never break serving (house rule).
+  } catch (err) {
+    // Telemetry must never break serving (house rule) — but a durable
+    // audit that failed is itself the thing worth knowing, and this
+    // used to be a silent hole. Say so, and keep serving.
+    console.error("audit_write_failed", tool, surface, err?.message);
   }
 }
 
