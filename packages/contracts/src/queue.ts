@@ -48,6 +48,11 @@ export interface EmailMessage {
   client_name?: string;
   /** owner_notify: what happened. */
   note?: string;
+  /** login: the account has affirmatively opted in to the newsletter, so
+   *  this send is also its enrollment moment. Absent/false means send the
+   *  mail and enroll nothing (issue #27) - authenticating is not consent
+   *  to marketing, and the relay has no database to ask. */
+  newsletter?: boolean;
 }
 
 const EMAIL_KINDS = new Set(["login", "welcome", "owner_notify"]);

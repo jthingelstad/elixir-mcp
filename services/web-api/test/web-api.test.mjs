@@ -1717,3 +1717,70 @@ test("removing a clan you added leaves a collection's clan recording alone", asy
   assert.equal(parse(gone).recording_stopped, true);
   assert.equal(await active(), 0);
 });
+
+// --------------------------------------------------------------- #27
+test("the newsletter is an affirmative choice, not a side effect of signing in", async () => {
+  const READER = "newsletter@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')`,
+    [emailHash(READER)],
+  );
+  const cookie = await signIn(READER, "203.0.113.27");
+
+  // Default off. The sign-in that just happened enrolled nothing: the
+  // relay only enrolls a login stamped newsletter:true.
+  const me = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+    ),
+  );
+  assert.equal(me.newsletter_opt_in, false, "nobody is opted in by default");
+  assert.equal(
+    sentEmails.at(-1).newsletter,
+    false,
+    "authenticating is not a marketing choice",
+  );
+
+  // The choice is made here, and only here.
+  const on = await handler(
+    event({ path: "/api/me/newsletter", cookie, body: { opt_in: true } }),
+  );
+  assert.equal(parse(on).newsletter_opt_in, true);
+  const me2 = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+    ),
+  );
+  assert.equal(me2.newsletter_opt_in, true);
+
+  // Now a login send carries the enrollment moment with it.
+  await handler(
+    event({ path: "/api/auth", body: { email: READER }, ip: "203.0.113.27" }),
+  );
+  assert.equal(sentEmails.at(-1).newsletter, true, "opted in, so enroll");
+
+  // And turning it back off stops future enrollment.
+  await handler(
+    event({ path: "/api/me/newsletter", cookie, body: { opt_in: false } }),
+  );
+  await handler(
+    event({ path: "/api/auth", body: { email: READER }, ip: "203.0.113.27" }),
+  );
+  assert.equal(sentEmails.at(-1).newsletter, false, "opted out stays out");
+
+  // The switch is a boolean, and it is CSRF-protected like every other
+  // cookie-authed mutation.
+  const bad = await handler(
+    event({ path: "/api/me/newsletter", cookie, body: { opt_in: "yes" } }),
+  );
+  assert.equal(bad.statusCode, 400);
+  const noHeader = await handler(
+    event({
+      path: "/api/me/newsletter",
+      cookie,
+      contractHeader: false,
+      body: { opt_in: true },
+    }),
+  );
+  assert.equal(noHeader.statusCode, 401);
+});

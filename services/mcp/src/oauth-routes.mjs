@@ -256,6 +256,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             code,
             purpose: "oauth",
             clientName: v.client.clientName,
+            newsletter: account.newsletter_opt_in === true,
           });
         }
         // Identical page whether or not anything was sent — never an oracle.

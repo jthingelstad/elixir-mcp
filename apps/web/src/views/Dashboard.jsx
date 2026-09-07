@@ -561,6 +561,7 @@ function Overview({ me, refresh, navigate }) {
           </div>
         </section>
         <Timezone me={me} refresh={refresh} />
+        <Newsletter me={me} refresh={refresh} />
       </div>
     </div>
   );
@@ -716,6 +717,39 @@ function Timezone({ me, refresh }) {
       <div className="panel__note">
         Storage stays UTC; your zone shapes date windows and local times in tool
         responses.
+      </div>
+    </section>
+  );
+}
+
+/** The newsletter is opt-in and off by default (issue #27): signing in
+ *  is not a marketing choice, so the only thing that enrolls an address
+ *  is this switch. Transactional mail — sign-in codes, account notices —
+ *  is service mail and is not governed here. */
+function Newsletter({ me, refresh }) {
+  const optedIn = me.newsletter_opt_in === true;
+  return (
+    <section className="panel">
+      <div className="panel__head">
+        <span className="panel-title">Newsletter</span>
+      </div>
+      <div className="panel__body">
+        <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <input
+            type="checkbox"
+            checked={optedIn}
+            onChange={async (e) => {
+              await api.setNewsletter(e.target.checked);
+              refresh();
+            }}
+          />
+          Send me occasional product updates
+        </label>
+      </div>
+      <div className="panel__note">
+        Off unless you ask for it. Sign-in codes and account notices are service
+        mail and arrive either way. Already subscribed? Unsubscribe from any
+        issue — we never re-add an address that opted out.
       </div>
     </section>
   );

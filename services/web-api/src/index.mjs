@@ -87,8 +87,8 @@ function notifyOwner({ kind, playerTag, emailHash }) {
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
   secret: process.env.SESSION_SECRET,
-  sendLoginEmail: ({ email, code, token }) =>
-    enqueueEmail({ v: 1, kind: "login", to: email, code, token }),
+  sendLoginEmail: ({ email, code, token, newsletter }) =>
+    enqueueEmail({ v: 1, kind: "login", to: email, code, token, newsletter }),
   // The template has existed since the gate shipped and nothing ever
   // queued it; approval mailed the owner instead.
   sendWelcomeEmail: ({ email }) =>

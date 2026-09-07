@@ -30,14 +30,19 @@ export function makeHandler({ send, track = null, enroll = null }) {
           } else {
             const { subject, text } = renderEmail(validated.msg);
             await send({ to: validated.msg.to, subject, text });
-            // Mailing list (Drop's model): a login email only ever goes
-            // to an APPROVED account, so its send is the enrollment
-            // moment — the list mirrors people who actually sign in.
-            // Best-effort AFTER the send: an enrollment failure must
-            // never retry the batch (that would resend the login email)
-            // and Buttondown's own unsubscribe state is never fought —
-            // an existing address (HTTP 400) is left exactly as it is.
-            if (validated.msg.kind === "login" && enroll) {
+            // Mailing list: enrollment rides a login send, but only
+            // when the ACCOUNT opted in — the enqueuing VPC Lambda has
+            // the database and stamps msg.newsletter (issue #27).
+            // Signing in is not an affirmative marketing choice, so an
+            // unflagged login enrolls nothing. Best-effort AFTER the
+            // send: an enrollment failure must never retry the batch
+            // (that would resend the login email) and Buttondown's own
+            // unsubscribe state is never fought.
+            if (
+              validated.msg.kind === "login" &&
+              validated.msg.newsletter &&
+              enroll
+            ) {
               try {
                 await enroll(validated.msg.to);
               } catch (err) {

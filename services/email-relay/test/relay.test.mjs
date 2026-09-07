@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { makeJmapSender } from "../src/jmap.mjs";
 import { renderEmail } from "../src/templates.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import { makeButtondownEnroller } from "../src/index.mjs";
 
 function fakeJmapServer() {
   const calls = [];
@@ -173,7 +174,7 @@ test("analytics pings: batched to track, best-effort, never dead-lettered", asyn
   assert.deepEqual(out2.batchItemFailures, [], "outage never dead-letters");
 });
 
-test("login sends enroll the address in the mailing list; failures never resend", async () => {
+test("only an opted-in login enrolls; failures never resend (#27)", async () => {
   const sent = [];
   const enrolled = [];
   const handler = makeHandler({
@@ -183,8 +184,24 @@ test("login sends enroll the address in the mailing list; failures never resend"
   const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
   const out = await handler({
     Records: [
-      rec("a", { v: 1, kind: "login", to: "member@x.com", code: "123456" }),
-      rec("b", {
+      // The opted-in account: this send IS the enrollment moment.
+      rec("a", {
+        v: 1,
+        kind: "login",
+        to: "yes@x.com",
+        code: "123456",
+        newsletter: true,
+      }),
+      // Signing in is not a marketing choice. Mail goes, list untouched.
+      rec("b", { v: 1, kind: "login", to: "no@x.com", code: "222222" }),
+      rec("c", {
+        v: 1,
+        kind: "login",
+        to: "off@x.com",
+        code: "333333",
+        newsletter: false,
+      }),
+      rec("d", {
         v: 1,
         kind: "owner_notify",
         to: "elixir@poapkings.com",
@@ -193,8 +210,12 @@ test("login sends enroll the address in the mailing list; failures never resend"
     ],
   });
   assert.deepEqual(out.batchItemFailures, []);
-  assert.equal(sent.length, 2);
-  assert.deepEqual(enrolled, ["member@x.com"], "only login recipients enroll");
+  assert.equal(sent.length, 4, "every message still sends");
+  assert.deepEqual(
+    enrolled,
+    ["yes@x.com"],
+    "only the account that asked for it is enrolled",
+  );
 
   // A Buttondown outage never fails the batch - retrying would RESEND
   // the login email for a side effect that self-heals at next sign-in.
@@ -206,9 +227,51 @@ test("login sends enroll the address in the mailing list; failures never resend"
   });
   const out2 = await boom({
     Records: [
-      rec("c", { v: 1, kind: "login", to: "member2@x.com", code: "654321" }),
+      rec("e", {
+        v: 1,
+        kind: "login",
+        to: "member2@x.com",
+        code: "654321",
+        newsletter: true,
+      }),
     ],
   });
   assert.deepEqual(out2.batchItemFailures, [], "enroll failure never retries");
   assert.equal(sent.at(-1).to, "member2@x.com", "the login email still sent");
+});
+
+test("Buttondown 400 is read, not assumed to mean 'already subscribed' (#27)", async () => {
+  const enroller = (status, body) =>
+    makeButtondownEnroller({
+      token: "t",
+      fetchImpl: async () => ({
+        ok: status >= 200 && status < 300,
+        status,
+        json: async () => body,
+      }),
+    });
+
+  // The benign 400: the address is on the list, possibly unsubscribed.
+  // Leave it exactly as it is - never fight the list's own state.
+  await enroller(400, { code: "email_already_exists" })("a@x.com");
+  await enroller(400, { code: "weird_rename", detail: "Already subscribed." })(
+    "b@x.com",
+  );
+
+  // Every other 400 used to be swallowed as success, so a validation
+  // error or a changed schema enrolled nobody and said nothing.
+  await assert.rejects(
+    () => enroller(400, { code: "invalid_email" })("bad@@x.com"),
+    /buttondown 400/,
+    "a validation error is not an enrollment",
+  );
+  await assert.rejects(
+    () => enroller(400, null)("c@x.com"),
+    /buttondown 400/,
+    "an unreadable 400 is reported, not assumed benign",
+  );
+  await assert.rejects(() => enroller(500, {})("d@x.com"), /buttondown 500/);
+
+  // No token configured: enrollment is simply not wired.
+  assert.equal(makeButtondownEnroller({ token: "" }), null);
 });

@@ -230,7 +230,15 @@ export function makeHandler({
             emailHash: emailHash(email),
             purpose: "web",
           });
-          await sendLoginEmail({ email, code, token, purpose: "web" });
+          await sendLoginEmail({
+            email,
+            code,
+            token,
+            purpose: "web",
+            // Enrollment is the account's own affirmative choice, read
+            // here because the relay has no database (issue #27).
+            newsletter: account.newsletter_opt_in === true,
+          });
         }
       }
       return json(200, {
@@ -284,6 +292,7 @@ export function makeHandler({
       ]);
       const { rows: ent } = await db.query(
         `select a.role, a.max_player_recordings, a.mcp_daily_quota, a.live_daily_quota,
+                a.newsletter_opt_in,
                 exists (select 1 from gateway g
                         where g.owner_account_id = $1 and g.status = 'active') as operator,
                 (select count(*)::int from claim c
@@ -305,6 +314,7 @@ export function makeHandler({
         is_owner: account.isOwner,
         is_admin: account.isAdmin,
         timezone: account.timezone,
+        newsletter_opt_in: e.newsletter_opt_in === true,
         role: e.role,
         entitlements: {
           operator_bonus_applied:
@@ -362,6 +372,30 @@ export function makeHandler({
         tz,
       ]);
       return json(200, { ok: true, timezone: tz });
+    },
+
+    // The newsletter is a choice you make here, never a side effect of
+    // signing in (issue #27). Turning it off stops us enrolling the
+    // address; an address already on the list unsubscribes through the
+    // list's own link, which we have never overridden.
+    "POST /api/me/newsletter": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (typeof body.opt_in !== "boolean")
+        return json(400, {
+          error: "bad_request",
+          message: "opt_in must be true or false.",
+        });
+      await db.query(
+        `update account set newsletter_opt_in = $2 where account_id = $1`,
+        [account.accountId, body.opt_in],
+      );
+      await logEvent(db, account.accountId, "newsletter_changed", {
+        opt_in: body.opt_in,
+      });
+      return json(200, { ok: true, newsletter_opt_in: body.opt_in });
     },
 
     "POST /api/claims": async (db, event, body) => {

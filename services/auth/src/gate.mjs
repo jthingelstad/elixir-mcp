@@ -71,8 +71,8 @@ export async function decideAccess(db, { emailHash, decision, actorRole }) {
 
 export async function approvedAccount(db, emailHash) {
   const { rows } = await db.query(
-    `select account_id, email_hash, is_owner, timezone from account
-     where email_hash = $1 and status = 'approved'`,
+    `select account_id, email_hash, is_owner, timezone, newsletter_opt_in
+     from account where email_hash = $1 and status = 'approved'`,
     [emailHash],
   );
   return rows[0] ?? null;
