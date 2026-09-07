@@ -364,13 +364,22 @@ therefore fires up to well over an hour AFTER the season itself rolls. Do not tr
 - **In a Colosseum week EVERY clan carries the sentinel, rank 1 included.** Colosseum has no finish line — it scores war
   points across all four battle days with no completion condition to hit — so no entry in that week's standings has a
   real `finishTime`. Code that reads "the rank-1 `finishTime`" as the race-close anchor gets epoch zero on exactly the
-  week that ends a season. Observed on `#J2RGCRVG`, Season 135 (2026-09-07):
+  week that ends a season. Clean across 10 consecutive weeks of `#J2RGCRVG` (`riverracelog`, 2026-09-07) - every
+  Colosseum week all-sentinel, every normal week not:
 
-  | week            | rank-1 `finishTime`      | ranks 2-5 |
-  | --------------- | ------------------------ | --------- |
-  | sec2 (normal)   | `20260823T093404.000Z`   | sentinel  |
-  | sec3 (normal)   | `20260830T093404.000Z`   | sentinel  |
-  | sec4 (Colosseum)| sentinel                 | sentinel  |
+  | week      | Colosseum (`trophyChange` 100) | rank-1 `finishTime`    | all five sentinel |
+  | --------- | ------------------------------ | ---------------------- | ----------------- |
+  | S135 sec4 | yes                            | sentinel               | yes               |
+  | S135 sec3 | no                             | `20260830T093404.000Z` | no                |
+  | S135 sec2 | no                             | `20260823T093404.000Z` | no                |
+  | S135 sec1 | no                             | `20260816T093404.000Z` | no                |
+  | S135 sec0 | no                             | `20260809T093404.000Z` | no                |
+  | S134 sec3 | yes                            | sentinel               | yes               |
+  | S134 sec2 | no                             | `20260726T093003.000Z` | no                |
+  | S133 sec4 | yes                            | sentinel               | yes               |
+
+  A `trophyChange` magnitude of 100 on the standings entries is a reliable Colosseum marker and predicts the
+  all-sentinel case.
 - **Member roles observed:** `member`, `elder`, `coLeader`, `leader`
 - **Participant counts:** River race participants can exceed the current member count (includes players who left the
   clan during the race)
