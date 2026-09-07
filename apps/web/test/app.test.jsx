@@ -14,7 +14,14 @@ function mockFetch(routes) {
     const route = routes[key];
     if (!route) throw new Error(`unmocked fetch: ${key}`);
     const [status, body] = typeof route === "function" ? route(init) : route;
-    return { ok: status < 400, status, json: async () => body };
+    // The client reads the body as text and parses it itself, so a
+    // response that is not JSON can never be mistaken for success.
+    return {
+      ok: status < 400,
+      status,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
   });
 }
 
@@ -232,4 +239,37 @@ test("the tab title names the page, most specific part first", async () => {
   expect(t("/explore/player/%2320JJJ2CCRU")).toBe(
     "#20JJJ2CCRU - Explore - Elixir MCP",
   );
+});
+
+test("an HTML body is a failure however it is numbered", async () => {
+  // #20: the distribution rewrote API 403/404 into a 200 app shell, and
+  // this client's `res.json().catch(() => ({}))` turned that into
+  // {ok:true,status:200,data:{}} — a refusal read as success. The edge
+  // no longer does it; the client no longer accepts it either.
+  const { api } = await import("../src/api.js");
+  global.fetch = vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => {
+      throw new SyntaxError("Unexpected token <");
+    },
+    text: async () => "<!doctype html><html><body>app shell</body></html>",
+  }));
+  const res = await api.adminRequests();
+  expect(res.ok).toBe(false);
+  expect(res.error).toBe("bad_response");
+  expect(res.data).toEqual({});
+});
+
+test("an empty body is still a success", async () => {
+  const { api } = await import("../src/api.js");
+  global.fetch = vi.fn(async () => ({
+    ok: true,
+    status: 204,
+    json: async () => ({}),
+    text: async () => "",
+  }));
+  const res = await api.signOut();
+  expect(res.ok).toBe(true);
+  expect(res.data).toEqual({});
 });

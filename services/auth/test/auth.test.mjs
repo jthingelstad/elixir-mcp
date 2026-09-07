@@ -79,9 +79,120 @@ test("access gate: request -> pending -> approve; duplicates are quiet", async (
   const decided = await decideAccess(db, {
     emailHash: JAMIE,
     decision: "approved",
+    actorRole: "owner",
   });
   assert.equal(decided.status, "approved");
   assert.ok(await approvedAccount(db, JAMIE));
+});
+
+test("access decisions obey the role hierarchy, not just isAdmin", async () => {
+  const OWNER = emailHash("hierarchy-owner@example.com");
+  const ADMIN = emailHash("hierarchy-admin@example.com");
+  const OTHER_ADMIN = emailHash("hierarchy-admin-two@example.com");
+  const MEMBER = emailHash("hierarchy-member@example.com");
+  for (const [hash, role] of [
+    [OWNER, "owner"],
+    [ADMIN, "admin"],
+    [OTHER_ADMIN, "admin"],
+    [MEMBER, "member"],
+  ]) {
+    await requestAccess(db, { emailHash: hash });
+    await db.query(
+      `update account set role = $2, status = 'approved',
+         is_owner = ($2 = 'owner') where email_hash = $1`,
+      [hash, role],
+    );
+  }
+
+  // The reported break: an admin denying the owner out of the service.
+  const atOwner = await decideAccess(db, {
+    emailHash: OWNER,
+    decision: "denied",
+    actorRole: "admin",
+  });
+  assert.equal(atOwner.refused, "owner_protected");
+  assert.ok(await approvedAccount(db, OWNER), "owner keeps their access");
+
+  // Nor may an admin unseat a peer.
+  const atPeer = await decideAccess(db, {
+    emailHash: OTHER_ADMIN,
+    decision: "denied",
+    actorRole: "admin",
+  });
+  assert.equal(atPeer.refused, "admin_protected");
+  assert.ok(await approvedAccount(db, OTHER_ADMIN));
+
+  // Re-approval is the same power and is refused the same way.
+  await db.query(`update account set status = 'denied' where email_hash = $1`, [
+    OTHER_ADMIN,
+  ]);
+  assert.equal(
+    (
+      await decideAccess(db, {
+        emailHash: OTHER_ADMIN,
+        decision: "approved",
+        actorRole: "admin",
+      })
+    ).refused,
+    "admin_protected",
+    "an admin cannot re-approve a peer either",
+  );
+
+  // Not even the owner may deny the owner: availability outranks it.
+  assert.equal(
+    (
+      await decideAccess(db, {
+        emailHash: OWNER,
+        decision: "denied",
+        actorRole: "owner",
+      })
+    ).refused,
+    "owner_protected",
+  );
+
+  // The owner still governs admins, and admins still govern members.
+  assert.equal(
+    (
+      await decideAccess(db, {
+        emailHash: OTHER_ADMIN,
+        decision: "approved",
+        actorRole: "owner",
+      })
+    ).status,
+    "approved",
+  );
+  assert.equal(
+    (
+      await decideAccess(db, {
+        emailHash: MEMBER,
+        decision: "denied",
+        actorRole: "admin",
+      })
+    ).status,
+    "denied",
+    "ordinary moderation is untouched",
+  );
+
+  // A non-console caller decides nothing, whatever the route thought.
+  assert.equal(
+    (
+      await decideAccess(db, {
+        emailHash: MEMBER,
+        decision: "approved",
+        actorRole: "family",
+      })
+    ).refused,
+    "not_entitled",
+  );
+  // And an unknown target is still absent, not refused.
+  assert.equal(
+    await decideAccess(db, {
+      emailHash: emailHash("nobody@example.com"),
+      decision: "approved",
+      actorRole: "owner",
+    }),
+    null,
+  );
 });
 
 test("magic link: single-use, races lose the second redemption", async () => {

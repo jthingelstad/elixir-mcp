@@ -13,6 +13,8 @@ import {
   addPlayer,
   removePlayer,
   setCollectionMembers,
+  reconcileCollection,
+  deleteCollection,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -558,4 +560,179 @@ test("a clan collection records clans at its chosen depth", async () => {
     [CLAN],
   );
   assert.equal(rows[0].origin, "collection");
+});
+
+// --------------------------------------------------------------- #17
+test("concurrent adds to one collection both survive", async () => {
+  // Reported: two roster-sync calls each read the membership, each
+  // built a whole desired set, and the second one's set deleted the
+  // member the first had just added. Both adds must land.
+  const col = await collection("player", alice);
+  const [ca, cb] = [await conn(), await conn()];
+  const holder = await conn();
+  try {
+    // Hold the collection row so both calls arrive at the lock together.
+    await holder.query("begin");
+    await holder.query(
+      `select collection_id from collection where collection_id = $1 for update`,
+      [col.collectionId],
+    );
+    const both = Promise.all([
+      setCollectionMembers(ca, col, [A], { mode: "add" }),
+      setCollectionMembers(cb, col, [B], { mode: "add" }),
+    ]);
+    await new Promise((r) => setTimeout(r, 250));
+    await holder.query("commit");
+    const results = await both;
+
+    assert.deepEqual(await members(col), [B, A].sort());
+    assert.equal(
+      results.reduce((n, r) => n + r.removed, 0),
+      0,
+      "an add must never remove anybody",
+    );
+    assert.equal(await isRecording(A), true);
+    assert.equal(await isRecording(B), true);
+  } finally {
+    await Promise.all([ca.end(), cb.end(), holder.end()]);
+  }
+});
+
+test("a concurrent add and remove each do only their own half", async () => {
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A, B]);
+  const [ca, cb] = [await conn(), await conn()];
+  const holder = await conn();
+  try {
+    await holder.query("begin");
+    await holder.query(
+      `select collection_id from collection where collection_id = $1 for update`,
+      [col.collectionId],
+    );
+    const both = Promise.all([
+      setCollectionMembers(ca, col, [C], { mode: "add" }),
+      setCollectionMembers(cb, col, [A], { mode: "remove" }),
+    ]);
+    await new Promise((r) => setTimeout(r, 250));
+    await holder.query("commit");
+    await both;
+
+    assert.deepEqual(await members(col), [B, C].sort());
+    assert.equal(await isRecording(A), false, "removed, nothing else wants it");
+    assert.equal(await isRecording(C), true);
+  } finally {
+    await Promise.all([ca.end(), cb.end(), holder.end()]);
+  }
+});
+
+test("set is still a wholesale replacement", async () => {
+  // The delta modes must not blunt what a textarea edit means.
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A, B]);
+  const r = await setCollectionMembers(db, col, [B, C], { mode: "set" });
+  assert.equal(r.added, 1);
+  assert.equal(r.removed, 1);
+  assert.deepEqual(await members(col), [B, C].sort());
+});
+
+// --------------------------------------------------------------- #18
+test("deepening a collection deepens the members it already has", async () => {
+  // Reported: scope became comprehensive on the collection while its
+  // existing members kept recording at activity depth, so the promised
+  // battle history was never captured.
+  const col = await collection("player", alice, "activity");
+  await setCollectionMembers(db, col, [A]);
+  assert.equal(await scopeOf(A), "activity");
+
+  await db.query(
+    `update collection set scope = 'comprehensive' where collection_id = $1`,
+    [col.collectionId],
+  );
+  const r = await reconcileCollection(db, col.collectionId);
+  assert.equal(r.found, true);
+  assert.equal(r.members, 1);
+  assert.equal(await scopeOf(A), "comprehensive");
+});
+
+test("reconciling a collection never downgrades or disturbs anyone", async () => {
+  const deep = await collection("player", alice, "comprehensive");
+  const shallow = await collection("player", bob, "activity");
+  await setCollectionMembers(db, deep, [A]);
+  await setCollectionMembers(db, shallow, [A]);
+  assert.equal(await scopeOf(A), "comprehensive");
+  await reconcileCollection(db, shallow.collectionId);
+  assert.equal(
+    await scopeOf(A),
+    "comprehensive",
+    "a shallow collection cannot take depth away",
+  );
+});
+
+test("deepening a clan collection deepens its clans", async () => {
+  const CLAN = "#J2RGCRVG";
+  const col = await collection("clan", alice, "activity");
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [CLAN],
+  );
+  await setCollectionMembers(db, col, [CLAN]);
+  assert.equal(await scopeOf(CLAN, "clan"), "activity");
+  await db.query(
+    `update collection set scope = 'comprehensive' where collection_id = $1`,
+    [col.collectionId],
+  );
+  await reconcileCollection(db, col.collectionId);
+  assert.equal(await scopeOf(CLAN, "clan"), "comprehensive");
+});
+
+// --------------------------------------------------------------- #19
+test("deleting a collection stops what only it was recording", async () => {
+  // Reported: membership cascaded away but the recording stayed active
+  // forever, spending capture budget for a collection that is gone.
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A]);
+  assert.equal(await isRecording(A), true);
+
+  const r = await deleteCollection(db, col.collectionId);
+  assert.equal(r.deleted, true);
+  assert.equal(r.recordingsStopped, 1);
+  assert.equal(await isRecording(A), false);
+  assert.equal(
+    (await db.query(`select count(*)::int as n from collection_member`)).rows[0]
+      .n,
+    0,
+  );
+});
+
+test("deleting a collection leaves subjects somebody else still wants", async () => {
+  const mine = await collection("player", alice);
+  const theirs = await collection("player", bob);
+  await setCollectionMembers(db, mine, [A, B]);
+  await setCollectionMembers(db, theirs, [A]);
+  await addPlayer(db, bob, { tag: C, via: "test" });
+  await setCollectionMembers(db, mine, [A, B, C], { mode: "set" });
+
+  const r = await deleteCollection(db, mine.collectionId);
+  assert.equal(r.deleted, true);
+  assert.equal(await isRecording(A), true, "bob's collection still wants it");
+  assert.equal(await isRecording(B), false, "nothing else wanted it");
+  assert.equal(await isRecording(C), true, "bob claims it");
+});
+
+test("deleting a collection never touches an ops recording", async () => {
+  const col = await collection("player", alice);
+  await setCollectionMembers(db, col, [A]);
+  await db.query(
+    `update recording set origin = 'ops'
+     where subject_tag = $1 and status = 'active'`,
+    [A],
+  );
+  const r = await deleteCollection(db, col.collectionId);
+  assert.equal(r.recordingsStopped, 0);
+  assert.equal(await isRecording(A), true);
+});
+
+test("deleting a collection that is not there is quiet", async () => {
+  const r = await deleteCollection(db, 999999);
+  assert.equal(r.deleted, false);
 });

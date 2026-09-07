@@ -79,13 +79,15 @@ after(async () => {
   await admin.end();
 });
 
-async function signIn(email) {
-  await handler(event({ path: "/api/auth", body: { email } }));
+// The sign-in door is rate limited per IP (10/hour) as well as per
+// email, so a test that needs a fresh identity gets a fresh source IP.
+async function signIn(email, ip = "8.8.4.4") {
+  await handler(event({ path: "/api/auth", body: { email }, ip }));
   const { code } = sentEmails.at(-1);
   const res = await handler(
-    event({ path: "/api/auth/code", body: { email, code } }),
+    event({ path: "/api/auth/code", body: { email, code }, ip }),
   );
-  assert.equal(res.statusCode, 200);
+  assert.equal(res.statusCode, 200, res.body);
   return res.headers["set-cookie"].split(";")[0];
 }
 
@@ -1369,4 +1371,251 @@ test("the address is kept, and sign-in fills it in for older accounts", async ()
     [hash],
   );
   assert.equal(backfilled.rows[0].email, NEWCOMER.toLowerCase());
+});
+
+// --------------------------------------------------------------- #14
+test("an admin cannot deny the owner or a peer out of the service", async () => {
+  // Reported: /api/admin/decide checked only that the ACTOR was an
+  // admin. An admin could read the owner's email hash off
+  // /api/admin/accounts and deny them, revoking a live owner session —
+  // the very move /api/admin/accounts refuses for role changes.
+  const ADMIN = "decide-admin@example.com";
+  const PEER = "decide-peer@example.com";
+  const PLAIN = "decide-plain@example.com";
+  for (const [addr, role] of [
+    [ADMIN, "admin"],
+    [PEER, "admin"],
+    [PLAIN, "member"],
+  ]) {
+    await db.query(
+      `insert into account (email_hash, status, role) values ($1, 'approved', $2)`,
+      [emailHash(addr), role],
+    );
+  }
+  const adminCookie = await signIn(ADMIN, "203.0.113.14");
+
+  const atOwner = await handler(
+    event({
+      path: "/api/admin/decide",
+      cookie: adminCookie,
+      body: { email_hash: emailHash(JAMIE), decision: "denied" },
+    }),
+  );
+  assert.equal(atOwner.statusCode, 403, atOwner.body);
+  assert.equal(parse(atOwner).error, "owner_protected");
+  const { rows: owner } = await db.query(
+    `select status from account where email_hash = $1`,
+    [emailHash(JAMIE)],
+  );
+  assert.equal(owner[0].status, "approved", "the owner keeps their access");
+
+  const atPeer = await handler(
+    event({
+      path: "/api/admin/decide",
+      cookie: adminCookie,
+      body: { email_hash: emailHash(PEER), decision: "denied" },
+    }),
+  );
+  assert.equal(atPeer.statusCode, 403);
+  assert.equal(parse(atPeer).error, "admin_protected");
+
+  // Ordinary moderation is untouched.
+  const atPlain = await handler(
+    event({
+      path: "/api/admin/decide",
+      cookie: adminCookie,
+      body: { email_hash: emailHash(PLAIN), decision: "denied" },
+    }),
+  );
+  assert.equal(atPlain.statusCode, 200);
+  assert.equal(parse(atPlain).status, "denied");
+});
+
+// --------------------------------------------------------------- #16
+test("a losing racer cannot overwrite or publish another account's collection", async () => {
+  // Reported: the ownership precheck ran in its own SELECT while the
+  // upsert's ON CONFLICT had no ownership predicate. Racing another
+  // account's creation of the same slug let the loser rewrite the
+  // winner's row — including flipping it public and exposing members.
+  const OWNER_A = "race-a@example.com";
+  const OWNER_B = "race-b@example.com";
+  for (const addr of [OWNER_A, OWNER_B]) {
+    await db.query(
+      `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
+      [emailHash(addr)],
+    );
+  }
+  const cookieB = await signIn(OWNER_B, "203.0.113.16");
+  const { rows: a } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(OWNER_A)],
+  );
+
+  const other = new pg.Client({ connectionString: DB_URL });
+  await other.connect();
+  try {
+    // A's creation is in flight and holds the slug's unique conflict.
+    await other.query("begin");
+    const { rows: col } = await other.query(
+      `insert into collection (slug, title, kind, owner_account, visibility)
+       values ('contested', 'A private list', 'player', $1, 'private')
+       returning collection_id`,
+      [a[0].account_id],
+    );
+    await other.query(
+      `insert into collection_member (collection_id, subject_tag) values ($1, '#2YG98VVQ')`,
+      [col[0].collection_id],
+    );
+
+    // B's precheck sees nothing committed, so it proceeds to the insert
+    // and blocks there. Let A commit underneath it.
+    const racing = handler(
+      event({
+        path: "/api/me/collections",
+        cookie: cookieB,
+        body: {
+          action: "upsert",
+          slug: "contested",
+          title: "Changed by other account",
+          kind: "player",
+          visibility: "public",
+        },
+      }),
+    );
+    await new Promise((r) => setTimeout(r, 250));
+    await other.query("commit");
+    const res = await racing;
+
+    assert.equal(res.statusCode, 403, res.body);
+    const { rows: after } = await db.query(
+      `select title, visibility, owner_account from collection where slug = 'contested'`,
+    );
+    assert.equal(after[0].title, "A private list", "title untouched");
+    assert.equal(after[0].visibility, "private", "still not published");
+    assert.equal(after[0].owner_account, a[0].account_id);
+  } finally {
+    await other.end();
+  }
+});
+
+// --------------------------------------------------------------- #17
+test("two concurrent adds through the route both keep their member", async () => {
+  const OWNER_C = "route-add@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
+    [emailHash(OWNER_C)],
+  );
+  const cookie = await signIn(OWNER_C, "203.0.113.17");
+  const created = await handler(
+    event({
+      path: "/api/me/collections",
+      cookie,
+      body: {
+        action: "upsert",
+        slug: "roster-sync",
+        title: "Roster",
+        kind: "player",
+      },
+    }),
+  );
+  assert.equal(created.statusCode, 200, created.body);
+
+  const [one, two] = await Promise.all([
+    handler(
+      event({
+        path: "/api/me/collections",
+        cookie,
+        body: { action: "add", slug: "roster-sync", tags: ["#RRR8LP2V"] },
+      }),
+    ),
+    handler(
+      event({
+        path: "/api/me/collections",
+        cookie,
+        body: { action: "add", slug: "roster-sync", tags: ["#QQQ9UV20"] },
+      }),
+    ),
+  ]);
+  assert.equal(one.statusCode, 200);
+  assert.equal(two.statusCode, 200);
+  const { rows: mem } = await db.query(
+    `select m.subject_tag from collection_member m
+     join collection c on c.collection_id = m.collection_id
+     where c.slug = 'roster-sync' order by m.subject_tag`,
+  );
+  assert.deepEqual(
+    mem.map((r) => r.subject_tag).sort(),
+    ["#QQQ9UV20", "#RRR8LP2V"],
+    "an add must never drop the other add's member",
+  );
+
+  // --------------------------------------------------------------- #19
+  // Deleting the collection settles the recordings it was the only
+  // reason for, rather than leaving them scheduled forever.
+  const active = async () =>
+    (
+      await db.query(
+        `select count(*)::int as n from recording
+         where subject_type = 'player' and status = 'active'
+           and subject_tag = any($1::text[])`,
+        [["#RRR8LP2V", "#QQQ9UV20"]],
+      )
+    ).rows[0].n;
+  assert.equal(await active(), 2, "membership means recording");
+  const gone = await handler(
+    event({
+      path: "/api/me/collections",
+      cookie,
+      body: { action: "delete", slug: "roster-sync" },
+    }),
+  );
+  assert.equal(gone.statusCode, 200);
+  assert.equal(await active(), 0, "deleting the collection stopped them");
+});
+
+// --------------------------------------------------------------- #18
+test("raising a collection's scope deepens the members it already has", async () => {
+  const OWNER_D = "scope-up@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
+    [emailHash(OWNER_D)],
+  );
+  const cookie = await signIn(OWNER_D, "203.0.113.18");
+  const upsert = (scope) =>
+    handler(
+      event({
+        path: "/api/me/collections",
+        cookie,
+        body: {
+          action: "upsert",
+          slug: "depth",
+          title: "Depth",
+          kind: "player",
+          scope,
+        },
+      }),
+    );
+  assert.equal((await upsert("activity")).statusCode, 200);
+  await handler(
+    event({
+      path: "/api/me/collections",
+      cookie,
+      body: { action: "add", slug: "depth", tags: ["#9VUP08YL"] },
+    }),
+  );
+  const scopeOf = async () =>
+    (
+      await db.query(
+        `select scope from recording where subject_type = 'player'
+         and subject_tag = '#9VUP08YL' and status = 'active'`,
+      )
+    ).rows[0]?.scope;
+  assert.equal(await scopeOf(), "activity");
+
+  assert.equal((await upsert("comprehensive")).statusCode, 200);
+  assert.equal(
+    await scopeOf(),
+    "comprehensive",
+    "the promise of battle history has to reach the existing member",
+  );
 });

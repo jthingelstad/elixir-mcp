@@ -65,12 +65,15 @@ const EMPTY = {
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (path) => ({
-      ok: true,
-      status: 200,
-      json: async () =>
-        path.includes("gateways") ? { gateways: GATEWAYS } : EMPTY,
-    })),
+    vi.fn(async (path) => {
+      const body = path.includes("gateways") ? { gateways: GATEWAYS } : EMPTY;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
   );
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date("2026-09-06T15:30:00.000Z"));

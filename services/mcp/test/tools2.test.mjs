@@ -707,6 +707,78 @@ test("push lane: implicit subscriptions feed elixir_events; cursor advances; met
   assert.equal(replay.body.events[0].topic, "feedback_responded");
 });
 
+test("a filtered poll never acknowledges another topic's unread event, on any page", async () => {
+  // #13 protected page one. #15: a client following the response's own
+  // next_cursor onto page two searched for skipped events starting from
+  // THAT cursor, which is already past the unread event page one
+  // stopped at — so page two acknowledged exactly what page one saved,
+  // and normal unfiltered polling never showed it again.
+  const { emitFeedEvent } = await import("../src/feed.mjs");
+  await call("elixir_events", {}); // start from a clean cursor
+
+  await emitFeedEvent(db, account.accountId, "feedback_responded", null, {
+    feedback_id: 42,
+    status: "done",
+  });
+  for (const day of [2, 3]) {
+    await emitFeedEvent(db, account.accountId, "war_day_open", null, { day });
+  }
+
+  const page1 = await call("elixir_events", {
+    topics: ["war_day_open"],
+    limit: 1,
+  });
+  assert.equal(page1.body.events.length, 1);
+  assert.equal(page1.body.events[0].topic, "war_day_open");
+  assert.ok(
+    page1.body.seen_through < page1.body.next_cursor,
+    "page one stops short of the unread feedback event",
+  );
+
+  // Follow pagination exactly as the response instructs.
+  const page2 = await call("elixir_events", {
+    topics: ["war_day_open"],
+    limit: 1,
+    since: page1.body.next_cursor,
+  });
+  assert.equal(page2.body.events.length, 1);
+  assert.equal(page2.body.events[0].topic, "war_day_open");
+  assert.ok(
+    page2.body.seen_through < page2.body.next_cursor,
+    "page two must not acknowledge past the unread feedback event either",
+  );
+
+  // The whole point: an ordinary poll still has the feedback reply.
+  const resumed = await call("elixir_events", {});
+  assert.ok(
+    resumed.body.events.some((e) => e.topic === "feedback_responded"),
+    "the unread feedback reply survived a two-page war-only poll",
+  );
+});
+
+test("unfiltered polling and mark_seen:false are unchanged", async () => {
+  const { emitFeedEvent } = await import("../src/feed.mjs");
+  await call("elixir_events", {});
+  await emitFeedEvent(db, account.accountId, "war_day_open", null, { day: 4 });
+  await emitFeedEvent(db, account.accountId, "role_changed", null, {
+    role: "family",
+  });
+
+  // A look that does not mark reports where the account actually
+  // stands, and leaves it there.
+  const peek = await call("elixir_events", { mark_seen: false });
+  assert.equal(peek.body.events.length, 2);
+  const again = await call("elixir_events", { mark_seen: false });
+  assert.equal(again.body.events.length, 2, "nothing was acknowledged");
+  assert.equal(again.body.seen_through, peek.body.seen_through);
+
+  // An unfiltered read acknowledges everything it returned.
+  const read = await call("elixir_events", {});
+  assert.equal(read.body.events.length, 2);
+  assert.equal(read.body.seen_through, read.body.next_cursor);
+  assert.equal((await call("elixir_events", {})).body.events.length, 0);
+});
+
 test("battles_recorded coalesces: one unread row per tag, count accumulates until read", async () => {
   const { emitBattlesRecorded } = await import("../src/feed.mjs");
   // Start from a clean cursor so this test owns its unread window.

@@ -4,6 +4,16 @@
  */
 export const UPDATES = [
   {
+    date: "2026-09-07",
+    title: "Collections keep their promises",
+    body: "A round of fixes to what collections actually do. Raising a collection's scope to comprehensive now deepens the members it already holds, instead of only the ones you add afterwards - so a collection that says it captures battles captures them. Deleting a collection now stops the recordings it was the only reason for, rather than leaving them running for a list that no longer exists. And two roster edits arriving at once no longer overwrite each other, so an add can never quietly drop somebody another add just put in.",
+  },
+  {
+    date: "2026-09-07",
+    title: "The console hierarchy holds everywhere",
+    body: "The admin console has always said that no admin can change the owner's account, or another admin's. The role controls enforced it; the approve/deny control did not, so an admin could deny a privileged account out of the service. Access decisions now answer to the same hierarchy as role changes. Separately, the site's edge was turning API refusals into blank successes: an unauthorized API call came back looking like an empty but successful answer instead of a refusal. Refusals now arrive as refusals.",
+  },
+  {
     date: "2026-09-06",
     title: "Collections collect",
     body: "Putting a player or clan in a collection now records it, for as long as it stays there. Until today a collection was only a list, so curating one recorded nothing and you had to add every subject to your account separately. Each collection also says how deeply to record what it names: everything including battles, or just the surface - a clan's roster, war and standings, or a player's profile. Editing membership is now a single box, one tag per line, and collection descriptions have room for real writing.",

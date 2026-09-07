@@ -320,6 +320,118 @@ export async function removePlayer(db, account, { tag, via }) {
 }
 
 /**
+ * Re-apply a collection's own settings to the members it already has.
+ *
+ * Changing scope from activity to comprehensive changes what the
+ * collection is asking for without changing who is in it. Reconciling
+ * only added/removed tags therefore deepens nobody, and the collection
+ * keeps promising battle history it is not capturing. This reconciles
+ * the membership read under the collection's lock, so it also cannot
+ * miss a member that arrived since the caller last looked.
+ */
+export async function reconcileCollection(db, collectionId) {
+  await db.query("begin");
+  try {
+    const { rows: col } = await db.query(
+      `select collection_id, kind, owner_account from collection
+       where collection_id = $1 for update`,
+      [collectionId],
+    );
+    if (!col[0]) {
+      await db.query("rollback");
+      return { found: false, members: 0, recordingsStarted: 0 };
+    }
+    const { rows: mem } = await db.query(
+      `select subject_tag from collection_member where collection_id = $1`,
+      [collectionId],
+    );
+    const tags = mem.map((r) => r.subject_tag).sort();
+    if (tags.length > 0) {
+      await db.query(
+        `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
+        [tags],
+      );
+    }
+    let started = 0;
+    for (const tag of tags) {
+      const r = await reconcileRecording(
+        db,
+        col[0].kind,
+        tag,
+        col[0].owner_account,
+      );
+      if (r.started) started += 1;
+    }
+    await db.query("commit");
+    return { found: true, members: tags.length, recordingsStarted: started };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/**
+ * Delete a collection and settle what it was keeping alive.
+ *
+ * Membership rows cascade away on their own, but a cascade reconciles
+ * nothing: a subject whose only reason to be recorded was this
+ * collection would stay actively scheduled forever, spending the global
+ * capture budget on a collection that no longer exists. Removing a
+ * member through the ordinary membership path already stops it, so
+ * deleting the parent must reach the same state.
+ *
+ * Subjects still wanted by another collection or by an account claim
+ * keep recording, and operator-owned recordings are never touched —
+ * both of those are reconcileRecording's own rules, honoured by asking
+ * it after the delete rather than deciding here.
+ */
+export async function deleteCollection(db, collectionId) {
+  await db.query("begin");
+  try {
+    const { rows: col } = await db.query(
+      `select collection_id, kind, owner_account from collection
+       where collection_id = $1 for update`,
+      [collectionId],
+    );
+    if (!col[0]) {
+      await db.query("rollback");
+      return { deleted: false, members: 0, recordingsStopped: 0 };
+    }
+    const { rows: mem } = await db.query(
+      `select subject_tag from collection_member where collection_id = $1`,
+      [collectionId],
+    );
+    // Same stable order as every other subject-touching write, so a
+    // delete racing an edit queues instead of deadlocking.
+    const tags = mem.map((r) => r.subject_tag).sort();
+    if (tags.length > 0) {
+      await db.query(
+        `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
+        [tags],
+      );
+    }
+    await db.query(`delete from collection where collection_id = $1`, [
+      collectionId,
+    ]);
+    let stopped = 0;
+    for (const tag of tags) {
+      const r = await reconcileRecording(
+        db,
+        col[0].kind,
+        tag,
+        col[0].owner_account,
+      );
+      if (r.stopped) stopped += 1;
+    }
+    await db.query("commit");
+    return { deleted: true, members: tags.length, recordingsStopped: stopped };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/**
  * Replace a collection's membership wholesale.
  *
  * `tags` is the membership the caller wants, already normalized. What is
@@ -332,9 +444,26 @@ export async function removePlayer(db, account, { tag, via }) {
  * so it can be driven by a service token later without a second code
  * path. Adds and removes are diffed rather than delete-then-insert, so
  * added_at survives for members that stay.
+ *
+ * `mode` decides what `tags` means, and it MUST be resolved here rather
+ * than by the caller. A caller that reads the membership, computes a
+ * whole desired set and sends it as a replacement is racing: two
+ * concurrent adds both build their set from the same snapshot, and the
+ * second one's replacement deletes the first one's member. Deltas are
+ * applied against the membership read under this function's own lock.
+ *
+ * `reconcileAll` reconciles every surviving member, not only the ones
+ * that moved. Membership can be unchanged while the *depth* the
+ * collection asks for has changed, and those members must be deepened
+ * too.
  */
-export async function setCollectionMembers(db, collection, tags) {
-  const wanted = [...new Set(tags)];
+export async function setCollectionMembers(
+  db,
+  collection,
+  tags,
+  { mode = "set", reconcileAll = false } = {},
+) {
+  const given = [...new Set(tags)];
   await db.query("begin");
   try {
     await db.query(
@@ -346,6 +475,13 @@ export async function setCollectionMembers(db, collection, tags) {
       [collection.collectionId],
     );
     const have = new Set(current.map((r) => r.subject_tag));
+    // Resolve the delta against what is there NOW, inside the lock.
+    const wanted =
+      mode === "add"
+        ? [...new Set([...have, ...given])]
+        : mode === "remove"
+          ? [...have].filter((t) => !given.includes(t))
+          : given;
     const added = wanted.filter((t) => !have.has(t));
     const removed = [...have].filter((t) => !wanted.includes(t));
 
@@ -355,10 +491,13 @@ export async function setCollectionMembers(db, collection, tags) {
     // and a query per tag would hold the transaction open for as long
     // as the network takes, times the roster.
     const touched = [...added, ...removed].sort();
-    if (touched.length > 0) {
+    const toReconcile = (
+      reconcileAll ? [...new Set([...wanted, ...removed])] : touched
+    ).sort();
+    if (toReconcile.length > 0) {
       await db.query(
         `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
-        [touched],
+        [toReconcile],
       );
     }
     if (added.length > 0) {
@@ -377,7 +516,7 @@ export async function setCollectionMembers(db, collection, tags) {
     }
     let started = 0;
     let stopped = 0;
-    for (const tag of touched) {
+    for (const tag of toReconcile) {
       const r = await reconcileRecording(
         db,
         collection.kind,

@@ -710,6 +710,11 @@ Resources:
           # AWS managed CachingOptimized
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           Compress: true
+          # SPA routing lives HERE, on the site behavior only, so it
+          # cannot reach the API, MCP or OAuth behaviors below.
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
         CacheBehaviors:
           - PathPattern: /api/*
             TargetOriginId: api
@@ -739,14 +744,34 @@ Resources:
             AllowedMethods: [GET, HEAD]
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
-        CustomErrorResponses:
-          # SPA routing: unknown paths serve the app shell.
-          - ErrorCode: 403
-            ResponseCode: 200
-            ResponsePagePath: /index.html
-          - ErrorCode: 404
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+        # No CustomErrorResponses: those are DISTRIBUTION-wide, so
+        # rewriting 403/404 to a 200 app shell also rewrote the API's
+        # own refusals. An unauthenticated /api/admin/requests came back
+        # 200 text/html, and the web client read that as success. SPA
+        # routing is done by SpaRouter on the site behavior instead, and
+        # a missing asset is now honestly a miss.
+
+  # Serves the app shell for site deep links without touching status
+  # codes anywhere else on the distribution.
+  SpaRouter:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: elixir-mcp-spa-router
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Rewrite site deep links to the app shell
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          var last = uri.substring(uri.lastIndexOf('/') + 1);
+          // A path whose last segment has an extension is asking for a
+          // real file; if it is not there, that is a 404 and must stay
+          // one. Everything else is a client-side route.
+          if (last.indexOf('.') === -1) request.uri = '/index.html';
+          return request;
+        }
 
   # ------------------------------------------------------------ monitoring
   AlarmTopic:

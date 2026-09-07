@@ -340,10 +340,13 @@ export const elixirTools = {
         `select events_seen_through from account where account_id = $1`,
         [ctx.account.accountId],
       );
-      const cursor =
-        args.since !== undefined
-          ? Number(args.since)
-          : Number(acct[0]?.events_seen_through ?? 0);
+      // Two different numbers, and conflating them is what made #13
+      // come back on page 2. `cursor` is where this PAGE reads from,
+      // which the caller may move forward at will. `ackFrom` is where
+      // the account has actually read up to, and it is the only honest
+      // floor for deciding what may be marked seen.
+      const ackFrom = Number(acct[0]?.events_seen_through ?? 0);
+      const cursor = args.since !== undefined ? Number(args.since) : ackFrom;
       const limit = Math.min(Math.max(Number(args.limit ?? 50), 1), 200);
       const topics =
         Array.isArray(args.topics) && args.topics.length > 0
@@ -382,6 +385,13 @@ export const elixirTools = {
       // account's unread feedback reply, and normal resumed polling
       // would never show it again (#13). Stop at the first excluded
       // event instead.
+      //
+      // The gap search starts at ackFrom, NOT at this page's cursor.
+      // Following our own next_cursor onto page 2 moves the cursor past
+      // the unread event page 1 deliberately stopped at, and searching
+      // from there would no longer see it — so page 2 would acknowledge
+      // exactly what page 1 protected (#15). An unread event is unread
+      // no matter which page is asking.
       let seenThrough = nextCursor;
       if (topics && events.length > 0) {
         const { rows: gap } = await ctx.db.query(
@@ -389,7 +399,7 @@ export const elixirTools = {
            from event_feed
            where account_id = $1 and event_id > $2 and event_id <= $3
              and not (topic = any($4))`,
-          [ctx.account.accountId, cursor, nextCursor, topics],
+          [ctx.account.accountId, ackFrom, nextCursor, topics],
         );
         seenThrough = Number(gap[0].seen_to);
       }
@@ -403,7 +413,10 @@ export const elixirTools = {
       return {
         events,
         next_cursor: nextCursor,
-        seen_through: args.mark_seen === false ? cursor : seenThrough,
+        // With mark_seen off nothing moved, so report where the
+        // account actually stands, not where this page happened to read
+        // from.
+        seen_through: args.mark_seen === false ? ackFrom : seenThrough,
         has_more: rows.length > limit,
         note:
           events.length === 0

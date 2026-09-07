@@ -203,18 +203,10 @@ export const collectionsTools = {
       const action = ["add", "remove", "set"].includes(args.action)
         ? args.action
         : "add";
-      let wanted = tags;
-      if (action !== "set") {
-        const { rows: cur } = await ctx.db.query(
-          `select subject_tag from collection_member where collection_id = $1`,
-          [col[0].collection_id],
-        );
-        const have = cur.map((r) => r.subject_tag);
-        wanted =
-          action === "add"
-            ? [...new Set([...have, ...tags])]
-            : have.filter((t) => !tags.includes(t));
-      }
+      // add/remove are sent as deltas. Reading the membership here and
+      // sending the whole computed set as a replacement would race: an
+      // external roster sync running twice would have one call delete
+      // the member the other just added.
       const r = await setCollectionMembers(
         ctx.db,
         {
@@ -222,7 +214,8 @@ export const collectionsTools = {
           kind: col[0].kind,
           ownerAccount: col[0].owner_account,
         },
-        wanted,
+        tags,
+        { mode: action },
       );
       return {
         slug,

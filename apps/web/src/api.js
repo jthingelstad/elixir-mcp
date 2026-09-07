@@ -11,7 +11,16 @@ async function request(method, path, body) {
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
-  const data = await res.json().catch(() => ({}));
+  const text = await res.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    // Every /api route answers JSON. Anything else was produced in
+    // FRONT of the API — an edge error page — so whatever status it
+    // arrived with, this is a failure and must never read as success.
+    return { ok: false, status: res.status, data: {}, error: "bad_response" };
+  }
   return { ok: res.ok, status: res.status, data };
 }
 

@@ -52,4 +52,39 @@ check("site shell", site.ok, String(site.status));
 const html = site.ok ? await site.text() : "";
 check("site is the app", html.includes("Elixir MCP"));
 
+// The edge must not rewrite the API's own answers. Distribution-wide
+// CustomErrorResponses used to turn every 403/404 into a 200 app shell,
+// including the API's refusals: an unauthenticated /api/admin/requests
+// came back 200 text/html and the web client read it as success.
+const refused = await fetch(`${mcpBase}/api/admin/requests`);
+check(
+  "api refusal keeps its status",
+  refused.status === 403,
+  String(refused.status),
+);
+check(
+  "api refusal keeps its json",
+  (refused.headers.get("content-type") ?? "").includes("application/json"),
+  refused.headers.get("content-type") ?? "none",
+);
+const missing = await fetch(`${mcpBase}/api/definitely-not-a-route`);
+check("api 404 stays a 404", missing.status === 404, String(missing.status));
+
+// SPA deep links still land on the shell, which is what the removed
+// error mapping was actually there for.
+const deep = await fetch(`${mcpBase}/account/overview`);
+const deepHtml = deep.ok ? await deep.text() : "";
+check(
+  "spa deep link serves the shell",
+  deep.status === 200 && deepHtml.includes("Elixir MCP"),
+  String(deep.status),
+);
+// A missing static asset is honestly missing, not a 200 of HTML.
+const asset = await fetch(`${mcpBase}/assets/not-a-real-file.js`);
+check(
+  "missing asset is not the shell",
+  asset.status === 403 || asset.status === 404,
+  String(asset.status),
+);
+
 process.exit(failures === 0 ? 0 : 1);

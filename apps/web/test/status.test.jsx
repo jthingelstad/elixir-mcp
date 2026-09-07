@@ -71,7 +71,12 @@ const PAYLOAD = {
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({ ok: true, status: 200, json: async () => PAYLOAD })),
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => PAYLOAD,
+      text: async () => JSON.stringify(PAYLOAD),
+    })),
   );
   // Freeze the clock so relative ages are assertable.
   vi.useFakeTimers({ shouldAdvanceTime: true });

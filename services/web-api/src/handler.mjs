@@ -15,6 +15,8 @@ import {
   addPlayer,
   removePlayer,
   setCollectionMembers,
+  reconcileCollection,
+  deleteCollection,
 } from "@elixir-mcp/claims";
 import {
   emailHash,
@@ -1049,8 +1051,12 @@ export function makeHandler({
       const decided = await decideAccess(db, {
         emailHash: String(body.email_hash ?? ""),
         decision: String(body.decision ?? ""),
+        actorRole: account.role,
       });
       if (!decided) return json(404, { error: "not_found" });
+      // The hierarchy refused: an admin cannot deny the owner or
+      // another admin out of the service. Never report that as done.
+      if (decided.refused) return json(403, { error: decided.refused });
       let notified = false;
       if (decided.status === "approved") {
         // The applicant is the one who was promised an email. Sending
@@ -1243,14 +1249,17 @@ export function makeHandler({
         const scope = ["activity", "comprehensive"].includes(body.scope)
           ? body.scope
           : null;
-        await db.query(
+        // Admins may edit any collection by design, so this upsert
+        // has no ownership predicate; the self-service route does.
+        const { rows: written } = await db.query(
           `insert into collection (slug, title, kind, description, visibility, owner_account, scope)
            values ($1, $2, $3, $4, coalesce($5, 'public'), $6, coalesce($7, 'comprehensive'))
            on conflict (slug) do update set
              title = excluded.title,
              description = coalesce(excluded.description, collection.description),
              visibility = coalesce($5, collection.visibility),
-             scope = coalesce($7, collection.scope)`,
+             scope = coalesce($7, collection.scope)
+           returning collection_id, kind`,
           [
             slug,
             String(body.title).slice(0, 80),
@@ -1265,25 +1274,8 @@ export function makeHandler({
         );
         // Deepening applies to what is already in the collection, not
         // only to what is added next.
-        if (scope) {
-          const { rows: col } = await db.query(
-            `select collection_id, kind from collection where slug = $1`,
-            [slug],
-          );
-          const { rows: mem } = await db.query(
-            `select subject_tag from collection_member where collection_id = $1`,
-            [col[0].collection_id],
-          );
-          await setCollectionMembers(
-            db,
-            {
-              collectionId: col[0].collection_id,
-              kind: col[0].kind,
-              ownerAccount: account.accountId,
-            },
-            mem.map((m) => m.subject_tag),
-          );
-        }
+        if (scope && written[0])
+          await reconcileCollection(db, written[0].collection_id);
         return json(200, { ok: true, slug });
       }
       if (["set", "add", "remove"].includes(body.action)) {
@@ -1302,20 +1294,9 @@ export function makeHandler({
             /* admin edits skip junk rather than refusing the batch */
           }
         }
-        let wanted = parsed;
-        if (body.action !== "set") {
-          const { rows: cur } = await db.query(
-            `select subject_tag from collection_member where collection_id = $1`,
-            [col[0].collection_id],
-          );
-          const have = cur.map((r) => r.subject_tag);
-          wanted =
-            body.action === "add"
-              ? [...new Set([...have, ...parsed])]
-              : have.filter((t) => !parsed.includes(t));
-        }
         // Same function as the owner route: membership and recording
-        // are decided in one place, never twice.
+        // are decided in one place, never twice — including the delta,
+        // which the helper resolves under its own lock.
         const r = await setCollectionMembers(
           db,
           {
@@ -1323,13 +1304,19 @@ export function makeHandler({
             kind: col[0].kind,
             ownerAccount: col[0].owner_account,
           },
-          wanted,
+          parsed,
+          { mode: body.action },
         );
         return json(200, { ok: true, changed: r.added + r.removed, ...r });
       }
       if (body.action === "delete") {
-        await db.query(`delete from collection where slug = $1`, [slug]);
-        return json(200, { ok: true });
+        const { rows: col } = await db.query(
+          `select collection_id from collection where slug = $1`,
+          [slug],
+        );
+        if (!col[0]) return json(404, { error: "not_found" });
+        const r = await deleteCollection(db, col[0].collection_id);
+        return json(200, { ok: true, recordingsStopped: r.recordingsStopped });
       }
       return json(400, { error: "bad_request" });
     },
@@ -1607,14 +1594,22 @@ export function makeHandler({
         const scope = ["activity", "comprehensive"].includes(body.scope)
           ? body.scope
           : null;
-        await db.query(
+        // The ownership precheck above is advisory only: between it
+        // and this statement another account can commit the same slug,
+        // and an unguarded ON CONFLICT would then rewrite THEIR
+        // collection — including flipping it public and exposing its
+        // curated members. The ownership test therefore lives in the
+        // conflict update's own predicate, atomic with the write.
+        const { rows: written } = await db.query(
           `insert into collection (slug, title, kind, description, visibility, owner_account, scope)
            values ($1, $2, $3, $4, coalesce($5, 'public'), $6, coalesce($7, 'comprehensive'))
            on conflict (slug) do update set
              title = excluded.title,
              description = coalesce(excluded.description, collection.description),
              visibility = coalesce($5, collection.visibility),
-             scope = coalesce($7, collection.scope)`,
+             scope = coalesce($7, collection.scope)
+           where collection.owner_account = $6
+           returning collection_id, kind`,
           [
             slug,
             String(body.title).slice(0, 80),
@@ -1627,27 +1622,16 @@ export function makeHandler({
             scope,
           ],
         );
+        // Nothing written means the conflicting row belongs to someone
+        // else. Same answer the precheck gives, from the same rule.
+        if (!written[0])
+          return json(403, {
+            error: "not_entitled",
+            message: "Not your collection.",
+          });
         // Deepening applies to what is already in the collection, not
         // only to what is added next.
-        if (scope) {
-          const { rows: col } = await db.query(
-            `select collection_id, kind from collection where slug = $1`,
-            [slug],
-          );
-          const { rows: mem } = await db.query(
-            `select subject_tag from collection_member where collection_id = $1`,
-            [col[0].collection_id],
-          );
-          await setCollectionMembers(
-            db,
-            {
-              collectionId: col[0].collection_id,
-              kind: col[0].kind,
-              ownerAccount: account.accountId,
-            },
-            mem.map((m) => m.subject_tag),
-          );
-        }
+        if (scope) await reconcileCollection(db, written[0].collection_id);
         return json(200, { ok: true, slug });
       }
       if (!owned[0]) return json(404, { error: "not_found" });
@@ -1676,18 +1660,10 @@ export function makeHandler({
             rejected,
           });
         }
-        let wanted = parsed;
-        if (body.action !== "set") {
-          const { rows: cur } = await db.query(
-            `select subject_tag from collection_member where collection_id = $1`,
-            [owned[0].collection_id],
-          );
-          const have = cur.map((r) => r.subject_tag);
-          wanted =
-            body.action === "add"
-              ? [...new Set([...have, ...parsed])]
-              : have.filter((t) => !parsed.includes(t));
-        }
+        // add/remove are deltas, resolved against the membership the
+        // helper reads under its own lock. Computing a whole desired
+        // set out here and sending it as a replacement loses a
+        // concurrent add.
         const r = await setCollectionMembers(
           db,
           {
@@ -1695,7 +1671,8 @@ export function makeHandler({
             kind,
             ownerAccount: account.accountId,
           },
-          wanted,
+          parsed,
+          { mode: body.action },
         );
         return json(200, {
           ok: true,
@@ -1705,10 +1682,11 @@ export function makeHandler({
         });
       }
       if (body.action === "delete") {
-        await db.query(`delete from collection where collection_id = $1`, [
-          owned[0].collection_id,
-        ]);
-        return json(200, { ok: true });
+        // Membership rows cascade, but a cascade reconciles nothing —
+        // deleting the collection has to stop what only it was keeping
+        // recorded, exactly as removing those members would have.
+        const r = await deleteCollection(db, owned[0].collection_id);
+        return json(200, { ok: true, recordingsStopped: r.recordingsStopped });
       }
       return json(400, { error: "bad_request" });
     },
