@@ -390,6 +390,13 @@ Resources:
     DependsOn: WebApiLogGroup
     Properties:
       FunctionName: elixir-mcp-web-api
+      # A ceiling, not a target (#23). Each invocation opens its own
+      # PostgreSQL client against a db.t4g.micro, so unbounded Lambda
+      # concurrency makes the DATABASE the thing that fails first.
+      # Measured traffic is a handful of requests a minute; 20 is orders
+      # of magnitude above that and still a hard stop on a runaway
+      # client or a bill.
+      ReservedConcurrentExecutions: 20
       Runtime: nodejs24.x
       Architectures: [arm64]
       Handler: index.handler
@@ -419,6 +426,9 @@ Resources:
     DependsOn: McpLogGroup
     Properties:
       FunctionName: elixir-mcp-mcp
+      # Same reasoning as the web API: bound the database, not just the
+      # function (#23).
+      ReservedConcurrentExecutions: 20
       Runtime: nodejs24.x
       Architectures: [arm64]
       Handler: index.handler
@@ -913,6 +923,37 @@ Resources:
             - EventType: viewer-request
               FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
         CacheBehaviors:
+          # The two public read endpoints, CACHED (#23). Both run real
+          # aggregation - status does several time-series queries,
+          # stats groups the whole corpus - and both already emit
+          # Cache-Control (60s and 3600s). They were being served under
+          # the /api/* CachingDisabled behaviour, so every hit recomputed
+          # them and x-cache said Miss every time. These behaviours are
+          # listed FIRST because CloudFront takes the first pattern that
+          # matches, not the most specific one.
+          #
+          # GET/HEAD only, and no origin request policy: no cookie, no
+          # header and no query string reaches the origin, so one cached
+          # object serves everyone. That is correct here precisely
+          # because these responses are identical for every caller -
+          # the same property that makes them safe to cache is what
+          # makes them public.
+          - PathPattern: /api/public/status
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD]
+            # AWS managed CachingOptimized: honours the origin's own
+            # Cache-Control, forwards nothing.
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+          - PathPattern: /api/public/stats
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
           - PathPattern: /api/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only

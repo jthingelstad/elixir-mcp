@@ -93,6 +93,21 @@ check(
   site.headers.get("strict-transport-security") ?? "absent",
 );
 
+// The public reads must actually CACHE now (#23): they run real
+// aggregation, and under CachingDisabled every hit recomputed them.
+// Two requests, and the second has to be a hit - a cache behaviour
+// that is present but ineffective looks exactly like one that works.
+const statusOnce = await fetch(`${mcpBase}/api/public/status`);
+check("public status serves", statusOnce.ok, String(statusOnce.status));
+const statusTwice = await fetch(`${mcpBase}/api/public/status`);
+const hit = (statusTwice.headers.get("x-cache") ?? "").toLowerCase();
+check("public status caches at the edge", hit.includes("hit"), hit || "absent");
+check(
+  "public status still declares its own freshness",
+  (statusTwice.headers.get("cache-control") ?? "").includes("max-age="),
+  statusTwice.headers.get("cache-control") ?? "absent",
+);
+
 // The app shell is the privileged surface: it must carry the headers
 // too, and load no third-party script.
 const appShell = await fetch(`${mcpBase}/account/overview`);
