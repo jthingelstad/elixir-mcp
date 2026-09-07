@@ -20,6 +20,7 @@
 
 import crypto from "node:crypto";
 import { crPathForJob } from "@elixir-mcp/contracts";
+import { checkRateLimit } from "@elixir-mcp/auth";
 import {
   leaseJob,
   completeJob,
@@ -33,6 +34,56 @@ const MISSED_STREAK_QUARANTINE = 10;
 // The transport bound on the COMPRESSED body (base64 chars). Ingest
 // separately bounds the DECOMPRESSED size (issue #4).
 const MAX_BODY_GZ_B64 = 400_000;
+
+/**
+ * Per-token request budgets (issue #11), the thing
+ * COLLECTOR-ZERO-TRUST.md promised and the door never applied. The
+ * outstanding-lease cap bounds held WORK; it says nothing about
+ * request volume, so config polls, empty lease polls and refused
+ * submissions could all run unmetered against the shared web API and
+ * database.
+ *
+ * The numbers come from what a collector actually does rather than
+ * from a round number. Pacing floor is 1500ms and the bulk long-poll
+ * waits 2s, so the busiest honest collector runs roughly 2,000 leases
+ * and 2,000 submits an hour; WORK is set at more than double that, so
+ * no honest client can reach it even mid-backfill with a fleet several
+ * times this size. Config is a launch-time contract a collector reads
+ * on start and refreshes hourly - single digits per hour - so 120 is
+ * about thirty times what it needs and still stops a config-poll flood,
+ * which is the cheapest abuse of the three.
+ *
+ * Deliberately distinct from the outstanding-lease cap and from CR
+ * fetch pacing: those bound concurrency and upstream politeness, this
+ * bounds requests at our own door.
+ */
+const TOKEN_BUDGET = { work: 10_000, config: 120 };
+
+/** Charge a gateway's hourly budget. Always AFTER authentication, so a
+ *  caller can never pick the bucket it fills. */
+async function withinBudget(db, gatewayId, kind) {
+  return checkRateLimit(db, {
+    bucket: `collector-${kind}#${gatewayId}`,
+    max: TOKEN_BUDGET[kind],
+  });
+}
+
+/** A refusal a collector can act on: which budget, and when to come
+ *  back. Retry-After rides the HTTP response as well as the body. */
+function budgetRefusal(kind) {
+  const retryAfter = 3600 - Math.floor((Date.now() / 1000) % 3600);
+  return {
+    status: 429,
+    headers: { "retry-after": String(retryAfter) },
+    body: {
+      error: "rate_limited",
+      scope: kind,
+      limit_per_hour: TOKEN_BUDGET[kind],
+      retry_after_s: retryAfter,
+      hint: "This collector's hourly request budget is spent. The window is fixed, not sliding: wait retry_after_s and it resets.",
+    },
+  };
+}
 const CONFIG = {
   contract_version: 2,
   min_client_version: "2.0.0",
@@ -168,6 +219,8 @@ export function makeCollectorDoor({
         "draining",
       ]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
+      if (!(await withinBudget(db, gw.gateway_id, "config")))
+        return budgetRefusal("config");
       const { rows: rel } = await db.query(
         `select platform, version, sha256, url from collector_release`,
       );
@@ -189,6 +242,8 @@ export function makeCollectorDoor({
     async lease(db, event, body) {
       const gw = await authGateway(db, event, ["probation", "active"]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
+      if (!(await withinBudget(db, gw.gateway_id, "work")))
+        return budgetRefusal("work");
       const tooOld = versionRefusal(event);
       if (tooOld) return tooOld;
       const { streak } = await settleAndInspect(db, gw.gateway_id);
@@ -267,6 +322,8 @@ export function makeCollectorDoor({
         "draining",
       ]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
+      if (!(await withinBudget(db, gw.gateway_id, "work")))
+        return budgetRefusal("work");
       // Submit is gated too, but AFTER auth: a client that leased work
       // before the minimum moved still gets to hand back what it holds
       // only if it is current. Anything it cannot submit expires and is

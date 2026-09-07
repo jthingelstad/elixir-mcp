@@ -454,3 +454,101 @@ test("a too-old client is refused work but NEVER refused config", async (t) => {
   // A current client is unaffected.
   assert.notEqual((await door.lease(db, current, {})).status, 426);
 });
+
+// --------------------------------------------------------------- #11
+test("per-token request budgets are enforced, isolated, and recoverable", async () => {
+  const acct = await db.query(`select account_id from account limit 1`);
+  const mkGateway = async (name, token) => {
+    await db.query(
+      `insert into gateway (owner_account_id, name, token_hash, channel, status)
+       values ($1, $2, $3, 'bulk', 'active')`,
+      [acct.rows[0].account_id, name, sha256(token)],
+    );
+    return (await gatewayRow(name)).gateway_id;
+  };
+  const TOKEN_A = "emcg_budget_a";
+  const TOKEN_B = "emcg_budget_b";
+  const idA = await mkGateway("budget-a", TOKEN_A);
+  await mkGateway("budget-b", TOKEN_B);
+
+  // Config is the tight budget: a collector reads it on start and
+  // refreshes hourly, so the cap is far above use but still bounds the
+  // cheapest flood. Spend it directly rather than issuing 120 calls.
+  const spend = (gatewayId, kind, n) =>
+    db.query(
+      `insert into rate_limit (bucket, window_start, count)
+       values ($1, date_trunc('hour', now()), $2)
+       on conflict (bucket, window_start) do update set count = $2`,
+      [`collector-${kind}#${gatewayId}`, n],
+    );
+
+  // Just under: still served.
+  await spend(idA, "config", 119);
+  const ok = await door.config(db, authed(TOKEN_A));
+  assert.equal(ok.status, 200, "the last call inside the budget is served");
+
+  // Over: a structured refusal that tells the client when to return.
+  const refused = await door.config(db, authed(TOKEN_A));
+  assert.equal(refused.status, 429);
+  assert.equal(refused.body.error, "rate_limited");
+  assert.equal(refused.body.scope, "config");
+  assert.equal(refused.body.limit_per_hour, 120);
+  assert.ok(refused.body.retry_after_s > 0);
+  assert.ok(refused.body.retry_after_s <= 3600);
+  assert.equal(
+    refused.headers["retry-after"],
+    String(refused.body.retry_after_s),
+    "the header and the body agree",
+  );
+
+  // Budgets are per TOKEN: exhausting one collector never touches
+  // another, which is the whole point of a per-token budget.
+  assert.equal((await door.config(db, authed(TOKEN_B))).status, 200);
+
+  // And they are per SCOPE: a spent config budget does not stop the
+  // collector doing its actual work.
+  assert.notEqual(
+    (await door.lease(db, authed(TOKEN_A), {})).status,
+    429,
+    "config exhaustion must not halt collection",
+  );
+
+  // The work budget stops leases and submits alike.
+  await spend(idA, "work", 10_000);
+  const leaseRefused = await door.lease(db, authed(TOKEN_A), {});
+  assert.equal(leaseRefused.status, 429);
+  assert.equal(leaseRefused.body.scope, "work");
+  const submitRefused = await door.submit(db, authed(TOKEN_A), { lease: 1 });
+  assert.equal(submitRefused.status, 429, "a refused submit is metered too");
+  assert.equal((await door.lease(db, authed(TOKEN_B), {})).status, 200);
+
+  // The window is fixed, not sliding: the next hour is a clean slate.
+  await db.query(
+    `update rate_limit set window_start = window_start - interval '1 hour'
+     where bucket like 'collector-%#' || $1`,
+    [idA],
+  );
+  assert.equal(
+    (await door.config(db, authed(TOKEN_A))).status,
+    200,
+    "the budget recovers when the window rolls",
+  );
+
+  // An unauthenticated caller is refused before it can charge - or
+  // choose - any bucket. Metering ahead of auth would let a stranger
+  // fill the table with buckets of their own naming.
+  const countBuckets = async () =>
+    (
+      await db.query(
+        `select count(*)::int as n from rate_limit where bucket like 'collector-%'`,
+      )
+    ).rows[0].n;
+  const before = await countBuckets();
+  const anon = await door.config(db, authed("emcg_not_a_real_token"));
+  assert.equal(anon.status, 401);
+  assert.equal(
+    await countBuckets(),
+    before,
+    "a refused caller charges nothing and creates no bucket",
+  );
+});

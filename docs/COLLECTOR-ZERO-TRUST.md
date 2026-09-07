@@ -265,6 +265,15 @@ do what the SQS-direct model never could:
 
 - **Outstanding-lease cap**: at most 2 unsubmitted leases per token —
   a black-holer holds 2 jobs, ever, not the queue.
+- **Per-token request budget** (shipped, #11): 10,000 work requests
+  (lease + submit) and 120 config reads per token per hour, counted in
+  the existing `rate_limit` table AFTER authentication so nobody can
+  choose the bucket they fill. Over budget is a 429 carrying
+  `retry_after_s` and a `Retry-After` header. The work ceiling is more
+  than double what the busiest honest collector can reach at the
+  1500ms pacing floor, so it bounds abuse without touching collection.
+  Distinct from the lease cap, which bounds concurrent WORK rather than
+  request volume.
 - **Yield accounting**: the door counts leases issued vs results
   submitted per token. A collector whose submit ratio collapses (or
   goes N consecutive leases without a submit) is **auto-quarantined**:
