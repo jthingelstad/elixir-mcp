@@ -285,11 +285,56 @@ test("inline HTML in a doc survives the markdown renderer", { skip }, () => {
 test("the request-access form posts what the API requires", { skip }, () => {
   // The only interactive thing on the static half. It replaced a React
   // form, and the API rejects a request without the client marker.
+  // The markup is on the page; the behaviour moved to its own file when
+  // the CSP dropped inline script (#25), so both halves are checked.
   const home = read("index.html");
   assert.match(home, /id="request-form"/);
-  assert.match(home, /"\/api\/request-access"/);
-  assert.match(home, /"x-elixir-client": "web"/);
   for (const field of ["email", "player_tag", "note"]) {
     assert.match(home, new RegExp(`name="${field}"`), `no ${field} field`);
   }
+  const script = read("assets/request-form.js");
+  assert.match(script, /"\/api\/request-access"/);
+  assert.match(script, /"x-elixir-client": "web"/);
+  assert.match(script, /getElementById\("request-form"\)/);
+});
+
+// --------------------------------------------------------------- #25
+test("the application loads no third-party script", { skip }, () => {
+  // Tinylytics used to run on every route but /signin, which put it on
+  // /account and /admin - inside the session's own origin, able to make
+  // authenticated same-origin requests and read the answers. Site
+  // analytics belongs to the static half, which has no session.
+  const app = read("app.html");
+  for (const origin of ["tinylytics.app", "//", "http:"]) {
+    if (origin === "//") continue;
+    assert.ok(!app.includes(origin), `app.html must not reference ${origin}`);
+  }
+  const bundle = app.match(/src="(\/assets\/index-[^"]+\.js)"/)?.[1];
+  assert.ok(bundle, "app.html loads its bundle");
+  assert.ok(
+    !read(bundle.slice(1)).includes("tinylytics.app"),
+    "and the bundle carries no analytics endpoint either",
+  );
+
+  // The static half still counts visits - that is where it belongs.
+  assert.ok(read("index.html").includes("tinylytics.app/embed/"));
+});
+
+test("nothing in the built site relies on inline script", { skip }, () => {
+  // script-src has no 'unsafe-inline', so an inline block would simply
+  // not run. This is the test that catches someone adding one back.
+  for (const page of ["index.html", "app.html", "docs/index.html"]) {
+    const html = read(page);
+    const inline = html.match(
+      /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/g,
+    );
+    assert.equal(
+      inline,
+      null,
+      `${page} has an inline <script> the CSP will block`,
+    );
+  }
+  // The home page's form handler is the one that had to move out.
+  assert.ok(read("index.html").includes("/assets/request-form.js"));
+  assert.ok(existsSync(path.join(out, "assets/request-form.js")));
 });

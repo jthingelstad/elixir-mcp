@@ -674,6 +674,79 @@ Resources:
           Headers: [authorization, content-type, mcp-protocol-version]
         QueryStringsConfig: { QueryStringBehavior: all }
 
+  # Browser security headers on every response (#25). Before this, the
+  # site shipped no CSP, no frame-ancestors, no nosniff, no
+  # Referrer-Policy and no Permissions-Policy.
+  #
+  # script-src has NO 'unsafe-inline': the one inline script on the
+  # static home page moved to /assets/request-form.js so this could
+  # stay strict. tinylytics.app is allowed because the STATIC half
+  # loads it; the application (app.html) loads no third-party script at
+  # all, which is the actual fix - a CSP is the backstop, not the
+  # boundary.
+  #
+  # style-src does allow 'unsafe-inline', stated rather than hidden:
+  # the Eleventy templates carry ~70 style="" attributes and the OAuth
+  # consent page is one self-contained document with a <style> block.
+  # Inline STYLE cannot execute; the exposure is CSS-based exfiltration
+  # of attacker-injected markup, which is a much smaller thing than
+  # inline script, and tightening it means refactoring markup rather
+  # than changing a header. Recorded as a deliberate trade.
+  #
+  # img-src needs Supercell's asset CDN: collector avatars are the
+  # cards' own iconUrls, served straight from api-assets.clashroyale.com.
+  # fonts.googleapis.com/fonts.gstatic.com are the site's webfont, which
+  # both halves link. Every origin here was taken from the BUILT output,
+  # not from memory - a CSP written from what you think the page loads
+  # is a CSP that breaks the page.
+  SecurityHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: elixir-mcp-security-headers
+        Comment: CSP, HSTS, nosniff, referrer and permissions policy
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: >-
+              default-src 'self';
+              base-uri 'self';
+              object-src 'none';
+              frame-ancestors 'none';
+              form-action 'self';
+              script-src 'self' https://tinylytics.app;
+              connect-src 'self' https://tinylytics.app;
+              img-src 'self' data: https://api-assets.clashroyale.com https://tinylytics.app;
+              font-src 'self' https://fonts.gstatic.com;
+              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            Override: true
+            FrameOption: DENY
+          ReferrerPolicy:
+            Override: true
+            ReferrerPolicy: strict-origin-when-cross-origin
+          # Two years, subdomains included. NOT preloaded: preload is
+          # effectively irreversible and belongs to a domain decision,
+          # not a deploy.
+          StrictTransportSecurity:
+            Override: true
+            AccessControlMaxAgeSec: 63072000
+            IncludeSubdomains: true
+            Preload: false
+        CustomHeadersConfig:
+          Items:
+            # Permissions-Policy has no first-class field in the managed
+            # security config, so it rides as a custom header. Nothing
+            # here needs any of these.
+            - Header: Permissions-Policy
+              Override: true
+              Value: >-
+                accelerometer=(), camera=(), display-capture=(),
+                geolocation=(), gyroscope=(), magnetometer=(),
+                microphone=(), payment=(), usb=()
+
   SiteDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -709,6 +782,7 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           # AWS managed CachingOptimized
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
           Compress: true
           # Site routing lives HERE, on the site behavior only, so it
           # cannot reach the API, MCP or OAuth behaviors below.
@@ -722,6 +796,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             # AWS managed CachingDisabled
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
           # The MCP/OAuth door, path-split on the one hostname. The
           # no-cookie origin request policy is the structural guarantee:
@@ -731,18 +806,21 @@ Resources:
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
           - PathPattern: /oauth/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
           - PathPattern: /.well-known/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD]
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
         # No CustomErrorResponses: those are DISTRIBUTION-wide, so
         # rewriting 403/404 to a 200 app shell also rewrote the API's

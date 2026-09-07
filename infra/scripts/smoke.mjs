@@ -59,6 +59,55 @@ check(
 );
 check("home carries the live corpus", /battles recorded/.test(home));
 
+// Browser security headers (#25). Checked on a real response because
+// a ResponseHeadersPolicy that is defined but not ATTACHED to the
+// behaviour looks identical in the template and does nothing here.
+const csp = site.headers.get("content-security-policy") ?? "";
+check("CSP present", csp.includes("default-src 'self'"));
+check(
+  "CSP forbids inline script",
+  csp.includes("script-src") && !/script-src[^;]*unsafe-inline/.test(csp),
+);
+check(
+  "clickjacking blocked",
+  csp.includes("frame-ancestors 'none'") &&
+    site.headers.get("x-frame-options") === "DENY",
+);
+check(
+  "nosniff",
+  site.headers.get("x-content-type-options") === "nosniff",
+  site.headers.get("x-content-type-options") ?? "absent",
+);
+check(
+  "referrer policy",
+  (site.headers.get("referrer-policy") ?? "").length > 0,
+  site.headers.get("referrer-policy") ?? "absent",
+);
+check(
+  "permissions policy",
+  (site.headers.get("permissions-policy") ?? "").includes("camera=()"),
+);
+check(
+  "hsts",
+  (site.headers.get("strict-transport-security") ?? "").includes("max-age="),
+  site.headers.get("strict-transport-security") ?? "absent",
+);
+
+// The app shell is the privileged surface: it must carry the headers
+// too, and load no third-party script.
+const appShell = await fetch(`${mcpBase}/account/overview`);
+const appShellHtml = appShell.ok ? await appShell.text() : "";
+check(
+  "app shell carries CSP",
+  (appShell.headers.get("content-security-policy") ?? "").includes(
+    "default-src",
+  ),
+);
+check(
+  "app shell loads no third-party script",
+  appShell.ok && !appShellHtml.includes("tinylytics.app"),
+);
+
 const docs = await fetch(`${mcpBase}/docs/tools`);
 const docsHtml = docs.ok ? await docs.text() : "";
 check(
