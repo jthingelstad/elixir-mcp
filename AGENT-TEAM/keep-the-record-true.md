@@ -25,7 +25,7 @@ samples real values against game reality (the Observatory rule).
   calendar, never a state machine (the phantom-season scar).
 - **API drift.** Anything in fresh payloads our docs don't describe —
   new fields, changed enums, new game modes, a card catalog change
-  after a game update. `~/Projects/cr-agent-api-docs` is CR truth:
+  after a game update. `~/Projects/clash-royale/cr-agent-api-docs` is CR truth:
   when the live API surprises us, patching those docs is part of the
   fix, same commit ethic.
 - **Honesty machinery.** Coverage and completeness tools still tell the

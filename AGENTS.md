@@ -33,7 +33,7 @@ says which existing repo to read before writing each subsystem.
    by the migrate Lambda at deploy — never at handler start, never by hand.
    Expand-and-contract; canonical tables are lossless by policy.
 7. **Never copy-paste code between repos.** Write fresh with the pattern open.
-8. **`~/Projects/cr-agent-api-docs` is CR API truth** — a standalone repo
+8. **`~/Projects/clash-royale/cr-agent-api-docs` is CR API truth** — a standalone repo
    (github `jthingelstad/cr-agent-api-docs`), deliberately NOT vendored here.
    Two projects carried copies; both drifted, in both directions, and real
    observations sat stranded in them for months. One checkout, edited in
@@ -95,7 +95,7 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 - Manual steps only Jamie can do (Supercell keys, DNS, Fastmail tokens,
   first-run bootstrap) get queued in `docs/NOTES.md`, not silently blocked on.
 - Collector (gateway) code lives in its OWN repo:
-  `~/Projects/elixir-mcp-collector` (github jthingelstad/elixir-mcp-collector,
+  `~/Projects/clash-royale/elixir-mcp-collector` (github jthingelstad/elixir-mcp-collector,
   split 2026-09-04). Pushing to that repo's main does NOT deploy it: a
   green push publishes a CANDIDATE (prerelease) that nobody runs, and it
   reaches the fleet only when this repo names it, which also promotes it

@@ -64,7 +64,7 @@ Naming writes the update authority and promotes the release. Dry-run
 first — it prints exactly what it would write and touches nothing:
 
 ```sh
-cd ~/Projects/elixir-mcp
+cd ~/Projects/clash-royale/elixir-mcp
 AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs --dry-run
 AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs [tag]
 ```

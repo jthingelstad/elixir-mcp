@@ -23,7 +23,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
-const ARCHIVE = `${process.env.HOME}/Projects/elixir-bot/elixir-v51.db`;
+const ARCHIVE = `${process.env.HOME}/Projects/clash-royale/elixir-bot/elixir-v51.db`;
 const ARCHIVE_URI = `file:${ARCHIVE}?mode=ro`;
 const CUTOFF = "2026-09-03T18:00";
 const ENDPOINTS =

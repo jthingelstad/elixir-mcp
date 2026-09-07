@@ -70,9 +70,9 @@ Cross-cutting work keeps one originating owner through acceptance.
 - `services/` — mcp (door + tools), web-api, ingest, scheduler, migrate
   (deploy plumbing + break-glass ops), jobs (scheduled product work),
   email-relay (the ONLY internet egress: email, analytics, enrollment).
-- `~/Projects/elixir-mcp-collector` — the collector fleet's own repo;
+- `~/Projects/clash-royale/elixir-mcp-collector` — the collector fleet's own repo;
   queue contract stays canonical here.
-- `~/Projects/cr-agent-api-docs` — CR API truth; patch it when the live
+- `~/Projects/clash-royale/cr-agent-api-docs` — CR API truth; patch it when the live
   API surprises us.
 - Live evidence: `https://elixir.poapkings.com/api/public/status` (including
   DB-backed collector heartbeat, admission, and recent-fetch signals), the
