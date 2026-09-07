@@ -20,6 +20,7 @@ import {
   decideAccess,
   approvedAccount,
   pendingRequests,
+  setAccountRole,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -325,5 +326,138 @@ test("rate limit: counts within the hourly window", async () => {
     await checkRateLimit(db, { bucket: "ip#5.6.7.8", max: 3 }),
     true,
     "buckets are independent",
+  );
+});
+
+// --------------------------------------------------------------- #29
+test("a role change cannot ride authorization that went stale mid-flight", async () => {
+  const TARGET = emailHash("race-target@example.com");
+  const {
+    rows: [target],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [TARGET],
+  );
+
+  // The ordinary case still works: an admin may move a member.
+  const moved = await setAccountRole(db, {
+    accountId: target.account_id,
+    role: "leader",
+    actorRole: "admin",
+  });
+  assert.equal(moved.role, "leader");
+
+  // THE RACE. A second connection promotes the target to admin and
+  // holds the row lock open. Our role change arrives while that is
+  // uncommitted, so it blocks on the lock rather than reading a stale
+  // role — this is exactly the window the old select-then-update had.
+  const other = new pg.Client({ connectionString: URL });
+  await other.connect();
+  try {
+    await other.query("begin");
+    await other.query(
+      `update account set role = 'admin' where account_id = $1`,
+      [target.account_id],
+    );
+
+    const inFlight = setAccountRole(db, {
+      accountId: target.account_id,
+      role: "member",
+      actorRole: "admin",
+    });
+    // Let it reach the lock before the promotion commits.
+    await new Promise((r) => setTimeout(r, 100));
+    await other.query("commit");
+
+    const result = await inFlight;
+    assert.deepEqual(
+      result,
+      { refused: "not_entitled" },
+      "the target became an admin; an admin may not demote one",
+    );
+  } finally {
+    await other.end();
+  }
+
+  // And the row is what the promotion made it, not what the stale
+  // authorization would have written.
+  const { rows } = await db.query(
+    `select role from account where account_id = $1`,
+    [target.account_id],
+  );
+  assert.equal(rows[0].role, "admin", "no stale write landed");
+
+  // The owner outranks admin and may still move that account.
+  const byOwner = await setAccountRole(db, {
+    accountId: target.account_id,
+    role: "partner",
+    actorRole: "owner",
+  });
+  assert.equal(byOwner.role, "partner");
+});
+
+test("the owner account is untouchable, and owner is never granted", async () => {
+  const OWNER_HASH = emailHash("role-owner@example.com");
+  const {
+    rows: [owner],
+  } = await db.query(
+    `insert into account (email_hash, status, role, is_owner)
+     values ($1, 'approved', 'owner', true) returning account_id`,
+    [OWNER_HASH],
+  );
+  assert.deepEqual(
+    await setAccountRole(db, {
+      accountId: owner.account_id,
+      role: "member",
+      actorRole: "owner",
+    }),
+    { refused: "owner_protected" },
+    "not even the owner demotes the owner - availability outranks it",
+  );
+  assert.deepEqual(
+    await setAccountRole(db, {
+      accountId: owner.account_id,
+      role: "member",
+      actorRole: "admin",
+    }),
+    { refused: "owner_protected" },
+    "and an admin certainly does not",
+  );
+
+  const TARGET = emailHash("never-owner@example.com");
+  const {
+    rows: [t],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [TARGET],
+  );
+  assert.deepEqual(
+    await setAccountRole(db, {
+      accountId: t.account_id,
+      role: "owner",
+      actorRole: "owner",
+    }),
+    { refused: "bad_role" },
+    "exactly one owner, never assigned by API",
+  );
+  assert.deepEqual(
+    await setAccountRole(db, {
+      accountId: t.account_id,
+      role: "admin",
+      actorRole: "admin",
+    }),
+    { refused: "not_entitled" },
+    "an admin cannot mint another admin",
+  );
+  assert.equal(
+    await setAccountRole(db, {
+      accountId: "00000000-0000-0000-0000-000000000000",
+      role: "member",
+      actorRole: "owner",
+    }),
+    null,
+    "no such account is null, not a refusal",
   );
 });

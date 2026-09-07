@@ -1784,3 +1784,68 @@ test("the newsletter is an affirmative choice, not a side effect of signing in",
   );
   assert.equal(noHeader.statusCode, 401);
 });
+
+// --------------------------------------------------------------- #29
+test("a refused role change is not reported, logged, or announced as one", async () => {
+  const ADMIN_ACTOR = "role-admin@example.com";
+  const PEER = "role-peer@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'admin')`,
+    [emailHash(ADMIN_ACTOR)],
+  );
+  const {
+    rows: [peer],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'admin')
+     returning account_id`,
+    [emailHash(PEER)],
+  );
+  const cookie = await signIn(ADMIN_ACTOR, "203.0.113.29");
+
+  // One admin may not demote another - the hierarchy now rides in the
+  // predicate of the write, so the refusal and the check are one act.
+  const refused = await handler(
+    event({
+      path: "/api/admin/accounts",
+      cookie,
+      body: { account_id: peer.account_id, role: "member" },
+    }),
+  );
+  assert.equal(refused.statusCode, 403);
+  const { rows: after } = await db.query(
+    `select role from account where account_id = $1`,
+    [peer.account_id],
+  );
+  assert.equal(after[0].role, "admin", "the peer is untouched");
+  const { rows: logged } = await db.query(
+    `select 1 from account_event where account_id = $1 and kind = 'role_changed'`,
+    [peer.account_id],
+  );
+  assert.equal(logged.length, 0, "a refusal is not logged as a change");
+  const { rows: announced } = await db.query(
+    `select 1 from event_feed where account_id = $1 and topic = 'role_changed'`,
+    [peer.account_id],
+  );
+  assert.equal(announced.length, 0, "and never announced to the target");
+
+  // A malformed account_id is a 404, not a Postgres uuid error as a 500.
+  const malformed = await handler(
+    event({
+      path: "/api/admin/accounts",
+      cookie,
+      body: { account_id: "not-a-uuid", role: "member" },
+    }),
+  );
+  assert.equal(malformed.statusCode, 404);
+  const missing = await handler(
+    event({
+      path: "/api/admin/accounts",
+      cookie,
+      body: {
+        account_id: "00000000-0000-0000-0000-000000000000",
+        role: "member",
+      },
+    }),
+  );
+  assert.equal(missing.statusCode, 404);
+});

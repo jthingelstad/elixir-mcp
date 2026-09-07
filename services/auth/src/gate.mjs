@@ -1,3 +1,5 @@
+import { canSetRole, isRole, ROLE_ORDER } from "@elixir-mcp/contracts";
+
 /**
  * The access gate — DESIGN §6.1 step 0. Request-access creates a
  * `requested` account; the owner decides on the admin page. The HTTP
@@ -84,4 +86,50 @@ export async function pendingRequests(db) {
      from account where status = 'requested' order by created_at`,
   );
   return rows;
+}
+
+/**
+ * Set an account's role as ONE atomic decision (issue #29).
+ *
+ * The endpoint used to SELECT the target's role, ask canSetRole, then
+ * UPDATE by account_id alone. Between the select and the update the
+ * target can be promoted, and the stale answer still authorizes the
+ * write — an admin forbidden from touching admin/owner accounts could
+ * demote an account that became one. Same shape as #14: a precheck in
+ * a separate statement authorizes nothing; the rule belongs in the
+ * predicate of the write.
+ *
+ * canSetRole stays the single source of the hierarchy. Rather than
+ * restate it in SQL, we ask it which CURRENT target roles this actor
+ * may move to the requested role, and the update matches only those.
+ *
+ * Returns the updated row, `{ refused: <reason> }`, or null when there
+ * is no such account.
+ */
+export async function setAccountRole(db, { accountId, role, actorRole }) {
+  // Input-only rules: "owner" is exactly one, held, never granted here.
+  if (!isRole(role) || role === "owner") return { refused: "bad_role" };
+  const settableTargets = ROLE_ORDER.filter((current) =>
+    canSetRole(actorRole, current, role),
+  );
+  if (settableTargets.length === 0) return { refused: "not_entitled" };
+
+  const { rows } = await db.query(
+    `update account set role = $2
+     where account_id = $1 and is_owner is not true and role = any($3)
+     returning account_id, role`,
+    [accountId, role, settableTargets],
+  );
+  if (rows[0]) return rows[0];
+  // No row moved: nothing to set, or the target is above this actor —
+  // including a target that got promoted a moment ago. Tell them apart
+  // so a refusal is never reported as a successful change.
+  const { rows: target } = await db.query(
+    `select role, is_owner from account where account_id = $1`,
+    [accountId],
+  );
+  if (!target[0]) return null;
+  if (target[0].role === "owner" || target[0].is_owner)
+    return { refused: "owner_protected" };
+  return { refused: "not_entitled" };
 }

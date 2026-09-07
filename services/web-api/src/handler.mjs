@@ -32,6 +32,7 @@ import {
   revokeSession,
   checkRateLimit,
   issueServiceToken,
+  setAccountRole,
 } from "@elixir-mcp/auth";
 import {
   normalizeTag,
@@ -40,7 +41,6 @@ import {
   isRole,
   ROLE_ORDER,
   ADMIN_SETTABLE,
-  canSetRole,
 } from "@elixir-mcp/contracts";
 
 // Every role but "owner" — the owner grants anything except ownership.
@@ -54,6 +54,11 @@ import {
   ensureClanRecording,
   settleClanRecording,
 } from "../../mcp/src/tools.mjs";
+
+// account_id arrives from the client; a malformed one is a 404, not a
+// Postgres uuid syntax error surfacing as a 500.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const COOKIE_NAME = "__Host-elixir_session";
 const CONTRACT_HEADER = "x-elixir-client";
@@ -1393,30 +1398,30 @@ export function makeHandler({
       const role = String(body.role ?? "");
       if (!isRole(role))
         return json(400, { error: "bad_request", message: "unknown role" });
-      const { rows: target } = await db.query(
-        `select role from account where account_id = $1`,
-        [String(body.account_id ?? "")],
-      );
-      if (!target[0]) return json(404, { error: "not_found" });
-      // One entitlements system: admins set roles up to partner and
-      // never touch admin/owner accounts; the owner grants anything
-      // except "owner" itself (exactly one, never assigned by API).
-      if (!canSetRole(account.role, target[0].role, role))
-        return json(403, {
-          error: "not_entitled",
+      const accountId = String(body.account_id ?? "");
+      if (!UUID_RE.test(accountId)) return json(404, { error: "not_found" });
+      // One entitlements system, ONE decision: admins set roles up to
+      // partner and never touch admin/owner accounts, the owner grants
+      // anything except "owner" itself. The hierarchy rides in the
+      // UPDATE's own predicate, so a target promoted between the check
+      // and the write cannot be overwritten on stale authority (#29).
+      const result = await setAccountRole(db, {
+        accountId,
+        role,
+        actorRole: account.role,
+      });
+      if (result === null) return json(404, { error: "not_found" });
+      if (result.refused)
+        return json(result.refused === "bad_role" ? 400 : 403, {
+          error: result.refused === "bad_role" ? "bad_request" : "not_entitled",
           message: "That role change is above your grant.",
         });
-      const { rows } = await db.query(
-        `update account set role = $2 where account_id = $1
-         returning account_id, role`,
-        [String(body.account_id ?? ""), role],
-      );
-      if (!rows[0]) return json(404, { error: "not_found" });
-      await logEvent(db, rows[0].account_id, "role_changed", { role });
-      await emitFeedEvent(db, rows[0].account_id, "role_changed", null, {
+      // Only a change that actually committed is logged or announced.
+      await logEvent(db, result.account_id, "role_changed", { role });
+      await emitFeedEvent(db, result.account_id, "role_changed", null, {
         role,
       });
-      return json(200, { ok: true, account_id: rows[0].account_id, role });
+      return json(200, { ok: true, account_id: result.account_id, role });
     },
 
     "POST /api/me/role-request": async (db, event, body) => {
