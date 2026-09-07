@@ -1,0 +1,29 @@
+# Security updates for the toolchain (#32).
+#
+# The production bundle has always audited clean; what bit us was the
+# DEV toolchain - a critical Vitest dev-server advisory sat unnoticed
+# because nothing was watching. This is the thing that watches.
+#
+# Grouped into one PR per ecosystem per week: this is a single-owner
+# repo and five separate dependency PRs a week is how a person learns
+# to ignore dependency PRs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      dev-toolchain:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci

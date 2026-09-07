@@ -27,6 +27,12 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
+      # Production dependencies must be clean, always. The dev
+      # toolchain is reported but not gated: a fresh advisory against a
+      # test runner should tell us, not stop a deploy of unrelated work
+      # (#32).
+      - run: npm audit --omit=dev --audit-level=low
+      - run: npm audit || true
       - run: npm run format:check
       - run: npm run lint
       - run: npm run build -w @elixir-mcp/contracts

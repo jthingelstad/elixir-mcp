@@ -10,15 +10,15 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@elixir-mcp/design": "*",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "@elixir-mcp/design": "*"
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "jsdom": "^25.0.0",
-    "vite": "^5.4.0",
-    "vitest": "^2.1.0"
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.0.1",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
   }
 }
