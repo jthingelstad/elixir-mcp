@@ -55,13 +55,30 @@ test("season inference: live wins, then the calendar; logged is last resort", ()
   assert.equal(inferSeasonId(undefined, null), null);
 });
 
-test("clock: fresh anchor beats the nominal grid; stale anchor falls back", async () => {
+test("clock: the POLICY grid sets the boundary; the anchor picks the day", async () => {
+  // Jamie, 2026-09-07: Elixir MCP is multi-clan and cannot honour every
+  // clan's matchmaking drift, so a war day is the policy 10:00Z day for
+  // every clan. The anchor still says WHICH day, and is reported raw.
   const col = await fixture("currentriverrace/colosseum.json");
-  const anchor = Date.parse("2026-09-03T09:37:00Z"); // observed-style drift
+  const anchor = Date.parse("2026-09-03T09:37:00Z"); // drifted EARLY
   const now = Date.parse("2026-09-03T14:40:34Z");
   const anchored = warClock(col, { nowMs: now, anchorMs: anchor });
   assert.equal(anchored.anchored, true);
-  assert.equal(anchored.periodStartMs, anchor);
+  assert.equal(
+    anchored.periodStartMs,
+    Date.parse("2026-09-03T10:00:00Z"),
+    "the boundary is the policy hour, not the observed start",
+  );
+  assert.equal(
+    anchored.periodEndMs,
+    Date.parse("2026-09-04T10:00:00Z"),
+    "a policy day is exactly one day long",
+  );
+  assert.equal(
+    anchored.observedStartMs,
+    anchor,
+    "the raw observation is kept so a single-clan consumer can correct",
+  );
   assert.equal(
     anchored.kind,
     "colosseum",
@@ -69,13 +86,23 @@ test("clock: fresh anchor beats the nominal grid; stale anchor falls back", asyn
   );
   assert.equal(anchored.warDay, 1, "the %7 grid decides numbering");
 
+  // Two clans whose races opened 100 minutes apart still share one
+  // window - the whole point of following policy.
+  const other = warClock(col, {
+    nowMs: now,
+    anchorMs: Date.parse("2026-09-03T11:17:00Z"),
+  });
+  assert.equal(other.periodStartMs, anchored.periodStartMs);
+  assert.equal(other.periodEndMs, anchored.periodEndMs);
+
   const stale = warClock(col, { nowMs: now, anchorMs: anchor - 3 * 86400_000 });
   assert.equal(stale.anchored, false);
   assert.equal(
     stale.periodStartMs,
     nominalPeriodStartMs(now),
-    "stale anchor never goes negative",
+    "stale anchor falls back to the grid at now, never goes negative",
   );
+  assert.equal(stale.observedStartMs, anchor - 3 * 86400_000);
 });
 
 test("clock rejects a periodIndex outside its sectionIndex", async () => {

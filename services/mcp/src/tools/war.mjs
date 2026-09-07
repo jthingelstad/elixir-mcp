@@ -160,16 +160,25 @@ export const warTools = {
         const weekEnd = new Date(
           nominalEnd.getTime() + (6 - info.dayInSection) * 86400_000,
         );
+        const observedOffsetMin = Math.round(
+          (anchor.getTime() - bounds.startMs) / 60_000,
+        );
         period = {
           period_index: idx,
           kind: info.kind,
           ...(info.warDay ? { war_day: info.warDay } : {}),
           day_in_week: info.dayInSection,
           started_observed_at: anchor.toISOString(),
+          period_start_nominal: new Date(bounds.startMs).toISOString(),
           period_end_nominal: nominalEnd.toISOString(),
           week_end_nominal: weekEnd.toISOString(),
+          // How far this clan's observed start sat from the policy hour,
+          // so a consumer can judge the size of the effect on its own
+          // clan instead of taking our word for it. Includes our polling
+          // latency, so it is an upper bound on the true drift.
+          observed_offset_minutes: observedOffsetMin,
           as_observed_note:
-            "started_observed_at is when the recorder first saw this period open (true start is at or before it). *_nominal assumes the ~10:00 UTC reset; observed boundaries drift. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Cite these fields for any claim about where the war week stands - never infer from day counts or event schemas.",
+            "Elixir MCP follows the 10:00 UTC POLICY reset for every clan. Clash Royale matches clans into races of five as matchmaking fills, so a clan's real period start drifts off that hour by its own amount; a multi-clan service cannot honour every clan's start and still have war_day mean one comparable window. *_nominal are therefore policy-grid instants, identical across clans, and are the fields to cite. started_observed_at is when the recorder first saw this period open (true start is at or before it) and observed_offset_minutes is its distance from the policy hour, INCLUDING our polling latency - use them to correct for a single clan's drift if you need to. Consequence worth knowing: battles played between a clan's real start and the policy hour are attributed to the previous policy day. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Never infer from day counts or event schemas.",
         };
       }
       const [standings, participation, attendance] = await Promise.all([
@@ -251,7 +260,9 @@ export const warTools = {
              group by bp.player_tag)
            select base.player_tag, base.name,
                   least(greatest(coalesce(att.decks_used_today, 0),
-                                 coalesce(fought.n, 0)), 4)::int as decks_used
+                                 coalesce(fought.n, 0)), 4)::int as decks_used,
+                  greatest(coalesce(att.decks_used_today, 0),
+                           coalesce(fought.n, 0))::int as decks_raw
            from base
            left join att on att.player_tag = base.player_tag
            left join fought on fought.player_tag = base.player_tag
@@ -260,6 +271,20 @@ export const warTools = {
         );
         const pick = (lo, hi) =>
           dayRows.filter((r) => r.decks_used >= lo && r.decks_used <= hi);
+        // A day holds four decks, so the display value is capped. That
+        // cap was silently swallowing its own evidence: following the
+        // 10:00Z POLICY reset rather than each clan's drifted start
+        // means battles in the drift gap land on the previous policy
+        // day, and the first way that would show is somebody counting
+        // FIVE decks in a day. Surface it instead of rounding it away -
+        // this is the measurement of what the policy grid costs.
+        const overCap = dayRows
+          .filter((r) => r.decks_raw > 4)
+          .map((r) => ({
+            player_tag: r.player_tag,
+            name: r.name,
+            decks_observed: r.decks_raw,
+          }));
         decksToday = {
           war_day: period.war_day,
           untouched: pick(0, 0),
@@ -271,7 +296,8 @@ export const warTools = {
             finished: pick(4, 4).length,
             participants: dayRows.length,
           },
-          note: "Decks used TODAY per current member in this week's race roster: riverrace polls unioned with recorded war battles. Early in a war day the counts trail actual play - cite as 'observed so far', never as final.",
+          ...(overCap.length > 0 ? { over_cap: overCap } : {}),
+          note: `Decks used TODAY per current member in this week's race roster: riverrace polls unioned with recorded war battles. Early in a war day the counts trail actual play - cite as 'observed so far', never as final. Days are the 10:00 UTC POLICY day, the same window for every clan; see period.as_observed_note.${overCap.length > 0 ? " over_cap lists members observed with MORE than four decks in this policy day - a sign that this clan's real reset drifts far enough from the policy hour to move battles across the boundary." : ""}`,
         };
       }
       return {

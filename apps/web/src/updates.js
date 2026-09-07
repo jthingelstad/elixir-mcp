@@ -5,6 +5,11 @@
 export const UPDATES = [
   {
     date: "2026-09-07",
+    title: "One war clock for every clan",
+    body: "Clash Royale resets war days at 10:00 UTC as policy, but it matches clans into races of five as matchmaking fills, so every clan's day really starts a little off that hour by its own amount. Following each clan's own drift is right for a single clan and wrong for an archive covering many: war day 3 ended up meaning a different twenty-four hours for every clan, so no two clans could be compared and a re-run of the same data could land on a different day. Elixir MCP now follows the policy hour for every clan. We still record and report when each clan's race was actually seen to open, and by how many minutes it differed, so anyone working with a single clan can correct for it.",
+  },
+  {
+    date: "2026-09-07",
     title: "Collections keep their promises",
     body: "A round of fixes to what collections actually do. Raising a collection's scope to comprehensive now deepens the members it already holds, instead of only the ones you add afterwards - so a collection that says it captures battles captures them. Deleting a collection now stops the recordings it was the only reason for, rather than leaving them running for a list that no longer exists. And two roster edits arriving at once no longer overwrite each other, so an add can never quietly drop somebody another add just put in.",
   },

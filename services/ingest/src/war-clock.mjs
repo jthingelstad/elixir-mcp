@@ -49,6 +49,15 @@ export function periodInfo(periodIndex) {
  * archive payloads replayed against future logged state, scattering
  * nine real weeks across nine phantom seasons.
  */
+// NOTE (2026-09-07, open question for Jamie): this 09:30Z season hour
+// was derived from OBSERVED riverracelog createdDate stamps, while
+// periods now follow the 10:00Z POLICY hour. Two nominal reset hours
+// therefore coexist in this file. If the real policy is 10:00 for both,
+// a season boundary observed between 09:30 and 10:00 on a first Monday
+// is attributed to the new season half an hour early - a 30-minute
+// window once a month. Left as observed rather than changed on a guess:
+// moving it reshuffles season attribution for every historical week,
+// which is a far larger blast radius than the period grid.
 const SEASON_ANCHOR = { id: 135, startMs: Date.UTC(2026, 7, 3, 9, 30) };
 const WEEK_MS = 7 * 24 * 3600_000;
 
@@ -115,16 +124,11 @@ export function inferSeasonId(liveSeasonId, logged, atMs = null) {
   return logged.seasonId;
 }
 
-/** Nominal fallback period start for "now": the most recent 10:00 UTC. */
+/** The most recent 10:00 UTC at or before an instant: the strict policy
+ *  grid, with no drift tolerance. "When we are looking" is not an
+ *  observation of a period opening, so it gets no benefit of the doubt. */
 export function nominalPeriodStartMs(nowMs) {
-  const d = new Date(nowMs);
-  const todayReset = Date.UTC(
-    d.getUTCFullYear(),
-    d.getUTCMonth(),
-    d.getUTCDate(),
-    NOMINAL_RESET_HOUR_UTC,
-  );
-  return nowMs >= todayReset ? todayReset : todayReset - DAY_MS;
+  return nominalPeriodBoundsMs(nowMs, 0).startMs;
 }
 
 /**
@@ -162,9 +166,35 @@ export function nominalPeriodBoundsMs(anchorMs, driftToleranceMs = 3600_000) {
 
 /**
  * The clock at an observation: current period + its start instant.
+ *
+ * POLICY GRID (Jamie, 2026-09-07). Supercell's reset is 10:00 UTC by
+ * policy, but clans are matched into races of five as matchmaking
+ * fills, so each clan's real period start drifts off the hour by a
+ * different amount. A single-clan tool can measure its own clan's drift
+ * and follow it - elixir-bot does, for POAP KINGS. A multi-clan service
+ * cannot honour every clan's start time and still have "war day 3" mean
+ * one comparable window, so Elixir MCP follows the POLICY hour for
+ * every clan.
+ *
+ * Two further reasons this is not just a simplification. Our anchor is
+ * when the RECORDER first saw the period open, so it carries polling
+ * latency and mostly measures our own cadence on a clan we poll rarely
+ * (the war_drift census: 35 anchors for POAP KINGS, one apiece for
+ * clans added recently, several sharing an offset because one sweep
+ * first saw them all). And the policy grid is a pure function of time,
+ * so a replay assigns the same war day the live run did - the stateless
+ * lesson already learned in the phantom-season incident, one level down.
+ *
+ * COST, stated rather than hidden: a clan whose race really opens
+ * before the hour has battles in that gap attributed to the previous
+ * policy day. The gap is the drift (tens of minutes, sometimes up to
+ * two hours) and it sits in a busy part of the day. periodStartMs is
+ * the policy boundary; observedStartMs keeps the raw anchor so a
+ * single-clan consumer can still correct for its own drift.
+ *
  * anchorMs = when this periodIndex was first observed open (projector
- * records it); a missing or stale anchor (>24h old) falls back to the
- * nominal reset grid rather than producing a negative-length period.
+ * records it). It selects WHICH policy day the period belongs to; a
+ * missing or stale anchor (>24h) falls back to the grid at nowMs.
  */
 export function warClock(
   { periodIndex, sectionIndex, periodType, seasonId },
@@ -178,7 +208,11 @@ export function warClock(
   const info = periodInfo(periodIndex);
   const anchorFresh =
     anchorMs !== null && nowMs - anchorMs < DAY_MS && nowMs >= anchorMs;
-  const periodStartMs = anchorFresh ? anchorMs : nominalPeriodStartMs(nowMs);
+  // The anchor picks the policy DAY (it may sit slightly before the
+  // hour, hence the drift tolerance); it no longer sets the boundary.
+  const bounds = anchorFresh
+    ? nominalPeriodBoundsMs(anchorMs)
+    : nominalPeriodBoundsMs(nowMs, 0);
   return {
     seasonId: inferSeasonId(
       seasonId,
@@ -187,7 +221,13 @@ export function warClock(
     ),
     sectionIndex,
     periodIndex,
-    periodStartMs,
+    periodStartMs: bounds.startMs,
+    periodEndMs: bounds.endMs,
+    // The raw observation, kept and reported rather than used as the
+    // boundary. null when this period was never seen open.
+    observedStartMs: anchorMs,
+    // Whether a usable anchor picked the policy day (vs falling back to
+    // the grid at nowMs). It no longer means "the anchor is the start".
     anchored: anchorFresh,
     // The payload's periodType wins for display (colosseum practice days
     // still say 'training'); the %7 grid decides war-day numbering.

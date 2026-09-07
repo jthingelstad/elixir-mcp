@@ -649,6 +649,21 @@ test("war_current: a period first seen just BEFORE the reset ends a day later", 
     "a live war day still names who is untouched/partial/finished",
   );
   assert.equal(body.decks_today.war_day, period.war_day);
+
+  // Policy grid (2026-09-07): the boundary is the policy hour, and the
+  // observation is reported beside it rather than used as the boundary.
+  assert.equal(
+    period.period_start_nominal,
+    boundary.toISOString(),
+    "the period starts at the policy hour, whatever we observed",
+  );
+  assert.equal(
+    period.observed_offset_minutes,
+    -3,
+    "the observed start is reported as a signed distance from policy",
+  );
+  assert.match(period.as_observed_note, /POLICY reset for every clan/);
+  assert.match(body.decks_today.note, /POLICY day/);
 });
 
 test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 + persona passes)", async () => {
