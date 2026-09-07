@@ -2,7 +2,10 @@
  *  single-file registry (review item 8). */
 
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
-import { periodInfo } from "../../../ingest/src/war-clock.mjs";
+import {
+  periodInfo,
+  nominalPeriodBoundsMs,
+} from "../../../ingest/src/war-clock.mjs";
 import {
   ToolFailure,
   TAG_RULE_HINT,
@@ -150,24 +153,10 @@ export const warTools = {
         const idx = Number(anchorRows[0].period_index);
         const info = periodInfo(idx);
         const anchor = anchorRows[0].first_observed_at;
-        // Nominal boundaries. The reset runs at ~10:00 UTC and DRIFTS,
-        // so the recorder can first see a period open a few minutes
-        // BEFORE the nominal hour. Taking "the next 10:00Z after the
-        // anchor" then collapsed to a boundary minutes after the START:
-        // a period first seen at 09:57Z reported period_end_nominal
-        // 10:00Z the same morning, ~24h early and already in the past
-        // at read time. Because decks_today is gated on that boundary,
-        // it also vanished on a live war day (feedback #9).
-        //
-        // Anchor to the period's own nominal START instead - the latest
-        // 10:00Z at or before the anchor, allowing an hour of early
-        // drift - and let the end be a full day after it.
-        const DRIFT_MS = 3600_000;
-        const nominalStart = new Date(anchor.getTime() + DRIFT_MS);
-        nominalStart.setUTCHours(10, 0, 0, 0);
-        if (nominalStart.getTime() > anchor.getTime() + DRIFT_MS)
-          nominalStart.setUTCDate(nominalStart.getUTCDate() - 1);
-        const nominalEnd = new Date(nominalStart.getTime() + 86400_000);
+        // Nominal boundaries on the policy grid - ONE definition,
+        // shared with the clan_pulse feeder (war-clock.mjs).
+        const bounds = nominalPeriodBoundsMs(anchor.getTime());
+        const nominalEnd = new Date(bounds.endMs);
         const weekEnd = new Date(
           nominalEnd.getTime() + (6 - info.dayInSection) * 86400_000,
         );

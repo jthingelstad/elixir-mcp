@@ -6,6 +6,7 @@ import {
   warClock,
   resolveWarKeys,
   nominalPeriodStartMs,
+  nominalPeriodBoundsMs,
   seasonFromDate,
 } from "../src/war-clock.mjs";
 import { fixture } from "./helpers.mjs";
@@ -149,4 +150,36 @@ test("season calendar: stateless derivation matches the riverracelog record", ()
     ),
     134,
   );
+});
+
+test("nominalPeriodBoundsMs snaps to the policy grid through early drift", () => {
+  // The 10:00Z reset is policy; clans are matched into races of five as
+  // matchmaking fills, so a clan's real start drifts off the hour and
+  // our anchor adds polling latency on top. Every case below must land
+  // on the SAME policy day, which is what makes a war day mean the same
+  // 24 hours for every clan.
+  const day = (h, m = 0) => Date.UTC(2026, 8, 6, h, m);
+  const expect = {
+    startMs: Date.UTC(2026, 8, 6, 10),
+    endMs: Date.UTC(2026, 8, 7, 10),
+  };
+  // Observed three minutes BEFORE the hour (the reset ran early). The
+  // old "next 10:00Z after the anchor" made this period 3 minutes long.
+  assert.deepEqual(nominalPeriodBoundsMs(day(9, 57)), expect);
+  assert.deepEqual(nominalPeriodBoundsMs(day(10, 0)), expect);
+  assert.deepEqual(nominalPeriodBoundsMs(day(10, 5)), expect);
+  // Observed hours late because polling was sparse - still the same day.
+  assert.deepEqual(nominalPeriodBoundsMs(day(20, 55)), expect);
+  assert.deepEqual(nominalPeriodBoundsMs(day(23, 59)), expect);
+  // Well before the hour belongs to the PREVIOUS policy day.
+  assert.deepEqual(nominalPeriodBoundsMs(day(3, 41)), {
+    startMs: Date.UTC(2026, 8, 5, 10),
+    endMs: Date.UTC(2026, 8, 6, 10),
+  });
+  // A period is always exactly one day long, never negative or zero.
+  for (let h = 0; h < 24; h += 1) {
+    const b = nominalPeriodBoundsMs(day(h, 30));
+    assert.equal(b.endMs - b.startMs, 24 * 3600_000);
+    assert.ok(b.endMs > day(h, 30), `period ending after the anchor at ${h}h`);
+  }
 });

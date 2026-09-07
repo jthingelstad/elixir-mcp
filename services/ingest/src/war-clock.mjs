@@ -128,6 +128,39 @@ export function nominalPeriodStartMs(nowMs) {
 }
 
 /**
+ * The nominal bounds of the period an anchor belongs to, on the POLICY
+ * grid: [the 10:00Z boundary this period opened at, that boundary + 1
+ * day).
+ *
+ * Supercell's policy reset is 10:00 UTC, but clans are matched into
+ * races of five as matchmaking fills, so a clan's real period start
+ * drifts off the hour - and our own anchor is when the RECORDER first
+ * saw the period open, which adds polling latency on top. Snapping to
+ * the policy grid is what makes a war day mean the same 24 hours for
+ * every clan, which is the whole point of a multi-clan service.
+ *
+ * The drift runs EARLY as often as late, so an anchor observed minutes
+ * BEFORE the hour still belongs to the period that hour opens: allow an
+ * hour of early drift before deciding the anchor belongs to the
+ * previous boundary. Taking "the next 10:00Z after the anchor" instead
+ * collapsed the period to minutes long whenever the reset ran early.
+ *
+ * ONE definition, used by every surface that reports or gates on the
+ * period. It was duplicated in two tool paths and drifted between them.
+ */
+export function nominalPeriodBoundsMs(anchorMs, driftToleranceMs = 3600_000) {
+  const d = new Date(anchorMs + driftToleranceMs);
+  let startMs = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    NOMINAL_RESET_HOUR_UTC,
+  );
+  if (startMs > anchorMs + driftToleranceMs) startMs -= DAY_MS;
+  return { startMs, endMs: startMs + DAY_MS };
+}
+
+/**
  * The clock at an observation: current period + its start instant.
  * anchorMs = when this periodIndex was first observed open (projector
  * records it); a missing or stale anchor (>24h old) falls back to the
