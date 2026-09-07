@@ -41,7 +41,7 @@ export function periodInfo(periodIndex) {
 /**
  * The season calendar — stateless season/section derivation (the fix
  * for the 2026-09-04 phantom-season incident). CR seasons run first
- * Monday of month -> first Monday of next month, resetting ~09:30Z;
+ * Monday of month -> first Monday of next month, resetting 10:00Z;
  * sections are the Mondays between. Verified against riverracelog
  * createdDate stamps: S134 = 2026-07-06 -> 2026-08-03 (sections
  * finishing Jul 13/20/27, Aug 3), S135 = 2026-08-03 -> 2026-09-07.
@@ -49,23 +49,40 @@ export function periodInfo(periodIndex) {
  * archive payloads replayed against future logged state, scattering
  * nine real weeks across nine phantom seasons.
  */
-// NOTE (2026-09-07, open question for Jamie): this 09:30Z season hour
-// was derived from OBSERVED riverracelog createdDate stamps, while
-// periods now follow the 10:00Z POLICY hour. Two nominal reset hours
-// therefore coexist in this file. If the real policy is 10:00 for both,
-// a season boundary observed between 09:30 and 10:00 on a first Monday
-// is attributed to the new season half an hour early - a 30-minute
-// window once a month. Left as observed rather than changed on a guess:
-// moving it reshuffles season attribution for every historical week,
-// which is a far larger blast radius than the period grid.
-const SEASON_ANCHOR = { id: 135, startMs: Date.UTC(2026, 7, 3, 9, 30) };
+// RESOLVED 2026-09-07 (Jamie, from the game's own countdown): the season
+// hour is 10:00Z, the SAME policy hour the period grid uses. The client's
+// "Season Ends In" timer read 24m46s at 09:35:14Z on the S135 -> S136
+// first Monday, i.e. exactly 10:00:00Z.
+//
+// The previous 09:30Z value was inferred from riverracelog createdDate
+// stamps, which are NOT the season boundary. Observed in-client on the
+// S135 -> S136 rollover: the war screen sits on "Week 5 ending... Please
+// stand by..." for the last half hour, already showing the season
+// countdown. So there are TWO distinct events, and the old anchor
+// collapsed them into one:
+//
+//   ~09:30Z  the RACE ends. Standings freeze, the riverracelog entry is
+//            created (this is what the ~09:33Z createdDate stamps were),
+//            and the client goes into stand-by. Still season N.
+//    10:00Z  the SEASON rolls. New season, section 0, periodIndex 0.
+//
+// During the stand-by window currentriverrace still describes the FINISHED
+// race - section 4, periodIndex 34, final fame. Dating the season from
+// 09:30 stamped exactly those payloads as season N+1 while they carried
+// section 4, which is the phantom-season shape migration 0021 purged.
+//
+// ONE hour constant now, so the season and period grids cannot drift apart.
+const SEASON_ANCHOR = {
+  id: 135,
+  startMs: Date.UTC(2026, 7, 3, NOMINAL_RESET_HOUR_UTC),
+};
 const WEEK_MS = 7 * 24 * 3600_000;
 
 function firstMondayResetMs(year, month) {
-  const first = new Date(Date.UTC(year, month, 1, 9, 30));
+  const first = new Date(Date.UTC(year, month, 1, NOMINAL_RESET_HOUR_UTC));
   const day = first.getUTCDay(); // 0 Sun .. 6 Sat
   const offset = (8 - day) % 7;
-  return Date.UTC(year, month, 1 + offset, 9, 30);
+  return Date.UTC(year, month, 1 + offset, NOMINAL_RESET_HOUR_UTC);
 }
 
 /** Season id + section index for an instant. */

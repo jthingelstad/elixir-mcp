@@ -165,8 +165,17 @@ test("season calendar: stateless derivation matches the riverracelog record", ()
     ),
     { seasonId: 135, sectionIndex: 4 },
   );
-  // Sep 7 09:31Z rolls to S136 section 0.
-  assert.equal(seasonFromDate(Date.UTC(2026, 8, 7, 9, 31)).seasonId, 136);
+  // The season hour is the 10:00Z POLICY hour, same as the period grid
+  // (game countdown, 2026-09-07: 24m46s left at 09:35:14Z = 10:00:00Z).
+  // The 09:30-10:00 window on a first Monday is still the OLD season --
+  // this is the regression that stamped live S135 colosseum payloads as
+  // season 136 against section 4 (phantom-season shape, cf. mig 0021).
+  assert.equal(seasonFromDate(Date.UTC(2026, 8, 7, 9, 31)).seasonId, 135);
+  assert.equal(seasonFromDate(Date.UTC(2026, 8, 7, 9, 31)).sectionIndex, 4);
+  assert.equal(seasonFromDate(Date.UTC(2026, 8, 7, 9, 59)).seasonId, 135);
+  // ...and 10:00Z sharp is the new season, section 0.
+  assert.equal(seasonFromDate(Date.UTC(2026, 8, 7, 10, 0)).seasonId, 136);
+  assert.equal(seasonFromDate(Date.UTC(2026, 8, 7, 10, 0)).sectionIndex, 0);
   // Out-of-order robustness: an archive instant derives the same season
   // no matter what any logged state says.
   assert.equal(
