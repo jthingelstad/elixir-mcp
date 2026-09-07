@@ -209,10 +209,25 @@ Resources:
       SqsManagedSseEnabled: true
 
   # ------------------------------------------------------------------- iam
-  VpcLambdaRole:
+  # One role per function (#24). These five used to share
+  # elixir-mcp-vpc-lambda, so the two internet-facing Lambdas carried
+  # the union of everything any of them needed - including archive
+  # Get/Put/List that only three of them use at all. Each role below
+  # grants exactly what its function's code reaches for, verified
+  # against the ARCHIVE_BUCKET / EMAIL_QUEUE_URL environment each one
+  # actually receives.
+  #
+  # The shared PostgreSQL credential is NOT split here. Doing that
+  # properly means separate database roles with migration-managed
+  # GRANT/REVOKE, which is a larger and riskier change than an IAM
+  # rewrite and wants its own pass.
+
+  # Public web + collector door: mails, reads the email DLQ for the
+  # status page, and archives collector submissions at admission.
+  WebApiRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: elixir-mcp-vpc-lambda
+      RoleName: elixir-mcp-web-api
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -222,29 +237,113 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       Policies:
-        - PolicyName: elixir-mcp-vpc-lambda
+        - PolicyName: elixir-mcp-web-api
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              # Email is the one queue left: the VPC->internet bridge to
-              # the relay (SQS collector plumbing retired with the job
-              # ledger, 0040). Send to enqueue mail; read the email DLQ
-              # for the public status page.
               - Effect: Allow
                 Action: [sqs:SendMessage, sqs:GetQueueUrl]
                 Resource: !GetAtt EmailQueue.Arn
-              # Ledger health metrics ride CloudWatch EMF on stdout (issue #1),
-              # not the CloudWatch API - so no cloudwatch:PutMetricData grant.
-              # The NAT-free VPC has no CloudWatch endpoint anyway; an awaited
-              # PutMetricData call hung every scheduler tick to the 50s timeout.
               - Effect: Allow
                 Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl]
-                Resource:
-                  - !GetAtt EmailDlq.Arn
-              # Payload archive: ingest puts at admission; migrate exports
-              # history and HEAD-verifies twins before the Postgres sweep.
+                Resource: !GetAtt EmailDlq.Arn
               - Effect: Allow
                 Action: [s3:PutObject, s3:GetObject]
+                Resource: !Sub
+                  - ${Arn}/payloads/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt ArchiveBucket.Arn
+
+  # The MCP/OAuth door sends login mail. It has no archive env var and
+  # never touched the bucket; it used to hold Get/Put on it anyway.
+  McpRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-mcp
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-mcp
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [sqs:SendMessage, sqs:GetQueueUrl]
+                Resource: !GetAtt EmailQueue.Arn
+
+  # The tick only touches Postgres and stdout (ledger health rides EMF,
+  # not the CloudWatch API). No queues, no bucket.
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-scheduler
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  # Migrations plus the archive export/verify ops.
+  MigrateRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-migrate
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-migrate
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject]
+                Resource: !Sub
+                  - ${Arn}/payloads/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt ArchiveBucket.Arn
+
+  # The weekly sweep HEAD-verifies an S3 twin before deleting the
+  # Postgres row. HeadObject is authorized by s3:GetObject - READ only,
+  # deliberately: the job that deletes the database copy must not be
+  # able to write or overwrite the copy it is checking against.
+  JobsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-jobs
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-jobs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
                 Resource: !Sub
                   - ${Arn}/payloads/*
                   - Arn: !GetAtt ArchiveBucket.Arn
@@ -296,7 +395,7 @@ Resources:
       Handler: index.handler
       MemorySize: 512
       Timeout: 20
-      Role: !GetAtt VpcLambdaRole.Arn
+      Role: !GetAtt WebApiRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref WebApiCodeKey }
       VpcConfig:
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
@@ -325,7 +424,7 @@ Resources:
       Handler: index.handler
       MemorySize: 512
       Timeout: 25
-      Role: !GetAtt VpcLambdaRole.Arn
+      Role: !GetAtt McpRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref McpCodeKey }
       VpcConfig:
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
@@ -353,7 +452,7 @@ Resources:
       MemorySize: 256
       Timeout: 50
       ReservedConcurrentExecutions: 1
-      Role: !GetAtt VpcLambdaRole.Arn
+      Role: !GetAtt SchedulerRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref SchedulerCodeKey }
       VpcConfig:
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
@@ -435,7 +534,7 @@ Resources:
       MemorySize: 1024
       Timeout: 300
       ReservedConcurrentExecutions: 1
-      Role: !GetAtt VpcLambdaRole.Arn
+      Role: !GetAtt MigrateRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref MigrateCodeKey }
       VpcConfig:
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
@@ -465,7 +564,7 @@ Resources:
       MemorySize: 1024
       Timeout: 300
       ReservedConcurrentExecutions: 1
-      Role: !GetAtt VpcLambdaRole.Arn
+      Role: !GetAtt JobsRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref JobsCodeKey }
       VpcConfig:
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
@@ -562,6 +661,18 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      # Encryption stated rather than inherited from the account default.
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+            BucketKeyEnabled: true
+      # This bucket is the system of record: canonical projections are
+      # rebuilt FROM it. Without versioning a PutObject over a known key
+      # is silent and unrecoverable - and PutObject is exactly what the
+      # internet-facing ingest path holds (#24). Deleting still needs
+      # s3:DeleteObject, which nothing is granted.
+      VersioningConfiguration:
+        Status: Enabled
       LifecycleConfiguration:
         Rules:
           - Id: payloads-to-ia
@@ -570,6 +681,18 @@ Resources:
             Transitions:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
+          # Payloads are content-addressed, so an overwrite means
+          # something went wrong rather than something changed. Keep a
+          # year of superseded versions - long enough to notice and
+          # recover, bounded so a loop cannot grow the bill forever.
+          - Id: expire-superseded-versions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 365
+          - Id: abort-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
 
   GlueArchiveDatabase:
     Type: AWS::Glue::Database
