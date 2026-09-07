@@ -33,36 +33,26 @@ says which existing repo to read before writing each subsystem.
    by the migrate Lambda at deploy — never at handler start, never by hand.
    Expand-and-contract; canonical tables are lossless by policy.
 7. **Never copy-paste code between repos.** Write fresh with the pattern open.
-8. **`docs/cr-api-docs/` is CR API truth** — a git subtree of
-   `jthingelstad/cr-agent-api-docs`, the canonical repo. When the live API
-   surprises us, patch it as part of the fix, then push the learning back
-   upstream so the other CR projects get it:
+8. **`~/Projects/cr-agent-api-docs` is CR API truth** — a standalone repo
+   (github `jthingelstad/cr-agent-api-docs`), deliberately NOT vendored here.
+   Two projects carried copies; both drifted, in both directions, and real
+   observations sat stranded in them for months. One checkout, edited in
+   place, is the fix.
 
-   ```sh
-   git subtree pull --prefix=docs/cr-api-docs cr-api-docs main --squash
-   git subtree push --prefix=docs/cr-api-docs cr-api-docs <branch>   # then PR
-   ```
+   **Write to it.** It exists to accumulate observed API behavior, and Elixir
+   MCP is its best contributor: we record many clans, so we see API and game
+   behavior a single-clan tool cannot. When the live API surprises us, patch
+   that repo as part of the fix and push.
 
-   Both need a clean working tree — commit first or subtree refuses.
+   Push findings that hold for ANY caller — endpoint shapes, field semantics,
+   nullability, timing and reset behavior. Never push clan-specific material
+   (POAP KINGS rosters, our fame, our members) or notes about downstream
+   consumers of the docs; it documents the game and its API, not our use of
+   them.
 
-   **What belongs upstream.** Elixir MCP is the RIGHT contributor of CR
-   insight: it records many clans, so it sees API and game behavior that a
-   single-clan tool cannot. Push findings that hold for ANY caller —
-   endpoint shapes, field semantics, nullability, timing and reset
-   behavior. Today's season-rollover finding is the model: the race ends
-   ~09:30Z and the season rolls at 10:00Z, and live riverrace payloads
-   carry no `seasonId`. That is true for everyone.
+   `infra/scripts/cr-api.mjs` (`npm run cr`) calls any CR endpoint directly,
+   which is how you check a claim before writing it down.
 
-   **What does not.** Never push clan-specific material (POAP KINGS
-   rosters, our fame, our members) and never notes about downstream
-   consumers of the docs — that is the upstream repo's own standing rule.
-   The docs describe the game and its API, not our use of them.
-
-   Treat the tree as an upstream mirror: it is in `.prettierignore` and
-   oxlint's `ignorePatterns` so it stays verbatim (reformatting it makes
-   every future pull conflict — the same rule as `fixtures/`). elixir-bot
-   carries a plain vendored copy of the same docs that has drifted — never
-   treat that one as truth.
 9. **Tests:** scratch databases generated per run (brew `postgresql@17`, no
    Docker); against live data, reads and refusal-paths only — never verify
    with writes.

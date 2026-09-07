@@ -10,12 +10,7 @@
     "node": true,
     "es2026": true
   },
-  "ignorePatterns": [
-    "**/dist/**",
-    "**/node_modules/**",
-    "fixtures/**",
-    "docs/cr-api-docs/**"
-  ],
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "fixtures/**"],
   "rules": {
     "eqeqeq": ["error", "smart"],
     "no-array-constructor": "error",
