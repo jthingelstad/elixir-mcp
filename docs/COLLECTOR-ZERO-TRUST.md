@@ -6,6 +6,47 @@ AWS connectivity — pure API clients of Elixir MCP with a token we
 issue, a launch-time contract so collection changes need no client
 update, and no IP collection at enrollment.
 
+## Trust posture TODAY — read this before enrolling anyone (issue #22)
+
+The name of this document describes where the collector plane is
+GOING. It does not describe where it is. As shipped today:
+
+- Probation is **a status, not a control**. A probation gateway fetches
+  config, leases real jobs, and its admitted submissions project
+  straight into canonical history like any other collector's.
+- Admission proves **shape and identity** — that a payload is
+  well-formed and is about the entity we asked for. It cannot prove
+  that a plausible payload is TRUE. Content-derived battle ids and
+  MAX-merge counters raise the cost of a consistent lie; they do not
+  make one impossible.
+- Black-hole quarantine detects a collector that fails to return work.
+  It does not detect one that returns fiction.
+
+Therefore **collector enrollment is trusted-volunteer, not
+zero-trust.** An enrolled operator is a person we have decided to
+trust with write access to the permanent public corpus, and enrollment
+should be treated with exactly that weight. This is tolerable because
+enrollment is not self-serve: raising a hand does nothing until the
+maintainer hand-issues an IP-allowlisted CR key and per-gateway
+credentials out of band, and every collector to date is one of Jamie's
+own machines.
+
+**The activation gate.** Before the first gateway run by someone other
+than the maintainer is moved to `active`, either the shadow lane below
+must ship, or the decision to trust that specific operator anyway must
+be made deliberately and written down. "Begin probation" currently
+means "these results count".
+
+**Recovery is designed, not drilled.** Receipts carry their gateway
+forever and the archive is replayable — the `{replay}` op exists and
+was exercised for the elixir-bot backfill — but there is **no
+gateway-scoped purge-and-rebuild procedure and none has ever been
+run**. Payload dedup and canonical projections make excising one
+observer more involved than deleting its receipts, because a battle
+seen by an honest clanmate's collector must survive the excision.
+Treat "lies are removable" as an intention with a plausible mechanism
+under it, not as a capability on the shelf.
+
 ## Assessment of the current model — the worry is justified
 
 Today each collector holds a per-collector **IAM user** (a principal
@@ -251,9 +292,13 @@ Defense in depth, layered by cost:
    activation, a low sampling rate continues forever.
 3. **Provenance quarantine is the backstop**: every payload's receipt
    carries its gateway forever, and projections are rebuildable from
-   the S3 archive. If a liar is discovered late, the incident path is:
-   revoke the token, purge that gateway's receipts/payloads, replay
-   the archive without them. Lies are removable, not permanent.
+   the S3 archive. If a liar is discovered late, the intended incident
+   path is: revoke the token, purge that gateway's receipts/payloads,
+   replay the archive without them. **NOT YET BUILT OR DRILLED** — see
+   "Trust posture today". The hard part is not deletion, it is keeping
+   the observations a trusted collector made of the same subjects, so
+   the procedure needs a disposable database and archived fixtures
+   before anyone should rely on it.
 
 ## Migration (end state ratified by Jamie, 2026-09-06)
 
