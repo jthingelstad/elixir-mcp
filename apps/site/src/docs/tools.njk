@@ -1,0 +1,75 @@
+---
+slug: tools
+title: "Tools"
+navTitle: "Tools"
+order: 3
+description: "Every tool your agent sees through the Elixir MCP connection, generated from the live registry: groups, arguments, and the OAuth capability each one requires."
+---
+<h1>Tools</h1>
+
+<p>Every tool your agent sees through the MCP connection, grouped the way the
+<a href="https://github.com/jthingelstad/cr-agent-api-docs">Clash Royale API agent docs</a>
+outline the game's surface — plus groups of our own. The same grouping rides each
+tool's title (<code>Players · Player profile</code>), so clients that list tools
+alphabetically cluster them.</p>
+
+<p class="panel__note">This page is generated from the server's own tool registry
+at build time, so it lists exactly what <code>tools/list</code> returns:
+<strong>{{ tools.count }} tools</strong> in {{ tools.groups | length }} groups.
+The machine-readable form is <a href="/tools.json">/tools.json</a>.</p>
+
+<h2>Connecting</h2>
+
+<p>Point any MCP client at <code>{{ site.mcpUrl }}</code> and complete the OAuth
+flow. Access is approval-gated while the recorder grows —
+<a href="/#request">request it</a> first.</p>
+
+<h2>Authorization capabilities</h2>
+
+<p>The connection page lists these before you enter your sign-in code. Every OAuth
+grant includes <code>cr:read</code>; the others are added only when the client
+requests them. If a connected agent needs a capability it does not have, Elixir MCP
+refuses the call and asks the client to reconnect for that specific permission.</p>
+
+<ul>
+  {%- for s in tools.scopes %}
+  <li><code>{{ s.scope }}</code> — <strong>{{ s.title }}.</strong> {{ s.description }}</li>
+  {%- endfor %}
+</ul>
+
+<p>Connections created before this boundary shipped remain <code>cr:read</code>-only,
+because that is what their original consent page promised. Owner-issued service
+tokens are different: they are full-capability administrative credentials for
+trusted headless integrations, shown once and revocable from the console.</p>
+
+{% for g in tools.groups %}
+<h2 id="{{ g.group | lower | replace(' ', '-') }}">{{ g.group }}</h2>
+{%- for t in g.tools %}
+<h3 id="{{ t.name }}">{{ t.title }} <code>{{ t.name }}</code></h3>
+<p>{{ t.description | esc }}</p>
+<p class="sample">
+  {%- if t.readOnly %}Read-only{% else %}Changes state{% endif %} ·
+  requires <code>{{ t.scope }}</code>
+  {%- if t.openWorld %} · reaches the live Clash Royale API, outside the recorded corpus{% endif %}
+</p>
+{%- if t.args | length %}
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Argument</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+    <tbody>
+      {%- for a in t.args %}
+      <tr>
+        <td><code>{{ a.name }}</code></td>
+        <td class="mono">{{ a.type }}</td>
+        <td>{% if a.required %}yes{% else %}<span class="nil">no</span>{% endif %}</td>
+        <td>{{ a.description | esc }}{% if a.enum %} <span class="mono">({{ a.enum | join(" · ") }})</span>{% endif %}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</div>
+{%- else %}
+<p class="sample">Takes no arguments.</p>
+{%- endif %}
+{%- endfor %}
+{% endfor %}

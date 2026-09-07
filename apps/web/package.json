@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/web",
   "version": "0.1.0",
-  "description": "elixir.poapkings.com \u2014 request access, sign in, claim tags, dashboard, admin, connect. Dark CR-themed sibling of drop.poapkings.com.",
+  "description": "elixir.poapkings.com - the DYNAMIC half: sign in, claim tags, explore recorded history, account, admin, live data charts. Content pages live in apps/site.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,10 +10,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "marked": "^18.0.11",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "@elixir-mcp/contracts": "*"
+    "@elixir-mcp/design": "*"
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",

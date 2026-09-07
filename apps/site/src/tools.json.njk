@@ -1,0 +1,14 @@
+---
+permalink: /tools.json
+eleventyExcludeFromCollections: true
+---
+{{ {
+  "service": site.name,
+  "url": site.url,
+  "mcp_endpoint": site.mcpUrl,
+  "generated_from": "the live MCP tool registry at build time",
+  "tool_count": tools.count,
+  "oauth_scopes": tools.scopes,
+  "groups": tools.groups,
+  "disclaimer": site.disclaimer
+} | json | safe }}

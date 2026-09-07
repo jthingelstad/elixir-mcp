@@ -17,9 +17,12 @@ authenticated remote MCP server you connect to Claude or any MCP client.
 
 ## Repo shape
 
-npm workspaces monorepo: `apps/web` (site), `services/` (web-api, mcp, auth,
-scheduler, ingest, migrate, email-relay), `packages/` (contracts, game-data),
-`db/migrations`, `infra/`. The collector operators run lives in its own repo:
+npm workspaces monorepo: `apps/site` (the static site: home, docs, updates,
+changelog, `llms.txt`/`tools.json`), `apps/web` (the application: sign in,
+explore, account, admin, live charts), `services/` (web-api, mcp, auth,
+scheduler, ingest, migrate, email-relay), `packages/` (contracts, design,
+game-data), `db/migrations`, `infra/`. `node infra/scripts/build-site.mjs`
+builds both halves into one tree and validates it. The collector operators run lives in its own repo:
 [elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
 (the queue contract stays canonical here in `packages/contracts`).
 

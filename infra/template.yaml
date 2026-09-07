@@ -710,7 +710,7 @@ Resources:
           # AWS managed CachingOptimized
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           Compress: true
-          # SPA routing lives HERE, on the site behavior only, so it
+          # Site routing lives HERE, on the site behavior only, so it
           # cannot reach the API, MCP or OAuth behaviors below.
           FunctionAssociations:
             - EventType: viewer-request
@@ -747,29 +747,74 @@ Resources:
         # No CustomErrorResponses: those are DISTRIBUTION-wide, so
         # rewriting 403/404 to a 200 app shell also rewrote the API's
         # own refusals. An unauthenticated /api/admin/requests came back
-        # 200 text/html, and the web client read that as success. SPA
-        # routing is done by SpaRouter on the site behavior instead, and
-        # a missing asset is now honestly a miss.
+        # 200 text/html, and the web client read that as success. Site
+        # routing is done by SpaRouter on the site behavior instead,
+        # and a missing page or asset is now honestly a miss.
 
-  # Serves the app shell for site deep links without touching status
-  # codes anywhere else on the distribution.
+  # Routes each path to the half of the site that owns it, without
+  # touching status codes anywhere else on the distribution.
+  #
+  # The site is two builds in one bucket (2026-09-07). apps/site emits
+  # real documents for the content pages; apps/web is the application,
+  # served from /app.html. Before the split every extension-less path
+  # was rewritten to the one shared shell, so all ten sitemap URLs
+  # returned byte-identical HTML and no crawler or agent could read the
+  # docs at all.
+  #
+  # STATIC_PAGES below must stay in step with what apps/site emits and
+  # with STATIC_LINKS in apps/web/src/App.jsx. A test pins all three.
   SpaRouter:
     Type: AWS::CloudFront::Function
     Properties:
+      # Logical id and Name are historical: this was the SPA router
+      # before the site was split. Changing either forces a replacement
+      # of a function attached to the live distribution, which is not
+      # worth a better name.
       Name: elixir-mcp-spa-router
       AutoPublish: true
       FunctionConfig:
-        Comment: Rewrite site deep links to the app shell
+        Comment: Route content paths to the static site and app paths to the app shell
         Runtime: cloudfront-js-2.0
       FunctionCode: |
+        var STATIC_PAGES = {
+          '/docs': 1,
+          '/updates': 1,
+          '/data/changelog': 1
+        };
+        var STATIC_PREFIXES = ['/docs/'];
+
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
-          var last = uri.substring(uri.lastIndexOf('/') + 1);
+
           // A path whose last segment has an extension is asking for a
           // real file; if it is not there, that is a 404 and must stay
-          // one. Everything else is a client-side route.
-          if (last.indexOf('.') === -1) request.uri = '/index.html';
+          // one. This covers every asset, llms.txt, tools.json,
+          // sitemap.xml and robots.txt.
+          if (uri.substring(uri.lastIndexOf('/') + 1).indexOf('.') !== -1) {
+            return request;
+          }
+
+          if (uri === '/' || uri === '') {
+            request.uri = '/index.html';
+            return request;
+          }
+
+          // Match without a trailing slash: both spellings of a page
+          // resolve to the same document.
+          var key = uri.charAt(uri.length - 1) === '/'
+            ? uri.substring(0, uri.length - 1)
+            : uri;
+
+          var isStatic = STATIC_PAGES[key] === 1;
+          for (var i = 0; i < STATIC_PREFIXES.length && !isStatic; i++) {
+            if (key.indexOf(STATIC_PREFIXES[i]) === 0) isStatic = true;
+          }
+
+          // A static page that does not exist is an honest miss, the
+          // same as a missing asset. Everything else is an application
+          // route and gets the app shell.
+          request.uri = isStatic ? key + '/index.html' : '/app.html';
           return request;
         }
 

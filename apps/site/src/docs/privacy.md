@@ -1,3 +1,11 @@
+---
+slug: privacy
+title: "Privacy"
+navTitle: "Privacy"
+description: "What Elixir MCP stores, why, and what it never stores: public Clash Royale game data plus history, email held only as a one-way hash, and no identifiers in analytics."
+order: 4
+---
+
 # Privacy
 
 **What we store.** Game data from the public Clash Royale API: battles,

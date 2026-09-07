@@ -1,8 +1,18 @@
 /**
  * What's new — the product-updates surface. Newest first. Every
  * user-visible ship appends an entry in the same commit (AGENTS.md).
+ *
+ * Rendered as a real page at /updates and summarised on the home page.
+ * Lives in the static site because it is content, not application
+ * state; it used to sit in the React bundle where no crawler or agent
+ * could read it.
  */
-export const UPDATES = [
+export default [
+  {
+    date: "2026-09-07",
+    title: "The documentation is a real website now",
+    body: "Every page here used to be one file. Whatever address you opened - the docs, the tool list, the changelog - the server sent back the same home page, and your browser drew the rest. That works for a person clicking around and fails everyone else: search engines saw a single page wearing ten names, and an AI agent fetching a documentation URL got the home page instead of the documentation. The content pages are now genuine pages, each with its own address, title and description, readable without running any code. The tool reference is generated from the server's own registry, so it can no longer fall behind what your agent actually sees - it had drifted five tools behind. There is a new page listing everything that has shipped, and machine-readable files at /llms.txt, /llms-full.txt and /tools.json for agents that would rather read one file than crawl a site. Nothing moved: every address you had still works.",
+  },
   {
     date: "2026-09-07",
     title: "Connected agents get only what you approve",

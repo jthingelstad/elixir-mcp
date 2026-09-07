@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }} - {{ site.name }}</title>
+    <meta name="description" content="{{ description | esc }}" />
+    <link rel="canonical" href="{{ site.url }}{{ page | pageUrl }}" />
+    <meta property="og:title" content="{{ title }} - {{ site.name }}" />
+    <meta property="og:description" content="{{ description | esc }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ site.url }}{{ page | pageUrl }}" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/site.css" />
+    <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="{{ site.url }}/feed.xml" />
+  </head>
+  <body>
+    <div class="shell">
+      {#- Tier-1 navigation. The static half cannot know whether the
+          reader is signed in, so it always shows the signed-out shape
+          and links into the app for the rest. Every link is a plain
+          href: crossing into the app is a real page load. -#}
+      <header class="nav1">
+        <div class="nav1__inner wrap">
+          <a class="wordmark" href="/" style="padding: 14px 0">{{ site.name }}</a>
+          <nav>
+            <a href="/"{% if navActive == "home" %} aria-current="page"{% endif %}>Home</a>
+            <a href="/data/dashboard"{% if navActive == "data" %} aria-current="page"{% endif %}>Data</a>
+            <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
+            <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
+          </nav>
+          <div class="nav1__meta"><a href="/signin">Sign in</a></div>
+        </div>
+      </header>
+
+      {% if nav2 %}
+      <nav class="nav2" aria-label="{{ nav2Label }} pages">
+        <div class="nav2__inner wrap">
+          {%- for item in nav2 %}
+          <a href="{{ item.url }}"{% if item.url == (page | pageUrl) %} aria-current="page"{% endif %}>{{ item.label }}</a>
+          {%- endfor %}
+        </div>
+      </nav>
+      {% endif %}
+
+      <main class="wrap{% if prose %} wrap--prose{% endif %}">
+        {{ content | safe }}
+      </main>
+
+      <footer class="disclaimer">
+        <span class="disclaimer__tag">UNOFFICIAL</span>
+        <span class="disclaimer__text">
+          This material is unofficial and is not endorsed by Supercell. For more
+          information see Supercell&rsquo;s Fan Content Policy:
+          <a href="https://www.supercell.com/fan-content-policy">www.supercell.com/fan-content-policy</a>.
+        </span>
+        <span class="disclaimer__family">{{ site.family }}</span>
+      </footer>
+    </div>
+    {#- Tinylytics: a static page is a real document load, so the embed
+        records the hit by itself. No pushState bridge is needed here -
+        that belongs to the app. Same privacy posture: anonymous only. -#}
+    <script defer src="https://tinylytics.app/embed/{{ site.tinylyticsId }}/min.js?hits&countries&events"></script>
+  </body>
+</html>

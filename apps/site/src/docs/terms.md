@@ -1,3 +1,11 @@
+---
+slug: terms
+title: "Terms"
+navTitle: "Terms"
+description: "Elixir MCP is free and unofficial. The terms covering use, the Supercell Fan Content Policy, data, availability, and account removal."
+order: 5
+---
+
 # Terms
 
 **Free, and staying that way.** Elixir MCP is free to use. Supercell's

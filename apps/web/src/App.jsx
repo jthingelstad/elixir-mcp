@@ -1,10 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "./api.js";
-import { Landing } from "./views/Landing.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { Dashboard } from "./views/Dashboard.jsx";
 import { Admin } from "./views/Admin.jsx";
-import { Docs } from "./views/Docs.jsx";
 import { Data } from "./views/Data.jsx";
 import { Explore } from "./views/Explore.jsx";
 
@@ -13,16 +11,34 @@ import { Explore } from "./views/Explore.jsx";
  * a gold underline, tier 2 a purple underline, in-page tabs a segmented
  * well — three tiers, three shapes. Explore has no tier-2 row: it is a
  * lookup plus addressable records (the trail replaces the page row).
+ *
+ * This app is the site's DYNAMIC half (2026-09-07 split). Home, docs,
+ * updates and the contract changelog are real pages built by apps/site
+ * and served from the same hostname; they are reached with plain hrefs
+ * (STATIC_LINKS below), which are full page loads on purpose. Anything
+ * the app does not recognise leaves for the static home rather than
+ * rendering an empty main.
  */
+
+/** Paths owned by the static site. The edge router in infra/template.yaml
+ *  holds the same list; a test pins the two together, because a path in
+ *  one and not the other is either a dead link or an app shell served
+ *  where a document was expected. */
+export const STATIC_LINKS = {
+  home: "/",
+  docs: "/docs",
+  updates: "/updates",
+  changelog: "/data/changelog",
+};
 export const SECTIONS = {
-  home: { label: "Home", authed: false, pages: [] },
   data: {
     label: "Data",
     authed: false,
     pages: [
       { slug: "dashboard", label: "Dashboard" },
       { slug: "status", label: "Status" },
-      { slug: "changelog", label: "Changelog" },
+      // Changelog is a static page; the tier-2 row links out to it.
+      { slug: "changelog", label: "Changelog", static: true },
     ],
   },
   explore: { label: "Explore", authed: true, pages: [] },
@@ -38,7 +54,6 @@ export const SECTIONS = {
       { slug: "feedback", label: "Feedback" },
     ],
   },
-  docs: { label: "Docs", authed: false, pages: [] },
   admin: {
     label: "Admin",
     authed: true,
@@ -69,17 +84,23 @@ const REDIRECTS = {
 };
 
 /** Guard restored/bookmarked routes: a stale path to a removed section
- *  must fall back to a known-good route, never an empty main. */
-function legalRoute(path) {
+ *  must fall back to a known-good route, never an empty main. Anything
+ *  this app no longer owns returns null, and the caller leaves for the
+ *  static home with a real navigation. */
+export function legalRoute(path) {
   const [, section, page] = path.split("/");
-  if (path === "/" || path === "" || path === "/signin") return path;
+  if (path === "/signin") return path;
   const sec = SECTIONS[section];
-  if (!sec) return "/";
+  if (!sec) return null;
   if (section === "explore") return path; // records are addressable
-  if (section === "docs") return path; // docs own their pages
-  if (sec.pages.length === 0) return `/${section}`;
-  if (sec.pages.some((p) => p.slug === page)) return path;
-  return `/${section}/${sec.pages[0].slug}`;
+  // A static page can sit inside an app section (Data > Changelog). It
+  // belongs to the other half, so hand it back rather than quietly
+  // substituting the section's default page.
+  if (sec.pages.some((p) => p.slug === page && p.static)) return null;
+  const appPages = sec.pages.filter((p) => !p.static);
+  if (appPages.length === 0) return `/${section}`;
+  if (appPages.some((p) => p.slug === page)) return path;
+  return `/${section}/${appPages[0].slug}`;
 }
 
 /** Tab titles. The distinguishing word goes FIRST, because a browser
@@ -96,7 +117,7 @@ const prettify = (seg) =>
 
 export function titleFor(section, sec, path) {
   const parts = path.split("/").filter(Boolean);
-  if (parts.length === 0 || section === "home") return SITE;
+  if (parts.length === 0) return SITE;
   if (!sec) return SITE;
   const pageSlug = parts[1];
   const known = sec.pages?.find((p) => p.slug === pageSlug)?.label;
@@ -177,9 +198,16 @@ export function App() {
   }, [refresh]);
 
   const authed = me?.authenticated === true;
-  const effectivePath = legalRoute(REDIRECTS[path] ?? path);
-  const [, sectionRaw, page] = effectivePath.split("/");
-  const section = effectivePath === "/" ? "home" : sectionRaw;
+  const owned = legalRoute(REDIRECTS[path] ?? path);
+
+  // A path this app does not own belongs to the static site. Replace
+  // the entry so Back does not bounce between the two halves.
+  useEffect(() => {
+    if (owned === null) window.location.replace(STATIC_LINKS.home);
+  }, [owned]);
+
+  const effectivePath = owned ?? "/account/overview";
+  const [, section, page] = effectivePath.split("/");
   const sec = SECTIONS[section];
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
 
@@ -210,19 +238,12 @@ export function App() {
     <div className="shell">
       <header className="nav1">
         <div className="nav1__inner wrap">
-          <a
-            className="wordmark"
-            href="/"
-            style={{ padding: "14px 0" }}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/");
-            }}
-          >
+          <a className="wordmark" href="/" style={{ padding: "14px 0" }}>
             Elixir MCP
           </a>
           <nav>
-            {t1("/", "Home", "home", section === "home")}
+            {/* Plain anchors: these paths are static documents. */}
+            <a href={STATIC_LINKS.home}>Home</a>
             {t1("/data/dashboard", "Data", "data", section === "data")}
             {authed &&
               t1("/explore", "Explore", "explore", section === "explore")}
@@ -233,7 +254,7 @@ export function App() {
                 "account",
                 section === "account",
               )}
-            {t1("/docs", "Docs", "docs", section === "docs")}
+            <a href={STATIC_LINKS.docs}>Docs</a>
             {authed &&
               me.is_admin &&
               t1("/admin/requests", "Admin", "admin", section === "admin")}
@@ -245,8 +266,7 @@ export function App() {
                 onClick={async (e) => {
                   e.preventDefault();
                   await api.signOut();
-                  await refresh();
-                  navigate("/");
+                  window.location.assign(STATIC_LINKS.home);
                 }}
               >
                 Sign out
@@ -269,25 +289,31 @@ export function App() {
       {tier2Pages.length > 0 && !needsAuth && (
         <nav className="nav2" aria-label={`${sec.label} pages`}>
           <div className="nav2__inner wrap">
-            {tier2Pages.map((p) => (
-              <a
-                key={p.slug}
-                href={`/${section}/${p.slug}`}
-                aria-current={activePage === p.slug ? "page" : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(`/${section}/${p.slug}`);
-                }}
-              >
-                {p.label}
-              </a>
-            ))}
+            {tier2Pages.map((p) =>
+              p.static ? (
+                <a key={p.slug} href={`/${section}/${p.slug}`}>
+                  {p.label}
+                </a>
+              ) : (
+                <a
+                  key={p.slug}
+                  href={`/${section}/${p.slug}`}
+                  aria-current={activePage === p.slug ? "page" : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(`/${section}/${p.slug}`);
+                  }}
+                >
+                  {p.label}
+                </a>
+              ),
+            )}
           </div>
         </nav>
       )}
 
       <main className="wrap">
-        {effectivePath === "/signin" ? (
+        {owned === null ? null : effectivePath === "/signin" ? (
           <SignIn
             onAuthed={async () => {
               await refresh();
@@ -296,12 +322,8 @@ export function App() {
           />
         ) : needsAuth ? (
           <SignInWall navigate={navigate} />
-        ) : section === "home" ? (
-          <Landing authed={authed} navigate={navigate} />
         ) : section === "data" ? (
           <Data page={activePage ?? "dashboard"} />
-        ) : section === "docs" ? (
-          <Docs page={page} navigate={navigate} />
         ) : section === "explore" ? (
           <Explore me={me} navigate={navigate} path={effectivePath} />
         ) : section === "account" ? (
@@ -323,9 +345,7 @@ export function App() {
           ) : (
             <SignInWall navigate={navigate} />
           )
-        ) : (
-          <Landing authed={authed} navigate={navigate} />
-        )}
+        ) : null}
       </main>
 
       <Disclaimer />

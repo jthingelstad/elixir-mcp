@@ -1,3 +1,11 @@
+---
+slug: architecture
+title: "Architecture"
+navTitle: "Architecture"
+description: "How Elixir MCP is built: the collector fleet, the recording pipeline, the Postgres corpus, and the authenticated remote MCP server behind one hostname."
+order: 6
+---
+
 # Architecture
 
 The technical documentation — how Elixir MCP is designed, for users who

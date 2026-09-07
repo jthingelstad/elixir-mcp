@@ -5,6 +5,10 @@
       "entry": ["infra/scripts/*.mjs"],
       "project": ["infra/scripts/**/*.mjs"]
     },
+    "apps/site": {
+      "entry": ["eleventy.config.mjs", "src/_data/*.js", "test/**/*.test.mjs"],
+      "project": ["src/**/*.js", "eleventy.config.mjs", "test/**/*.mjs"]
+    },
     "apps/web": {
       "entry": ["src/main.jsx", "vite.config.mjs"],
       "project": ["src/**/*.{js,jsx}"]
@@ -12,6 +16,10 @@
     "packages/contracts": {
       "entry": ["src/index.ts"],
       "project": ["src/**/*.ts", "test/**/*.mjs"]
+    },
+    "packages/design": {
+      "entry": [],
+      "project": []
     },
     "services/*": {
       "entry": [

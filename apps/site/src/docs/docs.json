@@ -1,0 +1,5 @@
+{
+  "layout": "doc.njk",
+  "tags": "doc",
+  "permalink": "/docs/{{ slug }}/index.html"
+}

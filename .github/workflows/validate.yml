@@ -32,5 +32,9 @@ jobs:
       - run: npm run build -w @elixir-mcp/contracts
       - run: npm test -ws --if-present
       - run: node infra/scripts/build.mjs
+      # The site build validates its own merged tree: dead sitemap
+      # entries, dangling llms.txt links and a missing app shell fail
+      # here. --skip-stats keeps CI off the live stats endpoint.
+      - run: node infra/scripts/build-site.mjs --skip-stats
       # No AWS credentials in CI, ever (AGENTS.md): template validation
       # runs locally via aws cloudformation validate-template.

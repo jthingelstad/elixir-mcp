@@ -1,3 +1,11 @@
+---
+slug: roles
+title: "Roles and quotas"
+navTitle: "Roles"
+description: "Roles never gate what you can read. Every approved account reads all recorded game data; tiers set how much Elixir MCP records for you and how many calls your agent gets per day."
+order: 2
+---
+
 # Roles and quotas
 
 Every account sits on a five-step ladder. One principle above everything:

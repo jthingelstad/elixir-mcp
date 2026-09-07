@@ -30,49 +30,37 @@ beforeEach(() => {
   window.history.pushState({}, "", "/");
 });
 
-test("landing renders the pitch, the disclaimer, and posts request-access", async () => {
-  const calls = [];
-  global.fetch = mockFetch({
-    "GET /api/me": [200, { authenticated: false }],
-    "GET /api/public/stats": [
-      200,
-      {
-        totals: {
-          battles: 1,
-          players: 1,
-          clans: 1,
-          collectors_active: 1,
-        },
-        series: {
-          battles_daily: [],
-          players_observed_daily: [],
-          fetches_daily: [],
-        },
-      },
-    ],
-    "POST /api/request-access": (init) => {
-      calls.push(JSON.parse(init.body));
-      expect(init.headers["x-elixir-client"]).toBe("web");
-      return [200, { ok: true, message: "If your request is approved…" }];
-    },
-  });
+test("a path the app does not own leaves for the static site", async () => {
+  // Home, docs, updates and the changelog are real documents built by
+  // apps/site. The app must hand those paths back rather than render an
+  // empty main - the state the old catch-all Landing fallback hid.
+  const replace = vi.fn();
+  vi.stubGlobal("location", { ...window.location, replace });
+  window.history.pushState({}, "", "/");
+  global.fetch = mockFetch({ "GET /api/me": [200, { authenticated: false }] });
   render(<App />);
-  expect(
-    await screen.findByText(/Clash Royale history, recorded/),
-  ).toBeTruthy();
-  expect(screen.getByText("UNOFFICIAL")).toBeTruthy();
+  await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+  vi.unstubAllGlobals();
+});
 
-  fireEvent.change(screen.getByLabelText(/Email/), {
-    target: { value: "a@b.com" },
-  });
-  fireEvent.change(screen.getByLabelText(/player tag/i), {
-    target: { value: "#20JJJ2CCRU" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Request access" }));
-  await waitFor(() =>
-    expect(screen.getByText(/If your request is approved/)).toBeTruthy(),
+test("the app owns its own sections and disowns the static ones", async () => {
+  const { legalRoute, STATIC_LINKS } = await import("../src/App.jsx");
+  // Owned: resolved to a real app page.
+  expect(legalRoute("/data/dashboard")).toBe("/data/dashboard");
+  expect(legalRoute("/data/nonsense")).toBe("/data/dashboard");
+  expect(legalRoute("/signin")).toBe("/signin");
+  expect(legalRoute("/explore/player/%2320JJJ2CCRU")).toBe(
+    "/explore/player/%2320JJJ2CCRU",
   );
-  expect(calls[0].player_tag).toBe("#20JJJ2CCRU");
+  // Disowned: every static path, and anything unrecognised.
+  for (const path of Object.values(STATIC_LINKS)) {
+    expect(legalRoute(path)).toBe(null);
+  }
+  expect(legalRoute("/")).toBe(null);
+  expect(legalRoute("/bogus")).toBe(null);
+  // The changelog sits inside an app section but is a static page, so
+  // it must never be chosen as the section's default page.
+  expect(legalRoute("/data")).toBe("/data/dashboard");
 });
 
 test("sign-in flow: email step then code step authenticates", async () => {
@@ -225,7 +213,7 @@ test("the tab title names the page, most specific part first", async () => {
   // has to lead or every Elixir MCP tab looks identical.
   const { titleFor, SECTIONS } = await import("../src/App.jsx");
   const t = (path) => {
-    const section = path === "/" ? "home" : path.split("/")[1];
+    const section = path.split("/")[1];
     return titleFor(section, SECTIONS[section], path);
   };
   expect(t("/")).toBe("Elixir MCP");
@@ -233,10 +221,8 @@ test("the tab title names the page, most specific part first", async () => {
   expect(t("/data/dashboard")).toBe("Dashboard - Data - Elixir MCP");
   expect(t("/admin/gateways")).toBe("Collectors - Admin - Elixir MCP");
   expect(t("/account/collector")).toBe("Collector - Account - Elixir MCP");
-  expect(t("/docs")).toBe("Docs - Elixir MCP");
-  // Docs and explore own their sub-pages, so the slug is prettified.
-  expect(t("/docs/architecture")).toBe("Architecture - Docs - Elixir MCP");
-  // A record beats the page slug: it is the most specific thing shown.
+  // Explore owns its sub-pages, so a record beats the page slug: it is
+  // the most specific thing shown.
   expect(t("/explore/player/%2320JJJ2CCRU")).toBe(
     "#20JJJ2CCRU - Explore - Elixir MCP",
   );

@@ -1,5 +1,22 @@
 # Site information architecture (ratified 2026-09-05)
 
+> **Amended 2026-09-07 - the site is two builds.** The IA below is
+> unchanged; how it is SERVED is not. Content pages (Home, Docs,
+> Updates, Data > Changelog) are real HTML documents built by
+> `apps/site` (Eleventy). Session and live-data pages (Data >
+> Dashboard/Status, Explore, Account, Admin, sign-in) stay in the
+> `apps/web` React app, served from `/app.html`. The deploy-time bake
+> that patched crawlable text into the single shared shell is gone:
+> every content page is now its own document with its own title,
+> description and canonical link, and the corpus totals are read from
+> `/api/public/stats` at build time. Two additions the split made
+> possible: `/updates` (the What's-new list, previously only a panel on
+> the home page) and the machine-readable surfaces `/llms.txt`,
+> `/llms-full.txt`, `/tools.json` and `/feed.xml`. `/docs/tools` is now
+> GENERATED from the MCP tool registry. The sitemap lists only pages
+> that render real HTML, so `/data/dashboard` and `/data/status` left
+> it; they are still public and still linked.
+
 The navigation spec of record for the web app, agreed with Jamie ahead of
 the Claude Design session. Principles: web/MCP parity (anything an agent
 can see, a person can see); the public boundary follows universal reads

@@ -1,0 +1,34 @@
+---
+layout: base.njk
+title: "Docs"
+description: "Documentation for Elixir MCP: what it is, roles and quotas, the full tool reference for agents, privacy, terms, and architecture."
+permalink: /docs/index.html
+canonical: /docs
+navActive: docs
+---
+<div class="page-head">
+  <h1 class="page-title">Docs</h1>
+  <p class="page-head__note">What Elixir MCP is, what your agent can call, and how the service treats your data.</p>
+</div>
+
+<div class="stats">
+  {%- for d in collections.docs %}
+  <section class="panel">
+    <div class="panel__head"><span class="panel-title"><a href="{{ d | pageUrl }}">{{ d.data.title }}</a></span></div>
+    <div class="panel__body"><p style="color: var(--muted); margin: 0">{{ d.data.description }}</p></div>
+  </section>
+  {%- endfor %}
+</div>
+
+<section class="panel" style="margin-top: var(--s-6)">
+  <div class="panel__head"><span class="panel-title">For agents</span></div>
+  <div class="panel__body">
+    <ul style="margin: 0">
+      <li><a href="/llms.txt">/llms.txt</a> — what this service is and where everything lives, in one short file.</li>
+      <li><a href="/llms-full.txt">/llms-full.txt</a> — every documentation page and the whole tool reference in one fetch.</li>
+      <li><a href="/tools.json">/tools.json</a> — the tool registry as JSON: names, groups, descriptions, arguments, required capabilities.</li>
+      <li><a href="/api/public/stats">/api/public/stats</a> — live corpus totals and the full-history daily series.</li>
+      <li><a href="/data/changelog">Contract changelog</a> — what changed in the tool contract, version by version.</li>
+    </ul>
+  </div>
+</section>

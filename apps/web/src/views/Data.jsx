@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-// Subpath import: the contracts barrel pulls node:crypto (deck.js).
-import { CHANGELOG } from "@elixir-mcp/contracts/dist/changelog.js";
 import { Status } from "./Status.jsx";
 
-/** Data (design handoff §2–3): the ONLY place charts belong. Full
+/** Data (design handoff §2-3): the ONLY place charts belong. Full
  *  recorded history, daily, UTC; today's partial bar at 35% so an
  *  unfinished day never reads as a drop; one hover index drives all
- *  three small multiples with the value printed in each head. */
+ *  three small multiples with the value printed in each head.
+ *
+ *  The contract changelog used to be a third page here. It is content,
+ *  not live data, so it moved to the static site at /data/changelog
+ *  where a crawler and an agent can read it. */
 
 const W = 720;
 const H = 96;
@@ -91,85 +93,6 @@ export function Data({ page }) {
   }, []);
 
   if (page === "status") return <Status />;
-  if (page === "changelog") {
-    return (
-      <>
-        <div className="page-head">
-          <h1 className="page-title">Contract changelog</h1>
-          <span className="page-head__note">
-            every change to the tool contract — agents read this via{" "}
-            <code>elixir_changelog</code>
-          </span>
-          <span className="caveat">schema, not news</span>
-        </div>
-        <section className="panel">
-          {CHANGELOG.map((e) => (
-            <div
-              key={e.version}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(120px, 160px) 1fr",
-                borderTop: "1px solid var(--edge-soft)",
-              }}
-            >
-              <div
-                className="mono"
-                style={{
-                  padding: "12px 16px",
-                  color: "var(--dim)",
-                  fontSize: "11.5px",
-                }}
-              >
-                <div style={{ color: "var(--muted)", fontWeight: 600 }}>
-                  {e.version}
-                </div>
-                {e.date}
-              </div>
-              <div
-                style={{
-                  padding: "12px 16px",
-                  fontSize: "12.5px",
-                  lineHeight: 1.55,
-                }}
-              >
-                {e.summary}
-                {e.tools_added && (
-                  <div
-                    style={{
-                      marginTop: "6px",
-                      display: "flex",
-                      gap: "6px",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span className="stat__label">tools added</span>
-                    {e.tools_added.map((t) => (
-                      <code key={t} className="tag-chip">
-                        {t}
-                      </code>
-                    ))}
-                  </div>
-                )}
-                {e.breaking && (
-                  <div
-                    style={{
-                      marginTop: "6px",
-                      fontSize: "12px",
-                      color: "var(--amber)",
-                    }}
-                  >
-                    breaking: {e.breaking}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </section>
-      </>
-    );
-  }
-
   const t = stats?.totals;
   const mk = (rows, vKey) =>
     (rows ?? []).map((d) => ({ day: d.day, v: d[vKey] }));

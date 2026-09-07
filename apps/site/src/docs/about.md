@@ -1,3 +1,11 @@
+---
+slug: about
+title: "About Elixir MCP"
+navTitle: "About"
+description: "Elixir MCP records the Clash Royale history the official API does not keep - battles, progression, and clan life - and serves it to your own AI agent through a remote MCP server."
+order: 1
+---
+
 # About Elixir MCP
 
 Elixir MCP is a **data product** for Clash Royale players: it records the

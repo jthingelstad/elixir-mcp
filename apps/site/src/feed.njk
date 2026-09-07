@@ -1,0 +1,22 @@
+---
+permalink: /feed.xml
+eleventyExcludeFromCollections: true
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>{{ site.name }} updates</title>
+    <link>{{ site.url }}/updates</link>
+    <description>Every user-visible change to {{ site.name }}, newest first.</description>
+    <language>en</language>
+    {%- for u in updates %}
+    <item>
+      <title>{{ u.title | esc }}</title>
+      <link>{{ site.url }}/updates#{{ u.date }}-{{ loop.index }}</link>
+      <guid isPermaLink="false">{{ site.url }}/updates#{{ u.date }}-{{ loop.index }}</guid>
+      <pubDate>{{ u.date }}</pubDate>
+      <description>{{ u.body | esc }}</description>
+    </item>
+    {%- endfor %}
+  </channel>
+</rss>

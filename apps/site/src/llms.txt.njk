@@ -1,0 +1,48 @@
+---
+permalink: /llms.txt
+eleventyExcludeFromCollections: true
+---
+# {{ site.name }}
+
+> {{ site.name }} records Clash Royale history the official game API does not keep - battles, progression, clan rosters, and war - and serves it to your own AI agent through an authenticated remote MCP server at {{ site.mcpUrl }}. The official API answers only "what is true right now": a rotating ~30-battle log, no trophy timeline, no season history. This service keeps the record.
+
+Access is approval-gated while the recorder grows; request it at {{ site.url }}/. All recorded GAME data is readable by every approved account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
+{% if stats.ok %}
+Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles recorded across {{ stats.totals.players | number }} players and {{ stats.totals.clans | number }} clans, captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
+{% endif %}
+## Documentation
+- [All documentation]({{ site.url }}/docs): index of every page below
+{% for d in collections.docs %}- [{{ d.data.title | safe }}]({{ site.url }}{{ d | pageUrl }}): {{ d.data.description | safe }}
+{% endfor %}- [What's new]({{ site.url }}/updates): every user-visible change, newest first
+- [Contract changelog]({{ site.url }}/data/changelog): the MCP tool contract version by version, with breaking changes called out
+
+## Machine-readable
+- [Full content bundle]({{ site.url }}/llms-full.txt): every documentation page and the whole tool reference in one fetch
+- [Tool registry JSON]({{ site.url }}/tools.json): all {{ tools.count }} tools with groups, descriptions, arguments, and required OAuth capabilities
+- [Public corpus stats JSON]({{ site.url }}/api/public/stats): live totals plus the full-history daily series; no authentication
+- [Public service status JSON]({{ site.url }}/api/public/status): recording health; no authentication
+- [Updates feed]({{ site.url }}/feed.xml): RSS 2.0 of what's new
+- [Sitemap]({{ site.url }}/sitemap.xml)
+
+## MCP connection
+- Endpoint: {{ site.mcpUrl }} (OAuth 2.1; tokens are audience-bound to this resource)
+- Tools: {{ tools.count }} across {{ tools.groups | length }} groups - {% for g in tools.groups %}{{ g.group }} ({{ g.tools | length }}){% if not loop.last %}, {% endif %}{% endfor %}
+- Capabilities: {% for s in tools.scopes %}`{{ s.scope }}` {{ s.title | lower | safe }}{% if not loop.last %}; {% endif %}{% endfor %}
+- Read tools need only `cr:read`. The {{ tools.writeCount }} state-changing tools each name their own capability, granted only if the client asks for it at connection time.
+{% for g in tools.groups %}
+### {{ g.group }}
+{% for t in g.tools %}- `{{ t.name }}` ({{ t.title | safe }}): {{ t.description | clamp(240) | safe }}
+{% endfor %}{% endfor %}
+## Interactive pages (JavaScript application, not in this index)
+- {{ site.url }}/data/dashboard: full-history charts over the public stats endpoint
+- {{ site.url }}/data/status: live recording health
+- {{ site.url }}/signin, /account, /explore: require a session
+
+## Optional
+- [Source repository]({{ site.repo }}): the recorder, MCP server, web app, and infrastructure are public code
+- [Clash Royale API agent docs](https://github.com/jthingelstad/cr-agent-api-docs): the standalone reference this service contributes observed API behavior to
+- [POAP KINGS](https://poapkings.com/): the clan this product belongs to
+
+---
+
+{{ site.disclaimer | safe }}

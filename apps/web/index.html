@@ -8,6 +8,12 @@
       name="description"
       content="Clash Royale history, recorded — served to your own AI agent over MCP."
     />
+    <!-- The application shell. It is served at /app.html for every route
+         the app owns (sign in, account, explore, admin, the live data
+         charts). It is deliberately NOT indexable: it renders nothing
+         without JavaScript, and every page worth indexing is a real
+         document built by apps/site. -->
+    <meta name="robots" content="noindex" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,9 +24,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Crawlable content (SITE-IA): the deploy bakes live corpus stats
-         and site text here; the app removes it after mount. -->
-    <div id="prerender"><!--BAKE--></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

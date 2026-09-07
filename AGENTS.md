@@ -6,6 +6,20 @@ server. One hostname, `elixir.poapkings.com`: the site at /, the MCP/OAuth
 door path-split at /mcp, /oauth/*, /.well-known/* behind a no-cookie
 CloudFront behavior (consolidated from two hostnames 2026-09-03).
 
+**The site is two builds in one bucket** (split 2026-09-07). `apps/site`
+is an Eleventy build that emits real documents for everything that is
+CONTENT - home, `/docs/*`, `/updates`, `/data/changelog` - plus the
+machine-readable surfaces (`llms.txt`, `llms-full.txt`, `tools.json`,
+`sitemap.xml`, `feed.xml`). `apps/web` is the React application for
+everything behind a session or drawn live at read time, served from
+`/app.html`. A CloudFront function routes each path to its owner; that
+list lives in three places (the function in `infra/template.yaml`,
+`STATIC_LINKS` in `apps/web/src/App.jsx`, and the pages `apps/site`
+builds) and a test pins them together. Build both with
+`node infra/scripts/build-site.mjs`, which validates the merged tree
+before a deploy can upload it. Shared design tokens are one file:
+`packages/design/styles.css`.
+
 `CLAUDE.md` is a symlink to this file. Do not fork them.
 
 **Start with `docs/DESIGN.md`** — the spec of record (v2, audited). Decisions
@@ -85,8 +99,10 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 
 - Work lands on `main`; CI (validate workflow) must stay green.
 - **Docs ship with the change**: anything altering architecture or
-  user-facing behavior updates the site docs (`apps/web/src/docs/`) and
-  the What's-new list (`apps/web/src/updates.js`) in the same commit.
+  user-facing behavior updates the site docs (`apps/site/src/docs/`) and
+  the What's-new list (`apps/site/src/_data/updates.js`) in the same
+  commit. The tool reference (`/docs/tools`) is GENERATED from the MCP
+  registry - never hand-edit it; fix the tool's declaration instead.
 - `npm run verify` (prettier check + oxlint + all workspace tests) is the
   pre-push gate; `npm run format` fixes style. `npm run knip` hunts dead
   exports/deps — run it when refactoring, not every push.

@@ -46,11 +46,58 @@ check(
   (bare.headers.get("www-authenticate") ?? "").includes("resource_metadata"),
 );
 
-// Site: the shell must serve.
-const site = await fetch(`https://${outputs.SiteDistributionDomain}/`);
-check("site shell", site.ok, String(site.status));
-const html = site.ok ? await site.text() : "";
-check("site is the app", html.includes("Elixir MCP"));
+// Site: two builds behind one router (2026-09-07 split). The check
+// that matters is that the halves are TELLING APART - before the split
+// every URL served the same shell, and a check for "Elixir MCP appears
+// somewhere" passed the whole time.
+const site = await fetch(`${mcpBase}/`);
+check("site root serves", site.ok, String(site.status));
+const home = site.ok ? await site.text() : "";
+check(
+  "home is a real document",
+  home.includes("<main") && !home.includes('<div id="root"></div>'),
+);
+check("home carries the live corpus", /battles recorded/.test(home));
+
+const docs = await fetch(`${mcpBase}/docs/tools`);
+const docsHtml = docs.ok ? await docs.text() : "";
+check(
+  "docs page serves a document",
+  docs.ok && docsHtml.includes("<main"),
+  String(docs.status),
+);
+check(
+  "the tool reference is the real registry",
+  docsHtml.includes("players_profile") && docsHtml.includes("live_fetch"),
+);
+check(
+  "docs pages have their own titles",
+  /<title>Tools - Elixir MCP<\/title>/.test(docsHtml),
+);
+
+const appRoute = await fetch(`${mcpBase}/account/overview`);
+const appHtml = appRoute.ok ? await appRoute.text() : "";
+check(
+  "an app route gets the app shell",
+  appRoute.ok && appHtml.includes('<div id="root"></div>'),
+  String(appRoute.status),
+);
+
+for (const [name, path, test] of [
+  ["llms.txt", "/llms.txt", (t) => t.includes("## MCP connection")],
+  ["tools.json", "/tools.json", (t) => JSON.parse(t).tool_count > 0],
+  ["sitemap.xml", "/sitemap.xml", (t) => t.includes("/docs/tools")],
+  ["robots.txt", "/robots.txt", (t) => t.includes("Sitemap:")],
+]) {
+  const res = await fetch(`${mcpBase}${path}`);
+  let ok = res.ok;
+  try {
+    ok = ok && test(await res.text());
+  } catch {
+    ok = false;
+  }
+  check(`${name} serves`, ok, String(res.status));
+}
 
 // The edge must not rewrite the API's own answers. Distribution-wide
 // CustomErrorResponses used to turn every 403/404 into a 200 app shell,

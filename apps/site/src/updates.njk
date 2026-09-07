@@ -1,0 +1,23 @@
+---
+layout: base.njk
+title: "What's new"
+description: "Everything shipped on Elixir MCP, newest first: what changed, and why it matters to players and their agents."
+permalink: /updates/index.html
+canonical: /updates
+navActive: updates
+prose: true
+---
+<div class="page-head">
+  <h1 class="page-title">What&rsquo;s new</h1>
+  <p class="page-head__note">Every user-visible change, newest first. For the tool contract specifically, see the <a href="/data/changelog">changelog</a>.</p>
+</div>
+
+{%- for u in updates %}
+<section class="panel" style="margin-bottom: var(--s-4)" id="{{ u.date }}-{{ loop.index }}">
+  <div class="panel__head">
+    <span class="panel-title">{{ u.title }}</span>
+    <time class="mono" style="margin-left: auto; font-size: 11px; color: var(--dim)" datetime="{{ u.date }}">{{ u.date }}</time>
+  </div>
+  <div class="panel__body"><p style="color: var(--muted); margin: 0">{{ u.body }}</p></div>
+</section>
+{%- endfor %}

@@ -1,0 +1,62 @@
+---
+permalink: /llms-full.txt
+eleventyExcludeFromCollections: true
+---
+# {{ site.name }} - Full Content Bundle
+
+> Every documentation page and the complete tool reference for {{ site.name }} ({{ site.url }}) in one file, regenerated on each build from the same sources that render the site. Short index: {{ site.url }}/llms.txt
+
+Site: {{ site.url }}
+MCP endpoint: {{ site.mcpUrl }}
+Tools published: {{ tools.count }}
+{% if stats.ok %}Corpus: {{ stats.totals.battles | number }} battles, {{ stats.totals.players | number }} players, {{ stats.totals.clans | number }} clans, {{ stats.totals.collectors_active }} active collectors, {{ stats.totals.oldest_battle | day }} to {{ stats.totals.newest_battle | day }}
+{% endif %}
+---
+{% for d in collections.docs %}
+{{ d.rawInput | safe }}
+
+---
+{% endfor %}
+## Tool reference
+
+Every tool an agent sees through {{ site.mcpUrl }}, in published order. Generated from the server's registry.
+
+### Authorization capabilities
+{% for s in tools.scopes %}
+- `{{ s.scope }}` - {{ s.title | safe }}. {{ s.description | safe }}
+{%- endfor %}
+{% for g in tools.groups %}
+### {{ g.group }}
+{% for t in g.tools %}
+#### {{ t.title | safe }} (`{{ t.name }}`)
+
+{{ t.description | safe }}
+
+{% if t.readOnly %}Read-only.{% else %}Changes state.{% endif %} Requires `{{ t.scope }}`.{% if t.openWorld %} Reaches the live Clash Royale API, outside the recorded corpus.{% endif %}
+{% if t.args | length %}
+Arguments:
+{% for a in t.args %}- `{{ a.name }}` ({{ a.type }}{% if a.required %}, required{% endif %}){% if a.description %}: {{ a.description | safe }}{% endif %}{% if a.enum %} One of: {{ a.enum | join(", ") | safe }}.{% endif %}
+{% endfor %}{% else %}
+Takes no arguments.
+{% endif %}{% endfor %}{% endfor %}
+---
+
+## What's new
+{% for u in updates %}
+### {{ u.date }} - {{ u.title | safe }}
+
+{{ u.body | safe }}
+{% endfor %}
+---
+
+## Contract changelog
+{% for c in changelog %}
+### {{ c.version }} ({{ c.date }})
+
+{{ c.summary | safe }}
+{% if c.tools_added %}Tools added: {{ c.tools_added | join(", ") | safe }}.
+{% endif %}{% if c.breaking %}BREAKING: {{ c.breaking | safe }}
+{% endif %}{% endfor %}
+---
+
+{{ site.disclaimer | safe }}
