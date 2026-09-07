@@ -188,11 +188,35 @@ export const clansTools = {
            order by (avg((p.outcome = 'win')::int) - avg(c.wr)) desc`,
           [clanTag],
         );
+        // What the curve was fit on. The curve is refit from the corpus
+        // on EVERY request over a rolling window, so a member's
+        // expected_from_levels moves when the corpus moves, with no new
+        // battles of their own - and a ledger that diffs runs cannot
+        // tell that from the player improving (feedback #9). There is no
+        // code revision to report here; the honest discriminator is the
+        // basis itself, so a run whose basis is unchanged can attribute
+        // a score change to the player.
+        const { rows: basisRows } = await ctx.db.query(
+          `select (select count(*)::int from cps_pairs) as pairs,
+                  (select count(*)::int from (
+                     select 1 from cps_pairs
+                     group by width_bucket(gap, ${EDGES})
+                     having count(*) >= 200) b) as bins`,
+        );
         await ctx.db.query("commit");
+        const asOf = new Date();
         return {
           clan_tag: clanTag,
           window_days: days,
           scored_members: rows.length,
+          basis: {
+            curve_pairs: Number(basisRows[0].pairs),
+            curve_bins: Number(basisRows[0].bins),
+            window_from: new Date(
+              asOf.getTime() - days * 86400_000,
+            ).toISOString(),
+            window_to: asOf.toISOString(),
+          },
           members: rows.map((r, i) => ({
             rank: i + 1,
             player_tag: r.player_tag,
@@ -205,8 +229,8 @@ export const clansTools = {
             pilot_score: Number(r.pilot_score),
             standard_error: Number(r.standard_error),
           })),
-          note: "pilot_score = actual minus level-expected win rate (wins card levels can't explain). Members below 30 decided leveled battles in the window are not scored. Scores embed experience and band - compare trends or similar tenures, not raw scores across careers. Deeper single-player detail (cohort percentile, monthly trend): battles_levels.",
-          meta: responseMeta({ as_of: new Date().toISOString() }),
+          note: "pilot_score = actual minus level-expected win rate (wins card levels can't explain). Members below 30 decided leveled battles in the window are not scored. Scores embed experience and band - compare trends or similar tenures, not raw scores across careers. The level curve is refit per request over a ROLLING window, so scores can move without new battles; basis says what it was fit on, and a change there means the baseline moved rather than the player. Deeper single-player detail (cohort percentile, monthly trend): battles_levels.",
+          meta: responseMeta({ as_of: asOf.toISOString() }),
         };
       } catch (err) {
         await ctx.db.query("rollback").catch(() => {});

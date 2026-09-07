@@ -7,6 +7,7 @@
  */
 
 import { responseMeta, roleQuotas } from "@elixir-mcp/contracts";
+import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 
 /** The live lane spends real CR budget: tight per-account daily cap,
@@ -215,54 +216,24 @@ export const SEGMENT_NOTE =
 // --- tools -----------------------------------------------------------------
 
 /** Added = recorded, shared honestly: the clan's recording exists while
- *  ANY account has it added, at the widest requested scope. Returns
- *  true when this call started the recording. */
+ *  ANY account has it added OR a collection names it, at the widest
+ *  scope anybody asks for. Returns true when this call started it.
+ *
+ *  Both of these delegate to reconcileRecording rather than counting
+ *  account_clan themselves. They used to do their own counting, which
+ *  meant they could not see collection membership: removing the last
+ *  account that had added a clan stopped a clan a collection was still
+ *  curating, and adding one at activity scope could downgrade a clan a
+ *  comprehensive collection wanted. One function knows every reason. */
 export async function ensureClanRecording(db, tag, requestedBy) {
-  const { rows: eff } = await db.query(
-    `select max(scope) as scope from account_clan where clan_tag = $1`,
-    [tag],
-  );
-  const scope = eff[0]?.scope ?? "comprehensive"; // 'comprehensive' > 'activity' lexically
-  const { rowCount: started } = await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, scope)
-     select 'clan', $1, $2, $3
-     where not exists (select 1 from recording
-                       where subject_type = 'clan' and subject_tag = $1 and status = 'active')`,
-    [tag, requestedBy, scope],
-  );
-  if (started === 0) {
-    await db.query(
-      `update recording set scope = $2
-       where subject_type = 'clan' and subject_tag = $1 and status = 'active'
-         and scope <> $2`,
-      [tag, scope],
-    );
-  }
-  return started > 0;
+  const { started } = await reconcileRecording(db, "clan", tag, requestedBy);
+  return started;
 }
 
-/** After a removal: stop the recording when no account has the clan
- *  added any more, else settle scope to the widest remaining request.
- *  Returns true when the recording stopped. */
+/** After a removal: stop the recording when nothing wants the clan any
+ *  more, else settle scope to the widest remaining reason. Returns true
+ *  when the recording stopped. */
 export async function settleClanRecording(db, tag) {
-  const { rows: eff } = await db.query(
-    `select max(scope) as scope, count(*)::int as n
-     from account_clan where clan_tag = $1`,
-    [tag],
-  );
-  if (eff[0].n === 0) {
-    const { rowCount } = await db.query(
-      `update recording set status = 'stopped'
-       where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
-      [tag],
-    );
-    return rowCount > 0;
-  }
-  await db.query(
-    `update recording set scope = $2
-     where subject_type = 'clan' and subject_tag = $1 and status = 'active'
-       and scope <> $2`,
-    [tag, eff[0].scope],
-  );
-  return false;
+  const { stopped } = await reconcileRecording(db, "clan", tag, null);
+  return stopped;
 }

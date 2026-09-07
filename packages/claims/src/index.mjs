@@ -76,17 +76,28 @@ async function logEvent(db, accountId, kind, detail) {
 export async function reconcileRecording(db, subjectType, tag, requestedBy) {
   const { rows } = await db.query(
     `select
-       exists (select 1 from claim where player_tag = $1) as claimed,
+       -- EVERY reason a subject is recorded, counted in one place. An
+       -- account associates with a player through claim and with a clan
+       -- through account_clan; a collection names either. A function
+       -- that knows only some of these stops recordings the others
+       -- still want, which is exactly how removing a clan you had added
+       -- used to stop a clan a collection was curating.
+       ($2 = 'player'
+        and exists (select 1 from claim where player_tag = $1)) as claimed,
+       ($2 = 'clan'
+        and exists (select 1 from account_clan where clan_tag = $1)) as added,
+       ($2 = 'clan'
+        and exists (select 1 from account_clan
+                    where clan_tag = $1 and scope = 'comprehensive')) as added_deep,
        exists (select 1 from collection_member m
                join collection c on c.collection_id = m.collection_id
                where m.subject_tag = $1 and c.kind = $2) as collected,
        -- How deep any collection asks this subject to be recorded. Two
-       -- collections can name it at different depths; the deepest wins,
-       -- and nothing is ever downgraded.
+       -- collections can name it at different depths; the deepest wins.
        exists (select 1 from collection_member m
                join collection c on c.collection_id = m.collection_id
                where m.subject_tag = $1 and c.kind = $2
-                 and c.scope = 'comprehensive') as wants_comprehensive,
+                 and c.scope = 'comprehensive') as collected_deep,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active' and origin = 'ops') as ops,
@@ -95,11 +106,14 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
                  and status = 'active') as active`,
     [tag, subjectType],
   );
-  const { claimed, collected, ops, active, wants_comprehensive } = rows[0];
-  const wanted = claimed || collected;
+  const { claimed, added, added_deep, collected, collected_deep, ops, active } =
+    rows[0];
+  const wanted = claimed || added || collected;
   // A claim means somebody added this player to their account, which has
-  // always meant full capture. A collection gets the depth it asked for.
-  const scope = claimed || wants_comprehensive ? "comprehensive" : "activity";
+  // always meant full capture. A clan carries the depth each account
+  // asked for; a collection the depth it asked for. Widest reason wins.
+  const scope =
+    claimed || added_deep || collected_deep ? "comprehensive" : "activity";
 
   if (ops) return { started: false, stopped: false };
 
@@ -113,20 +127,38 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
     await db.query(
       `insert into recording (subject_type, subject_tag, requested_by, origin, scope)
        values ($2, $1, $3, $4, $5)`,
-      [tag, subjectType, requestedBy, claimed ? "claim" : "collection", scope],
+      [
+        tag,
+        subjectType,
+        requestedBy,
+        claimed || added ? "claim" : "collection",
+        scope,
+      ],
     );
     return { started: true, stopped: false };
   }
-  // Upgrade only. A collection asking for more depth deepens an existing
-  // recording; one asking for less never takes capture away from
-  // whoever is already relying on it.
-  if (wanted && active && scope === "comprehensive") {
-    await db.query(
-      `update recording set scope = 'comprehensive'
-       where subject_type = $2 and subject_tag = $1
-         and status = 'active' and scope = 'activity'`,
-      [tag, subjectType],
-    );
+  if (wanted && active) {
+    if (subjectType === "clan") {
+      // Clans settle to the widest remaining reason, up or down: the
+      // ratified rule is that a clan is recorded at the widest scope
+      // anybody still asks for (docs/NOTES.md, added = recorded).
+      await db.query(
+        `update recording set scope = $3
+         where subject_type = $2 and subject_tag = $1
+           and status = 'active' and scope <> $3`,
+        [tag, subjectType, scope],
+      );
+    } else if (scope === "comprehensive") {
+      // Players upgrade only. A collection asking for more depth deepens
+      // an existing recording; one asking for less never takes capture
+      // away from whoever is already relying on it.
+      await db.query(
+        `update recording set scope = 'comprehensive'
+         where subject_type = $2 and subject_tag = $1
+           and status = 'active' and scope = 'activity'`,
+        [tag, subjectType],
+      );
+    }
   }
   if (!wanted && active) {
     const { rowCount } = await db.query(

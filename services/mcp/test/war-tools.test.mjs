@@ -474,6 +474,31 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
   assert.match(body.note, /can't explain/);
 });
 
+test("clans_pilot_scores: basis says what the curve was fit on", async () => {
+  // Feedback #9: scores shifted between runs for players with no new
+  // battles, because the curve is refit over a rolling window every
+  // request. A version number would be a lie (no code changed); the
+  // basis is the honest discriminator.
+  const { body, isError } = await call(invoke, "clans_pilot_scores", {});
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.ok(body.basis, "the response says what it was fit on");
+  assert.equal(typeof body.basis.curve_pairs, "number");
+  assert.equal(typeof body.basis.curve_bins, "number");
+  assert.ok(
+    Date.parse(body.basis.window_to) > Date.parse(body.basis.window_from),
+    "the window is a real interval",
+  );
+  assert.equal(
+    Math.round(
+      (Date.parse(body.basis.window_to) - Date.parse(body.basis.window_from)) /
+        86400_000,
+    ),
+    body.window_days,
+    "the window matches the declared window_days",
+  );
+  assert.match(body.note, /basis/);
+});
+
 test("players_search: corpus-wide names resolve; unknowns honest-empty", async () => {
   const member = (
     await db.query(
@@ -499,11 +524,11 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
 });
 
 test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
-  // Anchor a war-day period as freshly observed: periodInfo(4) -> war day 2,
-  // A FRESH anchor: the nominal ~10:00Z end is always future (the next
-  // reset strictly after now), so this stays live regardless of what
-  // time the suite runs - a stale anchor's past nominal end is the
-  // SEPARATE staleness-guard case tested below.
+  // Anchor a war-day period as freshly observed: periodInfo(4) -> war day 2.
+  // NOTE: now() is a convenient anchor but NOT the production shape -
+  // the reset drifts early, so real anchors sit minutes BEFORE a 10:00Z
+  // boundary. That case is pinned in the next test; this one covers the
+  // bucket arithmetic, and the stale-anchor guard below.
   await db.query(
     `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
      values ($1, 4, now())
@@ -571,6 +596,59 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   );
   const stale = await call(invoke, "war_current", {});
   assert.equal(stale.body.decks_today, undefined, "stale day says nothing");
+});
+
+test("war_current: a period first seen just BEFORE the reset ends a day later", async () => {
+  // Feedback #9 (2026-09-06, the clan-management routine). The reset
+  // runs at ~10:00Z and drifts EARLY, so the recorder first saw war day
+  // 4 open at 09:57:37Z. "The next 10:00Z after the anchor" was then
+  // 10:00Z the same morning - 2.4 minutes after the period started and
+  // ~24h before it actually ends. By read time it was 10.5 hours in the
+  // PAST, and because decks_today is gated on that boundary the whole
+  // block silently disappeared on a live war day.
+  //
+  // The old test anchored at now(), where "next 10:00Z" is always
+  // future, so it never saw this. Anchor the production shape instead:
+  // three minutes before the most recent 10:00Z boundary.
+  const now = new Date();
+  const boundary = new Date(now);
+  boundary.setUTCHours(10, 0, 0, 0);
+  if (boundary > now) boundary.setUTCDate(boundary.getUTCDate() - 1);
+  const observedAt = new Date(boundary.getTime() - 3 * 60_000);
+
+  await db.query(
+    `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
+     values ($1, 4, $2)
+     on conflict (clan_tag, period_index)
+       do update set first_observed_at = excluded.first_observed_at`,
+    [CLAN, observedAt],
+  );
+
+  const { body, isError } = await call(invoke, "war_current", {});
+  assert.equal(isError, false, JSON.stringify(body));
+  const period = body.period;
+  assert.equal(period.started_observed_at, observedAt.toISOString());
+  assert.equal(
+    period.period_end_nominal,
+    new Date(boundary.getTime() + 86400_000).toISOString(),
+    "the period ends at the NEXT reset, not the one it opened at",
+  );
+  assert.ok(
+    Date.parse(period.period_end_nominal) > Date.now(),
+    "a live period's nominal end is in the future",
+  );
+  assert.ok(
+    Date.parse(period.week_end_nominal) >=
+      Date.parse(period.period_end_nominal),
+    "the week cannot end before the period inside it",
+  );
+  // The second half of the report: the boundary gates decks_today, so a
+  // wrong boundary took the nudge list with it.
+  assert.ok(
+    body.decks_today,
+    "a live war day still names who is untouched/partial/finished",
+  );
+  assert.equal(body.decks_today.war_day, period.war_day);
 });
 
 test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 + persona passes)", async () => {

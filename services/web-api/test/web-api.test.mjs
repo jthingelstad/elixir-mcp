@@ -1619,3 +1619,88 @@ test("raising a collection's scope deepens the members it already has", async ()
     "the promise of battle history has to reach the existing member",
   );
 });
+
+test("removing a clan you added leaves a collection's clan recording alone", async () => {
+  // Jamie, 2026-09-07: removing personally-added clans that are also in
+  // a collection. settleClanRecording counted account_clan and nothing
+  // else, so this removal stopped a clan the collection still curated.
+  const OWNER_E = "clan-collection@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
+    [emailHash(OWNER_E)],
+  );
+  const cookie = await signIn(OWNER_E, "203.0.113.19");
+  const CLAN = "#P2P2Y880";
+
+  const added = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { action: "add", clan_tag: CLAN, scope: "comprehensive" },
+    }),
+  );
+  assert.equal(added.statusCode, 200, added.body);
+
+  // The same clan is also curated in a collection.
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(OWNER_E)],
+  );
+  const { rows: col } = await db.query(
+    `insert into collection (slug, title, kind, owner_account, scope)
+     values ('watched-clans', 'Watched', 'clan', $1, 'comprehensive')
+     returning collection_id`,
+    [acct[0].account_id],
+  );
+  await db.query(
+    `insert into collection_member (collection_id, subject_tag) values ($1, $2)`,
+    [col[0].collection_id, CLAN],
+  );
+
+  const active = async () =>
+    (
+      await db.query(
+        `select count(*)::int as n from recording
+         where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+        [CLAN],
+      )
+    ).rows[0].n;
+  assert.equal(await active(), 1);
+
+  const removed = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { action: "remove", clan_tag: CLAN },
+    }),
+  );
+  assert.equal(removed.statusCode, 200);
+  assert.equal(parse(removed).removed, true, "the account association is gone");
+  assert.equal(
+    parse(removed).recording_stopped,
+    false,
+    "the collection is still a reason to record it",
+  );
+  assert.equal(await active(), 1, "the clan is still being recorded");
+
+  // And once the collection lets go, nothing wants it and it stops.
+  await db.query(`delete from collection_member where collection_id = $1`, [
+    col[0].collection_id,
+  ]);
+  await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { action: "add", clan_tag: CLAN, scope: "comprehensive" },
+    }),
+  );
+  const gone = await handler(
+    event({
+      path: "/api/me/clans",
+      cookie,
+      body: { action: "remove", clan_tag: CLAN },
+    }),
+  );
+  assert.equal(parse(gone).recording_stopped, true);
+  assert.equal(await active(), 0);
+});

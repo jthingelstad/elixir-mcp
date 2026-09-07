@@ -15,6 +15,7 @@ import {
   setCollectionMembers,
   reconcileCollection,
   deleteCollection,
+  reconcileRecording,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -141,6 +142,7 @@ beforeEach(async () => {
   await db.query(`delete from collection`);
   await db.query(`delete from account_event`);
   await db.query(`delete from claim`);
+  await db.query(`delete from account_clan`);
   await db.query(`delete from recording`);
   await db.query(`delete from account`);
   alice = await account(`alice-${Math.random()}`, { slots: 10 });
@@ -735,4 +737,103 @@ test("deleting a collection never touches an ops recording", async () => {
 test("deleting a collection that is not there is quiet", async () => {
   const r = await deleteCollection(db, 999999);
   assert.equal(r.deleted, false);
+});
+
+// ------------------------------------------- clan reasons are shared
+// Jamie, 2026-09-07: removing clans he had personally added, which were
+// also in a collection. settleClanRecording counted account_clan and
+// nothing else, so the removal stopped a clan the collection still
+// curated. reconcileRecording is now the single authority for both
+// subject types, and these pin every reason against every other.
+const CLAN = "#J2RGCRVG";
+const CLAN_B = "#8UJ2UUJ8";
+
+const addedClan = async (acct, tag, scope = "comprehensive") =>
+  db.query(
+    `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, $3)
+     on conflict do nothing`,
+    [acct.accountId, tag, scope],
+  );
+
+const clanRecording = async (tag) =>
+  (
+    await db.query(
+      `select status, scope, origin from recording
+       where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+      [tag],
+    )
+  ).rows[0];
+
+test("a collection keeps a clan recorded after the last account removes it", async () => {
+  const col = await collection("clan", alice);
+  await addedClan(bob, CLAN);
+  await reconcileRecording(db, "clan", CLAN, bob.accountId);
+  await setCollectionMembers(db, col, [CLAN]);
+  assert.equal((await clanRecording(CLAN)).status, "active");
+
+  // Bob removes the clan he had added. The collection still wants it.
+  await db.query(`delete from account_clan where clan_tag = $1`, [CLAN]);
+  const stopped = await reconcileRecording(db, "clan", CLAN, null);
+  assert.equal(stopped.stopped, false, "the collection is still a reason");
+  assert.equal((await clanRecording(CLAN)).status, "active");
+});
+
+test("an account keeps a clan recorded after it leaves the collection", async () => {
+  // The mirror case: reconcileRecording knew claims and collections but
+  // not account_clan, so a clan collection edit could stop a clan an
+  // account had added.
+  const col = await collection("clan", alice);
+  await setCollectionMembers(db, col, [CLAN_B]);
+  await addedClan(bob, CLAN_B);
+  await reconcileRecording(db, "clan", CLAN_B, bob.accountId);
+
+  const r = await setCollectionMembers(db, col, []);
+  assert.equal(r.recordingsStopped, 0, "bob still has it added");
+  assert.equal((await clanRecording(CLAN_B)).status, "active");
+});
+
+test("a clan with no remaining reason stops", async () => {
+  const col = await collection("clan", alice);
+  await addedClan(bob, CLAN);
+  await reconcileRecording(db, "clan", CLAN, bob.accountId);
+  await setCollectionMembers(db, col, [CLAN]);
+  await db.query(`delete from account_clan where clan_tag = $1`, [CLAN]);
+  const r = await setCollectionMembers(db, col, []);
+  assert.equal(r.recordingsStopped, 1);
+  assert.equal(await clanRecording(CLAN), undefined);
+});
+
+test("a clan settles to the widest reason, and a collection counts", async () => {
+  // Adding at activity scope must not downgrade a clan a comprehensive
+  // collection wants.
+  const deep = await collection("clan", alice, "comprehensive");
+  await setCollectionMembers(db, deep, [CLAN]);
+  assert.equal((await clanRecording(CLAN)).scope, "comprehensive");
+
+  await addedClan(bob, CLAN, "activity");
+  await reconcileRecording(db, "clan", CLAN, bob.accountId);
+  assert.equal(
+    (await clanRecording(CLAN)).scope,
+    "comprehensive",
+    "a shallow add cannot take depth the collection asked for",
+  );
+
+  // With the collection gone, it settles down to what is left.
+  await setCollectionMembers(db, deep, []);
+  await reconcileRecording(db, "clan", CLAN, null);
+  assert.equal((await clanRecording(CLAN)).scope, "activity");
+});
+
+test("an ops clan recording survives losing every reason", async () => {
+  await addedClan(bob, CLAN);
+  await reconcileRecording(db, "clan", CLAN, bob.accountId);
+  await db.query(
+    `update recording set origin = 'ops'
+     where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+    [CLAN],
+  );
+  await db.query(`delete from account_clan where clan_tag = $1`, [CLAN]);
+  const r = await reconcileRecording(db, "clan", CLAN, null);
+  assert.equal(r.stopped, false);
+  assert.equal((await clanRecording(CLAN)).status, "active");
 });
