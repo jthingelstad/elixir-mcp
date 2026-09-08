@@ -87,3 +87,49 @@ test("a cohort de-phases progressively, not just once", () => {
       `apart; needs to exceed one ${CADENCE}min cadence`,
   );
 });
+
+/**
+ * The profile cadence has to read activity from where activity is recorded.
+ *
+ * ingest writes yield_bph to the player_battlelog row and nowhere else, so
+ * the 'player' row's own column is NULL forever. Every branch below the first
+ * was therefore unreachable and dormant profiles polled every 8h instead of
+ * every 72h -- about 9x the intended rate, in lockstep.
+ */
+import { yieldCadenceMinutes } from "../src/plan.mjs";
+
+test("a dormant player's profile stretches instead of polling every 8h", () => {
+  const dormant = { endpoint: "player", yield_bph: null, activity_bph: 0 };
+  assert.equal(yieldCadenceMinutes(dormant), 4320);
+});
+
+test("an active player's profile tightens", () => {
+  assert.equal(
+    yieldCadenceMinutes({
+      endpoint: "player",
+      yield_bph: null,
+      activity_bph: 2,
+    }),
+    120,
+  );
+  assert.equal(
+    yieldCadenceMinutes({
+      endpoint: "player",
+      yield_bph: null,
+      activity_bph: 0.1,
+    }),
+    1440,
+  );
+});
+
+test("a genuinely unknown player still starts at the discovery cadence", () => {
+  // No battlelog row yet: 480m is discovery, not dormancy, and must survive.
+  assert.equal(
+    yieldCadenceMinutes({
+      endpoint: "player",
+      yield_bph: null,
+      activity_bph: null,
+    }),
+    480,
+  );
+});

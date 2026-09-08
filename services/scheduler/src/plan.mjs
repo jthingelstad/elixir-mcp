@@ -64,9 +64,19 @@ export function yieldCadenceMinutes(row) {
     return Math.min(1440, Math.max(15, (TARGET_BATCH / bph) * 60));
   }
   if (row.endpoint === "player") {
-    if (bph === null) return 480;
-    if (bph <= 0.02) return 4320;
-    if (bph >= 0.5) return 120;
+    // The profile row's OWN yield_bph is never written -- ingest records
+    // activity against the battlelog row only -- so this read borrowed NULL
+    // forever and every branch below the first was unreachable. Profiles
+    // polled every 8h regardless of whether the player had touched the game
+    // in a month, roughly 9x the intended rate for a dormant one, and the
+    // cohort did it in lockstep (the 2026-09-08 capture spikes).
+    const activity =
+      row.activity_bph === null || row.activity_bph === undefined
+        ? bph
+        : Number(row.activity_bph);
+    if (activity === null) return 480;
+    if (activity <= 0.02) return 4320;
+    if (activity >= 0.5) return 120;
     return 1440;
   }
   if (row.endpoint === "currentriverrace") {
@@ -199,6 +209,13 @@ async function selectEligible(db, now) {
     with state as (
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
              ps.yield_bph, ps.hint,
+             -- Activity is only ever recorded on the battlelog row (ingest
+             -- writes yield_bph there and nowhere else), so a profile row
+             -- has to borrow it. Without this the 'player' cadence saw NULL
+             -- forever and every profile polled on the 480m branch.
+             (select b.yield_bph from poll_state b
+               where b.subject_tag = ps.subject_tag
+                 and b.endpoint = 'player_battlelog') as activity_bph,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
       where (ps.endpoint in ('player_battlelog', 'player') and (

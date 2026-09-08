@@ -88,6 +88,31 @@ export const api = {
   myClanAction: (body) => request("POST", "/api/me/clans", body),
   // Fire-and-forget: a failed view must never surface to a user, and must
   // never delay a render.
+  rotatePrincipalToken: (account_id) =>
+    request("POST", "/api/me/principals/rotate", { account_id }),
+  setPrincipalStatus: (account_id, status) =>
+    request("POST", "/api/me/principals/status", { account_id, status }),
+  principalEvents: (account_id) =>
+    request(
+      "GET",
+      `/api/me/principals/events?account_id=${encodeURIComponent(account_id)}`,
+    ),
+  principalIdentities: (account_id) =>
+    request(
+      "GET",
+      `/api/me/principals/identities?account_id=${encodeURIComponent(account_id)}`,
+    ),
+  removePrincipalIdentity: (account_id, external_id) =>
+    request("POST", "/api/me/principals/identities/remove", {
+      account_id,
+      external_id,
+    }),
+  setRelationship: (player_tag, relationship) =>
+    request("POST", "/api/claims", {
+      action: "relationship",
+      player_tag,
+      relationship,
+    }),
   myPrincipals: () => request("GET", "/api/me/principals"),
   createAgent: (body) => request("POST", "/api/me/agents", body),
   createIntegration: (body) => request("POST", "/api/me/integrations", body),

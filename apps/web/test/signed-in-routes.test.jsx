@@ -54,6 +54,21 @@ for (const [section, def] of Object.entries(SECTIONS)) {
     if (!page.static) routes.push(`/${section}/${page.slug}`);
 }
 
+/**
+ * Detail pages, which the section walk above cannot discover.
+ *
+ * AgentDetail shipped referencing a hook Dashboard.jsx did not import, and
+ * every check in the repo passed: `verify` was green, the route sweep covered
+ * /account/agents and stopped there. A page nothing renders is a page nothing
+ * tests.
+ */
+routes.push(
+  "/account/agents/00000000-0000-0000-0000-0000000000ag",
+  "/account/feedback/1",
+  "/admin/accounts/00000000-0000-0000-0000-000000000001",
+  "/explore/player/2ABC",
+);
+
 for (const route of routes) {
   test(`signed in, ${route} survives data it did not expect`, async () => {
     window.history.pushState({}, "", route);

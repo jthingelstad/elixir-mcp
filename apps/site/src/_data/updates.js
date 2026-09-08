@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "Agents you can actually run, and players you can tell apart",
+    body: "Creating an agent used to be a one-way door: you could make one and revoke its key, and that was the whole story. Revoking was worse than a missing feature, because there was no way to issue a replacement - the only path back was deleting the agent and building a new one, which changes its address and loses its place in its own notification feed. You can now issue a new key in place, suspend an agent and resume it later, read every notification it has been sent, see who it answers for, and see how many of your daily calls it is spending. That last one mattered more than it sounds: an agent spends YOUR budget, and until now those calls appeared nowhere, so you could run out with a usage page reading nearly zero. A suspended agent's key simply stops working, the same as any invalid key. Separately: players you add can now be marked as your alt, a friend, or someone you are just watching. That setting has existed since the day relationships shipped and your agent has been reading it all along - but nothing could set it, so everyone came out as 'watching'. Now your agent knows which players are actually you.",
+  },
+  {
+    date: "2026-09-08",
     title: "Visit counting works the same everywhere",
     body: "The signed-in application went unmeasured for a few days, and the reason was a fix that did not fix anything. Analytics had been taken off the application because third-party code running inside your session is genuinely worth avoiding - but the same script still ran on the documentation and home pages, which sit on the same address and the same session, so nothing was actually kept out. The application now counts visits the ordinary way, exactly like the public pages, and the roundabout route through our own servers is gone. No account is ever attached to a view, and the sign-in page still loads no analytics at all, because your sign-in link travels in that address. One change you may notice in effect rather than appearance: a page about a specific player or clan now reports as the page it is, with the tag alongside it, rather than as a page of its own.",
   },

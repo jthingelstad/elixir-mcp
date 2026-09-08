@@ -2062,3 +2062,74 @@ test("re-provisioning invalidates the previous bearer in the same statement", as
   );
   assert.notEqual(second[0].provision_env, first[0].provision_env);
 });
+
+/**
+ * claim.relationship had a reader and no writer.
+ *
+ * 0055 added the column and describeIdentity groups the MCP identity block by
+ * it, so an agent is told "you are watching N players". Nothing could ever set
+ * it -- no console control, no API action, no MCP tool -- so every non-primary
+ * player was announced as "watching" from the day it shipped, and the
+ * alt/friend vocabulary in the docs described something unreachable.
+ */
+test("a claim's relationship can be set, and primary is not one of them", async () => {
+  const cookie = await signIn(JAMIE);
+  await handler(
+    event({ path: "/api/claims", cookie, body: { player_tag: "#20JJJ2CCRU" } }),
+  );
+  await handler(
+    event({
+      path: "/api/claims",
+      cookie,
+      body: { player_tag: "#9U82PLQ", make_primary: true },
+    }),
+  );
+
+  const set = await handler(
+    event({
+      path: "/api/claims",
+      cookie,
+      body: {
+        action: "relationship",
+        player_tag: "#20JJJ2CCRU",
+        relationship: "alt",
+      },
+    }),
+  );
+  assert.equal(set.statusCode, 200, set.body);
+  const me = parse(
+    await handler(event({ method: "GET", path: "/api/me", cookie })),
+  );
+  const claim = me.claims.find((c) => c.player_tag === "#20JJJ2CCRU");
+  assert.equal(claim.relationship, "alt", "and /api/me reports it back");
+
+  // 'primary' is not settable here: exactly one claim is primary and
+  // promoting one must demote the other, which make_primary does atomically.
+  const bad = await handler(
+    event({
+      path: "/api/claims",
+      cookie,
+      body: {
+        action: "relationship",
+        player_tag: "#20JJJ2CCRU",
+        relationship: "primary",
+      },
+    }),
+  );
+  assert.equal(bad.statusCode, 400);
+
+  // And renaming the primary is refused rather than leaving an account with
+  // no primary at all.
+  const onPrimary = await handler(
+    event({
+      path: "/api/claims",
+      cookie,
+      body: {
+        action: "relationship",
+        player_tag: "#9U82PLQ",
+        relationship: "friend",
+      },
+    }),
+  );
+  assert.equal(onPrimary.statusCode, 404);
+});

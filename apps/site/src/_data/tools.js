@@ -14,6 +14,7 @@
  */
 import { makeRegistry } from "../../../../services/mcp/src/tools.mjs";
 import {
+  CONTRACT_VERSION,
   TOOL_GROUPS,
   GROUP_ORDER,
   OAUTH_SCOPE,
@@ -75,6 +76,7 @@ export default function tools() {
   return {
     all,
     groups,
+    contractVersion: CONTRACT_VERSION,
     count: all.length,
     writeCount: all.filter((t) => !t.readOnly).length,
     scopes: OAUTH_SCOPE_DETAILS,

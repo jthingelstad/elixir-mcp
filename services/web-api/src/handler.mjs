@@ -36,6 +36,8 @@ import {
 } from "@elixir-mcp/auth";
 import {
   listPrincipals,
+  rotateToken,
+  setPrincipalStatus,
   createAgent,
   createIntegration,
   mayCreateIntegration,
@@ -297,7 +299,8 @@ export function makeHandler({
       if (!account) return json(200, { authenticated: false });
       const [claims, recordings] = await Promise.all([
         db.query(
-          `select c.player_tag, c.status, c.is_primary, c.notify, p.name, p.last_known_clan_tag,
+          `select c.player_tag, c.status, c.is_primary, c.notify, c.relationship,
+                  p.name, p.last_known_clan_tag,
                   nn.nickname
            from claim c join player p on p.player_tag = c.player_tag
            left join player_nickname nn on nn.account_id = c.account_id
@@ -420,6 +423,34 @@ export function makeHandler({
         );
         if (rowCount === 0) return json(404, { error: "not_found" });
         return json(200, { ok: true, notify: action === "notify_on" });
+      }
+      /**
+       * The writer this column never had.
+       *
+       * 0055 added claim.relationship (primary | alt | friend | watching) and
+       * describeIdentity groups the MCP identity block by it -- but NOTHING
+       * could ever set it. No console control, no API action, no MCP tool. So
+       * every non-primary player has been announced to every connected agent
+       * as "watching" since the day it shipped, and the alt/friend vocabulary
+       * in the docs described something unreachable.
+       *
+       * 'primary' is deliberately NOT settable here: exactly one claim is
+       * primary and promoting one must demote the other, which is what
+       * make_primary on add already does atomically.
+       */
+      if (action === "relationship") {
+        const REL = ["alt", "friend", "watching"];
+        if (!REL.includes(body.relationship))
+          return json(400, { error: "bad_relationship", allowed: REL });
+        const { rowCount } = await db.query(
+          `update claim set relationship = $3
+            where account_id = $1 and player_tag = $2 and not is_primary`,
+          [account.accountId, tag, body.relationship],
+        );
+        // No row means either you never added this tag, or it is your primary
+        // -- and demoting a primary by renaming it would leave you with none.
+        if (rowCount === 0) return json(404, { error: "not_found_or_primary" });
+        return json(200, { ok: true, relationship: body.relationship });
       }
       if (action === "remove") {
         const r = await removePlayer(db, account, { tag, via: "web" });
@@ -1638,6 +1669,121 @@ export function makeHandler({
       await logEvent(db, account.accountId, "principal_token_revoked", {
         token_id: body.token_id,
       });
+      return json(200, { ok: true });
+    },
+
+    "POST /api/me/principals/rotate": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const result = await rotateToken(db, account.accountId, body.account_id);
+      if (!result.ok) return json(404, result);
+      // Handed over once, exactly like creation. There is no second chance
+      // and no support path that ends in recovering it.
+      return json(200, { ok: true, token: result.token });
+    },
+
+    "POST /api/me/principals/status": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const result = await setPrincipalStatus(
+        db,
+        account.accountId,
+        body.account_id,
+        body.status,
+      );
+      return result.ok ? json(200, result) : json(404, result);
+    },
+
+    /**
+     * One owned principal's notification feed, read-only.
+     *
+     * An agent's feed lives on ITS account_id, so /api/me/events -- which is
+     * scoped to your own -- could never show it. Without this the only way to
+     * see what an agent was told is to connect as the agent.
+     *
+     * Like the console's own feed view, this NEVER advances
+     * events_seen_through: that cursor belongs to the agent's elixir_events
+     * polling, and moving it from here would silently eat notifications the
+     * agent has not read yet.
+     */
+    "GET /api/me/principals/events": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const principalId = event.queryStringParameters?.account_id;
+      if (!principalId) return json(400, { error: "account_id_required" });
+      const { rows: owned } = await db.query(
+        `select events_seen_through from account
+          where account_id = $1 and owned_by_account_id = $2`,
+        [principalId, account.accountId],
+      );
+      if (owned.length === 0) return json(404, { error: "not_found" });
+      const { rows } = await db.query(
+        `select event_id, topic, subject_tag, payload, created_at
+         from event_feed where account_id = $1
+         order by event_id desc limit 100`,
+        [principalId],
+      );
+      return json(200, {
+        events: rows,
+        seen_through: Number(owned[0].events_seen_through ?? 0),
+      });
+    },
+
+    /**
+     * The on_behalf_of map for one owned agent.
+     *
+     * agent_identity is what makes an agent multi-user: it turns
+     * "discord:123" into a player tag so the agent knows whose data to
+     * answer with. It had no surface at all -- you could not see who was
+     * mapped, correct a wrong mapping, or remove someone who left.
+     */
+    "GET /api/me/principals/identities": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const principalId = event.queryStringParameters?.account_id;
+      if (!principalId) return json(400, { error: "account_id_required" });
+      // Ownership is checked before the read, not folded into it: a stranger
+      // must get the same 404 an unknown id gets. Returning an empty list
+      // instead would answer "that agent exists and has nobody mapped",
+      // which is more than a stranger is owed -- and it disagreed with the
+      // feed route next door, which 404s.
+      const { rows: owned } = await db.query(
+        `select 1 from account
+          where account_id = $1 and owned_by_account_id = $2`,
+        [principalId, account.accountId],
+      );
+      if (owned.length === 0) return json(404, { error: "not_found" });
+      const { rows } = await db.query(
+        `select ai.external_id, ai.player_tag, ai.created_at, p.name
+           from agent_identity ai
+           left join player p on p.player_tag = ai.player_tag
+          where ai.account_id = $1
+          order by ai.created_at desc`,
+        [principalId],
+      );
+      return json(200, { identities: rows });
+    },
+
+    "POST /api/me/principals/identities/remove": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      // Ownership rides in the WHERE so naming somebody else's agent finds
+      // nothing rather than being refused after the fact.
+      const { rowCount } = await db.query(
+        `delete from agent_identity ai
+          using account a
+          where ai.account_id = $1 and ai.external_id = $2
+            and a.account_id = ai.account_id
+            and a.owned_by_account_id = $3`,
+        [body.account_id, String(body.external_id ?? ""), account.accountId],
+      );
+      if (rowCount === 0) return json(404, { error: "not_found" });
       return json(200, { ok: true });
     },
 

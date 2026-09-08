@@ -311,3 +311,269 @@ test("revoking your own token works", async () => {
   );
   assert.ok(rows[0].revoked_at);
 });
+
+/* ── The agent lifecycle beyond create-and-revoke ────────────────────────
+ *
+ * Creating an agent used to be a one-way door. Revoking was a trap rather
+ * than a gap: with no way to issue a replacement key, the only path back was
+ * delete-and-recreate, which discards the account_id, the public_id in the
+ * agent's own MCP URL, and the events_seen_through cursor.
+ *
+ * These are entitlement tests too. Every route below takes an account_id from
+ * the caller, so "does ownership ride in the WHERE clause" is the question
+ * that matters most.
+ */
+
+/** The shared event() helper predates query-string routes. */
+const q = (p, params, cookie) => ({
+  rawPath: p,
+  requestContext: { http: { method: "GET", sourceIp: "8.8.4.4" } },
+  headers: { ...(cookie ? { cookie } : {}), "x-elixir-client": "web" },
+  queryStringParameters: params,
+});
+
+async function bossAgentId() {
+  const listed = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/principals", cookie: bossCookie }),
+    ),
+  );
+  return listed.agents[0].account_id;
+}
+
+test("rotating a key keeps the principal and replaces the credential", async () => {
+  const id = await bossAgentId();
+  const before = await db.query(
+    `select public_id, events_seen_through from account where account_id = $1`,
+    [id],
+  );
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie: bossCookie,
+      body: { account_id: id },
+    }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  const { token } = parse(res);
+  assert.ok(token, "a new key comes back exactly once");
+
+  // The identity survives -- this is the whole point of rotating rather than
+  // recreating. A new account_id would change the agent's MCP URL and reset
+  // its notification cursor.
+  const after = await db.query(
+    `select public_id, events_seen_through from account where account_id = $1`,
+    [id],
+  );
+  assert.deepEqual(after.rows[0], before.rows[0]);
+
+  // Exactly one live key, and it is not the old one.
+  const { rows: keys } = await db.query(
+    `select token_hash, revoked_at from service_token where account_id = $1
+      order by created_at`,
+    [id],
+  );
+  assert.equal(keys.filter((k) => !k.revoked_at).length, 1);
+  assert.ok(
+    keys.some((k) => k.revoked_at),
+    "the previous key is revoked",
+  );
+});
+
+test("rotation carries the name and scope forward: it is not a re-grant", async () => {
+  const id = await bossAgentId();
+  const { rows: before } = await db.query(
+    `select name, scope from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie: bossCookie,
+      body: { account_id: id },
+    }),
+  );
+  const { rows: after } = await db.query(
+    `select name, scope from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.deepEqual(after, before);
+});
+
+test("you cannot rotate somebody else's agent", async () => {
+  const id = await bossAgentId();
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie: leaderCookie, // not the owner
+      body: { account_id: id },
+    }),
+  );
+  assert.equal(res.statusCode, 404, "not found, never 'refused'");
+  const { rows } = await db.query(
+    `select count(*)::int as live from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.equal(rows[0].live, 1, "and nothing was rotated");
+});
+
+test("a suspended agent is indistinguishable from an invalid token", async () => {
+  // Jamie's call. Both doors already require account.status = 'approved', so
+  // suspension travels through the ordinary not-found path -- nothing tells
+  // the caller the principal exists and is switched off.
+  const id = await bossAgentId();
+  const res = await handler(
+    event({
+      path: "/api/me/principals/status",
+      cookie: bossCookie,
+      body: { account_id: id, status: "disabled" },
+    }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  const { rows } = await db.query(
+    `select status from account where account_id = $1`,
+    [id],
+  );
+  assert.equal(rows[0].status, "disabled");
+
+  // Suspension is NOT revocation: the key survives, so resuming does not
+  // require redistributing a credential.
+  const { rows: keys } = await db.query(
+    `select count(*)::int as live from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.equal(keys[0].live, 1);
+
+  await handler(
+    event({
+      path: "/api/me/principals/status",
+      cookie: bossCookie,
+      body: { account_id: id, status: "approved" },
+    }),
+  );
+  const { rows: back } = await db.query(
+    `select status from account where account_id = $1`,
+    [id],
+  );
+  assert.equal(back[0].status, "approved");
+});
+
+test("suspending refuses a status that is not a status", async () => {
+  const id = await bossAgentId();
+  const res = await handler(
+    event({
+      path: "/api/me/principals/status",
+      cookie: bossCookie,
+      body: { account_id: id, status: "requested" },
+    }),
+  );
+  assert.notEqual(res.statusCode, 200);
+  const { rows } = await db.query(
+    `select status from account where account_id = $1`,
+    [id],
+  );
+  assert.equal(rows[0].status, "approved");
+});
+
+test("an agent's feed is readable by its owner and nobody else", async () => {
+  const id = await bossAgentId();
+  const { emitFeedEvent } = await import("../../mcp/src/feed.mjs");
+  await emitFeedEvent(db, id, "member_joined", "#20JJJ2CCRU", { name: "Ada" });
+
+  const mine = parse(
+    await handler(
+      q("/api/me/principals/events", { account_id: id }, bossCookie),
+    ),
+  );
+  assert.equal(mine.events.length, 1);
+  assert.equal(mine.events[0].topic, "member_joined");
+
+  const theirs = await handler(
+    q("/api/me/principals/events", { account_id: id }, leaderCookie),
+  );
+  assert.equal(theirs.statusCode, 404);
+});
+
+test("reading an agent's feed never advances its cursor", async () => {
+  // That cursor belongs to the agent's own elixir_events polling. Moving it
+  // from the console would silently eat notifications it has not read.
+  const id = await bossAgentId();
+  const before = await db.query(
+    `select events_seen_through from account where account_id = $1`,
+    [id],
+  );
+  await handler(q("/api/me/principals/events", { account_id: id }, bossCookie));
+  const after = await db.query(
+    `select events_seen_through from account where account_id = $1`,
+    [id],
+  );
+  assert.deepEqual(after.rows[0], before.rows[0]);
+});
+
+test("the on_behalf_of map is listable and correctable by the owner alone", async () => {
+  const id = await bossAgentId();
+  await db.query(
+    `insert into agent_identity (account_id, external_id, player_tag)
+     values ($1, 'discord:123', '#20JJJ2CCRU')`,
+    [id],
+  );
+
+  const listed = parse(
+    await handler(
+      q("/api/me/principals/identities", { account_id: id }, bossCookie),
+    ),
+  );
+  assert.equal(listed.identities.length, 1);
+  assert.equal(listed.identities[0].external_id, "discord:123");
+
+  const nosy = await handler(
+    q("/api/me/principals/identities", { account_id: id }, leaderCookie),
+  );
+  assert.equal(nosy.statusCode, 404);
+
+  const denied = await handler(
+    event({
+      path: "/api/me/principals/identities/remove",
+      cookie: leaderCookie,
+      body: { account_id: id, external_id: "discord:123" },
+    }),
+  );
+  assert.equal(denied.statusCode, 404);
+  const { rows: survived } = await db.query(
+    `select count(*)::int as n from agent_identity where account_id = $1`,
+    [id],
+  );
+  assert.equal(survived[0].n, 1, "a stranger's remove changed nothing");
+
+  const ok = await handler(
+    event({
+      path: "/api/me/principals/identities/remove",
+      cookie: bossCookie,
+      body: { account_id: id, external_id: "discord:123" },
+    }),
+  );
+  assert.equal(ok.statusCode, 200, ok.body);
+});
+
+test("an agent's calls surface on the owner's principal list", async () => {
+  // budgetFor charges an agent's calls to owned_by_account_id, but
+  // /api/me/usage filters to the owner's OWN account_id -- so the calls that
+  // exhausted the budget were invisible everywhere.
+  const id = await bossAgentId();
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, surface)
+     values ($1, 'war_current', 'mcp')`,
+    [id],
+  );
+  const listed = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/principals", cookie: bossCookie }),
+    ),
+  );
+  const agent = listed.agents.find((a) => a.account_id === id);
+  assert.ok(agent.calls_7d >= 1, `calls_7d was ${agent.calls_7d}`);
+});

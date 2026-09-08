@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 import { Activity } from "./Activity.jsx";
 import { CollectorPage } from "./CollectorDetail.jsx";
@@ -73,7 +73,12 @@ export function Dashboard({ me, refresh, navigate, page, itemId }) {
   if (me === null) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
   if (page === "activity") return <Activity />;
   if (page === "collector") return <CollectorPage />;
-  if (page === "agents") return <Agents />;
+  if (page === "agents")
+    return itemId ? (
+      <AgentDetail id={itemId} navigate={navigate} />
+    ) : (
+      <Agents navigate={navigate} />
+    );
   if (page === "connections") return <Connections />;
   if (page === "usage") return <Usage me={me} />;
   if (page === "feedback")
@@ -83,6 +88,242 @@ export function Dashboard({ me, refresh, navigate, page, itemId }) {
       <Feedback navigate={navigate} />
     );
   return <Overview me={me} refresh={refresh} navigate={navigate} />;
+}
+
+/**
+ * One agent, operable.
+ *
+ * Creating an agent used to be a one-way door: the console could mint one and
+ * revoke its key, and nothing else. Revoking was a trap rather than a gap --
+ * with no way to issue a replacement, the only path back was delete and
+ * recreate, which throws away the account_id, the public_id in the agent's own
+ * MCP URL, and the events_seen_through cursor, so the replacement re-reads the
+ * whole feed or silently skips it.
+ *
+ * This page is the other three verbs: rotate the key in place, suspend and
+ * resume, and read what the agent was actually told.
+ */
+function AgentDetail({ id, navigate }) {
+  const [agent, setAgent] = useState(null);
+  const [missed, setMissed] = useState(false);
+  const [events, setEvents] = useState(null);
+  const [identities, setIdentities] = useState(null);
+  const [minted, setMinted] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const r = await api.myPrincipals();
+    if (!r.ok) return;
+    const found = (r.data.agents ?? []).find((a) => a.account_id === id);
+    if (!found) return setMissed(true);
+    setAgent(found);
+    const [ev, ids] = await Promise.all([
+      api.principalEvents(id),
+      api.principalIdentities(id),
+    ]);
+    if (ev.ok) setEvents(ev.data.events ?? []);
+    if (ids.ok) setIdentities(ids.data.identities ?? []);
+  }, [id]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (missed)
+    return (
+      <div className="panel">
+        <div className="panel__body">
+          No agent here on your account.{" "}
+          <a onClick={() => navigate("/account/agents")}>All agents ›</a>
+        </div>
+      </div>
+    );
+  if (!agent) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+
+  const live = (agent.tokens ?? []).filter((k) => !k.revoked_at);
+  const suspended = agent.status !== "approved";
+
+  return (
+    <>
+      <p style={{ margin: "0 0 10px" }}>
+        <a
+          className="mono"
+          style={{ fontSize: "12px" }}
+          onClick={() => navigate("/account/agents")}
+        >
+          ‹ All agents
+        </a>
+      </p>
+
+      <section className="panel" style={{ marginBottom: "16px" }}>
+        <div className="panel__head">
+          <span className="panel-title">
+            {live[0]?.name ?? agent.public_id}
+          </span>
+          {suspended && (
+            <span style={{ color: "var(--red)", fontSize: "12px" }}>
+              suspended
+            </span>
+          )}
+        </div>
+        <dl className="fields">
+          <dt>Clan</dt>
+          <dd className="mono">
+            {(agent.clans ?? []).map((c) => c.clan_tag).join(", ") || "—"}
+          </dd>
+          <dt>Slug</dt>
+          <dd className="mono">{agent.public_id ?? "—"}</dd>
+          <dt>Calls (7 days)</dt>
+          <dd>
+            {agent.calls_7d ?? 0}{" "}
+            <span className="hint">
+              charged to your daily budget, not the agent&rsquo;s
+            </span>
+          </dd>
+          <dt>Unread notifications</dt>
+          <dd>{agent.unread_events ?? 0}</dd>
+        </dl>
+        <div className="panel__actions">
+          <button
+            className="btn btn--quiet"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              const r = await api.rotatePrincipalToken(id);
+              setBusy(false);
+              if (r.ok) setMinted(r.data.token);
+              load();
+            }}
+          >
+            Issue a new key
+          </button>
+          <button
+            className="btn btn--quiet"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await api.setPrincipalStatus(
+                id,
+                suspended ? "approved" : "disabled",
+              );
+              setBusy(false);
+              load();
+            }}
+          >
+            {suspended ? "Resume" : "Suspend"}
+          </button>
+          <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+            {suspended
+              ? "Its key reads as invalid while suspended; resuming restores the same key."
+              : "Suspending makes its key read as invalid, without revoking it."}
+          </span>
+        </div>
+        {minted && (
+          <div className="panel__body">
+            <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
+              <strong>Copy this key now.</strong> It is shown once and never
+              again — only its hash is stored. The previous key stopped working
+              the moment this one was issued.
+            </p>
+            <code style={{ wordBreak: "break-all" }}>{minted}</code>
+          </div>
+        )}
+      </section>
+
+      <section className="panel" style={{ marginBottom: "16px" }}>
+        <div className="panel__head">
+          <span className="panel-title">Who it answers for</span>
+        </div>
+        <div
+          className="panel__body"
+          style={{ fontSize: "12.5px", color: "var(--faint)" }}
+        >
+          An agent serves many people through one connection. This is the map
+          from an id on its own surface — a Discord user, say — to the player it
+          answers about. The agent builds it with elixir_identify.
+        </div>
+        {identities?.length === 0 && (
+          <div className="panel__body" style={{ color: "var(--faint)" }}>
+            Nobody mapped yet.
+          </div>
+        )}
+        {identities?.length > 0 && (
+          <div className="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>THEIR ID</th>
+                  <th>PLAYER</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {identities.map((m) => (
+                  <tr key={m.external_id}>
+                    <td className="mono">{m.external_id}</td>
+                    <td>
+                      {m.name ? `${m.name} ` : ""}
+                      <span className="mono">{m.player_tag}</span>
+                    </td>
+                    <td>
+                      <button
+                        className="btn--text"
+                        onClick={async () => {
+                          await api.removePrincipalIdentity(id, m.external_id);
+                          load();
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel__head">
+          <span className="panel-title">Its notifications</span>
+          <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+            newest first · reading here never marks them seen
+          </span>
+        </div>
+        {events?.length === 0 && (
+          <div className="panel__body" style={{ color: "var(--faint)" }}>
+            Nothing yet.
+          </div>
+        )}
+        {events?.length > 0 && (
+          <div className="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>WHEN</th>
+                  <th>TOPIC</th>
+                  <th>SUBJECT</th>
+                  <th>COUNT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((e) => (
+                  <tr key={e.event_id}>
+                    <td>
+                      <Fresh ts={e.created_at} />
+                    </td>
+                    <td className="mono">{e.topic}</td>
+                    <td className="mono">{e.subject_tag ?? "—"}</td>
+                    <td>{e.payload?.count ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
 }
 
 /** One feedback item as an addressable page (detail-views sweep,
@@ -252,6 +493,11 @@ function Overview({ me, refresh, navigate }) {
                     <th>RECORDING</th>
                     <th>LAST POLL</th>
                     <th className="num">FETCHES/24H</th>
+                    {/* 0055 added claim.relationship and the MCP identity
+                        block groups by it -- but nothing could ever SET it,
+                        so every non-primary player was announced to every
+                        connected agent as "watching". This is the writer. */}
+                    <th>RELATIONSHIP</th>
                     <th>NOTIFY</th>
                     <th></th>
                   </tr>
@@ -291,6 +537,29 @@ function Overview({ me, refresh, navigate }) {
                           <Fresh ts={rec?.freshest_poll} />
                         </td>
                         <td className="num">{rec?.fetches_24h ?? ""}</td>
+                        <td>
+                          {c.is_primary ? (
+                            <span style={{ color: "var(--faint)" }}>
+                              primary
+                            </span>
+                          ) : (
+                            <select
+                              aria-label={`relationship for ${c.player_tag}`}
+                              value={c.relationship ?? "watching"}
+                              onChange={async (e) => {
+                                await api.setRelationship(
+                                  c.player_tag,
+                                  e.target.value,
+                                );
+                                refresh();
+                              }}
+                            >
+                              <option value="alt">alt</option>
+                              <option value="friend">friend</option>
+                              <option value="watching">watching</option>
+                            </select>
+                          )}
+                        </td>
                         <td>
                           <Switch
                             on={c.notify}
@@ -737,7 +1006,7 @@ function Timezone({ me, refresh }) {
  * acting on a clan's behalf -- so connections moved to their own page rather
  * than sharing a name with the concept that replaced them.
  */
-function Agents() {
+function Agents({ navigate }) {
   const [principals, setPrincipals] = useState(null);
   const [form, setForm] = useState({ name: "", clan_tag: "" });
   const [minted, setMinted] = useState(null);
@@ -813,6 +1082,13 @@ function Agents() {
                     <th>CLAN</th>
                     <th>TIER</th>
                     <th>LAST ACTIVE</th>
+                    {/* An agent spends the OWNER's daily calls, and the
+                        owner's own usage view cannot see them -- it filters
+                        to the owner's account_id and an agent has its own.
+                        Without this column a budget can be exhausted by
+                        something you have no way to look at. */}
+                    <th>CALLS 7D</th>
+                    <th>STATUS</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -834,20 +1110,24 @@ function Agents() {
                             <span style={{ color: "var(--faint)" }}>never</span>
                           )}
                         </td>
+                        <td>{a.calls_7d ?? 0}</td>
                         <td>
-                          {live[0] && (
-                            <button
-                              className="btn--text"
-                              onClick={async () => {
-                                await api.revokePrincipalToken(
-                                  live[0].token_id,
-                                );
-                                load();
-                              }}
-                            >
-                              Revoke key
-                            </button>
+                          {a.status === "approved" ? (
+                            "active"
+                          ) : (
+                            <span style={{ color: "var(--red)" }}>
+                              suspended
+                            </span>
                           )}
+                        </td>
+                        <td>
+                          <a
+                            onClick={() =>
+                              navigate(`/account/agents/${a.account_id}`)
+                            }
+                          >
+                            Open ›
+                          </a>
                         </td>
                       </tr>
                     );
