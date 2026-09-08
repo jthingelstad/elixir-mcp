@@ -34,8 +34,8 @@ export function makeHandler({ send, track = null, hit = null, enroll = null }) {
           if (!validated.ok) {
             outcome = "bad_message";
           } else {
-            const { subject, text } = renderEmail(validated.msg);
-            await send({ to: validated.msg.to, subject, text });
+            const { subject, text, html } = renderEmail(validated.msg);
+            await send({ to: validated.msg.to, subject, text, html });
             // Mailing list: enrollment rides a login send, but only
             // when the ACCOUNT opted in — the enqueuing VPC Lambda has
             // the database and stamps msg.newsletter (issue #27).

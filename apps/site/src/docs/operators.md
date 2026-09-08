@@ -65,22 +65,11 @@ itself: the server names the exact version and SHA-256 it may install.
 There is no pin and no opt-out; the fleet shares one rate budget and one
 contract, so a stale client is everyone's problem.
 
-### Naming a release (maintainer only)
+### How updates reach you
 
-Publishing a release does NOT ship it. Every green push to the collector
-repo's main publishes a candidate (a prerelease) that nobody runs, and
-collectors ignore all of them until this server names a version. Naming
-promotes that release to Latest, so `releases/latest` always means "what
-the fleet runs".
-
-The full procedure, including how to soak a candidate, verify the
-rollout and roll back, is **`docs/RELEASING-COLLECTOR.md`**. The short
-version:
-
-```sh
-AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs --dry-run
-AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs [tag]
-```
+Your collector updates itself. Every candidate build waits until this server
+names it as the fleet's current version, so what you run is always a version
+somebody chose deliberately rather than the newest thing that compiled.
 
 ## What your collector can and cannot do
 

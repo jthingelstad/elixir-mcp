@@ -57,7 +57,14 @@ export function makeJmapSender({ token, fromEmail, fetchImpl = fetch }) {
     return cached;
   }
 
-  return async function send({ to, subject, text }) {
+  /**
+   * `html` is optional and always accompanied by `text`.
+   *
+   * multipart/alternative, never HTML alone: a client that cannot or will not
+   * render HTML must still be able to read a sign-in code, and some of them
+   * are the ones people read mail on.
+   */
+  return async function send({ to, subject, text, html = null }) {
     const { apiUrl, accountId, identityId, draftsId } = await bootstrap();
     const responses = await call(apiUrl, [
       [
@@ -70,8 +77,13 @@ export function makeJmapSender({ token, fromEmail, fetchImpl = fetch }) {
               from: [{ email: fromEmail, name: "Elixir MCP" }],
               to: [{ email: to }],
               subject,
-              bodyValues: { body: { value: text } },
+              bodyValues: html
+                ? { body: { value: text }, htmlbody: { value: html } }
+                : { body: { value: text } },
               textBody: [{ partId: "body", type: "text/plain" }],
+              ...(html
+                ? { htmlBody: [{ partId: "htmlbody", type: "text/html" }] }
+                : {}),
             },
           },
         },
