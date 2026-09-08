@@ -311,7 +311,11 @@ main.wrap {
   align-self: stretch;
   flex-wrap: wrap;
 }
-.nav1 a {
+/* Scoped to the LINK ROW. This used to be `.nav1 a`, which also caught the
+   wordmark and the meta control: the gold Sign in button was stretched into
+   a 56px flex row and stopped reading as a button at all. The wordmark
+   carried an inline padding hack to survive the same rule. */
+.nav1 nav a {
   display: flex;
   align-items: center;
   min-height: 56px;
@@ -320,13 +324,18 @@ main.wrap {
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
-.nav1 a:hover {
+.nav1 nav a:hover {
   color: var(--ink);
 }
-.nav1 a[aria-current] {
+.nav1 nav a[aria-current] {
   color: var(--gold-lite);
   font-weight: 600;
   border-bottom-color: var(--gold);
+}
+.nav1 .wordmark {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
 }
 .nav1__meta {
   margin-left: auto;
@@ -344,6 +353,53 @@ main.wrap {
   padding: 0;
 }
 .nav1__meta button:hover {
+  color: var(--ink);
+}
+
+/* ── The application's own chrome ──────────────────────────
+   The site and the app are two surfaces, not one continuous thing. They
+   share type, colour and spacing; they do not share a navigation. This
+   modifier is what makes crossing between them read as "I moved into the
+   app" rather than "the nav lost three items".
+
+   The site bar sits on the page background. The app bar sits on the well,
+   which is the same surface every panel and control in the app uses -- so
+   the application looks assembled from its own material. */
+.nav1--app {
+  background: var(--well);
+  border-bottom-color: var(--edge);
+}
+
+/* Reads as a label on the wordmark, never as a link. Small, quiet, and the
+   one word that says which of the two surfaces you are standing on. */
+.appmark {
+  align-self: center;
+  margin-left: -16px;
+  padding: 2px 7px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  user-select: none;
+}
+
+/* The site's pages, reachable from inside the app but plainly not part of
+   it: footer weight, above the disclaimer, full page loads. */
+.sitelinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--edge-soft);
+  font-size: 12.5px;
+}
+.sitelinks a {
+  color: var(--faint);
+}
+.sitelinks a:hover {
   color: var(--ink);
 }
 

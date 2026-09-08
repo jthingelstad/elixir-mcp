@@ -1,7 +1,7 @@
 ---
 layout: base.njk
-title: "Clash Royale history, recorded"
-description: "Clash Royale history, recorded — served to your own AI agent over MCP. The official API only knows the present; Elixir MCP keeps the record."
+title: "Explore your Clash Royale world with AI"
+description: "Point Claude, ChatGPT or any AI agent at your own Clash Royale history and your clan's. Ask it anything, in plain language, over MCP."
 permalink: /index.html
 canonical: /
 navActive: home
@@ -9,23 +9,24 @@ navActive: home
 {%- set t = stats.totals %}
 <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; padding-top: 24px">
   <div style="flex: 1 1 480px; min-width: 0">
-    <div class="eyebrow" style="margin-bottom: 14px">A CLASH ROYALE HISTORY RECORDER · REMOTE MCP SERVER</div>
-    <h1 class="hero-title">Clash Royale history, recorded.</h1>
+    <div class="eyebrow" style="margin-bottom: 14px">YOUR CLASH ROYALE WORLD · OPEN TO ANY AI AGENT · REMOTE MCP SERVER</div>
+    <h1 class="hero-title">Point your AI at your Clash Royale world.</h1>
     <p class="lede" style="margin: 0 0 14px">
-      The official API only knows the present — a rotating ~30-battle log, no
-      trophy timeline, no season history. Elixir MCP records your battles,
-      progression, and clan life as they happen, and serves the history to
-      <strong>your own AI agent</strong> over MCP. Your agent brings the brain;
-      we bring the memory.
+      Clash Royale generates an enormous amount of detail about you and your
+      clan — every battle, every deck, every promotion, every war. Elixir MCP
+      opens all of it to <strong>Claude, ChatGPT, or whichever agent you
+      already use</strong>, so you can explore it by just asking.
     </p>
     <p class="lede" style="margin: 0 0 20px">
-      Ask <em>&ldquo;what&rsquo;s my win rate since I swapped to Firecracker?&rdquo;</em>
-      or <em>&ldquo;show my trophy graph this season&rdquo;</em> — questions the
-      game itself cannot answer.
+      <em>&ldquo;Which of my decks actually beats Hog cycle?&rdquo;</em>
+      &nbsp;<em>&ldquo;Who in the clan is quietly carrying war?&rdquo;</em>
+      &nbsp;<em>&ldquo;Am I better since I swapped to Firecracker?&rdquo;</em>
+      Real questions, answered from the record — because we keep the history
+      the game itself throws away.
     </p>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
       <a class="btn btn--gold" href="#request">Request access</a>
-      <a class="btn btn--quiet" href="/data/dashboard">See the data →</a>
+      <a class="btn btn--quiet" href="/docs/quickstart">Connect your agent →</a>
       <span style="font-size: 12px; color: var(--dim)">approval-gated · free while in early access</span>
     </div>
   </div>

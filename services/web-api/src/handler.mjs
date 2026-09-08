@@ -1026,7 +1026,11 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows: accounts } = await db.query(
-        `select a.email_hash, a.mcp_daily_quota,
+        `select a.account_id, a.email_hash, a.kind, a.public_id,
+                (select st.name from service_token st
+                  where st.account_id = a.account_id and st.revoked_at is null
+                  order by st.created_at limit 1) as principal_name,
+                a.mcp_daily_quota,
                 (select c.player_tag from claim c
                  where c.account_id = a.account_id and c.is_primary) as primary_tag,
                 count(m.audit_id)::int as calls_7d,
@@ -1407,6 +1411,10 @@ export function makeHandler({
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select a.account_id, a.email_hash, a.status, a.role, a.is_owner,
+                a.kind, a.public_id,
+                (select st.name from service_token st
+                  where st.account_id = a.account_id and st.revoked_at is null
+                  order by st.created_at limit 1) as principal_name,
                 a.created_at, a.max_player_recordings, a.mcp_daily_quota,
                 a.live_daily_quota,
                 (select count(*)::int from recording r

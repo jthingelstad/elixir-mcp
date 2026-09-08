@@ -145,6 +145,20 @@ function useRoute() {
   return { path, navigate };
 }
 
+/** The site's own pages, reachable from inside the app without pretending
+ *  they are part of it. Plain anchors: every one is a real document served by
+ *  apps/site, and a full page load is the honest transition. */
+function SiteLinks() {
+  return (
+    <nav className="sitelinks wrap" aria-label="Elixir MCP site">
+      <a href={STATIC_LINKS.home}>Home</a>
+      <a href={STATIC_LINKS.docs}>Docs</a>
+      <a href={STATIC_LINKS.updates}>Updates</a>
+      <a href={STATIC_LINKS.changelog}>Changelog</a>
+    </nav>
+  );
+}
+
 function Disclaimer() {
   return (
     <footer className="disclaimer">
@@ -238,14 +252,25 @@ export function App() {
 
   return (
     <div className="shell">
-      <header className="nav1">
+      <header className="nav1 nav1--app">
         <div className="nav1__inner wrap">
-          <a className="wordmark" href="/" style={{ padding: "14px 0" }}>
+          {/* A real href, not a route: this leaves the application for the
+              static site, and leaving should be a page load. */}
+          <a className="wordmark" href={STATIC_LINKS.home}>
             Elixir MCP
           </a>
+          <span className="appmark">app</span>
+          {/* App sections ONLY.
+              This row used to mirror the static site's -- Home, Docs and
+              Updates sat here beside the app's own sections -- on the theory
+              that one nav everywhere meant one site. It did the opposite: the
+              two halves are cached differently and cannot agree on shape, so
+              the "same" nav kept arriving with different items in it and read
+              as a glitch. They are two surfaces now, sharing a visual language
+              and nothing else. This bar lists the places this application can
+              take you; the site's links live in the footer, and the wordmark
+              is the way back out. */}
           <nav>
-            {/* Plain anchors: these paths are static documents. */}
-            <a href={STATIC_LINKS.home}>Home</a>
             {t1("/data/dashboard", "Data", "data", section === "data")}
             {authed &&
               t1("/explore", "Explore", "explore", section === "explore")}
@@ -256,11 +281,6 @@ export function App() {
                 "account",
                 section === "account",
               )}
-            <a href={STATIC_LINKS.docs}>Docs</a>
-            {/* Updates was missing here entirely, so the nav lost an item the
-                moment you crossed from the static half into the app. One site
-                should not change shape as you walk through it. */}
-            <a href={STATIC_LINKS.updates}>Updates</a>
             {authed &&
               me.is_admin &&
               t1("/admin/requests", "Admin", "admin", section === "admin")}
@@ -367,6 +387,7 @@ export function App() {
         </ErrorBoundary>
       </main>
 
+      <SiteLinks />
       <Disclaimer />
     </div>
   );

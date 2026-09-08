@@ -372,12 +372,16 @@ function Overview({ me, refresh, navigate }) {
         <section className="panel">
           <div className="panel__head">
             <span className="panel-title">Your clans</span>
-            {clans && (
+            {/* Guard the SHAPE, not just the presence. `clans &&` only says
+                the request came back; a 200 whose body is missing `slots`
+                is still truthy, and reading through it threw -- which,
+                before the error boundary, took the whole page with it. */}
+            {clans?.slots && (
               <span className="sample">
-                activity {clans.slots.activity.used}/
-                {clans.slots.activity.limit ?? "∞"} · comprehensive{" "}
-                {clans.slots.comprehensive.used}/
-                {clans.slots.comprehensive.limit ?? "∞"}
+                activity {clans.slots.activity?.used ?? 0}/
+                {clans.slots.activity?.limit ?? "∞"} · comprehensive{" "}
+                {clans.slots.comprehensive?.used ?? 0}/
+                {clans.slots.comprehensive?.limit ?? "∞"}
               </span>
             )}
           </div>

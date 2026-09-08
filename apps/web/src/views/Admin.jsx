@@ -2,6 +2,29 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
 
+/**
+ * How to name a principal in an admin table.
+ *
+ * These tables read `email_hash` because for a long time every account WAS a
+ * person and always had one. Migration 0053 made the column nullable so that
+ * agents and integrations -- which belong to a person and have no address of
+ * their own -- could exist at all, and every one of these views kept calling
+ * .slice() on it. The first agent created blanked EVERY admin page, because a
+ * throw inside a render unmounts the whole tree.
+ *
+ * The guard alone would print a dash, which is worse than nothing in a table
+ * whose job is telling you who did what. An agent has a name; use it.
+ */
+function principalLabel(a) {
+  if (a.primary_tag) return a.primary_tag;
+  // What the owner typed when they created it, then the stable slug. An
+  // agent's name lives on its service_token, not on the account row.
+  if (a.principal_name) return a.principal_name;
+  if (a.public_id) return a.public_id;
+  if (a.email_hash) return a.email_hash.slice(0, 10);
+  return a.account_id ? a.account_id.slice(0, 8) : "unknown";
+}
+
 export function Admin({ me, page = "requests", navigate, itemId }) {
   const [requests, setRequests] = useState([]);
   const [gateways, setGateways] = useState([]);
@@ -115,14 +138,13 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
               </tr>
             </thead>
             <tbody>
-              {usage.accounts.map((a) => (
-                <tr key={a.email_hash}>
+              {(usage.accounts ?? []).map((a) => (
+                // account_id, not email_hash: an agent's hash is null, and
+                // two of them collided into one React key.
+                <tr key={a.account_id ?? a.email_hash}>
                   <td>
-                    {a.primary_tag ? (
-                      <code>{a.primary_tag}</code>
-                    ) : (
-                      <code>{a.email_hash.slice(0, 10)}…</code>
-                    )}
+                    <code>{principalLabel(a)}</code>
+                    {a.kind && a.kind !== "person" ? ` (${a.kind})` : ""}
                   </td>
                   <td>{a.calls_today}</td>
                   <td>{a.calls_7d}</td>
@@ -597,7 +619,8 @@ function AdminAccounts({ page }) {
           {accounts.map((a) => (
             <tr key={a.account_id}>
               <td title={a.account_id}>
-                <code>{a.email_hash.slice(0, 10)}</code>
+                <code>{principalLabel(a)}</code>
+                {a.kind && a.kind !== "person" ? ` (${a.kind})` : ""}
                 {a.is_owner ? " (owner)" : ""}
               </td>
               <td>{a.status}</td>
