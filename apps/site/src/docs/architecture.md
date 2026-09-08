@@ -235,8 +235,8 @@ system must never present a partial record as a complete one.
 CI-gated public repo; collectors self-update from released builds;
 alarms route to an operations queue drained daily; performance is
 censused continuously (every ingest message logs phase timings). The
-database is audited (`docs/DB-AUDIT.md`) and raw payloads live in the
-S3 archive with SQL-over-S3 tooling (`docs/DATA-TOOLS.md`). Site visits
+database is audited periodically and raw payloads live in an S3
+archive, content-addressed and queryable with SQL over S3. Site visits
 are counted anonymously with Tinylytics — see [Privacy](/docs/privacy)
 for exactly what that means.
 
@@ -245,8 +245,9 @@ for exactly what that means.
 Elixir MCP is built in the open:
 
 - [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
-  — this service: recorder, MCP door, web app, and the design docs
-  (`docs/DESIGN.md` is the spec of record).
+  — this service: recorder, MCP door, web app, and these pages
+  (the docs you are reading are the source of record; `docs/ENGINEERING.md`
+  holds the build invariants).
 - [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
   — the collector binary operators run.
 - [jthingelstad/elixir-bot](https://github.com/jthingelstad/elixir-bot)

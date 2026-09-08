@@ -1,5 +1,5 @@
 /**
- * The S3 payload archive helper (DATA-TOOLS §1). Once the SQS ingest
+ * The S3 payload archive helper (docs/archive/DATA-TOOLS-2026-09-04.md §1). Once the SQS ingest
  * Lambda retired for the job ledger (0040), the door runs processResult
  * inline; this module survives only to build the archive dep both the
  * door and migrate use.
@@ -7,7 +7,7 @@
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-/** The S3 payload archive (DATA-TOOLS §1). Absent bucket = no archive
+/** The S3 payload archive (docs/archive/DATA-TOOLS-2026-09-04.md §1). Absent bucket = no archive
  *  (local dev, tests); in prod the put is part of admission and a
  *  failure fails the message so SQS retries. */
 export function makeArchive(bucket) {

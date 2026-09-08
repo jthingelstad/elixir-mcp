@@ -245,7 +245,7 @@ async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
 }
 
 /** Weekly operational-row sweep ({sweep_operational: true}, rides the
- *  same EventBridge rule as the payload sweep): DB-AUDIT R3 — every
+ *  same EventBridge rule as the payload sweep): docs/archive/DB-AUDIT-2026-09-04.md R3 — every
  *  check is already expiry-aware, these rows are pure dead weight.
  *  oauth_token keeps 90 days (not 30): rotated-token rows are the
  *  memory behind family replay detection, and 90d is the absolute

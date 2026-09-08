@@ -250,7 +250,7 @@ const PROJECTORS = {
 };
 
 /**
- * S3 archive key for one payload (DATA-TOOLS §1): Hive-partitioned by
+ * S3 archive key for one payload (docs/archive/DATA-TOOLS-2026-09-04.md §1): Hive-partitioned by
  * endpoint/entity/fetch date so Athena and DuckDB read the layout with
  * no catalog crawl. Content-addressed — the hash rides the filename.
  */
@@ -267,7 +267,7 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
  * content is put before commit, so a committed row always has its S3
  * twin (an orphan object from a rolled-back txn is harmless; the
  * reverse is not). Put failure fails the message -> SQS retry — the
- * archive is part of admission, not best-effort (DATA-TOOLS §1).
+ * archive is part of admission, not best-effort (docs/archive/DATA-TOOLS-2026-09-04.md §1).
  * @returns {{outcome: string, [k: string]: unknown}}
  */
 // Bound on the DECOMPRESSED body (issue #4). The largest legitimate CR

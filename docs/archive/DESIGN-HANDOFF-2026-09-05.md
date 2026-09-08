@@ -1,5 +1,14 @@
 # Claude Design handoff — Elixir MCP
 
+> **ARCHIVED — spent.** This was a self-contained prompt for one Claude Design
+> session. The session happened, the handoff was implemented (see `NOTES.md`,
+> 2026-09-06), and the design it produced is the site you are looking at.
+>
+> A prompt is not documentation: it describes a thing to be done, in the tense
+> of not having done it. Kept only so the brief that produced the current
+> visual language is recoverable.
+
+
 The prompt below is self-contained; relay it verbatim (it duplicates
 what a designer needs from SITE-IA.md, the token file, and the brand
 lineage on purpose).

@@ -1,5 +1,16 @@
 # Data tools for Elixir MCP
 
+> **ARCHIVED — half of this shipped, half was declined.** The S3 payload
+> archive is BUILT and live: archive-at-admission, weekly sweep, content
+> addressing, Athena verified against real partitions. The broader query-tooling
+> lane was **deferred entirely** (Jamie, 2026-09-05) and trend tooling turned
+> out not to need it — battles and snapshots are lossless in Postgres, so
+> `battles_trends` was built without touching Athena.
+>
+> Kept because if payload-level analytics is ever wanted, the survey of the
+> options and the reasoning for the shape chosen are here and were not cheap.
+
+
 Jamie's prompt (2026-09-04): raw payloads have proven their worth
 repeatedly; they're disk-shaped, not database-shaped. Store them in S3,
 consider S3-side query tooling, and step back: what data tools should
