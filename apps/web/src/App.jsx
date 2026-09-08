@@ -266,16 +266,23 @@ export function App() {
           </nav>
           <div className="nav1__meta">
             {authed ? (
-              <a
-                href="/signout"
-                onClick={async (e) => {
-                  e.preventDefault();
+              /* A button, not a link. `/signout` is not a route: anything that
+                 followed that href — a middle-click, a cmd-click, a handler
+                 that threw, a click before hydration — landed on the app
+                 shell, failed to resolve, and bounced to the home page STILL
+                 SIGNED IN, having looked exactly like a sign-out. Signing out
+                 is an action; giving it a destination invented a way to
+                 believe you had done it when you had not. */
+              <button
+                type="button"
+                className="btn--text"
+                onClick={async () => {
                   await api.signOut();
                   window.location.assign(STATIC_LINKS.home);
                 }}
               >
                 Sign out
-              </a>
+              </button>
             ) : (
               <a
                 href="/signin"
