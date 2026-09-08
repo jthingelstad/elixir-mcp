@@ -75,6 +75,47 @@ export function yieldCadenceMinutes(row) {
   return CADENCE[row.endpoint].every;
 }
 
+/**
+ * Per-subject phase offset, so cohorts cannot stay in lockstep.
+ *
+ * Every cadence above is a pure function of a subject's state, and due-ness
+ * is `now - reference >= cadence`. Two subjects seeded in the same moment
+ * with the same state are therefore due in the same moment, forever. Adding
+ * a batch of clans enrolls their members together, and the whole cohort
+ * polls as one — observed live 2026-09-08 as three spikes at 23:00, 07:00
+ * and 15:00 UTC, exactly 8h apart and 3.4x the hourly baseline.
+ *
+ * That is bad beyond the ugly graph: it wastes the token bucket in bursts
+ * while leaving it idle between, it makes every spike compete with the live
+ * lane's reserve, and it concentrates load on whichever collector wins the
+ * lease race.
+ *
+ * The offset is a STABLE hash of (subject, endpoint), not a random number.
+ * Re-rolling each tick would leave the cohort clustered on average and merely
+ * add noise; a stable factor also makes planning reproducible, which the
+ * deterministic tie-break in this file depends on. Because it is
+ * multiplicative, subjects drift apart a little further every cycle -- two
+ * subjects at the extremes separate by 0.3 x cadence per poll, so a cohort
+ * is fully de-phased within a few cycles rather than merely smeared.
+ *
+ * Applied to CADENCE only, never to the fairness floor: a floor is a
+ * guarantee about the worst case, not a schedule to be nudged.
+ */
+export const JITTER_SPREAD = 0.3; // +/-15%
+
+export function jitterFactor(subjectTag, endpoint) {
+  // FNV-1a. Cheap, stable across processes, and well distributed over the
+  // short ASCII keys we hash -- tags and endpoint names.
+  let h = 2166136261;
+  const key = `${subjectTag}:${endpoint}`;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const frac = (h >>> 0) / 4294967296;
+  return 1 + (frac - 0.5) * JITTER_SPREAD;
+}
+
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
 
@@ -201,7 +242,8 @@ async function selectEligible(db, now) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
     const referenceMs = r.reference.getTime();
-    const dueAfter = yieldCadenceMinutes(r) * MINUTE;
+    const dueAfter =
+      yieldCadenceMinutes(r) * jitterFactor(r.subject_tag, r.endpoint) * MINUTE;
     const due = nowMs - referenceMs >= dueAfter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;

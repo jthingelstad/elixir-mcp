@@ -196,9 +196,13 @@ test("clan heartbeat respects its 15-minute cadence", async () => {
   const { jobs } = await planTick(db, NOW);
   assert.equal(jobs.length, 0, "10 minutes since clan poll: not yet due");
 
+  // 18, not 16. Cadences carry a stable per-subject jitter of +/-15%, so a
+  // 15-minute heartbeat is due somewhere in [12.75, 17.25] depending on the
+  // tag -- probing at 16 tested this tag's hash rather than the cadence. Both
+  // probes now sit outside the band, which is what the test always meant.
   await setState("#J2RGCRVG", "clan", {
-    admitted: min(16),
-    planned: min(16),
+    admitted: min(18),
+    planned: min(18),
   });
   const { jobs: jobs2 } = await planTick(db, NOW);
   assert.deepEqual(
