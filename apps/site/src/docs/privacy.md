@@ -48,14 +48,20 @@ query, is a capability the game's own API does not offer, and any
 approved account can run it. Your account data — claims, watches,
 quotas, usage, feedback — is yours alone.
 
-**Website analytics.** The site uses Tinylytics, a small
+**Website analytics.** The public pages — the home page, the
+documentation, updates and the changelog — use Tinylytics, a small
 privacy-focused analytics service, to count visits anonymously: page
-hits, visitor country, and product events such as "a tool call
-happened" or "feedback was filed". No cookies, no personal
-identifiers, no cross-site tracking — event values carry tool names
-and categories only, never your data. The service also counts a few of
-its own events server-side (how many MCP calls happened) with no
-account attached. The sign-in page loads no analytics at all.
+hits and visitor country. No cookies, no personal identifiers, no
+cross-site tracking.
+
+**The signed-in application loads no analytics at all.** Nothing on
+your dashboard, Explore, your account pages or the sign-in page is
+counted client-side; the script is simply not there.
+
+Product events such as "a tool call happened" or "feedback was filed"
+are counted server-side, with **no account attached** — the values
+carry tool names and categories only, never your data, and never who
+made the call.
 
 **The newsletter, and why it is opt-out.** Elixir MCP is a private beta
 and every account is approved by hand. Taking part includes occasional
