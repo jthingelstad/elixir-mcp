@@ -17,6 +17,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    {#- Autodiscovery: a feed nobody can find is a feed nobody reads. -#}
+    <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="/feed.xml" />
     <link rel="stylesheet" href="/assets/site.css" />
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="{{ site.url }}/feed.xml" />
   </head>
@@ -35,7 +37,11 @@
             <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
             <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
           </nav>
-          <div class="nav1__meta"><a href="/signin">Sign in</a></div>
+          {#- Sign in reads as the action it is, in the same gold as Request
+              access on the home page — it was a grey link beside four other
+              grey links, and the one thing on the page a returning user is
+              looking for. -#}
+          <div class="nav1__meta"><a class="btn btn--gold btn--sm" href="/signin">Sign in</a></div>
         </div>
       </header>
 

@@ -296,6 +296,7 @@ export function App() {
               </button>
             ) : (
               <a
+                className="btn btn--gold btn--sm"
                 href="/signin"
                 onClick={(e) => {
                   e.preventDefault();

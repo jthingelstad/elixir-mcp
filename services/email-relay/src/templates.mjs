@@ -42,7 +42,8 @@ const C = {
   gold: "#f5c84c",
 };
 
-const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 /**
  * One shell for every message, so a login and a welcome are recognisably the
@@ -116,11 +117,10 @@ export function renderEmail(msg) {
         // Apple Mail's code detector expects.
         preheader: `Your Elixir MCP sign-in code is ${msg.code}. It expires in 15 minutes.`,
         body: [
-          p(
-            "Your sign-in code",
-            C.faint,
-            "12px",
-          ).replace("margin:0 0 14px", "margin:0 0 8px;letter-spacing:.12em;text-transform:uppercase;font-weight:600"),
+          p("Your sign-in code", C.faint, "12px").replace(
+            "margin:0 0 14px",
+            "margin:0 0 8px;letter-spacing:.12em;text-transform:uppercase;font-weight:600",
+          ),
           `<p style="margin:0 0 18px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:.22em;color:${C.ink};">${esc(msg.code)}</p>`,
           consentHtml,
           link ? p("Or sign in with one tap:") : "",

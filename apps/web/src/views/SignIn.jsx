@@ -43,6 +43,22 @@ export function SignIn({ onAuthed }) {
             We&rsquo;ll email a sign-in link and a 6-digit code to your approved
             address.
           </p>
+          {/* Said here rather than only on the request form, because this is
+              where somebody arrives believing they already have an account —
+              and the honest answer to "why can't I sign in" is usually that
+              the gate is deliberate, not broken. */}
+          <p
+            className="panel__note"
+            style={{ padding: 0, margin: "0 0 14px", color: "var(--faint)" }}
+          >
+            Elixir MCP is in{" "}
+            <strong style={{ color: "var(--ink)" }}>beta</strong> and accounts
+            are approved by hand. New people are admitted on what they can bring
+            to the beta &mdash; playing actively, running a collector,
+            connecting an agent and telling us where it struggles.{" "}
+            <a href="/#request">Request access</a> if you don&rsquo;t have an
+            account yet.
+          </p>
           <label>
             Email
             <input

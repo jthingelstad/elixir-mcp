@@ -3,18 +3,22 @@ permalink: /feed.xml
 eleventyExcludeFromCollections: true
 ---
 <?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>{{ site.name }} updates</title>
     <link>{{ site.url }}/updates</link>
     <description>Every user-visible change to {{ site.name }}, newest first.</description>
     <language>en</language>
+    {#- rel=self: validators and some readers want the feed to name its own
+        address, and it is how a moved feed is recognised as the same feed. -#}
+    <atom:link href="{{ site.url }}/feed.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>{{ updates[0].date | rfc822 }}</lastBuildDate>
     {%- for u in updates %}
     <item>
       <title>{{ u.title | esc }}</title>
       <link>{{ site.url }}/updates#{{ u.date }}-{{ loop.index }}</link>
       <guid isPermaLink="false">{{ site.url }}/updates#{{ u.date }}-{{ loop.index }}</guid>
-      <pubDate>{{ u.date }}</pubDate>
+      <pubDate>{{ u.date | rfc822 }}</pubDate>
       <description>{{ u.body | esc }}</description>
     </item>
     {%- endfor %}

@@ -102,6 +102,18 @@ export default function (eleventyConfig) {
     typeof n === "number" ? n.toLocaleString("en-US") : "—",
   );
   eleventyConfig.addFilter("day", (s) => (s ? String(s).slice(0, 10) : "—"));
+
+  /**
+   * RFC-822, which is what RSS 2.0 actually requires.
+   *
+   * The feed was publishing <pubDate>2026-09-07</pubDate>. That is not a date
+   * in RSS terms, so readers either showed no date at all or refused the item
+   * — a feed nobody could have subscribed to successfully.
+   */
+  eleventyConfig.addFilter("rfc822", (s) => {
+    const d = new Date(`${String(s).slice(0, 10)}T12:00:00Z`);
+    return Number.isNaN(d.getTime()) ? "" : d.toUTCString();
+  });
   eleventyConfig.addFilter("json", (v) => JSON.stringify(v, null, 2));
 
   /** Escape text that lands inside HTML we build by hand. */
