@@ -67,6 +67,14 @@ before(async () => {
     ["b-act-2", ACTIVE, "2 hours"],
     ["b-quiet", QUIET, "6 days"],
   ];
+  // QUIET is polled up to the minute -- so six days of silence is really
+  // theirs. Without a poll_state row the same six days could equally be our
+  // capture gap, which is exactly what the payload could not express.
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at)
+     values ($1, 'player_battlelog', now())`,
+    [QUIET],
+  );
   for (const [id, tag, ago] of battles) {
     await db.query(
       `insert into battle (battle_id, battle_time, type, type_class)
@@ -114,6 +122,30 @@ test("clan_pulse: one digest per added clan per day, facts only", async () => {
   assert.equal(p.quiet.length, 1, "only QUIET crosses the 5-day floor");
   assert.equal(p.quiet[0].player_tag, QUIET);
   assert.equal(p.quiet[0].days_quiet, 6);
+
+  /* Agent feedback #10: days_quiet comes from the last battle we RECORDED,
+   * so for a member we stopped polling it measures our gap rather than their
+   * silence -- and a reader had to spend an elixir_coverage call per name to
+   * tell which. Both facts now ride the row. */
+  assert.equal(
+    p.quiet[0].days_since_poll,
+    0,
+    "polled just now, so the six days of quiet are genuinely theirs",
+  );
+  assert.ok(
+    p.quiet[0].recorded_since,
+    "and how far back our record of them goes",
+  );
+
+  /* 'never_recorded: 1' gave a management routine nobody to look at, and
+   * these are exactly the members quiet[] structurally cannot contain -- it
+   * joins through battle_participant, so somebody with no recorded battle is
+   * invisible there. */
+  assert.equal(p.never_recorded, 1);
+  assert.deepEqual(
+    p.never_recorded_members.map((m) => m.player_tag),
+    [GHOST],
+  );
   assert.equal(p.never_recorded, 1, "GHOST has no recorded history");
   assert.deepEqual(p.roster_changes_24h, { joined: 0, left: 0 });
   assert.equal(p.war, undefined, "no war anchor -> no war block");
@@ -138,4 +170,18 @@ test("clan_pulse: notify-off clans get no pulse at all", async () => {
     { clans: 0, emitted: 0 },
   );
   await db.query(`update account_clan set notify = true`);
+});
+
+test("a member we never polled reports an unknown poll age, not a false zero", async () => {
+  // The distinction the whole change exists for. GHOST has no poll_state row
+  // at all; reporting 0 would read as "polled just now", which is the exact
+  // wrong answer -- it would make our blind spot look like their inactivity.
+  const { rows } = await db.query(
+    `select (select floor(extract(epoch from (now() - ps.last_admitted_at)) / 86400)::int
+               from poll_state ps
+              where ps.subject_tag = $1 and ps.endpoint = 'player_battlelog')
+              as days_since_poll`,
+    [GHOST],
+  );
+  assert.equal(rows[0].days_since_poll, null);
 });

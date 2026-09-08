@@ -129,10 +129,32 @@ async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
   );
   // 5 recorded-quiet days is the reporting FLOOR (elixir-bot's line);
   // what a leader does about day 6 vs day 9 is the routine's call.
+  /**
+   * Quiet members, each carrying enough to tell OUR gap from THEIR silence.
+   *
+   * days_quiet is derived from the last battle we RECORDED, so for a member
+   * we stopped polling it measures our capture gap and not their inactivity
+   * -- and the payload gave no way to tell those apart. A reader asking "is X
+   * inactive or just not tracked?" had to spend an elixir_coverage call per
+   * name (agent feedback #10, filed from a pulse).
+   *
+   * Both added fields use coverage's OWN definitions -- last_admitted_at on
+   * the battlelog poll_state row, and the first battle we ever saw -- so the
+   * pulse and elixir_coverage cannot disagree about the same member.
+   *
+   * Still facts, not judgments: days_since_poll sits beside days_quiet in the
+   * same unit so they are directly comparable, and what counts as "too stale
+   * to trust" stays the reading routine's call.
+   */
   const { rows: quiet } = await db.query(
     `select cm.player_tag, p.name,
             floor(extract(epoch from (now() - max(b.battle_time))) / 86400)::int
-              as days_quiet
+              as days_quiet,
+            min(b.battle_time) as recorded_since,
+            (select floor(extract(epoch from (now() - ps.last_admitted_at)) / 86400)::int
+               from poll_state ps
+              where ps.subject_tag = cm.player_tag
+                and ps.endpoint = 'player_battlelog') as days_since_poll
      from clan_membership cm
      join player p on p.player_tag = cm.player_tag
      join battle_participant bp on bp.player_tag = cm.player_tag
@@ -143,8 +165,23 @@ async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
      order by days_quiet desc, p.name nulls last limit 10`,
     [tag],
   );
+  // The count alone could not be acted on: "3 members have no recorded
+  // history" gives a routine nobody to look at. These are the members the
+  // quiet[] list structurally cannot contain -- it joins through
+  // battle_participant, so somebody with no recorded battle at all is
+  // invisible there. Bounded, because a freshly added clan is briefly all of
+  // them.
   const { rows: neverRec } = await db.query(
-    `select count(*)::int as n from clan_membership cm
+    `select count(*)::int as n,
+            coalesce((select json_agg(x) from (
+              select cm2.player_tag, p2.name
+                from clan_membership cm2
+                join player p2 on p2.player_tag = cm2.player_tag
+               where cm2.clan_tag = $1 and cm2.left_observed_at is null
+                 and not exists (select 1 from battle_participant bp2
+                                  where bp2.player_tag = cm2.player_tag)
+               order by p2.name nulls last limit 10) x), '[]') as members
+     from clan_membership cm
      where cm.clan_tag = $1 and cm.left_observed_at is null
        and not exists (select 1 from battle_participant bp
                        where bp.player_tag = cm.player_tag)`,
@@ -235,12 +272,13 @@ async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
     top_24h: top,
     quiet,
     never_recorded: neverRec[0].n,
+    never_recorded_members: neverRec[0].members,
     ...(war ? { war } : {}),
     roster_changes_24h: {
       joined: changes[0].joined,
       left: changes[0].departed,
     },
-    note: "Recorded facts only: 'quiet' means no RECORDED battles in that many days (recording start dates differ; never_recorded members have no recorded history at all). Drill with war_current, clans_roster, and battles_query.",
+    note: "Recorded facts only: 'quiet' means no RECORDED battles in that many days. Compare days_quiet with days_since_poll on the same row before calling anyone inactive - if we have not polled them recently, the silence is ours. recorded_since is how far back our record of that member goes; never_recorded_members have no recorded history at all. Drill with war_current, clans_roster, and battles_query.",
   };
 }
 

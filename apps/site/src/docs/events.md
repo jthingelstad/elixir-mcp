@@ -99,6 +99,26 @@ One honest caveat rides with it: *quiet* means **no recorded battles**, and
 recording start dates differ. Somebody who joined last week has not been quiet
 for a month; they have been unrecorded for most of it.
 
+That caveat used to be prose you had to apply yourself, one `elixir_coverage`
+call per name. Each quiet member now carries it:
+
+| Field | Meaning |
+|---|---|
+| `days_quiet` | days since the last battle **we recorded** |
+| `days_since_poll` | days since we last successfully polled them (`null` = never) |
+| `recorded_since` | the first battle of theirs we ever saw |
+
+Compare the first two before calling anyone inactive. If `days_since_poll` is
+0 and `days_quiet` is 9, the silence is theirs. If `days_since_poll` is 7, most
+of that silence is ours. A `null` there means we have never polled them at all,
+which is deliberately not reported as zero — a blind spot must not read as
+freshness.
+
+Members with no recorded history at all cannot appear in that list, because it
+is built from recorded battles. They arrive as `never_recorded_members`,
+named rather than merely counted, so a routine has somebody to actually look
+at.
+
 ## A routine that uses it
 
 The shape a scheduled clan agent wants:
