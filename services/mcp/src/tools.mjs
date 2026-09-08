@@ -11,6 +11,7 @@ import {
   TOOL_GROUPS,
   GROUP_ORDER,
   requiredOAuthScope,
+  toolsHiddenFrom,
 } from "@elixir-mcp/contracts";
 import { elixirTools } from "./tools/elixir.mjs";
 import { collectionsTools } from "./tools/collections.mjs";
@@ -38,12 +39,22 @@ const TOOLS = {
   ...warTools,
 };
 
+/**
+ * `kind` shapes what a connection can see and call. It is threaded in rather
+ * than read from a module global because one Lambda serves every principal,
+ * and a cached registry that remembered the last caller's kind would be the
+ * worst possible bug in this file.
+ */
 export function makeRegistry() {
   return {
     has: (name) => Object.hasOwn(TOOLS, name),
     requiredScope: (name) => requiredOAuthScope(name),
-    declarations: () =>
+    /** Omitted from the list AND refused on call: clients cache tools/list
+     *  forever, so a tool that merely disappears is still callable. */
+    availableTo: (name, kind) => !toolsHiddenFrom(kind).has(name),
+    declarations: (kind = null) =>
       Object.entries(TOOLS)
+        .filter(([name]) => !toolsHiddenFrom(kind).has(name))
         .map(([name, t]) => {
           // Classification is mandatory: an unclassified tool is a build
           // error, not a silent "Other tools" entry (Jamie, 2026-09-04).

@@ -154,6 +154,9 @@ export function makeHandler({
       }
       const result = await handleMcpMessage(message, {
         registry,
+        // What this connection is FOR. A person sees the full surface; an
+        // agent's is shaped around a clan; an integration's around the corpus.
+        kind: account.kind ?? "person",
         spendQuota: makeQuota({ db, account }),
         invokeTool: makeInvoker({
           db,

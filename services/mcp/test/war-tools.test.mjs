@@ -235,9 +235,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.players.length, 2);
 });
 
-test("the registry declares 36 tools, every one classified and annotated", () => {
+test("the registry declares 37 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 36);
+  assert.equal(decls.length, 37);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -734,4 +734,87 @@ test("war_history: finished_early flags 10000-fame regular weeks; horizon named"
   );
   assert.match(body.note, /finished_early/);
   assert.match(body.note, /history_starts_at/);
+});
+
+// ------------------------------------------------------- game_clock (0.30.0)
+// The gap this fills: there was no clan-agnostic way to ask what season or war
+// day it is, so Elixir Drop -- which has no clan at all -- carries a configured
+// reference clan purely to borrow its river race as a calendar. That is also
+// how an MCP season bug reaches a consumer with no stake in the clan it
+// borrowed from.
+
+test("game_clock answers without a clan, a player, or the database", async () => {
+  const { makeRegistry } = await import("../src/tools.mjs");
+  const registry = makeRegistry();
+
+  // No db, no account, no live lane. If any of those are ever needed, this
+  // throws rather than quietly reintroducing a subject.
+  const body = await registry.invoke("game_clock", {}, {});
+
+  assert.equal(typeof body.season_id, "number");
+  assert.ok(body.week >= 1 && body.week <= 6);
+  assert.ok(["training", "war"].includes(body.day_kind));
+  assert.ok(body.meta.contract_version);
+});
+
+test("game_clock: a war day names which one; a training day names none", async () => {
+  const { makeRegistry } = await import("../src/tools.mjs");
+  const registry = makeRegistry();
+
+  // 2026-09-07 10:00Z opened season 136 -- period 0, the first training day.
+  const training = await registry.invoke(
+    "game_clock",
+    {},
+    {
+      at: "2026-09-07T12:00:00Z",
+    },
+  );
+  assert.equal(training.day_kind, "training");
+  assert.equal(training.war_day, null);
+  assert.equal(training.week, 1);
+  assert.equal(training.period_index, 0);
+
+  // Three training days later the war days begin, numbered 1..4.
+  const war = await registry.invoke(
+    "game_clock",
+    {},
+    {
+      at: "2026-09-10T12:00:00Z",
+    },
+  );
+  assert.equal(war.day_kind, "war");
+  assert.equal(war.war_day, 1);
+  assert.equal(war.period_index, 3);
+});
+
+test("game_clock: the day boundary is 10:00Z, not midnight", async () => {
+  const { makeRegistry } = await import("../src/tools.mjs");
+  const registry = makeRegistry();
+  // 09:59Z still belongs to the previous day; 10:01Z is the new one.
+  const before = await registry.invoke(
+    "game_clock",
+    {},
+    {
+      at: "2026-09-10T09:59:00Z",
+    },
+  );
+  const after = await registry.invoke(
+    "game_clock",
+    {},
+    {
+      at: "2026-09-10T10:01:00Z",
+    },
+  );
+  assert.equal(before.period_index + 1, after.period_index);
+  assert.equal(after.day_started_at, "2026-09-10T10:00:00.000Z");
+  assert.equal(after.day_ends_at, "2026-09-11T10:00:00.000Z");
+});
+
+test("game_clock refuses a date it cannot read, rather than guessing now", async () => {
+  const { makeRegistry } = await import("../src/tools.mjs");
+  const registry = makeRegistry();
+  await assert.rejects(
+    () => registry.invoke("game_clock", {}, { at: "last tuesday" }),
+    (err) => err.code === "bad_request",
+  );
 });

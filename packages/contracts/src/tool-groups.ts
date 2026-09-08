@@ -174,6 +174,10 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   },
 
   // War — river race, current and historical (docs: models/river-race.md).
+  // Needs no subject at all: it is a property of the game, not of anyone
+  // playing it. Listed first in the group because "what day is it" precedes
+  // "what is my clan doing today".
+  game_clock: { group: "War", title: "Game clock", readOnly: true },
   war_current: { group: "War", title: "Current war", readOnly: true },
   war_history: { group: "War", title: "War history", readOnly: true },
   war_rivals: { group: "War", title: "Scouting Report", readOnly: true },

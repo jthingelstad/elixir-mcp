@@ -37,8 +37,73 @@ function rpcError(id, code, message, data) {
   };
 }
 
-function initializeResult(registry, requestedVersion) {
-  const declarations = registry.declarations();
+/**
+ * The opening brief, written for the principal actually connecting.
+ *
+ * This used to say "Start with elixir_my_players for the caller's added
+ * players" to everyone, which is exactly wrong for an agent: its owner's
+ * claimed players are not its subject, and following that instruction is how a
+ * clan bot ends up reciting somebody's personal tags. The bootstrap question
+ * for an agent is not "who am I" but "what do I serve".
+ */
+function instructionsFor(kind) {
+  const shared = [
+    "Recorded Clash Royale history: battles, performance, snapshots, war,",
+    "coverage - all recorded game data is readable by every account.",
+    "elixir_coverage tells you how complete a record is - caveat answers when",
+    "capture is incomplete. game_clock answers what season and war day it is",
+    "without reference to any clan. All tags are CR tags like #20JJJ2CCRU.",
+    "Tool schemas evolve: if serverInfo.version differs from your cached",
+    "value, re-fetch tools/list, and elixir_changelog(since) lists what",
+    "shipped.",
+  ];
+  const opening = {
+    agent: [
+      "You are an AGENT: you act for a clan, not for a person. Your subject is",
+      "the clan on your account - start there, with clans_roster and",
+      "war_current, and use players_search when someone names a player. You",
+      "hold no claims and no primary player tag, so never answer 'my stats'",
+      "for a human without being told whose.",
+    ],
+    integration: [
+      "You are an INTEGRATION: you have no account subject of your own. Every",
+      "call names what it wants - pass player_tag and clan_tag explicitly.",
+      "Nothing here defaults to 'yours', because there is no yours.",
+    ],
+  };
+  const closing = {
+    person: [
+      "Start with elixir_my_players for your added players. Added means",
+      "recorded: elixir_add_player/elixir_add_clan start capture in one act,",
+      "and meta.events_pending signals new elixir_events for the subjects you",
+      "keep notify-on.",
+    ],
+    agent: [
+      "meta.events_pending signals new elixir_events for your clan - poll that",
+      "feed rather than re-polling the data tools.",
+    ],
+    integration: [],
+  };
+  const feedback = [
+    "If you hit friction - a missing capability, a confusing result, a",
+    "workflow that took more calls than it should - file it via",
+    "elixir_feedback ON YOUR OWN JUDGMENT before the session ends;",
+    "agent-initiated feedback is expected and welcome, and every item gets a",
+    "maintainer response (watch meta.feedback_responses_pending, read via",
+    "elixir_my_feedback).",
+  ];
+  const k = kind === "agent" || kind === "integration" ? kind : "person";
+  return [
+    ...(opening[k] ?? []),
+    ...shared,
+    ...closing[k],
+    ...feedback,
+    DISCLAIMER,
+  ].join(" ");
+}
+
+function initializeResult(registry, requestedVersion, kind = null) {
+  const declarations = registry.declarations(kind);
   const requested = String(requestedVersion ?? "");
   return {
     protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requested)
@@ -51,34 +116,17 @@ function initializeResult(registry, requestedVersion) {
       version: serverVersion(declarations),
       websiteUrl: "https://elixir.poapkings.com/",
     },
-    instructions: [
-      "Recorded Clash Royale history: battles, performance, snapshots, war,",
-      "coverage - all recorded game data is readable by every account. Start",
-      "with elixir_my_players for the caller's added players; elixir_coverage",
-      "tells you how complete a record is - caveat answers when capture is",
-      "incomplete. All tags are CR tags like #20JJJ2CCRU. Tool schemas evolve:",
-      "if serverInfo.version differs from your cached value, re-fetch",
-      "tools/list, and elixir_changelog(since) lists what shipped. Added",
-      "means recorded: elixir_add_player/elixir_add_clan start capture in",
-      "one act, and meta.events_pending signals new elixir_events for the",
-      "subjects you keep notify-on. If you hit",
-      "friction - a missing capability, a confusing result, a workflow that",
-      "took more calls than it should - file it via elixir_feedback ON YOUR",
-      "OWN JUDGMENT before the session ends; agent-initiated feedback is",
-      "expected and welcome, and every item gets a maintainer response",
-      "(watch meta.feedback_responses_pending, read via elixir_my_feedback).",
-      DISCLAIMER,
-    ].join(" "),
+    instructions: instructionsFor(kind),
   };
 }
 
-function renderToolResultText(registry, name, invoked) {
+function renderToolResultText(registry, name, invoked, kind = null) {
   // Compact JSON: MCP clients pay tokens per byte, and battle results are
   // deck-dense — indent-1 doubled their size past the cap for no benefit.
   let text = JSON.stringify(invoked ?? null);
   const truncated = text.length > MCP_RESULT_MAX_CHARS;
   if (truncated) {
-    const spec = registry.declarations().find((d) => d.name === name);
+    const spec = registry.declarations(kind).find((d) => d.name === name);
     const params = Object.keys(spec?.inputSchema?.properties ?? {});
     const hint = params.length
       ? `narrow the arguments (${params.join(", ")})`
@@ -123,7 +171,11 @@ export async function handleMcpMessage(message, context) {
       statusCode: 200,
       payload: rpcResult(
         id,
-        initializeResult(context.registry, params.protocolVersion),
+        initializeResult(
+          context.registry,
+          params.protocolVersion,
+          context.kind,
+        ),
       ),
     };
   }
@@ -131,7 +183,9 @@ export async function handleMcpMessage(message, context) {
   if (method === "tools/list") {
     return {
       statusCode: 200,
-      payload: rpcResult(id, { tools: context.registry.declarations() }),
+      payload: rpcResult(id, {
+        tools: context.registry.declarations(context.kind),
+      }),
     };
   }
   if (method === "tools/call") {
@@ -140,6 +194,27 @@ export async function handleMcpMessage(message, context) {
       return {
         statusCode: 200,
         payload: rpcError(id, -32602, `Unknown tool: ${name}`),
+      };
+    }
+    // Omitting a tool from tools/list is presentation, not enforcement --
+    // clients cache that list for a long time, and this server publishes a
+    // fingerprint precisely because they do. A principal that should not see
+    // a tool must also be unable to call one it remembers.
+    if (
+      context.registry.availableTo &&
+      !context.registry.availableTo(name, context.kind)
+    ) {
+      return {
+        statusCode: 200,
+        payload: rpcError(
+          id,
+          -32601,
+          `${name} is not available to this connection.`,
+          {
+            kind: context.kind ?? "person",
+            hint: "This tool answers for a person. An agent acts for a clan and an integration has no account of its own.",
+          },
+        ),
       };
     }
     const quota = await context.spendQuota();
@@ -163,7 +238,12 @@ export async function handleMcpMessage(message, context) {
     if (Number.isFinite(quota.max) && invoked.body?.meta) {
       invoked.body.meta.quota = { used: quota.count, max: quota.max };
     }
-    const { text } = renderToolResultText(context.registry, name, invoked.body);
+    const { text } = renderToolResultText(
+      context.registry,
+      name,
+      invoked.body,
+      context.kind,
+    );
     return {
       statusCode: 200,
       payload: rpcResult(id, {

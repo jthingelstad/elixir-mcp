@@ -5,6 +5,7 @@ import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import {
   periodInfo,
   nominalPeriodBoundsMs,
+  seasonFromDate,
 } from "../../../ingest/src/war-clock.mjs";
 import {
   ToolFailure,
@@ -13,7 +14,74 @@ import {
   entitledClan,
 } from "./shared.mjs";
 
+const DAY_MS = 24 * 3600_000;
+
 export const warTools = {
+  game_clock: {
+    description:
+      "What time it is in Clash Royale, for nobody in particular: current season, week within the season, whether today is a training day or war day, and when each next rolls over. Needs no player and no clan — it is a property of the game, not of anyone playing it. Use it to decide WHEN to look before deciding who to look at; war_current is the tool for what a specific clan is doing inside this day.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        at: {
+          type: "string",
+          description:
+            "ISO 8601 instant to describe instead of now. Useful for checking what a recorded battle's day was.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(_ctx, args = {}) {
+      let atMs = Date.now();
+      if (args.at !== undefined) {
+        const parsed = Date.parse(args.at);
+        if (Number.isNaN(parsed))
+          throw new ToolFailure(
+            "bad_request",
+            `Could not read '${args.at}' as a date.`,
+            "Use an ISO 8601 instant, e.g. 2026-09-08T12:00:00Z.",
+          );
+        atMs = parsed;
+      }
+
+      // Every value below is calendar math over the policy grid. No clan is
+      // consulted, and none should be: borrowing an arbitrary clan's river
+      // race to learn the date is exactly the workaround this replaces, and
+      // it is how a season bug reaches a consumer that has no clan at all.
+      const season = seasonFromDate(atMs);
+      const { startMs: periodStartMs } = nominalPeriodBoundsMs(atMs, 0);
+      const dayInSection = Math.floor(
+        (periodStartMs - season.seasonStartMs) / DAY_MS -
+          season.sectionIndex * 7,
+      );
+      const periodIndex = season.sectionIndex * 7 + dayInSection;
+      const info = periodInfo(periodIndex);
+      const nextSeason = seasonFromDate(
+        seasonFromDate(atMs).seasonStartMs + 40 * DAY_MS,
+      );
+
+      return {
+        as_of: new Date(atMs).toISOString(),
+        season_id: season.seasonId,
+        season_started_at: new Date(season.seasonStartMs).toISOString(),
+        season_ends_at: new Date(nextSeason.seasonStartMs).toISOString(),
+        week: season.sectionIndex + 1,
+        section_index: season.sectionIndex,
+        period_index: periodIndex,
+        day_kind: info.kind,
+        war_day: info.warDay,
+        day_started_at: new Date(periodStartMs).toISOString(),
+        day_ends_at: new Date(periodStartMs + DAY_MS).toISOString(),
+        notes: [
+          "Days roll at 10:00 UTC, the same hour the season rolls.",
+          "A season runs first Monday of the month to first Monday of the next; weeks are the Mondays between.",
+          "The final week of a season is Colosseum; its practice days still report as training.",
+        ],
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   war_rivals: {
     description:
       "The Scouting Report (META-INTEL §10): observed war history for rival clans — every recorded river race captures all five bracket clans, so rivals accumulate fingerprints across every race they ever shared with a recorded clan. Defaults to your clan's current bracket. Pure aggregation of stored observations: races seen, fame record, zero-fame races, seasons spanned.",
