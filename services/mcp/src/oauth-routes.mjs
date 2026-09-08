@@ -394,11 +394,13 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
       );
     },
 
-    protectedResourceMetadata() {
+    // One document per protected resource (RFC 9728). The default is the
+    // personal one, so every existing caller sees exactly what it saw before.
+    protectedResourceMetadata(resource = `${issuer}/mcp`) {
       return json(
         200,
         {
-          resource: `${issuer}/mcp`,
+          resource,
           authorization_servers: [issuer],
           // The initial challenge is deliberately read-only. General MCP
           // clients can step up from a per-tool insufficient_scope response.

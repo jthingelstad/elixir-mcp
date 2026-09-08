@@ -11,6 +11,8 @@ import {
   validateServiceToken,
   checkRateLimit,
   normalizeScope,
+  resourceForPath,
+  principalMatchesResource,
 } from "@elixir-mcp/auth";
 import { DEFAULT_OAUTH_SCOPE } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
@@ -32,16 +34,10 @@ export function makeHandler({
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
   const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
-  const resource = new URL("/mcp", issuer).toString();
+  // The personal resource's metadata document. Agent and integration doors
+  // point at their own path-suffixed one, built per request below, so a client
+  // 401'd at an agent URL discovers THAT resource rather than this one.
   const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
-  const unauthorized = () => ({
-    statusCode: 401,
-    headers: {
-      "content-type": "application/json",
-      "www-authenticate": `Bearer resource_metadata="${resourceMetadata}", scope="${DEFAULT_OAUTH_SCOPE}"`,
-    },
-    body: JSON.stringify({ error: "invalid_token" }),
-  });
 
   return async function handler(event) {
     const method =
@@ -55,8 +51,24 @@ export function makeHandler({
     ) {
       return oauth.authorizationServerMetadata();
     }
-    if (method === "GET" && path === "/.well-known/oauth-protected-resource") {
-      return oauth.protectedResourceMetadata();
+    // RFC 9728 path-suffixed form: each protected resource publishes its own
+    // metadata, so a client 401'd at an agent URL discovers THAT resource
+    // rather than the canonical one and asks for a token with the wrong
+    // audience.
+    if (
+      method === "GET" &&
+      path.startsWith("/.well-known/oauth-protected-resource")
+    ) {
+      const suffix = path.slice("/.well-known/oauth-protected-resource".length);
+      const target = resourceForPath(suffix || "/mcp", issuer);
+      if (!target) {
+        return {
+          statusCode: 404,
+          headers: { "content-type": "application/json" },
+          body: '{"error":"not_found"}',
+        };
+      }
+      return oauth.protectedResourceMetadata(target.resource);
     }
 
     if (path.startsWith("/oauth/")) {
@@ -81,13 +93,27 @@ export function makeHandler({
       }
     }
 
-    if (method !== "POST" || path !== "/mcp") {
+    const target = method === "POST" ? resourceForPath(path, issuer) : null;
+    if (!target) {
       return { statusCode: 405, headers: { allow: "POST" }, body: "" };
     }
+    // The challenge must name the resource actually being addressed.
+    const resourceMetadataForTarget =
+      target.kind === "person"
+        ? resourceMetadata
+        : `${issuer}/.well-known/oauth-protected-resource${path}`;
+    const unauthorizedHere = () => ({
+      statusCode: 401,
+      headers: {
+        "content-type": "application/json",
+        "www-authenticate": `Bearer resource_metadata="${resourceMetadataForTarget}", scope="${DEFAULT_OAUTH_SCOPE}"`,
+      },
+      body: JSON.stringify({ error: "invalid_token" }),
+    });
     const auth = String(
       event.headers?.authorization ?? event.headers?.Authorization ?? "",
     );
-    if (!auth.toLowerCase().startsWith("bearer ")) return unauthorized();
+    if (!auth.toLowerCase().startsWith("bearer ")) return unauthorizedHere();
 
     const db = new pg.Client({ connectionString: databaseUrl });
     await db.connect();
@@ -98,8 +124,31 @@ export function makeHandler({
       // API-token users like elixir-bot; audit surface svc:<name>).
       const account = presented.startsWith("svt_")
         ? await validateServiceToken(db, presented)
-        : await validateAccessToken(db, presented, { resource });
-      if (!account) return unauthorized();
+        : await validateAccessToken(db, presented, {
+            resource: target.resource,
+          });
+      if (!account) return unauthorizedHere();
+
+      // The URL declares what this connection is for; the credential proves
+      // it. Without this check, distinct URLs would be decoration: a personal
+      // token at an agent URL would answer from the wrong subject and nothing
+      // would say so. 403 rather than 404 -- the resource exists, this
+      // credential simply does not belong at it, and pretending otherwise
+      // would make the door a probe for which agents exist.
+      if (!principalMatchesResource(account, target)) {
+        return {
+          statusCode: 403,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            error: "wrong_resource",
+            message: `This credential is not for ${target.resource}.`,
+            hint:
+              target.kind === "person"
+                ? "An agent or integration key belongs at its own URL, not the personal one."
+                : "Use the key issued for this agent, or connect at the personal /mcp resource.",
+          }),
+        };
+      }
       let message;
       try {
         message = JSON.parse(rawBody(event));

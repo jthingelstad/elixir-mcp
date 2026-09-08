@@ -131,6 +131,47 @@ export function canonicalResource(value) {
   return url.toString();
 }
 
+/**
+ * The one place a request path becomes a protected-resource identity.
+ *
+ * Three shapes, and only three. This pattern is the code half of the CHECK
+ * constraint in migration 0054 — they must agree, so a test compares them
+ * against the same adversarial matrix. The host is a hard-coded literal on
+ * both sides: nothing a caller sends can steer the audience off this origin.
+ *
+ * Returns { resource, kind, publicId } or null. `kind` is what the URL CLAIMS;
+ * proving it is the credential's job, and the mismatch between the two is the
+ * whole reason distinct URLs are worth having.
+ */
+const RESOURCE_PATH_RE = /^\/(?:mcp|([ai])\/([a-z0-9]{8,16})\/mcp)$/;
+
+export function resourceForPath(path, issuer) {
+  const match = RESOURCE_PATH_RE.exec(String(path ?? ""));
+  if (!match) return null;
+  const resource = canonicalResource(new URL(path, issuer).toString());
+  if (!resource) return null;
+  if (!match[1]) return { resource, kind: "person", publicId: null };
+  return {
+    resource,
+    kind: match[1] === "a" ? "agent" : "integration",
+    publicId: match[2],
+  };
+}
+
+/**
+ * Does the credential presented actually belong at the door it was presented
+ * at? A person's token at an agent URL, or one agent's token at another
+ * agent's URL, is the failure this whole scheme exists to convert from a
+ * silently wrong answer into a refusal.
+ */
+export function principalMatchesResource(account, target) {
+  if (!account || !target) return false;
+  const kind = account.kind ?? "person";
+  if (kind !== target.kind) return false;
+  if (target.kind === "person") return true;
+  return Boolean(account.publicId) && account.publicId === target.publicId;
+}
+
 export function verifyPkce(codeVerifier, codeChallenge) {
   const verifier = String(codeVerifier ?? "").trim();
   const challenge = String(codeChallenge ?? "");
