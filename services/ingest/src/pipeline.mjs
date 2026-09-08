@@ -11,10 +11,7 @@
  * polling window. Fetch errors write nothing durable; the scheduler replans.
  */
 
-import {
-  emitBattlesRecorded,
-  emitToClanWatchers,
-} from "../../mcp/src/feed.mjs";
+import { emitToSubjectWatchers } from "../../mcp/src/feed.mjs";
 import { gunzipSync } from "node:zlib";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
@@ -190,7 +187,7 @@ const PROJECTORS = {
         ],
       );
     }
-    await projectPlayerBadges(db, {
+    const badges = await projectPlayerBadges(db, {
       playerTag: entityKey,
       payload,
       fetchedAt,
@@ -201,7 +198,13 @@ const PROJECTORS = {
       fetchedAt,
       receiptId,
     });
-    return { projected: "player", clanTag, snapshot };
+    return {
+      projected: "player",
+      clanTag,
+      snapshot,
+      // Collected, never emitted here: the flush runs after commit.
+      feedEvents: [...badges.feedEvents, ...snapshot.feedEvents],
+    };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
     // Cadence hint (0017): the payload names the period type; war days
@@ -434,10 +437,18 @@ export async function processResult(db, rawMessage, deps = {}) {
     // Push-lane flush: only after commit, so an emit failure can never
     // poison the ingest transaction. Emitters swallow their own errors.
     for (const ev of projection?.feedEvents ?? []) {
+      // One entry point per subject event; the topic contract decides who
+      // hears it and whether it folds. `battles` predates the registry and
+      // keeps its shorthand.
       if (ev.kind === "battles") {
-        await emitBattlesRecorded(db, ev.tag, ev.count);
-      } else if (ev.kind === "clan") {
-        await emitToClanWatchers(db, ev.tag, ev.topic, ev.payload);
+        await emitToSubjectWatchers(db, "battles_recorded", ev.tag, {
+          count: ev.count,
+        });
+      } else {
+        await emitToSubjectWatchers(db, ev.topic, ev.tag, {
+          count: ev.count ?? 1,
+          payload: ev.payload ?? null,
+        });
       }
     }
     mark("commit_ms", t);

@@ -577,8 +577,8 @@ async function accountRoleOp(databaseUrl, spec) {
       `insert into account_event (account_id, kind, detail) values ($1, 'role_changed', $2)`,
       [rows[0].account_id, JSON.stringify({ role: spec.role, via: "ops" })],
     );
-    const { emitFeedEvent } = await import("../../mcp/src/feed.mjs");
-    await emitFeedEvent(db, rows[0].account_id, "role_changed", null, {
+    const { emitAccountTierChanged } = await import("../../mcp/src/feed.mjs");
+    await emitAccountTierChanged(db, rows[0].account_id, {
       role: spec.role,
     });
     return { account_id: rows[0].account_id, role: rows[0].role };

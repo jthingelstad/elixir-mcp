@@ -673,8 +673,9 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
 test("push lane: implicit subscriptions feed elixir_events; cursor advances; meta hints", async () => {
   // The account claims OBSERVER (from setup), so a battles_recorded
   // fan-out for that tag reaches it.
-  const { emitToTagWatchers, emitFeedEvent } = await import("../src/feed.mjs");
-  await emitToTagWatchers(db, OBSERVER, "battles_recorded", { count: 3 });
+  const { emitToSubjectWatchers, emitFeedEvent } =
+    await import("../src/feed.mjs");
+  await emitToSubjectWatchers(db, "battles_recorded", OBSERVER, { count: 3 });
   await emitFeedEvent(db, account.accountId, "feedback_responded", null, {
     feedback_id: 1,
     status: "done",
@@ -787,12 +788,12 @@ test("unfiltered polling and mark_seen:false are unchanged", async () => {
 });
 
 test("battles_recorded coalesces: one unread row per tag, count accumulates until read", async () => {
-  const { emitBattlesRecorded } = await import("../src/feed.mjs");
+  const { emitToSubjectWatchers } = await import("../src/feed.mjs");
   // Start from a clean cursor so this test owns its unread window.
   await call("elixir_events", {});
 
-  await emitBattlesRecorded(db, OBSERVER, 4);
-  await emitBattlesRecorded(db, OBSERVER, 3);
+  await emitToSubjectWatchers(db, "battles_recorded", OBSERVER, { count: 4 });
+  await emitToSubjectWatchers(db, "battles_recorded", OBSERVER, { count: 3 });
   const first = await call("elixir_events", { mark_seen: false });
   const unread = first.body.events.filter(
     (e) => e.topic === "battles_recorded" && e.subject_tag === OBSERVER,
@@ -802,7 +803,7 @@ test("battles_recorded coalesces: one unread row per tag, count accumulates unti
 
   // Reading (mark_seen) freezes the row; the next capture starts a new one.
   await call("elixir_events", {});
-  await emitBattlesRecorded(db, OBSERVER, 2);
+  await emitToSubjectWatchers(db, "battles_recorded", OBSERVER, { count: 2 });
   const second = await call("elixir_events", { mark_seen: false });
   const fresh = second.body.events.filter(
     (e) => e.topic === "battles_recorded" && e.subject_tag === OBSERVER,

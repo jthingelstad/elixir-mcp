@@ -70,7 +70,7 @@ export async function clanPulse(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const { emitToClanWatchers } = await import("../../mcp/src/feed.mjs");
+    const { emitToSubjectWatchers } = await import("../../mcp/src/feed.mjs");
     const { periodInfo, nominalPeriodBoundsMs } =
       await import("../../ingest/src/war-clock.mjs");
     const { rows: clans } = await db.query(
@@ -94,7 +94,7 @@ export async function clanPulse(databaseUrl) {
         periodInfo,
         nominalPeriodBoundsMs,
       );
-      await emitToClanWatchers(db, clan_tag, "clan_pulse", payload);
+      await emitToSubjectWatchers(db, "clan_pulse", clan_tag, { payload });
       out.emitted += 1;
     }
     return out;

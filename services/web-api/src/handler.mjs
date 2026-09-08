@@ -55,7 +55,7 @@ import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { ensureGatewayCards } from "../../mcp/src/gateway-cards.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
 import { ledgerStats } from "../../scheduler/src/ledger.mjs";
-import { emitFeedEvent } from "../../mcp/src/feed.mjs";
+import { emitFeedEvent, emitAccountTierChanged } from "../../mcp/src/feed.mjs";
 import {
   ensureClanRecording,
   settleClanRecording,
@@ -1460,9 +1460,7 @@ export function makeHandler({
         });
       // Only a change that actually committed is logged or announced.
       await logEvent(db, result.account_id, "role_changed", { role });
-      await emitFeedEvent(db, result.account_id, "role_changed", null, {
-        role,
-      });
+      await emitAccountTierChanged(db, result.account_id, { role });
       return json(200, { ok: true, account_id: result.account_id, role });
     },
 

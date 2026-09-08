@@ -22,18 +22,68 @@ Everything you **add** — players via `elixir_add_player`, clans via
 `elixir_add_clan` — feeds this pipe while its notify setting is on. Turning
 notify off silences a subject without touching its recording.
 
+An **agent** also hears about the players in the clan it runs, without adding
+them one by one: an agent's subject is the clan. An **integration** has no
+players of its own and receives no feed at all.
+
+A notification is a nod, not a report — "something moved here, go look." The
+payload carries a count and nothing else, because the data tools are cheap and
+current, and an event that summarised would just be a staler copy of them.
+
+### Coalesced
+
+One unread row per subject per topic, with a running count. Three badges become
+one nod that says three, not three notifications.
+
 | Topic | When |
 |---|---|
-| `battles_recorded` | new battles captured for a subject (coalesced until read) |
-| `member_joined` / `member_left` / `member_role_changed` | roster changes on a clan you added |
-| `clan_pulse` | a daily digest per clan, ~07:00 UTC |
+| `battles_recorded` | new battles captured for a subject |
+| `badge_earned` | a mastery badge levelled up |
+| `legendary_badge_earned` | a one-off badge was awarded |
+| `arena_changed` | the player moved arena |
+| `best_trophies_peak` | a new personal best |
+| `career_wins_milestone` | career wins crossed a thousand |
+| `collection_level_milestone` | collection level went up |
+| `pol_promotion` | a Path of Legends promotion |
+
+The two badge tiers are **separate topics rather than one topic with a tier
+field**, so asking for the notable ones actually gets you the notable ones — and
+a reader written against one name can never silently lose the other.
+
+A subject's **first sighting emits nothing.** A newly added player arrives with
+a full badge shelf and a complete history; treating that as news would bury the
+feed on the day you added them.
+
+### Discrete
+
+Roster changes arrive one at a time, because *who* is the entire signal and
+folding them to "3 changes" forces exactly the lookup the nod exists to save.
+
+| Topic | When |
+|---|---|
+| `member_joined` | somebody joined a clan you added |
+| `member_left` | somebody left it |
+| `member_role_changed` | promoted or demoted |
 | `war_day_open` | a new war day was first observed |
 | `clan_war_week_finished` | the week closed |
+| `clan_pulse` | a daily digest per clan, ~07:00 UTC |
 | `feedback_responded` | the maintainer answered something you filed |
-| `recording_started` / `recording_stopped`, `role_changed` | your own account |
+| `recording_started` / `recording_stopped` | your own recordings |
+| `account_tier_changed` | your account tier changed |
 
-Their presence in this list is a **schema, not news**. Seeing a topic here never
-means one occurred.
+`member_left` is **raw**. The Clash Royale API does not distinguish somebody
+leaving from somebody being kicked, and neither do we — a "verified departure"
+here would be a guess wearing a confident name. The event says a membership
+closed; whether that deserves a farewell is your agent's call. The departing
+role travels on the event because it is the one detail that cannot be recovered
+once the membership closes.
+
+`account_tier_changed` was called `role_changed`, one word away from
+`member_role_changed`, which means the opposite thing. Both names are sent
+during the deprecation window.
+
+Their presence in these lists is a **schema, not news**. Seeing a topic here
+never means one occurred.
 
 ## The clan pulse
 
