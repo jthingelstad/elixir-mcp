@@ -23,7 +23,12 @@
   fetch("/api/me", { credentials: "same-origin" })
     .then((r) => (r.ok ? r.json() : null))
     .then((me) => {
-      if (!me) return;
+      // `/api/me` answers 200 with {authenticated:false} when signed out — it
+      // does not 401 — so `r.ok` says nothing about whether there is a session.
+      // Testing the response instead of the body showed Account and Admin to
+      // signed-out visitors, and replaced their Sign in link with one that
+      // leads nowhere. The app has always checked this field; this now matches.
+      if (me?.authenticated !== true) return;
 
       // Same order as the app: Home · Data · Explore · Account · Docs ·
       // Updates · Admin. Inserted rather than appended, so the shared items
