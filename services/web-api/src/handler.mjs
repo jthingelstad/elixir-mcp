@@ -105,7 +105,6 @@ export function makeHandler({
   sendWelcomeEmail = async () => {},
   queueStats = async () => null,
   track = null,
-  trackView = null,
   collectorDoor = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
@@ -271,41 +270,6 @@ export function makeHandler({
         ok: true,
         message: "If your account is approved, a sign-in email is on its way.",
       });
-    },
-
-    /**
-     * A page view from the signed-in app.
-     *
-     * The app deliberately loads no analytics script (#25): it would execute
-     * inside the session's origin on /account and /admin, where an HttpOnly
-     * cookie prevents it reading the cookie but not from making authenticated
-     * same-origin requests with the user's authority. So the app reports its
-     * own views here instead, and the relay posts them.
-     *
-     * NO ACCOUNT TRAVELS WITH A VIEW. This route does not resolve a session
-     * and does not want one; the privacy page promises product signals carry
-     * no account attribution and this is one of them. The path is checked
-     * against a fixed prefix list so it cannot become a way to write arbitrary
-     * strings into somebody else's analytics.
-     */
-    "POST /api/track/view": async (_db, _event, body) => {
-      const path = String(body?.path ?? "");
-      const ALLOWED = ["/data/", "/explore", "/account/", "/admin/", "/signin"];
-      if (
-        path.length > 120 ||
-        !ALLOWED.some(
-          (p) => path === p.replace(/\/$/, "") || path.startsWith(p),
-        )
-      )
-        return json(204, {});
-      if (trackView) {
-        try {
-          await trackView(path, undefined);
-        } catch {
-          // Analytics must never break serving (house rule).
-        }
-      }
-      return json(204, {});
     },
 
     "POST /api/auth/redeem": async (db, _event, body) => {

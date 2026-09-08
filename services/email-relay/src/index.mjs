@@ -37,47 +37,6 @@ function makeTinylyticsTracker({ token, siteId }) {
   };
 }
 
-/**
- * Server-side page views (2026-09-08).
- *
- * The signed-in application deliberately loads NO third-party script: issue
- * #25 removed the analytics tag from it because that code ran on /account and
- * /admin inside the session's own origin, where an HttpOnly cookie stops it
- * reading the cookie but not from making authenticated same-origin requests
- * with the user's authority.
- *
- * Measuring the app therefore goes the long way round: the app tells OUR api
- * that a route was viewed, that enqueues here, and this posts the hit. The
- * script never enters the session origin, and no account travels with the
- * view — a path and a coarse visitor id, nothing else.
- */
-function makeTinylyticsHitter({ token, siteId }) {
-  if (!token || !siteId) return null;
-  return async (hits) => {
-    for (const hit of hits) {
-      const res = await fetch(
-        `https://tinylytics.app/api/v1/sites/${siteId}/hits`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            "User-Agent": "elixir-mcp-relay",
-          },
-          body: JSON.stringify({
-            path: hit.path,
-            ...(hit.visitor_id ? { visitor_id: hit.visitor_id } : {}),
-            ...(hit.country ? { country: hit.country } : {}),
-          }),
-          signal: AbortSignal.timeout(3_000),
-        },
-      );
-      if (!res.ok) throw new Error(`tinylytics hit ${res.status}`);
-    }
-  };
-}
-
 /** Buttondown answers 400 for both "you already have this address" and
  *  "this request is wrong". Treating the whole status as success (as we
  *  did) made a validation error or a schema change look like a healthy
@@ -148,10 +107,6 @@ export const handler = makeHandler({
     fromEmail: process.env.FROM_EMAIL ?? "elixir@poapkings.com",
   }),
   track: makeTinylyticsTracker({
-    token: process.env.TINYLYTICS_API_TOKEN,
-    siteId: process.env.TINYLYTICS_SITE_ID,
-  }),
-  hit: makeTinylyticsHitter({
     token: process.env.TINYLYTICS_API_TOKEN,
     siteId: process.env.TINYLYTICS_SITE_ID,
   }),

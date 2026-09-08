@@ -104,19 +104,6 @@ export const handler = makeHandler({
           ...(value ? { value } : {}),
         })
     : null,
-  // Page views from the signed-in app, relayed rather than scripted. The app
-  // loads no third-party analytics (#25) because that code would run inside
-  // the session's own origin on /account and /admin; this is how those
-  // surfaces get measured without putting it there.
-  trackView: queueUrl
-    ? (path, visitorId) =>
-        enqueueEmail({
-          v: 1,
-          kind: "tinylytics_hit",
-          path,
-          ...(visitorId ? { visitor_id: visitorId } : {}),
-        })
-    : null,
   notifyOwner,
   collectorDoor: makeCollectorDoor({
     ingest: (db, envelope) => {

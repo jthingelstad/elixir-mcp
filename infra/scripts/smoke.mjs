@@ -128,7 +128,6 @@ check(
 // The app shell is the privileged surface: it must carry the headers
 // too, and load no third-party script.
 const appShell = await fetch(`${mcpBase}/account/overview`);
-const appShellHtml = appShell.ok ? await appShell.text() : "";
 check(
   "app shell carries CSP",
   (appShell.headers.get("content-security-policy") ?? "").includes(
@@ -136,8 +135,10 @@ check(
   ),
 );
 check(
-  "app shell loads no third-party script",
-  appShell.ok && !appShellHtml.includes("tinylytics.app"),
+  "app shell CSP allows only tinylytics as third-party script",
+  (appShell.headers.get("content-security-policy") ?? "").includes(
+    "script-src 'self' https://tinylytics.app",
+  ),
 );
 
 const docs = await fetch(`${mcpBase}/docs/tools`);

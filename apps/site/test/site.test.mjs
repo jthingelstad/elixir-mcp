@@ -307,25 +307,42 @@ test("the request-access form posts what the API requires", { skip }, () => {
 });
 
 // --------------------------------------------------------------- #25
-test("the application loads no third-party script", { skip }, () => {
-  // Tinylytics used to run on every route but /signin, which put it on
-  // /account and /admin - inside the session's own origin, able to make
-  // authenticated same-origin requests and read the answers. Site
-  // analytics belongs to the static half, which has no session.
-  const app = read("app.html");
-  for (const origin of ["tinylytics.app", "//", "http:"]) {
-    if (origin === "//") continue;
-    assert.ok(!app.includes(origin), `app.html must not reference ${origin}`);
+test("analytics only ever comes from tinylytics.app", { skip }, () => {
+  // #25 took the embed off the app; that turned out to protect nothing,
+  // because the same Path=/ session cookie is live on every static page
+  // where the embed already ran. What actually holds is the CSP:
+  // script-src is 'self' plus tinylytics.app and nothing else. So the
+  // test that matters is not "is the app clean" but "did a THIRD origin
+  // sneak in" - on either half.
+  for (const page of ["app.html", "index.html", "docs/index.html"]) {
+    const html = read(page);
+    const origins = [...html.matchAll(/https:\/\/([a-z0-9.-]+)/g)].map(
+      (m) => m[1],
+    );
+    for (const origin of origins)
+      assert.ok(
+        [
+          "tinylytics.app",
+          "fonts.googleapis.com",
+          "fonts.gstatic.com",
+          "elixir.poapkings.com",
+          "www.supercell.com",
+        ].includes(origin),
+        `${page} references an unexpected origin: ${origin}`,
+      );
   }
-  const bundle = app.match(/src="(\/assets\/index-[^"]+\.js)"/)?.[1];
+
+  // Both halves count visits, each the way its own page model works: the
+  // static site is a real document load, the app bridges pushState.
+  assert.ok(read("index.html").includes("tinylytics.app/embed/"));
+  const bundle = read("app.html").match(
+    /src="(\/assets\/index-[^"]+\.js)"/,
+  )?.[1];
   assert.ok(bundle, "app.html loads its bundle");
   assert.ok(
-    !read(bundle.slice(1)).includes("tinylytics.app"),
-    "and the bundle carries no analytics endpoint either",
+    read(bundle.slice(1)).includes("tinylytics.app/collector/"),
+    "the app bundle beacons route changes to the collector",
   );
-
-  // The static half still counts visits - that is where it belongs.
-  assert.ok(read("index.html").includes("tinylytics.app/embed/"));
 });
 
 test("nothing in the built site relies on inline script", { skip }, () => {

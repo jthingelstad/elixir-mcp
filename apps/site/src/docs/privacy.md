@@ -2,7 +2,7 @@
 slug: privacy
 title: "Privacy"
 navTitle: "Privacy"
-description: "What Elixir MCP stores, why, and what it never stores: public Clash Royale game data plus history, your email address and what we use it for, and no identifiers in analytics."
+description: "What Elixir MCP stores, why, and what it never stores: public Clash Royale game data plus history, your email address and what we use it for, and anonymous analytics with no account attached."
 order: 60
 section: policies
 ---
@@ -48,22 +48,26 @@ query, is a capability the game's own API does not offer, and any
 approved account can run it. Your account data — claims, watches,
 quotas, usage, feedback — is yours alone.
 
-**Website analytics.** The public pages — the home page, the
-documentation, updates and the changelog — use Tinylytics, a small
+**Website analytics.** Every page — the public ones and the signed-in
+application both — uses [Tinylytics](https://tinylytics.app), a small
 privacy-focused analytics service, to count visits anonymously: page
-hits and visitor country. No cookies, no personal identifiers, no
-cross-site tracking.
+hits and visitor country. No cookies, no cross-site tracking, and **no
+account is ever attached to a view**. We cannot tell from analytics who
+was signed in, and we do not try.
 
-**The signed-in application still loads no analytics script.** Nothing
-third-party runs inside your session — deliberately, because such a
-script would execute on your account and admin pages with your own
-authority. The app instead reports which *section* you viewed to our
-own server, which relays a count: `/account`, `/explore`, `/data` and
-so on. Never the full path — a player tag or a clan you were looking at
-never leaves as part of a page view — and **no account is attached**.
+The sign-in page is the one deliberate exception and loads no analytics
+at all, because a magic sign-in link arrives as part of that URL and a
+live credential should not travel anywhere it does not have to.
+
+What a page view records is the page: `/explore/player`, `/data/status`,
+`/account`. Where a page is about a specific record, the Clash Royale
+tag rides along as an ordinary attribute of the view. Those tags are
+public game identifiers — the same ones printed in the game and served
+by Supercell's own API to anyone with a key — not personal information,
+and they are not treated as such here.
 
 Product events such as "a tool call happened" or "feedback was filed"
-are counted server-side, with **no account attached** — the values
+are counted server-side, again with **no account attached** — the values
 carry tool names and categories only, never your data, and never who
 made the call.
 

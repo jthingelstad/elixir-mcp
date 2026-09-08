@@ -12,11 +12,10 @@ import {
 } from "@elixir-mcp/contracts";
 import { renderEmail } from "./templates.mjs";
 
-export function makeHandler({ send, track = null, hit = null, enroll = null }) {
+export function makeHandler({ send, track = null, enroll = null }) {
   return async function handler(event) {
     const batchItemFailures = [];
     const analytics = [];
-    const views = [];
     for (const record of event.Records ?? []) {
       let outcome = "sent";
       try {
@@ -24,11 +23,6 @@ export function makeHandler({ send, track = null, hit = null, enroll = null }) {
         if (parsed?.kind === "tinylytics_event") {
           // Invalid analytics drops silently — pings never dead-letter.
           if (isAnalyticsEventMessage(parsed)) analytics.push(parsed);
-        } else if (parsed?.kind === "tinylytics_hit") {
-          // A page view from the signed-in app, which loads no analytics
-          // script of its own. Same rule: a bad one drops, never retries.
-          if (typeof parsed.path === "string" && parsed.path.startsWith("/"))
-            views.push(parsed);
         } else {
           const validated = validateEmailMessage(parsed);
           if (!validated.ok) {
@@ -68,15 +62,6 @@ export function makeHandler({ send, track = null, hit = null, enroll = null }) {
         await track(analytics);
       } catch (err) {
         console.error("tinylytics_drop", analytics.length, err?.message);
-      }
-    }
-    if (hit && views.length > 0) {
-      try {
-        await hit(views);
-      } catch (err) {
-        // Same rule as events: analytics never dead-letters a batch that
-        // also carries somebody's sign-in email.
-        console.error("tinylytics_hit_drop", views.length, err?.message);
       }
     }
     return { batchItemFailures };
