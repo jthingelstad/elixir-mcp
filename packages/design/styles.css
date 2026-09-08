@@ -782,8 +782,10 @@ button {
   font-weight: 400;
   box-shadow: none;
 }
-/* Gold is reserved for the two brand moments: request access, and
-   raise my hand to run a collector. Nothing else. */
+/* Gold is reserved for the brand moments: request access, raise my hand
+   to run a collector, and the nav's Sign in — the one thing a returning
+   visitor is looking for. NOT ordinary primary actions, including the
+   submit inside the sign-in form itself; those are .btn. */
 .btn--gold {
   background: var(--gold-grad);
   color: var(--ink-on-gold);

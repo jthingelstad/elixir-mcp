@@ -304,7 +304,8 @@ export function App() {
               >
                 Sign out
               </button>
-            ) : (
+            ) : effectivePath === "/signin" ? null : (
+              /* No point offering the page you are standing on. */
               <a
                 className="btn btn--gold btn--sm"
                 href="/signin"
