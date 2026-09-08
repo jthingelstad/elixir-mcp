@@ -17,10 +17,15 @@ import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
  */
 function principalLabel(a) {
   if (a.primary_tag) return a.primary_tag;
-  // What the owner typed when they created it, then the stable slug. An
-  // agent's name lives on its service_token, not on the account row.
-  if (a.principal_name) return a.principal_name;
-  if (a.public_id) return a.public_id;
+  // A PERSON is their email hash. Their tokens have names too, and reaching
+  // for one made the owner's own row read as "elixir-bot" -- a person
+  // labelled with a machine they happen to own.
+  if (a.kind && a.kind !== "person") {
+    // An agent's name lives on its service_token, not the account row; the
+    // slug is the stable fallback if the token was revoked.
+    if (a.principal_name) return a.principal_name;
+    if (a.public_id) return a.public_id;
+  }
   if (a.email_hash) return a.email_hash.slice(0, 10);
   return a.account_id ? a.account_id.slice(0, 8) : "unknown";
 }
