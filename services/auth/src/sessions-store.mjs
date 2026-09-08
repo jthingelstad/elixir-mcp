@@ -46,7 +46,7 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
        and s.revoked_at is null
        and s.sliding_expires_at > now()
        and s.absolute_expires_at > now()
-     returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role`,
+     returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role, a.kind`,
     [claims.sid, claims.sub, SESSION_TTL_SECONDS],
   );
   const row = rows[0] ?? null;
@@ -59,6 +59,11 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
         isAdmin: row.role === "owner" || row.role === "admin",
         timezone: row.timezone,
         role: row.role,
+        // Always 'person' in practice: the join above matches on email_hash,
+        // which agents and integrations do not have, so neither can ever hold
+        // a browser session. Carried anyway so callers can assert rather than
+        // rely on that being remembered.
+        kind: row.kind,
         sessionId: claims.sid,
       }
     : null;

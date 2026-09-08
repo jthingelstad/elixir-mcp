@@ -138,9 +138,12 @@ export function makeHandler({
           }
         }
       }
+      // Same principle as the daily quota: the bucket belongs to whoever is
+      // paying. An integration may carry its own ceiling, since its traffic
+      // is a function of its userbase rather than its owner's habits.
       const withinRate = await checkRateLimit(db, {
-        bucket: `mcp#${account.accountId}`,
-        max: HOURLY_RATE_LIMIT,
+        bucket: `mcp#${account.budget?.accountId ?? account.accountId}`,
+        max: account.hourlyRateLimit ?? HOURLY_RATE_LIMIT,
       });
       if (!withinRate) {
         return {

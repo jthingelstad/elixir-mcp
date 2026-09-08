@@ -373,16 +373,58 @@ export async function redeemRefreshToken(
  * family revocation/absolute lifetime, AND the access gate — a token for
  * a no-longer-approved account validates to nothing, on every request.
  */
+/**
+ * Whose daily budget a call spends, and which role sets its ceiling.
+ *
+ * An AGENT spends its OWNER's budget — that is the deal that lets every clan
+ * leader have one without a tier gate. Its own role still caps what it may
+ * COLLECT (slots, comprehensive vs activity), which is the axis that keeps a
+ * demo honest; calls are the axis that costs the service money, and those come
+ * out of the parent's allowance.
+ *
+ * An INTEGRATION pays for itself. Its traffic scales with its own userbase and
+ * has nothing to do with its owner's personal usage, which is exactly why it
+ * sits behind a partner gate and carries a per-key quota.
+ */
+function budgetFor(row) {
+  if (row.kind === "agent" && row.owned_by_account_id) {
+    return {
+      accountId: row.owned_by_account_id,
+      role: row.owner_role ?? row.role,
+      override: row.owner_mcp_daily_quota ?? null,
+      liveOverride: row.owner_live_daily_quota ?? null,
+    };
+  }
+  if (row.kind === "integration") {
+    return {
+      accountId: row.account_id,
+      role: row.role,
+      override: row.token_daily_quota ?? row.mcp_daily_quota ?? null,
+      liveOverride: row.live_daily_quota ?? null,
+    };
+  }
+  return {
+    accountId: row.account_id,
+    role: row.role,
+    override: row.mcp_daily_quota ?? null,
+    liveOverride: row.live_daily_quota ?? null,
+  };
+}
+
 export async function validateAccessToken(db, token, { resource } = {}) {
   const raw = validOpaque(token, ACCESS_TOKEN_PREFIX);
   const audience = canonicalResource(resource);
   if (!raw || !audience) return null;
   const { rows } = await db.query(
     `select f.client_id, f.scope, f.resource,
-            a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota, a.role, a.live_daily_quota
+            a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
+            a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
+            o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
+            o.live_daily_quota as owner_live_daily_quota
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
      join account a on a.account_id = f.account_id
+     left join account o on o.account_id = a.owned_by_account_id
      where t.token_hash = $1 and t.kind = 'access'
        and t.expires_at > now() and t.revoked_at is null
        and f.revoked_at is null and f.absolute_expires_at > now()
@@ -406,6 +448,10 @@ export async function validateAccessToken(db, token, { resource } = {}) {
         scope: row.scope,
         scopes: row.scope.split(" "),
         resource: row.resource,
+        kind: row.kind,
+        ownedByAccountId: row.owned_by_account_id,
+        publicId: row.public_id,
+        budget: budgetFor(row),
         credentialType: "oauth",
       }
     : null;
@@ -413,13 +459,24 @@ export async function validateAccessToken(db, token, { resource } = {}) {
 
 const SERVICE_TOKEN_PREFIX = "svt_";
 
-/** Issue a long-lived service token bound to an account. The raw token
- *  is returned ONCE; only its sha256 is stored. */
-export async function issueServiceToken(db, { accountId, name }) {
+/**
+ * Issue a long-lived service token bound to an account. The raw token is
+ * returned ONCE; only its sha256 is stored.
+ *
+ * `scope` omitted means every scope — the shape every token minted before 0053
+ * holds, kept so those keep working. New keys should say what they need:
+ * Elixir Drop reads a war clock and has no business being able to edit
+ * collections or change account settings.
+ */
+export async function issueServiceToken(
+  db,
+  { accountId, name, scope = null, dailyQuota = null, hourlyRateLimit = null },
+) {
   const raw = secret(SERVICE_TOKEN_PREFIX);
   await db.query(
-    `insert into service_token (account_id, name, token_hash) values ($1, $2, $3)`,
-    [accountId, name, sha256hex(raw)],
+    `insert into service_token (account_id, name, token_hash, scope, daily_quota, hourly_rate_limit)
+     values ($1, $2, $3, $4, $5, $6)`,
+    [accountId, name, sha256hex(raw), scope, dailyQuota, hourlyRateLimit],
   );
   return raw;
 }
@@ -430,8 +487,16 @@ export async function validateServiceToken(db, token) {
   const raw = validOpaque(token, SERVICE_TOKEN_PREFIX);
   if (!raw) return null;
   const { rows } = await db.query(
-    `select t.token_id, t.name, a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota, a.role, a.live_daily_quota
-     from service_token t join account a on a.account_id = t.account_id
+    `select t.token_id, t.name, t.scope as token_scope,
+            t.daily_quota as token_daily_quota,
+            t.hourly_rate_limit as token_rate_limit,
+            a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
+            a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
+            o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
+            o.live_daily_quota as owner_live_daily_quota
+     from service_token t
+     join account a on a.account_id = t.account_id
+     left join account o on o.account_id = a.owned_by_account_id
      where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'`,
     [sha256hex(raw)],
   );
@@ -457,8 +522,18 @@ export async function validateServiceToken(db, token) {
     // who it belongs to. Selected here since 0020 and dropped on the floor
     // until 0052 gave the audit somewhere to put it.
     tokenId: row.token_id,
-    scope: OAUTH_SCOPES.join(" "),
-    scopes: [...OAUTH_SCOPES],
+    // A key carries only the authority it was issued with. NULL means every
+    // scope, which is what every token minted before 0053 holds — narrowing
+    // them retroactively would revoke authority nobody agreed to give up.
+    // New keys are written narrow: Drop needs cr:read to read a war clock, not
+    // the ability to edit collections and change account settings.
+    scope: row.token_scope ?? OAUTH_SCOPES.join(" "),
+    scopes: row.token_scope ? row.token_scope.split(" ") : [...OAUTH_SCOPES],
+    kind: row.kind,
+    ownedByAccountId: row.owned_by_account_id,
+    publicId: row.public_id,
+    hourlyRateLimit: row.token_rate_limit ?? null,
+    budget: budgetFor(row),
     credentialType: "service",
   };
 }

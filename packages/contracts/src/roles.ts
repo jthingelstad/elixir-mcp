@@ -28,8 +28,22 @@ export interface RoleQuotas {
   live_fetches_per_day: number;
   /** Collections the account may create and curate. */
   collections_max: number;
-  /** Service tokens (headless agents) the account may hold. */
-  service_tokens: number;
+  /**
+   * Integrations the account may own: token-only principals with no "me",
+   * consuming the corpus for their own userbase (Elixir Drop is the type
+   * specimen). Gated because an integration's traffic scales with ITS users,
+   * not its owner's — it is a capacity conversation.
+   *
+   * AGENTS ARE NOT HERE and are not gated by role. An agent acts for a clan,
+   * spends its owner's quota, and is bounded by the clan slots above: you may
+   * create an agent for a clan you have added. Ratified 2026-09-08 — "this is
+   * actually a feature all clan leaders should have available."
+   *
+   * This field was `service_tokens` and, until 0053, was read by nothing at
+   * all: the ladder promised partners a token while the only route to one was
+   * owner-gated. It had the wrong name, which is probably why.
+   */
+  integrations: number;
 }
 
 export const ROLE_ORDER: Role[] = [
@@ -49,7 +63,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 500,
     live_fetches_per_day: 20,
     collections_max: 0,
-    service_tokens: 0,
+    integrations: 0,
   },
   leader: {
     player_slots: 5,
@@ -58,7 +72,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 2000,
     live_fetches_per_day: 100,
     collections_max: 0,
-    service_tokens: 0,
+    integrations: 0,
   },
   family: {
     player_slots: 10,
@@ -67,7 +81,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 5000,
     live_fetches_per_day: 250,
     collections_max: 5,
-    service_tokens: 0,
+    integrations: 0,
   },
   partner: {
     player_slots: 25,
@@ -76,7 +90,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 15000,
     live_fetches_per_day: 1000,
     collections_max: 20,
-    service_tokens: 1,
+    integrations: 1,
   },
   admin: {
     player_slots: Infinity,
@@ -85,7 +99,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
     collections_max: Infinity,
-    service_tokens: Infinity,
+    integrations: Infinity,
   },
   owner: {
     player_slots: Infinity,
@@ -94,7 +108,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
     collections_max: Infinity,
-    service_tokens: Infinity,
+    integrations: Infinity,
   },
 };
 
@@ -102,7 +116,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
  *  power, not a separate flag. Admins run day-to-day (requests,
  *  feedback, collections, clan recordings, roles up to partner); the
  *  owner — exactly one, whom no admin can affect — additionally holds
- *  admin grants, service tokens, gateways, and quota overrides. */
+ *  admin grants, integrations, gateways, and quota overrides. */
 export type ConsoleAccess = "none" | "admin" | "owner";
 
 export function consoleAccess(role: string | null | undefined): ConsoleAccess {

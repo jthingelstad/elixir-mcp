@@ -25,7 +25,7 @@ import { roleQuotas } from "@elixir-mcp/contracts";
 /** Serialize every claim mutation for one account behind its own row. */
 async function lockAccount(db, accountId) {
   const { rows } = await db.query(
-    `select account_id, role, is_owner, max_player_recordings as override
+    `select account_id, role, is_owner, kind, max_player_recordings as override
      from account where account_id = $1 for update`,
     [accountId],
   );
@@ -188,6 +188,16 @@ export async function addPlayer(db, account, { tag, makePrimary, via }) {
       return { ok: false, error: "not_found" };
     }
     await lockSubject(db, tag);
+
+    // A claim asserts "this player is me", and only a person is a me. An agent
+    // acts FOR a clan and an integration has no self at all — letting either
+    // hold a claim would put an is_primary row on a principal with no identity
+    // to be primary about, and every tool that defaults to "your tag" would
+    // start answering for a bot.
+    if (acct.kind && acct.kind !== "person") {
+      await db.query("rollback");
+      return { ok: false, error: "not_entitled", kind: acct.kind };
+    }
 
     const exempt = acct.is_owner || acct.role === "admin";
     if (!exempt) {

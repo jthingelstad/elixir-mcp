@@ -13,19 +13,30 @@ const CREDIT_DIVISOR = 10;
 const CREDIT_CAP_MULTIPLE = 4;
 
 export function makeQuota({ db, account }) {
+  // WHOSE budget this call spends. An agent spends its owner's — that is the
+  // deal that lets every clan leader have one without a tier gate — so the
+  // counter, the ceiling and the collector credits all key on the owner. An
+  // integration pays for itself from its own key. A person is both.
+  // The fallback keeps pre-0053 shapes (and every test that builds an account
+  // by hand) behaving exactly as before.
+  const budget = account.budget ?? {
+    accountId: account.accountId,
+    role: account.role,
+    override: account.mcpDailyQuota ?? null,
+  };
   // Role default (contracts roles.ts), beaten by the per-account
   // override column when set. Admin role = unlimited, like the owner.
-  const roleMax = roleQuotas(account.role).mcp_calls_per_day;
-  const base = account.mcpDailyQuota ?? roleMax;
+  const roleMax = roleQuotas(budget.role).mcp_calls_per_day;
+  const base = budget.override ?? roleMax;
   return async function spendQuota() {
-    if (account.isOwner || account.role === "admin" || base === Infinity)
+    if (budget.role === "owner" || budget.role === "admin" || base === Infinity)
       return { allowed: true, count: 0, max: Infinity };
     let max = base;
     try {
       const { rows } = await db.query(
         `select coalesce(sum(fetch_points), 0)::bigint as points
          from gateway where owner_account_id = $1 and status <> 'revoked'`,
-        [account.accountId],
+        [budget.accountId],
       );
       max = Math.min(
         base * CREDIT_CAP_MULTIPLE,
@@ -41,7 +52,7 @@ export function makeQuota({ db, account }) {
          values ($1, $2::date, 1)
          on conflict (bucket, window_start) do update set count = rate_limit.count + 1
          returning count`,
-        [`mcpday#${account.accountId}`, day],
+        [`mcpday#${budget.accountId}`, day],
       );
       return { allowed: rows[0].count <= max, count: rows[0].count, max };
     } catch {

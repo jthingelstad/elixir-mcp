@@ -35,6 +35,11 @@ import {
   setAccountRole,
 } from "@elixir-mcp/auth";
 import {
+  listPrincipals,
+  createAgent,
+  createIntegration,
+} from "./principals.mjs";
+import {
   normalizeTag,
   InvalidTagError,
   roleQuotas,
@@ -1467,6 +1472,114 @@ export function makeHandler({
         [account.accountId],
       );
       return json(200, { requests: rows });
+    },
+
+    // ---------------------------------------------------------------
+    // Agents and integrations (0053). An agent acts FOR a clan and is open
+    // to every role, bounded by clan slots you already hold. An integration
+    // has no "me", pays for its own traffic, and is partner+.
+    "GET /api/me/principals": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const owned = await listPrincipals(db, account.accountId);
+      return json(200, {
+        agents: owned.filter((p) => p.kind === "agent"),
+        integrations: owned.filter((p) => p.kind === "integration"),
+        // What the console needs to render the create form honestly: an agent
+        // may only point at a clan its owner has already added.
+        addable_clans: (
+          await db.query(
+            `select clan_tag, scope from account_clan where account_id = $1 order by clan_tag`,
+            [account.accountId],
+          )
+        ).rows,
+        may_create_integration: roleQuotas(account.role).integrations > 0,
+      });
+    },
+
+    "POST /api/me/agents": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      let clanTag;
+      try {
+        clanTag = normalizeTag(body.clan_tag);
+      } catch (err) {
+        if (err instanceof InvalidTagError)
+          return json(400, { error: "invalid_tag" });
+        throw err;
+      }
+      const result = await createAgent(db, account, {
+        name: body.name,
+        clanTag,
+        scope: typeof body.scope === "string" ? body.scope : null,
+      });
+      if (!result.ok)
+        return json(result.error === "internal" ? 500 : 400, result);
+      await logEvent(db, account.accountId, "agent_created", {
+        agent: result.agent.public_id,
+        clan_tag: clanTag,
+      });
+      // The raw token is returned exactly once and never stored.
+      return json(201, {
+        agent: result.agent,
+        token: result.token,
+        note: "This token is shown once. Store it now.",
+      });
+    },
+
+    "POST /api/me/integrations": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const result = await createIntegration(db, account, {
+        name: body.name,
+        scope: typeof body.scope === "string" ? body.scope : null,
+      });
+      if (!result.ok)
+        return json(
+          result.error === "internal"
+            ? 500
+            : result.error === "not_entitled"
+              ? 403
+              : 400,
+          result,
+        );
+      await logEvent(db, account.accountId, "integration_created", {
+        integration: result.integration.public_id,
+      });
+      return json(201, {
+        integration: result.integration,
+        token: result.token,
+        note: "This token is shown once. Store it now.",
+      });
+    },
+
+    "POST /api/me/principals/revoke": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      // Scoped by ownership in the WHERE clause, not by a check beforehand:
+      // a revoke that names someone else's token must find nothing rather
+      // than be refused, so the route cannot be used to probe for token ids.
+      const { rowCount } = await db.query(
+        `update service_token t
+         set revoked_at = now()
+         from account a
+         where t.token_id = $1
+           and a.account_id = t.account_id
+           and a.owned_by_account_id = $2
+           and t.revoked_at is null`,
+        [body.token_id, account.accountId],
+      );
+      if (rowCount === 0) return json(404, { error: "not_found" });
+      await logEvent(db, account.accountId, "principal_token_revoked", {
+        token_id: body.token_id,
+      });
+      return json(200, { ok: true });
     },
 
     "GET /api/me/events": async (db, event) => {
