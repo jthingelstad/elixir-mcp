@@ -71,8 +71,7 @@ export async function clanPulse(databaseUrl) {
   await db.connect();
   try {
     const { emitToSubjectWatchers } = await import("../../mcp/src/feed.mjs");
-    const { periodInfo, nominalPeriodBoundsMs } =
-      await import("../../ingest/src/war-clock.mjs");
+    const { anchoredPeriod } = await import("../../ingest/src/war-clock.mjs");
     const { rows: clans } = await db.query(
       `select distinct clan_tag from account_clan where notify order by clan_tag`,
     );
@@ -88,12 +87,7 @@ export async function clanPulse(databaseUrl) {
         out.skipped += 1;
         continue;
       }
-      const payload = await computeClanPulse(
-        db,
-        clan_tag,
-        periodInfo,
-        nominalPeriodBoundsMs,
-      );
+      const payload = await computeClanPulse(db, clan_tag, anchoredPeriod);
       await emitToSubjectWatchers(db, "clan_pulse", clan_tag, { payload });
       out.emitted += 1;
     }
@@ -103,7 +97,7 @@ export async function clanPulse(databaseUrl) {
   }
 }
 
-async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
+async function computeClanPulse(db, tag, anchoredPeriod) {
   const { rows: roster } = await db.query(
     `select count(*)::int as members from clan_membership
      where clan_tag = $1 and left_observed_at is null`,
@@ -206,15 +200,16 @@ async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
     [tag],
   );
   if (anchorRows[0]) {
-    const info = periodInfo(Number(anchorRows[0].period_index));
-    const anchor = anchorRows[0].first_observed_at;
-    // Same policy-grid bounds war_current uses. This copy carried the
-    // "next 10:00Z after the anchor" bug on its own, so clan_pulse
-    // silently dropped its war block on a live war day whenever the
-    // reset ran early - the same failure as feedback #9, in a second
-    // place, because the arithmetic was duplicated instead of shared.
-    const nominalEnd = new Date(nominalPeriodBoundsMs(anchor.getTime()).endMs);
-    if (Date.now() < nominalEnd.getTime()) {
+    // One derivation, shared with war_current. This used to rebuild the
+    // nominal end from the primitives itself and carried the "next 10:00Z
+    // after the anchor" bug independently (feedback #9), silently dropping
+    // the war block on a live war day whenever the reset ran early.
+    const period = anchoredPeriod(
+      anchorRows[0].period_index,
+      anchorRows[0].first_observed_at.getTime(),
+    );
+    const info = period.info;
+    if (period.openNow) {
       war = {
         kind: info.kind,
         ...(info.warDay ? { war_day: info.warDay } : {}),
@@ -288,7 +283,7 @@ async function computeClanPulse(db, tag, periodInfo, nominalPeriodBoundsMs) {
  *  oauth_token keeps 90 days (not 30): rotated-token rows are the
  *  memory behind family replay detection, and 90d is the absolute
  *  family lifetime — never trim below it. */
-async function sweepOperational(databaseUrl) {
+export async function sweepOperational(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {

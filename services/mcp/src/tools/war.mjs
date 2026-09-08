@@ -5,6 +5,7 @@ import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import {
   periodInfo,
   nominalPeriodBoundsMs,
+  anchoredPeriod,
   seasonFromDate,
 } from "../../../ingest/src/war-clock.mjs";
 import {
@@ -219,33 +220,25 @@ export const warTools = {
       );
       let period = null;
       if (anchorRows[0]) {
-        const idx = Number(anchorRows[0].period_index);
-        const info = periodInfo(idx);
         const anchor = anchorRows[0].first_observed_at;
-        // Nominal boundaries on the policy grid - ONE definition,
-        // shared with the clan_pulse feeder (war-clock.mjs).
-        const bounds = nominalPeriodBoundsMs(anchor.getTime());
-        const nominalEnd = new Date(bounds.endMs);
-        const weekEnd = new Date(
-          nominalEnd.getTime() + (6 - info.dayInSection) * 86400_000,
-        );
-        const observedOffsetMin = Math.round(
-          (anchor.getTime() - bounds.startMs) / 60_000,
-        );
+        // ONE derivation, shared with the clan_pulse feeder. Both used to
+        // rebuild these from the primitives; the other copy drifted.
+        const p = anchoredPeriod(anchorRows[0].period_index, anchor.getTime());
+        const info = p.info;
         period = {
-          period_index: idx,
+          period_index: p.periodIndex,
           kind: info.kind,
           ...(info.warDay ? { war_day: info.warDay } : {}),
           day_in_week: info.dayInSection,
           started_observed_at: anchor.toISOString(),
-          period_start_nominal: new Date(bounds.startMs).toISOString(),
-          period_end_nominal: nominalEnd.toISOString(),
-          week_end_nominal: weekEnd.toISOString(),
+          period_start_nominal: new Date(p.startMs).toISOString(),
+          period_end_nominal: new Date(p.endMs).toISOString(),
+          week_end_nominal: new Date(p.weekEndMs).toISOString(),
           // How far this clan's observed start sat from the policy hour,
           // so a consumer can judge the size of the effect on its own
           // clan instead of taking our word for it. Includes our polling
           // latency, so it is an upper bound on the true drift.
-          observed_offset_minutes: observedOffsetMin,
+          observed_offset_minutes: p.observedOffsetMinutes,
           as_observed_note:
             "Elixir MCP follows the 10:00 UTC POLICY reset for every clan. Clash Royale matches clans into races of five as matchmaking fills, so a clan's real period start drifts off that hour by its own amount; a multi-clan service cannot honour every clan's start and still have war_day mean one comparable window. *_nominal are therefore policy-grid instants, identical across clans, and are the fields to cite. started_observed_at is when the recorder first saw this period open (true start is at or before it) and observed_offset_minutes is its distance from the policy hour, INCLUDING our polling latency - use them to correct for a single clan's drift if you need to. Consequence worth knowing: battles played between a clan's real start and the policy hour are attributed to the previous policy day. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Never infer from day counts or event schemas.",
         };

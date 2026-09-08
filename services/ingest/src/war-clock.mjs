@@ -278,3 +278,41 @@ export function resolveWarKeys(battleTimeMs, clock) {
     warDay: info.warDay, // null on training days — training battles carry no war day
   };
 }
+
+/**
+ * Everything derivable from one war_period_anchor row, in ONE place.
+ *
+ * `periodInfo` and `nominalPeriodBoundsMs` were already shared, but the
+ * derivation on top of them was not: war_current and the clan_pulse feeder
+ * each rebuilt "when does this period nominally end, and is it still open"
+ * from the primitives. The second copy independently carried the "next 10:00Z
+ * after the anchor" bug (feedback #9), so clan_pulse silently dropped its war
+ * block on a live war day whenever the reset ran early -- the same failure in
+ * a second place, from the same arithmetic written twice.
+ *
+ * Sharing the primitives was not enough. `openNow` is the predicate that
+ * drifted, so it lives here as one definition rather than as two identical
+ * comparisons a reader has to notice are supposed to agree.
+ *
+ * Pure on purpose: the callers do their own (identical, trivial) SELECT, and
+ * this module stays free of a database so it can be tested as arithmetic.
+ */
+export function anchoredPeriod(periodIndex, anchorMs, nowMs = Date.now()) {
+  const info = periodInfo(Number(periodIndex));
+  const bounds = nominalPeriodBoundsMs(anchorMs);
+  const nominalEndMs = bounds.endMs;
+  return {
+    periodIndex: Number(periodIndex),
+    info,
+    startMs: bounds.startMs,
+    endMs: nominalEndMs,
+    // The last day of the section, on the policy grid.
+    weekEndMs: nominalEndMs + (6 - info.dayInSection) * 86400_000,
+    // Distance from the policy hour to what we actually observed. Includes
+    // our polling latency, so it is an upper bound on the true drift.
+    observedOffsetMinutes: Math.round((anchorMs - bounds.startMs) / 60_000),
+    // "Is the latest anchored period still nominally running?" A clan whose
+    // polls stopped must not have an ancient day reported as today.
+    openNow: nowMs < nominalEndMs,
+  };
+}

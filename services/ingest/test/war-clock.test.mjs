@@ -219,3 +219,71 @@ test("nominalPeriodBoundsMs snaps to the policy grid through early drift", () =>
     assert.ok(b.endMs > day(h, 30), `period ending after the anchor at ${h}h`);
   }
 });
+
+/**
+ * anchoredPeriod: one derivation, because two drifted.
+ *
+ * war_current and the clan_pulse feeder each rebuilt "when does this period
+ * nominally end, and is it still open" from the shared primitives. The second
+ * copy independently carried the "next 10:00Z after the anchor" bug (feedback
+ * #9), so clan_pulse silently dropped its war block on a live war day
+ * whenever the reset ran early. Sharing periodInfo and nominalPeriodBoundsMs
+ * was not enough -- the predicate on top of them was the thing that drifted.
+ */
+import { anchoredPeriod } from "../src/war-clock.mjs";
+
+const at = (iso) => new Date(iso).getTime();
+
+test("a period observed EARLY still belongs to that policy day", () => {
+  // The bug: an anchor a few minutes before 10:00Z was read as belonging to
+  // the next day's grid, so the period looked closed while it was running.
+  const early = at("2026-09-08T09:52:00Z");
+  const p = anchoredPeriod(3, early, at("2026-09-08T12:00:00Z"));
+  assert.ok(
+    p.openNow,
+    "a war day observed at 09:52 is still open at noon the same day",
+  );
+  assert.ok(p.endMs > at("2026-09-08T09:52:00Z"));
+});
+
+test("openNow closes the period once the nominal end passes", () => {
+  const anchor = at("2026-09-08T10:00:00Z");
+  assert.equal(
+    anchoredPeriod(3, anchor, at("2026-09-09T09:59:00Z")).openNow,
+    true,
+  );
+  assert.equal(
+    anchoredPeriod(3, anchor, at("2026-09-09T10:01:00Z")).openNow,
+    false,
+  );
+});
+
+test("a clan whose polls stopped does not report an ancient day as open", () => {
+  // The reason the predicate exists at all.
+  const stale = at("2026-08-01T10:00:00Z");
+  assert.equal(
+    anchoredPeriod(3, stale, at("2026-09-08T12:00:00Z")).openNow,
+    false,
+  );
+});
+
+test("the offset is measured from the policy hour, and can be negative", () => {
+  // Observed BEFORE the policy hour: the clan's race opened early. Reporting
+  // this as a positive number would misstate which side of the hour it fell.
+  const p = anchoredPeriod(
+    3,
+    at("2026-09-08T09:52:00Z"),
+    at("2026-09-08T12:00:00Z"),
+  );
+  assert.equal(p.observedOffsetMinutes, -8);
+});
+
+test("week end is the section's last day on the same grid", () => {
+  const p = anchoredPeriod(
+    3,
+    at("2026-09-08T10:00:00Z"),
+    at("2026-09-08T12:00:00Z"),
+  );
+  const days = Math.round((p.weekEndMs - p.endMs) / 86400_000);
+  assert.equal(days, 6 - p.info.dayInSection);
+});
