@@ -972,6 +972,26 @@ Resources:
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          # Agent and integration doors (0054). Same origin, same no-cookie
+          # policy as /mcp -- these are the same protected resource served
+          # under a per-principal identity, and a session cookie must never
+          # reach one. Without these the Lambda's routing is correct and
+          # unreachable: the edge answers /a/* with its own 403 HTML and the
+          # door never sees the request.
+          - PathPattern: /a/*
+            TargetOriginId: mcpapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          - PathPattern: /i/*
+            TargetOriginId: mcpapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
           - PathPattern: /oauth/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
