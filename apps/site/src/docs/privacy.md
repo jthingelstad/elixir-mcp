@@ -3,7 +3,8 @@ slug: privacy
 title: "Privacy"
 navTitle: "Privacy"
 description: "What Elixir MCP stores, why, and what it never stores: public Clash Royale game data plus history, your email address and what we use it for, and no identifiers in analytics."
-order: 4
+order: 60
+section: policies
 ---
 
 # Privacy

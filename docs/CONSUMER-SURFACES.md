@@ -1,6 +1,6 @@
 # Consumer Surfaces — how third parties use Elixir MCP
 
-**Status:** design of record; the Drop migration is UNDER WAY (2026-09-06).
+**Status:** design of record. The Drop migration is **NOT started** as of 2026-09-08 — this said "UNDER WAY" for two days while nothing moved. Drop's key is a CloudFormation parameter, so migrating it to an integration principal requires a Drop deploy.
 Ratified principles below are Jamie's. What has shipped so far, against §7's
 build order but starting with Drop at Jamie's direction:
 

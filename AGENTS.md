@@ -22,10 +22,18 @@ before a deploy can upload it. Shared design tokens are one file:
 
 `CLAUDE.md` is a symlink to this file. Do not fork them.
 
-**Start with `docs/DESIGN.md`** — the spec of record (v2, audited). Decisions
-there and in `docs/NOTES.md` are ratified by Jamie; don't re-litigate them,
-and record new ones in NOTES.md as they happen. The prior-art map (DESIGN §10)
-says which existing repo to read before writing each subsystem.
+**The product is documented publicly**, at
+<https://elixir.poapkings.com/docs> (source in `apps/site/src/docs/`). That is
+the source of truth for what the service does — users vs agents vs
+integrations, tools, roles and quotas, what is recorded. **Do not describe
+product behaviour in this repo**; a second copy drifts, which is exactly how
+`docs/DESIGN.md` came to claim authority while describing a model that had
+been replaced. It is archived at `docs/archive/`.
+
+**Start with `docs/ENGINEERING.md`** — the invariants that constrain how this
+is built (rate budget, migrations, contract versioning, ingest, prior-art map).
+Decisions are ratified in `docs/NOTES.md`; don't re-litigate them, and record
+new ones there as they happen.
 
 ## Golden rules
 

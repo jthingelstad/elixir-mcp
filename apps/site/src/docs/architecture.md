@@ -3,15 +3,17 @@ slug: architecture
 title: "Architecture"
 navTitle: "Architecture"
 description: "How Elixir MCP is built: the collector fleet, the recording pipeline, the Postgres corpus, and the authenticated remote MCP server behind one hostname."
-order: 6
+order: 33
+section: reference
 ---
 
 # Architecture
 
-The technical documentation — how Elixir MCP is designed, for users who
-are curious and admins who need to reason about it. The full spec of
-record lives in the public repo (`docs/DESIGN.md`); this is the
-maintained distillation.
+How Elixir MCP is designed, for people who are curious and for anyone who
+needs to reason about what the service will and won't do. **This page is the
+description of record** — there is no fuller internal one, deliberately: a
+second copy is how the previous one came to describe a model that had already
+been replaced.
 
 ## The shape of the system
 
@@ -201,15 +203,25 @@ yield.
   as the game's own public API. **Clan cover** gates the clan-scoped
   tools (roster, war): open members of a recorded clan use them, and
   that access ends the moment membership ends.
-- The MCP door is OAuth 2.1 with rotating refresh tokens. Grants are
-  audience-bound to `https://elixir.poapkings.com/mcp`; `cr:read` is the
+- The MCP door is OAuth 2.1 with rotating refresh tokens. `cr:read` is the
   baseline, while recordings, collections, account preferences, and
   feedback each require their own write capability. The consent page
   names every requested capability, refresh never expands it, and an
   insufficient tool call is refused before it spends rate or daily
-  quota. Owner-issued service tokens are explicitly full-capability
-  administrative credentials. The site uses cookie sessions; every
-  tool call is audited per surface with visible per-account quotas.
+  quota.
+- **Three principals, three doors.** A person connects at
+  `/mcp`; an agent at `/a/<id>/mcp`; an integration at `/i/<id>/mcp`.
+  Grants are audience-bound to exactly one of them, so a credential
+  presented at the wrong door is refused rather than quietly answering
+  about the wrong subject — which matters because the three publish
+  different tool surfaces and mean different things by "me". See
+  [Users, agents and integrations](/docs/connections).
+- Service tokens are for **headless** principals — a Discord bot, a
+  scheduled job, an app back end — and carry only the capabilities they
+  were issued with. A human driving an agent signs in and consents
+  instead, and never handles a raw key. The site uses cookie sessions;
+  every tool call is audited against the credential that made it, with
+  visible per-account quotas.
 
 ## Honesty machinery
 

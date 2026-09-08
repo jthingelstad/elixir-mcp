@@ -5,8 +5,11 @@ navActive: docs
 <div class="docs">
   <nav class="docs__toc" aria-label="Documentation">
     <a href="/docs">All docs</a>
-    {%- for d in collections.docs %}
+    {%- for s in collections.docSections %}
+    <span class="docs__toc-section">{{ s.label }}</span>
+    {%- for d in s.pages %}
     <a href="{{ d | pageUrl }}"{% if d.data.slug == slug %} aria-current="page"{% endif %}>{{ d.data.navTitle or d.data.title }}</a>
+    {%- endfor %}
     {%- endfor %}
   </nav>
   <article class="docs__body">

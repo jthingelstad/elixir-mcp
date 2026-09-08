@@ -1,6 +1,6 @@
 # Collector Zero-Trust — kill the IAM users
 
-**Design gate — awaiting Jamie's ratification (2026-09-06).** Jamie's
+**SHIPPED 2026-09-06 and live end to end** (see `NOTES.md`: "ZERO-TRUST COLLECTOR TRANSITION EXECUTED"). This document is the design as ratified; the header said "awaiting ratification" for two days after the transition was complete, which is the failure mode a status line exists to prevent. Jamie's
 directive: operators cannot be assumed safe; collectors must have NO
 AWS connectivity — pure API clients of Elixir MCP with a token we
 issue, a launch-time contract so collection changes need no client

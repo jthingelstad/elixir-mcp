@@ -36,6 +36,7 @@ const STATIC_PAGES = [
   "/",
   "/docs",
   "/docs/about",
+  "/docs/connections",
   "/docs/roles",
   "/docs/tools",
   "/docs/privacy",

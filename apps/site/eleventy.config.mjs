@@ -58,6 +58,45 @@ export default function (eleventyConfig) {
     api.getFilteredByTag("doc").sort((a, b) => a.data.order - b.data.order),
   );
 
+  /**
+   * The same docs, grouped into sections for the sidebar and the index.
+   *
+   * Flat was fine at six pages. It stops being fine once the set spans four
+   * audiences who each need a different third of it — somebody connecting
+   * Claude, a clan leader creating an agent, a developer building on the
+   * corpus, and the handful of people running a collector. Grouping is what
+   * lets each of them ignore the other three.
+   *
+   * SECTIONS is the single ordered source; a page names its section in
+   * front-matter and `order` sorts within it. A page whose section is unknown
+   * is a build error rather than a silent orphan at the bottom of the nav.
+   */
+  const SECTIONS = [
+    ["start", "Start here"],
+    ["connections", "Connections"],
+    ["reference", "Reference"],
+    ["data", "The data"],
+    ["collector", "Run a collector"],
+    ["policies", "Policies"],
+  ];
+  eleventyConfig.addCollection("docSections", (api) => {
+    const pages = api
+      .getFilteredByTag("doc")
+      .sort((a, b) => a.data.order - b.data.order);
+    for (const page of pages) {
+      const key = page.data.section;
+      if (!SECTIONS.some(([k]) => k === key))
+        throw new Error(
+          `doc "${page.data.slug}" has section "${key}", which is not one of: ${SECTIONS.map(([k]) => k).join(", ")}`,
+        );
+    }
+    return SECTIONS.map(([key, label]) => ({
+      key,
+      label,
+      pages: pages.filter((p) => p.data.section === key),
+    })).filter((s) => s.pages.length > 0);
+  });
+
   eleventyConfig.addFilter("number", (n) =>
     typeof n === "number" ? n.toLocaleString("en-US") : "—",
   );

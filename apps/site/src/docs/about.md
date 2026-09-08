@@ -4,6 +4,7 @@ title: "About Elixir MCP"
 navTitle: "About"
 description: "Elixir MCP records the Clash Royale history the official API does not keep - battles, progression, and clan life - and serves it to your own AI agent through a remote MCP server."
 order: 1
+section: start
 ---
 
 # About Elixir MCP

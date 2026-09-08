@@ -63,7 +63,7 @@ Cross-cutting work keeps one originating owner through acceptance.
 
 ## Project map
 
-- `CLAUDE.md` / `AGENTS.md` — golden rules; `docs/DESIGN.md` is the spec
+- `CLAUDE.md` / `AGENTS.md` — golden rules; `docs/ENGINEERING.md` is the spec
   of record; `docs/NOTES.md` is the decision ledger (newest near the top).
 - `packages/contracts` — tool schemas, queue contracts, error enum,
   changelog. Version rules in DESIGN §11.

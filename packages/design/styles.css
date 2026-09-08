@@ -1167,6 +1167,20 @@ input[aria-invalid="true"] {
   flex-direction: column;
   gap: 2px;
 }
+/* Section headings in the docs sidebar. Quiet and small: they orient, they
+   are not destinations, and a reader scanning for a page name should pass
+   over them without stopping. */
+.docs__toc-section {
+  padding: 14px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.docs__toc-section:first-of-type {
+  padding-top: 8px;
+}
 .docs__toc a {
   padding: 7px 10px;
   border-radius: 6px;
