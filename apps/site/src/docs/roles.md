@@ -26,7 +26,7 @@ spends the one shared Clash Royale API budget).
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
 | Collections you curate | — | — | 5 | 20 | unlimited | unlimited |
-| Service tokens | — | — | — | 1 | unlimited | unlimited |
+| Integrations | — | — | — | 1 | unlimited | unlimited |
 
 **member** — the default. You, a couple of alts, and your clan at
 activity scope (roster + war, no member fan-out).
@@ -53,6 +53,40 @@ sets roles up to partner. Unlimited quotas, exempt from every cap.
 plus granting or revoking the admin role, service tokens, collectors,
 and quota overrides. No admin can change the owner's account — or
 another admin's.
+
+## Three kinds of principal
+
+Not everything that calls Elixir MCP is a person.
+
+**You** are a person. You sign in with your email and connect your agent of
+choice over OAuth; the tools answer about *your* players, your clans, your
+event feed. There is no personal API key, and there does not need to be — an
+OAuth connection refreshes indefinitely, so even a script that runs unattended
+for months stays signed in as you.
+
+**An agent** acts for a clan rather than for a person. It has its own identity,
+its own key and its own event feed, so what it does never lands in your history
+and what you do never shows up as its. Agents are **not a tier feature**: you
+can create one for any clan you already record, at any role. It spends your
+daily call budget, and it carries its own tier — an admin's agent is not an
+admin.
+
+That separation is the point. An agent that borrowed your identity would answer
+"who am I" with *your* player tag, which is not what a clan's Discord bot should
+be able to say out loud.
+
+**An integration** has no "me" at all. It consumes the recorded corpus on behalf
+of its own users, naming what it wants on every call — Elixir Drop is the type
+specimen: it looks up whoever is playing, for whatever clan they happen to be
+in. Integrations are token-only and sit at partner, because their call volume is
+a function of *their* userbase rather than their owner's habits. That is a
+capacity conversation; an agent is a feature.
+
+| | You | Agent | Integration |
+|---|---|---|---|
+| Acts for | yourself | a clan | its own users |
+| Signs in with | OAuth | OAuth or a key | a key |
+| Available to | everyone | everyone, per clan you record | partner and up |
 
 ## Added means recorded
 
