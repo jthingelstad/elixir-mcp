@@ -1,55 +1,43 @@
 /**
- * Keep the static site's navigation in step with the app's.
+ * The static site's ONE session-aware element.
  *
- * The two halves of this site render their own nav — Eleventy for content,
- * React for everything behind a session — and they had drifted: the app was
- * missing Updates entirely, and the static side can't know you're signed in,
- * so Explore, Account and Admin appeared and vanished as you crossed between
- * them. One site should not visibly change shape as you walk through it.
+ * This used to inject Explore, Account and Admin into the nav to make the two
+ * halves of the site look like a single application. It could not work, and
+ * the reason is structural rather than a bug: these pages are CDN-cached, so
+ * the signed-out nav is what ships, and anything session-dependent has to be
+ * patched in after /api/me answers. Every static page a signed-in visitor
+ * opened therefore RESHAPED ITS NAVIGATION a few hundred milliseconds in --
+ * three links appearing, the sign-in button being replaced by a plain text
+ * link that did not even match its styling. That is the clunk.
  *
- * The static nav is public and CDN-cached, so the signed-out shape has to be
- * what ships. This adds the rest afterwards, from the session the browser
- * already holds. Nothing here is a secret: they are links, and every route
- * behind them is authorised server-side regardless of what the nav says.
+ * You cannot have a cached page and a session-shaped nav at once. So the nav
+ * no longer changes shape: the link row is public, identical for everybody,
+ * and only the meta slot swaps -- same element, same classes, same box, so
+ * nothing reflows. The app half renders its own navigation and is allowed to
+ * look like an application, because it is one.
  *
- * Progressive enhancement on purpose — with JavaScript off, or this request
- * failing, the nav is simply the signed-out one rather than broken.
+ * Progressive enhancement on purpose: with JavaScript off, or this request
+ * failing, the signed-out control stands and still leads somewhere real.
  */
 (() => {
-  const nav = document.querySelector(".nav1 nav");
   const meta = document.querySelector(".nav1__meta");
-  if (!nav || !meta) return;
+  if (!meta) return;
 
   fetch("/api/me", { credentials: "same-origin" })
     .then((r) => (r.ok ? r.json() : null))
     .then((me) => {
-      // `/api/me` answers 200 with {authenticated:false} when signed out — it
-      // does not 401 — so `r.ok` says nothing about whether there is a session.
-      // Testing the response instead of the body showed Account and Admin to
-      // signed-out visitors, and replaced their Sign in link with one that
-      // leads nowhere. The app has always checked this field; this now matches.
+      // /api/me answers 200 with {authenticated:false} when signed out -- it
+      // does not 401 -- so r.ok says nothing about whether a session exists.
+      // Testing the response instead of this field once showed Account to
+      // signed-out visitors and replaced Sign in with a link to nowhere.
       if (me?.authenticated !== true) return;
-
-      // Same order as the app: Home · Data · Explore · Account · Docs ·
-      // Updates · Admin. Inserted rather than appended, so the shared items
-      // do not move when the authed ones arrive.
-      const link = (href, label) => {
-        const a = document.createElement("a");
-        a.href = href;
-        a.textContent = label;
-        return a;
-      };
-      const docs = nav.querySelector('a[href="/docs"]');
-      if (docs) {
-        nav.insertBefore(link("/explore", "Explore"), docs);
-        nav.insertBefore(link("/account/overview", "Account"), docs);
-      }
-      if (me.is_admin) nav.appendChild(link("/admin/requests", "Admin"));
-
-      meta.textContent = "";
-      meta.appendChild(link("/account/overview", "Account"));
+      const control = meta.querySelector("a");
+      if (!control) return;
+      // Swap in place. Replacing the node is what lost the button styling.
+      control.href = "/account/overview";
+      control.textContent = "Account";
     })
     .catch(() => {
-      /* Signed out, offline, or the door is down: the public nav stands. */
+      /* Signed out, offline, or the door is down: the public control stands. */
     });
 })();

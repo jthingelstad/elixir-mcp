@@ -5,6 +5,7 @@ import { Dashboard } from "./views/Dashboard.jsx";
 import { Admin } from "./views/Admin.jsx";
 import { Data } from "./views/Data.jsx";
 import { Explore } from "./views/Explore.jsx";
+import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
 /**
  * Shell + three-tier navigation (design handoff 2026-09-05): tier 1 is
@@ -326,39 +327,44 @@ export function App() {
       )}
 
       <main className="wrap">
-        {owned === null ? null : effectivePath === "/signin" ? (
-          <SignIn
-            onAuthed={async () => {
-              await refresh();
-              navigate("/account/overview");
-            }}
-          />
-        ) : needsAuth ? (
-          <SignInWall navigate={navigate} />
-        ) : section === "data" ? (
-          <Data page={activePage ?? "dashboard"} />
-        ) : section === "explore" ? (
-          <Explore me={me} navigate={navigate} path={effectivePath} />
-        ) : section === "account" ? (
-          <Dashboard
-            me={me}
-            refresh={refresh}
-            navigate={navigate}
-            page={activePage ?? "overview"}
-            itemId={effectivePath.split("/")[3]}
-          />
-        ) : section === "admin" ? (
-          me?.is_admin ? (
-            <Admin
+        {/* Keyed on the route: a boundary that has caught stays caught, so
+            without this a single bad page would keep showing its error after
+            you navigated away from it. */}
+        <ErrorBoundary key={effectivePath}>
+          {owned === null ? null : effectivePath === "/signin" ? (
+            <SignIn
+              onAuthed={async () => {
+                await refresh();
+                navigate("/account/overview");
+              }}
+            />
+          ) : needsAuth ? (
+            <SignInWall navigate={navigate} />
+          ) : section === "data" ? (
+            <Data page={activePage ?? "dashboard"} />
+          ) : section === "explore" ? (
+            <Explore me={me} navigate={navigate} path={effectivePath} />
+          ) : section === "account" ? (
+            <Dashboard
               me={me}
-              page={activePage ?? "requests"}
+              refresh={refresh}
               navigate={navigate}
+              page={activePage ?? "overview"}
               itemId={effectivePath.split("/")[3]}
             />
-          ) : (
-            <SignInWall navigate={navigate} />
-          )
-        ) : null}
+          ) : section === "admin" ? (
+            me?.is_admin ? (
+              <Admin
+                me={me}
+                page={activePage ?? "requests"}
+                navigate={navigate}
+                itemId={effectivePath.split("/")[3]}
+              />
+            ) : (
+              <SignInWall navigate={navigate} />
+            )
+          ) : null}
+        </ErrorBoundary>
       </main>
 
       <Disclaimer />
