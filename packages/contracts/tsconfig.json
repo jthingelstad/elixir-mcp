@@ -2,7 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    // TypeScript 7 no longer pulls @types/node in implicitly here, so the
+    // `node:crypto` import in deck.ts stops resolving (TS2591). Naming it is
+    // correct under 5.x too -- this package deliberately uses exactly one
+    // ambient type package, and saying so is better than inheriting whatever
+    // happens to be installed.
+    "types": ["node"]
   },
   "include": ["src"]
 }
