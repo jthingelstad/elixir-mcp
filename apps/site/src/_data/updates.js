@@ -97,7 +97,7 @@ export default [
   {
     date: "2026-09-06",
     title: "Anonymous visit counting",
-    body: "The site now counts visits with Tinylytics - anonymous page hits, visitor countries, and a few product events (a tool call happened, feedback was filed). No cookies, no identifiers, nothing attached to your account or gameplay, and the sign-in page loads no analytics at all. The privacy page has the full story.",
+    body: "The site now counts visits with Tinylytics - anonymous page hits, visitor countries, and a few product events (a tool call happened, feedback was filed). No cookies, no cross-site tracking, nothing attached to your account, and the sign-in page loads no analytics at all. The privacy page has the full story.",
   },
   {
     date: "2026-09-06",
