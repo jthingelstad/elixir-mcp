@@ -2,7 +2,6 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { processResult } from "../src/pipeline.mjs";
-import { refreshCompleteness } from "../src/rollups.mjs";
 import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 
 let ctx;
@@ -163,36 +162,6 @@ test("battlelog ingest refreshes rollups; totals reconcile with battles", async 
     groups.rows.some((g) => g.mode_group === "ranked"),
     "pathOfLegend maps to ranked",
   );
-});
-
-test("completeness fills when bracketing snapshots exist", async () => {
-  const tag = "#2C0PY22";
-  await ctx.db.query(`insert into player (player_tag) values ($1)`, [tag]);
-  await ctx.db.query(
-    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, lifetime)
-     values ($1, '2026-09-01', 'daily', '{"battleCount": 100}'),
-            ($1, '2026-09-02', 'daily', '{"battleCount": 110}')`,
-    [tag],
-  );
-  await ctx.db.query(
-    `insert into player_daily_battle_rollup
-       (player_tag, day, mode_group, game_mode_id, wins, losses, draws, battles_captured)
-     values ($1, '2026-09-02', 'ladder', 0, 4, 3, 0, 7)`,
-    [tag],
-  );
-  const { expected } = await refreshCompleteness(ctx.db, {
-    playerTag: tag,
-    day: "2026-09-02",
-  });
-  assert.equal(expected, 10);
-  const { rows } = await ctx.db.query(
-    `select expected_battle_delta, completeness_ratio, is_complete
-     from player_daily_battle_rollup where player_tag = $1`,
-    [tag],
-  );
-  assert.equal(rows[0].expected_battle_delta, 10);
-  assert.equal(Number(rows[0].completeness_ratio), 0.7);
-  assert.equal(rows[0].is_complete, false);
 });
 
 test("roster diffs emit clan events with evidence; first sight was silent", async () => {

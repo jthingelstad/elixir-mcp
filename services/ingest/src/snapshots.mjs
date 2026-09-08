@@ -16,7 +16,6 @@
 import { inPreResetWindow } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
 import { emitEvent } from "./events.mjs";
-import { refreshCompleteness } from "./rollups.mjs";
 
 /**
  * Badges are CURRENT STATE, not a daily blob (§7.2). ~139 per player
@@ -222,13 +221,6 @@ export async function projectPlayerSnapshot(
         donations_after: payload.donations,
       },
     });
-  }
-
-  // Completeness estimate for the bracketed window (§5.4): battleCount
-  // delta between consecutive snapshots vs battles we captured. Day-level
-  // approximation, refined when live data shows real gaps.
-  if (prev) {
-    await refreshCompleteness(db, { playerTag, day });
   }
 
   return {

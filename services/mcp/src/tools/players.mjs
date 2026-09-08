@@ -137,7 +137,10 @@ export const playersTools = {
         // headlines matter (round-3 casual finding).
         best_deck: b && b.deck_hash !== d?.deck_hash ? deckShape(b) : null,
         note: "counts include ALL recorded battles (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded. best_deck needs 10+ battles in the window and is omitted when it IS the top deck. History may predate active recording - elixir_coverage has the full capture story.",
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        meta: await buildMeta(ctx.db, ctx.account, tag, [
+          "player",
+          "player_battlelog",
+        ]),
       };
     },
   },
@@ -260,7 +263,7 @@ export const playersTools = {
           donations_received_this_week: row.donations_received,
           lifetime: row.lifetime,
         },
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),
       };
     },
   },
@@ -384,7 +387,7 @@ export const playersTools = {
         note: metrics.includes("donations")
           ? "donations is the weekly counter as-of each snapshot; it resets Mondays ~00:10 UTC."
           : undefined,
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),
       };
     },
   },
@@ -432,7 +435,7 @@ export const playersTools = {
         cards: (row.cards ?? []).map(displayCard),
         support_cards: (row.support_cards ?? []).map(displayCard),
         as_of_payload: row.last_fetched_at.toISOString(),
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),
       };
     },
   },

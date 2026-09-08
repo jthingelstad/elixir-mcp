@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "Answers that agree, with clearer evidence",
+    body: "Performance summaries now count the whole period you ask about, including histories longer than 2,000 battles. Freshness follows the data used: a recent profile poll can no longer make an old battle log look current, and war answers show when the race was last observed. Coverage compares battles over the actual time between profile observations instead of treating several days as one, and later-arriving battles improve that estimate automatically. Results too large to deliver now fail clearly with a traceable request ID. The methodology explains the statistics currently served and distinguishes descriptive comparisons from proof of improvement.",
+  },
+  {
+    date: "2026-09-08",
     title: "Agents you can actually run, and players you can tell apart",
     body: "Creating an agent used to be a one-way door: you could make one and revoke its key, and that was the whole story. Revoking was worse than a missing feature, because there was no way to issue a replacement - the only path back was deleting the agent and building a new one, which changes its address and loses its place in its own notification feed. You can now issue a new key in place, suspend an agent and resume it later, read every notification it has been sent, see who it answers for, and see how many of your daily calls it is spending. That last one mattered more than it sounds: an agent spends YOUR budget, and until now those calls appeared nowhere, so you could run out with a usage page reading nearly zero. A suspended agent's key simply stops working, the same as any invalid key. Separately: players you add can now be marked as your alt, a friend, or someone you are just watching. That setting has existed since the day relationships shipped and your agent has been reading it all along - but nothing could set it, so everyone came out as 'watching'. Now your agent knows which players are actually you.",
   },

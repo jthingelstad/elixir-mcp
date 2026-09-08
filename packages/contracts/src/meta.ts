@@ -14,10 +14,17 @@ export const DISCLAIMER =
 export interface ResponseMeta {
   /** When this answer was computed (ISO 8601 UTC). */
   as_of: string;
-  /** Recording start for the primary subject, if applicable. */
+  /** Earliest stored history among the answer's player data sources, not continuous coverage. */
   recorded_since?: string;
-  /** Age of the freshest underlying poll, in seconds. */
-  freshness_seconds?: number;
+  /** Start of the current active recording; history can predate it. */
+  recording_active_since?: string;
+  /** Oldest relevant source poll age. Null if any required source has never been polled. */
+  freshness_seconds?: number | null;
+  /** Individual source polls, so fresh profile data cannot disguise a stale battle log. */
+  source_polls?: Record<
+    string,
+    { observed_at: string | null; freshness_seconds: number | null }
+  >;
   /** Honest caveat when capture is known incomplete (DESIGN §5.4). */
   completeness_note?: string;
   /** Maintainer replies to your feedback awaiting elixir_my_feedback. */

@@ -9,7 +9,11 @@
  */
 
 import crypto from "node:crypto";
-import { CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
+import {
+  CONTRACT_VERSION,
+  DISCLAIMER,
+  responseMeta,
+} from "@elixir-mcp/contracts";
 import { identitySentences } from "./identity.mjs";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
@@ -129,10 +133,22 @@ function renderToolResultText(registry, name, invoked, kind = null) {
     const params = Object.keys(spec?.inputSchema?.properties ?? {});
     const hint = params.length
       ? `narrow the arguments (${params.join(", ")})`
-      : "ask a narrower question";
-    text =
-      text.slice(0, MCP_RESULT_MAX_CHARS) +
-      `\n... [truncated at ${MCP_RESULT_MAX_CHARS} characters; ${hint} for a complete result]`;
+      : "This tool has no narrowing arguments. Report this request_id with elixir_feedback.";
+    // A sliced JSON document is not a usable tool result. Keep a small,
+    // valid failure and its receipt; never discard metadata at the tail.
+    text = JSON.stringify({
+      error: {
+        code: "bad_request",
+        message: `Result exceeds ${MCP_RESULT_MAX_CHARS} characters.`,
+        hint,
+      },
+      meta: responseMeta({
+        as_of: invoked?.meta?.as_of ?? new Date().toISOString(),
+        ...(invoked?.meta?.request_id
+          ? { request_id: invoked.meta.request_id }
+          : {}),
+      }),
+    });
   }
   return { text, truncated };
 }
@@ -238,7 +254,7 @@ export async function handleMcpMessage(message, context) {
     if (Number.isFinite(quota.max) && invoked.body?.meta) {
       invoked.body.meta.quota = { used: quota.count, max: quota.max };
     }
-    const { text } = renderToolResultText(
+    const { text, truncated } = renderToolResultText(
       context.registry,
       name,
       invoked.body,
@@ -248,7 +264,7 @@ export async function handleMcpMessage(message, context) {
       statusCode: 200,
       payload: rpcResult(id, {
         content: [{ type: "text", text }],
-        isError: invoked.isError === true,
+        isError: invoked.isError === true || truncated,
       }),
     };
   }

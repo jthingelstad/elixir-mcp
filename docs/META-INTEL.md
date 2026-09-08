@@ -14,7 +14,9 @@ on meta, I just want to look at data and keep it grounded in that."
 
 **STATUS: sections 9-10 APPROVED and building (Jamie, 2026-09-04
 "I love this... let's build it"); sections 2-3 (meta deck/card tools)
-remain third in line, design reviewed.**
+remain estimator designs, not the implementation currently served: the shipped
+meta tools return pooled and fixed-strength EB-shrunk win rates. See the
+methodology page for current behavior.**
 
 **Branding (Jamie's ask):** metrics carry the brand, machinery stays
 technical. `pilot_score` = the skill residual ("wins your card levels

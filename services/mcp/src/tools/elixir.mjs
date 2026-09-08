@@ -10,6 +10,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { addPlayer, removePlayer } from "@elixir-mcp/claims";
 import { emitFeedEvent, FEED_TOPICS } from "../feed.mjs";
+import { captureCoverage } from "../coverage.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
 import {
   ToolFailure,
@@ -160,7 +161,7 @@ export const elixirTools = {
 
   elixir_coverage: {
     description:
-      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was added), and recent capture completeness. Use it to caveat answers honestly.",
+      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was added), and capture estimates over matching observation intervals ending in the last seven days. Estimates update as late battles arrive; unknown observation times and unbracketed history stay unknown. Use it to caveat answers honestly.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
@@ -176,7 +177,7 @@ export const elixirTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const [polls, battles, completeness, snapEpoch] = await Promise.all([
+      const [polls, battles, coverage, snapEpoch] = await Promise.all([
         ctx.db.query(
           `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
           [tag],
@@ -187,13 +188,7 @@ export const elixirTools = {
            where bp.player_tag = $1`,
           [tag],
         ),
-        ctx.db.query(
-          `select avg(completeness_ratio)::numeric(4,3) as recent_ratio,
-                  count(*) filter (where is_complete is false)::int as incomplete_days
-           from player_daily_battle_rollup
-           where player_tag = $1 and day > current_date - 7 and completeness_ratio is not null`,
-          [tag],
-        ),
+        captureCoverage(ctx.db, tag),
         ctx.db.query(
           `select min(snapshot_date)::text as first from player_snapshot_daily
            where player_tag = $1 and snapshot_kind = 'daily'`,
@@ -220,19 +215,11 @@ export const elixirTools = {
           first_date: snapEpoch.rows[0]?.first ?? null,
           note: "Battle capture, daily snapshots, and active recording can each begin at different times; timeline data exists only from first_date.",
         },
-        completeness_last_7_days: {
-          average_ratio: completeness.rows[0].recent_ratio,
-          incomplete_days:
-            completeness.rows[0].recent_ratio === null
-              ? null
-              : completeness.rows[0].incomplete_days,
-          ...(completeness.rows[0].recent_ratio === null
-            ? {
-                note: "Not yet computable: completeness needs consecutive daily snapshots to bracket each day; it fills in after a couple of days of recording.",
-              }
-            : {}),
-        },
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        ...coverage,
+        meta: await buildMeta(ctx.db, ctx.account, tag, [
+          "player",
+          "player_battlelog",
+        ]),
       };
     },
   },

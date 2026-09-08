@@ -56,6 +56,10 @@ question:
 > *"How are my friends doing this week?"*
 > *"What's our clan's war attendance looking like?"*
 
+For a newly recorded player, start with what is available now. A month-long
+trend becomes useful as that history accumulates; imported or previously
+recorded appearances may already provide some of it.
+
 You do not need to tell it your tag, and you should not have to watch it look
 you up. If your agent starts by enumerating your players before answering a
 question about you, something is wrong — tell us with `elixir_feedback`.

@@ -465,46 +465,49 @@ export const battlesTools = {
         requireEnum(args.mode, MODE_GROUPS, "mode");
         if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
-        const { rows } = await ctx.db.query(
-          `select bp.outcome, bp.crowns, bp.trophy_change,
-                  (select max(o.crowns) from battle_participant o
-                   where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where ${where.join(" and ")}
-           order by b.battle_time desc
-           ${lastN ? `limit ${Math.min(lastN, 500)}` : "limit 2000"}`,
+        requireOrderedWindow(from, to);
+        const {
+          rows: [row],
+        } = await ctx.db.query(
+          `with sample as materialized (
+             select bp.outcome, bp.crowns, bp.trophy_change, b.battle_time, b.battle_id,
+                    (select max(o.crowns) from battle_participant o
+                     where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
+             from battle_participant bp join battle b on b.battle_id = bp.battle_id
+             where ${where.join(" and ")}
+             order by b.battle_time desc, b.battle_id desc
+             ${lastN ? `limit ${lastN}` : ""}
+           ), decided as (
+             select outcome, row_number() over w as rn, first_value(outcome) over w as latest
+             from sample where outcome in ('win','loss')
+             window w as (order by battle_time desc, battle_id desc)
+           ), streak as (
+             select coalesce(min(rn) filter (where outcome <> latest) - 1, count(*))
+                    * case when min(latest) = 'loss' then -1 else 1 end as n
+             from decided
+           )
+           select count(*)::int as battles,
+                  count(*) filter (where outcome = 'win')::int as wins,
+                  count(*) filter (where outcome = 'loss')::int as losses,
+                  count(*) filter (where outcome = 'draw')::int as draws,
+                  coalesce(sum(crowns),0)::int as crowns_for,
+                  coalesce(sum(opp_crowns),0)::int as crowns_against,
+                  coalesce(sum(trophy_change),0)::int as net_trophies,
+                  count(*) filter (where crowns = 3)::int as three_crowns,
+                  (select n::int from streak) as current_streak
+           from sample`,
           params,
         );
-        const wins = rows.filter((r) => r.outcome === "win").length;
-        const losses = rows.filter((r) => r.outcome === "loss").length;
-        const draws = rows.filter((r) => r.outcome === "draw").length;
-        const decided = wins + losses;
-        let streak = 0;
-        for (const r of rows) {
-          if (r.outcome === "unresolved" || r.outcome === "draw") continue;
-          if (streak === 0) streak = r.outcome === "win" ? 1 : -1;
-          else if (streak > 0 && r.outcome === "win") streak += 1;
-          else if (streak < 0 && r.outcome === "loss") streak -= 1;
-          else break;
-        }
+        const { three_crowns, ...counts } = row;
+        const decided = row.wins + row.losses;
         return {
-          battles: rows.length,
-          wins,
-          losses,
-          draws,
-          win_rate: decided > 0 ? Number((wins / decided).toFixed(3)) : null,
-          crowns_for: rows.reduce((s, r) => s + (r.crowns ?? 0), 0),
-          crowns_against: rows.reduce((s, r) => s + (r.opp_crowns ?? 0), 0),
-          net_trophies: rows.reduce((s, r) => s + (r.trophy_change ?? 0), 0),
+          ...counts,
+          win_rate:
+            decided > 0 ? Number((row.wins / decided).toFixed(3)) : null,
           three_crown_rate:
-            rows.length > 0
-              ? Number(
-                  (
-                    rows.filter((r) => r.crowns === 3).length / rows.length
-                  ).toFixed(3),
-                )
+            row.battles > 0
+              ? Number((three_crowns / row.battles).toFixed(3))
               : null,
-          current_streak: streak,
         };
       };
 
@@ -1129,7 +1132,7 @@ export const battlesTools = {
 
   battles_levels: {
     description:
-      'The Level Curve and Pilot Score (META-INTEL §9): how much card-level advantage is worth, measured — win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag for their Pilot Score: actual minus level-expected win rate ("wins your card levels can\'t explain") with a monthly trend — a CLIMBING trend is "getting better" independent of spending. Numbers with receipts: every bin and score ships its sample size.',
+      'The Level Curve and Pilot Score (META-INTEL §9): how much card-level advantage is worth, measured — win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag for their Pilot Score: actual minus level-expected win rate ("wins your card levels can\'t explain") with a monthly trend — a trend is descriptive, not proof of improvement or independence from spending; opposition and the fitted baseline can change. Numbers with receipts: every bin and score ships its sample size.',
     inputSchema: {
       type: "object",
       properties: {

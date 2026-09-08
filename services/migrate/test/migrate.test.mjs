@@ -62,6 +62,37 @@ test("schema fingerprint matches the committed pin", async () => {
   );
 });
 
+test("0057 retires unsupported completeness estimates without changing captured counts", async () => {
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  await db.query("begin");
+  try {
+    await db.query("insert into player (player_tag) values ('#P0Y')");
+    await db.query(`insert into player_daily_battle_rollup
+      (player_tag,day,mode_group,battles_captured,expected_battle_delta,completeness_ratio,is_complete)
+      values ('#P0Y',current_date,'ladder',10,30,0.333,false)`);
+    const sql = await readFile(
+      path.join(MIGRATIONS_DIR, "0057_retire_daily_completeness_estimates.sql"),
+      "utf8",
+    );
+    await db.query(sql);
+    const {
+      rows: [row],
+    } = await db.query(
+      "select battles_captured,expected_battle_delta,completeness_ratio,is_complete from player_daily_battle_rollup where player_tag='#P0Y'",
+    );
+    assert.deepEqual(row, {
+      battles_captured: 10,
+      expected_battle_delta: null,
+      completeness_ratio: null,
+      is_complete: null,
+    });
+  } finally {
+    await db.query("rollback");
+    await db.end();
+  }
+});
+
 test("core invariants hold", async () => {
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();

@@ -96,13 +96,32 @@ export async function entitledClan(db, account, inputTag) {
   }
 }
 
-export async function buildMeta(db, account, tag) {
-  const { rows } = await db.query(
+export async function buildMeta(
+  db,
+  account,
+  tag,
+  endpoints = ["player_battlelog"],
+) {
+  const isPlayer = endpoints.some(
+    (e) => e === "player" || e === "player_battlelog",
+  );
+  const {
+    rows: [row],
+  } = await db.query(
     `select
        (select min(created_at) from recording
-        where subject_type = 'player' and subject_tag = $1 and status = 'active') as recorded_since,
-       (select extract(epoch from now() - max(last_admitted_at))::int from poll_state
-        where subject_tag = $1) as freshness_seconds,
+        where subject_type = $4 and subject_tag = $1 and status = 'active') as active_since,
+       least(
+         case when 'player_battlelog' = any($3) then
+           (select min(battle_time) from battle_participant where player_tag = $1) end,
+         case when 'player' = any($3) then
+           (select min(snapshot_date)::timestamp at time zone 'UTC' from player_snapshot_daily where player_tag = $1) end
+       ) as recorded_since,
+       (select jsonb_object_agg(e.endpoint, jsonb_build_object(
+          'observed_at', ps.last_admitted_at,
+          'freshness_seconds', greatest(0,extract(epoch from now() - ps.last_admitted_at)::int)))
+        from unnest($3::text[]) e(endpoint)
+        left join poll_state ps on ps.subject_tag = $1 and ps.endpoint = e.endpoint) as sources,
        (select count(*)::int from feedback
         where account_id = $2 and responded_at is not null
           and response_seen_at is null) as fb_pending,
@@ -110,17 +129,28 @@ export async function buildMeta(db, account, tag) {
         where ef.account_id = $2
           and ef.event_id > (select events_seen_through from account
                              where account_id = $2)) as events_pending`,
-    [tag, account.accountId],
+    [tag, account.accountId, endpoints, isPlayer ? "player" : "clan"],
   );
-  const row = rows[0] ?? {};
+  const sources = row.sources ?? {};
+  for (const source of Object.values(sources)) {
+    // PostgreSQL greatest() ignores NULL; unknown is not zero-age evidence.
+    if (source.observed_at === null) source.freshness_seconds = null;
+    else source.observed_at = new Date(source.observed_at).toISOString();
+  }
+  const ages = Object.values(sources).map((s) => s.freshness_seconds);
   return responseMeta({
     as_of: new Date().toISOString(),
     ...(row.recorded_since
-      ? { recording_active_since: row.recorded_since.toISOString() }
+      ? { recorded_since: row.recorded_since.toISOString() }
       : {}),
-    ...(row.freshness_seconds !== null && row.freshness_seconds !== undefined
-      ? { freshness_seconds: row.freshness_seconds }
+    ...(row.active_since
+      ? { recording_active_since: row.active_since.toISOString() }
       : {}),
+    source_polls: sources,
+    freshness_seconds:
+      ages.length && ages.every((age) => age !== null)
+        ? Math.max(...ages)
+        : null,
     ...(row.fb_pending > 0
       ? { feedback_responses_pending: row.fb_pending }
       : {}),

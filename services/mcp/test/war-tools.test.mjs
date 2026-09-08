@@ -235,6 +235,48 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.players.length, 2);
 });
 
+test("war_current exposes the poll age separately from the first period sighting", async () => {
+  await db.query("begin");
+  try {
+    await db.query("delete from war_period_anchor where clan_tag=$1", [CLAN]);
+    await db.query(
+      `insert into war_period_anchor (clan_tag,period_index,first_observed_at)
+      values ($1,0,now()-interval '2 days')`,
+      [CLAN],
+    );
+    await db.query(
+      `insert into poll_state (subject_tag,endpoint,last_admitted_at)
+      values ($1,'currentriverrace',now()-interval '3 hours')
+      on conflict (subject_tag,endpoint) do update set last_admitted_at=excluded.last_admitted_at`,
+      [CLAN],
+    );
+    const stale = await call(invoke, "war_current", { clan_tag: CLAN });
+    assert.equal(stale.isError, false, JSON.stringify(stale.body));
+    assert.equal(stale.body.period.period_index, 0);
+    assert.ok(stale.body.period.freshness_seconds >= 10800);
+    assert.equal(stale.body.period.nominal_period_elapsed, true);
+    assert.match(stale.body.meta.completeness_note, /nominal end/);
+    assert.notEqual(
+      stale.body.period.source_observed_at,
+      stale.body.period.started_observed_at,
+    );
+    await db.query(
+      `update war_period_anchor set period_index=1,first_observed_at=now() where clan_tag=$1`,
+      [CLAN],
+    );
+    await db.query(
+      `update poll_state set last_admitted_at=now() where subject_tag=$1 and endpoint='currentriverrace'`,
+      [CLAN],
+    );
+    const fresh = await call(invoke, "war_current", { clan_tag: CLAN });
+    assert.equal(fresh.body.period.period_index, 1);
+    assert.equal(fresh.body.period.nominal_period_elapsed, false);
+    assert.equal(fresh.body.period.freshness_seconds, 0);
+  } finally {
+    await db.query("rollback");
+  }
+});
+
 test("the registry declares 39 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
   assert.equal(decls.length, 39);

@@ -3,10 +3,8 @@
  *
  * Delete-then-reinsert per (player, UTC day): rollups are derived, battles
  * are the truth. mode_group is data, not code — one mapping shared by the
- * SQL. Rollups carry their own completeness rather than pretending:
- * expected_battle_delta comes from bracketing snapshots (battleCount is
- * lifetime-monotonic), captured is what we hold; the ratio is day-level
- * and duplicated across the day's mode rows by design.
+ * SQL. Completeness is computed at read time from matched observation
+ * intervals; calendar-day rollups cannot represent a multi-day profile gap.
  */
 
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
@@ -46,44 +44,4 @@ export async function refreshDailyRollups(db, pairs) {
       [playerTag, day],
     );
   }
-}
-
-/**
- * Fill the day-level completeness estimate for (player, day) when
- * bracketing snapshots exist: expected = battleCount(day) - battleCount
- * (previous snapshot day); captured = the day's rollup total.
- */
-export async function refreshCompleteness(db, { playerTag, day }) {
-  const { rows } = await db.query(
-    `with here as (
-       select (lifetime->>'battleCount')::int as bc
-       from player_snapshot_daily
-       where player_tag = $1 and snapshot_date = $2::date and snapshot_kind = 'daily'
-     ), prev as (
-       select (lifetime->>'battleCount')::int as bc
-       from player_snapshot_daily
-       where player_tag = $1 and snapshot_date < $2::date and snapshot_kind = 'daily'
-       order by snapshot_date desc limit 1
-     )
-     select here.bc - prev.bc as expected from here, prev`,
-    [playerTag, day],
-  );
-  const expected = rows[0]?.expected;
-  if (expected === undefined || expected === null || expected < 0)
-    return { expected: null };
-
-  await db.query(
-    `with captured as (
-       select coalesce(sum(battles_captured), 0)::int as n
-       from player_daily_battle_rollup where player_tag = $1 and day = $2::date
-     )
-     update player_daily_battle_rollup r
-     set expected_battle_delta = $3,
-         completeness_ratio = case when $3 = 0 then 1 else least(1, (select n from captured)::numeric / $3) end,
-         is_complete = (select n from captured) >= $3
-     from captured
-     where r.player_tag = $1 and r.day = $2::date`,
-    [playerTag, day, expected],
-  );
-  return { expected };
 }

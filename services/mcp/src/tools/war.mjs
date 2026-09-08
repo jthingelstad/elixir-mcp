@@ -9,6 +9,7 @@ import {
   seasonFromDate,
 } from "../../../ingest/src/war-clock.mjs";
 import {
+  buildMeta,
   ToolFailure,
   TAG_RULE_HINT,
   ON_BEHALF_OF_SCHEMA,
@@ -184,7 +185,7 @@ export const warTools = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far. On a live war day, decks_today names who is untouched/partial/finished - the nudge list for clan management.",
+      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far. period.source_observed_at and freshness_seconds expose the current-race poll; nominal_period_elapsed warns when the observed policy window ended without inventing a new observation. On a live war day, decks_today names who is untouched/partial/finished - the nudge list for clan management.",
     inputSchema: {
       type: "object",
       properties: {
@@ -210,6 +211,9 @@ export const warTools = {
         );
       }
       const wk = weekRows[0];
+      const meta = await buildMeta(ctx.db, ctx.account, clanTag, [
+        "currentriverrace",
+      ]);
       // Grounded time (feedback #8: an agent asserted "the week just
       // finished" from schema alone): the current period anchor gives
       // fields a temporal claim can CITE instead of infer.
@@ -231,6 +235,10 @@ export const warTools = {
           ...(info.warDay ? { war_day: info.warDay } : {}),
           day_in_week: info.dayInSection,
           started_observed_at: anchor.toISOString(),
+          source_observed_at: meta.source_polls.currentriverrace.observed_at,
+          freshness_seconds:
+            meta.source_polls.currentriverrace.freshness_seconds,
+          nominal_period_elapsed: !p.openNow,
           period_start_nominal: new Date(p.startMs).toISOString(),
           period_end_nominal: new Date(p.endMs).toISOString(),
           week_end_nominal: new Date(p.weekEndMs).toISOString(),
@@ -381,12 +389,15 @@ export const warTools = {
         ...(decksToday ? { decks_today: decksToday } : {}),
         attendance_by_war_day: attendance.rows,
         note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles.",
-        meta: responseMeta({
-          as_of: new Date().toISOString(),
-          ...(ctx.account.timezone
-            ? { timezone_applied: ctx.account.timezone }
+        meta: {
+          ...meta,
+          ...(period?.nominal_period_elapsed
+            ? {
+                completeness_note:
+                  "The latest observed period has passed its nominal end. A new period is not asserted until observed; check period.source_observed_at and game_clock for the policy clock.",
+              }
             : {}),
-        }),
+        },
       };
     },
   },
