@@ -38,6 +38,7 @@ import {
   listPrincipals,
   createAgent,
   createIntegration,
+  mayCreateIntegration,
 } from "./principals.mjs";
 import {
   normalizeTag,
@@ -1493,7 +1494,7 @@ export function makeHandler({
             [account.accountId],
           )
         ).rows,
-        may_create_integration: roleQuotas(account.role).integrations > 0,
+        may_create_integration: mayCreateIntegration(account.role),
       });
     },
 
@@ -1518,12 +1519,12 @@ export function makeHandler({
       if (!result.ok)
         return json(result.error === "internal" ? 500 : 400, result);
       await logEvent(db, account.accountId, "agent_created", {
-        agent: result.agent.public_id,
+        agent: result.principal.public_id,
         clan_tag: clanTag,
       });
       // The raw token is returned exactly once and never stored.
       return json(201, {
-        agent: result.agent,
+        agent: result.principal,
         token: result.token,
         note: "This token is shown once. Store it now.",
       });
@@ -1548,10 +1549,10 @@ export function makeHandler({
           result,
         );
       await logEvent(db, account.accountId, "integration_created", {
-        integration: result.integration.public_id,
+        integration: result.principal.public_id,
       });
       return json(201, {
-        integration: result.integration,
+        integration: result.principal,
         token: result.token,
         note: "This token is shown once. Store it now.",
       });

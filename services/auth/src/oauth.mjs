@@ -509,6 +509,19 @@ const SERVICE_TOKEN_PREFIX = "svt_";
  * Elixir Drop reads a war clock and has no business being able to edit
  * collections or change account settings.
  */
+/**
+ * A service token value and its digest, without storing either.
+ *
+ * The token FORMAT belongs here; where the row gets written does not. The ops
+ * lane mints on an operator's machine and sends only the hash, so keeping the
+ * two halves separable is what lets that path and the console path share one
+ * insert instead of growing a parallel implementation.
+ */
+export function mintServiceTokenValue() {
+  const raw = secret(SERVICE_TOKEN_PREFIX);
+  return { raw, hash: sha256hex(raw) };
+}
+
 export async function issueServiceToken(
   db,
   { accountId, name, scope = null, dailyQuota = null, hourlyRateLimit = null },

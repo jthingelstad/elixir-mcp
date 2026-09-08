@@ -1,3 +1,5 @@
+export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
+
 /**
  * Who is subscribed to what, and therefore what gets recorded.
  *
