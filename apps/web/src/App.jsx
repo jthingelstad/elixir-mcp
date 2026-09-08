@@ -256,6 +256,10 @@ export function App() {
                 section === "account",
               )}
             <a href={STATIC_LINKS.docs}>Docs</a>
+            {/* Updates was missing here entirely, so the nav lost an item the
+                moment you crossed from the static half into the app. One site
+                should not change shape as you walk through it. */}
+            <a href={STATIC_LINKS.updates}>Updates</a>
             {authed &&
               me.is_admin &&
               t1("/admin/requests", "Admin", "admin", section === "admin")}

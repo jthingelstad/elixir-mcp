@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+
+/** Eight weeks. Long enough to see a trend, short enough that a daily bar is
+ *  still a bar rather than a hairline. */
+const WINDOW_DAYS = 56;
 import { Status } from "./Status.jsx";
 
 /** Data (design handoff §2-3): the ONLY place charts belong. Full
@@ -94,8 +98,29 @@ export function Data({ page }) {
 
   if (page === "status") return <Status />;
   const t = stats?.totals;
-  const mk = (rows, vKey) =>
-    (rows ?? []).map((d) => ({ day: d.day, v: d[vKey] }));
+  /**
+   * All three charts on one fixed axis: the last eight weeks.
+   *
+   * They used to render whatever length each series happened to have, so three
+   * charts stacked above each other, all labelled "per day", covered three
+   * different spans — and a reader comparing them was comparing different
+   * windows without being told. A day with no rows is a real zero on a time
+   * axis, not a gap to compress, so missing days are filled rather than
+   * skipped.
+   */
+  const mk = (rows, vKey) => {
+    const byDay = new Map((rows ?? []).map((d) => [d.day, d[vKey] ?? 0]));
+    const out = [];
+    const cursor = new Date();
+    cursor.setUTCHours(0, 0, 0, 0);
+    cursor.setUTCDate(cursor.getUTCDate() - (WINDOW_DAYS - 1));
+    for (let i = 0; i < WINDOW_DAYS; i += 1) {
+      const day = cursor.toISOString().slice(0, 10);
+      out.push({ day, v: byDay.get(day) ?? 0 });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return out;
+  };
   const battles = mk(stats?.series.battles_daily, "battles");
   const players = mk(stats?.series.players_observed_daily, "players");
   const fetches = mk(stats?.series.fetches_daily, "fetches");
@@ -143,7 +168,7 @@ export function Data({ page }) {
         <section className="panel">
           <div className="panel__head">
             <span className="panel-title">Over time</span>
-            <span className="caveat">full recorded history</span>
+            <span className="caveat">last 8 weeks</span>
             <span className="caveat">daily · UTC</span>
             <span
               className="mono"

@@ -6,6 +6,18 @@ permalink: /data/changelog/index.html
 canonical: /data/changelog
 navActive: data
 prose: true
+# The Data section's tier-2 row. This page is the one static document inside an
+# otherwise-app section, and it was the only one rendering without it — so
+# clicking Data > Changelog dropped you out of the section's navigation
+# entirely, with no way back to Dashboard or Status except the browser.
+nav2Label: Data
+nav2:
+  - url: /data/dashboard
+    label: Dashboard
+  - url: /data/status
+    label: Status
+  - url: /data/changelog
+    label: Changelog
 ---
 <div class="page-head">
   <h1 class="page-title">Contract changelog</h1>

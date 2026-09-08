@@ -1,37 +1,40 @@
 ---
-layout: base.njk
+layout: doc.njk
 title: "Docs"
-description: "Documentation for Elixir MCP: what it is, roles and quotas, the full tool reference for agents, privacy, terms, and architecture."
+description: "Documentation for Elixir MCP: connecting your agent, the difference between users, agents and integrations, the full tool reference, how the numbers are made, and how the service treats your data."
 permalink: /docs/index.html
 canonical: /docs
 navActive: docs
 ---
-<div class="page-head">
-  <h1 class="page-title">Docs</h1>
-  <p class="page-head__note">Start with the quickstart if you just want your agent connected. The Connections section explains the difference between using Elixir MCP yourself and running an agent for your clan.</p>
-</div>
+<h1>Documentation</h1>
+
+<p>Elixir MCP records the Clash Royale history the official API doesn't keep,
+and serves it to your own agent. If you just want that working, the
+<a href="/docs/quickstart">quickstart</a> is five minutes. If you are trying to
+work out whether you want a personal connection or an agent for your clan,
+read <a href="/docs/connections">users, agents and integrations</a> first —
+it's the distinction everything else rests on.</p>
 
 {%- for s in collections.docSections %}
-<h2 class="docs__index-heading">{{ s.label }}</h2>
-<div class="stats">
+<h2>{{ s.label }}</h2>
+<dl class="outline">
   {%- for d in s.pages %}
-  <section class="panel">
-    <div class="panel__head"><span class="panel-title"><a href="{{ d | pageUrl }}">{{ d.data.title }}</a></span></div>
-    <div class="panel__body"><p style="color: var(--muted); margin: 0">{{ d.data.description }}</p></div>
-  </section>
+  <dt><a href="{{ d | pageUrl }}">{{ d.data.title }}</a></dt>
+  <dd>{{ d.data.description }}</dd>
   {%- endfor %}
-</div>
+</dl>
 {%- endfor %}
 
-<section class="panel" style="margin-top: var(--s-6)">
-  <div class="panel__head"><span class="panel-title">For agents</span></div>
-  <div class="panel__body">
-    <ul style="margin: 0">
-      <li><a href="/llms.txt">/llms.txt</a> — what this service is and where everything lives, in one short file.</li>
-      <li><a href="/llms-full.txt">/llms-full.txt</a> — every documentation page and the whole tool reference in one fetch.</li>
-      <li><a href="/tools.json">/tools.json</a> — the tool registry as JSON: names, groups, descriptions, arguments, required capabilities.</li>
-      <li><a href="/api/public/stats">/api/public/stats</a> — live corpus totals and the full-history daily series.</li>
-      <li><a href="/data/changelog">Contract changelog</a> — what changed in the tool contract, version by version.</li>
-    </ul>
-  </div>
-</section>
+<h2>For agents</h2>
+<dl class="outline">
+  <dt><a href="/llms.txt">/llms.txt</a></dt>
+  <dd>What this service is and where everything lives, in one short file.</dd>
+  <dt><a href="/llms-full.txt">/llms-full.txt</a></dt>
+  <dd>Every documentation page and the whole tool reference in one fetch.</dd>
+  <dt><a href="/tools.json">/tools.json</a></dt>
+  <dd>The tool registry as JSON: names, groups, descriptions, arguments, and the capability each one requires.</dd>
+  <dt><a href="/api/public/stats">/api/public/stats</a></dt>
+  <dd>Live corpus totals and the full-history daily series. No authentication.</dd>
+  <dt><a href="/data/changelog">Contract changelog</a></dt>
+  <dd>Every contract version and what shipped in it — the same list <code>elixir_changelog</code> returns.</dd>
+</dl>

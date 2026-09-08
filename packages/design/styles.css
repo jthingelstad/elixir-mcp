@@ -1167,15 +1167,21 @@ input[aria-invalid="true"] {
   flex-direction: column;
   gap: 2px;
 }
-/* Section headings on the docs index. Sit above a grid of cards, so they need
-   enough room to read as a break rather than a caption on the first card. */
-.docs__index-heading {
-  margin: var(--s-6) 0 var(--s-3);
-  font-size: 15px;
-  letter-spacing: 0.02em;
+/* The docs outline: a definition list, because that is what it is — a page
+   name and what is in it. Cards made six items look like a product grid and
+   made fourteen look like a wall. */
+.outline {
+  margin: 0 0 var(--s-5);
 }
-.docs__index-heading:first-of-type {
-  margin-top: var(--s-4);
+.outline dt {
+  margin-top: var(--s-3);
+  font-weight: 500;
+}
+.outline dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
 /* Section headings in the docs sidebar. Quiet and small: they orient, they
@@ -1252,4 +1258,46 @@ input[aria-invalid="true"] {
   .tiles {
     grid-template-columns: 1fr;
   }
+}
+
+/* Status: the hourly request-budget gauge. A bar with a pace marker — the
+   marker is the part that makes it mean anything, because spend is bursty by
+   design and a bare fill cannot tell a busy hour from an overspent one. */
+.gauge {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--well);
+  border: 1px solid var(--edge);
+  overflow: hidden;
+}
+.gauge__fill {
+  height: 100%;
+  border-radius: 5px 0 0 5px;
+  transition: width 0.4s ease;
+}
+.gauge__pace {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ink);
+  opacity: 0.55;
+}
+.gauge__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* The live lane. Distinct from chip--active (which means "this collector is
+   healthy") because they answer different questions: one is health, one is
+   capability. A collector can be active and bulk-only. */
+.chip--live {
+  background: rgba(138, 99, 210, 0.16);
+  border-color: rgba(138, 99, 210, 0.45);
+  color: #b79bf0;
 }

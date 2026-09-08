@@ -558,7 +558,7 @@ export function makeHandler({
       // or an owner who has claimed no player, simply shows no credit.
       const collectors = await q(
         `select coalesce(g.card_name, 'unnamed') as name, g.card_icon, g.status,
-                g.last_success_at, g.last_heartbeat_at,
+                g.channel, g.last_success_at, g.last_heartbeat_at,
                 op.name as operator,
                 op.player_tag as operator_tag,
                 (select count(*)::int from api_receipt ar
@@ -669,6 +669,35 @@ export function makeHandler({
                 count(*) filter (where gap)::int as gaps
          from capture_audit where fetched_at > now() - interval '24 hours'`,
       );
+      // The global Clash Royale request budget, sliced to the calendar hour.
+      //
+      // It is really a continuous token bucket (rate_per_sec, burst), not an
+      // hourly allowance — but "how much of this hour have we spent" is the
+      // question an operator actually has, and a bucket is unreadable at a
+      // glance. `expected` is elapsed-fraction of capacity: level with `used`
+      // means on pace, well under means idle, over means a burst. Without it
+      // 500 spent at ten past and 500 at five to look identical.
+      const budgetRow = await q(
+        `select rate_per_sec, burst, live_reserve from budget_state`,
+      );
+      const usedRow = await q(
+        `select count(*)::int as used from api_receipt
+         where fetched_at >= date_trunc('hour', now())`,
+      );
+      const ratePerSec = Number(budgetRow[0]?.rate_per_sec ?? 1);
+      const nowMs = Date.now();
+      const hourStart = new Date(nowMs);
+      hourStart.setUTCMinutes(0, 0, 0);
+      const elapsed = (nowMs - hourStart.getTime()) / 3_600_000;
+      const budget = {
+        rate_per_sec: ratePerSec,
+        capacity_hour: Math.round(ratePerSec * 3600),
+        used_hour: usedRow[0]?.used ?? 0,
+        expected_hour: Math.round(ratePerSec * 3600 * elapsed),
+        hour_started_at: hourStart.toISOString(),
+        live_reserve: Number(budgetRow[0]?.live_reserve ?? 0),
+      };
+
       const queues = await queueStats();
       const jobs = await ledgerStats(db).catch(() => null);
       // Health verdict derived from data, never vibes: pipeline is OK
@@ -698,6 +727,7 @@ export function makeHandler({
               gaps: audit[0]?.gaps ?? 0,
             },
           },
+          budget,
           queues,
           jobs,
           collectors: collectors.map((c) => ({
@@ -708,6 +738,11 @@ export function makeHandler({
             last_heartbeat_at: c.last_heartbeat_at?.toISOString() ?? null,
             operator: c.operator ?? null,
             operator_tag: c.operator_tag ?? null,
+            // Which lane this collector drains. The live lane is what serves
+            // an interactive live_fetch, so "who can answer a request right
+            // now" is a different question from "who is capturing", and the
+            // page could not previously tell them apart.
+            channel: c.channel ?? "bulk",
             fetches_1h: c.fetches_1h,
           })),
           capture_series: captureSeries,

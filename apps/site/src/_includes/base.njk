@@ -66,6 +66,9 @@
     {#- Tinylytics: a static page is a real document load, so the embed
         records the hit by itself. No pushState bridge is needed here -
         that belongs to the app. Same privacy posture: anonymous only. -#}
+    {#- Keeps this nav in step with the app's once a session exists. External
+        file, never inline: the CSP forbids inline script and a test pins it. -#}
+    <script defer src="/assets/nav-session.js"></script>
     <script defer src="https://tinylytics.app/embed/{{ site.tinylyticsId }}/min.js?hits&countries&events"></script>
   </body>
 </html>

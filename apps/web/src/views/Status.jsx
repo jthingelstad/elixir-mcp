@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
 
@@ -174,28 +174,117 @@ function ChartLegend({ series }) {
   );
 }
 
+/**
+ * The global Clash Royale request budget for the hour in progress.
+ *
+ * This is the one number on the page with a rule attached to it rather than a
+ * preference: the fleet exists for redundancy and must never multiply the
+ * spend, so "are we inside the budget" is a compliance question. It goes at the
+ * top because it is the first thing worth knowing and it was not shown at all.
+ *
+ * The pace marker is what makes it readable. Spend is not meant to be flat —
+ * the scheduler polls where battles are — so a bar alone cannot distinguish a
+ * busy hour from an overspent one. The marker is elapsed-fraction of capacity:
+ * fill level with it is on pace, well short is idle, past it is a burst.
+ */
+function BudgetGauge({ budget }) {
+  if (!budget) return null;
+  const {
+    used_hour: used,
+    capacity_hour: cap,
+    expected_hour: expected,
+  } = budget;
+  const pct = cap > 0 ? Math.min(100, (used / cap) * 100) : 0;
+  const pacePct = cap > 0 ? Math.min(100, (expected / cap) * 100) : 0;
+  const over = used > expected * 1.25 && used > 60;
+  const nearCap = pct >= 90;
+
+  return (
+    <section className="panel" style={{ marginBottom: "20px" }}>
+      <div className="panel__head">
+        <span className="panel-title">Request budget, this hour</span>
+        <span
+          className="mono"
+          style={{
+            marginLeft: "auto",
+            fontSize: "11.5px",
+            color: "var(--dim)",
+          }}
+        >
+          {used.toLocaleString()} / {cap.toLocaleString()}
+          {" · "}
+          {budget.rate_per_sec}/s
+        </span>
+      </div>
+      <div className="panel__body">
+        <div
+          className="gauge"
+          role="img"
+          aria-label={`${used} of ${cap} requests used this hour; ${expected} expected by now`}
+        >
+          <div
+            className="gauge__fill"
+            style={{
+              width: `${pct}%`,
+              background: nearCap
+                ? "var(--red)"
+                : over
+                  ? "var(--amber)"
+                  : "var(--green)",
+            }}
+          />
+          <div className="gauge__pace" style={{ left: `${pacePct}%` }} />
+        </div>
+        <div className="gauge__foot">
+          <span>
+            {nearCap
+              ? "at the hour's ceiling"
+              : over
+                ? "ahead of pace"
+                : used < expected * 0.5
+                  ? "below pace"
+                  : "on pace"}
+          </span>
+          <span className="mono">
+            expected by now {expected.toLocaleString()}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Status() {
   const [data, setData] = useState(null);
   const [now, setNow] = useState(() => Date.now());
   const [err, setErr] = useState("");
+  // Off by default and visible either way. It used to poll every 60s with
+  // nothing on screen saying so, which is the worst of both: a tab left open
+  // polled forever, and a reader had no way to know whether what they were
+  // looking at was thirty seconds or three hours old.
+  const [auto, setAuto] = useState(false);
 
-  useEffect(() => {
-    let live = true;
-    const load = () =>
+  const load = useCallback(
+    () =>
       api.publicStatus().then((r) => {
-        if (!live) return;
         if (r.ok) {
           setData(r.data);
           setNow(Date.now());
+          setErr("");
         } else setErr("Could not load status.");
-      });
+      }),
+    [],
+  );
+
+  useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!auto) return undefined;
     const t = setInterval(load, 60_000);
-    return () => {
-      live = false;
-      clearInterval(t);
-    };
-  }, []);
+    return () => clearInterval(t);
+  }, [auto, load]);
 
   if (err) return <p className="field-error">{err}</p>;
   if (!data) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
@@ -216,16 +305,30 @@ export function Status() {
     <>
       <div className="page-head">
         <h1 className="page-title">Status</h1>
-        <span className="page-head__note">
-          collectors · the last hour — refreshes every 60s
-        </span>
         <span
           className="mono"
           style={{ marginLeft: "auto", fontSize: "11px", color: "var(--dim)" }}
         >
           as of {data.as_of.slice(11, 19)}Z
         </span>
+        <button
+          className="btn--text"
+          aria-pressed={auto}
+          onClick={() => setAuto((v) => !v)}
+          style={{ fontSize: "12px" }}
+        >
+          {auto ? "auto-refresh on" : "auto-refresh off"}
+        </button>
+        <button
+          className="btn--text"
+          onClick={load}
+          style={{ fontSize: "12px" }}
+        >
+          refresh
+        </button>
       </div>
+
+      <BudgetGauge budget={data.budget} />
 
       <div
         className={`notice`}
@@ -295,6 +398,14 @@ export function Status() {
               <span style={{ fontWeight: 600, fontSize: "13px" }}>
                 {c.name}
               </span>
+              {/* Which lane it drains. The live lane is what answers an
+                  interactive live_fetch, so "who could serve a request right
+                  now" is a different question from "who is capturing". */}
+              {c.channel === "live" && (
+                <span className="chip chip--live" title="Serves the live lane">
+                  live
+                </span>
+              )}
               <span
                 className={`chip ${
                   c.status === "active"
@@ -348,12 +459,9 @@ export function Status() {
             </div>
           ))}
           <div className="panel__note">
-            Every collector is a volunteer's machine, named for the Clash Royale
-            card it was given and credited to the player who runs it. Heartbeat
-            is any contact with the door, so it stays fresh even when a
-            collector polls and finds nothing to do. Data is the last payload we
-            actually accepted and recorded. A live heartbeat with old data means
-            idle, not broken; a stale heartbeat means the process is gone.
+            Volunteer machines, named for their card and credited to their
+            operator. Heartbeat is any contact; data is the last payload
+            admitted. <a href="/docs/operators">Run one</a>.
           </div>
         </section>
       </div>
@@ -372,9 +480,8 @@ export function Status() {
         />
         <ChartLegend series={series} />
         <div className="panel__note">
-          Hover a bucket for the per-collector split. A red tick under a bucket
-          marks rejected payloads. Quiet stretches are normal — the yield
-          scheduler polls where battles actually happen.
+          Hover for the per-collector split; a red tick marks rejected payloads.
+          Quiet stretches are normal.
         </div>
       </section>
 
@@ -391,10 +498,6 @@ export function Status() {
           ariaLabel="fetches per hour over the last 24 hours, stacked by collector"
         />
         <ChartLegend series={series} />
-        <div className="panel__note">
-          The same stack over a longer window: this is where a collector that
-          quietly stopped pulling its weight overnight shows up.
-        </div>
       </section>
     </>
   );
