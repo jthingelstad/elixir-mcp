@@ -99,8 +99,25 @@ check(
 // that is present but ineffective looks exactly like one that works.
 const statusOnce = await fetch(`${mcpBase}/api/public/status`);
 check("public status serves", statusOnce.ok, String(statusOnce.status));
-const statusTwice = await fetch(`${mcpBase}/api/public/status`);
-const hit = (statusTwice.headers.get("x-cache") ?? "").toLowerCase();
+
+// Asserting a hit on exactly the SECOND request assumes both land on the same
+// edge server. CloudFront has many points of presence, and the deploy
+// invalidates the distribution immediately before smoke runs, so the first few
+// requests after a deploy are all populating different empty caches. That made
+// a correct deploy fail its own gate (2026-09-08), and a gate that cries wolf
+// is one people learn to push past.
+//
+// The intent is "caching is EFFECTIVE, not merely configured", and a few
+// requests settling into hits proves exactly that -- a disabled cache never
+// hits, however many times you ask.
+let hit = "absent";
+let statusTwice = statusOnce;
+for (let attempt = 0; attempt < 6; attempt += 1) {
+  statusTwice = await fetch(`${mcpBase}/api/public/status`);
+  hit = (statusTwice.headers.get("x-cache") ?? "").toLowerCase();
+  if (hit.includes("hit")) break;
+  await new Promise((r) => setTimeout(r, 500));
+}
 check("public status caches at the edge", hit.includes("hit"), hit || "absent");
 check(
   "public status still declares its own freshness",
