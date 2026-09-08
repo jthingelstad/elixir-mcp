@@ -48,6 +48,7 @@ export const SECTIONS = {
     pages: [
       { slug: "overview", label: "Overview" },
       { slug: "agents", label: "Agents" },
+      { slug: "connections", label: "Connections" },
       { slug: "activity", label: "Activity" },
       { slug: "usage", label: "Usage" },
       { slug: "collector", label: "Collector" },

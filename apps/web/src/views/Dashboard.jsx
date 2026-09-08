@@ -74,6 +74,7 @@ export function Dashboard({ me, refresh, navigate, page, itemId }) {
   if (page === "activity") return <Activity />;
   if (page === "collector") return <CollectorPage />;
   if (page === "agents") return <Agents />;
+  if (page === "connections") return <Connections />;
   if (page === "usage") return <Usage me={me} />;
   if (page === "feedback")
     return itemId ? (
@@ -724,33 +725,26 @@ function Timezone({ me, refresh }) {
 /* ── Agents ──────────────────────────────────────────────── */
 
 /**
- * Two different things share the word "agent" on this page, and the difference
- * matters enough to spell out in the UI rather than let people infer it:
+ * Agents you own: principals that act for a clan, each with its own identity,
+ * its own key and its own event feed.
  *
- *   Your agents      principals YOU own that act for a clan — their own
- *                    identity, their own key, their own event feed.
- *   Connected clients your own OAuth sessions: Claude and friends, signed in
- *                    as YOU. These were labelled "connected agents", which
- *                    became actively misleading once agents became a kind of
- *                    principal.
+ * This page used to list OAuth connections under the same word. They are
+ * opposites -- a connection is YOU reaching in, an agent is a separate thing
+ * acting on a clan's behalf -- so connections moved to their own page rather
+ * than sharing a name with the concept that replaced them.
  */
 function Agents() {
-  const [connections, setConnections] = useState(null);
   const [principals, setPrincipals] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [form, setForm] = useState({ name: "", clan_tag: "" });
   const [minted, setMinted] = useState(null);
   const [error, setError] = useState(null);
 
-  const load = () => {
-    api.connections().then((r) => r.ok && setConnections(r.data.connections));
+  const load = () =>
     api.myPrincipals().then((r) => r.ok && setPrincipals(r.data));
-  };
   useEffect(() => {
     load();
   }, []);
 
-  const url = "https://elixir.poapkings.com/mcp";
   const clans = principals?.addable_clans ?? [];
 
   async function create(e) {
@@ -801,6 +795,11 @@ function Agents() {
             </p>
           </div>
 
+          {principals?.agents?.length === 0 && (
+            <div className="panel__body" style={{ color: "var(--faint)" }}>
+              No agents yet.
+            </div>
+          )}
           {principals?.agents?.length > 0 && (
             <div className="tablewrap">
               <table>
@@ -903,7 +902,34 @@ function Agents() {
             )}
           </div>
         </section>
+      </div>
+    </div>
+  );
+}
 
+/* ── Connections ─────────────────────────────────────────── */
+
+/**
+ * Clients signed in AS YOU over OAuth — Claude and friends.
+ *
+ * The API has always called these connections (/api/me/connections,
+ * revokeConnection); only the interface called them agents, which stopped being
+ * survivable once an agent became a distinct kind of principal that is
+ * precisely NOT you.
+ */
+function Connections() {
+  const [connections, setConnections] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const load = () =>
+    api.connections().then((r) => r.ok && setConnections(r.data.connections));
+  useEffect(() => {
+    load();
+  }, []);
+  const url = "https://elixir.poapkings.com/mcp";
+
+  return (
+    <div className="cols">
+      <div className="cols__main">
         <section className="panel">
           <div className="panel__head">
             <span className="panel-title">Connected clients</span>
@@ -916,8 +942,8 @@ function Agents() {
                 marginTop: 0,
               }}
             >
-              Signed in as you, through OAuth. These see your players and your
-              feed, which is what makes them different from an agent.
+              Signed in as you. These see your players, your clans and your feed
+              — which is exactly what makes them different from an agent.
             </p>
           </div>
           {connections?.length === 0 && (
@@ -969,7 +995,7 @@ function Agents() {
 
         <section className="panel">
           <div className="panel__head">
-            <span className="panel-title">Connect yourself</span>
+            <span className="panel-title">Connect a client</span>
           </div>
           <div className="panel__body">
             <div
@@ -996,7 +1022,7 @@ function Agents() {
               </button>
             </div>
             <p style={{ fontSize: "12.5px", color: "var(--faint)" }}>
-              Add it as a remote MCP server in your agent of choice — the OAuth
+              Add it as a remote MCP server in your client of choice — the OAuth
               sign-in uses the same email as this account. Start with{" "}
               <code>elixir_my_players</code>, then try{" "}
               <em>&ldquo;what&rsquo;s my record this week?&rdquo;</em>
