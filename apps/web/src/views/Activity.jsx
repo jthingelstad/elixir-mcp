@@ -68,6 +68,7 @@ export function Activity() {
                       <th>AGENT</th>
                       <th className="num">MS</th>
                       <th>RESULT</th>
+                      <th>REQUEST</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -77,7 +78,7 @@ export function Activity() {
                         <td>
                           <code>{r.tool}</code>
                         </td>
-                        <td>{r.surface}</td>
+                        <td>{r.token_name ?? r.surface}</td>
                         <td
                           className="num"
                           style={
@@ -102,6 +103,17 @@ export function Activity() {
                               {r.truncated ? " · truncated" : ""}
                             </span>
                           )}
+                        </td>
+                        {/* The id the caller was handed in meta.request_id.
+                            Shortened to stay readable; the full value is on
+                            the title so it can still be copied when someone
+                            reports an answer that looks wrong. */}
+                        <td
+                          className="mono"
+                          style={{ color: "var(--faint)" }}
+                          title={r.request_id ?? ""}
+                        >
+                          {r.request_id ? r.request_id.slice(0, 8) : "—"}
                         </td>
                       </tr>
                     ))}

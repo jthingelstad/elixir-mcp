@@ -6,7 +6,7 @@
  * boundary) and still audit.
  */
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { responseMeta } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./protocol.mjs";
@@ -86,6 +86,8 @@ async function audit(
   db,
   {
     accountId,
+    tokenId,
+    requestId,
     surface,
     tool,
     args,
@@ -97,10 +99,12 @@ async function audit(
 ) {
   try {
     await db.query(
-      `insert into mcp_call_audit (account_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         accountId,
+        tokenId ?? null,
+        requestId ?? null,
         surface,
         tool,
         JSON.stringify(boundedArgs(args)),
@@ -118,6 +122,22 @@ async function audit(
   }
 }
 
+/**
+ * Puts the request id where the caller will actually see it.
+ *
+ * Tools build their own envelope with responseMeta(), so the id is stamped
+ * here rather than threaded through thirty handlers — the invoker is the one
+ * place every call already passes through. A body without a meta envelope is
+ * left alone: inventing one would produce an envelope missing the fields the
+ * contract says it always has, which is worse than an unjoinable response.
+ */
+function stampRequestId(body, requestId) {
+  if (body && typeof body === "object" && !Array.isArray(body) && body.meta) {
+    body.meta.request_id = requestId;
+  }
+  return body;
+}
+
 export function makeInvoker({
   db,
   account,
@@ -128,6 +148,10 @@ export function makeInvoker({
 }) {
   return async function invokeTool(name, args) {
     const startedAt = Date.now();
+    // Minted before the tool runs so the audit row and the caller's copy are
+    // the same value even when the tool throws.
+    const requestId = randomUUID();
+    const tokenId = account.tokenId ?? null;
     // Ambient product signal (Tinylytics): tool name only, never args.
     // Fired AFTER the tool runs (finally) so the ping's SQS round-trip
     // never sits in front of the answer (review item 1).
@@ -147,6 +171,8 @@ export function makeInvoker({
       const resultBytes = JSON.stringify(body).length;
       await audit(db, {
         accountId: account.accountId,
+        tokenId,
+        requestId,
         surface,
         tool: name,
         args,
@@ -156,11 +182,13 @@ export function makeInvoker({
         // before rendering, so compute rather than observe (sol-6 F8).
         truncated: surface !== "web" && resultBytes > MCP_RESULT_MAX_CHARS,
       });
-      return { body, isError: false };
+      return { body: stampRequestId(body, requestId), isError: false };
     } catch (err) {
       if (err instanceof ToolFailure) {
         await audit(db, {
           accountId: account.accountId,
+          tokenId,
+          requestId,
           surface,
           tool: name,
           args,
@@ -174,13 +202,18 @@ export function makeInvoker({
               message: err.message,
               ...(err.hint ? { hint: err.hint } : {}),
             },
-            meta: responseMeta({ as_of: new Date().toISOString() }),
+            meta: responseMeta({
+              as_of: new Date().toISOString(),
+              request_id: requestId,
+            }),
           },
           isError: true,
         };
       }
       await audit(db, {
         accountId: account.accountId,
+        tokenId,
+        requestId,
         surface,
         tool: name,
         args,
@@ -193,7 +226,10 @@ export function makeInvoker({
             code: "bad_request",
             message: `Tool ${name} failed unexpectedly.`,
           },
-          meta: responseMeta({ as_of: new Date().toISOString() }),
+          meta: responseMeta({
+            as_of: new Date().toISOString(),
+            request_id: requestId,
+          }),
         },
         isError: true,
       };

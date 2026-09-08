@@ -24,6 +24,13 @@ export interface ResponseMeta {
   feedback_responses_pending?: number;
   /** Unread push-lane events awaiting elixir_events. */
   events_pending?: number;
+  /**
+   * Identifies the mcp_call_audit row this response came from, so a reported
+   * answer can be joined to the server's record of producing it. Stamped by
+   * the invoker after the tool returns — tools never set it, which is why it
+   * is optional here and present in practice.
+   */
+  request_id?: string;
   disclaimer: typeof DISCLAIMER;
   contract_version: typeof CONTRACT_VERSION;
 }

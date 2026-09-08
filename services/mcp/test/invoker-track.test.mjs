@@ -109,3 +109,101 @@ test("a credential never reaches an audit row by being an argument", () => {
   assert.equal(out.player_tag, "#20JJJ2CCRU", "real arguments are kept");
   assert.equal(out.nested.limit, 5);
 });
+
+// ------------------------------------------------- 0052: the principal
+// An audit column nothing verifies is one that silently stops being
+// written. These pin the two halves: what the caller gets back, and what
+// the row records.
+
+function recordingDb() {
+  const writes = [];
+  return {
+    writes,
+    query: async (sql, params) => {
+      if (sql.includes("insert into mcp_call_audit")) writes.push(params);
+      return { rows: [] };
+    },
+  };
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+test("a response names the audit row that produced it", async () => {
+  const db = recordingDb();
+  const invoke = makeInvoker({
+    db,
+    account,
+    registry: {
+      invoke: async () => ({
+        ok: true,
+        meta: { as_of: "2026-09-08T00:00:00Z" },
+      }),
+    },
+  });
+
+  const { body } = await invoke("war_current", {});
+  const [params] = db.writes;
+  const [, , requestId] = params;
+
+  assert.match(body.meta.request_id, UUID_RE);
+  assert.equal(
+    body.meta.request_id,
+    requestId,
+    "the id the caller quotes must be the id on the row",
+  );
+});
+
+test("a service token is recorded as the principal, not just its account", async () => {
+  const db = recordingDb();
+  const invoke = makeInvoker({
+    db,
+    account: { ...account, tokenId: 42 },
+    registry: { invoke: async () => ({ ok: true, meta: {} }) },
+    surface: "svc:elixir-mcp-discord",
+  });
+  await invoke("clans_roster", {});
+  const [accountId, tokenId] = db.writes[0];
+  assert.equal(accountId, account.accountId);
+  assert.equal(tokenId, 42);
+});
+
+test("an OAuth call audits with a null token, not a crash", async () => {
+  const db = recordingDb();
+  const invoke = makeInvoker({
+    db,
+    account, // no tokenId — the browser flow
+    registry: { invoke: async () => ({ ok: true, meta: {} }) },
+  });
+  await invoke("players_summary", {});
+  assert.equal(db.writes[0][1], null);
+});
+
+test("a failing tool still returns an id, and the same one it audited", async () => {
+  const db = recordingDb();
+  const invoke = makeInvoker({
+    db,
+    account: { ...account, tokenId: 7 },
+    registry: {
+      invoke: async () => {
+        throw new Error("boom");
+      },
+    },
+  });
+  const { body, isError } = await invoke("battles_query", {});
+  assert.equal(isError, true);
+  assert.equal(body.meta.request_id, db.writes[0][2]);
+  assert.equal(db.writes[0][1], 7);
+});
+
+test("a body with no envelope is left alone rather than given a broken one", async () => {
+  const db = recordingDb();
+  const invoke = makeInvoker({
+    db,
+    account,
+    registry: { invoke: async () => ({ ok: true }) },
+  });
+  const { body } = await invoke("cards_catalog", {});
+  assert.deepEqual(body, { ok: true }, "no half-built meta envelope");
+  assert.match(db.writes[0][2], UUID_RE, "but the row still has an id");
+});

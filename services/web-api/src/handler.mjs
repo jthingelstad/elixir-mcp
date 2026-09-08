@@ -1457,11 +1457,13 @@ export function makeHandler({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select tool, surface, args, duration_ms, result_bytes, truncated,
-                error_code, created_at
-         from mcp_call_audit
-         where account_id = $1
-         order by created_at desc limit 200`,
+        `select a.tool, a.surface, a.args, a.duration_ms, a.result_bytes,
+                a.truncated, a.error_code, a.created_at, a.request_id,
+                t.name as token_name
+         from mcp_call_audit a
+         left join service_token t on t.token_id = a.token_id
+         where a.account_id = $1
+         order by a.created_at desc limit 200`,
         [account.accountId],
       );
       return json(200, { requests: rows });

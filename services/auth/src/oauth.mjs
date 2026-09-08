@@ -453,6 +453,10 @@ export async function validateServiceToken(db, token) {
     role: row.role,
     liveDailyQuota: row.live_daily_quota,
     serviceName: row.name,
+    // The token is the principal that made the call; the account is merely
+    // who it belongs to. Selected here since 0020 and dropped on the floor
+    // until 0052 gave the audit somewhere to put it.
+    tokenId: row.token_id,
     scope: OAUTH_SCOPES.join(" "),
     scopes: [...OAUTH_SCOPES],
     credentialType: "service",
