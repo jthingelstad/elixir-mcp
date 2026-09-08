@@ -86,5 +86,10 @@ export const api = {
   gatewayDetail: (id) =>
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
   myClanAction: (body) => request("POST", "/api/me/clans", body),
+  myPrincipals: () => request("GET", "/api/me/principals"),
+  createAgent: (body) => request("POST", "/api/me/agents", body),
+  createIntegration: (body) => request("POST", "/api/me/integrations", body),
+  revokePrincipalToken: (token_id) =>
+    request("POST", "/api/me/principals/revoke", { token_id }),
   myCollectionAction: (body) => request("POST", "/api/me/collections", body),
 };

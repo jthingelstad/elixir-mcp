@@ -723,25 +723,206 @@ function Timezone({ me, refresh }) {
 
 /* ── Agents ──────────────────────────────────────────────── */
 
+/**
+ * Two different things share the word "agent" on this page, and the difference
+ * matters enough to spell out in the UI rather than let people infer it:
+ *
+ *   Your agents      principals YOU own that act for a clan — their own
+ *                    identity, their own key, their own event feed.
+ *   Connected clients your own OAuth sessions: Claude and friends, signed in
+ *                    as YOU. These were labelled "connected agents", which
+ *                    became actively misleading once agents became a kind of
+ *                    principal.
+ */
 function Agents() {
   const [connections, setConnections] = useState(null);
+  const [principals, setPrincipals] = useState(null);
   const [copied, setCopied] = useState(false);
-  const load = () =>
+  const [form, setForm] = useState({ name: "", clan_tag: "" });
+  const [minted, setMinted] = useState(null);
+  const [error, setError] = useState(null);
+
+  const load = () => {
     api.connections().then((r) => r.ok && setConnections(r.data.connections));
+    api.myPrincipals().then((r) => r.ok && setPrincipals(r.data));
+  };
   useEffect(() => {
     load();
   }, []);
+
   const url = "https://elixir.poapkings.com/mcp";
+  const clans = principals?.addable_clans ?? [];
+
+  async function create(e) {
+    e.preventDefault();
+    setError(null);
+    const res = await api.createAgent({
+      name: form.name,
+      clan_tag: form.clan_tag || clans[0]?.clan_tag,
+    });
+    if (!res.ok) {
+      setError(
+        res.data?.error === "clan_not_added"
+          ? "Add that clan to your account first — an agent can only act for a clan you already record."
+          : res.data?.error === "name_taken"
+            ? "You already have an agent with that name."
+            : res.data?.error === "invalid_name"
+              ? "Lowercase letters, numbers and hyphens."
+              : "Could not create that agent.",
+      );
+      return;
+    }
+    // Shown once, never stored, and never fetchable again.
+    setMinted(res.data.token);
+    setForm({ name: "", clan_tag: "" });
+    load();
+  }
+
   return (
     <div className="cols">
       <div className="cols__main">
         <section className="panel">
           <div className="panel__head">
-            <span className="panel-title">Connected agents</span>
+            <span className="panel-title">Your agents</span>
+          </div>
+          <div className="panel__body">
+            <p
+              style={{
+                fontSize: "12.5px",
+                color: "var(--faint)",
+                marginTop: 0,
+              }}
+            >
+              An agent acts for a clan rather than for you. It has its own
+              identity, its own key and its own event feed — so what it does
+              never lands in your history, and what you do never shows up as
+              its. It spends your daily calls, and you can make one for any clan
+              you already record.
+            </p>
+          </div>
+
+          {principals?.agents?.length > 0 && (
+            <div className="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>AGENT</th>
+                    <th>CLAN</th>
+                    <th>TIER</th>
+                    <th>LAST ACTIVE</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {principals.agents.map((a) => {
+                    const live = (a.tokens ?? []).filter((k) => !k.revoked_at);
+                    return (
+                      <tr key={a.account_id}>
+                        <td>{live[0]?.name ?? a.public_id}</td>
+                        <td className="mono">
+                          {(a.clans ?? []).map((c) => c.clan_tag).join(", ") ||
+                            "—"}
+                        </td>
+                        <td>{a.role}</td>
+                        <td>
+                          {live[0]?.last_used_at ? (
+                            <Fresh ts={live[0].last_used_at} />
+                          ) : (
+                            <span style={{ color: "var(--faint)" }}>never</span>
+                          )}
+                        </td>
+                        <td>
+                          {live[0] && (
+                            <button
+                              className="btn--text"
+                              onClick={async () => {
+                                await api.revokePrincipalToken(
+                                  live[0].token_id,
+                                );
+                                load();
+                              }}
+                            >
+                              Revoke key
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {minted && (
+            <div className="panel__body">
+              <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
+                <strong>Copy this key now.</strong> It is shown once and never
+                again — only its hash is stored.
+              </p>
+              <code style={{ wordBreak: "break-all" }}>{minted}</code>
+            </div>
+          )}
+
+          <div className="panel__body">
+            {clans.length === 0 ? (
+              <p style={{ fontSize: "12.5px", color: "var(--faint)" }}>
+                Add a clan on your Overview first — an agent needs a clan to act
+                for.
+              </p>
+            ) : (
+              <form
+                onSubmit={create}
+                style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+              >
+                <input
+                  placeholder="agent name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+                <select
+                  value={form.clan_tag}
+                  onChange={(e) =>
+                    setForm({ ...form, clan_tag: e.target.value })
+                  }
+                >
+                  {clans.map((c) => (
+                    <option key={c.clan_tag} value={c.clan_tag}>
+                      {c.clan_tag}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit">Create agent</button>
+              </form>
+            )}
+            {error && (
+              <p style={{ fontSize: "12.5px", color: "var(--amber)" }}>
+                {error}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel__head">
+            <span className="panel-title">Connected clients</span>
+          </div>
+          <div className="panel__body">
+            <p
+              style={{
+                fontSize: "12.5px",
+                color: "var(--faint)",
+                marginTop: 0,
+              }}
+            >
+              Signed in as you, through OAuth. These see your players and your
+              feed, which is what makes them different from an agent.
+            </p>
           </div>
           {connections?.length === 0 && (
             <div className="panel__body" style={{ color: "var(--faint)" }}>
-              No agents connected yet.
+              Nothing connected yet.
             </div>
           )}
           {connections?.length > 0 && (
@@ -759,7 +940,7 @@ function Agents() {
                 <tbody>
                   {connections.map((c) => (
                     <tr key={c.family_id}>
-                      <td>{c.client_name ?? "agent"}</td>
+                      <td>{c.client_name ?? "client"}</td>
                       <td className="mono">{c.scope ?? "cr:read"}</td>
                       <td className="mono">
                         {new Date(c.created_at).toISOString().slice(0, 10)}
@@ -788,7 +969,7 @@ function Agents() {
 
         <section className="panel">
           <div className="panel__head">
-            <span className="panel-title">Connect another agent</span>
+            <span className="panel-title">Connect yourself</span>
           </div>
           <div className="panel__body">
             <div
