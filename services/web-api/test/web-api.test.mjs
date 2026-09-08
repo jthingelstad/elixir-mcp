@@ -874,7 +874,9 @@ test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin s
     ),
   );
   assert.equal(me.role, "member");
-  assert.equal(me.entitlements.player_slots.limit, 3);
+  // Player slots are no longer a rung on the ladder (50 everywhere below
+  // unlimited); comprehensive clans and collections still are.
+  assert.equal(me.entitlements.player_slots.limit, 50);
   assert.equal(me.entitlements.comprehensive_clans.limit, 0);
   assert.equal(me.entitlements.collections.limit, 0);
 

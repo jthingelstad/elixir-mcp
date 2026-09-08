@@ -47,10 +47,20 @@ test("admin is unlimited on every axis", () => {
   for (const v of Object.values(ROLES.admin)) assert.equal(v, Infinity);
 });
 
-test("member tier matches the ratified sketch: 3 players, 1 activity clan, no comprehensive", () => {
-  assert.equal(ROLES.member.player_slots, 3);
+test("every tier tracks 50 players; the ladder differentiates elsewhere", () => {
+  // Fifty because one comprehensive clan watch already records about that
+  // many, and recordings are SHARED - a clanmate of a clan you already record
+  // costs nothing to add. Player slots are deliberately no longer a rung:
+  // clan watches, calls, the live lane, collections and integrations are.
+  for (const role of ["member", "leader", "family", "partner"])
+    assert.equal(ROLES[role].player_slots, 50, role);
+  assert.equal(ROLES.admin.player_slots, Infinity);
+});
+
+test("the tiers still differ where cost actually scales", () => {
+  assert.equal(ROLES.member.comprehensive_clans, 0);
   assert.equal(ROLES.member.activity_clans, 1);
   assert.equal(ROLES.member.comprehensive_clans, 0);
-  assert.equal(ROLES.leader.player_slots, 5);
+  assert.equal(ROLES.leader.comprehensive_clans, 1);
   assert.equal(ROLES.leader.comprehensive_clans, 1);
 });

@@ -16,7 +16,23 @@ export type Role =
   "member" | "leader" | "family" | "partner" | "admin" | "owner";
 
 export interface RoleQuotas {
-  /** Active player recordings the account may hold. */
+  /**
+   * Active player recordings the account may hold.
+   *
+   * Fifty at every tier below unlimited (2026-09-08). The number is not
+   * arbitrary: one comprehensive clan watch already records ~50 players, so
+   * fifty individually tracked players cost the service what a single
+   * comprehensive slot has always cost — and most of them are ALREADY being
+   * recorded, since a recording is shared by everyone watching it. Adding a
+   * clanmate of a clan you comprehensively record is free.
+   *
+   * The generosity is what makes relationships worth having: primary, alt,
+   * friend and watching are only useful with room to keep friends in.
+   *
+   * Player slots therefore stop being a rung on the ladder. The tiers still
+   * differ where the cost actually scales — clan watches, daily calls, the
+   * live lane, collections, integrations.
+   */
   player_slots: number;
   /** Clan watches at activity scope (roster + war, no member fan-out). */
   activity_clans: number;
@@ -57,7 +73,7 @@ export const ROLE_ORDER: Role[] = [
 
 export const ROLES: Record<Role, RoleQuotas> = {
   member: {
-    player_slots: 3,
+    player_slots: 50,
     activity_clans: 1,
     comprehensive_clans: 0,
     mcp_calls_per_day: 500,
@@ -66,7 +82,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     integrations: 0,
   },
   leader: {
-    player_slots: 5,
+    player_slots: 50,
     activity_clans: 1,
     comprehensive_clans: 1,
     mcp_calls_per_day: 2000,
@@ -75,7 +91,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     integrations: 0,
   },
   family: {
-    player_slots: 10,
+    player_slots: 50,
     activity_clans: 3,
     comprehensive_clans: 3,
     mcp_calls_per_day: 5000,
@@ -84,7 +100,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     integrations: 0,
   },
   partner: {
-    player_slots: 25,
+    player_slots: 50,
     activity_clans: 10,
     comprehensive_clans: 5,
     mcp_calls_per_day: 15000,

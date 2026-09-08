@@ -20,7 +20,7 @@ spends the one shared Clash Royale API budget).
 
 | Quota | member | leader | family | partner | admin | owner |
 |---|---|---|---|---|---|---|
-| Player recordings | 3 | 5 | 10 | 25 | unlimited | unlimited |
+| Player recordings | 50 | 50 | 50 | 50 | unlimited | unlimited |
 | Clan watches — activity | 1 | 1 | 3 | 10 | unlimited | unlimited |
 | Clan watches — comprehensive | — | 1 | 3 | 5 | unlimited | unlimited |
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
@@ -96,6 +96,23 @@ are the only gate, and capture starts immediately. The one per-subject
 setting is **notify**: whether that player or clan feeds your event pipe
 (`elixir_events`). Remove a subject and its slot frees; a clan's shared
 recording stops only when no account has it added.
+
+## Why fifty players, at every tier
+
+One comprehensive clan watch already records about fifty players, so tracking
+fifty individually costs the service exactly what a single comprehensive slot
+has always cost. And most of them are already recorded anyway — **a recording
+is shared by everyone watching it**, so adding a clanmate of a clan already
+being captured is free.
+
+That is also what makes relationships worth having. Each player you add is your
+**primary** (you), an **alt** (also you, another tag), a **friend** you follow,
+or someone you're **watching** — and "how are my friends playing?" is only a
+question worth asking if there is room to keep friends in.
+
+So player slots are deliberately not a rung on the ladder. The tiers differ
+where cost actually scales: clan watches, daily calls, the live lane,
+collections, and integrations.
 
 ## Why comprehensive is the scarce thing
 
