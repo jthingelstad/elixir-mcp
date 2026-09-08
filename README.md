@@ -14,7 +14,7 @@ authenticated remote MCP server you connect to Claude or any MCP client.
 [the public documentation](https://elixir.poapkings.com/docs) for the product and
 [docs/ENGINEERING.md](docs/ENGINEERING.md) for the build invariants; working notes in
 [docs/NOTES.md](docs/NOTES.md). Want to help run the fetch fleet? See
-[docs/OPERATORS.md](docs/OPERATORS.md).
+[the operator guide](https://elixir.poapkings.com/docs/operators).
 
 ## Repo shape
 
