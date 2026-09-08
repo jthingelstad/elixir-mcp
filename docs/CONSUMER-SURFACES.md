@@ -1,5 +1,10 @@
 # Consumer Surfaces — how third parties use Elixir MCP
 
+> **The product side of this now lives at <https://elixir.poapkings.com/docs/integrations>** — start there if
+> you want to know what the service DOES. This file is the design of record for how third parties consume this service, including the per-consumer assessments.
+> Keep the two in step by not duplicating: behaviour belongs on the site,
+> reasoning belongs here.
+
 **Status:** design of record. The Drop migration is **NOT started** as of 2026-09-08 — this said "UNDER WAY" for two days while nothing moved. Drop's key is a CloudFormation parameter, so migrating it to an integration principal requires a Drop deploy.
 Ratified principles below are Jamie's. What has shipped so far, against §7's
 build order but starting with Drop at Jamie's direction:

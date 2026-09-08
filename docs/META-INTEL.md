@@ -1,5 +1,10 @@
 # Corpus meta intelligence — statistical design for review
 
+> **The product side of this now lives at <https://elixir.poapkings.com/docs/methodology>** — start there if
+> you want to know what the service DOES. This file is the statistical design, including the validation gates, estimator derivations and cost analysis that a reader of the public page does not need.
+> Keep the two in step by not duplicating: behaviour belongs on the site,
+> reasoning belongs here.
+
 Jamie's charge (2026-09-04): elixir-bot's deck/battle intelligence is
 starved on player diversity, which is precisely what this corpus has.
 Design `battles_meta_decks` and `battles_meta_cards` so they are

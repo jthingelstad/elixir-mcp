@@ -1,5 +1,10 @@
 # Clan Pulse — clan-management signals for agent routines
 
+> **The product side of this now lives at <https://elixir.poapkings.com/docs/events>** — start there if
+> you want to know what the service DOES. This file is the design of the push lane, including the mechanism and the choices that were deliberately left out of v1.
+> Keep the two in step by not duplicating: behaviour belongs on the site,
+> reasoning belongs here.
+
 **Ratified by Jamie 2026-09-06 ("a good v1") — shipped in contract
 0.22.0.**
 

@@ -8,17 +8,20 @@ navActive: docs
 ---
 <div class="page-head">
   <h1 class="page-title">Docs</h1>
-  <p class="page-head__note">What Elixir MCP is, what your agent can call, and how the service treats your data.</p>
+  <p class="page-head__note">Start with the quickstart if you just want your agent connected. The Connections section explains the difference between using Elixir MCP yourself and running an agent for your clan.</p>
 </div>
 
+{%- for s in collections.docSections %}
+<h2 class="docs__index-heading">{{ s.label }}</h2>
 <div class="stats">
-  {%- for d in collections.docs %}
+  {%- for d in s.pages %}
   <section class="panel">
     <div class="panel__head"><span class="panel-title"><a href="{{ d | pageUrl }}">{{ d.data.title }}</a></span></div>
     <div class="panel__body"><p style="color: var(--muted); margin: 0">{{ d.data.description }}</p></div>
   </section>
   {%- endfor %}
 </div>
+{%- endfor %}
 
 <section class="panel" style="margin-top: var(--s-6)">
   <div class="panel__head"><span class="panel-title">For agents</span></div>

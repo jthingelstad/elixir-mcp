@@ -1167,6 +1167,17 @@ input[aria-invalid="true"] {
   flex-direction: column;
   gap: 2px;
 }
+/* Section headings on the docs index. Sit above a grid of cards, so they need
+   enough room to read as a break rather than a caption on the first card. */
+.docs__index-heading {
+  margin: var(--s-6) 0 var(--s-3);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.docs__index-heading:first-of-type {
+  margin-top: var(--s-4);
+}
+
 /* Section headings in the docs sidebar. Quiet and small: they orient, they
    are not destinations, and a reader scanning for a page name should pass
    over them without stopping. */
