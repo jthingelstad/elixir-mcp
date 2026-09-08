@@ -54,9 +54,13 @@ privacy-focused analytics service, to count visits anonymously: page
 hits and visitor country. No cookies, no personal identifiers, no
 cross-site tracking.
 
-**The signed-in application loads no analytics at all.** Nothing on
-your dashboard, Explore, your account pages or the sign-in page is
-counted client-side; the script is simply not there.
+**The signed-in application still loads no analytics script.** Nothing
+third-party runs inside your session — deliberately, because such a
+script would execute on your account and admin pages with your own
+authority. The app instead reports which *section* you viewed to our
+own server, which relays a count: `/account`, `/explore`, `/data` and
+so on. Never the full path — a player tag or a clan you were looking at
+never leaves as part of a page view — and **no account is attached**.
 
 Product events such as "a tool call happened" or "feedback was filed"
 are counted server-side, with **no account attached** — the values

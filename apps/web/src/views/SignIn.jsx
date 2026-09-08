@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { takeLoginToken } from "../url-hygiene.js";
 
 export function SignIn({ onAuthed }) {
   const [email, setEmail] = useState("");
@@ -7,11 +8,11 @@ export function SignIn({ onAuthed }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 
-  // A magic link lands here as /signin?login_token=...
+  // A magic link lands here as /signin?login_token=... — read from the value
+  // lifted out of the URL at boot, not from the URL itself, which by now has
+  // deliberately had the credential removed.
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get(
-      "login_token",
-    );
+    const token = takeLoginToken();
     if (!token) return;
     setStep("redeeming");
     api.redeemToken(token).then((res) => {

@@ -105,6 +105,7 @@ export function makeHandler({
   sendWelcomeEmail = async () => {},
   queueStats = async () => null,
   track = null,
+  trackView = null,
   collectorDoor = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
@@ -158,6 +159,19 @@ export function makeHandler({
       emailHash: hash,
     });
     await logEvent(db, account.account_id, "signed_in");
+    // The signup funnel's last step, and the only one that means the product
+    // was actually reached: request → approval → somebody actually arriving.
+    // Counted once per account, by asking whether this is their first session
+    // BEFORE the one just minted is the only one there is.
+    try {
+      const { rows } = await db.query(
+        `select count(*)::int as n from session where account_id = $1`,
+        [account.account_id],
+      );
+      if (rows[0]?.n === 1) await ping("signup.activated");
+    } catch {
+      // Never let a funnel count cost somebody their sign-in.
+    }
     return json(
       200,
       { authenticated: true },
@@ -208,7 +222,7 @@ export function makeHandler({
       });
       if (result.created) {
         await notifyOwner({ kind: "access_request", playerTag });
-        await ping("site.access_request");
+        await ping("signup.requested");
       }
       // Identical response for new, repeat, denied, and already-approved.
       return json(200, {
@@ -257,6 +271,41 @@ export function makeHandler({
         ok: true,
         message: "If your account is approved, a sign-in email is on its way.",
       });
+    },
+
+    /**
+     * A page view from the signed-in app.
+     *
+     * The app deliberately loads no analytics script (#25): it would execute
+     * inside the session's origin on /account and /admin, where an HttpOnly
+     * cookie prevents it reading the cookie but not from making authenticated
+     * same-origin requests with the user's authority. So the app reports its
+     * own views here instead, and the relay posts them.
+     *
+     * NO ACCOUNT TRAVELS WITH A VIEW. This route does not resolve a session
+     * and does not want one; the privacy page promises product signals carry
+     * no account attribution and this is one of them. The path is checked
+     * against a fixed prefix list so it cannot become a way to write arbitrary
+     * strings into somebody else's analytics.
+     */
+    "POST /api/track/view": async (_db, _event, body) => {
+      const path = String(body?.path ?? "");
+      const ALLOWED = ["/data/", "/explore", "/account/", "/admin/", "/signin"];
+      if (
+        path.length > 120 ||
+        !ALLOWED.some(
+          (p) => path === p.replace(/\/$/, "") || path.startsWith(p),
+        )
+      )
+        return json(204, {});
+      if (trackView) {
+        try {
+          await trackView(path, undefined);
+        } catch {
+          // Analytics must never break serving (house rule).
+        }
+      }
+      return json(204, {});
     },
 
     "POST /api/auth/redeem": async (db, _event, body) => {
@@ -1123,6 +1172,10 @@ export function makeHandler({
       if (decided.refused) return json(403, { error: decided.refused });
       let notified = false;
       if (decided.status === "approved") {
+        // The funnel's middle step. With request and activation already
+        // counted, this is what turns two unrelated numbers into a rate:
+        // how many asked, how many were let in, how many turned up.
+        await ping("signup.approved");
         // The applicant is the one who was promised an email. Sending
         // this to the owner instead is why an approved account heard
         // nothing at all.

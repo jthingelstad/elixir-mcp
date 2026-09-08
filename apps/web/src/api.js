@@ -86,6 +86,10 @@ export const api = {
   gatewayDetail: (id) =>
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
   myClanAction: (body) => request("POST", "/api/me/clans", body),
+  // Fire-and-forget: a failed view must never surface to a user, and must
+  // never delay a render.
+  trackView: (path) =>
+    request("POST", "/api/track/view", { path }).catch(() => {}),
   myPrincipals: () => request("GET", "/api/me/principals"),
   createAgent: (body) => request("POST", "/api/me/agents", body),
   createIntegration: (body) => request("POST", "/api/me/integrations", body),

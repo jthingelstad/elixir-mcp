@@ -188,6 +188,17 @@ export function App() {
   const { path, navigate } = useRoute();
   const [me, setMe] = useState(null); // null = loading
 
+  // Report the view. A single-page app changes route without a page load, so
+  // nothing counts these unless it says so — and this app loads no analytics
+  // script of its own on purpose (#25), so it reports through our own API and
+  // the relay posts it. Section-level, never the full path: /explore/#TAG is a
+  // player's tag and has no business in an analytics store.
+  useEffect(() => {
+    const parts = path.split("/").filter(Boolean);
+    const coarse = parts.length ? `/${parts.slice(0, 2).join("/")}` : "/";
+    api.trackView(coarse);
+  }, [path]);
+
   const refresh = useCallback(async () => {
     const { data } = await api.me();
     setMe(data);
