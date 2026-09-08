@@ -174,7 +174,7 @@ test("analytics pings: batched to track, best-effort, never dead-lettered", asyn
   assert.deepEqual(out2.batchItemFailures, [], "outage never dead-letters");
 });
 
-test("only an opted-in login enrolls; failures never resend (#27)", async () => {
+test("the login send carries the enrollment decision (#27/0051)", async () => {
   const sent = [];
   const enrolled = [];
   const handler = makeHandler({
@@ -184,7 +184,9 @@ test("only an opted-in login enrolls; failures never resend (#27)", async () => 
   const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
   const out = await handler({
     Records: [
-      // The opted-in account: this send IS the enrollment moment.
+      // A beta account: this send IS the enrollment moment (0051 makes
+      // that the default, but the RELAY still only obeys the flag - it
+      // has no database and decides nothing itself).
       rec("a", {
         v: 1,
         kind: "login",
@@ -192,7 +194,9 @@ test("only an opted-in login enrolls; failures never resend (#27)", async () => 
         code: "123456",
         newsletter: true,
       }),
-      // Signing in is not a marketing choice. Mail goes, list untouched.
+      // An unflagged send still enrolls nothing. The policy lives in the
+      // database, not in the relay, so flipping it never means editing
+      // this code.
       rec("b", { v: 1, kind: "login", to: "no@x.com", code: "222222" }),
       rec("c", {
         v: 1,
@@ -214,7 +218,7 @@ test("only an opted-in login enrolls; failures never resend (#27)", async () => 
   assert.deepEqual(
     enrolled,
     ["yes@x.com"],
-    "only the account that asked for it is enrolled",
+    "the relay enrolls exactly what it was told to, nothing more",
   );
 
   // A Buttondown outage never fails the batch - retrying would RESEND

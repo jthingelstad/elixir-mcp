@@ -1723,7 +1723,7 @@ test("removing a clan you added leaves a collection's clan recording alone", asy
 });
 
 // --------------------------------------------------------------- #27
-test("the newsletter is an affirmative choice, not a side effect of signing in", async () => {
+test("beta accounts are enrolled by default, and an opt-out is never overridden", async () => {
   const READER = "newsletter@example.com";
   await db.query(
     `insert into account (email_hash, status, role) values ($1, 'approved', 'member')`,
@@ -1731,62 +1731,43 @@ test("the newsletter is an affirmative choice, not a side effect of signing in",
   );
   const cookie = await signIn(READER, "203.0.113.27");
 
-  // Default off. The sign-in that just happened enrolled nothing: the
-  // relay only enrolls a login stamped newsletter:true.
+  // Opt-OUT by policy (0051): this is a hand-approved private beta and
+  // taking part includes the product email. The login send carries the
+  // enrollment with it.
+  assert.equal(
+    sentEmails.at(-1).newsletter,
+    true,
+    "a beta sign-in enrolls the address",
+  );
   const me = parse(
     await handler(
       event({ method: "GET", path: "/api/me", cookie, body: undefined }),
     ),
   );
-  assert.equal(me.newsletter_opt_in, false, "nobody is opted in by default");
-  assert.equal(
-    sentEmails.at(-1).newsletter,
-    false,
-    "authenticating is not a marketing choice",
-  );
+  assert.equal(me.newsletter_opt_in, true, "and the account says so");
 
-  // The choice is made here, and only here.
-  const on = await handler(
-    event({ path: "/api/me/newsletter", cookie, body: { opt_in: true } }),
-  );
-  assert.equal(parse(on).newsletter_opt_in, true);
-  const me2 = parse(
-    await handler(
-      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
-    ),
-  );
-  assert.equal(me2.newsletter_opt_in, true);
-
-  // Now a login send carries the enrollment moment with it.
-  await handler(
-    event({ path: "/api/auth", body: { email: READER }, ip: "203.0.113.27" }),
-  );
-  assert.equal(sentEmails.at(-1).newsletter, true, "opted in, so enroll");
-
-  // And turning it back off stops future enrollment.
-  await handler(
+  // There is deliberately NO in-app control. A switch that stops future
+  // enrollment without unsubscribing you from Buttondown would be a
+  // control that lies about what it does; the unsubscribe link in every
+  // issue is the one mechanism.
+  const gone = await handler(
     event({ path: "/api/me/newsletter", cookie, body: { opt_in: false } }),
   );
-  await handler(
-    event({ path: "/api/auth", body: { email: READER }, ip: "203.0.113.27" }),
-  );
-  assert.equal(sentEmails.at(-1).newsletter, false, "opted out stays out");
+  assert.equal(gone.statusCode, 404, "no endpoint claims to unsubscribe you");
 
-  // The switch is a boolean, and it is CSRF-protected like every other
-  // cookie-authed mutation.
-  const bad = await handler(
-    event({ path: "/api/me/newsletter", cookie, body: { opt_in: "yes" } }),
+  // The suppression that matters is Buttondown's own, and the relay
+  // never overrides it - an address that already exists there, whether
+  // subscribed or unsubscribed, is left exactly as it is. Pinned in the
+  // relay suite; asserted here as the contract this endpoint relies on.
+  const newcomer = "newsletter-2@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')`,
+    [emailHash(newcomer)],
   );
-  assert.equal(bad.statusCode, 400);
-  const noHeader = await handler(
-    event({
-      path: "/api/me/newsletter",
-      cookie,
-      contractHeader: false,
-      body: { opt_in: true },
-    }),
+  await handler(
+    event({ path: "/api/auth", body: { email: newcomer }, ip: "203.0.113.33" }),
   );
-  assert.equal(noHeader.statusCode, 401);
+  assert.equal(sentEmails.at(-1).newsletter, true);
 });
 
 // --------------------------------------------------------------- #29

@@ -8,6 +8,16 @@ order: 4
 
 # Privacy
 
+**What this is.** Elixir MCP is a private beta, run by one person, with
+every account approved by hand. It is not a commercial product: nothing
+here is sold, there is no advertising, and there is no revenue. Public
+Clash Royale data is already published broadly by third-party sites, so
+the record kept here is not a new kind of exposure — but it is a
+genuine one, and the rest of this page describes it plainly. If this
+ever opens to general signup, the questions that come with that —
+lawful basis, data-subject rights, how children are handled — get
+answered before it does, not after.
+
 **What we store.** Game data from the public Clash Royale API: battles,
 profiles, clan rosters, war standings. All of it is publicly queryable
 by anyone with a tag and an API key.
@@ -46,14 +56,20 @@ and categories only, never your data. The service also counts a few of
 its own events server-side (how many MCP calls happened) with no
 account attached. The sign-in page loads no analytics at all.
 
-**The newsletter.** Opt in under Account and we add your address to the
-Elixir MCP mailing list for occasional product updates. It is off
-unless you choose it — signing in does not enroll you. The list is
-hosted at Buttondown, which processes your address on our behalf.
-Every issue carries an unsubscribe link, unsubscribing is honored
-permanently — the service never re-subscribes an address that opted out
-— and newsletter email carries no tracking pixels. Sign-in codes and
-account notices are service mail and arrive whatever you choose here.
+**The newsletter, and why it is opt-out.** Elixir MCP is a private beta
+and every account is approved by hand. Taking part includes occasional
+product email — what changed, what broke, what is coming — so signing
+in adds your address to the mailing list. That is a deliberate choice
+rather than an oversight, and this paragraph exists so it is not a
+surprise.
+
+**You can leave at any time.** Every issue carries an unsubscribe link.
+Unsubscribing is permanent and is never overridden: once an address has
+told Buttondown to stop, nothing here re-subscribes it, including a
+later sign-in. The list is hosted at Buttondown, which processes your
+address on our behalf, and newsletter email carries no tracking pixels.
+Sign-in codes and account notices are service mail and arrive whatever
+you do with the newsletter.
 
 **Running a collector.** If you volunteer a machine for the fleet, its
 Clash Royale card name, status, and fetch counts are public, and it is

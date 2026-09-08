@@ -33,7 +33,6 @@ export const api = {
     request("POST", "/api/auth/code", { email, code }),
   signOut: () => request("POST", "/api/session/signout", {}),
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
-  setNewsletter: (opt_in) => request("POST", "/api/me/newsletter", { opt_in }),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
   claimAction: (body) => request("POST", "/api/claims", body),
   clan: () => request("GET", "/api/clan"),
