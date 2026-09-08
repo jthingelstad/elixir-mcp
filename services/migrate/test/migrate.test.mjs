@@ -190,6 +190,67 @@ test("probe op: hourly census counts live fetches, excludes the backfill gateway
   assert.match(result.hours[0].hour, /^\d{2}-\d{2}T\d{2}Z$/);
 });
 
+test("capture-audit op: reports only gap subjects with their scheduler evidence", async () => {
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  const gateway = (
+    await db.query(
+      `select gateway_id from gateway where name = 'probe-live-gw'`,
+    )
+  ).rows[0];
+  const { rows: receipts } = await db.query(
+    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+     values ('player_battlelog', '#2GAP1', now() - interval '2 hours', 'gap-1', $1, 'admitted'),
+            ('player_battlelog', '#2GAP1', now() - interval '1 hour', 'gap-2', $1, 'admitted'),
+            ('player_battlelog', '#2NOGAP', now(), 'gap-3', $1, 'admitted')
+     returning receipt_id, entity_key, fetched_at`,
+    [gateway.gateway_id],
+  );
+  await db.query(
+    `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)
+     values ($1, '#2GAP1', true, $2),
+            ($3, '#2GAP1', false, $4),
+            ($5, '#2NOGAP', false, $6)`,
+    [
+      receipts[0].receipt_id,
+      receipts[0].fetched_at,
+      receipts[1].receipt_id,
+      receipts[1].fetched_at,
+      receipts[2].receipt_id,
+      receipts[2].fetched_at,
+    ],
+  );
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_planned_at, last_admitted_at)
+     values ('#2GAP1', 'player_battlelog', now() - interval '30 minutes', now() - interval '1 hour')`,
+  );
+  await db.end();
+
+  const result = await handler({ capture_audit: { days: 1 } });
+  assert.ok(
+    result.polls >= 3,
+    "includes audited polls in the requested window",
+  );
+  assert.ok(result.gaps >= 1, "includes aggregate gap count");
+  const gap = result.gaps_by_subject.find(
+    (row) => row.subject_tag === "#2GAP1",
+  );
+  assert.deepEqual(
+    { polls: gap.polls, gaps: gap.gaps },
+    { polls: 2, gaps: 1 },
+    "one subject's gap and non-gap polls stay distinguishable",
+  );
+  assert.ok(gap.last_planned_at, "includes scheduler planning evidence");
+  assert.ok(gap.last_admitted_at, "includes scheduler admission evidence");
+  assert.equal(
+    result.gaps_by_subject.some((row) => row.subject_tag === "#2NOGAP"),
+    false,
+    "non-gap subjects stay out of the diagnostic list",
+  );
+});
+
 test("export + sweep: history lands in S3 keys; only twinned superseded rows leave Postgres", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   process.env.ARCHIVE_BUCKET = "test-archive";

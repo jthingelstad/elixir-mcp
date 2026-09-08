@@ -195,6 +195,48 @@ async function warDrift(databaseUrl) {
   }
 }
 
+/** Capture completeness census ({capture_audit: {days?}}): identify the
+ * subjects behind battlelog-window gaps, together with the scheduler state
+ * needed to distinguish an individual cadence problem from fleet pressure.
+ * This is a private, read-only ops reader; public status intentionally keeps
+ * only the aggregate. */
+async function captureAudit(databaseUrl, spec) {
+  const days = Math.min(Math.max(Number(spec?.days ?? 1), 1), 30);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: totals } = await db.query(
+      `select count(*)::int as polls,
+              count(*) filter (where gap)::int as gaps
+       from capture_audit
+       where fetched_at > now() - make_interval(days => $1)`,
+      [days],
+    );
+    const { rows: subjects } = await db.query(
+      `select ca.subject_tag,
+              count(*)::int as polls,
+              count(*) filter (where ca.gap)::int as gaps,
+              min(ca.fetched_at) filter (where ca.gap) as first_gap_at,
+              max(ca.fetched_at) filter (where ca.gap) as last_gap_at,
+              max(ca.fetched_at) as last_audited_at,
+              max(ps.last_planned_at) as last_planned_at,
+              max(ps.last_admitted_at) as last_admitted_at
+       from capture_audit ca
+       left join poll_state ps
+         on ps.subject_tag = ca.subject_tag
+        and ps.endpoint = 'player_battlelog'
+       where ca.fetched_at > now() - make_interval(days => $1)
+       group by ca.subject_tag
+       having count(*) filter (where ca.gap) > 0
+       order by gaps desc, last_gap_at desc, ca.subject_tag`,
+      [days],
+    );
+    return { days, ...totals[0], gaps_by_subject: subjects };
+  } finally {
+    await db.end();
+  }
+}
+
 /** Read-only yield census ({probe: true}) — hourly fetch volume vs
  *  battles actually harvested, live gateways only (the backfill gateway
  *  is history, not capture). Counts only, no row data; this is how the
@@ -1168,6 +1210,14 @@ export async function handler(event) {
   }
   if (event?.war_drift) {
     const result = await warDrift(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.capture_audit) {
+    const result = await captureAudit(
+      process.env.DATABASE_URL,
+      event.capture_audit,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

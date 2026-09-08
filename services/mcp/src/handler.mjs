@@ -20,6 +20,7 @@ import { makeRegistry } from "./tools.mjs";
 import { makeInvoker } from "./invoker.mjs";
 import { makeQuota } from "./quota.mjs";
 import { makeOauthRoutes, rawBody } from "./oauth-routes.mjs";
+import { describeIdentity } from "./identity.mjs";
 import { makeLive } from "./live.mjs";
 
 export const HOURLY_RATE_LIMIT = 300;
@@ -201,8 +202,17 @@ export function makeHandler({
           body: JSON.stringify({ error: "rate_limited" }),
         };
       }
+      // Identity is read ONCE, on initialize, and never on a tool call: it is
+      // what the connection is, not what the request is, and paying for it per
+      // call would trade one wasted round trip for a permanent one.
+      const identity =
+        message?.method === "initialize"
+          ? await describeIdentity(db, account)
+          : null;
+
       const result = await handleMcpMessage(message, {
         registry,
+        identity,
         // What this connection is FOR. A person sees the full surface; an
         // agent's is shaped around a clan; an integration's around the corpus.
         kind: account.kind ?? "person",

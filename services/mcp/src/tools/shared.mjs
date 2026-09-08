@@ -46,7 +46,22 @@ export class ToolFailure extends Error {
 export const TAG_SCHEMA = {
   type: "string",
   description:
-    "Clash Royale player tag like #20JJJ2CCRU. Defaults to your primary claimed tag.",
+    "Clash Royale player tag like #20JJJ2CCRU. OMIT IT to mean the caller: your primary player on a personal connection, or whoever on_behalf_of is mapped to on an agent one. You do not need to look yourself up first.",
+};
+
+/**
+ * Who is asking, when the connection serves more than one human.
+ *
+ * An agent talks to a whole Discord (or Signal, or Telegram, or anything with
+ * ids); MCP carries no per-request end-user identity, so the agent supplies
+ * one. The value is opaque here on purpose — the point is that any surface
+ * works — and it selects a default subject, nothing more.
+ */
+export const ON_BEHALF_OF_SCHEMA = {
+  type: "string",
+  maxLength: 200,
+  description:
+    "The end user this request is for, in your own id space (e.g. discord:1234). Selects whose player is meant when player_tag is omitted; map it once with elixir_identify. Ignored on a personal connection, which already has exactly one human.",
 };
 
 // --- shared helpers --------------------------------------------------------
@@ -56,9 +71,14 @@ export const TAG_SCHEMA = {
 export const TAG_RULE_HINT =
   "Tags are # plus 3-12 characters from 0289PYLQGRJCUV (letter O folds to zero).";
 
-export async function subject(db, account, inputTag, need) {
+/**
+ * `onBehalfOf` is the end-user id the connecting agent supplies. Threaded here
+ * rather than read off a global because one Lambda serves every caller, and a
+ * remembered "last user" would be the worst bug this file could have.
+ */
+export async function subject(db, account, inputTag, need, onBehalfOf = null) {
   try {
-    return await resolveSubject(db, account, inputTag, need);
+    return await resolveSubject(db, account, inputTag, need, { onBehalfOf });
   } catch (err) {
     if (err?.code === "invalid_tag")
       throw new ToolFailure(err.code, err.message, TAG_RULE_HINT);
@@ -149,8 +169,15 @@ export async function segmentFilter(ctx, args, params) {
     );
   }
   if (args.player_tag !== undefined) {
-    const tag = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
-      .tag;
+    const tag = (
+      await subject(
+        ctx.db,
+        ctx.account,
+        args.player_tag,
+        "summary",
+        args.on_behalf_of,
+      )
+    ).tag;
     params.push(tag);
     return { where: `bp.player_tag = $${params.length}`, label: tag };
   }

@@ -181,7 +181,11 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
  * {ok:true, added, isPrimary, recordingStarted}. `added` is false on a
  * re-add, which stays idempotent.
  */
-export async function addPlayer(db, account, { tag, makePrimary, via }) {
+export async function addPlayer(
+  db,
+  account,
+  { tag, makePrimary, via, relationship = null },
+) {
   await db.query("begin");
   try {
     const acct = await lockAccount(db, account.accountId);
@@ -241,22 +245,39 @@ export async function addPlayer(db, account, { tag, makePrimary, via }) {
     // index, so the switch never happened and the whole add failed (#8).
     if (wantPrimary) {
       await db.query(
-        `update claim set is_primary = false
+        // Both columns demote together. Clearing only the boolean left the old
+        // primary carrying relationship='primary', and 0055's unique index on
+        // that column then refused the new one -- the exact shape of #8, one
+        // migration later.
+        `update claim set is_primary = false,
+                relationship = case when relationship = 'primary' then 'watching'
+                                    else relationship end
          where account_id = $1 and is_primary and player_tag <> $2`,
         [account.accountId, tag],
       );
     }
 
     const { rowCount: claimed } = await db.query(
-      `insert into claim (account_id, player_tag, status, is_primary)
-       values ($1, $2, 'unverified', $3)
+      // Both columns, always together: 0055's expand window means is_primary
+      // is still the read path while relationship carries the richer label.
+      // A writer that set only one is how the two would come to disagree.
+      `insert into claim (account_id, player_tag, status, is_primary, relationship)
+       values ($1, $2, 'unverified', $3, $4)
        on conflict (account_id, player_tag) do nothing`,
-      [account.accountId, tag, wantPrimary],
+      [
+        account.accountId,
+        tag,
+        wantPrimary,
+        wantPrimary ? "primary" : (relationship ?? "watching"),
+      ],
     );
     // An explicit make_primary on a tag already claimed still switches.
     if (claimed === 0 && makePrimary === true) {
       await db.query(
-        `update claim set is_primary = (player_tag = $2) where account_id = $1`,
+        `update claim set is_primary = (player_tag = $2),
+                relationship = case when player_tag = $2 then 'primary'
+                                    when relationship = 'primary' then 'watching'
+                                    else relationship end where account_id = $1`,
         [account.accountId, tag],
       );
     }

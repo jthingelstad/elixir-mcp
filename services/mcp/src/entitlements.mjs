@@ -82,7 +82,41 @@ async function resolveEntitlements(db, account) {
  * gates. Returns { tag, scope: 'own'|'public' }.
  * Throws {code} objects matching the closed error taxonomy.
  */
-export async function resolveSubject(db, account, inputTag, _need = "full") {
+/**
+ * Who "me" is for this caller, without a round trip.
+ *
+ * Three ways a subject gets chosen, in strict precedence:
+ *
+ *   1. an explicit tag             — always wins, nothing else is consulted
+ *   2. on_behalf_of                — the agent naming WHICH human is asking
+ *   3. the caller's primary claim  — a person's own default
+ *
+ * (2) exists because an agent serves many humans through one connection and
+ * MCP carries no per-request end-user identity. The id is whatever the
+ * connecting surface has and is opaque to us; the mapping is per account and
+ * confers nothing, since recorded reads are universal either way.
+ *
+ * An agent has no primary claim, so for an agent (2) is the only route to a
+ * default — and its absence is a question to ask the human, not an error to
+ * paper over.
+ */
+async function identityFor(db, accountId, externalId) {
+  if (typeof externalId !== "string" || !externalId.trim()) return null;
+  const { rows } = await db.query(
+    `select player_tag from agent_identity
+     where account_id = $1 and external_id = $2`,
+    [accountId, externalId.trim()],
+  );
+  return rows[0]?.player_tag ?? null;
+}
+
+export async function resolveSubject(
+  db,
+  account,
+  inputTag,
+  _need = "full",
+  { onBehalfOf = null } = {},
+) {
   const ent = await resolveEntitlements(db, account);
   let tag;
   // Empty string is a CALLER BUG (an unset variable), not "use my
@@ -96,18 +130,38 @@ export async function resolveSubject(db, account, inputTag, _need = "full") {
     };
   }
   if (inputTag === undefined || inputTag === null) {
-    const { rows } = await db.query(
-      `select player_tag from claim where account_id = $1 and is_primary`,
-      [account.accountId],
-    );
-    if (!rows[0]) {
+    const mapped = await identityFor(db, account.accountId, onBehalfOf);
+    if (mapped) {
+      tag = mapped;
+    } else if ((account.kind ?? "person") !== "person") {
+      // An agent has no self to fall back on. Say what would fix it rather
+      // than guessing a member of the clan, which would be confidently wrong.
       throw {
         code: "not_found",
-        message: "No primary claimed tag on this account.",
-        hint: "Claim a player tag on the website first.",
+        message: onBehalfOf
+          ? `No player is mapped to ${onBehalfOf} yet.`
+          : "This connection acts for a clan, so there is no default player.",
+        hint: "Ask who they are in the clan, then call elixir_identify to remember it. Or pass player_tag explicitly.",
       };
+    } else {
+      // Still is_primary, not relationship: 0055 is the EXPAND half, and
+      // forty-odd readers plus every test fixture still write the boolean.
+      // relationship carries the new information (alt / friend / watching);
+      // a contract migration switches the reads and drops the column once
+      // nothing sets it. Writers set both, so they cannot disagree.
+      const { rows } = await db.query(
+        `select player_tag from claim where account_id = $1 and is_primary`,
+        [account.accountId],
+      );
+      if (!rows[0]) {
+        throw {
+          code: "not_found",
+          message: "No primary player on this account.",
+          hint: "Add a player with elixir_add_player; your first one becomes your primary.",
+        };
+      }
+      tag = rows[0].player_tag;
     }
-    tag = rows[0].player_tag;
   } else {
     try {
       tag = normalizeTag(String(inputTag));

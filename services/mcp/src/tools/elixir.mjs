@@ -14,6 +14,7 @@ import { ensureGatewayCards } from "../gateway-cards.mjs";
 import {
   ToolFailure,
   TAG_SCHEMA,
+  ON_BEHALF_OF_SCHEMA,
   TAG_RULE_HINT,
   subject,
   buildMeta,
@@ -24,7 +25,7 @@ import {
 export const elixirTools = {
   elixir_my_players: {
     description:
-      "Your session bootstrap: the players you've added (added = recorded), which is primary (the starred \"me\" tag), each one's notify setting and recording status, and current clan as recorded. claim_status is informational - claims are trust-based. Call this first.",
+      "The players you track and WHO EACH ONE IS TO YOU: your primary (you), your alts (also you, other tags), friends you follow, and everyone else you watch - with notify setting, recording status and current clan. You do NOT need this to answer questions about yourself: omit player_tag and the tools already mean your primary. Call it when someone asks what you track, or when you need a tag you were not given.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -32,7 +33,12 @@ export const elixirTools = {
     },
     async handler(ctx) {
       const { rows } = await ctx.db.query(
-        `select c.player_tag, c.status as claim_status, c.is_primary, c.notify,
+        `select c.player_tag, c.status as claim_status, c.is_primary,
+                -- is_primary is still the read path (0055 expand window), so
+                -- the label follows it and the two cannot appear to disagree.
+                case when c.is_primary then 'primary' else c.relationship end
+                  as relationship,
+                c.notify,
                 p.name, p.last_known_clan_tag,
                 r.status as recording_status,
                 cm.clan_tag as member_of, cm.role
@@ -60,17 +66,115 @@ export const elixirTools = {
     },
   },
 
+  elixir_identify: {
+    description:
+      "Remember which player a human is, so you never have to ask twice. An agent serves many people through one connection and MCP carries no per-request identity, so YOU supply one - discord:1234, signal:..., telegram:..., whatever your surface has. Pass that same id as on_behalf_of afterwards and 'how am I doing' resolves with no lookup. The mapping is yours alone, permanent (a Clash Royale tag never changes hands - somebody who returns under a new tag is a new person), and confers NOTHING: recorded reads are open to every account, so this only picks a default subject. Call it once, right after they tell you who they are.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        external_id: {
+          type: "string",
+          maxLength: 200,
+          description:
+            "The id this human has on your surface. Namespace it however you like; it is opaque to us.",
+        },
+        player_tag: {
+          ...TAG_SCHEMA,
+          description: "The player they say they are.",
+        },
+      },
+      required: ["external_id", "player_tag"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const externalId = String(args.external_id ?? "").trim();
+      if (!externalId)
+        throw new ToolFailure("bad_request", "external_id is empty.");
+      const tag = normalizeTag(String(args.player_tag ?? ""));
+
+      // They must be someone you actually cover. An agent binding a human to a
+      // player outside its clans is almost always a mistake (a mistyped tag, a
+      // name collision), and a wrong mapping answers confidently about the
+      // wrong person every time afterwards.
+      const { rows: member } = await ctx.db.query(
+        `select cm.clan_tag from clan_membership cm
+         join account_clan ac on ac.clan_tag = cm.clan_tag
+         where ac.account_id = $1 and cm.player_tag = $2 and cm.left_observed_at is null
+         limit 1`,
+        [ctx.account.accountId, tag],
+      );
+      if (!member[0]) {
+        throw new ToolFailure(
+          "not_entitled",
+          `${tag} is not a current member of a clan on this connection.`,
+          "Check the tag with players_search. Identities are for the people you serve.",
+        );
+      }
+
+      await ctx.db.query(
+        `insert into agent_identity (account_id, external_id, player_tag)
+         values ($1, $2, $3)
+         on conflict (account_id, external_id)
+         do update set player_tag = excluded.player_tag, created_at = now()`,
+        [ctx.account.accountId, externalId, tag],
+      );
+
+      const { rows: who } = await ctx.db.query(
+        `select name from player where player_tag = $1`,
+        [tag],
+      );
+      return {
+        external_id: externalId,
+        player_tag: tag,
+        name: who[0]?.name ?? null,
+        clan_tag: member[0].clan_tag,
+        note: "Pass this external_id as on_behalf_of from now on; omit player_tag and it means them.",
+        meta: await buildMeta(ctx.db, ctx.account, tag),
+      };
+    },
+  },
+
+  elixir_my_identities: {
+    description:
+      "The humans you have learned, and which player each one is. Yours alone - one connection's mappings are invisible to every other. Useful for answering 'who am I to you?' and for spotting a mapping you got wrong.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+    async handler(ctx) {
+      const { rows } = await ctx.db.query(
+        `select ai.external_id, ai.player_tag, p.name, ai.created_at
+         from agent_identity ai
+         left join player p on p.player_tag = ai.player_tag
+         where ai.account_id = $1
+         order by ai.created_at`,
+        [ctx.account.accountId],
+      );
+      return {
+        identities: rows,
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
   elixir_coverage: {
     description:
       "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was added), and recent capture completeness. Use it to caveat answers honestly.",
     inputSchema: {
       type: "object",
-      properties: { player_tag: TAG_SCHEMA },
+      properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       const [polls, battles, completeness, snapEpoch] = await Promise.all([
         ctx.db.query(
@@ -489,7 +593,7 @@ export const elixirTools = {
 
   elixir_add_player: {
     description:
-      "Add a player to your account: claims the tag AND starts recording in one act - added means recorded, within your tier's player slots. The only per-subject setting is notify (whether captures feed your elixir_events pipe). action 'remove' releases the claim (recording stops if you were its only reason to exist).",
+      "Add a player to your account: claims the tag AND starts recording in one act - added means recorded, within your tier's player slots. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary automatically. The only per-subject setting is notify (whether captures feed your elixir_events pipe). action 'remove' releases the claim (recording stops if you were its only reason to exist).",
     inputSchema: {
       type: "object",
       properties: {
@@ -504,7 +608,14 @@ export const elixirTools = {
         },
         make_primary: {
           type: "boolean",
-          description: "With 'add': make this your primary claimed tag.",
+          description:
+            "With 'add': make this your primary — you. Equivalent to relationship 'primary'.",
+        },
+        relationship: {
+          type: "string",
+          enum: ["primary", "alt", "friend", "watching"],
+          description:
+            "Who this player is TO YOU. 'primary' is you and there is exactly one; 'alt' is also you under another tag; 'friend' is someone you follow; 'watching' is everyone else. Your first player becomes your primary automatically. All four share your tier's player slots.",
         },
       },
       required: ["player_tag"],
@@ -555,7 +666,11 @@ export const elixirTools = {
       // through the same function.
       const r = await addPlayer(ctx.db, ctx.account, {
         tag,
-        makePrimary: args.make_primary === true,
+        // Two spellings of one intent; relationship is the richer one and
+        // 'primary' through either route means the same thing.
+        makePrimary:
+          args.make_primary === true || args.relationship === "primary",
+        relationship: args.relationship ?? null,
         via: "mcp",
       });
       if (!r.ok && r.error === "quota_exceeded") {

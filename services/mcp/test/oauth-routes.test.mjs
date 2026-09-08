@@ -280,6 +280,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     "elixir_add_player",
     "elixir_events",
     "elixir_feedback",
+    "elixir_identify",
     "elixir_nickname",
   ]);
 
@@ -312,6 +313,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     elixir_add_player: "recordings:write",
     elixir_events: "account:write",
     elixir_feedback: "feedback:write",
+    elixir_identify: "account:write",
     elixir_nickname: "account:write",
   };
   for (const [index, tool] of writeTools.entries()) {

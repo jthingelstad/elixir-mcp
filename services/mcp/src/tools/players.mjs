@@ -7,6 +7,7 @@ import {
   ToolFailure,
   spendLiveQuota,
   TAG_SCHEMA,
+  ON_BEHALF_OF_SCHEMA,
   subject,
   buildMeta,
 } from "./shared.mjs";
@@ -17,12 +18,18 @@ export const playersTools = {
       "The headline in one call: current trophies and clan, last-30-days record and win rate, and the most-played deck with its record. Start here for \u201chow am I doing?\u201d; drill in with battles_performance / battles_decks.",
     inputSchema: {
       type: "object",
-      properties: { player_tag: TAG_SCHEMA },
+      properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       const [snap, record, deck, best] = await Promise.all([
         ctx.db.query(
@@ -142,6 +149,7 @@ export const playersTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         live: {
           type: "boolean",
           description:
@@ -152,7 +160,13 @@ export const playersTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       if (args.live === true) {
         if (!ctx.live) {
@@ -258,6 +272,7 @@ export const playersTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         metrics: {
           type: "array",
           items: {
@@ -274,7 +289,13 @@ export const playersTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       for (const d of ["from", "to"]) {
         if (args[d] !== undefined && Number.isNaN(Date.parse(args[d]))) {
@@ -373,12 +394,18 @@ export const playersTools = {
       "Full card collection as last recorded: levels (in-game 1-16 scale), counts, evolutions, star levels, collection level. In THIS tool evolutionLevel/maxEvolutionLevel are evolution progress owned (unlike battle decks, where evolutionLevel is the form played); starLevel is cosmetic. API-shaped passthrough of the latest profile payload.",
     inputSchema: {
       type: "object",
-      properties: { player_tag: TAG_SCHEMA },
+      properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       const { rows } = await ctx.db.query(
         `select p.payload_json->'cards' as cards,

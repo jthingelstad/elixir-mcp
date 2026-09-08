@@ -10,6 +10,7 @@ import {
 import {
   ToolFailure,
   TAG_RULE_HINT,
+  ON_BEHALF_OF_SCHEMA,
   subject,
   entitledClan,
 } from "./shared.mjs";
@@ -411,6 +412,7 @@ export const warTools = {
           type: "string",
           description: "Focus one member’s participation.",
         },
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         seasons: {
           type: "integer",
           minimum: 1,
@@ -424,9 +426,18 @@ export const warTools = {
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       let focus = null;
-      if (args.player_tag)
-        focus = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
-          .tag;
+      // on_behalf_of alone is enough: an agent asked "how did I do in war"
+      // by a human it knows means focus THAT member, not the whole clan.
+      if (args.player_tag || args.on_behalf_of)
+        focus = (
+          await subject(
+            ctx.db,
+            ctx.account,
+            args.player_tag,
+            "summary",
+            args.on_behalf_of,
+          )
+        ).tag;
       const seasons = Number(args.seasons ?? 3);
       if (!Number.isInteger(seasons) || seasons < 1 || seasons > 12)
         throw new ToolFailure(

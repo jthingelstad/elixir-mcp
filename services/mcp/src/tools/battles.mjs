@@ -12,6 +12,7 @@ import {
   requireEnum,
   ToolFailure,
   TAG_SCHEMA,
+  ON_BEHALF_OF_SCHEMA,
   subject,
   buildMeta,
   requireOrderedWindow,
@@ -29,6 +30,7 @@ export const battlesTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         from: {
           type: "string",
           description: "ISO instant or YYYY-MM-DD (your timezone).",
@@ -414,6 +416,7 @@ export const battlesTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         from: {
           type: "string",
           description: "ISO instant or YYYY-MM-DD (your timezone).",
@@ -440,7 +443,13 @@ export const battlesTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       const tz = ctx.account.timezone;
 
@@ -664,6 +673,7 @@ export const battlesTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         perspective: {
           type: "string",
           enum: ["mine", "opponent"],
@@ -677,7 +687,13 @@ export const battlesTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       const tz = ctx.account.timezone;
       const mine = args.perspective !== "opponent";
@@ -739,6 +755,7 @@ export const battlesTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         from: { type: "string" },
         to: { type: "string" },
         mode: { type: "string", enum: MODE_GROUPS },
@@ -758,7 +775,13 @@ export const battlesTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(ctx.db, ctx.account, args.player_tag, "summary")
+        await subject(
+          ctx.db,
+          ctx.account,
+          args.player_tag,
+          "summary",
+          args.on_behalf_of,
+        )
       ).tag;
       const tz = ctx.account.timezone;
       const where = ["bp.player_tag = $1", "bp.deck_hash is not null"];
@@ -1110,6 +1133,7 @@ export const battlesTools = {
     inputSchema: {
       type: "object",
       properties: {
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
         player_tag: {
           type: "string",
           description:
@@ -1143,9 +1167,17 @@ export const battlesTools = {
       if (!Number.isInteger(days) || days < 7 || days > 365)
         throw new ToolFailure("bad_request", "days must be 7-365.");
       let focus = null;
-      if (args.player_tag !== undefined)
-        focus = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
-          .tag;
+      // Same as war_history: being told who is asking is a focus, not noise.
+      if (args.player_tag !== undefined || args.on_behalf_of)
+        focus = (
+          await subject(
+            ctx.db,
+            ctx.account,
+            args.player_tag,
+            "summary",
+            args.on_behalf_of,
+          )
+        ).tag;
       const BANDS = {
         under_5000: [0, 5000],
         "5000_8000": [5000, 8000],

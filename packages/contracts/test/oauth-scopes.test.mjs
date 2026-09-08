@@ -26,6 +26,10 @@ test("every tool has exactly the capability its behavior requires", () => {
     elixir_add_player: OAUTH_SCOPE.RECORDINGS_WRITE,
     elixir_events: OAUTH_SCOPE.ACCOUNT_WRITE,
     elixir_feedback: OAUTH_SCOPE.FEEDBACK_WRITE,
+    // Remembering which human is which is account state, like a nickname: it
+    // writes nothing about the game and grants nothing, since recorded reads
+    // are universal either way.
+    elixir_identify: OAUTH_SCOPE.ACCOUNT_WRITE,
     elixir_nickname: OAUTH_SCOPE.ACCOUNT_WRITE,
   };
 

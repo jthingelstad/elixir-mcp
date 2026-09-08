@@ -106,12 +106,12 @@ test("initialize advertises the surface the caller will actually get", async () 
   );
 });
 
-test("the opening brief tells each principal how to start, correctly", async () => {
-  const brief = async (kind) =>
+test("the opening brief no longer sends anyone to look themselves up", async () => {
+  const brief = async (kind, identity = null) =>
     (
       await handleMcpMessage(
         { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
-        context(kind),
+        { ...context(kind), identity },
       )
     ).payload.result.instructions;
 
@@ -119,15 +119,90 @@ test("the opening brief tells each principal how to start, correctly", async () 
   const agent = await brief("agent");
   const integration = await brief("integration");
 
-  // The regression that prompted this: everyone was told to call
-  // elixir_my_players first, which for an agent means its owner's tags.
-  assert.ok(person.includes("elixir_my_players"));
-  assert.ok(!agent.includes("elixir_my_players for"));
-  assert.ok(agent.includes("act for a clan"));
-  assert.ok(integration.includes("no account subject of your own"));
+  // The regression this replaces: every brief opened with "Start with
+  // elixir_my_players", a holdover from before universal reads that cost a
+  // round trip -- sometimes three -- at the start of every session.
+  for (const [name, text] of [
+    ["person", person],
+    ["agent", agent],
+    ["integration", integration],
+  ])
+    assert.ok(
+      !/Start with elixir_my_players/.test(text),
+      `${name} still enumerates first`,
+    );
 
   // Everyone is still invited to file friction; that is the point of the
-  // whole exercise, not a person-only courtesy.
+  // exercise, not a person-only courtesy.
   for (const text of [person, agent, integration])
     assert.ok(text.includes("elixir_feedback"));
+});
+
+test("a person is told who they are, and told not to look it up", async () => {
+  const identity = {
+    kind: "person",
+    grouped: {
+      primary: [
+        { player_tag: "#UL2V9QRG0", name: "raquaza", is_primary: true },
+      ],
+      alt: [{ player_tag: "#U8RYG9Y2U", name: "King Levy" }],
+      watching: [{ player_tag: "#20R8QRLYLP", name: "Chanco" }],
+    },
+    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
+  };
+  const text = (
+    await handleMcpMessage(
+      { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+      { ...context("person"), identity },
+    )
+  ).payload.result.instructions;
+
+  assert.match(text, /YOU ARE raquaza #UL2V9QRG0/);
+  assert.match(text, /Also you, under another tag: King Levy #U8RYG9Y2U/);
+  assert.match(text, /watching: Chanco #20R8QRLYLP/);
+  assert.match(text, /Your clan is POAP KINGS #J2RGCRVG/);
+  assert.match(text, /OMIT player_tag and clan_tag/);
+});
+
+test("an agent is told its clan and how to learn who is asking", async () => {
+  const identity = {
+    kind: "agent",
+    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", members: 48 }],
+    leaders: [
+      { player_tag: "#20JJJ2CCRU", name: "King Thing", role: "leader" },
+      { player_tag: "#UL2V9QRG0", name: "raquaza", role: "coLeader" },
+    ],
+    identityCount: 3,
+  };
+  const text = (
+    await handleMcpMessage(
+      { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+      { ...context("agent"), identity },
+    )
+  ).payload.result.instructions;
+
+  assert.match(text, /YOU ACT FOR POAP KINGS #J2RGCRVG \(48 members\)/);
+  assert.match(text, /King Thing \(leader\)/);
+  assert.match(text, /on_behalf_of/);
+  assert.match(text, /elixir_identify/);
+  assert.match(text, /You already know 3 of them/);
+
+  // The roster is deliberately NOT here: it changes daily and this text is
+  // held until the agent reconnects.
+  assert.ok(!text.includes("#20R8QRLYLP"), "no roster in the block");
+  assert.match(text, /clans_roster ONCE/);
+});
+
+test("a person with no player is told how to get one, not left to fail", async () => {
+  const text = (
+    await handleMcpMessage(
+      { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+      {
+        ...context("person"),
+        identity: { kind: "person", grouped: {}, clans: [] },
+      },
+    )
+  ).payload.result.instructions;
+  assert.match(text, /no player yet/);
+  assert.match(text, /elixir_add_player/);
 });

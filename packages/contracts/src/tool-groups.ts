@@ -239,6 +239,17 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Changelog",
     readOnly: true,
   },
+  elixir_identify: {
+    group: "Elixir MCP",
+    title: "Who is asking",
+    readOnly: false,
+    oauthScope: OAUTH_SCOPE.ACCOUNT_WRITE,
+  },
+  elixir_my_identities: {
+    group: "Elixir MCP",
+    title: "People you know",
+    readOnly: true,
+  },
   elixir_nickname: {
     group: "Elixir MCP",
     title: "Nicknames",

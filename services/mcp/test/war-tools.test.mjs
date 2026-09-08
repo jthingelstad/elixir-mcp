@@ -235,9 +235,9 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.players.length, 2);
 });
 
-test("the registry declares 37 tools, every one classified and annotated", () => {
+test("the registry declares 39 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 37);
+  assert.equal(decls.length, 39);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -261,6 +261,7 @@ test("the registry declares 37 tools, every one classified and annotated", () =>
       "elixir_add_player",
       "elixir_events",
       "elixir_feedback",
+      "elixir_identify",
       "elixir_nickname",
     ],
     "writes are service-domain, plus curating your own collections",

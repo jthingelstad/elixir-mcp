@@ -10,6 +10,7 @@
 
 import crypto from "node:crypto";
 import { CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
+import { identitySentences } from "./identity.mjs";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
@@ -46,7 +47,7 @@ function rpcError(id, code, message, data) {
  * clan bot ends up reciting somebody's personal tags. The bootstrap question
  * for an agent is not "who am I" but "what do I serve".
  */
-function instructionsFor(kind) {
+function instructionsFor(kind, identity) {
   const shared = [
     "Recorded Clash Royale history: battles, performance, snapshots, war,",
     "coverage - all recorded game data is readable by every account.",
@@ -57,26 +58,12 @@ function instructionsFor(kind) {
     "value, re-fetch tools/list, and elixir_changelog(since) lists what",
     "shipped.",
   ];
-  const opening = {
-    agent: [
-      "You are an AGENT: you act for a clan, not for a person. Your subject is",
-      "the clan on your account - start there, with clans_roster and",
-      "war_current, and use players_search when someone names a player. You",
-      "hold no claims and no primary player tag, so never answer 'my stats'",
-      "for a human without being told whose.",
-    ],
-    integration: [
-      "You are an INTEGRATION: you have no account subject of your own. Every",
-      "call names what it wants - pass player_tag and clan_tag explicitly.",
-      "Nothing here defaults to 'yours', because there is no yours.",
-    ],
-  };
   const closing = {
     person: [
-      "Start with elixir_my_players for your added players. Added means",
-      "recorded: elixir_add_player/elixir_add_clan start capture in one act,",
-      "and meta.events_pending signals new elixir_events for the subjects you",
-      "keep notify-on.",
+      "Added means recorded: elixir_add_player/elixir_add_clan start capture in",
+      "one act, and each player you add is your primary, an alt, a friend or",
+      "someone you watch (elixir_my_players shows which). meta.events_pending",
+      "signals new elixir_events for the subjects you keep notify-on.",
     ],
     agent: [
       "meta.events_pending signals new elixir_events for your clan - poll that",
@@ -93,16 +80,28 @@ function instructionsFor(kind) {
     "elixir_my_feedback).",
   ];
   const k = kind === "agent" || kind === "integration" ? kind : "person";
+  // Identity FIRST. It is the thing every session used to spend calls
+  // discovering, and the thing an agent needs before it can answer anything
+  // phrased as "I" or "we".
+  const who = identitySentences(identity);
   return [
-    ...(opening[k] ?? []),
+    ...(who ? [who] : []),
     ...shared,
     ...closing[k],
     ...feedback,
     DISCLAIMER,
-  ].join(" ");
+  ]
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function initializeResult(registry, requestedVersion, kind = null) {
+function initializeResult(
+  registry,
+  requestedVersion,
+  kind = null,
+  identity = null,
+) {
   const declarations = registry.declarations(kind);
   const requested = String(requestedVersion ?? "");
   return {
@@ -116,7 +115,7 @@ function initializeResult(registry, requestedVersion, kind = null) {
       version: serverVersion(declarations),
       websiteUrl: "https://elixir.poapkings.com/",
     },
-    instructions: instructionsFor(kind),
+    instructions: instructionsFor(kind, identity),
   };
 }
 
@@ -175,6 +174,7 @@ export async function handleMcpMessage(message, context) {
           context.registry,
           params.protocolVersion,
           context.kind,
+          context.identity,
         ),
       ),
     };
