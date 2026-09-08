@@ -27,6 +27,7 @@ import {
   validCodeChallenge,
   normalizeScope,
   canonicalResource,
+  resourceForPath,
   verifyPkce,
   createAuthCode,
   redeemAuthCode,
@@ -128,7 +129,35 @@ function consentCapabilities(scope) {
     .join("")}</ul>`;
 }
 
-async function validatedAuthRequest(db, q, expectedResource) {
+/**
+ * Which principal a requested audience names, and whether the signed-in person
+ * may speak for it.
+ *
+ * Consenting to act AS an agent is a different act from signing in as yourself,
+ * and the ONLY person who may do it is the agent's owner. The check is an
+ * ownership comparison against the authenticated account — not a role, not a
+ * capability — because owning the agent is the entire basis of the authority.
+ */
+async function principalForTarget(db, target) {
+  if (target.kind === "person") return { ok: true, principal: null };
+  const { rows } = await db.query(
+    `select a.account_id, a.kind, a.public_id, a.owned_by_account_id,
+            (select ac.clan_tag from account_clan ac
+              where ac.account_id = a.account_id and ac.is_primary limit 1) as clan_tag,
+            (select t.name from service_token t
+              where t.account_id = a.account_id and t.revoked_at is null
+              order by t.token_id limit 1) as name
+     from account a
+     where a.public_id = $1 and a.kind = $2 and a.status = 'approved'`,
+    [target.publicId, target.kind],
+  );
+  // Deliberately the same refusal whether the principal is missing or simply
+  // not yours: otherwise the consent screen becomes a way to discover which
+  // agents exist.
+  return rows[0] ? { ok: true, principal: rows[0] } : { ok: false };
+}
+
+async function validatedAuthRequest(db, q, targetFor) {
   const client = await getClient(db, q.client_id);
   if (!client) return { error: "unknown client_id" };
   const redirectUri = validRedirectUri(q.redirect_uri);
@@ -140,20 +169,27 @@ async function validatedAuthRequest(db, q, expectedResource) {
   if (!codeChallenge) return { error: "invalid code_challenge" };
   const scope = normalizeScope(q.scope);
   if (!scope) return { error: "invalid_scope" };
-  const resource = canonicalResource(q.resource);
-  if (resource !== expectedResource) return { error: "invalid_target" };
+  const target = targetFor(q.resource);
+  if (!target) return { error: "invalid_target" };
   return {
     client,
     redirectUri,
     codeChallenge,
     scope,
-    resource,
+    resource: target.resource,
+    target,
     state: validState(q.state),
   };
 }
 
 export function makeOauthRoutes({ issuer, sendLoginEmail }) {
-  const resource = new URL("/mcp", issuer).toString();
+  /** The three legal audiences: the personal door and one per principal. */
+  const targetFor = (value) => {
+    const canonical = canonicalResource(value);
+    if (!canonical) return null;
+    if (!canonical.startsWith(issuer)) return null;
+    return resourceForPath(canonical.slice(issuer.length), issuer);
+  };
   return {
     async register(db, event) {
       const ip = event.requestContext?.http?.sourceIp ?? "unknown";
@@ -194,7 +230,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
     async authorizeGet(db, event) {
       const q = event.queryStringParameters ?? {};
-      const v = await validatedAuthRequest(db, q, resource);
+      const v = await validatedAuthRequest(db, q, targetFor);
       if (v.error)
         return html(
           400,
@@ -220,7 +256,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
     async authorizePost(db, event) {
       const form = parseForm(event);
-      const v = await validatedAuthRequest(db, form, resource);
+      const v = await validatedAuthRequest(db, form, targetFor);
       if (v.error)
         return html(
           400,
@@ -266,8 +302,13 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             "Enter your code",
             `<h1>Check your email</h1>
              <p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>
-             <p><strong>Entering it authorizes ${esc(v.client.clientName)} to:</strong></p>
-             ${consentCapabilities(v.scope)}
+             ${
+               v.target.kind === "person"
+                 ? `<p><strong>Entering it authorizes ${esc(v.client.clientName)} to:</strong></p>${consentCapabilities(v.scope)}`
+                 : `<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
+                    <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
+                    ${consentCapabilities(v.scope)}`
+             }
              <form method="post" action="/oauth/authorize">
                <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
                <input type="hidden" name="email" value="${esc(form.email)}">
@@ -301,9 +342,28 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             ),
           );
         }
+        // The person proved who they are. If the audience names a principal,
+        // the grant belongs to THAT account -- so every token minted from this
+        // code carries the agent's identity, budget and tool surface, and the
+        // person's own data is not reachable through it at all.
+        const owned = await principalForTarget(db, v.target);
+        if (
+          !owned.ok ||
+          (owned.principal &&
+            owned.principal.owned_by_account_id !== account.account_id)
+        ) {
+          return html(
+            403,
+            page(
+              "Elixir MCP",
+              `<h1>Not yours to connect</h1><p>That agent or integration is not one you own.</p>`,
+            ),
+          );
+        }
+
         const code = await createAuthCode(db, {
           clientId: v.client.clientId,
-          accountId: account.account_id,
+          accountId: owned.principal?.account_id ?? account.account_id,
           redirectUri: v.redirectUri,
           scope: ctx.scope,
           resource: ctx.resource,
@@ -324,9 +384,11 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
     async token(db, event) {
       const form = parseForm(event);
-      const requestedResource = canonicalResource(form.resource);
-      if (requestedResource !== resource)
-        return json(400, { error: "invalid_target" });
+      // Any legal audience; WHICH one is already pinned by the code being
+      // redeemed, which was bound to a resource when it was issued.
+      const requested = targetFor(form.resource);
+      if (!requested) return json(400, { error: "invalid_target" });
+      const requestedResource = requested.resource;
       const clientId = String(form.client_id ?? "");
       const client = await getClient(db, clientId);
       if (!client) return json(400, { error: "invalid_client" });
