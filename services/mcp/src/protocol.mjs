@@ -131,7 +131,10 @@ function initializeResult(
   };
 }
 
-function renderToolResultText(registry, name, invoked, kind = null) {
+/** Serialize a tool body under the result cap: over it, a small valid
+ *  failure carrying the request receipt replaces the body. Shared by the
+ *  MCP door and the web explorer so the cap is one number. */
+export function renderToolResultText(registry, name, invoked, kind = null) {
   // Compact JSON: MCP clients pay tokens per byte, and battle results are
   // deck-dense — indent-1 doubled their size past the cap for no benefit.
   let text = JSON.stringify(invoked ?? null);

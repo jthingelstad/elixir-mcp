@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Same rules at every door",
+    body: "The explorer on the website now follows the same discipline as the MCP connection: the hourly rate limit and daily call budget are the same buckets, oversized results come back as the same bounded failure, and it serves read-only tools (nicknames excepted, which are the console's own feature). Every tool, on both doors, now checks its arguments against its published schema before running, so a misspelled argument or an out-of-range value is a clear refusal instead of a silent ignore. The usage page shows your tier's real ceilings rather than the member tier's. Malformed ids in console requests answer 400 rather than a server error. And the API origins now accept only requests that came through the site's CloudFront distribution, so the caller address recorded on every call cannot be forged.",
+  },
+  {
+    date: "2026-09-09",
     title: "Agents share their owner's live lane, and are counted",
     body: "An agent's live Clash Royale fetches now come out of its owner's daily live budget, the same way its tool calls already did; until now each agent quietly carried a fresh live allowance its owner never had, so several agents on one account multiplied the one shared API budget. Each tier also has an agent count now (member 3, leader 5, family 10, partner 25, admin and owner unlimited), enforced when an agent is created and shown on the Roles page. Separately, a refused OAuth token at the MCP door answered with a server error instead of the 401 challenge a client needs to re-authorize; it answers 401 now.",
   },

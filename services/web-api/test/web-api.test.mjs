@@ -705,20 +705,29 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   );
   assert.equal(web.statusCode, 200);
 
+  // Writes do not ride the explorer (2026-09-09): feedback has its own
+  // route and its own MCP capability, so the bridge refuses it outright.
+  const viaBridge = await handler(
+    event({
+      path: "/api/explore",
+      cookie,
+      body: {
+        tool: "elixir_feedback",
+        args: { message: "battles_query filters rock", category: "praise" },
+      },
+    }),
+  );
+  assert.equal(viaBridge.statusCode, 400);
   const viaMcp = parse(
     await handler(
       event({
-        path: "/api/explore",
+        path: "/api/feedback",
         cookie,
-        body: {
-          tool: "elixir_feedback",
-          args: { message: "battles_query filters rock", category: "praise" },
-        },
+        body: { message: "battles_query filters rock", category: "praise" },
       }),
     ),
   );
-  assert.equal(viaMcp.is_error, false);
-  assert.ok(viaMcp.body.feedback_id);
+  assert.equal(viaMcp.ok, true, JSON.stringify(viaMcp));
 
   const list = parse(
     await handler(
@@ -731,8 +740,9 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
     ),
   );
   assert.ok(list.feedback.length >= 2);
-  assert.ok(list.feedback.some((f) => f.surface === "web"));
-  assert.ok(list.feedback.some((f) => f.surface === "mcp"));
+  assert.ok(list.feedback.every((f) => f.surface === "web"));
+  // The MCP-surface path (elixir_feedback at the MCP door) is covered in
+  // services/mcp/test/tools2 "feedback loop closes".
   assert.equal(list.feedback[0].from_player, "#2PP0V90Y");
 
   const triage = await handler(
@@ -2204,4 +2214,197 @@ test("connections report their own usage, origin, and refused credentials", asyn
   assert.equal(listed.refusals.length, 1);
   assert.equal(listed.refusals[0].reason, "revoked_key");
   assert.equal(listed.refusals[0].attempts, 12);
+});
+
+// --- hardening batch 2026-09-09 ------------------------------------------
+
+test("usage reports the tier's real ceilings, not member's hardcoded ones", async () => {
+  const cookie = memberCookie;
+  const { roleQuotas } = await import("@elixir-mcp/contracts");
+  const usageFor = async () =>
+    parse(
+      await handler(
+        event({
+          method: "GET",
+          path: "/api/me/usage",
+          cookie,
+          body: undefined,
+        }),
+      ),
+    );
+  await db.query(`update account set role = 'leader' where email_hash = $1`, [
+    emailHash(NEWCOMER),
+  ]);
+  const leader = await usageFor();
+  assert.equal(leader.live_max, roleQuotas("leader").live_fetches_per_day);
+  assert.equal(leader.quota_max, roleQuotas("leader").mcp_calls_per_day);
+  await db.query(
+    `update account set role = 'family', live_daily_quota = 7 where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  const family = await usageFor();
+  assert.equal(family.live_max, 7, "a per-account override beats the tier");
+  assert.equal(family.quota_max, roleQuotas("family").mcp_calls_per_day);
+  await db.query(
+    `update account set role = 'member', live_daily_quota = null where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+});
+
+test("malformed ids are 400s, never uuid or bigint syntax errors", async () => {
+  const cookie = memberCookie;
+
+  for (const p of ["rotate", "rename", "status"]) {
+    const res = await handler(
+      event({
+        path: `/api/me/principals/${p}`,
+        cookie,
+        body: { account_id: "not-a-uuid", name: "x", status: "suspended" },
+      }),
+    );
+    assert.equal(res.statusCode, 400, p);
+    assert.equal(parse(res).error, "invalid_account_id", p);
+  }
+  const events = await handler({
+    ...event({
+      method: "GET",
+      path: "/api/me/principals/events",
+      cookie,
+      body: undefined,
+    }),
+    queryStringParameters: { account_id: "nope" },
+  });
+  assert.equal(events.statusCode, 400);
+  const revoke = await handler(
+    event({
+      path: "/api/admin/service-tokens",
+      cookie: bossCookie,
+      body: { revoke_token_id: "abc" },
+    }),
+  );
+  assert.equal(revoke.statusCode, 400);
+  assert.equal(parse(revoke).error, "invalid_token_id");
+  const fb = await handler(
+    event({
+      path: "/api/admin/feedback",
+      cookie: bossCookie,
+      body: { feedback_id: "1; drop", status: "seen" },
+    }),
+  );
+  assert.equal(fb.statusCode, 400);
+});
+
+test("the explorer is metered and capped like the MCP door, and read-only", async () => {
+  const cookie = memberCookie;
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  const accountId = acct[0].account_id;
+  const call = (tool, args = {}) =>
+    handler(event({ path: "/api/explore", cookie, body: { tool, args } }));
+
+  // Read-only tools serve; writes other than the console's nickname editor
+  // are refused before any quota is spent.
+  assert.equal((await call("elixir_my_players")).statusCode, 200);
+  for (const w of [
+    "elixir_add_player",
+    "elixir_add_clan",
+    "collections_edit",
+    "elixir_identify",
+  ])
+    assert.equal((await call(w)).statusCode, 400, w);
+  assert.equal(
+    (await call("elixir_nickname", { player_tag: "#PYGRJC" })).statusCode,
+    200,
+  );
+
+  // The daily quota is the account's, shared with /mcp: fill it and the
+  // explorer refuses too.
+  const today = new Date().toISOString().slice(0, 10);
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 100000)
+     on conflict (bucket, window_start) do update set count = 100000`,
+    [`mcpday#${accountId}`, today],
+  );
+  const quota = await call("elixir_my_players");
+  assert.equal(quota.statusCode, 429);
+  assert.equal(parse(quota).error, "quota_exceeded");
+  await db.query(`delete from rate_limit where bucket = $1`, [
+    `mcpday#${accountId}`,
+  ]);
+
+  // The hourly bucket too (same bucket as the MCP door).
+  const { rows: hourly } = await db.query(
+    `select bucket, window_start from rate_limit where bucket = $1 order by window_start desc limit 1`,
+    [`mcp#${accountId}`],
+  );
+  assert.equal(
+    hourly.length,
+    1,
+    "explorer calls count against the hourly bucket",
+  );
+  await db.query(
+    `update rate_limit set count = 100000 where bucket = $1 and window_start = $2`,
+    [hourly[0].bucket, hourly[0].window_start],
+  );
+  const rate = await call("elixir_my_players");
+  assert.equal(rate.statusCode, 429);
+  assert.equal(parse(rate).error, "rate_limited");
+  await db.query(`delete from rate_limit where bucket = $1`, [
+    `mcp#${accountId}`,
+  ]);
+
+  // Arguments are validated on this door as well.
+  const bad = parse(await call("battles_query", { limit: "ten" }));
+  assert.equal(bad.is_error, true);
+  assert.equal(bad.body.error.code, "bad_request");
+});
+
+test("an oversized explorer result is the same bounded failure the MCP door returns", async () => {
+  const { MCP_RESULT_MAX_CHARS } = await import("../../mcp/src/protocol.mjs");
+  const { renderToolResultText } = await import("../../mcp/src/protocol.mjs");
+  const { makeRegistry } = await import("../../mcp/src/tools.mjs");
+  const huge = {
+    battles: "x".repeat(MCP_RESULT_MAX_CHARS + 1),
+    meta: { as_of: new Date().toISOString() },
+  };
+  const { text, truncated } = renderToolResultText(
+    makeRegistry(),
+    "battles_query",
+    huge,
+  );
+  assert.equal(truncated, true);
+  const body = JSON.parse(text);
+  assert.equal(body.error.code, "bad_request");
+  assert.ok(text.length < MCP_RESULT_MAX_CHARS);
+});
+
+test("with an origin secret set, the site API refuses requests that did not come through CloudFront", async () => {
+  const gated = makeHandler({
+    databaseUrl: DB_URL,
+    secret: SECRET,
+    sendLoginEmail: async () => {},
+    originSecret: "s3cret-origin",
+  });
+  const status = (headers = {}) => ({
+    rawPath: "/api/public/status",
+    requestContext: { http: { method: "GET", sourceIp: "1.1.1.1" } },
+    headers,
+  });
+  assert.equal((await gated(status())).statusCode, 403);
+  assert.equal(parse(await gated(status())).error, "forbidden_origin");
+  assert.equal(
+    (await gated(status({ "x-elixir-origin": "nope" }))).statusCode,
+    403,
+  );
+  assert.equal(
+    (await gated(status({ "x-elixir-origin": "s3cret-origin" }))).statusCode,
+    200,
+  );
+  assert.equal(
+    (await handler(status())).statusCode,
+    200,
+    "unset: check is off",
+  );
 });
