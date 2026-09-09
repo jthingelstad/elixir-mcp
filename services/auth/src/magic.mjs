@@ -157,3 +157,34 @@ async function classifyMismatch(db, emailHash, purpose, value) {
   if (found.expired) return "expired";
   return "superseded";
 }
+
+/**
+ * A code this flow burned moments ago, found by its own value.
+ *
+ * Exists for double submission, which is not a hypothetical: iOS fills a
+ * one-time code and the form goes twice, ~1.4s apart. The first POST succeeds
+ * and redirects the browser back to the client; the second finds nothing live,
+ * renders an error over the top of it, and the navigation that would have
+ * completed the connection never happens. Observed 2026-09-09 08:54 and 08:55,
+ * two attempts, identical shape.
+ *
+ * Returning the burned row lets the caller repeat its OWN successful answer
+ * instead of contradicting itself. The window is short and the caller still
+ * re-checks every binding on the request before acting on it.
+ */
+export async function findRecentlyUsedCode(
+  db,
+  { emailHash, code, purpose = null, withinSeconds = 120 },
+) {
+  const value = validMagicCode(code);
+  if (!value) return null;
+  const { rows } = await db.query(
+    `select purpose, context, used_at from magic_login
+     where email_hash = $1 and code_hash = $2 and used_at is not null
+       and used_at > now() - make_interval(secs => $3)
+       and ($4::text is null or purpose = $4)
+     order by used_at desc limit 1`,
+    [emailHash, sha256hex(value), withinSeconds, purpose],
+  );
+  return rows[0] ?? null;
+}

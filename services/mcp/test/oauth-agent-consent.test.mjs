@@ -119,7 +119,7 @@ after(async () => {
 });
 
 /** Drive the consent flow to the point of redirect (or refusal). */
-async function consent(email, resource, ip) {
+async function consent(email, resource, ip, { submitTwice = false } = {}) {
   const verifier = crypto.randomBytes(48).toString("base64url");
   const challenge = crypto
     .createHash("sha256")
@@ -143,14 +143,17 @@ async function consent(email, resource, ip) {
   );
   if (start.statusCode !== 200) return { stage: "start", res: start };
   const mail = sentEmails.at(-1);
-  const done = await handler(
-    event({
-      path: "/oauth/authorize",
-      form: { ...q, step: "code", email, code: mail?.code ?? "000000" },
-      ip,
-    }),
-  );
-  return { stage: "code", res: done, verifier };
+  const post = () =>
+    handler(
+      event({
+        path: "/oauth/authorize",
+        form: { ...q, step: "code", email, code: mail?.code ?? "000000" },
+        ip,
+      }),
+    );
+  const done = await post();
+  const again = submitTwice ? await post() : null;
+  return { stage: "code", res: done, again, verifier };
 }
 
 test("an owner may connect a client AS their agent", async () => {
@@ -262,4 +265,71 @@ test("the consent screen says which act is being authorised", async () => {
   assert.doesNotMatch(asSelf, /not as you/);
   assert.match(asSelf, /authorizes Claude to/);
   assert.doesNotMatch(asAgent, /authorizes Claude to/);
+});
+
+/**
+ * The failure that took two screen recordings to find.
+ *
+ * iOS fills a one-time code and submits the form; a tap submits it again about
+ * a second later. The first POST authorised and redirected back to the client;
+ * the second found the code spent and rendered "there is no code waiting" OVER
+ * that redirect, so the browser never navigated to the callback and the
+ * connection never completed. The logs said accepted-then-rejected 1.4s apart.
+ *
+ * A duplicate must therefore repeat the first answer, not contradict it.
+ */
+test("submitting the authorize form twice redirects twice, not an error", async () => {
+  const { res, again } = await consent(OWNER, `${ISSUER}/mcp`, "9.9.9.7", {
+    submitTwice: true,
+  });
+  assert.equal(res.statusCode, 303, res.body);
+  assert.equal(
+    again.statusCode,
+    303,
+    `the second submit must also redirect, got ${again.statusCode}: ${again.body}`,
+  );
+
+  // Two codes, each single-use, both bound to the same account and resource --
+  // so whichever navigation the browser wins with, exactly one is redeemed and
+  // the other simply expires.
+  const { rows } = await db.query(
+    `select code_hash, account_id, resource from oauth_code
+     order by created_at desc limit 2`,
+  );
+  assert.equal(rows.length, 2);
+  assert.notEqual(rows[0].code_hash, rows[1].code_hash);
+  assert.equal(rows[0].account_id, rows[1].account_id);
+  assert.equal(rows[0].resource, rows[1].resource);
+});
+
+test("a duplicate submit is still refused once the window is past", async () => {
+  const { res } = await consent(OWNER, `${ISSUER}/mcp`, "9.9.9.8");
+  assert.equal(res.statusCode, 303, res.body);
+  // Age the burn beyond the replay window; the same POST now has nothing to
+  // repeat and says so.
+  await db.query(
+    `update magic_login set used_at = used_at - interval '10 minutes'
+     where used_at is not null`,
+  );
+  const late = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: {
+        client_id: clientId,
+        redirect_uri: REDIRECT,
+        scope: "cr:read",
+        resource: `${ISSUER}/mcp`,
+        code_challenge: crypto
+          .createHash("sha256")
+          .update("verifier-for-a-late-replay")
+          .digest("base64url"),
+        code_challenge_method: "S256",
+        step: "code",
+        email: OWNER,
+        code: sentEmails.at(-1)?.code ?? "000000",
+      },
+      ip: "9.9.9.8",
+    }),
+  );
+  assert.equal(late.statusCode, 400);
 });

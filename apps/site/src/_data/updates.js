@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Connecting a client survives a double tap",
+    body: "Submitting the authorization form twice - which phones do on their own after filling a one-time code - no longer replaces a successful connection with an error page. A repeat within two minutes repeats the same answer and returns you to your client, with every check on the request applied again and each authorization code still usable only once.",
+  },
+  {
+    date: "2026-09-09",
     title: "Sign-in codes stop competing with each other",
     body: "A code sent for connecting an AI client and a code sent for signing in to the website are now kept separate. Previously the most recent code of either kind was the only one that could be used, so requesting one while the other was open made the other impossible to enter and could exhaust its attempts. When a code is refused, the page now says which reason applies - superseded, already used, expired, too many attempts, or a code from the other flow - and what to do next.",
   },

@@ -580,3 +580,19 @@ wrong-resource 403s at the MCP door. Never a code, token, PKCE verifier or raw
 address: an email is the first 8 hex of the hash already stored, a credential
 is an 8-hex digest, both correlatable and neither reversible.
 
+**DOUBLE SUBMIT (2026-09-09, same day):** with the logging in place the real
+failure showed itself in one line pair — `oauth_code_accepted` at 08:54:42,
+`oauth_code_rejected reason=no_live_code` at 08:54:43.8, and no token exchange
+at all. The authorize form is posted TWICE on iOS (a one-time-code fill
+submits, a tap submits again ~1.4s later). The first POST authorised and 303'd
+to the client; the second found the code spent and rendered an error over the
+top of the redirect, so the browser never reached the callback. From outside it
+read as "the code was refused"; the server had accepted it and then
+contradicted itself.
+
+The code step is idempotent now: a duplicate within two minutes repeats the
+first answer instead of denying it. Nothing is trusted from the replay -- the
+client, redirect_uri, resource and PKCE challenge are re-checked against the
+request exactly as on the first pass, and each auth code stays single-use, so
+whichever navigation the browser wins with, exactly one code is redeemable.
+

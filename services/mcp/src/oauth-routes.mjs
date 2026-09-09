@@ -17,6 +17,7 @@ import {
   approvedAccount,
   startMagicLogin,
   verifyMagicCode,
+  findRecentlyUsedCode,
   authLog,
   emailRef,
   checkRateLimit,
@@ -392,8 +393,39 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           // consume each other's codes and each other's attempts.
           purpose: "oauth",
         });
-        const ctx = verified.ok ? verified.row.context : null;
-        const account = verified.ok ? await approvedAccount(db, hash) : null;
+
+        // IDEMPOTENT, because this form gets posted twice.
+        //
+        // iOS fills a one-time code and submits; a tap submits again ~1.4s
+        // later. The first POST authorized correctly and 303'd back to the
+        // client — and the second, finding the code spent, painted "there is
+        // no code waiting" over the redirect that would have finished the
+        // connection. From the outside it looked like the code was refused;
+        // from the logs it was accepted and then contradicted.
+        //
+        // So a duplicate repeats the first answer rather than denying it.
+        // Nothing is trusted from the replay itself: every binding below is
+        // re-checked against this request, the window is two minutes, and the
+        // auth code minted is single-use like any other, so whichever
+        // navigation wins, exactly one code is redeemable.
+        let ctx = verified.ok ? verified.row.context : null;
+        let replayed = false;
+        if (
+          !verified.ok &&
+          (verified.reason === "no_live_code" ||
+            verified.reason === "already_used")
+        ) {
+          const prior = await findRecentlyUsedCode(db, {
+            emailHash: hash,
+            code: form.code,
+            purpose: "oauth",
+          });
+          if (prior) {
+            ctx = prior.context;
+            replayed = true;
+          }
+        }
+        const account = ctx ? await approvedAccount(db, hash) : null;
 
         // WHICH of these failed decides what the person should do next, and
         // saying "one of seven things" left them retrying a code that could
@@ -411,12 +443,14 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
                     : null
             : null;
 
-        if (!verified.ok || !ctx || !account || mismatch) {
-          const reason = !verified.ok
+        if ((!verified.ok && !replayed) || !ctx || !account || mismatch) {
+          const reason = !ctx
             ? verified.reason
             : !account
               ? "account_not_approved"
-              : `request_${mismatch}`;
+              : mismatch
+                ? `request_${mismatch}`
+                : verified.reason;
           authLog("oauth_code_rejected", {
             email: emailRef(hash),
             reason,
@@ -426,7 +460,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           });
           return html(400, page("Elixir MCP", codeFailure(reason)));
         }
-        authLog("oauth_code_accepted", {
+        authLog(replayed ? "oauth_code_replayed" : "oauth_code_accepted", {
           email: emailRef(hash),
           client: v.client.clientName,
           resource: v.resource,
