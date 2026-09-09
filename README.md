@@ -27,7 +27,7 @@ builds both halves into one tree and validates it. The collector operators run l
 [elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
 (the queue contract stays canonical here in `packages/contracts`).
 
-Secrets are never committed — see `.gitignore` and DESIGN.md §7. CR API keys
+Secrets are never committed — see the golden rules in [AGENTS.md](AGENTS.md); verify with `git ls-files`. CR API keys
 exist only in collector operators' local `.env` files.
 
 ---

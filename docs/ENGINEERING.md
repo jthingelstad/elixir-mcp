@@ -94,3 +94,18 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
 the CLI profile flag alone does not satisfy the SDK's provider chain. Order is
 build → upload → migrate → stack → web. It is smoke-gated, and deploys are
 cumulative: never deploy past a commit whose infrastructure change is blocked.
+
+## Verification follows the boundaries
+
+`npm run verify` is the same pre-push and CI gate: formatting, lint, Knip and
+all workspace tests. Knip entries name actual executable roots per workspace;
+remove obsolete entries instead of suppressing configuration hints. Successful
+account journeys use the real web API, JSON transport and per-run scratch
+Postgres databases. Crash-containment tests serve a different purpose and do
+not substitute for those journeys.
+
+Metadata rules live in `packages/contracts/src/meta.ts`. Producers validate
+there and at the registry boundary; a new metadata field needs its type and
+runtime rule together. The response guide's example is generated from this
+contract and validated again from built HTML. Keep cross-tool numerical
+agreement and protocol serialization tests alongside endpoint-specific tests.

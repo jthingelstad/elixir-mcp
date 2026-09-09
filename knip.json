@@ -6,30 +6,54 @@
       "project": ["infra/scripts/**/*.mjs"]
     },
     "apps/site": {
-      "entry": ["eleventy.config.mjs", "src/_data/*.js", "test/**/*.test.mjs"],
-      "project": ["src/**/*.js", "eleventy.config.mjs", "test/**/*.mjs"]
+      "entry": ["src/_data/*.js", "test/**/*.test.mjs"],
+      "project": ["src/**/*.js", "test/**/*.mjs"]
     },
     "apps/web": {
-      "entry": ["src/main.jsx", "vite.config.mjs"],
       "project": ["src/**/*.{js,jsx}"]
     },
     "packages/contracts": {
-      "entry": ["src/index.ts"],
       "project": ["src/**/*.ts", "test/**/*.mjs"]
     },
     "packages/design": {
       "entry": [],
       "project": []
     },
-    "services/*": {
+    "services/auth": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/email-relay": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/ingest": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/jobs": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/mcp": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/migrate": {
       "entry": [
-        "src/index.mjs",
-        "src/lambda.mjs",
         "src/cli.mjs",
+        "src/lambda.mjs",
         "src/seed-dev.mjs",
-        "scripts/*.mjs",
         "test/**/*.test.mjs"
       ],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/scheduler": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/web-api": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }
   },

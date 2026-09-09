@@ -485,3 +485,16 @@ for compatibility with explicit method limitations. Aggregate basis counts are
 volume context, not model identity: the earlier claim that unchanged counts
 attribute a change to the player was unsupported. New metadata and the corrected
 empty-rate semantics ship in contract 0.36.0. No migration or new collection work.
+
+**TECHNICAL DEBT PASS (2026-09-08):** Completed the four follow-ups from the
+review. Web API route assembly, account page dispatch, and migrate Lambda
+entry points now delegate to focused modules; all existing route and function
+bodies were preserved. Successful account/player and agent lifecycle journeys
+exercise the real API against disposable Postgres databases. Metadata has
+producer-side runtime validation (including the previously undeclared
+`timezone_applied`); the public example is generated and checked from rendered
+HTML. Contract 0.36.2, no schema change. CI calls the same `npm run verify` as
+local work; Knip's 38 stale/redundant configuration hints are removed, and active
+maintenance guides point to ENGINEERING/public docs rather than archived
+DESIGN sections. Historical decision records remain historical. No change to
+product direction, collector releases, quotas or statistical models.

@@ -247,6 +247,9 @@ to separate modules; ordered migrations still run only through its deploy path.
 The shared metadata contract is checked when an envelope is built and after a
 tool returns. Successful UI journeys exercise the real API on scratch databases.
 
+CI and local development use the same `npm run verify` gate: formatting, lint,
+dead-code analysis and workspace tests.
+
 ## The code, and the family
 
 Elixir MCP is built in the open:

@@ -45,12 +45,12 @@ new ones there as they happen.
 2. **Only the gateway calls the CR API at runtime.** The token lives solely on
    allowlisted-IP operator machines — never in CI, Lambda, or the browser.
 3. **One global rate budget.** The gateway fleet is redundancy, never quota
-   multiplication. This is ToS posture, not an optimization (DESIGN §5.2).
+   multiplication. This is ToS posture, not an optimization (docs/ENGINEERING.md: rate budget).
 4. **CR tags are the only IDs for game entities.** One shared normalizer, no
-   surrogate keys; accounts touch game data only through `claim` (DESIGN §4.1).
+   surrogate keys; accounts touch game data only through `claim`.
 5. **`packages/contracts` is the single source of truth** for tool schemas,
    the error enum, `deck_hash`, and the meta envelope. Versioning rules:
-   DESIGN §11.
+   `docs/ENGINEERING.md`, “The tool contract has clients that never update.”
 6. **Schema changes are ordered migrations in `db/migrations`**, applied only
    by the migrate Lambda at deploy — never at handler start, never by hand.
    Expand-and-contract; canonical tables are lossless by policy.
@@ -111,9 +111,9 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   the What's-new list (`apps/site/src/_data/updates.js`) in the same
   commit. The tool reference (`/docs/tools`) is GENERATED from the MCP
   registry - never hand-edit it; fix the tool's declaration instead.
-- `npm run verify` (prettier check + oxlint + all workspace tests) is the
-  pre-push gate; `npm run format` fixes style. `npm run knip` hunts dead
-  exports/deps — run it when refactoring, not every push.
+- `npm run verify` (prettier check + oxlint + knip + all workspace tests) is the
+  pre-push gate; `npm run format` fixes style. `npm run knip` can also run
+  the dead-export/dependency check alone during refactoring. CI uses the same gate.
 - Commits are small and message-first; assert HEAD moved after committing
   (don't pipe commit output through `tail`).
 - Manual steps only Jamie can do (Supercell keys, DNS, Fastmail tokens,

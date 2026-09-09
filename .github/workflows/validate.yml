@@ -33,10 +33,7 @@ jobs:
       # (#32).
       - run: npm audit --omit=dev --audit-level=low
       - run: npm audit || true
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run build -w @elixir-mcp/contracts
-      - run: npm test -ws --if-present
+      - run: npm run verify
       - run: node infra/scripts/build.mjs
       # The site build validates its own merged tree: dead sitemap
       # entries, dangling llms.txt links and a missing app shell fail

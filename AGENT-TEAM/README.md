@@ -66,7 +66,7 @@ Cross-cutting work keeps one originating owner through acceptance.
 - `CLAUDE.md` / `AGENTS.md` — golden rules; `docs/ENGINEERING.md` is the spec
   of record; `docs/NOTES.md` is the decision ledger (newest near the top).
 - `packages/contracts` — tool schemas, queue contracts, error enum,
-  changelog. Version rules in DESIGN §11.
+  changelog. Version rules in `docs/ENGINEERING.md`.
 - `services/` — mcp (door + tools), web-api, ingest, scheduler, migrate
   (deploy plumbing + break-glass ops), jobs (scheduled product work),
   email-relay (the ONLY internet egress: email, analytics, enrollment).
