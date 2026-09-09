@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { resolveSubject } from "../src/entitlements.mjs";
+import { resolveSubject, resolveEntitledClan } from "../src/entitlements.mjs";
 import { describeIdentity, identitySentences } from "../src/identity.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -63,14 +63,6 @@ before(async () => {
       [CLAN, tag, tag === OTHER ? "leader" : "member"],
     );
   }
-  await db
-    .query(
-      `insert into recording (subject_type, subject_tag, status, scope)
-     values ('clan', $1, 'active', 'comprehensive')`,
-      [CLAN],
-    )
-    .catch(() => {});
-
   const mk = async (email, kind, owner = null) => {
     const { rows } = await db.query(
       `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
@@ -96,6 +88,17 @@ before(async () => {
     `insert into account_clan (account_id, clan_tag, scope, is_primary)
      values ($1, $2, 'comprehensive', true), ($3, $2, 'comprehensive', true)`,
     [person.accountId, CLAN, agent.accountId],
+  );
+  // recording.requested_by is NOT NULL, so this needs an account and has to
+  // come after one exists. It used to sit above, before any account, under a
+  // `.catch(() => {})` — so it silently never ran, and the clan in this
+  // fixture was never actually recorded. Nothing here depended on that until
+  // now, which is exactly how a swallowed fixture write survives: it does not
+  // fail, it just quietly changes what the tests are testing.
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+     values ('clan', $1, $2, 'active', 'comprehensive')`,
+    [CLAN, person.accountId],
   );
 });
 
@@ -194,4 +197,43 @@ test("an agent's block names its clan and its leadership, not its roster", async
   assert.match(text, /King Thing \(leader\)/);
   assert.ok(!text.includes(ALT), "members are not enumerated here");
   assert.match(text, /You already know \d+ of them/);
+});
+
+/**
+ * The clan half of "me".
+ *
+ * resolveSubject answers WHO; these answer WHICH CLAN, and the two used to
+ * disagree with each other and with initialize. Observed in production on
+ * 2026-09-08: a connection whose principal block reported
+ * `agent acting for clan POAP KINGS #J2RGCRVG, 48 members` got
+ * `not_entitled: No recorded clan membership on this account` from
+ * `clans_roster {}` seconds later, because clan defaults were derived from
+ * claims and an agent has none. Found by elixir-mcp-discord, whose prompts had
+ * been passing an explicit tag and so had hidden it since agents shipped.
+ */
+test("an agent omitting clan_tag means the clan it acts for", async () => {
+  assert.equal(await resolveEntitledClan(db, agent, undefined), CLAN);
+});
+
+test("a person's clan default still comes from their claims", async () => {
+  assert.equal(await resolveEntitledClan(db, person, undefined), CLAN);
+});
+
+test("an explicit tag still wins for an agent", async () => {
+  assert.equal(await resolveEntitledClan(db, agent, CLAN), CLAN);
+});
+
+test("an agent with no clan is told what would fix it, in terms it can act on", async () => {
+  // "be an open member of a recorded clan" is advice an agent can never take:
+  // it has no player and cannot join anything.
+  const { rows } = await db.query(
+    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
+     values (null, 'approved', 'leader', 'agent', $1, $2) returning account_id`,
+    [person.accountId, `pub${(Date.now() % 1e8) + 1}`],
+  );
+  const orphan = { accountId: rows[0].account_id, kind: "agent" };
+  await assert.rejects(
+    () => resolveEntitledClan(db, orphan, undefined),
+    (e) => e.code === "not_entitled" && /Account -> Agents/.test(e.hint),
+  );
 });

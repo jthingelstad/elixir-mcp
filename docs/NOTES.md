@@ -517,3 +517,33 @@ collection enrollment. The user explicitly included automatic membership;
 supplied tags remain unverified. Collection grants preserve existing ownership,
 manual members and recording depth. No scores, XP, identities or game facts are
 written back by Drop. See the public integration guide and OpenAPI contract.
+
+
+## 2026-09-09 — An agent's clan is not a claim
+
+`resolveEntitledClan` derived a caller's clans from `claim` joined to
+`clan_membership`. An agent holds no claims by design, so `ent.clans` was empty
+for every agent and any clan tool called without `clan_tag` returned
+`not_entitled: No recorded clan membership on this account` — on a connection
+whose own `initialize` block reported the clan, its name and its member count,
+and whose instructions tell the model to omit the tag. 0053 added the principal
+kind and `account_clan`; every other agent-aware path (identity, feed fan-out,
+OAuth consent) learned to read it and this resolver did not.
+
+Fixed at the resolver: an agent's actively recorded `account_clan` rows join
+its entitled clans, primary first so a tool's default is the clan `initialize`
+announced. `roles` is deliberately untouched — whether a clan's agent inherits
+leadership-scoped analytics without a claimed elder tag is a product decision,
+not a side effect of fixing a default; `requireLeadership` has no tool callers
+today.
+
+Found by elixir-mcp-discord after it stopped interpolating a configured clan
+tag into every prompt. The explicit tag had masked this since agents shipped,
+and its owner's personal token had masked it before that (the instance owner
+gets every recorded clan). No migration, no contract change.
+
+The fixture in `identity-resolution.test.mjs` inserted its `recording` row
+before any account existed, under `.catch(() => {})` — `requested_by` is NOT
+NULL, so the write silently never happened and the fixture's clan was never
+recorded. Moved after account creation and unswallowed.
+

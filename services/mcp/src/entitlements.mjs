@@ -56,11 +56,45 @@ async function resolveEntitlements(db, account) {
     }
   }
 
+  // AN AGENT'S CLAN IS NOT A CLAIM.
+  //
+  // A person's clans come from the players they claimed. An agent holds no
+  // claims at all — a claim asserts "this player is me" and an agent has no
+  // self — so the query above returns nothing for every agent, and the promise
+  // `initialize` makes in writing ("OMIT clan_tag to mean it") answered
+  // "No recorded clan membership on this account" instead. The subject was
+  // there the whole time, in account_clan: the same row describeIdentity reads
+  // to say YOU ACT FOR. This resolver was the one agent-aware path that never
+  // learned about it (0053 added the kind; this is the reader it missed).
+  //
+  // is_primary first, so the clan a tool defaults to is the clan the
+  // connection was told at initialize that it acts for. A clan family must not
+  // disagree with its own opening instructions.
+  //
+  // `roles` is deliberately NOT extended: leadership analytics still need an
+  // elder-or-higher CLAIMED tag, and whether a clan's agent inherits that is a
+  // product decision, not a side effect of fixing a default.
+  const agentClans =
+    (account.kind ?? "person") === "agent"
+      ? (
+          await db.query(
+            `select ac.clan_tag from account_clan ac
+             join recording r
+               on r.subject_type = 'clan'
+              and r.subject_tag = ac.clan_tag
+              and r.status = 'active'
+             where ac.account_id = $1
+             order by ac.is_primary desc, ac.clan_tag`,
+            [account.accountId],
+          )
+        ).rows.map((r) => r.clan_tag)
+      : [];
+
   // The instance owner administers every recorded clan (Jamie, 2026-09-03:
   // owner-enrolled clans the owner may not be a member of). Rule 2 for
   // everyone else still requires open membership; member battle-level
   // consent applies to the owner at the tool layer like anyone else.
-  let clans = recordedClans;
+  let clans = [...new Set([...agentClans, ...recordedClans])];
   if (account.isOwner) {
     const { rows } = await db.query(
       `select subject_tag from recording where subject_type = 'clan' and status = 'active'`,
@@ -225,10 +259,19 @@ export async function resolveEntitledClan(db, account, inputTag) {
     return tag;
   }
   if (ent.clans.length === 0) {
+    // Two ways to have no default, and they need different next steps: a
+    // person joins or claims a tag, an agent needs a recorded clan on the
+    // agent itself. Telling an agent to be "an open member" of something is
+    // advice it can never act on.
+    const isAgent = (account.kind ?? "person") === "agent";
     throw {
       code: "not_entitled",
-      message: "No recorded clan membership on this account.",
-      hint: "Clan tools cover recorded clans you are an open member of.",
+      message: isAgent
+        ? "This agent has no recorded clan."
+        : "No recorded clan membership on this account.",
+      hint: isAgent
+        ? "An agent's clan is set on the agent (Account -> Agents) and must be actively recorded."
+        : "Clan tools cover recorded clans you are an open member of.",
     };
   }
   return ent.clans[0];
