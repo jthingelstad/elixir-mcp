@@ -6,3 +6,4 @@ export * from "./sessions-store.mjs";
 export * from "./rate-limit.mjs";
 export * from "./gate.mjs";
 export * from "./oauth.mjs";
+export { originAllowed, forbiddenOrigin, ORIGIN_HEADER } from "./origin.mjs";

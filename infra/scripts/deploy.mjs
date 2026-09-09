@@ -147,12 +147,23 @@ if (isCreate) {
   );
 } else {
   console.error("updating stack...");
+  // Which parameters the live stack already carries: a SECRET parameter
+  // absent here is on its first deploy and gets minted, never reset.
+  const { Stacks: current } = await cfn.send(
+    new DescribeStacksCommand({ StackName: STACK }),
+  );
+  const existingKeys = (current[0].Parameters ?? []).map((p) => p.ParameterKey);
   try {
     await cfn.send(
       new UpdateStackCommand({
         StackName: STACK,
         TemplateBody: templateBody,
-        Parameters: buildParameters(required, null, paramOverrides),
+        Parameters: buildParameters(
+          required,
+          null,
+          paramOverrides,
+          existingKeys,
+        ),
         Capabilities: ["CAPABILITY_NAMED_IAM"],
       }),
     );

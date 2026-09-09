@@ -17,6 +17,8 @@ import {
   approvedAccount,
   createSession,
   resolveSession,
+  originAllowed,
+  forbiddenOrigin,
 } from "@elixir-mcp/auth";
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 
@@ -47,6 +49,7 @@ export function makeHandler({
   queueStats = async () => null,
   track = null,
   collectorDoor = null,
+  originSecret = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
   const ping = async (eventName, value) => {
@@ -146,6 +149,8 @@ export function makeHandler({
   };
 
   return async function handler(event) {
+    // Through CloudFront, or not at all (see auth origin.mjs).
+    if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
       event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
     const path = event.rawPath ?? event.path ?? "/";

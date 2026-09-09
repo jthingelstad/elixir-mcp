@@ -17,6 +17,8 @@ import {
   normalizeScope,
   resourceForPath,
   principalMatchesResource,
+  originAllowed,
+  forbiddenOrigin,
 } from "@elixir-mcp/auth";
 import { DEFAULT_OAUTH_SCOPE } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
@@ -27,7 +29,8 @@ import { makeOauthRoutes, rawBody } from "./oauth-routes.mjs";
 import { describeIdentity } from "./identity.mjs";
 import { makeLive } from "./live.mjs";
 
-export const HOURLY_RATE_LIMIT = 300;
+import { HOURLY_RATE_LIMIT } from "./quota.mjs";
+export { HOURLY_RATE_LIMIT };
 
 export function makeHandler({
   databaseUrl,
@@ -35,6 +38,7 @@ export function makeHandler({
   sendLoginEmail,
   enqueueLiveJob = null,
   track = null,
+  originSecret = null,
 }) {
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
@@ -45,6 +49,9 @@ export function makeHandler({
   const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
 
   return async function handler(event) {
+    // Through CloudFront, or not at all: the viewer headers this door
+    // records are only trustworthy when the distribution set them.
+    if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
       event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
     const path = event.rawPath ?? event.path ?? "/";

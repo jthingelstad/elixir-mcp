@@ -12,6 +12,7 @@ export const handler = makeHandler({
   // 0040: live jobs go straight into the Postgres job ledger; the
   // live-channel collectors lease them at the door.
   enqueueLiveJob: (db, job) => enqueueJob(db, job),
+  originSecret: process.env.ORIGIN_SECRET || null,
   sendLoginEmail: ({ email, code, clientName, newsletter }) =>
     sqs.send(
       new SendMessageCommand({

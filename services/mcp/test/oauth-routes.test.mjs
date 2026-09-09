@@ -727,3 +727,41 @@ test("an expired OAuth access token is refused with 401 and attributed to its fa
   assert.equal(rows[0].reason, "expired", "the actionable part");
   assert.equal(rows[0].account_id, accountId, "attributed through the family");
 });
+
+// A direct execute-api hit could forge cloudfront-viewer-address and poison
+// viewer_ip in mcp_call_audit / credential_refusal. With a secret set, the
+// door answers only requests CloudFront stamped.
+test("with an origin secret set, the MCP door refuses requests that did not come through CloudFront", async () => {
+  const gated = makeHandler({
+    databaseUrl: DB_URL,
+    issuer: ISSUER,
+    sendLoginEmail: async () => {},
+    originSecret: "s3cret-origin",
+  });
+  const req = (headers) => ({
+    rawPath: "/mcp",
+    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    headers: { authorization: "Bearer svt_nope", ...headers },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+  });
+  assert.equal((await gated(req({}))).statusCode, 403, "no header");
+  assert.equal(
+    (await gated(req({ "x-elixir-origin": "wrong" }))).statusCode,
+    403,
+    "wrong header",
+  );
+  assert.equal(
+    (await gated(req({ "x-elixir-origin": "s3cret-origin" }))).statusCode,
+    401,
+    "through CloudFront: the door itself answers (here, refusing the bearer)",
+  );
+  // The metadata documents are gated too: nothing at this origin is public.
+  const meta = await gated({
+    rawPath: "/.well-known/oauth-authorization-server",
+    requestContext: { http: { method: "GET" } },
+    headers: {},
+  });
+  assert.equal(meta.statusCode, 403);
+  // Unset (local development, every other test here): the check is off.
+  assert.equal((await handler(req({}))).statusCode, 401);
+});
