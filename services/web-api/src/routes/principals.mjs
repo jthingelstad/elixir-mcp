@@ -7,7 +7,7 @@ import {
 } from "../principals.mjs";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
-import { json } from "../http.mjs";
+import { json, UUID_RE } from "../http.mjs";
 
 export function principalsRoutes({ resolveAccount, logEvent }) {
   return {
@@ -96,6 +96,8 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
+      if (!UUID_RE.test(String(body.account_id ?? "")))
+        return json(400, { error: "invalid_account_id" });
       const result = await rotateToken(db, account.accountId, body.account_id);
       if (!result.ok) return json(404, result);
       // Handed over once, exactly like creation. There is no second chance
@@ -108,6 +110,8 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
+      if (!UUID_RE.test(String(body.account_id ?? "")))
+        return json(400, { error: "invalid_account_id" });
       const result = await renamePrincipal(
         db,
         account.accountId,
@@ -128,6 +132,8 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
+      if (!UUID_RE.test(String(body.account_id ?? "")))
+        return json(400, { error: "invalid_account_id" });
       const result = await setPrincipalStatus(
         db,
         account.accountId,
@@ -142,6 +148,8 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       if (!account) return json(401, { error: "unauthenticated" });
       const principalId = event.queryStringParameters?.account_id;
       if (!principalId) return json(400, { error: "account_id_required" });
+      if (!UUID_RE.test(String(principalId)))
+        return json(400, { error: "invalid_account_id" });
       const { rows: owned } = await db.query(
         `select events_seen_through from account
           where account_id = $1 and owned_by_account_id = $2`,

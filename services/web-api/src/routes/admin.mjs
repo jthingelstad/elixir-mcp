@@ -7,7 +7,7 @@ import {
 import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
 import { emitAccountTierChanged } from "../../../mcp/src/feed.mjs";
 
-import { UUID_RE, json } from "../http.mjs";
+import { UUID_RE, ID_RE, json } from "../http.mjs";
 const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
 export function adminRoutes({
@@ -88,7 +88,10 @@ export function adminRoutes({
         requireContractHeader: true,
       });
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
-      if (body.revoke_token_id) {
+      if (body.revoke_token_id !== undefined) {
+        // token_id is a bigint column: anything else is a 400, not a 500.
+        if (!ID_RE.test(String(body.revoke_token_id)))
+          return json(400, { error: "invalid_token_id" });
         await db.query(
           `update service_token set revoked_at = now() where token_id = $1`,
           [body.revoke_token_id],

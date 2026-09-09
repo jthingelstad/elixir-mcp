@@ -1,6 +1,6 @@
 import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 
-import { json } from "../http.mjs";
+import { json, ID_RE } from "../http.mjs";
 
 export function feedbackRoutes({ resolveAccount, ping }) {
   return {
@@ -73,7 +73,7 @@ export function feedbackRoutes({ resolveAccount, ping }) {
       )
         ? body.status
         : null;
-      if (!status || !body.feedback_id)
+      if (!status || !ID_RE.test(String(body.feedback_id ?? "")))
         return json(400, { error: "bad_request" });
       const response = body.response
         ? String(body.response).slice(0, 4000)

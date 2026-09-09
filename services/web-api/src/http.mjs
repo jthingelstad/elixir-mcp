@@ -33,3 +33,7 @@ export function bearer(event) {
   const auth = String(event.headers?.authorization ?? "");
   return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
 }
+
+// bigint ids (token_id, feedback_id) arrive from the client too; a
+// non-numeric one is a 400, not a Postgres "invalid input syntax" 500.
+export const ID_RE = /^[0-9]{1,18}$/;
