@@ -183,22 +183,62 @@ analytics outage can never page anyone or delay a login email.
   and a per-clan war clock resolves battles to seasons/weeks/days from
   their own timestamps.
 
-## Scheduling: spend the budget by expected value
+## Scheduling: how often a player is fetched, and why
 
-The scheduler maintains one prioritized queue. Each subject's cadence
-derives from its **observed yield** — an exponentially-weighted average
-of battles-per-hour actually harvested — so active players poll tightly
-and dormant ones fall to daily, automatically. Two bounds sit on top of
-that for the battlelog. A **loss-aware bound** keeps the poll interval
-under half the fastest time the player has recently filled the ~30-entry
-battlelog, measured from battle timestamps rather than from what a poll
-happened to harvest, so a burst that already rolled the log still teaches
-the true rate. A **reader cap** keeps any player somebody asked about
-through a tool within an hour for the next day, so the players people
-actually follow are never the ones parked on the daily fairness floor.
-War-race polling reads the period type the API itself reports (war days
-tight, training days relaxed). Fairness floors guarantee nobody is
-forgotten regardless of yield.
+The official API is current-state only: a player's battle log holds
+roughly the last 30 battles and nothing older. Recording therefore means
+fetching often enough that no battle rolls off the log before a collector
+has seen it, while the whole fleet stays inside one shared, conservative
+API budget. The scheduler decides who is fetched when, from four rules
+that only ever shorten each other:
+
+- **Observed yield sets the base cadence.** Each recorded player carries
+  an exponentially-weighted average of battles-per-hour actually
+  harvested. The battle log is fetched when about five new battles are
+  expected, clamped between 15 minutes and 24 hours, so an active player
+  is polled tightly and a dormant one falls to daily on its own. A
+  newly added player starts at an hourly discovery cadence.
+- **A loss-aware bound stops bursts from rolling off.** Yield learns
+  from what a poll harvested, which is exactly what an overflowed log
+  hides: a poll that returns 30 unseen battles after six hours reads as
+  five an hour when the player may have played sixty. So at every
+  admission the recorder also measures, from the battle timestamps
+  themselves, the fastest this player has recently filled the log (the
+  busiest six-hour window of the last 14 days), and polls before half
+  that time has passed. A grinder who fills the log in two hours is
+  fetched every hour for as long as that pace stays in their recent
+  history; everyone else is unaffected.
+- **A reader cap keeps the players you ask about fresh.** Asking about a
+  player through any tool marks that player as read, and their battle
+  log then stays within an hour for the next day. Without this, a
+  friend who plays a few games a day sits on the daily floor and can be
+  a day stale precisely when you look. Reading costs nothing beyond the
+  call itself; the extra fetches are a small, bounded slice of the
+  budget.
+- **Fairness floors guarantee nobody is forgotten.** Whatever the
+  signals say, every recorded player's battle log is fetched at least
+  daily and their profile at least every three days.
+
+Profiles are polled less often than battle logs (every eight hours for
+active players, daily for most, every three days for dormant ones),
+because the record keeps one snapshot per day; the one time-critical
+profile read, the pre-reset capture of the weekly donation counter, is
+forced separately. Clan rosters are read every 15 minutes, and war-race
+polling reads the period type the API itself reports: tight on war days,
+relaxed on training days, with the war race also raising the battle-log
+cadence of members it names as having just battled. Because every
+cadence is a pure function of a player's state, subjects added together
+would otherwise fall due together forever; a stable per-subject phase
+offset de-phases such cohorts within a few cycles.
+
+What this means when you read: every response carries the age of the
+polls it was built from (`freshness_seconds` in `meta`), `elixir_coverage`
+compares the lifetime battle counter against what was recorded over each
+observation interval and says so when they disagree, and the public
+[status page](/data/status) reports how many of the last day's polls
+found the log had already rolled. When you need the state of play right
+now rather than the recorded history, `live_fetch` spends your live
+allowance on a fresh read instead of waiting for the schedule.
 
 ## Access: entitlements, not permissions
 
