@@ -421,3 +421,42 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
   assert.ok(audit.rows[1].args, "recent args untouched");
   await check.end();
 });
+
+// related_tools is text[]; the ops lane is typed by hand and a
+// comma-separated string is the natural thing to send. It threw
+// "malformed array literal" in production (2026-09-09 09:17Z).
+test("feedback_respond accepts related_tools as an array or a comma string", async () => {
+  const { normalizeRelatedTools } = await import("../src/ops-feedback.mjs");
+  assert.deepEqual(normalizeRelatedTools(["a", "b"]), ["a", "b"]);
+  assert.deepEqual(normalizeRelatedTools("battles_query,players_search"), [
+    "battles_query",
+    "players_search",
+  ]);
+  assert.deepEqual(normalizeRelatedTools("battles_query, players_search "), [
+    "battles_query",
+    "players_search",
+  ]);
+  assert.deepEqual(normalizeRelatedTools("solo"), ["solo"]);
+  assert.deepEqual(normalizeRelatedTools(["a", " ", "", "b"]), ["a", "b"]);
+  // null/undefined stay null so coalesce leaves the column unchanged;
+  // an explicit empty list is a deliberate clear.
+  assert.equal(normalizeRelatedTools(null), null);
+  assert.equal(normalizeRelatedTools(undefined), null);
+  assert.deepEqual(normalizeRelatedTools([]), []);
+  assert.deepEqual(normalizeRelatedTools(""), []);
+});
+
+// The column itself accepts what the normalizer produces.
+test("normalized related_tools round-trips through the text[] column", async () => {
+  const { normalizeRelatedTools } = await import("../src/ops-feedback.mjs");
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  try {
+    const { rows } = await db.query(`select $1::text[] as tools`, [
+      normalizeRelatedTools("battles_opponents, cards_synergy"),
+    ]);
+    assert.deepEqual(rows[0].tools, ["battles_opponents", "cards_synergy"]);
+  } finally {
+    await db.end();
+  }
+});

@@ -24,6 +24,17 @@ export async function feedbackPending(databaseUrl) {
  *  status, response}}): the ops-side path to close a feedback item so
  *  the requester sees status + reply (0026). The admin web panel is the
  *  interactive equivalent. */
+/** related_tools is a text[] column, and the ops lane is typed by hand:
+ *  a comma-separated string is the natural thing to send and it threw
+ *  ("malformed array literal", seen in prod 2026-09-09 09:17Z). Accept
+ *  either shape, trim, drop empties, and keep null meaning "unchanged"
+ *  so coalesce still works. An empty list clears the column. */
+export function normalizeRelatedTools(value) {
+  if (value === undefined || value === null) return null;
+  const list = Array.isArray(value) ? value : String(value).split(",");
+  return list.map((t) => String(t).trim()).filter(Boolean);
+}
+
 export async function feedbackRespond(databaseUrl, spec) {
   const status = ["seen", "planned", "done", "declined"].includes(spec?.status)
     ? spec.status
@@ -46,7 +57,7 @@ export async function feedbackRespond(databaseUrl, spec) {
         status,
         spec.response ? String(spec.response).slice(0, 4000) : null,
         spec.shipped_in ?? null,
-        spec.related_tools ?? null,
+        normalizeRelatedTools(spec.related_tools),
       ],
     );
     if (updated[0] && spec.response) {
