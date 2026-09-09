@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
+import { FirstAnswer } from "../components/FirstAnswer.jsx";
 import { Activity } from "./Activity.jsx";
 import { CollectorPage } from "./CollectorDetail.jsx";
 import { ago, freshCls, secsSince } from "../lib/time.js";
@@ -462,6 +463,13 @@ function Overview({ me, refresh, navigate }) {
   return (
     <div className="cols">
       <div className="cols__main" style={{ flex: "1 1 560px" }}>
+        <FirstAnswer
+          timezone={me.timezone}
+          claimsKey={me.claims
+            .map((c) => `${c.player_tag}:${c.is_primary}`)
+            .join(",")}
+          navigate={navigate}
+        />
         <section className="panel">
           <div className="panel__head">
             <span className="panel-title">Your players</span>
@@ -599,6 +607,8 @@ function Overview({ me, refresh, navigate }) {
               Add a player
             </span>
             <input
+              id="add-player-tag"
+              aria-label="Player tag"
               className="mono"
               placeholder="#20JJJ2CCRU"
               aria-invalid={tagErr ? "true" : undefined}

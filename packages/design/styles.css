@@ -1400,3 +1400,84 @@ input[aria-invalid="true"] {
 .nav1__meta .btn--gold {
   text-decoration: none;
 }
+
+/* Account onboarding uses the same panels and tokens as the record views. */
+.first-answer .panel-title {
+  margin: 0;
+}
+.first-answer__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.first-answer__steps li {
+  border-left: 2px solid var(--gold);
+  padding-left: 12px;
+}
+.first-answer__steps strong,
+.first-answer__steps span {
+  display: block;
+}
+.first-answer__steps span {
+  margin-top: 6px;
+  color: var(--faint);
+}
+.first-answer__sample {
+  line-height: 1.6;
+}
+.first-answer__times,
+.first-answer__readout {
+  font-size: 12px;
+  color: var(--faint);
+  line-height: 1.7;
+}
+.first-answer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0;
+}
+.first-answer__questions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 12px;
+}
+.first-answer__questions article {
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 16px;
+}
+.first-answer__questions h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.first-answer__questions p {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.first-answer__manual {
+  display: block;
+  margin-top: 16px;
+}
+.first-answer__manual textarea {
+  display: block;
+  width: 100%;
+  min-height: 130px;
+  margin-top: 8px;
+}
+.first-answer__readout {
+  margin-bottom: 0;
+}
+
+.first-answer__questions details {
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+.first-answer summary {
+  cursor: pointer;
+}

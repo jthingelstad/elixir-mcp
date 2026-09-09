@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "A first question your history can answer",
+    body: "Your account overview now guides you from adding a player through the first capture to asking your own MCP client. Suggested questions follow the data actually recorded: a player snapshot first, then battle reviews, deck comparisons and comparisons between two weeks as those samples become available. Copy a question with coverage and freshness checks built in, or open the same player's recorded data to inspect it. Connection consent and successful data reads are shown separately, including recent repeat use. Copying a question never counts as a successful answer, and a small sample never promises proof of improvement.",
+  },
+  {
+    date: "2026-09-08",
     title: "Answers that agree, with clearer evidence",
     body: "Performance summaries now count the whole period you ask about, including histories longer than 2,000 battles. Freshness follows the data used: a recent profile poll can no longer make an old battle log look current, and war answers show when the race was last observed. Coverage compares battles over the actual time between profile observations instead of treating several days as one, and later-arriving battles improve that estimate automatically. Results too large to deliver now fail clearly with a traceable request ID. The methodology explains the statistics currently served and distinguishes descriptive comparisons from proof of improvement.",
   },

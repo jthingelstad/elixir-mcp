@@ -56,6 +56,7 @@ export const api = {
     }),
   activity: () => request("GET", "/api/me/activity"),
   connections: () => request("GET", "/api/me/connections"),
+  firstAnswer: () => request("GET", "/api/me/first-answer"),
   revokeConnection: (family_id) =>
     request("POST", "/api/me/connections/revoke", { family_id }),
   adminUsage: () => request("GET", "/api/admin/usage"),

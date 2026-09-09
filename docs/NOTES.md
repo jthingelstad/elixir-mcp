@@ -455,3 +455,17 @@ Start every iteration with a recorder health glance (gateway FetchSucceeded/Brea
 
 
 **ANSWER INTEGRITY (0.35.0, 2026-09-08, Jamie requested the review fixes):** Four failures reproduced before changing production code, using scratch PostgreSQL and the real registry/protocol. A 3,000-battle history (2,000 wins, 1,000 losses) returned 100% in the ordinary summary and 66.7% weekly because the former silently limited to 2,000. A fresh profile made a two-day-old battlelog look fresh. A complete three-day capture interval was labeled 33% complete against only its final calendar day. An oversized protocol response was sliced JSON with isError=false and no trailing request_id. Fixes: complete SQL aggregates with explicit last_n sampling retained; endpoint-specific source_polls and oldest relevant freshness, with recorded_since distinct from active-recording start; read-time coverage over actual snapshot observation instants, so late battles repair the estimate; valid bounded size errors preserving request_id. War-current now exposes its race-poll time separately from the first period anchor and flags elapsed nominal periods (issue #38). Migration 0057 nulls only unsupported derived day-level estimates; canonical records and capture counts remain unchanged, nullable columns retained for compatibility. Legacy average_ratio remains decimal text; incomplete_days remains nullable but always unknown, replaced by explicit interval counts. Unknown observation times and incompatible counters never assert coverage. Methodology now describes shipped pooled/shrunk rates, marks within-player lift as future work, and removes unsupported claims that Pilot Score proves improvement or spending independence. The old lease belonged to completed task 01a080db-3be3-75f1-842e-ec1f9cccdae3; cleared via clear-stale after verifying completion and clean synchronized HEAD, then this session claimed the checkout.
+
+## 2026-09-08 — Guide the first useful answer from recorded evidence
+
+Jamie selected the first-use group after the answer-integrity review. Keep the
+account overview's guidance in a small component and its read model in a
+separate web-API module, rather than growing the dashboard and router inline.
+The read model derives current state; there is no stored onboarding state,
+new migration, new MCP contract, or extra collector work.
+
+The repeat-use signal is existing personal MCP audit history over seven days.
+A successful data response, including an empty one, is a transport/use proxy;
+it is not an assertion of a useful answer. Copying a question produces no event.
+No synthetic member calls or accounts are created to establish acceptance.
+Readiness rules and user-facing behavior are documented in the public quickstart.

@@ -26,8 +26,8 @@ password to forget.
 
 On your Account page, add your player tag.
 
-**Adding is recording.** There is no separate opt-in step: the moment you add a
-player we start capturing their battles, and the history builds from there.
+**Adding is recording.** There is no separate opt-in step: adding a player
+requests capture, and data arrives after a collector poll. History builds from there.
 Your first player automatically becomes your **primary** — that is, you.
 
 If you have alts, add them too and mark them as alts; the same for friends you
@@ -48,13 +48,28 @@ is asked for separately.
 
 ## 5. Ask it something
 
-Your connection already knows who you are, so you can go straight to the
-question:
+Open [Account → Overview](/account/overview). **Your next useful question**
+shows your primary player, whether a profile or recent battles are actually
+recorded, and whether you have an authorized personal connection. While waiting
+for capture or a first data read, it checks again every minute while visible;
+**Check again** refreshes it immediately. You can connect while capture is pending.
 
-> *"How has my ladder win rate trended over the last month?"*
-> *"Which of my decks actually performs, not just which I play most?"*
-> *"How are my friends doing this week?"*
-> *"What's our clan's war attendance looking like?"*
+Copy one of its questions into your connected client:
+
+- Only a profile: start with the recorded player snapshot, its observation time
+  and the history available. One snapshot cannot establish progress.
+- Recorded battles: review the last seven days, or the last 30 if none were
+  recorded in the last seven. Counts include all game modes.
+- Only older battles and no profile: inspect the retained history and its dates.
+- At least two recorded decks in the last seven days: compare their results.
+- Battles in both the last seven days and the preceding seven: compare those
+  two periods. These are rolling windows, not calendar weeks.
+
+The questions name your primary tag and ask the client to check coverage,
+freshness, sample sizes and game modes. Having enough data to offer a comparison
+does **not** establish statistical confidence or prove improvement. The panel
+shows profile and battle-log observation times separately. **View the recorded
+data** opens the same player's Explore page so you can check the evidence.
 
 For a newly recorded player, start with what is available now. A month-long
 trend becomes useful as that history accumulates; imported or previously
@@ -63,6 +78,21 @@ recorded appearances may already provide some of it.
 You do not need to tell it your tag, and you should not have to watch it look
 you up. If your agent starts by enumerating your players before answering a
 question about you, something is wrong — tell us with `elixir_feedback`.
+
+### Has the connection worked?
+
+An authorized connection means consent is in place; it does not prove a tool
+call has worked. The overview separately counts successful player, battle and
+war tool responses through your personal MCP connections in the last seven
+days, and the number of UTC dates on which those reads occurred. This includes
+empty results and queries about players other than your primary. Website
+previews, separate bots, setup calls, errors and oversized responses are excluded.
+
+These counts come from existing call history, not from copying a question.
+They are evidence of successful reads and repeat use, **not confirmation that
+your client produced a useful answer**. **Review activity** shows the underlying
+calls and their request IDs. A disconnected client can still have recent reads
+in that history; reconnect before asking another question.
 
 ## What next
 

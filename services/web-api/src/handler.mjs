@@ -56,6 +56,7 @@ const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { ensureGatewayCards } from "../../mcp/src/gateway-cards.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
+import { firstAnswer } from "./first-answer.mjs";
 import { ledgerStats } from "../../scheduler/src/ledger.mjs";
 import { emitFeedEvent, emitAccountTierChanged } from "../../mcp/src/feed.mjs";
 import {
@@ -540,6 +541,12 @@ export function makeHandler({
         war: week.rows[0] ?? null,
         members: roster.rows,
       });
+    },
+
+    "GET /api/me/first-answer": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      return json(200, await firstAnswer(db, account.accountId));
     },
 
     "GET /api/me/connections": async (db, event) => {
