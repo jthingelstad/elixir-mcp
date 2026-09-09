@@ -141,7 +141,11 @@ that every battle is present.
 `completeness_last_7_days` covers intervals **ending** in the last seven days;
 one can begin earlier. `average_ratio` is weighted by expected battles and
 excludes intervals whose ratio is unknown. `measured_intervals` and
-`unknown_intervals` make that distinction visible. `incomplete_intervals` counts
+`unknown_intervals` make that distinction visible. `measured_span` gives the
+first-to-last extent of the intervals behind the ratio and `measured_hours`
+their summed duration, so you can see how much of the week the number actually
+describes: a high `average_ratio` over a few hours describes only those hours.
+Compare `measured_hours` against 168 before reading it as a full week. `incomplete_intervals` counts
 measured intervals with fewer captured than expected battles. Interval
 `is_complete` uses exact counts even when a rounded ratio displays as one. The old `incomplete_days` field is retained as
 null: a multi-day interval cannot establish which particular day lost battles.

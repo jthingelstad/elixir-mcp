@@ -24,7 +24,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 
 | Limit | Applies to | Bucket | Max | Refusal |
 |---|---|---|---|---|
-| MCP calls per hour | every credential on the door, keyed by the **budget account** (an agent spends its owner's) | `mcp#<account>` | 300 (per-token override possible) | HTTP 429 `{"error":"rate_limited"}`, no `Retry-After` |
+| MCP calls per hour | every credential on the door, keyed by the **budget account** (an agent spends its owner's) | `mcp#<account>` | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
 | Explorer calls per hour | the website's Explore page | same bucket as above | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits, capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
 | Explorer calls per day | Explore page | same bucket | same | HTTP 429 `{"error":"quota_exceeded","message":"Daily tool-call quota reached (N per day)…"}` |

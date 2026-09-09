@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-09",
+    title:
+      "Refusals carry the same envelope as answers, and three numbers say what they count",
+    body: "A round of agent playtesting found places where the service was hard to trust or hard to report. Failures now answer in the same shape as successes: a database that cannot be reached and a rate limit both return error.code, a message, a hint and a meta.request_id you can quote, instead of a bare 'Internal Server Error' or a bare 'rate_limited' string, and the rate limit sends Retry-After. three_crown_rate no longer counts a duel that summed three crowns across its rounds as a three-crown victory - numerator and denominator both exclude duels and boat attacks now, and head_to_head_battles is returned so the division can be checked. battles_performance returns decided_wins and decided_losses, because the documented win_rate formula could not be reproduced from the fields that were on the wire. Deck responses show the evolution form and tower troop that deck_hash is built from, so two decks with the same visible cards no longer differ by hash for no visible reason. war_current says day_kind and war_day beside season_id and returns decks_today as an explicit null with a reason off a war day, so a training day stops looking like a clan that no-showed. elixir_coverage reports measured_span and measured_hours, so a perfect completeness ratio over two days no longer reads as a fully captured week. The clan named when a connection opens is now the primary player's, and any others are named too.",
+  },
+  {
+    date: "2026-09-09",
     title: "The Status page shows the work waiting, not only the work done",
     body: "The capture charts only ever showed completed fetches. A new 'Work waiting' gauge above them shows the other half as a queue, in pipeline order: subjects due for the next scheduler tick (the planner runs every five minutes, so due work piles up between ticks and empties at each one), jobs queued for a collector, jobs being fetched, and what was done this hour, with a countdown to the next tick and the due count broken down by endpoint. The bar fills against what the next tick can plan, so a bar past full means a backlog is forming rather than the normal between-tick pile.",
   },
