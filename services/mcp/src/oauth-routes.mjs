@@ -20,6 +20,7 @@ import {
   findRecentlyUsedCode,
   authLog,
   emailRef,
+  requestRef,
   checkRateLimit,
   registerClient,
   getClient,
@@ -337,6 +338,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         if (account) {
           authLog("oauth_code_issued", {
             email: emailRef(hash),
+            request: requestRef(v.codeChallenge),
             client: v.client.clientName,
             resource: v.resource,
             kind: v.target.kind,
@@ -443,6 +445,21 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
                     : null
             : null;
 
+        // Same code again, or a different one? "no_live_code" alone cannot say,
+        // and the answer decides whether a duplicate submit or a second
+        // authorize request is at fault.
+        const presentedCodeRef = !verified.ok
+          ? replayed
+            ? "same_as_burned"
+            : (await findRecentlyUsedCode(db, {
+                  emailHash: hash,
+                  code: form.code,
+                  withinSeconds: 900,
+                }))
+              ? "older_burned_code"
+              : "unrecognized"
+          : null;
+
         if ((!verified.ok && !replayed) || !ctx || !account || mismatch) {
           const reason = !ctx
             ? verified.reason
@@ -453,6 +470,11 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
                 : verified.reason;
           authLog("oauth_code_rejected", {
             email: emailRef(hash),
+            request: requestRef(v.codeChallenge),
+            // Did they hand us the same code again (a duplicate submit) or a
+            // different one (a second flow)? On the no-live-code path the
+            // classifier never ran, so the log could not tell those apart.
+            presented: presentedCodeRef,
             reason,
             attempts: verified.attempts,
             client: v.client.clientName,
@@ -462,6 +484,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         }
         authLog(replayed ? "oauth_code_replayed" : "oauth_code_accepted", {
           email: emailRef(hash),
+          request: requestRef(v.codeChallenge),
           client: v.client.clientName,
           resource: v.resource,
           kind: v.target.kind,

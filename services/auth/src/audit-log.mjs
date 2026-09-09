@@ -31,6 +31,20 @@ export function credentialRef(presented) {
   return createHash("sha256").update(presented).digest("hex").slice(0, 8);
 }
 
+/**
+ * Which authorize request a line belongs to.
+ *
+ * The PKCE challenge is unique per authorization attempt and is a public value
+ * the client puts in the URL, so a short digest of it is a safe correlation
+ * id — and the one that answers the question two POSTs raise: was this the
+ * same request submitted twice, or two requests racing each other? Those need
+ * different fixes and looked identical in the log.
+ */
+export function requestRef(codeChallenge) {
+  if (typeof codeChallenge !== "string" || !codeChallenge) return null;
+  return createHash("sha256").update(codeChallenge).digest("hex").slice(0, 8);
+}
+
 export function authLog(event, fields = {}) {
   const line = { at: new Date().toISOString(), auth: event };
   for (const [key, value] of Object.entries(fields)) {
