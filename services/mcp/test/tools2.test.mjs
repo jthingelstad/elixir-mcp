@@ -1249,3 +1249,96 @@ test("the published curve-omission option matches the score reader", async () =>
   assert.equal("curve" in result.body, false);
   assert.equal(result.body.methodology.curve_min_observations, 200);
 });
+
+/**
+ * What the owner recorded about each player has to come BACK.
+ *
+ * elixir_add_player writes relationship (primary | alt | friend | watching)
+ * and elixir_nickname writes a private name; elixir_my_players returned
+ * neither, so both were write-only from an agent's side. Asked "how about my
+ * alt?", an agent had six non-primary players, no way to tell which was the
+ * alt, and guessed from the handle — while the service held the answer.
+ * Reported through elixir_feedback, 2026-09-09 (#13).
+ */
+test("elixir_my_players returns the relationship and nickname the owner set", async () => {
+  await call("elixir_add_player", {
+    player_tag: "#2PP0V90Y",
+    relationship: "alt",
+  });
+  await call("elixir_nickname", { player_tag: "#2PP0V90Y", nickname: "Spare" });
+
+  const mine = await call("elixir_my_players", {});
+  const row = mine.body.players.find((x) => x.player_tag === "#2PP0V90Y");
+  assert.equal(row.relationship, "alt", "the distinction the owner recorded");
+  assert.equal(row.nickname, "Spare");
+  assert.equal(row.is_primary, false, "kept: clients cache tools/list forever");
+
+  // The primary is labelled as such rather than left for the caller to derive
+  // from a boolean.
+  const primary = mine.body.players.find((x) => x.is_primary);
+  if (primary) assert.equal(primary.relationship, "primary");
+
+  await call("elixir_add_player", {
+    player_tag: "#2PP0V90Y",
+    action: "remove",
+  });
+});
+
+/**
+ * A cheap question should cost a cheap answer. Reading a member count used to
+ * pull every member object, each with a correlated last-battle scan, plus
+ * twenty clan events. Reported 2026-09-09 (#11).
+ */
+test("clans_roster summary answers the count without the roster", async () => {
+  // Named explicitly, and asserted to have actually answered. Comparing two
+  // responses is worthless if both are the same refusal — the first draft of
+  // this test passed against a pair of not_entitled errors.
+  const CLAN = "#J2RGCRVG";
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+     values ('clan', $1, $2, 'active', 'comprehensive')
+     on conflict do nothing`,
+    [CLAN, account.accountId],
+  );
+  // Two members with different roles, or the role breakdown is 0 = 0 and the
+  // size comparison is two empty lists.
+  for (const [tag, name, role] of [
+    ["#2YG98VVQ", "Alfablack", "coLeader"],
+    ["#2PP0V90Y", "Bench", "member"],
+  ]) {
+    await db.query(
+      `insert into player (player_tag, name) values ($1, $2)
+       on conflict (player_tag) do nothing`,
+      [tag, name],
+    );
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+       values ($1, $2, now(), $3) on conflict do nothing`,
+      [CLAN, tag, role],
+    );
+  }
+
+  const full = await call("clans_roster", { clan_tag: CLAN });
+  const brief = await call("clans_roster", { clan_tag: CLAN, summary: true });
+  assert.ok(!full.isError, JSON.stringify(full.body).slice(0, 200));
+  assert.ok(!brief.isError, JSON.stringify(brief.body).slice(0, 200));
+  assert.equal(brief.body.member_count, 2, "the fixture's two members");
+  assert.equal(brief.body.role_counts.coLeader, 1);
+  assert.equal(brief.body.role_counts.member, 1);
+
+  assert.equal(brief.body.member_count, full.body.member_count);
+  assert.equal(brief.body.name, full.body.name);
+  assert.equal(brief.body.clan_tag, full.body.clan_tag);
+  assert.equal(brief.body.members, undefined, "no member list");
+  assert.equal(brief.body.recent_events, undefined, "no event list");
+  assert.ok(brief.body.role_counts, "role breakdown rides along, it is free");
+  assert.equal(
+    Object.values(brief.body.role_counts).reduce((a, b) => a + b, 0),
+    full.body.member_count,
+    "the role counts have to add up to the roster",
+  );
+  assert.ok(
+    JSON.stringify(brief.body).length < JSON.stringify(full.body).length,
+    "and it has to actually be smaller",
+  );
+});

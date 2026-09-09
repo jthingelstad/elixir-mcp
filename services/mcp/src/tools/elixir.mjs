@@ -26,7 +26,7 @@ import {
 export const elixirTools = {
   elixir_my_players: {
     description:
-      "The players you track and WHO EACH ONE IS TO YOU: your primary (you), your alts (also you, other tags), friends you follow, and everyone else you watch - with notify setting, recording status and current clan. You do NOT need this to answer questions about yourself: omit player_tag and the tools already mean your primary. Call it when someone asks what you track, or when you need a tag you were not given.",
+      'The players you track and WHO EACH ONE IS TO YOU: each one carries relationship (primary | alt | friend | watching) and your private nickname if you set one, alongside notify setting, recording status and current clan. That is what resolves "my alt" or "how are my friends doing" without asking - the answer is in this response, not a guess from handles. You do NOT need this to answer questions about yourself: omit player_tag and the tools already mean your primary. Call it when someone asks what you track, or when you need a tag you were not given.',
     inputSchema: {
       type: "object",
       properties: {},
@@ -40,11 +40,13 @@ export const elixirTools = {
                 case when c.is_primary then 'primary' else c.relationship end
                   as relationship,
                 c.notify,
-                p.name, p.last_known_clan_tag,
+                p.name, p.last_known_clan_tag, nn.nickname,
                 r.status as recording_status,
                 cm.clan_tag as member_of, cm.role
          from claim c
          join player p on p.player_tag = c.player_tag
+         left join player_nickname nn on nn.account_id = c.account_id
+           and nn.player_tag = c.player_tag
          left join recording r on r.subject_type = 'player' and r.subject_tag = c.player_tag and r.status = 'active'
          left join clan_membership cm on cm.player_tag = c.player_tag and cm.left_observed_at is null
          where c.account_id = $1
@@ -55,6 +57,15 @@ export const elixirTools = {
         players: rows.map((r) => ({
           player_tag: r.player_tag,
           name: r.name,
+          ...(r.nickname ? { nickname: r.nickname } : {}),
+          // The query has always derived this and the response always dropped
+          // it, so what the owner deliberately recorded -- which tag is the
+          // alt, who is merely watched -- was write-only from an agent's side.
+          // Asked "how about my alt?", an agent had six non-primary players
+          // and no way to tell which, and guessed from the handle. Reported
+          // 2026-09-09 (#13). is_primary stays: clients cache tools/list
+          // forever and this is additive.
+          relationship: r.relationship,
           is_primary: r.is_primary,
           claim_status: r.claim_status,
           notify: r.notify,

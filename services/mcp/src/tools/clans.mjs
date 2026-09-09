@@ -227,7 +227,7 @@ export const clansTools = {
 
   clans_roster: {
     description:
-      "A recorded clan's roster (defaults to YOUR clan): roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Any recorded clan works - universal reads.",
+      'A recorded clan\'s roster (defaults to YOUR clan): roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Any recorded clan works - universal reads. For "how many members" or "what is this clan called", pass summary: true and get the name, the count and the role breakdown without the member list.',
     inputSchema: {
       type: "object",
       properties: {
@@ -235,11 +235,54 @@ export const clansTools = {
           type: "string",
           description: "Clan tag; defaults to your recorded clan.",
         },
+        summary: {
+          type: "boolean",
+          default: false,
+          description:
+            "Name, member count and role counts only - no member list, no events.",
+        },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+
+      // The cheap answer to a cheap question. Reading a member count used to
+      // cost the whole roster: 48 member objects, each with a correlated
+      // last-battle scan, plus twenty clan events. Reported 2026-09-09 (#11)
+      // by an agent that pulled all of it to say how many people were in a
+      // clan. This is one indexed count, and it saves the server the work as
+      // well as the caller the payload.
+      if (args.summary === true) {
+        const { rows } = await ctx.db.query(
+          `select c.name,
+                  count(cm.player_tag)::int as member_count,
+                  count(*) filter (where cm.role = 'leader')::int as leaders,
+                  count(*) filter (where cm.role = 'coLeader')::int as co_leaders,
+                  count(*) filter (where cm.role = 'elder')::int as elders,
+                  count(*) filter (where cm.role = 'member')::int as members
+           from clan c
+           left join clan_membership cm
+             on cm.clan_tag = c.clan_tag and cm.left_observed_at is null
+           where c.clan_tag = $1
+           group by c.name`,
+          [clanTag],
+        );
+        const row = rows[0];
+        return {
+          clan_tag: clanTag,
+          name: row?.name ?? null,
+          member_count: row?.member_count ?? 0,
+          role_counts: {
+            leader: row?.leaders ?? 0,
+            coLeader: row?.co_leaders ?? 0,
+            elder: row?.elders ?? 0,
+            member: row?.members ?? 0,
+          },
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        };
+      }
+
       const [clanRow, roster, events] = await Promise.all([
         ctx.db.query(`select name from clan where clan_tag = $1`, [clanTag]),
         ctx.db.query(
