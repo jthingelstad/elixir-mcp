@@ -540,8 +540,13 @@ export const battlesTools = {
            from sample`,
           [...params, DUEL_TYPES],
         );
-        const { three_crowns, head_to_head, decided_wins, decided_losses, ...counts } =
-          row;
+        const {
+          three_crowns,
+          head_to_head,
+          decided_wins,
+          decided_losses,
+          ...counts
+        } = row;
         // Decided = head-to-head wins + losses. Boat attacks (a static
         // defense, no live opponent) and draws stay in `battles` and in
         // W/L/D but never in the win_rate denominator (feedback #23).
