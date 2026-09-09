@@ -14,7 +14,11 @@ import {
   DISCLAIMER,
   responseMeta,
 } from "@elixir-mcp/contracts";
-import { identitySentences } from "./identity.mjs";
+import {
+  identitySentences,
+  principalBlock,
+  PRINCIPAL_META_KEY,
+} from "./identity.mjs";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
@@ -120,6 +124,9 @@ function initializeResult(
       websiteUrl: "https://elixir.poapkings.com/",
     },
     instructions: instructionsFor(kind, identity),
+    // The same facts the instructions state in prose, as data a CLIENT can
+    // branch on at boot without regexing English. See principalBlock.
+    _meta: { [PRINCIPAL_META_KEY]: principalBlock(kind, identity) },
   };
 }
 

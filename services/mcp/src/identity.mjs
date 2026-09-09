@@ -171,3 +171,70 @@ export function identitySentences(identity) {
 
   return "You have no subject of your own: name player_tag and clan_tag on every call. Nothing here defaults to 'yours', because there is no yours.";
 }
+
+/**
+ * Who this connection is, as DATA rather than prose.
+ *
+ * `instructions` already says "YOU ACT FOR POAP KINGS #J2RGCRVG", which is
+ * the right shape for the model reading it and the wrong shape for the client
+ * hosting the model. A Discord bot that wants to refuse to boot on a person
+ * token, or label its channel with the clan it serves, had two options: regex
+ * the prose, or infer the kind from which tools are absent. Both break the
+ * moment the wording changes -- and the wording is tuned for the model, so it
+ * changes often. (Reported by the elixir-mcp-discord author.)
+ *
+ * This rides in `_meta` on the initialize result, not on `serverInfo`.
+ * serverInfo is a spec-defined shape (name, title, version, websiteUrl) and
+ * anything we invent there is squatting on a namespace the MCP spec owns;
+ * `_meta` is the extension point the spec provides for exactly this, and its
+ * keys are meant to be prefixed. If MCP later standardises a principal field,
+ * we adopt it without having collided with it first.
+ *
+ * Deliberately NOT an authorization surface: it reports the connection you
+ * already hold. Every tool re-derives the caller's rights server-side, so a
+ * client that lies to itself about this changes nothing but its own labels.
+ */
+export const PRINCIPAL_META_KEY = "elixir.poapkings.com/principal";
+
+export function principalBlock(kind, identity) {
+  const resolved = kind ?? "person";
+  const block = { kind: resolved };
+
+  if (resolved === "agent") {
+    const clan = identity?.clans?.[0];
+    if (clan)
+      block.subject = {
+        type: "clan",
+        tag: clan.clan_tag,
+        ...(clan.name ? { name: clan.name } : {}),
+        ...(clan.members ? { members: clan.members } : {}),
+      };
+    // An agent with no clan is a misconfiguration a client SHOULD be able to
+    // catch at boot, so say so rather than omitting the key and looking the
+    // same as a client that did not ask.
+    else block.subject = null;
+    return block;
+  }
+
+  if (resolved === "person") {
+    const primary = identity?.grouped?.primary?.[0];
+    block.subject = primary
+      ? {
+          type: "player",
+          tag: primary.player_tag,
+          ...(primary.name ? { name: primary.name } : {}),
+        }
+      : null;
+    const clan = identity?.clans?.[0];
+    if (clan)
+      block.clan = {
+        tag: clan.clan_tag,
+        ...(clan.name ? { name: clan.name } : {}),
+      };
+    return block;
+  }
+
+  // An integration serves its own users and has no subject of its own.
+  block.subject = null;
+  return block;
+}

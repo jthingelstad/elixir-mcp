@@ -68,6 +68,39 @@ call history, with these ids, is on **Account → Activity**.
 it differs from what you cached, re-read `tools/list`; `elixir_changelog(since)`
 says what moved.
 
+## Knowing who you are connected as
+
+`initialize` describes the connection twice, for two different readers.
+
+`instructions` says it in prose — *"YOU ACT FOR POAP KINGS #J2RGCRVG"* — which
+is the right shape for the model that reads it, and the wrong shape for the
+program hosting that model. That wording is tuned for the model and changes
+whenever the tuning does, so a client must not parse it.
+
+The same facts ride as data, in `_meta` on the initialize result:
+
+```json
+"_meta": {
+  "elixir.poapkings.com/principal": {
+    "kind": "agent",
+    "subject": { "type": "clan", "tag": "#J2RGCRVG", "name": "POAP KINGS", "members": 47 }
+  }
+}
+```
+
+`kind` is `person`, `agent` or `integration`. `subject` is the clan an agent
+acts for, the primary player a person is, or `null` — and it is **always
+present**, so a misconfigured agent with no clan is something you can detect at
+boot rather than discover in an empty answer. A person also gets a separate
+`clan` for context; for an agent the clan *is* the subject.
+
+Use it to refuse to start on the wrong kind of token, or to label a surface
+with what it serves. Do not use it as permission: it reports the connection you
+already hold, and every tool re-derives your rights server-side, so a client
+that lies to itself here changes nothing but its own labels.
+
+The key is namespaced because MCP reserves unprefixed `_meta` keys for itself.
+
 ## Honesty is a design position
 
 The service records history from a game API that only answers *"what is true

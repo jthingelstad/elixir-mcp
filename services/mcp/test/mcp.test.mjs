@@ -156,6 +156,14 @@ test("initialize: cache-busting version, listChanged true, disclaimer in instruc
     serverVersion(registry.declarations()),
     result.serverInfo.version,
   );
+
+  /* The prose in `instructions` is tuned for the model and changes often, so
+   * a CLIENT cannot depend on it -- the elixir-mcp-discord author was regexing
+   * it to decide whether to boot. The same facts ride in _meta as data. */
+  const principal = result._meta?.["elixir.poapkings.com/principal"];
+  assert.ok(principal, "initialize carries a structured principal block");
+  assert.equal(principal.kind, "person", "no kind on this context = person");
+  assert.ok("subject" in principal, "subject is always present, even as null");
 });
 
 test("protocol basics: batching rejected, notifications 202, unknown method/tool", async () => {
