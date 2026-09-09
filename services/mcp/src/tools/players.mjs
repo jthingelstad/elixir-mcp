@@ -18,6 +18,12 @@ import {
   buildMeta,
 } from "./shared.mjs";
 
+/** Escape LIKE/ILIKE metacharacters so user text matches literally
+ *  (Postgres' default escape character is the backslash). */
+function likeLiteral(text) {
+  return String(text).replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export const playersTools = {
   players_summary: {
     description:
@@ -524,6 +530,10 @@ export const playersTools = {
       const q = String(args.query ?? "").trim();
       if (!q) throw new ToolFailure("bad_request", "query is empty.");
       const limit = Math.min(Math.max(Number(args.limit ?? 5), 1), 20);
+      // The query is a literal, never a pattern: %, _ and \ are LIKE
+      // metacharacters and went in unescaped, so "100%" matched everything
+      // and "_" matched any character.
+      const pattern = `%${likeLiteral(q)}%`;
       // Universal reads: the whole recorded corpus is searchable. Your
       // own players and clanmates rank first so ambiguous names resolve
       // to the people you mean.
@@ -556,7 +566,7 @@ export const playersTools = {
          order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
                   h.name
          limit $3`,
-        [ctx.account.accountId, `%${q}%`, limit],
+        [ctx.account.accountId, pattern, limit],
       );
       return {
         query: q,

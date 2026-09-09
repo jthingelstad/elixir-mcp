@@ -1581,3 +1581,36 @@ test("elixir_data_insights sizes the corpus along the profile axis", async () =>
   assert.ok(body.profiles.players_with_badges >= 1);
   assert.ok(body.profiles.players_with_snapshot <= body.players_observed);
 });
+
+test("players_search matches user text literally: %, _ and \\ are not wildcards", async () => {
+  for (const [tag, name] of [
+    ["#2LQ0PC", "100% legit"],
+    ["#2LQ0PL", "100 legit"],
+    ["#2LQ0UG", "a_b"],
+    ["#2LQ0UY", "axb"],
+  ]) {
+    await db.query(
+      `insert into player (player_tag, name) values ($1, $2)
+       on conflict (player_tag) do update set name = excluded.name`,
+      [tag, name],
+    );
+  }
+  const pct = await call("players_search", { query: "100%" });
+  assert.deepEqual(
+    pct.body.matches.map((m) => m.player_tag),
+    ["#2LQ0PC"],
+    "% is a literal percent sign",
+  );
+  const und = await call("players_search", { query: "a_b" });
+  assert.deepEqual(
+    und.body.matches.map((m) => m.player_tag),
+    ["#2LQ0UG"],
+    "_ is a literal underscore",
+  );
+  const bs = await call("players_search", { query: "\\" });
+  assert.equal(
+    bs.body.matches.length,
+    0,
+    "a backslash matches only a backslash",
+  );
+});
