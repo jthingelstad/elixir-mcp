@@ -4,7 +4,7 @@
  * attackers mint unlimited identities (audit finding A2, kept).
  */
 
-const WINDOW_SECONDS = 3600;
+export const WINDOW_SECONDS = 3600;
 
 export async function checkRateLimit(db, { bucket, max, now = Date.now() }) {
   const windowStart = new Date(

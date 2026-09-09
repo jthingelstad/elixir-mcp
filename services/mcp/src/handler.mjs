@@ -16,6 +16,7 @@ import {
   authLog,
   credentialRef,
   checkRateLimit,
+  WINDOW_SECONDS as RATE_WINDOW_SECONDS,
   normalizeScope,
   resourceForPath,
   principalMatchesResource,
@@ -341,10 +342,26 @@ export function makeHandler({
         max: account.hourlyRateLimit ?? HOURLY_RATE_LIMIT,
       });
       if (!withinRate) {
+        // Windows are fixed and hour-aligned, so the wait is the remainder
+        // of this one - a real number, never a guessed backoff.
+        const retryAfter = Math.max(
+          1,
+          RATE_WINDOW_SECONDS -
+            Math.floor((Date.now() / 1000) % RATE_WINDOW_SECONDS),
+        );
         return {
           statusCode: 429,
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ error: "rate_limited" }),
+          headers: {
+            "content-type": "application/json",
+            "retry-after": String(retryAfter),
+          },
+          body: JSON.stringify(
+            envelope(
+              "quota_exceeded",
+              `Rate limit reached (${account.hourlyRateLimit ?? HOURLY_RATE_LIMIT} requests per hour for this connection).`,
+              `The window is hourly and resets in ${retryAfter}s. Recorded-data reads are unlimited within it - see /docs (Roles) or ask via elixir_feedback.`,
+            ),
+          ),
         };
       }
       // Identity is read ONCE, on initialize, and never on a tool call: it is
