@@ -37,8 +37,34 @@ function normalizeTowerHp(t) {
   return t;
 }
 
+const FORM_ROWS_NOTE =
+  " Forms are separate rows: evolution distinguishes card FORM (1 = Evolution, 2 = Hero), never a level, and a card played in two forms carries two records - so a form under the three-battle floor is dropped even when the merged card would have cleared it.";
+
 const roundsPlayed = (deck) =>
   Array.isArray(deck?.rounds) ? { rounds_played: deck.rounds.length } : {};
+
+/**
+ * Deck cards as deck_hash sees them. evolutionLevel is part of deck
+ * IDENTITY (packages/contracts/src/deck.ts: "form discriminators are part
+ * of identity"; 1 = Evolution, 2 = Hero, never a level), as is the tower
+ * troop. Rendering {id, name} alone meant two decks with visually
+ * identical cards could carry different deck_hash values with nothing in
+ * the payload explaining the split - a tester hit exactly that and nearly
+ * filed it as data corruption, and spent a session believing it played
+ * base cards (playtest round, 2026-09-09).
+ */
+const deckCards = (deck) =>
+  (deck?.cards ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    ...(c.evolutionLevel > 0 ? { evolution: c.evolutionLevel } : {}),
+  }));
+
+/** The other half of deck identity, absent for battles predating tower troops. */
+const towerTroop = (deck) => {
+  const t = deck?.supportCards?.[0];
+  return t?.id === undefined ? {} : { tower_troop: { id: t.id, name: t.name } };
+};
 
 import {
   LEVEL_EDGES_SQL,
@@ -793,13 +819,14 @@ export const battlesTools = {
             limit 1)`;
       const { rows } = await ctx.db.query(
         `select card->>'name' as name, (card->>'id')::bigint as id,
+                coalesce((card->>'evolutionLevel')::int, 0) as evolution,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id,
          lateral jsonb_array_elements(coalesce(${deckSource}->'cards', '[]'::jsonb)) card
          where ${where.join(" and ")}
-         group by 1, 2
+         group by 1, 2, 3
          having count(*) >= 3
          order by count(*) desc
          limit 120`,
@@ -811,14 +838,19 @@ export const battlesTools = {
         cards: rows.map((r) => ({
           id: Number(r.id),
           name: r.name,
+          // Forms are separate rows here too, matching battles_meta_cards:
+          // an Evo and its base card are different cards to play against.
+          ...(r.evolution > 0 ? { evolution: r.evolution } : {}),
           battles: r.wins + r.losses,
           wins: r.wins,
           losses: r.losses,
           win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
         })),
-        note: mine
-          ? "win_rate is YOUR record when this card is in your deck."
-          : "win_rate is YOUR record when this card appears in the OPPONENT deck — low means nemesis.",
+        note:
+          (mine
+            ? "win_rate is YOUR record when this card is in your deck."
+            : "win_rate is YOUR record when this card appears in the OPPONENT deck — low means nemesis.") +
+          FORM_ROWS_NOTE,
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
@@ -903,7 +935,8 @@ export const battlesTools = {
         total_battles_in_window: totalBattles,
         decks: shaped.map((r) => ({
           deck_hash: r.deck_hash,
-          cards: (r.deck?.cards ?? []).map((c) => ({ id: c.id, name: c.name })),
+          cards: deckCards(r.deck),
+          ...towerTroop(r.deck),
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -1004,10 +1037,8 @@ export const battlesTools = {
         .filter((r) => r.battles >= minBattles)
         .map((r) => ({
           deck_hash: r.deck_hash,
-          cards: (r.deck?.cards ?? []).map((c) => ({
-            id: c.id,
-            name: c.name,
-          })),
+          cards: deckCards(r.deck),
+          ...towerTroop(r.deck),
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
