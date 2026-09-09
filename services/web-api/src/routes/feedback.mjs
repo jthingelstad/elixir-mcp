@@ -1,0 +1,104 @@
+import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
+
+import { json } from "../http.mjs";
+
+export function feedbackRoutes({ resolveAccount, ping }) {
+  return {
+    "GET /api/me/feedback": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `select feedback_id, surface, category, message, status,
+                response, responded_at, created_at
+         from feedback where account_id = $1
+         order by feedback_id desc limit 50`,
+        [account.accountId],
+      );
+      return json(200, { feedback: rows });
+    },
+
+    "POST /api/feedback": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const message = String(body.message ?? "").trim();
+      if (!message || message.length > 4000)
+        return json(400, { error: "bad_request", message: "1-4000 chars." });
+      const category = [
+        "general",
+        "bug",
+        "data_quality",
+        "feature",
+        "praise",
+      ].includes(body.category)
+        ? body.category
+        : "general";
+      await db.query(
+        `insert into feedback (account_id, surface, category, message, context)
+         values ($1, 'web', $2, $3, $4)`,
+        [
+          account.accountId,
+          category,
+          message,
+          body.context
+            ? JSON.stringify({ context: String(body.context) })
+            : null,
+        ],
+      );
+      await ping("site.feedback", category);
+      return json(200, { ok: true });
+    },
+
+    "GET /api/admin/feedback": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const { rows } = await db.query(
+        `select f.feedback_id, f.surface, f.category, f.message, f.context,
+                f.status, f.response, f.responded_at, f.created_at,
+                (select c.player_tag from claim c
+                 where c.account_id = f.account_id and c.is_primary) as from_player
+         from feedback f order by f.feedback_id desc limit 100`,
+      );
+      return json(200, { feedback: rows });
+    },
+
+    "POST /api/admin/feedback": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const status = ["seen", "planned", "done", "declined"].includes(
+        body.status,
+      )
+        ? body.status
+        : null;
+      if (!status || !body.feedback_id)
+        return json(400, { error: "bad_request" });
+      const response = body.response
+        ? String(body.response).slice(0, 4000)
+        : null;
+      const { rows: updated } = await db.query(
+        `update feedback set status = $2,
+                response = coalesce($3, response),
+                responded_at = case when $3 is not null then now() else responded_at end
+         where feedback_id = $1
+         returning account_id`,
+        [body.feedback_id, status, response],
+      );
+      if (updated[0] && response) {
+        await emitFeedEvent(
+          db,
+          updated[0].account_id,
+          "feedback_responded",
+          null,
+          {
+            feedback_id: Number(body.feedback_id),
+            status,
+          },
+        );
+      }
+      return json(200, { ok: true });
+    },
+  };
+}

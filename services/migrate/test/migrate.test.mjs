@@ -285,7 +285,7 @@ test("capture-audit op: reports only gap subjects with their scheduler evidence"
 test("export + sweep: history lands in S3 keys; only twinned superseded rows leave Postgres", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   process.env.ARCHIVE_BUCKET = "test-archive";
-  const { exportPayloads } = await import("../src/lambda.mjs");
+  const { exportPayloads } = await import("../src/ops-record.mjs");
   const { sweepPayloads } = await import("../../jobs/src/index.mjs");
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });

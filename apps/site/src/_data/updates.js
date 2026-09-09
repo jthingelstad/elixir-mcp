@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "Smaller modules, tested account journeys",
+    body: "Account pages, API routes and maintenance commands now have smaller, focused modules. Successful account and agent journeys are tested against the real API on disposable databases, including first capture, agent creation, key rotation, suspension and resumption. Existing behavior is preserved.",
+  },
+  {
+    date: "2026-09-08",
     title: "Checked response metadata",
     body: "Response metadata is checked against the shared contract before a tool result is returned. The response guide now uses a generated, tested example, with UTC timestamps, explicit unknown freshness, and the current contract version. Valid answers and statistical calculations are unchanged.",
   },

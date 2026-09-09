@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Fresh } from "./Dashboard.jsx";
+import { Fresh } from "../components/Fresh.jsx";
 
 /** Account ▸ Collector (design handoff §10): deliberately small — the
  *  ladder is a joke, not a product. Per collector: avatar slot, status,

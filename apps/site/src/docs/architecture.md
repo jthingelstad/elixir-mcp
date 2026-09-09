@@ -240,6 +240,13 @@ archive, content-addressed and queryable with SQL over S3. Site visits
 are counted anonymously with Tinylytics — see [Privacy](/docs/privacy)
 for exactly what that means.
 
+The web API assembles feature-specific route modules behind shared session
+resolution. The account application separates overview, agents, connections,
+usage and feedback pages. The migration Lambda dispatches operational commands
+to separate modules; ordered migrations still run only through its deploy path.
+The shared metadata contract is checked when an envelope is built and after a
+tool returns. Successful UI journeys exercise the real API on scratch databases.
+
 ## The code, and the family
 
 Elixir MCP is built in the open:

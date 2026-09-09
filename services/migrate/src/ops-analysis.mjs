@@ -1,0 +1,217 @@
+import pg from "pg";
+
+export async function abYield(databaseUrl, spec) {
+  const hours = Math.min(Math.max(Number(spec?.hours ?? 24), 1), 72);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const windowStats = async (startIso) => {
+      const { rows } = await db.query(
+        `with live as (
+           select r.receipt_id, r.endpoint, r.entity_key, r.fetched_at
+           from api_receipt r
+           join gateway g on g.gateway_id = r.gateway_id
+           where g.name <> 'backfill-elixir-bot'
+             and r.fetched_at >= $1::timestamptz
+             and r.fetched_at < $1::timestamptz + make_interval(hours => $2)),
+         first_obs as (
+           select bo.battle_id, min(bo.receipt_id) as receipt_id
+           from battle_observation bo group by bo.battle_id)
+         select
+           (select count(*)::int from live) as fetches,
+           (select count(*)::int from live where endpoint = 'player_battlelog') as battlelog_fetches,
+           (select count(distinct entity_key)::int from live
+            where endpoint = 'player_battlelog') as battlelog_subjects,
+           (select count(*)::int from live
+            where endpoint in ('currentriverrace', 'riverracelog')) as war_fetches,
+           (select count(*)::int from first_obs fo
+            join live l on l.receipt_id = fo.receipt_id
+            where l.endpoint = 'player_battlelog') as battles_captured`,
+        [startIso, hours],
+      );
+      return rows[0];
+    };
+    const a = await windowStats(spec.a_start);
+    const b = await windowStats(spec.b_start);
+    const per = (w) =>
+      w.battlelog_fetches > 0
+        ? Math.round((w.battles_captured / w.battlelog_fetches) * 1000) / 1000
+        : null;
+    return {
+      hours,
+      a: { start: spec.a_start, ...a, battles_per_battlelog_fetch: per(a) },
+      b: { start: spec.b_start, ...b, battles_per_battlelog_fetch: per(b) },
+      deltas: {
+        fetch_spend_ratio:
+          a.fetches > 0
+            ? Math.round((b.fetches / a.fetches) * 1000) / 1000
+            : null,
+        battles_ratio:
+          a.battles_captured > 0
+            ? Math.round((b.battles_captured / a.battles_captured) * 1000) /
+              1000
+            : null,
+        yield_per_fetch_ratio:
+          per(a) > 0 ? Math.round((per(b) / per(a)) * 1000) / 1000 : null,
+      },
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/** MCP request effectiveness census ({audit_census: {days?}}): the
+ *  product-signal read of mcp_call_audit (Jamie, 2026-09-05) - per-tool
+ *  volume, errors, truncation, latency, and reach across surfaces, plus
+ *  declared tools nobody has called. Read-only, counts only. */
+export async function auditCensus(databaseUrl, spec) {
+  const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
+  const { TOOL_GROUPS } = await import("@elixir-mcp/contracts");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: perTool } = await db.query(
+      `select tool,
+              count(*)::int as calls,
+              count(distinct account_id)::int as accounts,
+              count(*) filter (where error_code is not null)::int as errors,
+              round(avg(duration_ms))::int as avg_ms,
+              max(duration_ms)::int as max_ms,
+              round(avg(result_bytes))::int as avg_bytes,
+              count(*) filter (where truncated)::int as truncated,
+              max(created_at) as last_called
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+       group by tool order by calls desc`,
+      [days],
+    );
+    const { rows: perSurface } = await db.query(
+      `select surface, count(*)::int as calls,
+              count(*) filter (where error_code is not null)::int as errors
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+       group by surface order by calls desc`,
+      [days],
+    );
+    const { rows: errors } = await db.query(
+      `select tool, error_code, count(*)::int as n
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+         and error_code is not null
+       group by tool, error_code order by n desc limit 20`,
+      [days],
+    );
+    const called = new Set(perTool.map((r) => r.tool));
+    const never_called = Object.keys(TOOL_GROUPS).filter((t) => !called.has(t));
+    return {
+      days,
+      per_tool: perTool,
+      per_surface: perSurface,
+      top_errors: errors,
+      never_called,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/** Prototype intelligence preview ({preview_intel: {player_tag, clan_tag}}):
+ *  read-only flavor of the META-INTEL section 9/10 tools computed on live
+ *  data — the level-gap curve, one player's position on it, and rival
+ *  fingerprints for one clan's current bracket. Also the seed of the
+ *  section 6 validation harness. */
+export async function previewIntel(databaseUrl, spec) {
+  const tag = spec?.player_tag ?? "#20JJJ2CCRU";
+  const clan = spec?.clan_tag ?? "#J2RGCRVG";
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const sides = `
+      with sides as (
+        select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
+               avg((c.value->>'level')::numeric) as lvl
+        from battle_participant bp
+        join battle b on b.battle_id = bp.battle_id
+        cross join lateral jsonb_array_elements(bp.deck->'cards') c
+        where bp.deck ? 'cards' and b.type_class = 'pvp'
+          and bp.outcome in ('win','loss')
+        group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
+      duos as (select battle_id from sides group by battle_id having count(*) = 2),
+      pairs as (
+        select a.battle_id, a.player_tag, a.outcome, a.battle_time,
+               round(a.lvl - o.lvl, 2) as gap
+        from sides a
+        join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
+        where a.battle_id in (select battle_id from duos))`;
+    const { rows: curve } = await db.query(
+      `${sides}
+       select width_bucket(gap, array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]) as bin,
+              min(gap) as gap_lo, max(gap) as gap_hi,
+              count(*)::int as n,
+              round(avg((outcome = 'win')::int)::numeric, 3) as win_rate
+       from pairs group by bin order by bin`,
+    );
+    const tags = Array.isArray(spec?.player_tags) ? spec.player_tags : [tag];
+    // Score each player against the corpus curve: expected win rate at
+    // each battle's level gap -> actual minus expected = the win-rate
+    // the LEVELS cannot explain (level-adjusted skill signal). The
+    // player's own battles are a negligible share of the 66k-obs curve.
+    const { rows: me } = await db.query(
+      `${sides},
+       curve as (
+         select width_bucket(gap, array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]) as bin,
+                avg((outcome = 'win')::int) as wr
+         from pairs group by bin)
+       select p.player_tag,
+              count(*)::int as n,
+              round(avg(p.gap)::numeric, 2) as mean_gap,
+              round(avg((p.outcome = 'win')::int)::numeric, 3) as actual_wr,
+              round(avg(c.wr)::numeric, 3) as expected_wr_from_levels,
+              round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as skill_residual,
+              round((1.0 / sqrt(count(*)) / 2)::numeric, 3) as residual_se_approx,
+              round(avg((p.outcome = 'win')::int)
+                filter (where p.gap >= 0.1)::numeric, 3) as wr_when_ahead,
+              round(avg((p.outcome = 'win')::int)
+                filter (where p.gap > -0.1 and p.gap < 0.1)::numeric, 3) as wr_when_even,
+              count(*) filter (where p.gap >= 0.1)::int as n_ahead,
+              count(*) filter (where p.gap > -0.1 and p.gap < 0.1)::int as n_even
+       from pairs p
+       join curve c on c.bin = width_bucket(p.gap, array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5])
+       where p.player_tag = any($1)
+         and p.battle_time > now() - interval '60 days'
+       group by p.player_tag`,
+      [tags],
+    );
+    const { rows: rivals } = await db.query(
+      `with bracket as (
+         select participant_clan_tag, participant_name
+         from war_week_clan
+         where clan_tag = $1 and participant_clan_tag <> $1
+           and (season_id, section_index) = (
+             select season_id, section_index from war_week
+             where clan_tag = $1
+             order by season_id desc, section_index desc limit 1)),
+       races as (
+         select distinct w.season_id, w.section_index, w.participant_clan_tag,
+                max(w.fame) as fame
+         from war_week_clan w
+         join bracket bk on bk.participant_clan_tag = w.participant_clan_tag
+         group by w.season_id, w.section_index, w.participant_clan_tag)
+       select b.participant_clan_tag as clan_tag, b.participant_name as name,
+              count(r.fame)::int as races_observed,
+              round(avg(r.fame) filter (where (r.season_id, r.section_index) <> (
+                select season_id, section_index from war_week where clan_tag = $1
+                order by season_id desc, section_index desc limit 1))::numeric)::int
+                as mean_fame_finished,
+              max(r.fame)::int as max_fame,
+              min(r.season_id)::int as first_season,
+              max(r.season_id)::int as last_season
+       from bracket b left join races r on r.participant_clan_tag = b.participant_clan_tag
+       group by 1, 2 order by races_observed desc`,
+      [clan],
+    );
+    return { curve, players: me, rivals };
+  } finally {
+    await db.end();
+  }
+}
