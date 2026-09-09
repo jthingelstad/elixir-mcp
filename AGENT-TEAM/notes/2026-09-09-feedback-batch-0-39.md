@@ -46,3 +46,19 @@ Ten of eleven items are data-shape requests, not bugs. They cluster:
 - `insufficient_sample` will fire on most single-player meta segments
   under 30 decided battles; that is intended. Watch feedback for agents
   reading the absent `shrunk_win_rate` as a bug rather than the flag.
+
+## Production acceptance (2026-09-09 ~12:55Z)
+
+- Deploy of `96ee0a2` completed, exit 0, migrations `{applied: 60, ran: 0}`.
+- `{player_names}` op, five batches from elixir-bot's record: offered
+  33,993, filled 26,300, 7,868 players still unnamed (never named by any
+  source; boat defenders and roster-only tags).
+- Live reads on the personal connection: duel battle
+  `ca511f02…` returns contract 0.39.0, `rounds_played: 3` both sides,
+  `name_known: true`, `tower_hp.princess [0,0]` for the loser, the new
+  legend, and `meta.quota` (request `28ca1ec8-868d-4157-826d-7556cf3a6c81`).
+  `elixir_data_insights`: recorded_players {direct 29, via_clans 209,
+  total 238}, 7 comprehensive clans listed, 544 players with a snapshot
+  (request `a2c2ee04-f418-4c78-bcfd-243650d983ec`) - the population #18
+  said existed.
+- Feedback #14-#24 responded `done`, shipped_in 0.39.0; queue empty.
