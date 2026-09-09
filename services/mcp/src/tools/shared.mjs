@@ -13,23 +13,50 @@ import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 /** The live lane spends real CR budget: tight per-account daily cap,
  *  defaulted by role (contracts roles.ts), beaten by the per-account
  *  live_daily_quota override. */
+/** WHOSE live lane a call spends: the same budget as the daily call
+ *  quota (auth budgetFor) - an agent spends its OWNER's allowance, so N
+ *  agents on one account share one daily live budget, and an integration
+ *  pays from its own key. The fallback keeps hand-built accounts (and
+ *  every pre-0053 shape) on their own bucket exactly as before. */
+export function liveBudgetFor(account) {
+  const budget = account.budget ?? {
+    accountId: account.accountId,
+    role: account.role,
+    liveOverride: account.liveDailyQuota ?? null,
+  };
+  const unlimited =
+    account.isOwner === true ||
+    budget.role === "owner" ||
+    budget.role === "admin";
+  const cap = unlimited
+    ? Infinity
+    : (budget.liveOverride ?? roleQuotas(budget.role).live_fetches_per_day);
+  return {
+    accountId: budget.accountId,
+    role: budget.role ?? "member",
+    cap,
+    bucket: `liveday#${budget.accountId}`,
+  };
+}
+
 export async function spendLiveQuota(ctx) {
-  if (ctx.account.isOwner || ctx.account.role === "admin") return;
-  const cap =
-    ctx.account.liveDailyQuota ??
-    roleQuotas(ctx.account.role).live_fetches_per_day;
-  if (cap === Infinity) return;
+  const budget = liveBudgetFor(ctx.account);
+  if (budget.cap === Infinity) return;
   const day = new Date().toISOString().slice(0, 10);
   const { rows } = await ctx.db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)
      on conflict (bucket, window_start) do update set count = rate_limit.count + 1
      returning count`,
-    [`liveday#${ctx.account.accountId}`, day],
+    [budget.bucket, day],
   );
-  if (rows[0].count > cap) {
+  if (rows[0].count > budget.cap) {
     throw new ToolFailure(
       "quota_exceeded",
-      `Live-fetch quota reached (${cap}/day for the ${ctx.account.role ?? "member"} tier).`,
+      `Live-fetch quota reached (${budget.cap}/day for the ${budget.role} tier${
+        ctx.account.kind === "agent"
+          ? ", shared with your owner's other agents"
+          : ""
+      }).`,
       "Recorded-data tools are unlimited within the normal quota. Higher tiers get more - see /docs (Roles) or ask via elixir_feedback.",
     );
   }

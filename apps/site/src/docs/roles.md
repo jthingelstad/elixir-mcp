@@ -28,6 +28,7 @@ spends the one shared Clash Royale API budget).
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
 | Collections you curate | — | — | 5 | 20 | unlimited | unlimited |
 | Integrations | — | — | — | 1 | unlimited | unlimited |
+| Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
 **member** — the default. You, a couple of alts, and your clan at
 activity scope (roster + war, no member fan-out).
@@ -68,9 +69,10 @@ for months stays signed in as you.
 **An agent** acts for a clan rather than for a person. It has its own identity,
 its own key and its own event feed, so what it does never lands in your history
 and what you do never shows up as its. Agents are **not a tier feature**: you
-can create one for any clan you already record, at any role. It spends your
-daily call budget, and it carries its own tier — an admin's agent is not an
-admin.
+can create one for any clan you already record, at any role, up to the
+per-account count in the table above. It spends your daily call budget **and
+your live-fetch budget** — every agent you run shares your one daily live
+allowance — and it carries its own tier: an admin's agent is not an admin.
 
 That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should

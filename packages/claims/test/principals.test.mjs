@@ -177,3 +177,43 @@ test("a refused create leaves nothing behind", async () => {
   const after = await db.query(`select count(*)::int as n from account`);
   assert.equal(after.rows[0].n, before.rows[0].n, "no orphan account row");
 });
+
+test("agents are capped per owner by tier, under the account lock", async () => {
+  const { roleQuotas } = await import("@elixir-mcp/contracts");
+  const limit = roleQuotas("member").agents;
+  assert.ok(Number.isFinite(limit) && limit >= 1);
+  // The member already created one agent above ("my-clan").
+  const { rows: existing } = await db.query(
+    `select count(*)::int as n from account
+     where owned_by_account_id = $1 and kind = 'agent' and status = 'approved'`,
+    [member.accountId],
+  );
+  for (let i = existing[0].n; i < limit; i++) {
+    const ok = await createPrincipal(db, member, {
+      kind: "agent",
+      name: `cap-${i}`,
+      clanTag: "#2GUCVLQR",
+      tokenHash: hash(`cap-${i}`),
+    });
+    assert.equal(ok.ok, true, JSON.stringify(ok));
+  }
+  const over = await createPrincipal(db, member, {
+    kind: "agent",
+    name: "one-too-many",
+    clanTag: "#2GUCVLQR",
+    tokenHash: hash("one-too-many"),
+  });
+  assert.equal(over.ok, false);
+  assert.equal(over.error, "not_entitled");
+  assert.equal(over.reason, "agent_limit");
+  assert.equal(over.limit, limit);
+  assert.equal(over.role, "member");
+  // Nothing half-created: the refused agent left no account and no key.
+  const { rows: after } = await db.query(
+    `select count(*)::int as n from account
+     where owned_by_account_id = $1 and kind = 'agent'`,
+    [member.accountId],
+  );
+  assert.equal(after[0].n, limit);
+  assert.equal(roleQuotas("admin").agents, Infinity);
+});

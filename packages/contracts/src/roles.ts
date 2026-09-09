@@ -60,6 +60,14 @@ export interface RoleQuotas {
    * owner-gated. It had the wrong name, which is probably why.
    */
   integrations: number;
+  /**
+   * Agents the account may create. Agents are not a tier feature - any role
+   * may create one for a clan it has added - but each agent is a credential
+   * that spends its owner's call and live-fetch budgets, and an unbounded
+   * count is an unbounded number of keys to rotate and audit. The cap is
+   * generous relative to the clan slots it is bounded by.
+   */
+  agents: number;
 }
 
 export const ROLE_ORDER: Role[] = [
@@ -80,6 +88,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     live_fetches_per_day: 20,
     collections_max: 0,
     integrations: 0,
+    agents: 3,
   },
   leader: {
     player_slots: 50,
@@ -89,6 +98,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     live_fetches_per_day: 100,
     collections_max: 0,
     integrations: 0,
+    agents: 5,
   },
   family: {
     player_slots: 50,
@@ -98,6 +108,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     live_fetches_per_day: 250,
     collections_max: 5,
     integrations: 0,
+    agents: 10,
   },
   partner: {
     player_slots: 50,
@@ -107,6 +118,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     live_fetches_per_day: 1000,
     collections_max: 20,
     integrations: 1,
+    agents: 25,
   },
   admin: {
     player_slots: Infinity,
@@ -116,6 +128,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     live_fetches_per_day: Infinity,
     collections_max: Infinity,
     integrations: Infinity,
+    agents: Infinity,
   },
   owner: {
     player_slots: Infinity,
@@ -125,6 +138,7 @@ export const ROLES: Record<Role, RoleQuotas> = {
     live_fetches_per_day: Infinity,
     collections_max: Infinity,
     integrations: Infinity,
+    agents: Infinity,
   },
 };
 

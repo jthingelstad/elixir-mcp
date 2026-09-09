@@ -92,9 +92,9 @@ test("an agent owned by an admin still spends an unlimited day", async () => {
   // Counted so meta.quota can report the spend honestly (feedback #17),
   // never refused: the owner's bucket, the owner's unlimited ceiling.
   assert.deepEqual(db.buckets, [`mcpday#${OWNER}`]);
-  // The live lane is the CALLER's own tier (a leader agent: 100/day), not
-  // the owner's - mirroring spendLiveQuota exactly.
-  assert.equal(result.live.max, 100);
+  // The live lane is the OWNER's budget too, mirroring spendLiveQuota
+  // exactly: an admin's agent has an unlimited live lane.
+  assert.equal(result.live.max, Infinity);
 });
 
 test("over the ceiling is refused, and it is the owner's ceiling", async () => {

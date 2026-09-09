@@ -67,7 +67,8 @@ Every tool call costs one call; `live_fetch` and `players_profile` with
 `live: true` additionally cost one live fetch. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
 midnight, when both counters roll. Collector credits are already included in
-`calls.max`. An agent spends its owner's call budget and its own live lane.
+`calls.max`. An agent spends its owner's call budget and its owner's live
+lane, so every agent on one account reads the same balances.
 
 **`request_id`** — the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own

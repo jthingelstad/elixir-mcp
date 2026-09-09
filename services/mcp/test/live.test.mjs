@@ -320,3 +320,67 @@ test("a second-precision collector clock in the same second as the request still
   const r = await live(db, { endpoint: "player", entityKey: tag });
   assert.equal(r.ok, true, "same-second truncation must not drop the receipt");
 });
+
+// An agent spends its OWNER's live lane, exactly as it spends the owner's
+// daily calls: N agents on one account share one allowance. The bucket
+// used to be keyed on the agent's own id, so every agent got a fresh
+// live budget its owner never had (fixed 2026-09-09).
+test("an agent's live fetch is charged to its owner's bucket, and the owner's cap applies", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = normalizeTag(profile.tag);
+  const day = new Date().toISOString().slice(0, 10);
+  const { rows: owners } = await db.query(
+    `insert into account (email_hash, status, role) values ('live-agent-owner', 'approved', 'member')
+     returning account_id`,
+  );
+  const ownerId = owners[0].account_id;
+  const { rows: agents } = await db.query(
+    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
+     values ('live-agent', 'approved', 'leader', 'agent', $1, 'abcdef012345')
+     returning account_id`,
+    [ownerId],
+  );
+  const agent = {
+    accountId: agents[0].account_id,
+    role: "leader",
+    kind: "agent",
+    isOwner: false,
+    timezone: null,
+    // What validateServiceToken resolves for an agent (auth budgetFor).
+    budget: {
+      accountId: ownerId,
+      role: "member",
+      override: null,
+      liveOverride: null,
+    },
+  };
+  const live = fakeGatewayLive({ [`player:${tag}`]: profile });
+  const invoke = makeInvoker({
+    db,
+    account: agent,
+    registry: makeRegistry(),
+    live,
+  });
+  const first = await invoke("live_fetch", { path: `/players/${tag}` });
+  assert.equal(first.isError, false, JSON.stringify(first.body));
+  const { rows: buckets } = await db.query(
+    `select bucket, count from rate_limit where bucket like 'liveday#%' and window_start = $1::date
+       and bucket in ($2, $3)`,
+    [day, `liveday#${ownerId}`, `liveday#${agent.accountId}`],
+  );
+  assert.deepEqual(
+    buckets.map((b) => [b.bucket, b.count]),
+    [[`liveday#${ownerId}`, 1]],
+    "the owner's bucket, and only the owner's",
+  );
+  // The owner's member cap (20/day) is the agent's cap: fill it and the
+  // agent is refused, even though its own leader tier would allow 100.
+  await db.query(
+    `update rate_limit set count = 20 where bucket = $1 and window_start = $2::date`,
+    [`liveday#${ownerId}`, day],
+  );
+  const refused = await invoke("live_fetch", { path: `/players/${tag}` });
+  assert.equal(refused.isError, true);
+  assert.equal(refused.body.error.code, "quota_exceeded");
+  assert.match(refused.body.error.message, /20\/day for the member tier/);
+});

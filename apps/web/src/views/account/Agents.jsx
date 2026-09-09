@@ -466,7 +466,9 @@ export function Agents({ navigate }) {
             ? "You already have an agent with that name."
             : res.data?.error === "invalid_name"
               ? "Lowercase letters, numbers and hyphens."
-              : "Could not create that agent.",
+              : res.data?.reason === "agent_limit"
+                ? `Your ${res.data.role} tier allows ${res.data.limit} agents. Revoke one you no longer run, or request a higher tier from Overview.`
+                : "Could not create that agent.",
       );
       return;
     }

@@ -70,8 +70,32 @@ export async function createPrincipal(
 
   await db.query("begin");
   try {
+    // The same row lock the claim slot checks take: two concurrent creates
+    // otherwise both read the same free capacity and both succeed.
+    await db.query(`select 1 from account where account_id = $1 for update`, [
+      owner.accountId,
+    ]);
     let clan = null;
     if (kind === "agent") {
+      const limit = roleQuotas(owner.role).agents;
+      if (limit !== Infinity) {
+        const { rows } = await db.query(
+          `select count(*)::int as n from account
+           where owned_by_account_id = $1 and kind = 'agent'
+             and status = 'approved'`,
+          [owner.accountId],
+        );
+        if (rows[0].n >= limit) {
+          await db.query("rollback");
+          return {
+            ok: false,
+            error: "not_entitled",
+            reason: "agent_limit",
+            limit,
+            role: owner.role,
+          };
+        }
+      }
       // The gate, and the reason agents need no tier: you may create one for a
       // clan you have ALREADY added. Its clan is therefore always a subset of
       // its owner's, so no second recording starts and no slot is spent twice.

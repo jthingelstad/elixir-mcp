@@ -11,6 +11,7 @@
  */
 
 import { roleQuotas } from "@elixir-mcp/contracts";
+import { liveBudgetFor } from "./tools/shared.mjs";
 
 // Collector credits (Jamie, 2026-09-04): every 10 fetches your
 // collectors perform adds 1 to your daily quota, capped at 4x base.
@@ -43,19 +44,17 @@ export function makeQuota({ db, account }) {
   const base = budget.override ?? roleMax;
   const unlimited =
     budget.role === "owner" || budget.role === "admin" || base === Infinity;
-  // The live lane's ceiling mirrors spendLiveQuota (tools/shared.mjs):
-  // the CALLER's own bucket and tier, beaten by its live_daily_quota.
-  const liveUnlimited = account.isOwner === true || account.role === "admin";
-  const liveMax = liveUnlimited
-    ? Infinity
-    : (account.liveDailyQuota ?? roleQuotas(account.role).live_fetches_per_day);
+  // The live lane's ceiling and bucket are spendLiveQuota's exactly (one
+  // definition, tools/shared.mjs): the OWNER's budget for an agent.
+  const live = liveBudgetFor(account);
+  const liveMax = live.cap;
   const day = () => new Date().toISOString().slice(0, 10);
 
   async function liveUsed() {
     try {
       const { rows } = await db.query(
         `select count from rate_limit where bucket = $1 and window_start = $2::date`,
-        [`liveday#${account.accountId}`, day()],
+        [live.bucket, day()],
       );
       return Number(rows[0]?.count ?? 0);
     } catch {

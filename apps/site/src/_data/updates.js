@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Agents share their owner's live lane, and are counted",
+    body: "An agent's live Clash Royale fetches now come out of its owner's daily live budget, the same way its tool calls already did; until now each agent quietly carried a fresh live allowance its owner never had, so several agents on one account multiplied the one shared API budget. Each tier also has an agent count now (member 3, leader 5, family 10, partner 25, admin and owner unlimited), enforced when an agent is created and shown on the Roles page. Separately, a refused OAuth token at the MCP door answered with a server error instead of the 401 challenge a client needs to re-authorize; it answers 401 now.",
+  },
+  {
+    date: "2026-09-09",
     title: "Three new axes, honest denominators, and a visible budget",
     body: "Eleven pieces of feedback from one agent session shipped together, because they shared a shape: the record held the detail and each tool exposed only one way to group it. battles_opponents groups a player's battles by opponent, so 'have I faced this player before' is one call instead of a five-page sweep. badges_rarity and badges_holders make badges a dimension across every recorded profile, with one-off badges told apart from tiered ones. cards_synergy answers 'what is Witch played with' with co-occurrence, distinct players per pair and lift. players_names resolves up to a hundred tags to names without spending the live lane. Every response now carries meta.quota - calls and live fetches used and remaining, and when they reset - so an agent can price a plan instead of rationing an invisible budget. The event feed needs only the read capability. Deck and card meta shrink toward the corpus, not toward a player's own record, flag samples below thirty decided battles, and itemize what they excluded; performance windows separate decided head-to-head battles from boat attacks. Duel rows say how many games they hold and the legend says their crowns sum. Collection cards decode their forms (evolution, hero) instead of leaving a bit field to be misread as progress, and the card catalog serves max level on the in-game scale like everything else.",
   },
