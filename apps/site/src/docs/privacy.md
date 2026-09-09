@@ -92,6 +92,25 @@ credited publicly to your primary claimed player name and tag. The name
 you give your own machine is not published — it stays between you and
 the maintainer — and neither is your IP address.
 
+**Where your connections come from.** When a credential of yours is used
+— an agent's key, or an AI client you signed in — we record the calling
+IP address and the country the request came from, alongside which
+credential was used and what the client calls itself. This is yours to
+see, on your own account pages, and it exists because an account can
+hold several agents and several connected tools: without it, five
+agents are five identical rows saying something made a call.
+
+The same is recorded when a credential is REFUSED, which is the case
+that matters most. A key you revoked but that something is still
+presenting is invisible otherwise, because a rejected call never
+becomes usage — and that silence is exactly what a leaked or forgotten
+credential looks like. Refusals are counted per credential, per source,
+per day rather than logged one by one.
+
+Addresses are removed after 30 days; the usage history stays without
+them. Nothing here is shared, and it is never used to profile you, only
+to answer "what is using this, and from where".
+
 **What we never do.** No selling data, no advertising, no ad or
 cross-site tracking, no analytics attached to your gameplay or your
 identity. Feedback you send is read by the maintainer and used to
@@ -99,7 +118,8 @@ improve the product.
 
 **Retention.** Recorded game history is kept indefinitely (it is the
 product). Raw API payloads are archived. Operational logs are pruned
-periodically. Your email address is kept for as long as the account
+periodically. Connection IP addresses are cleared after 30 days and
+refusal records deleted after 30 days, both by the housekeeping job. Your email address is kept for as long as the account
 exists, and goes when it goes. To remove your account, your address,
 and your claims, use the feedback form or email the maintainer;
 recorded public game data about the clan remains, as it would in any

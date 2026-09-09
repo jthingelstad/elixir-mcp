@@ -9,6 +9,7 @@ import {
   startMagicLogin,
   redeemMagicToken,
   verifyMagicCode,
+  validRedirectUri,
   MAX_CODE_ATTEMPTS,
   createSessionToken,
   verifySessionToken,
@@ -544,4 +545,30 @@ test("magic code: a used code says so rather than reading as wrong", async () =>
   });
   assert.equal(again.ok, false);
   assert.equal(again.reason, "already_used");
+});
+
+test("redirect URIs: https anywhere, http only on a loopback", () => {
+  assert.equal(
+    validRedirectUri("https://claude.ai/api/mcp/auth_callback"),
+    "https://claude.ai/api/mcp/auth_callback",
+  );
+  // All three loopback spellings a local client may pick (RFC 8252 §7.3).
+  for (const uri of [
+    "http://localhost:8765/callback",
+    "http://127.0.0.1:8765/callback",
+    "http://[::1]:8765/callback",
+  ]) {
+    assert.equal(validRedirectUri(uri), uri, uri);
+  }
+  // Plain http anywhere else, and anything carrying credentials or a
+  // fragment, is not a redirect target.
+  for (const bad of [
+    "http://example.com/cb",
+    "http://localhost.evil.com/cb",
+    "https://claude.ai/cb#fragment",
+    "https://user:pw@claude.ai/cb",
+    "not a url",
+  ]) {
+    assert.equal(validRedirectUri(bad), "", bad);
+  }
 });

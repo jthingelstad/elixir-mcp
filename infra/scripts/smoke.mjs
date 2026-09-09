@@ -83,6 +83,16 @@ check(
   Boolean(authorizeCsp) && /form-action[^;]*https:/.test(authorizeCsp),
   authorizeCsp ?? "no CSP",
 );
+// Local clients (Claude Desktop and friends) redirect to a loopback port, and
+// form-action applies to that redirect exactly as it does to a remote one.
+check(
+  "consent page may redirect a form to a local client",
+  Boolean(authorizeCsp) &&
+    /http:\/\/localhost:\*/.test(authorizeCsp) &&
+    /http:\/\/127\.0\.0\.1:\*/.test(authorizeCsp) &&
+    /http:\/\/\[::1\]:\*/.test(authorizeCsp),
+  authorizeCsp ?? "no CSP",
+);
 check(
   "clickjacking blocked",
   csp.includes("frame-ancestors 'none'") &&

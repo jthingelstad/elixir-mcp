@@ -792,7 +792,14 @@ Resources:
         HeadersConfig:
           HeaderBehavior: whitelist
           Headers:
-            [x-elixir-client, content-type, authorization, x-collector-version]
+            [
+              x-elixir-client,
+              content-type,
+              authorization,
+              x-collector-version,
+              cloudfront-viewer-address,
+              cloudfront-viewer-country,
+            ]
         QueryStringsConfig: { QueryStringBehavior: all }
 
   # The structural guarantee: the MCP door forwards NO cookies, ever.
@@ -804,8 +811,18 @@ Resources:
         CookiesConfig: { CookieBehavior: none }
         HeadersConfig:
           HeaderBehavior: whitelist
+          # viewer-address and viewer-country are what let an owner see WHERE
+          # a credential is being used from. CloudFront adds them; the origin
+          # cannot derive either (sourceIp is an edge node). Still no cookies.
           Headers:
-            [authorization, content-type, mcp-protocol-version, idempotency-key]
+            [
+              authorization,
+              content-type,
+              mcp-protocol-version,
+              idempotency-key,
+              cloudfront-viewer-address,
+              cloudfront-viewer-country,
+            ]
         QueryStringsConfig: { QueryStringBehavior: all }
 
   # Browser security headers on every response (#25). Before this, the

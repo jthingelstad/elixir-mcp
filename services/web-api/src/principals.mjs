@@ -32,6 +32,30 @@ export async function listPrincipals(db, ownerAccountId) {
                                                  'is_primary', ac.is_primary))
                from account_clan ac where ac.account_id = a.account_id), '[]'
             ) as clans,
+            -- WHERE it connects from and WHAT calls itself what. Five agents
+            -- on one account were five identical rows of "something called a
+            -- tool"; this is the difference between usage and accountability.
+            (select json_build_object(
+                      'at', max(m.created_at),
+                      'ip', (array_agg(m.viewer_ip order by m.created_at desc)
+                             filter (where m.viewer_ip is not null))[1],
+                      'country', (array_agg(m.viewer_country order by m.created_at desc)
+                                  filter (where m.viewer_country is not null))[1],
+                      'client', (array_agg(m.client_name order by m.created_at desc)
+                                 filter (where m.client_name is not null))[1])
+             from mcp_call_audit m where m.account_id = a.account_id) as last_seen,
+            -- A credential its owner already revoked, still being presented,
+            -- is the one refusal worth surfacing without being asked.
+            coalesce(
+              (select json_agg(json_build_object('reason', cr.reason,
+                                                 'attempts', cr.attempts,
+                                                 'ip', cr.viewer_ip,
+                                                 'country', cr.viewer_country,
+                                                 'last_seen', cr.last_seen))
+               from credential_refusal cr
+               where cr.account_id = a.account_id
+                 and cr.day > current_date - 7), '[]'
+            ) as refusals_7d,
             coalesce(
               (select json_agg(json_build_object('token_id', t.token_id,
                                                  'name', t.name,

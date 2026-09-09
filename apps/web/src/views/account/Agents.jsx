@@ -169,6 +169,20 @@ export function AgentDetail({ id, navigate }) {
               </div>
             )}
           </dd>
+          <dt>Connects from</dt>
+          <dd>
+            {agent.last_seen?.ip ? (
+              <>
+                <span className="mono">{agent.last_seen.ip}</span>
+                {agent.last_seen.country ? ` · ${agent.last_seen.country}` : ""}
+                {agent.last_seen.client ? ` · ${agent.last_seen.client}` : ""}
+              </>
+            ) : (
+              <span style={{ color: "var(--faint)" }}>
+                not seen since addresses were recorded
+              </span>
+            )}
+          </dd>
           <dt>Calls (7 days)</dt>
           <dd>
             {agent.calls_7d ?? 0}{" "}
@@ -179,6 +193,40 @@ export function AgentDetail({ id, navigate }) {
           <dt>Unread notifications</dt>
           <dd>{agent.unread_events ?? 0}</dd>
         </dl>
+        {agent.refusals_7d?.length > 0 && (
+          <div
+            className="panel__body"
+            style={{ color: "var(--amber)", fontSize: "12.5px" }}
+          >
+            <strong>
+              Refused attempts in the last 7 days — something is still
+              presenting a credential for this agent.
+            </strong>
+            {agent.refusals_7d.map((r, i) => (
+              <div key={i} style={{ marginTop: "4px" }}>
+                <span className="mono">{r.reason}</span> · {r.attempts}{" "}
+                {r.attempts === 1 ? "attempt" : "attempts"}
+                {r.ip ? (
+                  <>
+                    {" from "}
+                    <span className="mono">{r.ip}</span>
+                    {r.country ? ` (${r.country})` : ""}
+                  </>
+                ) : null}
+                {r.last_seen ? (
+                  <>
+                    {", last "}
+                    <Fresh ts={r.last_seen} />
+                  </>
+                ) : null}
+              </div>
+            ))}
+            <div style={{ marginTop: "6px", color: "var(--faint)" }}>
+              A revoked key that is still being used means a runtime somewhere
+              was never given the new one.
+            </div>
+          </div>
+        )}
         {!key && (
           <div
             className="panel__body"

@@ -303,6 +303,22 @@ export async function sweepOperational(databaseUrl) {
         `delete from rate_limit where window_start < now() - interval '7 days'`,
       )
     ).rowCount;
+    // Refusals answer "is something still presenting this?", which is a
+    // question about now, not about March.
+    out.credential_refusal = (
+      await db.query(
+        `delete from credential_refusal where day < current_date - 30`,
+      )
+    ).rowCount;
+    // The call history stays; the ADDRESS in it does not. Usage is the
+    // account's own record, an IP is a person's location, and only one of
+    // those has to be kept to answer "what has this credential done".
+    out.viewer_ip_scrubbed = (
+      await db.query(
+        `update mcp_call_audit set viewer_ip = null
+          where viewer_ip is not null and created_at < now() - interval '30 days'`,
+      )
+    ).rowCount;
     out.magic_login = (
       await db.query(
         `delete from magic_login where expires_at < now() - interval '30 days'`,

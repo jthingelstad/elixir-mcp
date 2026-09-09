@@ -67,9 +67,12 @@ export function validRedirectUri(value) {
   }
   if (url.hash || url.username || url.password) return "";
   if (url.protocol === "https:") return raw;
+  // Loopback only, and BOTH loopbacks: RFC 8252 says a native client may use
+  // either, and a client that picks ::1 is not a client we should refuse.
+  // URL normalises the IPv6 literal to bracketed form.
   if (
     url.protocol === "http:" &&
-    ["localhost", "127.0.0.1"].includes(url.hostname)
+    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
   )
     return raw;
   return "";
@@ -597,4 +600,106 @@ export async function validateServiceToken(
     budget: budgetFor(row),
     credentialType: "service",
   };
+}
+
+/**
+ * Name a credential that was REFUSED, so its owner can be told.
+ *
+ * The interesting refusal is not a stranger guessing: it is a key its owner
+ * already knows about, still being presented by something they forgot to
+ * update. That case is identifiable — the hash is in the table, the row simply
+ * says revoked, or its account is suspended, or it belongs at another door —
+ * and identifying it is what turns "an agent went quiet" into "your revoked
+ * key `poap-kings` was presented 288 times today from one address".
+ *
+ * Returns { kind, tokenId, accountId, label, reason } with everything but kind
+ * possibly null. Recognising a credential grants nothing: this runs only after
+ * the door has already refused it.
+ */
+export async function describeRefusedCredential(db, presented) {
+  const value = String(presented ?? "");
+  if (!value) return { kind: "unknown", reason: "empty" };
+  const digest = sha256hex(value);
+
+  if (value.startsWith("svt_")) {
+    const { rows } = await db.query(
+      `select t.token_id, t.name, t.revoked_at, a.account_id, a.status, a.kind
+       from service_token t join account a on a.account_id = t.account_id
+       where t.token_hash = $1`,
+      [digest],
+    );
+    const row = rows[0];
+    if (!row) return { kind: "service_token", reason: "unknown_key" };
+    return {
+      kind: "service_token",
+      tokenId: row.token_id,
+      accountId: row.account_id,
+      label: row.name,
+      reason: row.revoked_at
+        ? "revoked_key"
+        : row.status !== "approved"
+          ? "principal_suspended"
+          : "wrong_door",
+    };
+  }
+
+  const { rows } = await db.query(
+    `select t.account_id, t.expires_at, c.client_name
+     from oauth_token t left join oauth_client c on c.client_id = t.client_id
+     where t.token_hash = $1 and t.kind = 'access'`,
+    [digest],
+  );
+  const row = rows[0];
+  if (!row) return { kind: "access_token", reason: "unknown_key" };
+  return {
+    kind: "access_token",
+    accountId: row.account_id,
+    label: row.client_name ?? null,
+    reason:
+      row.expires_at && row.expires_at < new Date() ? "expired" : "wrong_door",
+  };
+}
+
+/**
+ * Record it, coalesced per credential per source per day. Never throws: a
+ * refusal that could not be written down must still be a refusal.
+ */
+export async function recordCredentialRefusal(
+  db,
+  {
+    presented,
+    kind,
+    tokenId,
+    accountId,
+    reason,
+    resource,
+    viewerIp,
+    viewerCountry,
+  },
+) {
+  try {
+    await db.query(
+      `insert into credential_refusal
+         (credential_hash, token_id, account_id, kind, reason, resource, viewer_ip, viewer_country)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       on conflict (day, credential_hash, viewer_ip, resource) do update
+         set attempts = credential_refusal.attempts + 1,
+             last_seen = now(),
+             reason = excluded.reason,
+             token_id = coalesce(excluded.token_id, credential_refusal.token_id),
+             account_id = coalesce(excluded.account_id, credential_refusal.account_id)`,
+      [
+        sha256hex(String(presented ?? "")),
+        tokenId ?? null,
+        accountId ?? null,
+        kind ?? "unknown",
+        reason ?? "refused",
+        resource ?? null,
+        viewerIp ?? null,
+        viewerCountry ?? null,
+      ],
+    );
+  } catch {
+    /* visibility is never worth failing a refusal over */
+  }
 }

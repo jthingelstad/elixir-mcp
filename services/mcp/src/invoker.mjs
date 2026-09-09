@@ -95,12 +95,15 @@ async function audit(
     resultBytes,
     truncated,
     errorCode,
+    viewerIp,
+    viewerCountry,
+    clientName,
   },
 ) {
   try {
     await db.query(
-      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code, viewer_ip, viewer_country, client_name)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         accountId,
         tokenId ?? null,
@@ -112,6 +115,9 @@ async function audit(
         resultBytes ?? null,
         truncated ?? false,
         errorCode ?? null,
+        viewerIp ?? null,
+        viewerCountry ?? null,
+        clientName ?? null,
       ],
     );
   } catch (err) {
@@ -144,6 +150,9 @@ export function makeInvoker({
   registry,
   live = null,
   surface = "mcp",
+  viewerIp = null,
+  viewerCountry = null,
+  clientName = null,
   track = null,
 }) {
   return async function invokeTool(name, args) {
@@ -170,6 +179,9 @@ export function makeInvoker({
       const body = await registry.invoke(name, { db, account, live }, args);
       const resultBytes = JSON.stringify(body).length;
       await audit(db, {
+        viewerIp,
+        viewerCountry,
+        clientName,
         accountId: account.accountId,
         tokenId,
         requestId,
@@ -186,6 +198,9 @@ export function makeInvoker({
     } catch (err) {
       if (err instanceof ToolFailure) {
         await audit(db, {
+          viewerIp,
+          viewerCountry,
+          clientName,
           accountId: account.accountId,
           tokenId,
           requestId,
@@ -211,6 +226,9 @@ export function makeInvoker({
         };
       }
       await audit(db, {
+        viewerIp,
+        viewerCountry,
+        clientName,
         accountId: account.accountId,
         tokenId,
         requestId,

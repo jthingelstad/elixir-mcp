@@ -75,7 +75,7 @@ const HTML_HEADERS = {
   "content-type": "text/html; charset=utf-8",
   // form-action must keep https: — 'self' alone blocks the consent redirect.
   "content-security-policy":
-    "default-src 'none'; style-src 'unsafe-inline'; form-action https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; frame-ancestors 'none'",
+    "default-src 'none'; style-src 'unsafe-inline'; form-action https: http://localhost:* http://127.0.0.1:* http://[::1]:*; base-uri 'none'; frame-ancestors 'none'",
   "cache-control": "no-store",
 };
 

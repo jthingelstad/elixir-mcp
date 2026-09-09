@@ -571,3 +571,80 @@ test("base64-encoded form bodies (API Gateway v2 reality) parse correctly", asyn
     "client_id resolved from decoded body",
   );
 });
+
+/**
+ * Refusals have to leave a record, and the record has to NAME the credential
+ * when it can.
+ *
+ * A rejected key never reaches mcp_call_audit — the invoker writes after
+ * authentication — so a runtime presenting a revoked key produced silence, and
+ * its owner saw an agent that merely looked idle. With five agents and three
+ * AI tools on one account, "something went quiet" is not a diagnosis.
+ */
+test("a revoked key being presented is recorded, named, and counted", async () => {
+  const { rows: acct } = await db.query(
+    `insert into account (email_hash, status, role, kind)
+     values ('refusal-owner', 'approved', 'leader', 'person') returning account_id`,
+  );
+  const accountId = acct[0].account_id;
+  const raw = "svt_a_key_that_was_revoked";
+  const hash = crypto.createHash("sha256").update(raw).digest("hex");
+  const { rows: tok } = await db.query(
+    `insert into service_token (account_id, name, token_hash, revoked_at)
+     values ($1, 'retired-bot', $2, now()) returning token_id`,
+    [accountId, hash],
+  );
+
+  const call = () =>
+    handler({
+      rawPath: "/mcp",
+      requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+      headers: {
+        authorization: `Bearer ${raw}`,
+        "cloudfront-viewer-address": "203.0.113.7:51899",
+        "cloudfront-viewer-country": "US",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+    });
+
+  assert.equal(
+    (await call()).statusCode,
+    401,
+    "a revoked key is still refused",
+  );
+  await call();
+
+  const { rows } = await db.query(
+    `select token_id, account_id, kind, reason, attempts, viewer_ip, viewer_country
+     from credential_refusal where credential_hash = $1`,
+    [hash],
+  );
+  assert.equal(rows.length, 1, "coalesced per credential per source per day");
+  const row = rows[0];
+  assert.equal(row.attempts, 2, "counted, not logged twice");
+  assert.equal(String(row.token_id), String(tok[0].token_id), "named");
+  assert.equal(row.account_id, accountId, "and attributed to its owner");
+  assert.equal(row.kind, "service_token");
+  assert.equal(row.reason, "revoked_key", "which is the actionable part");
+  assert.equal(row.viewer_ip, "203.0.113.7", "the viewer, not the edge node");
+  assert.equal(row.viewer_country, "US");
+});
+
+test("an unrecognised key is recorded without inventing an owner", async () => {
+  const raw = "svt_never_issued_by_anyone";
+  await handler({
+    rawPath: "/mcp",
+    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    headers: { authorization: `Bearer ${raw}` },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+  });
+  const { rows } = await db.query(
+    `select account_id, token_id, reason from credential_refusal
+     where credential_hash = $1`,
+    [crypto.createHash("sha256").update(raw).digest("hex")],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].account_id, null, "nobody to attribute it to");
+  assert.equal(rows[0].token_id, null);
+  assert.equal(rows[0].reason, "unknown_key");
+});

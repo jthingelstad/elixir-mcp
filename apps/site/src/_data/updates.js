@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "See what is using each of your credentials",
+    body: "An agent's page now shows where it connects from - address, country and what the client calls itself - and warns when something is still presenting a credential that no longer works, which until now was invisible because a refused call never becomes usage. Refused attempts are counted per credential, per source, per day, and name the key when it is one of yours. Addresses are cleared after 30 days and refusal records deleted after 30 days; see the privacy page. Local clients redirecting to an IPv6 loopback address are now accepted alongside localhost and 127.0.0.1.",
+  },
+  {
+    date: "2026-09-09",
     title: "Connecting a client survives a double tap",
     body: "Submitting the authorization form twice - which phones do on their own after filling a one-time code - no longer replaces a successful connection with an error page. A repeat within two minutes repeats the same answer and returns you to your client, with every check on the request applied again and each authorization code still usable only once.",
   },

@@ -9,6 +9,8 @@ import pg from "pg";
 import {
   validateAccessToken,
   validateServiceToken,
+  describeRefusedCredential,
+  recordCredentialRefusal,
   authLog,
   credentialRef,
   checkRateLimit,
@@ -105,6 +107,20 @@ export function makeHandler({
       target.kind === "person"
         ? resourceMetadata
         : `${issuer}/.well-known/oauth-protected-resource${path}`;
+    // WHERE the caller is. requestContext.http.sourceIp is a CloudFront edge
+    // node, not the client — the viewer's own address arrives in a header, and
+    // only because the origin request policy forwards it. Both are optional:
+    // a direct hit in local development has neither, and null beats a lie.
+    const headerOf = (name) =>
+      event.headers?.[name] ?? event.headers?.[name.toLowerCase()] ?? null;
+    const viewerAddress = headerOf("cloudfront-viewer-address");
+    const viewerIp = viewerAddress
+      ? // "1.2.3.4:53422", and IPv6 is "2001:db8::1:53422" — the port is
+        // always the last colon-separated part.
+        viewerAddress.slice(0, viewerAddress.lastIndexOf(":")) || null
+      : null;
+    const viewerCountry = headerOf("cloudfront-viewer-country");
+
     const unauthorizedHere = () => ({
       statusCode: 401,
       headers: {
@@ -146,12 +162,28 @@ export function makeHandler({
         //
         // The credential itself never appears; a short digest is enough to
         // tell "one dead client retrying" from "many different bad keys".
+        // Name it if we can. A credential the owner already knows about —
+        // revoked, suspended, or presented at the wrong door — is the refusal
+        // worth telling them about, and it is identifiable without granting
+        // anything: the door has already said no.
+        const refused = await describeRefusedCredential(db, presented);
+        await recordCredentialRefusal(db, {
+          presented,
+          kind: refused.kind,
+          tokenId: refused.tokenId,
+          accountId: refused.accountId,
+          reason: refused.reason,
+          resource: target.resource,
+          viewerIp,
+          viewerCountry,
+        });
         authLog("mcp_unauthorized", {
-          reason: presented.startsWith("svt_")
-            ? "service_token_invalid"
-            : "access_token_invalid",
+          reason: refused.reason,
+          kind: refused.kind,
           resource: target.resource,
           credential: credentialRef(presented),
+          country: viewerCountry,
+          known_as: refused.label,
         });
         return unauthorizedHere();
       }
@@ -163,10 +195,20 @@ export function makeHandler({
       // credential simply does not belong at it, and pretending otherwise
       // would make the door a probe for which agents exist.
       if (!principalMatchesResource(account, target)) {
+        await recordCredentialRefusal(db, {
+          presented,
+          kind: presented.startsWith("svt_") ? "service_token" : "access_token",
+          accountId: account.accountId,
+          reason: "wrong_resource",
+          resource: target.resource,
+          viewerIp,
+          viewerCountry,
+        });
         authLog("mcp_wrong_resource", {
           reason: "principal_mismatch",
           resource: target.resource,
           kind: account.kind ?? "person",
+          country: viewerCountry,
         });
         return {
           statusCode: 403,
@@ -254,6 +296,12 @@ export function makeHandler({
           registry,
           live,
           surface: account.serviceName ? `svc:${account.serviceName}` : "mcp",
+          // Five agents on one account used to be five identical audit rows of
+          // "something called war_current". These say which credential, from
+          // where, calling itself what.
+          viewerIp,
+          viewerCountry,
+          clientName: account.serviceName ?? account.clientName ?? null,
           track,
         }),
       });
