@@ -22,26 +22,38 @@ const LEADERSHIP_ROLES = new Set(["elder", "coLeader", "leader"]);
 
 /** Everything the account can see, resolved once per request. */
 async function resolveEntitlements(db, account) {
+  // Primary player FIRST. A person's clans come from the players they
+  // claimed, and this had no ORDER BY at all, so ent.clans[0] - what an
+  // omitted clan_tag means - was whatever order the rows arrived in. On an
+  // account with a primary in one clan and an alt in another, the default
+  // and the "Your clan is X" sentence could both point somewhere the
+  // primary player does not play (playtest round, 2026-09-09).
   const { rows: claims } = await db.query(
-    `select c.player_tag, cm.clan_tag, cm.role
+    `select c.player_tag, c.is_primary, cm.clan_tag, cm.role
      from claim c
      left join clan_membership cm
        on cm.player_tag = c.player_tag and cm.left_observed_at is null
-     where c.account_id = $1`,
+     where c.account_id = $1
+     order by c.is_primary desc, c.player_tag`,
     [account.accountId],
   );
   const clanTags = [
     ...new Set(claims.filter((c) => c.clan_tag).map((c) => c.clan_tag)),
   ];
   // Clan scope requires the clan to be actively recorded.
+  // Filtered THROUGH clanTags rather than taken in the row order the
+  // recording table happens to return, so the primary-first order above
+  // survives the recorded-clan check.
   const recordedClans = clanTags.length
-    ? (
-        await db.query(
+    ? await (async () => {
+        const { rows } = await db.query(
           `select subject_tag from recording
            where subject_type = 'clan' and status = 'active' and subject_tag = any($1)`,
           [clanTags],
-        )
-      ).rows.map((r) => r.subject_tag)
+        );
+        const active = new Set(rows.map((r) => r.subject_tag));
+        return clanTags.filter((t) => active.has(t));
+      })()
     : [];
   const roles = new Map();
   for (const c of claims) {

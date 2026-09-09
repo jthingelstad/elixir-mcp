@@ -70,11 +70,22 @@ export async function describeIdentity(db, account) {
      where c.account_id = $1`,
     [account.accountId],
   );
+  // The clan of the PRIMARY PLAYER leads. This ordered by account_clan's
+  // own is_primary, which is a different fact: on an account whose primary
+  // player is in one clan and whose alt is in another, the opening
+  // instructions named a clan players_summary did not report, and three of
+  // five testers changed behaviour over it (playtest round, 2026-09-09).
   const { rows: clans } = await db.query(
-    `select ac.clan_tag, c.name from account_clan ac
+    `select ac.clan_tag, c.name,
+            exists (select 1 from claim cl
+                    join clan_membership m on m.player_tag = cl.player_tag
+                                          and m.left_observed_at is null
+                    where cl.account_id = ac.account_id and cl.is_primary
+                      and m.clan_tag = ac.clan_tag) as primary_players_clan
+     from account_clan ac
      left join clan c on c.clan_tag = ac.clan_tag
      where ac.account_id = $1
-     order by ac.is_primary desc, ac.clan_tag`,
+     order by primary_players_clan desc, ac.is_primary desc, ac.clan_tag`,
     [account.accountId],
   );
   // is_primary is still the read path during 0055's expand window; the label
@@ -121,10 +132,20 @@ export function identitySentences(identity) {
         );
       }
       const clan = identity.clans?.[0];
-      if (clan)
+      if (clan) {
         out.push(
           `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}.`,
         );
+        // Silence about the others is what made the mismatch unresolvable:
+        // a tester could not tell a wrong default from a second clan.
+        if (identity.clans.length > 1)
+          out.push(
+            `You are also in ${identity.clans
+              .slice(1)
+              .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
+              .join(", ")} - name the tag to mean those.`,
+          );
+      }
       out.push(
         "OMIT player_tag and clan_tag to mean these — do not look yourself up first. Name a tag only when you mean somebody else.",
       );

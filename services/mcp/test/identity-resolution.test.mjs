@@ -237,3 +237,96 @@ test("an agent with no clan is told what would fix it, in terms it can act on", 
     (e) => e.code === "not_entitled" && /Account -> Agents/.test(e.hint),
   );
 });
+
+/**
+ * "Your clan is X" must be the PRIMARY player's clan, and the default must
+ * agree with the sentence.
+ *
+ * describeIdentity ordered account_clan by its own is_primary flag, and
+ * resolveEntitlements ordered a person's clans not at all - so on an
+ * account whose primary player is in one clan and whose alt is in another,
+ * the opening instructions could name a clan that players_summary did not
+ * report. Three of five testers flagged it and two changed behaviour: one
+ * passed clan_tag on every call, one avoided clan tools entirely because
+ * it could not tell what an omitted clan_tag meant (playtest round,
+ * 2026-09-09).
+ *
+ * The alt's clan sorts FIRST alphabetically here, so the old ordering
+ * would pick it.
+ */
+const PRIMARY_CLAN = "#PYQLVG0"; // sorts after
+const ALT_CLAN = "#CGJRU29"; // sorts before
+const TWO_CLAN_PRIMARY = "#QQLV02Y";
+const TWO_CLAN_ALT = "#GVJ8P0L";
+
+test("the clan named at initialize is the primary player's, and it is what an omitted clan_tag means", async () => {
+  assert.ok(ALT_CLAN < PRIMARY_CLAN, "the fixture must reproduce the ordering");
+
+  const { rows } = await db.query(
+    `insert into account (email_hash, status, role, kind)
+     values ('two-clan', 'approved', 'leader', 'person') returning account_id`,
+  );
+  const account = { accountId: rows[0].account_id, kind: "person" };
+
+  // account_clan.is_primary is deliberately set on the ALT's clan: it is a
+  // different fact from "which player is primary", and the old ordering
+  // trusted it. Only one row per account may carry it.
+  for (const [clan, name, acPrimary] of [
+    [PRIMARY_CLAN, "PRIMARY CLAN", false],
+    [ALT_CLAN, "ALT CLAN", true],
+  ]) {
+    await db.query(`insert into clan (clan_tag, name) values ($1, $2)`, [
+      clan,
+      name,
+    ]);
+    await db.query(
+      `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+       values ('clan', $1, $2, 'active', 'comprehensive')`,
+      [clan, account.accountId],
+    );
+    await db.query(
+      `insert into account_clan (account_id, clan_tag, scope, is_primary)
+       values ($1, $2, 'comprehensive', $3)`,
+      [account.accountId, clan, acPrimary],
+    );
+  }
+  for (const [tag, clan, name] of [
+    [TWO_CLAN_PRIMARY, PRIMARY_CLAN, "Me"],
+    [TWO_CLAN_ALT, ALT_CLAN, "My Alt"],
+  ]) {
+    await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
+      tag,
+      name,
+    ]);
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+       values ($1, $2, now(), 'member')`,
+      [clan, tag],
+    );
+  }
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'verified', true, 'primary'), ($1, $3, 'verified', false, 'alt')`,
+    [account.accountId, TWO_CLAN_PRIMARY, TWO_CLAN_ALT],
+  );
+
+  // The sentence.
+  const sentences = identitySentences(await describeIdentity(db, account));
+  assert.match(
+    sentences,
+    new RegExp(`Your clan is PRIMARY CLAN ${PRIMARY_CLAN}`),
+    `named the wrong clan: ${sentences}`,
+  );
+  // The other clan is real and must not be hidden - silence about it is
+  // what made the mismatch unresolvable.
+  assert.match(sentences, new RegExp(`also in ALT CLAN ${ALT_CLAN}`));
+
+  // The default, which must not disagree with the sentence.
+  assert.equal(
+    await resolveEntitledClan(db, account, undefined),
+    PRIMARY_CLAN,
+    "an omitted clan_tag must mean the clan the instructions named",
+  );
+  // Naming the other one explicitly still works.
+  assert.equal(await resolveEntitledClan(db, account, ALT_CLAN), ALT_CLAN);
+});
