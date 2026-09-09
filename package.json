@@ -26,6 +26,7 @@
   },
   "scripts": {
     "build": "npm run build -w @elixir-mcp/contracts",
+    "pretest": "npm run build",
     "test": "npm test -ws --if-present",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
     "format": "prettier --write .",

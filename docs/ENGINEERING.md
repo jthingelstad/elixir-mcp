@@ -98,7 +98,9 @@ cumulative: never deploy past a commit whose infrastructure change is blocked.
 ## Verification follows the boundaries
 
 `npm run verify` is the same pre-push and CI gate: formatting, lint, Knip and
-all workspace tests. Knip entries name actual executable roots per workspace;
+all workspace tests. The root test command first builds the shared contracts,
+so a fresh checkout cannot depend on a previous local build. Knip entries name
+actual executable roots per workspace;
 remove obsolete entries instead of suppressing configuration hints. Successful
 account journeys use the real web API, JSON transport and per-run scratch
 Postgres databases. Crash-containment tests serve a different purpose and do
