@@ -68,6 +68,21 @@ check(
   "CSP forbids inline script",
   csp.includes("script-src") && !/script-src[^;]*unsafe-inline/.test(csp),
 );
+
+// THE COMPOSITION CHECK. The consent page sets its own CSP so a form POST may
+// redirect to the client's callback; a unit test pins that header on the
+// Lambda, and the edge used to overwrite it anyway. Nothing sat between the
+// two until an iPhone could not connect and the tap did nothing.
+const authorizeCsp = (
+  await fetch(
+    `${mcpBase}/oauth/authorize?client_id=probe&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&code_challenge=probe&code_challenge_method=S256&scope=cr%3Aread&resource=${encodeURIComponent(`${mcpBase}/mcp`)}`,
+  )
+).headers.get("content-security-policy");
+check(
+  "consent page may redirect a form to the client",
+  Boolean(authorizeCsp) && /form-action[^;]*https:/.test(authorizeCsp),
+  authorizeCsp ?? "no CSP",
+);
 check(
   "clickjacking blocked",
   csp.includes("frame-ancestors 'none'") &&

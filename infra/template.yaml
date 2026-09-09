@@ -840,8 +840,18 @@ Resources:
         Name: elixir-mcp-security-headers
         Comment: CSP, HSTS, nosniff, referrer and permissions policy
         SecurityHeadersConfig:
+          # NOT overridden, and that is load-bearing. The OAuth consent pages
+          # set their own CSP because they must permit a cross-origin
+          # form-action: the browser applies form-action to the REDIRECT of a
+          # form POST, so `form-action 'self'` silently blocks the 303 back to
+          # the client's callback. WebKit enforces this; the tap simply does
+          # nothing, with no error anywhere. Forcing this header from the edge
+          # replaced the origin's deliberate `form-action https:` and broke
+          # every attempt to connect an MCP client from an iPhone
+          # (2026-09-09). Origins that send no CSP -- the static site, the JSON
+          # APIs -- still get this one.
           ContentSecurityPolicy:
-            Override: true
+            Override: false
             ContentSecurityPolicy: >-
               default-src 'self';
               base-uri 'self';
