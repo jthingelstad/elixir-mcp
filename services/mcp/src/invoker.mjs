@@ -98,12 +98,13 @@ async function audit(
     viewerIp,
     viewerCountry,
     clientName,
+    oauthFamilyId,
   },
 ) {
   try {
     await db.query(
-      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code, viewer_ip, viewer_country, client_name)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code, viewer_ip, viewer_country, client_name, oauth_family_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [
         accountId,
         tokenId ?? null,
@@ -118,6 +119,7 @@ async function audit(
         viewerIp ?? null,
         viewerCountry ?? null,
         clientName ?? null,
+        oauthFamilyId ?? null,
       ],
     );
   } catch (err) {
@@ -153,6 +155,7 @@ export function makeInvoker({
   viewerIp = null,
   viewerCountry = null,
   clientName = null,
+  oauthFamilyId = null,
   track = null,
 }) {
   return async function invokeTool(name, args) {
@@ -182,6 +185,7 @@ export function makeInvoker({
         viewerIp,
         viewerCountry,
         clientName,
+        oauthFamilyId,
         accountId: account.accountId,
         tokenId,
         requestId,
@@ -229,6 +233,7 @@ export function makeInvoker({
         viewerIp,
         viewerCountry,
         clientName,
+        oauthFamilyId,
         accountId: account.accountId,
         tokenId,
         requestId,

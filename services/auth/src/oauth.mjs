@@ -460,13 +460,14 @@ export async function validateAccessToken(db, token, { resource } = {}) {
   const audience = canonicalResource(resource);
   if (!raw || !audience) return null;
   const { rows } = await db.query(
-    `select f.client_id, f.scope, f.resource,
+    `select f.client_id, f.scope, f.resource, f.family_id, c.client_name,
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
             a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
             o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
             o.live_daily_quota as owner_live_daily_quota
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
+     join oauth_client c on c.client_id = f.client_id
      join account a on a.account_id = f.account_id
      left join account o on o.account_id = a.owned_by_account_id
      where t.token_hash = $1 and t.kind = 'access'
@@ -490,6 +491,10 @@ export async function validateAccessToken(db, token, { resource } = {}) {
         role: row.role,
         liveDailyQuota: row.live_daily_quota,
         clientId: row.client_id,
+        // Carried so a call can be attributed to the CONNECTION a person can
+        // revoke, and labelled with what that client calls itself.
+        clientName: row.client_name,
+        oauthFamilyId: row.family_id,
         scope: row.scope,
         scopes: row.scope.split(" "),
         resource: row.resource,

@@ -2133,3 +2133,75 @@ test("a claim's relationship can be set, and primary is not one of them", async 
   );
   assert.equal(onPrimary.statusCode, 404);
 });
+
+/**
+ * A connection has to say what it has DONE, not merely that it exists.
+ *
+ * The list showed client name, scope and "last active" — which read
+ * last_token_at, i.e. when the client last collected a token. A client that
+ * refreshes on a timer looks busy by that measure while having answered
+ * nothing for weeks, and a person holding several connections could not tell
+ * which one was doing the work or where from.
+ */
+test("connections report their own usage, origin, and refused credentials", async () => {
+  const cookie = memberCookie;
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  const accountId = acct[0].account_id;
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('cid-usage', 'Claude Desktop', '[]', now() + interval '30 days')
+     on conflict (client_id) do nothing`,
+  );
+  const { rows: fam } = await db.query(
+    `insert into oauth_family (client_id, account_id, absolute_expires_at, scope)
+     values ('cid-usage', $1, now() + interval '30 days', 'cr:read')
+     returning family_id`,
+    [accountId],
+  );
+  const familyId = fam[0].family_id;
+
+  // One call under that grant, from a known address, and one older call that
+  // must not count toward the seven-day figure.
+  await db.query(
+    `insert into mcp_call_audit
+       (account_id, oauth_family_id, surface, tool, viewer_ip, viewer_country, created_at)
+     values ($1, $2, 'mcp', 'war_current', '203.0.113.9', 'GB', now()),
+            ($1, $2, 'mcp', 'war_current', '198.51.100.4', 'DE', now() - interval '30 days')`,
+    [accountId, familyId],
+  );
+  // And a credential of theirs still being presented after it stopped working.
+  await db.query(
+    `insert into credential_refusal
+       (credential_hash, account_id, kind, reason, attempts, viewer_ip, viewer_country)
+     values ('deadbeef', $1, 'access_token', 'revoked_key', 12, '203.0.113.9', 'GB')`,
+    [accountId],
+  );
+
+  const listed = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/connections",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const mine = listed.connections.find((c) => c.family_id === familyId);
+  assert.ok(mine, "the grant is listed");
+  assert.equal(mine.usage.calls_7d, 1, "the month-old call is not this week's");
+  assert.equal(
+    mine.usage.ip,
+    "203.0.113.9",
+    "most recent origin, not the oldest",
+  );
+  assert.equal(mine.usage.country, "GB");
+  assert.ok(mine.usage.at, "and when it last actually called");
+
+  assert.equal(listed.refusals.length, 1);
+  assert.equal(listed.refusals[0].reason, "revoked_key");
+  assert.equal(listed.refusals[0].attempts, 12);
+});

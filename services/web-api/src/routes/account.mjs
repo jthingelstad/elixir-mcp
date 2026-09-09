@@ -209,14 +209,40 @@ export function accountRoutes({ resolveAccount, logEvent }) {
       const { rows } = await db.query(
         `select f.family_id, c.client_name, f.scope, f.created_at, f.absolute_expires_at,
                 (select max(t.created_at) from oauth_token t
-                 where t.family_id = f.family_id) as last_token_at
+                 where t.family_id = f.family_id) as last_token_at,
+                -- WHAT this connection has actually done, and from where. A
+                -- list of client names answers "what did I connect"; an
+                -- account holding several answers nothing about which one is
+                -- still working, or which one is calling from somewhere you
+                -- do not recognise.
+                (select json_build_object(
+                          'at', max(m.created_at),
+                          'calls_7d', count(*) filter (
+                            where m.created_at > now() - interval '7 days'),
+                          'ip', (array_agg(m.viewer_ip order by m.created_at desc)
+                                 filter (where m.viewer_ip is not null))[1],
+                          'country', (array_agg(m.viewer_country order by m.created_at desc)
+                                      filter (where m.viewer_country is not null))[1])
+                 from mcp_call_audit m
+                 where m.oauth_family_id = f.family_id) as usage
          from oauth_family f join oauth_client c on c.client_id = f.client_id
          where f.account_id = $1 and f.revoked_at is null
            and f.absolute_expires_at > now()
          order by f.created_at desc`,
         [account.accountId],
       );
-      return json(200, { connections: rows });
+      // Credentials of yours that no longer work and are still being
+      // presented. On the personal door that is a client you revoked or a
+      // grant that expired, still running somewhere.
+      const { rows: refusals } = await db.query(
+        `select reason, kind, attempts, viewer_ip as ip, viewer_country as country,
+                last_seen
+         from credential_refusal
+         where account_id = $1 and day > current_date - 7
+         order by last_seen desc limit 10`,
+        [account.accountId],
+      );
+      return json(200, { connections: rows, refusals });
     },
 
     "POST /api/me/connections/revoke": async (db, event, body) => {

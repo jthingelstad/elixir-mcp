@@ -6,9 +6,14 @@ import { Fresh } from "../../components/Fresh.jsx";
 
 export function Connections({ me, navigate }) {
   const [connections, setConnections] = useState(null);
+  const [refusals, setRefusals] = useState([]);
   const [copied, setCopied] = useState(false);
   const load = () =>
-    api.connections().then((r) => r.ok && setConnections(r.data.connections));
+    api.connections().then((r) => {
+      if (!r.ok) return;
+      setConnections(r.data.connections);
+      setRefusals(r.data.refusals ?? []);
+    });
   useEffect(() => {
     load();
   }, []);
@@ -33,6 +38,41 @@ export function Connections({ me, navigate }) {
               — which is exactly what makes them different from an agent.
             </p>
           </div>
+          {refusals.length > 0 && (
+            <div
+              className="panel__body"
+              style={{ color: "var(--amber)", fontSize: "12.5px" }}
+            >
+              <strong>
+                Something is presenting a credential of yours that no longer
+                works.
+              </strong>
+              {refusals.map((r, i) => (
+                <div key={i} style={{ marginTop: "4px" }}>
+                  <span className="mono">{r.reason}</span> · {r.attempts}{" "}
+                  {r.attempts === 1 ? "attempt" : "attempts"}
+                  {r.ip ? (
+                    <>
+                      {" from "}
+                      <span className="mono">{r.ip}</span>
+                      {r.country ? ` (${r.country})` : ""}
+                    </>
+                  ) : null}
+                  {r.last_seen ? (
+                    <>
+                      {", last "}
+                      <Fresh ts={r.last_seen} />
+                    </>
+                  ) : null}
+                </div>
+              ))}
+              <div style={{ marginTop: "6px", color: "var(--faint)" }}>
+                Usually a client you disconnected that is still running. It
+                cannot read anything — but until it is stopped or reconnected,
+                it will keep trying.
+              </div>
+            </div>
+          )}
           {connections?.length === 0 && (
             <div className="panel__body" style={{ color: "var(--faint)" }}>
               Nothing connected yet.
@@ -47,6 +87,8 @@ export function Connections({ me, navigate }) {
                     <th>CAPABILITIES</th>
                     <th>CONNECTED</th>
                     <th>LAST ACTIVE</th>
+                    <th>FROM</th>
+                    <th>CALLS 7D</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -59,8 +101,24 @@ export function Connections({ me, navigate }) {
                         {new Date(c.created_at).toISOString().slice(0, 10)}
                       </td>
                       <td>
-                        <Fresh ts={c.last_token_at} />
+                        {/* When it last CALLED, not when it last collected a
+                            token: a client that refreshes on a timer looks
+                            busy by the second measure and may have done
+                            nothing for weeks. Falls back for connections that
+                            predate per-call attribution. */}
+                        <Fresh ts={c.usage?.at ?? c.last_token_at} />
                       </td>
+                      <td className="mono">
+                        {c.usage?.ip ? (
+                          <>
+                            {c.usage.ip}
+                            {c.usage.country ? ` · ${c.usage.country}` : ""}
+                          </>
+                        ) : (
+                          <span style={{ color: "var(--faint)" }}>—</span>
+                        )}
+                      </td>
+                      <td>{c.usage?.calls_7d ?? 0}</td>
                       <td>
                         <button
                           className="btn--text"

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Every connection says what it has done, and from where",
+    body: "Account - Connections now shows, per connected client, when it last actually called (rather than when it last collected a token), the address and country it called from, and how many calls it made this week - alongside the disconnect button that was already there. Credentials of yours that stopped working and are still being presented appear above the list, counted per source per day. Agents already got this; the personal door has it now too.",
+  },
+  {
+    date: "2026-09-09",
     title: "See what is using each of your credentials",
     body: "An agent's page now shows where it connects from - address, country and what the client calls itself - and warns when something is still presenting a credential that no longer works, which until now was invisible because a refused call never becomes usage. Refused attempts are counted per credential, per source, per day, and name the key when it is one of yours. Addresses are cleared after 30 days and refusal records deleted after 30 days; see the privacy page. Local clients redirecting to an IPv6 loopback address are now accepted alongside localhost and 127.0.0.1.",
   },
