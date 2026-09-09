@@ -46,7 +46,8 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
        and s.revoked_at is null
        and s.sliding_expires_at > now()
        and s.absolute_expires_at > now()
-     returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role, a.kind`,
+     returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role, a.kind,
+               a.mcp_daily_quota, a.live_daily_quota`,
     [claims.sid, claims.sub, SESSION_TTL_SECONDS],
   );
   const row = rows[0] ?? null;
@@ -64,6 +65,10 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
         // a browser session. Carried anyway so callers can assert rather than
         // rely on that being remembered.
         kind: row.kind,
+        // Hand-tuned overrides, so a session-authenticated surface (the
+        // explorer, the usage page) sees the same ceilings the MCP door does.
+        mcpDailyQuota: row.mcp_daily_quota ?? null,
+        liveDailyQuota: row.live_daily_quota ?? null,
         sessionId: claims.sid,
       }
     : null;

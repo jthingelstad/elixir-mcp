@@ -308,10 +308,12 @@ export function accountRoutes({ resolveAccount, logEvent }) {
         `select count from rate_limit where bucket = $1 and window_start = $2::date`,
         [`liveday#${account.accountId}`, today],
       );
-      const { rows: quota } = await db.query(
-        `select mcp_daily_quota from account where account_id = $1`,
-        [account.accountId],
-      );
+      // The tier's real ceilings (contracts roles.ts), beaten by the
+      // per-account overrides; null = unlimited on the wire. This used to
+      // hardcode member's numbers for every tier.
+      const q = roleQuotas(account.role);
+      const unlimited = account.isOwner || account.role === "admin";
+      const lim = (v) => (unlimited || v === Infinity ? null : v);
       return json(200, {
         days,
         top_tools: tools,
@@ -321,8 +323,8 @@ export function accountRoutes({ resolveAccount, logEvent }) {
         // their own usage.
         agent_calls_today: days.find((d) => d.day === today)?.agent_calls ?? 0,
         live_today: live[0]?.count ?? 0,
-        live_max: account.isOwner ? null : 50,
-        quota_max: account.isOwner ? null : (quota[0]?.mcp_daily_quota ?? 500),
+        live_max: lim(account.liveDailyQuota ?? q.live_fetches_per_day),
+        quota_max: lim(account.mcpDailyQuota ?? q.mcp_calls_per_day),
       });
     },
 
