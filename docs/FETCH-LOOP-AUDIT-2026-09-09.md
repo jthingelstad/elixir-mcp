@@ -628,14 +628,22 @@ would then be one Lambda invoke, and the A/B in 5.1 needs it anyway.
 
 - Measured 2026-09-09 13:56Z to 14:40Z, read-only throughout (Lambda census
   ops, S3 archive sync, CloudWatch reads, seven `elixir_coverage` calls).
-- Not implemented: checkout lease held by another session with a dirty
-  tree. The numbers justify 5.1 and 5.2; 5.3 is a one-line cost cut. Build
-  them as one contract-free scheduler change plus one additive migration
-  (0061), verify, deploy with `--skip-web`, and watch `{probe}` and the
-  extended `ab_yield` for an hour.
+- Implemented the same afternoon at Jamie's ask (commits b4bdb3a, c381c18;
+  migration 0061; deployed 14:41Z, site docs 14:56Z). 5.1 behind
+  `ELIXIR_LOSS_BOUND=half`, 5.2 and 5.3 for everyone, plus the inert
+  activity_bph re-select fixed. Live acceptance: first new-code tick at
+  14:42:36Z planned normally; one coverage read at 14:43:32Z produced
+  `ReadCappedJobs:1` on the 14:47:36Z tick and took that player's battlelog
+  freshness from 40,255 s to 27 s; zero errors in any log group.
+- **Reading the A/B:** the hash arms are not balanced at baseline. Before
+  the flip the control arm already held more of the grinders (09-08 gap
+  rate 0.69% treated vs 2.17% control). Compare each arm with itself across
+  the flip, not the two arms on one day. Promote to `all` when the treated
+  arm's gap rate falls to under a third of its own pre-flip rate over 72
+  hours while control's does not, with total fetches/hour under 200.
 - Follow-ups outside this audit's scope: the auto-followed clan heartbeat at
-  scale (4.4), and the battleCount-vs-battlelog mode mismatch for
-  `cr-agent-api-docs` (3.4c).
+  scale (4.4), the battleCount-vs-battlelog mode mismatch for
+  `cr-agent-api-docs` (3.4c), and the `{fetch_census}` op (6).
 
 *This material is unofficial and is not endorsed by Supercell. For more
 information see Supercell's Fan Content Policy:
