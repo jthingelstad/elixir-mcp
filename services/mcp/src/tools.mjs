@@ -1,5 +1,5 @@
 /**
- * The V1 tool registry — DESIGN §3. Declarations (JSON Schema) and
+ * The V1 tool registry — docs/ENGINEERING.md Declarations (JSON Schema) and
  * handlers live together in the per-group modules under ./tools/ so a
  * schema and its behavior can't drift; this file only assembles the
  * registry (split from one 3,800-line file, review item 8). Handlers
@@ -8,6 +8,7 @@
  */
 
 import {
+  assertResponseMeta,
   TOOL_GROUPS,
   GROUP_ORDER,
   requiredOAuthScope,
@@ -84,6 +85,10 @@ export function makeRegistry() {
             ? ga - gb
             : a.annotations.title.localeCompare(b.annotations.title);
         }),
-    invoke: (name, ctx, args) => TOOLS[name].handler(ctx, args),
+    invoke: async (name, ctx, args) => {
+      const body = await TOOLS[name].handler(ctx, args);
+      assertResponseMeta(body?.meta);
+      return body;
+    },
   };
 }

@@ -395,3 +395,22 @@ test(
     assert.match(page, /Draws and unresolved outcomes are/);
   },
 );
+
+test(
+  "the published response example is a valid current metadata envelope",
+  { skip },
+  async () => {
+    const { assertResponseMeta } = await import("@elixir-mcp/contracts");
+    const html = read("docs/responses/index.html");
+    const encoded = /<code class="language-json">([\s\S]*?)<\/code>/.exec(
+      html,
+    )?.[1];
+    assert.ok(encoded, "the response guide must include a JSON example");
+    const decoded = encoded.replace(
+      /&(quot|amp|lt|gt|#39);/g,
+      (_, entity) =>
+        ({ quot: '"', amp: "&", lt: "<", gt: ">", "#39": "'" })[entity],
+    );
+    assertResponseMeta(JSON.parse(decoded));
+  },
+);

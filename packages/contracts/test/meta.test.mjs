@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  assertResponseMeta,
   responseMeta,
   DISCLAIMER,
   CONTRACT_VERSION,
@@ -53,4 +54,48 @@ test("pre-reset window: final hour before Monday 00:10 UTC only", async () => {
   );
   // Midweek -> outside
   assert.equal(inPreResetWindow(new Date("2026-09-03T12:00:00Z")), false);
+});
+
+test("metadata distinguishes absent history and unknown sources from zero age", () => {
+  const meta = responseMeta({
+    as_of: "2026-09-08T00:00:00Z",
+    recorded_since: "2026-08-01T00:00:00Z",
+    recording_active_since: "2026-09-01T00:00:00Z",
+    timezone_applied: "America/Chicago",
+    freshness_seconds: null,
+    source_polls: {
+      player: { observed_at: "2026-09-08T00:00:00Z", freshness_seconds: 0 },
+      player_battlelog: { observed_at: null, freshness_seconds: null },
+    },
+  });
+  assert.doesNotThrow(() =>
+    assertResponseMeta(JSON.parse(JSON.stringify(meta))),
+  );
+  for (const changed of [
+    { recorded_since: null },
+    { recorded_since: "2026-09-08" },
+    { recording_started: "2026-09-08T00:00:00Z" },
+    { freshness_seconds: -1 },
+    { freshness_seconds: NaN },
+    { events_pending: "2" },
+    { source_polls: { player: { observed_at: null, freshness_seconds: 0 } } },
+    {
+      source_polls: {
+        player: {
+          observed_at: "2026-09-08T00:00:00Z",
+          freshness_seconds: null,
+        },
+      },
+    },
+    { request_id: "not-a-receipt" },
+    { contract_version: "stale" },
+    { disclaimer: "" },
+  ])
+    assert.throws(() => assertResponseMeta({ ...meta, ...changed }), TypeError);
+  for (const key of ["as_of", "disclaimer", "contract_version"]) {
+    const incomplete = { ...meta };
+    delete incomplete[key];
+    assert.throws(() => assertResponseMeta(incomplete), TypeError);
+  }
+  assert.throws(() => responseMeta({ as_of: "yesterday" }), TypeError);
 });

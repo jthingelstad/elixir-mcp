@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "Checked response metadata",
+    body: "Response metadata is checked against the shared contract before a tool result is returned. The response guide now uses a generated, tested example, with UTC timestamps, explicit unknown freshness, and the current contract version. Valid answers and statistical calculations are unchanged.",
+  },
+  {
+    date: "2026-09-08",
     title: "Statistics with explicit denominators and limits",
     body: "Deck and card meta now count only wins and losses in their decided totals, usage and shrinkage baseline; draws and unresolved results no longer depress that baseline. Empty samples report an unknown rate. Personal and clan Pilot Scores now share the same level inputs and qualifying population. Their responses spell out that the legacy standard-error field is an approximation, not a confidence interval for the score. The methodology documents the formulas, independent rounding of displayed rates, sample floors, dependent observations, and limits of rolling-baseline and tenure comparisons. Earlier release descriptions claiming guaranteed rankings or improvement independent of spending have been corrected.",
   },

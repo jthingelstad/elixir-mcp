@@ -14,17 +14,13 @@ and it exists because *"is your data right?"* is the question people actually
 have about a service like this.
 
 ```json
-{
-  "as_of": "2026-09-08T12:34:56.000Z",
-  "recorded_since": "2026-03-07",
-  "freshness_seconds": 61,
-  "completeness_note": "…",
-  "events_pending": 2,
-  "request_id": "4c641bc4-…",
-  "contract_version": "0.35.0",
-  "disclaimer": "…"
-}
+{{ responses.example | json | safe }}
 ```
+
+Timestamps in the envelope are ISO 8601 UTC strings. History fields are omitted
+when unknown; a source poll that has never happened uses explicit nulls for
+both its timestamp and age. The server checks these shapes against the shared
+contract before returning a tool result.
 
 ## The fields
 
@@ -54,6 +50,12 @@ freshness, not the age of every individual historic row.
 **`completeness_note`** — present only when capture is known to be incomplete.
 When it is there, say so in the answer. It is the service admitting a gap; an
 agent that drops it on the floor is laundering that admission.
+
+**`timezone_applied`** — the display timezone used for local labels, when one
+was requested or configured. Stored timestamps and the envelope remain UTC.
+
+**`feedback_responses_pending`** — maintainer replies waiting to be read with
+`elixir_my_feedback`.
 
 **`events_pending`** — unread items in your event feed. A hint to call
 `elixir_events` rather than re-polling the data tools.

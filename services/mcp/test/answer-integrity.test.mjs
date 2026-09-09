@@ -153,7 +153,10 @@ test("oversized tool output is a bounded JSON failure retaining the request rece
       invokeTool: async () => ({
         body: {
           cards: "x".repeat(49000),
-          meta: { request_id: "receipt-1", as_of: new Date().toISOString() },
+          meta: {
+            request_id: "00000000-0000-0000-0000-000000000001",
+            as_of: new Date().toISOString(),
+          },
         },
         isError: false,
       }),
@@ -163,7 +166,7 @@ test("oversized tool output is a bounded JSON failure retaining the request rece
   const body = JSON.parse(result.content[0].text);
   assert.equal(result.isError, true);
   assert.equal(body.error.code, "bad_request");
-  assert.equal(body.meta.request_id, "receipt-1");
+  assert.equal(body.meta.request_id, "00000000-0000-0000-0000-000000000001");
   assert.ok(body.meta.disclaimer);
   assert.ok(result.content[0].text.length < 48000);
 });
@@ -190,4 +193,46 @@ test("unknown snapshot times and incompatible lifetime counters do not assert co
   const reset = await call("elixir_coverage", { player_tag: tag });
   assert.equal(reset.observation_intervals[0].ratio, null);
   assert.equal(reset.completeness_last_7_days.unknown_intervals, 1);
+});
+
+test("real successes and refusals remain parseable through the MCP protocol boundary", async () => {
+  const { makeInvoker } = await import("../src/invoker.mjs");
+  const { assertResponseMeta } = await import("@elixir-mcp/contracts");
+  for (const [name, args, fails] of [
+    ["players_summary", { player_tag: TAG }, false],
+    [
+      "battles_performance",
+      { player_tag: TAG, from: "2026-09-01", to: "2026-09-05" },
+      false,
+    ],
+    ["battles_performance", { player_tag: "#INVALID" }, true],
+  ]) {
+    const result = await handleMcpMessage(
+      {
+        jsonrpc: "2.0",
+        id: 42,
+        method: "tools/call",
+        params: { name, arguments: args },
+      },
+      {
+        registry,
+        spendQuota: async () => ({ allowed: true, max: Infinity }),
+        invokeTool: makeInvoker({ db: scratch.db, account, registry }),
+      },
+    );
+    const body = JSON.parse(result.payload.result.content[0].text);
+    assertResponseMeta(body.meta);
+    assert.equal(result.payload.result.isError ?? false, fails);
+    assert.equal(result.payload.id, 42);
+    const {
+      rows: [receipt],
+    } = await scratch.db.query(
+      "select tool,error_code from mcp_call_audit where request_id=$1",
+      [body.meta.request_id],
+    );
+    assert.equal(receipt.tool, name);
+    assert.equal(receipt.error_code, fails ? "invalid_tag" : null);
+    if (name === "battles_performance" && !fails)
+      assert.equal(body.window.battles, 3000);
+  }
 });
