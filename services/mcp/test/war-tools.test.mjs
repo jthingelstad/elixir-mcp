@@ -631,14 +631,18 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.match(dt.note, /observed so far/);
 
   // A stale anchor (nominal end passed) must not present an old day as
-  // today: decks_today disappears rather than mislead.
+  // today. decks_today goes null rather than absent: the key stays on the
+  // wire and says WHY, so "nobody owes attacks" is distinguishable from
+  // "this field broke".
   await db.query(
     `update war_period_anchor set first_observed_at = now() - interval '3 days'
      where clan_tag = $1 and period_index = 4`,
     [CLAN],
   );
   const stale = await call(invoke, "war_current", {});
-  assert.equal(stale.body.decks_today, undefined, "stale day says nothing");
+  assert.equal(stale.body.decks_today, null, "stale day reports no nudge list");
+  assert.equal(stale.body.decks_today_reason, "war_day_over");
+  assert.equal(stale.body.day_kind, "war", "it was still a war day");
 });
 
 test("war_current: a period first seen just BEFORE the reset ends a day later", async () => {
@@ -973,4 +977,73 @@ test("war_history only documents war_days_battled when it can actually return it
     "and then the note explains them",
   );
   assert.match(focused.body.note, /finished_early/);
+});
+
+/**
+ * A training day must not be shaped like a total no-show.
+ *
+ * war_current returns a full roster of zeroed points and decks and a
+ * bracket at fame 0 whenever war has not started. That is identical in
+ * shape to a clan that skipped a war day. The only discriminator was
+ * period.kind, buried under a 900-character as_observed_note, and
+ * decks_today simply vanished from the payload rather than saying why. A
+ * clan leader read it as "the entire clan no-showed" and was saved only by
+ * having called game_clock in the same batch (playtest round, 2026-09-09).
+ */
+test("war_current says what kind of day it is at the top level", async () => {
+  await db.query("begin");
+  try {
+    await db.query("delete from war_period_anchor where clan_tag=$1", [CLAN]);
+    // period_index 2: the third and last training day of the section.
+    await db.query(
+      `insert into war_period_anchor (clan_tag,period_index,first_observed_at)
+       values ($1,2,now())`,
+      [CLAN],
+    );
+    const training = (await call(invoke, "war_current", { clan_tag: CLAN }))
+      .body;
+
+    assert.equal(training.day_kind, "training", "beside season_id, not buried");
+    assert.equal(training.war_day, null);
+    assert.equal(
+      training.decks_today,
+      null,
+      "null is an answer; the key must be present",
+    );
+    assert.equal(training.decks_today_reason, "training_day");
+    // And it says when the nagging actually becomes possible.
+    assert.match(
+      training.next_war_day_opens_at,
+      /^\d{4}-\d{2}-\d{2}T10:00:00\.000Z$/,
+      "war opens on the 10:00Z policy hour",
+    );
+    assert.ok(
+      Date.parse(training.next_war_day_opens_at) >
+        Date.parse(training.period.period_start_nominal),
+      "the next war day is after the current period started",
+    );
+    // The zeroed roster that caused the misread is still there - it is the
+    // day_kind beside it that makes it legible.
+    assert.ok(training.participants.length > 10);
+
+    // period_index 3: war day 1.
+    await db.query(
+      `update war_period_anchor set period_index=3,first_observed_at=now()
+       where clan_tag=$1`,
+      [CLAN],
+    );
+    const war = (await call(invoke, "war_current", { clan_tag: CLAN })).body;
+    assert.equal(war.day_kind, "war");
+    assert.equal(war.war_day, 1, "1-based");
+    assert.equal(war.next_war_day_opens_at, null, "war is already open");
+    assert.ok(war.decks_today, "the nudge list the description promises");
+    assert.equal(war.decks_today.war_day, 1);
+    assert.equal(
+      war.decks_today_reason,
+      undefined,
+      "no reason is needed when the list is there",
+    );
+  } finally {
+    await db.query("rollback");
+  }
 });

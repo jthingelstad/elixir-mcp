@@ -311,6 +311,14 @@ export function anchoredPeriod(periodIndex, anchorMs, nowMs = Date.now()) {
     // Distance from the policy hour to what we actually observed. Includes
     // our polling latency, so it is an upper bound on the true drift.
     observedOffsetMinutes: Math.round((anchorMs - bounds.startMs) / 60_000),
+    // When war next opens on the policy grid. Null on a war day, which
+    // is already open. Computed here rather than at the caller: the whole
+    // point of this function is that two copies of the day arithmetic
+    // drifted.
+    nextWarDayOpensMs:
+      info.warDay === null
+        ? bounds.startMs + (TRAINING_DAYS - info.dayInSection) * 86400_000
+        : null,
     // "Is the latest anchored period still nominally running?" A clan whose
     // polls stopped must not have an ancient day reported as today.
     openNow: nowMs < nominalEndMs,

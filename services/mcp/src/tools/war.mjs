@@ -148,7 +148,7 @@ export const warTools = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far. period.source_observed_at and freshness_seconds expose the current-race poll; nominal_period_elapsed warns when the observed policy window ended without inventing a new observation. On a live war day, decks_today names who is untouched/partial/finished - the nudge list for clan management.",
+      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far. period.source_observed_at and freshness_seconds expose the current-race poll; nominal_period_elapsed warns when the observed policy window ended without inventing a new observation. day_kind and war_day say what kind of day it is without a second call (mirroring game_clock), and next_war_day_opens_at when war is not open. On a live war day, decks_today names who is untouched/partial/finished - the nudge list for clan management; off one it is null with decks_today_reason, because a zeroed roster on a training day looks exactly like a clan that no-showed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -186,6 +186,7 @@ export const warTools = {
         [clanTag],
       );
       let period = null;
+      let nextWarDayOpensAt = null;
       if (anchorRows[0]) {
         const anchor = anchorRows[0].first_observed_at;
         // ONE derivation, shared with the clan_pulse feeder. Both used to
@@ -210,9 +211,13 @@ export const warTools = {
           // clan instead of taking our word for it. Includes our polling
           // latency, so it is an upper bound on the true drift.
           observed_offset_minutes: p.observedOffsetMinutes,
+          next_war_day_opens_at: p.nextWarDayOpensMs
+            ? new Date(p.nextWarDayOpensMs).toISOString()
+            : null,
           as_observed_note:
             "Elixir MCP follows the 10:00 UTC POLICY reset for every clan. Clash Royale matches clans into races of five as matchmaking fills, so a clan's real period start drifts off that hour by its own amount; a multi-clan service cannot honour every clan's start and still have war_day mean one comparable window. *_nominal are therefore policy-grid instants, identical across clans, and are the fields to cite. started_observed_at is when the recorder first saw this period open (true start is at or before it) and observed_offset_minutes is its distance from the policy hour, INCLUDING our polling latency - use them to correct for a single clan's drift if you need to. Consequence worth knowing: battles played between a clan's real start and the policy hour are attributed to the previous policy day. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Never infer from day counts or event schemas.",
         };
+        nextWarDayOpensAt = period.next_war_day_opens_at;
       }
       // One client is one connection: pg queues concurrent queries on it
       // anyway, so Promise.all bought no parallelism and only tripped the
@@ -347,12 +352,35 @@ export const warTools = {
         season_id: wk.season_id,
         section_index: wk.section_index,
         is_colosseum: wk.is_colosseum,
+        // What KIND of day this is, beside season_id and mirroring
+        // game_clock. On a training day this tool returns a full roster of
+        // zeroed points and decks and a bracket at fame 0 - shaped exactly
+        // like a clan that no-showed a war day. The only discriminator was
+        // period.kind, below a 900-character note; a leader read the payload
+        // as "the entire clan no-showed" and was saved only by having called
+        // game_clock in the same batch (playtest round, 2026-09-09).
+        day_kind: period?.kind ?? null,
+        war_day: period?.war_day ?? null,
+        next_war_day_opens_at: nextWarDayOpensAt,
         standings: standings.rows,
         participants: participation.rows,
         ...(period ? { period } : {}),
-        ...(decksToday ? { decks_today: decksToday } : {}),
+        // decks_today is an ANSWER when it is null, not an omission. It
+        // used to vanish from the payload entirely off a war day while the
+        // description still promised it as "the nudge list", so a leader
+        // could not tell "nobody owes attacks today" from "this broke".
+        decks_today: decksToday,
+        ...(decksToday
+          ? {}
+          : {
+              decks_today_reason: !period
+                ? "period_unknown"
+                : period.war_day
+                  ? "war_day_over"
+                  : "training_day",
+            }),
         attendance_by_war_day: attendance.rows,
-        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles.",
+        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles - it is empty before this week's first war day, which day_kind tells you apart from a capture gap.",
         meta: {
           ...meta,
           ...(period?.nominal_period_elapsed
