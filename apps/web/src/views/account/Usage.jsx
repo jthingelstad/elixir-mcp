@@ -23,6 +23,8 @@ export function Usage({ me }) {
               }}
             >
               {usage.today_calls} of {usage.quota_max ?? "∞"} today
+              {usage.agent_calls_today > 0 &&
+                ` · ${usage.agent_calls_today} from your agents`}
             </span>
           </div>
           <div className="tablewrap">

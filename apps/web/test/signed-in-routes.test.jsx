@@ -178,4 +178,55 @@ test("the agent detail page offers its connect URL and a rename", async () => {
   );
   expect(url).toBeTruthy();
   expect(screen.getByText("rename")).toBeTruthy();
+  // The documented emergency path. /docs/agents has promised "Account →
+  // Agents → Revoke key" since agents shipped, while the route, the client
+  // method and no button at all existed.
+  expect(screen.getByText("Revoke key")).toBeTruthy();
+});
+
+test("an agent whose new key has never been used says so, rather than looking idle", async () => {
+  // The failure this exists for: rotate a key, the runtime keeps presenting
+  // the old one, every call 401s before it can be audited — so the page shows
+  // an agent that was active minutes ago and no error anywhere.
+  const AGENT = {
+    account_id: "00000000-0000-0000-0000-0000000000ag",
+    kind: "agent",
+    public_id: "272bd891a21d",
+    role: "leader",
+    status: "approved",
+    last_call_at: "2026-09-09T02:51:00.000Z",
+    clans: [{ clan_tag: "#J2RGCRVG", is_primary: true }],
+    tokens: [
+      {
+        token_id: 2,
+        name: "poap-kings",
+        created_at: "2026-09-09T02:55:00.000Z",
+        last_used_at: null,
+        revoked_at: null,
+      },
+      {
+        token_id: 1,
+        name: "poap-kings",
+        created_at: "2026-09-08T01:00:00.000Z",
+        last_used_at: "2026-09-09T02:51:00.000Z",
+        revoked_at: "2026-09-09T02:55:00.000Z",
+      },
+    ],
+  };
+  global.fetch = vi.fn(async (path) => {
+    const body =
+      path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+
+  window.history.pushState({}, "", `/account/agents/${AGENT.account_id}`);
+  render(<App />);
+  expect(
+    await screen.findByText(/current key has never been used/i),
+  ).toBeTruthy();
 });

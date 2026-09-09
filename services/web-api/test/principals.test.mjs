@@ -571,6 +571,37 @@ test("an agent's calls surface on the owner's principal list", async () => {
   assert.ok(agent.calls_7d >= 1, `calls_7d was ${agent.calls_7d}`);
 });
 
+test("the owner's usage counts what the limiter counts, agents included", async () => {
+  // The other half of the same bug. An agent charges mcpday#<owner>, so the
+  // page that answers "am I near my limit" has to count its calls too --
+  // otherwise it reads 42 of 500 to somebody the limiter has already stopped.
+  const id = await bossAgentId();
+  const before = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/usage", cookie: bossCookie }),
+    ),
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, surface)
+     values ($1, 'clans_roster', 'mcp')`,
+    [id],
+  );
+  const after = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/usage", cookie: bossCookie }),
+    ),
+  );
+  assert.equal(
+    after.today_calls,
+    before.today_calls + 1,
+    "an agent's call has to move the owner's total",
+  );
+  assert.ok(
+    after.agent_calls_today >= 1,
+    "and be attributable, so the total is explainable",
+  );
+});
+
 /**
  * Renaming.
  *
@@ -715,4 +746,24 @@ test("renaming someone else's agent finds nothing rather than refusing", async (
     [id],
   );
   assert.notEqual(rows[0].name, "not-yours");
+});
+
+test("the console can see when a key was issued and whether it has been used", async () => {
+  // The dead-key signal: a 401 is refused before a tool runs, so it never
+  // reaches mcp_call_audit. "Issued but never used" is the only evidence the
+  // console can have that a runtime is still presenting the old key.
+  const id = await bossAgentId();
+  const listed = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/principals", cookie: bossCookie }),
+    ),
+  );
+  const agent = listed.agents.find((a) => a.account_id === id);
+  const live = agent.tokens.filter((t) => !t.revoked_at);
+  assert.ok(live[0].created_at, "a key has to say when it was issued");
+  assert.ok("last_used_at" in live[0]);
+  assert.ok(
+    "last_call_at" in agent,
+    "last active is the account's, so rotating a key cannot erase it",
+  );
 });

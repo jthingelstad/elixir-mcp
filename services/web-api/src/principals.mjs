@@ -36,6 +36,7 @@ export async function listPrincipals(db, ownerAccountId) {
               (select json_agg(json_build_object('token_id', t.token_id,
                                                  'name', t.name,
                                                  'scope', t.scope,
+                                                 'created_at', t.created_at,
                                                  'last_used_at', t.last_used_at,
                                                  'revoked_at', t.revoked_at))
                from service_token t where t.account_id = a.account_id), '[]'

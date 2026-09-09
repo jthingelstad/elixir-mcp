@@ -250,17 +250,30 @@ export function accountRoutes({ resolveAccount, logEvent }) {
     "GET /api/me/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
+      // EVERY account whose calls this budget pays for: yours, and your
+      // agents'. An agent charges `mcpday#<owner>` (auth/oauth.mjs, "an agent
+      // spends its OWNER's budget") while its audit rows carry its own
+      // account_id -- so counting only $1 showed "42 of 500" to somebody the
+      // limiter had already counted to 500. The page whose whole job is "am I
+      // near my limit" has to count what the limiter counts.
       const { rows: days } = await db.query(
         `select (created_at at time zone 'UTC')::date::text as day, count(*)::int as calls,
-                count(*) filter (where error_code is not null)::int as errors
+                count(*) filter (where error_code is not null)::int as errors,
+                count(*) filter (where account_id <> $1)::int as agent_calls
          from mcp_call_audit
-         where account_id = $1 and created_at > now() - interval '7 days'
+         where (account_id = $1 or account_id = any(coalesce(
+                 (select array_agg(account_id) from account where owned_by_account_id = $1),
+                 '{}'::uuid[])))
+           and created_at > now() - interval '7 days'
          group by 1 order by 1 desc`,
         [account.accountId],
       );
       const { rows: tools } = await db.query(
         `select tool, count(*)::int as calls from mcp_call_audit
-         where account_id = $1 and created_at > now() - interval '7 days'
+         where (account_id = $1 or account_id = any(coalesce(
+                 (select array_agg(account_id) from account where owned_by_account_id = $1),
+                 '{}'::uuid[])))
+           and created_at > now() - interval '7 days'
          group by 1 order by 2 desc limit 5`,
         [account.accountId],
       );
@@ -277,6 +290,10 @@ export function accountRoutes({ resolveAccount, logEvent }) {
         days,
         top_tools: tools,
         today_calls: days.find((d) => d.day === today)?.calls ?? 0,
+        // Broken out so the page can say where the spend went rather than
+        // leaving somebody to wonder why their own usage looks bigger than
+        // their own usage.
+        agent_calls_today: days.find((d) => d.day === today)?.agent_calls ?? 0,
         live_today: live[0]?.count ?? 0,
         live_max: account.isOwner ? null : 50,
         quota_max: account.isOwner ? null : (quota[0]?.mcp_daily_quota ?? 500),

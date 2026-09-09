@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Knowing whether an agent is working",
+    body: "An agent's page now revokes its key, reports when it was last active across every key it has held, and says outright when the current key has never been used - the signature of a runtime still presenting the previous one, which produces no errors because a refused call never reaches the log. Your usage now counts what your daily limit counts: calls your agents made on your budget are included in the daily total and broken out separately, instead of being invisible until you were throttled.",
+  },
+  {
+    date: "2026-09-09",
     title: "An agent's connect URL, and renaming",
     body: "An agent's page now shows the URL to connect a client at, with a copy button, and creating one shows that URL beside the key it hands over once. Agents can also be renamed after creation; the name stays unique among your live agents and travels with the agent when you issue a new key.",
   },

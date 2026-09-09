@@ -103,6 +103,21 @@ Every question after that resolves with no lookup at all.
 
 ## Revoking
 
-**Account → Agents → Revoke key.** The agent stops working immediately. Its
-identity, its clan and its learned mappings survive, so issuing a new key picks
-up where it left off.
+**Open the agent → Revoke key.** It stops working immediately, and unlike
+suspending, there is nothing to restore: you issue a new key when you are ready.
+Its identity, its clan and its learned mappings survive either way, so a new key
+picks up where the old one left off.
+
+**Suspend** is the reversible one — the key reads as invalid while suspended,
+and resuming restores the same key without redistributing a credential.
+
+## When an agent goes quiet
+
+A key that is refused never reaches the call log: authentication fails before a
+tool runs, so a runtime still presenting an old key produces no errors to find,
+only silence. Its page names that case directly — **the current key has never
+been used** — which is the difference between an agent that is idle and one
+that has been locked out since you last rotated.
+
+Last active is the agent's, not the key's, so issuing a new key does not erase
+its history.

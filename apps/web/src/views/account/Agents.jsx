@@ -52,6 +52,13 @@ export function AgentDetail({ id, navigate }) {
   const connectUrl = agent.public_id
     ? `${window.location.origin}/a/${agent.public_id}/mcp`
     : null;
+  // A key that has never been used is the signature of the failure this page
+  // could not show: the runtime is still presenting the PREVIOUS key, gets a
+  // 401, and 401s never reach mcp_call_audit -- they are refused before a
+  // tool runs. So the agent does not look broken, it looks quiet, and the
+  // only visible difference is that the current key has no first use.
+  const key = live[0] ?? null;
+  const keyNeverUsed = Boolean(key && !key.last_used_at);
 
   return (
     <>
@@ -144,6 +151,24 @@ export function AgentDetail({ id, navigate }) {
           </dd>
           <dt>Slug</dt>
           <dd className="mono">{agent.public_id ?? "—"}</dd>
+          <dt>Last successful call</dt>
+          <dd>
+            {agent.last_call_at ? (
+              <Fresh ts={agent.last_call_at} />
+            ) : (
+              <span style={{ color: "var(--faint)" }}>never</span>
+            )}
+            {keyNeverUsed && (
+              <div style={{ fontSize: "12px", color: "var(--amber)" }}>
+                The current key has never been used
+                {key.created_at ? " since it was issued " : " "}
+                {key.created_at ? <Fresh ts={key.created_at} /> : null}. If
+                something was running before, it is still presenting the old key
+                and being refused — a refused call never reaches this page, so
+                it looks quiet rather than broken.
+              </div>
+            )}
+          </dd>
           <dt>Calls (7 days)</dt>
           <dd>
             {agent.calls_7d ?? 0}{" "}
@@ -154,6 +179,16 @@ export function AgentDetail({ id, navigate }) {
           <dt>Unread notifications</dt>
           <dd>{agent.unread_events ?? 0}</dd>
         </dl>
+        {!key && (
+          <div
+            className="panel__body"
+            style={{ color: "var(--amber)", fontSize: "12.5px" }}
+          >
+            <strong>No live key.</strong> This agent cannot authenticate until
+            you issue one. Its identity, its clan and everything it has learned
+            are untouched — a new key picks up where the old one left off.
+          </div>
+        )}
         {connectUrl && (
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
@@ -201,6 +236,28 @@ export function AgentDetail({ id, navigate }) {
             }}
           >
             Issue a new key
+          </button>
+          <button
+            className="btn btn--quiet"
+            disabled={busy || !key}
+            onClick={async () => {
+              // The emergency path — a key that leaked. Confirmed because it
+              // is the one action here with no way back: unlike suspending,
+              // resuming does not restore it, and unlike rotating, nothing is
+              // handed to you to put in its place.
+              if (
+                !window.confirm(
+                  "Revoke this key? The agent stops working immediately, and there is no replacement until you issue a new one.",
+                )
+              )
+                return;
+              setBusy(true);
+              await api.revokePrincipalToken(key.token_id);
+              setBusy(false);
+              load();
+            }}
+          >
+            Revoke key
           </button>
           <button
             className="btn btn--quiet"
@@ -433,11 +490,26 @@ export function Agents({ navigate }) {
                         </td>
                         <td>{a.role}</td>
                         <td>
-                          {live[0]?.last_used_at ? (
-                            <Fresh ts={live[0].last_used_at} />
+                          {/* The ACCOUNT's last call, not the key's. Reading
+                              last_used_at made a years-old agent report
+                              "never" the moment its key was rotated. */}
+                          {a.last_call_at ? (
+                            <Fresh ts={a.last_call_at} />
                           ) : (
                             <span style={{ color: "var(--faint)" }}>never</span>
                           )}
+                          {live[0] &&
+                            !live[0].last_used_at &&
+                            a.last_call_at && (
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  color: "var(--amber)",
+                                }}
+                              >
+                                new key unused
+                              </div>
+                            )}
                         </td>
                         <td>{a.calls_7d ?? 0}</td>
                         <td>
