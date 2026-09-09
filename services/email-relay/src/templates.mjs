@@ -174,9 +174,46 @@ export function renderEmail(msg) {
     };
   }
   if (msg.kind === "owner_notify") {
+    // One subject per event, so the inbox reads as a log. A message with
+    // no notify_kind predates 2026-09-09 and gets the generic line.
+    const subjects = {
+      access_request: "Elixir MCP: new access request",
+      feedback: "Elixir MCP: new feedback",
+      role_upgrade_request: "Elixir MCP: tier upgrade request",
+      gateway_request: "Elixir MCP: collector raise-hand",
+      gateway_quarantined: "Elixir MCP: collector QUARANTINED",
+      approved_welcome: "Elixir MCP: account approved",
+    };
+    const leads = {
+      access_request: "Someone asked for access.",
+      feedback: "A beta user said something.",
+      role_upgrade_request: "Someone asked for a higher tier.",
+      gateway_request: "Someone raised a hand to run a collector.",
+      gateway_quarantined:
+        "A collector stopped submitting and was quarantined.",
+      approved_welcome: "An account was approved.",
+    };
+    const kind = msg.notify_kind;
+    const category = msg.detail?.category;
+    const subject =
+      kind === "feedback" && category
+        ? `${subjects.feedback} - ${category}`
+        : (subjects[kind] ?? "Elixir MCP: notification");
+    const facts = Object.entries(msg.detail ?? {})
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
+    const link = msg.link ?? `${SITE}/admin`;
     return {
-      subject: "Elixir MCP: new access request",
-      text: `${msg.note ?? "A new access request is waiting."}\n\nReview: https://elixir.poapkings.com/admin\n`,
+      subject,
+      text: [
+        leads[kind] ?? "Something happened on Elixir MCP.",
+        "",
+        msg.note ?? "",
+        facts ? `\n${facts}` : "",
+        "",
+        `Act on it: ${link}`,
+        "",
+      ].join("\n"),
     };
   }
   throw new Error(`unknown email kind: ${msg.kind}`);

@@ -48,6 +48,14 @@ export interface EmailMessage {
   client_name?: string;
   /** owner_notify: what happened. */
   note?: string;
+  /** owner_notify: which event, so the relay can pick a subject. Absent on
+   *  messages enqueued before 2026-09-09; the relay treats it as generic. */
+  notify_kind?: OwnerNotifyKind;
+  /** owner_notify: where to act on it (defaults to /admin). */
+  link?: string;
+  /** owner_notify: short labelled facts for the body (category, from...).
+   *  Never an email address and never more than an excerpt of user text. */
+  detail?: Record<string, string>;
   /** login: the account has affirmatively opted in to the newsletter, so
    *  this send is also its enrollment moment. Absent/false means send the
    *  mail and enroll nothing (issue #27) - authenticating is not consent
@@ -56,6 +64,16 @@ export interface EmailMessage {
 }
 
 const EMAIL_KINDS = new Set(["login", "welcome", "owner_notify"]);
+
+export const OWNER_NOTIFY_KINDS = [
+  "access_request",
+  "feedback",
+  "role_upgrade_request",
+  "gateway_request",
+  "gateway_quarantined",
+  "approved_welcome",
+] as const;
+export type OwnerNotifyKind = (typeof OWNER_NOTIFY_KINDS)[number];
 
 export function validateEmailMessage(
   msg: unknown,
@@ -70,6 +88,12 @@ export function validateEmailMessage(
     errors.push("to:invalid");
   if (m.kind === "login" && typeof m.code !== "string")
     errors.push("code:missing");
+  if (
+    m.kind === "owner_notify" &&
+    m.notify_kind !== undefined &&
+    !(OWNER_NOTIFY_KINDS as readonly string[]).includes(m.notify_kind)
+  )
+    errors.push("notify_kind:invalid");
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
 

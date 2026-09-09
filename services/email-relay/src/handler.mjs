@@ -4,6 +4,14 @@
  * retries hard (malformed → DLQ path, transport failures retry);
  * analytics pings are best-effort and DROP on any failure — a
  * Tinylytics outage must never fill the email DLQ or page anyone.
+ *
+ * Owner notifications (owner_notify) ride the best-effort lane too
+ * (decided 2026-09-09): one send attempt, a log line on failure, never a
+ * batch item failure. The thing they announce - a feedback row, an access
+ * request, a raised hand - is durable in the database and visible in the
+ * console either way, and the daily Close the Loop pass reads that table;
+ * a lost courtesy email is recoverable, a DLQ full of them pages for
+ * nothing and shares the alarm with sign-in mail, which must retry hard.
  */
 
 import {
@@ -25,7 +33,19 @@ export function makeHandler({ send, track = null, enroll = null }) {
           if (isAnalyticsEventMessage(parsed)) analytics.push(parsed);
         } else {
           const validated = validateEmailMessage(parsed);
-          if (!validated.ok) {
+          if (parsed?.kind === "owner_notify") {
+            // Best-effort: sent once or dropped with a log line.
+            if (!validated.ok) {
+              console.error("owner_notify_drop", validated.errors.join(","));
+            } else {
+              try {
+                const { subject, text, html } = renderEmail(validated.msg);
+                await send({ to: validated.msg.to, subject, text, html });
+              } catch (err) {
+                console.error("owner_notify_drop", err?.message);
+              }
+            }
+          } else if (!validated.ok) {
             outcome = "bad_message";
           } else {
             const { subject, text, html } = renderEmail(validated.msg);

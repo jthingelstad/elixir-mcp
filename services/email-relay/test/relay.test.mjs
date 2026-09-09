@@ -279,3 +279,105 @@ test("Buttondown 400 is read, not assumed to mean 'already subscribed' (#27)", a
   // No token configured: enrollment is simply not wired.
   assert.equal(makeButtondownEnroller({ token: "" }), null);
 });
+
+// Every owner notification used to be "new access request" whatever it
+// announced (2026-09-09). Subjects are pinned per kind.
+test("owner_notify subjects and bodies are per kind", () => {
+  const render = (notify_kind, extra = {}) =>
+    renderEmail({
+      v: 1,
+      kind: "owner_notify",
+      to: "o@x.com",
+      notify_kind,
+      ...extra,
+    });
+  assert.equal(
+    render("access_request").subject,
+    "Elixir MCP: new access request",
+  );
+  assert.equal(
+    render("feedback", { detail: { category: "bug" } }).subject,
+    "Elixir MCP: new feedback - bug",
+  );
+  assert.equal(render("feedback").subject, "Elixir MCP: new feedback");
+  assert.equal(
+    render("role_upgrade_request").subject,
+    "Elixir MCP: tier upgrade request",
+  );
+  assert.equal(
+    render("gateway_request").subject,
+    "Elixir MCP: collector raise-hand",
+  );
+  assert.equal(
+    render("gateway_quarantined").subject,
+    "Elixir MCP: collector QUARANTINED",
+  );
+  assert.equal(
+    render("approved_welcome").subject,
+    "Elixir MCP: account approved",
+  );
+  // A message from before the kind existed still renders, generically.
+  assert.equal(render(undefined).subject, "Elixir MCP: notification");
+  const fb = render("feedback", {
+    note: "battles_query pagination took five calls",
+    detail: {
+      category: "feature",
+      surface: "mcp",
+      from: "agent 272bd891a21d",
+      feedback_id: "25",
+    },
+    link: "https://elixir.poapkings.com/admin",
+  });
+  assert.match(fb.text, /A beta user said something\./);
+  assert.match(fb.text, /battles_query pagination took five calls/);
+  assert.match(fb.text, /category: feature/);
+  assert.match(fb.text, /from: agent 272bd891a21d/);
+  assert.match(fb.text, /Act on it: https:\/\/elixir\.poapkings\.com\/admin/);
+  assert.ok(
+    !/@/.test(fb.text.replace("o@x.com", "")),
+    "no address in the body",
+  );
+});
+
+test("owner_notify is best-effort: a transport failure or a bad message never dead-letters", async () => {
+  const sent = [];
+  let fail = false;
+  const handler = makeHandler({
+    send: async (m) => {
+      if (fail) throw new Error("fastmail down");
+      sent.push(m);
+    },
+  });
+  const record = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  const notify = {
+    v: 1,
+    kind: "owner_notify",
+    to: "o@x.com",
+    notify_kind: "feedback",
+    note: "hi",
+  };
+  const login = { v: 1, kind: "login", to: "a@b.com", code: "123456" };
+  fail = true;
+  const down = await handler({
+    Records: [record("n1", notify), record("l1", login)],
+  });
+  assert.deepEqual(
+    down.batchItemFailures.map((f) => f.itemIdentifier),
+    ["l1"],
+    "the login retries; the notification is dropped, not retried",
+  );
+  fail = false;
+  const bad = await handler({
+    Records: [
+      record("n2", { ...notify, notify_kind: "nope" }),
+      record("n3", notify),
+    ],
+  });
+  assert.deepEqual(
+    bad.batchItemFailures,
+    [],
+    "a malformed notification is dropped, not DLQ'd",
+  );
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].subject, "Elixir MCP: new feedback");
+});
