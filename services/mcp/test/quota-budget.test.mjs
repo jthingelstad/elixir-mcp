@@ -89,7 +89,12 @@ test("an agent owned by an admin still spends an unlimited day", async () => {
   const result = await spend();
   assert.equal(result.allowed, true);
   assert.equal(result.max, Infinity);
-  assert.deepEqual(db.buckets, [], "and does not touch the counter at all");
+  // Counted so meta.quota can report the spend honestly (feedback #17),
+  // never refused: the owner's bucket, the owner's unlimited ceiling.
+  assert.deepEqual(db.buckets, [`mcpday#${OWNER}`]);
+  // The live lane is the CALLER's own tier (a leader agent: 100/day), not
+  // the owner's - mirroring spendLiveQuota exactly.
+  assert.equal(result.live.max, 100);
 });
 
 test("over the ceiling is refused, and it is the owner's ceiling", async () => {
@@ -105,4 +110,24 @@ test("over the ceiling is refused, and it is the owner's ceiling", async () => {
   const result = await spend();
   assert.equal(result.allowed, false);
   assert.equal(result.count, 501);
+});
+
+test("the meta.quota block satisfies the response contract, capped or not", async () => {
+  const { quotaMeta } = await import("../src/quota.mjs");
+  const { responseMeta } = await import("@elixir-mcp/contracts");
+  const capped = quotaMeta({ count: 3, max: 500, live: { used: 1, max: 20 } });
+  assert.deepEqual(capped.calls, { used: 3, max: 500, remaining: 497 });
+  assert.deepEqual(capped.live, { used: 1, max: 20, remaining: 19 });
+  assert.match(capped.resets_at, /T00:00:00\.000Z$/);
+  const unlimited = quotaMeta({
+    count: 9,
+    max: Infinity,
+    live: { used: 2, max: Infinity },
+  });
+  assert.deepEqual(unlimited.calls, { used: 9, max: null, remaining: null });
+  assert.deepEqual(unlimited.live, { used: 2, max: null, remaining: null });
+  for (const quota of [capped, unlimited])
+    assert.doesNotThrow(() =>
+      responseMeta({ as_of: new Date().toISOString(), quota }),
+    );
 });

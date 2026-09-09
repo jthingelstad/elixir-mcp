@@ -2,7 +2,12 @@ import { readRecordedProfile } from "../../../ingest/src/recorded-profile.mjs";
 /** players_summary · players_profile · players_timeline · players_collection · players_search — moved verbatim from the
  *  single-file registry (review item 8). */
 
-import { displayCard, responseMeta } from "@elixir-mcp/contracts";
+import {
+  displayCard,
+  cardForms,
+  normalizeTag,
+  responseMeta,
+} from "@elixir-mcp/contracts";
 import {
   requireEnum,
   ToolFailure,
@@ -148,7 +153,7 @@ export const playersTools = {
 
   players_profile: {
     description:
-      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan (with its badge and the player's role), the player's attributes (arena, best trophies, favourite card, account age) and current badge state. as-of the last profile poll.",
+      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan (with its badge and the player's role), the player's attributes (arena, best trophies, favourite card, account age) and current badge state. as-of the last profile poll. live: true fetches ANY tag fresh from the CR API through the live lane - recorded or not, an unrecorded opponent included - at the cost of one live fetch (meta.quota.live), and the fetched profile is recorded opportunistically. For tag-to-name only, players_names resolves up to 100 tags from the corpus without spending the live lane.",
     inputSchema: {
       type: "object",
       properties: {
@@ -374,7 +379,7 @@ export const playersTools = {
 
   players_collection: {
     description:
-      "Full card collection as last recorded: levels (in-game 1-16 scale), counts, evolutions, star levels, collection level. In THIS tool evolutionLevel/maxEvolutionLevel are evolution progress owned (unlike battle decks, where evolutionLevel is the form played); starLevel is cosmetic. API-shaped passthrough of the latest profile payload.",
+      "Full card collection as last recorded: levels (in-game 1-16 scale), counts, alternate forms, star levels, collection level. evolutionLevel and maxEvolutionLevel are FORM BIT FIELDS with the same coding as battle decks - 1 = Evolution, 2 = Hero, 3 = both - NEVER a level or a progress counter: maxEvolutionLevel says which forms exist for the card, evolutionLevel which the player has unlocked (a battle-deck card carries only the single form it was played as). Each card also carries the decoded forms_available and forms_unlocked arrays so nothing has to know the bits. starLevel is cosmetic. API-shaped passthrough of the latest profile payload, plus the decoded fields.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
@@ -411,18 +416,101 @@ export const playersTools = {
       return {
         player_tag: tag,
         collection_level: row.collection_level,
-        // Levels on the in-game display scale (contracts displayCard).
-        cards: (row.cards ?? []).map(displayCard),
+        // Levels on the in-game display scale (contracts displayCard);
+        // forms decoded from the bit field (feedback #20: the raw values
+        // read as ordinals and were reported as "2 of 3 progress").
+        cards: (row.cards ?? []).map((c) => ({
+          ...displayCard(c),
+          forms_available: cardForms(c.maxEvolutionLevel),
+          forms_unlocked: cardForms(c.evolutionLevel),
+        })),
         support_cards: (row.support_cards ?? []).map(displayCard),
         as_of_payload: row.last_fetched_at.toISOString(),
+        forms_note:
+          "forms_available decodes maxEvolutionLevel (which alternate forms exist for the card); forms_unlocked decodes evolutionLevel (which the player has unlocked). Both are bit fields: 1 = Evolution, 2 = Hero, 3 = both. Never read them as levels or progress.",
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),
+      };
+    },
+  },
+
+  players_names: {
+    description:
+      "Bulk tag-to-name resolution from the corpus (universal reads): up to 100 tags in, for each the last-observed name and where it came from, plus an explicit unknown list for tags the service has never seen a name for. Costs nothing from the live lane; resolving a miss is then a deliberate players_profile(live: true) per tag. The inverse of players_search, sized for name-first presentation of opponent lists.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        player_tags: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          maxItems: 100,
+        },
+      },
+      required: ["player_tags"],
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const raw = Array.isArray(args.player_tags) ? args.player_tags : [];
+      if (raw.length === 0 || raw.length > 100)
+        throw new ToolFailure("bad_request", "player_tags takes 1-100 tags.");
+      const tags = [];
+      for (const t of raw) {
+        try {
+          tags.push(normalizeTag(String(t)));
+        } catch {
+          throw new ToolFailure("invalid_tag", `Invalid tag: ${t}`);
+        }
+      }
+      const unique = [...new Set(tags)];
+      const { rows } = await ctx.db.query(
+        `select p.player_tag, p.name, p.last_seen_at, nn.nickname,
+                p.last_known_clan_tag as clan_tag,
+                (select max(s.snapshot_date) from player_snapshot_daily s
+                 where s.player_tag = p.player_tag) as profile_seen,
+                (select max(bp.battle_time) from battle_participant bp
+                 where bp.player_tag = p.player_tag) as battle_seen
+         from player p
+         left join player_nickname nn on nn.account_id = $2 and nn.player_tag = p.player_tag
+         where p.player_tag = any($1)`,
+        [unique, ctx.account.accountId],
+      );
+      const byTag = new Map(rows.map((r) => [r.player_tag, r]));
+      const names = [];
+      const unknown = [];
+      for (const tag of unique) {
+        const r = byTag.get(tag);
+        if (r && r.name !== null) {
+          names.push({
+            player_tag: tag,
+            name: r.name,
+            ...(r.nickname ? { nickname: r.nickname } : {}),
+            clan_tag: r.clan_tag,
+            source: r.profile_seen
+              ? "profile"
+              : r.battle_seen
+                ? "battlelog"
+                : "roster",
+            last_seen: r.last_seen_at?.toISOString() ?? null,
+          });
+        } else {
+          unknown.push({
+            player_tag: tag,
+            in_corpus: Boolean(r),
+          });
+        }
+      }
+      return {
+        names,
+        unknown,
+        note: "Names are as last observed by any recording (a rename since is invisible until the tag is seen again). unknown lists tags with no observed name: in_corpus true means the tag appears in recorded battles but no observation ever carried its name; players_profile(live: true) resolves one at the cost of a live fetch.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
   },
 
   players_search: {
     description:
-      'Name-to-tag resolution across the whole recorded corpus (universal reads): case-insensitive substring on last-observed display names AND your private nicknames (elixir_nickname) - "tyler" finds the player you call Tyler, ranked first (source: nickname | claim | clanmate | corpus). Unknown names return an honest empty list, never a guess.',
+      'Name-to-tag resolution across the whole recorded corpus (universal reads): case-insensitive substring on last-observed display names AND your private nicknames (elixir_nickname) - "tyler" finds the player you call Tyler, ranked first (source: nickname | claim | clanmate | corpus). Unknown names return an honest empty list, never a guess. The inverse (tags to names, in bulk) is players_names.',
     inputSchema: {
       type: "object",
       properties: {

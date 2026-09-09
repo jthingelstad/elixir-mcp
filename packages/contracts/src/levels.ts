@@ -32,3 +32,23 @@ export function displayCard<T extends { level?: number; maxLevel?: number }>(
     maxLevel: MAX_DISPLAY_LEVEL,
   };
 }
+
+/**
+ * Alternate card forms — `evolutionLevel` / `maxEvolutionLevel` are a bit
+ * field, never a progress counter or an ordinal (feedback #20, corroborated
+ * 123/123 catalog cards against iconUrls on 2026-09-09: bit 1 <->
+ * evolutionMedium, bit 2 <-> heroMedium). On a collection card
+ * maxEvolutionLevel says which forms EXIST for the card and evolutionLevel
+ * which the player has UNLOCKED; on a battle-deck card evolutionLevel is
+ * the single form the card was PLAYED as (1 or 2, never 3).
+ */
+export const CARD_FORM_BITS = { evolution: 1, hero: 2 } as const;
+export type CardForm = keyof typeof CARD_FORM_BITS;
+
+/** Decode a form bit field into the forms it names; absent/0 = none. */
+export function cardForms(value: number | null | undefined): CardForm[] {
+  const bits = typeof value === "number" ? value : 0;
+  return (Object.keys(CARD_FORM_BITS) as CardForm[]).filter(
+    (form) => (bits & CARD_FORM_BITS[form]) !== 0,
+  );
+}

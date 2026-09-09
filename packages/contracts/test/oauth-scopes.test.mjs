@@ -24,7 +24,9 @@ test("every tool has exactly the capability its behavior requires", () => {
     collections_edit: OAUTH_SCOPE.COLLECTIONS_WRITE,
     elixir_add_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
     elixir_add_player: OAUTH_SCOPE.RECORDINGS_WRITE,
-    elixir_events: OAUTH_SCOPE.ACCOUNT_WRITE,
+    // The feed advances the caller's own bookmark and nothing else; the
+    // scheduled read-only routine is what it exists for (feedback #16).
+    elixir_events: OAUTH_SCOPE.READ,
     elixir_feedback: OAUTH_SCOPE.FEEDBACK_WRITE,
     // Remembering which human is which is account state, like a nickname: it
     // writes nothing about the game and grants nothing, since recorded reads

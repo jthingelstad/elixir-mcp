@@ -21,7 +21,24 @@ import {
   SEGMENT_ARGS,
   SEGMENT_NOTE,
   META_METHODOLOGY,
+  DUEL_TYPES,
+  excludedBreakdown,
+  corpusPrior,
 } from "./shared.mjs";
+
+/** tower_hp as served: a one-tower princess array is padded to fixed
+ *  length 2 with 0 for the destroyed tower (feedback #22: the API omits a
+ *  destroyed tower on head-to-head rows and writes 0 on duel rows, so
+ *  array length was not a tower count). Position carries no meaning. */
+function normalizeTowerHp(t) {
+  if (!t || typeof t !== "object") return t ?? null;
+  if (Array.isArray(t.princess) && t.princess.length === 1)
+    return { ...t, princess: [t.princess[0], 0] };
+  return t;
+}
+
+const roundsPlayed = (deck) =>
+  Array.isArray(deck?.rounds) ? { rounds_played: deck.rounds.length } : {};
 
 import {
   LEVEL_EDGES_SQL,
@@ -287,12 +304,19 @@ export const battlesTools = {
         const shape = (o) => ({
           player_tag: o.player_tag,
           name: o.name,
+          // Explicit, so "never captured" is distinguishable from "field not
+          // populated on this path" (feedback #14): a name comes from any
+          // roster, profile or battlelog observation the service holds.
+          name_known: o.name !== null,
           crowns: o.crowns,
           deck_hash: o.deck_hash,
           clan_tag: o.clan_tag,
+          ...roundsPlayed(o.deck),
           // Full verbosity delivers the promised "both perspectives":
           // participant rows are written symmetrically at ingest.
-          ...(compact ? {} : { deck: o.deck, tower_hp: o.tower_hp }),
+          ...(compact
+            ? {}
+            : { deck: o.deck, tower_hp: normalizeTowerHp(o.tower_hp) }),
         });
         return {
           battle_id: r.battle_id,
@@ -309,13 +333,14 @@ export const battlesTools = {
             trophy_change: r.trophy_change,
             starting_trophies: r.starting_trophies,
             deck_hash: r.deck_hash,
+            ...roundsPlayed(r.deck),
             ...(compact
               ? {}
               : {
                   deck: r.deck,
                   elixir_leaked:
                     r.elixir_leaked === null ? null : Number(r.elixir_leaked),
-                  tower_hp: r.tower_hp,
+                  tower_hp: normalizeTowerHp(r.tower_hp),
                 }),
           },
           teammates: rest.filter((o) => o.side === r.side).map(shape),
@@ -408,7 +433,7 @@ export const battlesTools = {
           ? {}
           : {
               card_legend:
-                "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic. tower_hp is the hitpoints REMAINING on that player's towers when the battle ended (a margin signal, never a level); princess is an array of surviving princess-tower hp, and null means the game did not report tower data for this battle.",
+                "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic. tower_hp is the hitpoints REMAINING on that player's towers when the battle ended (a margin signal, never a level): princess is fixed length 2 once reported, one hp per tower with 0 for a destroyed tower and no meaning to position; null means the game did not report tower data for this battle (typical when the king fell, or when both princess towers fell in a head-to-head battle). DUEL ROWS (riverRaceDuel, riverRaceDuelColosseum) collapse up to three games: crowns SUM across rounds (up to 9, never comparable with a 0-3 head-to-head row), tower_hp describes the FINAL ROUND ONLY, deck_hash is null and the decks sit under deck.rounds[]; rounds_played says how many games the row holds.",
             }),
         meta: await buildMeta(
           ctx.db,
@@ -480,6 +505,7 @@ export const battlesTools = {
         } = await ctx.db.query(
           `with sample as materialized (
              select bp.outcome, bp.crowns, bp.trophy_change, b.battle_time, b.battle_id,
+                    b.type_class, b.type,
                     (select max(o.crowns) from battle_participant o
                      where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
              from battle_participant bp join battle b on b.battle_id = bp.battle_id
@@ -499,20 +525,28 @@ export const battlesTools = {
                   count(*) filter (where outcome = 'win')::int as wins,
                   count(*) filter (where outcome = 'loss')::int as losses,
                   count(*) filter (where outcome = 'draw')::int as draws,
+                  count(*) filter (where type_class = 'boat')::int as boat_battles,
+                  count(*) filter (where outcome = 'win' and type_class = 'pvp')::int as decided_wins,
+                  count(*) filter (where outcome = 'loss' and type_class = 'pvp')::int as decided_losses,
+                  count(*) filter (where type = any($${params.length + 1}))::int as duel_battles,
                   coalesce(sum(crowns),0)::int as crowns_for,
                   coalesce(sum(opp_crowns),0)::int as crowns_against,
                   coalesce(sum(trophy_change),0)::int as net_trophies,
                   count(*) filter (where crowns = 3)::int as three_crowns,
                   (select n::int from streak) as current_streak
            from sample`,
-          params,
+          [...params, DUEL_TYPES],
         );
-        const { three_crowns, ...counts } = row;
-        const decided = row.wins + row.losses;
+        const { three_crowns, decided_wins, decided_losses, ...counts } = row;
+        // Decided = head-to-head wins + losses. Boat attacks (a static
+        // defense, no live opponent) and draws stay in `battles` and in
+        // W/L/D but never in the win_rate denominator (feedback #23).
+        const decided = decided_wins + decided_losses;
         return {
           ...counts,
+          decided_battles: decided,
           win_rate:
-            decided > 0 ? Number((row.wins / decided).toFixed(3)) : null,
+            decided > 0 ? Number((decided_wins / decided).toFixed(3)) : null,
           three_crown_rate:
             row.battles > 0
               ? Number((three_crowns / row.battles).toFixed(3))
@@ -575,7 +609,7 @@ export const battlesTools = {
             last_played: r.last_played?.toISOString() ?? null,
           })),
           mode_note:
-            "game_mode is the game's own mode name (event modes rotate - Chaos drafts, Crazy Arena, Showdown and so on appear here the day they are played); type is the API battle type it rode in on. Filter battles_query by game_mode to drill into any of them.",
+            "Rows are keyed by the PAIR (game_mode, type), never by game_mode alone: the same mode name recurs under different API types (CW_Duel_1v1 under riverRaceDuel and riverRaceDuelColosseum; Crazy_Arena under trail and unknown). game_mode is the game's own mode name (event modes rotate - Chaos drafts, Crazy Arena, Showdown and so on appear here the day they are played); type is the API battle type it rode in on, and 'unknown' is the API's own value for some friendly/event battles, not corruption. Per-row win_rate is wins/(wins+losses) within that row, boat rows included. Filter battles_query by game_mode to drill into any of them.",
         };
       } else if (args.group_by === "week") {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
@@ -673,6 +707,12 @@ export const battlesTools = {
             : {}),
         },
         ...result,
+        ...(args.group_by
+          ? {}
+          : {
+              denominators_note:
+                "battles counts every recorded battle in the window, W/L/D included. win_rate = wins / decided_battles, where decided_battles = head-to-head wins + losses: boat_battles (attacks on a static defense) and draws are excluded from the denominator. duel_battles are rows that collapse up to three games; their crowns count once per round, so crowns_for/against mix units when duels are present.",
+            }),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
@@ -884,26 +924,37 @@ export const battlesTools = {
       const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const where = [
-        "bp.deck_hash is not null",
-        "bp.outcome in ('win','loss')",
-      ];
-      if (seg.where) where.push(seg.where);
+      const scope = []; // segment + window + mode: the population considered
+      if (seg.where) scope.push(seg.where);
       const from =
         resolveInstant(tz, args.from) ??
         new Date(Date.now() - 28 * 86400_000).toISOString();
       params.push(from);
-      where.push(`b.battle_time >= $${params.length}`);
+      scope.push(`b.battle_time >= $${params.length}`);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       if (to) {
         params.push(to);
-        where.push(`b.battle_time < $${params.length}`);
+        scope.push(`b.battle_time < $${params.length}`);
       }
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        where.push(`b.type = any($${params.length})`);
+        scope.push(`b.type = any($${params.length})`);
       }
       requireOrderedWindow(new Date(from), to ? new Date(to) : null);
+      const where = [
+        ...scope,
+        "bp.deck_hash is not null",
+        "bp.outcome in ('win','loss')",
+        "b.type_class = 'pvp'",
+      ];
+      const [excluded, prior] = await Promise.all([
+        excludedBreakdown(ctx.db, scope, params),
+        corpusPrior(ctx.db, {
+          from,
+          to,
+          types: args.mode ? typesForModeGroup(args.mode) : null,
+        }),
+      ]);
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 count(*)::int as battles,
@@ -921,6 +972,8 @@ export const battlesTools = {
       const totalDecided = rows.reduce((n, r) => n + r.battles, 0);
       const totalWins = rows.reduce((n, r) => n + r.wins, 0);
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
+      const priorMean = prior.mean ?? 0.5;
+      const sufficient = totalDecided >= META_METHODOLOGY.segment_min_decided;
       const minBattles = args.min_battles ?? 5;
       let shaped = rows
         .filter((r) => r.battles >= minBattles)
@@ -942,14 +995,19 @@ export const battlesTools = {
             r.wins + r.losses > 0
               ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
               : null,
-          shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, mean),
+          ...(sufficient
+            ? {
+                shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, priorMean),
+              }
+            : {}),
           first_used: r.first_used.toISOString(),
           last_used: r.last_used.toISOString(),
         }));
       const sort = args.sort ?? "battles";
       shaped.sort((a, z) =>
         sort === "shrunk_win_rate"
-          ? z.shrunk_win_rate - a.shrunk_win_rate
+          ? (z.shrunk_win_rate ?? z.win_rate) -
+            (a.shrunk_win_rate ?? a.win_rate)
           : sort === "players"
             ? z.players - a.players
             : z.battles - a.battles,
@@ -962,6 +1020,15 @@ export const battlesTools = {
         window_to: to ?? null,
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
+        prior_win_rate: Number(priorMean.toFixed(3)),
+        prior_basis: prior.mean === null ? "neutral_0.5" : "corpus_window",
+        ...(sufficient
+          ? {}
+          : {
+              insufficient_sample: true,
+              insufficient_sample_floor: META_METHODOLOGY.segment_min_decided,
+            }),
+        excluded,
         decks: shaped,
         note: SEGMENT_NOTE,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -993,27 +1060,38 @@ export const battlesTools = {
       const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const where = [
-        "bp.deck ? 'cards'",
-        "jsonb_array_length(bp.deck->'cards') > 0",
-        "bp.outcome in ('win','loss')",
-      ];
-      if (seg.where) where.push(seg.where);
+      const scope = [];
+      if (seg.where) scope.push(seg.where);
       const from =
         resolveInstant(tz, args.from) ??
         new Date(Date.now() - 28 * 86400_000).toISOString();
       params.push(from);
-      where.push(`b.battle_time >= $${params.length}`);
+      scope.push(`b.battle_time >= $${params.length}`);
       const to = resolveInstant(tz, args.to, { endOfDay: true });
       if (to) {
         params.push(to);
-        where.push(`b.battle_time < $${params.length}`);
+        scope.push(`b.battle_time < $${params.length}`);
       }
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        where.push(`b.type = any($${params.length})`);
+        scope.push(`b.type = any($${params.length})`);
       }
       requireOrderedWindow(new Date(from), to ? new Date(to) : null);
+      const where = [
+        ...scope,
+        "bp.deck ? 'cards'",
+        "jsonb_array_length(bp.deck->'cards') > 0",
+        "bp.outcome in ('win','loss')",
+        "b.type_class = 'pvp'",
+      ];
+      const [excluded, prior] = await Promise.all([
+        excludedBreakdown(ctx.db, scope, params),
+        corpusPrior(ctx.db, {
+          from,
+          to,
+          types: args.mode ? typesForModeGroup(args.mode) : null,
+        }),
+      ]);
       const { rows } = await ctx.db.query(
         `with sides as (
            select bp.player_tag, bp.outcome,
@@ -1044,6 +1122,8 @@ export const battlesTools = {
       const totalDecided = rows[0]?.total_decided ?? 0;
       const mean =
         totalDecided > 0 ? (rows[0]?.total_wins ?? 0) / totalDecided : 0.5;
+      const priorMean = prior.mean ?? 0.5;
+      const sufficient = totalDecided >= META_METHODOLOGY.segment_min_decided;
       const minBattles = args.min_battles ?? 10;
       let shaped = rows
         .filter((r) => r.battles >= minBattles)
@@ -1063,12 +1143,17 @@ export const battlesTools = {
             r.wins + r.losses > 0
               ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
               : null,
-          shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, mean),
+          ...(sufficient
+            ? {
+                shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, priorMean),
+              }
+            : {}),
         }));
       const sort = args.sort ?? "usage";
       shaped.sort((a, z) =>
         sort === "shrunk_win_rate"
-          ? z.shrunk_win_rate - a.shrunk_win_rate
+          ? (z.shrunk_win_rate ?? z.win_rate) -
+            (a.shrunk_win_rate ?? a.win_rate)
           : z.battles - a.battles,
       );
       shaped = shaped.slice(0, Math.min(args.limit ?? 30, 130));
@@ -1079,6 +1164,15 @@ export const battlesTools = {
         window_to: to ?? null,
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
+        prior_win_rate: Number(priorMean.toFixed(3)),
+        prior_basis: prior.mean === null ? "neutral_0.5" : "corpus_window",
+        ...(sufficient
+          ? {}
+          : {
+              insufficient_sample: true,
+              insufficient_sample_floor: META_METHODOLOGY.segment_min_decided,
+            }),
+        excluded,
         cards: shaped,
         note:
           SEGMENT_NOTE +

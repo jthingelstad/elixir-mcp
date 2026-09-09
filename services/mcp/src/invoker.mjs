@@ -229,6 +229,9 @@ export function makeInvoker({
           isError: true,
         };
       }
+      // Opaque to the caller, never opaque to the operator: the audit row
+      // says "internal" and this line says what actually broke.
+      console.error("tool_failed_unexpectedly", name, requestId, err?.message);
       await audit(db, {
         viewerIp,
         viewerCountry,

@@ -30,18 +30,32 @@ not unique matches. If both participants belong to the segment, both contribute.
 These observations are dependent: two sides of a match are not two independent
 trials, and repeated battles by one player are not independent players.
 
-Only `win` and `loss` outcomes qualify. Draws and unresolved outcomes are
-excluded from `decided_battles`, row counts, usage shares, rates and the
-shrinkage baseline. Deck meta requires a deck hash; card meta requires a nonempty cards
-array. Each tool's baseline describes its own eligible population.
+Only decided **head-to-head** outcomes qualify. Duels (one row for up to three
+games, with no single deck identity), boat battles (an attack on a static
+defense), draws and unresolved outcomes are excluded from `decided_battles`,
+row counts, usage shares, rates and the shrinkage baseline. Each response
+itemizes what the window held and left out in `excluded` (`duels`, `boat`,
+`draws`, `unresolved`, `no_deck`), so a gap between this tool's denominator and
+`battles_performance`'s is self-describing. Deck meta requires a deck hash; card
+meta requires a nonempty cards array.
 
 - **Raw win rate:** `wins / (wins + losses)`.
 - **Segment win rate:** all eligible wins divided by all eligible wins plus
   losses, before `min_battles`, sorting and the result limit. An empty segment
   returns `null`, not an observed 50%.
-- **Shrunk win rate:** `(wins + m × segment_win_rate) / (wins + losses + m)`,
-  where `m = {{ statistics.meta.prior_strength }}`. The prior mean is estimated
-  from this same segment, including the row being scored; the strength is fixed.
+- **Prior win rate:** the same quantity over the **whole recorded corpus** for
+  the same window and mode, regardless of segment. A segment scoped to one
+  player or clan is never shrunk toward its own mean — a one-deck player would
+  then be regularized by exactly nothing, and a 4–0 account would read as a
+  shrunk 1.000. When the corpus window itself holds fewer than
+  {{ statistics.meta.segment_min_decided }} decided observations, a neutral
+  0.5 stands in; `prior_basis` says which applied.
+- **Shrunk win rate:** `(wins + m × prior_win_rate) / (wins + losses + m)`,
+  where `m = {{ statistics.meta.prior_strength }}`; the strength is fixed.
+- **Sample floor:** below {{ statistics.meta.segment_min_decided }} decided
+  observations the segment carries `insufficient_sample: true` and no
+  `shrunk_win_rate` is served on any row — the same rule `battles_levels`
+  applies before it serves a Pilot Score. Raw counts and rates remain.
 - **Usage share:** the row's eligible observations divided by the segment's
   eligible observations. A battle contains several cards, so card usage shares
   are not parts of a total that sums to 100%.
@@ -53,7 +67,7 @@ rounded to three decimals. Recalculating a shrunk rate or score from displayed
 rates can differ in the final decimal place.
 
 This shrinkage moderates extremes; it does **not** guarantee rank order. With a
-segment mean of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
+prior of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
 about 63.3%. Neither estimate adjusts for player skill, opposition or deck loyalty.
 These tools do not return confidence intervals or within-player causal effects.
 Deck meta defaults to a five-observation minimum; card meta defaults to ten.

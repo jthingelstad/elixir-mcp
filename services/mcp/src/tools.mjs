@@ -17,6 +17,8 @@ import {
 import { elixirTools } from "./tools/elixir.mjs";
 import { collectionsTools } from "./tools/collections.mjs";
 import { battlesTools } from "./tools/battles.mjs";
+import { opponentsTools } from "./tools/opponents.mjs";
+import { badgesTools } from "./tools/badges.mjs";
 import { cardsTools } from "./tools/cards.mjs";
 import { clansTools } from "./tools/clans.mjs";
 import { liveTools } from "./tools/live.mjs";
@@ -33,6 +35,8 @@ const TOOLS = {
   ...elixirTools,
   ...collectionsTools,
   ...battlesTools,
+  ...opponentsTools,
+  ...badgesTools,
   ...cardsTools,
   ...clansTools,
   ...liveTools,

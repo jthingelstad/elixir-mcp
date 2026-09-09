@@ -60,6 +60,15 @@ was requested or configured. Stored timestamps and the envelope remain UTC.
 **`events_pending`** — unread items in your event feed. A hint to call
 `elixir_events` rather than re-polling the data tools.
 
+**`quota`** — your spend against both daily budgets, on every response, so a
+plan can be priced before it starts rather than discovered mid-sweep. `calls`
+is tool calls today (`used`, `max`, `remaining`); `live` is live fetches today.
+Every tool call costs one call; `live_fetch` and `players_profile` with
+`live: true` additionally cost one live fetch. `max` and `remaining` are `null`
+when the budget is unlimited (owner and admin). `resets_at` is the next UTC
+midnight, when both counters roll. Collector credits are already included in
+`calls.max`. An agent spends its owner's call budget and its own live lane.
+
 **`request_id`** — the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own
 call history, with these ids, is on **Account → Activity**.

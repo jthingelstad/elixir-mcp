@@ -267,18 +267,22 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   });
   assert.equal(listedTools.statusCode, 200, listedTools.body);
   const declarations = JSON.parse(listedTools.body).result.tools;
+  // elixir_events is not read-only (it advances the caller's own cursor)
+  // but needs only cr:read: the bookmark is the reader's, and the scheduled
+  // read-only routine is the tool's whole purpose (feedback #16).
   const readTools = declarations.filter(
-    ({ annotations }) => annotations.readOnlyHint,
+    ({ annotations, name }) =>
+      annotations.readOnlyHint || name === "elixir_events",
   );
   const writeTools = declarations.filter(
-    ({ annotations }) => !annotations.readOnlyHint,
+    ({ annotations, name }) =>
+      !annotations.readOnlyHint && name !== "elixir_events",
   );
   assert.ok(readTools.length > 0);
   assert.deepEqual(writeTools.map(({ name }) => name).sort(), [
     "collections_edit",
     "elixir_add_clan",
     "elixir_add_player",
-    "elixir_events",
     "elixir_feedback",
     "elixir_identify",
     "elixir_nickname",
@@ -311,7 +315,6 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     collections_edit: "collections:write",
     elixir_add_clan: "recordings:write",
     elixir_add_player: "recordings:write",
-    elixir_events: "account:write",
     elixir_feedback: "feedback:write",
     elixir_identify: "account:write",
     elixir_nickname: "account:write",
@@ -338,9 +341,13 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
       response.headers["www-authenticate"],
       new RegExp(`scope="cr:read ${requiredScopes[tool.name]}"`),
     );
-    assert.equal(
-      JSON.parse(response.body).error.data.required_scope,
-      requiredScopes[tool.name],
+    const refusal = JSON.parse(response.body).error;
+    assert.equal(refusal.data.required_scope, requiredScopes[tool.name]);
+    assert.equal(refusal.data.granted_scope, "cr:read");
+    assert.match(
+      refusal.data.hint,
+      /Reconnect/,
+      "a refusal says how to fix it",
     );
   }
   const rateAfterRefusal = await db.query(

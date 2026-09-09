@@ -45,7 +45,7 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
   {
     scope: OAUTH_SCOPE.ACCOUNT_WRITE,
     title: "Update account preferences",
-    description: "Change private nicknames and advance your event cursor.",
+    description: "Change private nicknames and end-user identity mappings.",
   },
   {
     scope: OAUTH_SCOPE.FEEDBACK_WRITE,
@@ -115,6 +115,21 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Find player by name",
     readOnly: true,
   },
+  players_names: {
+    group: "Players",
+    title: "Resolve tags to names",
+    readOnly: true,
+  },
+  badges_rarity: {
+    group: "Players",
+    title: "Badge rarity census",
+    readOnly: true,
+  },
+  badges_holders: {
+    group: "Players",
+    title: "Badge holders",
+    readOnly: true,
+  },
 
   // Battles — the recorded battle corpus and stats over it (docs: models/battles.md).
   battles_query: { group: "Battles", title: "Query battles", readOnly: true },
@@ -156,6 +171,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   battles_trends: {
     group: "Battles",
     title: "Segment trends",
+    readOnly: true,
+  },
+  battles_opponents: {
+    group: "Battles",
+    title: "Opponents faced",
     readOnly: true,
   },
 
@@ -202,6 +222,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
 
   // Cards — the global catalog (docs: cards.md).
   cards_catalog: { group: "Cards", title: "Card catalog", readOnly: true },
+  cards_synergy: { group: "Cards", title: "Card synergy", readOnly: true },
 
   // Live — the ONE lane that spends real CR API budget.
   live_fetch: {
@@ -259,8 +280,12 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   elixir_events: {
     group: "Elixir MCP",
     title: "Event feed",
-    readOnly: false, // advances your seen-cursor
-    oauthScope: OAUTH_SCOPE.ACCOUNT_WRITE,
+    // Advances your own seen-cursor, so it is not read-only - but the
+    // cursor is the reader's bookmark, not account state anyone else can
+    // see, and the tool's whole purpose is the scheduled read-only routine
+    // that got refused under account:write (feedback #16). cr:read.
+    readOnly: false,
+    oauthScope: OAUTH_SCOPE.READ,
   },
   elixir_add_player: {
     group: "Elixir MCP",

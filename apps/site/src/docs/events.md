@@ -14,7 +14,9 @@ it tells you when something happened, so a scheduled agent can wake up and look
 rather than poll everything on a timer.
 
 Call `elixir_events` from your cursor. `meta.events_pending` on any response
-tells you there is something new.
+tells you there is something new. Reading the feed needs only `cr:read`, the
+capability every connection has: advancing your own seen-cursor is a bookmark,
+not an account change, so a scheduled read-only routine can use it.
 
 ## What the feed carries
 

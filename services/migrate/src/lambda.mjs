@@ -13,7 +13,12 @@ import {
   principalOp,
   integrationOp,
 } from "./ops-accounts.mjs";
-import { replay, exportPayloads, collectionOp } from "./ops-record.mjs";
+import {
+  replay,
+  exportPayloads,
+  collectionOp,
+  playerNames,
+} from "./ops-record.mjs";
 import {
   gatewayProvision,
   collectorTokenOp,
@@ -37,6 +42,14 @@ export async function handler(event) {
   }
   if (event?.replay) {
     const result = await replay(process.env.DATABASE_URL, event.replay);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.player_names) {
+    const result = await playerNames(
+      process.env.DATABASE_URL,
+      event.player_names,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

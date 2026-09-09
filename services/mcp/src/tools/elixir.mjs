@@ -411,7 +411,7 @@ export const elixirTools = {
 
   elixir_events: {
     description:
-      "Your event feed - the push lane, and a NOD rather than a report: it says a thing happened over here and you may want to look, so a scheduled routine can skip the tools that would have found nothing. Payloads carry a count and no analysis - drill with the data tools, which are current. Everything you ADD feeds this pipe while its notify setting is on (notify_off silences a subject without touching its recording); an AGENT also hears about the players in the clan it runs, without adding them. TOPICS (schema, not news - presence here never means one occurred). Coalesced, one unread row per tag with a running count: battles_recorded, badge_earned (a mastery level-up), legendary_badge_earned (a one-off badge - its own topic so asking for the notable ones gets you the notable ones), arena_changed, best_trophies_peak, career_wins_milestone, collection_level_milestone, pol_promotion. Discrete, because WHO is the signal: member_joined, member_left (raw - the game cannot tell a leave from a kick, so that judgment is yours; the departing role rides along because it is unrecoverable afterwards), member_role_changed. Also clan_pulse (daily per-clan digest ~07:00Z), war_day_open, clan_war_week_finished, feedback_responded, recording_started/stopped, account_tier_changed (your tier; role_changed is the deprecated name for it). meta.events_pending on any response tells you when there is something new. For a scheduled clan-management routine: read this feed from your cursor, then drill with war_current (decks_today), clans_roster, and battles_query.",
+      "Your event feed - the push lane, and a NOD rather than a report: it says a thing happened over here and you may want to look, so a scheduled routine can skip the tools that would have found nothing. Payloads carry a count and no analysis - drill with the data tools, which are current. Everything you ADD feeds this pipe while its notify setting is on (notify_off silences a subject without touching its recording); an AGENT also hears about the players in the clan it runs, without adding them. TOPICS (schema, not news - presence here never means one occurred). Coalesced, one unread row per tag with a running count: battles_recorded, badge_earned (a mastery level-up), legendary_badge_earned (a one-off badge - its own topic so asking for the notable ones gets you the notable ones), arena_changed, best_trophies_peak, career_wins_milestone, collection_level_milestone, pol_promotion. Discrete, because WHO is the signal: member_joined, member_left (raw - the game cannot tell a leave from a kick, so that judgment is yours; the departing role rides along because it is unrecoverable afterwards), member_role_changed. Also clan_pulse (daily per-clan digest ~07:00Z), war_day_open, clan_war_week_finished, feedback_responded, recording_started/stopped, account_tier_changed (your tier; role_changed is the deprecated name for it). meta.events_pending on any response tells you when there is something new. For a scheduled clan-management routine: read this feed from your cursor, then drill with war_current (decks_today), clans_roster, and battles_query. Needs only cr:read, like every other read: advancing your own seen-cursor is a bookmark, not an account change.",
     inputSchema: {
       type: "object",
       properties: {
@@ -867,19 +867,65 @@ export const elixirTools = {
     },
     async handler(ctx) {
       const q = async (sql) => (await ctx.db.query(sql)).rows[0];
-      const [players, battles, snaps, weeks, recs, receipts] =
-        await Promise.all([
-          q(`select count(*)::int as n from player`),
-          q(
-            `select count(*)::int as n, min(battle_time) as first, max(battle_time) as last from battle`,
-          ),
-          q(`select count(*)::int as n from player_snapshot_daily`),
-          q(`select count(*)::int as n from war_week`),
-          q(`select count(*) filter (where subject_type = 'clan')::int as clans,
-                    count(*) filter (where subject_type = 'player')::int as players
-             from recording where status = 'active'`),
-          q(`select count(*)::int as n from api_receipt`),
-        ]);
+      const [players, battles, snaps, weeks, recs, receipts, profiles, clans] =
+        await Promise.all(
+          [
+            q(`select count(*)::int as n from player`),
+            q(
+              `select count(*)::int as n, min(battle_time) as first, max(battle_time) as last from battle`,
+            ),
+            q(`select count(*)::int as n from player_snapshot_daily`),
+            q(`select count(*)::int as n from war_week`),
+            // Recorded players, shaped along the axis a corpus-sizing
+            // question needs (feedback #18): a clan at comprehensive scope
+            // records every current member's profile and battles, so
+            // "29 players" was an order of magnitude short of the profile
+            // population that backs a badge or collection question.
+            q(`with direct as (
+               select subject_tag as player_tag from recording
+               where subject_type = 'player' and status = 'active'),
+             via as (
+               select cm.player_tag
+               from recording r
+               join clan_membership cm on cm.clan_tag = r.subject_tag
+                 and cm.left_observed_at is null
+               where r.subject_type = 'clan' and r.status = 'active'
+                 and r.scope = 'comprehensive')
+             select (select count(*) from direct)::int as direct,
+                    (select count(distinct player_tag) from via
+                     where player_tag not in (select player_tag from direct))::int as via_clans,
+                    (select count(distinct player_tag) from
+                      (select player_tag from direct union select player_tag from via) u)::int as total,
+                    (select count(*) from recording
+                     where subject_type = 'clan' and status = 'active')::int as clans,
+                    (select count(*) from recording
+                     where subject_type = 'clan' and status = 'active'
+                       and scope = 'activity')::int as clans_activity,
+                    (select count(*) from recording
+                     where subject_type = 'clan' and status = 'active'
+                       and scope = 'comprehensive')::int as clans_comprehensive`),
+            q(`select count(*)::int as n from api_receipt`),
+            // What actually backs profile-shaped questions: distinct players
+            // with a snapshot, and with observed badges, plus how current.
+            q(`select (select count(distinct player_tag) from player_snapshot_daily)::int as with_snapshot,
+                    (select count(distinct player_tag) from player_badge)::int as with_badges,
+                    (select count(distinct player_tag) from player_snapshot_daily
+                     where snapshot_date >= current_date - 7)::int as with_snapshot_last_7_days,
+                    (select max(snapshot_date)::text from player_snapshot_daily) as newest_snapshot`),
+            async () =>
+              (
+                await ctx.db.query(
+                  `select r.subject_tag as clan_tag, c.name, r.scope as scope,
+                        (select count(*) from clan_membership cm
+                         where cm.clan_tag = r.subject_tag and cm.left_observed_at is null)::int as members,
+                        r.created_at
+                 from recording r left join clan c on c.clan_tag = r.subject_tag
+                 where r.subject_type = 'clan' and r.status = 'active'
+                 order by r.scope desc, members desc, r.subject_tag`,
+                )
+              ).rows,
+          ].map((x) => (typeof x === "function" ? x() : x)),
+        );
       return {
         players_observed: players.n,
         battles: {
@@ -889,9 +935,34 @@ export const elixirTools = {
         },
         daily_snapshots: snaps.n,
         war_weeks: weeks.n,
-        active_recordings: { clans: recs.clans, players: recs.players },
+        recorded_players: {
+          direct: recs.direct,
+          via_clans: recs.via_clans,
+          total: recs.total,
+        },
+        profiles: {
+          players_with_snapshot: profiles.with_snapshot,
+          players_with_badges: profiles.with_badges,
+          players_with_snapshot_last_7_days: profiles.with_snapshot_last_7_days,
+          newest_snapshot: profiles.newest_snapshot,
+        },
+        active_recordings: {
+          clans: recs.clans,
+          clans_by_scope: {
+            activity: recs.clans_activity,
+            comprehensive: recs.clans_comprehensive,
+          },
+          players: recs.direct,
+        },
+        recorded_clans: clans.map((c) => ({
+          clan_tag: c.clan_tag,
+          name: c.name,
+          scope: c.scope,
+          members: c.members,
+          recorded_since: c.created_at?.toISOString() ?? null,
+        })),
         api_observations: receipts.n,
-        note: "players_observed counts every tag ever seen in a recorded battle or roster — far more than the actively recorded set. Raw payload history is archived durably to S3 beyond these counts.",
+        note: "players_observed counts every tag ever seen in a recorded battle or roster - far more than the recorded set. recorded_players.direct are players added on their own; via_clans are current members of comprehensively recorded clans not also added directly (an activity-scope clan records roster and war only, not members' profiles); total is the union and the population profile and badge questions can draw on - profiles.players_with_snapshot / with_badges say how many of them actually have one. active_recordings.players equals recorded_players.direct and is kept for older clients. Raw payload history is archived durably to S3 beyond these counts.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

@@ -392,7 +392,18 @@ test(
       /not a calibrated error estimate or confidence interval for Pilot Score/,
     );
     assert.match(page, /unchanged counts do not identify an unchanged curve/);
-    assert.match(page, /Draws and unresolved outcomes are/);
+    assert.match(page, /draws and unresolved outcomes are excluded/i);
+    // The meta floors and the corpus prior are published from the same
+    // declaration the SQL readers use (0.39.0).
+    const { META_METHODOLOGY } =
+      await import("../../../services/mcp/src/tools/shared.mjs");
+    assert.ok(
+      page.includes(
+        `${META_METHODOLOGY.segment_min_decided} decided observations`,
+      ),
+    );
+    assert.match(page, /whole recorded corpus/);
+    assert.match(page, /itemizes what the window held and left out/);
   },
 );
 

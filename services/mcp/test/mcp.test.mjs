@@ -183,9 +183,9 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 39 tools", async () => {
+test("tools/list declares all 44 tools", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
-  assert.equal(res.payload.result.tools.length, 39);
+  assert.equal(res.payload.result.tools.length, 44);
   const names = res.payload.result.tools.map((t) => t.name);
   for (const required of [
     "elixir_my_players",
@@ -219,8 +219,14 @@ test("elixir_my_players: primary claim, recording status, meta envelope", async 
   assert.equal(p.recording, "active");
   assert.equal(body.meta.contract_version, CONTRACT_VERSION);
   assert.match(body.meta.disclaimer, /not endorsed by Supercell/);
-  assert.equal(body.meta.quota.max, 500, "quota headroom rides the meta");
-  assert.ok(body.meta.quota.used >= 1);
+  // The spend block (feedback #17): both budgets, remaining and reset.
+  const { quota } = body.meta;
+  assert.equal(quota.calls.max, 500, "quota headroom rides the meta");
+  assert.ok(quota.calls.used >= 1);
+  assert.equal(quota.calls.remaining, 500 - quota.calls.used);
+  assert.equal(typeof quota.live.max, "number");
+  assert.equal(quota.live.used, 0);
+  assert.match(quota.resets_at, /T00:00:00\.000Z$/);
 });
 
 test("elixir_coverage: polls, appearances, recording_active_since", async () => {

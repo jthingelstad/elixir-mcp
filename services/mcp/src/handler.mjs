@@ -252,9 +252,15 @@ export function makeHandler({
                 id: message.id ?? null,
                 error: {
                   code: -32003,
-                  message:
-                    "The access token lacks the capability required by this tool.",
-                  data: { required_scope: requiredScope },
+                  message: `The access token lacks the capability required by this tool: ${requiredScope}.`,
+                  data: {
+                    required_scope: requiredScope,
+                    granted_scope: account.scope,
+                    // A refusal that does not say how to fix it is a wall
+                    // (feedback #16): the first connection is read-only by
+                    // design, and the step-up is a reconnect, not a setting.
+                    hint: `Reconnect this client and grant '${requiredScope}' on the consent page (the first connection grants only cr:read). Owner-issued service tokens carry every capability. Read tools, including elixir_events, need only cr:read.`,
+                  },
                 },
               }),
             };

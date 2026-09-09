@@ -71,6 +71,21 @@ test("metadata distinguishes absent history and unknown sources from zero age", 
   assert.doesNotThrow(() =>
     assertResponseMeta(JSON.parse(JSON.stringify(meta))),
   );
+  // The spend block: capped and unlimited shapes are both valid, and an
+  // unlimited budget reads as null for max AND remaining together.
+  for (const quota of [
+    {
+      calls: { used: 3, max: 500, remaining: 497 },
+      live: { used: 1, max: 20, remaining: 19 },
+      resets_at: "2026-09-09T00:00:00.000Z",
+    },
+    {
+      calls: { used: 3, max: null, remaining: null },
+      live: { used: 0, max: null, remaining: null },
+      resets_at: "2026-09-09T00:00:00.000Z",
+    },
+  ])
+    assert.doesNotThrow(() => assertResponseMeta({ ...meta, quota }));
   for (const changed of [
     { recorded_since: null },
     { recorded_since: "2026-09-08" },
@@ -78,6 +93,21 @@ test("metadata distinguishes absent history and unknown sources from zero age", 
     { freshness_seconds: -1 },
     { freshness_seconds: NaN },
     { events_pending: "2" },
+    { quota: { calls: { used: 1, max: 500, remaining: 499 } } },
+    {
+      quota: {
+        calls: { used: 1, max: null, remaining: 499 },
+        live: { used: 0, max: null, remaining: null },
+        resets_at: "2026-09-09T00:00:00.000Z",
+      },
+    },
+    {
+      quota: {
+        calls: { used: -1, max: 500, remaining: 499 },
+        live: { used: 0, max: 20, remaining: 20 },
+        resets_at: "2026-09-09T00:00:00.000Z",
+      },
+    },
     { source_polls: { player: { observed_at: null, freshness_seconds: 0 } } },
     {
       source_polls: {

@@ -181,3 +181,45 @@ export async function collectionOp(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/**
+ * Fill MISSING player names ({player_names: {entries: [{tag, name}]}}):
+ * the June-July archive rows arrived without opponent names (feedback
+ * #14), while elixir-bot's own record of the same battles carries them.
+ * COALESCE semantics only - a name the recorder has observed is never
+ * overwritten by this path, and unknown tags are never created. Returns
+ * how many rows were filled so the repair is measured, not assumed.
+ */
+export async function playerNames(databaseUrl, spec) {
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const entries = [];
+  for (const e of spec?.entries ?? []) {
+    if (!e || typeof e.name !== "string" || !e.name.trim()) continue;
+    try {
+      entries.push({ tag: normalizeTag(String(e.tag)), name: e.name.trim() });
+    } catch {
+      // A malformed tag is skipped, never guessed.
+    }
+  }
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `update player p set name = t.name
+       from unnest($1::text[], $2::text[]) as t(tag, name)
+       where p.player_tag = t.tag and p.name is null
+       returning p.player_tag`,
+      [entries.map((e) => e.tag), entries.map((e) => e.name)],
+    );
+    const { rows: still } = await db.query(
+      `select count(*)::int as n from player where name is null`,
+    );
+    return {
+      offered: entries.length,
+      filled: rows.length,
+      still_unnamed: still[0].n,
+    };
+  } finally {
+    await db.end();
+  }
+}

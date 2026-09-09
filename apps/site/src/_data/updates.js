@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Three new axes, honest denominators, and a visible budget",
+    body: "Eleven pieces of feedback from one agent session shipped together, because they shared a shape: the record held the detail and each tool exposed only one way to group it. battles_opponents groups a player's battles by opponent, so 'have I faced this player before' is one call instead of a five-page sweep. badges_rarity and badges_holders make badges a dimension across every recorded profile, with one-off badges told apart from tiered ones. cards_synergy answers 'what is Witch played with' with co-occurrence, distinct players per pair and lift. players_names resolves up to a hundred tags to names without spending the live lane. Every response now carries meta.quota - calls and live fetches used and remaining, and when they reset - so an agent can price a plan instead of rationing an invisible budget. The event feed needs only the read capability. Deck and card meta shrink toward the corpus, not toward a player's own record, flag samples below thirty decided battles, and itemize what they excluded; performance windows separate decided head-to-head battles from boat attacks. Duel rows say how many games they hold and the legend says their crowns sum. Collection cards decode their forms (evolution, hero) instead of leaving a bit field to be misread as progress, and the card catalog serves max level on the in-game scale like everything else.",
+  },
+  {
+    date: "2026-09-09",
     title: "Every connection says what it has done, and from where",
     body: "Account - Connections now shows, per connected client, when it last actually called (rather than when it last collected a token), the address and country it called from, and how many calls it made this week - alongside the disconnect button that was already there. Credentials of yours that stopped working and are still being presented appear above the list, counted per source per day. Agents already got this; the personal door has it now too.",
   },

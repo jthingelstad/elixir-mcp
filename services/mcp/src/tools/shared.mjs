@@ -251,7 +251,19 @@ export const META_METHODOLOGY = {
   observation_unit: "player_battle",
   outcomes: ["win", "loss"],
   prior_strength: 20,
-  prior_source: "eligible segment before min_battles, sorting and limit",
+  // The prior is the CORPUS mean over the same window and mode, never the
+  // segment's own (feedback #21): a player-scoped segment that shrinks
+  // toward itself regularizes by exactly nothing, and a 4-0 account came
+  // back as shrunk_win_rate 1.000. When the corpus window itself is below
+  // the floor, a neutral 0.5 stands in.
+  prior_source:
+    "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+  // Below this many decided observations a segment is flagged
+  // insufficient_sample and shrunk rates are withheld, mirroring
+  // battles_levels omitting pilot_score rather than serving a number it
+  // cannot support.
+  segment_min_decided: 30,
+  excluded: ["duels (no single deck)", "boat battles", "draws", "unresolved"],
   confidence_intervals: false,
 };
 
@@ -280,7 +292,76 @@ export const SEGMENT_ARGS = {
   },
 };
 
-export const SEGMENT_NOTE = `Descriptive pooled player-battle observations, not unique matches or independent trials: both participants can contribute. Only wins and losses count; draws and unresolved outcomes are excluded from counts, usage and rates. shrunk_win_rate = (wins + ${META_METHODOLOGY.prior_strength} * segment_win_rate) / (wins + losses + ${META_METHODOLOGY.prior_strength}), using the eligible segment before row thresholds and limits. Calculations use the unrounded segment mean; displayed rates are independently rounded to three decimals. Shrinkage moderates extremes but does not guarantee rankings or adjust for player skill. players counts distinct players, not an effective sample size. No confidence intervals or causal lift are estimated. An empty segment has no observed win rate.`;
+export const SEGMENT_NOTE = `Descriptive pooled player-battle observations, not unique matches or independent trials: both participants can contribute. Only decided head-to-head battles count: duels (up to three decks, no single deck identity), boat battles (an attack on a static defense), draws and unresolved outcomes are excluded from counts, usage and rates, and 'excluded' says how many of each the window held. shrunk_win_rate = (wins + ${META_METHODOLOGY.prior_strength} * prior_win_rate) / (wins + losses + ${META_METHODOLOGY.prior_strength}), where prior_win_rate is the CORPUS mean over the same window and mode - never the segment's own mean, so a one-deck player is regularized toward the population rather than toward themselves. Below ${META_METHODOLOGY.segment_min_decided} decided observations the segment carries insufficient_sample: true and shrunk_win_rate is withheld. Calculations use unrounded means; displayed rates are independently rounded to three decimals. Shrinkage moderates extremes but does not guarantee rankings or adjust for player skill. players counts distinct players, not an effective sample size. No confidence intervals or causal lift are estimated. An empty segment has no observed win rate.`;
+
+/** Battle types that are one row for up to three games (rounds[]). */
+export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
+
+/** What a meta window held that the decided head-to-head population left
+ *  out, so a 246-vs-212 gap is self-describing instead of something a
+ *  consumer derives by subtraction across three tools (feedback #23).
+ *  `where` scopes rows to segment + window + mode only. */
+export async function excludedBreakdown(db, where, params) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `select count(*)::int as considered,
+            count(*) filter (where b.type = any($${params.length + 1}))::int as duels,
+            count(*) filter (where b.type_class = 'boat'
+                               and not (b.type = any($${params.length + 1})))::int as boat,
+            count(*) filter (where bp.outcome = 'draw' and b.type_class = 'pvp'
+                               and not (b.type = any($${params.length + 1})))::int as draws,
+            count(*) filter (where (bp.outcome is null or bp.outcome = 'unresolved')
+                               and b.type_class = 'pvp'
+                               and not (b.type = any($${params.length + 1})))::int as unresolved,
+            count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp'
+                               and not (b.type = any($${params.length + 1}))
+                               and (bp.deck_hash is null or not (bp.deck ? 'cards')
+                                    or jsonb_array_length(bp.deck->'cards') = 0))::int as no_deck
+     from battle_participant bp join battle b on b.battle_id = bp.battle_id
+     where ${where.join(" and ")}`,
+    [...params, DUEL_TYPES],
+  );
+  return {
+    considered: r.considered,
+    duels: r.duels,
+    boat: r.boat,
+    draws: r.draws,
+    unresolved: r.unresolved,
+    no_deck: r.no_deck,
+  };
+}
+
+/** The corpus prior for shrinkage: decided head-to-head rate over the
+ *  same window and mode, ignoring the segment. Null when the corpus
+ *  window is below the floor (the caller substitutes 0.5). */
+export async function corpusPrior(db, { from, to = null, types = null }) {
+  // Its own parameter list: Postgres refuses a bound parameter it cannot
+  // type, so the segment's params must not ride along unused.
+  const params = [from];
+  const where = ["b.battle_time >= $1"];
+  if (to) {
+    params.push(to);
+    where.push(`b.battle_time < $${params.length}`);
+  }
+  if (types) {
+    params.push(types);
+    where.push(`b.type = any($${params.length})`);
+  }
+  const {
+    rows: [r],
+  } = await db.query(
+    `select count(*)::int as decided,
+            count(*) filter (where bp.outcome = 'win')::int as wins
+     from battle_participant bp join battle b on b.battle_id = bp.battle_id
+     where bp.outcome in ('win','loss') and b.type_class = 'pvp'
+       and bp.deck_hash is not null and ${where.join(" and ")}`,
+    params,
+  );
+  return r.decided >= META_METHODOLOGY.segment_min_decided
+    ? { decided: r.decided, mean: r.wins / r.decided }
+    : { decided: r.decided, mean: null };
+}
 
 // --- tools -----------------------------------------------------------------
 

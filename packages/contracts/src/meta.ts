@@ -34,6 +34,18 @@ export interface ResponseMeta {
   /** Unread push-lane events awaiting elixir_events. */
   events_pending?: number;
   /**
+   * The caller's spend against its budgets, so an agent can price a plan
+   * without asking (feedback #17): every tool call costs one daily call;
+   * live_fetch and players_profile(live: true) additionally cost one live
+   * fetch. `max` is null when the budget is unlimited (owner/admin), and
+   * then `remaining` is null too. `resets_at` is the next UTC midnight.
+   */
+  quota?: {
+    calls: { used: number; max: number | null; remaining: number | null };
+    live: { used: number; max: number | null; remaining: number | null };
+    resets_at: string;
+  };
+  /**
    * Identifies the mcp_call_audit row this response came from, so a reported
    * answer can be joined to the server's record of producing it. Stamped by
    * the invoker after the tool returns — tools never set it, which is why it
@@ -86,6 +98,19 @@ const checks: Record<keyof ResponseMeta, (value: unknown) => boolean> = {
   timezone_applied: text,
   feedback_responses_pending: count,
   events_pending: count,
+  quota: (value) =>
+    object(value) &&
+    utcTimestamp(value.resets_at) &&
+    ["calls", "live"].every((k) => {
+      const b = value[k];
+      return (
+        object(b) &&
+        count(b.used) &&
+        (b.max === null || count(b.max)) &&
+        (b.remaining === null || count(b.remaining)) &&
+        (b.max === null) === (b.remaining === null)
+      );
+    }),
   request_id: (value) =>
     typeof value === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(

@@ -835,14 +835,26 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.equal(corpus.body.segment, "corpus");
   assert.ok(corpus.body.decks.length > 0, "corpus decks");
   const top = corpus.body.decks[0];
-  assert.ok(top.shrunk_win_rate !== null && top.players >= 1);
-  // Shrinkage pulls toward the mean: a small sample never sits at 0 or 1.
-  const small = corpus.body.decks.find((d) => d.wins + d.losses <= 3);
-  if (small) {
-    assert.ok(
-      small.shrunk_win_rate > 0.05 && small.shrunk_win_rate < 0.95,
-      `shrunk ${small.shrunk_win_rate}`,
+  assert.ok(top.players >= 1);
+  assert.ok(corpus.body.excluded, "what the window left out is stated");
+  assert.equal(typeof corpus.body.prior_win_rate, "number");
+  if (corpus.body.insufficient_sample) {
+    // Below the floor the shrunk rate is withheld, not served (feedback #21).
+    assert.equal(top.shrunk_win_rate, undefined);
+    assert.equal(
+      corpus.body.insufficient_sample_floor,
+      corpus.body.methodology.segment_min_decided,
     );
+  } else {
+    assert.ok(top.shrunk_win_rate !== null);
+    // Shrinkage pulls toward the prior: a small sample never sits at 0 or 1.
+    const small = corpus.body.decks.find((d) => d.wins + d.losses <= 3);
+    if (small) {
+      assert.ok(
+        small.shrunk_win_rate > 0.05 && small.shrunk_win_rate < 0.95,
+        `shrunk ${small.shrunk_win_rate}`,
+      );
+    }
   }
 
   const seg = await call("battles_meta_decks", {
@@ -1185,7 +1197,12 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
     const row = (body.decks ?? body.cards)[0];
     assert.equal(row.battles, 2);
     assert.equal(row.win_rate, 0.5);
-    assert.equal(row.shrunk_win_rate, 0.5);
+    // Two decided observations is below the floor: no shrunk rate is
+    // served, the flag says why, and the exclusions are itemized.
+    assert.equal(row.shrunk_win_rate, undefined);
+    assert.equal(body.insufficient_sample, true);
+    assert.equal(body.excluded.draws, 1);
+    assert.equal(body.excluded.unresolved, 1);
     assert.equal(row.usage_share, 1);
     assert.match(body.note, /player-battle/);
     const empty = await call(tool, {
@@ -1341,4 +1358,226 @@ test("clans_roster summary answers the count without the roster", async () => {
     JSON.stringify(brief.body).length < JSON.stringify(full.body).length,
     "and it has to actually be smaller",
   );
+});
+
+// --- 0.39.0: eleven feedback items from one agent session -----------------
+
+test("battles_opponents groups by opponent: repeats, names, modes", async () => {
+  const all = await call("battles_opponents", {});
+  assert.equal(all.isError, false, JSON.stringify(all.body));
+  assert.ok(all.body.distinct_opponents > 5);
+  assert.equal(all.body.opponents.length, all.body.matching_opponents);
+  const repeats = await call("battles_opponents", { min_battles: 2 });
+  assert.equal(repeats.isError, false);
+  assert.ok(repeats.body.opponents.length >= 1, "boat defenders recur");
+  for (const o of repeats.body.opponents) {
+    assert.ok(o.battles >= 2);
+    assert.equal(o.battles, o.wins + o.losses + o.draws);
+    assert.equal(typeof o.name_known, "boolean");
+    assert.ok(o.first_seen <= o.last_seen);
+    assert.ok(Array.isArray(o.modes) && o.modes.length > 0);
+  }
+  assert.ok(repeats.body.opponents.every((o) => o.name_known));
+  assert.equal(repeats.body.matching_opponents, repeats.body.opponents.length);
+  const inverted = await call("battles_opponents", {
+    from: "2026-09-05",
+    to: "2026-09-01",
+  });
+  assert.equal(inverted.isError, true);
+});
+
+test("players_names resolves tags in bulk and lists the misses", async () => {
+  await db.query(
+    `insert into player (player_tag) values ('#2LLLL') on conflict do nothing`,
+  );
+  const { body, isError } = await call("players_names", {
+    player_tags: [OBSERVER, "#2LLLL", "#2QQQQ"],
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.names.length, 1);
+  assert.equal(body.names[0].player_tag, OBSERVER);
+  assert.equal(body.names[0].source, "profile");
+  assert.deepEqual(
+    body.unknown.map((u) => [u.player_tag, u.in_corpus]),
+    [
+      ["#2LLLL", true],
+      ["#2QQQQ", false],
+    ],
+  );
+  const bad = await call("players_names", { player_tags: ["nope!"] });
+  assert.equal(bad.body.error.code, "invalid_tag");
+});
+
+test("battles_query: name_known, duel rounds_played, padded princess towers, legend", async () => {
+  const { body, isError } = await call("battles_query", { limit: 25 });
+  assert.equal(isError, false);
+  for (const b of body.battles) {
+    for (const o of b.opponents) assert.equal(typeof o.name_known, "boolean");
+    if (b.type.startsWith("riverRaceDuel")) {
+      assert.equal(
+        b.me.rounds_played,
+        3,
+        "a duel row says how many games it holds",
+      );
+      assert.equal(b.opponents[0].rounds_played, 3);
+    } else {
+      assert.equal(b.me.rounds_played, undefined);
+    }
+    const p = b.me.tower_hp?.princess;
+    if (Array.isArray(p))
+      assert.equal(p.length, 2, "fixed length once reported");
+  }
+  assert.ok(
+    body.battles.some((b) => b.me.tower_hp?.princess?.[1] === 0),
+    "a one-tower array was padded with 0",
+  );
+  assert.match(body.card_legend, /FINAL ROUND ONLY/);
+  assert.match(body.card_legend, /SUM across rounds/);
+});
+
+test("battles_performance: decided vs boat denominators, mode key documented", async () => {
+  const { body } = await call("battles_performance", {});
+  const w = body.window;
+  assert.equal(w.boat_battles, 10, "the fixture holds ten boat attacks");
+  assert.ok(w.decided_battles <= w.wins + w.losses);
+  assert.ok(w.decided_battles < w.battles);
+  assert.match(body.denominators_note, /decided_battles/);
+  const modes = await call("battles_performance", { group_by: "mode" });
+  assert.match(modes.body.mode_note, /\(game_mode, type\)/);
+  assert.ok(modes.body.by_mode.every((r) => "type" in r));
+});
+
+test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boats", async () => {
+  const { body, isError } = await call("battles_meta_decks", {
+    player_tag: OBSERVER,
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.excluded.boat, 10);
+  assert.equal(body.excluded.duels, 1);
+  assert.match(body.methodology.prior_source, /corpus/);
+  assert.ok(["corpus_window", "neutral_0.5"].includes(body.prior_basis));
+  const cards = await call("battles_meta_cards", {
+    player_tag: OBSERVER,
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  assert.equal(cards.body.excluded.boat, 10);
+  assert.equal(cards.body.decided_battles, body.decided_battles);
+});
+
+test("badges are a dimension: rarity census and holders, exact names only", async () => {
+  const rarity = await call("badges_rarity", {});
+  assert.equal(rarity.isError, false, JSON.stringify(rarity.body));
+  const n = rarity.body.players_considered;
+  assert.ok(n >= 1);
+  assert.ok(rarity.body.badges.length > 100, "every badge the fixture holds");
+  const years = rarity.body.badges.find((b) => b.name === "YearsPlayed");
+  assert.equal(years.kind, "tiered");
+  assert.ok(years.by_level[4] >= 1, "the fixture's level-4 holder is counted");
+  assert.equal(years.holder_share, Number((years.holders / n).toFixed(3)));
+  assert.ok(rarity.body.badges.every((b) => b.holders <= n));
+  const oneOff = await call("badges_rarity", { kind: "one_off" });
+  assert.ok(oneOff.body.badges.every((b) => b.kind === "one_off"));
+  assert.ok(oneOff.body.badges.length < rarity.body.badges.length);
+
+  const holders = await call("badges_holders", { badge: "yearsplayed" });
+  assert.equal(holders.isError, false, JSON.stringify(holders.body));
+  assert.equal(holders.body.badge, "YearsPlayed");
+  assert.ok(holders.body.holders_total >= 1);
+  const me = holders.body.holders.find((h) => h.player_tag === OBSERVER);
+  assert.equal(me.level, 4);
+  assert.equal(me.name_known, true);
+  const near = await call("badges_holders", { badge: "Years" });
+  assert.equal(near.isError, true);
+  assert.equal(near.body.error.code, "not_found");
+  assert.match(
+    near.body.error.message,
+    /YearsPlayed/,
+    "candidates, not a guess",
+  );
+  const none = await call("badges_holders", { badge: "NoSuchBadgeAtAll" });
+  assert.equal(none.body.error.code, "not_found");
+});
+
+test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {
+  const decks = await call("battles_decks", {});
+  const anchorId = decks.body.decks[0].cards[0].id;
+  const { body, isError } = await call("cards_synergy", {
+    card_id: anchorId,
+    from: "2020-01-01",
+    min_pair_battles: 1,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.anchor.card_id, anchorId);
+  assert.ok(body.anchor.decks > 0 && body.anchor.players >= 1);
+  assert.ok(body.partners.length > 0);
+  for (const p of body.partners) {
+    assert.ok(p.co_occurrence_rate > 0 && p.co_occurrence_rate <= 1);
+    assert.ok(p.baseline_usage > 0);
+    assert.equal(typeof p.lift, "number");
+    assert.ok(p.players >= 1);
+    assert.notEqual(p.card_id, anchorId);
+  }
+  const byName = await call("cards_synergy", {
+    card: "witch",
+    from: "2020-01-01",
+    min_pair_battles: 1,
+  });
+  assert.equal(byName.isError, false, JSON.stringify(byName.body));
+  assert.equal(
+    byName.body.anchor.name,
+    "Witch",
+    "exact match beats Mother Witch",
+  );
+  const fuzzy = await call("cards_synergy", { card: "gobl" });
+  assert.equal(fuzzy.isError, true);
+  assert.equal(fuzzy.body.error.code, "bad_request");
+  assert.match(fuzzy.body.error.message, /Candidates/);
+  const neither = await call("cards_synergy", {});
+  assert.equal(neither.body.error.code, "bad_request");
+});
+
+test("forms are decoded, never ordinal: collection, catalog, in-game max level", async () => {
+  const col = await call("players_collection", {});
+  const hero = col.body.cards.find((c) => c.evolutionLevel === 2);
+  assert.ok(hero, "the fixture holds a hero-unlocked card");
+  assert.deepEqual(hero.forms_unlocked, ["hero"]);
+  assert.ok(hero.forms_available.includes("hero"));
+  const base = col.body.cards.find((c) => c.maxEvolutionLevel === undefined);
+  assert.deepEqual(base.forms_available, []);
+  assert.match(col.body.forms_note, /bit fields/);
+
+  const cat = await call("cards_catalog", {});
+  assert.ok(cat.body.cards.every((c) => c.maxLevel === 16));
+  const champion = cat.body.cards.find((c) => c.rarity === "champion");
+  assert.equal(champion.maxLevelRarityScale, 6);
+  const both = cat.body.cards.find((c) => c.maxEvolutionLevel === 3);
+  assert.deepEqual(both.forms_available, ["evolution", "hero"]);
+});
+
+test("elixir_data_insights sizes the corpus along the profile axis", async () => {
+  const { body, isError } = await call("elixir_data_insights", {});
+  assert.equal(isError, false, JSON.stringify(body));
+  // Earlier tests add recordings of their own; pin the arithmetic, not
+  // the counts: total is the union, via_clans excludes direct adds.
+  const rp = body.recorded_players;
+  assert.ok(rp.direct >= 1);
+  assert.ok(rp.total >= rp.direct && rp.total <= rp.direct + rp.via_clans);
+  assert.equal(body.active_recordings.players, rp.direct);
+  const scopes = body.active_recordings.clans_by_scope;
+  assert.equal(
+    scopes.activity + scopes.comprehensive,
+    body.active_recordings.clans,
+  );
+  assert.equal(body.recorded_clans.length, body.active_recordings.clans);
+  for (const c of body.recorded_clans) {
+    assert.match(c.clan_tag, /^#/);
+    assert.ok(["activity", "comprehensive"].includes(c.scope));
+    assert.equal(typeof c.members, "number");
+  }
+  assert.ok(body.profiles.players_with_snapshot >= 1);
+  assert.ok(body.profiles.players_with_badges >= 1);
+  assert.ok(body.profiles.players_with_snapshot <= body.players_observed);
 });

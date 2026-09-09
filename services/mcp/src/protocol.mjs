@@ -19,6 +19,7 @@ import {
   principalBlock,
   PRINCIPAL_META_KEY,
 } from "./identity.mjs";
+import { quotaMeta } from "./quota.mjs";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
@@ -256,10 +257,20 @@ export async function handleMcpMessage(message, context) {
         ? params.arguments
         : {};
     const invoked = await context.invokeTool(name, args);
-    // Agents self-moderate better than they handle walls: quota headroom
-    // rides every response meta (owner is uncapped — no quota block).
-    if (Number.isFinite(quota.max) && invoked.body?.meta) {
-      invoked.body.meta.quota = { used: quota.count, max: quota.max };
+    // Agents self-moderate better than they handle walls: the spend rides
+    // every response meta, unlimited accounts included (feedback #17: an
+    // invisible budget gets rationed to near-zero). Read AFTER the call so
+    // a live fetch the tool just made is already counted. The block is
+    // declared in contracts meta.ts and validated like every other field.
+    if (invoked.body?.meta) {
+      const after = context.spendQuota.describe
+        ? await context.spendQuota.describe()
+        : {};
+      invoked.body.meta.quota = quotaMeta({
+        count: after.count ?? quota.count,
+        max: quota.max,
+        live: after.live ?? quota.live,
+      });
     }
     const { text, truncated } = renderToolResultText(
       context.registry,

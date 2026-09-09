@@ -277,9 +277,9 @@ test("war_current exposes the poll age separately from the first period sighting
   }
 });
 
-test("the registry declares 39 tools, every one classified and annotated", () => {
+test("the registry declares 44 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 39);
+  assert.equal(decls.length, 44);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
