@@ -470,6 +470,7 @@ export async function validateAccessToken(db, token, { resource } = {}) {
        and t.expires_at > now() and t.revoked_at is null
        and f.revoked_at is null and f.absolute_expires_at > now()
        and f.resource = $2
+       and not exists (select 1 from integration i where i.account_id = a.account_id)
        and a.status = 'approved'`,
     [sha256hex(raw), audience],
   );
@@ -537,7 +538,11 @@ export async function issueServiceToken(
 
 /** Validate a service token; returns the account shape the MCP handler
  *  expects, plus serviceName for per-token audit surfaces. */
-export async function validateServiceToken(db, token) {
+export async function validateServiceToken(
+  db,
+  token,
+  { audience = "mcp" } = {},
+) {
   const raw = validOpaque(token, SERVICE_TOKEN_PREFIX);
   if (!raw) return null;
   const { rows } = await db.query(
@@ -551,8 +556,10 @@ export async function validateServiceToken(db, token) {
      from service_token t
      join account a on a.account_id = t.account_id
      left join account o on o.account_id = a.owned_by_account_id
-     where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'`,
-    [sha256hex(raw)],
+     where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'
+       and t.audience = $2
+       and ($2 <> 'mcp' or not exists (select 1 from integration i where i.account_id = a.account_id))`,
+    [sha256hex(raw), audience],
   );
   const row = rows[0];
   if (!row) return null;

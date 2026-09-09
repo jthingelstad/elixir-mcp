@@ -288,6 +288,16 @@ export async function sweepOperational(databaseUrl) {
   await db.connect();
   try {
     const out = {};
+    out.integration_refreshes = (
+      await db.query(
+        "delete from integration_profile_refresh where created_at < now() - interval '1 day'",
+      )
+    ).rowCount;
+    out.integration_usage = (
+      await db.query(
+        "delete from integration_usage where day < current_date - 90",
+      )
+    ).rowCount;
     out.rate_limit = (
       await db.query(
         `delete from rate_limit where window_start < now() - interval '7 days'`,

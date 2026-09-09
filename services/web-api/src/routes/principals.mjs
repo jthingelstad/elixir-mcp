@@ -3,8 +3,6 @@ import {
   rotateToken,
   setPrincipalStatus,
   createAgent,
-  createIntegration,
-  mayCreateIntegration,
 } from "../principals.mjs";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
@@ -27,7 +25,7 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
             [account.accountId],
           )
         ).rows,
-        may_create_integration: mayCreateIntegration(account.role),
+        may_create_integration: false,
       });
     },
 
@@ -63,33 +61,8 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       });
     },
 
-    "POST /api/me/integrations": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account) return json(401, { error: "unauthenticated" });
-      const result = await createIntegration(db, account, {
-        name: body.name,
-        scope: typeof body.scope === "string" ? body.scope : null,
-      });
-      if (!result.ok)
-        return json(
-          result.error === "internal"
-            ? 500
-            : result.error === "not_entitled"
-              ? 403
-              : 400,
-          result,
-        );
-      await logEvent(db, account.accountId, "integration_created", {
-        integration: result.principal.public_id,
-      });
-      return json(201, {
-        integration: result.principal,
-        token: result.token,
-        note: "This token is shown once. Store it now.",
-      });
-    },
+    "POST /api/me/integrations": async () =>
+      json(403, { error: "admin_integration_api_required" }),
 
     "POST /api/me/principals/revoke": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
@@ -106,6 +79,7 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
          where t.token_id = $1
            and a.account_id = t.account_id
            and a.owned_by_account_id = $2
+           and a.kind = 'agent'
            and t.revoked_at is null`,
         [body.token_id, account.accountId],
       );

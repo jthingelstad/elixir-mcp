@@ -111,3 +111,39 @@ there and at the registry boundary; a new metadata field needs its type and
 runtime rule together. The response guide's example is generated from this
 contract and validated again from built HTML. Keep cross-tool numerical
 agreement and protocol serialization tests alongside endpoint-specific tests.
+
+
+## Platform Integration API
+
+The public [integration guide](../apps/site/src/docs/integrations.md) and
+`packages/contracts/integration-api.openapi.json` define `/api/v1`. The API runs
+in web-api behind a no-cookie CloudFront behavior. `service_token.audience`
+separates REST and MCP credentials, and `integration` holds permissions and
+capacity independently of the sponsoring person. Admin management lives in
+`services/web-api/src/routes/integrations.mjs`; personal principal routes cannot
+manage these identities. Legacy MCP credentials are unchanged by migration 0058.
+
+The data seam is `services/ingest/src/{game-clock,recorded-profile}.mjs`, shared
+with MCP. Async requests bind integration, idempotency key and ledger job;
+completion requires admitted receipt plus projected data. The existing scheduler
+still owns global pacing. Operational cleanup expires refresh records and keeps
+90 days of integration usage. REST operations use the existing call audit with
+`surface=rest`, token/account/request identity and HTTP status.
+
+Collection grants use the actual collection owner without impersonating them.
+`setCollectionMembers` owns the membership lock, capacity check, attribution and
+recording reconciliation transaction. Only requested tags are reconciled on
+add retries; manual members and other recording reasons survive. Schema changes
+are expand-first. Deploy MCP, provision a REST credential and collection grant,
+then switch Drop's backend credential and code together. Read-only API checks
+and ordinary traffic verify the cutover before revoking the old MCP key.
+
+
+For a controlled migration, the IAM-only migrate Lambda accepts
+`{integration:{action:"list"}}` and the same admin configuration body under
+`integration`. Creation/rotation require a locally generated `token_hash`;
+plaintext is never sent to Lambda. `retire_legacy` requires the new integration
+id and the old digest, only matches a same-named MCP key on its human sponsor,
+and requires a successful audited REST call. It cannot revoke another agent's
+credential. Stage Drop's `ElixirIntegrationKey` parameter with the previous code
+artifact; CI then deploys the REST client while preserving the staged key.

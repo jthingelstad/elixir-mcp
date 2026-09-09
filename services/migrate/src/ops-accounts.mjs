@@ -1,3 +1,4 @@
+import { integrationsRoutes } from "../../web-api/src/routes/integrations.mjs";
 import pg from "pg";
 import { createPrincipal } from "@elixir-mcp/claims";
 
@@ -216,6 +217,7 @@ export async function accountRoleOp(databaseUrl, spec) {
  * cannot drift between the two ways in.
  */
 export async function principalOp(databaseUrl, spec) {
+  if (spec?.kind === "integration") return { error: "use_integration_api" };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
@@ -248,6 +250,72 @@ export async function principalOp(databaseUrl, spec) {
     return result.ok
       ? { ok: true, principal: result.principal }
       : { error: result.error, ...result };
+  } finally {
+    await db.end();
+  }
+}
+
+/** IAM-authorized provisioning passes only a locally minted SHA-256 digest.
+ * Uses the admin command implementation; no raw credential enters Lambda. */
+export async function integrationOp(databaseUrl, spec) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const owner = (
+      await db.query(
+        "select account_id,role,kind from account where role='owner' and kind='person' and status='approved' order by created_at limit 1",
+      )
+    ).rows[0];
+    if (!owner) return { error: "owner_not_found" };
+    const action = spec?.action ?? "create";
+    if (action === "retire_legacy") {
+      if (!/^[a-f0-9]{64}$/.test(spec?.token_hash ?? ""))
+        return { error: "token_hash_required" };
+      const result = await db.query(
+        `update service_token t set revoked_at=coalesce(t.revoked_at,now())
+        from integration i join account a on a.account_id=i.account_id
+        where a.public_id=$1 and t.token_hash=$2 and t.audience='mcp'
+          and t.name=i.name and t.account_id=a.owned_by_account_id
+          and exists(select 1 from mcp_call_audit m where m.account_id=i.account_id and m.surface='rest' and m.http_status=200)
+        returning t.token_id,t.name,t.revoked_at`,
+        [spec.id, spec.token_hash],
+      );
+      return { retired: result.rowCount, ...result.rows[0] };
+    }
+
+    if (
+      ["create", "rotate"].includes(action) &&
+      !/^[a-f0-9]{64}$/.test(spec?.token_hash ?? "")
+    )
+      return { error: "token_hash_required" };
+    const routes = integrationsRoutes({
+      resolveAccount: async () => ({
+        accountId: owner.account_id,
+        kind: owner.kind,
+        isAdmin: true,
+      }),
+      logEvent: async (db, id, kind, detail) => {
+        await db.query(
+          "insert into account_event(account_id,kind,detail) values($1,$2,$3)",
+          [id, kind, JSON.stringify({ ...detail, via: "ops" })],
+        );
+      },
+      mintToken: () => ({ hash: spec.token_hash }),
+    });
+    const method = action === "list" ? "GET" : "POST";
+    const r = await routes[`${method} /api/admin/integrations`](
+      db,
+      { requestContext: { http: { method } } },
+      spec,
+    );
+    const result = { status: r.statusCode, ...JSON.parse(r.body) };
+    if (action === "list")
+      result.available_collections = (
+        await db.query(
+          "select c.collection_id,c.slug,c.kind,c.scope,(select count(*)::int from collection_member m where m.collection_id=c.collection_id) as members from collection c order by c.slug",
+        )
+      ).rows;
+    return result;
   } finally {
     await db.end();
   }

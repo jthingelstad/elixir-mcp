@@ -1,3 +1,4 @@
+import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
@@ -63,6 +64,8 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
   }, [me, load]);
 
   if (!me?.is_admin) return <p className="notice">Admins only.</p>;
+
+  if (page === "integrations") return <Integrations />;
 
   // Detail routes (detail-views sweep, Jamie 2026-09-05): one item,
   // one addressable page.

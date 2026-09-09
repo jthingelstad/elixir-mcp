@@ -63,6 +63,7 @@ export const SECTIONS = {
     pages: [
       { slug: "requests", label: "Requests" },
       { slug: "accounts", label: "Accounts" },
+      { slug: "integrations", label: "Integrations" },
       { slug: "collections", label: "Collections" },
       { slug: "feedback", label: "Feedback" },
       { slug: "usage", label: "Usage" },

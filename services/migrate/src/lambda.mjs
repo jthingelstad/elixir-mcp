@@ -11,6 +11,7 @@ import {
   accountEmailOp,
   accountRoleOp,
   principalOp,
+  integrationOp,
 } from "./ops-accounts.mjs";
 import { replay, exportPayloads, collectionOp } from "./ops-record.mjs";
 import {
@@ -61,6 +62,9 @@ export async function handler(event) {
     );
     console.log(JSON.stringify(result));
     return result;
+  }
+  if (event?.integration) {
+    return integrationOp(process.env.DATABASE_URL, event.integration);
   }
   if (event?.principal) {
     const result = await principalOp(process.env.DATABASE_URL, event.principal);

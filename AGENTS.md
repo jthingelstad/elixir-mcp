@@ -135,3 +135,14 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 *This material is unofficial and is not endorsed by Supercell. For more
 information see Supercell's Fan Content Policy:
 www.supercell.com/fan-content-policy.*
+
+
+### Platform integrations
+
+Admin-managed platform integrations use `/api/v1`, not MCP. Read
+[`apps/site/src/docs/integrations.md`](apps/site/src/docs/integrations.md) and
+`packages/contracts/integration-api.openapi.json` before changing this contract.
+Preserve REST/MCP credential audience separation, integration-owned quotas,
+principal-bound asynchronous refreshes and narrow collection-add grants. Drop's
+automatic membership is deliberate; supplied tags are unverified, enrollment is
+not capture, and canonical game facts still enter only through collectors.

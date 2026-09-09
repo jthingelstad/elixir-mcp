@@ -1,3 +1,6 @@
+import { integrationsRoutes } from "./routes/integrations.mjs";
+import { integrationApi, integrationProblem } from "./integration-api.mjs";
+import { randomUUID } from "node:crypto";
 /**
  * Site API — docs/ENGINEERING.md One credential core, this is the web shell.
  *
@@ -139,13 +142,15 @@ export function makeHandler({
       sendWelcomeEmail,
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),
+    ...integrationsRoutes({ resolveAccount, logEvent }),
   };
 
   return async function handler(event) {
     const method =
       event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
     const path = event.rawPath ?? event.path ?? "/";
-    const route = routes[`${method} ${path}`];
+    const isIntegration = path.startsWith("/api/v1/");
+    const route = isIntegration ? integrationApi : routes[`${method} ${path}`];
     if (!route) return json(404, { error: "not_found" });
     let body = {};
     if (event.body) {
@@ -157,7 +162,9 @@ export function makeHandler({
             : event.body,
         );
       } catch {
-        return json(400, { error: "invalid_json" });
+        return isIntegration
+          ? integrationProblem(400, "invalid_json", randomUUID())
+          : json(400, { error: "invalid_json" });
       }
     }
     const db = new pg.Client({ connectionString: databaseUrl });

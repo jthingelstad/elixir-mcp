@@ -10,7 +10,6 @@
 
 import { mintServiceTokenValue } from "@elixir-mcp/auth";
 import { createPrincipal } from "@elixir-mcp/claims";
-import { roleQuotas } from "@elixir-mcp/contracts";
 
 /** Everything the owner has that a principal could be pointed at. */
 export async function listPrincipals(db, ownerAccountId) {
@@ -71,11 +70,6 @@ export const createAgent = (db, owner, opts) =>
     scope: opts.scope,
   });
 
-export const createIntegration = (db, owner, opts) =>
-  create(db, owner, "integration", { name: opts.name, scope: opts.scope });
-
-export const mayCreateIntegration = (role) => roleQuotas(role).integrations > 0;
-
 /**
  * Rotate an agent's key.
  *
@@ -97,7 +91,7 @@ export async function rotateToken(db, ownerAccountId, principalAccountId) {
     const { rows: owned } = await db.query(
       `select a.account_id from account a
         where a.account_id = $1 and a.owned_by_account_id = $2
-          and a.kind in ('agent', 'integration')`,
+          and a.kind = 'agent'`,
       [principalAccountId, ownerAccountId],
     );
     if (owned.length === 0) {
@@ -158,7 +152,7 @@ export async function setPrincipalStatus(
   const { rowCount } = await db.query(
     `update account set status = $3
       where account_id = $1 and owned_by_account_id = $2
-        and kind in ('agent', 'integration')`,
+        and kind = 'agent'`,
     [principalAccountId, ownerAccountId, status],
   );
   return rowCount === 1

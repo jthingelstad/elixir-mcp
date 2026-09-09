@@ -506,3 +506,14 @@ templates and copy controls. An added clan with a recorded war week can contribu
 one clan-war question; this is a read from existing records, not a generated
 answer or an MCP call. Copying is not counted as successful usage. Empty, waiting,
 error and manual-copy states are covered. No migration or MCP contract change.
+
+
+## 2026-09-08 — Platform integrations use REST
+
+User-approved direction: integrations are admin-managed platform identities,
+separate from users and clan agents. V1 builds only Drop's needs: policy clock,
+recorded player context, asynchronous profile refreshes and automatic add-only
+collection enrollment. The user explicitly included automatic membership;
+supplied tags remain unverified. Collection grants preserve existing ownership,
+manual members and recording depth. No scores, XP, identities or game facts are
+written back by Drop. See the public integration guide and OpenAPI contract.

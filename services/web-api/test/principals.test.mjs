@@ -213,29 +213,22 @@ test("an agent cannot claim a player: it has no self to be", async () => {
   assert.equal(result.kind, "agent");
 });
 
-test("integrations are partner+, unlike agents", async () => {
+test("integrations require the admin platform API", async () => {
   const cookie = leaderCookie;
   const res = await handler(
     event({ path: "/api/me/integrations", cookie, body: { name: "my-app" } }),
   );
   assert.equal(res.statusCode, 403);
-  assert.equal(parse(res).error, "not_entitled");
+  assert.equal(parse(res).error, "admin_integration_api_required");
 });
 
-test("a partner gets exactly the integrations the ladder promises", async () => {
+test("a partner cannot self-provision platform integrations", async () => {
   const cookie = partnerCookie;
   const first = await handler(
     event({ path: "/api/me/integrations", cookie, body: { name: "drop" } }),
   );
-  assert.equal(first.statusCode, 201, first.body);
-  assert.equal(parse(first).integration.role, "partner");
-
-  const second = await handler(
-    event({ path: "/api/me/integrations", cookie, body: { name: "drop-two" } }),
-  );
-  assert.equal(second.statusCode, 400);
-  assert.equal(parse(second).error, "quota_exceeded");
-  assert.equal(parse(second).limit, 1);
+  assert.equal(first.statusCode, 403, first.body);
+  assert.equal(parse(first).error, "admin_integration_api_required");
 });
 
 test("a key is minted with exactly the authority it was asked for", async () => {

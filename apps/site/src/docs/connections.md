@@ -20,7 +20,7 @@ The short version:
 | Acts for | yourself | a clan | its own users |
 | "Me" is | your primary player | the clan | nobody |
 | Signs in with | OAuth | OAuth or a key | a key |
-| Who can have one | everyone | everyone | partner tier |
+| Who can have one | everyone | everyone | admin provisioned |
 
 ## You
 
@@ -87,9 +87,9 @@ users, naming what it wants on every call.
 playing, in whatever clan they happen to be in, and has no relationship with any
 particular clan of its own.
 
-Integrations are token-only and sit at the partner tier, because their call
-volume is a function of *their* userbase rather than their owner's habits. That
-is a capacity conversation; an agent is a feature.
+Integrations use the [REST Integration API](/docs/integrations), with an
+admin-issued server key, explicit permissions and their own capacity. They do
+not inherit the human sponsor's admin powers or personal quota.
 
 ## Which do I want?
 
@@ -113,9 +113,7 @@ refused rather than quietly answering about the wrong subject.
 
 ## Making one
 
-Agents and integrations both live under **Account → Agents** once you are signed
-in. Creating one mints its key, which is shown **once** — only its hash is
-stored, so there is no way to recover it later and no support path that ends in
-us telling you what it was.
-
-See [Roles and quotas](/docs/roles) for what each tier may hold.
+Create clan agents under **Account → Agents**. Platform integrations are
+managed under **Admin → Integrations**. Both show a newly issued key once;
+only its hash is stored. See the [integration guide](/docs/integrations) for
+REST resources, permissions and automatic recording enrollment.

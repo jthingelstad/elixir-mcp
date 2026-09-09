@@ -526,7 +526,13 @@ export async function setCollectionMembers(
   db,
   collection,
   tags,
-  { mode = "set", reconcileAll = false } = {},
+  {
+    mode = "set",
+    reconcileAll = false,
+    reconcileProvided = false,
+    memberLimit = null,
+    integrationId = null,
+  } = {},
 ) {
   const given = [...new Set(tags)];
   await db.query("begin");
@@ -547,6 +553,15 @@ export async function setCollectionMembers(
         : mode === "remove"
           ? [...have].filter((t) => !given.includes(t))
           : given;
+    if (
+      memberLimit !== null &&
+      wanted.length > memberLimit &&
+      wanted.length > have.size
+    ) {
+      const error = new Error("Collection enrollment limit reached");
+      error.code = "enrollment_limit";
+      throw error;
+    }
     const added = wanted.filter((t) => !have.has(t));
     const removed = [...have].filter((t) => !wanted.includes(t));
 
@@ -557,7 +572,11 @@ export async function setCollectionMembers(
     // as the network takes, times the roster.
     const touched = [...added, ...removed].sort();
     const toReconcile = (
-      reconcileAll ? [...new Set([...wanted, ...removed])] : touched
+      reconcileAll
+        ? [...new Set([...wanted, ...removed])]
+        : reconcileProvided
+          ? [...new Set([...given, ...touched])]
+          : touched
     ).sort();
     if (toReconcile.length > 0) {
       await db.query(
@@ -567,9 +586,9 @@ export async function setCollectionMembers(
     }
     if (added.length > 0) {
       await db.query(
-        `insert into collection_member (collection_id, subject_tag)
-         select $1, unnest($2::text[]) on conflict do nothing`,
-        [collection.collectionId, added],
+        `insert into collection_member (collection_id, subject_tag, added_by_integration)
+         select $1, unnest($2::text[]), $3 on conflict do nothing`,
+        [collection.collectionId, added, integrationId],
       );
     }
     if (removed.length > 0) {

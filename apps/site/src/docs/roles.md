@@ -76,18 +76,15 @@ That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should
 be able to say out loud.
 
-**An integration** has no "me" at all. It consumes the recorded corpus on behalf
-of its own users, naming what it wants on every call — Elixir Drop is the type
-specimen: it looks up whoever is playing, for whatever clan they happen to be
-in. Integrations are token-only and sit at partner, because their call volume is
-a function of *their* userbase rather than their owner's habits. That is a
-capacity conversation; an agent is a feature.
+**An integration** connects another platform to the [REST API](/docs/integrations).
+An admin provisions it with explicit permissions and independent API, refresh
+and enrollment limits. It has no personal subject or inherited admin authority.
 
 | | You | Agent | Integration |
 |---|---|---|---|
 | Acts for | yourself | a clan | its own users |
 | Signs in with | OAuth | OAuth or a key | a key |
-| Available to | everyone | everyone, per clan you record | partner and up |
+| Available to | everyone | everyone, per clan you record | admin provisioned |
 
 ## Added means recorded
 

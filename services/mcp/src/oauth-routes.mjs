@@ -148,7 +148,8 @@ async function principalForTarget(db, target) {
               where t.account_id = a.account_id and t.revoked_at is null
               order by t.token_id limit 1) as name
      from account a
-     where a.public_id = $1 and a.kind = $2 and a.status = 'approved'`,
+     where a.public_id = $1 and a.kind = $2 and a.status = 'approved'
+       and not exists (select 1 from integration i where i.account_id = a.account_id)`,
     [target.publicId, target.kind],
   );
   // Deliberately the same refusal whether the principal is missing or simply

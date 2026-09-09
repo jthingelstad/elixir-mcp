@@ -216,3 +216,46 @@ test(
     expect(screen.queryByText(/This section failed to render/)).toBeNull();
   },
 );
+
+test(
+  "admin provisions and suspends a platform integration with a collection grant",
+  { timeout: 20000 },
+  async () => {
+    await scratch.db.query(
+      "update account set role='admin' where account_id=$1",
+      [accountId],
+    );
+    const c = (
+      await scratch.db.query(
+        "insert into collection(slug,title,kind,owner_account) values('ui-integration','Integration players','player',$1) returning collection_id",
+        [accountId],
+      )
+    ).rows[0];
+    open("/admin/integrations");
+    fireEvent.change(await screen.findByLabelText("Name"), {
+      target: { value: "ui-platform" },
+    });
+    await screen.findByRole("option", {
+      name: "Integration players (ui-integration)",
+    });
+    fireEvent.change(screen.getByLabelText("Allow additions to collection"), {
+      target: { value: c.collection_id },
+    });
+    await clickReady("Create and issue key");
+    await screen.findByText("Copy this key now. It is shown once.");
+    await screen.findByText("ui-platform");
+    await clickReady("Dismiss key");
+    await clickReady("Suspend");
+    await screen.findByText("Suspended");
+    const row = (
+      await scratch.db.query(
+        "select a.kind,a.role,a.status from integration i join account a using(account_id) where i.name='ui-platform'",
+      )
+    ).rows[0];
+    expect(row).toEqual({
+      kind: "integration",
+      role: "partner",
+      status: "disabled",
+    });
+  },
+);

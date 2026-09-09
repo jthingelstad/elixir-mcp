@@ -1,0 +1,692 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Elixir Integration API",
+    "version": "1.0.0",
+    "description": "Admin-provisioned platform API. Supplied tags are unverified. Collection grants allow additions only."
+  },
+  "servers": [
+    {
+      "url": "https://elixir.poapkings.com/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "integrationKey": []
+    }
+  ],
+  "paths": {
+    "/game/clock": {
+      "get": {
+        "operationId": "gameClock",
+        "x-permission": "game:read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClockResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{tag}": {
+      "get": {
+        "operationId": "playerProfile",
+        "x-permission": "players:read",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile-refreshes": {
+      "post": {
+        "operationId": "requestProfileRefresh",
+        "x-permission": "profiles:refresh",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "player_tag": {
+                    "type": "string"
+                  }
+                },
+                "required": ["player_tag"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile-refreshes/{id}": {
+      "get": {
+        "operationId": "profileRefreshStatus",
+        "x-permission": "profiles:refresh",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/{id}/members/{tag}": {
+      "put": {
+        "operationId": "addCollectionMember",
+        "x-permission": "collections:members:add",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/{id}/members": {
+      "post": {
+        "operationId": "addCollectionMembers",
+        "x-permission": "collections:members:add",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tags": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["tags"]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "integrationKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An integration_api audience key; MCP and OAuth tokens are refused."
+      }
+    },
+    "schemas": {
+      "Clock": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "const": "policy"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "season_id": {
+            "type": "integer"
+          },
+          "season_started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "season_ends_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "week": {
+            "type": "integer"
+          },
+          "section_index": {
+            "type": "integer"
+          },
+          "period_index": {
+            "type": "integer"
+          },
+          "day_kind": {
+            "enum": ["training", "war"]
+          },
+          "war_day": {
+            "type": ["integer", "null"]
+          },
+          "day_started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "day_ends_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "source",
+          "as_of",
+          "season_id",
+          "season_started_at",
+          "season_ends_at",
+          "week",
+          "section_index",
+          "period_index",
+          "day_kind",
+          "war_day",
+          "day_started_at",
+          "day_ends_at",
+          "notes"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "player_tag": {
+            "type": "string"
+          },
+          "name": {
+            "type": ["string", "null"]
+          },
+          "clan": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "clan_tag": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": ["string", "null"]
+                  },
+                  "badge_id": {
+                    "type": ["integer", "null"]
+                  },
+                  "role": {
+                    "type": ["string", "null"]
+                  }
+                },
+                "required": ["clan_tag", "name", "badge_id", "role"]
+              }
+            ]
+          },
+          "attributes": {
+            "type": "object",
+            "properties": {
+              "years_played": {
+                "type": ["integer", "null"]
+              },
+              "account_age_days": {
+                "type": ["integer", "null"]
+              }
+            },
+            "required": ["years_played", "account_age_days"]
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["player_tag", "name", "clan", "attributes", "observed_at"]
+      },
+      "Refresh": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "player_tag": {
+            "type": "string"
+          },
+          "status": {
+            "enum": ["pending", "complete", "failed"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "error": {
+            "const": "refresh_unavailable"
+          }
+        },
+        "required": ["id", "player_tag", "status", "created_at", "expires_at"]
+      },
+      "Membership": {
+        "type": "object",
+        "properties": {
+          "collection_id": {
+            "type": "string"
+          },
+          "added": {
+            "type": "integer"
+          },
+          "already_present": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "enrollment_established": {
+            "const": true
+          },
+          "recordings_started": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "collection_id",
+          "added",
+          "already_present",
+          "total",
+          "enrollment_established",
+          "recordings_started"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["type", "title", "status", "code", "detail", "request_id"]
+      },
+      "ClockResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Clock"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["data", "request_id"]
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["data", "request_id"]
+      },
+      "RefreshResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Refresh"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["data", "request_id"]
+      },
+      "MembershipResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Membership"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["data", "request_id"]
+      }
+    }
+  }
+}

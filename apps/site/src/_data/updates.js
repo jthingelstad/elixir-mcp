@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "A REST API for platform integrations",
+    body: "Admin → Integrations now provisions platform keys, permissions, independent budgets and collection enrollment grants. The versioned API provides a game calendar, recorded player profiles, asynchronous refreshes and idempotent automatic recording enrollment. Elixir Drop is the first consumer. Personal and clan-agent MCP connections keep their existing behavior.",
+  },
+  {
+    date: "2026-09-08",
     title: "Questions to try after connecting",
     body: "Account → Connections now suggests questions your recorded history can support. Copy one into your connected AI client to review your player snapshot, recent battles, decks, two recorded weeks or a recorded clan war. View the full question before copying; manual copying is available if clipboard access is blocked. The overview shares the same suggestions. New players see guidance while they wait for their first capture.",
   },

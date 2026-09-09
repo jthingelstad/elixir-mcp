@@ -36,6 +36,10 @@ export default function (eleventyConfig) {
     )]: "assets/site.css",
   });
   eleventyConfig.addPassthroughCopy("src/robots.txt");
+  eleventyConfig.addPassthroughCopy({
+    "../../packages/contracts/integration-api.openapi.json":
+      "docs/integration-api.json",
+  });
   // The access-request form's script. An external file rather than an
   // inline block because the CSP forbids inline script (#25).
   eleventyConfig.addPassthroughCopy("src/assets/request-form.js");

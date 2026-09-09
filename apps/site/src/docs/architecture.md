@@ -210,7 +210,8 @@ yield.
   insufficient tool call is refused before it spends rate or daily
   quota.
 - **Three principals, three doors.** A person connects at
-  `/mcp`; an agent at `/a/<id>/mcp`; an integration at `/i/<id>/mcp`.
+  `/mcp`; an agent at `/a/<id>/mcp`. Platform integrations use the
+  [REST API](/docs/integrations) at `/api/v1`; `/i/<id>/mcp` remains a legacy migration surface.
   Grants are audience-bound to exactly one of them, so a credential
   presented at the wrong door is refused rather than quietly answering
   about the wrong subject — which matters because the three publish
