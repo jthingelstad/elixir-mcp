@@ -1047,3 +1047,62 @@ test("war_current says what kind of day it is at the top level", async () => {
     await db.query("rollback");
   }
 });
+
+/**
+ * The race roster reconciles against the clan roster, out loud.
+ *
+ * A leader counted 44 participants against 49 members and could not tell a
+ * recorder gap from a real one - and the five omissions were concentrated
+ * on the least active members, which is the worst place for a silent hole.
+ * Checked against the live CR API on 2026-09-09: its own currentriverrace
+ * clan.participants returned the same 44 and omitted the same five tags, so
+ * the list was always faithful. The fix is to make the gap visible, not to
+ * change what is served.
+ */
+test("war_current names the current members the race roster leaves out", async () => {
+  await db.query("begin");
+  try {
+    const { rows: participating } = await db.query(
+      `select wp.player_tag from war_participation wp
+       where wp.clan_tag = $1 order by wp.player_tag limit 1`,
+      [CLAN],
+    );
+    const orphan = "#2P9YQCV0";
+    await db.query(
+      `insert into player (player_tag, name) values ($1, 'Not In Race')
+       on conflict (player_tag) do nothing`,
+      [orphan],
+    );
+    // In the clan, absent from this week's race roster.
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+       values ($1, $2, now(), 'member')`,
+      [CLAN, orphan],
+    );
+
+    const { body } = await call(invoke, "war_current", { clan_tag: CLAN });
+
+    assert.equal(body.participants_count, body.participants.length);
+    const missing = body.members_not_in_race.map((m) => m.player_tag);
+    assert.ok(missing.includes(orphan), "the member with no race row is named");
+    assert.equal(
+      body.members_not_in_race.find((m) => m.player_tag === orphan).reason,
+      "not_in_race_roster",
+      "the API does not say why, so neither do we",
+    );
+    // Somebody who IS racing must not appear in the shortfall list.
+    assert.ok(!missing.includes(participating[0].player_tag));
+
+    // The two counts reconcile: current members = racing members + omitted.
+    const racingMembers = body.participants.filter((p) => p.in_clan).length;
+    assert.equal(
+      body.member_count,
+      racingMembers + body.members_not_in_race.length,
+      "member_count is the clan, participants_count is the race",
+    );
+
+    assert.match(body.note, /members_not_in_race/);
+  } finally {
+    await db.query("rollback");
+  }
+});

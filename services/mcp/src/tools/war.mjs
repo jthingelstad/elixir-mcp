@@ -243,6 +243,28 @@ export const warTools = {
                     p.name nulls last`,
         [clanTag, wk.season_id, wk.section_index],
       );
+      // WHO IS IN THE CLAN BUT NOT IN THE RACE.
+      //
+      // A leader counted 44 participants against 49 members and could not
+      // tell a recorder gap from a real one; the omissions were concentrated
+      // on the least active members, which is the worst possible place for a
+      // silent hole. Verified against the live API on 2026-09-09: its own
+      // currentriverrace clan.participants returned the same 44, missing the
+      // same five tags, so this list is FAITHFUL and the omission is
+      // upstream. Surfacing it is the fix - the gap was never wrong, only
+      // invisible.
+      const notInRace = await ctx.db.query(
+        `select cm.player_tag, p.name
+         from clan_membership cm
+         left join player p on p.player_tag = cm.player_tag
+         where cm.clan_tag = $1 and cm.left_observed_at is null
+           and not exists (
+             select 1 from war_participation wp
+             where wp.clan_tag = cm.clan_tag and wp.player_tag = cm.player_tag
+               and wp.season_id = $2 and wp.section_index = $3)
+         order by p.name nulls last`,
+        [clanTag, wk.season_id, wk.section_index],
+      );
       // Battled = decksUsedToday observed >0 at any poll, OR a recorded
       // war battle by that member that day — polls alone undercount
       // when the cadence misses a member's play window (round-3).
@@ -364,6 +386,15 @@ export const warTools = {
         next_war_day_opens_at: nextWarDayOpensAt,
         standings: standings.rows,
         participants: participation.rows,
+        participants_count: participation.rows.length,
+        member_count:
+          participation.rows.filter((r) => r.in_clan).length +
+          notInRace.rows.length,
+        members_not_in_race: notInRace.rows.map((r) => ({
+          player_tag: r.player_tag,
+          name: r.name,
+          reason: "not_in_race_roster",
+        })),
         ...(period ? { period } : {}),
         // decks_today is an ANSWER when it is null, not an omission. It
         // used to vanish from the payload entirely off a war day while the
@@ -380,7 +411,7 @@ export const warTools = {
                   : "training_day",
             }),
         attendance_by_war_day: attendance.rows,
-        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles - it is empty before this week's first war day, which day_kind tells you apart from a capture gap.",
+        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. participants_count and member_count reconcile explicitly, and members_not_in_race names current members the race roster omits: the game's own currentriverrace payload can carry fewer participants than the clan has members (verified against the live API), so a shortfall there is upstream and not a capture gap - reason is not_in_race_roster because the API does not say why. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles - it is empty before this week's first war day, which day_kind tells you apart from a capture gap.",
         meta: {
           ...meta,
           ...(period?.nominal_period_elapsed

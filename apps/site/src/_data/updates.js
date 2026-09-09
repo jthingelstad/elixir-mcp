@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "War now says who is in the clan but not in the race",
+    body: "A clan leader counted 44 people in this week's race against 49 in the clan, and had no way to tell a recording gap from a real one. It was real: checked against the game's own live payload, its current-river-race participants list returned the same 44 and left out the same five people, so what we served was right all along - just silent about the difference. war_current now returns participants_count, member_count and members_not_in_race, naming the current members the race roster leaves out. The game gives no reason for the omission, so neither do we; the reason reads not_in_race_roster and nothing is invented. The omissions cluster on the least active members, which is exactly where a leader is looking, so the gap being visible matters more than it being small. The behaviour is written up in the public Clash Royale API reference for anyone else who hits it.",
+  },
+  {
+    date: "2026-09-09",
     title:
       "An agent's key capabilities are editable too, and renaming says what went wrong",
     body: "An agent can connect either over OAuth or with its service key. Editing capabilities only reached the first: an OAuth connection's capabilities live on its grant and are edited on Account -> Connections, but a service key's live on the key, so an agent connected the usual way had no capability control anywhere. The agent's own page now edits them, with the same checkboxes and the same rules. A key issued before capabilities existed holds all of them, and is shown that way rather than as a key that can do nothing. Separately, renaming an agent could refuse every name with 'lower-case letters, numbers and hyphens' even when the name was perfectly valid: an agent's name is its live key's name, so an agent whose key was revoked has nowhere to keep one, and that failure was being reported as though the name were malformed. Each refusal now says which one it is, and the revoked-key case tells you to issue a new key first.",
