@@ -496,7 +496,16 @@ export const warTools = {
             }
           : {}),
         ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
-        note: "points are per-member contributions; fame belongs to the boat (clan). in_progress marks the week still being fought (nulls there mean not-finished-yet); on OLDER weeks null our_rank/our_fame means the week was observed without a standings capture. null war_days_battled means per-day attendance is unknown for that week (unknown, not zero). finished_early marks regular weeks where the boat hit the 10,000-fame finish line: decks used after the finish earn ZERO points, so per-deck efficiency math on those weeks is invalid. history_starts_at is the recording horizon - weeks before it were never observed, so fewer seasons than requested is coverage, not absence.",
+        // war_days_battled lives on member_weeks, which only exist when a
+        // player_tag was supplied. Stating it unconditionally sent a leader
+        // hunting for a field that was never going to be in the response
+        // (playtest round, 2026-09-09).
+        note:
+          "points are per-member contributions; fame belongs to the boat (clan). in_progress marks the week still being fought (nulls there mean not-finished-yet); on OLDER weeks null our_rank/our_fame means the week was observed without a standings capture." +
+          (focus
+            ? " member_weeks carries this member's week-by-week participation; null war_days_battled there means per-day attendance is unknown for that week (unknown, not zero)."
+            : " Pass player_tag for one member's week-by-week participation (member_weeks).") +
+          " finished_early marks regular weeks where the boat hit the 10,000-fame finish line: decks used after the finish earn ZERO points, so per-deck efficiency math on those weeks is invalid. history_starts_at is the recording horizon - weeks before it were never observed, so fewer seasons than requested is coverage, not absence.",
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

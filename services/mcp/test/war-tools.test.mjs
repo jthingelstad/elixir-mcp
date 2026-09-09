@@ -927,3 +927,50 @@ test("Pilot population excludes partial multiplayer and same-side observations",
   const after = await call(invoke, "clans_pilot_scores", { days: 30 });
   assert.equal(after.body.basis.curve_pairs, before.body.basis.curve_pairs);
 });
+
+/**
+ * The note described war_days_battled unconditionally, but that field only
+ * exists on member_weeks, which only exist when player_tag was supplied.
+ * A clan leader read the note on a plain war_history call and went hunting
+ * for a field that was never going to be there (playtest round,
+ * 2026-09-09).
+ */
+test("war_history only documents war_days_battled when it can actually return it", async () => {
+  const plain = await call(invoke, "war_history", { seasons: 3 });
+  assert.equal(plain.body.member_weeks, undefined, "no focus, no member rows");
+  assert.doesNotMatch(
+    plain.body.note,
+    /war_days_battled/,
+    "the note must not describe a field this response cannot carry",
+  );
+  // It should say how to get it instead of going silent.
+  assert.match(plain.body.note, /player_tag/);
+  // The clauses that DO apply are still there.
+  assert.match(plain.body.note, /finished_early/);
+  assert.match(plain.body.note, /history_starts_at/);
+
+  const focusTag = (
+    await db.query(
+      `select player_tag from war_participation where clan_tag = $1 and points > 0
+       limit 1`,
+      [CLAN],
+    )
+  ).rows[0].player_tag;
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     select $1, $2, now(), 'member'
+     where not exists (select 1 from clan_membership where player_tag = $2 and left_observed_at is null)`,
+    [CLAN, focusTag],
+  );
+  const focused = await call(invoke, "war_history", {
+    player_tag: focusTag,
+    seasons: 3,
+  });
+  assert.ok(focused.body.member_weeks, "focus returns member rows");
+  assert.match(
+    focused.body.note,
+    /war_days_battled/,
+    "and then the note explains them",
+  );
+  assert.match(focused.body.note, /finished_early/);
+});
