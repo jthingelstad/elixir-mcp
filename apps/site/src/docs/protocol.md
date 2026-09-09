@@ -201,10 +201,12 @@ which needs the client to cooperate:
 
 - **At consent:** reconnect and tick the missing capability on the consent
   page, which offers every scope the request left out.
-- **After the fact:** Account -> Connections lists every live connection with
-  its capabilities and lets you change them. This covers the personal door and
-  every agent or integration door you own, each of which carries its own
-  grant. Editing takes effect on that connection's next call - no reconnect,
+- **After the fact:** Account -> Connections lists every live OAuth
+  connection with its capabilities and lets you change them. This covers the
+  personal door and every agent or integration door you own, each of which
+  carries its own grant. An agent can also connect with its **service key**
+  rather than OAuth, and a key's capabilities are not part of any grant - edit
+  those on the agent's own page (Account -> Agents). Editing takes effect on that connection's next call - no reconnect,
   because the token's scope is read from the grant on every request. Narrowing
   works the same way, so a capability can be taken back without disconnecting
   the client.

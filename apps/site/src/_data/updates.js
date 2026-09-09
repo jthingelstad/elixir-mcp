@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-09",
+    title:
+      "An agent's key capabilities are editable too, and renaming says what went wrong",
+    body: "An agent can connect either over OAuth or with its service key. Editing capabilities only reached the first: an OAuth connection's capabilities live on its grant and are edited on Account -> Connections, but a service key's live on the key, so an agent connected the usual way had no capability control anywhere. The agent's own page now edits them, with the same checkboxes and the same rules. A key issued before capabilities existed holds all of them, and is shown that way rather than as a key that can do nothing. Separately, renaming an agent could refuse every name with 'lower-case letters, numbers and hyphens' even when the name was perfectly valid: an agent's name is its live key's name, so an agent whose key was revoked has nowhere to keep one, and that failure was being reported as though the name were malformed. Each refusal now says which one it is, and the revoked-key case tells you to issue a new key first.",
+  },
+  {
+    date: "2026-09-09",
     title: "Change what a connection can do, without reconnecting it",
     body: "Account -> Connections now lists the capabilities of every live connection and lets you edit them in place. Tick a capability to add it, untick one to take it back; the change applies to that connection's next call, with no reconnect and no new token, because a token's capabilities are read from the grant on every request. The list also covers your agents' and integrations' connections, which each authorize at their own address and hold their own grant - previously they appeared nowhere and could not be managed at all. Reading recorded data stays switched on for every connection, since a connection without it can do nothing.",
   },

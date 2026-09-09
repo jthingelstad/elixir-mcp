@@ -767,3 +767,184 @@ test("the console can see when a key was issued and whether it has been used", a
     "last active is the account's, so rotating a key cannot erase it",
   );
 });
+
+/**
+ * An agent's capabilities are editable after it exists.
+ *
+ * An agent can connect EITHER over OAuth, whose scope lives on the grant
+ * and is edited on Connections, OR with its service key, whose scope lives
+ * on the token. Only the first had a surface, so an agent connected the
+ * usual way had no capability control anywhere (owner report, 2026-09-09).
+ */
+test("an agent's key capabilities can be widened and narrowed by its owner", async () => {
+  // The admin account: the member tier caps agents at three and the tests
+  // above already mint all three.
+  const cookie = bossCookie;
+  const created = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: { name: "scope-edit", clan_tag: "#J2RGCRVG", scope: "cr:read" },
+    }),
+  );
+  assert.equal(created.statusCode, 201, created.body);
+  const agentAccountId = JSON.parse(created.body).agent.account_id;
+
+  const scopeOf = async () =>
+    (
+      await db.query(
+        `select scope from service_token where name = 'scope-edit'
+         and revoked_at is null`,
+      )
+    ).rows[0].scope;
+  assert.equal(await scopeOf(), "cr:read");
+
+  // Widen.
+  const widened = await handler(
+    event({
+      path: "/api/me/principals/scope",
+      cookie,
+      body: { account_id: agentAccountId, scope: "feedback:write cr:read" },
+    }),
+  );
+  assert.equal(widened.statusCode, 200, widened.body);
+  assert.equal(
+    JSON.parse(widened.body).scope,
+    "cr:read feedback:write",
+    "canonical order regardless of what was sent",
+  );
+  assert.equal(await scopeOf(), "cr:read feedback:write");
+
+  // Narrow again: a capability can be taken back without rotating the key.
+  const narrowed = await handler(
+    event({
+      path: "/api/me/principals/scope",
+      cookie,
+      body: { account_id: agentAccountId, scope: "cr:read" },
+    }),
+  );
+  assert.equal(narrowed.statusCode, 200);
+  assert.equal(await scopeOf(), "cr:read");
+
+  // A scope this server does not define is refused, not partially applied.
+  const bogus = await handler(
+    event({
+      path: "/api/me/principals/scope",
+      cookie,
+      body: { account_id: agentAccountId, scope: "cr:read admin:everything" },
+    }),
+  );
+  assert.equal(bogus.statusCode, 400);
+  assert.equal(JSON.parse(bogus.body).error, "invalid_scope");
+  assert.equal(await scopeOf(), "cr:read", "and nothing changed");
+
+  // cr:read is not optional; a key without it can do nothing.
+  const noRead = await handler(
+    event({
+      path: "/api/me/principals/scope",
+      cookie,
+      body: { account_id: agentAccountId, scope: "feedback:write" },
+    }),
+  );
+  assert.equal(noRead.statusCode, 400);
+  assert.equal(await scopeOf(), "cr:read");
+});
+
+test("somebody else's agent is not yours to re-scope", async () => {
+  const { rows } = await db.query(
+    `select a.account_id from account a
+     join account o on o.account_id = a.owned_by_account_id
+     where a.kind = 'agent' and o.email_hash = $1 limit 1`,
+    [emailHash(LEADER)],
+  );
+  const victim = rows[0].account_id;
+  const before = (
+    await db.query(
+      `select scope from service_token where account_id = $1 and revoked_at is null`,
+      [victim],
+    )
+  ).rows[0].scope;
+
+  const res = await handler(
+    event({
+      path: "/api/me/principals/scope",
+      cookie: partnerCookie,
+      body: { account_id: victim, scope: "cr:read feedback:write" },
+    }),
+  );
+  // Finds nothing rather than refusing: the same shape as revoke, so the
+  // response does not confirm that somebody else's agent exists.
+  assert.equal(res.statusCode, 404);
+  const after = (
+    await db.query(
+      `select scope from service_token where account_id = $1 and revoked_at is null`,
+      [victim],
+    )
+  ).rows[0].scope;
+  assert.equal(after, before, "untouched");
+});
+
+/**
+ * A rename refusal says which refusal it is.
+ *
+ * An agent's name IS its live key's name, so an agent whose key was
+ * revoked has nowhere to keep one. That returned the same "not_found" as a
+ * stranger's agent, and the console rendered every non-duplicate failure
+ * as a validation complaint - so a perfectly valid name came back "lower-
+ * case letters, numbers and hyphens" and no input could fix it. Reported
+ * by the owner, 2026-09-09.
+ */
+test("renaming an agent whose key was revoked says so, instead of blaming the name", async () => {
+  const cookie = bossCookie;
+  const created = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: { name: "keyless-agent", clan_tag: "#J2RGCRVG" },
+    }),
+  );
+  assert.equal(created.statusCode, 201, created.body);
+  const agentAccountId = JSON.parse(created.body).agent.account_id;
+
+  // A valid name works while the key is live, so the fixture cannot pass by
+  // accident later.
+  const fine = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie,
+      body: { account_id: agentAccountId, name: "renamed-ok" },
+    }),
+  );
+  assert.equal(fine.statusCode, 200, fine.body);
+
+  await db.query(
+    `update service_token set revoked_at = now() where account_id = $1`,
+    [agentAccountId],
+  );
+
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie,
+      body: { account_id: agentAccountId, name: "test" },
+    }),
+  );
+  const body = JSON.parse(res.body);
+  assert.equal(
+    body.error,
+    "no_live_key",
+    "the name was valid; the agent had nowhere to put it",
+  );
+  assert.notEqual(body.error, "invalid_name", "and it is NOT a name problem");
+
+  // A stranger's agent still reports not_found, so the two zeros stay apart
+  // and this route cannot be used to probe for account ids.
+  const foreign = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: partnerCookie,
+      body: { account_id: agentAccountId, name: "mine-now" },
+    }),
+  );
+  assert.equal(JSON.parse(foreign.body).error, "not_found");
+});

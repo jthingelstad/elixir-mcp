@@ -116,7 +116,8 @@ refused rather than quietly answering about the wrong subject.
 | Page | What it does |
 |---|---|
 | Account → Overview | your players (relationship, nickname, notify), your clans (scope, notify), slot usage, tier-upgrade request, timezone |
-| Account → Connections | every live connection - yours and your agents' and integrations' - with what it can do, where it last called from, and controls to change its capabilities or disconnect it |
+| Account → Connections | every live OAuth connection - yours and your agents' and integrations' - with what it can do, where it last called from, and controls to change its capabilities or disconnect it |
+| Account → Agents | per agent: its door URL, its key, what that key may do (editable), and rotate/revoke/suspend. An agent connected with a service key rather than OAuth carries its capabilities here, not on Connections |
 | Account → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread events |
 | Account → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; disconnect |
 | Account → Activity | your calls with `request_id`, account events, the notification feed (read-only) |

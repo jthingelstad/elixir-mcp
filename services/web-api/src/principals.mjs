@@ -8,7 +8,7 @@
  * cannot drift on the rules that matter (whose clan, which tier, how many).
  */
 
-import { mintServiceTokenValue } from "@elixir-mcp/auth";
+import { mintServiceTokenValue, normalizeScope } from "@elixir-mcp/auth";
 import { createPrincipal, normalizePrincipalName } from "@elixir-mcp/claims";
 
 /** Everything the owner has that a principal could be pointed at. */
@@ -94,6 +94,44 @@ export const createAgent = (db, owner, opts) =>
     clanTag: opts.clanTag,
     scope: opts.scope,
   });
+
+/**
+ * Change what an agent's key may do.
+ *
+ * An agent authenticates with a SERVICE TOKEN, not an OAuth grant, so its
+ * capabilities live on service_token.scope. The Connections editor edits
+ * oauth_family.scope and therefore could never reach an agent created the
+ * normal way: those doors had no capability surface at all (owner report,
+ * 2026-09-09).
+ *
+ * NULL on the row means every scope - what every key minted before 0053
+ * holds - so an edit always replaces that implicit everything with an
+ * explicit, legible set. Integrations are deliberately not editable here:
+ * their keys carry a different audience and are admin-managed through
+ * /api/v1, where these MCP scopes do not apply.
+ */
+export async function setPrincipalScope(
+  db,
+  ownerAccountId,
+  principalAccountId,
+  scope,
+) {
+  const clean = normalizeScope(scope);
+  if (!clean) return { ok: false, error: "invalid_scope" };
+  const { rowCount } = await db.query(
+    `update service_token t
+     set scope = $3
+     from account a
+     where t.account_id = $1
+       and a.account_id = t.account_id
+       and a.owned_by_account_id = $2
+       and a.kind = 'agent'
+       and t.revoked_at is null`,
+    [principalAccountId, ownerAccountId, clean],
+  );
+  if (rowCount === 0) return { ok: false, error: "not_found" };
+  return { ok: true, scope: clean };
+}
 
 /**
  * Rotate an agent's key.
@@ -204,6 +242,22 @@ export async function renamePrincipal(
     );
     if (rowCount === 0) {
       await db.query("rollback");
+      // WHICH zero this is decides what the person should do next, and
+      // collapsing them sent a real report: every name was refused as if it
+      // were malformed. An agent whose key was revoked still exists and is
+      // still yours - it simply has nowhere to keep a name, because the name
+      // IS the live key's name (owner report, 2026-09-09).
+      const { rows: owned } = await db.query(
+        `select exists (select 1 from service_token t
+                        where t.account_id = a.account_id
+                          and t.revoked_at is null) as has_key
+         from account a
+         where a.account_id = $1 and a.owned_by_account_id = $2
+           and a.kind = 'agent'`,
+        [principalAccountId, ownerAccountId],
+      );
+      if (owned[0] && !owned[0].has_key)
+        return { ok: false, error: "no_live_key" };
       return { ok: false, error: "not_found" };
     }
     await db.query("commit");

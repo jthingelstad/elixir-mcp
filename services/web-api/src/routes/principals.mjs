@@ -3,6 +3,7 @@ import {
   renamePrincipal,
   rotateToken,
   setPrincipalStatus,
+  setPrincipalScope,
   createAgent,
 } from "../principals.mjs";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
@@ -123,6 +124,31 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       await logEvent(db, account.accountId, "principal_renamed", {
         account_id: body.account_id,
         name: result.name,
+      });
+      return json(200, result);
+    },
+
+    // An agent's capabilities live on its service token, not on an OAuth
+    // family, so this is the agent equivalent of editing a connection's
+    // capabilities - the same act on a different credential.
+    "POST /api/me/principals/scope": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (!UUID_RE.test(String(body.account_id ?? "")))
+        return json(400, { error: "invalid_account_id" });
+      const result = await setPrincipalScope(
+        db,
+        account.accountId,
+        body.account_id,
+        Array.isArray(body.scope) ? body.scope.join(" ") : body.scope,
+      );
+      if (!result.ok)
+        return json(result.error === "not_found" ? 404 : 400, result);
+      await logEvent(db, account.accountId, "principal_scope_changed", {
+        account_id: body.account_id,
+        scope: result.scope,
       });
       return json(200, result);
     },

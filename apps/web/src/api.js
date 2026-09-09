@@ -61,6 +61,8 @@ export const api = {
     request("POST", "/api/me/connections/revoke", { family_id }),
   setConnectionScope: (family_id, scope) =>
     request("POST", "/api/me/connections/scope", { family_id, scope }),
+  setPrincipalScope: (account_id, scope) =>
+    request("POST", "/api/me/principals/scope", { account_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>

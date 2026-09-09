@@ -1,4 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
+import { OAUTH_SCOPES } from "@elixir-mcp/contracts";
+
+import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { api } from "../../api.js";
 
 import { Fresh } from "../../components/Fresh.jsx";
@@ -98,10 +101,19 @@ export function AgentDetail({ id, navigate }) {
                     load();
                     return;
                   }
+                  // Say which refusal this actually is. Every non-duplicate
+                  // failure used to render as a validation complaint, so a
+                  // perfectly valid name came back "lower-case letters,
+                  // numbers and hyphens" and no input could ever fix it.
                   setRenameError(
-                    r.data?.error === "name_taken"
-                      ? "You already have an agent with that name."
-                      : "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
+                    {
+                      name_taken: "You already have an agent with that name.",
+                      invalid_name:
+                        "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
+                      no_live_key:
+                        "This agent has no live key, and an agent's name is its key's name. Issue a new key first, then rename it.",
+                      not_found: "This agent is no longer available.",
+                    }[r.data?.error] ?? "Could not rename this agent.",
                   );
                 }}
               >
@@ -269,6 +281,31 @@ export function AgentDetail({ id, navigate }) {
                 {copied ? "copied" : "copy"}
               </button>
             </div>
+          </div>
+        )}
+        {key && (
+          <div className="panel__body">
+            <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
+              <strong>What this key may do</strong> — capabilities of the
+              agent&rsquo;s service key. An agent connected over OAuth instead
+              carries its own grant, editable on{" "}
+              <a onClick={() => navigate("/account/connections")}>
+                Connections
+              </a>
+              .
+            </p>
+            <CapabilityEditor
+              // A null scope means EVERY capability: that is what keys minted
+              // before scopes existed still hold, so it must be resolved
+              // before it reaches the checkboxes or a key that can do
+              // everything would render as one that can do nothing.
+              scope={key.scope ?? OAUTH_SCOPES.join(" ")}
+              onSave={async (scope) => {
+                const r = await api.setPrincipalScope(id, scope);
+                if (r.ok) load();
+                return r;
+              }}
+            />
           </div>
         )}
         <div className="panel__actions">
