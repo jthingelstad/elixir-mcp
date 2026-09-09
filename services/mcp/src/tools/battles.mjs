@@ -532,12 +532,16 @@ export const battlesTools = {
                   coalesce(sum(crowns),0)::int as crowns_for,
                   coalesce(sum(opp_crowns),0)::int as crowns_against,
                   coalesce(sum(trophy_change),0)::int as net_trophies,
-                  count(*) filter (where crowns = 3)::int as three_crowns,
+                  count(*) filter (where outcome in ('win','loss') and type_class = 'pvp'
+                                   and type <> all($${params.length + 1}))::int as head_to_head,
+                  count(*) filter (where crowns = 3 and type_class = 'pvp'
+                                   and type <> all($${params.length + 1}))::int as three_crowns,
                   (select n::int from streak) as current_streak
            from sample`,
           [...params, DUEL_TYPES],
         );
-        const { three_crowns, decided_wins, decided_losses, ...counts } = row;
+        const { three_crowns, head_to_head, decided_wins, decided_losses, ...counts } =
+          row;
         // Decided = head-to-head wins + losses. Boat attacks (a static
         // defense, no live opponent) and draws stay in `battles` and in
         // W/L/D but never in the win_rate denominator (feedback #23).
@@ -547,9 +551,17 @@ export const battlesTools = {
           decided_battles: decided,
           win_rate:
             decided > 0 ? Number((decided_wins / decided).toFixed(3)) : null,
+          head_to_head_battles: head_to_head,
+          // Three crowns means the king tower fell, which only reads as a
+          // sweep on a single game. A duel row collapses up to three games
+          // and SUMS their crowns, so 1+1+1 across three rounds - possibly a
+          // LOSS - used to count here exactly like a genuine 3-0. The tool
+          // already warns that duels mix crown units in crowns_for/against;
+          // this rate was committing the same error (playtest round,
+          // 2026-09-09). Boat attacks have no king tower to take at all.
           three_crown_rate:
-            row.battles > 0
-              ? Number((three_crowns / row.battles).toFixed(3))
+            head_to_head > 0
+              ? Number((three_crowns / head_to_head).toFixed(3))
               : null,
         };
       };
@@ -711,7 +723,7 @@ export const battlesTools = {
           ? {}
           : {
               denominators_note:
-                "battles counts every recorded battle in the window, W/L/D included. win_rate = wins / decided_battles, where decided_battles = head-to-head wins + losses: boat_battles (attacks on a static defense) and draws are excluded from the denominator. duel_battles are rows that collapse up to three games; their crowns count once per round, so crowns_for/against mix units when duels are present.",
+                "battles counts every recorded battle in the window, W/L/D included. win_rate = wins / decided_battles, where decided_battles = head-to-head wins + losses: boat_battles (attacks on a static defense) and draws are excluded from the denominator. duel_battles are rows that collapse up to three games; their crowns count once per round, so crowns_for/against mix units when duels are present. three_crown_rate = three-crown wins / head_to_head_battles, and BOTH sides exclude boat battles and duels: a duel's crowns sum across its rounds, so three crowns spread over three games is not a three-crown victory and is never counted as one.",
             }),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
