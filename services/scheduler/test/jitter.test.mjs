@@ -103,14 +103,14 @@ test("a dormant player's profile stretches instead of polling every 8h", () => {
   assert.equal(yieldCadenceMinutes(dormant), 4320);
 });
 
-test("an active player's profile tightens", () => {
+test("an active player's profile tightens (to 8h, not 2h: the snapshot is daily)", () => {
   assert.equal(
     yieldCadenceMinutes({
       endpoint: "player",
       yield_bph: null,
       activity_bph: 2,
     }),
-    120,
+    480,
   );
   assert.equal(
     yieldCadenceMinutes({

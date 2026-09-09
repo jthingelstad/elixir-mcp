@@ -188,10 +188,17 @@ analytics outage can never page anyone or delay a login email.
 The scheduler maintains one prioritized queue. Each subject's cadence
 derives from its **observed yield** — an exponentially-weighted average
 of battles-per-hour actually harvested — so active players poll tightly
-and dormant ones fall to daily, automatically. War-race polling reads
-the period type the API itself reports (war days tight, training days
-relaxed). Fairness floors guarantee nobody is forgotten regardless of
-yield.
+and dormant ones fall to daily, automatically. Two bounds sit on top of
+that for the battlelog. A **loss-aware bound** keeps the poll interval
+under half the fastest time the player has recently filled the ~30-entry
+battlelog, measured from battle timestamps rather than from what a poll
+happened to harvest, so a burst that already rolled the log still teaches
+the true rate. A **reader cap** keeps any player somebody asked about
+through a tool within an hour for the next day, so the players people
+actually follow are never the ones parked on the daily fairness floor.
+War-race polling reads the period type the API itself reports (war days
+tight, training days relaxed). Fairness floors guarantee nobody is
+forgotten regardless of yield.
 
 ## Access: entitlements, not permissions
 

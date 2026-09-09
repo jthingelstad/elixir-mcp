@@ -28,7 +28,11 @@ export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
       // we also defend structurally so a future network-bound sink cannot
       // reintroduce the 50s hang.
       try {
-        const pending = emitMetrics(stats);
+        const pending = emitMetrics(stats, {
+          planned: result.jobs.length,
+          bounded: result.bounded,
+          read_capped: result.readCapped,
+        });
         if (pending && typeof pending.then === "function")
           pending.catch(() => {});
       } catch {

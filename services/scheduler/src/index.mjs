@@ -8,5 +8,5 @@ import { emitLedgerMetrics } from "./metrics.mjs";
 // hung every tick to the 50s timeout (issue #1). See metrics.mjs.
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
-  emitMetrics: (stats) => emitLedgerMetrics(stats),
+  emitMetrics: (stats, plan) => emitLedgerMetrics(stats, undefined, plan),
 });

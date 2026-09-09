@@ -104,13 +104,37 @@ export const TAG_RULE_HINT =
  * remembered "last user" would be the worst bug this file could have.
  */
 export async function subject(db, account, inputTag, need, onBehalfOf = null) {
+  let resolved;
   try {
-    return await resolveSubject(db, account, inputTag, need, { onBehalfOf });
+    resolved = await resolveSubject(db, account, inputTag, need, {
+      onBehalfOf,
+    });
   } catch (err) {
     if (err?.code === "invalid_tag")
       throw new ToolFailure(err.code, err.message, TAG_RULE_HINT);
     if (err?.code) throw new ToolFailure(err.code, err.message, err.hint);
     throw err;
+  }
+  await stampRead(db, resolved.tag);
+  return resolved;
+}
+
+/**
+ * A resolved subject is a subject somebody asked about: stamp it so the
+ * scheduler keeps that player's battlelog within an hour for the next day
+ * (docs/FETCH-LOOP-AUDIT-2026-09-09.md). Best-effort by construction --
+ * one PK-indexed update, and a failure is logged, never surfaced -- and a
+ * subject with no poll_state row (not recorded) is a no-op.
+ */
+export async function stampRead(db, tag) {
+  try {
+    await db.query(
+      `update poll_state set last_read_at = now()
+       where subject_tag = $1 and endpoint = 'player_battlelog'`,
+      [tag],
+    );
+  } catch (err) {
+    console.error("read_stamp_failed", tag, err?.message);
   }
 }
 

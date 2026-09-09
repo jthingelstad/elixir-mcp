@@ -22,7 +22,7 @@ const NAMESPACE = "ElixirMCP/Ledger";
 
 /** Build one EMF log line (a single JSON object, no embedded newlines) from a
  *  ledgerStats() row. Pure and synchronous. */
-export function ledgerEmf(stats, now = Date.now()) {
+export function ledgerEmf(stats, now = Date.now(), plan = {}) {
   return JSON.stringify({
     _aws: {
       Timestamp: now,
@@ -34,6 +34,12 @@ export function ledgerEmf(stats, now = Date.now()) {
             { Name: "OldestQueuedAgeSeconds", Unit: "Seconds" },
             { Name: "DeadJobs", Unit: "Count" },
             { Name: "QueuedJobs", Unit: "Count" },
+            // Planner counters (2026-09-09): what the tick planned, and how
+            // many of those were due ONLY because of the loss-aware bound
+            // or the reader cap. The proof that a bound is doing work.
+            { Name: "PlannedJobs", Unit: "Count" },
+            { Name: "LossBoundedJobs", Unit: "Count" },
+            { Name: "ReadCappedJobs", Unit: "Count" },
           ],
         },
       ],
@@ -41,6 +47,9 @@ export function ledgerEmf(stats, now = Date.now()) {
     OldestQueuedAgeSeconds: stats.oldest_queued_s ?? 0,
     DeadJobs: stats.dead ?? 0,
     QueuedJobs: (stats.queued_bulk ?? 0) + (stats.queued_live ?? 0),
+    PlannedJobs: plan.planned ?? 0,
+    LossBoundedJobs: plan.bounded ?? 0,
+    ReadCappedJobs: plan.read_capped ?? 0,
   });
 }
 
@@ -49,6 +58,7 @@ export function ledgerEmf(stats, now = Date.now()) {
 export function emitLedgerMetrics(
   stats,
   write = (line) => process.stdout.write(line),
+  plan = {},
 ) {
-  write(`${ledgerEmf(stats)}\n`);
+  write(`${ledgerEmf(stats, Date.now(), plan)}\n`);
 }

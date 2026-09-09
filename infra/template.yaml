@@ -483,6 +483,11 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
+          # Loss-aware battlelog bound A/B arm (docs/FETCH-LOOP-AUDIT-2026-09-09.md):
+          # off | half | all. `half` = the stable hash-selected half of subjects;
+          # promote to `all` once ab_yield shows the treated arm's gap rate under
+          # 1.5% of polls against the control arm over the same clock hours.
+          ELIXIR_LOSS_BOUND: half
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
 
   SchedulerRule:

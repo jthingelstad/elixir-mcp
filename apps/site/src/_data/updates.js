@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-09",
+    title:
+      "Players you ask about stay fresh, and bursts stop rolling off the log",
+    body: "Two changes to how the recorder decides when to fetch a player's battles. First, asking about a player through any tool now keeps that player's battlelog within an hour for the next day; until now a friend who plays a few games a day sat on the daily fairness floor and could be a day stale exactly when you looked. Second, the recorder now measures how fast each player has recently filled the ~30-entry battlelog and polls before half that time has passed, so a grinder's evening burst can no longer push battles off the log before they are recorded; the previous rule learned activity only from what a poll harvested, which is precisely what an overflowed log hides. The burst rule is rolling out to half of recorded players first so the two halves can be compared over the same hours. Profile snapshots of active players are taken every eight hours instead of every two, since the record keeps one snapshot per day.",
+  },
+  {
+    date: "2026-09-09",
     title: "The maintainer hears feedback as it arrives",
     body: "Feedback filed on the site or through a connected agent, and tier-upgrade requests, now email the maintainer the moment they land: the category, a short excerpt, and which account or agent sent it (never an address), with a link to act on it. Until now only access requests and collector events did, and feedback waited for the next review pass. Each kind of notification has its own subject line, and notifications ride the best-effort lane of the mail relay so they can never delay or dead-letter a sign-in code.",
   },

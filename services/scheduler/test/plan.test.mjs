@@ -4,7 +4,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { planTick, CADENCE, yieldCadenceMinutes } from "../src/plan.mjs";
+import {
+  planTick,
+  CADENCE,
+  yieldCadenceMinutes,
+  lossBoundMinutes,
+  inLossBoundArm,
+  jitterFactor,
+  LOSS_SAFETY,
+  LOG_CAPACITY,
+  READ_CAP_MINUTES,
+} from "../src/plan.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -318,10 +328,18 @@ test("yield cadence: harvest-target battlelog, stretched profiles, hinted war da
     Math.round(c({ endpoint: "player_battlelog", yield_bph: 1 })),
     300,
   );
-  // Profiles ride the same signal.
+  // Profiles ride the same signal. Active players take 480, not 120: the
+  // projection is a daily snapshot and the 120m branch was 70% of profile
+  // spend (2026-09-09 audit).
   assert.equal(c({ endpoint: "player", yield_bph: 0.005 }), 4320);
-  assert.equal(c({ endpoint: "player", yield_bph: 2 }), 120);
+  assert.equal(c({ endpoint: "player", yield_bph: 2 }), 480);
   assert.equal(c({ endpoint: "player", yield_bph: 0.2 }), 1440);
+  assert.equal(c({ endpoint: "player", yield_bph: null }), 480);
+  // The borrowed battlelog signal wins over the profile row's own NULL.
+  assert.equal(
+    c({ endpoint: "player", yield_bph: null, activity_bph: 0.01 }),
+    4320,
+  );
   // The payload names war days.
   assert.equal(c({ endpoint: "currentriverrace", hint: "training" }), 120);
   assert.equal(c({ endpoint: "currentriverrace", hint: "warDay" }), 30);
@@ -412,5 +430,178 @@ test("clan scope: 'activity' records the clan only; upgrade re-seeds members", a
   assert.ok(
     keys2.includes("player_battlelog:#LLLLLLLL"),
     "comprehensive polls members",
+  );
+});
+
+// ---------------------------------------------------------------- 0061
+// Production shapes from docs/FETCH-LOOP-AUDIT-2026-09-09.md, pinned.
+
+test("loss-aware bound: the grinder shape, its TTL, and the NULL fallback", () => {
+  const c = (row) => yieldCadenceMinutes(row, NOW);
+  // #9U9QY99RY: 30 battles in 1.8h = 16.7 bph, while the EWMA (which only
+  // ever sees 30 / interval) reads 3 bph and would wait 100 minutes.
+  const grinder = {
+    endpoint: "player_battlelog",
+    yield_bph: 3,
+    burst_bph: 16.7,
+    burst_at: min(30),
+  };
+  assert.equal(Math.round(c({ ...grinder, burst_bph: null })), 100);
+  assert.equal(Math.round(c(grinder)), 54);
+  assert.equal(
+    Math.round(lossBoundMinutes(grinder, NOW)),
+    Math.round(((LOSS_SAFETY * LOG_CAPACITY) / 16.7) * 60),
+  );
+  // A burst older than 14 days no longer bounds anything.
+  assert.equal(Math.round(c({ ...grinder, burst_at: min(15 * 1440) })), 100);
+  // A slow player's burst never tightens below the rule (horizon 300h).
+  assert.equal(c({ ...grinder, yield_bph: 0.1, burst_bph: 0.1 }), 1440);
+  // The floor holds: 60 bph would want 15m from the bound too.
+  assert.equal(c({ ...grinder, burst_bph: 60 }), 15);
+  // The bound is a battlelog rule; profiles ignore it.
+  assert.equal(c({ ...grinder, endpoint: "player", activity_bph: 3 }), 480);
+});
+
+test("reader cap: a low-activity friend polls hourly for a day after a read", () => {
+  const c = (row) => yieldCadenceMinutes(row, NOW);
+  // King Levy's shape: 3 battles/day -> 0.125 bph -> the 24h clamp, and
+  // 23h stale at read time on 2026-09-09.
+  const friend = { endpoint: "player_battlelog", yield_bph: 0.125 };
+  assert.equal(c(friend), 1440);
+  assert.equal(c({ ...friend, last_read_at: min(120) }), READ_CAP_MINUTES);
+  assert.equal(c({ ...friend, last_read_at: min(25 * 60) }), 1440);
+  // A cap never loosens a grinder's own tighter cadence.
+  assert.equal(
+    c({ endpoint: "player_battlelog", yield_bph: 20, last_read_at: min(1) }),
+    15,
+  );
+});
+
+test("the A/B arm is a stable hash split of about half the population", () => {
+  const tags = Array.from({ length: 400 }, (_, i) => `#ARM${i.toString(36)}`);
+  const treated = tags.filter((t) => inLossBoundArm(t, "half"));
+  assert.ok(
+    treated.length > 160 && treated.length < 240,
+    `half arm holds ${treated.length} of 400`,
+  );
+  for (const t of tags)
+    assert.equal(
+      inLossBoundArm(t, "half"),
+      jitterFactor(t, "player_battlelog") < 1,
+      "the arm IS the jitter phase, so ab_yield can split receipts identically",
+    );
+  assert.ok(tags.every((t) => inLossBoundArm(t, "all")));
+  assert.ok(tags.every((t) => !inLossBoundArm(t, "off")));
+  assert.ok(tags.every((t) => !inLossBoundArm(t, undefined)));
+});
+
+async function stampSignals(tag, { burst, burstAt, readAt } = {}) {
+  await db.query(
+    `update poll_state set burst_bph = $2, burst_at = $3, last_read_at = $4
+     where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [tag, burst ?? null, burstAt ?? null, readAt ?? null],
+  );
+}
+
+test("the loss bound makes a treated grinder due and leaves the control twin alone", async () => {
+  await freshenCards(NOW);
+  const tags = ["#G2RJ2L", "#G2RJ2P", "#G2RJ2Q", "#G2RJ2Y"]; // sorted
+  for (const t of tags) {
+    await addPlayer(t);
+    // EWMA 3 bph -> 100m rule; last polled 70m ago: not due unbounded
+    // (jitter floor 85m), due under the 54m bound (jitter ceiling 62m).
+    await setState(t, "player_battlelog", {
+      yieldBph: 3,
+      admitted: min(70),
+      planned: min(70),
+    });
+    await setState(t, "player", { admitted: min(1), planned: min(1) });
+    await stampSignals(t, { burst: 16.7, burstAt: min(10) });
+  }
+  await setTokens(100);
+  const off = await planTick(db, NOW, { arm: "off" });
+  assert.deepEqual(off.jobs, [], "control: nobody is due at 70 minutes");
+  assert.equal(off.bounded, 0);
+
+  await setTokens(100);
+  const all = await planTick(db, NOW, { arm: "all" });
+  assert.deepEqual(
+    all.jobs.map((j) => j.entity_key).sort(),
+    tags,
+    "treated: every grinder is due under the bound",
+  );
+  assert.equal(all.bounded, 4, "and each one is attributed to the bound");
+
+  // Reset planning stamps and prove the half arm is exactly the hash split.
+  for (const t of tags)
+    await setState(t, "player_battlelog", {
+      yieldBph: 3,
+      admitted: min(70),
+      planned: min(70),
+    });
+  for (const t of tags)
+    await stampSignals(t, { burst: 16.7, burstAt: min(10) });
+  await setTokens(100);
+  const half = await planTick(db, NOW, { arm: "half" });
+  assert.deepEqual(
+    half.jobs.map((j) => j.entity_key).sort(),
+    tags.filter((t) => inLossBoundArm(t, "half")).sort(),
+  );
+});
+
+test("a read within the day makes a clamped friend due; an older read does not", async () => {
+  await freshenCards(NOW);
+  await addPlayer("#L2VY9P");
+  await addPlayer("#L2VY9Y");
+  for (const t of ["#L2VY9P", "#L2VY9Y"]) {
+    await setState(t, "player_battlelog", {
+      yieldBph: 0.125,
+      admitted: min(180),
+      planned: min(180),
+    });
+    await setState(t, "player", { admitted: min(1), planned: min(1) });
+  }
+  await stampSignals("#L2VY9P", { readAt: min(60) });
+  await stampSignals("#L2VY9Y", { readAt: min(25 * 60) });
+  await setTokens(100);
+  const { jobs, readCapped } = await planTick(db, NOW, { arm: "off" });
+  assert.deepEqual(
+    jobs.map((j) => j.entity_key),
+    ["#L2VY9P"],
+    "read an hour ago: polled; read yesterday: still on the clamp",
+  );
+  assert.equal(readCapped, 1);
+});
+
+test("the profile row really borrows the battlelog signal now", async () => {
+  await freshenCards(NOW);
+  await addPlayer("#R0Y8UU");
+  await addPlayer("#R0Y8VV");
+  // Dormant: battlelog says 0.01 bph -> profile every 72h; polled 10h ago
+  // it must NOT be due (it was, under the inert borrow: 480m).
+  await setState("#R0Y8UU", "player_battlelog", {
+    yieldBph: 0.01,
+    admitted: min(1),
+    planned: min(1),
+  });
+  await setState("#R0Y8UU", "player", {
+    admitted: min(600),
+    planned: min(600),
+  });
+  // Active: 1 bph -> 480m; polled 9h ago it is due, 7h ago it is not.
+  await setState("#R0Y8VV", "player_battlelog", {
+    yieldBph: 1,
+    admitted: min(1),
+    planned: min(1),
+  });
+  await setState("#R0Y8VV", "player", {
+    admitted: min(540),
+    planned: min(540),
+  });
+  await setTokens(100);
+  const { jobs } = await planTick(db, NOW, { arm: "off" });
+  assert.deepEqual(
+    jobs.map((j) => `${j.endpoint}:${j.entity_key}`),
+    ["player:#R0Y8VV"],
   );
 });

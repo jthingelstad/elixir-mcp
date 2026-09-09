@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
-import { processResult } from "../src/pipeline.mjs";
+import { processResult, stampBurst } from "../src/pipeline.mjs";
 import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 
 let ctx;
@@ -108,6 +108,55 @@ test("battlelog message flows end to end: payload, receipt, battles, freshness, 
   );
   assert.ok(Number(ps[0].yield_bph) > 0, "fresh battles feed the yield signal");
   assert.equal(ps[0].last_admitted_at.toISOString(), FRESH_AT);
+  const { rows: burst } = await ctx.db.query(
+    `select burst_bph, burst_at from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [observer],
+  );
+  assert.notEqual(
+    burst[0].burst_bph,
+    null,
+    "a fresh admission stamps the burst signal",
+  );
+  assert.equal(burst[0].burst_at.toISOString(), FRESH_AT);
+});
+
+test("stampBurst: max battles in any 6h window over 14 days, as a per-hour rate", async () => {
+  const tag = "#8P8YLQ";
+  const asOf = "2026-09-09T12:00:00.000Z";
+  await ctx.db.query(`insert into player (player_tag) values ($1)`, [tag]);
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog')`,
+    [tag],
+  );
+  const at = (hoursAgo) => new Date(Date.parse(asOf) - hoursAgo * 3600_000);
+  // 12 battles inside two hours (the grinder shape), 3 spread a day earlier,
+  // and one 20 days ago that must not count.
+  const times = [
+    ...Array.from({ length: 12 }, (_, i) => at(1 + i / 6)),
+    at(30),
+    at(31),
+    at(32),
+    at(20 * 24),
+  ];
+  for (const [i, t] of times.entries()) {
+    const id = `burst-${i}`;
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, 'PvP', 'pvp')`,
+      [id, t],
+    );
+    await ctx.db.query(
+      `insert into battle_participant (battle_id, player_tag, side, battle_time) values ($1, $2, 0, $3)`,
+      [id, tag, t],
+    );
+  }
+  await stampBurst(ctx.db, tag, asOf);
+  const { rows } = await ctx.db.query(
+    `select burst_bph, burst_at from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [tag],
+  );
+  assert.equal(Number(rows[0].burst_bph), 2, "12 in a 6h window / 6 = 2 bph");
+  assert.equal(rows[0].burst_at.toISOString(), asOf);
+  // Bounded by the scheduler at 0.5 x 30 / 2 x 60 = 450 minutes.
 });
 
 test("SQS redelivery is a duplicate: no second receipt, no double ingest", async () => {

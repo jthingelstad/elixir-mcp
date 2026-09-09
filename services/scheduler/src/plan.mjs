@@ -16,6 +16,16 @@
  *
  * The live lane never goes through this planner — its reserve is the
  * budget the planner deliberately does not spend (live_reserve fraction).
+ *
+ * Two bounds sit on top of the battlelog cadence since 2026-09-09
+ * (docs/FETCH-LOOP-AUDIT-2026-09-09.md): a LOSS-AWARE bound from the
+ * player's fastest recent log fill (burst_bph, stamped at admission from
+ * battle timestamps), and a READER cap for subjects somebody asked about
+ * in the last day (last_read_at, stamped at subject resolution). Both
+ * only ever shorten a cadence; NULL means "no signal" and the rule is
+ * byte-identical to before. The loss bound ships behind an A/B arm
+ * (ELIXIR_LOSS_BOUND = off | half | all) so ab_yield can read both arms
+ * over the same clock hours.
  */
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
@@ -56,12 +66,61 @@ export const CADENCE = {
  *    already flat and cheap.
  */
 const TARGET_BATCH = 5;
-export function yieldCadenceMinutes(row) {
-  const bph = row.yield_bph === null ? null : Number(row.yield_bph);
+const DAY = 86_400_000;
+
+/** The battlelog holds ~30 entries (measured: 1,578 of 2,000 payloads had
+ *  exactly 30; the rest more). Loss math uses 30. */
+export const LOG_CAPACITY = 30;
+/** Poll before HALF the fastest observed fill time has elapsed, so a burst
+ *  that starts right after a poll still cannot roll the log. Modelled
+ *  2026-09-09: loss 3.7% -> 1.0% for +50% battlelog fetches at 0.5. */
+export const LOSS_SAFETY = 0.5;
+/** A burst older than this no longer bounds the cadence. */
+export const BURST_TTL_DAYS = 14;
+/** Subjects a reader resolved in the last READ_TTL_HOURS poll at least
+ *  every READ_CAP_MINUTES: the players people ask about must not be the
+ *  ones parked on the 24h fairness clamp (three of seven were, live). */
+export const READ_CAP_MINUTES = 60;
+export const READ_TTL_HOURS = 24;
+
+/**
+ * Minutes the loss-aware bound allows, or null when the row carries no
+ * usable burst signal. burst_bph is derived from battle TIMESTAMPS at
+ * admission, so unlike the yield EWMA it still knows the true rate after a
+ * poll that already overflowed (the EWMA can only ever see 30 / interval).
+ */
+export function lossBoundMinutes(row, now = new Date()) {
+  const burst =
+    row.burst_bph === null || row.burst_bph === undefined
+      ? null
+      : Number(row.burst_bph);
+  if (!(burst > 0)) return null;
+  const at = row.burst_at ? new Date(row.burst_at).getTime() : 0;
+  if (now.getTime() - at > BURST_TTL_DAYS * DAY) return null;
+  return Math.max(15, ((LOSS_SAFETY * LOG_CAPACITY) / burst) * 60);
+}
+
+/** Whether a reader asked about this subject within READ_TTL_HOURS. */
+export function readCapApplies(row, now = new Date()) {
+  if (!row.last_read_at) return false;
+  const age = now.getTime() - new Date(row.last_read_at).getTime();
+  return age < READ_TTL_HOURS * 3600_000;
+}
+
+export function yieldCadenceMinutes(row, now = new Date()) {
+  const bph =
+    row.yield_bph === null || row.yield_bph === undefined
+      ? null
+      : Number(row.yield_bph);
   if (row.endpoint === "player_battlelog") {
-    if (bph === null) return 60;
-    if (bph <= 0.02) return 1440;
-    return Math.min(1440, Math.max(15, (TARGET_BATCH / bph) * 60));
+    let cadence;
+    if (bph === null) cadence = 60;
+    else if (bph <= 0.02) cadence = 1440;
+    else cadence = Math.min(1440, Math.max(15, (TARGET_BATCH / bph) * 60));
+    const bound = lossBoundMinutes(row, now);
+    if (bound !== null) cadence = Math.min(cadence, bound);
+    if (readCapApplies(row, now)) cadence = Math.min(cadence, READ_CAP_MINUTES);
+    return cadence;
   }
   if (row.endpoint === "player") {
     // The profile row's OWN yield_bph is never written -- ingest records
@@ -76,13 +135,33 @@ export function yieldCadenceMinutes(row) {
         : Number(row.activity_bph);
     if (activity === null) return 480;
     if (activity <= 0.02) return 4320;
-    if (activity >= 0.5) return 120;
+    // Active players used to take 120m here, which was 70% of all profile
+    // spend (measured 2026-09-09) for a projection that is a DAILY
+    // snapshot; the pre-reset watcher forces the one time-critical read.
+    if (activity >= 0.5) return 480;
     return 1440;
   }
   if (row.endpoint === "currentriverrace") {
     return row.hint === "training" ? 120 : 30;
   }
   return CADENCE[row.endpoint].every;
+}
+
+/**
+ * The loss bound's A/B arm. `half` applies it to the stable half of the
+ * population whose jitter phase is below 1 (a hash, so the arms are the
+ * same subjects every tick and ab_yield can split receipts the same way);
+ * `all` promotes it; anything else is off.
+ */
+export function lossBoundArm(env = process.env) {
+  const v = env.ELIXIR_LOSS_BOUND;
+  return v === "all" || v === "half" ? v : "off";
+}
+
+export function inLossBoundArm(subjectTag, arm) {
+  if (arm === "all") return true;
+  if (arm === "half") return jitterFactor(subjectTag, "player_battlelog") < 1;
+  return false;
 }
 
 /**
@@ -200,7 +279,7 @@ async function seedPollState(db) {
     on conflict do nothing`);
 }
 
-async function selectEligible(db, now) {
+async function selectEligible(db, now, arm) {
   // reference freshness = the later of last plan and last admission; due
   // and starved both respect a short in-flight window so a pending job
   // isn't re-enqueued every tick.
@@ -208,7 +287,7 @@ async function selectEligible(db, now) {
     `
     with state as (
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
-             ps.yield_bph, ps.hint,
+             ps.yield_bph, ps.hint, ps.burst_bph, ps.burst_at, ps.last_read_at,
              -- Activity is only ever recorded on the battlelog row (ingest
              -- writes yield_bph there and nowhere else), so a profile row
              -- has to borrow it. Without this the 'player' cadence saw NULL
@@ -243,7 +322,13 @@ async function selectEligible(db, now) {
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
-           yield_bph, hint
+           yield_bph, hint, burst_bph, burst_at, last_read_at,
+           -- The 2026-09-08 borrow computed this in the CTE and never
+           -- re-selected it here, so yieldCadenceMinutes saw undefined,
+           -- fell back to the profile row's own NULL yield_bph, and every
+           -- profile kept polling on the 480 branch (measured: 33/h before,
+           -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
+           activity_bph
     from state`,
   );
 
@@ -259,9 +344,22 @@ async function selectEligible(db, now) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
     const referenceMs = r.reference.getTime();
-    const dueAfter =
-      yieldCadenceMinutes(r) * jitterFactor(r.subject_tag, r.endpoint) * MINUTE;
-    const due = nowMs - referenceMs >= dueAfter;
+    // Control-arm subjects never see their burst signal; the reader cap
+    // ships to everyone (it is cheap and the freshness win is the point).
+    const row = inLossBoundArm(r.subject_tag, arm)
+      ? r
+      : { ...r, burst_bph: null, burst_at: null };
+    const jitter = jitterFactor(r.subject_tag, r.endpoint) * MINUTE;
+    const due = nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;
+    // Would the unbounded rule have made it due? Only the difference is
+    // attributable to the bounds (the metric that proves them).
+    const dueUnbounded =
+      nowMs - referenceMs >=
+      yieldCadenceMinutes(
+        { ...row, burst_bph: null, burst_at: null, last_read_at: null },
+        now,
+      ) *
+        jitter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
     const forcedPreReset =
@@ -279,6 +377,9 @@ async function selectEligible(db, now) {
       subject_tag: r.subject_tag,
       endpoint: r.endpoint,
       starved,
+      bounded:
+        due && !dueUnbounded && !starved && lossBoundMinutes(row, now) !== null,
+      readCapped: due && !dueUnbounded && !starved && readCapApplies(row, now),
       overdueMs,
       expectedYield:
         (r.yield_bph === null ? 0.5 : Number(r.yield_bph)) *
@@ -306,14 +407,19 @@ async function selectEligible(db, now) {
  * @param {import('pg').Client} db
  * @param {Date} now injectable for tests
  */
-export async function planTick(db, now = new Date()) {
+export async function planTick(
+  db,
+  now = new Date(),
+  { arm = lossBoundArm() } = {},
+) {
   const { tokens, liveReserve } = await settleBudget(db, now);
   await seedPollState(db);
 
   const bulkBudget = Math.floor(tokens * (1 - liveReserve));
-  if (bulkBudget <= 0) return { jobs: [], tokens, bulkBudget };
+  if (bulkBudget <= 0)
+    return { jobs: [], tokens, bulkBudget, bounded: 0, readCapped: 0 };
 
-  const eligible = await selectEligible(db, now);
+  const eligible = await selectEligible(db, now, arm);
   const selected = eligible.slice(0, bulkBudget);
 
   for (const job of selected) {
@@ -336,5 +442,7 @@ export async function planTick(db, now = new Date()) {
     })),
     tokens,
     bulkBudget,
+    bounded: selected.filter((j) => j.bounded).length,
+    readCapped: selected.filter((j) => j.readCapped).length,
   };
 }

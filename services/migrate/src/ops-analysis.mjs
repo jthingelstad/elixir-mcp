@@ -1,4 +1,5 @@
 import pg from "pg";
+import { inLossBoundArm } from "../../scheduler/src/plan.mjs";
 
 export async function abYield(databaseUrl, spec) {
   const hours = Math.min(Math.max(Number(spec?.hours ?? 24), 1), 72);
@@ -31,8 +32,93 @@ export async function abYield(databaseUrl, spec) {
       );
       return rows[0];
     };
-    const a = await windowStats(spec.a_start);
-    const b = await windowStats(spec.b_start);
+    // Per-subject battlelog census for the same window, split by the loss
+    // bound's hash arm (the SAME split the scheduler uses under
+    // ELIXIR_LOSS_BOUND=half), so both arms read over identical clock
+    // hours and the war/training confound of a time-windowed A/B is gone.
+    // zero-yield = payload hash equal to the subject's previous receipt;
+    // gaps come from capture_audit (fresh polls with prior coverage only).
+    const armStats = async (startIso) => {
+      const { rows } = await db.query(
+        `with seq as (
+           select r.receipt_id, r.entity_key, r.fetched_at, r.payload_hash,
+                  lag(r.payload_hash) over (partition by r.entity_key order by r.fetched_at) as prev_hash
+           from api_receipt r
+           join gateway g on g.gateway_id = r.gateway_id
+           where g.name <> 'backfill-elixir-bot'
+             and r.endpoint = 'player_battlelog'
+             and r.fetched_at >= $1::timestamptz - interval '2 days'
+             and r.fetched_at < $1::timestamptz + make_interval(hours => $2)),
+         win as (select * from seq where fetched_at >= $1::timestamptz),
+         first_obs as (
+           select bo.battle_id, min(bo.receipt_id) as receipt_id
+           from battle_observation bo group by bo.battle_id)
+         select w.entity_key,
+                count(*)::int as fetches,
+                count(*) filter (where w.prev_hash = w.payload_hash)::int as zero_yield,
+                count(ca.receipt_id)::int as audited,
+                count(ca.receipt_id) filter (where ca.gap)::int as gaps,
+                (select count(*)::int from first_obs fo
+                  join win w2 on w2.receipt_id = fo.receipt_id
+                  where w2.entity_key = w.entity_key) as battles
+         from win w
+         left join capture_audit ca on ca.receipt_id = w.receipt_id
+         group by w.entity_key`,
+        [startIso, hours],
+      );
+      const arms = {
+        treated: {
+          subjects: 0,
+          battlelog_fetches: 0,
+          zero_yield: 0,
+          audited: 0,
+          gaps: 0,
+          battles: 0,
+        },
+        control: {
+          subjects: 0,
+          battlelog_fetches: 0,
+          zero_yield: 0,
+          audited: 0,
+          gaps: 0,
+          battles: 0,
+        },
+      };
+      for (const r of rows) {
+        const arm = inLossBoundArm(r.entity_key, "half")
+          ? arms.treated
+          : arms.control;
+        arm.subjects += 1;
+        arm.battlelog_fetches += r.fetches;
+        arm.zero_yield += r.zero_yield;
+        arm.audited += r.audited;
+        arm.gaps += r.gaps;
+        arm.battles += r.battles;
+      }
+      for (const arm of Object.values(arms)) {
+        arm.zero_yield_share =
+          arm.battlelog_fetches > 0
+            ? Math.round((arm.zero_yield / arm.battlelog_fetches) * 1000) / 1000
+            : null;
+        arm.gap_rate =
+          arm.audited > 0
+            ? Math.round((arm.gaps / arm.audited) * 10000) / 10000
+            : null;
+        arm.battles_per_battlelog_fetch =
+          arm.battlelog_fetches > 0
+            ? Math.round((arm.battles / arm.battlelog_fetches) * 1000) / 1000
+            : null;
+      }
+      return arms;
+    };
+    const a = {
+      ...(await windowStats(spec.a_start)),
+      arms: await armStats(spec.a_start),
+    };
+    const b = {
+      ...(await windowStats(spec.b_start)),
+      arms: await armStats(spec.b_start),
+    };
     const per = (w) =>
       w.battlelog_fetches > 0
         ? Math.round((w.battles_captured / w.battlelog_fetches) * 1000) / 1000

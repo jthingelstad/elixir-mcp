@@ -58,6 +58,33 @@ async function projectRankings(db, payload) {
   return { projected: "rankings", players: tags.length };
 }
 
+/** Window and lookback are the scheduler's LOG_CAPACITY / LOSS_SAFETY
+ *  counterpart: max battles in any 6h window over the trailing 14 days,
+ *  as a per-hour rate. One indexed read of the player's recent battles
+ *  (battle_participant_player_time), a window count, one row update. */
+const BURST_WINDOW_HOURS = 6;
+const BURST_LOOKBACK_DAYS = 14;
+
+export async function stampBurst(db, playerTag, asOf) {
+  await db.query(
+    `update poll_state ps
+       set burst_bph = b.bph, burst_at = $2::timestamptz
+     from (
+       select coalesce(max(n), 0) / ${BURST_WINDOW_HOURS}.0 as bph
+       from (
+         select count(*) over (
+                  order by battle_time
+                  range between interval '${BURST_WINDOW_HOURS} hours' preceding
+                            and current row) as n
+         from battle_participant
+         where player_tag = $1
+           and battle_time > $2::timestamptz - interval '${BURST_LOOKBACK_DAYS} days'
+           and battle_time <= $2::timestamptz) w) b
+     where ps.subject_tag = $1 and ps.endpoint = 'player_battlelog'`,
+    [playerTag, asOf],
+  );
+}
+
 const PROJECTORS = {
   async player_battlelog(db, { entityKey, receiptId, payload, fetchedAt }) {
     const result = await ingestBattlelog(db, {
@@ -87,6 +114,10 @@ const PROJECTORS = {
         },
       ];
     }
+    // Burst signal (0061): the fastest this player recently filled the
+    // log, from battle TIMESTAMPS, so an overflowed poll still teaches
+    // the true rate. Same replay guard as the yield signal below.
+    if (fresh) await stampBurst(db, entityKey, fetchedAt);
     // Yield signal (0017): battles-per-hour EWMA, the one activity
     // number the yield scheduler ranks by. Hours are measured from the
     // last admission; replayed history is excluded (backfill guard).

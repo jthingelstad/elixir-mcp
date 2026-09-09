@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { migrate, loadMigrations } from "../src/migrate.mjs";
 import { schemaFingerprint } from "../src/fingerprint.mjs";
+import { abYield } from "../src/ops-analysis.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -458,5 +459,30 @@ test("normalized related_tools round-trips through the text[] column", async () 
     assert.deepEqual(rows[0].tools, ["battles_opponents", "cards_synergy"]);
   } finally {
     await db.end();
+  }
+});
+
+test("ab_yield reports both hash arms with the audit's three new columns", async () => {
+  const start = "2020-01-01T00:00:00Z"; // long before any seeded receipt
+  const out = await abYield(SCRATCH_URL, {
+    hours: 24,
+    a_start: start,
+    b_start: "2020-01-02T00:00:00Z",
+  });
+  for (const w of [out.a, out.b]) {
+    assert.deepEqual(Object.keys(w.arms).sort(), ["control", "treated"]);
+    for (const arm of Object.values(w.arms)) {
+      for (const k of [
+        "subjects",
+        "battlelog_fetches",
+        "zero_yield",
+        "audited",
+        "gaps",
+        "battles",
+      ])
+        assert.equal(arm[k], 0, `${k} is a count`);
+      assert.equal(arm.zero_yield_share, null, "no fetches, no share");
+      assert.equal(arm.gap_rate, null, "no audited polls, no rate");
+    }
   }
 });
