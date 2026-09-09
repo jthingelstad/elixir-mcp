@@ -246,8 +246,21 @@ export async function segmentFilter(ctx, args, params) {
 }
 
 /** Empirical-Bayes shrinkage (META-INTEL): pull small samples toward
- *  the segment mean so a 3-0 deck never outranks a 60-40 one. */
-export function ebShrink(wins, decided, segmentMean, m = 20) {
+ *  the segment mean; this moderates extremes, not rank ordering. */
+export const META_METHODOLOGY = {
+  observation_unit: "player_battle",
+  outcomes: ["win", "loss"],
+  prior_strength: 20,
+  prior_source: "eligible segment before min_battles, sorting and limit",
+  confidence_intervals: false,
+};
+
+export function ebShrink(
+  wins,
+  decided,
+  segmentMean,
+  m = META_METHODOLOGY.prior_strength,
+) {
   if (decided === 0) return null;
   return Number(((wins + m * segmentMean) / (decided + m)).toFixed(3));
 }
@@ -267,8 +280,7 @@ export const SEGMENT_ARGS = {
   },
 };
 
-export const SEGMENT_NOTE =
-  "Pure observation, never opinion: rates are computed from recorded battles with sample sizes attached. shrunk_win_rate is empirical-Bayes (prior = the segment mean, strength 20) so tiny samples never top the list. players counts distinct pilots - a rate carried by one player is composition, not the deck.";
+export const SEGMENT_NOTE = `Descriptive pooled player-battle observations, not unique matches or independent trials: both participants can contribute. Only wins and losses count; draws and unresolved outcomes are excluded from counts, usage and rates. shrunk_win_rate = (wins + ${META_METHODOLOGY.prior_strength} * segment_win_rate) / (wins + losses + ${META_METHODOLOGY.prior_strength}), using the eligible segment before row thresholds and limits. Shrinkage moderates extremes but does not guarantee rankings or adjust for player skill. players counts distinct players, not an effective sample size. No confidence intervals or causal lift are estimated. An empty segment has no observed win rate.`;
 
 // --- tools -----------------------------------------------------------------
 

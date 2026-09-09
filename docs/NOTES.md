@@ -469,3 +469,19 @@ A successful data response, including an empty one, is a transport/use proxy;
 it is not an assertion of a useful answer. Copying a question produces no event.
 No synthetic member calls or accounts are created to establish acceptance.
 Readiness rules and user-facing behavior are documented in the public quickstart.
+
+## 2026-09-08 — Statistical and documentation alignment
+
+Jamie selected statistical/documentation alignment after the first-use group.
+Three scratch regressions reproduced denominator contamination by draws,
+reversed card-meta windows accepted as empty successes, and different level
+inputs between personal and clan scoring. The two score tools now share the
+population query and ingest-stamped level precision. Method declarations drive
+both the reader floors and the generated methodology table.
+
+This is alignment of the descriptive estimators, not implementation of the
+previously deferred within-player lift design. Existing standard_error remains
+for compatibility with explicit method limitations. Aggregate basis counts are
+volume context, not model identity: the earlier claim that unchanged counts
+attribute a change to the player was unsupported. New metadata and the corrected
+empty-rate semantics ship in contract 0.36.0. No migration or new collection work.

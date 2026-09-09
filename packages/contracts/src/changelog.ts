@@ -16,6 +16,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.36.0",
+    date: "2026-09-08",
+    summary:
+      "Statistical alignment: deck/card meta exclude draws and unresolved outcomes from decided totals, usage and shrinkage baselines; empty segments return segment_win_rate: null. Both return methodology and window_to. Card meta rejects reversed windows and excludes empty card arrays. Even-sized cohort medians average the two middle scores. Personal and clan Pilot Scores share ingest-stamped level averages and a population of exactly two opposing decided participants with known levels. battles_levels declares its existing include_curve option. Both expose methodology explaining sample floors and the legacy standard_error approximation, which is not a calibrated score confidence interval. Aggregate basis counts do not identify the fitted curve or prove why a score changed. Public methodology and earlier release claims now reflect these limits.",
+  },
+  {
     version: "0.35.0",
     date: "2026-09-08",
     summary:
@@ -77,7 +83,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "0.26.0",
     date: "2026-09-07",
     summary:
-      "war_current: period_end_nominal and week_end_nominal were wrong whenever the ~10:00 UTC reset drifted early. A period first seen open at 09:57Z reported its end as 10:00Z that same morning - about 24 hours early, and already in the past by the time anybody read it. Both now anchor on the period's own nominal start, so the end is a full day later. decks_today was gated on that boundary and therefore vanished on a live war day; it is back. clans_pilot_scores gains a basis block (curve_pairs, curve_bins, window_from, window_to): the level curve is refit over a rolling window on every request, so a member's score can move with no new battles of their own, and a run whose basis is unchanged can attribute a score change to the player rather than to the baseline. Reported by an agent through elixir_feedback.",
+      "war_current: period_end_nominal and week_end_nominal were wrong whenever the ~10:00 UTC reset drifted early. A period first seen open at 09:57Z reported its end as 10:00Z that same morning - about 24 hours early, and already in the past by the time anybody read it. Both now anchor on the period's own nominal start, so the end is a full day later. decks_today was gated on that boundary and therefore vanished on a live war day; it is back. clans_pilot_scores gains a basis block (curve_pairs, curve_bins, window_from, window_to): the level curve is refit over a rolling window on every request, so a member's score can move with no new battles of their own, these counts provide volume context, but cannot establish that the fitted curve is unchanged (clarified in 0.36.0). Reported by an agent through elixir_feedback.",
   },
   {
     version: "0.25.0",

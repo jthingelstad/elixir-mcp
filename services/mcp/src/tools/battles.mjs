@@ -20,7 +20,16 @@ import {
   ebShrink,
   SEGMENT_ARGS,
   SEGMENT_NOTE,
+  META_METHODOLOGY,
 } from "./shared.mjs";
+
+import {
+  LEVEL_EDGES_SQL,
+  levelPairsSql,
+  PILOT_METHODOLOGY,
+  PILOT_NOTE,
+  medianSortedScores,
+} from "../level-curve.mjs";
 
 export const battlesTools = {
   battles_query: {
@@ -853,7 +862,7 @@ export const battlesTools = {
 
   battles_meta_decks: {
     description:
-      "Observed deck meta for a segment - the whole corpus, one clan, one player, or a collection like 'pros'. Per exact deck identity (deck_hash): battles, record, distinct players, usage share, raw and EB-shrunk win rates. No tier lists, no opinions - what the recorded data shows, with sample sizes.",
+      "Observed deck meta for a segment - the whole corpus, one clan, one player, or a collection like 'pros'. Per exact deck identity (deck_hash): decided player-battle observations (not unique matches), record, distinct players, usage share, raw and EB-shrunk win rates. No tier lists, no opinions - what the recorded data shows, with sample sizes.",
     inputSchema: {
       type: "object",
       properties: {
@@ -875,7 +884,10 @@ export const battlesTools = {
       const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const where = ["bp.deck_hash is not null", "bp.outcome is not null"];
+      const where = [
+        "bp.deck_hash is not null",
+        "bp.outcome in ('win','loss')",
+      ];
       if (seg.where) where.push(seg.where);
       const from =
         resolveInstant(tz, args.from) ??
@@ -945,9 +957,11 @@ export const battlesTools = {
       shaped = shaped.slice(0, Math.min(args.limit ?? 20, 40));
       return {
         segment: seg.label,
+        methodology: META_METHODOLOGY,
         window_from: from,
+        window_to: to ?? null,
         decided_battles: totalDecided,
-        segment_win_rate: Number(mean.toFixed(3)),
+        segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
         decks: shaped,
         note: SEGMENT_NOTE,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -957,7 +971,7 @@ export const battlesTools = {
 
   battles_meta_cards: {
     description:
-      "Observed card meta for a segment - corpus, clan, player, or a collection like 'pros'. Per card AND evolution form (forms never merge): usage share among decided battles, distinct players, raw and EB-shrunk win rates. What the recorded data shows, with sample sizes - never a tier list.",
+      "Observed card meta for a segment - corpus, clan, player, or a collection like 'pros'. Per card AND evolution form (forms never merge): usage share among decided player-battle observations (not unique matches), distinct players, raw and EB-shrunk win rates. What the recorded data shows, with sample sizes - never a tier list.",
     inputSchema: {
       type: "object",
       properties: {
@@ -979,7 +993,11 @@ export const battlesTools = {
       const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const where = ["bp.deck ? 'cards'", "bp.outcome is not null"];
+      const where = [
+        "bp.deck ? 'cards'",
+        "jsonb_array_length(bp.deck->'cards') > 0",
+        "bp.outcome in ('win','loss')",
+      ];
       if (seg.where) where.push(seg.where);
       const from =
         resolveInstant(tz, args.from) ??
@@ -995,6 +1013,7 @@ export const battlesTools = {
         params.push(typesForModeGroup(args.mode));
         where.push(`b.type = any($${params.length})`);
       }
+      requireOrderedWindow(new Date(from), to ? new Date(to) : null);
       const { rows } = await ctx.db.query(
         `with sides as (
            select bp.player_tag, bp.outcome,
@@ -1055,9 +1074,11 @@ export const battlesTools = {
       shaped = shaped.slice(0, Math.min(args.limit ?? 30, 130));
       return {
         segment: seg.label,
+        methodology: META_METHODOLOGY,
         window_from: from,
+        window_to: to ?? null,
         decided_battles: totalDecided,
-        segment_win_rate: Number(mean.toFixed(3)),
+        segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
         cards: shaped,
         note:
           SEGMENT_NOTE +
@@ -1132,7 +1153,7 @@ export const battlesTools = {
 
   battles_levels: {
     description:
-      'The Level Curve and Pilot Score (META-INTEL §9): how much card-level advantage is worth, measured — win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag for their Pilot Score: actual minus level-expected win rate ("wins your card levels can\'t explain") with a monthly trend — a trend is descriptive, not proof of improvement or independence from spending; opposition and the fitted baseline can change. Numbers with receipts: every bin and score ships its sample size.',
+      "The Level Curve and Pilot Score (META-INTEL §9): the recorded association between level gap and results — win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag for their Pilot Score: actual minus the in-sample level-bin win rate with a monthly trend — a trend is descriptive, not proof of improvement or independence from spending; opposition and the fitted baseline can change. Numbers with receipts: every bin and score ships its sample size.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1150,6 +1171,12 @@ export const battlesTools = {
           description: "Window for the curve and score.",
         },
         mode: { type: "string", enum: MODE_GROUPS },
+        include_curve: {
+          type: "boolean",
+          default: true,
+          description:
+            "Set false to omit the curve rows; scoring and methodology are unchanged.",
+        },
         trophy_band: {
           type: "string",
           enum: [
@@ -1160,7 +1187,7 @@ export const battlesTools = {
             "13000_plus",
           ],
           description:
-            "Condition the curve on the perspective player's starting trophies. An even-level match at 13k is a harder population than one at 6k.",
+            "Both participants must have starting trophies in this band. Conditions the curve and scored observations on the same population.",
         },
       },
       additionalProperties: false,
@@ -1201,35 +1228,11 @@ export const battlesTools = {
           `and bp.starting_trophies >= $${params.length - 1} and bp.starting_trophies < $${params.length}`,
         );
       }
-      const EDGES =
-        "array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]";
-      const CURVE_FLOOR = 200;
-      // The pairs set is expensive (jsonb lateral over every deck); build
-      // it ONCE per request - curve, score, trend, and cohort all read it.
-      // Temp table is session-local; the txn drops it.
+      const EDGES = LEVEL_EDGES_SQL;
+      const CURVE_FLOOR = PILOT_METHODOLOGY.curve_min_observations;
       await ctx.db.query("begin");
       try {
-        await ctx.db.query(
-          `create temp table lv_pairs on commit drop as
-         with sides as (
-           select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
-                  avg((c.value->>'level')::numeric) as lvl
-           from battle_participant bp
-           join battle b on b.battle_id = bp.battle_id
-           cross join lateral jsonb_array_elements(bp.deck->'cards') c
-           where bp.deck ? 'cards' and b.type_class = 'pvp'
-             and bp.outcome in ('win','loss')
-             and b.battle_time > now() - $1::interval
-             ${clauses.join(" ")}
-           group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
-         duos as (select battle_id from sides group by battle_id having count(*) = 2)
-         select a.battle_id, a.player_tag, a.outcome, a.battle_time,
-                a.lvl - o.lvl as gap
-         from sides a
-         join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
-         where a.battle_id in (select battle_id from duos)`,
-          params,
-        );
+        await ctx.db.query(levelPairsSql(clauses), params);
         const base = `with pairs as (select * from lv_pairs)`;
         const { rows: curveRows } = await ctx.db.query(
           `${base}
@@ -1278,7 +1281,7 @@ export const battlesTools = {
            from pairs p
            join curve c on c.bin = width_bucket(p.gap, ${EDGES})
            where p.player_tag = $1
-           group by 1 having count(*) >= 20 order by 1`,
+           group by 1 having count(*) >= ${PILOT_METHODOLOGY.monthly_min_battles} order by 1`,
             [focus],
           );
           // Experience cohort (0024): tenure from the YearsPlayed badge;
@@ -1319,13 +1322,17 @@ export const battlesTools = {
              join curve c on c.bin = width_bucket(p.gap, ${EDGES})
              join player pl on pl.player_tag = p.player_tag
              where pl.years_played between $1 and $2
-             group by p.player_tag having count(*) >= 30`,
+             group by p.player_tag having count(*) >= ${PILOT_METHODOLOGY.player_min_battles}`,
               [bucket[0], bucket[1]],
             );
             const pilots = cohortScores
               .map((r) => Number(r.pilot))
               .sort((a, z) => a - z);
-            if (pilots.length >= 5 && score[0] && score[0].n >= 30) {
+            if (
+              pilots.length >= 5 &&
+              score[0] &&
+              score[0].n >= PILOT_METHODOLOGY.player_min_battles
+            ) {
               const mine = Number(score[0].pilot_score);
               const below = pilots.filter((v) => v < mine).length;
               cohort = {
@@ -1333,7 +1340,7 @@ export const battlesTools = {
                 cohort_size: pilots.length,
                 percentile: Number((below / pilots.length).toFixed(2)),
                 cohort_median_pilot_score: Number(
-                  pilots[Math.floor(pilots.length / 2)].toFixed(3),
+                  medianSortedScores(pilots).toFixed(3),
                 ),
                 basis:
                   "corpus players with known tenure in the same bucket and >= 30 scored battles in this window",
@@ -1348,7 +1355,7 @@ export const battlesTools = {
           }
           const s = score[0];
           player =
-            s && s.n >= 30
+            s && s.n >= PILOT_METHODOLOGY.player_min_battles
               ? {
                   player_tag: focus,
                   n: s.n,
@@ -1380,7 +1387,8 @@ export const battlesTools = {
           ...(args.mode ? { mode: args.mode } : {}),
           ...(args.include_curve === false ? {} : { curve }),
           ...(player ? { player } : {}),
-          note: "The curve measures the WITHIN-MATCH value of level advantage (each battle contributes both perspectives, so it is symmetric by construction); it does not measure the positional effect of upgrades on where you sit in matchmaking. pilot_score = actual minus level-expected win rate — wins your card levels can't explain. It embeds experience and opposition strength: compare your own TREND over months, or players of similar tenure and band, not raw scores across different careers. Bins below floor serve counts only — no extrapolation.",
+          methodology: PILOT_METHODOLOGY,
+          note: PILOT_NOTE,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       } catch (err) {

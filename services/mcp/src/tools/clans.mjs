@@ -9,6 +9,13 @@ import {
 import { formatLocal } from "../time.mjs";
 import { ToolFailure, entitledClan } from "./shared.mjs";
 
+import {
+  LEVEL_EDGES_SQL,
+  levelPairsSql,
+  PILOT_METHODOLOGY,
+  PILOT_NOTE,
+} from "../level-curve.mjs";
+
 export const clansTools = {
   clans_standings: {
     description:
@@ -124,7 +131,7 @@ export const clansTools = {
 
   clans_pilot_scores: {
     description:
-      "Every open member's Pilot Score in ONE call (agent feedback #1: ranking a clan took 18 battles_levels calls). Scores each member with >= 30 decided leveled battles against the corpus Level Curve; includes tenure. Wins their card levels can't explain, clan-wide.",
+      "Every open member's Pilot Score in ONE call (agent feedback #1: ranking a clan took 18 battles_levels calls). Scores each member with >= 30 decided leveled battles against the corpus Level Curve; includes tenure. Descriptive in-sample residuals, not a skill ranking or proof of improvement.",
     inputSchema: {
       type: "object",
       properties: {
@@ -146,31 +153,15 @@ export const clansTools = {
       const days = Number(args.days ?? 90);
       if (!Number.isInteger(days) || days < 7 || days > 365)
         throw new ToolFailure("bad_request", "days must be 7-365.");
-      const EDGES =
-        "array[-2.5,-1.5,-1.0,-0.6,-0.3,-0.1,0.1,0.3,0.6,1.0,1.5,2.5]";
+      const EDGES = LEVEL_EDGES_SQL;
       await ctx.db.query("begin");
       try {
-        await ctx.db.query(
-          `create temp table cps_pairs on commit drop as
-           with sides as (
-             select bp.battle_id, bp.player_tag, bp.outcome, bp.deck_avg_level as lvl
-             from battle_participant bp
-             join battle b on b.battle_id = bp.battle_id
-             where bp.deck_avg_level is not null and b.type_class = 'pvp'
-               and bp.outcome in ('win','loss')
-               and b.battle_time > now() - $1::interval),
-           duos as (select battle_id from sides group by battle_id having count(*) = 2)
-           select a.player_tag, a.outcome, a.lvl - o.lvl as gap
-           from sides a
-           join sides o on o.battle_id = a.battle_id and o.player_tag <> a.player_tag
-           where a.battle_id in (select battle_id from duos)`,
-          [`${days} days`],
-        );
+        await ctx.db.query(levelPairsSql(), [`${days} days`]);
         const { rows } = await ctx.db.query(
           `with curve as (
              select width_bucket(gap, ${EDGES}) as bin,
                     avg((outcome = 'win')::int) as wr
-             from cps_pairs group by bin having count(*) >= 200)
+             from lv_pairs group by bin having count(*) >= ${PILOT_METHODOLOGY.curve_min_observations})
            select cm.player_tag, pl.name, pl.years_played,
                   count(p.*)::int as n,
                   round(avg(p.gap)::numeric, 2) as mean_gap,
@@ -180,28 +171,22 @@ export const clansTools = {
                   round((0.5 / sqrt(greatest(count(p.*), 1)))::numeric, 3) as standard_error
            from clan_membership cm
            join player pl on pl.player_tag = cm.player_tag
-           join cps_pairs p on p.player_tag = cm.player_tag
+           join lv_pairs p on p.player_tag = cm.player_tag
            join curve c on c.bin = width_bucket(p.gap, ${EDGES})
            where cm.clan_tag = $1 and cm.left_observed_at is null
            group by cm.player_tag, pl.name, pl.years_played
-           having count(p.*) >= 30
+           having count(p.*) >= ${PILOT_METHODOLOGY.player_min_battles}
            order by (avg((p.outcome = 'win')::int) - avg(c.wr)) desc`,
           [clanTag],
         );
-        // What the curve was fit on. The curve is refit from the corpus
-        // on EVERY request over a rolling window, so a member's
-        // expected_from_levels moves when the corpus moves, with no new
-        // battles of their own - and a ledger that diffs runs cannot
-        // tell that from the player improving (feedback #9). There is no
-        // code revision to report here; the honest discriminator is the
-        // basis itself, so a run whose basis is unchanged can attribute
-        // a score change to the player.
+        // Aggregate volume context only: identical counts do not identify
+        // the observations or rates in a fitted curve.
         const { rows: basisRows } = await ctx.db.query(
-          `select (select count(*)::int from cps_pairs) as pairs,
+          `select (select count(*)::int from lv_pairs) as pairs,
                   (select count(*)::int from (
-                     select 1 from cps_pairs
+                     select 1 from lv_pairs
                      group by width_bucket(gap, ${EDGES})
-                     having count(*) >= 200) b) as bins`,
+                     having count(*) >= ${PILOT_METHODOLOGY.curve_min_observations}) b) as bins`,
         );
         await ctx.db.query("commit");
         const asOf = new Date();
@@ -229,7 +214,8 @@ export const clansTools = {
             pilot_score: Number(r.pilot_score),
             standard_error: Number(r.standard_error),
           })),
-          note: "pilot_score = actual minus level-expected win rate (wins card levels can't explain). Members below 30 decided leveled battles in the window are not scored. Scores embed experience and band - compare trends or similar tenures, not raw scores across careers. The level curve is refit per request over a ROLLING window, so scores can move without new battles; basis says what it was fit on, and a change there means the baseline moved rather than the player. Deeper single-player detail (cohort percentile, monthly trend): battles_levels.",
+          methodology: PILOT_METHODOLOGY,
+          note: PILOT_NOTE,
           meta: responseMeta({ as_of: asOf.toISOString() }),
         };
       } catch (err) {

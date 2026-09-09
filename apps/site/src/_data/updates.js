@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "Statistics with explicit denominators and limits",
+    body: "Deck and card meta now count only wins and losses in their decided totals, usage and shrinkage baseline; draws and unresolved results no longer depress that baseline. Empty samples report an unknown rate. Personal and clan Pilot Scores now share the same level inputs and qualifying population. Their responses spell out that the legacy standard-error field is an approximation, not a confidence interval for the score. The methodology documents the formulas, sample floors, dependent observations, and limits of rolling-baseline and tenure comparisons. Earlier release descriptions claiming guaranteed rankings or improvement independent of spending have been corrected.",
+  },
+  {
+    date: "2026-09-08",
     title: "A first question your history can answer",
     body: "Your account overview now guides you from adding a player through the first capture to asking your own MCP client. Suggested questions follow the data actually recorded: a player snapshot first, then battle reviews, deck comparisons and comparisons between two weeks as those samples become available. Copy a question with coverage and freshness checks built in, or open the same player's recorded data to inspect it. Connection consent and successful data reads are shown separately, including recent repeat use. Copying a question never counts as a successful answer, and a small sample never promises proof of improvement.",
   },
@@ -157,7 +162,7 @@ export default [
   {
     date: "2026-09-06",
     title: "The intelligence tools reach the browser",
-    body: "Web/agent parity closes out. The player explorer gains a Pilot Score tab - your score with its error bar, the monthly trend, and the full Level Curve. Explore > Meta shows the observed deck and card meta plus weekly trends for any segment: the whole corpus, a clan, or a collection like the pros. And Clan & War now carries Standings (win rates vs the clan median), clan-wide Pilot Scores, and the war Scouting Report. Every view is the same registry call your agent makes.",
+    body: "Web/agent parity closes out. The player explorer gains a Pilot Score tab - your score with its approximate standard-error field (not a calibrated confidence interval), the monthly trend, and the full Level Curve. Explore > Meta shows the observed deck and card meta plus weekly trends for any segment: the whole corpus, a clan, or a collection like the pros. And Clan & War now carries Standings (win rates vs the clan median), clan-wide Pilot Scores, and the war Scouting Report. Every view is the same registry call your agent makes.",
   },
   {
     date: "2026-09-05",
@@ -172,7 +177,7 @@ export default [
   {
     date: "2026-09-05",
     title: "The observed meta, and trends for any group",
-    body: "Three new intelligence tools, grounded entirely in recorded battles. battles_meta_decks and battles_meta_cards show what's actually being played and winning - across the whole corpus, one clan, one player, or a collection like the pros - with shrunk win rates that never let a lucky 3-0 top the list, distinct-pilot counts, and evolution forms kept separate. battles_trends adds weekly series for the same segments: watch a clan's (or the pros') win rate, volume, and active players move week over week. No tier lists, no opinions - sample sizes ride every number.",
+    body: "Three new intelligence tools, grounded entirely in recorded battles. battles_meta_decks and battles_meta_cards show what's actually being played and winning - across the whole corpus, one clan, one player, or a collection like the pros - with shrunk win rates that moderate small-sample extremes without guaranteeing rank order, distinct-pilot counts, and evolution forms kept separate. battles_trends adds weekly series for the same segments: watch a clan's (or the pros') win rate, volume, and active players move week over week. No tier lists, no opinions - sample sizes ride every number.",
   },
   {
     date: "2026-09-05",
@@ -222,7 +227,7 @@ export default [
   {
     date: "2026-09-04",
     title: "Level Curve, Pilot Score, Scouting Report",
-    body: "Two new intelligence tools, grounded entirely in recorded battles. battles_levels measures what card-level advantage is actually worth (a 66,000-observation curve) and scores any player's Pilot Score - wins your card levels can't explain, with a monthly trend that shows real improvement independent of spending. war_rivals is the Scouting Report: observed war history for every rival clan your brackets have ever contained. No tiers, no opinions - every number ships its sample size.",
+    body: "Two new intelligence tools, grounded entirely in recorded battles. battles_levels measures what card-level advantage is actually worth (a 66,000-observation curve) and scores any player's Pilot Score - performance relative to an in-sample level-gap baseline, with a descriptive monthly trend that does not prove improvement or spending independence. war_rivals is the Scouting Report: observed war history for every rival clan your brackets have ever contained. No tiers, no opinions - every number ships its sample size.",
   },
   {
     date: "2026-09-04",

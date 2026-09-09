@@ -363,3 +363,35 @@ test("nothing in the built site relies on inline script", { skip }, () => {
   assert.ok(read("index.html").includes("/assets/request-form.js"));
   assert.ok(existsSync(path.join(out, "assets/request-form.js")));
 });
+
+test(
+  "published methodology uses the reader floors and discloses statistical limits",
+  { skip },
+  async () => {
+    const { PILOT_METHODOLOGY } =
+      await import("../../../services/mcp/src/level-curve.mjs");
+    const page = read("docs/methodology/index.html");
+    assert.ok(
+      page.includes(
+        `${PILOT_METHODOLOGY.curve_min_observations} player-battle observations`,
+      ),
+    );
+    assert.ok(
+      page.includes(
+        `${PILOT_METHODOLOGY.player_min_battles} battles in supported bins`,
+      ),
+    );
+    assert.ok(
+      page.includes(
+        `${PILOT_METHODOLOGY.monthly_min_battles} battles in supported bins`,
+      ),
+    );
+    assert.ok(!page.includes("{{ statistics"));
+    assert.match(
+      page,
+      /not a calibrated error estimate or confidence interval for Pilot Score/,
+    );
+    assert.match(page, /unchanged counts do not identify an unchanged curve/);
+    assert.match(page, /Draws and unresolved outcomes are/);
+  },
+);

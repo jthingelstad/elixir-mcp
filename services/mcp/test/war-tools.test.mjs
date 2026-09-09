@@ -514,7 +514,7 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
   assert.ok(
     body.members.every((m) => typeof m.pilot_score === "number" && m.n >= 30),
   );
-  assert.match(body.note, /can't explain/);
+  assert.match(body.note, /descriptive in-sample residual/);
 });
 
 test("clans_pilot_scores: basis says what the curve was fit on", async () => {
@@ -860,4 +860,55 @@ test("game_clock refuses a date it cannot read, rather than guessing now", async
     () => registry.invoke("game_clock", {}, { at: "last tuesday" }),
     (err) => err.code === "bad_request",
   );
+});
+
+test("single-player and clan Pilot Scores share the same level observations and uncertainty disclosure", async () => {
+  const clan = await call(invoke, "clans_pilot_scores", { days: 30 });
+  assert.equal(clan.isError, false, JSON.stringify(clan.body));
+  for (const member of clan.body.members) {
+    const single = await call(invoke, "battles_levels", {
+      player_tag: member.player_tag,
+      days: 30,
+    });
+    assert.equal(single.isError, false, JSON.stringify(single.body));
+    for (const field of [
+      "n",
+      "pilot_score",
+      "actual_win_rate",
+      "expected_from_levels",
+      "standard_error",
+    ]) {
+      assert.equal(single.body.player[field], member[field], field);
+    }
+    assert.equal(
+      single.body.methodology.standard_error.confidence_interval,
+      false,
+    );
+  }
+  assert.equal(clan.body.methodology.standard_error.formula, "0.5 / sqrt(n)");
+  assert.match(clan.body.note, /counts do not identify/);
+});
+
+test("Pilot population excludes partial multiplayer and same-side observations", async () => {
+  const before = await call(invoke, "clans_pilot_scores", { days: 30 });
+  const tags = (
+    await db.query("select player_tag from player order by player_tag limit 3")
+  ).rows.map((r) => r.player_tag);
+  for (const [id, sides] of [
+    ["partial-team", [0, 0]],
+    ["three-players", [0, 1, 1]],
+  ]) {
+    await db.query(
+      "insert into battle (battle_id,battle_time,type,type_class) values ($1,now(),'PvP','pvp')",
+      [id],
+    );
+    for (const [i, side] of sides.entries()) {
+      await db.query(
+        "insert into battle_participant (battle_id,player_tag,side,outcome,deck_avg_level) values ($1,$2,$3,$4,$5)",
+        [id, tags[i], side, i ? "loss" : "win", i === 2 ? null : 14],
+      );
+    }
+  }
+  const after = await call(invoke, "clans_pilot_scores", { days: 30 });
+  assert.equal(after.body.basis.curve_pairs, before.body.basis.curve_pairs);
 });

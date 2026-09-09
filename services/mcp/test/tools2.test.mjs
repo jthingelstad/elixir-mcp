@@ -485,7 +485,7 @@ test("battles_levels: symmetric curve with floors; Pilot Score honest under smal
       assert.equal(bin.insufficient_sample, true);
     }
   }
-  assert.match(r.body.note, /wins your card levels can't explain/);
+  assert.match(r.body.note, /descriptive in-sample residual/);
 
   // Fixture corpus is tiny: the player block must refuse, not guess.
   const scored = await call("battles_levels", {
@@ -1147,4 +1147,105 @@ test("players_profile answers the player as a game entity, not just a name (§7.
   // Ids only: a renamed arena or a new icon must never leave stale
   // copies here, so nothing resolves to an asset URL.
   assert.doesNotMatch(JSON.stringify(body), /api-assets\.clashroyale\.com/);
+});
+
+test("meta denominators exclude draws and unresolved outcomes before shrinkage", async () => {
+  const tag = "#2PPPP";
+  await db.query("insert into player (player_tag) values ($1)", [tag]);
+  await db.query(
+    "insert into recording (subject_type, subject_tag, requested_by) values ('player',$1,$2)",
+    [tag, account.accountId],
+  );
+  for (const [i, outcome] of ["win", "loss", "draw", "unresolved"].entries()) {
+    const id = `meta-decided-${i}`;
+    await db.query(
+      "insert into battle (battle_id,battle_time,type,type_class) values ($1,now(),'PvP','pvp')",
+      [id],
+    );
+    await db.query(
+      "insert into battle_participant (battle_id,player_tag,side,outcome,deck_hash,deck) values ($1,$2,0,$3,'decided-test',$4)",
+      [
+        id,
+        tag,
+        outcome,
+        JSON.stringify({
+          cards: [{ id: 26000000, name: "Knight", level: 14 }],
+        }),
+      ],
+    );
+  }
+  for (const tool of ["battles_meta_decks", "battles_meta_cards"]) {
+    const { body, isError } = await call(tool, {
+      player_tag: tag,
+      min_battles: 1,
+    });
+    assert.equal(isError, false, JSON.stringify(body));
+    assert.equal(body.decided_battles, 2);
+    assert.equal(body.segment_win_rate, 0.5);
+    const row = (body.decks ?? body.cards)[0];
+    assert.equal(row.battles, 2);
+    assert.equal(row.win_rate, 0.5);
+    assert.equal(row.shrunk_win_rate, 0.5);
+    assert.equal(row.usage_share, 1);
+    assert.match(body.note, /player-battle/);
+    const empty = await call(tool, {
+      player_tag: tag,
+      from: "2099-01-01",
+      min_battles: 1,
+    });
+    assert.equal(empty.body.decided_battles, 0);
+    assert.equal(
+      empty.body.segment_win_rate,
+      null,
+      "empty is unknown, not an observed 50%",
+    );
+  }
+});
+
+test("card meta refuses an inverted window", async () => {
+  const result = await call("battles_meta_cards", {
+    from: "2026-09-05",
+    to: "2026-09-01",
+  });
+  assert.equal(result.isError, true);
+  assert.equal(result.body.error.code, "bad_request");
+});
+
+test("shrinkage moderates extremes without guaranteeing rank order", async () => {
+  const { ebShrink } = await import("../src/tools/shared.mjs");
+  assert.ok(ebShrink(3, 3, 0.8) > ebShrink(60, 100, 0.8));
+  assert.equal(ebShrink(0, 0, 0.5), null);
+});
+
+test("card meta does not dilute usage with empty card arrays", async () => {
+  const tag = "#2PPPP";
+  await db.query(
+    "insert into battle (battle_id,battle_time,type,type_class) values ('meta-empty',now(),'PvP','pvp')",
+  );
+  await db.query(
+    "insert into battle_participant (battle_id,player_tag,side,outcome,deck) values ('meta-empty',$1,0,'win','{\"cards\":[]}')",
+    [tag],
+  );
+  const result = await call("battles_meta_cards", {
+    player_tag: tag,
+    min_battles: 1,
+  });
+  assert.equal(result.isError, false, JSON.stringify(result.body));
+  assert.equal(result.body.decided_battles, 2);
+  assert.equal(result.body.cards[0].usage_share, 1);
+  assert.equal(result.body.segment_win_rate, 0.5);
+});
+
+test("the published curve-omission option matches the score reader", async () => {
+  const tool = makeRegistry()
+    .declarations()
+    .find((t) => t.name === "battles_levels");
+  assert.equal(tool.inputSchema.properties.include_curve.type, "boolean");
+  const result = await call("battles_levels", {
+    days: 365,
+    include_curve: false,
+  });
+  assert.equal(result.isError, false);
+  assert.equal("curve" in result.body, false);
+  assert.equal(result.body.methodology.curve_min_observations, 200);
 });

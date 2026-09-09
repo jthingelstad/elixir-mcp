@@ -2,107 +2,136 @@
 slug: methodology
 title: "How the numbers are made"
 navTitle: "Methodology"
-description: "What the corpus actually is, the biases we disclose rather than hide, and how Pilot Score and the level curve are calculated. Counts, rates and uncertainty — never verdicts."
+description: "The populations, denominators, shrinkage formula and limits behind the meta tools and Pilot Score. Descriptive evidence, not proof of skill or improvement."
 order: 41
 section: data
 ---
 
 # How the numbers are made
 
-The statistical tools here report **counts, rates and uncertainty — never
-verdicts**. No tiers, no "best deck", no curated lists, no model deciding what
-is good. Every number carries its sample size and the population it describes,
-and the tools describe their filters and sample thresholds. A threshold is not a guarantee of statistical reliability.
-
-If you want an opinion, your agent can form one. The tool will not form it for
-you, because a tool that editorialises is a tool you cannot check.
+These tools describe **the recorded sample**. Counts, rates, sorted results and
+scores can help an agent investigate a question; they do not establish which
+deck is best or whether a player improved. A sample threshold is a display
+rule, not a guarantee of reliability.
 
 ## What the corpus actually is
 
-It is **the matchmaking neighbourhood of the clans we record** — dense around
-their trophy bands, thin everywhere else. It is not a global ladder sample and
-it does not pretend to be.
+It is the matchmaking neighbourhood of the clans and players we record, not a
+random sample of the global ladder. Recorded members can have deep histories;
+their opponents may appear only once or twice. Players, trophy bands and modes
+are unevenly represented. Choose comparable segments and modes explicitly.
+Omitting a mode filter pools modes. The meta tools report distinct players but
+not a trophy-band composition breakdown or an effective independent sample size.
 
-Three biases we disclose rather than hide:
+## Deck and card meta: exactly what is counted
 
-**It is an ecosystem, not the ladder.** Choose the segment and mode explicitly when comparing results. The meta tools report the chosen segment and distinct-player counts; they do not currently return a trophy-band composition breakdown.
+`battles_meta_decks` and `battles_meta_cards` count **player-battle observations**,
+not unique matches. If both participants belong to the segment, both contribute.
+These observations are dependent: two sides of a match are not two independent
+trials, and repeated battles by one player are not independent players.
 
-**There are two classes of player in it.** Members of recorded clans have deep
-histories; most of their opponents appear once or twice. The current deck/card meta estimators pool their battle observations. Distinct-player counts help reveal concentration, but the rates do not adjust for each player's skill or history depth.
+Only `win` and `loss` outcomes qualify. Draws and unresolved outcomes are
+excluded from `decided_battles`, row counts, usage shares, rates and the
+shrinkage baseline. Deck meta requires a deck hash; card meta requires a nonempty cards
+array. Each tool's baseline describes its own eligible population.
 
-**War decks and ladder decks are different metas.** Mode is an optional filter. Omitting it pools modes; use the same explicit mode for comparisons.
+- **Raw win rate:** `wins / (wins + losses)`.
+- **Segment win rate:** all eligible wins divided by all eligible wins plus
+  losses, before `min_battles`, sorting and the result limit. An empty segment
+  returns `null`, not an observed 50%.
+- **Shrunk win rate:** `(wins + m × segment_win_rate) / (wins + losses + m)`,
+  where `m = {{ statistics.meta.prior_strength }}`. The prior mean is estimated
+  from this same segment, including the row being scored; the strength is fixed.
+- **Usage share:** the row's eligible observations divided by the segment's
+  eligible observations. A battle contains several cards, so card usage shares
+  are not parts of a total that sums to 100%.
+- **Players:** distinct observed players in that row. One prolific player can
+  still dominate a pooled rate. Evolution forms remain separate card rows.
 
-## Skill is confounded with everything
+This shrinkage moderates extremes; it does **not** guarantee rank order. With a
+segment mean of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
+about 63.3%. Neither estimate adjusts for player skill, opposition or deck loyalty.
+These tools do not return confidence intervals or within-player causal effects.
+Deck meta defaults to a five-observation minimum; card meta defaults to ten.
+Callers can change those filters. Returned `methodology` describes the observation
+unit, eligible outcomes and prior.
 
-The trap in naive deck statistics: a deck's raw win rate is mostly a fact about
-*who plays it*. Popular decks among strong players look strong. That is not a
-finding, it is an artefact — and it is the single most common way clan-level
-deck stats mislead.
+Within-player, leave-deck-out and leave-card-out lift remain unimplemented design
+ideas. They should not be inferred from these pooled fields.
 
-The current `battles_meta_decks` and `battles_meta_cards` tools return:
+## The Level Curve and Pilot Score
 
-- **Raw win rate:** wins divided by wins plus losses.
-- **Shrunk win rate:** the raw record pulled toward the segment mean using a
-  prior strength of 20. This moderates small samples; it does not adjust for
-  player skill, opposition, or deck loyalty.
-- **Sample context:** battle counts, wins, losses, distinct players, and usage.
+`battles_levels` and `clans_pilot_scores` use the same level inputs and population
+query. A qualifying recorded PvP battle has exactly two participants on opposing
+sides, both with known deck-average levels and opposite decided outcomes.
+Partial multiplayer records do not qualify. Each match contributes two
+player-battle observations, one from each perspective.
 
-These are descriptive pooled statistics. A deck played by one strong player
-can still look strong after shrinkage. Within-player, leave-deck-out and
-leave-card-out lift estimators are a future design, not fields currently
-served by these tools.
+Deck-average levels are stamped at ingest to two decimal places. The curve bins
+the difference between those averages and computes each bin's observed win rate.
+The personal tool can filter by mode and starting-trophy band; **both participants
+must pass the filters**. The clan tool uses the unfiltered corpus. Scores from
+different populations are not directly comparable. Returned gap ranges show
+the minimum and maximum observed gaps within each bin, not confidence limits.
 
-## Pilot Score
+For a player's qualifying battles in bins that meet the curve floor:
 
-Card levels win games. That is not controversial, and it makes raw win rate a
-poor measure of how well someone actually plays.
+`pilot_score = actual_win_rate − mean(level-bin win rate)`
 
-`battles_levels` measures the **level curve** empirically — win rate by
-deck-average level gap, across the corpus, binned where the data actually lives
-and never extrapolated beyond it. Your **Pilot Score** is then your actual win
-rate minus what your level gap predicts: *wins your card levels cannot explain*.
+A score of `0.05` means five percentage points above this fitted baseline. It is
+a **descriptive in-sample residual**, not a measurement of skill or the causal
+benefit of upgrading cards. The scored player's own observations contribute to
+the baseline. Mode, opposition, experience, deck choice and recording coverage
+can all influence the result.
 
-The score describes performance relative to the level-gap curve in the chosen
-sample. It is **not proof of skill, improvement, or independence from spending**.
-Opposition, experience, mode, trophy band, deck choice and the sample itself can
-change. The curve is refit over a rolling window, so a score can change even
-without another battle from the player.
+| Display rule | Minimum |
+| --- | --- |
+| Curve bin | {{ statistics.pilot.curve_min_observations }} player-battle observations |
+| Player or clan-member score | {{ statistics.pilot.player_min_battles }} battles in supported bins |
+| Monthly trend point | {{ statistics.pilot.monthly_min_battles }} battles in supported bins |
 
-Compare similar windows and populations, cite sample sizes, and inspect the
-basis information where returned. A rising trend is a reason to investigate,
-not by itself evidence that a player got better.
+Monthly points are returned only for a player who qualifies for an overall
+score. They reuse the whole requested window's fitted curve; they are not
+independently fitted monthly models. A missing point means insufficient scored
+observations, not zero performance. The public table's floors are generated
+from the same method declarations used by the readers.
 
-Every bin and every score ships its sample size. A score computed on forty
-battles is reported as a score computed on forty battles.
+### What `standard_error` means
 
-## Floors, and what happens below them
+For compatibility, this field remains `0.5 / sqrt(n)`. It is the maximum
+binomial standard error of a win proportion **under independent-trial
+assumptions**. This follows from the binomial variance formula with `p = 0.5`;
+see the [NIST binomial distribution reference](https://itl.nist.gov/div898/handbook/eda/section3/eda366i.htm).
 
-Thresholds differ by tool. Deck meta defaults to `min_battles: 5`, card meta
-to 10, and callers can change those filters. Those tools return rates for
-qualifying rows; a six-battle deck can therefore have a reported rate. They do
-not currently enforce the distinct-player floors or confidence intervals of
-the proposed within-player estimators.
+It is **not a calibrated error estimate or confidence interval for Pilot Score**.
+It excludes uncertainty in the fitted curve and dependence between observations.
+Do not present score ± this number as a confidence interval or use it to claim
+statistical significance. Both score tools return a `methodology` block that
+states the formula, floors and limitations.
 
-The Level Curve suppresses rates in bins below 200 observations, and player
-Pilot Scores require 30 qualifying battles. Those floors prevent very small
-samples from being scored; they do not remove confounding or guarantee a
-reliable comparison.
+### Reading changes and cohort comparisons
 
-## Rival intelligence
+The curve is refit over a rolling window on each call, so a score can move
+without another battle from the player. Clan `basis` counts describe volume and
+window boundaries; **unchanged counts do not identify an unchanged curve**.
+Different observations and win rates can produce the same counts. Neither
+changed nor unchanged counts alone attribute a score change to the player.
 
-`war_rivals` works because every recorded river race captures **all five clans
-in the bracket**, not just ours. Rivals therefore accumulate a record across
-every race they have shared with any recorded clan — races seen, fame record,
-zero-fame collapses, seasons spanned.
+The optional experience cohort groups players by known YearsPlayed tenure and
+requires at least five qualifying players. Its percentile is the fraction whose
+rounded score is strictly below the focused player's score, including that
+player in the cohort denominator; ties are not counted as below. The median
+averages the two middle rounded scores for an even-sized cohort. Tenure matching
+does not control for opposition, mode, deck or spending. Missing tenure remains
+unknown. A rising score or percentile is a reason to investigate, not proof of
+improvement or spending independence.
 
-It is pure aggregation of stored observations. There is no prediction in it, and
-where the record is thin it says so.
+## Rival intelligence and coverage
 
-## Reading any of it honestly
+`war_rivals` aggregates recorded river-race observations: races seen, fame,
+zero-fame races and seasons spanned. This is observed history, not a forecast.
 
 Every response carries [an envelope](/docs/responses) with its computation time.
-Subject tools additionally expose history and source freshness where applicable.
-Use `elixir_coverage` for measured observation intervals; missing coverage is
-unknown, not evidence of completeness.
-The single most common mistake is reading an absence as a fact: *"no battles in
-March"* means nothing if recording began in April.
+Subject tools expose history and source freshness where applicable. Check
+`elixir_coverage` for measured observation intervals. Missing coverage is unknown,
+not evidence of completeness; no recorded battles is not proof of no play.
