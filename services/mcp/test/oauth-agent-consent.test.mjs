@@ -333,3 +333,69 @@ test("a duplicate submit is still refused once the window is past", async () => 
   );
   assert.equal(late.statusCode, 400);
 });
+
+/**
+ * Scope selection is not a personal-door feature.
+ *
+ * An agent connects at its own path with its own grant, and its client
+ * requests scope the same way, so it hits the same wall: a capability the
+ * client never asks for is otherwise unreachable. Owner report,
+ * 2026-09-09: "the scopes are relevant for the single user MCP endpoint as
+ * well as the per-agent endpoints."
+ */
+test("the agent door offers the same capability checkboxes, and ticking one grants it", async () => {
+  const resource = `${ISSUER}/a/${agentPublicId}/mcp`;
+  const verifier = crypto.randomBytes(48).toString("base64url");
+  const challenge = crypto
+    .createHash("sha256")
+    .update(verifier)
+    .digest("base64url");
+  const q = {
+    client_id: clientId,
+    redirect_uri: REDIRECT,
+    scope: "cr:read",
+    resource,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state: "agentscope",
+  };
+  const emailStep = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: { ...q, step: "email", email: OWNER },
+      ip: "9.9.9.9",
+    }),
+  );
+  assert.equal(emailStep.statusCode, 200);
+  // The agent branch renders its own preamble; the checkboxes must be there
+  // too, not only on the person branch.
+  assert.match(emailStep.body, /not as you/, "still the agent consent copy");
+  assert.match(
+    emailStep.body,
+    /name="grant" value="feedback:write"/,
+    "the agent door offers the same choice",
+  );
+
+  const code = sentEmails.at(-1).code;
+  const body = new URLSearchParams({
+    ...q,
+    step: "code",
+    email: OWNER,
+    code,
+  });
+  body.append("grant", "feedback:write");
+  const done = await handler(
+    event({ path: "/oauth/authorize", body: body.toString(), ip: "9.9.9.9" }),
+  );
+  assert.equal(done.statusCode, 303, done.body?.slice(0, 200));
+
+  // The widened scope is stored on the AGENT's grant, not the owner's.
+  const { rows } = await db.query(
+    `select c.scope, a.kind, a.public_id from oauth_code c
+     join account a on a.account_id = c.account_id
+     order by c.created_at desc limit 1`,
+  );
+  assert.equal(rows[0].kind, "agent");
+  assert.equal(rows[0].public_id, agentPublicId);
+  assert.equal(rows[0].scope, "cr:read feedback:write");
+});

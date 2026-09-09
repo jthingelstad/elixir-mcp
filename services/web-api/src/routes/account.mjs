@@ -5,7 +5,9 @@ import {
   roleQuotas,
   isRole,
   ROLE_ORDER,
+  OAUTH_SCOPES,
 } from "@elixir-mcp/contracts";
+import { normalizeScope } from "../../../auth/src/index.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 
@@ -230,9 +232,23 @@ export function accountRoutes({
                           'country', (array_agg(m.viewer_country order by m.created_at desc)
                                       filter (where m.viewer_country is not null))[1])
                  from mcp_call_audit m
-                 where m.oauth_family_id = f.family_id) as usage
-         from oauth_family f join oauth_client c on c.client_id = f.client_id
-         where f.account_id = $1 and f.revoked_at is null
+                 where m.oauth_family_id = f.family_id) as usage,
+                -- WHOSE door this grant is for. An agent or integration
+                -- connects at its own path and its grant is bound to that
+                -- principal's account, not the owner's, so this list showed
+                -- only personal connections and the per-agent ones were
+                -- unmanageable from anywhere (owner report, 2026-09-09).
+                case when f.account_id = $1 then null else json_build_object(
+                  'kind', a.kind,
+                  'public_id', a.public_id,
+                  'name', (select st.name from service_token st
+                           where st.account_id = a.account_id
+                           order by st.token_id limit 1)) end as principal
+         from oauth_family f
+         join oauth_client c on c.client_id = f.client_id
+         join account a on a.account_id = f.account_id
+         where (f.account_id = $1 or a.owned_by_account_id = $1)
+           and f.revoked_at is null
            and f.absolute_expires_at > now()
          order by f.created_at desc`,
         [account.accountId],
@@ -258,7 +274,10 @@ export function accountRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rowCount } = await db.query(
         `update oauth_family set revoked_at = now()
-         where family_id::text = $1 and account_id = $2 and revoked_at is null`,
+         where family_id::text = $1 and revoked_at is null
+           and account_id in (
+             select account_id from account
+             where account_id = $2 or owned_by_account_id = $2)`,
         [String(body.family_id ?? ""), account.accountId],
       );
       if (rowCount === 0) return json(404, { error: "not_found" });
@@ -266,6 +285,50 @@ export function accountRoutes({
         family_id: body.family_id,
       });
       return json(200, { ok: true });
+    },
+
+    // Capabilities are editable AFTER the fact, on the personal door and on
+    // every agent or integration door the account owns.
+    //
+    // The grant is the person's, not the client's: scope arrives in the
+    // client's ?scope= parameter, so an app that never asks for a capability
+    // could otherwise never be allowed one, and an app that was granted more
+    // than it needs could never be narrowed without disconnecting it.
+    //
+    // Takes effect immediately and without a reconnect: validateAccessToken
+    // joins oauth_family and reads f.scope on every request, so live tokens
+    // in this family gain or lose the capability on their next call.
+    "POST /api/me/connections/scope": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      // normalizeScope is the same gate the authorize endpoint uses: it
+      // refuses anything outside OAUTH_SCOPES, requires cr:read, dedupes and
+      // returns the canonical order. "" means the request was not valid.
+      const scope = normalizeScope(
+        Array.isArray(body.scope) ? body.scope.join(" ") : body.scope,
+      );
+      if (!scope)
+        return json(400, {
+          error: "invalid_scope",
+          hint: `Space-separated, must include cr:read, and each must be one of: ${OAUTH_SCOPES.join(", ")}.`,
+        });
+      const { rows } = await db.query(
+        `update oauth_family f set scope = $3
+         where f.family_id::text = $1 and f.revoked_at is null
+           and f.account_id in (
+             select account_id from account
+             where account_id = $2 or owned_by_account_id = $2)
+         returning f.family_id, f.scope`,
+        [String(body.family_id ?? ""), account.accountId, scope],
+      );
+      if (rows.length === 0) return json(404, { error: "not_found" });
+      await logEvent(db, account.accountId, "connection_scope_changed", {
+        family_id: rows[0].family_id,
+        scope,
+      });
+      return json(200, { ok: true, scope });
     },
 
     "GET /api/me/activity": async (db, event) => {

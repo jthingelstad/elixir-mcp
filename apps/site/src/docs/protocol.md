@@ -196,10 +196,21 @@ The challenge's `scope` is the granted set plus the missing one, so a client
 can re-authorize with exactly that value.
 
 If your client does not implement that step-up - several do not, and some
-render the 403 as an expired credential - reconnect it and **tick the missing
-capability on the consent page**, which offers every scope the request left
-out. The grant is yours to widen; the client cannot ask on your behalf.
-Service tokens issued with no scope carry every capability.
+render the 403 as an expired credential - you have two ways in, neither of
+which needs the client to cooperate:
+
+- **At consent:** reconnect and tick the missing capability on the consent
+  page, which offers every scope the request left out.
+- **After the fact:** Account -> Connections lists every live connection with
+  its capabilities and lets you change them. This covers the personal door and
+  every agent or integration door you own, each of which carries its own
+  grant. Editing takes effect on that connection's next call - no reconnect,
+  because the token's scope is read from the grant on every request. Narrowing
+  works the same way, so a capability can be taken back without disconnecting
+  the client.
+
+Either way the grant is yours; the client cannot ask on your behalf. Service
+tokens issued with no scope carry every capability.
 
 ## Principals and what each sees
 

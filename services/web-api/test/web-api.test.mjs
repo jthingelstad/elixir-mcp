@@ -2494,3 +2494,153 @@ test("feedback and upgrade requests notify the owner; the owner's own feedback d
     "the owner is not told about their own feedback",
   );
 });
+
+/**
+ * Capabilities are editable after the connection exists, on the personal
+ * door AND on every agent door the account owns.
+ *
+ * Scope arrives in the client's own authorize request, so an app that never
+ * asks for a capability could not be allowed one, and an app granted more
+ * than it needs could not be narrowed without disconnecting it. Owner
+ * report, 2026-09-09: agent doors were not even listed here, because their
+ * grant is bound to the AGENT's account rather than the owner's.
+ */
+test("connection capabilities can be edited afterwards, including on an owned agent's door", async () => {
+  const cookie = memberCookie;
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  const owner = acct[0].account_id;
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('cid-scope', 'Scope Client', '[]', now() + interval '30 days')
+     on conflict do nothing`,
+  );
+  // The person's own door.
+  const { rows: mine } = await db.query(
+    `insert into oauth_family (client_id, account_id, absolute_expires_at, scope)
+     values ('cid-scope', $1, now() + interval '90 days', 'cr:read')
+     returning family_id`,
+    [owner],
+  );
+  // An agent this person owns, connected at its own door.
+  const { rows: agent } = await db.query(
+    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
+     values (null, 'approved', 'leader', 'agent', $1, 'scopeagent1')
+     returning account_id`,
+    [owner],
+  );
+  const { rows: agentFam } = await db.query(
+    `insert into oauth_family (client_id, account_id, absolute_expires_at, scope)
+     values ('cid-scope', $1, now() + interval '90 days', 'cr:read')
+     returning family_id`,
+    [agent[0].account_id],
+  );
+
+  // BOTH doors are listed, and the agent's says whose it is.
+  const list = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/connections",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const ids = list.connections.map((c) => c.family_id);
+  assert.ok(ids.includes(mine[0].family_id), "the personal door");
+  assert.ok(ids.includes(agentFam[0].family_id), "and the agent's door");
+  const agentRow = list.connections.find(
+    (c) => c.family_id === agentFam[0].family_id,
+  );
+  assert.equal(agentRow.principal.kind, "agent");
+  assert.equal(agentRow.principal.public_id, "scopeagent1");
+  assert.equal(
+    list.connections.find((c) => c.family_id === mine[0].family_id).principal,
+    null,
+    "the person's own door has no principal label",
+  );
+
+  // Widen the personal door.
+  const widened = parse(
+    await handler(
+      event({
+        path: "/api/me/connections/scope",
+        cookie,
+        body: { family_id: mine[0].family_id, scope: "cr:read feedback:write" },
+      }),
+    ),
+  );
+  assert.equal(widened.scope, "cr:read feedback:write");
+
+  // Widen the AGENT's door - the case that had no surface at all.
+  const agentWidened = parse(
+    await handler(
+      event({
+        path: "/api/me/connections/scope",
+        cookie,
+        body: {
+          family_id: agentFam[0].family_id,
+          scope: "feedback:write cr:read",
+        },
+      }),
+    ),
+  );
+  assert.equal(
+    agentWidened.scope,
+    "cr:read feedback:write",
+    "canonical order, whatever order was sent",
+  );
+
+  // Narrowing works too: a capability can be taken back without
+  // disconnecting the client.
+  const narrowed = parse(
+    await handler(
+      event({
+        path: "/api/me/connections/scope",
+        cookie,
+        body: { family_id: mine[0].family_id, scope: "cr:read" },
+      }),
+    ),
+  );
+  assert.equal(narrowed.scope, "cr:read");
+
+  // A scope this server does not define is refused, not silently dropped.
+  const bogus = await handler(
+    event({
+      path: "/api/me/connections/scope",
+      cookie,
+      body: { family_id: mine[0].family_id, scope: "cr:read admin:everything" },
+    }),
+  );
+  assert.equal(bogus.statusCode, 400);
+  assert.equal(parse(bogus).error, "invalid_scope");
+
+  // cr:read is not optional: a grant without it can do nothing.
+  const noRead = await handler(
+    event({
+      path: "/api/me/connections/scope",
+      cookie,
+      body: { family_id: mine[0].family_id, scope: "feedback:write" },
+    }),
+  );
+  assert.equal(noRead.statusCode, 400);
+
+  // Somebody else's grant is not editable, and the refusal does not confirm
+  // that it exists.
+  const foreign = await handler(
+    event({
+      path: "/api/me/connections/scope",
+      cookie: bossCookie,
+      body: { family_id: mine[0].family_id, scope: "cr:read feedback:write" },
+    }),
+  );
+  assert.equal(foreign.statusCode, 404);
+  const stillMine = await db.query(
+    `select scope from oauth_family where family_id = $1`,
+    [mine[0].family_id],
+  );
+  assert.equal(stillMine.rows[0].scope, "cr:read", "untouched by the stranger");
+});

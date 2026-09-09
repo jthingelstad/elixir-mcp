@@ -1,8 +1,94 @@
 import { useEffect, useState } from "react";
+import { OAUTH_SCOPE_DETAILS } from "@elixir-mcp/contracts";
 import { api } from "../../api.js";
 
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
 import { Fresh } from "../../components/Fresh.jsx";
+
+/**
+ * Capabilities, editable after the fact.
+ *
+ * Scope arrives in the client's own authorize request, so an app that never
+ * asks for a capability could not be allowed one and an app granted more
+ * than it needs could not be narrowed without disconnecting it. Applies to
+ * the personal door and to every agent or integration door the account
+ * owns. Takes effect on the connection's next call - no reconnect.
+ */
+function ScopeEditor({ connection, onSaved }) {
+  const current = (connection.scope ?? "cr:read").split(" ");
+  const [editing, setEditing] = useState(false);
+  const [chosen, setChosen] = useState(current);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  if (!editing)
+    return (
+      <>
+        <span className="mono">{connection.scope ?? "cr:read"}</span>{" "}
+        <button
+          className="btn--text"
+          onClick={() => {
+            setChosen(current);
+            setError(null);
+            setEditing(true);
+          }}
+        >
+          Edit
+        </button>
+      </>
+    );
+
+  const toggle = (scope) =>
+    setChosen((prev) =>
+      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
+    );
+
+  return (
+    <div>
+      {OAUTH_SCOPE_DETAILS.map(({ scope, title, description }) => (
+        <label key={scope} style={{ display: "block", fontSize: "12.5px" }}>
+          <input
+            type="checkbox"
+            checked={chosen.includes(scope)}
+            // cr:read is what every read tool needs; a connection without it
+            // can do nothing at all, so it is not offered as a choice.
+            disabled={scope === "cr:read"}
+            onChange={() => toggle(scope)}
+          />{" "}
+          <span className="mono">{scope}</span> — {title}
+          <div style={{ color: "var(--faint)", marginLeft: "20px" }}>
+            {description}
+          </div>
+        </label>
+      ))}
+      {error && (
+        <div style={{ color: "var(--amber)", fontSize: "12.5px" }}>{error}</div>
+      )}
+      <button
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true);
+          const r = await api.setConnectionScope(
+            connection.family_id,
+            chosen.join(" "),
+          );
+          setSaving(false);
+          if (!r.ok) {
+            setError(r.data?.hint ?? "Could not change capabilities.");
+            return;
+          }
+          setEditing(false);
+          onSaved();
+        }}
+      >
+        {saving ? "Saving…" : "Save"}
+      </button>{" "}
+      <button className="btn--text" onClick={() => setEditing(false)}>
+        Cancel
+      </button>
+    </div>
+  );
+}
 
 export function Connections({ me, navigate }) {
   const [connections, setConnections] = useState(null);
@@ -95,8 +181,36 @@ export function Connections({ me, navigate }) {
                 <tbody>
                   {connections.map((c) => (
                     <tr key={c.family_id}>
-                      <td>{c.client_name ?? "client"}</td>
-                      <td className="mono">{c.scope ?? "cr:read"}</td>
+                      <td>
+                        {c.client_name ?? "client"}
+                        {c.principal ? (
+                          <div
+                            style={{
+                              fontSize: "11.5px",
+                              color: "var(--faint)",
+                            }}
+                          >
+                            {c.principal.name ?? c.principal.kind}
+                            {" · "}
+                            <span className="mono">
+                              /{c.principal.kind === "agent" ? "a" : "i"}/
+                              {c.principal.public_id}/mcp
+                            </span>
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              fontSize: "11.5px",
+                              color: "var(--faint)",
+                            }}
+                          >
+                            you
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <ScopeEditor connection={c} onSaved={load} />
+                      </td>
                       <td className="mono">
                         {new Date(c.created_at).toISOString().slice(0, 10)}
                       </td>

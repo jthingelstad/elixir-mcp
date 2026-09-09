@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Change what a connection can do, without reconnecting it",
+    body: "Account -> Connections now lists the capabilities of every live connection and lets you edit them in place. Tick a capability to add it, untick one to take it back; the change applies to that connection's next call, with no reconnect and no new token, because a token's capabilities are read from the grant on every request. The list also covers your agents' and integrations' connections, which each authorize at their own address and hold their own grant - previously they appeared nowhere and could not be managed at all. Reading recorded data stays switched on for every connection, since a connection without it can do nothing.",
+  },
+  {
+    date: "2026-09-09",
     title: "You can add a capability the app forgot to ask for",
     body: "Connecting an app used to grant exactly what that app requested, and nothing else could be added afterwards. Since the read-only challenge advertises only cr:read, an app that never asks to file feedback or change recordings could never be allowed to, and the refusal it got pointed at a consent-page control that did not exist. The consent page now lists every capability your app did NOT ask for as an unticked checkbox. Tick one and it is added to the connection; tick nothing and the grant is exactly what the app requested, as before. Only capabilities Elixir MCP defines are accepted, the request that reaches the consent page is the one that was bound when your code was emailed, and the app is told what it actually received.",
   },

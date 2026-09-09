@@ -10,6 +10,7 @@ import {
   waitFor,
   cleanup,
   configure,
+  within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
 import { scratchDb } from "../../../services/ingest/test/helpers.mjs";
@@ -259,3 +260,72 @@ test(
     });
   },
 );
+
+/**
+ * Capabilities are editable on a live connection, without disconnecting it.
+ *
+ * The client's authorize request decides scope, so an app that never asks
+ * for a capability could not be allowed one from anywhere. This is the
+ * surface where the person decides instead.
+ */
+test("a connection's capabilities can be widened and narrowed in place", async () => {
+  await scratch.db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+       values ('ui-scope', 'Claude', '[]', now() + interval '30 days')
+       on conflict do nothing`,
+  );
+  await scratch.db.query(
+    `insert into oauth_family (client_id, account_id, absolute_expires_at, scope)
+       values ('ui-scope', $1, now() + interval '90 days', 'cr:read')`,
+    [accountId],
+  );
+
+  open("/account/connections");
+  // It starts read-only, showing exactly what the client was granted. The
+  // page names scopes in more than one place, so assert on the row itself.
+  // Other journeys in this file leave their own connections behind, so every
+  // query is scoped to THIS row rather than the whole page.
+  const rowFor = async (client) =>
+    (await screen.findByText(client)).closest("tr");
+  let row = await rowFor("Claude");
+  await waitFor(() => expect(row.textContent).toContain("cr:read"));
+  expect(row.textContent).not.toContain("feedback:write");
+
+  fireEvent.click(within(row).getByRole("button", { name: "Edit" }));
+  const feedback = within(row).getByRole("checkbox", {
+    name: /feedback:write/,
+  });
+  expect(feedback.checked).toBe(false);
+  // cr:read is what every read tool needs, so it is not a choice.
+  const read = within(row).getByRole("checkbox", { name: /cr:read/ });
+  expect(read.checked).toBe(true);
+  expect(read.disabled).toBe(true);
+
+  fireEvent.click(feedback);
+  fireEvent.click(within(row).getByRole("button", { name: "Save" }));
+
+  // Persisted, in canonical order, and reflected back on the page.
+  await waitFor(async () => {
+    const { rows } = await scratch.db.query(
+      `select scope from oauth_family where client_id = 'ui-scope'`,
+    );
+    expect(rows[0].scope).toBe("cr:read feedback:write");
+  });
+  row = await rowFor("Claude");
+  await waitFor(() =>
+    expect(row.textContent).toContain("cr:read feedback:write"),
+  );
+
+  // And back again: a capability can be taken away without disconnecting.
+  fireEvent.click(within(row).getByRole("button", { name: "Edit" }));
+  fireEvent.click(
+    within(row).getByRole("checkbox", { name: /feedback:write/ }),
+  );
+  fireEvent.click(within(row).getByRole("button", { name: "Save" }));
+  await waitFor(async () => {
+    const { rows } = await scratch.db.query(
+      `select scope from oauth_family where client_id = 'ui-scope'`,
+    );
+    expect(rows[0].scope).toBe("cr:read");
+  });
+}, 20000);

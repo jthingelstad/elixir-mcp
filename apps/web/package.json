@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@elixir-mcp/contracts": "*",
     "@elixir-mcp/design": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"

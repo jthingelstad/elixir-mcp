@@ -59,6 +59,8 @@ export const api = {
   firstAnswer: () => request("GET", "/api/me/first-answer"),
   revokeConnection: (family_id) =>
     request("POST", "/api/me/connections/revoke", { family_id }),
+  setConnectionScope: (family_id, scope) =>
+    request("POST", "/api/me/connections/scope", { family_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>
