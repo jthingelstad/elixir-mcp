@@ -5,6 +5,8 @@
  * clients can discover the authorization server.
  */
 
+import { randomUUID } from "node:crypto";
+
 import pg from "pg";
 import {
   validateAccessToken,
@@ -20,7 +22,7 @@ import {
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
-import { DEFAULT_OAUTH_SCOPE } from "@elixir-mcp/contracts";
+import { DEFAULT_OAUTH_SCOPE, responseMeta } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
 import { makeRegistry } from "./tools.mjs";
 import { makeInvoker } from "./invoker.mjs";
@@ -41,6 +43,48 @@ export function makeHandler({
   originSecret = null,
   notifyOwner = null,
 }) {
+  // Transport-level refusals - a rate limit, a database that will not
+  // connect - are answered with the SAME envelope a tool refusal uses.
+  // These used to render bare ({"message":"Internal Server Error"},
+  // {"error":"rate_limited"}), which a caller could not tell apart from a
+  // malformed argument and could not report: no code, no hint, and no
+  // request_id to quote (playtest round, 2026-09-09).
+  const envelope = (code, message, hint) => ({
+    error: { code, message, ...(hint ? { hint } : {}) },
+    meta: responseMeta({
+      as_of: new Date().toISOString(),
+      request_id: randomUUID(),
+    }),
+  });
+
+  const unavailable = () => ({
+    statusCode: 503,
+    headers: { "content-type": "application/json", "retry-after": "5" },
+    body: JSON.stringify(
+      envelope(
+        "live_unavailable",
+        "The service could not reach its database. No data was read; this is not a problem with your request.",
+        "Transient under load. Retry in a few seconds; quote meta.request_id if it persists.",
+      ),
+    ),
+  });
+
+  // One client per invocation against a db.t4g.micro makes the DATABASE the
+  // thing that fails first under concurrency (infra/template.yaml). connect()
+  // used to sit ABOVE the try/finally, so a refusal escaped the handler
+  // entirely and Lambda rendered a bare 500. Null means never connected -
+  // end() would then throw over the top of the real failure.
+  const connectDb = async () => {
+    const db = new pg.Client({ connectionString: databaseUrl });
+    try {
+      await db.connect();
+      return db;
+    } catch (err) {
+      console.error("db_connect_failed", err?.message);
+      return null;
+    }
+  };
+
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
   const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
@@ -85,8 +129,8 @@ export function makeHandler({
     }
 
     if (path.startsWith("/oauth/")) {
-      const db = new pg.Client({ connectionString: databaseUrl });
-      await db.connect();
+      const db = await connectDb();
+      if (!db) return unavailable();
       try {
         if (method === "POST" && path === "/oauth/register")
           return await oauth.register(db, event);
@@ -148,8 +192,8 @@ export function makeHandler({
       return unauthorizedHere();
     }
 
-    const db = new pg.Client({ connectionString: databaseUrl });
-    await db.connect();
+    const db = await connectDb();
+    if (!db) return unavailable();
     try {
       const presented = auth.slice(7).trim();
       // Two credentials open this door: OAuth access tokens (agents via
