@@ -91,8 +91,13 @@ the call log.
 ```
 
 The protected-resource document lists only `cr:read` on purpose: the write
-scopes are granted by step-up, not discovery. Both documents are cacheable for
-300 seconds. There is no revocation or introspection endpoint; a person
+scopes are granted by step-up, not discovery. **A client that never steps up is
+not a dead end.** The consent page lists every capability the request did not
+ask for as an unticked checkbox, and what you tick is added to the grant, so a
+person can allow `feedback:write` to a client that only ever requests
+`cr:read`. The token response reports the scope actually granted (RFC 6749
+§3.3), which is how the client learns it holds more than it asked for. Both
+documents are cacheable for 300 seconds. There is no revocation or introspection endpoint; a person
 revokes a connection on Account → Connections.
 
 ### Dynamic client registration
@@ -188,8 +193,13 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client
-can re-authorize with exactly that value. Service tokens issued with no scope
-carry every capability.
+can re-authorize with exactly that value.
+
+If your client does not implement that step-up - several do not, and some
+render the 403 as an expired credential - reconnect it and **tick the missing
+capability on the consent page**, which offers every scope the request left
+out. The grant is yours to widen; the client cannot ask on your behalf.
+Service tokens issued with no scope carry every capability.
 
 ## Principals and what each sees
 

@@ -143,7 +143,18 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   assert.equal(emailStep.statusCode, 200);
   assert.match(emailStep.body, /authorizes Claude/);
   assert.match(emailStep.body, /Read recorded game data/);
-  assert.doesNotMatch(emailStep.body, /Change recordings/);
+  // Capabilities the client did NOT ask for are still shown - but as
+  // unticked checkboxes to opt into, never as something already granted.
+  assert.match(
+    emailStep.body,
+    /<input type="checkbox" name="grant" value="recordings:write">/,
+    "unrequested capabilities are offered, not granted",
+  );
+  assert.doesNotMatch(
+    emailStep.body,
+    /<li><strong>Change recordings<\/strong>/,
+    "and are not listed among the granted ones",
+  );
   assert.equal(sentEmails.length, 1);
   const { code: loginCode } = sentEmails[0];
 
@@ -764,4 +775,115 @@ test("with an origin secret set, the MCP door refuses requests that did not come
   assert.equal(meta.statusCode, 403);
   // Unset (local development, every other test here): the check is off.
   assert.equal((await handler(req({}))).statusCode, 401);
+});
+
+/**
+ * The consent page is where a human widens a grant.
+ *
+ * Scope arrives in the client's ?scope= parameter and the
+ * protected-resource challenge advertises cr:read only, so a client that
+ * never asks for feedback:write can never obtain it - while the
+ * insufficient_scope refusal told people to grant exactly that "on the
+ * consent page", which had no such control. Reported by the account owner,
+ * 2026-09-09: "I don't see any part where I can select scopes."
+ */
+async function consentFlow({ grants = [], scope = "cr:read" } = {}) {
+  const reg = await handler(
+    event({
+      path: "/oauth/register",
+      body: JSON.stringify({
+        client_name: "Scope Tester",
+        redirect_uris: [REDIRECT],
+      }),
+    }),
+  );
+  const { client_id } = JSON.parse(reg.body);
+  const verifier = crypto.randomBytes(48).toString("base64url");
+  const challenge = crypto
+    .createHash("sha256")
+    .update(verifier)
+    .digest("base64url");
+  const q = {
+    client_id,
+    redirect_uri: REDIRECT,
+    state: "sc0pe",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    scope,
+    resource: RESOURCE,
+  };
+  sentEmails.length = 0;
+  const emailStep = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: { step: "email", email: EMAIL, ...q },
+    }),
+  );
+  const { code } = sentEmails[0];
+  // Repeated fields need a raw body: URLSearchParams from an object cannot
+  // carry the same key twice, which is exactly how checkboxes post.
+  const body = new URLSearchParams({
+    step: "code",
+    email: EMAIL,
+    code,
+    ...q,
+  });
+  for (const g of grants) body.append("grant", g);
+  const codeStep = await handler(
+    event({ path: "/oauth/authorize", body: body.toString() }),
+  );
+  assert.equal(codeStep.statusCode, 303, codeStep.body?.slice(0, 300));
+  const authCode = new URL(codeStep.headers.location).searchParams.get("code");
+  const tokenRes = await handler(
+    event({
+      path: "/oauth/token",
+      form: {
+        grant_type: "authorization_code",
+        code: authCode,
+        code_verifier: verifier,
+        client_id,
+        redirect_uri: REDIRECT,
+        resource: RESOURCE,
+      },
+    }),
+  );
+  return { emailStep, tokens: JSON.parse(tokenRes.body) };
+}
+
+test("ticking a capability the client never asked for grants it", async () => {
+  const { emailStep, tokens } = await consentFlow({
+    grants: ["feedback:write"],
+  });
+  assert.match(
+    emailStep.body,
+    /name="grant" value="feedback:write"/,
+    "the control the refusal message points at must exist",
+  );
+  assert.equal(
+    tokens.scope,
+    "cr:read feedback:write",
+    "the human added a capability the client could not request",
+  );
+  // RFC 6749 section 3.3: a scope different from the request must be
+  // reported back, so the client learns what it actually holds.
+  const ctx = await validateAccessToken(db, tokens.access_token, {
+    resource: RESOURCE,
+  });
+  assert.ok(ctx.scopes.includes("feedback:write"));
+});
+
+test("ticking nothing leaves the grant exactly as the client asked", async () => {
+  const { tokens } = await consentFlow();
+  assert.equal(tokens.scope, "cr:read", "no silent widening");
+});
+
+test("a grant value this server does not define is ignored, not granted", async () => {
+  const { tokens } = await consentFlow({
+    grants: ["feedback:write", "admin:everything", "../../etc/passwd"],
+  });
+  assert.equal(
+    tokens.scope,
+    "cr:read feedback:write",
+    "only capabilities in the server's own list survive the form",
+  );
 });

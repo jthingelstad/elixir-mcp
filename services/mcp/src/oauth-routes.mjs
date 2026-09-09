@@ -107,6 +107,11 @@ function parseForm(event) {
   return Object.fromEntries(new URLSearchParams(rawBody(event)));
 }
 
+/** Every value of a repeated field. parseForm keeps only the last. */
+function formValues(event, key) {
+  return new URLSearchParams(rawBody(event)).getAll(key);
+}
+
 function hiddenAuthFields(q) {
   return [
     "client_id",
@@ -177,16 +182,41 @@ function codeFailure(reason) {
   return `<h1>${esc(title)}</h1><p>${esc(body)}</p>`;
 }
 
+/**
+ * What this connection will be able to do, and what else it MAY be allowed
+ * to do.
+ *
+ * The requested capabilities are fixed: a client that asked for them needs
+ * them. The rest are offered as checkboxes, because this page is the only
+ * place a human can widen a grant. Scope arrives in the client's ?scope=
+ * parameter, and the protected-resource challenge advertises cr:read only,
+ * so a client that never asks for feedback:write could never obtain it -
+ * while the insufficient_scope refusal told people to grant exactly that
+ * "on the consent page", where no such control existed (2026-09-09).
+ *
+ * RFC 6749 section 3.3 permits issuing a scope different from the one
+ * requested provided the token response says so, which it does: the
+ * granted scope is stored on the auth code and echoed back at redemption.
+ */
 function consentCapabilities(scope) {
   const granted = new Set(scope.split(" "));
-  return `<ul>${OAUTH_SCOPE_DETAILS.filter(({ scope: value }) =>
-    granted.has(value),
-  )
-    .map(
-      ({ title, description }) =>
-        `<li><strong>${esc(title)}</strong> — ${esc(description)}</li>`,
-    )
-    .join("")}</ul>`;
+  const line = ({ title, description }) =>
+    `<strong>${esc(title)}</strong> — ${esc(description)}`;
+  const asked = OAUTH_SCOPE_DETAILS.filter((d) => granted.has(d.scope));
+  const rest = OAUTH_SCOPE_DETAILS.filter((d) => !granted.has(d.scope));
+  return (
+    `<ul>${asked.map((d) => `<li>${line(d)}</li>`).join("")}</ul>` +
+    (rest.length === 0
+      ? ""
+      : `<p><strong>You can also allow, if you want to:</strong></p>
+         <ul>${rest
+           .map(
+             (d) =>
+               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}"> ${line(d)}</label></li>`,
+           )
+           .join("")}</ul>
+         <p>Only what you tick is added. ${esc(String(asked.length))} capabilit${asked.length === 1 ? "y was" : "ies were"} asked for by the client; these were not.</p>`)
+  );
 }
 
 /**
@@ -513,11 +543,27 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           );
         }
 
+        // The human is the only party who can widen a grant, and only to
+        // capabilities this server defines. The base is the scope BOUND at
+        // the email step, never this form's, so a re-posted ?scope= cannot
+        // move the grant behind the checkboxes.
+        const added = formValues(event, "grant").filter(
+          (value) => OAUTH_SCOPES.includes(value) && !ctx.scope.includes(value),
+        );
+        const grantedScope = normalizeScope([ctx.scope, ...added].join(" "));
+        if (added.length > 0)
+          authLog("oauth_scope_widened", {
+            email: emailRef(hash),
+            request: requestRef(v.codeChallenge),
+            client: v.client.clientName,
+            requested: ctx.scope,
+            added: added.join(" "),
+          });
         const code = await createAuthCode(db, {
           clientId: v.client.clientId,
           accountId: owned.principal?.account_id ?? account.account_id,
           redirectUri: v.redirectUri,
-          scope: ctx.scope,
+          scope: grantedScope,
           resource: ctx.resource,
           codeChallenge: v.codeChallenge,
         });
