@@ -110,7 +110,20 @@ const templateBody = await readFile(
   path.join(repoRoot, "infra/template.yaml"),
   "utf8",
 );
-await cfn.send(new ValidateTemplateCommand({ TemplateBody: templateBody }));
+// Inline TemplateBody caps at 51,200 bytes and the template passed it on
+// 2026-09-09; by URL the cap is 1 MB. The object rides the code bucket
+// under its content hash, like the bundles.
+const templateKey = `templates/${createHash("sha256").update(templateBody).digest("hex").slice(0, 16)}.yaml`;
+await s3.send(
+  new PutObjectCommand({
+    Bucket: codeBucket,
+    Key: templateKey,
+    Body: templateBody,
+    ContentType: "application/x-yaml",
+  }),
+);
+const templateUrl = `https://${codeBucket}.s3.${REGION}.amazonaws.com/${templateKey}`;
+await cfn.send(new ValidateTemplateCommand({ TemplateURL: templateUrl }));
 
 // --param=Key=Value: one-time explicit values for PRESERVED parameters
 // (a parameter's first deploy cannot UsePreviousValue).
@@ -136,7 +149,7 @@ if (isCreate) {
   await cfn.send(
     new CreateStackCommand({
       StackName: STACK,
-      TemplateBody: templateBody,
+      TemplateURL: templateUrl,
       Parameters: buildParameters(required, {}),
       Capabilities: ["CAPABILITY_NAMED_IAM"],
     }),
@@ -157,7 +170,7 @@ if (isCreate) {
     await cfn.send(
       new UpdateStackCommand({
         StackName: STACK,
-        TemplateBody: templateBody,
+        TemplateURL: templateUrl,
         Parameters: buildParameters(
           required,
           null,
