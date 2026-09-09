@@ -152,3 +152,48 @@ test("with only a duel and a boat battle there is no head-to-head rate to report
   assert.equal(res.window.head_to_head_battles, 0);
   assert.equal(res.window.three_crown_rate, null);
 });
+
+/**
+ * The win_rate numerator is decided_wins, not wins.
+ *
+ * denominators_note said "win_rate = wins / decided_battles". The
+ * implementation was right, but `wins` includes boat attacks, so the
+ * documented formula did not reproduce the returned number whenever
+ * boat_battles > 0 - and decided_wins/decided_losses were computed and
+ * then thrown away, so a caller could not check the division at all. An
+ * auditor spent its deepest reconciliation here and could not close it.
+ *
+ * The fixture's boat row is a WIN, which is the case that breaks it.
+ */
+test("a boat win inflates wins without moving win_rate, and both halves are shown", async () => {
+  const res = await call("battles_performance", {
+    player_tag: TAG,
+    from: "2026-09-01",
+    to: "2026-09-03",
+  });
+  const w = res.window;
+
+  // sweep(win) + loss + duel(loss) + boat(win) = 2 wins, 2 losses.
+  assert.equal(w.wins, 2, "wins counts the boat attack too");
+  assert.equal(w.boat_battles, 1);
+  assert.equal(w.decided_wins, 1, "but only one win was head-to-head");
+  assert.equal(w.decided_losses, 2);
+  assert.equal(w.decided_battles, 3);
+
+  // The returned rate follows the decided numerator...
+  assert.equal(
+    w.win_rate,
+    Number((w.decided_wins / w.decided_battles).toFixed(3)),
+  );
+  // ...and the formula the note USED to state gives a different answer.
+  assert.notEqual(
+    w.win_rate,
+    Number((w.wins / w.decided_battles).toFixed(3)),
+    "this fixture must actually distinguish the two formulas",
+  );
+
+  assert.match(
+    res.denominators_note,
+    /win_rate = decided_wins \/ decided_battles/,
+  );
+});

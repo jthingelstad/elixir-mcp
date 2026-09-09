@@ -554,6 +554,13 @@ export const battlesTools = {
         return {
           ...counts,
           decided_battles: decided,
+          // The numerator is NOT the `wins` field: wins counts boat attacks
+          // too, so "wins / decided_battles" does not reproduce this rate
+          // whenever boat_battles > 0. Both halves are returned so a caller
+          // can check the division instead of trusting it - an auditor hit
+          // exactly this and could not close it (playtest round, 2026-09-09).
+          decided_wins,
+          decided_losses,
           win_rate:
             decided > 0 ? Number((decided_wins / decided).toFixed(3)) : null,
           head_to_head_battles: head_to_head,
@@ -728,7 +735,7 @@ export const battlesTools = {
           ? {}
           : {
               denominators_note:
-                "battles counts every recorded battle in the window, W/L/D included. win_rate = wins / decided_battles, where decided_battles = head-to-head wins + losses: boat_battles (attacks on a static defense) and draws are excluded from the denominator. duel_battles are rows that collapse up to three games; their crowns count once per round, so crowns_for/against mix units when duels are present. three_crown_rate = three-crown wins / head_to_head_battles, and BOTH sides exclude boat battles and duels: a duel's crowns sum across its rounds, so three crowns spread over three games is not a three-crown victory and is never counted as one.",
+                "battles counts every recorded battle in the window, W/L/D included. win_rate = decided_wins / decided_battles, where decided_battles = decided_wins + decided_losses: boat_battles (attacks on a static defense) and draws are excluded from BOTH sides. Note that wins/losses are the wider counts including boat attacks, so wins / decided_battles does not reproduce win_rate when boat_battles > 0 - decided_wins and decided_losses are returned so the division can be checked. duel_battles are rows that collapse up to three games; their crowns count once per round, so crowns_for/against mix units when duels are present. three_crown_rate = three-crown wins / head_to_head_battles, and BOTH sides exclude boat battles and duels: a duel's crowns sum across its rounds, so three crowns spread over three games is not a three-crown victory and is never counted as one.",
             }),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
