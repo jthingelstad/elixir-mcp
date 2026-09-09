@@ -10,6 +10,7 @@
 
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { emitEvent } from "./events.mjs";
+import { crTimeToIso } from "./battle-time.mjs";
 
 /**
  * Ingest one admitted clan payload. Caller owns the transaction.
@@ -34,14 +35,26 @@ export async function ingestClanRoster(
     tag: normalizeTag(m.tag),
     name: m.name ?? null,
     role: m.role ?? null,
+    // The game's own activity stamp, which exists ONLY here - /players/{tag}
+    // does not carry it - so a poll that drops it loses that moment for good.
+    // Lenient on purpose: a strange lastSeen must not stop a roster run.
+    gameLastSeen: crTimeToIso(m.lastSeen),
   }));
 
   for (const m of members) {
     await db.query(
-      `insert into player (player_tag, name, last_seen_at) values ($1, $2, $3)
+      `insert into player (player_tag, name, last_seen_at, game_last_seen_at)
+       values ($1, $2, $3, $4)
        on conflict (player_tag) do update
-         set name = coalesce(excluded.name, player.name), last_seen_at = excluded.last_seen_at`,
-      [m.tag, m.name, at],
+         set name = coalesce(excluded.name, player.name),
+             last_seen_at = excluded.last_seen_at,
+             -- Never move BACKWARDS. Rosters are polled per clan and an older
+             -- payload can be admitted after a newer one; greatest() with a
+             -- null-safe fallback keeps the freshest sighting either way.
+             game_last_seen_at = greatest(
+               excluded.game_last_seen_at,
+               player.game_last_seen_at)`,
+      [m.tag, m.name, at, m.gameLastSeen],
     );
   }
 

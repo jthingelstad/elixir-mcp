@@ -10,6 +10,17 @@
 
 const CR_TIME_RE = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/;
 
+/**
+ * The same shape, for fields that are NOT identity: returns null instead of
+ * throwing, because an optional CR field going strange must never stop a
+ * recorder run (ENGINEERING: optional fields stay optional). war.mjs carried
+ * a private copy of this; roster ingest would have been a third.
+ */
+export function crTimeToIso(crTime) {
+  const m = CR_TIME_RE.exec(String(crTime ?? ""));
+  return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;
+}
+
 export function canonicalBattleTime(crTime) {
   const m = CR_TIME_RE.exec(crTime);
   if (!m)

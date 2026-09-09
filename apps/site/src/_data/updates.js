@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "We now keep the game's own \u201clast seen\u201d",
+    body: "Clash Royale reports when each clan member was last active, but only inside a clan's member list - a player's own profile endpoint does not carry it. Every roster poll delivered it and we threw it away, which meant it was unrecoverable for any moment we did not store. It is kept now, and shows up on a player's profile and on every roster row as last_seen_in_game. It answers a question nothing else here could: last_recorded_battle only moves when somebody plays a battle we captured, so a member who opens the game daily without battling looked identical to one who has gone. It is also the rule the game uses to decide who is in a river race - members last seen before the race began are left out of it entirely - so a quiet member missing from the war roster can now be told apart from a recording gap. It cannot be backfilled: it starts filling from the next roster poll.",
+  },
+  {
+    date: "2026-09-09",
     title: "War now says who is in the clan but not in the race",
     body: "A clan leader counted 44 people in this week's race against 49 in the clan, and had no way to tell a recording gap from a real one. It was real: checked against the game's own live payload, its current-river-race participants list returned the same 44 and left out the same five people, so what we served was right all along - just silent about the difference. war_current now returns participants_count, member_count and members_not_in_race, naming the current members the race roster leaves out. The game gives no reason for the omission, so neither do we; the reason reads not_in_race_roster and nothing is invented. The omissions cluster on the least active members, which is exactly where a leader is looking, so the gap being visible matters more than it being small. The behaviour is written up in the public Clash Royale API reference for anyone else who hits it.",
   },

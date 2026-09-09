@@ -85,3 +85,109 @@ test("role changes update the open membership row", async () => {
   );
   assert.equal(rows[0].role, "elder");
 });
+
+/**
+ * The game's own lastSeen is captured, not discarded.
+ *
+ * It arrives on every clan roster poll and exists NOWHERE else -
+ * /players/{tag} has no lastSeen - so a poll that drops it loses that
+ * moment permanently. It is also the predicate the game uses to seed a
+ * river race roster (verified against a live payload 2026-09-09), which
+ * is what turns "not in the race" into "has not opened the game since".
+ */
+test("memberList lastSeen is stored, never moves backwards, and survives a junk value", async () => {
+  const scratch = await scratchDb("roster_last_seen");
+  try {
+    const at = "2026-09-09T12:00:00.000Z";
+    const roster = (members) => ({
+      tag: "#J2RGCRVG",
+      name: "POAP KINGS",
+      memberList: members,
+    });
+    const seen = async (tag) =>
+      (
+        await scratch.db.query(
+          `select game_last_seen_at from player where player_tag = $1`,
+          [tag],
+        )
+      ).rows[0].game_last_seen_at;
+
+    await ingestClanRoster(scratch.db, {
+      payload: roster([
+        {
+          tag: "#2P9YQCV",
+          name: "Active",
+          role: "member",
+          lastSeen: "20260909T090000.000Z",
+        },
+        {
+          tag: "#2P9YQCU",
+          name: "Dormant",
+          role: "member",
+          lastSeen: "20260829T090000.000Z",
+        },
+        // No lastSeen at all: optional CR fields stay optional.
+        { tag: "#2P9YQCQ", name: "Silent", role: "member" },
+      ]),
+      observedAt: at,
+      windowStart: null,
+      receiptId: null,
+    });
+
+    assert.equal(
+      (await seen("#2P9YQCV")).toISOString(),
+      "2026-09-09T09:00:00.000Z",
+    );
+    assert.equal(
+      (await seen("#2P9YQCU")).toISOString(),
+      "2026-08-29T09:00:00.000Z",
+    );
+    assert.equal(await seen("#2P9YQCQ"), null, "absent stays null, not now()");
+
+    // A late-admitted OLDER poll must not drag the stamp backwards, and a
+    // malformed value must not overwrite a good one or stop the run.
+    await ingestClanRoster(scratch.db, {
+      payload: roster([
+        {
+          tag: "#2P9YQCV",
+          name: "Active",
+          role: "member",
+          lastSeen: "20260901T090000.000Z",
+        },
+        {
+          tag: "#2P9YQCU",
+          name: "Dormant",
+          role: "member",
+          lastSeen: "not-a-timestamp",
+        },
+      ]),
+      observedAt: "2026-09-09T13:00:00.000Z",
+      windowStart: null,
+      receiptId: null,
+    });
+
+    assert.equal(
+      (await seen("#2P9YQCV")).toISOString(),
+      "2026-09-09T09:00:00.000Z",
+      "an older sighting never wins",
+    );
+    assert.equal(
+      (await seen("#2P9YQCU")).toISOString(),
+      "2026-08-29T09:00:00.000Z",
+      "junk leaves the known value alone",
+    );
+
+    // And it is NOT our poll time, which is the collision the column name
+    // exists to avoid.
+    const { rows } = await scratch.db.query(
+      `select last_seen_at, game_last_seen_at from player where player_tag = $1`,
+      ["#2P9YQCU"],
+    );
+    assert.notEqual(
+      rows[0].last_seen_at.toISOString(),
+      rows[0].game_last_seen_at.toISOString(),
+    );
+  } finally {
+    await scratch.drop();
+  }
+});

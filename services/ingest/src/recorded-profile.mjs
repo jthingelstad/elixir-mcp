@@ -1,7 +1,8 @@
 /** Shared recorded profile facts; no transport, identity or live-fetch policy. */
 export async function readRecordedProfile(db, tag) {
   const { rows } = await db.query(
-    `select p.player_tag, p.name, p.last_known_clan_tag, cl.name as clan_name,
+    `select p.player_tag, p.name, p.game_last_seen_at,
+            p.last_known_clan_tag, cl.name as clan_name,
                 cl.badge_id as clan_badge_id, p.last_known_clan_role,
                 p.years_played, p.account_age_days,
                 s.snapshot_date, s.snapshot_kind, s.trophies, s.pol, s.league_stats,

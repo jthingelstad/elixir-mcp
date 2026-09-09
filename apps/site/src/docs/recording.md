@@ -14,6 +14,28 @@ profile, a clan roster, and a battle log of roughly the last 30 battles
 (most commonly exactly 30). Elixir MCP records those observations
 continuously and keeps them. This page is what that promise means precisely.
 
+
+## The game's own "last seen"
+
+Clash Royale reports `lastSeen` for each member **inside a clan's member
+list only** — a player's own endpoint does not carry it. Elixir MCP captures
+it on every clan roster poll and serves it as `last_seen_in_game` on
+`players_profile` and on each `clans_roster` member.
+
+Three things worth knowing:
+
+- It is **when the player was last active**, not when this service last
+  looked, and not `last_recorded_battle` — which only moves when a battle
+  was captured. A member who opens the game daily without battling is
+  indistinguishable from a departed one without it.
+- It is **the predicate the game uses** to seed a river race roster. Members
+  last seen before a race began are absent from that race's participants
+  entirely, whether or not they battle and whether or not they joined in
+  time. That is why `war_current.members_not_in_race` and this field belong
+  together.
+- It **cannot be backfilled**, and it is only obtainable while a player is in
+  a clan being polled. Null means no polled roster has carried them yet.
+
 ## Added means recorded
 
 There is no watch step and no approval queue. Adding a subject to your account

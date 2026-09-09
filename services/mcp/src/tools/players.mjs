@@ -237,6 +237,13 @@ export const playersTools = {
         // The player as a game entity, separate from the daily numbers.
         // Ids only: names and icons resolve from cards_catalog, so a
         // renamed arena or a new icon never leaves stale copies here.
+        // Clash Royale's own lastSeen, captured from clan roster polls -
+        // the only place the API exposes it, so it is null for a player we
+        // have never seen inside a polled clan and it stops moving the moment
+        // they leave one. Distinct from every other timestamp here: it is when
+        // the PLAYER was last active, not when this recorder last looked.
+        last_seen_in_game: row.game_last_seen_at?.toISOString() ?? null,
+        // The player as a game entity, separate from the daily numbers.
         attributes: {
           arena_id: row.arena_id,
           best_trophies: row.best_trophies,

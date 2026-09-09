@@ -292,6 +292,7 @@ export const clansTools = {
       );
       const roster = await ctx.db.query(
         `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
+                p.game_last_seen_at,
                   nn.nickname,
                   s.trophies, s.donations,
                   (select max(b.battle_time) from battle_participant bp
@@ -328,10 +329,17 @@ export const clansTools = {
           donations_this_week: m.donations,
           first_observed_in_clan: m.joined_observed_at?.toISOString() ?? null,
           last_recorded_battle: m.last_battle?.toISOString() ?? null,
+          // The GAME's own activity stamp, not ours. last_recorded_battle
+          // only moves when somebody plays a battle we captured; this moves
+          // whenever they open the game, so a member who is present but not
+          // battling is distinguishable from one who is simply gone.
+          last_seen_in_game: m.game_last_seen_at?.toISOString() ?? null,
         })),
         // An empty event list means "none observed SINCE ROSTER RECORDING
         // BEGAN", never "no joins/leaves ever" (round-3: a leader would
         // have wrongly concluded no departures).
+        member_note:
+          "last_seen_in_game is Clash Royale's own lastSeen for that player, captured from this clan's roster polls: when they were last ACTIVE, as against last_recorded_battle which only moves when a battle was captured. It is the predicate the game itself uses to seed a river race roster, so a member whose last_seen_in_game predates the race start will be missing from war_current.participants. Null means we have never polled a clan roster carrying them.",
         events_recorded_since:
           roster.rows
             .map((m) => m.joined_observed_at)
