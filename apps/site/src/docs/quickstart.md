@@ -1,109 +1,138 @@
 ---
 slug: quickstart
-title: "Connect your agent"
+title: "Connect a client"
 navTitle: "Quickstart"
-description: "Get from nothing to asking your own agent about your Clash Royale history: request access, add your player, connect the MCP endpoint, ask a question."
+description: "From nothing to a working connection: request access, add your player, then connect Claude.ai, Claude Desktop, Claude Code, or any MCP client to https://elixir.poapkings.com/mcp, with the exact steps for each and an honest note on ChatGPT."
 order: 2
 section: start
 ---
 
-# Connect your agent
+# Connect a client
 
-Five minutes, and most of it is waiting for an email.
+Three things happen once, in this order: an account, a recorded player, a
+connected client. Most of the elapsed time is waiting for two emails.
 
-## 1. Request access
+## 1. Get an account
 
-Accounts are approved by hand — this is a hobby service, not an open signup.
-Use the request form on the [home page](/) with your email and your Clash
-Royale player tag. You will hear back either way.
+Accounts are approved by hand. Use the request form on the [home page](/)
+with your email and your Clash Royale player tag. You will hear back either
+way. Once approved, sign in at [/signin](/signin): enter your email, then the
+six-digit code from the mail (15 minutes, five attempts). The mail also
+carries a one-click link; either works.
 
-## 2. Sign in
+## 2. Add your player
 
-Once approved, sign in with your email. We send a six-digit code; there is no
-password to forget.
+On **Account → Overview**, add your player tag. Adding **is** recording: the
+scheduler starts fetching your profile and battle log at its next tick, and
+history builds from there. Your first player becomes your **primary**, which
+is what every tool means when you omit `player_tag`. Add alts and friends the
+same way and mark the relationship; every tier holds 50 players. See
+[Recording and coverage](/docs/recording) for what gets fetched and how often.
 
-## 3. Add your player
+You can connect a client while capture is still pending.
 
-On your Account page, add your player tag.
+## 3. Connect
 
-**Adding is recording.** There is no separate opt-in step: adding a player
-requests capture, and data arrives after a collector poll. History builds from there.
-Your first player automatically becomes your **primary** — that is, you.
-
-If you have alts, add them too and mark them as alts; the same for friends you
-want to follow. See [Roles and quotas](/docs/roles) for how many you can hold
-(50, at every tier).
-
-## 4. Connect it
-
-In Claude, or any MCP client, add a remote MCP server:
+The endpoint is the same for every client:
 
 ```
 https://elixir.poapkings.com/mcp
 ```
 
-You will be asked to sign in with the same email. The consent screen names
-exactly what you are granting; reading is the default and every write capability
-is asked for separately.
+The door speaks Streamable HTTP over JSON and authenticates with OAuth 2.1
+(dynamic client registration, PKCE S256, a `resource` parameter naming the
+endpoint). The first connection asks for `cr:read` only; a write tool asks
+for its own capability the first time you use it and the client reconnects
+for it. Details are on the [Protocol reference](/docs/protocol).
 
-## 5. Ask it something
+### Claude.ai
 
-Open [Account → Overview](/account/overview). **Your next useful question**
-shows your primary player, whether a profile or recent battles are actually
-recorded, and whether you have an authorized personal connection. While waiting
-for capture or a first data read, it checks again every minute while visible;
-**Check again** refreshes it immediately. You can connect while capture is pending.
+1. **Settings → Connectors → Add custom connector.**
+2. Name it (say, `Elixir MCP`) and paste `https://elixir.poapkings.com/mcp`.
+   Leave the OAuth client id and secret empty: the door registers the client
+   itself.
+3. Click **Connect**. A sign-in page opens: enter your account email, then the
+   six-digit code from the mail, and approve the listed capabilities.
+4. In a chat, enable the connector under the tools menu and ask something.
 
-Copy one of its questions into your connected client:
+The connector caches the tool list. When `elixir_changelog` or a response's
+`contract_version` shows the contract moved, disconnect and reconnect the
+connector to refresh it.
 
-- Only a profile: start with the recorded player snapshot, its observation time
-  and the history available. One snapshot cannot establish progress.
-- Recorded battles: review the last seven days, or the last 30 if none were
-  recorded in the last seven. Counts include all game modes.
-- Only older battles and no profile: inspect the retained history and its dates.
-- At least two recorded decks in the last seven days: compare their results.
-- Battles in both the last seven days and the preceding seven: compare those
-  two periods. These are rolling windows, not calendar weeks.
+### Claude Desktop
 
-The questions name your primary tag and ask the client to check coverage,
-freshness, sample sizes and game modes. Having enough data to offer a comparison
-does **not** establish statistical confidence or prove improvement. The panel
-shows profile and battle-log observation times separately. **View the recorded
-data** opens the same player's Explore page so you can check the evidence.
+Claude Desktop uses the same connector list as Claude.ai: **Settings →
+Connectors → Add custom connector**, then the steps above. Remote connectors
+need a plan that supports them; the desktop app's `claude_desktop_config.json`
+stdio servers are a different mechanism and are not needed.
 
-For a newly recorded player, start with what is available now. A month-long
-trend becomes useful as that history accumulates; imported or previously
-recorded appearances may already provide some of it.
+### Claude Code
 
-You do not need to tell it your tag, and you should not have to watch it look
-you up. If your agent starts by enumerating your players before answering a
-question about you, something is wrong — tell us with `elixir_feedback`.
+```
+claude mcp add --transport http elixir https://elixir.poapkings.com/mcp
+```
 
-### Has the connection worked?
+Then run `/mcp` inside Claude Code and choose **Authenticate** for `elixir`;
+the browser flow is the same email-and-code page. Use `--scope user` on the
+add command if you want the connection in every project.
 
-An authorized connection means consent is in place; it does not prove a tool
-call has worked. The overview separately counts successful player, battle and
-war tool responses through your personal MCP connections in the last seven
-days, and the number of UTC dates on which those reads occurred. This includes
-empty results and queries about players other than your primary. Website
-previews, separate bots, setup calls, errors and oversized responses are excluded.
+### Any MCP client
 
-These counts come from existing call history, not from copying a question.
-They are evidence of successful reads and repeat use, **not confirmation that
-your client produced a useful answer**. **Review activity** shows the underlying
-calls and their request IDs. A disconnected client can still have recent reads
-in that history; reconnect before asking another question.
+Your client needs: Streamable HTTP transport (POST only, JSON responses, no
+SSE required), OAuth 2.1 with dynamic client registration and PKCE S256, and
+RFC 8707 `resource` support. The sequence is:
+
+1. `POST /mcp` without a token → 401 with `WWW-Authenticate: Bearer
+   resource_metadata="https://elixir.poapkings.com/.well-known/oauth-protected-resource"`.
+2. Read that document, then the authorization-server metadata it points to.
+3. `POST /oauth/register` with your `redirect_uris` (https, or http on
+   localhost / 127.0.0.1 / [::1]).
+4. Send the user to `/oauth/authorize` with `client_id`, `redirect_uri`,
+   `code_challenge` (S256), `scope=cr:read`,
+   `resource=https://elixir.poapkings.com/mcp`, and `state`.
+5. Exchange the code at `/oauth/token` with `code_verifier` and the same
+   `resource`. Access tokens last an hour; refresh tokens rotate on every use.
+6. `POST /mcp` with `Authorization: Bearer <access_token>` and an
+   `initialize` request. Read `serverInfo.version` and `_meta`.
+
+The official MCP SDKs implement steps 1 to 5; `mcp-remote` bridges a
+stdio-only client to this flow.
+
+### ChatGPT
+
+ChatGPT's connector support is scoped to its own connector catalogue and to
+developer-mode custom connectors whose availability depends on your plan and
+region, and its expectations of a server (specific `search` and `fetch`
+tools for deep research) differ from a general MCP tool surface. Elixir MCP
+does not test against ChatGPT and makes no claim that it works there. If you
+try it and it does, or does not, `elixir_feedback` is the place to say so.
+
+## 4. Ask something
+
+**Account → Overview** shows what is recorded for your primary so far and
+offers starter questions matched to it: a snapshot review when only a profile
+exists, a seven-day review once battles are in (30 days if the last week is
+empty), a deck comparison when two decks appear, a week-over-week comparison
+when both windows have battles. Copy one into your client. You never need
+to tell the client your tag; if it starts by listing your players, that is a
+bug worth reporting.
+
+The same page counts successful player, battle and war reads through your
+personal connections over the last seven days, so you can tell an authorized
+connection from a working one. **Review activity** lists every call with its
+`request_id`.
 
 ## What next
 
-- [Users, agents and integrations](/docs/connections) — if you want a bot for
-  your whole clan rather than a connection for yourself.
-- [Tools](/docs/tools) — everything your agent can call.
-- [The Explore page](/explore) — the same data, browsable, so you can check an
-  answer by hand.
+- [Users, agents and integrations](/docs/connections): a bot for a whole
+  clan rather than a connection for yourself.
+- [Tools](/docs/tools): everything the connection can call.
+- [Reading a response](/docs/responses): the `meta` envelope every answer
+  carries.
+- [Limits](/docs/limits): what 500 calls a day actually bounds.
 
 ## If something goes wrong
 
-Every response carries a `request_id`. Quote it when you report an answer that
-looks wrong and we can find the exact call that produced it. Your own call
-history is on **Account → Activity**.
+Quote the `request_id` from the response's `meta` when you report an answer
+that looks wrong. Your own call history, with those ids, is on **Account →
+Activity**; refused credentials appear on **Account → Connections**.

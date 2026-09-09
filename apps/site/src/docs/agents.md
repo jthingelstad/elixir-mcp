@@ -1,123 +1,181 @@
 ---
 slug: agents
-title: "Agents"
+title: "Building an agent"
 navTitle: "Agents"
-description: "An agent acts for a clan rather than a person: its own identity, key and event feed. How to create one, how to connect it, and how it learns which human is asking."
+description: "A clan agent is a principal you own with its own key, URL, event cursor and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and elixir_identify, consuming the event feed with a private cursor, and the key lifecycle."
 order: 21
 section: connections
 ---
 
-# Agents
+# Building an agent
 
-An agent is a principal you own that acts **for a clan**. It has its own
-identity, its own key, its own event feed and its own feedback inbox — so what
-it does never lands in your history, and what you do never shows up as its.
+An agent acts **for a clan**, not for a person. It is a separate principal
+that you own: its own identity, its own key and URL, its own event cursor,
+its own feedback inbox. What it does never lands in your history and what you
+do never shows up as its. If you have not read
+[Users, agents and integrations](/docs/connections), start there.
 
-If you have not read [Users, agents and integrations](/docs/connections), start
-there; this page assumes you know why you want one.
+## Create one
 
-## Creating one
+**Account → Agents → Create agent**, or `POST /api/me/agents` with a session.
 
-**Account → Agents → Create agent.** You need a clan you already record, which
-is the only gate: agents are available at every tier, not just paid ones.
+| Field | Rule |
+|---|---|
+| `name` | `^[a-z0-9][a-z0-9-]{1,40}$`; unique among your live agents; renamable later |
+| `clan_tag` | a clan you have already added; the agent's subject |
+| `scope` | optional OAuth scope string for the key; omitted means every capability |
 
-Name it, pick the clan, and you get a key **shown once**, alongside the URL to
-connect it at. Only the key's hash is stored — there is no way to recover it
-later, and no support path that ends in us telling you what it was. If you lose
-it, revoke and make another.
+The response (HTTP 201) carries the agent and its key **once**:
 
-The name is yours to change afterwards: **Account → Agents →** open it **→
-rename**. It has to be unique among your live agents, and it travels with the
-agent when you issue a new key.
-
-An agent carries its own tier, capped below yours: an admin's agent is not an
-admin. It spends *your* daily call budget, which is the trade that lets it be
-free.
-
-## Connecting it
-
-Every agent has its own URL, shown on its page in the console with a copy
-button:
-
-```
-https://elixir.poapkings.com/a/<agent-id>/mcp
+```json
+{ "agent": { "account_id": "…", "kind": "agent", "public_id": "k3f9x2mq7p",
+             "role": "leader", "status": "approved", "clans": [{ "clan_tag": "#J2RGCRVG", "scope": "comprehensive" }] },
+  "token": "svt_…", "note": "This token is shown once. Store it now." }
 ```
 
-Two ways in, for two different situations:
+Only the key's SHA-256 is stored. The agent's role is your role clamped to
+at most `leader`; it spends **your** daily call budget and **your** live lane.
+Every tier may create agents (3 / 5 / 10 / 25; owner and admin unlimited);
+over the cap the response is `{"error":"not_entitled","reason":"agent_limit","limit":N}`.
 
-- **A human driving it** — you, connecting Claude to your clan agent — signs in
-  and consents, exactly like a personal connection. You never handle a key.
-- **A headless runtime** — a Discord bot, a scheduled job — uses the key.
+## Connect it
 
-A credential is bound to one door. An agent key presented at the personal `/mcp`
-is refused, and so is one agent's key at another agent's URL. That is deliberate:
-the alternative is a connection quietly answering about the wrong subject.
+Its URL is on its page with a copy button:
 
-## What an agent sees
+```
+https://elixir.poapkings.com/a/<public_id>/mcp
+```
 
-Its tool surface is **not** the personal one. There is no `elixir_my_players`,
-no `elixir_add_player`, no `elixir_add_clan` — an agent has no self to have
-players, and adding a clan is an act you perform as yourself.
+| Runtime | How |
+|---|---|
+| A human driving it (you, in Claude) | Add the URL as a connector and sign in. Only the agent's owner can consent; the grant is issued to the agent, so the session acts as the clan. |
+| Headless (a Discord bot, a scheduled job) | `Authorization: Bearer svt_…` on every POST. No OAuth. |
 
-What it gains instead is its clan as a default: omit `clan_tag` and it means the
-clan it acts for. Its opening instructions name that clan, its size and its
-leadership, so it does not spend a call discovering its own identity.
+A credential is bound to one door: the key at `/mcp` or at another agent's
+URL answers 403 `wrong_resource`. A suspended agent's key answers 401 like an
+invalid one.
 
-The roster is deliberately **not** in those instructions. It changes daily, and
-an agent holds its instructions until it reconnects — an embedded roster would
-be confidently wrong by evening. Pull `clans_roster` once and reuse it.
+## What `initialize` tells it
+
+```json
+{ "serverInfo": { "name": "elixir-mcp", "version": "0.39.2+tools.…" },
+  "instructions": "YOU ACT FOR POAP KINGS #J2RGCRVG (47 members). Leadership: King Thing #20JJJ2CCRU (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE and reuse it… You have no player of your own: pass on_behalf_of… call elixir_identify once… You already know 9 of them.",
+  "_meta": { "elixir.poapkings.com/principal": {
+      "kind": "agent",
+      "subject": { "type": "clan", "tag": "#J2RGCRVG", "name": "POAP KINGS", "members": 47 } } } }
+```
+
+Use `_meta` to assert the boot: `kind` must be `agent` and `subject` must
+not be `null`. The instructions are for the model and change without notice.
+The roster is deliberately absent because the instructions are held until
+reconnect; call `clans_roster` once per run.
+
+An agent's `tools/list` has 41 tools: everything except `elixir_my_players`,
+`elixir_add_player` and `elixir_add_clan`, which need a self. Omit
+`clan_tag` anywhere and it means the agent's clan.
 
 ## Knowing which human is asking
 
-A clan agent talks to many people through one connection, and MCP carries no
-per-request identity. So the agent supplies one.
+MCP carries no per-request user identity, so the agent supplies one.
+`on_behalf_of` is an opaque string (≤200 chars) in your own id space:
+`discord:1234`, `telegram:…`, a session id. Pass it on every call that could
+mean "me". The first time an id is unknown, the subject-resolving tools
+answer `not_found`:
 
-Pass `on_behalf_of` with whatever id your surface has — `discord:1234`,
-`signal:…`, `telegram:…`, a session id, anything. It is opaque to us on purpose:
-the point is that any surface works.
+```json
+{ "error": { "code": "not_found",
+    "message": "No player is mapped to discord:1234 yet.",
+    "hint": "Ask who they are in the clan, then call elixir_identify once with their player_tag. Or pass player_tag explicitly." } }
+```
 
-The first time someone asks about themselves, we will not recognise the id and
-will say so. The agent asks who they are in the clan, calls `elixir_identify`
-once, and from then on `on_behalf_of` resolves to that player — for them, and
-for everyone else who asks later. `elixir_my_identities` lists what it has
-learned.
+Map it once with `elixir_identify` (scope `account:write`). The tag must be a
+**current member of a clan on this connection**; anything else is
+`not_entitled`, because a wrong mapping answers confidently about the wrong
+person for good. The mapping is per agent account, invisible to every other
+account, and confers nothing: recorded data is readable by every account
+anyway. `elixir_my_identities` lists what the agent has learned.
 
-Two things worth knowing:
+### A complete exchange
 
-- **It grants nothing.** Recorded data is readable by every account either way,
-  so a mapping only chooses a default subject. A wrong one produces a visibly
-  wrong answer, not access to something.
-- **It is permanent.** A Clash Royale tag never changes hands. Somebody who
-  rejoins under a new tag is a new person, not the same one renamed.
+```text
+member (discord:1234): how am I doing?
 
-## A worked example
+→ players_summary({ on_behalf_of: "discord:1234" })
+← { error: { code: "not_found", message: "No player is mapped to discord:1234 yet.", hint: "…" } }
 
-> **Member:** how am I playing?
-> **Agent** *(calls `players_summary` with `on_behalf_of: discord:1234`, is told
-> nobody is mapped)*: I don't have you linked yet — which player are you?
-> **Member:** I'm Raquaza
-> **Agent** *(calls `elixir_identify`, then answers)*: 62% over your last 16
-> ladder battles…
+agent: I don't have you linked yet. Which player are you in POAP KINGS?
+member: Raquaza
 
-Every question after that resolves with no lookup at all.
+→ players_search({ query: "Raquaza", limit: 5 })
+← { matches: [ { player_tag: "#UL2V9QRG0", name: "raquaza", source: "clanmate" } ], … }
 
-## Revoking
+→ elixir_identify({ external_id: "discord:1234", player_tag: "#UL2V9QRG0" })
+← { external_id: "discord:1234", player_tag: "#UL2V9QRG0", name: "raquaza", clan_tag: "#J2RGCRVG",
+    note: "Pass this external_id as on_behalf_of from now on; omit player_tag and it means them." }
 
-**Open the agent → Revoke key.** It stops working immediately, and unlike
-suspending, there is nothing to restore: you issue a new key when you are ready.
-Its identity, its clan and its learned mappings survive either way, so a new key
-picks up where the old one left off.
+→ players_summary({ on_behalf_of: "discord:1234" })
+← { player_tag: "#UL2V9QRG0", name: "raquaza", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
+    meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
+```
 
-**Suspend** is the reversible one — the key reads as invalid while suspended,
-and resuming restores the same key without redistributing a credential.
+Every later call from `discord:1234` resolves with no lookup. Always read
+`meta.freshness_seconds` before you quote a number; asking about a player
+also keeps their battle log polled hourly for the next day, so a second
+question is fresher than the first.
 
-## When an agent goes quiet
+## Consuming the event feed
 
-A key that is refused never reaches the call log: authentication fails before a
-tool runs, so a runtime still presenting an old key produces no errors to find,
-only silence. Its page names that case directly — **the current key has never
-been used** — which is the difference between an agent that is idle and one
-that has been locked out since you last rotated.
+`elixir_events` is the push lane. Its cursor is **per account**: two
+consumers that both call it with `mark_seen: true` will each acknowledge
+events the other never saw. A headless runtime should keep its own cursor
+and never mark:
 
-Last active is the agent's, not the key's, so issuing a new key does not erase
-its history.
+```js
+// state.since persisted between runs; seed it from the newest event on
+// first run rather than replaying the backlog into a channel.
+const page = await call("elixir_events", {
+  since: state.since,           // integer event_id; omit on the very first run
+  limit: 200,
+  mark_seen: false,             // never move the account's cursor
+  topics: ["clan_pulse", "war_day_open", "member_joined", "member_left"],
+});
+for (const ev of page.events) handle(ev);   // { event_id, topic, subject_tag, payload, created_at }; coalesced topics carry payload.count
+state.since = page.next_cursor;            // last event_id returned, or unchanged when empty
+if (page.has_more) continue;               // same call again, before sleeping
+```
+
+Payload floors per topic are on [Events](/docs/events). `meta.events_pending`
+on any other response tells you the account cursor has unread rows, which is
+only meaningful if something marks. Events prune after 30 days.
+
+A routine that runs once a day around 07:30 UTC sees the `clan_pulse`
+digest, drills with `clans_standings` or `battles_trends` when something
+moved, and on `war_day_open` checks `war_current.decks_today.untouched` in
+the evening. Facts in, judgment in your code.
+
+## Key lifecycle
+
+| Action | Where | Effect |
+|---|---|---|
+| Rotate | agent page → Rotate, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and the event cursor survive. |
+| Revoke | agent page → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready. |
+| Suspend / Resume | agent page | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
+| Rename | agent page | changes the name; must stay unique among your live agents |
+| Delete | – | there is no delete. Suspend is the reversible stop; revoke is the irreversible one. |
+
+## Knowing whether it is working
+
+A refused key never reaches the call log, so a runtime still presenting a
+rotated key produces silence, not errors. The agent's page shows, per key,
+`last_used_at` and **the current key has never been used**; per source
+address, refusals in the last seven days with the reason (`revoked_key`,
+`principal_suspended`, `wrong_door`, `unknown_key`); and `calls_7d`,
+`last_seen` (address, country, client name) and `unread_events`. Your own
+Account → Usage breaks the agents' calls out of your daily budget.
+
+## Feedback from an agent
+
+`elixir_feedback` filed through an agent is attributed to the agent, answered
+by the maintainer, and delivered back as a `feedback_responded` event plus
+`meta.feedback_responses_pending` on the agent's own responses. Agents are
+expected to file friction on their own judgment.

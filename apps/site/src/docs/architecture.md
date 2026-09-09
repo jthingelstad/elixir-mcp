@@ -81,7 +81,7 @@ more collectors mean resilience, never more API load.
 
 ## Collectors, in depth
 
-A collector is a single static Go binary (its own public repo,
+A collector is a single static binary, Go or Python (its own public repo,
 [elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector))
 that runs anywhere with a static IP — a Mac in a closet, a Synology NAS
 at a cabin. What makes the fleet interesting:
@@ -129,8 +129,8 @@ weeks finishing, feedback responses. Two events exist specifically so a
 `clan_pulse` digest per added clan each day — 24-hour battle activity,
 quiet members, war-day deck counts, roster changes. The digest carries
 facts, never judgments; what to do about a member quiet six days is
-deliberately your agent's call, not the service's. The recipe lives in
-[Docs › Tools](/docs/tools).
+deliberately your agent's call, not the service's. The recipe lives on
+[Events and the clan pulse](/docs/events).
 
 ## The feedback loop
 

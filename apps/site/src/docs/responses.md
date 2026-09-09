@@ -52,7 +52,10 @@ When it is there, say so in the answer. It is the service admitting a gap; an
 agent that drops it on the floor is laundering that admission.
 
 **`timezone_applied`** — the display timezone used for local labels, when one
-was requested or configured. Stored timestamps and the envelope remain UTC.
+is configured on the account. Stored timestamps and the envelope remain UTC.
+Only tools that build the full envelope emit it (the player, battle and war
+subject tools); `live_fetch`, feedback and changelog answers carry the three
+required fields only.
 
 **`feedback_responses_pending`** — maintainer replies waiting to be read with
 `elixir_my_feedback`.
@@ -154,9 +157,10 @@ poll, while `started_observed_at` is the first sighting of that period.
 ended. This does not assert the next period was captured: use `game_clock` for
 the policy clock and the source observation for what the recorder knows.
 
-An MCP result exceeding the delivery limit is a structured `bad_request` error,
-not a cut-off JSON success. It retains its request ID and suggests narrower
-arguments where available. No partial result should be interpreted as complete.
+An MCP result over 48,000 characters of compact JSON is a structured
+`bad_request` error ("Result exceeds 48000 characters."), not a cut-off
+success. It retains its request ID, sets `isError`, and names the arguments
+that narrow the call. No partial result should be interpreted as complete.
 
 ## Errors
 
@@ -166,7 +170,8 @@ A failed call returns a structured body rather than prose:
 { "error": { "code": "not_found", "message": "…", "hint": "…" } }
 ```
 
-The `code` is from a closed set, so a client can branch on it; the `hint` says
+The `code` is from a closed set of seven, listed with the JSON-RPC and HTTP
+layers on the [Protocol reference](/docs/protocol#errors); the `hint` says
 what would fix it. Errors carry a `meta` envelope too, with the same
 `request_id` — a call that failed is still a call you can ask us about.
 

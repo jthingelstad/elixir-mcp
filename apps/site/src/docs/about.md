@@ -14,7 +14,7 @@ history the official API doesn't keep, and serves it to your own AI
 agent through a remote MCP server.
 
 The Clash Royale API only answers "what is true right now" — your last
-~25 battles, your current trophies. Elixir MCP polls continuously,
+~30 battles, your current trophies. Elixir MCP polls continuously,
 stores every battle once (no matter how many members observed it),
 derives daily snapshots, war records, and events from the stream, and
 exposes it all as tools your agent can reason over: *"how has my ladder
@@ -29,7 +29,7 @@ page shows you exactly what your agent sees.
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad
 for the POAP KINGS clan and friends. It is free, and paid tiers are not
-planned (see [Terms](#terms)). Occasional product updates go out on the
+planned (see [Terms](/docs/terms)). Occasional product updates go out on the
 Elixir MCP newsletter (you're enrolled at sign-in; every issue has an
 unsubscribe link, and unsubscribing sticks).
 

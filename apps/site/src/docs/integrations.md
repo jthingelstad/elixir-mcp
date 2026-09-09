@@ -63,8 +63,9 @@ operational audit. Treat unknown response fields as additions compatible with v1
 ## The game clock is policy
 
 `GET /game/clock` reports `source: "policy"`, `as_of`, `season_id`,
-`season_started_at`, `season_ends_at`, `section_index`, `period_index`,
-`day_kind`, `war_day`, `day_started_at` and `day_ends_at`. Its calendar is the
+`season_started_at`, `season_ends_at`, `week`, `section_index`,
+`period_index`, `day_kind` (`training` or `war`), `war_day` (integer or
+`null`), `day_started_at`, `day_ends_at` and `notes` (strings). Its calendar is the
 same calculation as MCP's `game_clock`: days and seasons roll at **10:00 UTC**;
 seasons span first Monday to first Monday. It does not borrow a clan's observed
 river-race opening. `as_of` dates the calculation, not a collector observation.
@@ -133,20 +134,27 @@ Only normal collector admission establishes canonical game observations.
 
 ## Limits and errors
 
-Admins size each integration independently: API calls per UTC day, API calls per
-hour, profile-refresh requests per UTC day, and collection member capacity.
+Admins size each integration independently: API calls per UTC day (default
+10,000), API calls per hour (default 2,000), profile-refresh requests per UTC
+day (default 1,000), and collection member capacity per grant (default
+10,000). `Retry-After` is the seconds to the top of the hour, to UTC midnight,
+or 3600 for a refresh refusal.
 Refresh retries with the same idempotency key do not spend another refresh unit.
 These allowances do not increase the collector fleet's shared upstream budget.
 
 | Status | Meaning |
 | --- | --- |
-| 400 | Invalid JSON, tag, batch or missing idempotency key |
+| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `invalid_members`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path |
 | 401 | Missing, wrong-purpose, revoked or suspended credential |
 | 403 | Missing permission |
 | 404 | Unknown or inaccessible resource; `not_recorded` for missing profile data |
 | 409 | `enrollment_limit` or `idempotency_conflict` |
 | 429 | `rate_limited`, `daily_quota_exceeded` or `refresh_quota_exceeded` |
 | 503 | `temporarily_unavailable` |
+
+Every request with a resolved key is logged with `surface: rest`, the
+operation name, duration, size, HTTP status and error code, never the
+arguments; usage rows are kept 90 days.
 
 Honor `Retry-After` for throttling and temporary failures. Preserve useful cached
 data and retry through background work. Do not turn authentication failures or

@@ -119,7 +119,11 @@ improve the product.
 **Retention.** Recorded game history is kept indefinitely (it is the
 product). Raw API payloads are archived. Operational logs are pruned
 periodically. Connection IP addresses are cleared after 30 days and
-refusal records deleted after 30 days, both by the housekeeping job. Your email address is kept for as long as the account
+refusal records deleted after 30 days, both by the housekeeping job; the
+arguments of your tool calls are cleared from the call log after 90 days
+and the calls themselves stay; event-feed rows go after 30 days;
+integration usage counters after 90 days. The full table is on
+[Limits](/docs/limits). Your email address is kept for as long as the account
 exists, and goes when it goes. To remove your account, your address,
 and your claims, use the feedback form or email the maintainer;
 recorded public game data about the clan remains, as it would in any

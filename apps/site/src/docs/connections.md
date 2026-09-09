@@ -19,7 +19,7 @@ The short version:
 |---|---|---|---|
 | Acts for | yourself | a clan | its own users |
 | "Me" is | your primary player | the clan | nobody |
-| Signs in with | OAuth | OAuth or a key | a key |
+| Signs in with | OAuth | a key, or OAuth by its owner | a key |
 | Who can have one | everyone | everyone | admin provisioned |
 
 ## You
@@ -110,6 +110,20 @@ a dedicated project for clan work with only the agent connector enabled.
 
 Each connection has its own URL, so a credential presented at the wrong one is
 refused rather than quietly answering about the wrong subject.
+
+## Where things are in the console
+
+| Page | What it does |
+|---|---|
+| Account → Overview | your players (relationship, nickname, notify), your clans (scope, notify), slot usage, tier-upgrade request, timezone |
+| Account → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread events |
+| Account → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; disconnect |
+| Account → Activity | your calls with `request_id`, account events, the notification feed (read-only) |
+| Account → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
+| Account → Collector | your collectors, the one-time token reveal, the ladder |
+| Account → Feedback | what you filed and what the maintainer answered |
+| Explore | the same read tools in a browser; the one write is nicknames |
+| Data → Dashboard, Status | corpus totals; recording health, budget gauge, collector fleet, capture gaps |
 
 ## Making one
 

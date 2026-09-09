@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Documentation for people who build on this",
+    body: "The docs now carry the wire contract, not only the product: a protocol reference (transport, OAuth discovery and registration, PKCE and the resource parameter, the five scopes and the step-up challenge, every error code at every layer, the 48,000-character response cap, versioning and the tools/list cache-buster, cursors and argument rules); a limits page with one table of every quota and rate limit and the exact refusal each produces; a recording and coverage page that says what adding a player or clan actually fetches, how often, how one recording is shared, what collections do, how to read freshness and completeness, and what live_fetch can reach. The quickstart has per-client steps for Claude.ai, Claude Desktop, Claude Code and any MCP client, and an honest note on ChatGPT. The agents page is a builder's guide with a complete on_behalf_of exchange and event-cursor code. Events lists every topic's payload floor. Roles, integrations, responses, privacy and operators were corrected against the code, and headings now carry anchors.",
+  },
+  {
+    date: "2026-09-09",
     title:
       "Players you ask about stay fresh, and bursts stop rolling off the log",
     body: "Two changes to how the recorder decides when to fetch a player's battles. First, asking about a player through any tool now keeps that player's battlelog within an hour for the next day; until now a friend who plays a few games a day sat on the daily fairness floor and could be a day stale exactly when you looked. Second, the recorder now measures how fast each player has recently filled the ~30-entry battlelog and polls before half that time has passed, so a grinder's evening burst can no longer push battles off the log before they are recorded; the previous rule learned activity only from what a poll harvested, which is precisely what an overflowed log hides. The burst rule is rolling out to half of recorded players first so the two halves can be compared over the same hours. Profile snapshots of active players are taken every eight hours instead of every two, since the record keeps one snapshot per day.",

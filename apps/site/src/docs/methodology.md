@@ -154,5 +154,4 @@ Subject tools expose history and source freshness where applicable. Check
 `elixir_coverage` for measured observation intervals. Missing coverage is unknown,
 not evidence of completeness; no recorded battles is not proof of no play. How
 often a player is fetched, and why a burst can still roll off the ~30-entry
-battle log, is explained under
-the Scheduling section of [Architecture](/docs/architecture).
+battle log, is on [Recording and coverage](/docs/recording).

@@ -9,7 +9,7 @@ section: connections
 
 # Roles and quotas
 
-Every account sits on a five-step ladder. One principle above everything:
+Every account sits on a six-rung ladder. One principle above everything:
 **roles never gate what you can read.** All recorded game data — battles,
 snapshots, wars, collections — is open to every approved account, the same
 posture as the game's own public API. Tiers set the two things that cost
@@ -124,8 +124,9 @@ gate.
 
 ## Earn more by running a collector
 
-Any account operating a healthy collector gets **+2 player slots and +1
-activity clan watch** on top of its tier, and collector fetches earn
+Any member, leader or family account operating an active collector gets
+**+2 player slots and +1 activity clan watch** on top of its tier (partner
+already assumes one), and collector fetches earn
 daily tool-call credits (1 per 10 fetches, up to 4× your base) — the
 real, compounding benefit of running one. Capacity begets collection:
 the fleet is the lever that grows the whole service.
@@ -135,7 +136,7 @@ the fleet is the lever that grows the whole service.
 Request a tier from **Account ▸ Overview** — say what you're building or
 leading. The maintainer reviews requests by hand; you'll see the outcome
 in your feedback (your agent sees it too, via `elixir_my_feedback`, and
-gets a `role_changed` event on the push lane). Hand-tuned per-account
+gets an `account_tier_changed` event on the push lane). Hand-tuned per-account
 overrides exist for cases the ladder doesn't fit — just ask.
 
 ## The fine print
@@ -144,5 +145,6 @@ overrides exist for cases the ladder doesn't fit — just ask.
   the daily tool-call budget — never by tier.
 - Feedback is never metered. Telling us what's wrong should always be
   free.
-- Limits may evolve during the alpha; the
-  [changelog](/docs) and `elixir_changelog` tool record every change.
+- Where each number is enforced and what a refusal looks like is on
+  [Limits](/docs/limits). Limits may evolve during the alpha; the
+  [changelog](/data/changelog) and `elixir_changelog` tool record every change.
