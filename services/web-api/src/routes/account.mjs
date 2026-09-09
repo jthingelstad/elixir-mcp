@@ -10,8 +10,13 @@ import { firstAnswer } from "../first-answer.mjs";
 import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 
 import { json } from "../http.mjs";
+import { senderRef } from "../notify.mjs";
 
-export function accountRoutes({ resolveAccount, logEvent }) {
+export function accountRoutes({
+  resolveAccount,
+  logEvent,
+  notifyOwner = async () => {},
+}) {
   return {
     "GET /api/me": async (db, event) => {
       const account = await resolveAccount(db, event);
@@ -368,6 +373,18 @@ export function accountRoutes({ resolveAccount, logEvent }) {
         ],
       );
       await logEvent(db, account.accountId, "role_upgrade_requested", { role });
+      // Upgrade requests used to be a flag on the Accounts page only.
+      try {
+        await notifyOwner({
+          kind: "role_upgrade_request",
+          requestedRole: role,
+          currentRole: account.role ?? "member",
+          reason: note,
+          from: senderRef(account),
+        });
+      } catch (err) {
+        console.error("owner_notify_enqueue_failed", err?.message);
+      }
       return json(200, { ok: true, request_id: fb[0].feedback_id });
     },
 

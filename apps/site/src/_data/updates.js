@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "The maintainer hears feedback as it arrives",
+    body: "Feedback filed on the site or through a connected agent, and tier-upgrade requests, now email the maintainer the moment they land: the category, a short excerpt, and which account or agent sent it (never an address), with a link to act on it. Until now only access requests and collector events did, and feedback waited for the next review pass. Each kind of notification has its own subject line, and notifications ride the best-effort lane of the mail relay so they can never delay or dead-letter a sign-in code.",
+  },
+  {
+    date: "2026-09-09",
     title: "Same rules at every door",
     body: "The explorer on the website now follows the same discipline as the MCP connection: the hourly rate limit and daily call budget are the same buckets, oversized results come back as the same bounded failure, and it serves read-only tools (nicknames excepted, which are the console's own feature). Every tool, on both doors, now checks its arguments against its published schema before running, so a misspelled argument or an out-of-range value is a clear refusal instead of a silent ignore. The usage page shows your tier's real ceilings rather than the member tier's. Malformed ids in console requests answer 400 rather than a server error. And the API origins now accept only requests that came through the site's CloudFront distribution, so the caller address recorded on every call cannot be forged.",
   },

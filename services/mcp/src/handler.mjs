@@ -39,6 +39,7 @@ export function makeHandler({
   enqueueLiveJob = null,
   track = null,
   originSecret = null,
+  notifyOwner = null,
 }) {
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
@@ -331,6 +332,7 @@ export function makeHandler({
           clientName: account.serviceName ?? account.clientName ?? null,
           oauthFamilyId: account.oauthFamilyId ?? null,
           track,
+          notifyOwner,
         }),
       });
       return {

@@ -2408,3 +2408,75 @@ test("with an origin secret set, the site API refuses requests that did not come
     "unset: check is off",
   );
 });
+
+// Jamie is emailed when beta users say something (2026-09-09): feedback
+// and tier-upgrade requests enqueue an owner notification, shaped so the
+// mail names the kind, an excerpt, and who - never an address.
+test("feedback and upgrade requests notify the owner; the owner's own feedback does not", async () => {
+  const cookie = memberCookie;
+  ownerNotes.length = 0;
+  const long = "x".repeat(400);
+  const fb = await handler(
+    event({
+      path: "/api/feedback",
+      cookie,
+      body: { message: `The explorer is great. ${long}`, category: "praise" },
+    }),
+  );
+  assert.equal(fb.statusCode, 200);
+  const note = ownerNotes.find((n) => n.kind === "feedback");
+  assert.ok(note, "feedback notified");
+  assert.equal(note.category, "praise");
+  assert.equal(note.surface, "web");
+  assert.match(
+    note.from,
+    /^account [0-9a-f]{8}$/,
+    "an 8-hex hash prefix, never an address",
+  );
+  assert.ok(note.feedbackId);
+  const { ownerNotifyMessage } = await import("../src/notify.mjs");
+  const msg = ownerNotifyMessage(note);
+  assert.equal(msg.kind, "owner_notify");
+  assert.equal(msg.notify_kind, "feedback");
+  assert.ok(
+    msg.note.length <= 301 && msg.note.endsWith("…"),
+    "excerpt capped at ~300 chars",
+  );
+  assert.equal(msg.detail.category, "praise");
+  assert.match(msg.link, /\/admin$/);
+  assert.ok(
+    !msg.note.includes("@") && !JSON.stringify(msg.detail).includes("@"),
+  );
+
+  ownerNotes.length = 0;
+  await db.query(
+    `update feedback set status = 'done' where context->>'kind' = 'role_upgrade_request'`,
+  );
+  const up = await handler(
+    event({
+      path: "/api/me/role-request",
+      cookie,
+      body: { role: "leader", note: "I run a clan" },
+    }),
+  );
+  assert.equal(up.statusCode, 200, up.body);
+  const role = ownerNotes.find((n) => n.kind === "role_upgrade_request");
+  assert.ok(role, "upgrade request notified");
+  assert.equal(role.requestedRole, "leader");
+  assert.match(ownerNotifyMessage(role).note, /asked for leader/);
+
+  ownerNotes.length = 0;
+  const own = await handler(
+    event({
+      path: "/api/feedback",
+      cookie: bossCookie,
+      body: { message: "note to self", category: "general" },
+    }),
+  );
+  assert.equal(own.statusCode, 200);
+  assert.equal(
+    ownerNotes.filter((n) => n.kind === "feedback").length,
+    0,
+    "the owner is not told about their own feedback",
+  );
+});

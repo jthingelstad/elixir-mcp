@@ -68,20 +68,10 @@ async function queueStats() {
   return out;
 }
 
-function notifyOwner({ kind, playerTag, emailHash }) {
-  return enqueueEmail({
-    v: 1,
-    kind: "owner_notify",
-    to: "elixir@poapkings.com",
-    note:
-      kind === "access_request"
-        ? `New access request${playerTag ? ` from ${playerTag}` : ""}.`
-        : kind === "gateway_request"
-          ? `Gateway raise-hand: "${playerTag}". Provision a collector token in Admin (docs/OPERATORS.md).`
-          : kind === "gateway_quarantined"
-            ? `Collector "${playerTag}" QUARANTINED: too many leases expired unsubmitted; now draining.`
-            : `Account approved (${emailHash}).`,
-  });
+import { ownerNotifyMessage } from "./notify.mjs";
+
+function notifyOwner(spec) {
+  return enqueueEmail(ownerNotifyMessage(spec));
 }
 
 export const handler = makeHandler({

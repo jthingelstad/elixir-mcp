@@ -425,6 +425,7 @@ Resources:
           EMAIL_QUEUE_URL: !Ref EmailQueue
           COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
           ORIGIN_SECRET: !Ref OriginSecret
+          OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
 
   McpLogGroup:
     Type: AWS::Logs::LogGroup
@@ -456,6 +457,7 @@ Resources:
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
           ORIGIN_SECRET: !Ref OriginSecret
+          OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
 
   SchedulerLogGroup:
     Type: AWS::Logs::LogGroup

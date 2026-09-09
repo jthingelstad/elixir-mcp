@@ -157,6 +157,7 @@ export function makeInvoker({
   clientName = null,
   oauthFamilyId = null,
   track = null,
+  notifyOwner = null,
 }) {
   return async function invokeTool(name, args) {
     const startedAt = Date.now();
@@ -179,7 +180,11 @@ export function makeInvoker({
       }
     };
     try {
-      const body = await registry.invoke(name, { db, account, live }, args);
+      const body = await registry.invoke(
+        name,
+        { db, account, live, notifyOwner },
+        args,
+      );
       const resultBytes = JSON.stringify(body).length;
       await audit(db, {
         viewerIp,

@@ -300,6 +300,30 @@ export const elixirTools = {
             : null,
         ],
       );
+      // Jamie hears about it (2026-09-09), the same message the site API
+      // sends: best-effort and after the row is durable. An owner's own
+      // feedback (or that of an agent the owner runs) is not news.
+      const a = ctx.account;
+      const ownerOwned =
+        a.isOwner === true || a.role === "owner" || a.budget?.role === "owner";
+      if (ctx.notifyOwner && !ownerOwned) {
+        try {
+          await ctx.notifyOwner({
+            kind: "feedback",
+            category: args.category ?? "general",
+            surface: "mcp",
+            message,
+            from: a.publicId
+              ? `agent ${a.publicId}`
+              : a.emailHash
+                ? `account ${String(a.emailHash).slice(0, 8)}`
+                : "an account",
+            feedbackId: rows[0].feedback_id,
+          });
+        } catch (err) {
+          console.error("owner_notify_enqueue_failed", err?.message);
+        }
+      }
       return {
         ok: true,
         feedback_id: rows[0].feedback_id,

@@ -3,6 +3,7 @@
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { makeHandler } from "./handler.mjs";
 import { enqueueJob } from "../../scheduler/src/ledger.mjs";
+import { ownerNotifyMessage } from "../../web-api/src/notify.mjs";
 
 const sqs = new SQSClient({});
 
@@ -13,6 +14,16 @@ export const handler = makeHandler({
   // live-channel collectors lease them at the door.
   enqueueLiveJob: (db, job) => enqueueJob(db, job),
   originSecret: process.env.ORIGIN_SECRET || null,
+  // Same relay, same message shape as the site API (notify.mjs).
+  notifyOwner: process.env.EMAIL_QUEUE_URL
+    ? (spec) =>
+        sqs.send(
+          new SendMessageCommand({
+            QueueUrl: process.env.EMAIL_QUEUE_URL,
+            MessageBody: JSON.stringify(ownerNotifyMessage(spec)),
+          }),
+        )
+    : null,
   sendLoginEmail: ({ email, code, clientName, newsletter }) =>
     sqs.send(
       new SendMessageCommand({

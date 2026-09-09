@@ -1614,3 +1614,54 @@ test("players_search matches user text literally: %, _ and \\ are not wildcards"
     "a backslash matches only a backslash",
   );
 });
+
+test("elixir_feedback notifies the owner through the door's notify hook; owner-owned callers do not", async () => {
+  const notes = [];
+  const registry = makeRegistry();
+  const member = makeInvoker({
+    db,
+    account: { ...account, publicId: "abc123def456", role: "member" },
+    registry,
+    notifyOwner: async (spec) => notes.push(spec),
+  });
+  const filed = await member("elixir_feedback", {
+    message: "battles_opponents is exactly what I needed",
+    category: "praise",
+  });
+  assert.equal(filed.isError, false, JSON.stringify(filed.body));
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].kind, "feedback");
+  assert.equal(notes[0].surface, "mcp");
+  assert.equal(notes[0].from, "agent abc123def456");
+  assert.equal(notes[0].feedbackId, filed.body.feedback_id);
+
+  const ownerAgent = makeInvoker({
+    db,
+    account: {
+      ...account,
+      role: "leader",
+      kind: "agent",
+      budget: { accountId: account.accountId, role: "owner" },
+    },
+    registry,
+    notifyOwner: async (spec) => notes.push(spec),
+  });
+  const own = await ownerAgent("elixir_feedback", {
+    message: "owner's own agent",
+  });
+  assert.equal(own.isError, false);
+  assert.equal(notes.length, 1, "the owner's agents do not mail the owner");
+
+  // A notify hook that throws never fails the filing.
+  const flaky = makeInvoker({
+    db,
+    account: { ...account, role: "member" },
+    registry,
+    notifyOwner: async () => {
+      throw new Error("queue down");
+    },
+  });
+  const still = await flaky("elixir_feedback", { message: "still filed" });
+  assert.equal(still.isError, false);
+  assert.ok(still.body.feedback_id);
+});
