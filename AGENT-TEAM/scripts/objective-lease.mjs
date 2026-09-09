@@ -9,8 +9,16 @@
  *   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|session>
  *   node AGENT-TEAM/scripts/objective-lease.mjs check <objective> --lease-id <id>
  *   node AGENT-TEAM/scripts/objective-lease.mjs release <objective> --lease-id <id>
+ *   node AGENT-TEAM/scripts/objective-lease.mjs abort <objective> --lease-id <id> --reason "<text>"
  *   node AGENT-TEAM/scripts/objective-lease.mjs status
+ *   node AGENT-TEAM/scripts/objective-lease.mjs notes [--clear]
  *   node AGENT-TEAM/scripts/objective-lease.mjs clear-stale --hours <n>
+ *
+ * abort is the blocked-run exit: it releases the lease AND queues a note
+ * for Jamie. Keep the Record True stalled on an ExpiredToken for
+ * --profile jamie (2026-09-08), held the `record` lease, and blocked
+ * Close the Loop the same morning — a run that cannot do its job must
+ * not keep the checkout hostage.
  *
  * clear-stale refuses dirty worktrees and young leases; never infer
  * staleness from age plus a clean tree by hand — use this command so
@@ -21,6 +29,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import {
+  appendFileSync,
   closeSync,
   constants,
   openSync,
@@ -36,6 +45,7 @@ const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
+const NOTES_PATH_SEGMENT = "agent-team-queued-notes.jsonl";
 const LEASE_PATH = path.resolve(
   REPO_ROOT,
   execFileSync("git", ["rev-parse", "--git-dir"], {
@@ -43,6 +53,15 @@ const LEASE_PATH = path.resolve(
     encoding: "utf8",
   }).trim(),
   "agent-team-objective-lease.json",
+);
+
+const NOTES_PATH = path.resolve(
+  REPO_ROOT,
+  execFileSync("git", ["rev-parse", "--git-dir"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+  }).trim(),
+  NOTES_PATH_SEGMENT,
 );
 
 function git(args) {
@@ -128,6 +147,56 @@ function release(objective, leaseId) {
   return current;
 }
 
+/**
+ * A blocked run's exit: hand the checkout back and leave a note.
+ *
+ * Queued notes live OUTSIDE git (beside the lease, in .git) on purpose. An
+ * aborting run cannot commit — it has no credentials and may be mid-anything
+ * — and writing into the tree would dirty the checkout it is trying to hand
+ * over clean. preflight prints them, so the next run and Jamie both see it.
+ */
+function abort(objective, leaseId, reason) {
+  const current = assertOwner(objective, leaseId);
+  if (!reason)
+    throw new Error("--reason is required: say what blocked the run");
+  if (git(["status", "--porcelain"])) {
+    throw new Error(
+      "worktree is DIRTY: an aborting run must not abandon uncommitted work. " +
+        "Report to Jamie with the reason and leave the lease held.",
+    );
+  }
+  const note = {
+    at: new Date().toISOString(),
+    objective,
+    reason: String(reason).slice(0, 500),
+    heldSince: current.claimedAt,
+    hostname: current.hostname,
+    needs: "Jamie",
+  };
+  appendFileSync(NOTES_PATH, `${JSON.stringify(note)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  unlinkSync(LEASE_PATH);
+  return { released: current.leaseId, note };
+}
+
+/** Queued notes, newest last. --clear consumes them (a run that has
+ *  transcribed them into docs/NOTES.md empties the queue). */
+function notes(clear) {
+  let queued = [];
+  try {
+    queued = readFileSync(NOTES_PATH, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (clear && queued.length > 0) unlinkSync(NOTES_PATH);
+  return queued;
+}
+
 function clearStale(hours) {
   if (!Number.isFinite(hours) || hours <= 0)
     throw new Error("--hours must be a positive number");
@@ -162,6 +231,14 @@ try {
     case "release":
       console.log(JSON.stringify(release(objective, arg("--lease-id"))));
       break;
+    case "abort":
+      console.log(
+        JSON.stringify(abort(objective, arg("--lease-id"), arg("--reason"))),
+      );
+      break;
+    case "notes":
+      console.log(JSON.stringify(notes(process.argv.includes("--clear"))));
+      break;
     case "status":
       console.log(JSON.stringify(readLease()));
       break;
@@ -170,7 +247,7 @@ try {
       break;
     default:
       console.error(
-        "usage: objective-lease.mjs <claim|check|release|status|clear-stale> [objective] [--lease-id id] [--hours n]",
+        "usage: objective-lease.mjs <claim|check|release|abort|status|notes|clear-stale> [objective] [--lease-id id] [--reason text] [--hours n] [--clear]",
       );
       process.exit(2);
   }

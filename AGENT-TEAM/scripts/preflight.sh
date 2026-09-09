@@ -38,6 +38,12 @@ else
   echo "  ✓ checkout lease free"
 fi
 
+queued="$(node AGENT-TEAM/scripts/objective-lease.mjs notes)"
+if [ "$queued" != "[]" ]; then
+  echo "  ! QUEUED NOTES for Jamie from a blocked run — transcribe into docs/NOTES.md, then 'notes --clear':"
+  echo "$queued" | sed 's/^/    /'
+fi
+
 echo "==> Live snapshot"
 if snapshot="$(curl -sf --max-time 10 https://elixir.poapkings.com/api/public/status)"; then
   echo "$snapshot" | node -e '

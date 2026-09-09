@@ -43,12 +43,36 @@ Read order for every run:
    an objective run or an interactive session — owns the checkout:
    stop before mutation. Never infer staleness from age alone; use the
    documented `clear-stale` path (it refuses dirty worktrees).
-6. **Test first, then the gate.** New behavior lands with a test that
+6. **Blocked on credentials? Hand the checkout back.** If AWS
+   credentials are missing or expired at any point — `ExpiredToken`,
+   `AccessDenied` on `--profile jamie`, an unreachable role — the run
+   is over: it cannot measure production and must not keep the lease.
+   From a clean worktree:
+
+   ```bash
+   node AGENT-TEAM/scripts/objective-lease.mjs abort <objective> \
+     --lease-id <id> --reason "ExpiredToken on --profile jamie"
+   ```
+
+   That releases the lease and queues a note for Jamie that the next
+   preflight prints. **If the worktree is dirty, abort refuses**: never
+   abandon uncommitted work to take a lease back. Report instead, and
+   leave the lease held for a human. This rule exists because Keep the
+   Record True stalled on an ExpiredToken on 2026-09-08, held the
+   `record` lease, and blocked Close the Loop the same morning — one
+   expired credential cost two objectives their day.
+
+   A run that finds queued notes at preflight transcribes them into
+   `docs/NOTES.md` under a dated heading and then clears the queue
+   (`notes --clear`), so an escalation reaches the ledger even though
+   the run that raised it could not commit.
+
+7. **Test first, then the gate.** New behavior lands with a test that
    fails without it. `npm run verify` (prettier + oxlint + knip + every
    workspace test against per-run scratch databases) must pass before
    any push. Against live data: reads and refusal paths only — never
    verify with writes.
-7. **Ship it whole.** Docs ship with the change: site docs
+8. **Ship it whole.** Docs ship with the change: site docs
    (`apps/site/src/docs/`) and `apps/site/src/_data/updates.js` in the
    same commit for user-visible changes; a contracts version bump
    appends a changelog entry. The tool reference (`/docs/tools`) is
@@ -61,7 +85,7 @@ Read order for every run:
    REPORT failure loudly but do not roll back — a red smoke means fix
    forward now, not walk away. Verify the deployed behavior with a
    read.
-8. **Record the run.** Append what happened to `docs/NOTES.md` when it
+9. **Record the run.** Append what happened to `docs/NOTES.md` when it
    changes durable state or a decision, and to `AGENT-TEAM/notes/` for
    run-level detail worth keeping (findings, watches, proposals).
    Weekly, the Friday Close the Loop pass writes
