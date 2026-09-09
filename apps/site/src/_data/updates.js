@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "An agent's connect URL, and renaming",
+    body: "An agent's page now shows the URL to connect a client at, with a copy button, and creating one shows that URL beside the key it hands over once. Agents can also be renamed after creation; the name stays unique among your live agents and travels with the agent when you issue a new key.",
+  },
+  {
+    date: "2026-09-09",
     title: "A clan agent's tools default to its clan",
     body: "An agent connection omitting clan_tag now resolves to the clan the agent acts for, as its opening instructions have always promised. Clan defaults were previously derived from claimed players, which an agent does not have, so clan tools answered that the connection had no recorded clan membership while the same connection reported the clan by name. Agents with several clans default to their primary. Personal connections, explicit tags and leadership-scoped analytics are unchanged.",
   },

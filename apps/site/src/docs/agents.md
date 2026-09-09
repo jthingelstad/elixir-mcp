@@ -21,9 +21,14 @@ there; this page assumes you know why you want one.
 **Account → Agents → Create agent.** You need a clan you already record, which
 is the only gate: agents are available at every tier, not just paid ones.
 
-Name it, pick the clan, and you get a key **shown once**. Only its hash is
-stored — there is no way to recover it later, and no support path that ends in
-us telling you what it was. If you lose it, revoke and make another.
+Name it, pick the clan, and you get a key **shown once**, alongside the URL to
+connect it at. Only the key's hash is stored — there is no way to recover it
+later, and no support path that ends in us telling you what it was. If you lose
+it, revoke and make another.
+
+The name is yours to change afterwards: **Account → Agents →** open it **→
+rename**. It has to be unique among your live agents, and it travels with the
+agent when you issue a new key.
 
 An agent carries its own tier, capped below yours: an admin's agent is not an
 admin. It spends *your* daily call budget, which is the trade that lets it be
@@ -31,7 +36,8 @@ free.
 
 ## Connecting it
 
-Every agent has its own URL:
+Every agent has its own URL, shown on its page in the console with a copy
+button:
 
 ```
 https://elixir.poapkings.com/a/<agent-id>/mcp

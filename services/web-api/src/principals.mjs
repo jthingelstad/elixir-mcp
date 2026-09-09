@@ -9,7 +9,7 @@
  */
 
 import { mintServiceTokenValue } from "@elixir-mcp/auth";
-import { createPrincipal } from "@elixir-mcp/claims";
+import { createPrincipal, normalizePrincipalName } from "@elixir-mcp/claims";
 
 /** Everything the owner has that a principal could be pointed at. */
 export async function listPrincipals(db, ownerAccountId) {
@@ -122,6 +122,67 @@ export async function rotateToken(db, ownerAccountId, principalAccountId) {
     );
     await db.query("commit");
     return { ok: true, token: raw };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/**
+ * Rename an agent.
+ *
+ * An agent's name is its live KEY's name — there is no name column on
+ * `account`, and `service_token.name` is what every surface displays. So a
+ * rename updates that row, and rotation already carries the name forward onto
+ * the replacement key.
+ *
+ * Uniqueness matches creation exactly: unique among the OWNER's live tokens
+ * (0056 scoped the index to live rows so a revoked key never squats a name).
+ * Checking it here rather than relying on the constraint keeps the answer a
+ * `name_taken` the console can render, instead of a 500.
+ *
+ * Ownership is in the WHERE clause, like revoke: renaming somebody else's
+ * agent finds nothing rather than being refused after the fact, so the route
+ * cannot be used to probe for account ids.
+ */
+export async function renamePrincipal(
+  db,
+  ownerAccountId,
+  principalAccountId,
+  name,
+) {
+  const cleanName = normalizePrincipalName(name);
+  if (!cleanName) return { ok: false, error: "invalid_name" };
+  try {
+    await db.query("begin");
+    const { rows: dupe } = await db.query(
+      `select 1 from service_token t
+       join account a on a.account_id = t.account_id
+       where a.owned_by_account_id = $1 and t.name = $2
+         and t.revoked_at is null and t.account_id <> $3`,
+      [ownerAccountId, cleanName, principalAccountId],
+    );
+    if (dupe.length > 0) {
+      await db.query("rollback");
+      return { ok: false, error: "name_taken" };
+    }
+    const { rowCount } = await db.query(
+      `update service_token t
+       set name = $3
+       from account a
+       where t.account_id = $1
+         and a.account_id = t.account_id
+         and a.owned_by_account_id = $2
+         and a.kind = 'agent'
+         and t.revoked_at is null`,
+      [principalAccountId, ownerAccountId, cleanName],
+    );
+    if (rowCount === 0) {
+      await db.query("rollback");
+      return { ok: false, error: "not_found" };
+    }
+    await db.query("commit");
+    return { ok: true, name: cleanName };
   } catch (err) {
     await db.query("rollback").catch(() => {});
     throw err;

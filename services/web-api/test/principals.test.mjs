@@ -570,3 +570,149 @@ test("an agent's calls surface on the owner's principal list", async () => {
   const agent = listed.agents.find((a) => a.account_id === id);
   assert.ok(agent.calls_7d >= 1, `calls_7d was ${agent.calls_7d}`);
 });
+
+/**
+ * Renaming.
+ *
+ * An agent's name is its live key's name, so a rename is an UPDATE on
+ * service_token and has to hold the same rules creation does: the shape, the
+ * uniqueness among the owner's live keys, and ownership scoped in the WHERE so
+ * the route cannot be used to probe for account ids.
+ */
+test("an agent can be renamed, and the new name is what the console lists", async () => {
+  const id = await bossAgentId();
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: bossCookie,
+      body: { account_id: id, name: "Renamed-Agent" },
+    }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  // Normalized, like creation: names are lower-case.
+  assert.equal(parse(res).name, "renamed-agent");
+
+  const listed = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/principals", cookie: bossCookie }),
+    ),
+  );
+  const agent = listed.agents.find((a) => a.account_id === id);
+  const live = agent.tokens.filter((t) => !t.revoked_at);
+  assert.equal(live.length, 1);
+  assert.equal(live[0].name, "renamed-agent");
+});
+
+test("a rename survives a rotation, because a rotation is not a re-grant", async () => {
+  const id = await bossAgentId();
+  await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: bossCookie,
+      body: { account_id: id, name: "carried-forward" },
+    }),
+  );
+  await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie: bossCookie,
+      body: { account_id: id },
+    }),
+  );
+  const { rows } = await db.query(
+    `select name from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.deepEqual(
+    rows.map((r) => r.name),
+    ["carried-forward"],
+  );
+});
+
+test("a rename cannot take a name another of your live agents holds", async () => {
+  // Built here rather than borrowed from the fixture: a collision test that
+  // silently skips when there is only one agent is not a test.
+  const id = await bossAgentId();
+  const { rows: clanRows } = await db.query(
+    `select clan_tag from account_clan
+      where account_id = (select owned_by_account_id from account where account_id = $1)
+      limit 1`,
+    [id],
+  );
+  const made = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie: bossCookie,
+      body: { name: "second-agent", clan_tag: clanRows[0].clan_tag },
+    }),
+  );
+  assert.equal(made.statusCode, 201, made.body);
+
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: bossCookie,
+      body: { account_id: id, name: "second-agent" },
+    }),
+  );
+  assert.equal(res.statusCode, 400, res.body);
+  assert.equal(parse(res).error, "name_taken");
+
+  // And its own name is still free to it: renaming to what it already has is
+  // not a collision with itself.
+  const { rows: own } = await db.query(
+    `select name from service_token where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  const same = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: bossCookie,
+      body: { account_id: id, name: own[0].name },
+    }),
+  );
+  assert.equal(same.statusCode, 200, same.body);
+});
+
+test("a rename with a bad shape is refused before it touches a row", async () => {
+  const id = await bossAgentId();
+  const before = await db.query(
+    `select name from service_token where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: bossCookie,
+      body: { account_id: id, name: "no spaces or CAPS!" },
+    }),
+  );
+  assert.equal(res.statusCode, 400);
+  assert.equal(parse(res).error, "invalid_name");
+  const after = await db.query(
+    `select name from service_token where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.deepEqual(after.rows, before.rows);
+});
+
+test("renaming someone else's agent finds nothing rather than refusing", async () => {
+  // Same posture as revoke: a 404, so the route cannot confirm that an
+  // account id exists.
+  const id = await bossAgentId();
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rename",
+      cookie: leaderCookie,
+      body: { account_id: id, name: "not-yours" },
+    }),
+  );
+  assert.equal(res.statusCode, 404);
+  assert.equal(parse(res).error, "not_found");
+  const { rows } = await db.query(
+    `select name from service_token where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.notEqual(rows[0].name, "not-yours");
+});

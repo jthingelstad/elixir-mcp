@@ -93,6 +93,8 @@ export const api = {
     request("POST", "/api/me/principals/rotate", { account_id }),
   setPrincipalStatus: (account_id, status) =>
     request("POST", "/api/me/principals/status", { account_id, status }),
+  renamePrincipal: (account_id, name) =>
+    request("POST", "/api/me/principals/rename", { account_id, name }),
   principalEvents: (account_id) =>
     request(
       "GET",

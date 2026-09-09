@@ -1,5 +1,6 @@
 import {
   listPrincipals,
+  renamePrincipal,
   rotateToken,
   setPrincipalStatus,
   createAgent,
@@ -100,6 +101,26 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       // Handed over once, exactly like creation. There is no second chance
       // and no support path that ends in recovering it.
       return json(200, { ok: true, token: result.token });
+    },
+
+    "POST /api/me/principals/rename": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const result = await renamePrincipal(
+        db,
+        account.accountId,
+        body.account_id,
+        body.name,
+      );
+      if (!result.ok)
+        return json(result.error === "not_found" ? 404 : 400, result);
+      await logEvent(db, account.accountId, "principal_renamed", {
+        account_id: body.account_id,
+        name: result.name,
+      });
+      return json(200, result);
     },
 
     "POST /api/me/principals/status": async (db, event, body) => {

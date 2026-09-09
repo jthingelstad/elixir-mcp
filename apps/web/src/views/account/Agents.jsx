@@ -10,6 +10,10 @@ export function AgentDetail({ id, navigate }) {
   const [identities, setIdentities] = useState(null);
   const [minted, setMinted] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [renameError, setRenameError] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const r = await api.myPrincipals();
@@ -41,6 +45,13 @@ export function AgentDetail({ id, navigate }) {
 
   const live = (agent.tokens ?? []).filter((k) => !k.revoked_at);
   const suspended = agent.status !== "approved";
+  const name = live[0]?.name ?? agent.public_id;
+  // The agent's own door. One hostname serves the site and the MCP endpoint,
+  // so the origin this console is served from IS the origin to connect to —
+  // deriving it beats a constant that would be wrong in local development.
+  const connectUrl = agent.public_id
+    ? `${window.location.origin}/a/${agent.public_id}/mcp`
+    : null;
 
   return (
     <>
@@ -56,9 +67,7 @@ export function AgentDetail({ id, navigate }) {
 
       <section className="panel" style={{ marginBottom: "16px" }}>
         <div className="panel__head">
-          <span className="panel-title">
-            {live[0]?.name ?? agent.public_id}
-          </span>
+          <span className="panel-title">{name}</span>
           {suspended && (
             <span style={{ color: "var(--red)", fontSize: "12px" }}>
               suspended
@@ -66,6 +75,69 @@ export function AgentDetail({ id, navigate }) {
           )}
         </div>
         <dl className="fields">
+          <dt>Name</dt>
+          <dd>
+            {renaming ? (
+              <form
+                style={{ display: "flex", gap: "6px", alignItems: "center" }}
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setRenameError(null);
+                  setBusy(true);
+                  const r = await api.renamePrincipal(id, draftName);
+                  setBusy(false);
+                  if (r.ok) {
+                    setRenaming(false);
+                    load();
+                    return;
+                  }
+                  setRenameError(
+                    r.data?.error === "name_taken"
+                      ? "You already have an agent with that name."
+                      : "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
+                  );
+                }}
+              >
+                <input
+                  value={draftName}
+                  autoFocus
+                  onChange={(e) => setDraftName(e.target.value)}
+                  required
+                />
+                <button className="btn btn--quiet" disabled={busy}>
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="btn--text"
+                  onClick={() => {
+                    setRenaming(false);
+                    setRenameError(null);
+                  }}
+                >
+                  cancel
+                </button>
+              </form>
+            ) : (
+              <>
+                {name}{" "}
+                <button
+                  className="btn--text"
+                  onClick={() => {
+                    setDraftName(live[0]?.name ?? "");
+                    setRenaming(true);
+                  }}
+                >
+                  rename
+                </button>
+              </>
+            )}
+            {renameError && (
+              <div style={{ fontSize: "12px", color: "var(--amber)" }}>
+                {renameError}
+              </div>
+            )}
+          </dd>
           <dt>Clan</dt>
           <dd className="mono">
             {(agent.clans ?? []).map((c) => c.clan_tag).join(", ") || "—"}
@@ -82,6 +154,40 @@ export function AgentDetail({ id, navigate }) {
           <dt>Unread notifications</dt>
           <dd>{agent.unread_events ?? 0}</dd>
         </dl>
+        {connectUrl && (
+          <div className="panel__body">
+            <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
+              <strong>Connect this agent</strong> — add this as a remote MCP
+              server in the client that runs it. Its key is refused at the
+              personal URL, and so is another agent&rsquo;s key here.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                alignItems: "center",
+                padding: "10px 12px",
+                background: "var(--well)",
+                border: "1px solid var(--edge)",
+                borderRadius: "var(--r-md)",
+              }}
+            >
+              <code style={{ flex: 1, wordBreak: "break-all" }}>
+                {connectUrl}
+              </code>
+              <button
+                className="btn--text"
+                onClick={() => {
+                  navigator.clipboard?.writeText(connectUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+              >
+                {copied ? "copied" : "copy"}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="panel__actions">
           <button
             className="btn btn--quiet"
@@ -259,8 +365,11 @@ export function Agents({ navigate }) {
       );
       return;
     }
-    // Shown once, never stored, and never fetchable again.
-    setMinted(res.data.token);
+    // Shown once, never stored, and never fetchable again. The URL rides with
+    // it because they are used together and this is the only moment the key
+    // exists — sending someone back to the detail page for half of it is how a
+    // key ends up in a note somewhere.
+    setMinted({ token: res.data.token, publicId: res.data.agent?.public_id });
     setForm({ name: "", clan_tag: "" });
     load();
   }
@@ -363,7 +472,17 @@ export function Agents({ navigate }) {
                 <strong>Copy this key now.</strong> It is shown once and never
                 again — only its hash is stored.
               </p>
-              <code style={{ wordBreak: "break-all" }}>{minted}</code>
+              <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
+              {minted.publicId && (
+                <>
+                  <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
+                    Connect it at this URL — its own door, not the personal one:
+                  </p>
+                  <code style={{ wordBreak: "break-all" }}>
+                    {`${window.location.origin}/a/${minted.publicId}/mcp`}
+                  </code>
+                </>
+              )}
             </div>
           )}
 

@@ -138,3 +138,44 @@ test("an agent account does not blank the admin pages", async () => {
   );
   expect(screen.queryByText(/This section failed to render/)).toBeNull();
 });
+
+/**
+ * The agent detail page shows what you need in order to USE the agent.
+ *
+ * Reported by Jamie: the screen listed a slug but never the URL to connect a
+ * client to, and there was no way to rename an agent once created. Both are
+ * the difference between "an agent exists" and "an agent is usable", so they
+ * are pinned here rather than left to a screenshot.
+ */
+test("the agent detail page offers its connect URL and a rename", async () => {
+  const AGENT = {
+    account_id: "00000000-0000-0000-0000-0000000000ag",
+    kind: "agent",
+    public_id: "272bd891a21d",
+    role: "leader",
+    status: "approved",
+    clans: [{ clan_tag: "#J2RGCRVG", is_primary: true }],
+    tokens: [{ token_id: 1, name: "poap-kings", revoked_at: null }],
+  };
+  global.fetch = vi.fn(async (path) => {
+    const body =
+      path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+
+  window.history.pushState({}, "", `/account/agents/${AGENT.account_id}`);
+  render(<App />);
+
+  // The agent's own door, not the personal /mcp. Asserting the whole path
+  // because /a/<id>/mcp is the part a person cannot guess.
+  const url = await screen.findByText(
+    `${window.location.origin}/a/272bd891a21d/mcp`,
+  );
+  expect(url).toBeTruthy();
+  expect(screen.getByText("rename")).toBeTruthy();
+});
