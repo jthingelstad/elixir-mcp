@@ -57,3 +57,13 @@ Use natural first-answer usage and feedback to choose the next product workflow.
 Expand tool-specific output checks alongside changes to those tools; common
 metadata validation is not a full output schema for every tool. Keep any causal
 Pilot Score estimator work separate from these descriptive-model assurances.
+
+## CI timing follow-up
+
+The prerequisite fix passed CI run `34294949700`. The receipt-only follow-up
+run `34295032779` exposed timing assumptions in the new real-API UI tests: the
+one-second default assertion deadline could expire during database work, and
+the agent test clicked Suspend after observing the committed token rows but
+before the rotation response re-enabled the button. The journey tests now
+wait for enabled UI controls and allow bounded five-second database round trips
+(with a 20-second whole-journey deadline). No retries or product-code changes.
