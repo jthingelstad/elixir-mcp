@@ -233,6 +233,16 @@ test(
   },
 );
 
+test("versioned examples follow the generated contract", { skip }, () => {
+  const version = JSON.parse(read("tools.json")).contract_version;
+  for (const rel of ["docs/agents/index.html", "docs/protocol/index.html"]) {
+    assert.ok(
+      read(rel).includes(version),
+      `${rel} does not show the current contract ${version}`,
+    );
+  }
+});
+
 test(
   "the full bundle carries every doc body and every tool",
   { skip },

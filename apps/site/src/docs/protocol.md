@@ -235,7 +235,7 @@ of connection.
 { "protocolVersion": "2025-06-18",
   "capabilities": { "tools": { "listChanged": true } },
   "serverInfo": { "name": "elixir-mcp", "title": "Elixir MCP - Clash Royale history, recorded",
-                  "version": "0.39.2+tools.3f1c9a2b7d4e", "websiteUrl": "https://elixir.poapkings.com/" },
+                  "version": "{{ tools.contractVersion }}+tools.3f1c9a2b7d4e", "websiteUrl": "https://elixir.poapkings.com/" },
   "instructions": "…",
   "_meta": { "elixir.poapkings.com/principal": { "kind": "person",
              "subject": { "type": "player", "tag": "#20JJJ2CCRU", "name": "King Thing" },
@@ -283,7 +283,7 @@ never carries internals.
 
 ```json
 { "error": { "code": "not_recorded", "message": "…", "hint": "…" },
-  "meta": { "as_of": "…", "request_id": "…", "disclaimer": "…", "contract_version": "0.39.2" } }
+  "meta": { "as_of": "…", "request_id": "…", "disclaimer": "…", "contract_version": "{{ tools.contractVersion }}" } }
 ```
 
 | Code | Meaning |
