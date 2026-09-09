@@ -188,24 +188,25 @@ export const elixirTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const [polls, battles, coverage, snapEpoch] = await Promise.all([
-        ctx.db.query(
-          `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
-          [tag],
-        ),
-        ctx.db.query(
-          `select count(*)::int as appearances, min(b.battle_time) as first_seen, max(b.battle_time) as last_seen
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where bp.player_tag = $1`,
-          [tag],
-        ),
-        captureCoverage(ctx.db, tag),
-        ctx.db.query(
-          `select min(snapshot_date)::text as first from player_snapshot_daily
-           where player_tag = $1 and snapshot_kind = 'daily'`,
-          [tag],
-        ),
-      ]);
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const polls = await ctx.db.query(
+        `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
+        [tag],
+      );
+      const battles = await ctx.db.query(
+        `select count(*)::int as appearances, min(b.battle_time) as first_seen, max(b.battle_time) as last_seen
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+         where bp.player_tag = $1`,
+        [tag],
+      );
+      const coverage = await captureCoverage(ctx.db, tag);
+      const snapEpoch = await ctx.db.query(
+        `select min(snapshot_date)::text as first from player_snapshot_daily
+         where player_tag = $1 and snapshot_kind = 'daily'`,
+        [tag],
+      );
       const b = battles.rows[0];
       return {
         player_tag: tag,
@@ -890,22 +891,24 @@ export const elixirTools = {
       additionalProperties: false,
     },
     async handler(ctx) {
-      const q = async (sql) => (await ctx.db.query(sql)).rows[0];
-      const [players, battles, snaps, weeks, recs, receipts, profiles, clans] =
-        await Promise.all(
-          [
-            q(`select count(*)::int as n from player`),
-            q(
-              `select count(*)::int as n, min(battle_time) as first, max(battle_time) as last from battle`,
-            ),
-            q(`select count(*)::int as n from player_snapshot_daily`),
-            q(`select count(*)::int as n from war_week`),
-            // Recorded players, shaped along the axis a corpus-sizing
-            // question needs (feedback #18): a clan at comprehensive scope
-            // records every current member's profile and battles, so
-            // "29 players" was an order of magnitude short of the profile
-            // population that backs a badge or collection question.
-            q(`with direct as (
+      const q = (sql) => async () => (await ctx.db.query(sql)).rows[0];
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const counts = [];
+      for (const step of [
+        q(`select count(*)::int as n from player`),
+        q(
+          `select count(*)::int as n, min(battle_time) as first, max(battle_time) as last from battle`,
+        ),
+        q(`select count(*)::int as n from player_snapshot_daily`),
+        q(`select count(*)::int as n from war_week`),
+        // Recorded players, shaped along the axis a corpus-sizing
+        // question needs (feedback #18): a clan at comprehensive scope
+        // records every current member's profile and battles, so
+        // "29 players" was an order of magnitude short of the profile
+        // population that backs a badge or collection question.
+        q(`with direct as (
                select subject_tag as player_tag from recording
                where subject_type = 'player' and status = 'active'),
              via as (
@@ -928,28 +931,30 @@ export const elixirTools = {
                     (select count(*) from recording
                      where subject_type = 'clan' and status = 'active'
                        and scope = 'comprehensive')::int as clans_comprehensive`),
-            q(`select count(*)::int as n from api_receipt`),
-            // What actually backs profile-shaped questions: distinct players
-            // with a snapshot, and with observed badges, plus how current.
-            q(`select (select count(distinct player_tag) from player_snapshot_daily)::int as with_snapshot,
+        q(`select count(*)::int as n from api_receipt`),
+        // What actually backs profile-shaped questions: distinct players
+        // with a snapshot, and with observed badges, plus how current.
+        q(`select (select count(distinct player_tag) from player_snapshot_daily)::int as with_snapshot,
                     (select count(distinct player_tag) from player_badge)::int as with_badges,
                     (select count(distinct player_tag) from player_snapshot_daily
                      where snapshot_date >= current_date - 7)::int as with_snapshot_last_7_days,
                     (select max(snapshot_date)::text from player_snapshot_daily) as newest_snapshot`),
-            async () =>
-              (
-                await ctx.db.query(
-                  `select r.subject_tag as clan_tag, c.name, r.scope as scope,
+        async () =>
+          (
+            await ctx.db.query(
+              `select r.subject_tag as clan_tag, c.name, r.scope as scope,
                         (select count(*) from clan_membership cm
                          where cm.clan_tag = r.subject_tag and cm.left_observed_at is null)::int as members,
                         r.created_at
                  from recording r left join clan c on c.clan_tag = r.subject_tag
                  where r.subject_type = 'clan' and r.status = 'active'
                  order by r.scope desc, members desc, r.subject_tag`,
-                )
-              ).rows,
-          ].map((x) => (typeof x === "function" ? x() : x)),
-        );
+            )
+          ).rows,
+      ])
+        counts.push(await step());
+      const [players, battles, snaps, weeks, recs, receipts, profiles, clans] =
+        counts;
       return {
         players_observed: players.n,
         battles: {

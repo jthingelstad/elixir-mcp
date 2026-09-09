@@ -947,14 +947,15 @@ export const battlesTools = {
         "bp.outcome in ('win','loss')",
         "b.type_class = 'pvp'",
       ];
-      const [excluded, prior] = await Promise.all([
-        excludedBreakdown(ctx.db, scope, params),
-        corpusPrior(ctx.db, {
-          from,
-          to,
-          types: args.mode ? typesForModeGroup(args.mode) : null,
-        }),
-      ]);
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const excluded = await excludedBreakdown(ctx.db, scope, params);
+      const prior = await corpusPrior(ctx.db, {
+        from,
+        to,
+        types: args.mode ? typesForModeGroup(args.mode) : null,
+      });
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 count(*)::int as battles,
@@ -1084,14 +1085,15 @@ export const battlesTools = {
         "bp.outcome in ('win','loss')",
         "b.type_class = 'pvp'",
       ];
-      const [excluded, prior] = await Promise.all([
-        excludedBreakdown(ctx.db, scope, params),
-        corpusPrior(ctx.db, {
-          from,
-          to,
-          types: args.mode ? typesForModeGroup(args.mode) : null,
-        }),
-      ]);
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const excluded = await excludedBreakdown(ctx.db, scope, params);
+      const prior = await corpusPrior(ctx.db, {
+        from,
+        to,
+        types: args.mode ? typesForModeGroup(args.mode) : null,
+      });
       const { rows } = await ctx.db.query(
         `with sides as (
            select bp.player_tag, bp.outcome,

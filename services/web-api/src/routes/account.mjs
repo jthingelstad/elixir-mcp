@@ -21,27 +21,28 @@ export function accountRoutes({
     "GET /api/me": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(200, { authenticated: false });
-      const [claims, recordings] = await Promise.all([
-        db.query(
-          `select c.player_tag, c.status, c.is_primary, c.notify, c.relationship,
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const claims = await db.query(
+        `select c.player_tag, c.status, c.is_primary, c.notify, c.relationship,
                   p.name, p.last_known_clan_tag,
                   nn.nickname
            from claim c join player p on p.player_tag = c.player_tag
            left join player_nickname nn on nn.account_id = c.account_id
              and nn.player_tag = c.player_tag
-           where c.account_id = $1 order by c.is_primary desc, c.player_tag`,
-          [account.accountId],
-        ),
-        db.query(
-          `select r.subject_tag, r.status, r.created_at,
+         where c.account_id = $1 order by c.is_primary desc, c.player_tag`,
+        [account.accountId],
+      );
+      const recordings = await db.query(
+        `select r.subject_tag, r.status, r.created_at,
                   (select max(last_admitted_at) from poll_state ps where ps.subject_tag = r.subject_tag) as freshest_poll,
                   (select count(*)::int from api_receipt ar
                    where ar.entity_key = r.subject_tag
                      and ar.fetched_at > now() - interval '24 hours') as fetches_24h
-           from recording r where r.requested_by = $1 and r.subject_type = 'player'`,
-          [account.accountId],
-        ),
-      ]);
+         from recording r where r.requested_by = $1 and r.subject_type = 'player'`,
+        [account.accountId],
+      );
       const { rows: ent } = await db.query(
         `select a.role, a.max_player_recordings, a.mcp_daily_quota, a.live_daily_quota,
                 a.newsletter_opt_in,

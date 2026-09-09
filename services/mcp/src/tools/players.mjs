@@ -43,9 +43,11 @@ export const playersTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const [snap, record, deck, best] = await Promise.all([
-        ctx.db.query(
-          `select p.name, p.last_known_clan_tag, cl.name as clan_name,
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const snap = await ctx.db.query(
+        `select p.name, p.last_known_clan_tag, cl.name as clan_name,
                   s.trophies, s.snapshot_date, nn.nickname
            from player p
            left join clan cl on cl.clan_tag = p.last_known_clan_tag
@@ -57,10 +59,10 @@ export const playersTools = {
              order by snapshot_date desc, snapshot_kind desc limit 1
            ) s on true
            where p.player_tag = $1`,
-          [tag, ctx.account.accountId],
-        ),
-        ctx.db.query(
-          `select count(*)::int as battles,
+        [tag, ctx.account.accountId],
+      );
+      const record = await ctx.db.query(
+        `select count(*)::int as battles,
                   count(*) filter (where outcome = 'win')::int as wins,
                   count(*) filter (where outcome = 'loss')::int as losses,
                   count(*) filter (where outcome = 'draw')::int as draws,
@@ -68,10 +70,10 @@ export const playersTools = {
                   min(battle_time) as first_recorded
            from battle_participant
            where player_tag = $1 and battle_time > now() - interval '30 days'`,
-          [tag],
-        ),
-        ctx.db.query(
-          `select bp.deck_hash, count(*)::int as battles,
+        [tag],
+      );
+      const deck = await ctx.db.query(
+        `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   (array_agg(bp.deck order by bp.battle_time desc))[1] as deck
@@ -79,10 +81,10 @@ export const playersTools = {
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
            group by bp.deck_hash order by count(*) desc limit 2`,
-          [tag],
-        ),
-        ctx.db.query(
-          `select bp.deck_hash, count(*)::int as battles,
+        [tag],
+      );
+      const best = await ctx.db.query(
+        `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   (array_agg(bp.deck order by bp.battle_time desc))[1] as deck
@@ -94,9 +96,8 @@ export const playersTools = {
            order by (count(*) filter (where bp.outcome = 'win'))::numeric
                     / greatest(count(*) filter (where bp.outcome in ('win','loss')), 1) desc
            limit 1`,
-          [tag],
-        ),
-      ]);
+        [tag],
+      );
       const p0 = snap.rows[0];
       if (!p0)
         throw new ToolFailure(

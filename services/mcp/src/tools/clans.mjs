@@ -283,10 +283,15 @@ export const clansTools = {
         };
       }
 
-      const [clanRow, roster, events] = await Promise.all([
-        ctx.db.query(`select name from clan where clan_tag = $1`, [clanTag]),
-        ctx.db.query(
-          `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const clanRow = await ctx.db.query(
+        `select name from clan where clan_tag = $1`,
+        [clanTag],
+      );
+      const roster = await ctx.db.query(
+        `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
                   nn.nickname,
                   s.trophies, s.donations,
                   (select max(b.battle_time) from battle_participant bp
@@ -302,14 +307,13 @@ export const clansTools = {
            ) s on true
            where cm.clan_tag = $1 and cm.left_observed_at is null
            order by cm.role desc, s.trophies desc nulls last`,
-          [clanTag, ctx.account.accountId],
-        ),
-        ctx.db.query(
-          `select event_type, timing, window_end, payload from clan_event
-           where clan_tag = $1 order by event_id desc limit 20`,
-          [clanTag],
-        ),
-      ]);
+        [clanTag, ctx.account.accountId],
+      );
+      const events = await ctx.db.query(
+        `select event_type, timing, window_end, payload from clan_event
+         where clan_tag = $1 order by event_id desc limit 20`,
+        [clanTag],
+      );
       const tz = ctx.account.timezone;
       return {
         clan_tag: clanTag,

@@ -214,16 +214,18 @@ export const warTools = {
             "Elixir MCP follows the 10:00 UTC POLICY reset for every clan. Clash Royale matches clans into races of five as matchmaking fills, so a clan's real period start drifts off that hour by its own amount; a multi-clan service cannot honour every clan's start and still have war_day mean one comparable window. *_nominal are therefore policy-grid instants, identical across clans, and are the fields to cite. started_observed_at is when the recorder first saw this period open (true start is at or before it) and observed_offset_minutes is its distance from the policy hour, INCLUDING our polling latency - use them to correct for a single clan's drift if you need to. Consequence worth knowing: battles played between a clan's real start and the policy hour are attributed to the previous policy day. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Never infer from day counts or event schemas.",
         };
       }
-      const [standings, participation, attendance] = await Promise.all([
-        ctx.db.query(
-          `select participant_clan_tag, participant_name, fame, rank, trophy_change, finish_time
+      // One client is one connection: pg queues concurrent queries on it
+      // anyway, so Promise.all bought no parallelism and only tripped the
+      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+      const standings = await ctx.db.query(
+        `select participant_clan_tag, participant_name, fame, rank, trophy_change, finish_time
            from war_week_clan
            where clan_tag = $1 and season_id = $2 and section_index = $3
            order by rank nulls last, fame desc`,
-          [clanTag, wk.season_id, wk.section_index],
-        ),
-        ctx.db.query(
-          `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks,
+        [clanTag, wk.season_id, wk.section_index],
+      );
+      const participation = await ctx.db.query(
+        `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks,
                   exists (select 1 from clan_membership cm
                           where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
                             and cm.left_observed_at is null) as in_clan
@@ -234,13 +236,13 @@ export const warTools = {
                             where cm2.clan_tag = wp.clan_tag and cm2.player_tag = wp.player_tag
                               and cm2.left_observed_at is null) desc,
                     p.name nulls last`,
-          [clanTag, wk.season_id, wk.section_index],
-        ),
-        // Battled = decksUsedToday observed >0 at any poll, OR a recorded
-        // war battle by that member that day — polls alone undercount
-        // when the cadence misses a member's play window (round-3).
-        ctx.db.query(
-          `with att as (
+        [clanTag, wk.season_id, wk.section_index],
+      );
+      // Battled = decksUsedToday observed >0 at any poll, OR a recorded
+      // war battle by that member that day — polls alone undercount
+      // when the cadence misses a member's play window (round-3).
+      const attendance = await ctx.db.query(
+        `with att as (
              select war_day, player_tag, decks_used_today > 0 as battled
              from war_attendance_day
              where clan_tag = $1 and season_id = $2 and section_index = $3),
@@ -260,9 +262,8 @@ export const warTools = {
                   count(*)::int as participants
            from merged
            group by war_day order by war_day`,
-          [clanTag, wk.season_id, wk.section_index],
-        ),
-      ]);
+        [clanTag, wk.season_id, wk.section_index],
+      );
       // Today's remaining-decks picture (CLAN-PULSE.md): only while the
       // anchored war-day period is nominally still open — a stale anchor
       // must never present an old day as "today". Attendance polls are

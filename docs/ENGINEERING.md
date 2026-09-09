@@ -53,6 +53,24 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   within the ~60-day raw-payload window; battles, snapshots and receipts are the
   system of record and must never need a rebuild.
 
+## One client is one connection, so one query at a time
+
+Every handler opens a `pg.Client` — a single connection — and pg serializes
+whatever you send it. `Promise.all([db.query(a), db.query(b)])` therefore
+buys **no** parallelism: the second query waits for the first either way.
+Measured 2026-09-09 against three `pg_sleep(0.3)` calls on one client:
+913 ms concurrent-looking, 907 ms sequential. What it does buy is a
+`DeprecationWarning` per overlap, and pg 9 will make it an error.
+
+**So: await database queries one at a time.** A test walks the service
+source and fails on a `Promise.all` that wraps `db.query`. If a handler
+ever genuinely needs concurrent database work, it needs a second
+connection (a pool), which is a capacity decision about a db.t4g.micro —
+not something to reach for inside a request.
+
+Non-database work still parallelises fine: `queueStats` fans out SQS calls
+across separate clients, and that is untouched.
+
 ## The tool contract has clients that never update
 
 - `packages/contracts` is the single source of truth for tool schemas, the error

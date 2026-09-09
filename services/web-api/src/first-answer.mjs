@@ -1,9 +1,11 @@
 // Readiness is derived from the record, never a second onboarding state to
 // reconcile. Keep this separate from the HTTP/auth routing layer.
 export async function firstAnswer(db, accountId) {
-  const [player, connection, clan] = await Promise.all([
-    db.query(
-      `select c.player_tag, p.name,
+  // One client is one connection: pg queues concurrent queries on it
+  // anyway, so Promise.all bought no parallelism and only tripped the
+  // deprecation (docs/ENGINEERING.md: one client, one query at a time).
+  const player = await db.query(
+    `select c.player_tag, p.name,
               exists (select 1 from player_snapshot_daily where player_tag = c.player_tag) as profile_available,
               (select status from recording where requested_by = $1
                and subject_type = 'player' and subject_tag = c.player_tag) as recording_status,
@@ -24,11 +26,11 @@ export async function firstAnswer(db, accountId) {
          from battle_participant where player_tag = c.player_tag
            and battle_time >= now() - interval '30 days' and battle_time <= now()
        ) b
-       where c.account_id = $1 and c.is_primary`,
-      [accountId],
-    ),
-    db.query(
-      `select
+     where c.account_id = $1 and c.is_primary`,
+    [accountId],
+  );
+  const connection = await db.query(
+    `select
          (select count(*)::int from oauth_family where account_id = $1
           and revoked_at is null and absolute_expires_at > now()) as active_connections,
          count(*)::int as successful_data_calls_7d,
@@ -37,18 +39,17 @@ export async function firstAnswer(db, accountId) {
        from mcp_call_audit where account_id = $1 and surface = 'mcp'
          and token_id is null and error_code is null and not truncated
          and created_at >= now() - interval '7 days'
-         and tool ~ '^(players|battles|war)_'`,
-      [accountId],
-    ),
-    db.query(
-      `select ac.clan_tag, c.name
+       and tool ~ '^(players|battles|war)_'`,
+    [accountId],
+  );
+  const clan = await db.query(
+    `select ac.clan_tag, c.name
        from account_clan ac left join clan c on c.clan_tag = ac.clan_tag
        where ac.account_id = $1
          and exists (select 1 from war_week w where w.clan_tag = ac.clan_tag)
-       order by ac.is_primary desc, ac.clan_tag limit 1`,
-      [accountId],
-    ),
-  ]);
+     order by ac.is_primary desc, ac.clan_tag limit 1`,
+    [accountId],
+  );
   return {
     as_of: new Date().toISOString(),
     player: player.rows[0] ?? null,
