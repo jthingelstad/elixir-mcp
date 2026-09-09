@@ -48,6 +48,10 @@ array. Each tool's baseline describes its own eligible population.
 - **Players:** distinct observed players in that row. One prolific player can
   still dominate a pooled rate. Evolution forms remain separate card rows.
 
+Calculations use unrounded aggregates. Rates and scores are then independently
+rounded to three decimals. Recalculating a shrunk rate or score from displayed
+rates can differ in the final decimal place.
+
 This shrinkage moderates extremes; it does **not** guarantee rank order. With a
 segment mean of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
 about 63.3%. Neither estimate adjusts for player skill, opposition or deck loyalty.

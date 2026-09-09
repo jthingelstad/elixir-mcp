@@ -280,7 +280,7 @@ export const SEGMENT_ARGS = {
   },
 };
 
-export const SEGMENT_NOTE = `Descriptive pooled player-battle observations, not unique matches or independent trials: both participants can contribute. Only wins and losses count; draws and unresolved outcomes are excluded from counts, usage and rates. shrunk_win_rate = (wins + ${META_METHODOLOGY.prior_strength} * segment_win_rate) / (wins + losses + ${META_METHODOLOGY.prior_strength}), using the eligible segment before row thresholds and limits. Shrinkage moderates extremes but does not guarantee rankings or adjust for player skill. players counts distinct players, not an effective sample size. No confidence intervals or causal lift are estimated. An empty segment has no observed win rate.`;
+export const SEGMENT_NOTE = `Descriptive pooled player-battle observations, not unique matches or independent trials: both participants can contribute. Only wins and losses count; draws and unresolved outcomes are excluded from counts, usage and rates. shrunk_win_rate = (wins + ${META_METHODOLOGY.prior_strength} * segment_win_rate) / (wins + losses + ${META_METHODOLOGY.prior_strength}), using the eligible segment before row thresholds and limits. Calculations use the unrounded segment mean; displayed rates are independently rounded to three decimals. Shrinkage moderates extremes but does not guarantee rankings or adjust for player skill. players counts distinct players, not an effective sample size. No confidence intervals or causal lift are estimated. An empty segment has no observed win rate.`;
 
 // --- tools -----------------------------------------------------------------
 
