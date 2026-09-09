@@ -20,6 +20,18 @@ const PAYLOAD = {
     capture_audit_24h: { polls: 50, gaps: 0 },
   },
   jobs: null,
+  queue: {
+    due_now: 9,
+    due_starved: 1,
+    due_by_endpoint: { player_battlelog: 6, clan: 3 },
+    queued: 2,
+    leased: 1,
+    done_hour: 80,
+    last_tick_at: "2026-09-06T14:57:36.000Z",
+    next_tick_at: "2026-09-06T15:02:36.000Z",
+    tick_minutes: 5,
+    next_tick_capacity: 270,
+  },
   collectors: [
     {
       name: "Ram Rider",
@@ -189,4 +201,17 @@ test("each capture panel states its total so a short last bar cannot read as zer
   expect(
     screen.getByText(/210 fetches, current hour in progress/),
   ).toBeTruthy();
+});
+
+test("work waiting is its own gauge: due, queued, leased, done", async () => {
+  await paint();
+  expect(screen.getByText("Work waiting")).toBeTruthy();
+  expect(screen.getByText(/12 waiting/)).toBeTruthy();
+  expect(
+    screen.getByText(
+      /9 due for the next tick · 2 queued for a collector · 1 being fetched · 80 done this hour/,
+    ),
+  ).toBeTruthy();
+  expect(screen.getByText(/next tick can plan 270/)).toBeTruthy();
+  expect(screen.getByText(/player_battlelog 6 · clan 3/)).toBeTruthy();
 });

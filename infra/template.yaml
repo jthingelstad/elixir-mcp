@@ -457,6 +457,11 @@ Resources:
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
           ORIGIN_SECRET: !Ref OriginSecret
+          # The Status page's "work waiting" gauge re-runs the scheduler's
+          # eligibility query, so it must see the same A/B arm and know the
+          # tick cadence. Keep ELIXIR_LOSS_BOUND identical to the scheduler's.
+          ELIXIR_LOSS_BOUND: half
+          SCHEDULER_TICK_MINUTES: !Ref SchedulerTickMinutes
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
 
   SchedulerLogGroup:

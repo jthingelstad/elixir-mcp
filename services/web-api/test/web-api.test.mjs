@@ -1237,6 +1237,20 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
   assert.ok("ok" in body.health);
   assert.ok(Array.isArray(body.collectors));
   assert.ok(Array.isArray(body.capture_5m));
+  // Work waiting: the pipeline stages the Status gauge draws.
+  for (const k of [
+    "due_now",
+    "queued",
+    "leased",
+    "done_hour",
+    "tick_minutes",
+    "next_tick_capacity",
+  ])
+    assert.ok(k in body.queue, `queue carries ${k}`);
+  assert.ok(
+    Number.isInteger(body.queue.due_now),
+    "due_now is a count, not an error",
+  );
   const blob = JSON.stringify(body);
   assert.ok(!blob.includes("static_ip"), "no IPs on the public surface");
   assert.ok(!blob.includes("email_hash"), "no account data");

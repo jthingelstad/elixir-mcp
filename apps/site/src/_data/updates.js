@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "The Status page shows the work waiting, not only the work done",
+    body: "The capture charts only ever showed completed fetches. A new 'Work waiting' gauge above them shows the other half as a queue, in pipeline order: subjects due for the next scheduler tick (the planner runs every five minutes, so due work piles up between ticks and empties at each one), jobs queued for a collector, jobs being fetched, and what was done this hour, with a countdown to the next tick and the due count broken down by endpoint. The bar fills against what the next tick can plan, so a bar past full means a backlog is forming rather than the normal between-tick pile.",
+  },
+  {
+    date: "2026-09-09",
     title: "The Status charts say which bucket is still being filled",
     body: "Both capture charts on the Status page gap-fill up to the current minute, so the right-most bar was always the bucket in progress and read as zero for the first minutes of every five-minute window, which is exactly how long the scheduler waits between ticks. That bar is now shaded the way the Dashboard shades an unfinished day (and drawn as a dashed outline while still empty), its tooltip says 'bucket in progress' with the count so far, and each panel states its total (fetches in the last hour, fetches in the last 24 hours) beside the bucket size, so a short last bar can no longer be mistaken for a service that stopped fetching.",
   },

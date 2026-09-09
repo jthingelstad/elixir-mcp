@@ -206,7 +206,7 @@ export function jitterFactor(subjectTag, endpoint) {
 }
 
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
-const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
+export const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
 
 export async function settleBudget(db, now) {
   const {
@@ -400,6 +400,27 @@ async function selectEligible(db, now, arm) {
       a.subject_tag.localeCompare(b.subject_tag),
   );
   return eligible;
+}
+
+/**
+ * Read-only view of what the next tick would find due, for the Status
+ * page's "work waiting" gauge. Same query and same rules as the tick;
+ * nothing is stamped or spent.
+ */
+export async function eligibleNow(db, now = new Date(), arm = lossBoundArm()) {
+  return selectEligible(db, now, arm);
+}
+
+/** Count eligible rows by endpoint, and how many are starved (past a
+ *  fairness floor rather than merely due). */
+export function queueSummary(eligible) {
+  const by_endpoint = {};
+  let starved = 0;
+  for (const e of eligible) {
+    by_endpoint[e.endpoint] = (by_endpoint[e.endpoint] ?? 0) + 1;
+    if (e.starved) starved += 1;
+  }
+  return { due: eligible.length, starved, by_endpoint };
 }
 
 /**

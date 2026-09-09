@@ -282,6 +282,80 @@ function BudgetGauge({ budget }) {
   );
 }
 
+/**
+ * Work waiting, as a queue. The capture charts show what was completed; this
+ * is the other half - what is sitting there to be done. Three stages, in
+ * pipeline order: due for the next tick (the scheduler plans every
+ * tick_minutes, so due-ness piles up between ticks and empties at each one),
+ * queued for a collector, being fetched. The bar fills against what the next
+ * tick can plan; past full means a backlog is forming.
+ */
+function QueueGauge({ queue, now }) {
+  if (!queue || queue.due_now == null) return null;
+  const waiting = queue.due_now + queue.queued + queue.leased;
+  const cap = Math.max(1, queue.next_tick_capacity ?? 0);
+  const pct = Math.min(100, (waiting / cap) * 100);
+  const pressure = waiting > cap;
+  const nextIn = queue.next_tick_at
+    ? Math.max(0, Math.round((Date.parse(queue.next_tick_at) - now) / 1000))
+    : null;
+  const by = Object.entries(queue.due_by_endpoint ?? {}).sort(
+    (a, b) => b[1] - a[1],
+  );
+  return (
+    <section className="panel" style={{ marginBottom: "20px" }}>
+      <div className="panel__head">
+        <span className="panel-title">Work waiting</span>
+        <span
+          className="mono"
+          style={{
+            marginLeft: "auto",
+            fontSize: "11.5px",
+            color: "var(--dim)",
+          }}
+        >
+          {waiting.toLocaleString()} waiting · next tick{" "}
+          {nextIn == null ? "—" : nextIn === 0 ? "now" : `in ${nextIn}s`}
+        </span>
+      </div>
+      <div className="panel__body">
+        <div
+          className="gauge"
+          role="img"
+          aria-label={`${waiting} fetches waiting; the next tick can plan ${cap}`}
+        >
+          <div
+            className="gauge__fill"
+            style={{
+              width: `${pct}%`,
+              background: pressure ? "var(--amber)" : "var(--green)",
+            }}
+          />
+        </div>
+        <div className="gauge__foot">
+          <span>
+            {queue.due_now.toLocaleString()} due for the next tick ·{" "}
+            {queue.queued.toLocaleString()} queued for a collector ·{" "}
+            {queue.leased.toLocaleString()} being fetched ·{" "}
+            {queue.done_hour.toLocaleString()} done this hour
+          </span>
+          <span className="mono">
+            next tick can plan {cap.toLocaleString()}
+          </span>
+        </div>
+        <div className="panel__note">
+          {by.length > 0 && (
+            <>Due now: {by.map(([e, n]) => `${e} ${n}`).join(" · ")}. </>
+          )}
+          Subjects become due between ticks and are planned at the next one,
+          every {queue.tick_minutes} minutes; the bar fills against what that
+          tick can plan, so a bar past full is a backlog forming.
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Status() {
   const [data, setData] = useState(null);
   const [now, setNow] = useState(() => Date.now());
@@ -357,6 +431,7 @@ export function Status() {
       </div>
 
       <BudgetGauge budget={data.budget} />
+      <QueueGauge queue={data.queue} now={now} />
 
       <div
         className={`notice`}

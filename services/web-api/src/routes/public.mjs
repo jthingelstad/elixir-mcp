@@ -1,4 +1,10 @@
 import { ledgerStats } from "../../../scheduler/src/ledger.mjs";
+import {
+  eligibleNow,
+  queueSummary,
+  lossBoundArm,
+  BUCKET_CAP_SECONDS,
+} from "../../../scheduler/src/plan.mjs";
 
 import { json } from "../http.mjs";
 
@@ -140,7 +146,7 @@ export function publicRoutes({ queueStats }) {
       // means on pace, well under means idle, over means a burst. Without it
       // 500 spent at ten past and 500 at five to look identical.
       const budgetRow = await q(
-        `select rate_per_sec, burst, live_reserve from budget_state`,
+        `select rate_per_sec, burst, live_reserve, tokens, settled_at from budget_state`,
       );
       const usedRow = await q(
         `select count(*)::int as used from api_receipt
@@ -162,6 +168,49 @@ export function publicRoutes({ queueStats }) {
 
       const queues = await queueStats();
       const jobs = await ledgerStats(db).catch(() => null);
+      // Work waiting, as a pipeline: due for the next tick (the scheduler
+      // only plans every SCHEDULER_TICK_MINUTES, so due-ness accumulates
+      // between ticks), queued for a collector, leased (being fetched),
+      // done this hour. The next tick can plan at most the bulk share of
+      // the token bucket, which is what the gauge fills against.
+      const tickMinutes =
+        Number(process.env.SCHEDULER_TICK_MINUTES ?? 5) > 0
+          ? Number(process.env.SCHEDULER_TICK_MINUTES ?? 5)
+          : 5;
+      const settledAt = budgetRow[0]?.settled_at
+        ? new Date(budgetRow[0].settled_at)
+        : null;
+      const liveReserve = Number(budgetRow[0]?.live_reserve ?? 0);
+      const tokensNow = Math.min(
+        ratePerSec * BUCKET_CAP_SECONDS,
+        Number(budgetRow[0]?.tokens ?? 0) +
+          (settledAt ? ((nowMs - settledAt.getTime()) / 1000) * ratePerSec : 0),
+      );
+      let due = null;
+      try {
+        due = queueSummary(
+          await eligibleNow(db, new Date(nowMs), lossBoundArm()),
+        );
+      } catch (err) {
+        console.error("status_queue_failed", err?.message);
+      }
+      const queue = {
+        due_now: due?.due ?? null,
+        due_starved: due?.starved ?? null,
+        due_by_endpoint: due?.by_endpoint ?? null,
+        queued: (jobs?.queued_bulk ?? 0) + (jobs?.queued_live ?? 0),
+        leased: jobs?.leased ?? 0,
+        done_hour: budget.used_hour,
+        last_tick_at: settledAt?.toISOString() ?? null,
+        next_tick_at: settledAt
+          ? new Date(settledAt.getTime() + tickMinutes * 60_000).toISOString()
+          : null,
+        tick_minutes: tickMinutes,
+        next_tick_capacity: Math.max(
+          0,
+          Math.floor(tokensNow * (1 - liveReserve)),
+        ),
+      };
       // Health verdict derived from data, never vibes: pipeline is OK
       // when something was admitted recently, no DLQ holds messages,
       // and no ledger job has died (0040).
@@ -190,6 +239,7 @@ export function publicRoutes({ queueStats }) {
             },
           },
           budget,
+          queue,
           queues,
           jobs,
           collectors: collectors.map((c) => ({

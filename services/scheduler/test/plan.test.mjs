@@ -14,6 +14,8 @@ import {
   LOSS_SAFETY,
   LOG_CAPACITY,
   READ_CAP_MINUTES,
+  eligibleNow,
+  queueSummary,
 } from "../src/plan.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -603,5 +605,33 @@ test("the profile row really borrows the battlelog signal now", async () => {
   assert.deepEqual(
     jobs.map((j) => `${j.endpoint}:${j.entity_key}`),
     ["player:#R0Y8VV"],
+  );
+});
+
+test("eligibleNow reports what the next tick would plan without planning it", async () => {
+  await freshenCards(NOW);
+  await addPlayer("#L2VY9Q8");
+  // Battlelog: 3 bph -> 100m, last polled 3h ago: due. Profile: fresh.
+  await setState("#L2VY9Q8", "player_battlelog", {
+    yieldBph: 3,
+    admitted: min(180),
+    planned: min(180),
+  });
+  await setState("#L2VY9Q8", "player", { admitted: min(1), planned: min(1) });
+  const before = await db.query(
+    `select last_planned_at from poll_state where subject_tag = '#L2VY9Q8' and endpoint = 'player_battlelog'`,
+  );
+  const eligible = await eligibleNow(db, NOW, "off");
+  const summary = queueSummary(eligible);
+  assert.equal(summary.by_endpoint.player_battlelog, 1);
+  assert.equal(summary.due, eligible.length);
+  assert.equal(summary.starved, 0);
+  const after = await db.query(
+    `select last_planned_at from poll_state where subject_tag = '#L2VY9Q8' and endpoint = 'player_battlelog'`,
+  );
+  assert.equal(
+    String(after.rows[0].last_planned_at),
+    String(before.rows[0].last_planned_at),
+    "a read-only view stamps nothing",
   );
 });
