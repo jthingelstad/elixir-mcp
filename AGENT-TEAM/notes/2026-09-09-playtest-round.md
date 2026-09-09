@@ -342,25 +342,62 @@ edits:
 The round's surprising items were **not** filed through `elixir_feedback`.
 Both connections refused, for different reasons:
 
-- **Personal connection (`elixir-mcp`, King Thing)** - the OAuth access token
-  expired partway through the round: `MCP server "elixir-mcp" requires
-  re-authorization (token expired)`. It had been serving reads minutes earlier.
 - **Clan connection (POAP KINGS)** - `Insufficient scope: required "cr:read
-  feedback:write"`. This connection carries only `cr:read`, which is the
-  documented first-connection default.
+  feedback:write"`. This connection carries only `cr:read`, the documented
+  first-connection default.
+- **Personal connection (`elixir-mcp`, King Thing)** - reported as
+  `MCP server "elixir-mcp" requires re-authorization (token expired)`.
 
-**Jamie, to unblock:** reconnect the personal `/mcp` connection (or grant
-`feedback:write` on the POAP KINGS consent page) and file the four items below
-verbatim. They are written ready to paste.
+**That second message is misleading, and the round originally recorded it at
+face value.** Re-checked after re-authorization: `game_clock` and
+`elixir_my_feedback` both return 200, while `elixir_feedback` still fails with
+the same "token expired" text. The token is demonstrably valid; the write is
+refused for lack of `feedback:write`, exactly like the clan connection.
 
-Worth noting as a finding in itself: the service asks agents to file feedback on
-their own judgment before the session ends, and an agent that hits real friction
-late in a long session can find both its credentials unable to carry the report.
-The token expiry gave no warning in any earlier response's `meta`.
+The server behaves correctly. `services/mcp/src/handler.mjs:306-334` answers
+HTTP 403 with `WWW-Authenticate: Bearer error="insufficient_scope"`, a
+JSON-RPC `-32003`, and a `data.hint` that names the fix precisely:
+"Reconnect this client and grant '<scope>' on the consent page (the first
+connection grants only cr:read)."
+
+The MCP CLIENT collapses that into "token expired". The cost is a wrong
+next action: a user is told to refresh a credential that is working, when
+what they need is to grant a capability at consent. Nothing the server can
+fix - 403 + `insufficient_scope` is the correct RFC 6750/9728 shape - but
+worth knowing, because the server's best refusal message is invisible to
+the person who needs it.
+
+**Jamie, to unblock:** reconnect `/mcp` and tick `feedback:write` on the
+consent page. Not a token refresh.
+
+Worth noting as a finding in itself: the service asks agents to file feedback
+on their own judgment before the session ends, and an agent that hits real
+friction can find that neither of its credentials carries the capability to
+report it. Nothing in any successful response's `meta` says which capabilities
+the connection actually holds, so an agent cannot know it is unable to file
+until it tries - after the work of writing the report.
 
 ---
 
 ### Staged item 1 - category `data_quality`, context `battles_performance three_crown_rate`
+
+> **UPDATED 2026-09-09, after the fixes shipped.** Two corrections to the text
+> below, which is kept for the record but should NOT be filed verbatim:
+>
+> 1. **The suggested fix is wrong.** "Filter the numerator to
+>    `type_class = 'pvp'`" does not fix this. Ingest sets `type_class = 'boat'`
+>    only for types starting `boatBattle`, so every duel is `'pvp'`; that
+>    filter drops boat rows and leaves the duel bug untouched. The duel TYPES
+>    have to be named. Discovered while implementing it.
+> 2. **Both halves are fixed and pushed**: `dc63e45` + `65a4f09`
+>    (three_crown_rate) and `665ac10` (win_rate note + decided_wins /
+>    decided_losses returned).
+>
+> Also worth filing: this slipped through the 0.39.0 pass that fixed both its
+> neighbours - feedback #22 documented duel crown summing, #23 moved boat
+> battles out of win_rate's denominator - and the maintainer response to #23
+> states `win_rate = wins / decided_battles`, the same wrong formula that was
+> in denominators_note. The error is in the record twice.
 
 three_crown_rate mixes duel and head-to-head crown units, which the same tool warns against elsewhere.
 
