@@ -253,6 +253,16 @@ export const warTools = {
       // same five tags, so this list is FAITHFUL and the omission is
       // upstream. Surfacing it is the fix - the gap was never wrong, only
       // invisible.
+      //
+      // WHY the game omits them, checked afterwards against /clans/{tag} in
+      // the same minute: all five were still members, and all five had a
+      // memberList.lastSeen predating the race start, while all 44 included
+      // members had one after it. The roster is seeded from members SEEN
+      // since the race began - not from who battles, and not from who joined
+      // in time (a member who joined two days late is in it). Written up in
+      // cr-agent-api-docs. We do not store the game's lastSeen - player
+      // .last_seen_at is our poll time - so the reason names the observable
+      // fact rather than restating a predicate we cannot evaluate.
       const notInRace = await ctx.db.query(
         `select cm.player_tag, p.name
          from clan_membership cm
@@ -411,7 +421,7 @@ export const warTools = {
                   : "training_day",
             }),
         attendance_by_war_day: attendance.rows,
-        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. participants_count and member_count reconcile explicitly, and members_not_in_race names current members the race roster omits: the game's own currentriverrace payload can carry fewer participants than the clan has members (verified against the live API), so a shortfall there is upstream and not a capture gap - reason is not_in_race_roster because the API does not say why. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles - it is empty before this week's first war day, which day_kind tells you apart from a capture gap.",
+        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. participants_count and member_count reconcile explicitly, and members_not_in_race names current members the race roster omits: the game's own currentriverrace payload can carry fewer participants than the clan has members (verified against the live API), so a shortfall there is upstream and not a capture gap - reason is not_in_race_roster: observed against the live API, the omitted members are the ones whose game-side lastSeen predates the race start, so they are dormant rather than dropped - joining late does not exclude a member and neither does not battling. That makes this list a useful nudge list in its own right, but the predicate is the game's, not ours, so the reason names the fact and not the inference. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles - it is empty before this week's first war day, which day_kind tells you apart from a capture gap.",
         meta: {
           ...meta,
           ...(period?.nominal_period_elapsed
