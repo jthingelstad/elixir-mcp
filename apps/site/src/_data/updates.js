@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "The Status charts say which bucket is still being filled",
+    body: "Both capture charts on the Status page gap-fill up to the current minute, so the right-most bar was always the bucket in progress and read as zero for the first minutes of every five-minute window, which is exactly how long the scheduler waits between ticks. That bar is now shaded the way the Dashboard shades an unfinished day (and drawn as a dashed outline while still empty), its tooltip says 'bucket in progress' with the count so far, and each panel states its total (fetches in the last hour, fetches in the last 24 hours) beside the bucket size, so a short last bar can no longer be mistaken for a service that stopped fetching.",
+  },
+  {
+    date: "2026-09-09",
     title: "Documentation for people who build on this",
     body: "The docs now carry the wire contract, not only the product: a protocol reference (transport, OAuth discovery and registration, PKCE and the resource parameter, the five scopes and the step-up challenge, every error code at every layer, the 48,000-character response cap, versioning and the tools/list cache-buster, cursors and argument rules); a limits page with one table of every quota and rate limit and the exact refusal each produces; a recording and coverage page that says what adding a player or clan actually fetches, how often, how one recording is shared, what collections do, how to read freshness and completeness, and what live_fetch can reach. The quickstart has per-client steps for Claude.ai, Claude Desktop, Claude Code and any MCP client, and an honest note on ChatGPT. The agents page is a builder's guide with a complete on_behalf_of exchange and event-cursor code. Events lists every topic's payload floor. Roles, integrations, responses, privacy and operators were corrected against the code, and headings now carry anchors.",
   },

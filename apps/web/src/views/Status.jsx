@@ -46,6 +46,12 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
   const bw = Math.max(3, slot - 3);
   const max = Math.max(...buckets.map((b) => b.fetches), 1);
   const hovered = at == null ? null : buckets[at];
+  // The server gap-fills up to now, so the last bucket is always the one
+  // still being filled. It reads as a zero bar for the first minutes of
+  // every bucket (the scheduler ticks every five), which looked like
+  // "nothing captured" to the operator three times in one afternoon.
+  const last = buckets.length - 1;
+  const hoveredIsLast = at === last;
 
   return (
     <div className="chartwrap">
@@ -68,18 +74,27 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
             });
             return (
               <g key={b.bucket}>
+                {i === last && b.fetches === 0 && (
+                  <rect
+                    className="pending"
+                    x={x}
+                    y={BASE - 6}
+                    width={bw}
+                    height={6}
+                  />
+                )}
                 {drawn.map((d) =>
                   d.top ? (
                     <path
                       key={d.name}
-                      className="seg"
+                      className={i === last ? "seg bar--partial" : "seg"}
                       d={topCapPath(x, d.y, bw, d.h, 4)}
                       fill={colorFor(d.si)}
                     />
                   ) : (
                     <rect
                       key={d.name}
-                      className="seg"
+                      className={i === last ? "seg bar--partial" : "seg"}
                       x={x}
                       y={d.y}
                       width={bw}
@@ -110,7 +125,11 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
                   height={BASE}
                   tabIndex={0}
                   role="button"
-                  aria-label={`${b.bucket}, ${b.fetches} ${unit}`}
+                  aria-label={
+                    i === last
+                      ? `${b.bucket}, in progress, ${b.fetches} ${unit} so far`
+                      : `${b.bucket}, ${b.fetches} ${unit}`
+                  }
                   onMouseEnter={() => setAt(i)}
                   onFocus={() => setAt(i)}
                   onMouseLeave={() => setAt((c) => (c === i ? null : c))}
@@ -128,7 +147,11 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
         >
           <div className="charttip__head">
             {hovered.bucket}Z · {hovered.fetches} {unit}
+            {hoveredIsLast ? " so far" : ""}
           </div>
+          {hoveredIsLast && (
+            <div className="charttip__row">bucket in progress</div>
+          )}
           {series
             .map((name, si) => ({ name, si, v: hovered.by[name] ?? 0 }))
             .filter((p) => p.v > 0)
@@ -143,7 +166,7 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
                 <span className="num">{p.v}</span>
               </div>
             ))}
-          {hovered.fetches === 0 && (
+          {hovered.fetches === 0 && !hoveredIsLast && (
             <div className="charttip__row">nothing fetched</div>
           )}
           {hovered.rejected > 0 && (
@@ -155,6 +178,11 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
       )}
     </div>
   );
+}
+
+/** Every bucket the server sent, including the one in progress. */
+function sumFetches(buckets) {
+  return (buckets ?? []).reduce((n, b) => n + (b.fetches ?? 0), 0);
 }
 
 function ChartLegend({ series }) {
@@ -469,7 +497,10 @@ export function Status() {
       <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel__head">
           <span className="panel-title">Capture, last hour</span>
-          <span className="caveat">5-minute buckets</span>
+          <span className="caveat">
+            5-minute buckets · {sumFetches(data.capture_5m).toLocaleString()}{" "}
+            fetches, last bucket in progress
+          </span>
         </div>
         <CaptureChart
           buckets={data.capture_5m}
@@ -488,7 +519,10 @@ export function Status() {
       <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel__head">
           <span className="panel-title">Capture, last 24 hours</span>
-          <span className="caveat">hourly buckets</span>
+          <span className="caveat">
+            hourly buckets · {sumFetches(data.capture_24h).toLocaleString()}{" "}
+            fetches, current hour in progress
+          </span>
         </div>
         <CaptureChart
           buckets={data.capture_24h}

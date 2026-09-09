@@ -1145,6 +1145,14 @@ input[aria-invalid="true"] {
 .chartwrap {
   position: relative;
 }
+/* The bucket still being filled: an outline at the base, never a bar. */
+.chart .pending {
+  fill: none;
+  stroke: var(--faint);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
 .charttip {
   position: absolute;
   bottom: calc(100% - 6px);

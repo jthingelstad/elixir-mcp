@@ -55,6 +55,8 @@ const PAYLOAD = {
       rejected: 2,
       by: { "Ram Rider": 18, "Wall Breakers": 12 },
     },
+    // The bucket in progress: the server gap-fills up to now.
+    { bucket: "15:00", fetches: 0, admitted: 0, rejected: 0, by: {} },
   ],
   capture_24h: [
     {
@@ -165,4 +167,26 @@ test("keyboard focus opens the same breakdown as hover", async () => {
   const hits = document.querySelectorAll(".chart .hit");
   fireEvent.focus(hits[1]);
   await waitFor(() => expect(document.querySelector(".charttip")).toBeTruthy());
+});
+
+test("the bucket in progress is labelled, not shown as nothing fetched", async () => {
+  await paint();
+  const hits = document.querySelectorAll(".chart .hit");
+  // Third bucket of the 5-minute chart is the one being filled right now.
+  fireEvent.mouseEnter(hits[2]);
+  await waitFor(() => expect(screen.getByText(/15:00Z/)).toBeTruthy());
+  const tip = document.querySelector(".charttip");
+  expect(within(tip).getByText("bucket in progress")).toBeTruthy();
+  expect(within(tip).queryByText("nothing fetched")).toBeNull();
+  // 5-minute chart: empty in-progress bucket gets the outline. 24h chart:
+  // its in-progress bucket (14:00) is empty too.
+  expect(document.querySelectorAll(".chart .pending").length).toBe(2);
+});
+
+test("each capture panel states its total so a short last bar cannot read as zero", async () => {
+  await paint();
+  expect(screen.getByText(/30 fetches, last bucket in progress/)).toBeTruthy();
+  expect(
+    screen.getByText(/210 fetches, current hour in progress/),
+  ).toBeTruthy();
 });
