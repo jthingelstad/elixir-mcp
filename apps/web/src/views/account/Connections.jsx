@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 
+import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
 import { Fresh } from "../../components/Fresh.jsx";
 
-export function Connections() {
+export function Connections({ me, navigate }) {
   const [connections, setConnections] = useState(null);
   const [copied, setCopied] = useState(false);
   const load = () =>
@@ -109,12 +110,16 @@ export function Connections() {
             </div>
             <p style={{ fontSize: "12.5px", color: "var(--faint)" }}>
               Add it as a remote MCP server in your client of choice — the OAuth
-              sign-in uses the same email as this account. Start with{" "}
-              <code>elixir_my_players</code>, then try{" "}
-              <em>&ldquo;what&rsquo;s my record this week?&rdquo;</em>
+              sign-in uses the same email as this account.
             </p>
           </div>
         </section>
+        <ConnectionQuestions
+          claimsKey={(me?.claims ?? [])
+            .map((c) => `${c.player_tag}:${c.is_primary}`)
+            .join(",")}
+          navigate={navigate}
+        />
       </div>
     </div>
   );

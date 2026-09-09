@@ -36,6 +36,19 @@ player tag and it means you.
 You can only have one self, so there is nothing to configure. This is the
 connection almost everybody wants.
 
+### Your first question
+
+On **Account → Connections**, **Try asking…** offers questions based on your
+recorded data. Copy one and paste it into the AI client you connected. A profile
+can support a snapshot summary; battle history can support a review, deck
+comparisons or two-week comparisons. A clan-war question appears when a clan you
+added has a recorded war week. You can view the full question before copying it.
+
+These are curated starting points. They ask your client to check freshness,
+sample sizes and missing data. If capture has not arrived yet, the panel explains
+what to do next and refreshes while open. Copying a question does not call the
+MCP service or count as an answered question.
+
 ## An agent
 
 An agent acts **for a clan, not for a person**.

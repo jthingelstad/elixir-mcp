@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-08",
+    title: "Questions to try after connecting",
+    body: "Account → Connections now suggests questions your recorded history can support. Copy one into your connected AI client to review your player snapshot, recent battles, decks, two recorded weeks or a recorded clan war. View the full question before copying; manual copying is available if clipboard access is blocked. The overview shares the same suggestions. New players see guidance while they wait for their first capture.",
+  },
+  {
+    date: "2026-09-08",
     title: "Smaller modules, tested account journeys",
     body: "Account pages, API routes and maintenance commands now have smaller, focused modules. Successful account and agent journeys are tested against the real API on disposable databases, including first capture, agent creation, key rotation, suspension and resumption. Existing behavior is preserved. CI now runs the same complete verification gate as local development, including dead-code checks.",
   },

@@ -1,7 +1,7 @@
 // Readiness is derived from the record, never a second onboarding state to
 // reconcile. Keep this separate from the HTTP/auth routing layer.
 export async function firstAnswer(db, accountId) {
-  const [player, connection] = await Promise.all([
+  const [player, connection, clan] = await Promise.all([
     db.query(
       `select c.player_tag, p.name,
               exists (select 1 from player_snapshot_daily where player_tag = c.player_tag) as profile_available,
@@ -40,10 +40,19 @@ export async function firstAnswer(db, accountId) {
          and tool ~ '^(players|battles|war)_'`,
       [accountId],
     ),
+    db.query(
+      `select ac.clan_tag, c.name
+       from account_clan ac left join clan c on c.clan_tag = ac.clan_tag
+       where ac.account_id = $1
+         and exists (select 1 from war_week w where w.clan_tag = ac.clan_tag)
+       order by ac.is_primary desc, ac.clan_tag limit 1`,
+      [accountId],
+    ),
   ]);
   return {
     as_of: new Date().toISOString(),
     player: player.rows[0] ?? null,
     connection: connection.rows[0],
+    clan: clan.rows[0] ?? null,
   };
 }

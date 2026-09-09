@@ -180,3 +180,39 @@ test("first-answer follows actual capture and distinguishes authorization from n
     "older retained history is still a capture",
   );
 });
+
+test("clan questions require a recorded war week for a clan this account added", async () => {
+  assert.equal(JSON.parse((await read()).body).clan, null);
+  await db.query(
+    "insert into clan (clan_tag,name) values ('#P0G','Primary clan'),('#P0Y','Second clan')",
+  );
+  await db.query(
+    "insert into war_week (clan_tag,season_id,section_index) values ('#P0Y',1,0)",
+  );
+  assert.equal(
+    JSON.parse((await read()).body).clan,
+    null,
+    "an unrelated clan is not a suggestion",
+  );
+  await db.query(
+    "insert into account_clan (account_id,clan_tag,is_primary) values ($1,'#P0G',true)",
+    [accountId],
+  );
+  assert.equal(
+    JSON.parse((await read()).body).clan,
+    null,
+    "adding a clan alone is not a recorded race",
+  );
+  await db.query(
+    "insert into account_clan (account_id,clan_tag) values ($1,'#P0Y')",
+    [accountId],
+  );
+  assert.equal(JSON.parse((await read()).body).clan.clan_tag, "#P0Y");
+  await db.query(
+    "insert into war_week (clan_tag,season_id,section_index) values ('#P0G',1,0)",
+  );
+  assert.deepEqual(JSON.parse((await read()).body).clan, {
+    clan_tag: "#P0G",
+    name: "Primary clan",
+  });
+});

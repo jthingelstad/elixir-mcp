@@ -498,3 +498,11 @@ local work; Knip's 38 stale/redundant configuration hints are removed, and activ
 maintenance guides point to ENGINEERING/public docs rather than archived
 DESIGN sections. Historical decision records remain historical. No change to
 product direction, collector releases, quotas or statistical models.
+
+**CONNECTION STARTER QUESTIONS (2026-09-08):** Jamie approved adding curated,
+data-aware questions to Account → Connections as the next step after connecting
+an AI client. The connection page and overview share the readiness hook, question
+templates and copy controls. An added clan with a recorded war week can contribute
+one clan-war question; this is a read from existing records, not a generated
+answer or an MCP call. Copying is not counted as successful usage. Empty, waiting,
+error and manual-copy states are covered. No migration or MCP contract change.

@@ -119,10 +119,41 @@ test(
     await screen.findByRole("button", {
       name: "Copy question: Start with your player snapshot",
     });
+    // Consent is fixture setup on the scratch DB; the UI consumes the real
+    // connection and readiness responses after returning from OAuth.
+    await scratch.db.query(
+      "insert into oauth_client (client_id,client_name,redirect_uris,expires_at) values ('journey-client','Test client','[]',now()+interval '1 day')",
+    );
+    await scratch.db.query(
+      "insert into oauth_family (client_id,account_id,absolute_expires_at) values ('journey-client',$1,now()+interval '1 day')",
+      [accountId],
+    );
     fireEvent.click(
       screen.getByRole("button", { name: "Connect your client", exact: true }),
     );
-    await screen.findByText("Nothing connected yet.");
+    await screen.findByText("Test client");
+    await screen.findByText(/AI client you connected/);
+    await screen.findByRole("heading", { name: "Try asking…" });
+    const copy = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: copy },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Copy question: Start with your player snapshot",
+      }),
+    );
+    await screen.findByText("Copied — paste into your connected client.");
+    expect(copy.mock.calls[0][0]).toContain("#P0Y");
+    expect(
+      (
+        await scratch.db.query(
+          "select count(*)::int n from mcp_call_audit where account_id=$1",
+          [accountId],
+        )
+      ).rows[0].n,
+    ).toBe(0);
     expect(screen.queryByText(/This section failed to render/)).toBeNull();
   },
 );

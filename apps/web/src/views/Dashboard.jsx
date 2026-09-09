@@ -17,7 +17,8 @@ export function Dashboard({ me, refresh, navigate, page, itemId }) {
     ) : (
       <Agents navigate={navigate} />
     );
-  if (page === "connections") return <Connections />;
+  if (page === "connections")
+    return <Connections me={me} navigate={navigate} />;
   if (page === "usage") return <Usage me={me} />;
   if (page === "feedback")
     return itemId ? (
