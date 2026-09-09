@@ -52,6 +52,31 @@ export async function captureCoverage(db, playerTag) {
   const known = intervals.filter((r) => r.ratio !== null);
   const expected = known.reduce((n, r) => n + r.expected_battles, 0);
   const captured = known.reduce((n, r) => n + r.captured_battles, 0);
+  // HOW MUCH of the week this ratio actually describes. average_ratio
+  // "1.000" over three intervals spanning two and a half days reads as a
+  // fully captured week, and a tester cited it as licence to trust every
+  // other number it had (playtest round, 2026-09-09). The field name says
+  // seven days; only these fields say what was really watched.
+  // span = first observation to last, which INCLUDES any gaps between
+  // intervals; measured_hours sums the intervals themselves, so
+  // measured_hours < the span means unobserved time inside it.
+  const measuredSpan = known.length
+    ? {
+        from: known.reduce(
+          (m, r) => (r.observed_from < m ? r.observed_from : m),
+          known[0].observed_from,
+        ),
+        to: known.reduce(
+          (m, r) => (r.observed_to > m ? r.observed_to : m),
+          known[0].observed_to,
+        ),
+      }
+    : null;
+  const measuredHours = known.reduce(
+    (n, r) =>
+      n + (Date.parse(r.observed_to) - Date.parse(r.observed_from)) / 3600_000,
+    0,
+  );
   return {
     observation_intervals: intervals,
     completeness_last_7_days: {
@@ -67,8 +92,10 @@ export async function captureCoverage(db, playerTag) {
         ? known.filter((r) => !r.is_complete).length
         : null,
       measured_intervals: known.length,
+      measured_span: measuredSpan,
+      measured_hours: known.length ? Number(measuredHours.toFixed(2)) : null,
       unknown_intervals: intervals.length - known.length,
-      note: "Estimate over observation intervals ending in the last seven days; an interval can begin earlier. Battles are counted in (observed_from, observed_to]. average_ratio is weighted by expected battles. This does not measure unbracketed history or the tail after the latest profile; incomplete_days is deprecated and always null.",
+      note: "Estimate over observation intervals ending in the last seven days; an interval can begin earlier. Battles are counted in (observed_from, observed_to]. average_ratio is weighted by expected battles. IT DOES NOT MEAN THE WEEK WAS FULLY OBSERVED: measured_span is the first-to-last extent of the intervals behind it and measured_hours is their summed duration, so a high ratio over a few hours describes only those hours - compare measured_hours against 168 before reading average_ratio as a week. This does not measure unbracketed history or the tail after the latest profile; incomplete_days is deprecated and always null.",
     },
   };
 }

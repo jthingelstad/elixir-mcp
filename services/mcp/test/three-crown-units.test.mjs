@@ -197,3 +197,85 @@ test("a boat win inflates wins without moving win_rate, and both halves are show
     /win_rate = decided_wins \/ decided_battles/,
   );
 });
+
+/**
+ * elixir_coverage reports the span it actually measured.
+ *
+ * average_ratio "1.000" is computed over observation intervals ENDING in
+ * the last seven days, which can be a couple of days of coverage. The note
+ * disclosed the mechanism but nothing said how much of the week was
+ * watched, so a tester read a perfect ratio as a fully captured week and
+ * cited it as licence to trust every other number (playtest round,
+ * 2026-09-09).
+ */
+test("a perfect ratio over two days does not read as a captured week", async () => {
+  const tag = "#CVR2G9Q";
+  await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
+  await scratch.db.query(
+    "insert into recording (subject_type,subject_tag,requested_by) values ('player',$1,$2)",
+    [tag, account.accountId],
+  );
+  // Three snapshots spanning two days: two intervals, fully captured.
+  for (const [n, days, battles] of [
+    [1, 4, 100],
+    [2, 3, 105],
+    [3, 2, 110],
+  ]) {
+    await scratch.db.query(
+      `insert into player_snapshot_daily
+         (player_tag,snapshot_date,snapshot_kind,observed_at,lifetime)
+       values ($1, (now()-($2||' days')::interval)::date, 'daily',
+               now()-($2||' days')::interval, $3::jsonb)`,
+      [tag, days, JSON.stringify({ battleCount: battles })],
+    );
+    void n;
+  }
+  // Five in each interval, matching each lifetime delta exactly, so both
+  // intervals are comparable and complete. An interval whose captured count
+  // OVERSHOOTS its expected delta is not comparable and drops out of
+  // measured_intervals entirely - which is how the first draft of this
+  // fixture accidentally measured one interval instead of two.
+  const seedBattle = async (id, offset) => {
+    await scratch.db.query(
+      `insert into battle (battle_id,battle_time,type,type_class)
+       values ($1, now()-($2)::interval, 'PvP','pvp')`,
+      [id, offset],
+    );
+    await scratch.db.query(
+      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time)
+       select battle_id,$1,0,'win',battle_time from battle where battle_id=$2`,
+      [tag, id],
+    );
+  };
+  for (let i = 0; i < 5; i++) {
+    await seedBattle(`cov-a-${i}`, `3 days 12 hours ${i} minutes`);
+    await seedBattle(`cov-b-${i}`, `2 days 12 hours ${i} minutes`);
+  }
+
+  const res = await call("elixir_coverage", { player_tag: tag });
+  const c = res.completeness_last_7_days;
+
+  assert.equal(c.measured_intervals, 2);
+  assert.ok(c.measured_span, "the span must be reported");
+  // Two days of coverage, not seven - the whole point.
+  assert.ok(
+    c.measured_hours > 0 && c.measured_hours < 72,
+    `measured_hours should be about two days, got ${c.measured_hours}`,
+  );
+  assert.ok(
+    c.measured_hours < 168,
+    "a week is 168 hours; this must not claim one",
+  );
+  assert.ok(
+    Date.parse(c.measured_span.to) > Date.parse(c.measured_span.from),
+    "span runs forwards",
+  );
+  // The note has to make the comparison possible without arithmetic.
+  assert.match(c.note, /measured_hours/);
+  assert.match(c.note, /168/);
+  assert.doesNotMatch(
+    c.note,
+    /the week was fully observed[^:]/i,
+    "the note must not imply a full week",
+  );
+});
