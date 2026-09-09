@@ -337,10 +337,30 @@ edits:
   agreed exactly - three independent paths to King Thing's 90/54/36. That is
   what made the audit persona trust the corpus enough to find F3 and F4.
 
-## Feedback filing: BLOCKED, items staged below
+## Feedback filing: DONE - #25, #26, #27, #28
 
-The round's surprising items were **not** filed through `elixir_feedback`.
-Both connections refused, for different reasons:
+All four items were filed on 2026-09-09 after the 0.40.0 deploy, once Jamie
+granted `feedback:write`:
+
+| id | item |
+|---|---|
+| #25 | error surface under concurrent load (the bare 500 and the 429 body) |
+| #26 | three_crown_rate duel units, and the win_rate note |
+| #27 | deck form discriminators, and the connection's clan |
+| #28 | war_current on a training day, and war_history's note |
+
+Each was filed with its resolution and commits rather than as an open bug,
+and #26 carries the correction that the obvious fix does not work. The
+staged text below is kept as the record of what the round found.
+
+**The grant took effect with no reconnect**, which is the design working:
+`validateAccessToken` joins `oauth_family` and reads `f.scope` on every
+request, so the very next call after Jamie ticked the box succeeded.
+
+### What the blocker actually was
+
+For most of this round the items could not be filed at all. Both connections
+refused:
 
 - **Clan connection (POAP KINGS)** - `Insufficient scope: required "cr:read
   feedback:write"`. This connection carries only `cr:read`, the documented
@@ -367,8 +387,19 @@ fix - 403 + `insufficient_scope` is the correct RFC 6750/9728 shape - but
 worth knowing, because the server's best refusal message is invisible to
 the person who needs it.
 
-**Jamie, to unblock:** reconnect `/mcp` and tick `feedback:write` on the
-consent page. Not a token refresh.
+**The advice this note originally gave was wrong.** "Tick it on the consent
+page" described a control that did not exist: scope arrives in the client's
+`?scope=` parameter, the protected-resource challenge advertises `cr:read`
+only, and the consent page merely RENDERED what was requested. A client that
+never asks for a capability could not be granted one by any route.
+
+Jamie found this immediately - "I don't see any part where I can select
+scopes" - and it became two shipped features: checkboxes on the consent page
+for every capability the client did not request (2d9c674), and an editor for
+a live connection's capabilities on Account -> Connections, covering agent
+and integration doors as well as the personal one (6e9c9d0). An agent's
+service key carries its capabilities on the token rather than a grant, so
+that surface came later, on the agent's own page (1d55cb2).
 
 Worth noting as a finding in itself: the service asks agents to file feedback
 on their own judgment before the session ends, and an agent that hits real
