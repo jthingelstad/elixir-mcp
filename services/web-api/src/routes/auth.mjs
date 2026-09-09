@@ -1,4 +1,6 @@
 import {
+  authLog,
+  emailRef,
   emailHash,
   requestAccess,
   approvedAccount,
@@ -72,6 +74,7 @@ export function authRoutes({
              where account_id = $1 and email is distinct from $2`,
             [account.account_id, email.toLowerCase()],
           );
+          authLog("signin_code_issued", { email: emailRef(emailHash(email)) });
           const { token, code } = await startMagicLogin(db, {
             emailHash: emailHash(email),
             purpose: "web",
@@ -104,12 +107,25 @@ export function authRoutes({
 
     "POST /api/auth/code": async (db, _event, body) => {
       const hash = emailHash(String(body.email ?? ""));
-      const row = await verifyMagicCode(db, {
+      // Scoped to this flow: a pending OAuth authorization is not ours to
+      // consume, and its attempts are not ours to spend.
+      const result = await verifyMagicCode(db, {
         emailHash: hash,
         code: body.code,
+        purpose: "web",
       });
-      if (!row || row.purpose !== "web")
-        return json(400, { error: "invalid_or_expired" });
+      if (!result.ok) {
+        authLog("signin_code_rejected", {
+          email: emailRef(hash),
+          reason: result.reason,
+          attempts: result.attempts,
+        });
+        return json(400, {
+          error: "invalid_or_expired",
+          reason: result.reason,
+        });
+      }
+      authLog("signin_code_accepted", { email: emailRef(hash) });
       await ping("site.signin", "code");
       return mintSessionResponse(db, hash);
     },

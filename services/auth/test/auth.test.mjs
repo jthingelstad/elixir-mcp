@@ -211,12 +211,13 @@ test("magic code: wrong guesses count, cap locks, right code burns the shared ro
   const { token, code } = await startMagicLogin(db, { emailHash: JAMIE });
   for (let i = 0; i < 3; i += 1) {
     assert.equal(
-      await verifyMagicCode(db, { emailHash: JAMIE, code: "000000" }),
-      null,
+      (await verifyMagicCode(db, { emailHash: JAMIE, code: "000000" })).ok,
+      false,
     );
   }
   const ok = await verifyMagicCode(db, { emailHash: JAMIE, code });
-  assert.equal(ok.email_hash, JAMIE);
+  assert.equal(ok.ok, true);
+  assert.equal(ok.row.email_hash, JAMIE);
   assert.equal(
     await redeemMagicToken(db, token),
     null,
@@ -229,10 +230,16 @@ test("magic code: attempt cap is enforced before comparison", async () => {
   for (let i = 0; i < MAX_CODE_ATTEMPTS; i += 1) {
     await verifyMagicCode(db, { emailHash: JAMIE, code: "999999" });
   }
+  const capped = await verifyMagicCode(db, { emailHash: JAMIE, code });
   assert.equal(
-    await verifyMagicCode(db, { emailHash: JAMIE, code }),
-    null,
+    capped.ok,
+    false,
     "even the correct code fails once the cap is hit",
+  );
+  assert.equal(
+    capped.reason,
+    "attempts_exhausted",
+    "and it says so, instead of looking like a wrong code",
   );
 });
 
@@ -460,4 +467,81 @@ test("the owner account is untouchable, and owner is never granted", async () =>
     null,
     "no such account is null, not a refusal",
   );
+});
+
+/**
+ * The two flows share one table, and used to share one "newest row wins"
+ * selector.
+ *
+ * Reported 2026-09-09: an OAuth code rejected repeatedly, with the newest code
+ * every time. Signing in to the console while a Claude authorization was open
+ * made the console's code the newest row, after which the correct OAuth code
+ * could never be redeemed — and every wrong-flow attempt spent one of the
+ * OAuth row's five attempts, so five sign-ins could lock out an authorization
+ * nobody had touched.
+ */
+test("magic code: the website and OAuth flows cannot consume each other", async () => {
+  const oauth = await startMagicLogin(db, {
+    emailHash: JAMIE,
+    purpose: "oauth",
+    context: { client_id: "c" },
+  });
+  // Issued AFTER the OAuth code: this is the row that used to win.
+  const web = await startMagicLogin(db, { emailHash: JAMIE, purpose: "web" });
+
+  const wrongFlow = await verifyMagicCode(db, {
+    emailHash: JAMIE,
+    code: web.code,
+    purpose: "oauth",
+  });
+  assert.equal(wrongFlow.ok, false);
+  assert.equal(wrongFlow.reason, "wrong_flow", "and it can say which flow");
+
+  // The correct OAuth code still works, despite a newer code existing and
+  // despite the failed attempt above.
+  const good = await verifyMagicCode(db, {
+    emailHash: JAMIE,
+    code: oauth.code,
+    purpose: "oauth",
+  });
+  assert.equal(good.ok, true, good.reason);
+  assert.equal(good.row.purpose, "oauth");
+
+  // And the website's own code is untouched by any of it.
+  const signin = await verifyMagicCode(db, {
+    emailHash: JAMIE,
+    code: web.code,
+    purpose: "web",
+  });
+  assert.equal(signin.ok, true, signin.reason);
+});
+
+test("magic code: an older code of the same flow is named, not merely refused", async () => {
+  const first = await startMagicLogin(db, { emailHash: JAMIE, purpose: "web" });
+  await startMagicLogin(db, { emailHash: JAMIE, purpose: "web" });
+  const stale = await verifyMagicCode(db, {
+    emailHash: JAMIE,
+    code: first.code,
+    purpose: "web",
+  });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.reason, "superseded");
+});
+
+test("magic code: a used code says so rather than reading as wrong", async () => {
+  const { code } = await startMagicLogin(db, {
+    emailHash: JAMIE,
+    purpose: "web",
+  });
+  assert.equal(
+    (await verifyMagicCode(db, { emailHash: JAMIE, code, purpose: "web" })).ok,
+    true,
+  );
+  const again = await verifyMagicCode(db, {
+    emailHash: JAMIE,
+    code,
+    purpose: "web",
+  });
+  assert.equal(again.ok, false);
+  assert.equal(again.reason, "already_used");
 });

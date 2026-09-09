@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-09",
+    title: "Sign-in codes stop competing with each other",
+    body: "A code sent for connecting an AI client and a code sent for signing in to the website are now kept separate. Previously the most recent code of either kind was the only one that could be used, so requesting one while the other was open made the other impossible to enter and could exhaust its attempts. When a code is refused, the page now says which reason applies - superseded, already used, expired, too many attempts, or a code from the other flow - and what to do next.",
+  },
+  {
+    date: "2026-09-09",
     title: "Knowing whether an agent is working",
     body: "An agent's page now revokes its key, reports when it was last active across every key it has held, and says outright when the current key has never been used - the signature of a runtime still presenting the previous one, which produces no errors because a refused call never reaches the log. Your usage now counts what your daily limit counts: calls your agents made on your budget are included in the daily total and broken out separately, instead of being invisible until you were throttled.",
   },

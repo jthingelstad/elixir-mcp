@@ -547,3 +547,36 @@ before any account existed, under `.catch(() => {})` — `requested_by` is NOT
 NULL, so the write silently never happened and the fixture's clan was never
 recorded. Moved after account creation and unswallowed.
 
+
+## 2026-09-09 — Two auth flows shared one code, and one selector
+
+`verifyMagicCode` took the newest unused, unexpired `magic_login` row for an
+address REGARDLESS of purpose, while two flows write to that table: website
+sign-in (`web`) and OAuth consent (`oauth`). So they consumed each other. A
+console sign-in issued while a Claude authorization was open made the console's
+code the newest row, after which the correct, newest, unexpired OAuth code from
+the person's inbox could never be redeemed — identically, every retry. The
+attempt counter made it worse: a wrong-flow guess incremented the OTHER flow's
+row, so five console sign-ins could exhaust a pending authorization's five
+attempts without the holder doing anything.
+
+Reported by Jamie with a screen recording: "the code isn't being accepted", on
+the newest code, which was true. Selection is scoped by purpose now, so each
+flow sees only its own codes and spends only its own attempts.
+
+The message was the second half of the problem. One sentence covered seven
+causes — three fixed by retrying and four not — so somebody holding a correct
+code was told to start over, did, and hit it again. Failures now name the
+cause: wrong flow, superseded, already used, expired, attempts exhausted, no
+live code, malformed, or a request-side mismatch (client, redirect_uri,
+resource, code_challenge), each with the action that follows from it.
+
+AUTH LOGGING. None of this was diagnosable from the server: the Lambdas emitted
+only REPORT lines, and a refused credential never reached `mcp_call_audit`
+because the invoker writes after auth. `services/auth/src/audit-log.mjs` adds
+one JSON line per auth decision — codes issued, accepted and rejected with a
+reason; OAuth token grants and every distinct invalid_grant fault; 401s and
+wrong-resource 403s at the MCP door. Never a code, token, PKCE verifier or raw
+address: an email is the first 8 hex of the hash already stored, a credential
+is an 8-hex digest, both correlatable and neither reversible.
+

@@ -9,6 +9,8 @@ import pg from "pg";
 import {
   validateAccessToken,
   validateServiceToken,
+  authLog,
+  credentialRef,
   checkRateLimit,
   normalizeScope,
   resourceForPath,
@@ -114,7 +116,13 @@ export function makeHandler({
     const auth = String(
       event.headers?.authorization ?? event.headers?.Authorization ?? "",
     );
-    if (!auth.toLowerCase().startsWith("bearer ")) return unauthorizedHere();
+    if (!auth.toLowerCase().startsWith("bearer ")) {
+      authLog("mcp_unauthorized", {
+        reason: "no_bearer",
+        resource: target.resource,
+      });
+      return unauthorizedHere();
+    }
 
     const db = new pg.Client({ connectionString: databaseUrl });
     await db.connect();
@@ -128,7 +136,25 @@ export function makeHandler({
         : await validateAccessToken(db, presented, {
             resource: target.resource,
           });
-      if (!account) return unauthorizedHere();
+      if (!account) {
+        // THE HOLE THIS CLOSES: a refused credential was recorded nowhere.
+        // mcp_call_audit is written by the invoker, i.e. after auth, so a
+        // runtime presenting a rotated or revoked key produced no errors at
+        // all -- it simply went quiet, and the console showed an agent that
+        // looked idle. Observed 2026-09-09 when rotating a key took the
+        // Discord bot offline for six minutes before anyone noticed.
+        //
+        // The credential itself never appears; a short digest is enough to
+        // tell "one dead client retrying" from "many different bad keys".
+        authLog("mcp_unauthorized", {
+          reason: presented.startsWith("svt_")
+            ? "service_token_invalid"
+            : "access_token_invalid",
+          resource: target.resource,
+          credential: credentialRef(presented),
+        });
+        return unauthorizedHere();
+      }
 
       // The URL declares what this connection is for; the credential proves
       // it. Without this check, distinct URLs would be decoration: a personal
@@ -137,6 +163,11 @@ export function makeHandler({
       // credential simply does not belong at it, and pretending otherwise
       // would make the door a probe for which agents exist.
       if (!principalMatchesResource(account, target)) {
+        authLog("mcp_wrong_resource", {
+          reason: "principal_mismatch",
+          resource: target.resource,
+          kind: account.kind ?? "person",
+        });
         return {
           statusCode: 403,
           headers: { "content-type": "application/json" },

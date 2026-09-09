@@ -17,6 +17,8 @@ import {
   approvedAccount,
   startMagicLogin,
   verifyMagicCode,
+  authLog,
+  emailRef,
   checkRateLimit,
   registerClient,
   getClient,
@@ -115,6 +117,62 @@ function hiddenAuthFields(q) {
   ]
     .map((k) => `<input type="hidden" name="${k}" value="${esc(q[k] ?? "")}">`)
     .join("");
+}
+
+/**
+ * What went wrong, in a sentence that names the next action.
+ *
+ * The old page said "wrong, expired, or didn't match this request" for seven
+ * different causes, three of which are fixed by doing the same thing again and
+ * four of which are not. Somebody holding a correct, current code was told to
+ * start over, did, and hit it again.
+ */
+function codeFailure(reason) {
+  const messages = {
+    wrong_flow: [
+      "That code is for signing in to the website",
+      "It is not the code Claude asked for. Use the code from the most recent Elixir MCP email sent for this connection, or press back and send a new one.",
+    ],
+    superseded: [
+      "A newer code was sent",
+      "That code was replaced by a later one for this connection. Check your most recent email.",
+    ],
+    already_used: [
+      "That code has been used",
+      "Each code works once. Start over from your MCP client to get a new one.",
+    ],
+    expired: [
+      "That code has expired",
+      "Codes are good for 15 minutes. Start over from your MCP client to get a new one.",
+    ],
+    attempts_exhausted: [
+      "Too many attempts on that code",
+      "Start over from your MCP client; the next code starts fresh.",
+    ],
+    no_live_code: [
+      "There is no code waiting",
+      "It may have expired, or already been used. Start over from your MCP client.",
+    ],
+    malformed: [
+      "That is not a six-digit code",
+      "Check the digits and try again.",
+    ],
+    code_mismatch: [
+      "That code did not match",
+      "Check the most recent email for this connection. Codes are good for 15 minutes and work once.",
+    ],
+    account_not_approved: [
+      "That account cannot sign in",
+      "It is not approved yet. Request access from the site and try again once it is.",
+    ],
+  };
+  const [title, body] = messages[reason] ?? [
+    "That didn't work",
+    // The request-side mismatches land here: the code was fine, the request
+    // around it was not the one that asked for it.
+    "This is not the request that asked for that code — the client, the redirect, the connection or the challenge changed. Start over from your MCP client, in one pass, without reloading this page.",
+  ];
+  return `<h1>${esc(title)}</h1><p>${esc(body)}</p>`;
 }
 
 function consentCapabilities(scope) {
@@ -276,6 +334,12 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         });
         const account = allowed ? await approvedAccount(db, hash) : null;
         if (account) {
+          authLog("oauth_code_issued", {
+            email: emailRef(hash),
+            client: v.client.clientName,
+            resource: v.resource,
+            kind: v.target.kind,
+          });
           const { code } = await startMagicLogin(db, {
             emailHash: hash,
             purpose: "oauth",
@@ -321,28 +385,53 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
       }
 
       if (form.step === "code") {
-        const burned = await verifyMagicCode(db, {
+        const verified = await verifyMagicCode(db, {
           emailHash: hash,
           code: form.code,
+          // Ours, not the website's. These two flows share a table and used to
+          // consume each other's codes and each other's attempts.
+          purpose: "oauth",
         });
-        const ctx = burned?.purpose === "oauth" ? burned.context : null;
-        const account = burned ? await approvedAccount(db, hash) : null;
-        if (
-          !ctx ||
-          !account ||
-          ctx.client_id !== v.client.clientId ||
-          ctx.redirect_uri !== v.redirectUri ||
-          ctx.resource !== v.resource ||
-          ctx.code_challenge !== v.codeChallenge
-        ) {
-          return html(
-            400,
-            page(
-              "Elixir MCP",
-              `<h1>That didn&rsquo;t work</h1><p>The code was wrong, expired, or didn&rsquo;t match this request. Start over from your MCP client.</p>`,
-            ),
-          );
+        const ctx = verified.ok ? verified.row.context : null;
+        const account = verified.ok ? await approvedAccount(db, hash) : null;
+
+        // WHICH of these failed decides what the person should do next, and
+        // saying "one of seven things" left them retrying a code that could
+        // never work. Each branch below is a different next step.
+        const mismatch =
+          ctx && account
+            ? ctx.client_id !== v.client.clientId
+              ? "client"
+              : ctx.redirect_uri !== v.redirectUri
+                ? "redirect_uri"
+                : ctx.resource !== v.resource
+                  ? "resource"
+                  : ctx.code_challenge !== v.codeChallenge
+                    ? "code_challenge"
+                    : null
+            : null;
+
+        if (!verified.ok || !ctx || !account || mismatch) {
+          const reason = !verified.ok
+            ? verified.reason
+            : !account
+              ? "account_not_approved"
+              : `request_${mismatch}`;
+          authLog("oauth_code_rejected", {
+            email: emailRef(hash),
+            reason,
+            attempts: verified.attempts,
+            client: v.client.clientName,
+            resource: v.resource,
+          });
+          return html(400, page("Elixir MCP", codeFailure(reason)));
         }
+        authLog("oauth_code_accepted", {
+          email: emailRef(hash),
+          client: v.client.clientName,
+          resource: v.resource,
+          kind: v.target.kind,
+        });
         // The person proved who they are. If the audience names a principal,
         // the grant belongs to THAT account -- so every token minted from this
         // code carries the agent's identity, budget and tool surface, and the
@@ -353,6 +442,11 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           (owned.principal &&
             owned.principal.owned_by_account_id !== account.account_id)
         ) {
+          authLog("oauth_principal_refused", {
+            email: emailRef(hash),
+            resource: v.resource,
+            kind: v.target.kind,
+          });
           return html(
             403,
             page(
@@ -396,19 +490,47 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
 
       if (form.grant_type === "authorization_code") {
         const redeemed = await redeemAuthCode(db, form.code);
-        if (!redeemed || redeemed.clientId !== clientId)
+        if (!redeemed || redeemed.clientId !== clientId) {
+          authLog("oauth_token_rejected", {
+            reason: redeemed ? "client_mismatch" : "code_unknown_or_used",
+            client: clientId,
+            resource: requestedResource,
+          });
           return json(400, { error: "invalid_grant" });
-        if (redeemed.redirectUri !== String(form.redirect_uri ?? ""))
-          return json(400, { error: "invalid_grant" });
-        if (redeemed.resource !== requestedResource)
-          return json(400, { error: "invalid_target" });
-        if (!verifyPkce(form.code_verifier, redeemed.codeChallenge))
-          return json(400, { error: "invalid_grant" });
+        }
+        // Each of these is a different client bug and they all used to look
+        // identical from the outside, and leave nothing behind on the inside.
+        const grantFault =
+          redeemed.redirectUri !== String(form.redirect_uri ?? "")
+            ? "redirect_uri_mismatch"
+            : redeemed.resource !== requestedResource
+              ? "resource_mismatch"
+              : !verifyPkce(form.code_verifier, redeemed.codeChallenge)
+                ? "pkce_failed"
+                : null;
+        if (grantFault) {
+          authLog("oauth_token_rejected", {
+            reason: grantFault,
+            client: clientId,
+            resource: requestedResource,
+          });
+          return json(400, {
+            error:
+              grantFault === "resource_mismatch"
+                ? "invalid_target"
+                : "invalid_grant",
+          });
+        }
         const tokens = await mintTokens(db, {
           clientId,
           accountId: redeemed.accountId,
           scope: redeemed.scope,
           resource: redeemed.resource,
+        });
+        authLog("oauth_token_issued", {
+          client: clientId,
+          resource: redeemed.resource,
+          grant: "authorization_code",
         });
         return json(200, {
           access_token: tokens.accessToken,
