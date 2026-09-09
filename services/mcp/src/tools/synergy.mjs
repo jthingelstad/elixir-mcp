@@ -12,6 +12,8 @@ import { resolveInstant } from "../time.mjs";
 import {
   ToolFailure,
   requireOrderedWindow,
+  WINDOW_FROM_DESC,
+  WINDOW_TO_DESC,
   segmentFilter,
   SEGMENT_ARGS,
   META_METHODOLOGY,
@@ -71,8 +73,11 @@ export const synergyTools = {
             "Anchor card by EXACT name (case-insensitive); ambiguous names are refused with candidates.",
         },
         ...SEGMENT_ARGS,
-        from: { type: "string", description: "Default: 28 days ago." },
-        to: { type: "string" },
+        from: {
+          type: "string",
+          description: `Default: 28 days ago. ${WINDOW_FROM_DESC}`,
+        },
+        to: { type: "string", description: WINDOW_TO_DESC },
         mode: { type: "string", enum: MODE_GROUPS },
         merge_forms: {
           type: "boolean",

@@ -16,6 +16,8 @@ import {
   subject,
   buildMeta,
   requireOrderedWindow,
+  WINDOW_FROM_DESC,
+  WINDOW_TO_DESC,
   segmentFilter,
   ebShrink,
   SEGMENT_ARGS,
@@ -85,11 +87,11 @@ export const battlesTools = {
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         from: {
           type: "string",
-          description: "ISO instant or YYYY-MM-DD (your timezone).",
+          description: WINDOW_FROM_DESC,
         },
         to: {
           type: "string",
-          description: "ISO instant or YYYY-MM-DD inclusive (your timezone).",
+          description: WINDOW_TO_DESC,
         },
         mode: {
           type: "string",
@@ -479,14 +481,14 @@ export const battlesTools = {
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         from: {
           type: "string",
-          description: "ISO instant or YYYY-MM-DD (your timezone).",
+          description: WINDOW_FROM_DESC,
         },
-        to: { type: "string" },
+        to: { type: "string", description: WINDOW_TO_DESC },
         last_n_battles: { type: "integer", minimum: 1, maximum: 500 },
         mode: { type: "string", enum: MODE_GROUPS },
         deck_hash: { type: "string" },
-        compare_from: { type: "string" },
-        compare_to: { type: "string" },
+        compare_from: { type: "string", description: WINDOW_FROM_DESC },
+        compare_to: { type: "string", description: WINDOW_TO_DESC },
         group_by: {
           type: "string",
           enum: ["week", "mode"],
@@ -781,8 +783,8 @@ export const battlesTools = {
           enum: ["mine", "opponent"],
           default: "mine",
         },
-        from: { type: "string" },
-        to: { type: "string" },
+        from: { type: "string", description: WINDOW_FROM_DESC },
+        to: { type: "string", description: WINDOW_TO_DESC },
         mode: { type: "string", enum: MODE_GROUPS },
       },
       additionalProperties: false,
@@ -864,8 +866,8 @@ export const battlesTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        from: { type: "string" },
-        to: { type: "string" },
+        from: { type: "string", description: WINDOW_FROM_DESC },
+        to: { type: "string", description: WINDOW_TO_DESC },
         mode: { type: "string", enum: MODE_GROUPS },
         sort: {
           type: "string",
@@ -964,8 +966,11 @@ export const battlesTools = {
       type: "object",
       properties: {
         ...SEGMENT_ARGS,
-        from: { type: "string", description: "Default: 28 days ago." },
-        to: { type: "string" },
+        from: {
+          type: "string",
+          description: `Default: 28 days ago. ${WINDOW_FROM_DESC}`,
+        },
+        to: { type: "string", description: WINDOW_TO_DESC },
         mode: { type: "string", enum: MODE_GROUPS },
         min_battles: { type: "integer", minimum: 1, default: 5 },
         sort: {
@@ -1099,8 +1104,11 @@ export const battlesTools = {
       type: "object",
       properties: {
         ...SEGMENT_ARGS,
-        from: { type: "string", description: "Default: 28 days ago." },
-        to: { type: "string" },
+        from: {
+          type: "string",
+          description: `Default: 28 days ago. ${WINDOW_FROM_DESC}`,
+        },
+        to: { type: "string", description: WINDOW_TO_DESC },
         mode: { type: "string", enum: MODE_GROUPS },
         min_battles: { type: "integer", minimum: 1, default: 10 },
         sort: {
@@ -1563,9 +1571,9 @@ export const battlesTools = {
         },
         from: {
           type: "string",
-          description: "ISO instant or YYYY-MM-DD (your timezone).",
+          description: WINDOW_FROM_DESC,
         },
-        to: { type: "string" },
+        to: { type: "string", description: WINDOW_TO_DESC },
       },
       required: ["player_tags"],
       additionalProperties: false,

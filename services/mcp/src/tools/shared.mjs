@@ -225,6 +225,22 @@ export function requireEnum(value, allowed, argName) {
   }
 }
 
+/**
+ * Window bounds, described identically wherever they appear. `to` had no
+ * description at all on ten tools, so the asymmetry between the two bounds
+ * - a date-only `to` covers the WHOLE named day, an ISO instant does not -
+ * had to be reverse-engineered from filters_applied (playtest round,
+ * 2026-09-09).
+ */
+export const WINDOW_FROM_DESC =
+  "Start of the window, inclusive. An ISO instant, or YYYY-MM-DD which resolves to local midnight in your timezone.";
+export const WINDOW_TO_DESC =
+  "End of the window, exclusive. An ISO instant is used as given; YYYY-MM-DD covers that WHOLE local day, resolving to the NEXT local midnight. Omit to mean up to now.";
+
+/** Snapshot-series tools take whole days only, never instants. */
+export const WINDOW_DATE_ONLY_DESC =
+  "YYYY-MM-DD, inclusive. This series is built from daily snapshots, so only whole days are meaningful and an instant is not accepted.";
+
 export function requireOrderedWindow(from, to) {
   if (from && to && from.getTime() > to.getTime()) {
     throw new ToolFailure(

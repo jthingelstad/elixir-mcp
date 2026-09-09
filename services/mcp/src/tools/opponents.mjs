@@ -12,6 +12,8 @@ import {
   subject,
   buildMeta,
   requireOrderedWindow,
+  WINDOW_FROM_DESC,
+  WINDOW_TO_DESC,
 } from "./shared.mjs";
 
 export const opponentsTools = {
@@ -25,9 +27,9 @@ export const opponentsTools = {
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         from: {
           type: "string",
-          description: "ISO instant or YYYY-MM-DD (your timezone).",
+          description: WINDOW_FROM_DESC,
         },
-        to: { type: "string" },
+        to: { type: "string", description: WINDOW_TO_DESC },
         mode: { type: "string", enum: MODE_GROUPS },
         min_battles: {
           type: "integer",

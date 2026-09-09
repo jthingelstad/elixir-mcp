@@ -9,6 +9,7 @@ import {
   responseMeta,
 } from "@elixir-mcp/contracts";
 import {
+  WINDOW_DATE_ONLY_DESC,
   requireEnum,
   ToolFailure,
   spendLiveQuota,
@@ -276,8 +277,8 @@ export const playersTools = {
           },
           default: ["trophies"],
         },
-        from: { type: "string", description: "YYYY-MM-DD" },
-        to: { type: "string", description: "YYYY-MM-DD" },
+        from: { type: "string", description: WINDOW_DATE_ONLY_DESC },
+        to: { type: "string", description: WINDOW_DATE_ONLY_DESC },
         granularity: { type: "string", enum: ["day", "week"], default: "day" },
       },
       additionalProperties: false,
