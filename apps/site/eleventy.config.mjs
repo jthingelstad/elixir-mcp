@@ -139,6 +139,23 @@ export default function (eleventyConfig) {
    *  block intact, which is why that page looked right for months
    *  inside the app. */
   const { marked } = require("marked");
+  /** Headings carry ids so pages can link to a section (marked stopped
+   *  emitting them in v8). Slug: lower-case, non-alphanumerics to
+   *  hyphens, trimmed - the same shape GitHub produces. */
+  const slug = (text) =>
+    text
+      .toLowerCase()
+      .replace(/<[^>]+>/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  marked.use({
+    renderer: {
+      heading({ tokens, depth }) {
+        const text = this.parser.parseInline(tokens);
+        return `<h${depth} id="${slug(text)}">${text}</h${depth}>\n`;
+      },
+    },
+  });
   eleventyConfig.setLibrary("md", { render: (md) => marked.parse(md) });
 
   /** First paragraph of a doc, as plain text, for meta descriptions and
