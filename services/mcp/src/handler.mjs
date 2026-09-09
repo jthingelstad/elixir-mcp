@@ -166,7 +166,21 @@ export function makeHandler({
         // revoked, suspended, or presented at the wrong door — is the refusal
         // worth telling them about, and it is identifiable without granting
         // anything: the door has already said no.
-        const refused = await describeRefusedCredential(db, presented);
+        // Describing a refusal is visibility, never a precondition: if it
+        // throws, the answer is still 401. A describe failure once turned
+        // every refused OAuth token into a 500 at this door.
+        let refused;
+        try {
+          refused = await describeRefusedCredential(db, presented);
+        } catch (err) {
+          authLog("mcp_refusal_describe_failed", { error: err?.message });
+          refused = {
+            kind: presented.startsWith("svt_")
+              ? "service_token"
+              : "access_token",
+            reason: "undescribed",
+          };
+        }
         await recordCredentialRefusal(db, {
           presented,
           kind: refused.kind,

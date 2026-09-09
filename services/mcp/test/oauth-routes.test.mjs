@@ -655,3 +655,75 @@ test("an unrecognised key is recorded without inventing an owner", async () => {
   assert.equal(rows[0].token_id, null);
   assert.equal(rows[0].reason, "unknown_key");
 });
+
+// A refused OAuth token used to come back 500: the describer selected
+// account_id and client_id from oauth_token, which has neither column.
+// Live repro 2026-09-09 - eat_ garbage -> 500, svt_ garbage -> 401.
+test("an unknown OAuth access token is refused with 401 and a challenge, never 500", async () => {
+  const raw = "eat_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+  const response = await handler({
+    rawPath: "/mcp",
+    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    headers: { authorization: `Bearer ${raw}` },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+  });
+  assert.equal(response.statusCode, 401, response.body);
+  assert.match(
+    response.headers["www-authenticate"],
+    /^Bearer resource_metadata=/,
+  );
+  assert.match(response.headers["www-authenticate"], /scope="cr:read"/);
+  const { rows } = await db.query(
+    `select account_id, kind, reason from credential_refusal where credential_hash = $1`,
+    [crypto.createHash("sha256").update(raw).digest("hex")],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].kind, "access_token");
+  assert.equal(rows[0].reason, "unknown_key");
+  assert.equal(rows[0].account_id, null);
+});
+
+test("an expired OAuth access token is refused with 401 and attributed to its family's account", async () => {
+  const { rows: acct } = await db.query(
+    `insert into account (email_hash, status, role, kind)
+     values ('expired-oauth-owner', 'approved', 'member', 'person') returning account_id`,
+  );
+  const accountId = acct[0].account_id;
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('expired-client', 'Stale Client', '[]'::jsonb, now() + interval '1 day')`,
+  );
+  const minted = await mintTokens(db, {
+    clientId: "expired-client",
+    accountId,
+    scope: "cr:read",
+    resource: RESOURCE,
+  });
+  const hash = crypto
+    .createHash("sha256")
+    .update(minted.accessToken)
+    .digest("hex");
+  await db.query(
+    `update oauth_token set expires_at = now() - interval '1 hour' where token_hash = $1`,
+    [hash],
+  );
+  const response = await handler({
+    rawPath: "/mcp",
+    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    headers: { authorization: `Bearer ${minted.accessToken}` },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+  });
+  assert.equal(response.statusCode, 401, response.body);
+  assert.match(
+    response.headers["www-authenticate"],
+    /^Bearer resource_metadata=/,
+  );
+  const { rows } = await db.query(
+    `select account_id, kind, reason from credential_refusal where credential_hash = $1`,
+    [hash],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].kind, "access_token");
+  assert.equal(rows[0].reason, "expired", "the actionable part");
+  assert.equal(rows[0].account_id, accountId, "attributed through the family");
+});

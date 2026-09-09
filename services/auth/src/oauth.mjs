@@ -648,9 +648,15 @@ export async function describeRefusedCredential(db, presented) {
     };
   }
 
+  // oauth_token carries neither account nor client: both hang off the
+  // family (0005). Selecting them from the token threw, and the throw
+  // turned every refused eat_ token into a 500 (fixed 2026-09-09).
   const { rows } = await db.query(
-    `select t.account_id, t.expires_at, c.client_name
-     from oauth_token t left join oauth_client c on c.client_id = t.client_id
+    `select f.account_id, t.expires_at, t.revoked_at,
+            f.revoked_at as family_revoked_at, c.client_name
+     from oauth_token t
+     join oauth_family f on f.family_id = t.family_id
+     left join oauth_client c on c.client_id = f.client_id
      where t.token_hash = $1 and t.kind = 'access'`,
     [digest],
   );
@@ -661,7 +667,11 @@ export async function describeRefusedCredential(db, presented) {
     accountId: row.account_id,
     label: row.client_name ?? null,
     reason:
-      row.expires_at && row.expires_at < new Date() ? "expired" : "wrong_door",
+      row.revoked_at || row.family_revoked_at
+        ? "revoked_key"
+        : row.expires_at && row.expires_at < new Date()
+          ? "expired"
+          : "wrong_door",
   };
 }
 
