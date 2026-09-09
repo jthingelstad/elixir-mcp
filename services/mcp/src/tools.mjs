@@ -24,6 +24,8 @@ import { clansTools } from "./tools/clans.mjs";
 import { liveTools } from "./tools/live.mjs";
 import { playersTools } from "./tools/players.mjs";
 import { warTools } from "./tools/war.mjs";
+import { validateArgs } from "./validate.mjs";
+import { ToolFailure } from "./tools/shared.mjs";
 
 export {
   ToolFailure,
@@ -90,6 +92,16 @@ export function makeRegistry() {
             : a.annotations.title.localeCompare(b.annotations.title);
         }),
     invoke: async (name, ctx, args) => {
+      // The declared schema is the contract clients see; enforce it before
+      // a handler can see anything the schema did not promise.
+      const problem = validateArgs(TOOLS[name].inputSchema, args ?? {});
+      if (problem) {
+        throw new ToolFailure(
+          "bad_request",
+          problem,
+          "Valid values and shapes are the tool's declared inputSchema (tools/list).",
+        );
+      }
       const body = await TOOLS[name].handler(ctx, args);
       assertResponseMeta(body?.meta);
       return body;

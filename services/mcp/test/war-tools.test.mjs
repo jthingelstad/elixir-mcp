@@ -723,14 +723,20 @@ test("war_current: a period first seen just BEFORE the reset ends a day later", 
 test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 + persona passes)", async () => {
   const badMode = await call(invoke, "battles_query", { mode: "2v2" });
   assert.equal(badMode.isError, true);
-  assert.match(badMode.body.error.message, /Unknown mode: 2v2/);
+  assert.match(
+    badMode.body.error.message,
+    /Unknown mode: 2v2|mode must be one of/,
+  );
   assert.match(badMode.body.error.hint, /Valid values/);
 
   const badOutcome = await call(invoke, "battles_query", {
     outcome: "victory",
   });
   assert.equal(badOutcome.isError, true);
-  assert.match(badOutcome.body.error.message, /Unknown outcome/);
+  assert.match(
+    badOutcome.body.error.message,
+    /Unknown outcome|outcome must be one of/,
+  );
 
   const badCard = await call(invoke, "battles_query", { with_card: 99999999 });
   assert.equal(badCard.isError, true);
@@ -740,7 +746,7 @@ test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 +
     last_n_battles: 0,
   });
   assert.equal(zeroWindow.isError, true, "falsy zero refuses, never all-time");
-  assert.match(zeroWindow.body.error.message, /1 to 500/);
+  assert.match(zeroWindow.body.error.message, /1 to 500|at least 1/);
 
   const badSort = await call(invoke, "battles_decks", { sort: "losses" });
   assert.equal(badSort.isError, true);
@@ -755,12 +761,21 @@ test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 +
     "structured refusal, never 'failed unexpectedly'",
   );
 
-  const clamped = await call(invoke, "battles_query", {
+  // Since the schema boundary (2026-09-09) an out-of-range limit is refused
+  // against the declared maximum rather than silently clamped; a limit
+  // inside the schema still echoes limit_applied.
+  const over = await call(invoke, "battles_query", {
     limit: 10000,
     verbosity: "compact",
   });
-  assert.equal(clamped.isError, false);
-  assert.equal(clamped.body.limit_applied, 50, "the clamp is visible now");
+  assert.equal(over.isError, true);
+  assert.match(over.body.error.message, /limit must be at most 50/);
+  const inRange = await call(invoke, "battles_query", {
+    limit: 50,
+    verbosity: "compact",
+  });
+  assert.equal(inRange.isError, false);
+  assert.equal(inRange.body.limit_applied, 50, "the applied limit is visible");
 });
 
 test("war_history: finished_early flags 10000-fame regular weeks; horizon named", async () => {
