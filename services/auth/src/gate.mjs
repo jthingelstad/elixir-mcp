@@ -1,7 +1,7 @@
 import { canSetRole, isRole, ROLE_ORDER } from "@elixir-mcp/contracts";
 
 /**
- * The access gate — DESIGN §6.1 step 0. Request-access creates a
+ * The access gate. Request-access creates a
  * `requested` account; the owner decides on the admin page. The HTTP
  * layer must answer identically for new, pending, denied, and unknown
  * emails ("if approved, you'll hear from us") — the gate must never

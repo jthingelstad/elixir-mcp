@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: elixir-mcp - Clash Royale history recorder and MCP server (unofficial, not endorsed by Supercell)
 
-# DESIGN.md section 7. One stack. NAT-free VPC: DB-touching Lambdas reach
+# One stack (docs/ENGINEERING.md). NAT-free VPC: DB-touching Lambdas reach
 # SQS through an interface endpoint; the email relay lives OUTSIDE the VPC
 # and is the only compute with internet egress. Secrets arrive via
 # CloudFormation dynamic references from the app secret (created by
@@ -1023,7 +1023,7 @@ Resources:
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
           # The MCP/OAuth door, path-split on the one hostname. The
           # no-cookie origin request policy is the structural guarantee:
-          # session cookies can never reach these routes (DESIGN §6.2).
+          # session cookies can never reach these routes (docs/ENGINEERING.md).
           - PathPattern: /mcp
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only

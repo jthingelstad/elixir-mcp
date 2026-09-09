@@ -1,5 +1,5 @@
 /**
- * OAuth 2.1 HTTP shell on the MCP door — DESIGN §6.2. The /authorize
+ * OAuth 2.1 HTTP shell on the MCP door. The /authorize
  * pages reuse the SAME magic-code core as the web sign-in (one
  * credential-issuance core, two shells): pending state rides
  * magic_login purpose='oauth'. Two steps, not librarian's three — the
