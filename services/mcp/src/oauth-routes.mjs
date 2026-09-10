@@ -55,17 +55,37 @@ const esc = (v) =>
       ],
   );
 
+/**
+ * The door's own page shell.
+ *
+ * These hex values are literals rather than the design tokens, and have
+ * to be: this page is served by the MCP door under a CSP of
+ * `default-src 'none'; style-src 'unsafe-inline'`, so it can load no
+ * stylesheet at all — not even our own. They are the same values as
+ * packages/design/styles.css and must be changed together.
+ *
+ * It was still carrying a palette (#10131c ink on #171c2a) that matched
+ * nothing else in the product, which on the one screen where somebody
+ * hands over access is the wrong thing to look unfamiliar.
+ */
 function page(title, body) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 <style>
-body{background:#10131c;color:#e8e4d8;font:16px/1.5 -apple-system,system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0}
-main{max-width:22rem;padding:2rem;background:#171c2a;border:1px solid #2c3450;border-radius:12px}
-h1{font-size:1.2rem;color:#f5c944;margin:0 0 .75rem}
-input{width:100%;box-sizing:border-box;padding:.6rem;margin:.5rem 0;background:#10131c;color:#e8e4d8;border:1px solid #2c3450;border-radius:8px;font-size:1rem}
-button{width:100%;padding:.65rem;margin-top:.5rem;background:#f5c944;color:#10131c;border:0;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
-p{font-size:.9rem;color:#a9a493}small{display:block;margin-top:1rem;font-size:.72rem;color:#6d6a5e}
-ul{padding-left:1.25rem;color:#a9a493}li{margin:.45rem 0}li strong{color:#e8e4d8}
+body{background:radial-gradient(60rem 30rem at 50% -12rem,#191140,#0c0920) #0c0920;color:#faf8ff;font:15px/1.5 Inter,system-ui,-apple-system,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;-webkit-font-smoothing:antialiased}
+main{max-width:27rem;box-sizing:border-box;padding:26px;margin:24px;background:#150f36;border:1px solid #3a3175;border-radius:16px;box-shadow:0 24px 70px rgba(4,2,12,.5)}
+h1{font-size:1.4rem;line-height:1.15;font-weight:600;color:#faf8ff;margin:0 0 .5rem}
+input{width:100%;box-sizing:border-box;padding:12px 13px;margin:.5rem 0 .875rem;background:#120d2e;color:#faf8ff;border:1px solid #4c4193;border-radius:10px;font-size:15px}
+input[type=checkbox]{width:16px;height:16px;margin:2px 9px 0 0;accent-color:#8b5cf6}
+button{width:100%;padding:13px;margin-top:.5rem;background:linear-gradient(180deg,#ffe99a,#f5c84c);color:#2a1500;border:0;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer}
+p{font-size:13.5px;line-height:1.6;color:#bdb4e2;text-wrap:pretty}
+a{color:#b49dfb}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#b49dfb}
+small{display:block;margin-top:1.25rem;padding-top:14px;border-top:1px solid #2d2560;font-size:11.5px;line-height:1.5;color:#a29ad0}
+ul{list-style:none;padding:0;margin:.5rem 0;color:#bdb4e2}
+li{margin:0;padding:10px 0;border-bottom:1px solid #241d4e;font-size:13.5px}
+li strong{color:#faf8ff;font-weight:600}
+label{display:flex;align-items:flex-start;cursor:pointer}
 </style></head><body><main>${body}
 <small>This material is unofficial and is not endorsed by Supercell. For more information see Supercell&rsquo;s Fan Content Policy: www.supercell.com/fan-content-policy.</small>
 </main></body></html>`;

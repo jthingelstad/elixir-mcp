@@ -128,6 +128,13 @@ export function Feedback({ navigate }) {
   return (
     <div className="cols">
       <div className="cols__main">
+        <div style={{ marginBottom: "18px" }}>
+          <h1 className="page__title">Feedback</h1>
+          <p className="page__lede">
+            What you have said and what the maintainer answered. Every item gets
+            a response.
+          </p>
+        </div>
         <section className="panel">
           <div className="panel__head">
             <span className="panel-title">Your feedback</span>
@@ -243,21 +250,18 @@ export function Feedback({ navigate }) {
             ) : (
               <>
                 <select
+                  className="select"
+                  aria-label="Category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
-                  {[
-                    "general",
-                    "bug",
-                    "data_quality",
-                    "feature",
-                    "praise",
-                    "other",
-                  ].map((c) => (
-                    <option key={c} value={c}>
-                      {c.replaceAll("_", " ")}
-                    </option>
-                  ))}
+                  {["general", "bug", "data_quality", "feature", "praise"].map(
+                    (c) => (
+                      <option key={c} value={c}>
+                        {c.replaceAll("_", " ")}
+                      </option>
+                    ),
+                  )}
                 </select>
                 <textarea
                   rows={5}

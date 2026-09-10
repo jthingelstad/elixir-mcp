@@ -190,13 +190,50 @@ function CopyLink() {
   );
 }
 
+/**
+ * The four kinds the rail offers under Explore. They are ways INTO the
+ * lookup, not record pages: each one says what it can answer and how to
+ * ask, because "Players" with an empty search box tells a reader
+ * nothing about what is in the corpus.
+ */
+const BROWSE = {
+  players: {
+    title: "Players",
+    lede: "Anyone we have recorded — yours, your clanmates, and every opponent they have met.",
+    hint: "Paste a player tag, or type a name or one of your nicknames.",
+    placeholder: "#20JJJ2CCRU",
+  },
+  clans: {
+    title: "Clans & wars",
+    lede: "A clan's roster as we last saw it, and its river races week by week.",
+    hint: "Paste a clan tag. War weeks are Season and Week, never a calendar date.",
+    placeholder: "#J2RGCRVG",
+  },
+  meta: {
+    title: "Meta & decks",
+    lede: "Decks by the hash that identifies them, and how they have actually done.",
+    hint: "Paste a deck hash, or open one from a battle.",
+    placeholder: "deck:8f21c4…",
+  },
+  weeks: {
+    title: "War weeks",
+    lede: "One river race, its participants and what each of them contributed.",
+    hint: "Type a week as S135 W3, or open one from a clan.",
+    placeholder: "S135 W3",
+  },
+};
+
 export function Explore({ me, navigate, path }) {
-  // /explore | /explore/:kind/:id(+)
+  // /explore | /explore/<browse> | /explore/:kind/:id(+)
   const segs = path.split("/").filter(Boolean).slice(1); // after 'explore'
   const kind = segs[0] ?? null;
   const id = segs.slice(1).join("/") ?? null;
 
   if (!kind) return <Lookup me={me} navigate={navigate} />;
+  // A rail sub-page: the lookup, scoped and titled. Without this the
+  // rail's four kinds fell through to a record page with no id.
+  if (BROWSE[kind] && !id)
+    return <Lookup me={me} navigate={navigate} browse={BROWSE[kind]} />;
   return (
     <RecordPage key={path} me={me} navigate={navigate} kind={kind} rawId={id} />
   );
@@ -204,7 +241,7 @@ export function Explore({ me, navigate, path }) {
 
 /* ── Lookup ──────────────────────────────────────────────── */
 
-function Lookup({ me, navigate }) {
+function Lookup({ me, navigate, browse }) {
   const [q, setQ] = useState("");
   const [miss, setMiss] = useState(null);
   const [matches, setMatches] = useState(null);
@@ -305,15 +342,12 @@ function Lookup({ me, navigate }) {
 
   return (
     <>
-      <div style={{ maxWidth: "620px", padding: "32px 0 8px" }}>
-        <div className="hero-title" style={{ fontSize: "30px" }}>
-          Do we have it?
-        </div>
-        <p className="record__sub" style={{ fontSize: "14px" }}>
-          Paste a player tag, a clan tag, a deck hash, an ISO week — or just
-          type a name or one of your nicknames. Elixir answers what it has
-          recorded, then lets you click straight through the records — so when
-          your agent says something surprising, you can go check.
+      <div style={{ maxWidth: "620px", padding: "8px 0" }}>
+        <h1 className="page__title">{browse?.title ?? "Do we have it?"}</h1>
+        <p className="page__lede">
+          {browse
+            ? `${browse.lede} ${browse.hint}`
+            : "Paste a player tag, a clan tag, a deck hash, or a war week — or just type a name or one of your nicknames. Elixir answers what it has recorded, then lets you click straight through the records, so when your agent says something surprising you can go and check."}
         </p>
         <form
           style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -324,7 +358,8 @@ function Lookup({ me, navigate }) {
         >
           <input
             className="mono"
-            placeholder="#20JJJ2CCRU"
+            aria-label="Look up a record"
+            placeholder={browse?.placeholder ?? "#20JJJ2CCRU"}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             style={{
@@ -664,8 +699,10 @@ function RecordPage({ me, navigate, kind, rawId }) {
       </div>
 
       <div className="record__head">
-        <span className="kind-chip">{view.kindLabel}</span>
-        <h1 className="page-title" style={{ fontSize: "24px" }}>
+        <span className="label" style={{ flexBasis: "100%" }}>
+          {view.kindLabel} record
+        </span>
+        <h1 className="page__title" style={{ fontSize: "28px" }}>
           {view.title}
         </h1>
         {view.tag && <span className="tag">{view.tag}</span>}
@@ -846,16 +883,28 @@ function RecordPage({ me, navigate, kind, rawId }) {
         </div>
       )}
 
-      <section className="panel" style={{ marginTop: "20px" }}>
-        <div className="toolbar">
-          <code>{callString(res.tool, res.args)}</code>
-          <button className="btn--text" onClick={() => setRaw(!raw)}>
-            {raw ? "hide raw" : "raw JSON"}
-          </button>
-          <CopyLink />
+      {/* Every record shows the call that produced it. The parity claim
+          is the point: this is the same call your agent makes, with your
+          entitlements applied, and the raw body is what it receives —
+          so nothing on the page can be something the contract does not
+          return. */}
+      <section className="code" style={{ marginTop: "20px" }}>
+        <div className="code__head">
+          <span className="label">tool call</span>
+          <code style={{ color: "var(--ink-code)" }}>
+            {callString(res.tool, res.args)}
+          </code>
+          <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+            <button className="btn btn--sm" onClick={() => setRaw(!raw)}>
+              {raw ? "Hide raw" : "Raw response"}
+            </button>
+            <CopyLink />
+          </span>
         </div>
-        {raw && <pre className="raw">{JSON.stringify(res.body, null, 1)}</pre>}
-        <div className="panel__note">
+        {raw && (
+          <pre className="code__body">{JSON.stringify(res.body, null, 1)}</pre>
+        )}
+        <div className="panel__foot">
           One tool call produced this page — the same one your agent makes, with
           your entitlements applied.
         </div>

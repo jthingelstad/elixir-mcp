@@ -95,7 +95,21 @@ export function makeHandler({
 
   async function mintSessionResponse(db, hash) {
     const account = await approvedAccount(db, hash);
-    if (!account) return json(400, { error: "invalid_or_expired" });
+    if (!account) {
+      // A VALID code for an account that is not approved yet is not the
+      // same failure as a bad code, and telling the two apart is safe:
+      // holding the code already proves control of the address. Saying
+      // "expired or already used" to somebody whose request is simply
+      // waiting sent them round the loop again, and the loop could not
+      // ever work.
+      const { rows } = await db.query(
+        `select status from account where email_hash = $1`,
+        [hash],
+      );
+      if (rows[0] && rows[0].status !== "approved")
+        return json(403, { error: "not_approved", status: rows[0].status });
+      return json(400, { error: "invalid_or_expired" });
+    }
     const minted = await createSession(db, {
       secret,
       accountId: account.account_id,

@@ -1,28 +1,72 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Icon } from "../components/Icon.jsx";
 import { takeLoginToken } from "../url-hygiene.js";
 
 /**
- * Sign in.
+ * Sign in — one card, five states.
  *
- * This page was assembled out of raw elements while the rest of the app grew
- * a design system around it, and it showed: the form sat directly inside the
- * panel with no `panel__body`, so the text ran into the panel's edge; the
- * submit buttons carried no class at all and rendered as the browser's own
- * grey chrome; and the beta note was a `panel__note` with its padding
- * cancelled by an inline style, which is the shape of a component being
- * fought rather than used.
+ * Email, then code, and two escapes from the code step that this page
+ * spent a long time without: a typo in the address left you waiting for
+ * mail that was never coming, and a spent code had no way back.
  *
- * It now uses the same primitives as the request-access form it sits
- * opposite: labelled fields in a spaced column, the standard primary action,
- * and the beta note in the panel foot where notes go. NOT gold: gold is the
- * nav's entry affordance and the two brand moments, not every submit.
+ * The other two states exist because both used to render as "expired or
+ * already used", which is only one of them. A LINK that is expired says
+ * so and says nothing is wrong with the account. An account whose access
+ * request is still WAITING now gets its own answer, because sending
+ * somebody round a loop that cannot work is worse than telling them the
+ * gate is deliberate.
  */
-const column = { display: "flex", flexDirection: "column", gap: "10px" };
+const card = {
+  maxWidth: "440px",
+  margin: "40px auto 0",
+  border: "1px solid var(--line)",
+  borderRadius: "16px",
+  background: "#150f36",
+  padding: "26px",
+  boxShadow: "var(--shadow-modal)",
+};
+const field = {
+  width: "100%",
+  boxSizing: "border-box",
+  background: "var(--ground-sunken)",
+  border: "1px solid var(--line-strong)",
+  borderRadius: "10px",
+  color: "var(--ink)",
+  fontSize: "15px",
+  padding: "12px 13px",
+  marginBottom: "14px",
+};
+const primary = {
+  width: "100%",
+  justifyContent: "center",
+  padding: "13px",
+  borderRadius: "11px",
+  fontSize: "15px",
+};
+
+function Eyebrow({ icon, tone, children }) {
+  return (
+    <span
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "9px",
+        color: `var(--${tone})`,
+        fontSize: "13px",
+        fontWeight: 600,
+        marginBottom: "12px",
+      }}
+    >
+      <Icon name={icon} size={16} />
+      {children}
+    </span>
+  );
+}
 
 export function SignIn({ onAuthed }) {
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState("email"); // email | code | redeeming
+  const [step, setStep] = useState("email"); // email | code | redeeming | expired | pending
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,10 +80,7 @@ export function SignIn({ onAuthed }) {
     setStep("redeeming");
     api.redeemToken(token).then((res) => {
       if (res.ok) onAuthed();
-      else {
-        setError("That link is expired or already used — request a fresh one.");
-        setStep("email");
-      }
+      else setStep(res.data?.error === "not_approved" ? "pending" : "expired");
     });
   }, [onAuthed]);
 
@@ -52,129 +93,226 @@ export function SignIn({ onAuthed }) {
     setStep("code");
   }
 
-  return (
-    <div className="panel" style={{ maxWidth: "420px", margin: "48px auto 0" }}>
-      <div className="panel__head">
-        <span className="panel-title">Sign in</span>
+  if (step === "redeeming")
+    return (
+      <div style={card}>
+        <p style={{ margin: 0, color: "var(--ink-dim)" }}>Signing you in…</p>
       </div>
+    );
 
-      {step === "redeeming" && (
-        <div className="panel__body">
-          <p className="notice" style={{ margin: 0 }}>
-            <span>Signing you in…</span>
-          </p>
+  if (step === "expired")
+    return (
+      <div style={{ ...card, borderColor: "var(--warn-edge)" }}>
+        <Eyebrow icon="circle-dashed" tone="warn">
+          link expired
+        </Eyebrow>
+        <h1 className="page__title" style={{ fontSize: "26px" }}>
+          That link is expired or already used
+        </h1>
+        <p
+          style={{
+            fontSize: "14.5px",
+            lineHeight: 1.6,
+            color: "var(--ink-dim)",
+            margin: "8px 0 20px",
+            textWrap: "pretty",
+          }}
+        >
+          Links are single-use, and they do not last long. Nothing is wrong with
+          your account.
+        </p>
+        <button
+          className="btn btn--primary"
+          style={primary}
+          onClick={() => {
+            setError("");
+            setStep("email");
+          }}
+        >
+          Start again
+        </button>
+      </div>
+    );
+
+  if (step === "pending")
+    return (
+      <div style={card}>
+        <Eyebrow icon="circle-dashed" tone="accent-bright">
+          waiting on us
+        </Eyebrow>
+        <h1 className="page__title" style={{ fontSize: "26px" }}>
+          Your request is in
+        </h1>
+        <p
+          style={{
+            fontSize: "14.5px",
+            lineHeight: 1.6,
+            color: "var(--ink-dim)",
+            margin: "8px 0 18px",
+            textWrap: "pretty",
+          }}
+        >
+          Access is granted by hand while the corpus grows. You will get an
+          email when your account opens — no need to check back.
+        </p>
+        <div
+          style={{
+            borderTop: "1px solid var(--line-soft)",
+            paddingTop: "16px",
+            fontSize: "13.5px",
+            color: "var(--ink-body)",
+          }}
+        >
+          Meanwhile, the corpus is public:{" "}
+          <a href="/data/dashboard">the data</a> and{" "}
+          <a href="/docs">the docs</a> need no account.
         </div>
-      )}
+      </div>
+    );
 
-      {step === "email" && (
-        <>
-          <div className="panel__body" style={column}>
-            <div style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-              We&rsquo;ll email a sign-in link and a 6-digit code to your
-              approved address.
-            </div>
-            <form onSubmit={sendEmail} style={column}>
-              <label>
-                <span className="field-label">Email</span>
-                <input
-                  type="email"
-                  required
-                  autoFocus
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </label>
-              {error && <p className="field-error">{error}</p>}
-              <div>
-                <button className="btn" type="submit" disabled={busy}>
-                  {busy ? "Sending…" : "Send sign-in email"}
-                </button>
-              </div>
-            </form>
-          </div>
-          {/* Said here rather than only on the request form, because this is
-              where somebody arrives believing they already have an account —
-              and the honest answer to "why can't I sign in" is usually that
-              the gate is deliberate, not broken. In the panel foot, which is
-              what panel__note is for. */}
-          <p className="panel__note" style={{ margin: 0 }}>
-            Elixir MCP is in{" "}
-            <strong style={{ color: "var(--ink)" }}>beta</strong> and accounts
-            are approved by hand. New people are admitted on what they can bring
-            to the beta &mdash; playing actively, running a collector,
-            connecting an agent and telling us where it struggles.{" "}
-            <a href="/#request">Request access</a> if you don&rsquo;t have an
-            account yet.
-          </p>
-        </>
-      )}
+  if (step === "code")
+    return (
+      <div style={card}>
+        <h1 className="page__title" style={{ fontSize: "28px" }}>
+          Check your email
+        </h1>
+        <p
+          style={{
+            fontSize: "14.5px",
+            lineHeight: 1.6,
+            color: "var(--ink-dim)",
+            margin: "8px 0 20px",
+            textWrap: "pretty",
+          }}
+        >
+          If your account is approved, one is on its way to{" "}
+          <span style={{ color: "var(--ink)" }}>{email}</span>. Click the link,
+          or type the code here.
+        </p>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setError("");
+            setBusy(true);
+            const res = await api.redeemCode(email, code);
+            setBusy(false);
+            if (res.ok) return onAuthed();
+            if (res.data?.error === "not_approved") return setStep("pending");
+            setError("Wrong or expired code.");
+          }}
+        >
+          <label className="field-label" htmlFor="signin-code">
+            6-digit code
+          </label>
+          <input
+            id="signin-code"
+            className="mono"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="000000"
+            required
+            autoFocus
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            style={{
+              ...field,
+              fontSize: "24px",
+              letterSpacing: ".34em",
+              textAlign: "center",
+              padding: "14px 13px",
+            }}
+          />
+          {error && <p className="field-error">{error}</p>}
+          <button
+            className="btn btn--primary"
+            type="submit"
+            disabled={busy}
+            style={primary}
+          >
+            {busy ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+        {/* Both dead ends this page used to have. */}
+        <div
+          style={{
+            display: "flex",
+            gap: "14px",
+            flexWrap: "wrap",
+            marginTop: "16px",
+            fontSize: "13px",
+          }}
+        >
+          <a
+            onClick={() => {
+              setError("");
+              setCode("");
+              setStep("email");
+            }}
+          >
+            Use a different address
+          </a>
+          <a onClick={sendEmail}>Send another email</a>
+        </div>
+        <p className="footnote" style={{ margin: "14px 0 0" }}>
+          Five tries, then the code is spent. The link expires either way.
+        </p>
+      </div>
+    );
 
-      {step === "code" && (
-        <>
-          <div className="panel__body" style={column}>
-            {/* .notice is a flex row with a rule down its left edge, so every
-                ELEMENT child becomes a column of its own -- an inline <strong>
-                here split the sentence into three. One child, always. */}
-            <p className="notice" style={{ margin: 0 }}>
-              <span>
-                If your account is approved, an email is on its way to{" "}
-                <strong>{email}</strong>. Click the link, or enter the code
-                here.
-              </span>
-            </p>
-            <form
-              style={column}
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setError("");
-                setBusy(true);
-                const res = await api.redeemCode(email, code);
-                setBusy(false);
-                if (res.ok) onAuthed();
-                else setError("Wrong or expired code.");
-              }}
-            >
-              <label>
-                <span className="field-label">6-digit code</span>
-                <input
-                  className="mono"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  placeholder="123456"
-                  required
-                  autoFocus
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
-              </label>
-              {error && <p className="field-error">{error}</p>}
-              <div>
-                <button className="btn" type="submit" disabled={busy}>
-                  {busy ? "Signing in…" : "Sign in"}
-                </button>
-              </div>
-            </form>
-          </div>
-          {/* Both dead ends this page used to have: a typo in the address left
-              you waiting for mail that was never coming, and a code that
-              expired had no way back. */}
-          <p className="panel__note" style={{ margin: 0 }}>
-            <a
-              onClick={() => {
-                setError("");
-                setCode("");
-                setStep("email");
-              }}
-            >
-              Use a different address
-            </a>
-            {" · "}
-            <a onClick={sendEmail}>Send another email</a>
-          </p>
-        </>
-      )}
+  return (
+    <div style={card}>
+      <h1 className="page__title" style={{ fontSize: "28px" }}>
+        Sign in
+      </h1>
+      <p
+        style={{
+          fontSize: "14.5px",
+          lineHeight: 1.6,
+          color: "var(--ink-dim)",
+          margin: "8px 0 20px",
+          textWrap: "pretty",
+        }}
+      >
+        We email you a link and a six-digit code. No password to keep.
+      </p>
+      <form onSubmit={sendEmail}>
+        <label className="field-label" htmlFor="signin-email">
+          Email
+        </label>
+        <input
+          id="signin-email"
+          type="email"
+          required
+          autoFocus
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={field}
+        />
+        {error && <p className="field-error">{error}</p>}
+        <button
+          className="btn btn--primary"
+          type="submit"
+          disabled={busy}
+          style={primary}
+        >
+          {busy ? "Sending…" : "Send sign-in email"}
+        </button>
+      </form>
+      {/* Said here rather than only on the request form, because this is
+          where somebody arrives believing they already have an account —
+          and the honest answer to "why can't I sign in" is usually that
+          the gate is deliberate, not broken. */}
+      <p
+        className="footnote"
+        style={{ margin: "16px 0 0", textWrap: "pretty" }}
+      >
+        No account yet? <a href="/#request">Request access</a> — it is granted
+        by hand while the corpus grows, on what you can bring to the beta:
+        playing actively, running a collector, connecting an agent and telling
+        us where it struggles.
+      </p>
     </div>
   );
 }
