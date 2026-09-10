@@ -118,6 +118,11 @@ export default function (eleventyConfig) {
     "pickGroup",
     (groups, name) => (groups ?? []).find((g) => g.group === name) ?? null,
   );
+  /** The same, for the generated tool families. */
+  eleventyConfig.addFilter(
+    "pickToolGroup",
+    (groups, name) => (groups ?? []).find((g) => g.group === name) ?? null,
+  );
 
   /**
    * Daily battle counts -> a cumulative monthly curve, as SVG paths.

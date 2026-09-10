@@ -1,0 +1,20 @@
+---
+layout: doc.njk
+slug: tools-players
+title: "Tools: Players"
+navTitle: "Players"
+order: 307
+section: reference
+toolFamily: "Players"
+description: "The Players tools your agent sees through Elixir MCP: what each one answers, what it takes, and which capability it needs."
+permalink: /docs/tools/players/index.html
+canonical: /docs/tools/players
+---
+<p class="page-head__note"><a href="/docs/tools">‹ All tools</a></p>
+
+<h1>Players</h1>
+
+<p>{{ (tools.groups | pickToolGroup("Players")).tools | length }} of the {{ tools.count }} tools in the registry. Generated from what <code>tools/list</code> returns, so this is exactly what your agent sees.</p>
+
+{%- set group = tools.groups | pickToolGroup("Players") %}
+{% include "tool-group.njk" %}

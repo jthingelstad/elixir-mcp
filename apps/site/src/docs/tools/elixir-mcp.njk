@@ -1,0 +1,20 @@
+---
+layout: doc.njk
+slug: tools-elixir-mcp
+title: "Tools: Elixir MCP"
+navTitle: "Elixir MCP"
+order: 301
+section: reference
+toolFamily: "Elixir MCP"
+description: "The Elixir MCP tools your agent sees through Elixir MCP: what each one answers, what it takes, and which capability it needs."
+permalink: /docs/tools/elixir-mcp/index.html
+canonical: /docs/tools/elixir-mcp
+---
+<p class="page-head__note"><a href="/docs/tools">‹ All tools</a></p>
+
+<h1>Elixir MCP</h1>
+
+<p>{{ (tools.groups | pickToolGroup("Elixir MCP")).tools | length }} of the {{ tools.count }} tools in the registry. Generated from what <code>tools/list</code> returns, so this is exactly what your agent sees.</p>
+
+{%- set group = tools.groups | pickToolGroup("Elixir MCP") %}
+{% include "tool-group.njk" %}

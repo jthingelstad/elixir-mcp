@@ -1857,6 +1857,14 @@ input[aria-invalid="true"] {
   font-size: 13px;
   color: var(--ink-faint);
 }
+/* Third level: a tool family under Tools. Indented rather than given a
+   heading of its own, because it is one page's children, not a new
+   section of the documentation. */
+.docs__toc-child {
+  padding-left: 18px;
+  font-size: 12.5px;
+}
+
 .docs__toc a[aria-current] {
   background: var(--panel-raised);
   color: var(--ink);

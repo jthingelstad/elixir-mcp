@@ -8,7 +8,17 @@ navActive: docs
     {%- for s in collections.docSections %}
     <span class="docs__toc-section">{{ s.label }}</span>
     {%- for d in s.pages %}
+    {#- The tool families are children of Tools, not siblings of it:
+        a third level, shown only while you are inside that family, so
+        the rail does not carry forty-four tools' worth of structure on
+        every page of the documentation. -#}
+    {%- if d.data.toolFamily %}
+      {%- if slug and ("tools" == slug or "tools-" in slug) %}
+    <a class="docs__toc-child" href="{{ d | pageUrl }}"{% if d.data.slug == slug %} aria-current="page"{% endif %}>{{ d.data.navTitle or d.data.title }}</a>
+      {%- endif %}
+    {%- else %}
     <a href="{{ d | pageUrl }}"{% if d.data.slug == slug %} aria-current="page"{% endif %}>{{ d.data.navTitle or d.data.title }}</a>
+    {%- endif %}
     {%- endfor %}
     {%- endfor %}
   </nav>

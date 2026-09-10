@@ -1,0 +1,32 @@
+{#-
+  One tool group. Shared by every page under /docs/tools so a tool is
+  described in exactly one place, whichever family it belongs to.
+-#}
+{%- for t in group.tools %}
+<h3 id="{{ t.name }}">{{ t.title }} <code>{{ t.name }}</code></h3>
+<p>{{ t.description | esc }}</p>
+<p class="sample">
+  {%- if t.readOnly %}Read-only{% else %}Changes state{% endif %} ·
+  requires <code>{{ t.scope }}</code>
+  {%- if t.openWorld %} · reaches the live Clash Royale API, outside the recorded corpus{% endif %}
+</p>
+{%- if t.args | length %}
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Argument</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+    <tbody>
+      {%- for a in t.args %}
+      <tr>
+        <td><code>{{ a.name }}</code></td>
+        <td class="mono">{{ a.type }}</td>
+        <td>{% if a.required %}yes{% else %}<span class="nil">no</span>{% endif %}</td>
+        <td>{{ a.description | esc }}{% if a.enum %} <span class="mono">({{ a.enum | join(" · ") }})</span>{% endif %}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</div>
+{%- else %}
+<p class="sample">Takes no arguments.</p>
+{%- endif %}
+{%- endfor %}

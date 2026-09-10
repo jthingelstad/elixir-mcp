@@ -298,6 +298,7 @@ export const DOC_LINKS = {
     "Collections",
     [
       ["How recording works", "/docs/recording"],
+      ["collections_edit", "/docs/tools/collections"],
       ["Tiers & slots", "/docs/roles"],
     ],
   ],
@@ -313,7 +314,7 @@ export const DOC_LINKS = {
     "Notifications",
     [
       ["Events & the feed", "/docs/events"],
-      ["Tool reference", "/docs/tools"],
+      ["elixir_events", "/docs/tools/elixir-mcp"],
     ],
   ],
   "activity:requests": [

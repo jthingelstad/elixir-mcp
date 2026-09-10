@@ -1,0 +1,20 @@
+---
+layout: doc.njk
+slug: tools-war
+title: "Tools: War"
+navTitle: "War"
+order: 308
+section: reference
+toolFamily: "War"
+description: "The War tools your agent sees through Elixir MCP: what each one answers, what it takes, and which capability it needs."
+permalink: /docs/tools/war/index.html
+canonical: /docs/tools/war
+---
+<p class="page-head__note"><a href="/docs/tools">‹ All tools</a></p>
+
+<h1>War</h1>
+
+<p>{{ (tools.groups | pickToolGroup("War")).tools | length }} of the {{ tools.count }} tools in the registry. Generated from what <code>tools/list</code> returns, so this is exactly what your agent sees.</p>
+
+{%- set group = tools.groups | pickToolGroup("War") %}
+{% include "tool-group.njk" %}

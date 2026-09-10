@@ -1,0 +1,20 @@
+---
+layout: doc.njk
+slug: tools-clans
+title: "Tools: Clans"
+navTitle: "Clans"
+order: 305
+section: reference
+toolFamily: "Clans"
+description: "The Clans tools your agent sees through Elixir MCP: what each one answers, what it takes, and which capability it needs."
+permalink: /docs/tools/clans/index.html
+canonical: /docs/tools/clans
+---
+<p class="page-head__note"><a href="/docs/tools">‹ All tools</a></p>
+
+<h1>Clans</h1>
+
+<p>{{ (tools.groups | pickToolGroup("Clans")).tools | length }} of the {{ tools.count }} tools in the registry. Generated from what <code>tools/list</code> returns, so this is exactly what your agent sees.</p>
+
+{%- set group = tools.groups | pickToolGroup("Clans") %}
+{% include "tool-group.njk" %}

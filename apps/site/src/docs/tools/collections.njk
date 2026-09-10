@@ -1,0 +1,20 @@
+---
+layout: doc.njk
+slug: tools-collections
+title: "Tools: Collections"
+navTitle: "Collections"
+order: 302
+section: reference
+toolFamily: "Collections"
+description: "The Collections tools your agent sees through Elixir MCP: what each one answers, what it takes, and which capability it needs."
+permalink: /docs/tools/collections/index.html
+canonical: /docs/tools/collections
+---
+<p class="page-head__note"><a href="/docs/tools">‹ All tools</a></p>
+
+<h1>Collections</h1>
+
+<p>{{ (tools.groups | pickToolGroup("Collections")).tools | length }} of the {{ tools.count }} tools in the registry. Generated from what <code>tools/list</code> returns, so this is exactly what your agent sees.</p>
+
+{%- set group = tools.groups | pickToolGroup("Collections") %}
+{% include "tool-group.njk" %}

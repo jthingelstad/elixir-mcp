@@ -55,8 +55,19 @@ export default function tools() {
     };
   });
 
+  // A slug per group, so the reference can be a family of small pages
+  // rather than one wall of forty-four tools. Derived from the group's
+  // own name: the registry is the source of truth for the taxonomy, and
+  // a hand-kept list of families beside it would be a second one.
+  const slugOf = (group) =>
+    group
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
   const groups = GROUP_ORDER.map((group) => ({
     group,
+    slug: slugOf(group),
     tools: all.filter((t) => t.group === group),
   })).filter((g) => g.tools.length > 0);
 

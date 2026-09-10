@@ -43,34 +43,14 @@ because that is what their original consent page promised. Owner-issued service
 tokens are different: they are full-capability administrative credentials for
 trusted headless integrations, shown once and revocable from the console.</p>
 
-{% for g in tools.groups %}
-<h2 id="{{ g.group | lower | replace(' ', '-') }}">{{ g.group }}</h2>
-{%- for t in g.tools %}
-<h3 id="{{ t.name }}">{{ t.title }} <code>{{ t.name }}</code></h3>
-<p>{{ t.description | esc }}</p>
-<p class="sample">
-  {%- if t.readOnly %}Read-only{% else %}Changes state{% endif %} ·
-  requires <code>{{ t.scope }}</code>
-  {%- if t.openWorld %} · reaches the live Clash Royale API, outside the recorded corpus{% endif %}
-</p>
-{%- if t.args | length %}
-<div class="tablewrap">
-  <table>
-    <thead><tr><th>Argument</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
-    <tbody>
-      {%- for a in t.args %}
-      <tr>
-        <td><code>{{ a.name }}</code></td>
-        <td class="mono">{{ a.type }}</td>
-        <td>{% if a.required %}yes{% else %}<span class="nil">no</span>{% endif %}</td>
-        <td>{{ a.description | esc }}{% if a.enum %} <span class="mono">({{ a.enum | join(" · ") }})</span>{% endif %}</td>
-      </tr>
-      {%- endfor %}
-    </tbody>
-  </table>
-</div>
-{%- else %}
-<p class="sample">Takes no arguments.</p>
-{%- endif %}
-{%- endfor %}
-{% endfor %}
+<h2>The families</h2>
+
+<p>Forty-four tools on one page is a wall, so each group is its own page.
+Every tool appears on exactly one of them.</p>
+
+<dl class="outline">
+  {%- for g in tools.groups %}
+  <dt><a href="/docs/tools/{{ g.slug }}">{{ g.group }}</a></dt>
+  <dd>{{ g.tools | length }} tool{% if g.tools | length != 1 %}s{% endif %} — {% for t in g.tools %}<code>{{ t.name }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+  {%- endfor %}
+</dl>
