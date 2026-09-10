@@ -2332,8 +2332,7 @@ input[aria-invalid="true"] {
     opacity: 0;
   }
 }
-.transcript__typing .transcript__text::after {
-  content: "▍";
+.transcript__caret {
   margin-left: 2px;
   color: var(--accent-bright);
   animation: caret 1s step-end infinite;

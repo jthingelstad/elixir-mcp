@@ -74,19 +74,48 @@ function run(root) {
       nodes.push({ node: n, full: n.textContent });
     for (const { node } of nodes) node.textContent = "";
     wrap._nodes = nodes;
+    const caret = document.createElement("span");
+    caret.className = "transcript__caret";
+    caret.textContent = "▍";
+    caret.setAttribute("aria-hidden", "true");
+    wrap._caret = caret;
     wrap.appendChild(text);
     stage.appendChild(wrap);
     return wrap;
   }
 
-  /** Show the first `count` characters of a bubble, across its nodes. */
-  function reveal(wrap, count) {
+  /**
+   * Show the first `count` characters of a bubble, across its nodes.
+   *
+   * An element stays hidden until it has words in it: a list item with
+   * no text is still a bullet, a quote with no text is still a bar, and
+   * an empty inline code span is still a box - all of which showed up a
+   * beat before the text they belong to (Jamie, 2026-09-10). The caret
+   * rides the node being typed rather than the end of the bubble.
+   */
+  function reveal(wrap, count, done) {
     let left = count;
+    let at = null;
     for (const { node, full } of wrap._nodes) {
       const take = Math.max(0, Math.min(full.length, left));
       node.textContent = full.slice(0, take);
+      if (take > 0 && take < full.length) at = node;
+      else if (take > 0 && left > 0 && !at) at = null;
       left -= take;
     }
+    if (!at) {
+      // Between nodes: the last node that has any text carries the caret.
+      const last = [...wrap._nodes].reverse().find((n) => n.node.textContent);
+      at = last?.node ?? null;
+    }
+    for (const el of wrap.querySelectorAll("*")) {
+      if (el === wrap._caret) continue;
+      el.style.display = el.textContent.trim().length ? "" : "none";
+    }
+    const caret = wrap._caret;
+    if (done) caret.remove();
+    else if (at) at.parentNode.insertBefore(caret, at.nextSibling);
+    else wrap.querySelector(".transcript__text").appendChild(caret);
   }
 
   let current = null;
@@ -150,8 +179,7 @@ function run(root) {
       ch = 0;
     }
     ch = Math.min(line.length, ch + (SPEED[line.role] ?? 2));
-    reveal(current, ch);
-    current.classList.toggle("transcript__typing", ch < line.length);
+    reveal(current, ch, ch >= line.length);
     if (ch >= line.length) {
       current = null;
       at += 1;
