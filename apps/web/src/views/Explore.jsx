@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
+import { tagPath, tagFromPath } from "../lib/tag-url.js";
 
 /**
  * Explore — the record browser (design handoff 2026-09-05). Not a
@@ -23,8 +24,9 @@ const WEEK_RE = /^s?\s*(\d{1,4})\s*[-·]?\s*w\s*(\d{1,2})$/i;
 function normTag(q) {
   return "#" + q.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0");
 }
-const encTag = (t) => encodeURIComponent(t.replace(/^#/, ""));
-const decTag = (t) => "#" + decodeURIComponent(t).replace(/^#/, "");
+// Tag <-> URL is one seam for the whole app now (lib/tag-url.js).
+const encTag = tagPath;
+const decTag = tagFromPath;
 
 function Freshness({ meta, derived = false }) {
   // A deck is computed from recorded battles; it has no poll of its own,

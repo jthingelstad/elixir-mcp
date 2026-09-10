@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
+import { tagPath } from "../../lib/tag-url.js";
 import { Icon } from "../../components/Icon.jsx";
 import { ago, secsSince } from "../../lib/time.js";
 
@@ -33,6 +34,8 @@ function freshness(ts, now) {
 
 export function Tracking({ me, refresh, navigate }) {
   const [clans, setClans] = useState(null);
+  const [homeBusy, setHomeBusy] = useState(false);
+  const [homeErr, setHomeErr] = useState("");
   const [filter, setFilter] = useState("all");
   const [tag, setTag] = useState("");
   const [tagErr, setTagErr] = useState("");
@@ -237,9 +240,7 @@ export function Tracking({ me, refresh, navigate }) {
                       <a
                         style={{ fontWeight: 600, fontSize: "14px" }}
                         onClick={() =>
-                          navigate(
-                            `/account/tracking/${encodeURIComponent(r.tag)}`,
-                          )
+                          navigate(`/account/tracking/${tagPath(r.tag)}`)
                         }
                       >
                         {r.name}
@@ -250,7 +251,7 @@ export function Tracking({ me, refresh, navigate }) {
                       style={{ display: "inline-block", marginTop: "3px" }}
                       onClick={() =>
                         navigate(
-                          `/explore/${r.kind === "clan" ? "clan" : "player"}/${encodeURIComponent(r.tag)}`,
+                          `/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`,
                         )
                       }
                     >
@@ -286,9 +287,7 @@ export function Tracking({ me, refresh, navigate }) {
                     <button
                       className="btn btn--sm"
                       onClick={() =>
-                        navigate(
-                          `/account/tracking/${encodeURIComponent(r.tag)}`,
-                        )
+                        navigate(`/account/tracking/${tagPath(r.tag)}`)
                       }
                     >
                       Manage
@@ -307,23 +306,55 @@ export function Tracking({ me, refresh, navigate }) {
         ) && (
           <div className="callout callout--info" style={{ marginTop: "18px" }}>
             <Icon name="radar" size={17} />
+            {/* This offered COMPREHENSIVE, which every tier below
+                supporter has no slots for, so the button posted, was
+                refused, and reported nothing — it read as a dead
+                control. Activity is the right default anyway: it is the
+                slot every account has, and it is what "follow my clan"
+                means. Comprehensive is an upgrade you choose knowing
+                what it costs. */}
             <span>
               <span style={{ color: "var(--gold)" }}>★</span>{" "}
               {clans.home_clan.name ?? clans.home_clan.clan_tag} is your
-              player&rsquo;s clan and is not tracked yet.{" "}
-              <button
-                className="btn btn--sm"
+              player&rsquo;s clan and{" "}
+              <a
                 onClick={async () => {
-                  await api.myClanAction({
+                  if (homeBusy) return;
+                  setHomeBusy(true);
+                  setHomeErr("");
+                  const res = await api.myClanAction({
                     action: "add",
                     clan_tag: clans.home_clan.clan_tag,
-                    scope: "comprehensive",
+                    scope: "activity",
                   });
+                  setHomeBusy(false);
+                  // The API's own message names the tier and the slot,
+                  // which is more use than anything this file could
+                  // guess — a refusal that says nothing is what made
+                  // the old button read as broken.
+                  if (!res.ok)
+                    return setHomeErr(
+                      res.data?.message ?? "That did not work. Try again.",
+                    );
                   loadClans();
                 }}
               >
-                Track it comprehensively
-              </button>
+                is not tracked yet, start tracking now!
+              </a>
+              <span
+                style={{
+                  display: "block",
+                  marginTop: "5px",
+                  fontSize: "13px",
+                  color: "var(--ink-dim)",
+                }}
+              >
+                Activity follows the clan itself — its roster, its members
+                coming and going, and its river races. Comprehensive also
+                records every member&rsquo;s battles, which is what builds the
+                clan a full history.
+              </span>
+              {homeErr && <p className="field-error">{homeErr}</p>}
             </span>
           </div>
         )}

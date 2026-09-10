@@ -31,6 +31,8 @@ export const api = {
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>
     request("POST", "/api/auth/code", { email, code }),
+  dismissRefusal: (body) =>
+    request("POST", "/api/me/connections/refusals/dismiss", body),
   signOut: () => request("POST", "/api/session/signout", {}),
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),

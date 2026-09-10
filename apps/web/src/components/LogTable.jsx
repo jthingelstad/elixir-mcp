@@ -57,8 +57,14 @@ export function LogTable({
   actions = null,
   /** Rendered between the title and the table: a form the action opens. */
   above = null,
+  /** Filters already applied when the table opens, keyed like `filters`.
+   *  A link can therefore ARRIVE filtered — Usage's busiest tools open
+   *  the requests for that one tool, which is the question the number
+   *  was making you ask. The selects still show it, so it can be
+   *  cleared like any other filter rather than being a hidden state. */
+  initialFilters = null,
 }) {
-  const [picked, setPicked] = useState({});
+  const [picked, setPicked] = useState(() => initialFilters ?? {});
   const [page, setPage] = useState(0);
 
   const shown = useMemo(() => {

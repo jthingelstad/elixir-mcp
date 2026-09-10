@@ -20,6 +20,15 @@ const BY_SUB = {
   events: "events",
 };
 
+/** Usage's busiest-tools links land here already filtered: the panel
+ *  says a tool ran 400 times, and the only next question is WHICH calls.
+ *  The query string is read once, at open — the filter is state after
+ *  that, so clearing it works like any other. */
+function initialToolFilter() {
+  const tool = new URLSearchParams(window.location.search).get("tool");
+  return tool ? { tool } : null;
+}
+
 const when = (ts) =>
   ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
 
@@ -79,6 +88,7 @@ export function Activity({ sub, navigate }) {
         ]}
         rows={rows}
         monoCols={[0, 2, 5]}
+        initialFilters={initialToolFilter()}
         filters={[
           { key: "connection", label: "Connection", col: 1 },
           { key: "tool", label: "Tool", col: 2 },

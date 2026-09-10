@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
+import { tagPath } from "../../lib/tag-url.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { SlotMeters } from "../../components/SlotMeter.jsx";
 
@@ -136,9 +137,7 @@ export function Overview({ me, navigate }) {
                 secondary={p.player_tag}
                 note={p.is_primary ? "you" : (p.relationship ?? "watching")}
                 onClick={() =>
-                  navigate(
-                    `/account/tracking/${encodeURIComponent(p.player_tag.replace(/^#/, ""))}`,
-                  )
+                  navigate(`/account/tracking/${tagPath(p.player_tag)}`)
                 }
               />
             ))
@@ -165,9 +164,7 @@ export function Overview({ me, navigate }) {
                     : c.scope
                 }
                 onClick={() =>
-                  navigate(
-                    `/account/tracking/${encodeURIComponent(c.clan_tag.replace(/^#/, ""))}`,
-                  )
+                  navigate(`/account/tracking/${tagPath(c.clan_tag)}`)
                 }
               />
             ))

@@ -11,7 +11,7 @@ import { normalizeScope } from "../../../auth/src/index.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 
-import { json, UUID_RE } from "../http.mjs";
+import { json, UUID_RE, ID_RE } from "../http.mjs";
 import { senderRef } from "../notify.mjs";
 import { loadCallRecord } from "../call-record.mjs";
 
@@ -294,14 +294,43 @@ export function accountRoutes({
       // presented. On the personal door that is a client you revoked or a
       // grant that expired, still running somewhere.
       const { rows: refusals } = await db.query(
-        `select reason, kind, attempts, viewer_ip as ip, viewer_country as country,
-                last_seen
+        `select refusal_id, reason, kind, attempts, viewer_ip as ip,
+                viewer_country as country, last_seen
          from credential_refusal
          where account_id = $1 and day > current_date - 7
+           and dismissed_at is null
          order by last_seen desc limit 10`,
         [account.accountId],
       );
       return json(200, { connections: rows, refusals });
+    },
+
+    // Acknowledging a refusal warning. Per row, because a row is one
+    // credential from one source on one day: this says "I have seen
+    // today's", not "never tell me again". If whatever holds the dead
+    // credential is still running tomorrow, that is a new row and news.
+    "POST /api/me/connections/refusals/dismiss": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "not_authenticated" });
+      if (body.all === true) {
+        await db.query(
+          `update credential_refusal set dismissed_at = now()
+           where account_id = $1 and dismissed_at is null`,
+          [account.accountId],
+        );
+        return json(200, { ok: true });
+      }
+      if (!ID_RE.test(String(body.refusal_id ?? "")))
+        return json(400, { error: "bad_request" });
+      // Scoped by account as well as id: an id is a guessable integer.
+      await db.query(
+        `update credential_refusal set dismissed_at = now()
+         where refusal_id = $1 and account_id = $2`,
+        [body.refusal_id, account.accountId],
+      );
+      return json(200, { ok: true });
     },
 
     "POST /api/me/connections/revoke": async (db, event, body) => {

@@ -3,6 +3,7 @@ import { OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { api } from "../../api.js";
+import { tagPath } from "../../lib/tag-url.js";
 
 import { Fresh } from "../../components/Fresh.jsx";
 
@@ -89,9 +90,7 @@ export function AgentDetail({ id, navigate }) {
                     <a
                       className="mono"
                       onClick={() =>
-                        navigate(
-                          `/explore/clan/${encodeURIComponent(c.clan_tag.replace(/^#/, ""))}`,
-                        )
+                        navigate(`/explore/clan/${tagPath(c.clan_tag)}`)
                       }
                     >
                       {c.clan_tag}
@@ -786,7 +785,9 @@ export function Agents({ navigate }) {
                   >
                     {clans.map((c) => (
                       <option key={c.clan_tag} value={c.clan_tag}>
-                        {c.clan_tag}
+                        {/* The name is what a leader recognises; the tag
+                            disambiguates two clans with one name. */}
+                        {c.name ? `${c.name} (${c.clan_tag})` : c.clan_tag}
                       </option>
                     ))}
                   </select>

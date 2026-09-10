@@ -57,7 +57,7 @@ export function Dashboard({
     ) : (
       <Connections me={me} navigate={navigate} />
     );
-  if (page === "usage") return <Usage me={me} />;
+  if (page === "usage") return <Usage me={me} navigate={navigate} />;
   if (page === "feedback")
     return itemId ? (
       <FeedbackItem id={itemId} navigate={navigate} />

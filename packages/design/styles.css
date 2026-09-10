@@ -520,6 +520,14 @@ table {
 .page__inner {
   max-width: var(--content-max);
 }
+/* Without a rail there is no left edge to align to, so the column
+   centres rather than hugging one that is no longer there. Sign-in is
+   the page this shows on: a 440px card inside a left-aligned column
+   inside a centred shell reads as "off to one side" and looks broken,
+   because nothing else on screen explains the empty half. */
+.page__inner--solo {
+  margin-inline: auto;
+}
 .page__title {
   font-family: var(--font-display);
   font-weight: 400;

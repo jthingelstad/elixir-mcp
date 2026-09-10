@@ -1,8 +1,9 @@
 import { Integrations } from "./Integrations.jsx";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { api } from "../api.js";
 import { LogTable } from "../components/LogTable.jsx";
 import { Icon } from "../components/Icon.jsx";
+import { Markdown } from "../components/Markdown.jsx";
 import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
 
 /**
@@ -52,7 +53,12 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
   if (!me?.is_admin)
     return <p className="callout callout--warn">Admins only.</p>;
   if (page === "integrations") return <Integrations />;
-  if (page === "accounts") return <AdminAccounts />;
+  if (page === "accounts")
+    return itemId ? (
+      <AdminAccountDetail id={itemId} navigate={navigate} />
+    ) : (
+      <AdminAccounts navigate={navigate} />
+    );
   if (page === "usage") return <AdminUsage />;
   if (page === "collectors") return <AdminCollectors navigate={navigate} />;
   if (page === "service-tokens") return <AdminServiceTokens />;
@@ -121,62 +127,35 @@ function AdminRequests() {
 /** Accounts and tiers. The three override columns are read-only and say
  *  so: they are set in the ops lane, and a control here would be a
  *  second way to write them. */
-function AdminAccounts() {
+function AdminAccounts({ navigate }) {
   const [accounts, setAccounts] = useState([]);
-  const [settable, setSettable] = useState([]);
+  // settable_roles is read by the record page, which is where a tier is
+  // now changed; the list only has to find an account.
   const load = useCallback(async () => {
     const r = await api.adminAccounts();
-    if (r.ok) {
-      setAccounts(r.data.accounts ?? []);
-      setSettable(r.data.settable_roles ?? []);
-    }
+    if (r.ok) setAccounts(r.data.accounts ?? []);
   }, []);
   useEffect(() => {
     load();
   }, [load]);
 
-  const rows = accounts.map((a) => {
-    const overrides =
-      [
-        a.max_player_recordings != null && `players ${a.max_player_recordings}`,
-        a.mcp_daily_quota != null && `calls ${a.mcp_daily_quota}`,
-        a.live_daily_quota != null && `live ${a.live_daily_quota}`,
-      ]
-        .filter(Boolean)
-        .join(" · ") || "—";
-    return [
-      {
-        text:
-          principalLabel(a) +
-          (a.kind && a.kind !== "person" ? ` (${a.kind})` : "") +
-          (a.is_owner ? " (owner)" : ""),
-        title: a.account_id,
-      },
-      a.status,
-      {
-        text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
-        tone: a.pending_role_request ? "warn" : undefined,
-      },
-      `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
-      a.operator ? "yes" : "—",
-      overrides,
-      settable.includes(a.role)
-        ? {
-            text: "Set tier",
-            action: async () => {
-              const next = window.prompt(
-                `Tier for ${principalLabel(a)} — one of: ${settable.join(", ")}`,
-                a.role,
-              );
-              if (next && settable.includes(next)) {
-                await api.adminSetRole(a.account_id, next);
-                load();
-              }
-            },
-          }
-        : "",
-    ];
-  });
+  // Six columns became four. The ops-lane overrides, the collector flag
+  // and the tier prompt moved to the record page: a list is for finding
+  // an account, and everything you can DO to one belongs where you have
+  // opened it and can see what you are changing.
+  const rows = accounts.map((a) => [
+    {
+      text: a.email ?? principalLabel(a),
+      title: a.account_id,
+      onClick: () => navigate(`/admin/accounts/${a.account_id}`),
+    },
+    a.status,
+    {
+      text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
+      tone: a.pending_role_request ? "warn" : undefined,
+    },
+    `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
+  ]);
 
   return (
     <LogTable
@@ -188,19 +167,16 @@ function AdminAccounts() {
         ["STATUS", "left"],
         ["TIER", "left"],
         ["TRACKING", "left"],
-        ["COLLECTOR", "left"],
-        ["OVERRIDES · OPS ONLY", "left"],
-        ["", "right"],
       ]}
       rows={rows}
-      monoCols={[0, 5]}
+      monoCols={[0]}
       filters={[
         { key: "tier", label: "Tier", col: 2 },
         { key: "status", label: "Status", col: 1 },
       ]}
-      minWidth={880}
+      minWidth={620}
       empty="No accounts yet."
-      footnote="Overrides are set in the ops lane, not here. Tier changes are the console's control. Upgrade requests land in Feedback and are flagged in the tier column."
+      footnote="An account is named by the address it signs in with. Open one to change its tier or read its overrides. Upgrade requests land in Feedback and are flagged in the tier column."
     />
   );
 }
@@ -249,6 +225,159 @@ function AdminUsage() {
           : undefined
       }
     />
+  );
+}
+
+/** One account, admin lane: what it is, what it may do, and the one
+ *  thing an admin changes. The tier used to be a window.prompt from the
+ *  list — a control with no context, on a row you had to count columns
+ *  to read. Facts first, then the change, on a page that shows what you
+ *  are changing. */
+function AdminAccountDetail({ id, navigate }) {
+  const [accounts, setAccounts] = useState(null);
+  const [settable, setSettable] = useState([]);
+  const [role, setRole] = useState("");
+  const [saved, setSaved] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await api.adminAccounts();
+    if (r.ok) {
+      setAccounts(r.data.accounts ?? []);
+      setSettable(r.data.settable_roles ?? []);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const a = (accounts ?? []).find((x) => String(x.account_id) === String(id));
+  useEffect(() => {
+    if (a) setRole(a.role);
+  }, [a]);
+
+  if (accounts === null)
+    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  if (!a)
+    return (
+      <div className="panel">
+        <div className="panel__body">
+          No account {id}.{" "}
+          <a onClick={() => navigate("/admin/accounts")}>All accounts ›</a>
+        </div>
+      </div>
+    );
+
+  const facts = [
+    ["Email", a.email ?? "— (predates the address being kept)"],
+    ["Account id", a.account_id],
+    ["Kind", a.kind ?? "person"],
+    ["Public id", a.public_id ?? "—"],
+    ["Principal name", a.principal_name ?? "—"],
+    ["Status", a.status],
+    ["Created", day(a.created_at)],
+    [
+      "Tracking",
+      `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
+    ],
+    ["Runs a collector", a.operator ? "yes" : "no"],
+    [
+      "Overrides · ops only",
+      [
+        a.max_player_recordings != null && `players ${a.max_player_recordings}`,
+        a.mcp_daily_quota != null && `calls ${a.mcp_daily_quota}`,
+        a.live_daily_quota != null && `live ${a.live_daily_quota}`,
+      ]
+        .filter(Boolean)
+        .join(" · ") || "none",
+    ],
+  ];
+
+  return (
+    <>
+      <p style={{ margin: "0 0 10px" }}>
+        <a
+          className="mono"
+          style={{ fontSize: "12px" }}
+          onClick={() => navigate("/admin/accounts")}
+        >
+          ‹ All accounts
+        </a>
+      </p>
+      <section className="panel" style={{ maxWidth: "680px" }}>
+        <div className="panel__head">
+          <span className="panel-title">{a.email ?? principalLabel(a)}</span>
+          {a.is_owner && <span className="chip chip--info">owner</span>}
+          {a.pending_role_request && (
+            <span className="chip chip--warn">upgrade requested</span>
+          )}
+        </div>
+        {/* .fields is the console's one key/value list (Agents, Explore
+            and the collector record all use it) — a flat dl, no wrapper
+            divs, because the grid is two columns of the SAME list. */}
+        <dl className="fields" style={{ margin: 0 }}>
+          {facts.map(([k, v]) => (
+            <Fragment key={k}>
+              <dt>{k}</dt>
+              <dd className={k === "Email" ? undefined : "mono"}>{v}</dd>
+            </Fragment>
+          ))}
+        </dl>
+        <div
+          className="panel__body"
+          style={{
+            borderTop: "1px solid var(--line-soft)",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <label className="field-label" htmlFor="account-tier">
+            Tier
+          </label>
+          <select
+            id="account-tier"
+            value={role}
+            disabled={!settable.includes(a.role)}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            {[...new Set([a.role, ...settable])].map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn btn--sm"
+            disabled={!settable.includes(a.role) || role === a.role}
+            onClick={async () => {
+              const r = await api.adminSetRole(a.account_id, role);
+              setSaved(r.ok ? "Tier saved." : "That did not work.");
+              if (r.ok) load();
+            }}
+          >
+            Save tier
+          </button>
+          {saved && <span className="caveat">{saved}</span>}
+          {!settable.includes(a.role) && (
+            <span className="caveat">
+              This account&rsquo;s tier is not yours to set.
+            </span>
+          )}
+        </div>
+        <div
+          className="panel__body"
+          style={{ borderTop: "1px solid var(--line-soft)" }}
+        >
+          <p className="footnote" style={{ margin: 0 }}>
+            A tier sets what we RECORD for an account and its daily call budget.
+            It never changes what the account can read — every recorded fact is
+            readable by every account. Overrides are set in the ops lane,
+            deliberately not here.
+          </p>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -875,11 +1004,15 @@ function AdminFeedbackItem({ id, navigate }) {
             {item.created_at?.slice(0, 10)}
           </span>
         </div>
+        {/* Feedback is written in Markdown — the console's form says so
+            and elixir_feedback takes it the same way — so it renders as
+            Markdown here too. The reader's side already did; the queue
+            where it is actually READ was showing the asterisks. */}
         <div
           className="panel__body"
           style={{ fontSize: "13px", lineHeight: 1.6 }}
         >
-          {item.message}
+          <Markdown text={item.message} />
         </div>
         {item.context && (
           <div

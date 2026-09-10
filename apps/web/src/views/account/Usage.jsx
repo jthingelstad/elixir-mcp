@@ -70,7 +70,7 @@ function fourteenDays(days) {
   return out;
 }
 
-export function Usage() {
+export function Usage({ navigate }) {
   const [usage, setUsage] = useState(null);
   useEffect(() => {
     api.usage().then((r) => r.ok && setUsage(r.data));
@@ -275,7 +275,17 @@ export function Usage() {
                   fontSize: "13px",
                 }}
               >
-                <a className="mono" href="/docs/tools">
+                {/* The manual is one click further on; the question a
+                    number here provokes is "which calls were those",
+                    and that is MCP requests filtered to this tool. */}
+                <a
+                  className="mono"
+                  onClick={() =>
+                    navigate(
+                      `/account/activity/requests?tool=${encodeURIComponent(t.tool)}`,
+                    )
+                  }
+                >
                   {t.tool}
                 </a>
                 <span

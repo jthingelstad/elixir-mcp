@@ -88,8 +88,36 @@ export function Connections({ me, navigate }) {
               ? "A revoked or suspended agent key, or a service token, is still being presented: it reads nothing, and keeps trying until whatever holds it is stopped or re-keyed."
               : "Usually a client you disconnected that is still running: it reads nothing, and keeps trying until it is stopped."}
           </span>
+          {/* An alert you cannot acknowledge teaches you to ignore
+              alerts. Dismissing is per row — one credential, one source,
+              one day — so it says "I have seen today's", and a refusal
+              that is still happening tomorrow says so again. */}
+          <a
+            style={{ marginLeft: "auto", flex: "none", fontSize: "13px" }}
+            title="Dismiss. It returns if the credential is presented again another day."
+            onClick={async () => {
+              setRefusals((list) =>
+                list.filter((x) => x.refusal_id !== r.refusal_id),
+              );
+              await api.dismissRefusal({ refusal_id: r.refusal_id });
+            }}
+          >
+            Dismiss
+          </a>
         </div>
       ))}
+      {refusals.length > 1 && (
+        <p style={{ margin: "-6px 0 14px", fontSize: "13px" }}>
+          <a
+            onClick={async () => {
+              setRefusals([]);
+              await api.dismissRefusal({ all: true });
+            }}
+          >
+            Dismiss all {refusals.length}
+          </a>
+        </p>
+      )}
 
       <div
         style={{

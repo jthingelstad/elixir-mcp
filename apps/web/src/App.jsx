@@ -1103,7 +1103,7 @@ export function App() {
         )}
 
         <main className="page">
-          <div className="page__inner">
+          <div className={`page__inner${showRail ? "" : " page__inner--solo"}`}>
             {/* Keyed on the route: a boundary that has caught stays caught, so
                 without this a single bad page would keep showing its error after
                 you navigated away from it. */}

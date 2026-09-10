@@ -178,7 +178,7 @@ export function adminRoutes({
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
-        `select a.account_id, a.email_hash, a.status, a.role, a.is_owner,
+        `select a.account_id, a.email_hash, a.email, a.status, a.role, a.is_owner,
                 a.kind, a.public_id,
                 (select st.name from service_token st
                   where st.account_id = a.account_id and st.revoked_at is null

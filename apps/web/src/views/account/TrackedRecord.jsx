@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
+import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { Icon } from "../../components/Icon.jsx";
 import { ago, secsSince } from "../../lib/time.js";
 
@@ -27,7 +28,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
     loadClans();
   }, []);
 
-  const wanted = decodeURIComponent(tag ?? "");
+  const wanted = tagFromPath(tag);
   const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
   const clan = (clans?.clans ?? []).find((c) => c.clan_tag === wanted);
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
@@ -81,7 +82,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               className="mono"
               onClick={() =>
                 navigate(
-                  `/explore/${isClan ? "clan" : "player"}/${encodeURIComponent(wanted)}`,
+                  `/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
                 )
               }
             >
@@ -102,7 +103,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           style={{ marginLeft: "auto" }}
           onClick={() =>
             navigate(
-              `/explore/${isClan ? "clan" : "player"}/${encodeURIComponent(wanted)}`,
+              `/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
             )
           }
         >
