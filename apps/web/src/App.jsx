@@ -238,8 +238,13 @@ export function railPosition(path) {
     };
   if (section === "admin") return { key: "admin", sub: page ?? "requests" };
   if (section === "account") {
+    // /account/activity/n/<id> is a notification record, which belongs
+    // to the Notifications sub-page rather than being one of its own.
     if (page === "activity")
-      return { key: "activity", sub: rest ?? "notifications" };
+      return {
+        key: "activity",
+        sub: rest === "n" ? "notifications" : (rest ?? "notifications"),
+      };
     if (page === "connections") return { key: "connections", sub: "clients" };
     // The agent record is addressable in its own right, but it belongs
     // to Connections in the rail: an agent IS a connection.
@@ -846,7 +851,7 @@ export function App() {
   }, [owned]);
 
   const effectivePath = owned ?? "/account/overview";
-  const [, section, page, itemId] = effectivePath.split("/");
+  const [, section, page, itemId, recordId] = effectivePath.split("/");
   const sec = SECTIONS[section];
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
   const here = railPosition(effectivePath);
@@ -929,6 +934,7 @@ export function App() {
                   page={activePage ?? "overview"}
                   sub={here.sub}
                   itemId={itemId}
+                  recordId={recordId}
                 />
               ) : section === "admin" ? (
                 me?.is_admin ? (

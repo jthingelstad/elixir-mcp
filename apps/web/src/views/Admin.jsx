@@ -1,7 +1,21 @@
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
+import { LogTable } from "../components/LogTable.jsx";
 import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
+
+/**
+ * Admin, eight pages.
+ *
+ * Six of them are the console's one log table with different columns
+ * (components/LogTable.jsx) — the same component Activity's three views
+ * use, so the console never grows a second table idiom. Collectors and
+ * Service tokens keep their own screens: a lifecycle with a different
+ * legal move per row, and a one-time secret reveal, are not a log.
+ *
+ * Each page loads only what it needs. This used to fetch all five admin
+ * endpoints on every one of them.
+ */
 
 /**
  * How to name a principal in an admin table.
@@ -31,566 +45,81 @@ function principalLabel(a) {
   return a.account_id ? a.account_id.slice(0, 8) : "unknown";
 }
 
+const day = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : "—");
+
 export function Admin({ me, page = "requests", navigate, itemId }) {
-  const [requests, setRequests] = useState([]);
-  const [gateways, setGateways] = useState([]);
-  const [usage, setUsage] = useState(null);
-  const [feedback, setFeedback] = useState([]);
-  const [svcTokens, setSvcTokens] = useState([]);
-  const [newToken, setNewToken] = useState(null);
-  // Provision-click outcome per gateway: the token is staged server-side
-  // for the operator's one-time reveal, so Admin must SAY so (or show the
-  // error) instead of silently refreshing.
-  const [staged, setStaged] = useState({});
-  const [svcName, setSvcName] = useState("");
-
-  const load = useCallback(async () => {
-    const [r, g, u, f, st] = await Promise.all([
-      api.adminRequests(),
-      api.adminGateways(),
-      api.adminUsage(),
-      api.adminFeedback(),
-      api.adminServiceTokens(),
-    ]);
-    if (r.ok) setRequests(r.data.requests);
-    if (g.ok) setGateways(g.data.gateways);
-    if (u.ok) setUsage(u.data);
-    if (f.ok) setFeedback(f.data.feedback);
-    if (st.ok) setSvcTokens(st.data.tokens);
-  }, []);
-
-  useEffect(() => {
-    if (me?.is_admin) load();
-  }, [me, load]);
-
-  if (!me?.is_admin) return <p className="notice">Admins only.</p>;
-
+  if (!me?.is_admin)
+    return <p className="callout callout--warn">Admins only.</p>;
   if (page === "integrations") return <Integrations />;
+  if (page === "accounts") return <AdminAccounts />;
+  if (page === "usage") return <AdminUsage />;
+  if (page === "collectors") return <AdminCollectors navigate={navigate} />;
+  if (page === "service-tokens") return <AdminServiceTokens />;
+  if (page === "collections")
+    return itemId ? (
+      <CollectionEditor slug={itemId} navigate={navigate} />
+    ) : (
+      <AdminCollections navigate={navigate} />
+    );
+  if (page === "feedback")
+    return itemId ? (
+      <AdminFeedbackItem id={itemId} navigate={navigate} />
+    ) : (
+      <AdminFeedback navigate={navigate} />
+    );
+  return <AdminRequests />;
+}
 
-  // Detail routes (detail-views sweep, Jamie 2026-09-05): one item,
-  // one addressable page.
-  if (page === "feedback" && itemId)
-    return <AdminFeedbackItem id={itemId} navigate={navigate} />;
-  if (page === "collections" && itemId)
-    return <CollectionEditor slug={itemId} navigate={navigate} />;
+/** Access requests. Granted by hand, oldest first — the queue is short
+ *  and the decision is a judgement, so there is no bulk action. */
+function AdminRequests() {
+  const [requests, setRequests] = useState([]);
+  const load = useCallback(async () => {
+    const r = await api.adminRequests();
+    if (r.ok) setRequests(r.data.requests ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const decide = async (hash, status) => {
+    await api.adminDecide(hash, status);
+    load();
+  };
+
+  const rows = requests.map((r) => [
+    day(r.created_at),
+    r.email_hash ? r.email_hash.slice(0, 10) : "—",
+    r.requested_player_tag ?? "—",
+    r.request_note ?? "",
+    { text: "Approve", action: () => decide(r.email_hash, "approved") },
+    { text: "Deny", action: () => decide(r.email_hash, "denied") },
+  ]);
 
   return (
-    <>
-      <div className="panel" hidden={page !== "requests"}>
-        <div className="panel__head">
-          <span className="panel-title">Access requests</span>
-        </div>
-        {requests.length === 0 && <p>Queue is empty.</p>}
-        {requests.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Tag</th>
-                <th>Note</th>
-                <th>Requested</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((r) => (
-                <tr key={r.email_hash}>
-                  <td>
-                    {r.requested_player_tag ? (
-                      <code>{r.requested_player_tag}</code>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td>{r.request_note ?? ""}</td>
-                  <td>{new Date(r.created_at).toLocaleDateString()}</td>
-                  <td>
-                    <button
-                      onClick={async () => {
-                        await api.adminDecide(r.email_hash, "approved");
-                        load();
-                      }}
-                    >
-                      Approve
-                    </button>{" "}
-                    <button
-                      className="btn--text"
-                      onClick={async () => {
-                        await api.adminDecide(r.email_hash, "denied");
-                        load();
-                      }}
-                    >
-                      Deny
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {usage && (
-        <div className="panel" hidden={page !== "usage"}>
-          <div className="panel__head">
-            <span className="panel-title">MCP usage (7 days)</span>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Account</th>
-                <th>Today</th>
-                <th>7d</th>
-                <th>Errors</th>
-                <th>Quota</th>
-                <th>Last call</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(usage.accounts ?? []).map((a) => (
-                // account_id, not email_hash: an agent's hash is null, and
-                // two of them collided into one React key.
-                <tr key={a.account_id ?? a.email_hash}>
-                  <td>
-                    <code>{principalLabel(a)}</code>
-                    {a.kind && a.kind !== "person" ? ` (${a.kind})` : ""}
-                  </td>
-                  <td>{a.calls_today}</td>
-                  <td>{a.calls_7d}</td>
-                  <td>{a.errors_7d || ""}</td>
-                  <td>{a.mcp_daily_quota ?? "default"}</td>
-                  <td>
-                    {a.last_call
-                      ? new Date(a.last_call).toLocaleString()
-                      : "never"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {usage.budget && (
-            <p className="notice">
-              Budget: {usage.budget.fetches_24h.toLocaleString()} fetches /{" "}
-              {usage.budget.capacity_24h.toLocaleString()} capacity (24h) across{" "}
-              {usage.budget.subjects_24h} subjects. Heaviest:{" "}
-              {usage.budget.top_subjects
-                .slice(0, 5)
-                .map((t) => `${t.entity_key} (${t.fetches})`)
-                .join(", ")}
-            </p>
-          )}
-          {usage.tools.length > 0 && (
-            <>
-              <h3>Tools (7 days)</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tool</th>
-                    <th>Calls</th>
-                    <th>Errors</th>
-                    <th>Avg ms</th>
-                    <th>Truncated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usage.tools.map((t) => (
-                    <tr key={t.tool}>
-                      <td>
-                        <code>{t.tool}</code>
-                      </td>
-                      <td>{t.calls}</td>
-                      <td>{t.errors || ""}</td>
-                      <td>{t.avg_ms}</td>
-                      <td>{t.truncated || ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="panel" hidden={page !== "feedback"}>
-        <div className="panel__head">
-          <span className="panel-title">Feedback</span>
-        </div>
-        {feedback.length === 0 && <p>No feedback yet.</p>}
-        {feedback.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>From</th>
-                <th>Via</th>
-                <th>Category</th>
-                <th>Message</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {feedback.map((f) => (
-                <tr key={f.feedback_id}>
-                  <td>{f.from_player ? <code>{f.from_player}</code> : "—"}</td>
-                  <td>{f.surface}</td>
-                  <td>{f.category}</td>
-                  <td>
-                    <a
-                      onClick={() =>
-                        navigate(`/admin/feedback/${f.feedback_id}`)
-                      }
-                    >
-                      {f.message.length > 90
-                        ? f.message.slice(0, 90) + "…"
-                        : f.message}
-                    </a>
-                    {f.response ? (
-                      <span
-                        className="mono"
-                        style={{
-                          marginLeft: "6px",
-                          fontSize: "10.5px",
-                          color: "var(--ink-faint)",
-                        }}
-                      >
-                        responded
-                      </span>
-                    ) : null}
-                  </td>
-                  <td>
-                    <select
-                      value={f.status}
-                      onChange={async (e) => {
-                        await api.adminFeedbackStatus(
-                          f.feedback_id,
-                          e.target.value,
-                        );
-                        load();
-                      }}
-                    >
-                      {["new", "seen", "planned", "done", "declined"].map(
-                        (st) => (
-                          <option key={st} value={st}>
-                            {st}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <div className="panel" hidden={page !== "service-tokens"}>
-        <div className="panel__head">
-          <span className="panel-title">Service tokens</span>
-          <span
-            className="mono"
-            style={{
-              marginLeft: "auto",
-              fontSize: "11px",
-              color: "var(--bad)",
-            }}
-          >
-            shown once at issue — never recoverable
-          </span>
-        </div>
-        <p>
-          Long-lived API tokens for services (elixir-bot). Calls audit as{" "}
-          <code>svc:&lt;name&gt;</code>.
-        </p>
-        {newToken && (
-          <p className="notice">
-            <strong>{newToken.name}</strong>: <code>{newToken.token}</code>
-            <br />
-            Shown once — store it now.
-          </p>
-        )}
-        {svcTokens.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Created</th>
-                <th>Last used</th>
-                <th>Calls (7d)</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {svcTokens.map((t) => (
-                <tr key={t.token_id}>
-                  <td>
-                    <code>{t.name}</code>
-                    {t.revoked_at ? " (revoked)" : ""}
-                  </td>
-                  <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                  <td>
-                    {t.last_used_at
-                      ? new Date(t.last_used_at).toLocaleString()
-                      : "never"}
-                  </td>
-                  <td>{t.calls_7d}</td>
-                  <td>
-                    {!t.revoked_at && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          await api.adminServiceTokenAction({
-                            revoke_token_id: t.token_id,
-                          });
-                          load();
-                        }}
-                      >
-                        Revoke
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const r = await api.adminServiceTokenAction({ name: svcName });
-            if (r.ok) {
-              setNewToken(r.data);
-              setSvcName("");
-              load();
-            }
-          }}
-        >
-          <label>
-            Issue token
-            <input
-              placeholder="elixir-bot"
-              value={svcName}
-              onChange={(e) => setSvcName(e.target.value)}
-            />
-          </label>
-          <button disabled={!svcName.trim()}>Issue</button>
-        </form>
-      </div>
-
-      <div className="panel" hidden={page !== "collectors"}>
-        <div className="panel__head">
-          <span className="panel-title">Gateways</span>
-        </div>
-        <p>
-          Lifecycle: pending → probation (key issued, installed, heartbeating) →
-          active. Issuing the IP-bound CR key and IAM user is manual — see
-          docs/OPERATORS.md.
-        </p>
-        <p style={{ color: "var(--ink-faint)" }}>
-          Heartbeat is any contact with the door, including polls that found no
-          work; Data is the last payload we accepted and recorded. Both are the
-          same relative clock the public status page shows.
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Collector</th>
-              <th>Operator</th>
-              <th>Status</th>
-              <th>Channel</th>
-              <th>Heartbeat</th>
-              <th>Data</th>
-              <th>Fetches (1h)</th>
-              <th>Points</th>
-              <th>Version</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {gateways.map((g) => {
-              const next = {
-                pending: "probation",
-                probation: "activate",
-                active: "drain",
-                draining: "probation",
-              }[g.status];
-              const label = {
-                probation: "Begin probation",
-                activate: "Activate",
-                drain: "Drain",
-              }[next];
-              return (
-                <tr key={g.gateway_id}>
-                  <td>
-                    {/* Card name is the public identity everywhere else -
-                        the status page, the ladder, the MCP tools - while
-                        the machine name is what you SSH into. Admin is the
-                        one screen that has to join the two. */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "7px",
-                      }}
-                    >
-                      {g.card_icon && (
-                        <img
-                          src={g.card_icon}
-                          alt=""
-                          style={{ height: "22px", borderRadius: "3px" }}
-                        />
-                      )}
-                      <span style={{ fontWeight: 600 }}>
-                        {g.card_name ?? "unnamed"}
-                      </span>
-                    </div>
-                    <code style={{ color: "var(--ink-faint)" }}>{g.name}</code>
-                  </td>
-                  <td>
-                    {g.owner_account_id ? (
-                      <>
-                        <div>
-                          {g.owner_player_name ?? "no player claimed"}
-                          {g.owner_is_me && (
-                            <span
-                              className="chip"
-                              style={{ marginLeft: "6px" }}
-                            >
-                              you
-                            </span>
-                          )}
-                        </div>
-                        <code style={{ color: "var(--ink-faint)" }}>
-                          {g.owner_email_hash?.slice(0, 10) ?? "—"}
-                        </code>
-                      </>
-                    ) : (
-                      <span className="nil">unowned</span>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className={`chip ${g.status === "active" ? "chip--active" : g.status === "pending" ? "chip--pending" : ""}`}
-                    >
-                      {g.status}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`chip ${g.channel === "live" ? "chip--active" : ""}`}
-                    >
-                      {g.channel ?? "bulk"}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={beatCls(secsSince(g.last_heartbeat_at))}>
-                      {ago(g.last_heartbeat_at)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={freshCls(secsSince(g.last_success_at))}>
-                      {ago(g.last_success_at)}
-                    </span>
-                  </td>
-                  <td>{g.fetches_last_hour}</td>
-                  <td>{Number(g.fetch_points).toLocaleString()}</td>
-                  <td>
-                    <code>{g.last_seen_sha ?? "—"}</code>
-                  </td>
-                  <td>
-                    {next && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          await api.adminGatewayAction(g.gateway_id, next);
-                          load();
-                        }}
-                      >
-                        {label ?? next}
-                      </button>
-                    )}{" "}
-                    {g.status !== "revoked" && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          const r = await api.adminGatewayAction(
-                            g.gateway_id,
-                            "provision_token",
-                          );
-                          setStaged((s) => ({
-                            ...s,
-                            [g.gateway_id]: r.ok
-                              ? { ok: true }
-                              : { error: r.data?.error ?? `HTTP ${r.status}` },
-                          }));
-                          load();
-                        }}
-                      >
-                        Provision token
-                      </button>
-                    )}{" "}
-                    {g.status !== "revoked" && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          if (
-                            window.confirm(
-                              `Revoke gateway "${g.name}"? Ingest stops accepting its results immediately.`,
-                            )
-                          ) {
-                            await api.adminGatewayAction(
-                              g.gateway_id,
-                              "revoke",
-                            );
-                            load();
-                          }
-                        }}
-                      >
-                        Revoke
-                      </button>
-                    )}
-                    {(staged[g.gateway_id] || g.provision_ready) && (
-                      <div>
-                        <small>
-                          {staged[g.gateway_id]?.error ? (
-                            <>
-                              Provisioning failed: {staged[g.gateway_id].error}
-                            </>
-                          ) : g.owner_is_me ? (
-                            <>
-                              Token staged.{" "}
-                              <button
-                                className="btn--text"
-                                onClick={() => navigate("/account/collector")}
-                              >
-                                Reveal it once on your Collector page →
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              Token staged — the operator reveals it once on
-                              their Collector page.
-                            </>
-                          )}
-                        </small>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <AdminCollections page={page} navigate={navigate} />
-
-      <AdminAccounts page={page} />
-    </>
+    <LogTable
+      title="Access requests"
+      note="Granted by hand, oldest first."
+      cols={[
+        ["ASKED", "left"],
+        ["ACCOUNT", "left"],
+        ["WANTS", "left"],
+        ["NOTE", "left"],
+        ["", "right"],
+        ["", "right"],
+      ]}
+      rows={rows}
+      monoCols={[0, 1, 2]}
+      empty="Queue is empty."
+      footnote="An address is never shown here, only the first ten characters of its hash — enough to match a person to the email they wrote from, and not reversible."
+    />
   );
 }
 
-/** Role management: the entitlement ladder applied to real accounts.
- *  Pending upgrade requests surface here; the picker grants them. */
-function AdminAccounts({ page }) {
+/** Accounts and tiers. The three override columns are read-only and say
+ *  so: they are set in the ops lane, and a control here would be a
+ *  second way to write them. */
+function AdminAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [settable, setSettable] = useState([]);
   const load = useCallback(async () => {
@@ -603,87 +132,174 @@ function AdminAccounts({ page }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const rows = accounts.map((a) => {
+    const overrides =
+      [
+        a.max_player_recordings != null && `players ${a.max_player_recordings}`,
+        a.mcp_daily_quota != null && `calls ${a.mcp_daily_quota}`,
+        a.live_daily_quota != null && `live ${a.live_daily_quota}`,
+      ]
+        .filter(Boolean)
+        .join(" · ") || "—";
+    return [
+      {
+        text:
+          principalLabel(a) +
+          (a.kind && a.kind !== "person" ? ` (${a.kind})` : "") +
+          (a.is_owner ? " (owner)" : ""),
+        title: a.account_id,
+      },
+      a.status,
+      {
+        text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
+        tone: a.pending_role_request ? "warn" : undefined,
+      },
+      `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
+      a.operator ? "yes" : "—",
+      overrides,
+      settable.includes(a.role)
+        ? {
+            text: "Set tier",
+            action: async () => {
+              const next = window.prompt(
+                `Tier for ${principalLabel(a)} — one of: ${settable.join(", ")}`,
+                a.role,
+              );
+              if (next && settable.includes(next)) {
+                await api.adminSetRole(a.account_id, next);
+                load();
+              }
+            },
+          }
+        : "",
+    ];
+  });
+
   return (
-    <div className="panel" hidden={page !== "accounts"}>
-      <div className="panel__head">
-        <span className="panel-title">Accounts</span>
-      </div>
-      <p>
-        Tiers set collection slots and call budgets — never read access. Upgrade
-        requests land in Feedback and are flagged here.
-      </p>
-      <table>
-        <thead>
-          <tr>
-            <th>Account</th>
-            <th>Status</th>
-            <th>Tier</th>
-            <th>Recording</th>
-            <th>Collector</th>
-            <th>Overrides</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accounts.map((a) => (
-            <tr key={a.account_id}>
-              <td title={a.account_id}>
-                <code>{principalLabel(a)}</code>
-                {a.kind && a.kind !== "person" ? ` (${a.kind})` : ""}
-                {a.is_owner ? " (owner)" : ""}
-              </td>
-              <td>{a.status}</td>
-              <td>
-                {settable.includes(a.role) ? (
-                  <select
-                    value={a.role}
-                    onChange={async (e) => {
-                      await api.adminSetRole(a.account_id, e.target.value);
-                      load();
-                    }}
-                  >
-                    {settable.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <strong>{a.role}</strong>
-                )}
-                {a.pending_role_request ? (
-                  <span
-                    className="chip chip--pending"
-                    title={`Upgrade requested — feedback #${a.pending_role_request}`}
-                    style={{ marginLeft: "0.4rem" }}
-                  >
-                    requested
-                  </span>
-                ) : null}
-              </td>
-              <td>
-                {a.players_recording}p / {a.clans_recording}c
-              </td>
-              <td>{a.operator ? "yes" : "—"}</td>
-              <td className="panel__note">
-                {[
-                  a.max_player_recordings != null &&
-                    `players=${a.max_player_recordings}`,
-                  a.mcp_daily_quota != null && `calls=${a.mcp_daily_quota}`,
-                  a.live_daily_quota != null && `live=${a.live_daily_quota}`,
-                ]
-                  .filter(Boolean)
-                  .join(" ") || "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <LogTable
+      title="Accounts"
+      note="Everyone with a door. Tiers set what we record and the daily call budget — never read access."
+      cols={[
+        ["ACCOUNT", "left"],
+        ["STATUS", "left"],
+        ["TIER", "left"],
+        ["TRACKING", "left"],
+        ["COLLECTOR", "left"],
+        ["OVERRIDES · OPS ONLY", "left"],
+        ["", "right"],
+      ]}
+      rows={rows}
+      monoCols={[0, 5]}
+      filters={[
+        { key: "tier", label: "Tier", col: 2 },
+        { key: "status", label: "Status", col: 1 },
+      ]}
+      minWidth={880}
+      empty="No accounts yet."
+      footnote="Overrides are set in the ops lane, not here. Tier changes are the console's control. Upgrade requests land in Feedback and are flagged in the tier column."
+    />
   );
 }
 
-/** Collections curation (Jamie, 2026-09-05): owner-only create/manage. */
-function AdminCollections({ page, navigate }) {
+/** Usage across accounts. The shared FETCH budget is a service-wide
+ *  number and lives on Status; this is the per-account call side. */
+function AdminUsage() {
+  const [usage, setUsage] = useState(null);
+  useEffect(() => {
+    api.adminUsage().then((r) => r.ok && setUsage(r.data));
+  }, []);
+
+  const rows = (usage?.accounts ?? []).map((a) => [
+    principalLabel(a) + (a.kind && a.kind !== "person" ? ` (${a.kind})` : ""),
+    String(a.calls_7d ?? 0),
+    String(a.calls_today ?? 0),
+    a.errors_7d ? String(a.errors_7d) : "0",
+    a.mcp_daily_quota == null ? "tier default" : String(a.mcp_daily_quota),
+    a.last_call ? day(a.last_call) : "never",
+  ]);
+
+  const busiest = (usage?.tools ?? [])
+    .slice(0, 5)
+    .map((t) => `${t.tool} (${t.calls.toLocaleString()})`)
+    .join(", ");
+
+  return (
+    <LogTable
+      title="Usage across accounts"
+      note="Seven days. The shared fetch budget is on Status."
+      cols={[
+        ["ACCOUNT", "left"],
+        ["CALLS 7D", "right"],
+        ["TODAY", "right"],
+        ["ERRORS 7D", "right"],
+        ["DAILY QUOTA", "right"],
+        ["LAST CALL", "left"],
+      ]}
+      rows={rows}
+      monoCols={[0, 5]}
+      empty="No calls in the last seven days."
+      footnote={
+        busiest
+          ? `Busiest tools over the same seven days: ${busiest}.`
+          : undefined
+      }
+    />
+  );
+}
+
+/** The feedback queue. Unread first is the API's order; the status
+ *  control is on the item, because deciding what to do about a piece of
+ *  feedback means reading it. */
+function AdminFeedback({ navigate }) {
+  const [feedback, setFeedback] = useState([]);
+  useEffect(() => {
+    api.adminFeedback().then((r) => r.ok && setFeedback(r.data.feedback ?? []));
+  }, []);
+
+  const rows = feedback.map((f) => [
+    day(f.created_at),
+    f.from_player ?? "—",
+    f.surface ?? "",
+    f.category ?? "",
+    {
+      text: f.message.length > 80 ? f.message.slice(0, 80) + "…" : f.message,
+      onClick: () => navigate(`/admin/feedback/${f.feedback_id}`),
+    },
+    {
+      text: f.status + (f.response ? " · answered" : ""),
+      tone: f.status === "new" ? "accent-bright" : undefined,
+    },
+  ]);
+
+  return (
+    <LogTable
+      title="Feedback queue"
+      note="Sent from the console and from elixir_feedback at the MCP door."
+      cols={[
+        ["WHEN", "left"],
+        ["FROM", "left"],
+        ["VIA", "left"],
+        ["CATEGORY", "left"],
+        ["SAID", "left"],
+        ["STATE", "left"],
+      ]}
+      rows={rows}
+      monoCols={[0, 1]}
+      filters={[
+        { key: "state", label: "State", col: 5 },
+        { key: "category", label: "Category", col: 3 },
+        { key: "via", label: "Via", col: 2 },
+      ]}
+      minWidth={820}
+      empty="No feedback yet."
+      footnote="Every item gets a response; the response lands in the filer's notification feed. Open one to answer it."
+    />
+  );
+}
+
+/** Collections curation: owner-only create/manage. */
+function AdminCollections({ navigate }) {
   const [cols, setCols] = useState([]);
   const [form, setForm] = useState({
     slug: "",
@@ -702,46 +318,390 @@ function AdminCollections({ page, navigate }) {
     load();
   }, [load]);
 
-  const act = async (body) => {
-    setErr("");
-    const r = await api.adminCollectionAction(body);
-    if (!r.ok) setErr(r.data?.message ?? r.data?.error ?? "failed");
-    await load();
-  };
+  const rows = cols.map((c) => [
+    {
+      text: c.slug,
+      onClick: () => navigate(`/admin/collections/${c.slug}`),
+    },
+    c.title,
+    c.kind,
+    c.visibility,
+    String(c.member_count ?? 0),
+  ]);
 
   return (
-    <div className="panel" hidden={page !== "collections"}>
-      <div className="panel__head">
-        <span className="panel-title">Collections</span>
+    <>
+      <LogTable
+        title="Collections"
+        note="Curated sets served to every account through collections_browse and Explore."
+        cols={[
+          ["SLUG", "left"],
+          ["TITLE", "left"],
+          ["KIND", "left"],
+          ["VISIBILITY", "left"],
+          ["MEMBERS", "right"],
+        ]}
+        rows={rows}
+        monoCols={[0]}
+        filters={[
+          { key: "kind", label: "Kind", col: 2 },
+          { key: "visibility", label: "Visibility", col: 3 },
+        ]}
+        empty="No collections yet. Every member added to one starts recording, so a collection is a recording decision."
+      />
+      {err && <p className="field-error">{err}</p>}
+      <form
+        style={{
+          display: "flex",
+          gap: "8px",
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginTop: "20px",
+        }}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const slug = form.slug;
+          setErr("");
+          const r = await api.adminCollectionAction({
+            action: "upsert",
+            ...form,
+          });
+          if (!r.ok) {
+            setErr(r.data?.message ?? r.data?.error ?? "failed");
+            return;
+          }
+          setForm({ ...form, slug: "", title: "", description: "" });
+          navigate(`/admin/collections/${slug}`);
+        }}
+      >
+        <span className="label">New collection</span>
+        <input
+          className="mono"
+          placeholder="slug"
+          value={form.slug}
+          onChange={(e) => setForm({ ...form, slug: e.target.value })}
+          style={{ flex: "0 1 9rem" }}
+        />
+        <input
+          placeholder="Title"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          style={{ flex: "0 1 11rem" }}
+        />
+        <select
+          className="select"
+          value={form.kind}
+          onChange={(e) => setForm({ ...form, kind: e.target.value })}
+        >
+          <option value="player">player</option>
+          <option value="clan">clan</option>
+        </select>
+        <input
+          placeholder="Description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          style={{ flex: "1 1 14rem" }}
+        />
+        <button className="btn" disabled={!form.slug || !form.title}>
+          Create
+        </button>
+      </form>
+    </>
+  );
+}
+
+/** The collector fleet, admin lane. Not a log: lifecycle is forward-only
+ *  (pending -> probation -> active -> draining -> probation) and each row
+ *  offers only the move it may legally make. */
+function AdminCollectors({ navigate }) {
+  const [gateways, setGateways] = useState([]);
+  // Provision-click outcome per gateway: the token is staged server-side
+  // for the operator's one-time reveal, so Admin must SAY so (or show the
+  // error) instead of silently refreshing.
+  const [staged, setStaged] = useState({});
+  const load = useCallback(async () => {
+    const r = await api.adminGateways();
+    if (r.ok) setGateways(r.data.gateways ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 className="page__title">Collector fleet</h1>
+        <p className="page__lede">
+          Lifecycle is forward-only: pending, then probation once the key is
+          issued and it is heartbeating, then active. Issuing the IP-bound CR
+          key and the IAM user is manual.
+        </p>
+      </div>
+      <p className="footnote" style={{ margin: "0 0 16px", maxWidth: "78ch" }}>
+        Heartbeat is any contact with the door, including polls that found no
+        work. Data is the last payload we accepted and recorded. A fresh
+        heartbeat with stale data is an idle collector, not a broken one.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Collector</th>
+            <th>Operator</th>
+            <th>Status</th>
+            <th>Channel</th>
+            <th>Heartbeat</th>
+            <th>Data</th>
+            <th>Fetches (1h)</th>
+            <th>Points</th>
+            <th>Version</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {gateways.map((g) => {
+            const next = {
+              pending: "probation",
+              probation: "activate",
+              active: "drain",
+              draining: "probation",
+            }[g.status];
+            const label = {
+              probation: "Begin probation",
+              activate: "Activate",
+              drain: "Drain",
+            }[next];
+            return (
+              <tr key={g.gateway_id}>
+                <td>
+                  {/* Card name is the public identity everywhere else -
+                  the status page, the ladder, the MCP tools - while
+                  the machine name is what you SSH into. Admin is the
+                  one screen that has to join the two. */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "7px",
+                    }}
+                  >
+                    {g.card_icon && (
+                      <img
+                        src={g.card_icon}
+                        alt=""
+                        style={{ height: "22px", borderRadius: "3px" }}
+                      />
+                    )}
+                    <span style={{ fontWeight: 600 }}>
+                      {g.card_name ?? "unnamed"}
+                    </span>
+                  </div>
+                  <code style={{ color: "var(--ink-faint)" }}>{g.name}</code>
+                </td>
+                <td>
+                  {g.owner_account_id ? (
+                    <>
+                      <div>
+                        {g.owner_player_name ?? "no player claimed"}
+                        {g.owner_is_me && (
+                          <span className="chip" style={{ marginLeft: "6px" }}>
+                            you
+                          </span>
+                        )}
+                      </div>
+                      <code style={{ color: "var(--ink-faint)" }}>
+                        {g.owner_email_hash?.slice(0, 10) ?? "—"}
+                      </code>
+                    </>
+                  ) : (
+                    <span className="nil">unowned</span>
+                  )}
+                </td>
+                <td>
+                  <span
+                    className={`chip ${g.status === "active" ? "chip--active" : g.status === "pending" ? "chip--pending" : ""}`}
+                  >
+                    {g.status}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    className={`chip ${g.channel === "live" ? "chip--active" : ""}`}
+                  >
+                    {g.channel ?? "bulk"}
+                  </span>
+                </td>
+                <td>
+                  <span className={beatCls(secsSince(g.last_heartbeat_at))}>
+                    {ago(g.last_heartbeat_at)}
+                  </span>
+                </td>
+                <td>
+                  <span className={freshCls(secsSince(g.last_success_at))}>
+                    {ago(g.last_success_at)}
+                  </span>
+                </td>
+                <td>{g.fetches_last_hour}</td>
+                <td>{Number(g.fetch_points).toLocaleString()}</td>
+                <td>
+                  <code>{g.last_seen_sha ?? "—"}</code>
+                </td>
+                <td>
+                  {next && (
+                    <button
+                      className="btn--text"
+                      onClick={async () => {
+                        await api.adminGatewayAction(g.gateway_id, next);
+                        load();
+                      }}
+                    >
+                      {label ?? next}
+                    </button>
+                  )}{" "}
+                  {g.status !== "revoked" && (
+                    <button
+                      className="btn--text"
+                      onClick={async () => {
+                        const r = await api.adminGatewayAction(
+                          g.gateway_id,
+                          "provision_token",
+                        );
+                        setStaged((s) => ({
+                          ...s,
+                          [g.gateway_id]: r.ok
+                            ? { ok: true }
+                            : { error: r.data?.error ?? `HTTP ${r.status}` },
+                        }));
+                        load();
+                      }}
+                    >
+                      Provision token
+                    </button>
+                  )}{" "}
+                  {g.status !== "revoked" && (
+                    <button
+                      className="btn--text"
+                      onClick={async () => {
+                        if (
+                          window.confirm(
+                            `Revoke gateway "${g.name}"? Ingest stops accepting its results immediately.`,
+                          )
+                        ) {
+                          await api.adminGatewayAction(g.gateway_id, "revoke");
+                          load();
+                        }
+                      }}
+                    >
+                      Revoke
+                    </button>
+                  )}
+                  {(staged[g.gateway_id] || g.provision_ready) && (
+                    <div>
+                      <small>
+                        {staged[g.gateway_id]?.error ? (
+                          <>Provisioning failed: {staged[g.gateway_id].error}</>
+                        ) : g.owner_is_me ? (
+                          <>
+                            Token staged.{" "}
+                            <button
+                              className="btn--text"
+                              onClick={() => navigate("/account/collector")}
+                            >
+                              Reveal it once on your Collector page →
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            Token staged — the operator reveals it once on their
+                            Collector page.
+                          </>
+                        )}
+                      </small>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+/** Service keys for other products. The key is shown once at issue and
+ *  never again — only its hash is stored, so there is nothing to show. */
+function AdminServiceTokens() {
+  const [svcTokens, setSvcTokens] = useState([]);
+  const [newToken, setNewToken] = useState(null);
+  const [svcName, setSvcName] = useState("");
+  const load = useCallback(async () => {
+    const r = await api.adminServiceTokens();
+    if (r.ok) setSvcTokens(r.data.tokens ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 className="page__title">Service keys</h1>
+        <p className="page__lede">
+          Long-lived keys held by other products. Calls audit as{" "}
+          <code>svc:&lt;name&gt;</code>.
+        </p>
       </div>
       <p>
-        Curated groupings served to every user via{" "}
-        <code>collections_browse</code> and Explore ▸ Collections.
+        Long-lived API tokens for services (elixir-bot). Calls audit as{" "}
+        <code>svc:&lt;name&gt;</code>.
       </p>
-      {err && <p className="field-error">{err}</p>}
-      {cols.length > 0 && (
+      {newToken && (
+        <p className="notice">
+          <strong>{newToken.name}</strong>: <code>{newToken.token}</code>
+          <br />
+          Shown once — store it now.
+        </p>
+      )}
+      {svcTokens.length > 0 && (
         <table>
           <thead>
             <tr>
-              <th>Slug</th>
-              <th>Title</th>
-              <th>Kind</th>
-              <th>Visibility</th>
-              <th>Members</th>
+              <th>Name</th>
+              <th>Created</th>
+              <th>Last used</th>
+              <th>Calls (7d)</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {cols.map((c) => (
-              <tr key={c.slug}>
+            {svcTokens.map((t) => (
+              <tr key={t.token_id}>
                 <td>
-                  <a onClick={() => navigate(`/admin/collections/${c.slug}`)}>
-                    <code>{c.slug}</code> ›
-                  </a>
+                  <code>{t.name}</code>
+                  {t.revoked_at ? " (revoked)" : ""}
                 </td>
-                <td>{c.title}</td>
-                <td>{c.kind}</td>
-                <td>{c.visibility}</td>
-                <td>{c.member_count}</td>
+                <td>{new Date(t.created_at).toLocaleDateString()}</td>
+                <td>
+                  {t.last_used_at
+                    ? new Date(t.last_used_at).toLocaleString()
+                    : "never"}
+                </td>
+                <td>{t.calls_7d}</td>
+                <td>
+                  {!t.revoked_at && (
+                    <button
+                      className="btn--text"
+                      onClick={async () => {
+                        await api.adminServiceTokenAction({
+                          revoke_token_id: t.token_id,
+                        });
+                        load();
+                      }}
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -750,42 +710,25 @@ function AdminCollections({ page, navigate }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          const slug = form.slug;
-          await act({ action: "upsert", ...form });
-          setForm({ ...form, slug: "", title: "", description: "" });
-          navigate(`/admin/collections/${slug}`);
+          const r = await api.adminServiceTokenAction({ name: svcName });
+          if (r.ok) {
+            setNewToken(r.data);
+            setSvcName("");
+            load();
+          }
         }}
-        style={{ marginTop: "1rem" }}
       >
-        <strong>New collection</strong>{" "}
-        <input
-          placeholder="slug"
-          value={form.slug}
-          onChange={(e) => setForm({ ...form, slug: e.target.value })}
-          style={{ width: "8rem" }}
-        />{" "}
-        <input
-          placeholder="Title"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          style={{ width: "10rem" }}
-        />{" "}
-        <select
-          value={form.kind}
-          onChange={(e) => setForm({ ...form, kind: e.target.value })}
-        >
-          <option value="player">player</option>
-          <option value="clan">clan</option>
-        </select>{" "}
-        <input
-          placeholder="Description"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          style={{ width: "14rem" }}
-        />{" "}
-        <button disabled={!form.slug || !form.title}>Create</button>
+        <label>
+          Issue token
+          <input
+            placeholder="elixir-bot"
+            value={svcName}
+            onChange={(e) => setSvcName(e.target.value)}
+          />
+        </label>
+        <button disabled={!svcName.trim()}>Issue</button>
       </form>
-    </div>
+    </>
   );
 }
 

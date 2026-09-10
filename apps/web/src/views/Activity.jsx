@@ -1,229 +1,269 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { LogTable } from "../components/LogTable.jsx";
 
-/** Account ▸ Activity: one table whose columns change per view; each view
- *  names its source in the footnote. Latency over 300ms renders amber.
- *  The notifications view never advances the agents' seen-cursor.
+/**
+ * Activity's three views: notifications, MCP requests, account events.
  *
- *  The three views are rail sub-pages now (2026-09-09 IA), so the rail
- *  drives which one is showing and Activity lands on Notifications —
- *  the pipe your connections read from, which is what a reader opening
- *  Activity is usually asking about. The segmented control below is the
- *  old in-page tab set and goes when the log table is unified (handoff
- *  step 5). */
-const TABS = ["Notifications", "MCP requests", "Account events"];
+ * They are rail sub-pages now, and all three are the SAME table with
+ * different columns — see components/LogTable.jsx. Activity lands on
+ * Notifications, which is the pipe your connections read from and the
+ * thing a reader opening Activity is usually asking about.
+ *
+ * Naming here follows the product, not the schema: mcp_call_audit is
+ * "MCP requests", event_feed is "notifications" (queued for a connection
+ * to pick up, never email), account_event is "account events".
+ */
 const BY_SUB = {
-  notifications: "Notifications",
-  requests: "MCP requests",
-  events: "Account events",
+  notifications: "notifications",
+  requests: "requests",
+  events: "events",
 };
 
-export function Activity({ sub }) {
-  const tab = BY_SUB[sub] ?? TABS[0];
+const when = (ts) =>
+  ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
+
+export function Activity({ sub, navigate }) {
+  const view = BY_SUB[sub] ?? "notifications";
   const [requests, setRequests] = useState(null);
   const [events, setEvents] = useState(null);
   const [feed, setFeed] = useState(null);
 
   useEffect(() => {
-    if (tab === "MCP requests" && requests === null)
+    if (view === "requests" && requests === null)
       api.myRequests().then((r) => r.ok && setRequests(r.data.requests));
-    if (tab === "Account events" && events === null)
+    if (view === "events" && events === null)
       api.activity().then((r) => r.ok && setEvents(r.data.events));
-    if (tab === "Notifications" && feed === null)
+    if (view === "notifications" && feed === null)
       api.myEvents().then((r) => r.ok && setFeed(r.data));
-  }, [tab, requests, events, feed]);
+  }, [view, requests, events, feed]);
 
-  const when = (ts) =>
-    new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z";
+  if (view === "requests") {
+    const rows = (requests ?? []).map((r) => [
+      when(r.created_at),
+      r.token_name ?? r.surface ?? "",
+      r.tool ?? "",
+      r.error_code
+        ? { text: r.error_code, tone: "bad" }
+        : r.truncated
+          ? { text: "ok · truncated", tone: "warn" }
+          : "ok",
+      // Over 300ms is worth seeing without being a failure, so it is ink
+      // on the number rather than a state of the row.
+      {
+        text: String(r.duration_ms ?? ""),
+        ink: r.duration_ms > 300 ? "var(--warn)" : undefined,
+      },
+      {
+        text: r.request_id ? r.request_id.slice(0, 8) : "—",
+        title: r.request_id ?? "",
+      },
+    ]);
+    return (
+      <LogTable
+        title="MCP requests"
+        note="Every call your connections made, newest first."
+        cols={[
+          ["WHEN", "left"],
+          ["CONNECTION", "left"],
+          ["TOOL", "left"],
+          ["RESULT", "left"],
+          ["MS", "right"],
+          ["REQUEST", "left"],
+        ]}
+        rows={rows}
+        monoCols={[0, 2, 5]}
+        filters={[
+          { key: "connection", label: "Connection", col: 1 },
+          { key: "tool", label: "Tool", col: 2 },
+          { key: "result", label: "Result", col: 3 },
+        ]}
+        empty="No calls yet. A connection appears here the first time it reads."
+        footnote="mcp_call_audit — every tool call your connections and this site's explorer made, last 200. REQUEST is the id the caller was handed in meta.request_id; hover for the whole of it."
+      />
+    );
+  }
+
+  if (view === "events") {
+    const rows = (events ?? []).map((e) => [
+      when(e.created_at),
+      (e.kind ?? "").replaceAll("_", " "),
+      e.detail?.player_tag ??
+        e.detail?.clan_tag ??
+        e.detail?.role ??
+        e.detail?.name ??
+        "",
+    ]);
+    return (
+      <LogTable
+        title="Account events"
+        note="Changes to your account, your access and what we record for you."
+        cols={[
+          ["WHEN", "left"],
+          ["EVENT", "left"],
+          ["DETAIL", "left"],
+        ]}
+        rows={rows}
+        monoCols={[0]}
+        filters={[{ key: "event", label: "Event", col: 1 }]}
+        empty="Nothing yet."
+        footnote="account_event — sign-ins, players and clans added, recording changes and tier changes."
+      />
+    );
+  }
+
+  const rows = (feed?.events ?? []).map((e) => {
+    const unread = Number(e.event_id) > Number(feed.seen_through ?? 0);
+    return [
+      {
+        text: `nt_${e.event_id}`,
+        onClick: () => navigate?.(`/account/activity/n/${e.event_id}`),
+      },
+      when(e.created_at),
+      (e.topic ?? "").replaceAll("_", " "),
+      e.subject_tag ?? "",
+      // Unread is a state of the row, so it gets the dot; read rows are
+      // plain, because "already picked up" is the ordinary case.
+      unread ? { text: "waiting", tone: "accent-bright" } : "picked up",
+    ];
+  });
+  return (
+    <LogTable
+      title="Notifications"
+      note="Queued for a connection to pick up on its next call. Turned on per tracked player or clan."
+      cols={[
+        ["ID", "left"],
+        ["WHEN", "left"],
+        ["WHY", "left"],
+        ["TRACKING", "left"],
+        ["STATE", "left"],
+      ]}
+      rows={rows}
+      monoCols={[0, 1, 3]}
+      filters={[
+        { key: "why", label: "Why", col: 2 },
+        { key: "tracking", label: "Tracking", col: 3 },
+        { key: "state", label: "State", col: 4 },
+      ]}
+      empty="Nothing yet — everything you track feeds this queue while its notify switch is on."
+      footnote="Reading this page never advances a connection's cursor: what is waiting here is waiting for the connection, not for you."
+    />
+  );
+}
+
+/**
+ * One notification, showing the JSON BODY the connection receives.
+ *
+ * The console's job here is to make the wire visible: an agent builder
+ * debugging "why did my bot not react to that" needs the payload it was
+ * actually handed, not our prose about it. Each topic carries its own
+ * shape, and the subject key is `clan` or `player` depending on what is
+ * tracked — which is exactly the kind of thing a screenshot of a table
+ * cannot tell you.
+ */
+export function NotificationRecord({ id, navigate }) {
+  const [feed, setFeed] = useState(null);
+  useEffect(() => {
+    api.myEvents().then((r) => r.ok && setFeed(r.data));
+  }, []);
+
+  if (!feed) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  const row = feed.events?.find((e) => String(e.event_id) === String(id));
+  if (!row)
+    return (
+      <>
+        <div className="page__crumb">
+          <a onClick={() => navigate("/account/activity")}>‹ Notifications</a>
+        </div>
+        <div className="empty">
+          <div className="empty__title">
+            That notification is not in the feed
+          </div>
+          <p className="empty__body" style={{ marginBottom: 0 }}>
+            The feed holds the last 100. Older ones expire once every connection
+            that wanted them has read them.
+          </p>
+        </div>
+      </>
+    );
+
+  const unread = Number(row.event_id) > Number(feed.seen_through ?? 0);
+  // The body is what elixir_events hands a connection for this row.
+  const body = {
+    event_id: String(row.event_id),
+    topic: row.topic,
+    subject: row.subject_tag,
+    created_at: row.created_at,
+    payload: row.payload ?? {},
+  };
 
   return (
     <>
-      <div style={{ marginBottom: "20px" }}>
-        <h1 className="page__title">{tab}</h1>
-        <p className="page__lede">
-          what your agents did, what your account did, what your pipe holds
-        </p>
+      <div className="page__crumb">
+        <a onClick={() => navigate("/account/activity")}>‹ Notifications</a>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h1
+            className="mono"
+            style={{ fontSize: "24px", margin: 0, color: "var(--ink)" }}
+          >
+            nt_{row.event_id}
+          </h1>
+          <p style={{ margin: "7px 0 0", color: "var(--ink-body)" }}>
+            {(row.topic ?? "").replaceAll("_", " ")}
+            {row.subject_tag ? ` · ${row.subject_tag}` : ""}
+          </p>
+        </div>
+        <span
+          className={"chip " + (unread ? "chip--info" : "chip--ok")}
+          style={{ marginLeft: "auto" }}
+        >
+          <span className="chip__dot" />
+          {unread ? "waiting" : "picked up"}
+        </span>
       </div>
 
-      <section className="panel">
-        {tab === "MCP requests" && (
-          <>
-            {requests?.length === 0 && (
-              <div
-                className="panel__body"
-                style={{ color: "var(--ink-faint)" }}
-              >
-                No calls yet.
-              </div>
-            )}
-            {requests?.length > 0 && (
-              <div className="tablewrap">
-                <table style={{ minWidth: "640px" }}>
-                  <thead>
-                    <tr>
-                      <th>WHEN</th>
-                      <th>TOOL</th>
-                      <th>AGENT</th>
-                      <th className="num">MS</th>
-                      <th>RESULT</th>
-                      <th>REQUEST</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.map((r, i) => (
-                      <tr key={i}>
-                        <td className="mono">{when(r.created_at)}</td>
-                        <td>
-                          <code>{r.tool}</code>
-                        </td>
-                        <td>{r.token_name ?? r.surface}</td>
-                        <td
-                          className="num"
-                          style={
-                            r.duration_ms > 300
-                              ? { color: "var(--warn)" }
-                              : undefined
-                          }
-                        >
-                          {r.duration_ms}
-                        </td>
-                        <td>
-                          {r.error_code ? (
-                            <span className="outcome outcome--loss">
-                              {r.error_code}
-                            </span>
-                          ) : (
-                            <span
-                              className="mono"
-                              style={{ color: "var(--ink-faint)" }}
-                            >
-                              {((r.result_bytes ?? 0) / 1024).toFixed(1)}kb
-                              {r.truncated ? " · truncated" : ""}
-                            </span>
-                          )}
-                        </td>
-                        {/* The id the caller was handed in meta.request_id.
-                            Shortened to stay readable; the full value is on
-                            the title so it can still be copied when someone
-                            reports an answer that looks wrong. */}
-                        <td
-                          className="mono"
-                          style={{ color: "var(--ink-faint)" }}
-                          title={r.request_id ?? ""}
-                        >
-                          {r.request_id ? r.request_id.slice(0, 8) : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="panel__note">
-              <code>mcp_call_audit</code> · every tool call your agents (and
-              this site&rsquo;s explorer) made, newest first, last 200.
-            </div>
-          </>
-        )}
+      <section className="panel" style={{ marginBottom: "14px" }}>
+        <dl
+          style={{
+            margin: 0,
+            padding: "14px 16px",
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            gap: "11px 18px",
+            fontSize: "13.5px",
+          }}
+        >
+          <dt style={{ color: "var(--ink-faint)" }}>Created</dt>
+          <dd className="mono" style={{ margin: 0, color: "var(--ink-body)" }}>
+            {row.created_at}
+          </dd>
+          <dt style={{ color: "var(--ink-faint)" }}>Topic</dt>
+          <dd className="mono" style={{ margin: 0, color: "var(--ink-body)" }}>
+            {row.topic}
+          </dd>
+          <dt style={{ color: "var(--ink-faint)" }}>Tracking</dt>
+          <dd style={{ margin: 0, color: "var(--ink)" }}>
+            {row.subject_tag ?? "—"}
+          </dd>
+        </dl>
+      </section>
 
-        {tab === "Account events" && (
-          <>
-            {events?.length === 0 && (
-              <div
-                className="panel__body"
-                style={{ color: "var(--ink-faint)" }}
-              >
-                Nothing yet.
-              </div>
-            )}
-            {events?.length > 0 && (
-              <div className="tablewrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>WHEN</th>
-                      <th>EVENT</th>
-                      <th>SUBJECT</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.map((e, i) => (
-                      <tr key={i}>
-                        <td className="mono">{when(e.created_at)}</td>
-                        <td>{e.kind.replaceAll("_", " ")}</td>
-                        <td className="tag">
-                          {e.detail?.player_tag ??
-                            e.detail?.clan_tag ??
-                            e.detail?.role ??
-                            e.detail?.name ??
-                            ""}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="panel__note">
-              account events · sign-ins, adds, recordings, role changes.
-            </div>
-          </>
-        )}
-
-        {tab === "Notifications" && (
-          <>
-            {feed?.events?.length === 0 && (
-              <div
-                className="panel__body"
-                style={{ color: "var(--ink-faint)" }}
-              >
-                Nothing yet — everything you add feeds this pipe while its
-                notify switch is on.
-              </div>
-            )}
-            {feed?.events?.length > 0 && (
-              <div className="tablewrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>WHEN</th>
-                      <th>KIND</th>
-                      <th>SUBJECT</th>
-                      <th>DETAIL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {feed.events.map((e) => {
-                      const unread = Number(e.event_id) > feed.seen_through;
-                      return (
-                        <tr
-                          key={e.event_id}
-                          style={unread ? { fontWeight: 600 } : undefined}
-                        >
-                          <td className="mono">{when(e.created_at)}</td>
-                          <td>{e.topic.replaceAll("_", " ")}</td>
-                          <td className="tag">{e.subject_tag ?? ""}</td>
-                          <td
-                            className="mono"
-                            style={{ color: "var(--ink-faint)" }}
-                          >
-                            {e.payload?.count
-                              ? `${e.payload.count} battles`
-                              : (e.payload?.scope ?? e.payload?.role ?? "")}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="panel__note">
-              <code>event_feed</code> · reading here never marks anything seen
-              for your agents — bold rows are past their cursor.
-            </div>
-          </>
-        )}
+      <section className="code">
+        <div className="code__head">
+          <span className="label">body</span>
+          <span className="footnote">what the connection receives</span>
+        </div>
+        <pre className="code__body">{JSON.stringify(body, null, 2)}</pre>
       </section>
     </>
   );

@@ -85,7 +85,8 @@ afterEach(() => {
 });
 
 const paint = async () => {
-  render(<Admin me={{ is_admin: true }} page="gateways" />);
+  // The page slug took the product's word for it with the 2026-09-09 IA.
+  render(<Admin me={{ is_admin: true }} page="collectors" />);
   await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
 };
 

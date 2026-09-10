@@ -1,4 +1,4 @@
-import { Activity } from "./Activity.jsx";
+import { Activity, NotificationRecord } from "./Activity.jsx";
 
 import { Overview } from "./account/Overview.jsx";
 import { Tracking } from "./account/Tracking.jsx";
@@ -9,9 +9,22 @@ import { Connections } from "./account/Connections.jsx";
 import { Usage } from "./account/Usage.jsx";
 
 /** The Account section's pages. */
-export function Dashboard({ me, refresh, navigate, page, sub, itemId }) {
+export function Dashboard({
+  me,
+  refresh,
+  navigate,
+  page,
+  sub,
+  itemId,
+  recordId,
+}) {
   if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
-  if (page === "activity") return <Activity sub={sub} />;
+  if (page === "activity")
+    return itemId === "n" ? (
+      <NotificationRecord id={recordId} navigate={navigate} />
+    ) : (
+      <Activity sub={sub} navigate={navigate} />
+    );
   if (page === "tracking") return <Tracking me={me} refresh={refresh} />;
   if (page === "settings") return <Settings me={me} refresh={refresh} />;
   if (page === "agents")
