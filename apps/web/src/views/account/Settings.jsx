@@ -8,16 +8,16 @@ import { quotaReading } from "../../lib/quota.js";
  * Settings & tier — the tier reading with its controls, and the account
  * settings that are not about a player.
  *
- * Split out of Overview by the 2026-09-09 design, and drawn the way it
- * draws it: three stacked sections (your tier, your quota, account) and
- * a link card to the tier matrix in the docs. Overview reports the same
+ * Split out of Overview by the 2026-09-09 design: your tier, your quota,
+ * and a link card to the tier matrix in the docs. The address and the
+ * timezone moved to the profile (Jamie, 2026-09-10). Overview reports the same
  * slot numbers through the same component, and Usage reads the same
  * quota through lib/quota.js, so the three cannot disagree.
  *
  * The console links out to reference rather than restating it: what
  * each tier records lives in the docs.
  */
-export function Settings({ me, refresh, navigate }) {
+export function Settings({ me, navigate }) {
   const [usage, setUsage] = useState(null);
   useEffect(() => {
     api.usage().then((r) => r.ok && setUsage(r.data));
@@ -102,27 +102,19 @@ export function Settings({ me, refresh, navigate }) {
         </a>
       </section>
 
-      <section className="panel" style={{ marginBottom: "14px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Account</span>
-        </div>
-        <div style={{ padding: "4px 0" }}>
-          {/* We never store the address itself — account.email_hash is a
-              sha256 and the session carries only an id — so the row says
-              how you sign in rather than showing an email we do not
-              have. */}
-          <Field
-            label="Sign-in"
-            value="Email link, or a six-digit code"
-            note="the address is kept only as a hash"
-          />
-          <Field
-            label="Timezone"
-            value={<Timezone me={me} refresh={refresh} />}
-            note="sets day boundaries in your charts and local times in tool responses; storage stays UTC"
-          />
-        </div>
-      </section>
+      <p className="footnote" style={{ margin: "0 0 14px" }}>
+        Your address and timezone are on{" "}
+        <a
+          href="/account/profile"
+          onClick={(ev) => {
+            ev.preventDefault();
+            navigate("/account/profile");
+          }}
+        >
+          your profile
+        </a>
+        .
+      </p>
 
       <a
         href="/docs/roles"
@@ -155,36 +147,6 @@ export function Settings({ me, refresh, navigate }) {
         </span>
       </a>
     </>
-  );
-}
-
-function Field({ label, value, note }) {
-  return (
-    <div
-      style={{
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "baseline",
-        gap: "14px",
-        flexWrap: "wrap",
-      }}
-    >
-      <span
-        style={{
-          flex: "0 0 110px",
-          fontSize: "12.5px",
-          color: "var(--ink-faint)",
-        }}
-      >
-        {label}
-      </span>
-      <span style={{ fontSize: "13.5px", color: "var(--ink)" }}>{value}</span>
-      {note && (
-        <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-          {note}
-        </span>
-      )}
-    </div>
   );
 }
 
@@ -309,30 +271,5 @@ function TierPanel({ me, entitlements: e }) {
         what you can read.
       </div>
     </section>
-  );
-}
-
-function Timezone({ me, refresh }) {
-  const timezones =
-    typeof Intl.supportedValuesOf === "function"
-      ? Intl.supportedValuesOf("timeZone")
-      : ["UTC"];
-  return (
-    <select
-      aria-label="Timezone"
-      value={me?.timezone ?? ""}
-      onChange={async (e) => {
-        await api.setTimezone(e.target.value);
-        refresh();
-      }}
-      style={{ width: "auto" }}
-    >
-      <option value="">UTC (default)</option>
-      {timezones.map((tz) => (
-        <option key={tz} value={tz}>
-          {tz}
-        </option>
-      ))}
-    </select>
   );
 }

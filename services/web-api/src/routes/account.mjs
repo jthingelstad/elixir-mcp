@@ -54,7 +54,7 @@ export function accountRoutes({
       );
       const { rows: ent } = await db.query(
         `select a.role, a.max_player_recordings, a.mcp_daily_quota, a.live_daily_quota,
-                a.newsletter_opt_in,
+                a.newsletter_opt_in, a.email,
                 exists (select 1 from gateway g
                         where g.owner_account_id = $1 and g.status = 'active') as operator,
                 (select count(*)::int from claim c
@@ -101,6 +101,9 @@ export function accountRoutes({
         is_owner: account.isOwner,
         is_admin: account.isAdmin,
         timezone: account.timezone,
+        // The holder's own address, shown back to them on their profile
+        // and in the console rail. Never on a public surface (0046).
+        email: e.email ?? null,
         newsletter_opt_in: e.newsletter_opt_in === true,
         role: e.role,
         entitlements: {

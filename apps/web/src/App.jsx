@@ -86,6 +86,7 @@ export const SECTIONS = {
       { slug: "agents", label: "Agents" },
       { slug: "settings", label: "Settings & tier" },
       { slug: "feedback", label: "Feedback" },
+      { slug: "profile", label: "Profile" },
     ],
   },
   explore: { label: "Explore", authed: true, pages: [] },
@@ -407,6 +408,13 @@ export const DOC_LINKS = {
       ["Agents", "/docs/agents"],
       ["Key lifecycle", "/docs/agents#key-lifecycle"],
       ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
+    ],
+  ],
+  profile: [
+    "Your account",
+    [
+      ["Privacy", "/docs/privacy"],
+      ["Tiers & roles", "/docs/roles"],
     ],
   ],
   settings: [
@@ -813,7 +821,15 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
               widths, because the top bar dropped them. The bar keeps
               them in its own menu now, so this was two answers to one
               question. */}
-          <div className="rail__identity">
+          {/* The identity block is the way to the profile: who you are
+              signed in as, at which tier, in which timezone - and the
+              page where the address and timezone live. */}
+          <a
+            className="rail__identity"
+            href="/account/profile"
+            onClick={go("/account/profile")}
+            style={{ color: "inherit" }}
+          >
             <span
               style={{
                 width: "34px",
@@ -831,13 +847,11 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
               <Icon name="user-round" size={17} />
             </span>
             <span style={{ minWidth: 0, flex: "1 1 auto" }}>
-              {/* The design shows the email address here. We never store
-                  one — account.email_hash is a sha256 and the session
-                  carries only an id — and the alternative, naming the
-                  account by its primary player, would put game content
-                  in a rail that must not grow when the data does. So the
-                  block says what it can: you are signed in, at this
-                  tier, in this timezone. docs/NOTES.md, 2026-09-10. */}
+              {/* The address, as the design draws it: account.email has
+                  held it since 0046 (the earlier note that only a hash
+                  was stored was wrong). An account from before that
+                  fills in at its next sign-in and reads "Signed in"
+                  until then. */}
               <span
                 style={{
                   display: "block",
@@ -847,8 +861,9 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                 }}
+                title={me?.email ?? undefined}
               >
-                Signed in
+                {me?.email ?? "Signed in"}
               </span>
               <span
                 style={{
@@ -873,7 +888,9 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
               aria-label="Sign out"
               title="Sign out"
               className="btn btn--sm"
-              onClick={async () => {
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 await api.signOut();
                 window.location.assign(STATIC_LINKS.home);
               }}
@@ -881,7 +898,7 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
             >
               <Icon name="log-out" size={16} />
             </button>
-          </div>
+          </a>
         </div>
       )}
     </aside>

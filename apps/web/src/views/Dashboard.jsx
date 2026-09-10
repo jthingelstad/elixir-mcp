@@ -4,6 +4,7 @@ import { Overview } from "./account/Overview.jsx";
 import { Tracking } from "./account/Tracking.jsx";
 import { TrackedRecord } from "./account/TrackedRecord.jsx";
 import { Settings } from "./account/Settings.jsx";
+import { Profile } from "./account/Profile.jsx";
 import { Collections } from "./account/Collections.jsx";
 import { AgentDetail, Agents } from "./account/Agents.jsx";
 import { FeedbackItem, Feedback } from "./account/Feedback.jsx";
@@ -40,6 +41,7 @@ export function Dashboard({
     );
   if (page === "settings")
     return <Settings me={me} refresh={refresh} navigate={navigate} />;
+  if (page === "profile") return <Profile me={me} refresh={refresh} />;
   if (page === "collections")
     return <Collections me={me} navigate={navigate} />;
   if (page === "agents")

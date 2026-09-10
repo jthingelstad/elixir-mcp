@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-10",
+    title: "Feedback reads as a list, and the console knows who you are",
+    body: "The Feedback page is a table now, like Notifications: one line per note with its first line, state and whether the maintainer has replied, and the whole note one click away. A note and its reply render as the Markdown they were written in, so paragraphs and lists come through. The rail's identity block shows the address you signed in with and leads to a new Profile page: your email, your tier, how you sign in, and the timezone control, which moved there from Settings & tier.",
+  },
+  {
+    date: "2026-09-10",
     title:
       "The documentation reads right over MCP, and the search finds things",
     body: "An agent reading the documentation through elixir_docs was getting the source rather than the page: template variables where the numbers should be, and links with nothing to resolve them against. The corpus is now rendered with the same data the site uses, its links are absolute, the agent tool count is generated rather than typed, and the quota example names a reset that has not happened yet. Search matches by word instead of exact phrase, prefers pages that hold every word, says when it fell back to any word, cuts its excerpt around the densest cluster of hits, and names the section each match sits in; a page can be read one section at a time. Two examples changed too: the roster example is kinder to the members it names, and the scouting example compares POAP KINGS against the five clans in the Clans to Watch collection, twelve races each on record.",
