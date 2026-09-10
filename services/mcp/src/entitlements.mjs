@@ -183,11 +183,11 @@ export async function resolveSubject(
       // An agent has no self to fall back on. Say what would fix it rather
       // than guessing a member of the clan, which would be confidently wrong.
       throw {
-        code: "not_found",
+        code: "no_subject",
         message: onBehalfOf
           ? `No player is mapped to ${onBehalfOf} yet.`
           : "This connection acts for a clan, so there is no default player.",
-        hint: "Ask who they are in the clan, then call elixir_identify to remember it. Or pass player_tag explicitly.",
+        hint: "Ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.",
       };
     } else {
       // Still is_primary, not relationship: 0055 is the EXPAND half, and
@@ -201,9 +201,9 @@ export async function resolveSubject(
       );
       if (!rows[0]) {
         throw {
-          code: "not_found",
+          code: "no_subject",
           message: "No primary player on this account.",
-          hint: "Add a player with elixir_add_player; your first one becomes your primary.",
+          hint: "elixir_track_player({ player_tag }) tracks one; your first becomes your primary.",
         };
       }
       tag = rows[0].player_tag;
@@ -265,7 +265,7 @@ export async function resolveEntitledClan(db, account, inputTag) {
       throw {
         code: "not_recorded",
         message: `${tag} is not a recorded clan.`,
-        hint: "elixir_watch_clan requests recording; recorded clans are readable by everyone.",
+        hint: "Pass live: true on clans_roster or war_current to read it fresh from the game (one live fetch), or elixir_track_clan({ clan_tag }) to start recording it. Recorded clans are readable by everyone.",
       };
     }
     return tag;
@@ -277,13 +277,13 @@ export async function resolveEntitledClan(db, account, inputTag) {
     // advice it can never act on.
     const isAgent = (account.kind ?? "person") === "agent";
     throw {
-      code: "not_entitled",
+      code: "no_subject",
       message: isAgent
         ? "This agent has no recorded clan."
-        : "No recorded clan membership on this account.",
+        : "No recorded clan on this account to default to.",
       hint: isAgent
-        ? "An agent's clan is set on the agent (Account -> Agents) and must be actively recorded."
-        : "Clan tools cover recorded clans you are an open member of.",
+        ? "An agent's clan is set on the agent (Account -> Agents) and must be actively recorded. Or pass clan_tag explicitly."
+        : "Pass clan_tag explicitly (any recorded clan works), or elixir_track_clan({ clan_tag }) to record yours.",
     };
   }
   return ent.clans[0];

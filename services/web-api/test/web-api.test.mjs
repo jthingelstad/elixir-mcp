@@ -2322,8 +2322,8 @@ test("the explorer is metered and capped like the MCP door, and read-only", asyn
   // are refused before any quota is spent.
   assert.equal((await call("elixir_my_players")).statusCode, 200);
   for (const w of [
-    "elixir_add_player",
-    "elixir_add_clan",
+    "elixir_track_player",
+    "elixir_track_clan",
     "collections_edit",
     "elixir_identify",
   ])
@@ -2390,7 +2390,7 @@ test("an oversized explorer result is the same bounded failure the MCP door retu
   );
   assert.equal(truncated, true);
   const body = JSON.parse(text);
-  assert.equal(body.error.code, "bad_request");
+  assert.equal(body.error.code, "result_too_large");
   assert.ok(text.length < MCP_RESULT_MAX_CHARS);
 });
 

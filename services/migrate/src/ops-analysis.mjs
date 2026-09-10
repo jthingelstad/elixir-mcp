@@ -148,8 +148,13 @@ export async function abYield(databaseUrl, spec) {
 
 /** MCP request effectiveness census ({audit_census: {days?}}): the
  *  product-signal read of mcp_call_audit (Jamie, 2026-09-05) - per-tool
- *  volume, errors, truncation, latency, and reach across surfaces, plus
- *  declared tools nobody has called. Read-only, counts only. */
+ *  volume, errors, truncation, latency (avg, p95, max), size and reach,
+ *  per-surface and per-CLIENT (client_name) breakdowns, declared tools
+ *  nobody has called, live_fetch by path (the catch-all is meant to be
+ *  rare; frequent use is the signal a tool is missing - review 4.7), and
+ *  calls-since-ship for every feedback item with a shipped_in version, so
+ *  a batch is judged by adoption rather than by shipping (review 4.5).
+ *  Read-only, counts only. */
 export async function auditCensus(databaseUrl, spec) {
   const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
   const { TOOL_GROUPS } = await import("@elixir-mcp/contracts");
@@ -162,8 +167,10 @@ export async function auditCensus(databaseUrl, spec) {
               count(distinct account_id)::int as accounts,
               count(*) filter (where error_code is not null)::int as errors,
               round(avg(duration_ms))::int as avg_ms,
+              round(percentile_cont(0.95) within group (order by duration_ms))::int as p95_ms,
               max(duration_ms)::int as max_ms,
               round(avg(result_bytes))::int as avg_bytes,
+              max(result_bytes)::int as max_bytes,
               count(*) filter (where truncated)::int as truncated,
               max(created_at) as last_called
        from mcp_call_audit
@@ -179,13 +186,69 @@ export async function auditCensus(databaseUrl, spec) {
        group by surface order by calls desc`,
       [days],
     );
+    // Which CLIENT (Claude.ai, Claude Code, mcp-remote, a bot naming
+    // itself) made the calls and how often each is refused: the way to see
+    // which clients drop the instructions block or fail scope step-up.
+    const { rows: perClient } = await db.query(
+      `select coalesce(client_name, '(unnamed)') as client,
+              surface,
+              count(*)::int as calls,
+              count(distinct account_id)::int as accounts,
+              count(*) filter (where error_code is not null)::int as errors,
+              count(*) filter (where tool = 'elixir_my_players')::int as identity_lookups,
+              max(created_at) as last_called
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+       group by client_name, surface order by calls desc`,
+      [days],
+    );
     const { rows: errors } = await db.query(
       `select tool, error_code, count(*)::int as n
        from mcp_call_audit
        where created_at > now() - make_interval(days => $1)
          and error_code is not null
-       group by tool, error_code order by n desc limit 20`,
+       group by tool, error_code order by n desc limit 30`,
       [days],
+    );
+    // The catch-all, by path shape (tags folded so the axis is the
+    // endpoint, not the subject).
+    const { rows: livePaths } = await db.query(
+      `select regexp_replace(coalesce(args->>'path', '?'),
+                             '#[0-9A-Z]+', '{tag}', 'g') as path,
+              count(*)::int as calls,
+              count(distinct account_id)::int as accounts,
+              count(*) filter (where error_code is not null)::int as errors,
+              count(*) filter (where truncated)::int as truncated
+       from mcp_call_audit
+       where tool = 'live_fetch'
+         and created_at > now() - make_interval(days => $1)
+       group by 1 order by calls desc`,
+      [days],
+    );
+    const {
+      rows: [liveShare],
+    } = await db.query(
+      `select count(*) filter (where tool = 'live_fetch')::int as live_calls,
+              count(*)::int as calls
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)`,
+      [days],
+    );
+    // Adoption of shipped feedback: calls to each item's related_tools
+    // since its response, by anyone and by the requester.
+    const { rows: adoption } = await db.query(
+      `select f.feedback_id, f.shipped_in, f.related_tools, f.responded_at,
+              (select count(*)::int from mcp_call_audit a
+               where a.tool = any(f.related_tools)
+                 and a.created_at > coalesce(f.responded_at, f.created_at)) as calls_since_ship,
+              (select count(*)::int from mcp_call_audit a
+               where a.tool = any(f.related_tools)
+                 and a.account_id = f.account_id
+                 and a.created_at > coalesce(f.responded_at, f.created_at)) as requester_calls_since_ship
+       from feedback f
+       where f.shipped_in is not null and f.related_tools is not null
+         and array_length(f.related_tools, 1) > 0
+       order by f.feedback_id desc limit 50`,
     );
     const called = new Set(perTool.map((r) => r.tool));
     const never_called = Object.keys(TOOL_GROUPS).filter((t) => !called.has(t));
@@ -193,9 +256,60 @@ export async function auditCensus(databaseUrl, spec) {
       days,
       per_tool: perTool,
       per_surface: perSurface,
+      per_client: perClient,
       top_errors: errors,
+      live_fetch: {
+        calls: liveShare.live_calls,
+        share_of_calls:
+          liveShare.calls > 0
+            ? Number((liveShare.live_calls / liveShare.calls).toFixed(4))
+            : 0,
+        by_path: livePaths,
+      },
+      feedback_adoption: adoption,
       never_called,
     };
+  } finally {
+    await db.end();
+  }
+}
+
+/** Argument census ({args_census: {days?, tool?}}): per tool and error
+ *  code, WHICH argument keys were present and how often - never values.
+ *  The audit stored bounded arguments from day one and nothing read them,
+ *  so "what trips strict validation" and "what did elixir-bot send" were
+ *  unanswerable without a deploy (review 4.4). Also the error message
+ *  class per tool, so a refusal's cause is one invoke away. */
+export async function argsCensus(databaseUrl, spec) {
+  const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
+  const tool = spec?.tool ? String(spec.tool) : null;
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: keys } = await db.query(
+      `select tool, coalesce(error_code, 'ok') as outcome,
+              k.key, count(*)::int as calls
+       from mcp_call_audit a
+       cross join lateral jsonb_object_keys(coalesce(a.args, '{}'::jsonb)) k(key)
+       where a.created_at > now() - make_interval(days => $1)
+         and ($2::text is null or a.tool = $2)
+       group by tool, outcome, k.key
+       order by tool, outcome, calls desc`,
+      [days, tool],
+    );
+    const { rows: shapes } = await db.query(
+      `select tool, coalesce(error_code, 'ok') as outcome,
+              (select string_agg(k, ',' order by k)
+               from jsonb_object_keys(coalesce(a.args, '{}'::jsonb)) k) as key_set,
+              count(*)::int as calls
+       from mcp_call_audit a
+       where a.created_at > now() - make_interval(days => $1)
+         and ($2::text is null or a.tool = $2)
+       group by tool, outcome, key_set
+       order by tool, calls desc`,
+      [days, tool],
+    );
+    return { days, tool, keys_by_outcome: keys, key_sets: shapes };
   } finally {
     await db.end();
   }

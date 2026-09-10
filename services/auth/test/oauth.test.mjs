@@ -74,7 +74,8 @@ test("redirect URI validation: https or localhost http only, no fragments", () =
 });
 
 test("scope normalization is a closed set", () => {
-  assert.equal(normalizeScope(""), "cr:read");
+  // A client that names no scope is offered every capability (1.0.0).
+  assert.equal(normalizeScope(""), OAUTH_SCOPES.join(" "));
   assert.equal(normalizeScope("cr:read"), "cr:read");
   assert.equal(
     normalizeScope("feedback:write cr:read feedback:write"),

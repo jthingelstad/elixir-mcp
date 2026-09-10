@@ -15,7 +15,11 @@
  */
 
 import crypto from "node:crypto";
-import { DEFAULT_OAUTH_SCOPE, OAUTH_SCOPES } from "@elixir-mcp/contracts";
+import {
+  DEFAULT_OAUTH_SCOPE,
+  OAUTH_SCOPES,
+  FULL_OAUTH_SCOPE,
+} from "@elixir-mcp/contracts";
 
 export { OAUTH_SCOPES };
 export const ACCESS_TOKEN_PREFIX = "eat_";
@@ -100,9 +104,15 @@ export function validCodeChallenge(value) {
   return CODE_CHALLENGE_RE.test(raw) ? raw : "";
 }
 
+/** A client that names no scope is offered EVERY capability (1.0.0): the
+ *  consent page lists them all ticked and the person unticks what they
+ *  do not want. The old default - cr:read alone - meant feedback, the one
+ *  behaviour every agent is told to perform unprompted, was refused on
+ *  most connections (review 3.3). A client that names a scope set gets
+ *  exactly that set, cr:read required. */
 export function normalizeScope(value) {
   const raw = String(value ?? "").trim();
-  if (!raw) return DEFAULT_OAUTH_SCOPE;
+  if (!raw) return FULL_OAUTH_SCOPE;
   const unique = [...new Set(raw.split(/\s+/))];
   if (
     !unique.includes(DEFAULT_OAUTH_SCOPE) ||

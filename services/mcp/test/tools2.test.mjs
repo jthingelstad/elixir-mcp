@@ -163,7 +163,7 @@ test("battles_cards: mine and opponent perspectives, duels excluded", async () =
   }
   const opp = await call("battles_cards", { perspective: "opponent" });
   assert.equal(opp.isError, false);
-  assert.match(opp.body.note, /OPPONENT/);
+  assert.match(opp.body.notes.join(" "), /OPPONENT/);
 });
 
 test("battles_decks: grouped by deck_hash with samples", async () => {
@@ -264,8 +264,11 @@ test("round-1 tester fixes: inverted windows refuse; compact drops decks; null c
     before_after: "2026-09-01",
     compare_from: "2026-08-01",
   });
-  assert.match(perf.body.note, /compare_from\/compare_to were ignored/);
-  assert.ok(perf.body.filters_applied, "filters echoed");
+  assert.match(
+    perf.body.notes.join(" "),
+    /compare_from\/compare_to were ignored/,
+  );
+  assert.ok(perf.body.applied, "filters echoed");
 
   const tl = await call("players_timeline", { from: "2026-05-01" });
   assert.ok(tl.body.snapshots_available_from, "epoch disclosed");
@@ -324,12 +327,12 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
     );
     assert.ok(typeof w.trophy_battles === "number");
   }
-  assert.match(trend.body.weekly_note, /draws excluded/);
+  assert.match(trend.body.notes.join(" "), /draws excluded/);
 
   // Summary: draws counted, denominator explained, best_deck slot exists.
   const sum = await call("players_summary", {});
   assert.ok(typeof sum.body.last_30_days.draws === "number");
-  assert.match(sum.body.note, /draws excluded/);
+  assert.match(sum.body.notes.join(" "), /draws excluded/);
   assert.ok("best_deck" in sum.body);
 
   // Full verbosity delivers the promised opponent perspective.
@@ -341,7 +344,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
     "opponent deck present at full verbosity",
   );
   assert.ok(withOpp.opponents[0].name, "opponent name stamped at ingest");
-  assert.match(full.body.card_legend, /tower_hp/);
+  assert.match(full.body.notes.join(" "), /tower_hp/);
 
   // A window before recording says so instead of a bare empty page.
   const ancient = await call("battles_query", {
@@ -350,7 +353,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
   });
   assert.equal(ancient.isError, false);
   assert.equal(ancient.body.battles.length, 0);
-  assert.match(ancient.body.warnings?.[0] ?? "", /window_precedes_recording/);
+  assert.match(ancient.body.notes.join(" "), /window_precedes_recording/);
 
   // battles_compare enforces its upper bound server-side.
   const five = await call("battles_compare", {
@@ -362,14 +365,14 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
 
 test("Elixir MCP service domain: added = recorded, notify is the only toggle", async () => {
   // Add a player: claim + recording in ONE act.
-  const add = await call("elixir_add_player", { player_tag: "#2PP0V90Y" });
+  const add = await call("elixir_track_player", { player_tag: "#2PP0V90Y" });
   assert.equal(add.isError, false, JSON.stringify(add.body));
   assert.equal(add.body.added, true);
   assert.equal(add.body.recording_started, true);
   assert.equal(add.body.notify, true);
 
   // Adding again: idempotent, shares the existing record.
-  const again = await call("elixir_add_player", { player_tag: "#2PP0V90Y" });
+  const again = await call("elixir_track_player", { player_tag: "#2PP0V90Y" });
   assert.equal(again.body.added, false);
   assert.equal(again.body.recording_started, false);
 
@@ -378,7 +381,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     `update account set max_player_recordings = 2 where account_id = $1`,
     [account.accountId],
   );
-  const capped = await call("elixir_add_player", { player_tag: "#2PL" });
+  const capped = await call("elixir_track_player", { player_tag: "#2PL" });
   assert.equal(capped.isError, true);
   assert.equal(capped.body.error.code, "quota_exceeded");
   await db.query(
@@ -387,7 +390,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   );
 
   // Notify is the only per-subject setting; my_players shows it.
-  const mute = await call("elixir_add_player", {
+  const mute = await call("elixir_track_player", {
     player_tag: "#2PP0V90Y",
     action: "notify_off",
   });
@@ -395,13 +398,13 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   const mine = await call("elixir_my_players", {});
   const row = mine.body.players.find((x) => x.player_tag === "#2PP0V90Y");
   assert.equal(row.notify, false);
-  await call("elixir_add_player", {
+  await call("elixir_track_player", {
     player_tag: "#2PP0V90Y",
     action: "notify_on",
   });
 
   // Remove releases the claim and stops the recording it justified.
-  const removed = await call("elixir_add_player", {
+  const removed = await call("elixir_track_player", {
     player_tag: "#2PP0V90Y",
     action: "remove",
   });
@@ -409,7 +412,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.equal(removed.body.recording_stopped, true);
 
   // Clan add at comprehensive scope: member tier has no slots.
-  const tierBlocked = await call("elixir_add_clan", {
+  const tierBlocked = await call("elixir_track_clan", {
     clan_tag: "#J2RGCRVG",
   });
   assert.equal(tierBlocked.isError, true);
@@ -421,7 +424,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     account.accountId,
   ]);
   account.role = "leader";
-  const clanAdd = await call("elixir_add_clan", { clan_tag: "#J2RGCRVG" });
+  const clanAdd = await call("elixir_track_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(clanAdd.isError, false, JSON.stringify(clanAdd.body));
   assert.equal(clanAdd.body.recording, "active");
   assert.equal(clanAdd.body.scope, "comprehensive");
@@ -434,7 +437,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
 
   // Re-adding with a narrower scope settles the recording down too
   // (single adder), and remove stops it entirely.
-  const readd = await call("elixir_add_clan", {
+  const readd = await call("elixir_track_clan", {
     clan_tag: "#J2RGCRVG",
     scope: "activity",
   });
@@ -444,13 +447,13 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
      where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
   );
   assert.equal(settled[0].scope, "activity");
-  const gone = await call("elixir_add_clan", {
+  const gone = await call("elixir_track_clan", {
     clan_tag: "#J2RGCRVG",
     action: "remove",
   });
   assert.equal(gone.body.removed, true);
   assert.equal(gone.body.recording_stopped, true);
-  const back = await call("elixir_add_clan", { clan_tag: "#J2RGCRVG" });
+  const back = await call("elixir_track_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(back.body.recording, "active");
 
   // Insights: corpus-wide transparency counts.
@@ -485,7 +488,7 @@ test("battles_levels: symmetric curve with floors; Pilot Score honest under smal
       assert.equal(bin.insufficient_sample, true);
     }
   }
-  assert.match(r.body.note, /descriptive in-sample residual/);
+  assert.match(r.body.notes.join(" "), /descriptive in-sample residual/);
 
   // Fixture corpus is tiny: the player block must refuse, not guess.
   const scored = await call("battles_levels", {
@@ -516,7 +519,7 @@ test("experience cohorts: tenure rides player block and standings; unknown stays
   );
   const unk = await call("battles_levels", { player_tag: OBSERVER, days: 365 });
   assert.equal(unk.body.player.experience.years_played, null);
-  assert.match(unk.body.player.experience.note, /unknown/);
+  assert.equal(unk.body.player.experience.tenure_known, false);
 });
 
 test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS gap)", async () => {
@@ -540,7 +543,7 @@ test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS 
     (m.game_mode ?? "").startsWith("Chaos_"),
   );
   assert.equal(chaos.length, 2, "both Chaos modes surface in discovery");
-  assert.match(perf.body.mode_note, /Chaos/);
+  assert.match(perf.body.notes.join(" "), /\(game_mode, type\)/);
 
   const q = await call("battles_query", {
     game_mode: "chaos",
@@ -608,14 +611,14 @@ test("collections: browse + enriched get; private stays owner-only; unknown hone
   assert.equal(browse.isError, false);
   assert.ok(browse.body.collections.some((c) => c.slug === "pros"));
   // caller is NOT the owner account in this fixture? account may be owner=false
-  const got = await call("collections_get", { slug: "pros" });
+  const got = await call("collections_get", { collection: "pros" });
   assert.equal(got.isError, false, JSON.stringify(got.body));
   assert.equal(got.body.kind, "player");
   const m = got.body.members.find((x) => x.player_tag === OBSERVER);
   assert.ok(m, "member enriched row present");
   assert.ok(typeof m.recording === "boolean");
 
-  const missing = await call("collections_get", { slug: "nope-list" });
+  const missing = await call("collections_get", { collection: "nope-list" });
   assert.equal(missing.isError, true);
   assert.equal(missing.body.error.code, "not_found");
 });
@@ -832,7 +835,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
     from: "2020-01-01",
   });
   assert.equal(corpus.isError, false, JSON.stringify(corpus.body));
-  assert.equal(corpus.body.segment, "corpus");
+  assert.equal(corpus.body.applied.segment.kind, "corpus");
   assert.ok(corpus.body.decks.length > 0, "corpus decks");
   const top = corpus.body.decks[0];
   assert.ok(top.players >= 1);
@@ -858,16 +861,15 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   }
 
   const seg = await call("battles_meta_decks", {
-    collection: "test-pros",
+    segment: { collection: "test-pros" },
     min_battles: 1,
     from: "2020-01-01",
   });
-  assert.equal(seg.body.segment, "test-pros");
+  assert.equal(seg.body.applied.segment.collection, "test-pros");
   assert.ok(seg.body.decided_battles <= corpus.body.decided_battles);
 
   const both = await call("battles_meta_decks", {
-    collection: "test-pros",
-    clan_tag: "#J2RGCRVG",
+    segment: { collection: "test-pros", clan_tag: "#J2RGCRVG" },
   });
   assert.equal(both.isError, true);
   assert.equal(both.body.error.code, "bad_request");
@@ -886,7 +888,9 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   const wk = trends.body.weeks.at(-1);
   assert.ok(wk.players >= 1 && wk.battles >= wk.wins + wk.losses);
 
-  const missing = await call("battles_meta_decks", { collection: "nope" });
+  const missing = await call("battles_meta_decks", {
+    segment: { collection: "nope" },
+  });
   assert.equal(missing.isError, true);
   assert.equal(missing.body.error.code, "not_found");
 });
@@ -912,7 +916,7 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
   const ds = byDeck.body.deck_stats;
   assert.ok(ds.battles >= 1 && ds.players >= 1);
   assert.ok(!("win_rate" in ds), "no pooled win rate by design");
-  assert.match(byDeck.body.deck_note, /who plays it/);
+  assert.match(byDeck.body.notes.join(" "), /who plays it/);
 });
 
 test("nicknames: private to the account, matched first in search, shown in summary and roster", async () => {
@@ -1027,7 +1031,7 @@ test("collections_edit curates a collection you own, and records what it names",
   );
 
   const added = await call("collections_edit", {
-    slug: "edit-me",
+    collection: "edit-me",
     tags: ["#2YG98VVQ", "20JJJ2CCRU"], // the second is missing its hash
   });
   assert.equal(added.isError, false, JSON.stringify(added.body));
@@ -1038,7 +1042,7 @@ test("collections_edit curates a collection you own, and records what it names",
 
   // Idempotent: syncing the same roster again changes nothing.
   const again = await call("collections_edit", {
-    slug: "edit-me",
+    collection: "edit-me",
     tags: ["#2YG98VVQ", "#20JJJ2CCRU"],
   });
   assert.equal(again.body.added, 0);
@@ -1046,7 +1050,7 @@ test("collections_edit curates a collection you own, and records what it names",
 
   // 'set' is the roster shape: what is absent leaves.
   const set = await call("collections_edit", {
-    slug: "edit-me",
+    collection: "edit-me",
     action: "set",
     tags: ["#2YG98VVQ"],
   });
@@ -1054,7 +1058,7 @@ test("collections_edit curates a collection you own, and records what it names",
   assert.equal(set.body.members, 1);
 
   const removed = await call("collections_edit", {
-    slug: "edit-me",
+    collection: "edit-me",
     action: "remove",
     tags: ["#2YG98VVQ"],
   });
@@ -1073,7 +1077,7 @@ test("collections_edit refuses a bad tag outright rather than skipping it", asyn
   );
   // Silently skipping would quietly drop somebody from a synced roster.
   const bad = await call("collections_edit", {
-    slug: "strict",
+    collection: "strict",
     tags: ["#2YG98VVQ", "not-a-tag"],
   });
   assert.equal(bad.isError, true);
@@ -1100,7 +1104,7 @@ test("collections_edit will not let you curate somebody else's collection", asyn
     [other.account_id],
   );
   const denied = await call("collections_edit", {
-    slug: "theirs",
+    collection: "theirs",
     tags: ["#2YG98VVQ"],
   });
   assert.equal(denied.isError, true);
@@ -1188,7 +1192,7 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
   }
   for (const tool of ["battles_meta_decks", "battles_meta_cards"]) {
     const { body, isError } = await call(tool, {
-      player_tag: tag,
+      segment: { player_tag: tag },
       min_battles: 1,
     });
     assert.equal(isError, false, JSON.stringify(body));
@@ -1204,9 +1208,9 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
     assert.equal(body.excluded.draws, 1);
     assert.equal(body.excluded.unresolved, 1);
     assert.equal(row.usage_share, 1);
-    assert.match(body.note, /player-battle/);
+    assert.match(body.notes.join(" "), /player-battle/);
     const empty = await call(tool, {
-      player_tag: tag,
+      segment: { player_tag: tag },
       from: "2099-01-01",
       min_battles: 1,
     });
@@ -1244,7 +1248,7 @@ test("card meta does not dilute usage with empty card arrays", async () => {
     [tag],
   );
   const result = await call("battles_meta_cards", {
-    player_tag: tag,
+    segment: { player_tag: tag },
     min_battles: 1,
   });
   assert.equal(result.isError, false, JSON.stringify(result.body));
@@ -1257,10 +1261,10 @@ test("the published curve-omission option matches the score reader", async () =>
   const tool = makeRegistry()
     .declarations()
     .find((t) => t.name === "battles_levels");
-  assert.equal(tool.inputSchema.properties.include_curve.type, "boolean");
+  assert.equal(tool.inputSchema.properties.verbosity.type, "string");
   const result = await call("battles_levels", {
     days: 365,
-    include_curve: false,
+    verbosity: "compact",
   });
   assert.equal(result.isError, false);
   assert.equal("curve" in result.body, false);
@@ -1278,7 +1282,7 @@ test("the published curve-omission option matches the score reader", async () =>
  * Reported through elixir_feedback, 2026-09-09 (#13).
  */
 test("elixir_my_players returns the relationship and nickname the owner set", async () => {
-  await call("elixir_add_player", {
+  await call("elixir_track_player", {
     player_tag: "#2PP0V90Y",
     relationship: "alt",
   });
@@ -1295,7 +1299,7 @@ test("elixir_my_players returns the relationship and nickname the owner set", as
   const primary = mine.body.players.find((x) => x.is_primary);
   if (primary) assert.equal(primary.relationship, "primary");
 
-  await call("elixir_add_player", {
+  await call("elixir_track_player", {
     player_tag: "#2PP0V90Y",
     action: "remove",
   });
@@ -1336,7 +1340,10 @@ test("clans_roster summary answers the count without the roster", async () => {
   }
 
   const full = await call("clans_roster", { clan_tag: CLAN });
-  const brief = await call("clans_roster", { clan_tag: CLAN, summary: true });
+  const brief = await call("clans_roster", {
+    clan_tag: CLAN,
+    verbosity: "compact",
+  });
   assert.ok(!full.isError, JSON.stringify(full.body).slice(0, 200));
   assert.ok(!brief.isError, JSON.stringify(brief.body).slice(0, 200));
   assert.equal(brief.body.member_count, 2, "the fixture's two members");
@@ -1431,8 +1438,8 @@ test("battles_query: name_known, duel rounds_played, padded princess towers, leg
     body.battles.some((b) => b.me.tower_hp?.princess?.[1] === 0),
     "a one-tower array was padded with 0",
   );
-  assert.match(body.card_legend, /FINAL ROUND ONLY/);
-  assert.match(body.card_legend, /SUM across rounds/);
+  assert.match(body.notes.join(" "), /final round/);
+  assert.match(body.notes.join(" "), /sum across rounds/);
 });
 
 test("battles_performance: decided vs boat denominators, mode key documented", async () => {
@@ -1441,15 +1448,15 @@ test("battles_performance: decided vs boat denominators, mode key documented", a
   assert.equal(w.boat_battles, 10, "the fixture holds ten boat attacks");
   assert.ok(w.decided_battles <= w.wins + w.losses);
   assert.ok(w.decided_battles < w.battles);
-  assert.match(body.denominators_note, /decided_battles/);
+  assert.match(body.notes.join(" "), /decided_wins/);
   const modes = await call("battles_performance", { group_by: "mode" });
-  assert.match(modes.body.mode_note, /\(game_mode, type\)/);
+  assert.match(modes.body.notes.join(" "), /\(game_mode, type\)/);
   assert.ok(modes.body.by_mode.every((r) => "type" in r));
 });
 
 test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boats", async () => {
   const { body, isError } = await call("battles_meta_decks", {
-    player_tag: OBSERVER,
+    segment: { player_tag: OBSERVER },
     min_battles: 1,
     from: "2020-01-01",
   });
@@ -1459,7 +1466,7 @@ test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boa
   assert.match(body.methodology.prior_source, /corpus/);
   assert.ok(["corpus_window", "neutral_0.5"].includes(body.prior_basis));
   const cards = await call("battles_meta_cards", {
-    player_tag: OBSERVER,
+    segment: { player_tag: OBSERVER },
     min_battles: 1,
     from: "2020-01-01",
   });
@@ -1547,7 +1554,7 @@ test("forms are decoded, never ordinal: collection, catalog, in-game max level",
   assert.ok(hero.forms_available.includes("hero"));
   const base = col.body.cards.find((c) => c.maxEvolutionLevel === undefined);
   assert.deepEqual(base.forms_available, []);
-  assert.match(col.body.forms_note, /bit fields/);
+  assert.match(col.body.notes.join(" "), /bit fields/);
 
   const cat = await call("cards_catalog", {});
   assert.ok(cat.body.cards.every((c) => c.maxLevel === 16));

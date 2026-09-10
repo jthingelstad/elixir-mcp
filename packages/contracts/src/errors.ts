@@ -13,6 +13,8 @@ export const ERROR_CODES = [
   "quota_exceeded", // per-account quota or rate limit hit (JSON-RPC -32029)
   "live_unavailable", // live-lane fetch timed out or no gateway available
   "bad_request", // structurally invalid input other than tags
+  "no_subject", // nothing to answer about: no default player, an unmapped on_behalf_of, or a clanless agent (1.0.0)
+  "result_too_large", // the request was fine; the result exceeded the delivery cap - narrow the arguments (1.0.0)
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

@@ -48,8 +48,8 @@ test("a person still sees everything — the default surface does not move", () 
 test("an agent has no personal identity tools", () => {
   const agent = names("agent");
   assert.ok(!agent.includes("elixir_my_players"));
-  assert.ok(!agent.includes("elixir_add_player"));
-  assert.ok(!agent.includes("elixir_add_clan"));
+  assert.ok(!agent.includes("elixir_track_player"));
+  assert.ok(!agent.includes("elixir_track_clan"));
   // But it keeps the things a clan agent actually needs.
   assert.ok(agent.includes("elixir_events"), "its own feed");
   assert.ok(agent.includes("elixir_feedback"), "and its own voice");
@@ -204,5 +204,5 @@ test("a person with no player is told how to get one, not left to fail", async (
     )
   ).payload.result.instructions;
   assert.match(text, /no player yet/);
-  assert.match(text, /elixir_add_player/);
+  assert.match(text, /elixir_track_player/);
 });

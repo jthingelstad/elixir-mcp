@@ -96,7 +96,13 @@ test("discovery documents are well-formed and cacheable", async () => {
   const prMeta = JSON.parse(pr.body);
   assert.equal(prMeta.resource, `${ISSUER}/mcp`);
   assert.deepEqual(prMeta.authorization_servers, [ISSUER]);
-  assert.deepEqual(prMeta.scopes_supported, ["cr:read"]);
+  assert.deepEqual(prMeta.scopes_supported, [
+    "cr:read",
+    "recordings:write",
+    "collections:write",
+    "account:write",
+    "feedback:write",
+  ]);
 });
 
 test("full flow: register -> authorize (email, code) -> 303 with iss -> token -> live bearer", async () => {
@@ -143,16 +149,17 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   assert.equal(emailStep.statusCode, 200);
   assert.match(emailStep.body, /authorizes Claude/);
   assert.match(emailStep.body, /Read recorded game data/);
-  // Capabilities the client did NOT ask for are still shown - but as
-  // unticked checkboxes to opt into, never as something already granted.
+  // Capabilities the client did NOT ask for are still shown - as ticked
+  // checkboxes the person can untick (1.0.0), never as already granted:
+  // this form posts without them, and the token below carries cr:read only.
   assert.match(
     emailStep.body,
-    /<input type="checkbox" name="grant" value="recordings:write">/,
-    "unrequested capabilities are offered, not granted",
+    /<input type="checkbox" name="grant" value="recordings:write" checked>/,
+    "unrequested capabilities are offered ticked, not granted",
   );
   assert.doesNotMatch(
     emailStep.body,
-    /<li><strong>Change recordings<\/strong>/,
+    /<li><strong>Change what you track<\/strong>/,
     "and are not listed among the granted ones",
   );
   assert.equal(sentEmails.length, 1);
@@ -292,11 +299,11 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   assert.ok(readTools.length > 0);
   assert.deepEqual(writeTools.map(({ name }) => name).sort(), [
     "collections_edit",
-    "elixir_add_clan",
-    "elixir_add_player",
     "elixir_feedback",
     "elixir_identify",
     "elixir_nickname",
+    "elixir_track_clan",
+    "elixir_track_player",
   ]);
 
   for (const [index, tool] of readTools.entries()) {
@@ -324,8 +331,8 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   );
   const requiredScopes = {
     collections_edit: "collections:write",
-    elixir_add_clan: "recordings:write",
-    elixir_add_player: "recordings:write",
+    elixir_track_clan: "recordings:write",
+    elixir_track_player: "recordings:write",
     elixir_feedback: "feedback:write",
     elixir_identify: "account:write",
     elixir_nickname: "account:write",
@@ -461,7 +468,7 @@ test("consent enumerates every requested mutation capability", async () => {
   assert.equal(response.statusCode, 200);
   for (const title of [
     "Read recorded game data",
-    "Change recordings",
+    "Change what you track",
     "Edit collections",
     "Update account preferences",
     "Send feedback",
@@ -683,7 +690,10 @@ test("an unknown OAuth access token is refused with 401 and a challenge, never 5
     response.headers["www-authenticate"],
     /^Bearer resource_metadata=/,
   );
-  assert.match(response.headers["www-authenticate"], /scope="cr:read"/);
+  assert.match(
+    response.headers["www-authenticate"],
+    /scope="cr:read recordings:write collections:write account:write feedback:write"/,
+  );
   const { rows } = await db.query(
     `select account_id, kind, reason from credential_refusal where credential_hash = $1`,
     [crypto.createHash("sha256").update(raw).digest("hex")],

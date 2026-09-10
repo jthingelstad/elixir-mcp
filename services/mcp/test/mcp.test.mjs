@@ -174,7 +174,7 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
     context(),
   );
   assert.equal(note.statusCode, 202);
-  const unknown = await handleMcpMessage(rpc("resources/list"), context());
+  const unknown = await handleMcpMessage(rpc("logging/setLevel"), context());
   assert.equal(unknown.payload.error.code, -32601);
   const badTool = await handleMcpMessage(
     rpc("tools/call", { name: "suggest_deck" }),
@@ -232,7 +232,7 @@ test("elixir_my_players: primary claim, recording status, meta envelope", async 
 test("elixir_coverage: polls, appearances, recording_active_since", async () => {
   const { body } = await callTool("elixir_coverage");
   assert.ok(body.battles.recorded_appearances > 0);
-  assert.match(body.battles.note, /appears in \d+ recorded battles/);
+  assert.match(body.notes.join(" "), /appears in \d+ recorded battles/);
   assert.ok(
     body.polls.some(
       (p) => p.endpoint === "player_battlelog" && p.last_admitted_at,
@@ -272,7 +272,7 @@ test("battles_query: pagination, filters, both perspectives, local time", async 
     Array.isArray(b.opponents) && b.opponents.length > 0,
     "opponent perspective present",
   );
-  assert.match(b.battle_time_local, /America\/Chicago/);
+  assert.match(b.battle_time_local, /^2026-09-03T\d\d:\d\d:\d\d-05:00$/);
 
   const second = await callTool("battles_query", {
     limit: 5,
@@ -391,7 +391,7 @@ test("local time helpers: DST-aware day bounds", () => {
   );
   assert.match(
     formatLocal("2026-09-03T14:00:34Z", "America/Chicago"),
-    /^2026-09-03 09:00:34/,
+    /^2026-09-03T09:00:34-05:00$/,
   );
 });
 

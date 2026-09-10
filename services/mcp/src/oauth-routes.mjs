@@ -39,10 +39,7 @@ import {
   redeemRefreshToken,
   OAUTH_SCOPES,
 } from "@elixir-mcp/auth";
-import {
-  DEFAULT_OAUTH_SCOPE,
-  OAUTH_SCOPE_DETAILS,
-} from "@elixir-mcp/contracts";
+import { OAUTH_SCOPE_DETAILS } from "@elixir-mcp/contracts";
 
 const DCR_GLOBAL_DAILY_CAP = 200;
 
@@ -209,10 +206,11 @@ function codeFailure(reason) {
  * The requested capabilities are fixed: a client that asked for them needs
  * them. The rest are offered as checkboxes, because this page is the only
  * place a human can widen a grant. Scope arrives in the client's ?scope=
- * parameter, and the protected-resource challenge advertises cr:read only,
- * so a client that never asks for feedback:write could never obtain it -
- * while the insufficient_scope refusal told people to grant exactly that
- * "on the consent page", where no such control existed (2026-09-09).
+ * parameter. Since 1.0.0 a client that names no scope is offered every
+ * capability, and the ones a narrower client left out are offered TICKED
+ * (Jamie, 2026-09-10: "unless the user removes feedback:write it should
+ * work"), so the behaviour every agent is told to perform unprompted -
+ * file feedback - is granted unless a person says otherwise.
  *
  * RFC 6749 section 3.3 permits issuing a scope different from the one
  * requested provided the token response says so, which it does: the
@@ -228,14 +226,14 @@ function consentCapabilities(scope) {
     `<ul>${asked.map((d) => `<li>${line(d)}</li>`).join("")}</ul>` +
     (rest.length === 0
       ? ""
-      : `<p><strong>You can also allow, if you want to:</strong></p>
+      : `<p><strong>Also allowed unless you untick it:</strong></p>
          <ul>${rest
            .map(
              (d) =>
-               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}"> ${line(d)}</label></li>`,
+               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}" checked> ${line(d)}</label></li>`,
            )
            .join("")}</ul>
-         <p>Only what you tick is added. ${esc(String(asked.length))} capabilit${asked.length === 1 ? "y was" : "ies were"} asked for by the client; these were not.</p>`)
+         <p>The client asked for ${esc(String(asked.length))} capabilit${asked.length === 1 ? "y" : "ies"}; the rest are offered ticked, and untick any you would rather not grant.</p>`)
   );
 }
 
@@ -710,9 +708,10 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         {
           resource,
           authorization_servers: [issuer],
-          // The initial challenge is deliberately read-only. General MCP
-          // clients can step up from a per-tool insufficient_scope response.
-          scopes_supported: [DEFAULT_OAUTH_SCOPE],
+          // Every capability is advertised (1.0.0): a client that asks for
+          // what the resource supports asks for all of them, and the consent
+          // page is where a person narrows the grant.
+          scopes_supported: OAUTH_SCOPES,
           bearer_methods_supported: ["header"],
         },
         { "cache-control": "public, max-age=300" },

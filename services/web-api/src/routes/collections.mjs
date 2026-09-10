@@ -168,7 +168,7 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
       }
       if (action !== "add") return json(400, { error: "bad_request" });
       // Added = recorded: slots count clans you've ADDED, per scope -
-      // the MCP door (elixir_add_clan) applies the same rule.
+      // the MCP door (elixir_track_clan) applies the same rule.
       const scope = body.scope === "activity" ? "activity" : "comprehensive";
       if (!account.isOwner && account.role !== "admin") {
         const { rows: slots } = await db.query(

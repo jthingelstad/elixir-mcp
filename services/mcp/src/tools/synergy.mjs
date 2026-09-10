@@ -8,14 +8,17 @@ import {
   typesForModeGroup,
   cardForms,
 } from "@elixir-mcp/contracts";
-import { resolveInstant } from "../time.mjs";
 import {
   ToolFailure,
-  requireOrderedWindow,
-  WINDOW_FROM_DESC,
-  WINDOW_TO_DESC,
+  MODE_SCHEMA,
+  WINDOW_ARGS,
+  SEGMENT_SCHEMA,
+  SEGMENT_DOCS,
+  requireEnum,
+  resolveWindow,
   segmentFilter,
-  SEGMENT_ARGS,
+  appliedBlock,
+  notes,
   META_METHODOLOGY,
 } from "./shared.mjs";
 
@@ -59,7 +62,7 @@ async function resolveCard(db, { card_id, card }) {
 export const synergyTools = {
   cards_synergy: {
     description:
-      "What a card is played WITH, for a segment (corpus, clan, player or collection) and window: partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate (share of anchor decks that also carry the partner), distinct players per pair, the partner's baseline usage in the segment, and lift = co_occurrence_rate / baseline - so a card that rides along with everything reads as lift near 1 while a real pairing stands out. The anchor's own totals (decks, players) say whether the question is answerable before you report. Forms merge for the anchor by default (the card, not the form); partners stay split by form. Anchor by card_id, or by exact name - never fuzzy.",
+      "What a card is played WITH, for a segment (the corpus by default) and window (default 28 days): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; forms merge for the anchor by default while partners stay split by form.",
     inputSchema: {
       type: "object",
       properties: {
@@ -72,35 +75,35 @@ export const synergyTools = {
           description:
             "Anchor card by EXACT name (case-insensitive); ambiguous names are refused with candidates.",
         },
-        ...SEGMENT_ARGS,
-        from: {
-          type: "string",
-          description: `Default: 28 days ago. ${WINDOW_FROM_DESC}`,
-        },
-        to: { type: "string", description: WINDOW_TO_DESC },
-        mode: { type: "string", enum: MODE_GROUPS },
+        segment: SEGMENT_SCHEMA,
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
         merge_forms: {
           type: "boolean",
           default: true,
           description:
-            "Treat the anchor's base, Evolution and Hero forms as one card (default). false = the anchor is only its base form; pair with anchor_form to pick a form.",
+            "Treat the anchor's base, Evolution and Hero forms as one card (default); false anchors on one form, chosen with anchor_form.",
         },
         anchor_form: {
           type: "string",
           enum: ["base", "evolution", "hero"],
-          description:
-            "With merge_forms false: which form of the anchor to anchor on.",
+          description: "With merge_forms false: which form of the anchor.",
         },
-        min_pair_battles: { type: "integer", minimum: 1, default: 5 },
+        min_pair_battles: {
+          type: "integer",
+          minimum: 1,
+          default: 5,
+          description: "Decided decks a pair needs to be listed.",
+        },
         limit: { type: "integer", minimum: 1, maximum: 60, default: 20 },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const anchor = await resolveCard(ctx.db, args);
-      const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
+      const win = resolveWindow(ctx, args, { defaultDays: 28 });
       const where = [
         "bp.deck ? 'cards'",
         "jsonb_array_length(bp.deck->'cards') > 0",
@@ -108,21 +111,17 @@ export const synergyTools = {
         "b.type_class = 'pvp'",
       ];
       if (seg.where) where.push(seg.where);
-      const from =
-        resolveInstant(tz, args.from) ??
-        new Date(Date.now() - 28 * 86400_000).toISOString();
-      params.push(from);
+      params.push(win.from);
       where.push(`b.battle_time >= $${params.length}`);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (to) {
-        params.push(to);
+      if (win.to) {
+        params.push(win.to);
         where.push(`b.battle_time < $${params.length}`);
       }
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
         where.push(`b.type = any($${params.length})`);
       }
-      requireOrderedWindow(new Date(from), to ? new Date(to) : null);
       const merge = args.merge_forms !== false;
       const formBit = { base: 0, evolution: 1, hero: 2 }[
         args.anchor_form ?? "base"
@@ -215,9 +214,15 @@ export const synergyTools = {
           usage_share:
             decided > 0 ? Number((anchorDecks / decided).toFixed(3)) : null,
         },
-        segment: seg.label,
-        window_from: from,
-        window_to: to ?? null,
+        applied: appliedBlock({
+          segment: seg.echo,
+          window: win.echo,
+          mode: args.mode,
+          merge_forms: merge,
+          anchor_form: merge ? undefined : (args.anchor_form ?? "base"),
+          min_pair_battles: minPair,
+          limit,
+        }),
         decided_battles: decided,
         ...(anchorDecks < META_METHODOLOGY.segment_min_decided
           ? {
@@ -246,8 +251,16 @@ export const synergyTools = {
                 : null,
           };
         }),
-        note: "Descriptive co-occurrence over decided head-to-head player-battle observations (duels, boat battles, draws excluded; both sides of a match can contribute). co_occurrence_rate = decks containing anchor AND partner / decks containing anchor; baseline_usage = partner's share of ALL decided decks in the segment; lift = co_occurrence_rate / baseline_usage, so ~1 means the partner appears with the anchor about as often as with anything. players is distinct pilots for the pair and is the field that tells a personal habit from a pattern. Partners keep evolution/hero forms as separate rows by design. No causal claim: a pairing's win_rate_with_anchor describes who plays it.",
-        meta: responseMeta({ as_of: new Date().toISOString() }),
+        notes: notes(
+          "co_occurrence_rate = decks with anchor AND partner / decks with anchor; baseline_usage = the partner's share of all decided decks in the segment; lift = co_occurrence_rate / baseline_usage.",
+          "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
+          "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",
+        ),
+        docs: SEGMENT_DOCS,
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+        }),
       };
     },
   },

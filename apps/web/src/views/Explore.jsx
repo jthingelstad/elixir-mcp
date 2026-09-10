@@ -87,7 +87,7 @@ async function fetchRecord(kind, id) {
     case "deck":
       return call("battles_query", { deck_hash: id, limit: 10 });
     case "collection":
-      return call("collections_get", { slug: id });
+      return call("collections_get", { collection: id });
     case "week": {
       const [clan, season, section] = id.split("~");
       const res = await call("war_history", {
@@ -116,7 +116,8 @@ async function fetchRecord(kind, id) {
           verbosity: "compact",
           include_total: true,
         });
-      if (what === "colmembers") return call("collections_get", { slug: key });
+      if (what === "colmembers")
+        return call("collections_get", { collection: key });
       throw new Error(`unknown list ${what}`);
     }
     default:

@@ -119,7 +119,7 @@ test("an agent omitting the tag is told what would fix it, not guessed at", asyn
   // Guessing a clan member here would be confidently wrong every time.
   await assert.rejects(
     () => resolveSubject(db, agent, undefined),
-    (e) => e.code === "not_found" && /elixir_identify/.test(e.hint),
+    (e) => e.code === "no_subject" && /elixir_identify/.test(e.hint),
   );
 });
 
@@ -161,7 +161,7 @@ test("one agent's mappings are invisible to another", async () => {
   await assert.rejects(
     () =>
       resolveSubject(db, other, undefined, "full", { onBehalfOf: "discord:1" }),
-    (e) => e.code === "not_found",
+    (e) => e.code === "no_subject",
   );
 });
 
@@ -234,7 +234,7 @@ test("an agent with no clan is told what would fix it, in terms it can act on", 
   const orphan = { accountId: rows[0].account_id, kind: "agent" };
   await assert.rejects(
     () => resolveEntitledClan(db, orphan, undefined),
-    (e) => e.code === "not_entitled" && /Account -> Agents/.test(e.hint),
+    (e) => e.code === "no_subject" && /Account -> Agents/.test(e.hint),
   );
 });
 

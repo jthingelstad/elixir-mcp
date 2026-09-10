@@ -44,5 +44,11 @@ export const PILOT_METHODOLOGY = {
   },
 };
 
-export const PILOT_NOTE =
-  "pilot_score = actual minus level-expected win rate on scored observations. Rates and scores are calculated from unrounded aggregates, then independently rounded to three decimals. This is a descriptive in-sample residual, not proof of skill, improvement, or spending independence. Only recorded PvP battles with exactly two participants on opposing sides, known deck-average levels and opposite decided outcomes qualify. Each contributes two dependent player-battle observations. Bins need 200 observations, players need 30 scored battles, and monthly points need 20. The curve is refit per request; scores can move without new player battles. Aggregate basis counts do not identify the fitted curve: unchanged counts can hide changed composition or rates. Compare the underlying samples and populations before interpreting a change. standard_error is the legacy 0.5 / sqrt(n) approximation, not a confidence interval for the score.";
+/** One-sentence caveats for both Pilot Score tools; the formulas and the
+ *  floors are on the methodology page (PILOT_DOCS). */
+export const PILOT_NOTES = [
+  "pilot_score = actual minus level-expected win rate over scored observations: a descriptive in-sample residual, not proof of skill, improvement or spending independence.",
+  "Only recorded PvP battles with exactly two opposing participants, known deck-average levels and opposite decided outcomes qualify; each contributes two dependent observations.",
+  "The curve is refit per request over the window, so a score can move with no new battles; standard_error is the legacy 0.5 / sqrt(n) approximation, not a confidence interval.",
+];
+export const PILOT_DOCS = "methodology#the-level-curve-and-pilot-score";

@@ -115,7 +115,7 @@ export function identitySentences(identity) {
     const primary = identity.grouped?.primary?.[0];
     if (!primary) {
       out.push(
-        "You have no player yet. elixir_add_player adds one and your first becomes your primary; until then nothing here defaults to you.",
+        "You have no player yet. elixir_track_player tracks one and your first becomes your primary; until then nothing here defaults to you.",
       );
     } else {
       out.push(`YOU ARE ${label(primary)}.`);

@@ -126,6 +126,6 @@ test("owner administers recorded clans without membership; default clan resolves
   assert.equal(await resolveEntitledClan(db, accounts.owner), CLAN);
   await assert.rejects(
     () => resolveEntitledClan(db, accounts.carol),
-    (e) => e.code === "not_entitled",
+    (e) => e.code === "no_subject",
   );
 });

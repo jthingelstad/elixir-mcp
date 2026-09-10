@@ -134,7 +134,7 @@ test("a duel that summed three crowns across rounds is not a three-crown victory
   assert.notEqual(w.three_crown_rate, 0.75, "the old, unit-mixed answer");
 
   assert.match(
-    res.denominators_note,
+    res.notes.join(" "),
     /head_to_head_battles/,
     "the note must name the denominator",
   );
@@ -193,7 +193,7 @@ test("a boat win inflates wins without moving win_rate, and both halves are show
   );
 
   assert.match(
-    res.denominators_note,
+    res.notes.join(" "),
     /win_rate = decided_wins \/ decided_battles/,
   );
 });
@@ -271,10 +271,10 @@ test("a perfect ratio over two days does not read as a captured week", async () 
     "span runs forwards",
   );
   // The note has to make the comparison possible without arithmetic.
-  assert.match(c.note, /measured_hours/);
-  assert.match(c.note, /168/);
+  assert.match(res.notes.join(" "), /measured_hours/);
+  assert.match(res.notes.join(" "), /168/);
   assert.doesNotMatch(
-    c.note,
+    res.notes.join(" "),
     /the week was fully observed[^:]/i,
     "the note must not imply a full week",
   );

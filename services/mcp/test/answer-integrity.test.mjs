@@ -165,7 +165,7 @@ test("oversized tool output is a bounded JSON failure retaining the request rece
   const result = response.payload.result;
   const body = JSON.parse(result.content[0].text);
   assert.equal(result.isError, true);
-  assert.equal(body.error.code, "bad_request");
+  assert.equal(body.error.code, "result_too_large");
   assert.equal(body.meta.request_id, "00000000-0000-0000-0000-000000000001");
   assert.ok(body.meta.disclaimer);
   assert.ok(result.content[0].text.length < 48000);

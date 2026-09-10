@@ -6,6 +6,12 @@
  * can never deliver the notification — serverInfo.version is the honest
  * cache key, changing exactly when the tool surface does; results capped
  * with a hint naming the tool's own parameters.
+ *
+ * 1.0.0: resources and prompts beside tools (resources.mjs), every tool
+ * result also as structuredContent, an oversized result answered with
+ * result_too_large rather than bad_request, and the opening instructions
+ * carrying the canonical explanation of player_tag / on_behalf_of /
+ * windows once, so the per-argument descriptions can be one line.
  */
 
 import crypto from "node:crypto";
@@ -20,6 +26,13 @@ import {
   PRINCIPAL_META_KEY,
 } from "./identity.mjs";
 import { quotaMeta } from "./quota.mjs";
+import {
+  listResources,
+  listResourceTemplates,
+  readResource,
+  listPrompts,
+  getPrompt,
+} from "./resources.mjs";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
@@ -50,33 +63,55 @@ function rpcError(id, code, message, data) {
 /**
  * The opening brief, written for the principal actually connecting.
  *
- * This used to say "Start with elixir_my_players for the caller's added
- * players" to everyone, which is exactly wrong for an agent: its owner's
- * claimed players are not its subject, and following that instruction is how a
- * clan bot ends up reciting somebody's personal tags. The bootstrap question
- * for an agent is not "who am I" but "what do I serve".
+ * Identity first (the thing every session used to spend calls
+ * discovering), then the conventions every tool follows - said once here
+ * rather than in fifteen argument descriptions - then where to start and
+ * where the manual is.
  */
 function instructionsFor(kind, identity) {
-  const shared = [
+  const conventions = [
     "Recorded Clash Royale history: battles, performance, snapshots, war,",
-    "coverage - all recorded game data is readable by every account.",
-    "elixir_coverage tells you how complete a record is - caveat answers when",
-    "capture is incomplete. game_clock answers what season and war day it is",
-    "without reference to any clan. All tags are CR tags like #20JJJ2CCRU.",
+    "coverage; all recorded game data is readable by every account.",
+    "CONVENTIONS. Omit player_tag to mean the caller (a person's primary",
+    "player; on an agent connection, whoever on_behalf_of is mapped to via",
+    "elixir_identify). Omit clan_tag to mean the recorded clan. The segment",
+    "tools (battles_meta_decks, battles_meta_cards, battles_trends,",
+    "cards_synergy, badges_*) take a nested segment and default to the WHOLE",
+    "corpus. Windows are from/to (ISO instants, or YYYY-MM-DD resolved in",
+    "the account's timezone, or the call's timezone argument; a date-only",
+    "`to` covers that whole day); days/weeks are sugar; every windowed",
+    "response echoes applied.window with source argument, default or",
+    "unbounded. verbosity: 'compact' is the one size control. Every",
+    "response carries notes[] (one-sentence caveats to repeat) and docs (a",
+    "page#section for elixir_docs). meta.freshness_seconds and",
+    "meta.completeness_note say how current and complete an answer is;",
+    "elixir_coverage says how complete a player's record is. game_clock says",
+    "what season and war day it is. live: true on players_profile,",
+    "clans_roster, war_current and battles_query reads the game first (one",
+    "live fetch); live_fetch is the raw catch-all and should be rare.",
+    "All tags are CR tags like #20JJJ2CCRU.",
     "Tool schemas evolve: if serverInfo.version differs from your cached",
-    "value, re-fetch tools/list, and elixir_changelog(since) lists what",
-    "shipped.",
+    "value, re-fetch tools/list; elixir_changelog(since) lists what shipped.",
+    "The manual is elixir_docs (start with pages choosing-a-tool and",
+    "glossary) and the same pages are resources at elixir://docs/<slug>.",
   ];
-  const closing = {
+  const start = {
     person: [
-      "Added means recorded: elixir_add_player/elixir_add_clan start capture in",
-      "one act, and each player you add is your primary, an alt, a friend or",
-      "someone you watch (elixir_my_players shows which). meta.events_pending",
-      "signals new elixir_events for the subjects you keep notify-on.",
+      "START with players_summary for 'how am I doing', battles_performance",
+      "for a window or a before/after, battles_decks for decks, and",
+      "elixir_events for what changed. Tracked means recorded:",
+      "elixir_track_player / elixir_track_clan start capture in one act, and",
+      "each player you track is your primary, an alt, a friend or someone you",
+      "watch (elixir_my_players shows which). meta.events_pending signals new",
+      "elixir_events for the subjects you keep notify-on.",
     ],
     agent: [
-      "meta.events_pending signals new elixir_events for your clan - poll that",
-      "feed rather than re-polling the data tools.",
+      "START with clans_roster (once per run; verbosity 'compact' for a",
+      "count), war_current (decks_today is the nudge list) and elixir_events",
+      "from your own cursor with mark_seen false. meta.events_pending and",
+      "meta.feedback_responses_pending ride every response: poll the feed",
+      "and elixir_my_feedback only when they say there is something new,",
+      "never on a timer.",
     ],
     integration: [],
   };
@@ -89,14 +124,11 @@ function instructionsFor(kind, identity) {
     "elixir_my_feedback).",
   ];
   const k = kind === "agent" || kind === "integration" ? kind : "person";
-  // Identity FIRST. It is the thing every session used to spend calls
-  // discovering, and the thing an agent needs before it can answer anything
-  // phrased as "I" or "we".
   const who = identitySentences(identity);
   return [
     ...(who ? [who] : []),
-    ...shared,
-    ...closing[k],
+    ...conventions,
+    ...start[k],
     ...feedback,
     DISCLAIMER,
   ]
@@ -117,7 +149,11 @@ function initializeResult(
     protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requested)
       ? requested
       : MCP_PROTOCOL_VERSION,
-    capabilities: { tools: { listChanged: true } },
+    capabilities: {
+      tools: { listChanged: true },
+      resources: { subscribe: false, listChanged: false },
+      prompts: { listChanged: false },
+    },
     serverInfo: {
       name: "elixir-mcp",
       title: "Elixir MCP - Clash Royale history, recorded",
@@ -133,23 +169,41 @@ function initializeResult(
 
 /** Serialize a tool body under the result cap: over it, a small valid
  *  failure carrying the request receipt replaces the body. Shared by the
- *  MCP door and the web explorer so the cap is one number. */
+ *  MCP door and the web explorer so the cap is one number. The code is
+ *  result_too_large (1.0.0): the request was fine, and an agent branches
+ *  on the code. */
 export function renderToolResultText(registry, name, invoked, kind = null) {
   // Compact JSON: MCP clients pay tokens per byte, and battle results are
   // deck-dense — indent-1 doubled their size past the cap for no benefit.
   let text = JSON.stringify(invoked ?? null);
   const truncated = text.length > MCP_RESULT_MAX_CHARS;
+  let body = invoked;
   if (truncated) {
     const spec = registry.declarations(kind).find((d) => d.name === name);
     const params = Object.keys(spec?.inputSchema?.properties ?? {});
-    const hint = params.length
-      ? `narrow the arguments (${params.join(", ")})`
-      : "This tool has no narrowing arguments. Report this request_id with elixir_feedback.";
+    const narrowing = params.filter((p) =>
+      [
+        "limit",
+        "verbosity",
+        "from",
+        "to",
+        "days",
+        "weeks",
+        "ids",
+        "query",
+        "min_battles",
+      ].includes(p),
+    );
+    const hint = narrowing.length
+      ? `Narrow the arguments (${narrowing.join(", ")})${params.includes("verbosity") ? "; verbosity: 'compact' is usually enough" : ""}.`
+      : params.length
+        ? `Narrow the arguments (${params.join(", ")}).`
+        : "This tool has no narrowing arguments. Report this request_id with elixir_feedback.";
     // A sliced JSON document is not a usable tool result. Keep a small,
     // valid failure and its receipt; never discard metadata at the tail.
-    text = JSON.stringify({
+    body = {
       error: {
-        code: "bad_request",
+        code: "result_too_large",
         message: `Result exceeds ${MCP_RESULT_MAX_CHARS} characters.`,
         hint,
       },
@@ -158,15 +212,17 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
         ...(invoked?.meta?.request_id
           ? { request_id: invoked.meta.request_id }
           : {}),
+        ...(invoked?.meta?.quota ? { quota: invoked.meta.quota } : {}),
       }),
-    });
+    };
+    text = JSON.stringify(body);
   }
-  return { text, truncated };
+  return { text, truncated, body };
 }
 
 /**
  * One JSON-RPC message in, one HTTP-ready reply out.
- * context: { registry, spendQuota(), invokeTool(name, args) }
+ * context: { registry, spendQuota(), invokeTool(name, args), db? }
  */
 export async function handleMcpMessage(message, context) {
   if (Array.isArray(message)) {
@@ -215,12 +271,57 @@ export async function handleMcpMessage(message, context) {
       }),
     };
   }
+  // Resources and prompts: the documentation corpus, listed lazily by
+  // clients and therefore reachable even when a cached tools/list is not.
+  if (method === "resources/list") {
+    return {
+      statusCode: 200,
+      payload: rpcResult(id, { resources: listResources() }),
+    };
+  }
+  if (method === "resources/templates/list") {
+    return {
+      statusCode: 200,
+      payload: rpcResult(id, { resourceTemplates: listResourceTemplates() }),
+    };
+  }
+  if (method === "resources/read") {
+    const uri = String(params.uri ?? "");
+    const found = await readResource(uri, { db: context.db ?? null });
+    if (!found) {
+      return {
+        statusCode: 200,
+        payload: rpcError(id, -32002, `Resource not found: ${uri}`, {
+          hint: "resources/list names every resource; pages are elixir://docs/<slug>.",
+        }),
+      };
+    }
+    return { statusCode: 200, payload: rpcResult(id, found) };
+  }
+  if (method === "prompts/list") {
+    return {
+      statusCode: 200,
+      payload: rpcResult(id, { prompts: listPrompts() }),
+    };
+  }
+  if (method === "prompts/get") {
+    const prompt = getPrompt(params.name);
+    if (!prompt) {
+      return {
+        statusCode: 200,
+        payload: rpcError(id, -32602, `Unknown prompt: ${params.name}`),
+      };
+    }
+    return { statusCode: 200, payload: rpcResult(id, prompt) };
+  }
   if (method === "tools/call") {
     const name = String(params.name ?? "");
     if (!context.registry.has(name)) {
       return {
         statusCode: 200,
-        payload: rpcError(id, -32602, `Unknown tool: ${name}`),
+        payload: rpcError(id, -32602, `Unknown tool: ${name}`, {
+          hint: "tools/list names every tool; if this one shipped after your client cached the list, reconnect. elixir_changelog(since) says what moved.",
+        }),
       };
     }
     // Omitting a tool from tools/list is presentation, not enforcement --
@@ -252,6 +353,10 @@ export async function handleMcpMessage(message, context) {
           id,
           MCP_QUOTA_ERROR_CODE,
           `Daily tool-call quota reached (${quota.max} per day). It resets at midnight UTC.`,
+          {
+            code: "quota_exceeded",
+            hint: "Recorded-data reads are bounded only by this daily budget; elixir_docs({ page: 'limits' }) has the ladder, and running a collector earns credits.",
+          },
         ),
       };
     }
@@ -261,10 +366,7 @@ export async function handleMcpMessage(message, context) {
         : {};
     const invoked = await context.invokeTool(name, args);
     // Agents self-moderate better than they handle walls: the spend rides
-    // every response meta, unlimited accounts included (feedback #17: an
-    // invisible budget gets rationed to near-zero). Read AFTER the call so
-    // a live fetch the tool just made is already counted. The block is
-    // declared in contracts meta.ts and validated like every other field.
+    // every response meta, unlimited accounts included (feedback #17).
     if (invoked.body?.meta) {
       const after = context.spendQuota.describe
         ? await context.spendQuota.describe()
@@ -275,7 +377,7 @@ export async function handleMcpMessage(message, context) {
         live: after.live ?? quota.live,
       });
     }
-    const { text, truncated } = renderToolResultText(
+    const { text, truncated, body } = renderToolResultText(
       context.registry,
       name,
       invoked.body,
@@ -285,6 +387,11 @@ export async function handleMcpMessage(message, context) {
       statusCode: 200,
       payload: rpcResult(id, {
         content: [{ type: "text", text }],
+        // The same JSON as data, for clients that read structuredContent
+        // (2025-06-18); the text block stays for the rest.
+        ...(body && typeof body === "object"
+          ? { structuredContent: body }
+          : {}),
         isError: invoked.isError === true || truncated,
       }),
     };

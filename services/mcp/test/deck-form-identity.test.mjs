@@ -138,7 +138,7 @@ test("battles_decks distinguishes the forms visibly, not only by hash", async ()
 
 test("battles_meta_decks renders forms the same way", async () => {
   const res = await call("battles_meta_decks", {
-    player_tag: TAG,
+    segment: { player_tag: TAG },
     from: "2026-09-01",
     min_battles: 1,
   });

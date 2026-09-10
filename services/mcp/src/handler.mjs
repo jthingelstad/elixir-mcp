@@ -23,7 +23,7 @@ import {
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
-import { DEFAULT_OAUTH_SCOPE, responseMeta } from "@elixir-mcp/contracts";
+import { FULL_OAUTH_SCOPE, responseMeta } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
 import { makeRegistry } from "./tools.mjs";
 import { makeInvoker } from "./invoker.mjs";
@@ -178,7 +178,7 @@ export function makeHandler({
       statusCode: 401,
       headers: {
         "content-type": "application/json",
-        "www-authenticate": `Bearer resource_metadata="${resourceMetadataForTarget}", scope="${DEFAULT_OAUTH_SCOPE}"`,
+        "www-authenticate": `Bearer resource_metadata="${resourceMetadataForTarget}", scope="${FULL_OAUTH_SCOPE}"`,
       },
       body: JSON.stringify({ error: "invalid_token" }),
     });
@@ -326,7 +326,7 @@ export function makeHandler({
                     // A refusal that does not say how to fix it is a wall
                     // (feedback #16): the first connection is read-only by
                     // design, and the step-up is a reconnect, not a setting.
-                    hint: `Reconnect this client and grant '${requiredScope}' on the consent page (the first connection grants only cr:read). Owner-issued service tokens carry every capability. Read tools, including elixir_events, need only cr:read.`,
+                    hint: `Reconnect this client and keep '${requiredScope}' ticked on the consent page (every capability is offered, ticked, unless the client asked for less), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_events, need only cr:read.`,
                   },
                 },
               }),
@@ -375,6 +375,9 @@ export function makeHandler({
       const result = await handleMcpMessage(message, {
         registry,
         identity,
+        // resources/read for the card catalog; everything else in the
+        // resource corpus is built in.
+        db,
         // What this connection is FOR. A person sees the full surface; an
         // agent's is shaped around a clan; an integration's around the corpus.
         kind: account.kind ?? "person",

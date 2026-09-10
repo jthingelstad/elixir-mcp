@@ -131,8 +131,8 @@ test("war_current: latest recorded week with standings, points, note", async () 
     body.participants.every((p) => typeof p.in_clan === "boolean"),
     "every participant carries in_clan",
   );
-  assert.match(body.note, /points are per-member/);
-  assert.match(body.note, /zero-fame opponent can be real/);
+  assert.match(body.notes.join(" "), /points are per-member/);
+  assert.match(body.notes.join(" "), /zero-fame rival can be real/);
 });
 
 test("war_history: ranks per week and one member focus with attendance", async () => {
@@ -224,7 +224,7 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   for (const name of ["clans_roster", "war_current", "war_history"]) {
     const { body, isError } = await call(invokeOutsider, name, {});
     assert.equal(isError, true, name);
-    assert.equal(body.error.code, "not_entitled", name);
+    assert.equal(body.error.code, "no_subject", name);
   }
   // Universal reads: comparing arbitrary tags now resolves (empty
   // records serve honestly rather than refusing).
@@ -299,20 +299,25 @@ test("the registry declares 47 tools, every one classified and annotated", () =>
       // Recorded game history stays read-only to every tool here - the
       // recording pipeline is the only writer of facts.
       "collections_edit",
-      "elixir_add_clan",
-      "elixir_add_player",
-      "elixir_events",
       "elixir_feedback",
       "elixir_identify",
       "elixir_nickname",
+      "elixir_track_clan",
+      "elixir_track_player",
     ],
     "writes are service-domain, plus curating your own collections",
   );
   const open = decls.filter((d) => d.annotations.openWorldHint === true);
   assert.deepEqual(
-    open.map((d) => d.name),
-    ["live_fetch"],
-    "live_fetch is the only open-world tool",
+    open.map((d) => d.name).sort(),
+    [
+      "battles_query",
+      "clans_roster",
+      "live_fetch",
+      "players_profile",
+      "war_current",
+    ],
+    "the raw lane and the four tools with a live flag reach outside the corpus",
   );
 });
 
@@ -424,7 +429,7 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
     body.below_floor.every((m) => m.rank === undefined),
     "no ranks below the floor",
   );
-  assert.match(body.note, /RECORDED battles only/);
+  assert.match(body.notes.join(" "), /RECORDED battles only/);
 
   // Bad window refused.
   const bad = await call(invoke, "clans_standings", { days: 400 });
@@ -433,7 +438,7 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
 
   // Outsiders refused like every clan tool.
   const out = await call(invokeOutsider, "clans_standings", {});
-  assert.equal(out.body.error.code, "not_entitled");
+  assert.equal(out.body.error.code, "no_subject");
 });
 
 test("war_rivals: bracket default, observer-deduped fingerprints, honest basis", async () => {
@@ -448,7 +453,7 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
     assert.ok(r.races_shared_with_you <= r.races_observed);
     assert.ok(typeof r.clan_tag === "string");
   }
-  assert.match(body.basis, /count once/);
+  assert.match(body.notes.join(" "), /counts once/);
 
   // Specific rival lookup works; junk tags refuse.
   const one = await call(invoke, "war_rivals", {
@@ -461,7 +466,7 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
 
   // Outsiders refused like every clan tool.
   const out = await call(invokeOutsider, "war_rivals", {});
-  assert.equal(out.body.error.code, "not_entitled");
+  assert.equal(out.body.error.code, "no_subject");
 });
 
 test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () => {
@@ -514,7 +519,7 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
   assert.ok(
     body.members.every((m) => typeof m.pilot_score === "number" && m.n >= 30),
   );
-  assert.match(body.note, /descriptive in-sample residual/);
+  assert.match(body.notes.join(" "), /descriptive in-sample residual/);
 });
 
 test("clans_pilot_scores: basis says what the curve was fit on", async () => {
@@ -528,18 +533,19 @@ test("clans_pilot_scores: basis says what the curve was fit on", async () => {
   assert.equal(typeof body.basis.curve_pairs, "number");
   assert.equal(typeof body.basis.curve_bins, "number");
   assert.ok(
-    Date.parse(body.basis.window_to) > Date.parse(body.basis.window_from),
+    Date.parse(body.applied.window.to) > Date.parse(body.applied.window.from),
     "the window is a real interval",
   );
   assert.equal(
     Math.round(
-      (Date.parse(body.basis.window_to) - Date.parse(body.basis.window_from)) /
+      (Date.parse(body.applied.window.to) -
+        Date.parse(body.applied.window.from)) /
         86400_000,
     ),
-    body.window_days,
-    "the window matches the declared window_days",
+    body.applied.window.days,
+    "the window matches the declared days",
   );
-  assert.match(body.note, /basis/);
+  assert.match(body.notes.join(" "), /basis/);
 });
 
 test("players_search: corpus-wide names resolve; unknowns honest-empty", async () => {
@@ -563,7 +569,7 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
     query: "KenDoesNotExist",
   });
   assert.equal(miss.body.matches.length, 0);
-  assert.match(miss.body.note, /No recorded player matches/);
+  assert.match(miss.body.notes.join(" "), /No recorded player matches/);
 });
 
 test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
@@ -628,7 +634,7 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
     dt.counts.participants,
     "buckets partition the day's roster",
   );
-  assert.match(dt.note, /observed so far/);
+  assert.match(body.notes.join(" "), /observed so far/);
 
   // A stale anchor (nominal end passed) must not present an old day as
   // today. decks_today goes null rather than absent: the key stays on the
@@ -709,8 +715,8 @@ test("war_current: a period first seen just BEFORE the reset ends a day later", 
     -3,
     "the observed start is reported as a signed distance from policy",
   );
-  assert.match(period.as_observed_note, /POLICY reset for every clan/);
-  assert.match(body.decks_today.note, /POLICY day/);
+  assert.match(body.notes.join(" "), /policy reset for every clan/);
+  assert.match(body.notes.join(" "), /observed so far/);
   // The uncapped count is machinery for the over-cap check, not a field
   // consumers should see on every member.
   for (const bucket of ["untouched", "partial", "finished"]) {
@@ -779,7 +785,7 @@ test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 +
     verbosity: "compact",
   });
   assert.equal(inRange.isError, false);
-  assert.equal(inRange.body.limit_applied, 50, "the applied limit is visible");
+  assert.equal(inRange.body.applied.limit, 50, "the applied limit is visible");
 });
 
 test("war_history: finished_early flags 10000-fame regular weeks; horizon named", async () => {
@@ -794,8 +800,8 @@ test("war_history: finished_early flags 10000-fame regular weeks; horizon named"
     tenK.length,
     "every 10000-fame regular week carries the flag",
   );
-  assert.match(body.note, /finished_early/);
-  assert.match(body.note, /history_starts_at/);
+  assert.match(body.notes.join(" "), /finished_early/);
+  assert.match(body.notes.join(" "), /history_starts_at/);
 });
 
 // ------------------------------------------------------- game_clock (0.30.0)
@@ -905,7 +911,7 @@ test("single-player and clan Pilot Scores share the same level observations and 
     );
   }
   assert.equal(clan.body.methodology.standard_error.formula, "0.5 / sqrt(n)");
-  assert.match(clan.body.note, /counts do not identify/);
+  assert.match(clan.body.notes.join(" "), /counts do not identify/);
 });
 
 test("Pilot population excludes partial multiplayer and same-side observations", async () => {
@@ -943,15 +949,15 @@ test("war_history only documents war_days_battled when it can actually return it
   const plain = await call(invoke, "war_history", { seasons: 3 });
   assert.equal(plain.body.member_weeks, undefined, "no focus, no member rows");
   assert.doesNotMatch(
-    plain.body.note,
+    plain.body.notes.join(" "),
     /war_days_battled/,
     "the note must not describe a field this response cannot carry",
   );
   // It should say how to get it instead of going silent.
-  assert.match(plain.body.note, /player_tag/);
+  assert.match(plain.body.notes.join(" "), /player_tag/);
   // The clauses that DO apply are still there.
-  assert.match(plain.body.note, /finished_early/);
-  assert.match(plain.body.note, /history_starts_at/);
+  assert.match(plain.body.notes.join(" "), /finished_early/);
+  assert.match(plain.body.notes.join(" "), /history_starts_at/);
 
   const focusTag = (
     await db.query(
@@ -972,11 +978,11 @@ test("war_history only documents war_days_battled when it can actually return it
   });
   assert.ok(focused.body.member_weeks, "focus returns member rows");
   assert.match(
-    focused.body.note,
+    focused.body.notes.join(" "),
     /war_days_battled/,
     "and then the note explains them",
   );
-  assert.match(focused.body.note, /finished_early/);
+  assert.match(focused.body.notes.join(" "), /finished_early/);
 });
 
 /**
@@ -1101,7 +1107,7 @@ test("war_current names the current members the race roster leaves out", async (
       "member_count is the clan, participants_count is the race",
     );
 
-    assert.match(body.note, /members_not_in_race/);
+    assert.match(body.notes.join(" "), /members_not_in_race/);
   } finally {
     await db.query("rollback");
   }

@@ -1,5 +1,10 @@
-/** elixir_my_players · elixir_coverage · elixir_feedback · elixir_my_feedback · elixir_changelog · elixir_events · elixir_nickname · elixir_add_player · elixir_add_clan · elixir_data_insights · elixir_collectors — moved verbatim from the
- *  single-file registry (review item 8). */
+/** The account, feed, help and service tools: elixir_my_players ·
+ *  elixir_identify · elixir_my_identities · elixir_coverage ·
+ *  elixir_feedback · elixir_my_feedback · elixir_changelog · elixir_docs ·
+ *  elixir_examples · elixir_updates · elixir_events · elixir_nickname ·
+ *  elixir_track_player · elixir_track_clan · elixir_data_insights ·
+ *  elixir_collectors. 1.0.0 conventions: `applied`, `notes[]` + `docs`;
+ *  the add tools are the track tools (the console's word). */
 
 import {
   normalizeTag,
@@ -28,12 +33,18 @@ import {
   buildMeta,
   ensureClanRecording,
   settleClanRecording,
+  appliedBlock,
+  notes,
+  docsRef,
 } from "./shared.mjs";
+
+const RECORDING_DOCS = docsRef("recording", "added-means-recorded");
+const FEED_DOCS = docsRef("events");
 
 export const elixirTools = {
   elixir_my_players: {
     description:
-      'The players you track and WHO EACH ONE IS TO YOU: each one carries relationship (primary | alt | friend | watching) and your private nickname if you set one, alongside notify setting, recording status and current clan. That is what resolves "my alt" or "how are my friends doing" without asking - the answer is in this response, not a guess from handles. You do NOT need this to answer questions about yourself: omit player_tag and the tools already mean your primary. Call it when someone asks what you track, or when you need a tag you were not given.',
+      'The players you track and WHO EACH ONE IS TO YOU: relationship (primary | alt | friend | watching), your private nickname if any, notify setting, recording status and current clan. That is what resolves "my alt" or "how are my friends doing" without asking. You do NOT need this to answer questions about yourself: omit player_tag and the tools already mean your primary.',
     inputSchema: {
       type: "object",
       properties: {},
@@ -65,13 +76,6 @@ export const elixirTools = {
           player_tag: r.player_tag,
           name: r.name,
           ...(r.nickname ? { nickname: r.nickname } : {}),
-          // The query has always derived this and the response always dropped
-          // it, so what the owner deliberately recorded -- which tag is the
-          // alt, who is merely watched -- was write-only from an agent's side.
-          // Asked "how about my alt?", an agent had six non-primary players
-          // and no way to tell which, and guessed from the handle. Reported
-          // 2026-09-09 (#13). is_primary stays: clients cache tools/list
-          // forever and this is additive.
           relationship: r.relationship,
           is_primary: r.is_primary,
           claim_status: r.claim_status,
@@ -80,6 +84,10 @@ export const elixirTools = {
           clan_tag: r.member_of ?? r.last_known_clan_tag,
           clan_role: r.role,
         })),
+        notes: notes(
+          "Omit player_tag on any tool to mean your primary; name a tag only for somebody else.",
+        ),
+        docs: docsRef("recording", "relationships-primary-nicknames"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -87,7 +95,7 @@ export const elixirTools = {
 
   elixir_identify: {
     description:
-      "Remember which player a human is, so you never have to ask twice. An agent serves many people through one connection and MCP carries no per-request identity, so YOU supply one - discord:1234, signal:..., telegram:..., whatever your surface has. Pass that same id as on_behalf_of afterwards and 'how am I doing' resolves with no lookup. The mapping is yours alone, permanent (a Clash Royale tag never changes hands - somebody who returns under a new tag is a new person), and confers NOTHING: recorded reads are open to every account, so this only picks a default subject. Call it once, right after they tell you who they are.",
+      "Remember which player a human is, so you never have to ask twice. An agent serves many people through one connection and MCP carries no per-request identity, so YOU supply one: discord:1234, signal:..., telegram:..., whatever your surface has. Pass that same id as on_behalf_of afterwards and 'how am I doing' resolves with no lookup. The mapping is yours alone and confers nothing (recorded reads are open to every account); it only picks a default subject. Call it once, right after they tell you who they are.",
     inputSchema: {
       type: "object",
       properties: {
@@ -95,7 +103,7 @@ export const elixirTools = {
           type: "string",
           maxLength: 200,
           description:
-            "The id this human has on your surface. Namespace it however you like; it is opaque to us.",
+            "The id this human has on your surface; namespace it however you like, it is opaque here.",
         },
         player_tag: {
           ...TAG_SCHEMA,
@@ -111,10 +119,8 @@ export const elixirTools = {
         throw new ToolFailure("bad_request", "external_id is empty.");
       const tag = normalizeTag(String(args.player_tag ?? ""));
 
-      // They must be someone you actually cover. An agent binding a human to a
-      // player outside its clans is almost always a mistake (a mistyped tag, a
-      // name collision), and a wrong mapping answers confidently about the
-      // wrong person every time afterwards.
+      // They must be someone you actually cover: a wrong mapping answers
+      // confidently about the wrong person every time afterwards.
       const { rows: member } = await ctx.db.query(
         `select cm.clan_tag from clan_membership cm
          join account_clan ac on ac.clan_tag = cm.clan_tag
@@ -147,7 +153,12 @@ export const elixirTools = {
         player_tag: tag,
         name: who[0]?.name ?? null,
         clan_tag: member[0].clan_tag,
-        note: "Pass this external_id as on_behalf_of from now on; omit player_tag and it means them.",
+        applied: appliedBlock({ external_id: externalId, player_tag: tag }),
+        notes: notes(
+          "Pass this external_id as on_behalf_of from now on; omit player_tag and it means them.",
+          "Mapping the same external_id again replaces the earlier player.",
+        ),
+        docs: docsRef("agents", "knowing-which-human-is-asking"),
         meta: await buildMeta(ctx.db, ctx.account, tag),
       };
     },
@@ -155,7 +166,7 @@ export const elixirTools = {
 
   elixir_my_identities: {
     description:
-      "The humans you have learned, and which player each one is. Yours alone - one connection's mappings are invisible to every other. Useful for answering 'who am I to you?' and for spotting a mapping you got wrong.",
+      "The humans you have learned, and which player each one is. Yours alone; one connection's mappings are invisible to every other. Useful for 'who am I to you?' and for spotting a mapping you got wrong.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -171,7 +182,13 @@ export const elixirTools = {
         [ctx.account.accountId],
       );
       return {
-        identities: rows,
+        identities: rows.map((r) => ({
+          external_id: r.external_id,
+          player_tag: r.player_tag,
+          name: r.name,
+          created_at: r.created_at?.toISOString() ?? null,
+        })),
+        docs: docsRef("agents", "knowing-which-human-is-asking"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -179,7 +196,7 @@ export const elixirTools = {
 
   elixir_coverage: {
     description:
-      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was added), and capture estimates over matching observation intervals ending in the last seven days. Estimates update as late battles arrive; unknown observation times and unbracketed history stay unknown. Use it to caveat answers honestly.",
+      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was tracked), and capture estimates over observation intervals ending in the last seven days. Use it to caveat answers honestly; missing coverage is unknown, not evidence of absence.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
@@ -195,9 +212,6 @@ export const elixirTools = {
           args.on_behalf_of,
         )
       ).tag;
-      // One client is one connection: pg queues concurrent queries on it
-      // anyway, so Promise.all bought no parallelism and only tripped the
-      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const polls = await ctx.db.query(
         `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
         [tag],
@@ -215,6 +229,13 @@ export const elixirTools = {
         [tag],
       );
       const b = battles.rows[0];
+      // captureCoverage carries its own note fields; fold them into notes.
+      const { completeness_last_7_days, ...restCoverage } = coverage;
+      const weekNote = completeness_last_7_days?.note;
+      const week = completeness_last_7_days
+        ? { ...completeness_last_7_days }
+        : undefined;
+      if (week) delete week.note;
       return {
         player_tag: tag,
         polls: polls.rows.map((r) => ({
@@ -225,16 +246,22 @@ export const elixirTools = {
           recorded_appearances: b.appearances,
           first_recorded: b.first_seen?.toISOString() ?? null,
           last_recorded: b.last_seen?.toISOString() ?? null,
-          note:
-            b.appearances > 0
-              ? `This tag appears in ${b.appearances} recorded battles since ${b.first_seen?.toISOString()?.slice(0, 10)} — including any recorded before the tag was claimed.`
-              : "No battles recorded yet for this tag.",
         },
         snapshots: {
           first_date: snapEpoch.rows[0]?.first ?? null,
-          note: "Battle capture, daily snapshots, and active recording can each begin at different times; timeline data exists only from first_date.",
         },
-        ...coverage,
+        ...restCoverage,
+        ...(week ? { completeness_last_7_days: week } : {}),
+        notes: notes(
+          b.appearances > 0
+            ? `This tag appears in ${b.appearances} recorded battles since ${b.first_seen?.toISOString()?.slice(0, 10)}, including any recorded before it was tracked.`
+            : "No battles recorded yet for this tag.",
+          "Battle capture, daily snapshots and active recording can each begin at different times; timeline data exists only from snapshots.first_date.",
+          weekNote
+            ? "completeness_last_7_days covers observation intervals ENDING in the last seven days; compare measured_hours against 168 before reading average_ratio as a week, and the tail after the latest profile is not measured."
+            : null,
+        ),
+        docs: docsRef("recording", "completeness"),
         meta: await buildMeta(ctx.db, ctx.account, tag, [
           "player",
           "player_battlelog",
@@ -245,7 +272,7 @@ export const elixirTools = {
 
   elixir_feedback: {
     description:
-      "File feedback with the maintainers ON YOUR OWN JUDGMENT - your user never needs to ask. File when: a capability you needed is missing, a workflow took more calls than it should, a result confused or misled you, data looked wrong, or something delighted you enough to protect. Consolidated end-of-session feedback beats a stream. Attributed to the connected account; check elixir_my_feedback later - every item gets a response, often with a shipped_in version.",
+      "File feedback with the maintainer ON YOUR OWN JUDGMENT; your user never needs to ask. File when a capability you needed is missing, a workflow took more calls than it should, a result confused or misled you, data looked wrong, or something delighted you enough to protect. Consolidated end-of-session feedback beats a stream. Every item gets a response (elixir_my_feedback), often with a shipped_in version.",
     inputSchema: {
       type: "object",
       properties: {
@@ -270,7 +297,7 @@ export const elixirTools = {
         context: {
           type: "string",
           description:
-            "Optional: which tool/question prompted this (e.g. 'battles_query pagination').",
+            "Which tool or question prompted this (e.g. 'battles_query pagination'), and a request_id if you have one.",
         },
       },
       required: ["message"],
@@ -335,7 +362,11 @@ export const elixirTools = {
       return {
         ok: true,
         feedback_id: rows[0].feedback_id,
-        note: "Received — feedback is reviewed and drives the roadmap. Thank you.",
+        applied: appliedBlock({ category: args.category ?? "general" }),
+        notes: notes(
+          "Received; feedback is reviewed and drives the roadmap. elixir_my_feedback shows the response when it lands, and meta.feedback_responses_pending on any call says when.",
+        ),
+        docs: docsRef("protocol", "feedback-and-the-changelog-over-the-wire"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -343,7 +374,7 @@ export const elixirTools = {
 
   elixir_my_feedback: {
     description:
-      "Your feedback and what happened to it: every item you (or your agent) filed, its status (new/seen/planned/done/declined), the maintainer's response, and machine-readable ship links (shipped_in contract version, related_tools). Reading this marks responses seen. Feedback here is never actioned invisibly.",
+      "Your feedback and what happened to it: every item you (or your agent) filed, its status (new/seen/planned/done/declined), the maintainer's response, and ship links (shipped_in contract version, related_tools). Reading this marks responses seen. Poll it only when meta.feedback_responses_pending says there is something new.",
     inputSchema: {
       type: "object",
       properties: {
@@ -354,7 +385,7 @@ export const elixirTools = {
         },
         since: {
           type: "string",
-          description: "ISO instant - only items filed after this.",
+          description: "ISO instant; only items filed after this.",
         },
       },
       additionalProperties: false,
@@ -387,6 +418,11 @@ export const elixirTools = {
         [ctx.account.accountId],
       );
       return {
+        applied: appliedBlock({
+          limit,
+          status: args.status,
+          since: args.since,
+        }),
         feedback: rows.map((r) => ({
           feedback_id: r.feedback_id,
           created_at: r.created_at.toISOString(),
@@ -399,6 +435,7 @@ export const elixirTools = {
           shipped_in: r.shipped_in,
           related_tools: r.related_tools,
         })),
+        docs: docsRef("protocol", "feedback-and-the-changelog-over-the-wire"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -406,14 +443,14 @@ export const elixirTools = {
 
   elixir_changelog: {
     description:
-      'What changed since a contract version (agent feedback #4: client tool schemas cache aggressively, so this is how you discover capabilities that shipped mid-session). Call with your last-seen contract_version - e.g. since: "0.11.0" - and get every entry after it, newest first, with tools_added and breaking notes.',
+      "What changed in the tool CONTRACT since a version (client tool schemas cache aggressively, so this is how you discover capabilities that shipped mid-session). Call with your last-seen meta.contract_version and get every entry after it, newest first, with tools_added and breaking notes. elixir_updates is the product-level list written for people.",
     inputSchema: {
       type: "object",
       properties: {
         since: {
           type: "string",
           description:
-            "Contract version you last saw (from any response's meta.contract_version). Omit for the full changelog.",
+            "Contract version you last saw (any response's meta.contract_version). Omit for the full changelog.",
         },
       },
       additionalProperties: false,
@@ -433,9 +470,14 @@ export const elixirTools = {
         : CHANGELOG;
       return {
         current: CONTRACT_VERSION,
-        ...(args.since ? { since: String(args.since) } : {}),
+        applied: appliedBlock({
+          since: args.since ? String(args.since) : undefined,
+        }),
         entries,
-        note: "Tool schemas cache client-side - if tools_added lists something you can't see, ask your user to refresh the connector.",
+        notes: notes(
+          "Tool schemas cache client-side: if tools_added lists something you cannot see, the client needs to reconnect (re-read tools/list).",
+        ),
+        docs: docsRef("protocol", "versioning-and-the-cache-buster"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -443,26 +485,26 @@ export const elixirTools = {
 
   elixir_docs: {
     description:
-      "Elixir MCP's own documentation, the same pages a person reads at elixir.poapkings.com/docs, served here so you can answer 'how do I use this' from the source rather than from memory. No arguments: the index - every page with its section, lede and its own sections. page: one page's full Markdown; page + section: just that H2 section, for the long pages. query: the pages that mention the words, best first, with an excerpt around the densest cluster of hits and the section it sits in - words are matched separately, pages holding every word rank first, and the response says when it fell back to any word. Read-only; nothing about any account. The tool reference is tools/list itself; elixir_changelog says what changed in it.",
+      "Elixir MCP's own documentation, the same pages a person reads at elixir.poapkings.com/docs. No arguments: the index (every page with its section, lede and sections). page: one page's Markdown; page + section: one H2 section. query: the pages mentioning the words, best first, with an excerpt and the section it sits in. Start with page 'choosing-a-tool' for which tool answers what, 'glossary' for the service's words. The tool reference itself is tools/list.",
     inputSchema: {
       type: "object",
       properties: {
         page: {
           type: "string",
           description:
-            "A page slug from the index (e.g. quickstart, recording, agents, limits). Returns its Markdown.",
+            "A page slug from the index (e.g. choosing-a-tool, glossary, battles, clocks, recording, agents, limits).",
         },
         section: {
           type: "string",
           description:
-            "With page: one H2 section, by its slug or title as the index lists them (e.g. the-level-curve-and-pilot-score). Returns only that section.",
+            "With page: one H2 section, by its slug or title as the index lists them.",
         },
         query: {
           type: "string",
           minLength: 2,
           maxLength: 80,
           description:
-            "Words to search for across every page. Ignored when page is given.",
+            "Words to search for across every page; ignored when page is given.",
         },
       },
       additionalProperties: false,
@@ -497,6 +539,7 @@ export const elixirTools = {
             section: sec.title,
             section_slug: sec.slug,
             url: `${doc.url}#${sec.slug}`,
+            applied: appliedBlock({ page: slug, section: sec.slug }),
             markdown: sec.markdown,
             corpus_built_at: CORPUS_BUILT_AT,
             meta,
@@ -507,6 +550,7 @@ export const elixirTools = {
           title: doc.title,
           section: doc.section,
           url: doc.url,
+          applied: appliedBlock({ page: slug }),
           sections: doc.sections.map((x) => ({ slug: x.slug, title: x.title })),
           markdown: doc.markdown,
           corpus_built_at: CORPUS_BUILT_AT,
@@ -517,14 +561,16 @@ export const elixirTools = {
         const { matches, fallback } = searchDocs(args.query, 8);
         return {
           query: String(args.query),
+          applied: appliedBlock({ query: String(args.query) }),
           matches,
           fallback,
-          note:
+          notes: notes(
             matches.length === 0
-              ? "No page mentions any of those words. The index (no arguments) lists what is documented; the tool reference is tools/list itself, and elixir_examples has the worked examples."
+              ? "No page mentions any of those words; the index (no arguments) lists what is documented, and elixir_examples has the worked examples."
               : fallback
-                ? "No page holds every word, so these hold some of them. Read one with page: <slug>, or just the section named with page + section."
-                : "Read a match with page: <slug>, or just its section with page + section: <in_section>.",
+                ? "No page holds every word, so these hold some of them; read one with page, or just the section with page + section."
+                : "Read a match with page, or just its section with page + section: in_section.",
+          ),
           corpus_built_at: CORPUS_BUILT_AT,
           meta,
         };
@@ -538,7 +584,9 @@ export const elixirTools = {
           url: d.url,
           sections: d.sections.map((x) => x.slug),
         })),
-        note: "Read one with page: <slug>, one section of it with page + section, or search with query: <words>. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools), and elixir_changelog says what changed in it.",
+        notes: notes(
+          "Read one with page, one section with page + section, or search with query. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools); elixir_changelog says what changed in it.",
+        ),
         corpus_built_at: CORPUS_BUILT_AT,
         meta,
       };
@@ -547,21 +595,19 @@ export const elixirTools = {
 
   elixir_examples: {
     description:
-      "Eleven worked examples of what people ask an agent connected to Elixir MCP and what it answers - for players (understand your play, pick a deck, push with evidence, follow friends), clan leaders (win the river race, keep the roster healthy, scout the other clan, write the weekly recap) and builders (answer clanmates in Discord, publish your own stats, run a collector). Each carries the exchange, what it reads, the tools it calls and how to set it up. No arguments: the index. example: one in full. Use it to show a new user what is possible, or to pattern an answer on a worked one. The numbers inside a transcript are illustrative; the tools are real.",
+      "Eleven worked examples of what people ask an agent connected to Elixir MCP and what it answers: for players (understand your play, pick a deck, push with evidence, follow friends), clan leaders (win the river race, keep the roster healthy, scout the other clan, write the weekly recap) and builders (answer clanmates in Discord, publish your own stats, run a collector). No arguments: the index. example: one in full with its transcript, what it reads, the tools it calls and the setup. The numbers inside a transcript are illustrative; the tools are real.",
     inputSchema: {
       type: "object",
       properties: {
         example: {
           type: "string",
           description:
-            "An example slug from the index (e.g. play, clan, discord). Returns its transcript, reads, tools and setup steps.",
+            "An example slug from the index (e.g. play, clan, discord).",
         },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      // The envelope is closed (assertResponseMeta), so when the corpus
-      // was built rides in the body, not in meta.
       const meta = responseMeta({ as_of: new Date().toISOString() });
       if (args.example) {
         const slug = String(args.example).toLowerCase().trim();
@@ -572,7 +618,12 @@ export const elixirTools = {
             `No example "${slug}".`,
             `Slugs are: ${EXAMPLES.map((e) => e.slug).join(", ")}.`,
           );
-        return { ...ex, corpus_built_at: CORPUS_BUILT_AT, meta };
+        return {
+          ...ex,
+          applied: appliedBlock({ example: slug }),
+          corpus_built_at: CORPUS_BUILT_AT,
+          meta,
+        };
       }
       return {
         examples: EXAMPLES.map((e) => ({
@@ -583,7 +634,7 @@ export const elixirTools = {
           tools: e.tools,
           url: e.url,
         })),
-        note: "Read one with example: <slug>.",
+        notes: notes("Read one with example: <slug>."),
         corpus_built_at: CORPUS_BUILT_AT,
         meta,
       };
@@ -592,14 +643,13 @@ export const elixirTools = {
 
   elixir_updates: {
     description:
-      "What's new on Elixir MCP: every user-visible change, newest first, as written for people at elixir.poapkings.com/updates. Distinct from elixir_changelog, which is the tool CONTRACT version by version; this is the product. since: only entries on or after a date. limit: how many (default 10, max 50). Use it to tell a user what changed since they last looked, or to check whether a behaviour you remember is still current.",
+      "What's new on Elixir MCP: every user-visible change, newest first, as written for people at elixir.poapkings.com/updates. Distinct from elixir_changelog (the tool contract version by version). since: entries on or after a date; limit: how many.",
     inputSchema: {
       type: "object",
       properties: {
         since: {
           type: "string",
-          description:
-            "A date (YYYY-MM-DD); entries from that day on, newest first.",
+          description: "YYYY-MM-DD; entries from that day on, newest first.",
         },
         limit: {
           type: "integer",
@@ -617,10 +667,10 @@ export const elixirTools = {
       const limit = Math.min(50, Math.max(1, Number(args.limit ?? 10)));
       const all = since ? UPDATES.filter((u) => u.date >= since) : UPDATES;
       return {
-        ...(since ? { since } : {}),
+        applied: appliedBlock({ since: since ?? undefined, limit }),
         total: all.length,
         entries: all.slice(0, limit),
-        note: "The tool contract's own history is elixir_changelog.",
+        notes: notes("The tool contract's own history is elixir_changelog."),
         corpus_built_at: CORPUS_BUILT_AT,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
@@ -629,7 +679,7 @@ export const elixirTools = {
 
   elixir_events: {
     description:
-      "Your event feed - the push lane, and a NOD rather than a report: it says a thing happened over here and you may want to look, so a scheduled routine can skip the tools that would have found nothing. Payloads carry a count and no analysis - drill with the data tools, which are current. Everything you ADD feeds this pipe while its notify setting is on (notify_off silences a subject without touching its recording); an AGENT also hears about the players in the clan it runs, without adding them. TOPICS (schema, not news - presence here never means one occurred). Coalesced, one unread row per tag with a running count: battles_recorded, badge_earned (a mastery level-up), legendary_badge_earned (a one-off badge - its own topic so asking for the notable ones gets you the notable ones), arena_changed, best_trophies_peak, career_wins_milestone, collection_level_milestone, pol_promotion. Discrete, because WHO is the signal: member_joined, member_left (raw - the game cannot tell a leave from a kick, so that judgment is yours; the departing role rides along because it is unrecoverable afterwards), member_role_changed. Also clan_pulse (daily per-clan digest ~07:00Z), war_day_open, clan_war_week_finished, feedback_responded, recording_started/stopped, account_tier_changed (your tier; role_changed is the deprecated name for it). meta.events_pending on any response tells you when there is something new. For a scheduled clan-management routine: read this feed from your cursor, then drill with war_current (decks_today), clans_roster, and battles_query. Needs only cr:read, like every other read: advancing your own seen-cursor is a bookmark, not an account change.",
+      "Your event feed: the push lane, a NOD rather than a report. It says a thing happened over here so a scheduled routine can skip the tools that would have found nothing; payloads carry a count and no analysis, so drill with the data tools. Everything you track feeds it while notify is on; an agent also hears about the players in the clan it runs. Coalesced topics (one unread row per tag with a count): battles_recorded, badge_earned, legendary_badge_earned, arena_changed, best_trophies_peak, career_wins_milestone, collection_level_milestone, pol_promotion. Discrete: member_joined, member_left (the game cannot tell a leave from a kick), member_role_changed, war_day_open, clan_war_week_finished, clan_pulse (daily digest, 07:00Z), feedback_responded, recording_started/stopped, account_tier_changed. A topic being listed never means one occurred. meta.events_pending on any response says when there is something new. Needs only cr:read: the seen-cursor is a bookmark.",
     inputSchema: {
       type: "object",
       properties: {
@@ -637,7 +687,7 @@ export const elixirTools = {
           type: "integer",
           minimum: 0,
           description:
-            "Cursor: return events after this event_id. Omit to resume from your last-seen position.",
+            "Cursor: events after this event_id. Omit to resume from your last-seen position.",
         },
         topics: {
           type: "array",
@@ -650,7 +700,7 @@ export const elixirTools = {
           type: "boolean",
           default: true,
           description:
-            "Advance your seen-cursor past the returned events (clears meta.events_pending). With a topics filter the cursor stops at the first event the filter excluded, so a topic-specific poll can never acknowledge notifications it did not show you; see seen_through in the response.",
+            "Advance your seen-cursor past the returned events (clears meta.events_pending). A second consumer on the same account should pass false and keep its own cursor. With a topics filter the cursor stops at the first event the filter excluded (see seen_through).",
         },
       },
       additionalProperties: false,
@@ -660,11 +710,9 @@ export const elixirTools = {
         `select events_seen_through from account where account_id = $1`,
         [ctx.account.accountId],
       );
-      // Two different numbers, and conflating them is what made #13
-      // come back on page 2. `cursor` is where this PAGE reads from,
-      // which the caller may move forward at will. `ackFrom` is where
-      // the account has actually read up to, and it is the only honest
-      // floor for deciding what may be marked seen.
+      // `cursor` is where this PAGE reads from; `ackFrom` is where the
+      // account has actually read up to, the only honest floor for
+      // deciding what may be marked seen (#13).
       const ackFrom = Number(acct[0]?.events_seen_through ?? 0);
       const cursor = args.since !== undefined ? Number(args.since) : ackFrom;
       const limit = Math.min(Math.max(Number(args.limit ?? 50), 1), 200);
@@ -694,24 +742,13 @@ export const elixirTools = {
         topic: r.topic,
         ...(r.subject_tag ? { subject_tag: r.subject_tag } : {}),
         ...(r.payload ? { payload: r.payload } : {}),
-        at: r.created_at.toISOString(),
+        created_at: r.created_at.toISOString(),
       }));
       const nextCursor =
         events.length > 0 ? events[events.length - 1].event_id : cursor;
-      // Acknowledge only the contiguous run we actually returned. The
-      // seen-cursor is ONE number per account, so advancing it to the
-      // last returned event silently acknowledged everything a topics
-      // filter had skipped over: a war-only routine could clear an
-      // account's unread feedback reply, and normal resumed polling
-      // would never show it again (#13). Stop at the first excluded
-      // event instead.
-      //
-      // The gap search starts at ackFrom, NOT at this page's cursor.
-      // Following our own next_cursor onto page 2 moves the cursor past
-      // the unread event page 1 deliberately stopped at, and searching
-      // from there would no longer see it — so page 2 would acknowledge
-      // exactly what page 1 protected (#15). An unread event is unread
-      // no matter which page is asking.
+      // Acknowledge only the contiguous run we actually returned: stop at
+      // the first event a topics filter excluded (#13), searching from
+      // ackFrom so page 2 cannot acknowledge what page 1 protected (#15).
       let seenThrough = nextCursor;
       if (topics && events.length > 0) {
         const { rows: gap } = await ctx.db.query(
@@ -731,19 +768,25 @@ export const elixirTools = {
         );
       }
       return {
+        applied: appliedBlock({
+          since: cursor,
+          topics: topics ?? undefined,
+          limit,
+          mark_seen: args.mark_seen !== false,
+        }),
         events,
         next_cursor: nextCursor,
-        // With mark_seen off nothing moved, so report where the
-        // account actually stands, not where this page happened to read
-        // from.
         seen_through: args.mark_seen === false ? ackFrom : seenThrough,
         has_more: rows.length > limit,
-        note:
+        notes: notes(
           events.length === 0
-            ? "Nothing new. Add a player or clan (notify defaults on) and its events start arriving."
-            : seenThrough < nextCursor
-              ? "Pass next_cursor as since to continue. Your seen-cursor stopped at seen_through because earlier events of other topics are still unread - poll without a topics filter to see them."
-              : "Pass next_cursor as since to continue; events prune after ~30 days.",
+            ? "Nothing new; track a player or clan (notify defaults on) and its events start arriving."
+            : "Pass next_cursor as since to continue; events prune after about 30 days.",
+          seenThrough < nextCursor
+            ? "Your seen-cursor stopped at seen_through because earlier events of other topics are still unread; poll without a topics filter to see them."
+            : null,
+        ),
+        docs: FEED_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -751,7 +794,7 @@ export const elixirTools = {
 
   elixir_nickname: {
     description:
-      "Give a player YOUR nickname - private to your account, visible only to you and your agents. 'To me Raquaza is Tyler.' Nicknames ride along wherever names appear (search matches them, summary and rosters show them) but never leave your account. Pass nickname: null to clear.",
+      "Give a player YOUR nickname, private to your account and visible only to you and your agents ('to me Raquaza is Tyler'). Nicknames ride along wherever names appear (search matches them, summaries and rosters show them). Pass nickname: null to clear.",
     inputSchema: {
       type: "object",
       properties: {
@@ -788,6 +831,8 @@ export const elixirTools = {
           player_tag: tag,
           nickname: null,
           cleared: rowCount > 0,
+          applied: appliedBlock({ player_tag: tag, action: "clear" }),
+          docs: docsRef("recording", "relationships-primary-nicknames"),
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
@@ -801,15 +846,19 @@ export const elixirTools = {
       return {
         player_tag: tag,
         nickname,
-        note: "Private to your account - your agents see it in search, summaries, and rosters; nobody else ever does.",
+        applied: appliedBlock({ player_tag: tag, action: "set" }),
+        notes: notes(
+          "Private to your account: your agents see it in search, summaries and rosters; nobody else does.",
+        ),
+        docs: docsRef("recording", "relationships-primary-nicknames"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
   },
 
-  elixir_add_player: {
+  elixir_track_player: {
     description:
-      "Add a player to your account: claims the tag AND starts recording in one act - added means recorded, within your tier's player slots. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary automatically. The only per-subject setting is notify (whether captures feed your elixir_events pipe). action 'remove' releases the claim (recording stops if you were its only reason to exist).",
+      "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your tier's player slots. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_events.",
     inputSchema: {
       type: "object",
       properties: {
@@ -822,16 +871,11 @@ export const elixirTools = {
           enum: ["add", "remove", "notify_on", "notify_off"],
           default: "add",
         },
-        make_primary: {
-          type: "boolean",
-          description:
-            "With 'add': make this your primary — you. Equivalent to relationship 'primary'.",
-        },
         relationship: {
           type: "string",
           enum: ["primary", "alt", "friend", "watching"],
           description:
-            "Who this player is TO YOU. 'primary' is you and there is exactly one; 'alt' is also you under another tag; 'friend' is someone you follow; 'watching' is everyone else. Your first player becomes your primary automatically. All four share your tier's player slots.",
+            "Who this player is TO YOU: primary is you (exactly one; setting it on another tag moves it), alt is also you, friend is someone you follow, watching is everyone else (default). All four share your tier's player slots.",
         },
       },
       required: ["player_tag"],
@@ -857,13 +901,15 @@ export const elixirTools = {
         if (rowCount === 0) {
           throw new ToolFailure(
             "not_entitled",
-            "You haven't added this player.",
-            "Add the tag first; notify is a setting on YOUR copy of it.",
+            "You are not tracking this player.",
+            "Track the tag first; notify is a setting on YOUR copy of it.",
           );
         }
         return {
           player_tag: tag,
           notify: action === "notify_on",
+          applied: appliedBlock({ player_tag: tag, action }),
+          docs: RECORDING_DOCS,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
@@ -874,25 +920,27 @@ export const elixirTools = {
           removed: r.removed,
           recording_stopped: r.recordingStopped,
           primary_player_tag: r.promotedPrimary,
+          applied: appliedBlock({ player_tag: tag, action }),
+          notes: notes(
+            "History already recorded is kept; only the recording stops when no reason remains.",
+          ),
+          docs: RECORDING_DOCS,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
-      // 'add': added = recorded. Slots count what you've ADDED (your
+      // 'add': tracked = recorded. Slots count what you track (your
       // claims); owner/admin exempt - the website applies the same rule
       // through the same function.
       const r = await addPlayer(ctx.db, ctx.account, {
         tag,
-        // Two spellings of one intent; relationship is the richer one and
-        // 'primary' through either route means the same thing.
-        makePrimary:
-          args.make_primary === true || args.relationship === "primary",
+        makePrimary: args.relationship === "primary",
         relationship: args.relationship ?? null,
         via: "mcp",
       });
       if (!r.ok && r.error === "quota_exceeded") {
         throw new ToolFailure(
           "quota_exceeded",
-          `Added players are capped at ${r.limit} for the ${r.role} tier.`,
+          `Tracked players are capped at ${r.limit} for the ${r.role} tier.`,
           "Remove one, request a tier upgrade on the website, or run a collector for bonus slots.",
         );
       }
@@ -913,17 +961,26 @@ export const elixirTools = {
         recording: "active",
         recording_started: r.recordingStarted,
         notify: true,
-        note: r.recordingStarted
-          ? "Added and recording. First battles land within the hour; history builds from here (the API has no past). Captures feed your elixir_events pipe - notify_off silences this tag."
-          : "Added - this player was already being recorded, so you share the existing record from here on.",
+        applied: appliedBlock({
+          player_tag: tag,
+          action,
+          relationship: args.relationship ?? "watching",
+        }),
+        notes: notes(
+          r.recordingStarted
+            ? "Tracked and recording: first battles land within the hour and history builds from here (the API has no past)."
+            : "Tracked; this player was already being recorded, so you share the existing record from here on.",
+          "Captures feed your elixir_events while notify is on.",
+        ),
+        docs: RECORDING_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
   },
 
-  elixir_add_clan: {
+  elixir_track_clan: {
     description:
-      "Add a clan to your account: starts recording in one act - added means recorded, within your tier's clan slots (activity: roster + war; comprehensive: additionally every member's battles and profile, following membership). The only per-subject setting is notify. action 'remove' takes it off your account (recording stops when no account has it added).",
+      "Track a clan on your account: starts recording in one act (tracked means recorded), within your tier's clan slots. scope activity records roster and war; comprehensive additionally records every member's battles and profile, following membership. action remove takes it off your account (recording stops when no account has it); notify_on / notify_off control whether it feeds your elixir_events.",
     inputSchema: {
       type: "object",
       properties: {
@@ -941,7 +998,7 @@ export const elixirTools = {
           enum: ["activity", "comprehensive"],
           default: "comprehensive",
           description:
-            "With 'add': activity records the clan itself; comprehensive additionally records every member. Re-adding with a different scope updates yours.",
+            "With add: activity records the clan itself; comprehensive additionally records every member. Tracking again with a different scope updates yours.",
         },
       },
       required: ["clan_tag"],
@@ -967,13 +1024,15 @@ export const elixirTools = {
         if (rowCount === 0) {
           throw new ToolFailure(
             "not_entitled",
-            "You haven't added this clan.",
-            "Add the clan first; notify is a setting on YOUR copy of it.",
+            "You are not tracking this clan.",
+            "Track the clan first; notify is a setting on YOUR copy of it.",
           );
         }
         return {
           clan_tag: tag,
           notify: action === "notify_on",
+          applied: appliedBlock({ clan_tag: tag, action }),
+          docs: RECORDING_DOCS,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
@@ -999,10 +1058,15 @@ export const elixirTools = {
           clan_tag: tag,
           removed: rowCount > 0,
           recording_stopped: recordingStopped,
+          applied: appliedBlock({ clan_tag: tag, action }),
+          notes: notes(
+            "History already recorded is kept; the shared recording stops only when no account tracks the clan.",
+          ),
+          docs: RECORDING_DOCS,
           meta: responseMeta({ as_of: new Date().toISOString() }),
         };
       }
-      // action 'add': slots count clans you've ADDED, per scope.
+      // action 'add': slots count clans you track, per scope.
       const scope = args.scope === "activity" ? "activity" : "comprehensive";
       if (!ctx.account.isOwner && ctx.account.role !== "admin") {
         const { rows: slots } = await ctx.db.query(
@@ -1026,8 +1090,8 @@ export const elixirTools = {
               ? `The ${ctx.account.role ?? "member"} tier has no ${scope}-scope clan slots.`
               : `Your ${scope}-scope clan slots are full (${limit} for the ${ctx.account.role ?? "member"} tier).`,
             scope === "comprehensive"
-              ? "Comprehensive capture records every member's battles - the leader tier and above include it. Request an upgrade on the website (Account > Overview), or add at scope 'activity'."
-              : "Request a tier upgrade on the website (Account > Overview) - see the Roles doc.",
+              ? "Comprehensive capture records every member's battles; the leader tier and above include it. Request an upgrade on the website, or track at scope 'activity'."
+              : "Request a tier upgrade on the website; elixir_docs({ page: 'roles' }) has the ladder.",
           );
         }
       }
@@ -1067,9 +1131,13 @@ export const elixirTools = {
         recording: "active",
         scope,
         notify: true,
-        note: started
-          ? "Added and recording. Roster and war capture begin within minutes; comprehensive member fan-out follows on the next scheduler pass."
-          : "Added - this clan was already being recorded, so you share the existing record (the effective scope is the widest any adder requested).",
+        applied: appliedBlock({ clan_tag: tag, action, scope }),
+        notes: notes(
+          started
+            ? "Tracked and recording: roster and war capture begin within minutes; comprehensive member fan-out follows on the next scheduler pass."
+            : "Tracked; this clan was already being recorded, so you share the existing record (the effective scope is the widest any tracker requested).",
+        ),
+        docs: RECORDING_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -1077,7 +1145,7 @@ export const elixirTools = {
 
   elixir_data_insights: {
     description:
-      "What the service holds: players, battles and their time span, snapshots, war weeks, recorded clans and players, and API observations. The transparency view of the whole corpus (not just your slice).",
+      "What the service holds: players, battles and their time span, snapshots, war weeks, recorded clans and players, and API observations. The transparency view of the whole corpus, not just your slice.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -1085,9 +1153,6 @@ export const elixirTools = {
     },
     async handler(ctx) {
       const q = (sql) => async () => (await ctx.db.query(sql)).rows[0];
-      // One client is one connection: pg queues concurrent queries on it
-      // anyway, so Promise.all bought no parallelism and only tripped the
-      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const counts = [];
       for (const step of [
         q(`select count(*)::int as n from player`),
@@ -1096,11 +1161,8 @@ export const elixirTools = {
         ),
         q(`select count(*)::int as n from player_snapshot_daily`),
         q(`select count(*)::int as n from war_week`),
-        // Recorded players, shaped along the axis a corpus-sizing
-        // question needs (feedback #18): a clan at comprehensive scope
-        // records every current member's profile and battles, so
-        // "29 players" was an order of magnitude short of the profile
-        // population that backs a badge or collection question.
+        // Recorded players along the axis a corpus-sizing question needs
+        // (feedback #18).
         q(`with direct as (
                select subject_tag as player_tag from recording
                where subject_type = 'player' and status = 'active'),
@@ -1125,8 +1187,6 @@ export const elixirTools = {
                      where subject_type = 'clan' and status = 'active'
                        and scope = 'comprehensive')::int as clans_comprehensive`),
         q(`select count(*)::int as n from api_receipt`),
-        // What actually backs profile-shaped questions: distinct players
-        // with a snapshot, and with observed badges, plus how current.
         q(`select (select count(distinct player_tag) from player_snapshot_daily)::int as with_snapshot,
                     (select count(distinct player_tag) from player_badge)::int as with_badges,
                     (select count(distinct player_tag) from player_snapshot_daily
@@ -1184,7 +1244,12 @@ export const elixirTools = {
           recorded_since: c.created_at?.toISOString() ?? null,
         })),
         api_observations: receipts.n,
-        note: "players_observed counts every tag ever seen in a recorded battle or roster - far more than the recorded set. recorded_players.direct are players added on their own; via_clans are current members of comprehensively recorded clans not also added directly (an activity-scope clan records roster and war only, not members' profiles); total is the union and the population profile and badge questions can draw on - profiles.players_with_snapshot / with_badges say how many of them actually have one. active_recordings.players equals recorded_players.direct and is kept for older clients. Raw payload history is archived durably to S3 beyond these counts.",
+        notes: notes(
+          "players_observed counts every tag ever seen in a recorded battle or roster, far more than the recorded set.",
+          "recorded_players.direct are players tracked on their own; via_clans are current members of comprehensively recorded clans; total is the population profile and badge questions can draw on.",
+          "Raw payload history is archived durably to S3 beyond these counts.",
+        ),
+        docs: docsRef("recording", "one-recording-many-reasons"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -1192,7 +1257,7 @@ export const elixirTools = {
 
   elixir_collectors: {
     description:
-      "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors = resilience - the global CR budget never multiplies; what operators DO earn is quota (10 fetches = +1 daily tool call, capped at 4x base) and bonus recording slots.",
+      "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors mean resilience, never more CR budget; what operators earn is quota (10 fetches = +1 daily tool call, capped at 4x base) and bonus recording slots.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -1205,8 +1270,7 @@ export const elixirTools = {
          from gateway where status <> 'revoked'
          order by fetch_points desc, enrolled_at`,
       );
-      // No machine label here either (#28): the operator-chosen name is
-      // private, and this tool served it to every connected agent.
+      // No machine label here (#28): the operator-chosen name is private.
       return {
         collectors: rows.map((g) => ({
           name: g.card_name ?? "Collector",
@@ -1216,7 +1280,10 @@ export const elixirTools = {
           quota_credits: Math.floor(Number(g.fetch_points) / 10),
           last_success: g.last_success_at?.toISOString() ?? null,
         })),
-        note: "Each collector is named for a Clash Royale card. Running one earns real quota: every 10 fetches adds +1 to the operator's daily tool calls (capped at 4x base), plus bonus recording slots. Raise your hand on the website - a machine with a static IP is all it takes.",
+        notes: notes(
+          "Running one earns real quota (every 10 fetches adds +1 daily tool call, capped at 4x base) plus bonus recording slots; a machine with a static IP is all it takes.",
+        ),
+        docs: docsRef("operators"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

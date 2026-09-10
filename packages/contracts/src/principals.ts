@@ -29,8 +29,8 @@ export type PrincipalKind = "person" | "agent" | "integration";
  */
 export const PERSON_ONLY_TOOLS: readonly string[] = [
   "elixir_my_players",
-  "elixir_add_player",
-  "elixir_add_clan",
+  "elixir_track_player",
+  "elixir_track_clan",
 ];
 
 /**

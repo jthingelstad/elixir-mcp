@@ -1,6 +1,7 @@
 import { gameClock } from "../../../ingest/src/game-clock.mjs";
-/** war_rivals · war_current · war_history — moved verbatim from the
- *  single-file registry (review item 8). */
+/** game_clock · war_rivals · war_current · war_history. Conventions
+ *  (1.0.0): `applied`, `notes[]` + `docs`, `verbosity`, `live: true` on
+ *  war_current for a clan nobody records. */
 
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
@@ -9,21 +10,75 @@ import {
   ToolFailure,
   TAG_RULE_HINT,
   ON_BEHALF_OF_SCHEMA,
+  VERBOSITY,
   subject,
   entitledClan,
+  appliedBlock,
+  notes,
+  docsRef,
+  spendLiveQuota,
 } from "./shared.mjs";
+
+const CLOCK_DOCS = docsRef("clocks", "the-policy-day");
+const WAR_DOCS = docsRef("battles", "war-weeks-points-and-fame");
+
+const CLAN_TAG_SCHEMA = {
+  type: "string",
+  description: "Clan tag like #J2RGCRVG. Omit to mean your recorded clan.",
+};
+
+/** The clan a clan tool answers about. With live: true any clan tag is
+ *  accepted - recorded or not - and its payload is fetched through the
+ *  live lane first (one live fetch), the way players_profile does for a
+ *  player. Without it, the clan must be recorded. */
+async function clanSubject(ctx, args, endpoint) {
+  if (args.live === true) {
+    if (!ctx.live)
+      throw new ToolFailure(
+        "live_unavailable",
+        "The live lane is not configured here.",
+        "Call again without live: true.",
+      );
+    let tag;
+    if (args.clan_tag === undefined) {
+      tag = await entitledClan(ctx.db, ctx.account, undefined);
+    } else {
+      try {
+        tag = normalizeTag(String(args.clan_tag));
+      } catch {
+        throw new ToolFailure(
+          "invalid_tag",
+          `Invalid clan tag: ${args.clan_tag}`,
+          TAG_RULE_HINT,
+        );
+      }
+    }
+    await spendLiveQuota(ctx);
+    const result = await ctx.live(ctx.db, { endpoint, entityKey: tag });
+    if (!result.ok)
+      throw new ToolFailure(
+        "live_unavailable",
+        result.reason === "rejected"
+          ? "The live fetch returned a payload our admission rejected."
+          : "No gateway completed the live fetch in time.",
+        "Call again without live: true for the recorded view, or retry shortly.",
+      );
+    return tag;
+  }
+  return entitledClan(ctx.db, ctx.account, args.clan_tag);
+}
 
 export const warTools = {
   game_clock: {
     description:
-      "What time it is in Clash Royale, for nobody in particular: current season, week within the season, whether today is a training day or war day, and when each next rolls over. Needs no player and no clan — it is a property of the game, not of anyone playing it. Use it to decide WHEN to look before deciding who to look at; war_current is the tool for what a specific clan is doing inside this day.",
+      "What time it is in Clash Royale, for nobody in particular: current season, week within the season, whether today is a training day or war day, and when each next rolls over. Needs no player and no clan. Use it to decide WHEN to look before deciding who to look at; war_current is the tool for what a specific clan is doing inside this day.",
     inputSchema: {
       type: "object",
       properties: {
         at: {
           type: "string",
           description:
-            "ISO 8601 instant to describe instead of now. Useful for checking what a recorded battle's day was.",
+            "ISO 8601 instant to describe instead of now, e.g. to learn what day a recorded battle fell on.",
         },
       },
       additionalProperties: false,
@@ -40,9 +95,11 @@ export const warTools = {
           );
         atMs = parsed;
       }
-
+      const clock = gameClock(atMs);
       return {
-        ...gameClock(atMs),
+        ...clock,
+        applied: appliedBlock({ at: new Date(atMs).toISOString() }),
+        docs: CLOCK_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -50,22 +107,21 @@ export const warTools = {
 
   war_rivals: {
     description:
-      "The Scouting Report (META-INTEL §10): observed war history for rival clans — every recorded river race captures all five bracket clans, so rivals accumulate fingerprints across every race they ever shared with a recorded clan. Defaults to your clan's current bracket. Pure aggregation of stored observations: races seen, fame record, zero-fame races, seasons spanned.",
+      "The Scouting Report: observed war history for rival clans. Every recorded river race captures all five bracket clans, so rivals accumulate fingerprints across every race they shared with a recorded clan. Defaults to your clan's current bracket. Pure aggregation of stored observations: races seen, fame record, zero-fame races, seasons spanned.",
     inputSchema: {
       type: "object",
       properties: {
         clan_tag: {
           type: "string",
           description:
-            "Your clan (entitlement anchor); defaults to your recorded clan.",
+            "Your clan (the anchor whose bracket is meant). Omit for your recorded clan.",
         },
         rival_tags: {
           type: "array",
           items: { type: "string" },
           minItems: 1,
           maxItems: 10,
-          description:
-            "Specific rival clans; defaults to your current bracket.",
+          description: "Specific rival clans; omit for the current bracket.",
         },
       },
       additionalProperties: false,
@@ -138,9 +194,18 @@ export const warTools = {
       );
       return {
         clan_tag: clanTag,
+        applied: appliedBlock({
+          clan_tag: clanTag,
+          rival_tags: rivals,
+          source: args.rival_tags?.length ? "argument" : "current_bracket",
+        }),
         rivals: rows,
-        basis:
-          "Observed in races shared with recorded clans — a rival's races_observed is our sightings, not their full history. Fame stats cover finished races only; current_race_fame is the in-progress week. Races seen by two recorded clans count once.",
+        notes: notes(
+          "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
+          "Fame statistics cover finished races only; current_race_fame is the week in progress.",
+          "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) reads it fresh at one live fetch.",
+        ),
+        docs: WAR_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -148,19 +213,25 @@ export const warTools = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a recorded clan (defaults to YOURS): standings across the five clans, per-member points/decks used, war day and attendance so far. period.source_observed_at and freshness_seconds expose the current-race poll; nominal_period_elapsed warns when the observed policy window ended without inventing a new observation. day_kind and war_day say what kind of day it is without a second call (mirroring game_clock), and next_war_day_opens_at when war is not open. On a live war day, decks_today names who is untouched/partial/finished - the nudge list for clan management; off one it is null with decks_today_reason, because a zeroed roster on a training day looks exactly like a clan that no-showed.",
+      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists (name + tag) and drops the participants array. live: true reads ANY clan fresh from the game first (one live fetch), recorded or not.",
     inputSchema: {
       type: "object",
       properties: {
-        clan_tag: {
-          type: "string",
-          description: "Clan tag; defaults to your recorded clan.",
+        clan_tag: CLAN_TAG_SCHEMA,
+        verbosity: VERBOSITY(
+          "drops the participants array and attendance history; keeps standings, period, counts, members_not_in_race and the decks_today lists.",
+        ),
+        live: {
+          type: "boolean",
+          description:
+            "Fetch this clan's current race from the game first (one live fetch); works for a clan nobody records.",
         },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      const clanTag = await clanSubject(ctx, args, "currentriverrace");
+      const compact = args.verbosity === "compact";
       const { rows: weekRows } = await ctx.db.query(
         `select season_id, section_index, is_colosseum from war_week
          where clan_tag = $1 order by season_id desc, section_index desc limit 1`,
@@ -170,7 +241,9 @@ export const warTools = {
         throw new ToolFailure(
           "not_recorded",
           "No war weeks recorded for this clan yet.",
-          "The first riverracelog poll lands within a day of enrollment.",
+          args.live
+            ? "The live payload was admitted but no race projected; the clan may be between races. Try war_rivals for its history."
+            : "The first riverracelog poll lands within a day of tracking; live: true reads the race now.",
         );
       }
       const wk = weekRows[0];
@@ -189,8 +262,7 @@ export const warTools = {
       let nextWarDayOpensAt = null;
       if (anchorRows[0]) {
         const anchor = anchorRows[0].first_observed_at;
-        // ONE derivation, shared with the clan_pulse feeder. Both used to
-        // rebuild these from the primitives; the other copy drifted.
+        // ONE derivation, shared with the clan_pulse feeder.
         const p = anchoredPeriod(anchorRows[0].period_index, anchor.getTime());
         const info = p.info;
         period = {
@@ -207,21 +279,14 @@ export const warTools = {
           period_end_nominal: new Date(p.endMs).toISOString(),
           week_end_nominal: new Date(p.weekEndMs).toISOString(),
           // How far this clan's observed start sat from the policy hour,
-          // so a consumer can judge the size of the effect on its own
-          // clan instead of taking our word for it. Includes our polling
-          // latency, so it is an upper bound on the true drift.
+          // INCLUDING our polling latency: an upper bound on the drift.
           observed_offset_minutes: p.observedOffsetMinutes,
           next_war_day_opens_at: p.nextWarDayOpensMs
             ? new Date(p.nextWarDayOpensMs).toISOString()
             : null,
-          as_observed_note:
-            "Elixir MCP follows the 10:00 UTC POLICY reset for every clan. Clash Royale matches clans into races of five as matchmaking fills, so a clan's real period start drifts off that hour by its own amount; a multi-clan service cannot honour every clan's start and still have war_day mean one comparable window. *_nominal are therefore policy-grid instants, identical across clans, and are the fields to cite. started_observed_at is when the recorder first saw this period open (true start is at or before it) and observed_offset_minutes is its distance from the policy hour, INCLUDING our polling latency - use them to correct for a single clan's drift if you need to. Consequence worth knowing: battles played between a clan's real start and the policy hour are attributed to the previous policy day. war_day is 1-based (day 1 = first war day); day_in_week is 0-based (0 = first training day). Never infer from day counts or event schemas.",
         };
         nextWarDayOpensAt = period.next_war_day_opens_at;
       }
-      // One client is one connection: pg queues concurrent queries on it
-      // anyway, so Promise.all bought no parallelism and only tripped the
-      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const standings = await ctx.db.query(
         `select participant_clan_tag, participant_name, fame, rank, trophy_change, finish_time
            from war_week_clan
@@ -243,26 +308,10 @@ export const warTools = {
                     p.name nulls last`,
         [clanTag, wk.season_id, wk.section_index],
       );
-      // WHO IS IN THE CLAN BUT NOT IN THE RACE.
-      //
-      // A leader counted 44 participants against 49 members and could not
-      // tell a recorder gap from a real one; the omissions were concentrated
-      // on the least active members, which is the worst possible place for a
-      // silent hole. Verified against the live API on 2026-09-09: its own
-      // currentriverrace clan.participants returned the same 44, missing the
-      // same five tags, so this list is FAITHFUL and the omission is
-      // upstream. Surfacing it is the fix - the gap was never wrong, only
-      // invisible.
-      //
-      // WHY the game omits them, checked afterwards against /clans/{tag} in
-      // the same minute: all five were still members, and all five had a
-      // memberList.lastSeen predating the race start, while all 44 included
-      // members had one after it. The roster is seeded from members SEEN
-      // since the race began - not from who battles, and not from who joined
-      // in time (a member who joined two days late is in it). Written up in
-      // cr-agent-api-docs. We do not store the game's lastSeen - player
-      // .last_seen_at is our poll time - so the reason names the observable
-      // fact rather than restating a predicate we cannot evaluate.
+      // WHO IS IN THE CLAN BUT NOT IN THE RACE. Verified against the live
+      // API 2026-09-09: the game seeds the race roster from members SEEN
+      // since the race began, so the omitted members are the ones whose
+      // lastSeen predates the race start (written up in cr-agent-api-docs).
       const notInRace = await ctx.db.query(
         `select cm.player_tag, p.name
          from clan_membership cm
@@ -302,12 +351,9 @@ export const warTools = {
         [clanTag, wk.season_id, wk.section_index],
       );
       // Today's remaining-decks picture (CLAN-PULSE.md): only while the
-      // anchored war-day period is nominally still open — a stale anchor
-      // must never present an old day as "today". Attendance polls are
-      // unioned with recorded war battles (polls alone undercount,
-      // round-3); duels make battle counts a floor, so greatest() keeps
-      // the poll number authoritative when present.
+      // anchored war-day period is nominally still open.
       let decksToday = null;
+      let overCapNote = null;
       if (
         period?.war_day &&
         Date.now() < Date.parse(period.period_end_nominal)
@@ -340,8 +386,6 @@ export const warTools = {
            order by decks_used, base.name nulls last`,
           [clanTag, wk.season_id, wk.section_index, period.war_day],
         );
-        // decks_raw is the uncapped count, used only to detect the
-        // over-cap case; members carry the capped display value.
         const pick = (lo, hi) =>
           dayRows
             .filter((r) => r.decks_used >= lo && r.decks_used <= hi)
@@ -350,13 +394,10 @@ export const warTools = {
               name,
               decks_used,
             }));
-        // A day holds four decks, so the display value is capped. That
-        // cap was silently swallowing its own evidence: following the
-        // 10:00Z POLICY reset rather than each clan's drifted start
-        // means battles in the drift gap land on the previous policy
-        // day, and the first way that would show is somebody counting
-        // FIVE decks in a day. Surface it instead of rounding it away -
-        // this is the measurement of what the policy grid costs.
+        // A day holds four decks. Following the 10:00Z POLICY reset rather
+        // than each clan's drifted start means battles in the drift gap
+        // land on the previous policy day; the first sign is somebody
+        // counting FIVE decks. Surface it instead of rounding it away.
         const overCap = dayRows
           .filter((r) => r.decks_raw > 4)
           .map((r) => ({
@@ -376,8 +417,10 @@ export const warTools = {
             participants: dayRows.length,
           },
           ...(overCap.length > 0 ? { over_cap: overCap } : {}),
-          note: `Decks used TODAY per current member in this week's race roster: riverrace polls unioned with recorded war battles. Early in a war day the counts trail actual play - cite as 'observed so far', never as final. Days are the 10:00 UTC POLICY day, the same window for every clan; see period.as_observed_note.${overCap.length > 0 ? " over_cap lists members observed with MORE than four decks in this policy day - a sign that this clan's real reset drifts far enough from the policy hour to move battles across the boundary." : ""}`,
         };
+        if (overCap.length > 0)
+          overCapNote =
+            "over_cap lists members observed with more than four decks in this policy day: this clan's real reset drifts far enough from the policy hour to move battles across the boundary.";
       }
       return {
         clan_tag: clanTag,
@@ -385,17 +428,17 @@ export const warTools = {
         section_index: wk.section_index,
         is_colosseum: wk.is_colosseum,
         // What KIND of day this is, beside season_id and mirroring
-        // game_clock. On a training day this tool returns a full roster of
-        // zeroed points and decks and a bracket at fame 0 - shaped exactly
-        // like a clan that no-showed a war day. The only discriminator was
-        // period.kind, below a 900-character note; a leader read the payload
-        // as "the entire clan no-showed" and was saved only by having called
-        // game_clock in the same batch (playtest round, 2026-09-09).
+        // game_clock (playtest round, 2026-09-09).
         day_kind: period?.kind ?? null,
         war_day: period?.war_day ?? null,
         next_war_day_opens_at: nextWarDayOpensAt,
+        applied: appliedBlock({
+          clan_tag: clanTag,
+          verbosity: compact ? "compact" : "full",
+          live: args.live === true ? true : undefined,
+        }),
         standings: standings.rows,
-        participants: participation.rows,
+        ...(compact ? {} : { participants: participation.rows }),
         participants_count: participation.rows.length,
         member_count:
           participation.rows.filter((r) => r.in_clan).length +
@@ -406,10 +449,7 @@ export const warTools = {
           reason: "not_in_race_roster",
         })),
         ...(period ? { period } : {}),
-        // decks_today is an ANSWER when it is null, not an omission. It
-        // used to vanish from the payload entirely off a war day while the
-        // description still promised it as "the nudge list", so a leader
-        // could not tell "nobody owes attacks today" from "this broke".
+        // decks_today is an ANSWER when it is null, not an omission.
         decks_today: decksToday,
         ...(decksToday
           ? {}
@@ -420,8 +460,19 @@ export const warTools = {
                   ? "war_day_over"
                   : "training_day",
             }),
-        attendance_by_war_day: attendance.rows,
-        note: "points are per-member contributions; fame belongs to the boat (clan). standings mirror the game's own race payload: a zero-fame opponent can be real (an inactive bracket). participants list everyone in the race roster this week, sorted by points then current members first; in_clan is false for those who have since left. participants_count and member_count reconcile explicitly, and members_not_in_race names current members the race roster omits: the game's own currentriverrace payload can carry fewer participants than the clan has members (verified against the live API), so a shortfall there is upstream and not a capture gap - reason is not_in_race_roster: observed against the live API, the omitted members are the ones whose game-side lastSeen predates the race start, so they are dormant rather than dropped - joining late does not exclude a member and neither does not battling. That makes this list a useful nudge list in its own right, but the predicate is the game's, not ours, so the reason names the fact and not the inference. attendance_by_war_day counts race participants (not just current members); battled unions poll observations with recorded battles - it is empty before this week's first war day, which day_kind tells you apart from a capture gap.",
+        ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
+        notes: notes(
+          "points are per-member contributions; fame belongs to the boat (the clan).",
+          "standings mirror the game's race payload, so a zero-fame rival can be real (an inactive bracket).",
+          "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
+          decksToday
+            ? "decks_today trails actual play early in a day: cite it as observed so far, never as final."
+            : null,
+          overCapNote,
+          "Days follow the 10:00 UTC policy reset for every clan: cite the *_nominal instants; started_observed_at is when the recorder first saw the period, observed_offset_minutes its distance from the policy hour including polling latency.",
+          "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
+        ),
+        docs: CLOCK_DOCS,
         meta: {
           ...meta,
           ...(period?.nominal_period_elapsed
@@ -437,17 +488,14 @@ export const warTools = {
 
   war_history: {
     description:
-      'Recorded war weeks for a recorded clan (defaults to YOURS): final ranks, boat fame, and (optionally) one member\u2019s per-week points and decks — "did I miss a war day?" lives here.',
+      "Recorded war weeks for a clan, yours by default: final ranks, boat fame, and with player_tag (or on_behalf_of) one member's per-week points, decks and war days battled. seasons says how far back; from/to are not needed here.",
     inputSchema: {
       type: "object",
       properties: {
-        clan_tag: {
-          type: "string",
-          description: "Clan tag; defaults to your recorded clan.",
-        },
+        clan_tag: CLAN_TAG_SCHEMA,
         player_tag: {
           type: "string",
-          description: "Focus one member’s participation.",
+          description: "Focus one member's participation (member_weeks).",
         },
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         seasons: {
@@ -495,12 +543,9 @@ export const warTools = {
       );
       let memberWeeks = null;
       if (focus) {
-        // Same season window as the weeks list. war_days_battled unions
-        // TWO observation sources — decksUsedToday polls AND the member's
-        // own recorded war battles (sparse polls miss decksUsedToday
-        // windows; round-3 cross-check caught the undercount). Null when
-        // the week has NO coverage from either source — a zero there
-        // would be indistinguishable from "sat out every day".
+        // war_days_battled unions TWO observation sources — decksUsedToday
+        // polls AND the member's own recorded war battles. Null when the
+        // week has NO coverage from either source.
         const { rows } = await ctx.db.query(
           `select wp.season_id, wp.section_index, wp.points, wp.decks_used, wp.boat_attacks,
                   case when exists (select 1 from war_attendance_day cov
@@ -524,21 +569,41 @@ export const warTools = {
                                where bp2.player_tag = wp.player_tag and bp2.clan_tag = wp.clan_tag
                                  and b.season_id = wp.season_id and b.section_index = wp.section_index
                                  and b.war_day is not null) d)
-                       end as war_days_battled
+                       end as war_days_battled,
+                  (select array_agg(distinct d.war_day order by d.war_day) from (
+                               select ad.war_day from war_attendance_day ad
+                               where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
+                                 and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
+                                 and ad.decks_used_today > 0
+                               union
+                               select b.war_day from battle_participant bp2
+                               join battle b on b.battle_id = bp2.battle_id
+                               where bp2.player_tag = wp.player_tag and bp2.clan_tag = wp.clan_tag
+                                 and b.season_id = wp.season_id and b.section_index = wp.section_index
+                                 and b.war_day is not null) d) as war_days
            from war_participation wp
            where wp.clan_tag = $1 and wp.player_tag = $2
              and wp.season_id > coalesce((select max(season_id) from war_week where clan_tag = $1), 0) - $3
            order by wp.season_id desc, wp.section_index desc limit 40`,
           [clanTag, focus, seasons],
         );
-        memberWeeks = rows;
+        // war_days: the day indices battled, so "played 3 of 4" can become
+        // "missed day 2" (feedback item 30, 2026-09-10). Null when unknown.
+        memberWeeks = rows.map((r) => ({
+          ...r,
+          war_days: r.war_days_battled === null ? null : (r.war_days ?? []),
+        }));
       }
       // The chronologically-latest unfinished week is the one still being
-      // fought; older null-standings weeks are capture gaps. The
-      // distinction matters to a skeptical reader (round-3 finding).
+      // fought; older null-standings weeks are capture gaps.
       const newest = weeks[0];
       return {
         clan_tag: clanTag,
+        applied: appliedBlock({
+          clan_tag: clanTag,
+          seasons,
+          member: focus ?? undefined,
+        }),
         weeks: weeks.map((w) => ({
           season_id: w.season_id,
           section_index: w.section_index,
@@ -549,8 +614,7 @@ export const warTools = {
           our_rank: w.our_rank,
           our_fame: w.our_fame,
           // A regular week that hit the 10,000-fame finish line stopped
-          // earning member points; decks_used keeps counting (war
-          // auditor pass, 2026-09-06) - per-deck math there is wrong.
+          // earning member points; decks_used keeps counting.
           ...(w.our_fame === 10000 && !w.is_colosseum
             ? { finished_early: true }
             : {}),
@@ -565,16 +629,16 @@ export const warTools = {
             }
           : {}),
         ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
-        // war_days_battled lives on member_weeks, which only exist when a
-        // player_tag was supplied. Stating it unconditionally sent a leader
-        // hunting for a field that was never going to be in the response
-        // (playtest round, 2026-09-09).
-        note:
-          "points are per-member contributions; fame belongs to the boat (clan). in_progress marks the week still being fought (nulls there mean not-finished-yet); on OLDER weeks null our_rank/our_fame means the week was observed without a standings capture." +
-          (focus
-            ? " member_weeks carries this member's week-by-week participation; null war_days_battled there means per-day attendance is unknown for that week (unknown, not zero)."
-            : " Pass player_tag for one member's week-by-week participation (member_weeks).") +
-          " finished_early marks regular weeks where the boat hit the 10,000-fame finish line: decks used after the finish earn ZERO points, so per-deck efficiency math on those weeks is invalid. history_starts_at is the recording horizon - weeks before it were never observed, so fewer seasons than requested is coverage, not absence.",
+        notes: notes(
+          "points are per-member contributions; fame belongs to the boat (the clan).",
+          "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
+          focus
+            ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
+            : "Pass player_tag for one member's week-by-week participation (member_weeks).",
+          "finished_early marks regular weeks where the boat hit the 10,000-fame line: decks used after the finish earn zero points, so per-deck math there is invalid.",
+          "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
+        ),
+        docs: WAR_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

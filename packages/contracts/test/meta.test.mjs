@@ -21,10 +21,12 @@ test("error taxonomy is closed and stable", () => {
     "bad_request",
     "invalid_tag",
     "live_unavailable",
+    "no_subject",
     "not_entitled",
     "not_found",
     "not_recorded",
     "quota_exceeded",
+    "result_too_large",
   ]);
 });
 

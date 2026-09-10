@@ -22,8 +22,8 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
 test("every tool has exactly the capability its behavior requires", () => {
   const expectedWrites = {
     collections_edit: OAUTH_SCOPE.COLLECTIONS_WRITE,
-    elixir_add_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
-    elixir_add_player: OAUTH_SCOPE.RECORDINGS_WRITE,
+    elixir_track_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
+    elixir_track_player: OAUTH_SCOPE.RECORDINGS_WRITE,
     // The feed advances the caller's own bookmark and nothing else; the
     // scheduled read-only routine is what it exists for (feedback #16).
     elixir_events: OAUTH_SCOPE.READ,

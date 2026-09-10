@@ -1,16 +1,25 @@
-/** collections_browse · collections_get · collections_edit. */
+/** collections_browse · collections_get · collections_edit. 1.0.0: the
+ *  argument is `collection`, the name every segment tool already used. */
 
 import { responseMeta } from "@elixir-mcp/contracts";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 import { setCollectionMembers } from "@elixir-mcp/claims";
-import { ToolFailure } from "./shared.mjs";
+import { ToolFailure, appliedBlock, notes, docsRef } from "./shared.mjs";
 
 const MAX_TAGS_PER_CALL = 500;
+const COLLECTION_DOCS = docsRef("recording", "collections");
+
+const COLLECTION_SCHEMA = {
+  type: "string",
+  minLength: 2,
+  maxLength: 40,
+  description: "The collection's slug, as collections_browse lists it.",
+};
 
 export const collectionsTools = {
   collections_browse: {
     description:
-      "Curated collections of players or clans - the owner-published lists (pros, creators, clan families) plus any you own. A collection is its curator's editorial grouping, not a global fact about its members.",
+      "Curated collections of players or clans: the owner-published lists (pros, creators, clan families) plus any you own. A collection is its curator's editorial grouping, not a global fact about its members.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -37,6 +46,10 @@ export const collectionsTools = {
           scope: r.scope,
           member_count: r.member_count,
         })),
+        notes: notes(
+          "Everything in a collection is recorded for as long as it stays there, at the collection's scope.",
+        ),
+        docs: COLLECTION_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -44,25 +57,24 @@ export const collectionsTools = {
 
   collections_get: {
     description:
-      "One collection's members, enriched: players come with name, latest trophies, tenure, and recording status; clans with name and open-member count. Fan into the player/battle tools per tag from here.",
+      "One collection's members, enriched: players come with name, latest trophies, tenure and recording status; clans with name and open-member count. Fan into the player and battle tools per tag from here, or pass the collection as a segment to the meta tools.",
     inputSchema: {
       type: "object",
-      properties: {
-        slug: { type: "string", minLength: 2, maxLength: 40 },
-      },
-      required: ["slug"],
+      properties: { collection: COLLECTION_SCHEMA },
+      required: ["collection"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
+      const slug = String(args.collection).toLowerCase();
       const { rows: col } = await ctx.db.query(
         `select * from collection
          where slug = $1 and (visibility = 'public' or owner_account = $2)`,
-        [String(args.slug).toLowerCase(), ctx.account.accountId],
+        [slug, ctx.account.accountId],
       );
       if (!col[0])
         throw new ToolFailure(
           "not_found",
-          `No collection named '${args.slug}'.`,
+          `No collection named '${slug}'.`,
           "collections_browse lists what exists.",
         );
       const c = col[0];
@@ -91,7 +103,7 @@ export const collectionsTools = {
           trophies: r.trophies,
           years_played: r.years_played,
           recording: r.recording,
-          note: r.note,
+          curator_note: r.note,
         }));
       } else {
         const { rows } = await ctx.db.query(
@@ -112,17 +124,22 @@ export const collectionsTools = {
           name: r.name,
           open_members: r.open_members,
           recording: r.recording,
-          note: r.note,
+          curator_note: r.note,
         }));
       }
       return {
         slug: c.slug,
+        applied: appliedBlock({ collection: c.slug }),
         title: c.title,
         kind: c.kind,
         description: c.description,
         scope: c.scope,
         members,
-        note: "A collection is its curator's grouping, and everything in it is recorded for as long as it stays. scope says how deeply: comprehensive captures battles, activity only the surface (a clan's roster/war/standings, a player's profile). recording=false members may have thin or no data yet - elixir_coverage tells the capture story per tag.",
+        notes: notes(
+          "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
+          "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag.",
+        ),
+        docs: COLLECTION_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -130,11 +147,14 @@ export const collectionsTools = {
 
   collections_edit: {
     description:
-      "Change what is in a collection you own. action 'add' and 'remove' adjust membership; 'set' replaces it with exactly the tags given, which is the shape an external system syncing a roster wants. Everything in a collection is RECORDED for as long as it stays there, at the collection's scope, so adding a tag starts collecting it and removing the last reason to keep it stops. Idempotent: re-adding what is already there changes nothing. Up to 500 tags per call.",
+      "Change what is in a collection you own. action add and remove adjust membership; set replaces it with exactly the tags given (the shape an external roster sync wants). Everything in a collection is RECORDED while it stays there, so adding a tag starts collecting it and removing the last reason to keep it stops. Idempotent; up to 500 tags per call; one malformed tag refuses the whole call.",
     inputSchema: {
       type: "object",
       properties: {
-        slug: { type: "string", description: "The collection to change." },
+        collection: {
+          ...COLLECTION_SCHEMA,
+          description: "The collection to change (its slug).",
+        },
         action: {
           type: "string",
           enum: ["add", "remove", "set"],
@@ -146,14 +166,14 @@ export const collectionsTools = {
           type: "array",
           items: { type: "string" },
           description:
-            "Player or clan tags, matching the collection's kind. Folded to canonical form; a tag that is not a valid CR tag refuses the call rather than being skipped.",
+            "Player or clan tags, matching the collection's kind. Folded to canonical form.",
         },
       },
-      required: ["slug", "tags"],
+      required: ["collection", "tags"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const slug = String(args.slug ?? "").toLowerCase();
+      const slug = String(args.collection ?? "").toLowerCase();
       const { rows: col } = await ctx.db.query(
         `select collection_id, kind, owner_account, scope, title
          from collection where slug = $1`,
@@ -203,10 +223,7 @@ export const collectionsTools = {
       const action = ["add", "remove", "set"].includes(args.action)
         ? args.action
         : "add";
-      // add/remove are sent as deltas. Reading the membership here and
-      // sending the whole computed set as a replacement would race: an
-      // external roster sync running twice would have one call delete
-      // the member the other just added.
+      // add/remove are sent as deltas so two syncs cannot race each other.
       const r = await setCollectionMembers(
         ctx.db,
         {
@@ -219,6 +236,7 @@ export const collectionsTools = {
       );
       return {
         slug,
+        applied: appliedBlock({ collection: slug, action, tags: tags.length }),
         kind: col[0].kind,
         scope: col[0].scope,
         added: r.added,
@@ -226,7 +244,11 @@ export const collectionsTools = {
         members: r.total,
         recordings_started: r.recordingsStarted,
         recordings_stopped: r.recordingsStopped,
-        note: `'${col[0].title}' now holds ${r.total} ${col[0].kind}${r.total === 1 ? "" : "s"}, recorded at ${col[0].scope} scope. New members begin collecting within the hour; live_fetch is the way to get one immediately.`,
+        notes: notes(
+          `'${col[0].title}' now holds ${r.total} ${col[0].kind}${r.total === 1 ? "" : "s"}, recorded at ${col[0].scope} scope.`,
+          "New members begin collecting within the hour; players_profile or clans_roster with live: true reads one immediately.",
+        ),
+        docs: COLLECTION_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

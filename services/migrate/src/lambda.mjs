@@ -31,7 +31,12 @@ import {
   probe,
   inspect,
 } from "./ops-diagnostics.mjs";
-import { abYield, auditCensus, previewIntel } from "./ops-analysis.mjs";
+import {
+  abYield,
+  auditCensus,
+  argsCensus,
+  previewIntel,
+} from "./ops-analysis.mjs";
 import { feedbackPending, feedbackRespond } from "./ops-feedback.mjs";
 
 export async function handler(event) {
@@ -154,6 +159,14 @@ export async function handler(event) {
     const result = await auditCensus(
       process.env.DATABASE_URL,
       event.audit_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.args_census) {
+    const result = await argsCensus(
+      process.env.DATABASE_URL,
+      event.args_census,
     );
     console.log(JSON.stringify(result));
     return result;

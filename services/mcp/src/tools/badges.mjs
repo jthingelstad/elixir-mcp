@@ -2,30 +2,60 @@
  *  (feedback #18 part 2). player_badge is current state per recorded
  *  profile; these read it sideways: which badge is rarest, and who has
  *  one. The population is every player with an observed profile, or a
- *  clan / collection slice of it. */
+ *  segment (clan / collection / one player) of it. */
 
 import { responseMeta } from "@elixir-mcp/contracts";
-import { ToolFailure, entitledClan } from "./shared.mjs";
+import {
+  ToolFailure,
+  SEGMENT_SCHEMA,
+  entitledClan,
+  subject,
+  appliedBlock,
+  notes,
+  docsRef,
+} from "./shared.mjs";
 
-/** Population filter over player_badge.player_tag (clan / collection). */
+const BADGE_DOCS = docsRef("glossary");
+
+/** Population filter over player_badge.player_tag from `args.segment`. */
 async function badgeScope(ctx, args, params) {
-  if (args.clan_tag !== undefined && args.collection !== undefined) {
+  const seg = args.segment ?? {};
+  const picked = ["player_tag", "clan_tag", "collection"].filter(
+    (k) => seg[k] !== undefined,
+  );
+  if (picked.length > 1) {
     throw new ToolFailure(
       "bad_request",
-      "Pick at most one of clan_tag, collection.",
+      "segment takes at most one of player_tag, clan_tag, collection.",
     );
   }
-  if (args.clan_tag !== undefined) {
-    const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+  if (seg.player_tag !== undefined) {
+    const tag = (
+      await subject(
+        ctx.db,
+        ctx.account,
+        seg.player_tag,
+        "summary",
+        seg.on_behalf_of,
+      )
+    ).tag;
+    params.push(tag);
+    return {
+      where: `pb.player_tag = $${params.length}`,
+      echo: { kind: "player", player_tag: tag },
+    };
+  }
+  if (seg.clan_tag !== undefined) {
+    const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
     params.push(clanTag);
     return {
       where: `pb.player_tag in (select cm.player_tag from clan_membership cm
                where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
-      label: clanTag,
+      echo: { kind: "clan", clan_tag: clanTag },
     };
   }
-  if (args.collection !== undefined) {
-    const slug = String(args.collection).toLowerCase().trim();
+  if (seg.collection !== undefined) {
+    const slug = String(seg.collection).toLowerCase().trim();
     const { rows } = await ctx.db.query(
       `select c.collection_id from collection c
        where c.slug = $1 and c.kind = 'player'
@@ -42,10 +72,10 @@ async function badgeScope(ctx, args, params) {
     return {
       where: `pb.player_tag in (select m.subject_tag from collection_member m
                where m.collection_id = $${params.length})`,
-      label: slug,
+      echo: { kind: "collection", collection: slug },
     };
   }
-  return { where: null, label: "recorded_profiles" };
+  return { where: null, echo: { kind: "corpus" } };
 }
 
 /** Everyone in scope with at least one observed badge: the n every
@@ -68,28 +98,19 @@ async function population(db, scopeWhere, params) {
   };
 }
 
-const SCOPE_ARGS = {
-  clan_tag: {
-    type: "string",
-    description: "Scope to a recorded clan's current members.",
-  },
-  collection: {
-    type: "string",
-    description: "Scope to a player collection's members (e.g. 'pros').",
-  },
-};
-
-const KIND_NOTE =
-  "kind: one_off badges have no level (awarded once for an event or feat - the genuinely rare class, since most cannot be earned later); tiered badges carry level/max_level and by_level counts holders at each level, so a level-9 mastery is not conflated with a level-1. holder_share = holders / players_considered. Badge names are the API's own identifiers.";
+const KIND_NOTES = [
+  "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level and by_level counts holders per level.",
+  "holder_share = holders / players_considered; badge names are the API's own identifiers.",
+];
 
 export const badgesTools = {
   badges_rarity: {
     description:
-      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over the whole population (or one clan / collection) in one call, with players_considered so the strength of the claim is in the payload. One-off badges (no level) are told apart from tiered ones, and tiered badges break down by level.",
+      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over the whole recorded population (default) or a segment (clan, collection, one player), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
     inputSchema: {
       type: "object",
       properties: {
-        ...SCOPE_ARGS,
+        segment: SEGMENT_SCHEMA,
         kind: {
           type: "string",
           enum: ["one_off", "tiered"],
@@ -125,7 +146,7 @@ export const badgesTools = {
         params,
       );
       return {
-        segment: scope.label,
+        applied: appliedBlock({ segment: scope.echo, kind: args.kind, limit }),
         ...pop,
         badges: rows.map((r) => ({
           name: r.name,
@@ -146,9 +167,11 @@ export const badgesTools = {
                 ),
               }),
         })),
-        note:
-          "Rarity is within the RECORDED population, not the game: players_considered is everyone in scope with an observed profile, and a badge nobody here holds does not appear at all. " +
-          KIND_NOTE,
+        notes: notes(
+          "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
+          KIND_NOTES,
+        ),
+        docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },
@@ -156,7 +179,7 @@ export const badgesTools = {
 
   badges_holders: {
     description:
-      "Who holds a badge: every recorded player in scope with the named badge, with level/progress where tiered, names not just tags, and their current clan. Names must match the API's badge identifier exactly (badges_rarity lists them); a near-miss is refused with candidates rather than guessed.",
+      "Who holds a badge: every recorded player in scope (the corpus by default, or a segment) with the named badge, with level and progress where tiered, names not just tags, and their current clan. Names must match the API's badge identifier exactly (badges_rarity lists them); a near-miss is refused with candidates rather than guessed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -167,7 +190,7 @@ export const badgesTools = {
           description:
             "Badge name as the API spells it, e.g. MasteryWitch, BeatingDeathBadge.",
         },
-        ...SCOPE_ARGS,
+        segment: SEGMENT_SCHEMA,
         min_level: {
           type: "integer",
           minimum: 1,
@@ -185,8 +208,7 @@ export const badgesTools = {
       const scope = await badgeScope(ctx, args, params);
       const limit = Math.min(Math.max(Number(args.limit ?? 50), 1), 200);
       // Exact, case-insensitive; a substring match is a suggestion, not an
-      // answer (MasteryWitch vs MasteryWitchMother is the Witch/Mother Witch
-      // trap in badge form).
+      // answer (MasteryWitch vs MasteryWitchMother).
       const { rows: names } = await ctx.db.query(
         `select distinct name from player_badge where name ilike $1 order by name limit 8`,
         [`%${badge}%`],
@@ -229,10 +251,14 @@ export const badgesTools = {
       return {
         badge: exact.name,
         kind: rows.length === 0 ? null : oneOff ? "one_off" : "tiered",
-        segment: scope.label,
+        applied: appliedBlock({
+          badge: exact.name,
+          segment: scope.echo,
+          min_level: args.min_level,
+          limit,
+        }),
         ...pop,
         holders_total: rows[0]?.holders_total ?? 0,
-        limit_applied: limit,
         holders: rows.map((r) => ({
           player_tag: r.player_tag,
           name: r.name,
@@ -248,7 +274,8 @@ export const badgesTools = {
           clan_tag: r.clan_tag,
           observed_at: r.observed_at.toISOString(),
         })),
-        note: KIND_NOTE,
+        notes: notes(KIND_NOTES),
+        docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

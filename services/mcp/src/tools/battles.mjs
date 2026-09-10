@@ -1,5 +1,9 @@
-/** battles_query · battles_performance · battles_cards · battles_decks · battles_meta_decks · battles_meta_cards · battles_trends · battles_levels · battles_compare — moved verbatim from the
- *  single-file registry (review item 8). */
+/** battles_query · battles_performance · battles_cards · battles_decks ·
+ *  battles_meta_decks · battles_meta_cards · battles_trends ·
+ *  battles_levels · battles_compare. Conventions (1.0.0, shared.mjs):
+ *  from/to + timezone on every windowed tool, one `applied` echo,
+ *  `notes[]` + `docs`, `verbosity` as the size control, nested `segment`
+ *  on the corpus-wide tools. */
 
 import {
   normalizeTag,
@@ -7,26 +11,36 @@ import {
   MODE_GROUPS,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
-import { resolveInstant, formatLocal } from "../time.mjs";
+import { formatLocal } from "../time.mjs";
 import {
   requireEnum,
   ToolFailure,
   TAG_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
-  subject,
-  buildMeta,
-  requireOrderedWindow,
+  MODE_SCHEMA,
+  WINDOW_ARGS,
   WINDOW_FROM_DESC,
   WINDOW_TO_DESC,
+  VERBOSITY,
+  SEGMENT_SCHEMA,
+  SEGMENT_NOTES,
+  SEGMENT_DOCS,
+  subject,
+  buildMeta,
+  resolveWindow,
+  requireOrderedWindow,
+  appliedBlock,
+  notes,
+  docsRef,
+  spendLiveQuota,
   segmentFilter,
   ebShrink,
-  SEGMENT_ARGS,
-  SEGMENT_NOTE,
   META_METHODOLOGY,
   DUEL_TYPES,
   excludedBreakdown,
   corpusPrior,
 } from "./shared.mjs";
+import { resolveInstant } from "../time.mjs";
 
 /** tower_hp as served: a one-tower princess array is padded to fixed
  *  length 2 with 0 for the destroyed tower (feedback #22: the API omits a
@@ -40,7 +54,7 @@ function normalizeTowerHp(t) {
 }
 
 const FORM_ROWS_NOTE =
-  " Forms are separate rows: evolution distinguishes card FORM (1 = Evolution, 2 = Hero), never a level, and a card played in two forms carries two records - so a form under the three-battle floor is dropped even when the merged card would have cleared it.";
+  "Forms are separate rows: evolution marks card FORM (1 = Evolution, 2 = Hero), never a level, so a card played in two forms carries two records.";
 
 const roundsPlayed = (deck) =>
   Array.isArray(deck?.rounds) ? { rounds_played: deck.rounds.length } : {};
@@ -51,9 +65,7 @@ const roundsPlayed = (deck) =>
  * of identity"; 1 = Evolution, 2 = Hero, never a level), as is the tower
  * troop. Rendering {id, name} alone meant two decks with visually
  * identical cards could carry different deck_hash values with nothing in
- * the payload explaining the split - a tester hit exactly that and nearly
- * filed it as data corruption, and spent a session believing it played
- * base cards (playtest round, 2026-09-09).
+ * the payload explaining the split (playtest round, 2026-09-09).
  */
 const deckCards = (deck) =>
   (deck?.cards ?? []).map((c) => ({
@@ -68,38 +80,39 @@ const towerTroop = (deck) => {
   return t?.id === undefined ? {} : { tower_troop: { id: t.id, name: t.name } };
 };
 
+const BATTLE_DOCS = docsRef("battles", "what-a-battle-record-holds");
+const DENOMINATOR_DOCS = docsRef("battles", "decided-battles-and-denominators");
+
 import {
   LEVEL_EDGES_SQL,
   levelPairsSql,
   PILOT_METHODOLOGY,
-  PILOT_NOTE,
+  PILOT_NOTES,
+  PILOT_DOCS,
   medianSortedScores,
 } from "../level-curve.mjs";
+
+/** Shared: the mode filter as a WHERE clause on battle.type. */
+function modeClause(args, add) {
+  requireEnum(args.mode, MODE_GROUPS, "mode");
+  if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+}
 
 export const battlesTools = {
   battles_query: {
     description:
-      "The workhorse: canonical recorded battles with filters and cursor pagination. Returns both perspectives of every battle. Three addressing modes: a player_tag (the usual sweep); battle_id alone (ONE battle, both sides - the record-browser lookup); deck_hash alone (corpus-wide battles for that exact deck, with a deck_stats aggregate - counts, W-L, distinct pilots; deliberately no win rate: a deck's pooled rate describes who plays it, see docs/META-INTEL). from/to accept ISO instants or date-only strings resolved in your timezone.",
+      "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true polls the player's battle log once before answering (one live fetch) - the 'what did they just play' path; the recorded log is otherwise within an hour for anyone recently asked about.",
     inputSchema: {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        from: {
-          type: "string",
-          description: WINDOW_FROM_DESC,
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
+        game_mode_id: {
+          type: "integer",
+          description: "Exact game mode id from the API.",
         },
-        to: {
-          type: "string",
-          description: WINDOW_TO_DESC,
-        },
-        mode: {
-          type: "string",
-          enum: MODE_GROUPS,
-          description:
-            "Mode group filter. ladder = Trophy Road; ranked = Path of Legends.",
-        },
-        game_mode_id: { type: "integer" },
         opponent_tag: {
           type: "string",
           description: "Only battles against this tag.",
@@ -120,32 +133,37 @@ export const battlesTools = {
         },
         battle_id: {
           type: "string",
-          description:
-            "Fetch exactly this battle (both perspectives). No player_tag needed.",
+          description: "Fetch exactly this battle (both perspectives).",
         },
         game_mode: {
           type: "string",
           description:
-            "Case-insensitive match on the game's mode name (substring): 'chaos' finds Chaos_1v1_Draft and friends, 'crazy' the Crazy Arena events. Discover names with battles_performance group_by: 'mode'.",
+            "Case-insensitive substring of the game's mode name ('chaos', 'crazy'); discover names with battles_performance group_by: 'mode'.",
+        },
+        live: {
+          type: "boolean",
+          description:
+            "Poll this player's battle log from the game first (one live fetch), then answer from the record.",
         },
         cursor: {
           type: "string",
-          description:
-            "Opaque pagination token from a previous response’s next_cursor.",
+          description: "Opaque token from a previous response's next_cursor.",
         },
-        limit: { type: "integer", minimum: 1, maximum: 50, default: 25 },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 50,
+          default: 25,
+          description: "Battles per page; above 25 needs verbosity: 'compact'.",
+        },
         include_total: {
           type: "boolean",
           description:
-            "Also return total_count: how many battles match the filters across ALL pages (one cheap count query).",
+            "Also return total_count across ALL pages (one cheap count query).",
         },
-        verbosity: {
-          type: "string",
-          enum: ["full", "compact"],
-          default: "full",
-          description:
-            "compact drops per-card deck arrays, support cards, and tower_hp (deck_hash remains) — use it for wide sweeps. full delivers both sides' decks and tower_hp and therefore caps limit at 25.",
-        },
+        verbosity: VERBOSITY(
+          "drops per-card decks, support cards and tower_hp (deck_hash stays); use it for wide sweeps.",
+        ),
       },
       additionalProperties: false,
     },
@@ -162,15 +180,41 @@ export const battlesTools = {
           ctx.account,
           args.player_tag,
           "battles",
+          args.on_behalf_of,
         );
         tag = s.tag;
       }
-      const tz = ctx.account.timezone;
+      if (args.live === true) {
+        if (!tag)
+          throw new ToolFailure(
+            "bad_request",
+            "live: true needs a player (player_tag or the default subject), not battle_id or a corpus-wide deck_hash.",
+          );
+        if (!ctx.live)
+          throw new ToolFailure(
+            "live_unavailable",
+            "The live lane is not configured here.",
+            "Call again without live: true.",
+          );
+        await spendLiveQuota(ctx);
+        const result = await ctx.live(ctx.db, {
+          endpoint: "player_battlelog",
+          entityKey: tag,
+        });
+        if (!result.ok)
+          throw new ToolFailure(
+            "live_unavailable",
+            "No gateway completed the live battle-log poll in time.",
+            "Serving recorded data: call again without live: true.",
+          );
+      }
+      const win = resolveWindow(ctx, args);
+      const tz = win.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
       const compact = args.verbosity === "compact";
-      // Full battles now carry BOTH sides' decks and tower_hp; above the
-      // default page size that reliably overruns the result cap and
-      // truncates mid-JSON. Refuse loudly instead.
+      // Full battles carry BOTH sides' decks and tower_hp; above the
+      // default page size that reliably overruns the result cap. Refuse
+      // loudly instead.
       if (!compact && Number(args.limit ?? 25) > 25) {
         throw new ToolFailure(
           "bad_request",
@@ -184,7 +228,6 @@ export const battlesTools = {
         params.push(String(args.battle_id));
         where.push(`bp.battle_id = $1`, `bp.side = 0`);
       } else if (corpusDeck) {
-        // deck filter added below via the shared deck_hash clause
         where.push("bp.side is not null");
       } else {
         params.push(tag);
@@ -194,15 +237,8 @@ export const battlesTools = {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      const from = resolveInstant(tz, args.from);
-      if (args.from && !from)
-        throw new ToolFailure("bad_request", `Unparseable from: ${args.from}`);
+      const { from, to } = win;
       if (from) add("b.battle_time >= ?", from);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (args.to && !to)
-        throw new ToolFailure("bad_request", `Unparseable to: ${args.to}`);
-      requireOrderedWindow(from, to);
-      requireEnum(args.mode, MODE_GROUPS, "mode");
       requireEnum(args.outcome, ["win", "loss", "draw"], "outcome");
       if (args.with_card !== undefined) {
         const cardId = Number(args.with_card);
@@ -219,7 +255,7 @@ export const battlesTools = {
         }
       }
       if (to) add("b.battle_time < ?", to);
-      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+      modeClause(args, add);
       if (args.game_mode_id !== undefined)
         add("b.game_mode_id = ?", args.game_mode_id);
       if (args.game_mode)
@@ -232,8 +268,8 @@ export const battlesTools = {
           JSON.stringify([{ id: args.with_card }]),
         );
       }
+      let opponent = null;
       if (args.opponent_tag) {
-        let opponent;
         try {
           opponent = normalizeTag(String(args.opponent_tag));
         } catch {
@@ -333,15 +369,12 @@ export const battlesTools = {
           player_tag: o.player_tag,
           name: o.name,
           // Explicit, so "never captured" is distinguishable from "field not
-          // populated on this path" (feedback #14): a name comes from any
-          // roster, profile or battlelog observation the service holds.
+          // populated on this path" (feedback #14).
           name_known: o.name !== null,
           crowns: o.crowns,
           deck_hash: o.deck_hash,
           clan_tag: o.clan_tag,
           ...roundsPlayed(o.deck),
-          // Full verbosity delivers the promised "both perspectives":
-          // participant rows are written symmetrically at ingest.
           ...(compact
             ? {}
             : { deck: o.deck, tower_hp: normalizeTowerHp(o.tower_hp) }),
@@ -421,7 +454,7 @@ export const battlesTools = {
 
       // Empty page + a window that ends before the first recorded battle
       // reads as "player was inactive" unless we say otherwise.
-      let warnings;
+      const caveats = [];
       if (battles.length === 0 && to && tag) {
         const { rows: firstRec } = await ctx.db.query(
           `select min(battle_time) as first from battle_participant where player_tag = $1`,
@@ -429,9 +462,9 @@ export const battlesTools = {
         );
         const first = firstRec[0]?.first;
         if (first && to.getTime() < first.getTime()) {
-          warnings = [
+          caveats.push(
             `window_precedes_recording: the window ends before this player's first recorded battle (${first.toISOString()}); emptiness means no COVERAGE, not inactivity.`,
-          ];
+          );
         }
       }
 
@@ -439,66 +472,82 @@ export const battlesTools = {
         ...(tag ? { player_tag: tag } : {}),
         ...(byBattle ? { battle_id: String(args.battle_id) } : {}),
         ...(deckStats
-          ? {
-              deck_hash: String(args.deck_hash),
-              deck_stats: deckStats,
-              deck_note:
-                "No pooled win rate by design: a deck's rate describes who plays it. Ask battles_meta_decks for shrunk rates with sample sizes.",
-            }
+          ? { deck_hash: String(args.deck_hash), deck_stats: deckStats }
           : {}),
+        applied: appliedBlock({
+          window: win.echo,
+          limit,
+          verbosity: compact ? "compact" : "full",
+          mode: args.mode,
+          outcome: args.outcome,
+          game_mode: args.game_mode,
+          game_mode_id: args.game_mode_id,
+          opponent_tag: opponent ?? undefined,
+          deck_hash: args.deck_hash,
+          with_card: args.with_card,
+          against_card: args.against_card,
+          live: args.live === true ? true : undefined,
+        }),
         battles,
-        // The clamp was silent (adversarial pass, 2026-09-06): agents
-        // asking for 10000 got 50 rows that looked like everything.
-        limit_applied: limit,
-        ...(warnings ? { warnings } : {}),
         ...(totalCount !== undefined ? { total_count: totalCount } : {}),
         // Explicit null = end of results (absent-vs-null was ambiguous).
         next_cursor:
           rows.length === limit
             ? `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`
             : null,
-        ...(compact
-          ? {}
-          : {
-              card_legend:
-                "Deck cards: level is the in-game 1-16 scale; evolutionLevel discriminates the FORM the card took in this battle (1 = Evolution, 2 = Hero; absent = base) — never a level; starLevel is cosmetic. tower_hp is the hitpoints REMAINING on that player's towers when the battle ended (a margin signal, never a level): princess is fixed length 2 once reported, one hp per tower with 0 for a destroyed tower and no meaning to position; null means the game did not report tower data for this battle (typical when the king fell, or when both princess towers fell in a head-to-head battle). DUEL ROWS (riverRaceDuel, riverRaceDuelColosseum) collapse up to three games: crowns SUM across rounds (up to 9, never comparable with a 0-3 head-to-head row), tower_hp describes the FINAL ROUND ONLY, deck_hash is null and the decks sit under deck.rounds[]; rounds_played says how many games the row holds.",
-            }),
+        notes: notes(
+          caveats,
+          deckStats &&
+            "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
+          "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many.",
+          compact
+            ? null
+            : "Deck card levels are the in-game 1-16 scale; evolution marks the FORM played (1 = Evolution, 2 = Hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
+        ),
+        docs: BATTLE_DOCS,
         meta: await buildMeta(
           ctx.db,
           ctx.account,
           tag ?? rows[0]?.player_tag ?? "#",
+          ["player_battlelog"],
+          { timezone: tz },
         ),
       };
     },
   },
+
   battles_performance: {
     description:
-      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side — built for "since X vs before" questions. Precedence: before_after wins over compare_*; the response echoes filters_applied.',
+      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view and group_by mode the "what have I been playing" view.',
     inputSchema: {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        from: {
-          type: "string",
-          description: WINDOW_FROM_DESC,
+        ...WINDOW_ARGS,
+        last_n_battles: {
+          type: "integer",
+          minimum: 1,
+          maximum: 500,
+          description: "Sample the most recent N battles instead of a window.",
         },
-        to: { type: "string", description: WINDOW_TO_DESC },
-        last_n_battles: { type: "integer", minimum: 1, maximum: 500 },
-        mode: { type: "string", enum: MODE_GROUPS },
-        deck_hash: { type: "string" },
+        mode: MODE_SCHEMA,
+        deck_hash: {
+          type: "string",
+          description: "Only battles on this exact deck (see battles_decks).",
+        },
         compare_from: { type: "string", description: WINDOW_FROM_DESC },
         compare_to: { type: "string", description: WINDOW_TO_DESC },
         group_by: {
           type: "string",
           enum: ["week", "mode"],
           description:
-            "week: weekly win-rate series (ISO weeks) — the trend view. mode: per-game-mode record (every named mode played — Ladder, Ranked, war modes, and event modes like Chaos/KHAOS drafts or Crazy Arena — the 'what have I been playing?' discovery view). Combines with mode/deck_hash/from/to; overrides before_after and compare_*.",
+            "week: weekly series (ISO weeks). mode: per named game mode, event modes included. Overrides before_after and compare_*.",
         },
         before_after: {
           type: "string",
           description:
-            "Date splitting two windows: [from..date) vs [date..to] — e.g. performance before vs after a deck change.",
+            "Date splitting two windows: [from..date) vs [date..to], e.g. before vs after a deck change.",
         },
       },
       additionalProperties: false,
@@ -513,7 +562,8 @@ export const battlesTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const tz = ctx.account.timezone;
+      const win = resolveWindow(ctx, args);
+      const tz = win.timezone;
 
       const segment = async ({ from, to, lastN }) => {
         const where = ["bp.player_tag = $1", `bp.outcome is not null`];
@@ -524,8 +574,7 @@ export const battlesTools = {
         };
         if (from) add("b.battle_time >= ?", from);
         if (to) add("b.battle_time < ?", to);
-        requireEnum(args.mode, MODE_GROUPS, "mode");
-        if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+        modeClause(args, add);
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         requireOrderedWindow(from, to);
         const {
@@ -582,23 +631,14 @@ export const battlesTools = {
         return {
           ...counts,
           decided_battles: decided,
-          // The numerator is NOT the `wins` field: wins counts boat attacks
-          // too, so "wins / decided_battles" does not reproduce this rate
-          // whenever boat_battles > 0. Both halves are returned so a caller
-          // can check the division instead of trusting it - an auditor hit
-          // exactly this and could not close it (playtest round, 2026-09-09).
           decided_wins,
           decided_losses,
           win_rate:
             decided > 0 ? Number((decided_wins / decided).toFixed(3)) : null,
           head_to_head_battles: head_to_head,
           // Three crowns means the king tower fell, which only reads as a
-          // sweep on a single game. A duel row collapses up to three games
-          // and SUMS their crowns, so 1+1+1 across three rounds - possibly a
-          // LOSS - used to count here exactly like a genuine 3-0. The tool
-          // already warns that duels mix crown units in crowns_for/against;
-          // this rate was committing the same error (playtest round,
-          // 2026-09-09). Boat attacks have no king tower to take at all.
+          // sweep on a single game; duel rows sum crowns across rounds
+          // and boat attacks have no king tower (playtest 2026-09-09).
           three_crown_rate:
             head_to_head > 0
               ? Number((three_crowns / head_to_head).toFixed(3))
@@ -617,10 +657,9 @@ export const battlesTools = {
           `last_n_battles must be an integer from 1 to 500 (got ${args.last_n_battles}).`,
         );
       }
-      const from = resolveInstant(tz, args.from);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
-      requireOrderedWindow(from, to);
+      const { from, to } = win;
       let result;
+      const caveats = [];
       if (args.group_by === "mode") {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
         const params = [tag];
@@ -630,8 +669,7 @@ export const battlesTools = {
         };
         if (from) add("bp.battle_time >= ?", from);
         if (to) add("bp.battle_time < ?", to);
-        requireEnum(args.mode, MODE_GROUPS, "mode");
-        if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+        modeClause(args, add);
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
           `select b.game_mode_name as game_mode, b.type,
@@ -660,9 +698,15 @@ export const battlesTools = {
                 : null,
             last_played: r.last_played?.toISOString() ?? null,
           })),
-          mode_note:
-            "Rows are keyed by the PAIR (game_mode, type), never by game_mode alone: the same mode name recurs under different API types (CW_Duel_1v1 under riverRaceDuel and riverRaceDuelColosseum; Crazy_Arena under trail and unknown). game_mode is the game's own mode name (event modes rotate - Chaos drafts, Crazy Arena, Showdown and so on appear here the day they are played); type is the API battle type it rode in on, and 'unknown' is the API's own value for some friendly/event battles, not corruption. Per-row win_rate is wins/(wins+losses) within that row, boat rows included. Filter battles_query by game_mode to drill into any of them.",
         };
+        caveats.push(
+          "Rows are keyed by the pair (game_mode, type): the same mode name recurs under different API types, and 'unknown' is the API's own value for some friendly and event battles.",
+          "Per-row win_rate is wins/(wins+losses) within that row, boat rows included; filter battles_query by game_mode to drill in.",
+        );
+        if (args.before_after || args.compare_from || args.compare_to)
+          caveats.push(
+            "group_by takes precedence; before_after and compare_* were ignored.",
+          );
       } else if (args.group_by === "week") {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
         const params = [tag];
@@ -672,8 +716,7 @@ export const battlesTools = {
         };
         if (from) add("bp.battle_time >= ?", from);
         if (to) add("bp.battle_time < ?", to);
-        requireEnum(args.mode, MODE_GROUPS, "mode");
-        if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+        modeClause(args, add);
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         const { rows } = await ctx.db.query(
           `select to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
@@ -705,14 +748,15 @@ export const battlesTools = {
                 ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
                 : null,
           })),
-          weekly_note:
-            "week_of is the ISO week's Monday (UTC). win_rate = wins/(wins+losses), draws excluded. net_trophies covers only trophy_battles (war and special modes carry no trophies) — a rising win_rate with flat trophies usually means war-heavy weeks.",
-          ...(args.before_after || args.compare_from || args.compare_to
-            ? {
-                note: "group_by week takes precedence; before_after/compare_* were ignored.",
-              }
-            : {}),
         };
+        caveats.push(
+          "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
+          "net_trophies covers only trophy_battles: war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks.",
+        );
+        if (args.before_after || args.compare_from || args.compare_to)
+          caveats.push(
+            "group_by takes precedence; before_after and compare_* were ignored.",
+          );
       } else if (args.before_after) {
         const split = resolveInstant(tz, args.before_after);
         if (!split)
@@ -724,55 +768,73 @@ export const battlesTools = {
           before: await segment({ from, to: split }),
           after: await segment({ from: split, to }),
           split_at: split.toISOString(),
-          // Precedence made visible (edge-poker: silent resolution
-          // means trusting wrong numbers).
-          ...(args.compare_from || args.compare_to
-            ? {
-                note: "before_after takes precedence; compare_from/compare_to were ignored.",
-              }
-            : {}),
         };
+        if (args.compare_from || args.compare_to)
+          caveats.push(
+            "before_after takes precedence; compare_from/compare_to were ignored.",
+          );
       } else if (args.compare_from || args.compare_to) {
+        const cf = resolveInstant(tz, args.compare_from);
+        const ct = resolveInstant(tz, args.compare_to, { endOfDay: true });
         result = {
           window: await segment({ from, to, lastN: args.last_n_battles }),
-          compare_window: await segment({
-            from: resolveInstant(tz, args.compare_from),
-            to: resolveInstant(tz, args.compare_to, { endOfDay: true }),
-          }),
+          compare_window: await segment({ from: cf, to: ct }),
         };
       } else {
         result = {
           window: await segment({ from, to, lastN: args.last_n_battles }),
         };
       }
+      const grouped = Boolean(args.group_by);
       return {
         player_tag: tag,
-        // Echo of everything applied, so results are attributable
-        // (deck-tinkerer: could not verify which filters were live).
-        filters_applied: {
-          ...(args.mode ? { mode: args.mode } : {}),
-          ...(args.deck_hash ? { deck_hash: args.deck_hash } : {}),
-          ...(from ? { from: from.toISOString() } : {}),
-          ...(to ? { to: to.toISOString() } : {}),
-          ...(args.last_n_battles && !args.before_after
-            ? { last_n_battles: args.last_n_battles }
-            : {}),
-        },
+        applied: appliedBlock({
+          window: win.echo,
+          mode: args.mode,
+          deck_hash: args.deck_hash,
+          last_n_battles:
+            args.last_n_battles && !args.before_after && !grouped
+              ? args.last_n_battles
+              : undefined,
+          group_by: args.group_by,
+          before_after: !grouped ? args.before_after : undefined,
+          compare_window:
+            !grouped &&
+            !args.before_after &&
+            (args.compare_from || args.compare_to)
+              ? {
+                  from:
+                    resolveInstant(tz, args.compare_from)?.toISOString() ??
+                    null,
+                  to:
+                    resolveInstant(tz, args.compare_to, {
+                      endOfDay: true,
+                    })?.toISOString() ?? null,
+                }
+              : undefined,
+        }),
         ...result,
-        ...(args.group_by
-          ? {}
-          : {
-              denominators_note:
-                "battles counts every recorded battle in the window, W/L/D included. win_rate = decided_wins / decided_battles, where decided_battles = decided_wins + decided_losses: boat_battles (attacks on a static defense) and draws are excluded from BOTH sides. Note that wins/losses are the wider counts including boat attacks, so wins / decided_battles does not reproduce win_rate when boat_battles > 0 - decided_wins and decided_losses are returned so the division can be checked. duel_battles are rows that collapse up to three games; their crowns count once per round, so crowns_for/against mix units when duels are present. three_crown_rate = three-crown wins / head_to_head_battles, and BOTH sides exclude boat battles and duels: a duel's crowns sum across its rounds, so three crowns spread over three games is not a three-crown victory and is never counted as one.",
-            }),
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        notes: notes(
+          caveats,
+          grouped
+            ? null
+            : [
+                "win_rate = decided_wins / decided_battles, where decided_battles = decided_wins + decided_losses: boat battles and draws are outside both sides, while wins/losses still count boat wins.",
+                "duel_battles collapse up to three games and count crowns once per round, so crowns_for/against mix units when duels are present.",
+                "three_crown_rate = three-crown wins / head_to_head_battles, duels and boat battles excluded from both sides.",
+              ],
+        ),
+        docs: DENOMINATOR_DOCS,
+        meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
+          timezone: tz,
+        }),
       };
     },
   },
 
   battles_cards: {
     description:
-      'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you — the nemesis question. Duels are excluded (no single deck).',
+      'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you (the nemesis question). Duels are excluded (no single deck).',
     inputSchema: {
       type: "object",
       properties: {
@@ -783,9 +845,8 @@ export const battlesTools = {
           enum: ["mine", "opponent"],
           default: "mine",
         },
-        from: { type: "string", description: WINDOW_FROM_DESC },
-        to: { type: "string", description: WINDOW_TO_DESC },
-        mode: { type: "string", enum: MODE_GROUPS },
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
       },
       additionalProperties: false,
     },
@@ -799,7 +860,7 @@ export const battlesTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const tz = ctx.account.timezone;
+      const win = resolveWindow(ctx, args);
       const mine = args.perspective !== "opponent";
       const where = ["bp.player_tag = $1", `bp.outcome in ('win','loss')`];
       const params = [tag];
@@ -807,12 +868,9 @@ export const battlesTools = {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      const from = resolveInstant(tz, args.from);
-      if (from) add("b.battle_time >= ?", from);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (to) add("b.battle_time < ?", to);
-      requireEnum(args.mode, MODE_GROUPS, "mode");
-      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+      if (win.from) add("b.battle_time >= ?", win.from);
+      if (win.to) add("b.battle_time < ?", win.to);
+      modeClause(args, add);
 
       const deckSource = mine
         ? `bp.deck`
@@ -836,39 +894,45 @@ export const battlesTools = {
       );
       return {
         player_tag: tag,
-        perspective: mine ? "mine" : "opponent",
+        applied: appliedBlock({
+          window: win.echo,
+          perspective: mine ? "mine" : "opponent",
+          mode: args.mode,
+          min_battles: 3,
+        }),
         cards: rows.map((r) => ({
           id: Number(r.id),
           name: r.name,
-          // Forms are separate rows here too, matching battles_meta_cards:
-          // an Evo and its base card are different cards to play against.
           ...(r.evolution > 0 ? { evolution: r.evolution } : {}),
           battles: r.wins + r.losses,
           wins: r.wins,
           losses: r.losses,
           win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
         })),
-        note:
-          (mine
+        notes: notes(
+          mine
             ? "win_rate is YOUR record when this card is in your deck."
-            : "win_rate is YOUR record when this card appears in the OPPONENT deck — low means nemesis.") +
+            : "win_rate is YOUR record when this card appears in the OPPONENT deck; low means nemesis.",
           FORM_ROWS_NOTE,
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        ),
+        docs: docsRef("battles", "deck-identity-and-forms"),
+        meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
+          timezone: win.timezone,
+        }),
       };
     },
   },
 
   battles_decks: {
     description:
-      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate. Some special modes field more or fewer than 8 cards — deck identity is always the exact card set played. The factual substrate for deck review — pass a deck_hash to battles_query or battles_performance to drill in.",
+      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate, share of battles. Deck identity is the exact card set played (some event modes field more or fewer than 8). Unbounded by default and says so in applied.window; pass a deck_hash to battles_query or battles_performance to drill in.",
     inputSchema: {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        from: { type: "string", description: WINDOW_FROM_DESC },
-        to: { type: "string", description: WINDOW_TO_DESC },
-        mode: { type: "string", enum: MODE_GROUPS },
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
         sort: {
           type: "string",
           enum: ["battles", "wins", "win_rate"],
@@ -880,6 +944,7 @@ export const battlesTools = {
           minimum: 1,
           description: "Drop decks with fewer battles than this.",
         },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 40 },
       },
       additionalProperties: false,
     },
@@ -893,19 +958,16 @@ export const battlesTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const tz = ctx.account.timezone;
+      const win = resolveWindow(ctx, args);
       const where = ["bp.player_tag = $1", "bp.deck_hash is not null"];
       const params = [tag];
       const add = (clause, value) => {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      const from = resolveInstant(tz, args.from);
-      if (from) add("b.battle_time >= ?", from);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
-      if (to) add("b.battle_time < ?", to);
-      requireEnum(args.mode, MODE_GROUPS, "mode");
-      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+      if (win.from) add("b.battle_time >= ?", win.from);
+      if (win.to) add("b.battle_time < ?", win.to);
+      modeClause(args, add);
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 min(b.battle_time) as first_used, max(b.battle_time) as last_used,
@@ -931,9 +993,17 @@ export const battlesTools = {
       requireEnum(args.sort, ["battles", "wins", "win_rate"], "sort");
       if (args.sort === "wins") shaped.sort((a, z) => z.wins - a.wins);
       else if (args.sort === "win_rate") shaped.sort((a, z) => wr(z) - wr(a));
-      shaped = shaped.slice(0, 40);
+      const limit = Math.min(Math.max(Number(args.limit ?? 40), 1), 100);
+      shaped = shaped.slice(0, limit);
       return {
         player_tag: tag,
+        applied: appliedBlock({
+          window: win.echo,
+          mode: args.mode,
+          sort: args.sort ?? "battles",
+          min_battles: args.min_battles,
+          limit,
+        }),
         total_battles_in_window: totalBattles,
         decks: shaped.map((r) => ({
           deck_hash: r.deck_hash,
@@ -954,25 +1024,35 @@ export const battlesTools = {
           first_used: r.first_used.toISOString(),
           last_used: r.last_used.toISOString(),
         })),
-        meta: await buildMeta(ctx.db, ctx.account, tag),
+        notes: notes(
+          win.source === "unbounded"
+            ? "No window was given, so this is the whole recorded history for the player; pass from/to for a period."
+            : null,
+          "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks.",
+        ),
+        docs: docsRef("battles", "deck-identity-and-forms"),
+        meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
+          timezone: win.timezone,
+        }),
       };
     },
   },
 
   battles_meta_decks: {
     description:
-      "Observed deck meta for a segment - the whole corpus, one clan, one player, or a collection like 'pros'. Per exact deck identity (deck_hash): decided player-battle observations (not unique matches), record, distinct players, usage share, raw and EB-shrunk win rates. No tier lists, no opinions - what the recorded data shows, with sample sizes.",
+      "Observed deck meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window 28 days. No tier lists: what the recorded data shows, with sample sizes.",
     inputSchema: {
       type: "object",
       properties: {
-        ...SEGMENT_ARGS,
-        from: {
-          type: "string",
-          description: `Default: 28 days ago. ${WINDOW_FROM_DESC}`,
+        segment: SEGMENT_SCHEMA,
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
+        min_battles: {
+          type: "integer",
+          minimum: 1,
+          default: 5,
+          description: "Decided observations a deck needs to be listed.",
         },
-        to: { type: "string", description: WINDOW_TO_DESC },
-        mode: { type: "string", enum: MODE_GROUPS },
-        min_battles: { type: "integer", minimum: 1, default: 5 },
         sort: {
           type: "string",
           enum: ["battles", "shrunk_win_rate", "players"],
@@ -983,35 +1063,30 @@ export const battlesTools = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
+      const win = resolveWindow(ctx, args, { defaultDays: 28 });
       const scope = []; // segment + window + mode: the population considered
       if (seg.where) scope.push(seg.where);
-      const from =
-        resolveInstant(tz, args.from) ??
-        new Date(Date.now() - 28 * 86400_000).toISOString();
+      const from = win.from.toISOString();
       params.push(from);
       scope.push(`b.battle_time >= $${params.length}`);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      const to = win.to;
       if (to) {
         params.push(to);
         scope.push(`b.battle_time < $${params.length}`);
       }
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
         scope.push(`b.type = any($${params.length})`);
       }
-      requireOrderedWindow(new Date(from), to ? new Date(to) : null);
       const where = [
         ...scope,
         "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
         "b.type_class = 'pvp'",
       ];
-      // One client is one connection: pg queues concurrent queries on it
-      // anyway, so Promise.all bought no parallelism and only tripped the
-      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const excluded = await excludedBreakdown(ctx.db, scope, params);
       const prior = await corpusPrior(ctx.db, {
         from,
@@ -1073,12 +1148,18 @@ export const battlesTools = {
             ? z.players - a.players
             : z.battles - a.battles,
       );
-      shaped = shaped.slice(0, Math.min(args.limit ?? 20, 40));
+      const limit = Math.min(args.limit ?? 20, 40);
+      shaped = shaped.slice(0, limit);
       return {
-        segment: seg.label,
+        applied: appliedBlock({
+          segment: seg.echo,
+          window: win.echo,
+          mode: args.mode,
+          min_battles: minBattles,
+          sort,
+          limit,
+        }),
         methodology: META_METHODOLOGY,
-        window_from: from,
-        window_to: to ?? null,
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
         prior_win_rate: Number(priorMean.toFixed(3)),
@@ -1091,26 +1172,31 @@ export const battlesTools = {
             }),
         excluded,
         decks: shaped,
-        note: SEGMENT_NOTE,
-        meta: responseMeta({ as_of: new Date().toISOString() }),
+        notes: notes(SEGMENT_NOTES),
+        docs: SEGMENT_DOCS,
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+        }),
       };
     },
   },
 
   battles_meta_cards: {
     description:
-      "Observed card meta for a segment - corpus, clan, player, or a collection like 'pros'. Per card AND evolution form (forms never merge): usage share among decided player-battle observations (not unique matches), distinct players, raw and EB-shrunk win rates. What the recorded data shows, with sample sizes - never a tier list.",
+      "Observed card meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window 28 days. What the recorded data shows, with sample sizes; never a tier list.",
     inputSchema: {
       type: "object",
       properties: {
-        ...SEGMENT_ARGS,
-        from: {
-          type: "string",
-          description: `Default: 28 days ago. ${WINDOW_FROM_DESC}`,
+        segment: SEGMENT_SCHEMA,
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
+        min_battles: {
+          type: "integer",
+          minimum: 1,
+          default: 10,
+          description: "Decided observations a card needs to be listed.",
         },
-        to: { type: "string", description: WINDOW_TO_DESC },
-        mode: { type: "string", enum: MODE_GROUPS },
-        min_battles: { type: "integer", minimum: 1, default: 10 },
         sort: {
           type: "string",
           enum: ["usage", "shrunk_win_rate"],
@@ -1121,26 +1207,24 @@ export const battlesTools = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const tz = ctx.account.timezone;
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
+      const win = resolveWindow(ctx, args, { defaultDays: 28 });
       const scope = [];
       if (seg.where) scope.push(seg.where);
-      const from =
-        resolveInstant(tz, args.from) ??
-        new Date(Date.now() - 28 * 86400_000).toISOString();
+      const from = win.from.toISOString();
       params.push(from);
       scope.push(`b.battle_time >= $${params.length}`);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      const to = win.to;
       if (to) {
         params.push(to);
         scope.push(`b.battle_time < $${params.length}`);
       }
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
         scope.push(`b.type = any($${params.length})`);
       }
-      requireOrderedWindow(new Date(from), to ? new Date(to) : null);
       const where = [
         ...scope,
         "bp.deck ? 'cards'",
@@ -1148,9 +1232,6 @@ export const battlesTools = {
         "bp.outcome in ('win','loss')",
         "b.type_class = 'pvp'",
       ];
-      // One client is one connection: pg queues concurrent queries on it
-      // anyway, so Promise.all bought no parallelism and only tripped the
-      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const excluded = await excludedBreakdown(ctx.db, scope, params);
       const prior = await corpusPrior(ctx.db, {
         from,
@@ -1221,12 +1302,18 @@ export const battlesTools = {
             (a.shrunk_win_rate ?? a.win_rate)
           : z.battles - a.battles,
       );
-      shaped = shaped.slice(0, Math.min(args.limit ?? 30, 130));
+      const limit = Math.min(args.limit ?? 30, 130);
+      shaped = shaped.slice(0, limit);
       return {
-        segment: seg.label,
+        applied: appliedBlock({
+          segment: seg.echo,
+          window: win.echo,
+          mode: args.mode,
+          min_battles: minBattles,
+          sort,
+          limit,
+        }),
         methodology: META_METHODOLOGY,
-        window_from: from,
-        window_to: to ?? null,
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
         prior_win_rate: Number(priorMean.toFixed(3)),
@@ -1239,23 +1326,35 @@ export const battlesTools = {
             }),
         excluded,
         cards: shaped,
-        note:
-          SEGMENT_NOTE +
-          " evolution distinguishes card FORM (1 = Evolution, 2 = Hero form) - the same card's forms are different rows by design. Card win rates are heavily skill-confounded (who plays it matters as much as the card): compare shrunk rates within similar usage, never across segments.",
-        meta: responseMeta({ as_of: new Date().toISOString() }),
+        notes: notes(
+          SEGMENT_NOTES,
+          FORM_ROWS_NOTE,
+          "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments.",
+        ),
+        docs: SEGMENT_DOCS,
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+        }),
       };
     },
   },
 
   battles_trends: {
     description:
-      "Weekly time series for a segment - corpus, clan, player, or a collection like 'pros': battles, record, aggregate win rate, distinct active players, net trophies per ISO week. The trend view of any group; single-player weekly detail also lives in battles_performance group_by 'week'.",
+      "Weekly time series for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies. Default 12 weeks; weeks or from/to set the window. Single-player weekly detail also lives in battles_performance group_by 'week'.",
     inputSchema: {
       type: "object",
       properties: {
-        ...SEGMENT_ARGS,
-        weeks: { type: "integer", minimum: 1, maximum: 52, default: 12 },
-        mode: { type: "string", enum: MODE_GROUPS },
+        segment: SEGMENT_SCHEMA,
+        weeks: {
+          type: "integer",
+          minimum: 1,
+          maximum: 52,
+          description: "How many ISO weeks back (default 12); or use from/to.",
+        },
+        ...WINDOW_ARGS,
+        mode: MODE_SCHEMA,
       },
       additionalProperties: false,
     },
@@ -1264,11 +1363,18 @@ export const battlesTools = {
       const seg = await segmentFilter(ctx, args, params);
       const where = ["bp.outcome is not null"];
       if (seg.where) where.push(seg.where);
-      const weeks = Math.min(Math.max(Number(args.weeks ?? 12), 1), 52);
-      params.push(`${weeks * 7} days`);
+      const win = resolveWindow(ctx, args, { defaultDays: 12 * 7 });
+      // Weeks are aligned: the window's start snaps to its ISO Monday so
+      // the first row is a whole week.
+      params.push(win.from);
       where.push(
-        `b.battle_time >= date_trunc('week', now()) - $${params.length}::interval`,
+        `b.battle_time >= date_trunc('week', $${params.length}::timestamptz)`,
       );
+      if (win.to) {
+        params.push(win.to);
+        where.push(`b.battle_time < $${params.length}`);
+      }
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
         where.push(`b.type = any($${params.length})`);
@@ -1289,7 +1395,12 @@ export const battlesTools = {
         params,
       );
       return {
-        segment: seg.label,
+        applied: appliedBlock({
+          segment: seg.echo,
+          window: win.echo,
+          weeks: args.weeks,
+          mode: args.mode,
+        }),
         weeks: rows.map((r) => ({
           iso_week: r.iso_week,
           week_of: r.week_of,
@@ -1304,15 +1415,22 @@ export const battlesTools = {
           trophy_battles: r.trophy_battles,
           net_trophies: r.net_trophies,
         })),
-        note: "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill - players per week is the tell. Recording start dates differ per player; early weeks may be thin because capture was, not because play was.",
-        meta: responseMeta({ as_of: new Date().toISOString() }),
+        notes: notes(
+          "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+          "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was.",
+        ),
+        docs: docsRef("recording", "completeness"),
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+        }),
       };
     },
   },
 
   battles_levels: {
     description:
-      "The Level Curve and Pilot Score (META-INTEL §9): the recorded association between level gap and results — win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag for their Pilot Score: actual minus the in-sample level-bin win rate with a monthly trend — a trend is descriptive, not proof of improvement or independence from spending; opposition and the fitted baseline can change. Numbers with receipts: every bin and score ships its sample size.",
+      "The Level Curve and Pilot Score: win rate by deck-average level gap across the recorded corpus, binned where the data lives, never extrapolated. Pass player_tag (or on_behalf_of) for a Pilot Score: actual minus the level-expected win rate, with a monthly trend and an experience cohort. Descriptive, with sample sizes on every bin and score. verbosity compact omits the curve rows.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1320,22 +1438,19 @@ export const battlesTools = {
         player_tag: {
           type: "string",
           description:
-            "Optional: score this player against the curve (Pilot Score + monthly trend).",
+            "Score this player against the curve (Pilot Score + monthly trend). Omit for the curve alone.",
         },
         days: {
           type: "integer",
           minimum: 7,
           maximum: 365,
           default: 90,
-          description: "Window for the curve and score.",
+          description: "Window for the curve and the score, ending now.",
         },
-        mode: { type: "string", enum: MODE_GROUPS },
-        include_curve: {
-          type: "boolean",
-          default: true,
-          description:
-            "Set false to omit the curve rows; scoring and methodology are unchanged.",
-        },
+        mode: MODE_SCHEMA,
+        verbosity: VERBOSITY(
+          "omits the curve rows; the score and methodology are unchanged.",
+        ),
         trophy_band: {
           type: "string",
           enum: [
@@ -1346,7 +1461,7 @@ export const battlesTools = {
             "13000_plus",
           ],
           description:
-            "Both participants must have starting trophies in this band. Conditions the curve and scored observations on the same population.",
+            "Both participants must have starting trophies in this band; conditions the curve and the scored observations on the same population.",
         },
       },
       additionalProperties: false,
@@ -1376,6 +1491,7 @@ export const battlesTools = {
       };
       const params = [`${days} days`];
       const clauses = [];
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
         clauses.push(`and b.type = any($${params.length})`);
@@ -1389,6 +1505,7 @@ export const battlesTools = {
       }
       const EDGES = LEVEL_EDGES_SQL;
       const CURVE_FLOOR = PILOT_METHODOLOGY.curve_min_observations;
+      const asOf = new Date();
       await ctx.db.query("begin");
       try {
         await ctx.db.query(levelPairsSql(clauses), params);
@@ -1452,17 +1569,15 @@ export const battlesTools = {
             [focus],
           );
           const exp = tenure[0] ?? {};
+          const tenureKnown =
+            exp.years_played !== null && exp.years_played !== undefined;
           const experience = {
             years_played: exp.years_played ?? null,
             account_age_days: exp.account_age_days ?? null,
-            ...(exp.years_played === null || exp.years_played === undefined
-              ? {
-                  note: "YearsPlayed badge absent - tenure unknown. Usually this means an account under 1 year (the badge appears at year one), but rare veteran exceptions exist (measured: accounts with 2024 event badges and no YearsPlayed), so null is served rather than 0.",
-                }
-              : {}),
+            tenure_known: tenureKnown,
           };
           let cohort;
-          if (exp.years_played !== null && exp.years_played !== undefined) {
+          if (tenureKnown) {
             const bucket =
               exp.years_played <= 2
                 ? [0, 2, "years_1_2"]
@@ -1540,15 +1655,30 @@ export const battlesTools = {
         }
 
         await ctx.db.query("commit");
+        const compact = args.verbosity === "compact";
         return {
-          window_days: days,
-          ...(args.trophy_band ? { trophy_band: args.trophy_band } : {}),
-          ...(args.mode ? { mode: args.mode } : {}),
-          ...(args.include_curve === false ? {} : { curve }),
+          applied: appliedBlock({
+            window: {
+              from: new Date(asOf.getTime() - days * 86400_000).toISOString(),
+              to: asOf.toISOString(),
+              source: args.days !== undefined ? "argument" : "default",
+              days,
+            },
+            trophy_band: args.trophy_band,
+            mode: args.mode,
+            verbosity: compact ? "compact" : "full",
+          }),
+          ...(compact ? {} : { curve }),
           ...(player ? { player } : {}),
           methodology: PILOT_METHODOLOGY,
-          note: PILOT_NOTE,
-          meta: responseMeta({ as_of: new Date().toISOString() }),
+          notes: notes(
+            PILOT_NOTES,
+            player && !player.experience.tenure_known
+              ? "YearsPlayed badge absent, so tenure is unknown (usually an account under one year, with rare veteran exceptions) and no cohort is claimed."
+              : null,
+          ),
+          docs: PILOT_DOCS,
+          meta: responseMeta({ as_of: asOf.toISOString() }),
         };
       } catch (err) {
         await ctx.db.query("rollback").catch(() => {});
@@ -1559,7 +1689,7 @@ export const battlesTools = {
 
   battles_compare: {
     description:
-      "Side-by-side of 2-4 recorded tags (any player the service records - universal reads): latest snapshot topline plus a shared performance window.",
+      "Side-by-side of 2-4 recorded tags (any recorded player): latest snapshot topline plus a shared performance window.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1568,12 +1698,9 @@ export const battlesTools = {
           items: { type: "string" },
           minItems: 2,
           maxItems: 4,
+          description: "Two to four player tags.",
         },
-        from: {
-          type: "string",
-          description: WINDOW_FROM_DESC,
-        },
-        to: { type: "string", description: WINDOW_TO_DESC },
+        ...WINDOW_ARGS,
       },
       required: ["player_tags"],
       additionalProperties: false,
@@ -1587,9 +1714,8 @@ export const battlesTools = {
       }
       if (tags.length < 2)
         throw new ToolFailure("bad_request", "battles_compare needs 2-4 tags.");
-      const tz = ctx.account.timezone;
-      const from = resolveInstant(tz, args.from);
-      const to = resolveInstant(tz, args.to, { endOfDay: true });
+      const win = resolveWindow(ctx, args);
+      const { from, to } = win;
       const players = [];
       for (const tag of tags) {
         const { rows: snap } = await ctx.db.query(
@@ -1627,11 +1753,15 @@ export const battlesTools = {
         players.push({ player_tag: tag, ...snap[0], window: perf[0] });
       }
       return {
+        applied: appliedBlock({ window: win.echo, player_tags: tags }),
         players,
-        note: "window covers RECORDED battles only; net_trophies sums trophy changes across those battles, not the players' full ladder delta — recording start dates differ per player.",
+        notes: notes(
+          "window covers RECORDED battles only, and recording start dates differ per player; net_trophies sums recorded trophy changes, not the full ladder delta.",
+        ),
+        docs: docsRef("recording", "completeness"),
         meta: responseMeta({
           as_of: new Date().toISOString(),
-          ...(tz ? { timezone_applied: tz } : {}),
+          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
         }),
       };
     },

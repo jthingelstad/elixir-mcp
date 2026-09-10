@@ -1,14 +1,29 @@
 /**
  * Shared helpers for the tool registry (split from the single-file
  * registry, review item 8, 2026-09-05): entitlement resolution, meta
- * assembly, segment filters, the closed error class, and the shared
- * clan-recording acts both doors use. Handlers live in the per-group
- * modules beside this file; tools.mjs assembles them.
+ * assembly, segment filters, the closed error class, the shared
+ * clan-recording acts both doors use, and - since 1.0.0 - the CONVENTIONS
+ * every tool follows (docs/ENGINEERING.md, "Tool conventions"):
+ *
+ *   - windows: `from`/`to` everywhere, `days`/`weeks` as sugar, one
+ *     `applied.window` echo saying what bounds applied and where they came
+ *     from (resolveWindow / appliedBlock);
+ *   - one `applied` echo block per response (limit, sort, mode, segment...);
+ *   - prose: `notes: string[]` of one-sentence caveats plus a `docs`
+ *     pointer to the page carrying the formulas (notes / docsRef);
+ *   - `verbosity: full | compact` as the only size control (VERBOSITY);
+ *   - short argument descriptions; the canonical explanation of
+ *     player_tag / on_behalf_of / windows lives ONCE in the initialize
+ *     instructions (protocol.mjs), not fifteen times in tools/list.
+ *
+ * Handlers live in the per-group modules beside this file; tools.mjs
+ * assembles them.
  */
 
-import { responseMeta, roleQuotas } from "@elixir-mcp/contracts";
+import { responseMeta, roleQuotas, MODE_GROUPS } from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
+import { resolveInstant } from "../time.mjs";
 
 /** The live lane spends real CR budget: tight per-account daily cap,
  *  defaulted by role (contracts roles.ts), beaten by the per-account
@@ -57,7 +72,7 @@ export async function spendLiveQuota(ctx) {
           ? ", shared with your owner's other agents"
           : ""
       }).`,
-      "Recorded-data tools are unlimited within the normal quota. Higher tiers get more - see /docs (Roles) or ask via elixir_feedback.",
+      "Recorded-data tools are unlimited within the normal quota. Higher tiers get more: elixir_docs({ page: 'roles' }), or ask via elixir_feedback.",
     );
   }
 }
@@ -70,34 +85,212 @@ export class ToolFailure extends Error {
   }
 }
 
+// --- argument schemas ------------------------------------------------------
+
+/** One line each. The long form - what omitting means on a personal vs an
+ *  agent connection, how on_behalf_of is mapped, how date-only bounds
+ *  resolve - is said ONCE in the initialize instructions. Fifteen copies
+ *  of a 240-character paragraph were a fifth of tools/list. */
 export const TAG_SCHEMA = {
   type: "string",
   description:
-    "Clash Royale player tag like #20JJJ2CCRU. OMIT IT to mean the caller: your primary player on a personal connection, or whoever on_behalf_of is mapped to on an agent one. You do not need to look yourself up first.",
+    "Player tag like #20JJJ2CCRU. Omit to mean the caller (your primary player, or whoever on_behalf_of maps to).",
 };
 
-/**
- * Who is asking, when the connection serves more than one human.
- *
- * An agent talks to a whole Discord (or Signal, or Telegram, or anything with
- * ids); MCP carries no per-request end-user identity, so the agent supplies
- * one. The value is opaque here on purpose — the point is that any surface
- * works — and it selects a default subject, nothing more.
- */
 export const ON_BEHALF_OF_SCHEMA = {
   type: "string",
   maxLength: 200,
   description:
-    "The end user this request is for, in your own id space (e.g. discord:1234). Selects whose player is meant when player_tag is omitted; map it once with elixir_identify. Ignored on a personal connection, which already has exactly one human.",
+    "Agent connections: the end user's id on your surface (e.g. discord:1234), mapped once with elixir_identify. Ignored on a personal connection.",
+};
+
+export const TAG_RULE_HINT =
+  "Tags are # plus 3-12 characters from 0289PYLQGRJCUV (letter O folds to zero).";
+
+/** Window bounds, described identically wherever they appear (the lint
+ *  test pins the two facts a caller cannot guess: the end is exclusive,
+ *  and a date-only end covers the WHOLE named local day). */
+export const WINDOW_FROM_DESC =
+  "Start of the window, inclusive: an ISO instant, or YYYY-MM-DD resolving to local midnight in your timezone.";
+export const WINDOW_TO_DESC =
+  "End of the window, exclusive: an ISO instant as given; YYYY-MM-DD covers that WHOLE local day. Omit for up to now.";
+/** Snapshot-series tools take whole days only, never instants. */
+export const WINDOW_DATE_ONLY_DESC =
+  "YYYY-MM-DD, inclusive. Built from daily snapshots, so only whole days are meaningful; an instant is not accepted.";
+
+export const TIMEZONE_SCHEMA = {
+  type: "string",
+  maxLength: 64,
+  description:
+    "IANA zone (e.g. Europe/Paris) for this call's date-only bounds and local labels. Default: the account's timezone. Agents serving people in several zones pass the asker's.",
+};
+
+/** `from`/`to` plus the optional per-call timezone, spread into a
+ *  windowed tool's properties. */
+export const WINDOW_ARGS = {
+  from: { type: "string", description: WINDOW_FROM_DESC },
+  to: { type: "string", description: WINDOW_TO_DESC },
+  timezone: TIMEZONE_SCHEMA,
+};
+
+/** The six mode groups, described once (docs: battles#mode-groups). */
+export const MODE_SCHEMA = {
+  type: "string",
+  enum: MODE_GROUPS,
+  description:
+    "Mode group: ladder (Trophy Road), ranked (Path of Legends), war, casual, challenge, tournament. Omit for every mode.",
+};
+
+/** The one size control (review 2.2.4). `compactDesc` says what compact
+ *  drops for THIS tool; the shape of the argument never varies. */
+export function VERBOSITY(compactDesc) {
+  return {
+    type: "string",
+    enum: ["full", "compact"],
+    default: "full",
+    description: `compact: ${compactDesc}`,
+  };
+}
+
+/** Segment scoping for the corpus-wide tools, NESTED so the name itself
+ *  says it is a scope and not the caller (review 2.2.3): the same flat
+ *  player_tag meant "you" on eleven tools and "the corpus" on five. */
+export const SEGMENT_SCHEMA = {
+  type: "object",
+  description:
+    "Scope: exactly one of player_tag, clan_tag (current members) or collection (a player collection's slug, e.g. 'pros'). OMIT the whole object for the entire recorded corpus.",
+  properties: {
+    player_tag: { type: "string", description: "One recorded player." },
+    clan_tag: {
+      type: "string",
+      description: "A recorded clan's current members.",
+    },
+    collection: { type: "string", description: "A player collection's slug." },
+    on_behalf_of: ON_BEHALF_OF_SCHEMA,
+  },
+  additionalProperties: false,
 };
 
 // --- shared helpers --------------------------------------------------------
 
+/** IANA zone for this call: the argument when given and valid, else the
+ *  account's. An invalid zone refuses rather than silently falling to UTC. */
+export function zoneFor(ctx, args = {}) {
+  if (args.timezone === undefined) return ctx.account?.timezone ?? null;
+  const tz = String(args.timezone).trim();
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: tz });
+  } catch {
+    throw new ToolFailure(
+      "bad_request",
+      `Unknown timezone '${tz}'.`,
+      "Use an IANA zone such as America/Chicago or Europe/Paris.",
+    );
+  }
+  return tz;
+}
+
+/**
+ * The window a tool actually uses, from whatever idiom the caller chose.
+ *
+ *   from/to      - instants or date-only strings, resolved in zoneFor()
+ *   days / weeks - sugar: from = now - N days (or 7N days), to = now
+ *   neither      - the tool's default (defaultDays), or unbounded
+ *
+ * Returns Dates for the query and the `applied.window` echo, whose
+ * `source` says whether the bounds were given, defaulted or unbounded -
+ * the thing an agent quoting "your last 30 days" needs to know before
+ * it says it (review 2.2.1: battles_decks returned all-time with no
+ * bounds echoed).
+ */
+export function resolveWindow(
+  ctx,
+  args = {},
+  { defaultDays = null, dateOnly = false } = {},
+) {
+  const tz = zoneFor(ctx, args);
+  const now = new Date();
+  let from = null;
+  let to = null;
+  let source = "unbounded";
+  if (args.from !== undefined || args.to !== undefined) {
+    if (dateOnly) {
+      for (const k of ["from", "to"])
+        if (
+          args[k] !== undefined &&
+          !/^\d{4}-\d{2}-\d{2}$/.test(String(args[k]))
+        )
+          throw new ToolFailure(
+            "bad_request",
+            `${k} must be YYYY-MM-DD for this tool.`,
+            WINDOW_DATE_ONLY_DESC,
+          );
+    }
+    from = args.from !== undefined ? resolveInstant(tz, args.from) : null;
+    to =
+      args.to !== undefined
+        ? resolveInstant(tz, args.to, { endOfDay: true })
+        : null;
+    if (args.from !== undefined && !from)
+      throw new ToolFailure(
+        "bad_request",
+        `Could not read from='${args.from}' as a date.`,
+        WINDOW_FROM_DESC,
+      );
+    if (args.to !== undefined && !to)
+      throw new ToolFailure(
+        "bad_request",
+        `Could not read to='${args.to}' as a date.`,
+        WINDOW_TO_DESC,
+      );
+    source = "argument";
+  } else if (args.days !== undefined || args.weeks !== undefined) {
+    const days =
+      args.days !== undefined ? Number(args.days) : Number(args.weeks) * 7;
+    from = new Date(now.getTime() - days * 86_400_000);
+    to = null;
+    source = "argument";
+  } else if (defaultDays) {
+    from = new Date(now.getTime() - defaultDays * 86_400_000);
+    to = null;
+    source = "default";
+  }
+  requireOrderedWindow(from, to);
+  return {
+    from,
+    to,
+    timezone: tz,
+    source,
+    echo: {
+      from: from ? from.toISOString() : null,
+      to: to ? to.toISOString() : null,
+      source,
+      ...(tz ? { timezone: tz } : {}),
+    },
+  };
+}
+
+/** The one echo block. Undefined values are dropped so a tool spreads
+ *  whatever it applied and the response carries only what is true. */
+export function appliedBlock(fields) {
+  const out = {};
+  for (const [k, v] of Object.entries(fields ?? {}))
+    if (v !== undefined) out[k] = v;
+  return out;
+}
+
+/** `notes`: one sentence per caveat, empties dropped. */
+export function notes(...lines) {
+  return lines.flat().filter((l) => typeof l === "string" && l.trim());
+}
+
+/** `docs`: a pointer an agent can hand straight to elixir_docs. */
+export function docsRef(page, section) {
+  return section ? `${page}#${section}` : page;
+}
+
 /** Entitlement resolution with plain-object errors converted to the
  *  closed taxonomy. `need`: 'full' | 'summary' | 'battles' (§4.2). */
-export const TAG_RULE_HINT =
-  "Tags are # plus 3-12 characters from 0289PYLQGRJCUV (letter O folds to zero).";
-
 /**
  * `onBehalfOf` is the end-user id the connecting agent supplies. Threaded here
  * rather than read off a global because one Lambda serves every caller, and a
@@ -147,11 +340,43 @@ export async function entitledClan(db, account, inputTag) {
   }
 }
 
+/** The two pending hints, computed once per response by the invoker
+ *  (review 4.1): they used to ride only the tools that built a full
+ *  envelope, so the consumer whose only regular call is the feed never
+ *  saw feedback_responses_pending and re-read its ledger every tick. */
+export async function pendingHints(db, account) {
+  try {
+    const {
+      rows: [row],
+    } = await db.query(
+      `select
+         (select count(*)::int from feedback
+          where account_id = $1 and responded_at is not null
+            and response_seen_at is null) as fb_pending,
+         (select count(*)::int from event_feed ef
+          where ef.account_id = $1
+            and ef.event_id > (select events_seen_through from account
+                               where account_id = $1)) as events_pending`,
+      [account.accountId],
+    );
+    return {
+      ...(row.fb_pending > 0
+        ? { feedback_responses_pending: row.fb_pending }
+        : {}),
+      ...(row.events_pending > 0 ? { events_pending: row.events_pending } : {}),
+    };
+  } catch (err) {
+    console.error("pending_hints_failed", err?.message);
+    return {};
+  }
+}
+
 export async function buildMeta(
   db,
   account,
   tag,
   endpoints = ["player_battlelog"],
+  { timezone } = {},
 ) {
   const isPlayer = endpoints.some(
     (e) => e === "player" || e === "player_battlelog",
@@ -161,26 +386,19 @@ export async function buildMeta(
   } = await db.query(
     `select
        (select min(created_at) from recording
-        where subject_type = $4 and subject_tag = $1 and status = 'active') as active_since,
+        where subject_type = $3 and subject_tag = $1 and status = 'active') as active_since,
        least(
-         case when 'player_battlelog' = any($3) then
+         case when 'player_battlelog' = any($2) then
            (select min(battle_time) from battle_participant where player_tag = $1) end,
-         case when 'player' = any($3) then
+         case when 'player' = any($2) then
            (select min(snapshot_date)::timestamp at time zone 'UTC' from player_snapshot_daily where player_tag = $1) end
        ) as recorded_since,
        (select jsonb_object_agg(e.endpoint, jsonb_build_object(
           'observed_at', ps.last_admitted_at,
           'freshness_seconds', greatest(0,extract(epoch from now() - ps.last_admitted_at)::int)))
-        from unnest($3::text[]) e(endpoint)
-        left join poll_state ps on ps.subject_tag = $1 and ps.endpoint = e.endpoint) as sources,
-       (select count(*)::int from feedback
-        where account_id = $2 and responded_at is not null
-          and response_seen_at is null) as fb_pending,
-       (select count(*)::int from event_feed ef
-        where ef.account_id = $2
-          and ef.event_id > (select events_seen_through from account
-                             where account_id = $2)) as events_pending`,
-    [tag, account.accountId, endpoints, isPlayer ? "player" : "clan"],
+        from unnest($2::text[]) e(endpoint)
+        left join poll_state ps on ps.subject_tag = $1 and ps.endpoint = e.endpoint) as sources`,
+    [tag, endpoints, isPlayer ? "player" : "clan"],
   );
   const sources = row.sources ?? {};
   for (const source of Object.values(sources)) {
@@ -189,6 +407,7 @@ export async function buildMeta(
     else source.observed_at = new Date(source.observed_at).toISOString();
   }
   const ages = Object.values(sources).map((s) => s.freshness_seconds);
+  const tz = timezone === undefined ? account.timezone : timezone;
   return responseMeta({
     as_of: new Date().toISOString(),
     ...(row.recorded_since
@@ -202,16 +421,10 @@ export async function buildMeta(
       ages.length && ages.every((age) => age !== null)
         ? Math.max(...ages)
         : null,
-    ...(row.fb_pending > 0
-      ? { feedback_responses_pending: row.fb_pending }
-      : {}),
-    ...(row.events_pending > 0 ? { events_pending: row.events_pending } : {}),
-    ...(account.timezone ? { timezone_applied: account.timezone } : {}),
+    ...(tz ? { timezone_applied: tz } : {}),
   });
 }
 
-/** Inverted date windows are never intent (edge-poker finding): refuse
- *  loudly instead of returning an empty that reads as "you didn't play". */
 /** Unknown enum values must refuse loudly - a silent empty result is a
  *  lie an agent will repeat (adversarial pass, 2026-09-06). */
 export function requireEnum(value, allowed, argName) {
@@ -225,22 +438,8 @@ export function requireEnum(value, allowed, argName) {
   }
 }
 
-/**
- * Window bounds, described identically wherever they appear. `to` had no
- * description at all on ten tools, so the asymmetry between the two bounds
- * - a date-only `to` covers the WHOLE named day, an ISO instant does not -
- * had to be reverse-engineered from filters_applied (playtest round,
- * 2026-09-09).
- */
-export const WINDOW_FROM_DESC =
-  "Start of the window, inclusive. An ISO instant, or YYYY-MM-DD which resolves to local midnight in your timezone.";
-export const WINDOW_TO_DESC =
-  "End of the window, exclusive. An ISO instant is used as given; YYYY-MM-DD covers that WHOLE local day, resolving to the NEXT local midnight. Omit to mean up to now.";
-
-/** Snapshot-series tools take whole days only, never instants. */
-export const WINDOW_DATE_ONLY_DESC =
-  "YYYY-MM-DD, inclusive. This series is built from daily snapshots, so only whole days are meaningful and an instant is not accepted.";
-
+/** Inverted date windows are never intent (edge-poker finding): refuse
+ *  loudly instead of returning an empty that reads as "you didn't play". */
 export function requireOrderedWindow(from, to) {
   if (from && to && from.getTime() > to.getTime()) {
     throw new ToolFailure(
@@ -251,44 +450,51 @@ export function requireOrderedWindow(from, to) {
   }
 }
 
-/** Segment resolution shared by the meta and trends tools: exactly one
- *  of player_tag / clan_tag / collection, or none = the whole recorded
- *  corpus (universal reads). Returns a WHERE fragment + params slice
- *  that scopes battle_participant rows to the segment's players. */
+/** Segment resolution shared by the meta, trends, synergy and badge
+ *  tools: `args.segment` holds exactly one of player_tag / clan_tag /
+ *  collection, or is absent = the whole recorded corpus (universal
+ *  reads). Returns a WHERE fragment + params slice that scopes
+ *  battle_participant rows to the segment's players, plus the echo. */
 export async function segmentFilter(ctx, args, params) {
+  const seg = args.segment ?? {};
   const picked = ["player_tag", "clan_tag", "collection"].filter(
-    (k) => args[k] !== undefined,
+    (k) => seg[k] !== undefined,
   );
   if (picked.length > 1) {
     throw new ToolFailure(
       "bad_request",
-      "Pick at most one of player_tag, clan_tag, collection.",
+      "segment takes at most one of player_tag, clan_tag, collection.",
     );
   }
-  if (args.player_tag !== undefined) {
+  if (seg.player_tag !== undefined) {
     const tag = (
       await subject(
         ctx.db,
         ctx.account,
-        args.player_tag,
+        seg.player_tag,
         "summary",
-        args.on_behalf_of,
+        seg.on_behalf_of,
       )
     ).tag;
     params.push(tag);
-    return { where: `bp.player_tag = $${params.length}`, label: tag };
+    return {
+      where: `bp.player_tag = $${params.length}`,
+      label: tag,
+      echo: { kind: "player", player_tag: tag },
+    };
   }
-  if (args.clan_tag !== undefined) {
-    const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+  if (seg.clan_tag !== undefined) {
+    const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
     params.push(clanTag);
     return {
       where: `bp.player_tag in (select cm.player_tag from clan_membership cm
                where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
       label: clanTag,
+      echo: { kind: "clan", clan_tag: clanTag },
     };
   }
-  if (args.collection !== undefined) {
-    const slug = String(args.collection).toLowerCase().trim();
+  if (seg.collection !== undefined) {
+    const slug = String(seg.collection).toLowerCase().trim();
     const { rows } = await ctx.db.query(
       `select c.collection_id from collection c
        where c.slug = $1 and c.kind = 'player'
@@ -307,9 +513,10 @@ export async function segmentFilter(ctx, args, params) {
       where: `bp.player_tag in (select m.subject_tag from collection_member m
                where m.collection_id = $${params.length})`,
       label: slug,
+      echo: { kind: "collection", collection: slug },
     };
   }
-  return { where: null, label: "corpus" };
+  return { where: null, label: "corpus", echo: { kind: "corpus" } };
 }
 
 /** Empirical-Bayes shrinkage (META-INTEL): pull small samples toward
@@ -344,22 +551,16 @@ export function ebShrink(
   return Number(((wins + m * segmentMean) / (decided + m)).toFixed(3));
 }
 
-export const SEGMENT_ARGS = {
-  player_tag: {
-    type: "string",
-    description: "Scope to one recorded player.",
-  },
-  clan_tag: {
-    type: "string",
-    description: "Scope to a recorded clan's current members.",
-  },
-  collection: {
-    type: "string",
-    description: "Scope to a player collection's members (e.g. 'pros').",
-  },
-};
-
-export const SEGMENT_NOTE = `Descriptive pooled player-battle observations, not unique matches or independent trials: both participants can contribute. Only decided head-to-head battles count: duels (up to three decks, no single deck identity), boat battles (an attack on a static defense), draws and unresolved outcomes are excluded from counts, usage and rates, and 'excluded' says how many of each the window held. shrunk_win_rate = (wins + ${META_METHODOLOGY.prior_strength} * prior_win_rate) / (wins + losses + ${META_METHODOLOGY.prior_strength}), where prior_win_rate is the CORPUS mean over the same window and mode - never the segment's own mean, so a one-deck player is regularized toward the population rather than toward themselves. Below ${META_METHODOLOGY.segment_min_decided} decided observations the segment carries insufficient_sample: true and shrunk_win_rate is withheld. Calculations use unrounded means; displayed rates are independently rounded to three decimals. Shrinkage moderates extremes but does not guarantee rankings or adjust for player skill. players counts distinct players, not an effective sample size. No confidence intervals or causal lift are estimated. An empty segment has no observed win rate.`;
+/** The one-sentence caveats every meta tool carries; the formulas are on
+ *  the methodology page (docsRef below). */
+export const SEGMENT_NOTES = [
+  "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+  "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+  `shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below ${META_METHODOLOGY.segment_min_decided} decided observations (insufficient_sample: true).`,
+  "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+];
+export const SEGMENT_DOCS =
+  "methodology#deck-and-card-meta-exactly-what-is-counted";
 
 /** Battle types that are one row for up to three games (rounds[]). */
 export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];

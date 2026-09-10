@@ -9,6 +9,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { responseMeta } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
+import { pendingHints } from "./tools/shared.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./protocol.mjs";
 
 const MAX_AUDIT_ARG_BYTES = 4000;
@@ -185,6 +186,14 @@ export function makeInvoker({
         { db, account, live, notifyOwner },
         args,
       );
+      // The two pending hints ride EVERY response (review 4.1): they used
+      // to ride only the tools that built a full envelope, so the consumer
+      // whose one regular call is elixir_events never saw
+      // feedback_responses_pending and re-read its ledger on every tick.
+      if (body && typeof body === "object" && body.meta) {
+        const hints = await pendingHints(db, account);
+        for (const [k, v] of Object.entries(hints)) body.meta[k] = v;
+      }
       const resultBytes = JSON.stringify(body).length;
       await audit(db, {
         viewerIp,

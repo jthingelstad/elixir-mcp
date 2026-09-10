@@ -1,67 +1,85 @@
-/** clans_standings · clans_pilot_scores · clans_roster — moved verbatim from the
- *  single-file registry (review item 8). */
+/** clans_standings · clans_pilot_scores · clans_roster. Conventions
+ *  (1.0.0): from/to + days sugar, `applied`, `notes[]` + `docs`,
+ *  `verbosity` (replacing summary: true), `live: true` on the roster. */
 
 import {
+  normalizeTag,
   responseMeta,
   MODE_GROUPS,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { formatLocal } from "../time.mjs";
-import { ToolFailure, entitledClan, buildMeta } from "./shared.mjs";
+import {
+  ToolFailure,
+  TAG_RULE_HINT,
+  MODE_SCHEMA,
+  WINDOW_ARGS,
+  VERBOSITY,
+  entitledClan,
+  buildMeta,
+  resolveWindow,
+  requireEnum,
+  appliedBlock,
+  notes,
+  docsRef,
+  spendLiveQuota,
+} from "./shared.mjs";
 
 import {
   LEVEL_EDGES_SQL,
   levelPairsSql,
   PILOT_METHODOLOGY,
-  PILOT_NOTE,
+  PILOT_NOTES,
+  PILOT_DOCS,
 } from "../level-curve.mjs";
+
+const CLAN_TAG_SCHEMA = {
+  type: "string",
+  description: "Clan tag like #J2RGCRVG. Omit to mean your recorded clan.",
+};
 
 export const clansTools = {
   clans_standings: {
     description:
-      'Clan-relative performance: every open member\'s recorded win rate over a window, ranked, with the clan median — the "am I above average?" tool. Percentile = 1 - (rank-1)/ranked_members. Only members meeting min_battles are ranked; the rest are listed unranked.',
+      'Clan-relative performance: every open member\'s recorded win rate over a window (default 30 days), ranked, with the clan median: the "am I above average?" tool. Only members meeting min_battles are ranked; the rest are listed below the floor.',
     inputSchema: {
       type: "object",
       properties: {
-        clan_tag: {
-          type: "string",
-          description: "Clan tag; defaults to your recorded clan.",
-        },
+        clan_tag: CLAN_TAG_SCHEMA,
         days: {
           type: "integer",
           minimum: 1,
           maximum: 90,
-          default: 30,
-          description: "Window: recorded battles from the last N days.",
+          description: "Last N days (default 30); or use from/to.",
         },
+        ...WINDOW_ARGS,
         min_battles: {
           type: "integer",
           minimum: 1,
           maximum: 200,
           default: 10,
-          description: "Decided battles (wins+losses) required to be ranked.",
+          description: "Decided battles (wins + losses) required to be ranked.",
         },
-        mode: {
-          type: "string",
-          enum: MODE_GROUPS,
-          description: "Restrict to one mode group (e.g. ladder, war).",
-        },
+        mode: MODE_SCHEMA,
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
-      const days = Number(args.days ?? 30);
+      const win = resolveWindow(ctx, args, { defaultDays: 30 });
       const minBattles = Number(args.min_battles ?? 10);
-      if (!Number.isInteger(days) || days < 1 || days > 90)
-        throw new ToolFailure("bad_request", "days must be 1-90.");
       if (!Number.isInteger(minBattles) || minBattles < 1 || minBattles > 200)
         throw new ToolFailure("bad_request", "min_battles must be 1-200.");
-      const params = [clanTag, `${days} days`];
-      let typeClause = "";
+      requireEnum(args.mode, MODE_GROUPS, "mode");
+      const params = [clanTag, win.from];
+      const clauses = [];
+      if (win.to) {
+        params.push(win.to);
+        clauses.push(`and bp.battle_time < $${params.length}`);
+      }
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        typeClause = `and b.type = any($${params.length})`;
+        clauses.push(`and b.type = any($${params.length})`);
       }
       // One grouped pass instead of a per-member lateral scan (audit
       // census: 2.5s avg). The subquery keeps roster rows for members
@@ -78,8 +96,8 @@ export const clansTools = {
            select bp.player_tag, bp.battle_id, bp.outcome
            from battle_participant bp
            join battle b on b.battle_id = bp.battle_id
-           where bp.battle_time > now() - $2::interval
-             ${typeClause}
+           where bp.battle_time >= $2
+             ${clauses.join(" ")}
          ) s on s.player_tag = cm.player_tag
          where cm.clan_tag = $1 and cm.left_observed_at is null
          group by cm.player_tag, p.name, p.years_played`,
@@ -117,33 +135,43 @@ export const clansTools = {
           : null;
       return {
         clan_tag: clanTag,
-        window_days: days,
-        basis: `open members with >= ${minBattles} decided recorded battles in the window${args.mode ? ` (mode: ${args.mode})` : ""}`,
+        applied: appliedBlock({
+          clan_tag: clanTag,
+          window: win.echo,
+          days: args.days,
+          min_battles: minBattles,
+          mode: args.mode,
+        }),
         ranked_members: ranked.length,
         median_win_rate: median,
         members: ranked,
         below_floor: unranked,
-        note: "Covers RECORDED battles only — capture starts differ per member (elixir_coverage per tag). win_rate = wins/(wins+losses), draws excluded. Members below min_battles appear in below_floor without a rank.",
-        meta: responseMeta({ as_of: new Date().toISOString() }),
+        notes: notes(
+          "Covers RECORDED battles only, and capture starts differ per member (elixir_coverage per tag).",
+          "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
+        ),
+        docs: docsRef("recording", "completeness"),
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+        }),
       };
     },
   },
 
   clans_pilot_scores: {
     description:
-      "Every open member's Pilot Score in ONE call (agent feedback #1: ranking a clan took 18 battles_levels calls). Scores each member with >= 30 decided leveled battles against the corpus Level Curve; includes tenure. Descriptive in-sample residuals, not a skill ranking or proof of improvement.",
+      "Every open member's Pilot Score in ONE call: each member with >= 30 decided leveled battles scored against the corpus Level Curve over the window (default 90 days), with tenure. Descriptive in-sample residuals, not a skill ranking or proof of improvement.",
     inputSchema: {
       type: "object",
       properties: {
-        clan_tag: {
-          type: "string",
-          description: "Clan tag; defaults to your recorded clan.",
-        },
+        clan_tag: CLAN_TAG_SCHEMA,
         days: {
           type: "integer",
           minimum: 7,
           maximum: 365,
           default: 90,
+          description: "Window for the curve and the scores, ending now.",
         },
       },
       additionalProperties: false,
@@ -192,15 +220,19 @@ export const clansTools = {
         const asOf = new Date();
         return {
           clan_tag: clanTag,
-          window_days: days,
+          applied: appliedBlock({
+            clan_tag: clanTag,
+            window: {
+              from: new Date(asOf.getTime() - days * 86400_000).toISOString(),
+              to: asOf.toISOString(),
+              source: args.days !== undefined ? "argument" : "default",
+              days,
+            },
+          }),
           scored_members: rows.length,
           basis: {
             curve_pairs: Number(basisRows[0].pairs),
             curve_bins: Number(basisRows[0].bins),
-            window_from: new Date(
-              asOf.getTime() - days * 86400_000,
-            ).toISOString(),
-            window_to: asOf.toISOString(),
           },
           members: rows.map((r, i) => ({
             rank: i + 1,
@@ -215,7 +247,11 @@ export const clansTools = {
             standard_error: Number(r.standard_error),
           })),
           methodology: PILOT_METHODOLOGY,
-          note: PILOT_NOTE,
+          notes: notes(
+            PILOT_NOTES,
+            "basis counts describe the curve's volume only; unchanged counts do not identify an unchanged curve.",
+          ),
+          docs: PILOT_DOCS,
           meta: responseMeta({ as_of: asOf.toISOString() }),
         };
       } catch (err) {
@@ -227,33 +263,69 @@ export const clansTools = {
 
   clans_roster: {
     description:
-      'A recorded clan\'s roster (defaults to YOUR clan): roles, latest trophies/donations per member, activity recency (last recorded battle), and recent join/leave/role events. Any recorded clan works - universal reads. For "how many members" or "what is this clan called", pass summary: true and get the name, the count and the role breakdown without the member list.',
+      "A clan's roster, yours by default: roles, latest trophies and donations per member, activity recency (last recorded battle and the game's own last-seen), and recent join/leave/role events. verbosity compact answers 'how many members' and 'what is this clan called' with the name, the count and the role breakdown only. live: true reads ANY clan fresh from the game first (one live fetch), recorded or not.",
     inputSchema: {
       type: "object",
       properties: {
-        clan_tag: {
-          type: "string",
-          description: "Clan tag; defaults to your recorded clan.",
-        },
-        summary: {
+        clan_tag: CLAN_TAG_SCHEMA,
+        verbosity: VERBOSITY(
+          "name, member count and role counts only; no member list, no events.",
+        ),
+        live: {
           type: "boolean",
-          default: false,
           description:
-            "Name, member count and role counts only - no member list, no events.",
+            "Fetch this clan from the game first (one live fetch); works for a clan nobody records.",
         },
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      let clanTag;
+      if (args.live === true) {
+        if (!ctx.live)
+          throw new ToolFailure(
+            "live_unavailable",
+            "The live lane is not configured here.",
+            "Call again without live: true.",
+          );
+        if (args.clan_tag === undefined) {
+          clanTag = await entitledClan(ctx.db, ctx.account, undefined);
+        } else {
+          try {
+            clanTag = normalizeTag(String(args.clan_tag));
+          } catch {
+            throw new ToolFailure(
+              "invalid_tag",
+              `Invalid clan tag: ${args.clan_tag}`,
+              TAG_RULE_HINT,
+            );
+          }
+        }
+        await spendLiveQuota(ctx);
+        const result = await ctx.live(ctx.db, {
+          endpoint: "clan",
+          entityKey: clanTag,
+        });
+        if (!result.ok)
+          throw new ToolFailure(
+            "live_unavailable",
+            result.reason === "rejected"
+              ? "The live fetch returned a payload our admission rejected."
+              : "No gateway completed the live fetch in time.",
+            "Call again without live: true for the recorded view, or retry shortly.",
+          );
+      } else {
+        clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      }
+      const compact = args.verbosity === "compact";
+      const applied = appliedBlock({
+        clan_tag: clanTag,
+        verbosity: compact ? "compact" : "full",
+        live: args.live === true ? true : undefined,
+      });
 
-      // The cheap answer to a cheap question. Reading a member count used to
-      // cost the whole roster: 48 member objects, each with a correlated
-      // last-battle scan, plus twenty clan events. Reported 2026-09-09 (#11)
-      // by an agent that pulled all of it to say how many people were in a
-      // clan. This is one indexed count, and it saves the server the work as
-      // well as the caller the payload.
-      if (args.summary === true) {
+      // The cheap answer to a cheap question (#11): one indexed count.
+      if (compact) {
         const { rows } = await ctx.db.query(
           `select c.name,
                   count(cm.player_tag)::int as member_count,
@@ -269,29 +341,38 @@ export const clansTools = {
           [clanTag],
         );
         const row = rows[0];
+        if (!row)
+          throw new ToolFailure(
+            "not_recorded",
+            `${clanTag} is not in the record.`,
+            "live: true reads it from the game.",
+          );
         return {
           clan_tag: clanTag,
-          name: row?.name ?? null,
-          member_count: row?.member_count ?? 0,
+          applied,
+          name: row.name ?? null,
+          member_count: row.member_count ?? 0,
           role_counts: {
-            leader: row?.leaders ?? 0,
-            coLeader: row?.co_leaders ?? 0,
-            elder: row?.elders ?? 0,
-            member: row?.members ?? 0,
+            leader: row.leaders ?? 0,
+            coLeader: row.co_leaders ?? 0,
+            elder: row.elders ?? 0,
+            member: row.members ?? 0,
           },
-          // The clan's own poll clock, not a bare as_of: a roster with no
-          // freshness read as "never polled" on every console record.
+          // The clan's own poll clock, not a bare as_of.
           meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"]),
         };
       }
 
-      // One client is one connection: pg queues concurrent queries on it
-      // anyway, so Promise.all bought no parallelism and only tripped the
-      // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const clanRow = await ctx.db.query(
         `select name from clan where clan_tag = $1`,
         [clanTag],
       );
+      if (!clanRow.rows[0])
+        throw new ToolFailure(
+          "not_recorded",
+          `${clanTag} is not in the record.`,
+          "live: true reads it from the game.",
+        );
       const roster = await ctx.db.query(
         `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
                 p.game_last_seen_at,
@@ -320,6 +401,7 @@ export const clansTools = {
       const tz = ctx.account.timezone;
       return {
         clan_tag: clanTag,
+        applied,
         name: clanRow.rows[0]?.name ?? null,
         member_count: roster.rows.length,
         members: roster.rows.map((m) => ({
@@ -331,17 +413,9 @@ export const clansTools = {
           donations_this_week: m.donations,
           first_observed_in_clan: m.joined_observed_at?.toISOString() ?? null,
           last_recorded_battle: m.last_battle?.toISOString() ?? null,
-          // The GAME's own activity stamp, not ours. last_recorded_battle
-          // only moves when somebody plays a battle we captured; this moves
-          // whenever they open the game, so a member who is present but not
-          // battling is distinguishable from one who is simply gone.
+          // The GAME's own activity stamp, not ours.
           last_seen_in_game: m.game_last_seen_at?.toISOString() ?? null,
         })),
-        // An empty event list means "none observed SINCE ROSTER RECORDING
-        // BEGAN", never "no joins/leaves ever" (round-3: a leader would
-        // have wrongly concluded no departures).
-        member_note:
-          "last_seen_in_game is Clash Royale's own lastSeen for that player, captured from this clan's roster polls: when they were last ACTIVE, as against last_recorded_battle which only moves when a battle was captured. It is the predicate the game itself uses to seed a river race roster, so a member whose last_seen_in_game predates the race start will be missing from war_current.participants. Null means we have never polled a clan roster carrying them.",
         events_recorded_since:
           roster.rows
             .map((m) => m.joined_observed_at)
@@ -354,11 +428,15 @@ export const clansTools = {
           ...(tz ? { at_local: formatLocal(e.window_end, tz) } : {}),
           detail: e.payload,
         })),
+        notes: notes(
+          "last_seen_in_game is the game's own lastSeen (when the player was last ACTIVE), captured from roster polls; last_recorded_battle only moves when a battle was captured; null means no polled roster has carried them.",
+          "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
+          "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",
+        ),
+        docs: docsRef("recording", "the-games-own-last-seen"),
         meta: {
           ...(await buildMeta(ctx.db, ctx.account, clanTag, ["clan"])),
-          ...(ctx.account.timezone
-            ? { timezone_applied: ctx.account.timezone }
-            : {}),
+          ...(tz ? { timezone_applied: tz } : {}),
         },
       };
     },

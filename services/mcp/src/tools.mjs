@@ -25,6 +25,7 @@ import { liveTools } from "./tools/live.mjs";
 import { playersTools } from "./tools/players.mjs";
 import { warTools } from "./tools/war.mjs";
 import { validateArgs } from "./validate.mjs";
+import { OUTPUT_SCHEMAS } from "./output-schemas.mjs";
 import { ToolFailure } from "./tools/shared.mjs";
 
 export {
@@ -71,12 +72,19 @@ export function makeRegistry() {
             name,
             description: t.description,
             inputSchema: t.inputSchema,
+            // The response contract, for the ten most-called tools first
+            // (output-schemas.mjs): rendered on the docs, validated below.
+            ...(OUTPUT_SCHEMAS[name]
+              ? { outputSchema: OUTPUT_SCHEMAS[name] }
+              : {}),
             annotations: {
               // Group rides the title: clients that sort tools by title
               // cluster the groups; clients that ignore titles lose nothing.
               title: `${cls.group} · ${cls.title}`,
               readOnlyHint: cls.readOnly,
-              destructiveHint: false,
+              // True when any action removes or replaces something the
+              // caller owns (review 2.2.6): a client may confirm those.
+              destructiveHint: cls.destructive ?? false,
               openWorldHint: cls.openWorld ?? false,
             },
           };
@@ -104,6 +112,18 @@ export function makeRegistry() {
       }
       const body = await TOOLS[name].handler(ctx, args);
       assertResponseMeta(body?.meta);
+      // A declared output schema the body does not satisfy is a build bug:
+      // loud under the test runner, a log line in production (a schema
+      // mistake must never take a working tool down).
+      const outputSchema = OUTPUT_SCHEMAS[name];
+      if (outputSchema) {
+        const mismatch = validateArgs(outputSchema, body, `${name} result`);
+        if (mismatch) {
+          if (process.env.NODE_TEST_CONTEXT)
+            throw new Error(`output schema mismatch: ${mismatch}`);
+          console.error("output_schema_mismatch", name, mismatch);
+        }
+      }
       return body;
     },
   };
