@@ -5,8 +5,10 @@ import {
   waitFor,
   cleanup,
   within,
+  fireEvent,
 } from "@testing-library/react";
 import { Admin } from "../src/views/Admin.jsx";
+import { CollectorPage } from "../src/views/CollectorDetail.jsx";
 
 const GATEWAYS = [
   {
@@ -84,41 +86,41 @@ afterEach(() => {
   cleanup();
 });
 
-const paint = async () => {
+const paint = async (navigate = vi.fn()) => {
   // The page slug took the product's word for it with the 2026-09-09 IA.
-  render(<Admin me={{ is_admin: true }} page="collectors" />);
+  render(
+    <Admin me={{ is_admin: true }} page="collectors" navigate={navigate} />,
+  );
   await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
 };
 
-test("a collector is identified by card name AND machine name", async () => {
-  await paint();
+test("the fleet list finds a collector; it does not operate on one", async () => {
+  const navigate = vi.fn();
+  await paint(navigate);
+  // Five columns, not ten. The machine name is a hover title on the card
+  // name rather than a column: the card is the identity every other
+  // surface uses, and the list is for finding the row you want.
   const row = screen.getByText("Ram Rider").closest("tr");
-  // The card is the identity every other surface uses; the machine name
-  // is what you SSH into. Admin is where they have to meet.
-  expect(within(row).getByText("Ram Rider")).toBeTruthy();
-  expect(within(row).getByText("jamie-mac")).toBeTruthy();
-});
-
-test("the operator is named, with the hash as the stable identifier", async () => {
-  await paint();
-  const row = screen.getByText("Ram Rider").closest("tr");
+  expect(row.querySelectorAll("td").length).toBe(5);
+  expect(within(row).getByTitle("jamie-mac")).toBeTruthy();
   expect(within(row).getByText("Thingelstad")).toBeTruthy();
-  expect(within(row).getByText("abcdef0123")).toBeTruthy();
-  expect(within(row).getByText("you")).toBeTruthy();
+  expect(within(row).getByText("active")).toBeTruthy();
+  expect(within(row).getByText("3s ago")).toBeTruthy();
+  // No lifecycle action inline — those moved to the record.
+  expect(within(row).queryByText("Drain")).toBeNull();
 });
 
 test("an unowned collector says so rather than rendering a blank cell", async () => {
   await paint();
   const row = screen.getByText("Wall Breakers").closest("tr");
   expect(within(row).getByText("unowned")).toBeTruthy();
-  expect(within(row).getByText("magic-pines")).toBeTruthy();
 });
 
-test("heartbeat and data are both shown, on the relative clock", async () => {
-  await paint();
-  const row = screen.getByText("Ram Rider").closest("tr");
-  expect(within(row).getByText("3s ago")).toBeTruthy();
-  expect(within(row).getByText("2m ago")).toBeTruthy();
+test("the name opens the collector's own record — the one the status page opens", async () => {
+  const navigate = vi.fn();
+  await paint(navigate);
+  fireEvent.click(screen.getByText("Ram Rider"));
+  expect(navigate).toHaveBeenCalledWith("/status/collectors/Ram%20Rider");
 });
 
 test("every row has a cell for every header", async () => {
@@ -128,4 +130,62 @@ test("every row has a cell for every header", async () => {
   for (const row of table.querySelectorAll("tbody tr")) {
     expect(row.querySelectorAll("td").length).toBe(headers);
   }
+});
+
+test("the record carries the operations an admin may run, and names what it is acting on", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path) => {
+      const body = path.includes("admin/gateways")
+        ? { gateways: GATEWAYS }
+        : path.includes("public/status")
+          ? {
+              collectors: [
+                { name: "Ram Rider", status: "active", operator: "Jamie" },
+              ],
+            }
+          : path.includes("me/gateways")
+            ? { gateways: [] }
+            : EMPTY;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
+  );
+  render(
+    <CollectorPage id="Ram Rider" navigate={vi.fn()} me={{ is_admin: true }} />,
+  );
+  await waitFor(() => expect(screen.getByText("Operations")).toBeTruthy());
+  // The machine name is here, where you are acting on it.
+  expect(screen.getByText("jamie-mac")).toBeTruthy();
+  // Forward-only: an active collector is offered exactly one move.
+  expect(screen.getByRole("button", { name: "Drain" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
+});
+
+test("a reader who is not an admin gets the record without the operations", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path) => {
+      const body = path.includes("public/status")
+        ? {
+            collectors: [
+              { name: "Ram Rider", status: "active", operator: "Jamie" },
+            ],
+          }
+        : { gateways: [] };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
+  );
+  render(<CollectorPage id="Ram Rider" navigate={vi.fn()} me={{}} />);
+  await waitFor(() => expect(screen.getByText("Two clocks")).toBeTruthy());
+  expect(screen.queryByText("Operations")).toBeNull();
 });

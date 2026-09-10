@@ -142,6 +142,11 @@ export function accountRoutes({
             used: e.collections_used,
             limit: lim(q.collections_max),
           },
+          // The two the ladder publishes that this payload did not, so
+          // the console's limits table and /docs/roles can be the same
+          // eight rows from the same source (roles.ts).
+          integrations: { limit: lim(q.integrations) },
+          agents: { limit: lim(q.agents) },
         },
         claims: claims.rows,
         recordings: recordings.rows,

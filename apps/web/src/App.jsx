@@ -104,6 +104,7 @@ export const SECTIONS = {
       { slug: "requests", label: "Requests" },
       { slug: "accounts", label: "Accounts" },
       { slug: "integrations", label: "Integrations" },
+      { slug: "connections", label: "Connections" },
       { slug: "collections", label: "Collections" },
       { slug: "feedback", label: "Feedback" },
       { slug: "usage", label: "Across accounts" },
@@ -134,6 +135,10 @@ export const SECTIONS = {
 const ADMIN_SUBS = [
   ["requests", "Requests", "/admin/requests"],
   ["accounts", "Accounts", "/admin/accounts"],
+  // "Connections across accounts", never bare "Connections": Account >
+  // Connections is a top-level rail item and stays visible while Admin
+  // is open, and no two items a reader can see at once share a label.
+  ["connections", "Connections across accounts", "/admin/connections"],
   ["collectors", "Collectors", "/admin/collectors", "owner"],
   ["service-tokens", "Service tokens", "/admin/service-tokens", "owner"],
   ["integrations", "Integrations", "/admin/integrations"],
@@ -481,6 +486,14 @@ export const DOC_LINKS = {
       ["Operators guide", "/docs/operators"],
       ["Architecture", "/docs/architecture#collectors-in-depth"],
       ["The job ledger", "/docs/architecture#collectors-in-depth"],
+    ],
+  ],
+  "admin:connections": [
+    "Connections",
+    [
+      ["Connections", "/docs/connections"],
+      ["Protocol & auth", "/docs/protocol"],
+      ["Tiers & roles", "/docs/roles"],
     ],
   ],
   "admin:service-tokens": [
@@ -1119,7 +1132,7 @@ export function App() {
               ) : section === "status" ? (
                 activePage === "collectors" ? (
                   itemId ? (
-                    <CollectorPage id={itemId} navigate={navigate} />
+                    <CollectorPage id={itemId} navigate={navigate} me={me} />
                   ) : (
                     <Fleet navigate={navigate} />
                   )

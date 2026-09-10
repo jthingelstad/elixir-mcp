@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { LogTable } from "../components/LogTable.jsx";
 import { Icon } from "../components/Icon.jsx";
 import { Markdown } from "../components/Markdown.jsx";
-import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
+import { ago } from "../lib/time.js";
 
 /**
  * Admin, eight pages.
@@ -61,6 +61,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
     );
   if (page === "usage") return <AdminUsage />;
   if (page === "collectors") return <AdminCollectors navigate={navigate} />;
+  if (page === "connections") return <AdminConnections />;
   if (page === "service-tokens") return <AdminServiceTokens />;
   if (page === "collections")
     return itemId ? (
@@ -381,6 +382,81 @@ function AdminAccountDetail({ id, navigate }) {
   );
 }
 
+/**
+ * Every account's live connections, and the power to end one.
+ *
+ * Jamie opened Service tokens looking for this and found something else
+ * (2026-09-10): a service token is an owner-issued headless credential
+ * bound to one account, one per consuming service. THIS is "who is
+ * connected, and can I stop it" — the same rows each holder sees under
+ * Account > Connections, across every account, with the address that
+ * holds them.
+ */
+function AdminConnections() {
+  const [rows, setRows] = useState([]);
+  const load = useCallback(async () => {
+    const r = await api.adminConnections();
+    if (r.ok) setRows(r.data.connections ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const table = rows.map((c) => [
+    {
+      text:
+        c.email ??
+        (c.kind && c.kind !== "person"
+          ? `${c.public_id ?? "principal"} (${c.kind})`
+          : (c.account_id ?? "").slice(0, 8)),
+      title: c.account_id,
+    },
+    c.client_name ?? "—",
+    String(c.calls_7d ?? 0),
+    c.last_call_at ? day(c.last_call_at) : "never",
+    day(c.absolute_expires_at),
+    {
+      text: "Revoke",
+      action: async () => {
+        // Somebody else's credential: the confirmation names whose, and
+        // what stops working, because "Revoke" on a table row is the
+        // easiest destructive click in the console to make by accident.
+        const whose = c.email ?? c.public_id ?? "this account";
+        if (
+          !window.confirm(
+            `Revoke ${c.client_name ?? "this connection"} for ${whose}? It stops reading on its next call, and they will have to connect it again.`,
+          )
+        )
+          return;
+        await api.adminRevokeConnection(c.family_id);
+        load();
+      },
+    },
+  ]);
+
+  return (
+    <LogTable
+      crumb="Admin"
+      title="Connections across accounts"
+      note="Every live OAuth connection, whoever holds it. Revoking one ends it on its next call and lands on that account's own event log."
+      cols={[
+        ["ACCOUNT", "left"],
+        ["CLIENT", "left"],
+        ["CALLS 7D", "right"],
+        ["LAST CALL", "left"],
+        ["EXPIRES", "left"],
+        ["", "right"],
+      ]}
+      rows={table}
+      monoCols={[0, 3, 4]}
+      filters={[{ key: "client", label: "Client", col: 1 }]}
+      minWidth={820}
+      empty="No live connections."
+      footnote="A service token is a different thing: owner-issued, headless, bound to one account, and listed under Service tokens."
+    />
+  );
+}
+
 /** The feedback queue. Unread first is the API's order; the status
  *  control is on the item, because deciding what to do about a piece of
  *  feedback means reading it. */
@@ -545,15 +621,17 @@ function AdminCollections({ navigate }) {
   );
 }
 
-/** The collector fleet, admin lane. Not a log: lifecycle is forward-only
- *  (pending -> probation -> active -> draining -> probation) and each row
- *  offers only the move it may legally make. */
+/**
+ * The collector fleet, admin lane — a LIST now, not a console.
+ *
+ * It carried ten columns and every lifecycle action inline, so the row
+ * you were about to act on was the hardest thing on the page to read
+ * (Jamie, 2026-09-10). Five columns, and the name opens the collector's
+ * own record — the SAME record the status page opens, with the
+ * operations panel on it for whoever may act. One collector, one page.
+ */
 function AdminCollectors({ navigate }) {
   const [gateways, setGateways] = useState([]);
-  // Provision-click outcome per gateway: the token is staged server-side
-  // for the operator's one-time reveal, so Admin must SAY so (or show the
-  // error) instead of silently refreshing.
-  const [staged, setStaged] = useState({});
   const load = useCallback(async () => {
     const r = await api.adminGateways();
     if (r.ok) setGateways(r.data.gateways ?? []);
@@ -562,225 +640,50 @@ function AdminCollectors({ navigate }) {
     load();
   }, [load]);
 
+  const rows = gateways.map((g) => [
+    {
+      text: g.card_name ?? g.name ?? "unnamed",
+      title: g.name,
+      onClick: () =>
+        navigate(
+          `/status/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
+        ),
+    },
+    g.owner_account_id
+      ? (g.owner_player_name ?? g.owner_email_hash?.slice(0, 10) ?? "claimed")
+      : "unowned",
+    {
+      text: g.status,
+      tone:
+        g.status === "active"
+          ? "ok"
+          : g.status === "revoked"
+            ? undefined
+            : "warn",
+    },
+    { text: ago(g.last_heartbeat_at), title: g.last_heartbeat_at ?? "never" },
+    String(g.fetches_last_hour ?? 0),
+  ]);
+
   return (
-    <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Collector fleet</h1>
-        <p className="page__lede">
-          Lifecycle is forward-only: pending, then probation once the key is
-          issued and it is heartbeating, then active. Issuing the IP-bound CR
-          key is manual.
-        </p>
-      </div>
-      <p className="footnote" style={{ margin: "0 0 16px", maxWidth: "78ch" }}>
-        Heartbeat is any contact with the door, including polls that found no
-        work. Data is the last payload we accepted and recorded. A fresh
-        heartbeat with stale data is an idle collector, not a broken one.
-      </p>
-      <div className="table__scroll">
-        <table className="table" style={{ minWidth: "900px" }}>
-          <thead>
-            <tr>
-              <th>COLLECTOR</th>
-              <th>OPERATOR</th>
-              <th>STATE</th>
-              <th>CHANNEL</th>
-              <th>HEARTBEAT</th>
-              <th>DATA</th>
-              <th className="num">FETCHES 1H</th>
-              <th className="num">POINTS</th>
-              <th>VERSION</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {gateways.map((g) => {
-              const next = {
-                pending: "probation",
-                probation: "activate",
-                active: "drain",
-                draining: "probation",
-              }[g.status];
-              // Draining goes BACK to probation: it has been active, and
-              // the word says so. Pending goes forward into it.
-              const label = {
-                probation:
-                  g.status === "draining"
-                    ? "Back to probation"
-                    : "Put on probation",
-                activate: "Activate",
-                drain: "Drain",
-              }[next];
-              return (
-                <tr key={g.gateway_id}>
-                  <td>
-                    {/* Card name is the public identity everywhere else -
-                  the status page, the ladder, the MCP tools - while
-                  the machine name is what you SSH into. Admin is the
-                  one screen that has to join the two. */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "7px",
-                      }}
-                    >
-                      {g.card_icon && (
-                        <img
-                          src={g.card_icon}
-                          alt=""
-                          style={{ height: "22px", borderRadius: "3px" }}
-                        />
-                      )}
-                      <span style={{ fontWeight: 600 }}>
-                        {g.card_name ?? "unnamed"}
-                      </span>
-                    </div>
-                    <code style={{ color: "var(--ink-faint)" }}>{g.name}</code>
-                  </td>
-                  <td>
-                    {g.owner_account_id ? (
-                      <>
-                        <div>
-                          {g.owner_player_name ?? "no player claimed"}
-                          {g.owner_is_me && (
-                            <span
-                              className="chip"
-                              style={{ marginLeft: "6px" }}
-                            >
-                              you
-                            </span>
-                          )}
-                        </div>
-                        <code style={{ color: "var(--ink-faint)" }}>
-                          {g.owner_email_hash?.slice(0, 10) ?? "—"}
-                        </code>
-                      </>
-                    ) : (
-                      <span className="nil">unowned</span>
-                    )}
-                  </td>
-                  <td>
-                    {/* Tone follows the state: pending is merely new
-                      (accent), probation and draining are the two states
-                      that want an eye on them (warn), active is fine.
-                      Revoked carries no tone; it is over. */}
-                    <span
-                      className={`chip ${
-                        g.status === "active"
-                          ? "chip--ok"
-                          : g.status === "pending"
-                            ? "chip--info"
-                            : g.status === "revoked"
-                              ? ""
-                              : "chip--warn"
-                      }`}
-                    >
-                      {g.status}
-                    </span>
-                  </td>
-                  <td>{g.channel ?? "bulk"}</td>
-                  <td>
-                    <span className={beatCls(secsSince(g.last_heartbeat_at))}>
-                      {ago(g.last_heartbeat_at)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={freshCls(secsSince(g.last_success_at))}>
-                      {ago(g.last_success_at)}
-                    </span>
-                  </td>
-                  <td>{g.fetches_last_hour}</td>
-                  <td>{Number(g.fetch_points).toLocaleString()}</td>
-                  <td>
-                    <code>{g.last_seen_sha ?? "—"}</code>
-                  </td>
-                  <td>
-                    {next && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          await api.adminGatewayAction(g.gateway_id, next);
-                          load();
-                        }}
-                      >
-                        {label ?? next}
-                      </button>
-                    )}{" "}
-                    {g.status !== "revoked" && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          const r = await api.adminGatewayAction(
-                            g.gateway_id,
-                            "provision_token",
-                          );
-                          setStaged((s) => ({
-                            ...s,
-                            [g.gateway_id]: r.ok
-                              ? { ok: true }
-                              : { error: r.data?.error ?? `HTTP ${r.status}` },
-                          }));
-                          load();
-                        }}
-                      >
-                        Provision token
-                      </button>
-                    )}{" "}
-                    {g.status !== "revoked" && (
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          if (
-                            window.confirm(
-                              `Revoke collector "${g.name}"? Ingest stops accepting its results immediately.`,
-                            )
-                          ) {
-                            await api.adminGatewayAction(
-                              g.gateway_id,
-                              "revoke",
-                            );
-                            load();
-                          }
-                        }}
-                      >
-                        Revoke
-                      </button>
-                    )}
-                    {(staged[g.gateway_id] || g.provision_ready) && (
-                      <div>
-                        <small>
-                          {staged[g.gateway_id]?.error ? (
-                            <>
-                              Provisioning failed: {staged[g.gateway_id].error}
-                            </>
-                          ) : g.owner_is_me ? (
-                            <>
-                              Token staged.{" "}
-                              <button
-                                className="btn--text"
-                                onClick={() => navigate("/account/collector")}
-                              >
-                                Reveal it once on your Collector page →
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              Token staged — the operator reveals it once on
-                              their Collector page.
-                            </>
-                          )}
-                        </small>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
+    <LogTable
+      crumb="Admin"
+      title="Collector fleet"
+      note="Lifecycle is forward-only: pending, then probation once the key is issued and it is heartbeating, then active. Open one to act on it."
+      cols={[
+        ["COLLECTOR", "left"],
+        ["OPERATOR", "left"],
+        ["STATE", "left"],
+        ["HEARTBEAT", "left"],
+        ["FETCHES 1H", "right"],
+      ]}
+      rows={rows}
+      monoCols={[3]}
+      filters={[{ key: "state", label: "State", col: 2 }]}
+      minWidth={640}
+      empty="No collectors yet."
+      footnote="Heartbeat is any contact with the door, including polls that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Issuing the IP-bound CR key is manual."
+    />
   );
 }
 
@@ -813,8 +716,13 @@ function AdminServiceTokens() {
           <p className="page__crumb">Admin · owner only</p>
           <h1 className="page__title">Service tokens</h1>
           <p className="page__lede">
-            Bound to the owner&rsquo;s own account. Integration keys live on
-            Integrations. Calls audit as <code>svc:&lt;name&gt;</code>.
+            Headless credentials you issue by hand: one per consuming service,
+            no browser and no consent screen, each acting with the entitlements
+            of the account it is bound to. Not a user&rsquo;s connection &mdash;
+            those are on{" "}
+            <a href="/admin/connections">Connections across accounts</a>.
+            Integration keys live on Integrations. Calls audit as{" "}
+            <code>svc:&lt;name&gt;</code>.
           </p>
         </div>
         <form
@@ -869,6 +777,7 @@ function AdminServiceTokens() {
             <thead>
               <tr>
                 <th>NAME</th>
+                <th>ACTS AS</th>
                 <th>CREATED</th>
                 <th>LAST USED</th>
                 <th className="num">CALLS 7D</th>
@@ -880,6 +789,20 @@ function AdminServiceTokens() {
               {svcTokens.map((t) => (
                 <tr key={t.token_id}>
                   <td className="mono">{t.name}</td>
+                  {/* Whose entitlements it spends. Every token is the
+                      owner's today, and the column is here because that
+                      is a fact about the credential, not a given. */}
+                  <td>
+                    {t.account_email ?? "—"}
+                    {t.account_role ? (
+                      <span
+                        style={{ color: "var(--ink-faint)", fontSize: "12px" }}
+                      >
+                        {" "}
+                        · {t.account_role}
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="mono">{String(t.created_at).slice(0, 10)}</td>
                   <td className="mono">{ago(t.last_used_at)}</td>
                   <td className="num">{t.calls_7d}</td>

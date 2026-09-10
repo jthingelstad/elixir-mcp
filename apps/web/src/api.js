@@ -54,6 +54,9 @@ export const api = {
   adminFeedback: () => request("GET", "/api/admin/feedback"),
   adminCall: (request_id) =>
     request("GET", `/api/admin/calls/${encodeURIComponent(request_id)}`),
+  adminConnections: () => request("GET", "/api/admin/connections"),
+  adminRevokeConnection: (family_id) =>
+    request("POST", "/api/admin/connections/revoke", { family_id }),
   adminServiceTokens: () => request("GET", "/api/admin/service-tokens"),
   adminServiceTokenAction: (body) =>
     request("POST", "/api/admin/service-tokens", body),

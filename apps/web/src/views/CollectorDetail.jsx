@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 import { Icon } from "../components/Icon.jsx";
-import { ago, secsSince } from "../lib/time.js";
+import { ago, secsSince, beatCls } from "../lib/time.js";
 
 /**
  * One collector.
@@ -43,9 +43,13 @@ function Clocks({ heartbeat, data, now }) {
           >
             heartbeat
           </span>
+          {/* Judged on its own scale: a collector touches the door every
+              few seconds and its watchdog exits after five minutes
+              without a round trip, so a heartbeat older than that means
+              the process is gone rather than idle. */}
           <span
-            className="mono"
-            style={{ display: "block", fontSize: "15px", color: "var(--ink)" }}
+            className={`mono ${beatCls(beat)}`}
+            style={{ display: "block", fontSize: "15px" }}
           >
             {ago(heartbeat, now)}
           </span>
@@ -126,7 +130,106 @@ function Hours({ daily }) {
   );
 }
 
-export function CollectorPage({ id, navigate }) {
+/**
+ * What an admin may do to this collector, on the collector's own page.
+ *
+ * Lifecycle is forward-only — pending → probation → active → draining →
+ * probation — so exactly one move is offered, named for what it does.
+ * Provisioning stages a token server-side for the operator's one-time
+ * reveal, which is why it reports rather than silently refreshing.
+ */
+function Operations({ g, staged, setStaged, reload }) {
+  const next = {
+    pending: "probation",
+    probation: "activate",
+    active: "drain",
+    draining: "probation",
+  }[g.status];
+  // Draining goes BACK to probation: it has been active, and the word
+  // says so. Pending goes forward into it.
+  const label = {
+    probation:
+      g.status === "draining" ? "Back to probation" : "Put on probation",
+    activate: "Activate",
+    drain: "Drain",
+  }[next];
+
+  return (
+    <section className="panel" style={{ marginBottom: "14px" }}>
+      <div className="panel__head">
+        <span className="panel-title">Operations</span>
+        <span className="caveat" style={{ marginLeft: "auto" }}>
+          admin
+        </span>
+      </div>
+      <dl className="fields" style={{ margin: 0 }}>
+        <dt>machine</dt>
+        <dd className="mono">{g.name}</dd>
+        <dt>state</dt>
+        <dd>{g.status}</dd>
+        <dt>channel</dt>
+        <dd>{g.channel ?? "bulk"}</dd>
+        <dt>points</dt>
+        <dd className="mono">{Number(g.fetch_points ?? 0).toLocaleString()}</dd>
+        <dt>version</dt>
+        <dd className="mono">{g.last_seen_sha ?? "—"}</dd>
+      </dl>
+      <div
+        style={{
+          padding: "12px 16px",
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+          flexWrap: "wrap",
+          borderTop: "1px solid var(--line-soft)",
+        }}
+      >
+        {next && (
+          <button
+            className="btn btn--sm"
+            onClick={async () => {
+              await api.adminGatewayAction(g.gateway_id, next);
+              reload();
+            }}
+          >
+            {label ?? next}
+          </button>
+        )}
+        {g.status !== "revoked" && (
+          <button
+            className="btn btn--sm"
+            onClick={async () => {
+              const r = await api.adminGatewayAction(
+                g.gateway_id,
+                "provision_token",
+              );
+              setStaged(
+                r.ok
+                  ? { ok: true }
+                  : { error: r.data?.error ?? `HTTP ${r.status}` },
+              );
+              reload();
+            }}
+          >
+            Stage a token
+          </button>
+        )}
+        {staged?.ok && (
+          <span className="caveat">
+            Token staged — the operator reveals it once, on their own page.
+          </span>
+        )}
+        {staged?.error && (
+          <span className="field-error" style={{ margin: 0 }}>
+            {staged.error}
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function CollectorPage({ id, navigate, me }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
   const [now] = useState(() => Date.now());
@@ -134,15 +237,28 @@ export function CollectorPage({ id, navigate }) {
   const [mine, setMine] = useState(null);
   const [detail, setDetail] = useState(null);
   const [revealed, setRevealed] = useState("");
+  // The admin row for this collector, when the reader is one. The fleet
+  // list used to carry ten columns and every action inline; the actions
+  // live here now, on the record, where what you are acting on is on
+  // screen (2026-09-10).
+  const [fleet, setFleet] = useState(null);
+  const [staged, setStaged] = useState(null);
+
+  const loadFleet = useCallback(() => {
+    if (!me?.is_admin) return;
+    api.adminGateways().then((r) => r.ok && setFleet(r.data.gateways ?? []));
+  }, [me?.is_admin]);
 
   useEffect(() => {
     api.publicStatus().then((r) => r.ok && setStatus(r.data));
     api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
-  }, []);
+    loadFleet();
+  }, [loadFleet]);
 
   const name = id ? decodeURIComponent(id) : null;
   const pub = status?.collectors?.find((c) => c.name === name);
   const own = (mine ?? []).find((g) => (g.card_name ?? g.name) === name);
+  const admin = (fleet ?? []).find((g) => (g.card_name ?? g.name) === name);
 
   useEffect(() => {
     if (own && !detail)
@@ -209,6 +325,15 @@ export function CollectorPage({ id, navigate }) {
           last {ago(pub?.last_success_at ?? own?.last_success_at, now)}
         </span>
       </div>
+
+      {admin && (
+        <Operations
+          g={admin}
+          staged={staged}
+          setStaged={setStaged}
+          reload={loadFleet}
+        />
+      )}
 
       {own && (
         <div className="stats" style={{ marginBottom: "14px" }}>

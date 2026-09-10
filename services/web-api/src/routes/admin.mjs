@@ -85,15 +85,69 @@ export function adminRoutes({
       });
     },
 
+    // Every account's live connections, and the power to end one on
+    // somebody's behalf (2026-09-10, Jamie). Service tokens are a
+    // different thing entirely - owner-issued headless credentials - and
+    // this is what he was looking for when he opened that page: who is
+    // connected, from where, and a way to stop it.
+    "GET /api/admin/connections": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const { rows } = await db.query(
+        `select f.family_id, f.account_id, f.scope, f.created_at,
+                f.absolute_expires_at, c.client_name,
+                a.email, a.kind, a.public_id, a.role,
+                (select max(t.created_at) from oauth_token t
+                 where t.family_id = f.family_id) as last_token_at,
+                (select count(*)::int from mcp_call_audit m
+                 where m.oauth_family_id = f.family_id
+                   and m.created_at > now() - interval '7 days') as calls_7d,
+                (select max(m.created_at) from mcp_call_audit m
+                 where m.oauth_family_id = f.family_id) as last_call_at
+         from oauth_family f
+         join account a on a.account_id = f.account_id
+         left join oauth_client c on c.client_id = f.client_id
+         where f.revoked_at is null and f.absolute_expires_at > now()
+         order by last_call_at desc nulls last, f.created_at desc
+         limit 200`,
+      );
+      return json(200, { connections: rows });
+    },
+
+    "POST /api/admin/connections/revoke": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const { rowCount, rows } = await db.query(
+        `update oauth_family set revoked_at = now()
+         where family_id::text = $1 and revoked_at is null
+         returning account_id`,
+        [String(body.family_id ?? "")],
+      );
+      if (rowCount === 0) return json(404, { error: "not_found" });
+      // On the holder's own event log, not the admin's: it is their
+      // connection that stopped working, and they should be able to see
+      // why without asking.
+      await logEvent(db, rows[0].account_id, "connection_revoked", {
+        family_id: body.family_id,
+        by: "admin",
+      });
+      return json(200, { ok: true });
+    },
+
     "GET /api/admin/service-tokens": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select t.token_id, t.name, t.created_at, t.last_used_at, t.revoked_at,
+                a.email as account_email, a.role as account_role,
                 (select count(*)::int from mcp_call_audit m
                  where m.surface = 'svc:' || t.name
                    and m.created_at > now() - interval '7 days') as calls_7d
-         from service_token t order by t.token_id desc`,
+         from service_token t
+         left join account a on a.account_id = t.account_id
+         order by t.token_id desc`,
       );
       return json(200, { tokens: rows });
     },

@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { Icon } from "../../components/Icon.jsx";
-import { SlotMeters } from "../../components/SlotMeter.jsx";
 import { quotaReading } from "../../lib/quota.js";
 
 /**
  * Profile — the account you are signed in as, all on one page.
  *
  * Who you are (address, read-only; tier; how you sign in; the timezone,
- * which is editable here), then what the tier gives you (slot meters
- * and the upgrade request), then today's quota with the reset time and
- * a way to earn more. Settings & tier was folded into this page (Jamie,
+ * which is editable here), then what the tier gives you (the limits
+ * table and the upgrade request), then today's quota with the reset
+ * time and a way to earn more. Settings & tier was folded into this page (Jamie,
  * 2026-09-10): two pages for one account was one too many. Overview
  * reports the same slot numbers through the same component, and Usage
  * reads the same quota through lib/quota.js, so nothing here can
@@ -85,7 +84,7 @@ export function Profile({ me, refresh, navigate }) {
         </div>
       </section>
 
-      <TierPanel me={me} entitlements={e} />
+      <TierPanel me={me} entitlements={e} usage={usage} />
 
       <section className="panel" style={{ marginBottom: "14px" }}>
         <div className="panel__head" style={{ flexWrap: "wrap" }}>
@@ -248,7 +247,80 @@ function QuotaMeter({ label, line }) {
   );
 }
 
-function TierPanel({ me, entitlements: e }) {
+/**
+ * What your tier allows, as the ladder publishes it.
+ *
+ * This was four slot meters, which showed a quarter of the ladder and
+ * none of the numbers a reader had just seen on /docs/roles — so the
+ * page that is ABOUT your tier disagreed with the page that documents
+ * tiers (Jamie, 2026-09-10). Same eight rows, same order, same source:
+ * packages/contracts/roles.ts through /api/me. A dash where a tier has
+ * none of something, "unlimited" where there is no ceiling, and what you
+ * are using beside it wherever we count it.
+ */
+function TierLimits({ me, entitlements: e, usage }) {
+  if (!e) return null;
+  const cap = (v) => (v == null ? "unlimited" : v === 0 ? "—" : fmt(v));
+  const rows = [
+    ["Player recordings", e.player_slots?.used, e.player_slots?.limit],
+    [
+      "Clan watches · activity",
+      e.activity_clans?.used,
+      e.activity_clans?.limit,
+    ],
+    [
+      "Clan watches · comprehensive",
+      e.comprehensive_clans?.used,
+      e.comprehensive_clans?.limit,
+    ],
+    ["Tool calls / day", usage?.today_calls, e.mcp_calls_per_day],
+    ["Live CR fetches / day", usage?.live_today, e.live_fetches_per_day],
+    ["Collections you curate", e.collections?.used, e.collections?.limit],
+    ["Integrations", undefined, e.integrations?.limit],
+    ["Agents", undefined, e.agents?.limit],
+  ];
+  return (
+    <div className="table__scroll">
+      <table className="table" style={{ minWidth: "380px" }}>
+        <thead>
+          <tr>
+            <th>WHAT</th>
+            <th style={{ textAlign: "right" }}>USING</th>
+            <th style={{ textAlign: "right" }}>
+              {String(me?.role ?? "your tier").toUpperCase()} ALLOWS
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([label, used, limit]) => (
+            <tr key={label}>
+              <td>{label}</td>
+              <td
+                className="mono"
+                style={{
+                  textAlign: "right",
+                  color:
+                    limit != null && limit !== 0 && used >= limit
+                      ? "var(--warn)"
+                      : undefined,
+                }}
+              >
+                {used == null ? "—" : fmt(used)}
+              </td>
+              <td className="mono" style={{ textAlign: "right" }}>
+                {cap(limit)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const fmt = (n) => (typeof n === "number" ? n.toLocaleString() : String(n));
+
+function TierPanel({ me, entitlements: e, usage }) {
   const [asking, setAsking] = useState(false);
   const [reqRole, setReqRole] = useState("");
   const [note, setNote] = useState("");
@@ -277,7 +349,7 @@ function TierPanel({ me, entitlements: e }) {
         )}
       </div>
       <div className="panel__body">
-        <SlotMeters entitlements={e} />
+        <TierLimits me={me} entitlements={e} usage={usage} />
         {asking && (
           <form
             style={{
