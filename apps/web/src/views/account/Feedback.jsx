@@ -43,9 +43,9 @@ export function FeedbackItem({ id, navigate }) {
           <span
             className={`chip ${
               item.status === "done"
-                ? "chip--active"
+                ? "chip--ok"
                 : item.status === "new"
-                  ? "chip--pending"
+                  ? "chip--warn"
                   : ""
             }`}
           >
@@ -182,9 +182,9 @@ export function Feedback({ navigate }) {
                 <span
                   className={`chip ${
                     f.status === "done"
-                      ? "chip--active"
+                      ? "chip--ok"
                       : f.status === "new"
-                        ? "chip--pending"
+                        ? "chip--warn"
                         : ""
                   }`}
                 >

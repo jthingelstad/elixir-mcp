@@ -24,26 +24,35 @@
   </head>
   <body>
     <div class="shell">
-      {#- Tier-1 navigation. The static half cannot know whether the
-          reader is signed in, so it always shows the signed-out shape
-          and links into the app for the rest. Every link is a plain
-          href: crossing into the app is a real page load. -#}
-      <header class="nav1">
-        <div class="nav1__inner wrap">
+      {#- The top bar, and the ONE build constraint the design states
+          outright: it must render identically here and in the app. The
+          two halves are cached differently and cannot agree on a shape
+          that varies by session, so this carries no signed-in state at
+          all — same markup, same classes, same six tabs, same gold
+          Console button as apps/web/src/App.jsx renders. Session
+          identity lives at the foot of the console's rail, which only
+          the app draws.
+
+          It used to show "Sign in" here and swap it to "Account" once
+          /api/me answered, which is the reshaping-nav clunk that whole
+          exercise was trying to remove. Console leads somewhere real
+          either way: signed in it is the console, signed out it is the
+          wall that offers sign-in. -#}
+      <header class="chrome">
+        <div class="chrome__inner">
           <a class="wordmark" href="/">{{ site.name }}</a>
-          <nav>
-            <a href="/"{% if navActive == "home" %} aria-current="page"{% endif %}>Home</a>
-            <a href="/data"{% if navActive == "data" %} aria-current="page"{% endif %}>Data</a>
-            <a href="/use-cases/play"{% if navActive == "cases" %} aria-current="page"{% endif %}>Use cases</a>
-            <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
-            <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
-            <a href="/family"{% if navActive == "family" %} aria-current="page"{% endif %}>Family</a>
+          <nav aria-label="{{ site.name }}" style="display: flex; gap: 22px">
+            <a class="chrome__tab{% if navActive == "home" %} chrome__tab--on{% endif %}" href="/">Home</a>
+            <a class="chrome__tab{% if navActive == "data" %} chrome__tab--on{% endif %}" href="/data">Data</a>
+            <a class="chrome__tab{% if navActive == "cases" %} chrome__tab--on{% endif %}" href="/use-cases/play">Use cases</a>
+            <a class="chrome__tab{% if navActive == "updates" %} chrome__tab--on{% endif %}" href="/updates">Updates</a>
+            <a class="chrome__tab{% if navActive == "docs" %} chrome__tab--on{% endif %}" href="/docs">Docs</a>
+            <a class="chrome__tab{% if navActive == "family" %} chrome__tab--on{% endif %}" href="/family">Family</a>
           </nav>
-          {#- Sign in reads as the action it is, in the same gold as Request
-              access on the home page — it was a grey link beside four other
-              grey links, and the one thing on the page a returning user is
-              looking for. -#}
-          <div class="nav1__meta"><a class="btn btn--primary btn--sm" href="/signin">Sign in</a></div>
+          <a class="chrome__console" href="/account/overview">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+            Console
+          </a>
         </div>
       </header>
 
@@ -74,9 +83,6 @@
     {#- Tinylytics: a static page is a real document load, so the embed
         records the hit by itself. No pushState bridge is needed here -
         that belongs to the app. Same privacy posture: anonymous only. -#}
-    {#- Keeps this nav in step with the app's once a session exists. External
-        file, never inline: the CSP forbids inline script and a test pins it. -#}
-    <script defer src="/assets/nav-session.js"></script>
     <script defer src="https://tinylytics.app/embed/{{ site.tinylyticsId }}/min.js?hits&countries&events"></script>
   </body>
 </html>

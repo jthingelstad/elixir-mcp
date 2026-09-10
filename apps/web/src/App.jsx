@@ -60,8 +60,8 @@ const CHROME_TABS = [
   ["Home", "/"],
   ["Data", "/data"],
   ["Use cases", "/use-cases/play"],
-  ["Docs", "/docs"],
   ["Updates", "/updates"],
+  ["Docs", "/docs"],
   ["Family", "/family"],
 ];
 
@@ -120,7 +120,7 @@ export const SECTIONS = {
     // session, so the app must hand the bare path back.
     staticIndex: true,
     pages: [
-      { slug: "dashboard", label: "Dashboard" },
+      { slug: "dashboard", label: "Charts" },
       // Changelog is a static page; the top bar links out to it.
       { slug: "changelog", label: "Changelog", static: true },
     ],
@@ -254,6 +254,12 @@ export function railPosition(path) {
       sub: page === "collectors" ? "collectors" : undefined,
     };
   if (section === "admin") return { key: "admin", sub: page ?? "requests" };
+  // The in-app charts are the corpus in detail, reached from the site's
+  // /data page. They sit under Explore in the rail rather than nowhere:
+  // losing the whole navigation on one route is worse than putting a
+  // page under the nearest section that is honestly about reading the
+  // record.
+  if (section === "data" && page === "dashboard") return { key: "explore" };
   if (section === "account") {
     // /account/activity/n/<id> is a notification record, which belongs
     // to the Notifications sub-page rather than being one of its own.
@@ -266,6 +272,8 @@ export function railPosition(path) {
     // The agent record is addressable in its own right, but it belongs
     // to Connections in the rail: an agent IS a connection.
     if (page === "agents") return { key: "connections", sub: "agents" };
+    // /account/tracking/<tag> is a record of a tracked thing, which
+    // belongs to Tracking rather than being a section of its own.
     return { key: page ?? "overview" };
   }
   return {};

@@ -518,14 +518,14 @@ function AdminCollectors({ navigate }) {
                 </td>
                 <td>
                   <span
-                    className={`chip ${g.status === "active" ? "chip--active" : g.status === "pending" ? "chip--pending" : ""}`}
+                    className={`chip ${g.status === "active" ? "chip--ok" : g.status === "pending" ? "chip--warn" : "chip--info"}`}
                   >
                     {g.status}
                   </span>
                 </td>
                 <td>
                   <span
-                    className={`chip ${g.channel === "live" ? "chip--active" : ""}`}
+                    className={`chip ${g.channel === "live" ? "chip--info" : "chip--info"}`}
                   >
                     {g.channel ?? "bulk"}
                   </span>
@@ -794,7 +794,7 @@ function AdminFeedbackItem({ id, navigate }) {
           </span>
           <span className="tag-chip">{item.category}</span>
           <span
-            className={`chip ${item.status === "done" ? "chip--active" : item.status === "new" ? "chip--pending" : ""}`}
+            className={`chip ${item.status === "done" ? "chip--ok" : item.status === "new" ? "chip--warn" : "chip--info"}`}
           >
             {item.status}
           </span>

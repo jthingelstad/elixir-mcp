@@ -464,7 +464,7 @@ export function AgentDetail({ id, navigate }) {
                 <tr>
                   <th>WHEN</th>
                   <th>TOPIC</th>
-                  <th>SUBJECT</th>
+                  <th>TRACKING</th>
                   <th>COUNT</th>
                 </tr>
               </thead>
@@ -533,174 +533,190 @@ export function Agents({ navigate }) {
   }
 
   return (
-    <div className="cols">
-      <div className="cols__main">
-        <section className="panel">
-          <div className="panel__head">
-            <span className="panel-title">Your agents</span>
-          </div>
-          <div className="panel__body">
-            <p
-              style={{
-                fontSize: "12.5px",
-                color: "var(--ink-faint)",
-                marginTop: 0,
-              }}
-            >
-              An agent acts for a clan rather than for you. It has its own
-              identity, its own key and its own event feed — so what it does
-              never lands in your history, and what you do never shows up as
-              its. It spends your daily calls, and you can make one for any clan
-              you already record.
-            </p>
-          </div>
-
-          {principals?.agents?.length === 0 && (
-            <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
-              No agents yet.
+    <>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 className="page__title">Agents</h1>
+        <p className="page__lede">
+          An agent calls at its own door with its own key, for you or for a
+          clan. Its name is its key&rsquo;s name.
+        </p>
+      </div>
+      <div className="cols">
+        <div className="cols__main">
+          <section className="panel">
+            <div className="panel__head">
+              <span className="panel-title">Your agents</span>
             </div>
-          )}
-          {principals?.agents?.length > 0 && (
-            <div className="tablewrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>AGENT</th>
-                    <th>CLAN</th>
-                    <th>TIER</th>
-                    <th>LAST ACTIVE</th>
-                    {/* An agent spends the OWNER's daily calls, and the
+            <div className="panel__body">
+              <p
+                style={{
+                  fontSize: "12.5px",
+                  color: "var(--ink-faint)",
+                  marginTop: 0,
+                }}
+              >
+                An agent acts for a clan rather than for you. It has its own
+                identity, its own key and its own event feed — so what it does
+                never lands in your history, and what you do never shows up as
+                its. It spends your daily calls, and you can make one for any
+                clan you already record.
+              </p>
+            </div>
+
+            {principals?.agents?.length === 0 && (
+              <div
+                className="panel__body"
+                style={{ color: "var(--ink-faint)" }}
+              >
+                No agents yet.
+              </div>
+            )}
+            {principals?.agents?.length > 0 && (
+              <div className="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>AGENT</th>
+                      <th>CLAN</th>
+                      <th>TIER</th>
+                      <th>LAST ACTIVE</th>
+                      {/* An agent spends the OWNER's daily calls, and the
                         owner's own usage view cannot see them -- it filters
                         to the owner's account_id and an agent has its own.
                         Without this column a budget can be exhausted by
                         something you have no way to look at. */}
-                    <th>CALLS 7D</th>
-                    <th>STATUS</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {principals.agents.map((a) => {
-                    const live = (a.tokens ?? []).filter((k) => !k.revoked_at);
-                    return (
-                      <tr key={a.account_id}>
-                        <td>{live[0]?.name ?? a.public_id}</td>
-                        <td className="mono">
-                          {(a.clans ?? []).map((c) => c.clan_tag).join(", ") ||
-                            "—"}
-                        </td>
-                        <td>{a.role}</td>
-                        <td>
-                          {/* The ACCOUNT's last call, not the key's. Reading
+                      <th>CALLS 7D</th>
+                      <th>STATUS</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {principals.agents.map((a) => {
+                      const live = (a.tokens ?? []).filter(
+                        (k) => !k.revoked_at,
+                      );
+                      return (
+                        <tr key={a.account_id}>
+                          <td>{live[0]?.name ?? a.public_id}</td>
+                          <td className="mono">
+                            {(a.clans ?? [])
+                              .map((c) => c.clan_tag)
+                              .join(", ") || "—"}
+                          </td>
+                          <td>{a.role}</td>
+                          <td>
+                            {/* The ACCOUNT's last call, not the key's. Reading
                               last_used_at made a years-old agent report
                               "never" the moment its key was rotated. */}
-                          {a.last_call_at ? (
-                            <Fresh ts={a.last_call_at} />
-                          ) : (
-                            <span style={{ color: "var(--ink-faint)" }}>
-                              never
-                            </span>
-                          )}
-                          {live[0] &&
-                            !live[0].last_used_at &&
-                            a.last_call_at && (
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--warn)",
-                                }}
-                              >
-                                new key unused
-                              </div>
+                            {a.last_call_at ? (
+                              <Fresh ts={a.last_call_at} />
+                            ) : (
+                              <span style={{ color: "var(--ink-faint)" }}>
+                                never
+                              </span>
                             )}
-                        </td>
-                        <td>{a.calls_7d ?? 0}</td>
-                        <td>
-                          {a.status === "approved" ? (
-                            "active"
-                          ) : (
-                            <span style={{ color: "var(--bad)" }}>
-                              suspended
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <a
-                            onClick={() =>
-                              navigate(`/account/agents/${a.account_id}`)
-                            }
-                          >
-                            Open ›
-                          </a>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                            {live[0] &&
+                              !live[0].last_used_at &&
+                              a.last_call_at && (
+                                <div
+                                  style={{
+                                    fontSize: "11px",
+                                    color: "var(--warn)",
+                                  }}
+                                >
+                                  new key unused
+                                </div>
+                              )}
+                          </td>
+                          <td>{a.calls_7d ?? 0}</td>
+                          <td>
+                            {a.status === "approved" ? (
+                              "active"
+                            ) : (
+                              <span style={{ color: "var(--bad)" }}>
+                                suspended
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <a
+                              onClick={() =>
+                                navigate(`/account/agents/${a.account_id}`)
+                              }
+                            >
+                              Open ›
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-          {minted && (
+            {minted && (
+              <div className="panel__body">
+                <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
+                  <strong>Copy this key now.</strong> It is shown once and never
+                  again — only its hash is stored.
+                </p>
+                <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
+                {minted.publicId && (
+                  <>
+                    <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
+                      Connect it at this URL — its own door, not the personal
+                      one:
+                    </p>
+                    <code style={{ wordBreak: "break-all" }}>
+                      {`${window.location.origin}/a/${minted.publicId}/mcp`}
+                    </code>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="panel__body">
-              <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-                <strong>Copy this key now.</strong> It is shown once and never
-                again — only its hash is stored.
-              </p>
-              <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
-              {minted.publicId && (
-                <>
-                  <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
-                    Connect it at this URL — its own door, not the personal one:
-                  </p>
-                  <code style={{ wordBreak: "break-all" }}>
-                    {`${window.location.origin}/a/${minted.publicId}/mcp`}
-                  </code>
-                </>
+              {clans.length === 0 ? (
+                <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
+                  Add a clan on your Overview first — an agent needs a clan to
+                  act for.
+                </p>
+              ) : (
+                <form
+                  onSubmit={create}
+                  style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+                >
+                  <input
+                    placeholder="agent name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                  />
+                  <select
+                    value={form.clan_tag}
+                    onChange={(e) =>
+                      setForm({ ...form, clan_tag: e.target.value })
+                    }
+                  >
+                    {clans.map((c) => (
+                      <option key={c.clan_tag} value={c.clan_tag}>
+                        {c.clan_tag}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit">Create agent</button>
+                </form>
+              )}
+              {error && (
+                <p style={{ fontSize: "12.5px", color: "var(--warn)" }}>
+                  {error}
+                </p>
               )}
             </div>
-          )}
-
-          <div className="panel__body">
-            {clans.length === 0 ? (
-              <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-                Add a clan on your Overview first — an agent needs a clan to act
-                for.
-              </p>
-            ) : (
-              <form
-                onSubmit={create}
-                style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-              >
-                <input
-                  placeholder="agent name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                />
-                <select
-                  value={form.clan_tag}
-                  onChange={(e) =>
-                    setForm({ ...form, clan_tag: e.target.value })
-                  }
-                >
-                  {clans.map((c) => (
-                    <option key={c.clan_tag} value={c.clan_tag}>
-                      {c.clan_tag}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit">Create agent</button>
-              </form>
-            )}
-            {error && (
-              <p style={{ fontSize: "12.5px", color: "var(--warn)" }}>
-                {error}
-              </p>
-            )}
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

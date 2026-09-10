@@ -127,11 +127,12 @@ export function Data() {
 
   return (
     <>
-      <div className="page-head">
-        <h1 className="page-title">The corpus</h1>
-        <span className="page-head__note">
-          everything Elixir has recorded — aggregates are public by design
-        </span>
+      <div style={{ marginBottom: "18px" }}>
+        <h1 className="page__title">The corpus, day by day</h1>
+        <p className="page__lede">
+          The whole recorded series, day by day. The totals and the shape of it
+          are on <a href="/data">the corpus page</a>.
+        </p>
       </div>
       {err && <p className="field-error">{err}</p>}
 

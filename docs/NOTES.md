@@ -665,3 +665,27 @@ Deployed 2026-09-09 (`--skip-web`, exit 0, migrations 60/0; commits 38da7bc, ff8
 **THREE SILENT FAILURES WORTH REMEMBERING, ALL FOUND BY LOOKING AT THE RENDERED PAGE.** (1) Nunjucks has no namespace assignment: a variable `set` inside a `{% for %}` does not survive the loop, and the first cut of the use-case pages rendered a complete shell — nav, footer, lede — around nothing at all. Use a filter. (2) The generator lifting design copy matched ONE brace pair, and `SCRIPTS` is a literal followed by an `Object.assign` adding eight more; three cases got a transcript and eight quietly did not. (3) A class that sets `display` beats the UA's `[hidden]` rule, so all three scripts' tools showed at once and the thinking dots sat under a finished answer — `:not([hidden])` fixes it. Eleventy pagination and the sitemap's collection walk also disagreed (three pages written, one listed), so grouped pages are explicit files over a shared include.
 
 **DEVIATIONS, cumulative.** Admin's Feedback and Collections sub-pages are "Feedback queue" and "All collections" (rule 17: their bare labels are top-level items that stay visible while Admin is open). The rail's identity block says "Signed in" (we store no address, and a player name in the rail breaks rule 16). Overview has four slot meters, not three (activity and comprehensive clans are separate limits). The narrow rail is a disclosure, not the console prototype's drawer. **Nothing is deployed and nothing is pushed** — `main` is ahead of origin.
+
+## 2026-09-10 — QA pass: eight findings against the design
+
+**"MAKE SURE YOU LANDED IT AS DESIGNED" (Jamie).** Checked the redesign against the handoff's Definition of done and the 21 house rules, with four written checks kept in `/tmp` (rendered-route sweep, top-bar parity, VOCABULARY.md as a linter, table-in-a-card scan). Eight findings, all fixed; `npm run verify` green.
+
+**1. THE TOP BARS WERE NOT THE SAME BAR** — the one thing the handoff calls a build constraint rather than a preference ("it must render identically in the Eleventy build and the app"). The site rendered `.nav1` with a **Sign in** control that `nav-session.js` swapped to **Account** once `/api/me` answered; the app rendered `.chrome` with a **Console** button. Two components, two controls, and the session-dependent swap is precisely the reshaping-nav clunk that script was written to end. Both halves render the same `.chrome` markup now, six tabs in the design's order, gold Console on the right; `nav-session.js` is deleted. Console leads somewhere real either way — signed in it is the console, signed out it is the wall that offers sign-in. A check compares the two as shipped.
+
+**2. TRACKING WAS MOVED, NOT REDRAWN.** It was still the old Overview's two card-wrapped tables — one for players, one for clans — each row carrying a nickname field, a relationship select, a notify switch and a Remove. That is two idioms for one idea and a form pretending to be a list. Now one bare table over both kinds with a kind filter and slot chips, and **`/account/tracking/<tag>`**, the record SCREENS.md marked `[new]`, holding the controls plus a Capture panel. "Stop tracking" states its consequence beside itself: history already recorded is kept.
+
+**3. FOURTEEN CHIPS STILL USED THE RETIRED VARIANTS** (`--active/--pending/--error/--live`) across Admin, Explore, Feedback and Tracking, held up by a compat block I wrote as a temporary bridge in step 1. Converted to the design's five tones; the compat block and the four rules are deleted.
+
+**4. THREE CONSOLE PAGES HAD NO TITLE OR LEDE** — Usage, the Agents list and Admin ▸ Integrations were still wearing the panel-title shape the rail replaced.
+
+**5. THE IN-APP CHARTS HAD NO RAIL AND NO DOCS STRIP.** `railPosition` knew nothing about `/data`, so a signed-in reader following the site's link to the daily charts lost the entire console navigation. They resolve to Explore now.
+
+**6. A TABLE INSIDE A CARD ON THE EXPLORE RECORD** — house rule 5, on the console side where it applies. (The Data page's framed table is the design's own treatment for the marketing half and stays.)
+
+**7. VOCABULARY VIOLATIONS**, from VOCABULARY.md read as a linter: `SUBJECT` as a column header on the Data page and the agent record, and "Dashboard" as the in-app charts' label and link text. **The design file itself writes SUBJECT in Tracking's header and "Track a subject" on its button** — VOCABULARY.md is described as mandatory and is the stricter of the two, so it wins: the column is TRACKED and the buttons say Track a player / Track a clan.
+
+**8. A LITERAL HEX IN A COMPONENT** (`#150f36`, the floating auth card). It is the design's value and not in the token set, so it became `--panel-float` rather than being inlined or invented.
+
+**FLAKE, NOT A REGRESSION:** `a second-precision collector clock in the same second as the request` failed once at 3,230 ms with headless Chrome and a mock server competing for CPU, and passes in ~413 ms on a quiet machine. Timing-sensitive by design (it exists because a millisecond fake once hid a second-precision race); worth knowing it is load-sensitive before believing it.
+
+**STILL OPEN:** four tables keep the legacy `.tablewrap` idiom inside a panel (Agents ×3, Usage, Integrations) — they render correctly and are not card-wrapped in the rule-5 sense, but they have not been redrawn to `.table`. The narrow-rail drawer-vs-disclosure ruling is still Jamie's. Nothing is deployed and nothing is pushed.

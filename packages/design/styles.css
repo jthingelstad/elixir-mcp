@@ -42,6 +42,7 @@
   --panel: #1a1440; /* cards, panels, chip backgrounds */
   --panel-raised: #221a52; /* secondary buttons, tag pills */
   --panel-head: #181135; /* header strip inside a code panel */
+  --panel-float: #150f36; /* a card that floats: auth, the transcript */
 
   /* The page wash. One gradient, same on every surface. */
   --page-wash: radial-gradient(70rem 34rem at 60% -14rem, #191140, #0c0920);
@@ -834,7 +835,7 @@ table {
 .transcript__window {
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #150f36;
+  background: var(--panel-float);
   overflow: hidden;
   box-shadow: var(--shadow-float);
 }
@@ -965,32 +966,6 @@ table {
    are retargeted onto the tokens above and go as their screens land.
    ================================================================== */
 
-/* The 2026-09-05 chips (dot + lowercase mono) still render on Status,
-   Explore, Admin, Feedback and the collector pages. The handoff's `.chip`
-   is a different shape — ink/fill/border from one tone, an explicit dot
-   element — so the old geometry is scoped to the old modifiers rather
-   than left on the base, where it leaked a mono face and a second dot
-   into every new chip. Goes when those screens are rebuilt. */
-.chip--active,
-.chip--pending,
-.chip--error,
-.chip--live {
-  gap: 6px;
-  padding: 2px 9px 2px 7px;
-  border: 1px solid var(--line);
-  font: 11.5px var(--font-mono);
-  color: var(--ink-faint);
-}
-.chip--active::before,
-.chip--pending::before,
-.chip--error::before,
-.chip--live::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ink-quiet-icon);
-}
 /* ── Type ─────────────────────────────────────────────────── */
 
 /* The brand shell: display face, weight 400 (Clash has one weight),
@@ -1383,34 +1358,6 @@ tr.yours td {
 /* Empty weeks and null values stay in the table so gaps are visible */
 .nil {
   color: var(--ink-quiet-icon);
-}
-
-/* ── Chips ────────────────────────────────────────────────── */
-
-/* Status — state, never judgment. Dot + lowercase mono. */
-.chip--active {
-  color: var(--ok);
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.08);
-}
-.chip--active::before {
-  background: var(--ok);
-}
-.chip--pending {
-  color: var(--warn);
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.08);
-}
-.chip--pending::before {
-  background: var(--warn);
-}
-.chip--error {
-  color: var(--bad);
-  border-color: rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.08);
-}
-.chip--error::before {
-  background: var(--bad);
 }
 
 /* Outcomes are text colour only — a win chip on every battle row is
@@ -2087,15 +2034,6 @@ input[aria-invalid="true"] {
   margin-top: 6px;
   font-size: 12px;
   color: var(--ink-faint);
-}
-
-/* The live lane. Distinct from chip--active (which means "this collector is
-   healthy") because they answer different questions: one is health, one is
-   capability. A collector can be active and bulk-only. */
-.chip--live {
-  background: rgba(138, 99, 210, 0.16);
-  border-color: rgba(138, 99, 210, 0.45);
-  color: #b79bf0;
 }
 
 /* Feed link. Sits with the page heading rather than in the footer, because a

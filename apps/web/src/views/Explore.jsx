@@ -723,9 +723,11 @@ function RecordPage({ me, navigate, kind, rawId }) {
       {view.sub && <div className="record__sub">{view.sub}</div>}
 
       {view.table && (
-        <section className="panel">
-          <div className="tablewrap">
-            <table style={{ minWidth: "640px" }}>
+        <section>
+          {/* Bare on the page: a record's table is interface, and a card
+              around it makes the page read as a report. */}
+          <div className="table__scroll">
+            <table className="table" style={{ minWidth: "640px" }}>
               <thead>
                 <tr>
                   {view.table.cols.map((c) => (
@@ -963,7 +965,7 @@ function buildView(kind, rawId, res, me) {
       tag,
       nickEdit: { tag, current: b.nickname ?? null },
       chip: b.meta?.recording_active_since
-        ? { label: "recording", cls: "chip--active" }
+        ? { label: "recording", cls: "chip--ok" }
         : { label: "observed only" },
       sub: "What the recorder holds for this player. Coverage tiles open the underlying records.",
       fields,
@@ -991,7 +993,7 @@ function buildView(kind, rawId, res, me) {
       crumb: `${b.name ?? tag} ${tag}`,
       title: b.name ?? tag,
       tag,
-      chip: { label: "recorded", cls: "chip--active" },
+      chip: { label: "recorded", cls: "chip--ok" },
       sub: "The clan as recorded: roster and war history.",
       fields: [
         { label: "name", value: b.name ?? "—" },
@@ -1080,9 +1082,9 @@ function buildView(kind, rawId, res, me) {
             label: bt.me.outcome,
             cls:
               bt.me.outcome === "win"
-                ? "chip--active"
+                ? "chip--ok"
                 : bt.me.outcome === "loss"
-                  ? "chip--error"
+                  ? "chip--bad"
                   : "",
           }
         : null,
@@ -1181,9 +1183,7 @@ function buildView(kind, rawId, res, me) {
       crumb: `S${wk.season_id} W${Number(wk.section_index) + 1}`,
       title: `Season ${wk.season_id}, week ${Number(wk.section_index) + 1}`,
       tag: b.clan_tag,
-      chip: wk.is_colosseum
-        ? { label: "colosseum", cls: "chip--pending" }
-        : null,
+      chip: wk.is_colosseum ? { label: "colosseum", cls: "chip--warn" } : null,
       sub: "One recorded river-race week for this clan.",
       fields: [
         { label: "season", value: String(wk.season_id) },

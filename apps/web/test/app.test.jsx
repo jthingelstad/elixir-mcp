@@ -195,13 +195,63 @@ test("tracking renders claims, recording state, and notify switches", async () =
     ],
   });
   render(<App />);
+  // The list: what is tracked, how it relates to you, and how fresh it
+  // is. One table over players and clans — a player and a clan are both
+  // something you track.
   expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
   expect(screen.getByText("Jamie")).toBeTruthy();
+  expect(screen.getByText("you")).toBeTruthy();
+  expect(screen.getAllByText("Manage").length).toBeGreaterThan(0);
+  // The controls are NOT in the row: a row with four controls in it is a
+  // form pretending to be a list.
+  expect(screen.queryByRole("switch")).toBeNull();
+  // Both kinds can be added, from the same page.
+  expect(screen.getAllByRole("button", { name: "Track" })).toHaveLength(2);
+  expect(screen.getByLabelText("Player tag")).toBeTruthy();
+  expect(screen.getByLabelText("Clan tag")).toBeTruthy();
+});
+
+test("the tracked record holds the controls, and says what stopping costs", async () => {
+  window.history.pushState(
+    {},
+    "",
+    `/account/tracking/${encodeURIComponent("#20JJJ2CCRU")}`,
+  );
+  global.fetch = mockFetch({
+    "GET /api/me": [
+      200,
+      {
+        authenticated: true,
+        is_owner: false,
+        claims: [
+          {
+            player_tag: "#20JJJ2CCRU",
+            is_primary: true,
+            notify: true,
+            name: "Jamie",
+            relationship: "you",
+          },
+        ],
+        recordings: [
+          {
+            subject_tag: "#20JJJ2CCRU",
+            status: "active",
+            freshest_poll: new Date().toISOString(),
+            fetches_24h: 38,
+          },
+        ],
+      },
+    ],
+    "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
+  });
+  render(<App />);
+  expect(await screen.findByText("Jamie")).toBeTruthy();
+  expect(screen.getByRole("switch", { name: "Notifications" })).toBeTruthy();
   expect(screen.getByText("active")).toBeTruthy();
-  expect(screen.getByText("Add a player")).toBeTruthy();
-  expect(screen.getAllByRole("switch").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
-  expect(await screen.findByText("Your players")).toBeTruthy();
+  // The consequence sits beside the control, not behind a confirm.
+  const stop = screen.getByRole("button", { name: "Stop tracking" });
+  expect(stop).toBeTruthy();
+  expect(screen.getByText("History already recorded is kept.")).toBeTruthy();
 });
 
 test("admin view is admin-gated in the UI", async () => {
@@ -226,7 +276,7 @@ test("the tab title names the page, most specific part first", async () => {
   };
   expect(t("/")).toBe("Elixir MCP");
   expect(t("/status/service")).toBe("Status - Elixir MCP");
-  expect(t("/data/dashboard")).toBe("Dashboard - Data - Elixir MCP");
+  expect(t("/data/dashboard")).toBe("Charts - Data - Elixir MCP");
   expect(t("/admin/collectors")).toBe("Collectors - Admin - Elixir MCP");
   expect(t("/status/collectors")).toBe("Collectors - Status - Elixir MCP");
   // Explore owns its sub-pages, so a record beats the page slug: it is

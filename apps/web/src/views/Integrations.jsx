@@ -84,9 +84,16 @@ export function Integrations() {
           </div>
         </div>
       )}
+      <div style={{ marginBottom: "18px" }}>
+        <h1 className="page__title">Integrations</h1>
+        <p className="page__lede">
+          Service keys held by other products. Each one pulls what it needs over
+          /api/v1; nothing is pushed to them.
+        </p>
+      </div>
       <section className="panel" style={{ marginBottom: "16px" }}>
         <div className="panel__head">
-          <span className="panel-title">Integrations</span>
+          <span className="panel-title">Held by</span>
         </div>
         <div className="tablewrap">
           <table>

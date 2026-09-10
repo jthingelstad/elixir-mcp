@@ -1,75 +1,45 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
-import { Fresh } from "../../components/Fresh.jsx";
+import { Icon } from "../../components/Icon.jsx";
+import { ago, secsSince } from "../../lib/time.js";
 
 /**
- * Tracking — the full table, and the only page that changes what we
- * record for you.
+ * Tracking — ONE table over both kinds, and a record per tracked thing.
  *
- * Both halves of it lived on Overview until the 2026-09-09 design split
- * reading from doing. The tables come across unchanged; what moved is
- * where they are, and that Overview no longer carries a control.
+ * It was two card-wrapped tables inherited from the old Overview, one
+ * for players and one for clans, each carrying its own controls in its
+ * own row. That is two idioms for one idea: a player and a clan are both
+ * something you track, with a relationship, a freshness and a cost
+ * against your slots.
  *
- * "Tracking", never "subjects": the product concept is a player or clan
- * with a relationship to you, not an assertion of identity.
+ * So: one bare table (a table is interface, not a report — no card, no
+ * fills, hover only), a filter for the two kinds, and the controls moved
+ * to the record, because a row with four controls in it is a form
+ * pretending to be a list.
+ *
+ * "Tracked", never "subject", in a heading or a column — the design file
+ * writes SUBJECT there but VOCABULARY.md is explicit that the schema's
+ * word does not reach the interface, and it is the stricter of the two.
  */
 const TAG_OK = /^#?[0289PYLQGRJCUVOo]{3,12}$/;
 
-function NickCell({ tag, current, refresh }) {
-  const [value, setValue] = useState(current ?? "");
-  const [busy, setBusy] = useState(false);
-  const save = async () => {
-    const v = value.trim();
-    if (v === (current ?? "")) return;
-    setBusy(true);
-    await api.explore("elixir_nickname", {
-      player_tag: tag,
-      nickname: v || null,
-    });
-    setBusy(false);
-    refresh();
-  };
-  return (
-    <input
-      className="mono"
-      value={value}
-      placeholder="—"
-      maxLength={40}
-      disabled={busy}
-      aria-label={`nickname for ${tag}`}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={save}
-      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      style={{
-        width: "7.5rem",
-        padding: "3px 8px",
-        fontSize: "12px",
-        background: "transparent",
-        borderColor: "transparent",
-      }}
-    />
-  );
+function freshness(ts, now) {
+  const s = secsSince(ts, now);
+  if (s == null) return { text: "never polled", tone: "ink-faint" };
+  if (s < 3600) return { text: ago(ts, now), tone: "ok" };
+  if (s < 86400) return { text: ago(ts, now), tone: "warn" };
+  return { text: ago(ts, now), tone: "ink-faint" };
 }
 
-function Switch({ on, onToggle, label }) {
-  return (
-    <button
-      className="switch"
-      role="switch"
-      aria-checked={on ? "true" : "false"}
-      aria-label={label}
-      onClick={onToggle}
-    />
-  );
-}
-
-export function Tracking({ me, refresh }) {
+export function Tracking({ me, refresh, navigate }) {
+  const [clans, setClans] = useState(null);
+  const [filter, setFilter] = useState("all");
   const [tag, setTag] = useState("");
   const [tagErr, setTagErr] = useState("");
-  const [clans, setClans] = useState(null);
   const [clanTag, setClanTag] = useState("");
   const [clanScope, setClanScope] = useState("comprehensive");
   const [clanErr, setClanErr] = useState("");
+  const [now] = useState(() => Date.now());
 
   const loadClans = () => api.myClans().then((r) => r.ok && setClans(r.data));
   useEffect(() => {
@@ -79,368 +49,380 @@ export function Tracking({ me, refresh }) {
   const recFor = (t) => me.recordings?.find((r) => r.subject_tag === t);
   const e = me.entitlements;
 
+  const rows = [
+    ...(me.claims ?? []).map((c) => {
+      const rec = recFor(c.player_tag);
+      return {
+        kind: "player",
+        key: c.player_tag,
+        tag: c.player_tag,
+        name: c.nickname ?? c.name ?? "—",
+        rel: c.is_primary ? "you" : (c.relationship ?? "watching"),
+        primary: c.is_primary,
+        fresh: freshness(rec?.freshest_poll, now),
+        day: rec?.fetches_24h ?? 0,
+      };
+    }),
+    ...((clans?.clans ?? []).map((c) => ({
+      kind: "clan",
+      key: c.clan_tag,
+      tag: c.clan_tag,
+      name: c.name ?? c.clan_tag,
+      rel: clans?.home_clan?.clan_tag === c.clan_tag ? "your clan" : c.scope,
+      primary: clans?.home_clan?.clan_tag === c.clan_tag,
+      fresh: {
+        text: c.recording_status ?? "off",
+        tone: c.recording_status === "active" ? "ok" : "ink-faint",
+      },
+      day: null,
+    })) ?? []),
+  ].filter((r) => filter === "all" || r.kind === filter.replace(/s$/, ""));
+
+  const chips = [
+    e?.player_slots && ["Players", e.player_slots],
+    e?.activity_clans && ["Clans · activity", e.activity_clans],
+    e?.comprehensive_clans && ["Clans · comprehensive", e.comprehensive_clans],
+  ].filter(Boolean);
+
   return (
     <>
-      <div style={{ marginBottom: "20px" }}>
-        <h1 className="page__title">Tracking</h1>
-        <p className="page__lede">
-          Added means recorded. Capture starts on the next poll and never stops
-          until you remove it.
-        </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "16px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h1 className="page__title">Tracking</h1>
+          <p className="page__lede">
+            Tracked means recorded. Capture starts on the next poll and does not
+            stop until you remove it.
+          </p>
+        </div>
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            gap: "8px",
+            flexWrap: "wrap",
+          }}
+        >
+          {chips.map(([label, slot]) => (
+            <span
+              className="btn btn--sm"
+              key={label}
+              style={{ cursor: "default" }}
+            >
+              {label}{" "}
+              <span
+                className={
+                  "meter__value" +
+                  (slot.limit != null &&
+                  slot.limit > 0 &&
+                  slot.used >= slot.limit
+                    ? " meter__value--full"
+                    : "")
+                }
+              >
+                {slot.used}/{slot.limit ?? "∞"}
+              </span>
+            </span>
+          ))}
+        </div>
       </div>
-      <section className="panel">
-        <div className="panel__head">
-          <span className="panel-title">Your players</span>
-          {e && (
-            <span className="sample">
-              {e.player_slots.used} of {e.player_slots.limit ?? "∞"} slots
-            </span>
-          )}
-        </div>
-        {me.claims.length === 0 ? (
-          <div className="panel__body">
-            <div className="empty">
-              <div className="empty__mark">＋</div>
-              <div className="empty__title">No players added yet</div>
-              <div className="empty__body">
-                Added means recorded — capture starts on the next poll.
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>TAG</th>
-                  <th>NAME</th>
-                  <th>NICKNAME</th>
-                  <th>CLAN</th>
-                  <th>RECORDING</th>
-                  <th>LAST POLL</th>
-                  <th className="num">FETCHES/24H</th>
-                  {/* 0055 added claim.relationship and the MCP identity
-                      block groups by it -- but nothing could ever SET it,
-                      so every non-primary player was announced to every
-                      connected agent as "watching". This is the writer. */}
-                  <th>RELATIONSHIP</th>
-                  <th>NOTIFY</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {me.claims.map((c) => {
-                  const rec = recFor(c.player_tag);
-                  return (
-                    <tr key={c.player_tag}>
-                      <td>
-                        {c.is_primary && <span className="yours">★ </span>}
-                        <span className="tag">{c.player_tag}</span>
-                      </td>
-                      <td>{c.name ?? "—"}</td>
-                      <td>
-                        <NickCell
-                          tag={c.player_tag}
-                          current={c.nickname}
-                          refresh={refresh}
-                        />
-                      </td>
-                      <td>
-                        {c.last_known_clan_tag ? (
-                          <span className="tag">{c.last_known_clan_tag}</span>
-                        ) : (
-                          <span className="nil">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <span
-                          className={`chip ${rec?.status === "active" ? "chip--active" : ""}`}
-                        >
-                          {rec?.status ?? "off"}
-                        </span>
-                      </td>
-                      <td>
-                        <Fresh ts={rec?.freshest_poll} />
-                      </td>
-                      <td className="num">{rec?.fetches_24h ?? ""}</td>
-                      <td>
-                        {c.is_primary ? (
-                          <span style={{ color: "var(--ink-faint)" }}>
-                            primary
-                          </span>
-                        ) : (
-                          <select
-                            aria-label={`relationship for ${c.player_tag}`}
-                            value={c.relationship ?? "watching"}
-                            onChange={async (e) => {
-                              await api.setRelationship(
-                                c.player_tag,
-                                e.target.value,
-                              );
-                              refresh();
-                            }}
-                          >
-                            <option value="alt">alt</option>
-                            <option value="friend">friend</option>
-                            <option value="watching">watching</option>
-                          </select>
-                        )}
-                      </td>
-                      <td>
-                        <Switch
-                          on={c.notify}
-                          label={`notify for ${c.player_tag}`}
-                          onToggle={async () => {
-                            await api.claimAction({
-                              player_tag: c.player_tag,
-                              action: c.notify ? "notify_off" : "notify_on",
-                            });
-                            refresh();
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          className="btn--text"
-                          onClick={async () => {
-                            await api.claimAction({
-                              player_tag: c.player_tag,
-                              action: "remove",
-                            });
-                            refresh();
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="panel__actions">
-          <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-            Add a player
-          </span>
-          <input
-            id="add-player-tag"
-            aria-label="Player tag"
-            className="mono"
-            placeholder="#20JJJ2CCRU"
-            aria-invalid={tagErr ? "true" : undefined}
-            value={tag}
-            onChange={(e2) => {
-              setTag(e2.target.value);
-              setTagErr("");
-            }}
-            style={{ flex: "0 1 180px" }}
-          />
-          <button
-            className="btn"
-            onClick={async () => {
-              if (!TAG_OK.test(tag.trim())) {
-                setTagErr("That doesn't look like a CR tag.");
-                return;
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          flexWrap: "wrap",
+          padding: "0 0 13px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            background: "var(--ground-sunken)",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--r-control)",
+            padding: "3px",
+            gap: "2px",
+          }}
+        >
+          {[
+            ["all", "All"],
+            ["players", "Players"],
+            ["clans", "Clans"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              className={
+                "btn btn--sm" + (filter === key ? " btn--selected" : "")
               }
-              const r = await api.addClaim(tag.trim());
-              if (r.ok) {
-                setTag("");
-                refresh();
-              } else setTagErr(r.data?.message ?? "Could not add.");
-            }}
-          >
-            Add
-          </button>
-          {tagErr && <span className="field-error">{tagErr}</span>}
-          <span
-            style={{
-              marginLeft: "auto",
-              fontSize: "12px",
-              color: "var(--ink-faint)",
-            }}
-          >
-            added = recorded
-          </span>
+              style={
+                filter === key
+                  ? undefined
+                  : { background: "transparent", border: 0 }
+              }
+              aria-pressed={filter === key}
+              onClick={() => setFilter(key)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      </section>
-      <section className="panel">
-        <div className="panel__head">
-          <span className="panel-title">Your clans</span>
-          {/* Guard the SHAPE, not just the presence. `clans &&` only says
-              the request came back; a 200 whose body is missing `slots`
-              is still truthy, and reading through it threw -- which,
-              before the error boundary, took the whole page with it. */}
-          {clans?.slots && (
-            <span className="sample">
-              activity {clans.slots.activity?.used ?? 0}/
-              {clans.slots.activity?.limit ?? "∞"} · comprehensive{" "}
-              {clans.slots.comprehensive?.used ?? 0}/
-              {clans.slots.comprehensive?.limit ?? "∞"}
-            </span>
-          )}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="empty">
+          <div className="empty__title">Nothing tracked yet</div>
+          <p className="empty__body" style={{ marginBottom: 0 }}>
+            Add the player you play as below. Nothing here defaults to you, and
+            capture starts on the next poll.
+          </p>
         </div>
-        {clans?.home_clan &&
-          !clans.clans.some((c) => c.clan_tag === clans.home_clan.clan_tag) && (
-            <div className="panel__body" style={{ paddingBottom: 0 }}>
-              <div className="notice">
-                <span>
-                  <span className="yours">★</span> Your clan:{" "}
-                  <strong>{clans.home_clan.name ?? "—"}</strong>{" "}
-                  <span className="tag">{clans.home_clan.clan_tag}</span>{" "}
-                  <button
-                    className="btn--text"
-                    onClick={async () => {
-                      await api.myClanAction({
-                        action: "add",
-                        clan_tag: clans.home_clan.clan_tag,
-                        scope: "comprehensive",
-                      });
-                      loadClans();
-                    }}
-                  >
-                    Add comprehensive
-                  </button>
-                  <button
-                    className="btn--text"
-                    onClick={async () => {
-                      await api.myClanAction({
-                        action: "add",
-                        clan_tag: clans.home_clan.clan_tag,
-                        scope: "activity",
-                      });
-                      loadClans();
-                    }}
-                  >
-                    Add activity
-                  </button>
-                </span>
-              </div>
-            </div>
-          )}
-        {clans?.clans?.length > 0 && (
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>CLAN</th>
-                  <th>TAG</th>
-                  <th>SCOPE</th>
-                  <th>RECORDING</th>
-                  <th>NOTIFY</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {clans.clans.map((c) => (
-                  <tr key={c.clan_tag}>
-                    <td>
-                      {clans.home_clan?.clan_tag === c.clan_tag && (
-                        <span className="yours">★ </span>
+      ) : (
+        <div className="table__scroll">
+          <table className="table" style={{ minWidth: "640px" }}>
+            <thead>
+              <tr>
+                <th>TRACKED</th>
+                <th>RELATIONSHIP</th>
+                <th>FRESHNESS</th>
+                <th style={{ textAlign: "right" }}>24H</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.key}>
+                  <td>
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      {/* Ownership is a mark and a word, never a tinted row. */}
+                      {r.primary && (
+                        <span style={{ color: "var(--gold)" }}>★</span>
                       )}
-                      {c.name ?? "—"}
-                    </td>
-                    <td>
-                      <span className="tag">{c.clan_tag}</span>
-                    </td>
-                    <td>
-                      <span className="tag-chip">
-                        {c.scope}
-                        {c.effective_scope && c.effective_scope !== c.scope
-                          ? " †"
-                          : ""}
-                      </span>
-                    </td>
-                    <td>
+                      <a
+                        style={{ fontWeight: 600, fontSize: "14px" }}
+                        onClick={() =>
+                          navigate(
+                            `/account/tracking/${encodeURIComponent(r.tag)}`,
+                          )
+                        }
+                      >
+                        {r.name}
+                      </a>
+                    </span>
+                    <a
+                      className="mono"
+                      style={{ display: "inline-block", marginTop: "3px" }}
+                      onClick={() =>
+                        navigate(
+                          `/explore/${r.kind === "clan" ? "clan" : "player"}/${encodeURIComponent(r.tag)}`,
+                        )
+                      }
+                    >
+                      {r.tag}
+                    </a>
+                  </td>
+                  <td>{r.rel}</td>
+                  <td>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        color: `var(--${r.fresh.tone})`,
+                      }}
+                    >
                       <span
-                        className={`chip ${c.recording_status === "active" ? "chip--active" : ""}`}
-                      >
-                        {c.recording_status ?? "off"}
-                      </span>
-                    </td>
-                    <td>
-                      <Switch
-                        on={c.notify}
-                        label={`notify for ${c.clan_tag}`}
-                        onToggle={async () => {
-                          await api.myClanAction({
-                            clan_tag: c.clan_tag,
-                            action: c.notify ? "notify_off" : "notify_on",
-                          });
-                          loadClans();
-                        }}
+                        className="chip__dot"
+                        style={{ background: `var(--${r.fresh.tone})` }}
                       />
-                    </td>
-                    <td>
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          await api.myClanAction({
-                            clan_tag: c.clan_tag,
-                            action: "remove",
-                          });
-                          loadClans();
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="panel__actions">
-          <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-            Add a clan
-          </span>
-          <input
-            className="mono"
-            placeholder="#CLANTAG"
-            value={clanTag}
-            onChange={(e2) => {
-              setClanTag(e2.target.value);
-              setClanErr("");
-            }}
-            style={{ flex: "0 1 150px" }}
-          />
-          <select
-            value={clanScope}
-            onChange={(e2) => setClanScope(e2.target.value)}
-            style={{ width: "auto" }}
-          >
-            <option value="comprehensive">comprehensive</option>
-            <option value="activity">activity</option>
-          </select>
-          <button
-            className="btn"
-            onClick={async () => {
-              const r = await api.myClanAction({
-                action: "add",
-                clan_tag: clanTag.trim(),
-                scope: clanScope,
-              });
-              if (r.ok) {
-                setClanTag("");
-                loadClans();
-              } else setClanErr(r.data?.message ?? "Could not add.");
-            }}
-          >
-            Add
-          </button>
-          {clanErr && <span className="field-error">{clanErr}</span>}
+                      {r.fresh.text}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      textAlign: "right",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {r.day ?? "—"}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <button
+                      className="btn btn--sm"
+                      onClick={() =>
+                        navigate(
+                          `/account/tracking/${encodeURIComponent(r.tag)}`,
+                        )
+                      }
+                    >
+                      Manage
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {clans?.clans?.some(
-          (c) => c.effective_scope && c.effective_scope !== c.scope,
+      )}
+
+      {clans?.home_clan &&
+        !(clans.clans ?? []).some(
+          (c) => c.clan_tag === clans.home_clan.clan_tag,
         ) && (
-          <div className="panel__note">
-            † another account records this clan comprehensively — the shared
-            recording runs at the widest scope anyone requested.
+          <div className="callout callout--info" style={{ marginTop: "18px" }}>
+            <Icon name="radar" size={17} />
+            <span>
+              <span style={{ color: "var(--gold)" }}>★</span>{" "}
+              {clans.home_clan.name ?? clans.home_clan.clan_tag} is your
+              player&rsquo;s clan and is not tracked yet.{" "}
+              <button
+                className="btn btn--sm"
+                onClick={async () => {
+                  await api.myClanAction({
+                    action: "add",
+                    clan_tag: clans.home_clan.clan_tag,
+                    scope: "comprehensive",
+                  });
+                  loadClans();
+                }}
+              >
+                Track it comprehensively
+              </button>
+            </span>
           </div>
         )}
-      </section>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "18px",
+          flexWrap: "wrap",
+          marginTop: "24px",
+        }}
+      >
+        <section className="panel" style={{ flex: "1 1 300px" }}>
+          <div className="panel__head">Track a player</div>
+          <div
+            className="panel__body"
+            style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+          >
+            <input
+              id="add-player-tag"
+              aria-label="Player tag"
+              className="mono"
+              placeholder="#20JJJ2CCRU"
+              aria-invalid={tagErr ? "true" : undefined}
+              value={tag}
+              onChange={(ev) => {
+                setTag(ev.target.value);
+                setTagErr("");
+              }}
+              style={{ flex: "1 1 10rem" }}
+            />
+            <button
+              className="btn"
+              onClick={async () => {
+                if (!TAG_OK.test(tag.trim())) {
+                  setTagErr("That doesn't look like a CR tag.");
+                  return;
+                }
+                const r = await api.addClaim(tag.trim());
+                if (r.ok) {
+                  setTag("");
+                  refresh();
+                } else setTagErr(r.data?.message ?? "Could not add.");
+              }}
+            >
+              Track
+            </button>
+            {tagErr && (
+              <span className="field-error" style={{ flexBasis: "100%" }}>
+                {tagErr}
+              </span>
+            )}
+          </div>
+          <div className="panel__foot">Added means recorded.</div>
+        </section>
+
+        <section className="panel" style={{ flex: "1 1 300px" }}>
+          <div className="panel__head">Track a clan</div>
+          <div
+            className="panel__body"
+            style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+          >
+            <input
+              className="mono"
+              aria-label="Clan tag"
+              placeholder="#CLANTAG"
+              value={clanTag}
+              onChange={(ev) => {
+                setClanTag(ev.target.value);
+                setClanErr("");
+              }}
+              style={{ flex: "1 1 8rem" }}
+            />
+            <select
+              className="select"
+              aria-label="Scope"
+              value={clanScope}
+              onChange={(ev) => setClanScope(ev.target.value)}
+            >
+              <option value="comprehensive">comprehensive</option>
+              <option value="activity">activity</option>
+            </select>
+            <button
+              className="btn"
+              onClick={async () => {
+                const r = await api.myClanAction({
+                  action: "add",
+                  clan_tag: clanTag.trim(),
+                  scope: clanScope,
+                });
+                if (r.ok) {
+                  setClanTag("");
+                  loadClans();
+                } else setClanErr(r.data?.message ?? "Could not add.");
+              }}
+            >
+              Track
+            </button>
+            {clanErr && (
+              <span className="field-error" style={{ flexBasis: "100%" }}>
+                {clanErr}
+              </span>
+            )}
+          </div>
+          <div className="panel__foot">
+            Comprehensive records every member; activity records the clan.
+          </div>
+        </section>
+      </div>
+
+      {(clans?.clans ?? []).some(
+        (c) => c.effective_scope && c.effective_scope !== c.scope,
+      ) && (
+        <p
+          className="footnote"
+          style={{ margin: "18px 2px 0", maxWidth: "78ch" }}
+        >
+          † Another account records one of these clans comprehensively — a
+          shared recording runs at the widest scope anyone requested.
+        </p>
+      )}
     </>
   );
 }

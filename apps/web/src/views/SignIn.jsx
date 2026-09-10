@@ -22,7 +22,7 @@ const card = {
   margin: "40px auto 0",
   border: "1px solid var(--line)",
   borderRadius: "16px",
-  background: "#150f36",
+  background: "var(--panel-float)",
   padding: "26px",
   boxShadow: "var(--shadow-modal)",
 };
