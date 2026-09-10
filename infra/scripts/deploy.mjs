@@ -229,6 +229,30 @@ if (!skipWeb) {
     ],
     { stdio: "inherit" },
   );
+  // `s3 sync` types an object by extension and never names a charset,
+  // and a `text/plain` with no charset is read as Latin-1 by browsers
+  // and most agents: llms.txt showed "adding â€¦" for a UTF-8 ellipsis.
+  // HTML carries <meta charset>, JSON and XML are UTF-8 by their specs;
+  // the .txt surfaces are the ones that need it said in the header.
+  execFileSync(
+    "aws",
+    [
+      "s3",
+      "cp",
+      `s3://${outputs.SiteBucketName}`,
+      `s3://${outputs.SiteBucketName}`,
+      "--recursive",
+      "--exclude",
+      "*",
+      "--include",
+      "*.txt",
+      "--content-type",
+      "text/plain; charset=utf-8",
+      "--metadata-directive",
+      "REPLACE",
+    ],
+    { stdio: "inherit" },
+  );
   // A synced site with a cached index.html pointing at deleted hashed
   // assets is a silent blank page; every web deploy flushes the edge.
   const cloudfront = new CloudFrontClient({ region: REGION });

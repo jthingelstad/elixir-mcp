@@ -237,6 +237,14 @@ for (const [name, path, test] of [
     ok = false;
   }
   check(`${name} serves`, ok, String(res.status));
+  // A text/plain with no charset reads as Latin-1: "adding â€¦" in
+  // llms.txt on 2026-09-10. The deploy stamps the .txt surfaces.
+  if (path.endsWith(".txt"))
+    check(
+      `${name} names its charset`,
+      (res.headers.get("content-type") ?? "").includes("charset=utf-8"),
+      res.headers.get("content-type") ?? "absent",
+    );
 }
 
 // The edge must not rewrite the API's own answers. Distribution-wide
