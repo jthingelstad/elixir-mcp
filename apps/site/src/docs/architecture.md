@@ -88,8 +88,9 @@ at a cabin. What makes the fleet interesting:
 
 - **Card identities.** Every collector is named after a Clash Royale
   card and appears publicly only by that card name — machine labels and
-  IPs stay private. The public [Status](/data/status) page shows each
-  card's heartbeat and hourly fetch rate.
+  IPs stay private. The console's [Status](/status/service) page shows
+  each card's heartbeat and hourly fetch rate, and `/api/public/status`
+  publishes the same fleet without a session.
 - **Credits.** Fetches earn points, and points convert to the
   operator's own daily tool-call quota at 10:1 (capped at 4× the tier
   base). Running a collector literally buys your agent more questions.
@@ -235,8 +236,9 @@ What this means when you read: every response carries the age of the
 polls it was built from (`freshness_seconds` in `meta`), `elixir_coverage`
 compares the lifetime battle counter against what was recorded over each
 observation interval and says so when they disagree, and the public
-[status page](/data/status) reports how many of the last day's polls
-found the log had already rolled. When you need the state of play right
+[status page](/status/service) reports how many of the last day's polls
+found the log had already rolled - as does `capture_audit_24h` in
+`/api/public/status`. When you need the state of play right
 now rather than the recorded history, `live_fetch` spends your live
 allowance on a fresh read instead of waiting for the schedule.
 

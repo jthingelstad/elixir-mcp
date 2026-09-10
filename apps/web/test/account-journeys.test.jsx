@@ -94,17 +94,20 @@ test(
   "a player claim and first captured snapshot become a usable first question",
   { timeout: 20000 },
   async () => {
+    // Overview reports; Tracking manages. The empty state's one action
+    // is the way across, and the field lives on the other side of it.
     open("/account/overview");
+    expect(await screen.findByText("0 of 5")).toBeTruthy();
     fireEvent.click(
       await screen.findByRole("button", {
         name: "Add your player",
         exact: true,
       }),
     );
-    const input = document.getElementById("add-player-tag");
+    const input = await screen.findByLabelText("Player tag");
     fireEvent.change(input, { target: { value: "#P0Y" } });
     fireEvent.click(input.parentElement.querySelector("button"));
-    await screen.findByText("Waiting for the first capture");
+    await screen.findByText("#P0Y");
     expect(
       (
         await scratch.db.query(
@@ -116,10 +119,10 @@ test(
     await scratch.db.query(
       "insert into player_snapshot_daily (player_tag,snapshot_date,snapshot_kind,observed_at) values ('#P0Y',current_date,'daily',now())",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
-    await screen.findByRole("button", {
-      name: "Copy question: Start with your player snapshot",
-    });
+    // Back on Overview, readiness has moved on its own: the snapshot is
+    // the evidence, and the line says when it was taken.
+    fireEvent.click(screen.getByRole("link", { name: /Overview/ }));
+    await screen.findByText(/^snapshot /);
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
     await scratch.db.query(
@@ -129,9 +132,9 @@ test(
       "insert into oauth_family (client_id,account_id,absolute_expires_at) values ('journey-client',$1,now()+interval '1 day')",
       [accountId],
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Connect your client", exact: true }),
-    );
+    // The starter questions moved to Connections, which is where a
+    // connection is the thing you are working on.
+    fireEvent.click(screen.getByRole("link", { name: /Connections/ }));
     await screen.findByText("Test client");
     await screen.findByText(/AI client you connected/);
     await screen.findByRole("heading", { name: "Try asking…" });

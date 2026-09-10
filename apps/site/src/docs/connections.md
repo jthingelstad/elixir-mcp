@@ -38,7 +38,7 @@ connection almost everybody wants.
 
 ### Your first question
 
-On **Account → Connections**, **Try asking…** offers questions based on your
+On **Connections**, **Try asking…** offers questions based on your
 recorded data. Copy one and paste it into the AI client you connected. A profile
 can support a snapshot summary; battle history can support a review, deck
 comparisons or two-week comparisons. A clan-war question appears when a clan you
@@ -113,23 +113,26 @@ refused rather than quietly answering about the wrong subject.
 
 ## Where things are in the console
 
+The rail groups the console into what you are reading, what we record for
+you, who can call on your behalf, and how the service is running.
+
 | Page | What it does |
 |---|---|
-| Account → Overview | your players (relationship, nickname, notify), your clans (scope, notify), slot usage, tier-upgrade request, timezone |
-| Account → Connections | every live OAuth connection - yours and your agents' and integrations' - with what it can do, where it last called from, and controls to change its capabilities or disconnect it |
-| Account → Agents | per agent: its door URL, its key, what that key may do (editable), and rotate/revoke/suspend. An agent connected with a service key rather than OAuth carries its capabilities here, not on Connections |
-| Account → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread events |
-| Account → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; disconnect |
-| Account → Activity | your calls with `request_id`, account events, the notification feed (read-only) |
-| Account → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
-| Account → Collector | your collectors, the one-time token reveal, the ladder |
-| Account → Feedback | what you filed and what the maintainer answered |
+| Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage |
 | Explore | the same read tools in a browser; the one write is nicknames |
-| Data → Dashboard, Status | corpus totals; recording health, budget gauge, collector fleet, capture gaps |
+| Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and the only place these change |
+| Your record → Activity | notifications, your calls with `request_id`, and account events |
+| Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
+| Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect |
+| Access → Connections → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread events. An agent connected with a service key rather than OAuth carries its capabilities here, not on Clients |
+| Access → Settings & tier | slot meters, the tier-upgrade request, and the timezone your date windows use |
+| Access → Feedback | what you filed and what the maintainer answered |
+| Service → Status | recording health, budget gauge, capture gaps |
+| Service → Status → Collectors | the fleet, your own collectors, the one-time token reveal, the ladder |
 
 ## Making one
 
-Create clan agents under **Account → Agents**. Platform integrations are
+Create clan agents under **Connections → Agents**. Platform integrations are
 managed under **Admin → Integrations**. Both show a newly issued key once;
 only its hash is stored. See the [integration guide](/docs/integrations) for
 REST resources, permissions and automatic recording enrollment.

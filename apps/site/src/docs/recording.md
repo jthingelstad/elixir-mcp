@@ -43,7 +43,7 @@ is the request to record it, and capture starts at the next scheduler tick.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_add_player({ player_tag, relationship?, make_primary? })` | Account → Overview | `recordings:write` |
+| Record a player | `elixir_add_player({ player_tag, relationship?, make_primary? })` | Account → Tracking | `recordings:write` |
 | Record a clan | `elixir_add_clan({ clan_tag, scope? })` | Account → Overview | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
@@ -126,8 +126,9 @@ other.
 
 Subjects added together are de-phased by a stable per-subject offset so a
 batch does not poll in lockstep. A burst can still roll off the log between
-two polls; the [Status](/data/status) page publishes how many of the last
-day's polls found that it had.
+two polls; the [Status](/status/service) page publishes how many of the
+last day's polls found that it had, and so does `capture_audit_24h` in
+`/api/public/status`.
 
 ## Freshness, as the envelope reports it
 

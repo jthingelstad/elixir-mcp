@@ -1,23 +1,19 @@
 import { Activity } from "./Activity.jsx";
 
 import { Overview } from "./account/Overview.jsx";
+import { Tracking } from "./account/Tracking.jsx";
+import { Settings } from "./account/Settings.jsx";
 import { AgentDetail, Agents } from "./account/Agents.jsx";
 import { FeedbackItem, Feedback } from "./account/Feedback.jsx";
 import { Connections } from "./account/Connections.jsx";
 import { Usage } from "./account/Usage.jsx";
 
-/**
- * The Account section's pages.
- *
- * Tracking and Settings & tier are rail items of their own in the
- * 2026-09-09 IA but still render Overview, because Overview is currently
- * doing all three jobs. Splitting it is step 4 of the handoff; pointing
- * the rail at it first means the routes are real from the moment the
- * rail offers them.
- */
+/** The Account section's pages. */
 export function Dashboard({ me, refresh, navigate, page, sub, itemId }) {
   if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   if (page === "activity") return <Activity sub={sub} />;
+  if (page === "tracking") return <Tracking me={me} refresh={refresh} />;
+  if (page === "settings") return <Settings me={me} refresh={refresh} />;
   if (page === "agents")
     return itemId ? (
       <AgentDetail id={itemId} navigate={navigate} />
@@ -37,5 +33,5 @@ export function Dashboard({ me, refresh, navigate, page, sub, itemId }) {
     ) : (
       <Feedback navigate={navigate} />
     );
-  return <Overview me={me} refresh={refresh} navigate={navigate} />;
+  return <Overview me={me} navigate={navigate} />;
 }

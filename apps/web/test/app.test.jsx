@@ -112,8 +112,10 @@ test("sign-in flow: email step then code step authenticates", async () => {
   );
 });
 
-test("account overview renders claims, recording state, and notify switches", async () => {
-  window.history.pushState({}, "", "/dashboard");
+test("tracking renders claims, recording state, and notify switches", async () => {
+  // The table moved off Overview with the 2026-09-09 split: Overview
+  // reports these, Tracking is where they can be changed.
+  window.history.pushState({}, "", "/account/tracking");
   global.fetch = mockFetch({
     "GET /api/me": [
       200,

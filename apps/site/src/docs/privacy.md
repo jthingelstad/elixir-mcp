@@ -34,7 +34,7 @@ surface, and is never sold, shared, or used to advertise. We also store
 your timezone if you set one, and operational records of your own
 activity: sign-ins, claims, recording changes, and your agent's tool
 calls (used for quotas and product improvement — you can see your own
-usage under Account > Usage).
+usage under Usage).
 
 **Who can see what.** All recorded game data — battles, profiles,
 clans, war — is readable by every approved account, the same way the
@@ -59,7 +59,7 @@ The sign-in page is the one deliberate exception and loads no analytics
 at all, because a magic sign-in link arrives as part of that URL and a
 live credential should not travel anywhere it does not have to.
 
-What a page view records is the page: `/explore/player`, `/data/status`,
+What a page view records is the page: `/explore/player`, `/status/service`,
 `/account`. Where a page is about a specific record, the Clash Royale
 tag rides along as an ordinary attribute of the view. Those tags are
 public game identifiers — the same ones printed in the game and served

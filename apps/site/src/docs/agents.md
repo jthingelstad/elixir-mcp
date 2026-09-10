@@ -17,7 +17,7 @@ do never shows up as its. If you have not read
 
 ## Create one
 
-**Account → Agents → Create agent**, or `POST /api/me/agents` with a session.
+**Connections → Agents → Create agent**, or `POST /api/me/agents` with a session.
 
 | Field | Rule |
 |---|---|
@@ -171,7 +171,7 @@ rotated key produces silence, not errors. The agent's page shows, per key,
 address, refusals in the last seven days with the reason (`revoked_key`,
 `principal_suspended`, `wrong_door`, `unknown_key`); and `calls_7d`,
 `last_seen` (address, country, client name) and `unread_events`. Your own
-Account → Usage breaks the agents' calls out of your daily budget.
+Usage breaks the agents' calls out of your daily budget.
 
 ## Feedback from an agent
 

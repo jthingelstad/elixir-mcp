@@ -214,5 +214,13 @@ test("clan questions require a recorded war week for a clan this account added",
   assert.deepEqual(JSON.parse((await read()).body).clan, {
     clan_tag: "#P0G",
     name: "Primary clan",
+    war_weeks: 1,
   });
+  // The count is the readable half: "tracked" says a clan is on record,
+  // "3 war weeks" says what it can answer with. It counts the clan's
+  // recorded weeks, not this account's.
+  await db.query(
+    "insert into war_week (clan_tag,season_id,section_index) values ('#P0G',1,1),('#P0G',2,0)",
+  );
+  assert.equal(JSON.parse((await read()).body).clan.war_weeks, 3);
 });

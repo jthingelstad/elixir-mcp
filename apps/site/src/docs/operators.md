@@ -24,7 +24,7 @@ key and the bearer token Elixir MCP issues you.
 
 ## Setup
 
-1. **Raise your hand** at Account > Collector on
+1. **Raise your hand** at Status > Collectors on
    https://elixir.poapkings.com — pick a machine name. Your collector
    gets a Clash Royale CARD identity from us, and that card is its
    public name.

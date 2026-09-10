@@ -42,8 +42,12 @@ export async function firstAnswer(db, accountId) {
        and tool ~ '^(players|battles|war)_'`,
     [accountId],
   );
+  // The count, not just the existence: "POAP KINGS" says a clan is
+  // tracked, "POAP KINGS - 27 war weeks" says what it can answer with.
   const clan = await db.query(
-    `select ac.clan_tag, c.name
+    `select ac.clan_tag, c.name,
+            (select count(*)::int from war_week w where w.clan_tag = ac.clan_tag)
+              as war_weeks
        from account_clan ac left join clan c on c.clan_tag = ac.clan_tag
        where ac.account_id = $1
          and exists (select 1 from war_week w where w.clan_tag = ac.clan_tag)

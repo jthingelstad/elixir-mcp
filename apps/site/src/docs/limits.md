@@ -66,7 +66,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 
 `max` and `remaining` are `null` when unlimited. Collector credits are already
 in `calls.max`. The balance is described after the call, so a live fetch the
-call made is already counted. Account → Usage shows the same numbers with the
+call made is already counted. Usage shows the same numbers with the
 agents' share broken out.
 
 ## What is deliberately unlimited
