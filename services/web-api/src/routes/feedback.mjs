@@ -1,6 +1,6 @@
 import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 
-import { json, ID_RE } from "../http.mjs";
+import { json, ID_RE, UUID_RE } from "../http.mjs";
 import { senderRef } from "../notify.mjs";
 
 export function feedbackRoutes({
@@ -14,7 +14,7 @@ export function feedbackRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at, shipped_in
+                response, responded_at, created_at, shipped_in, request_id
          from feedback where account_id = $1
          order by feedback_id desc limit 50`,
         [account.accountId],
@@ -39,9 +39,15 @@ export function feedbackRoutes({
       ].includes(body.category)
         ? body.category
         : "general";
+      // The call this is about, when there is one. A malformed id is not
+      // worth refusing a report over — the report is the valuable half —
+      // so it is dropped rather than 400'd.
+      const requestId = UUID_RE.test(String(body.request_id ?? ""))
+        ? String(body.request_id)
+        : null;
       const { rows: filed } = await db.query(
-        `insert into feedback (account_id, surface, category, message, context)
-         values ($1, 'web', $2, $3, $4) returning feedback_id`,
+        `insert into feedback (account_id, surface, category, message, context, request_id)
+         values ($1, 'web', $2, $3, $4, $5) returning feedback_id`,
         [
           account.accountId,
           category,
@@ -49,6 +55,7 @@ export function feedbackRoutes({
           body.context
             ? JSON.stringify({ context: String(body.context) })
             : null,
+          requestId,
         ],
       );
       await ping("site.feedback", category);
@@ -77,7 +84,7 @@ export function feedbackRoutes({
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select f.feedback_id, f.surface, f.category, f.message, f.context,
-                f.status, f.response, f.responded_at, f.created_at,
+                f.status, f.response, f.responded_at, f.created_at, f.request_id,
                 (select c.player_tag from claim c
                  where c.account_id = f.account_id and c.is_primary) as from_player
          from feedback f order by f.feedback_id desc limit 100`,

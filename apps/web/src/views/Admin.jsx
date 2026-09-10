@@ -926,6 +926,66 @@ function AdminServiceTokens() {
   );
 }
 
+/** The call a report is about, read over the admin lane so the maintainer
+ *  sees what the filer saw — the arguments and the answer, not a
+ *  description of them. Attached by the console's Report this call button
+ *  and by elixir_feedback's request_id (contract 1.1.0). */
+function AttachedCall({ requestId }) {
+  const [record, setRecord] = useState(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    api.adminCall(requestId).then((r) => {
+      if (r.ok) setRecord(r.data);
+      else setMissing(true);
+    });
+  }, [requestId]);
+
+  return (
+    <div
+      className="panel__body"
+      style={{ borderTop: "1px solid var(--line-soft)" }}
+    >
+      <div
+        className="mono"
+        style={{
+          fontSize: "11px",
+          color: "var(--ink-faint)",
+          marginBottom: "6px",
+        }}
+      >
+        THE CALL · {requestId}
+      </div>
+      {missing && (
+        <p className="caveat" style={{ margin: 0 }}>
+          That call is no longer in the log — audit rows are pruned, the report
+          is kept.
+        </p>
+      )}
+      {record && (
+        <>
+          <p style={{ margin: "0 0 8px", fontSize: "13px" }}>
+            <span className="mono">{record.call?.tool}</span> ·{" "}
+            {record.call?.duration_ms ?? "—"} ms ·{" "}
+            {record.call?.created_at?.slice(0, 16).replace("T", " ")}Z
+            {record.call?.error_code ? ` · ${record.call.error_code}` : ""}
+          </p>
+          <pre
+            className="mono"
+            style={{
+              fontSize: "11.5px",
+              overflowX: "auto",
+              maxHeight: "260px",
+              margin: 0,
+            }}
+          >
+            {JSON.stringify(record.request ?? record.call?.args ?? {}, null, 2)}
+          </pre>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** One feedback item, admin lane: the full record plus the moderation
  *  acts — status and the maintainer response (which lands in the
  *  filer's event feed). The response box finally exposes what the API
@@ -1014,6 +1074,7 @@ function AdminFeedbackItem({ id, navigate }) {
         >
           <Markdown text={item.message} />
         </div>
+        {item.request_id && <AttachedCall requestId={item.request_id} />}
         {item.context && (
           <div
             className="panel__body"

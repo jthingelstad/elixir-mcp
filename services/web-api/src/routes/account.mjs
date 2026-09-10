@@ -45,7 +45,18 @@ export function accountRoutes({
                    where ar.entity_key = r.subject_tag
                      and ar.fetched_at > now() - interval '24 hours') as fetches_24h
          from recording r
-         where (r.requested_by = $1 and r.subject_type = 'player')
+         -- Recording is per SUBJECT, not per account: the second account
+         -- to claim a player joins the recording that already exists and
+         -- never gets a row of its own. Scoping by requested_by therefore
+         -- showed the newcomer "never polled" for a player with years of
+         -- history — the same defect the clan half below was already
+         -- fixed for. The question is "is this subject recorded", never
+         -- "did I ask first".
+         where (r.subject_type = 'player'
+                and (r.requested_by = $1
+                     or (r.status = 'active'
+                         and r.subject_tag in (select player_tag from claim
+                                                where account_id = $1))))
             -- The clans this account tracks, whoever first asked for them:
             -- Tracking shows one freshness column over both kinds, and a
             -- clan row with no recording read as "off" however live it was.

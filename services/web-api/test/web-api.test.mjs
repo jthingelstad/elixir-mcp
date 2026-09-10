@@ -159,16 +159,26 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   newcomerCookie = cookie;
   assert.match(cookie, /^__Host-elixir_session=/);
 
-  // 5. Dashboard, claim, recording opt-in.
-  const me = await handler(
-    event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+  // 5. The console is NOT empty. Approval claims the tag they asked with
+  // and starts recording it (0065) — the request form's second field was
+  // read by nothing for months, and the newcomer's first act was typing
+  // in a tag they had already given us.
+  const me = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+    ),
   );
-  assert.equal(parse(me).authenticated, true);
-  assert.equal(parse(me).is_owner, false);
+  assert.equal(me.authenticated, true);
+  assert.equal(me.is_owner, false);
+  assert.equal(me.claims.length, 1, "the requested player is already claimed");
+  assert.equal(me.claims[0].player_tag, "#2PP0V90Y");
+  assert.equal(me.claims[0].is_primary, true);
+  assert.equal(me.recordings.length, 1);
+  assert.equal(me.recordings[0].status, "active");
 
-  // Added = recorded: one act claims AND starts capture.
+  // Added = recorded: claiming a SECOND player still starts capture.
   const claim = await handler(
-    event({ path: "/api/claims", cookie, body: { player_tag: "#2PP0V90Y" } }),
+    event({ path: "/api/claims", cookie, body: { player_tag: "#2GLQRLC" } }),
   );
   assert.equal(parse(claim).ok, true);
   assert.equal(parse(claim).recording_started, true);
@@ -178,10 +188,13 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
       event({ method: "GET", path: "/api/me", cookie, body: undefined }),
     ),
   );
-  assert.equal(me2.claims.length, 1);
-  assert.equal(me2.claims[0].is_primary, true, "first claim becomes primary");
-  assert.equal(me2.recordings.length, 1);
-  assert.equal(me2.recordings[0].status, "active");
+  assert.equal(me2.claims.length, 2);
+  assert.equal(
+    me2.claims[0].is_primary,
+    true,
+    "the approval-time claim stays primary",
+  );
+  assert.equal(me2.recordings.length, 2);
 });
 
 test("notify toggle requires the tag to be added first", async () => {

@@ -8,6 +8,7 @@ import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
 import { emitAccountTierChanged } from "../../../mcp/src/feed.mjs";
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
+import { onboardAccount } from "../onboard.mjs";
 import { loadCallRecord } from "../call-record.mjs";
 const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
@@ -168,6 +169,10 @@ export function adminRoutes({
           kind: "approved_welcome",
           emailHash: body.email_hash,
         });
+        // What they asked for on the form: claim the player they named
+        // and follow their clan, so the console has something in it the
+        // first time they open it. Never fails the approval.
+        await onboardAccount(db, decided.account_id);
       }
       // Say whether they were actually told. An account approved before
       // the address was held has none, and re-approving cannot resend.

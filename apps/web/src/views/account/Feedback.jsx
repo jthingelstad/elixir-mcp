@@ -130,6 +130,18 @@ export function FeedbackItem({ id, navigate }) {
         }}
       />
 
+      {item.request_id && (
+        <p style={{ margin: "-12px 0 22px", fontSize: "13px" }}>
+          About one call ·{" "}
+          <a
+            className="mono"
+            onClick={() => navigate(`/account/activity/c/${item.request_id}`)}
+          >
+            {item.request_id.slice(0, 8)}
+          </a>
+        </p>
+      )}
+
       {item.response ? (
         <section
           style={{
@@ -154,15 +166,21 @@ export function FeedbackItem({ id, navigate }) {
   );
 }
 
-/** A prefill carried in the URL: /account/feedback?context=request_id:<id>
- *  opens the form with the id already in the note, because the docs tell
- *  people to quote it and the call record links here. Read once. */
+/** What the URL asks the form to open with. The call record links here
+ *  with ?request_id=<uuid>, which is a FIELD on the report rather than a
+ *  line in the message — it used to arrive as ?context=request_id:<id>
+ *  and be pasted into the textarea, where nothing could read it back.
+ *  ?context= is still honoured: links to it exist. Read once. */
 function prefillFromUrl() {
-  const context = new URLSearchParams(window.location.search).get("context");
-  return context ? String(context).slice(0, 200) : "";
+  const q = new URLSearchParams(window.location.search);
+  const context = q.get("context");
+  return {
+    context: context ? String(context).slice(0, 200) : "",
+    requestId: q.get("request_id") ? String(q.get("request_id")) : "",
+  };
 }
 
-function Compose({ onSent, onClose, context = "" }) {
+function Compose({ onSent, onClose, context = "", requestId = "" }) {
   const [category, setCategory] = useState("general");
   const [message, setMessage] = useState(context ? `${context}\n\n` : "");
   const [sent, setSent] = useState(false);
@@ -200,6 +218,16 @@ function Compose({ onSent, onClose, context = "" }) {
                 </option>
               ))}
             </select>
+            {requestId && (
+              <div className="notice">
+                <span>
+                  Reporting one call —{" "}
+                  <span className="mono">{requestId.slice(0, 8)}</span>. Its
+                  request, its answer and where the time went ride along with
+                  this; you do not have to describe them.
+                </span>
+              </div>
+            )}
             <textarea
               rows={6}
               aria-label="Message"
@@ -217,6 +245,7 @@ function Compose({ onSent, onClose, context = "" }) {
                     message,
                     category,
                     context || undefined,
+                    requestId || undefined,
                   );
                   if (r.ok) {
                     setSent(true);
@@ -236,8 +265,10 @@ function Compose({ onSent, onClose, context = "" }) {
 
 export function Feedback({ navigate }) {
   const [items, setItems] = useState(null);
-  const [context] = useState(prefillFromUrl);
-  const [composing, setComposing] = useState(() => Boolean(context));
+  const [prefill] = useState(prefillFromUrl);
+  const [composing, setComposing] = useState(
+    () => Boolean(prefill.context) || Boolean(prefill.requestId),
+  );
   const [now] = useState(() => Date.now());
   const load = () =>
     api
@@ -284,7 +315,8 @@ export function Feedback({ navigate }) {
           <Compose
             onSent={load}
             onClose={() => setComposing(false)}
-            context={context}
+            context={prefill.context}
+            requestId={prefill.requestId}
           />
         ) : null
       }

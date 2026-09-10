@@ -333,8 +333,11 @@ export function CallRecord({ id, navigate }) {
           className="btn btn--sm"
           style={{ marginLeft: "auto" }}
           onClick={() =>
+            // The call is a FIELD on the report now, not a line pasted
+            // into the message: it is stored as feedback.request_id, so
+            // the queue can link straight back to this record.
             navigate(
-              `/account/feedback?context=${encodeURIComponent(`request_id:${call.request_id}`)}`,
+              `/account/feedback?request_id=${encodeURIComponent(call.request_id)}`,
             )
           }
         >

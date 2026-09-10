@@ -31,6 +31,7 @@ import { gatewaysRoutes } from "./routes/gateways.mjs";
 import { exploreRoutes } from "./routes/explore.mjs";
 import { feedbackRoutes } from "./routes/feedback.mjs";
 import { adminRoutes } from "./routes/admin.mjs";
+import { onboardAccount } from "./onboard.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import {
   CONTRACT_HEADER,
@@ -151,6 +152,10 @@ export function makeHandler({
     } catch {
       // Never let a funnel count cost somebody their sign-in.
     }
+    // The second chance at approval-time tracking: at the decision we may
+    // not have fetched the requested player yet, so their clan was not
+    // knowable. It no-ops once account.onboarded_at is set (0065).
+    await onboardAccount(db, account.account_id);
     return json(
       200,
       { authenticated: true },

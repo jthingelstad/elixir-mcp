@@ -44,9 +44,16 @@ export const api = {
   adminCollectionAction: (body) =>
     request("POST", "/api/admin/collections", body),
   myFeedback: () => request("GET", "/api/me/feedback"),
-  sendFeedback: (message, category, context) =>
-    request("POST", "/api/feedback", { message, category, context }),
+  sendFeedback: (message, category, context, request_id) =>
+    request("POST", "/api/feedback", {
+      message,
+      category,
+      context,
+      request_id,
+    }),
   adminFeedback: () => request("GET", "/api/admin/feedback"),
+  adminCall: (request_id) =>
+    request("GET", `/api/admin/calls/${encodeURIComponent(request_id)}`),
   adminServiceTokens: () => request("GET", "/api/admin/service-tokens"),
   adminServiceTokenAction: (body) =>
     request("POST", "/api/admin/service-tokens", body),

@@ -7,8 +7,13 @@ export async function firstAnswer(db, accountId) {
   const player = await db.query(
     `select c.player_tag, p.name,
               exists (select 1 from player_snapshot_daily where player_tag = c.player_tag) as profile_available,
-              (select status from recording where requested_by = $1
-               and subject_type = 'player' and subject_tag = c.player_tag) as recording_status,
+              -- Whoever asked for it: a recording belongs to the SUBJECT.
+              -- Scoped to requested_by, an account claiming a player some
+              -- other account already records was told it had no data,
+              -- with the battles right there in the same query.
+              (select status from recording
+               where subject_type = 'player' and subject_tag = c.player_tag
+               order by (status = 'active') desc limit 1) as recording_status,
               (select max(observed_at) from player_snapshot_daily
                where player_tag = c.player_tag) as profile_observed_at,
               (select last_admitted_at from poll_state where subject_tag = c.player_tag

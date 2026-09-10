@@ -297,7 +297,12 @@ export const elixirTools = {
         context: {
           type: "string",
           description:
-            "Which tool or question prompted this (e.g. 'battles_query pagination'), and a request_id if you have one.",
+            "Which tool or question prompted this (e.g. 'battles_query pagination').",
+        },
+        request_id: {
+          type: "string",
+          description:
+            "The meta.request_id of the call this is about. Every response carries one; passing it here attaches the exact request, its arguments and its answer to the report, so the maintainer can see what you saw. Prefer this over describing the call in words.",
         },
       },
       required: ["message"],
@@ -322,9 +327,17 @@ export const elixirTools = {
           `Valid categories: ${CATEGORIES.join(", ")}.`,
         );
       }
+      // A malformed request_id loses the attachment, never the report:
+      // the words are the valuable half and an agent that guessed the
+      // shape of an id should still be heard.
+      const UUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const requestId = UUID.test(String(args.request_id ?? ""))
+        ? String(args.request_id)
+        : null;
       const { rows } = await ctx.db.query(
-        `insert into feedback (account_id, surface, category, message, context)
-         values ($1, 'mcp', $2, $3, $4)
+        `insert into feedback (account_id, surface, category, message, context, request_id)
+         values ($1, 'mcp', $2, $3, $4, $5)
          returning feedback_id`,
         [
           ctx.account.accountId,
@@ -333,6 +346,7 @@ export const elixirTools = {
           args.context
             ? JSON.stringify({ context: String(args.context) })
             : null,
+          requestId,
         ],
       );
       // Jamie hears about it (2026-09-09), the same message the site API
@@ -405,7 +419,8 @@ export const elixirTools = {
       params.push(limit);
       const { rows } = await ctx.db.query(
         `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at, shipped_in, related_tools
+                response, responded_at, created_at, shipped_in, related_tools,
+                request_id
          from feedback where ${where.join(" and ")}
          order by feedback_id desc limit $${params.length}`,
         params,

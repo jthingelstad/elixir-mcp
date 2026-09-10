@@ -134,10 +134,13 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   fireEvent.click(screen.getByRole("button", { name: "Next call ›" }));
   expect(navigate).toHaveBeenCalledWith(`/account/activity/c/${NEXT}`);
 
-  // Feedback, prefilled with the id the docs tell people to quote.
+  // Feedback, carrying the call as a FIELD. It used to arrive as
+  // ?context=request_id:<id> and be pasted into the message, where
+  // nothing could read it back — it is feedback.request_id now, so the
+  // queue links to this record and an agent can attach one too.
   fireEvent.click(screen.getByText("Report this call"));
   expect(navigate).toHaveBeenCalledWith(
-    `/account/feedback?context=${encodeURIComponent(`request_id:${ID}`)}`,
+    `/account/feedback?request_id=${encodeURIComponent(ID)}`,
   );
   expect(screen.getByText(/kept 90 days/)).toBeTruthy();
 });
