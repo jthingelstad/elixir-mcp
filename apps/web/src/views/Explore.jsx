@@ -13,7 +13,12 @@ import { api } from "../api.js";
 
 const TAG_RE = /^#?[0-9a-zA-Z]{3,12}$/;
 const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
-const WEEK_RE = /^\d{4}-W\d{2}$/i;
+// A war week is Season and Week, the way the game and the rest of this
+// console name it: "S135 W3", "s135w3", "S135-W3". It used to accept only
+// an ISO calendar week (2026-W36), which nothing else here uses and the
+// page's own hint contradicted, so the advertised form fell through to a
+// name search and a miss.
+const WEEK_RE = /^s?\s*(\d{1,4})\s*[-·]?\s*w\s*(\d{1,2})$/i;
 
 function normTag(q) {
   return "#" + q.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0");
@@ -21,7 +26,12 @@ function normTag(q) {
 const encTag = (t) => encodeURIComponent(t.replace(/^#/, ""));
 const decTag = (t) => "#" + decodeURIComponent(t).replace(/^#/, "");
 
-function Freshness({ meta }) {
+function Freshness({ meta, derived = false }) {
+  // A deck is computed from recorded battles; it has no poll of its own,
+  // and borrowing a participant's clock would say "polled 4m ago" about
+  // a thing nothing polls.
+  if (derived)
+    return <span className="freshness freshness--derived">derived</span>;
   const s = meta?.freshness_seconds;
   if (s === null || s === undefined)
     return <span className="freshness freshness--never">never polled</span>;
@@ -297,11 +307,16 @@ function Lookup({ me, navigate, browse }) {
         go("deck", query.replace(/^deck:/i, "").toLowerCase());
         return;
       }
-      if (WEEK_RE.test(query)) {
+      const week = WEEK_RE.exec(query);
+      if (week) {
+        // A week on its own names the reader's home clan's race; the
+        // record page says so if that week is not in the log.
         const mine = await api.myClans();
         const home = mine.ok ? mine.data.home_clan?.clan_tag : null;
         if (home) {
-          go("list", `weeks:${encTag(home)}`);
+          const season = Number(week[1]);
+          const section = Number(week[2]) - 1;
+          go("week", `${encTag(home)}~${season}~${section}`);
           return;
         }
         setMiss(query);
@@ -343,11 +358,11 @@ function Lookup({ me, navigate, browse }) {
   return (
     <>
       <div style={{ maxWidth: "620px", padding: "8px 0" }}>
-        <h1 className="page__title">{browse?.title ?? "Do we have it?"}</h1>
+        <h1 className="page__title">{browse?.title ?? "Explore"}</h1>
         <p className="page__lede">
           {browse
             ? `${browse.lede} ${browse.hint}`
-            : "Paste a player tag, a clan tag, a deck hash, or a war week — or just type a name or one of your nicknames. Elixir answers what it has recorded, then lets you click straight through the records, so when your agent says something surprising you can go and check."}
+            : "Paste any tag to land on the record we hold for it — a player, a clan, a deck hash or a war week — or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."}
         </p>
         <form
           style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -716,8 +731,27 @@ function RecordPage({ me, navigate, kind, rawId }) {
             {view.chip.label}
           </span>
         )}
-        <span style={{ marginLeft: "auto" }}>
-          <Freshness meta={res.body.meta} />
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          {view.action && (
+            <a
+              className="btn btn--sm"
+              href={view.action.href}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(view.action.href);
+              }}
+            >
+              {view.action.label}
+            </a>
+          )}
+          <Freshness meta={res.body.meta} derived={view.kindLabel === "DECK"} />
         </span>
       </div>
       {view.sub && <div className="record__sub">{view.sub}</div>}
@@ -964,9 +998,16 @@ function buildView(kind, rawId, res, me) {
       title: (yours ? "★ " : "") + (b.name ?? tag),
       tag,
       nickEdit: { tag, current: b.nickname ?? null },
-      chip: b.meta?.recording_active_since
-        ? { label: "recording", cls: "chip--ok" }
-        : { label: "observed only" },
+      chip: yours
+        ? { label: "tracked by you", cls: "chip--ok" }
+        : b.meta?.recording_active_since
+          ? { label: "recording", cls: "chip--ok" }
+          : { label: "observed only" },
+      // The record you own has its controls one click away, on the page
+      // that holds them; nothing here edits.
+      action: yours
+        ? { label: "Manage tracking", href: `/account/tracking/${encTag(tag)}` }
+        : null,
       sub: "What the recorder holds for this player. Coverage tiles open the underlying records.",
       fields,
       tiles: [

@@ -335,7 +335,7 @@ export function CollectorPage({ id, navigate }) {
             <div style={{ padding: "6px 0" }}>
               {detail.endpoints_7d.map((e) => {
                 const top = Math.max(
-                  ...detail.endpoints_7d.map((x) => x.calls),
+                  ...detail.endpoints_7d.map((x) => x.fetches),
                   1,
                 );
                 return (
@@ -366,7 +366,7 @@ export function CollectorPage({ id, navigate }) {
                         className="meter__fill"
                         style={{
                           display: "block",
-                          width: `${(e.calls / top) * 100}%`,
+                          width: `${(e.fetches / top) * 100}%`,
                         }}
                       />
                     </span>
@@ -378,7 +378,7 @@ export function CollectorPage({ id, navigate }) {
                         color: "var(--ink)",
                       }}
                     >
-                      {e.calls.toLocaleString()}
+                      {e.fetches.toLocaleString()}
                     </span>
                   </div>
                 );

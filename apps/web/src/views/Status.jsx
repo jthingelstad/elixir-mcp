@@ -337,8 +337,8 @@ function QueueGauge({ queue, now }) {
         ))}
       </div>
       <div className="panel__foot">
-        Subjects become due between ticks and are planned at the next one, every{" "}
-        {queue.tick_minutes} minutes. The next tick can plan{" "}
+        Tracked players and clans become due between ticks and are planned at
+        the next one, every {queue.tick_minutes} minutes. The next tick can plan{" "}
         {(queue.next_tick_capacity ?? 0).toLocaleString()}.
       </div>
     </section>

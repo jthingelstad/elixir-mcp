@@ -244,14 +244,23 @@ export const RAIL = [
  *  where the reader is. */
 export function railPosition(path) {
   const [, section, page, rest] = path.split("/");
+  // `doc` names the docs-strip entry when a RECORD page sits under a rail
+  // item: the rail still marks the item (and sub-item) the record belongs
+  // to, but the strip at its foot is the record's own, because "how do I
+  // read this" is a different question from "what is this section".
   if (section === "explore") {
     const kinds = ["players", "clans", "meta", "weeks"];
-    return { key: "explore", sub: kinds.includes(page) ? page : undefined };
+    if (kinds.includes(page)) return { key: "explore", sub: page };
+    if (page === "player" && rest)
+      return { key: "explore", doc: "explore:player" };
+    if (page && rest) return { key: "explore", doc: "explore:record" };
+    return { key: "explore" };
   }
   if (section === "status")
     return {
       key: "status",
       sub: page === "collectors" ? "collectors" : undefined,
+      ...(page === "collectors" && rest ? { doc: "status:collector" } : {}),
     };
   if (section === "admin") return { key: "admin", sub: page ?? "requests" };
   // The in-app charts are the corpus in detail, reached from the site's
@@ -267,6 +276,7 @@ export function railPosition(path) {
       return {
         key: "activity",
         sub: rest === "n" ? "notifications" : (rest ?? "notifications"),
+        ...(rest === "n" ? { doc: "activity:notification" } : {}),
       };
     if (page === "connections") return { key: "connections", sub: "clients" };
     // The agent record is addressable in its own right, but it belongs
@@ -274,6 +284,8 @@ export function railPosition(path) {
     if (page === "agents") return { key: "connections", sub: "agents" };
     // /account/tracking/<tag> is a record of a tracked thing, which
     // belongs to Tracking rather than being a section of its own.
+    if (page === "tracking" && rest)
+      return { key: "tracking", doc: "tracking:record" };
     return { key: page ?? "overview" };
   }
   return {};
@@ -302,6 +314,23 @@ export const DOC_LINKS = {
       ["Responses", "/docs/responses"],
     ],
   ],
+  // A record page names the tool that produced it; its strip points at
+  // how to read what came back.
+  "explore:player": [
+    "Player records",
+    [
+      ["players_summary", "/docs/tools/players#players_summary"],
+      ["Methodology", "/docs/methodology"],
+    ],
+  ],
+  "explore:record": [
+    "Reading a record",
+    [
+      ["Responses", "/docs/responses"],
+      ["Coverage", "/docs/responses#coverage-and-result-limits"],
+      ["Methodology", "/docs/methodology"],
+    ],
+  ],
   collections: [
     "Collections",
     [
@@ -314,15 +343,31 @@ export const DOC_LINKS = {
     "What we record for you",
     [
       ["How recording works", "/docs/recording"],
-      ["Scopes", "/docs/recording#scopes"],
+      ["Scopes", "/docs/recording#scope-what-is-actually-polled"],
       ["Tiers & slots", "/docs/roles"],
+    ],
+  ],
+  // The record of one tracked thing: the page with the notify switch on
+  // it links to what a notification is.
+  "tracking:record": [
+    "What we record for you",
+    [
+      ["How recording works", "/docs/recording"],
+      ["Notifications", "/docs/events"],
     ],
   ],
   "activity:notifications": [
     "Notifications",
     [
       ["Events & the feed", "/docs/events"],
-      ["elixir_events", "/docs/tools/elixir-mcp"],
+      ["elixir_events", "/docs/tools/elixir-mcp#elixir_events"],
+    ],
+  ],
+  "activity:notification": [
+    "Notifications",
+    [
+      ["Events & the feed", "/docs/events"],
+      ["Response envelope", "/docs/responses#the-fields"],
     ],
   ],
   "activity:requests": [
@@ -344,6 +389,7 @@ export const DOC_LINKS = {
     "Budgets",
     [
       ["Limits", "/docs/limits"],
+      ["Live fetch", "/docs/tools/live"],
       ["Run a collector", "/docs/operators"],
     ],
   ],
@@ -352,13 +398,15 @@ export const DOC_LINKS = {
     [
       ["Connections", "/docs/connections"],
       ["Protocol & auth", "/docs/protocol"],
+      ["Scopes", "/docs/protocol#scopes"],
     ],
   ],
   "connections:agents": [
     "Agents",
     [
       ["Agents", "/docs/agents"],
-      ["Connections", "/docs/connections"],
+      ["Key lifecycle", "/docs/agents#key-lifecycle"],
+      ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
     ],
   ],
   settings: [
@@ -369,12 +417,27 @@ export const DOC_LINKS = {
       ["Privacy", "/docs/privacy"],
     ],
   ],
-  feedback: ["Feedback", [["About the project", "/docs/about"]]],
+  feedback: [
+    "Feedback",
+    [
+      ["About the project", "/docs/about"],
+      ["elixir_feedback", "/docs/tools/elixir-mcp#elixir_feedback"],
+    ],
+  ],
   "status:collectors": [
+    "Collectors",
+    [
+      ["Operators guide", "/docs/operators"],
+      ["Architecture", "/docs/architecture#collectors-in-depth"],
+    ],
+  ],
+  // One collector's record: the page an operator reads while running one.
+  "status:collector": [
     "Running a collector",
     [
       ["Operators guide", "/docs/operators"],
-      ["Architecture", "/docs/architecture"],
+      ["The job ledger", "/docs/architecture#collectors-in-depth"],
+      ["Budgets", "/docs/limits"],
     ],
   ],
   status: [
@@ -403,7 +466,8 @@ export const DOC_LINKS = {
     "Collector fleet",
     [
       ["Operators guide", "/docs/operators"],
-      ["Architecture", "/docs/architecture"],
+      ["Architecture", "/docs/architecture#collectors-in-depth"],
+      ["The job ledger", "/docs/architecture#collectors-in-depth"],
     ],
   ],
   "admin:service-tokens": [
@@ -415,11 +479,17 @@ export const DOC_LINKS = {
   ],
   "admin:integrations": [
     "Integrations",
-    [["Integrations", "/docs/integrations"]],
+    [
+      ["Integrations", "/docs/integrations"],
+      ["Integration API", "/docs/integrations#provisioning-and-administration"],
+    ],
   ],
   "admin:collections": [
     "Collections",
-    [["How recording works", "/docs/recording"]],
+    [
+      ["Collections", "/docs/recording#collections"],
+      ["How recording works", "/docs/recording"],
+    ],
   ],
   "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
   "admin:usage": [
@@ -613,7 +683,7 @@ function Chrome({ navigate }) {
  * in the same order. Not a drawer over the content — a drawer hides the
  * page you are reading in order to show you a list of pages.
  */
-function Rail({ me, here, navigate, narrow, counts }) {
+function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
   const [open, setOpen] = useState(false);
   const items = RAIL.filter((r) => !r.adminOnly || me?.is_admin);
   const current = items.find((r) => r.key === here.key);
@@ -632,6 +702,7 @@ function Rail({ me, here, navigate, narrow, counts }) {
       {items.map((row) => {
         const on = row.key === here.key;
         const meta = row.meta ?? counts[row.key];
+        const dot = dots[row.key];
         const subs = (row.subs ?? []).filter(
           ([, , , ownerOnly]) => !ownerOnly || me?.is_owner,
         );
@@ -646,7 +717,19 @@ function Rail({ me, here, navigate, narrow, counts }) {
             >
               <Icon name={row.icon} />
               {row.label}
-              {meta !== undefined && <span className="rail__meta">{meta}</span>}
+              {(meta !== undefined || dot) && (
+                <span className="rail__meta">
+                  {dot && (
+                    <span
+                      className={`rail__dot rail__dot--${dot.tone}`}
+                      title={dot.title}
+                      role="img"
+                      aria-label={dot.title}
+                    />
+                  )}
+                  {meta}
+                </span>
+              )}
             </a>
             {on &&
               subs.map(([slug, label, to]) => {
@@ -810,6 +893,7 @@ function Rail({ me, here, navigate, narrow, counts }) {
  *  replaced, so a page with no entry is a bug rather than a fallback. */
 function DocsStrip({ here }) {
   const entry =
+    (here.doc && DOC_LINKS[here.doc]) ??
     DOC_LINKS[here.sub ? `${here.key}:${here.sub}` : here.key] ??
     DOC_LINKS[here.key];
   if (!entry) return null;
@@ -929,6 +1013,32 @@ export function App() {
         (me.entitlements?.activity_clans?.used ?? 0) +
         (me.entitlements?.comprehensive_clans?.used ?? 0),
     );
+  // A tier with no collections shows no count: "0" would invite a click
+  // the page then refuses.
+  if (me?.entitlements?.collections && me.entitlements.collections.limit !== 0)
+    counts.collections = String(me.entitlements.collections.used ?? 0);
+  if (me?.signals) {
+    counts.connections = String(me.signals.connections ?? 0);
+    if (me.signals.feedback > 0) counts.feedback = String(me.signals.feedback);
+  }
+  /** The two dots the design puts on the rail: unread on Activity while
+   *  the feed holds events no connection has read, and an alert on
+   *  Connections while a credential that no longer works is still being
+   *  presented — the one thing on this rail that wants you before you
+   *  go looking. */
+  const dots = {
+    activity:
+      me?.signals?.events_unseen > 0
+        ? { tone: "unread", title: "Unread notifications" }
+        : null,
+    connections:
+      me?.signals?.refusals_7d > 0
+        ? {
+            tone: "alert",
+            title: "A credential that no longer works is still being presented",
+          }
+        : null,
+  };
 
   const needsAuth = sec?.authed && !authed && me !== null;
   const showRail =
@@ -956,6 +1066,7 @@ export function App() {
             navigate={navigate}
             narrow={narrow}
             counts={counts}
+            dots={dots}
           />
         )}
 

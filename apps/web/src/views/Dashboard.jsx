@@ -38,7 +38,8 @@ export function Dashboard({
     ) : (
       <Tracking me={me} refresh={refresh} navigate={navigate} />
     );
-  if (page === "settings") return <Settings me={me} refresh={refresh} />;
+  if (page === "settings")
+    return <Settings me={me} refresh={refresh} navigate={navigate} />;
   if (page === "collections")
     return <Collections me={me} navigate={navigate} />;
   if (page === "agents")

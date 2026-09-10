@@ -61,6 +61,7 @@ export function Activity({ sub, navigate }) {
     ]);
     return (
       <LogTable
+        crumb="Activity"
         title="MCP requests"
         note="Every call your connections made, newest first."
         cols={[
@@ -96,6 +97,7 @@ export function Activity({ sub, navigate }) {
     ]);
     return (
       <LogTable
+        crumb="Activity"
         title="Account events"
         note="Changes to your account, your access and what we record for you."
         cols={[
@@ -129,6 +131,7 @@ export function Activity({ sub, navigate }) {
   });
   return (
     <LogTable
+      crumb="Activity"
       title="Notifications"
       note="Queued for a connection to pick up on its next call. Turned on per tracked player or clan."
       cols={[
@@ -189,12 +192,15 @@ export function NotificationRecord({ id, navigate }) {
 
   const unread = Number(row.event_id) > Number(feed.seen_through ?? 0);
   // The body is what elixir_events hands a connection for this row.
+  // The same keys elixir_events returns, so what the console shows IS
+  // the wire, plus the name of the tool that reads it.
   const body = {
-    event_id: String(row.event_id),
+    event_id: Number(row.event_id),
     topic: row.topic,
-    subject: row.subject_tag,
+    ...(row.subject_tag ? { subject_tag: row.subject_tag } : {}),
     created_at: row.created_at,
-    payload: row.payload ?? {},
+    ...(row.payload ? { payload: row.payload } : {}),
+    read_with: "elixir_events",
   };
 
   return (

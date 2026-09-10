@@ -63,19 +63,28 @@ export function Tracking({ me, refresh, navigate }) {
         day: rec?.fetches_24h ?? 0,
       };
     }),
-    ...((clans?.clans ?? []).map((c) => ({
-      kind: "clan",
-      key: c.clan_tag,
-      tag: c.clan_tag,
-      name: c.name ?? c.clan_tag,
-      rel: clans?.home_clan?.clan_tag === c.clan_tag ? "your clan" : c.scope,
-      primary: clans?.home_clan?.clan_tag === c.clan_tag,
-      fresh: {
-        text: c.recording_status ?? "off",
-        tone: c.recording_status === "active" ? "ok" : "ink-faint",
-      },
-      day: null,
-    })) ?? []),
+    ...((clans?.clans ?? []).map((c) => {
+      const rec = recFor(c.clan_tag);
+      // † marks a clan another account records more deeply than you asked
+      // for; the footnote under the table says what that means.
+      const deeper = c.effective_scope && c.effective_scope !== c.scope;
+      return {
+        kind: "clan",
+        key: c.clan_tag,
+        tag: c.clan_tag,
+        name: c.name ?? c.clan_tag,
+        rel:
+          (clans?.home_clan?.clan_tag === c.clan_tag ? "your clan" : c.scope) +
+          (deeper ? " †" : ""),
+        primary: clans?.home_clan?.clan_tag === c.clan_tag,
+        // The same clock as a player row: when the clan was last polled.
+        // A clan with no recording at all is honestly "off".
+        fresh: rec
+          ? freshness(rec.freshest_poll, now)
+          : { text: c.recording_status ?? "off", tone: "ink-faint" },
+        day: rec?.fetches_24h ?? null,
+      };
+    }) ?? []),
   ].filter((r) => filter === "all" || r.kind === filter.replace(/s$/, ""));
 
   const chips = [
@@ -208,10 +217,23 @@ export function Tracking({ me, refresh, navigate }) {
                         gap: "8px",
                       }}
                     >
-                      {/* Ownership is a mark and a word, never a tinted row. */}
-                      {r.primary && (
-                        <span style={{ color: "var(--gold)" }}>★</span>
-                      )}
+                      {/* The kind glyph tells a player from a clan under the
+                          "All" filter; gold on the ones that are yours, because
+                          ownership is a mark and a word, never a tinted row. */}
+                      <span
+                        style={{
+                          display: "flex",
+                          color: r.primary
+                            ? "var(--gold)"
+                            : "var(--ink-quiet-icon)",
+                        }}
+                        title={r.kind === "clan" ? "clan" : "player"}
+                      >
+                        <Icon
+                          name={r.kind === "clan" ? "shield" : "user-round"}
+                          size={16}
+                        />
+                      </span>
                       <a
                         style={{ fontWeight: 600, fontSize: "14px" }}
                         onClick={() =>

@@ -83,8 +83,10 @@ export function Connections({ me, navigate }) {
                 <Fresh ts={r.last_seen} />
               </>
             ) : null}
-            . Usually a client you disconnected that is still running: it reads
-            nothing, and keeps trying until it is stopped.
+            .{" "}
+            {r.kind === "service_token"
+              ? "A revoked or suspended agent key, or a service token, is still being presented: it reads nothing, and keeps trying until whatever holds it is stopped or re-keyed."
+              : "Usually a client you disconnected that is still running: it reads nothing, and keeps trying until it is stopped."}
           </span>
         </div>
       ))}
@@ -299,7 +301,7 @@ export function Connections({ me, navigate }) {
                     >
                       {a.status === "approved"
                         ? "agent · its own key"
-                        : `agent · ${a.status}`}
+                        : "suspended · key reads as invalid"}
                     </span>
                   </td>
                   <td>

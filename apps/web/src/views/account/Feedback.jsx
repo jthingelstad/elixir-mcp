@@ -1,5 +1,54 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
+import { Icon } from "../../components/Icon.jsx";
+
+/**
+ * Feedback — what you have told us, and what we did about it.
+ *
+ * Drawn as the 2026-09-09 design draws it: a title with one gold
+ * "Send feedback" control beside it, and the items as bare rows on the
+ * page, each row a link into its own record. Not a card: the list IS the
+ * page, and a panel around it with its own title was the panel-title
+ * shape the rail replaced.
+ *
+ * The compose form is the one thing that opens in place, because a
+ * separate page for a textarea is a trip for nothing.
+ */
+
+/** One tone per status, read by the list and the record so the two can
+ *  never disagree. The design's map: new is unread (accent), planned is
+ *  a promise still open (warn), done is kept (ok); seen and declined
+ *  carry no tone, because neither asks anything of the reader. */
+function statusTone(status) {
+  return (
+    { new: "chip--info", planned: "chip--warn", done: "chip--ok" }[status] ?? ""
+  );
+}
+
+const CATEGORIES = ["general", "bug", "data_quality", "feature", "praise"];
+
+function Shipped({ version, navigate }) {
+  if (!version) return null;
+  return (
+    <a
+      className="mono"
+      style={{
+        fontSize: "11.5px",
+        color: "var(--ink-body)",
+        border: "1px solid var(--line-strong)",
+        borderRadius: "6px",
+        padding: "1px 7px",
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate("/data/changelog");
+      }}
+      title="The contract version this shipped in"
+    >
+      shipped {version}
+    </a>
+  );
+}
 
 export function FeedbackItem({ id, navigate }) {
   const [item, setItem] = useState(null);
@@ -15,109 +64,171 @@ export function FeedbackItem({ id, navigate }) {
   }, [id]);
   if (missed)
     return (
-      <div className="panel">
-        <div className="panel__body">
-          No feedback item #{id} on your account.{" "}
+      <div className="empty">
+        <div className="empty__title">No feedback item #{id}</div>
+        <p className="empty__body" style={{ marginBottom: 0 }}>
+          Nothing by that number on your account.{" "}
           <a onClick={() => navigate("/account/feedback")}>All feedback ›</a>
-        </div>
+        </p>
       </div>
     );
   if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   return (
     <>
-      <p style={{ margin: "0 0 10px" }}>
-        <a
-          className="mono"
-          style={{ fontSize: "12px" }}
-          onClick={() => navigate("/account/feedback")}
-        >
-          ‹ All feedback
-        </a>
+      <p className="page__crumb" style={{ marginBottom: "14px" }}>
+        <a onClick={() => navigate("/account/feedback")}>‹ Feedback</a>
       </p>
-      <section className="panel" style={{ maxWidth: "640px" }}>
-        <div className="panel__head">
-          <span className="mono" style={{ color: "var(--ink-faint)" }}>
-            #{item.feedback_id}
-          </span>
-          <span className="tag-chip">{item.category}</span>
-          <span
-            className={`chip ${
-              item.status === "done"
-                ? "chip--ok"
-                : item.status === "new"
-                  ? "chip--warn"
-                  : ""
-            }`}
-          >
-            {item.status}
-          </span>
-          <span
-            className="mono"
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          flexWrap: "wrap",
+          marginBottom: "14px",
+        }}
+      >
+        {/* The id is the title: a filed note has no name of its own, and
+            the number is what a maintainer's reply and the event feed
+            call it. */}
+        <h1
+          className="mono"
+          style={{
+            fontWeight: 500,
+            fontSize: "20px",
+            margin: 0,
+            color: "var(--ink)",
+          }}
+        >
+          #{item.feedback_id}
+        </h1>
+        <span className={`chip ${statusTone(item.status)}`}>{item.status}</span>
+        <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
+          {item.category?.replaceAll("_", " ")} ·{" "}
+          {item.created_at?.slice(0, 10)}
+          {item.surface && item.surface !== "web"
+            ? ` · via ${item.surface}`
+            : ""}
+        </span>
+        <Shipped version={item.shipped_in} navigate={navigate} />
+      </div>
+      <p
+        style={{
+          fontSize: "16px",
+          lineHeight: 1.65,
+          color: "var(--ink)",
+          margin: "0 0 22px",
+          maxWidth: "70ch",
+          textWrap: "pretty",
+        }}
+      >
+        {item.message}
+      </p>
+
+      {item.response ? (
+        <section
+          style={{
+            borderLeft: "2px solid var(--accent-bright)",
+            padding: "2px 0 2px 16px",
+          }}
+        >
+          <div className="label" style={{ marginBottom: "8px" }}>
+            Maintainer
+            {item.responded_at ? ` · ${item.responded_at.slice(0, 10)}` : ""}
+          </div>
+          <p
             style={{
-              marginLeft: "auto",
-              fontSize: "11px",
-              color: "var(--ink-faint)",
+              fontSize: "14.5px",
+              lineHeight: 1.7,
+              color: "var(--ink-body)",
+              margin: 0,
+              maxWidth: "70ch",
+              textWrap: "pretty",
             }}
           >
-            filed {item.created_at?.slice(0, 10)} · via {item.surface}
-          </span>
-        </div>
-        <div
-          className="panel__body"
-          style={{ fontSize: "13px", lineHeight: 1.6 }}
-        >
-          {item.message}
-        </div>
-        {item.response ? (
-          <div
-            className="panel__body"
-            style={{ borderTop: "1px solid var(--line-soft)" }}
-          >
-            <div
-              className="mono"
-              style={{
-                fontSize: "11px",
-                color: "var(--ink-faint)",
-                marginBottom: "6px",
-              }}
-            >
-              MAINTAINER RESPONSE
-              {item.responded_at ? ` · ${item.responded_at.slice(0, 10)}` : ""}
-            </div>
-            <div style={{ fontSize: "12.5px", lineHeight: 1.6 }}>
-              {item.response}
-            </div>
-            {item.shipped_in && (
-              <p style={{ marginTop: "8px" }}>
-                <a
-                  className="mono"
-                  style={{ fontSize: "11.5px" }}
-                  onClick={() => navigate("/data/changelog")}
-                >
-                  shipped in {item.shipped_in} ›
-                </a>
-              </p>
-            )}
-          </div>
-        ) : (
-          <div
-            className="panel__foot"
-            style={{ fontSize: "12px", color: "var(--ink-faint)" }}
-          >
-            Awaiting a maintainer response — every item gets one, and a response
-            lands in your event feed.
-          </div>
-        )}
-      </section>
+            {item.response}
+          </p>
+        </section>
+      ) : (
+        <p style={{ fontSize: "13.5px", color: "var(--ink-faint)", margin: 0 }}>
+          No reply yet. You cannot edit a filed note — send another if something
+          changed.
+        </p>
+      )}
     </>
+  );
+}
+
+function Compose({ onSent, onClose }) {
+  const [category, setCategory] = useState("general");
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+  const [failed, setFailed] = useState("");
+  return (
+    <section className="panel" style={{ marginBottom: "18px" }}>
+      <div className="panel__head">
+        <span className="panel-title">Send feedback</span>
+        <button
+          type="button"
+          className="btn btn--sm"
+          style={{ marginLeft: "auto" }}
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+      <div
+        className="panel__body"
+        style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+      >
+        {sent ? (
+          <div className="notice">Received — thank you. It is in the list.</div>
+        ) : (
+          <>
+            <select
+              className="select"
+              aria-label="Category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+            <textarea
+              rows={5}
+              aria-label="Message"
+              placeholder="Wrong-looking data, a missing capability, praise…"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+            {failed && <p className="field-error">{failed}</p>}
+            <div>
+              <button
+                className="btn btn--primary"
+                disabled={!message.trim()}
+                onClick={async () => {
+                  const r = await api.sendFeedback(message, category);
+                  if (r.ok) {
+                    setSent(true);
+                    onSent();
+                  } else setFailed(r.data?.message ?? "Could not send that.");
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 
 export function Feedback({ navigate }) {
   const [items, setItems] = useState(null);
-  const [category, setCategory] = useState("general");
-  const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
+  const [composing, setComposing] = useState(false);
   const load = () =>
     api
       .myFeedback()
@@ -126,169 +237,116 @@ export function Feedback({ navigate }) {
     load();
   }, []);
   return (
-    <div className="cols">
-      <div className="cols__main">
-        <div style={{ marginBottom: "18px" }}>
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "20px",
+        }}
+      >
+        <div>
           <h1 className="page__title">Feedback</h1>
           <p className="page__lede">
-            What you have said and what the maintainer answered. Every item gets
-            a response.
+            What you have told us, and what we did about it. Every item gets a
+            response; nothing is actioned invisibly.
           </p>
         </div>
-        <section className="panel">
-          <div className="panel__head">
-            <span className="panel-title">Your feedback</span>
+        <button
+          className="btn btn--primary"
+          style={{ marginLeft: "auto" }}
+          onClick={() => setComposing((v) => !v)}
+        >
+          <Icon name="plus" size={16} />
+          Send feedback
+        </button>
+      </div>
+
+      {composing && (
+        <Compose onSent={load} onClose={() => setComposing(false)} />
+      )}
+
+      {items?.length === 0 && (
+        <div className="empty">
+          <p className="empty__body" style={{ marginBottom: 0 }}>
+            Nothing filed yet — your agent can file too, with{" "}
+            <code>elixir_feedback</code>.
+          </p>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {(items ?? []).map((f) => (
+          <a
+            key={f.feedback_id}
+            href={`/account/feedback/${f.feedback_id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/account/feedback/${f.feedback_id}`);
+            }}
+            style={{
+              display: "block",
+              padding: "14px 2px",
+              borderBottom: "1px solid var(--line-row)",
+              color: "inherit",
+            }}
+          >
             <span
-              className="mono"
               style={{
-                marginLeft: "auto",
-                fontSize: "11px",
-                color: "var(--ink-faint)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+                marginBottom: "6px",
               }}
             >
-              never actioned invisibly
+              <span className={`chip ${statusTone(f.status)}`}>{f.status}</span>
+              <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
+                {f.category?.replaceAll("_", " ")}
+              </span>
+              <Shipped version={f.shipped_in} navigate={navigate} />
+              <span
+                className="mono"
+                style={{
+                  marginLeft: "auto",
+                  fontSize: "12px",
+                  color: "var(--ink-faint)",
+                }}
+              >
+                {f.created_at?.slice(0, 10)}
+              </span>
             </span>
-          </div>
-          {items?.length === 0 && (
-            <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
-              Nothing filed yet — your agent can file too, with{" "}
-              <code>elixir_feedback</code>.
-            </div>
-          )}
-          {(items ?? []).map((f) => (
-            <div
-              key={f.feedback_id}
+            <span
               style={{
-                padding: "12px 16px",
-                borderTop: "1px solid var(--line-soft)",
+                display: "block",
+                fontSize: "14px",
+                color: "var(--ink-body)",
+                lineHeight: 1.55,
+                textWrap: "pretty",
               }}
             >
-              <div
+              {f.message}
+            </span>
+            {f.response && (
+              <span
                 style={{
                   display: "flex",
-                  gap: "8px",
                   alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <a
-                  className="mono"
-                  style={{ fontSize: "11.5px" }}
-                  onClick={() => navigate(`/account/feedback/${f.feedback_id}`)}
-                >
-                  #{f.feedback_id} ›
-                </a>
-                <span className="tag-chip">{f.category}</span>
-                <span
-                  className={`chip ${
-                    f.status === "done"
-                      ? "chip--ok"
-                      : f.status === "new"
-                        ? "chip--warn"
-                        : ""
-                  }`}
-                >
-                  {f.status}
-                </span>
-                {f.shipped_in && (
-                  <a
-                    className="mono"
-                    style={{ fontSize: "11.5px" }}
-                    onClick={() => navigate("/data/changelog")}
-                  >
-                    shipped in {f.shipped_in} ›
-                  </a>
-                )}
-                <span
-                  className="mono"
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: "11px",
-                    color: "var(--ink-faint)",
-                  }}
-                >
-                  {f.created_at?.slice(0, 10)}
-                </span>
-              </div>
-              <div
-                style={{
+                  gap: "7px",
+                  marginTop: "7px",
                   fontSize: "12.5px",
-                  marginTop: "6px",
-                  color: "var(--ink-body)",
+                  color: "var(--accent-bright)",
                 }}
               >
-                {f.message}
-              </div>
-              {f.response && (
-                <div
-                  style={{
-                    marginTop: "8px",
-                    paddingLeft: "12px",
-                    borderLeft: "2px solid var(--line-strong)",
-                    fontSize: "12.5px",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {f.response}
-                </div>
-              )}
-            </div>
-          ))}
-        </section>
-      </div>
-      <div className="cols__rail">
-        <section className="panel">
-          <div className="panel__head">
-            <span className="panel-title">Send feedback</span>
-          </div>
-          <div
-            className="panel__body"
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-          >
-            {sent ? (
-              <div className="notice">Received — thank you.</div>
-            ) : (
-              <>
-                <select
-                  className="select"
-                  aria-label="Category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {["general", "bug", "data_quality", "feature", "praise"].map(
-                    (c) => (
-                      <option key={c} value={c}>
-                        {c.replaceAll("_", " ")}
-                      </option>
-                    ),
-                  )}
-                </select>
-                <textarea
-                  rows={5}
-                  placeholder="Wrong-looking data, missing capability, praise…"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                />
-                <div>
-                  <button
-                    className="btn"
-                    disabled={!message.trim()}
-                    onClick={async () => {
-                      const r = await api.sendFeedback(message, category);
-                      if (r.ok) {
-                        setSent(true);
-                        load();
-                      }
-                    }}
-                  >
-                    Send
-                  </button>
-                </div>
-              </>
+                <Icon name="message-square" size={14} />
+                maintainer replied
+              </span>
             )}
-          </div>
-        </section>
+          </a>
+        ))}
       </div>
-    </div>
+    </>
   );
 }

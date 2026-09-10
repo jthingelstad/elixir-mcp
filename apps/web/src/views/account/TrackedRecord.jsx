@@ -90,6 +90,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <span>
               {" · "}
               {isClan ? "clan" : "player"}
+              {isClan && clan.member_count
+                ? ` · ${clan.member_count} members`
+                : ""}
               {!isClan && claim.is_primary ? " · your primary" : ""}
             </span>
           </p>
@@ -317,9 +320,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>
               {isClan
                 ? clan.scope === "comprehensive"
-                  ? "the clan, and every member's battles"
-                  : "the clan's roster and its river races"
-                : "battle log while active, profile daily"}
+                  ? "comprehensive — clan every 15 min, river race, and every member's battles and profile"
+                  : "activity — clan every 15 min, river race"
+                : "battle log every 5–30 min while active · daily snapshot"}
             </dd>
             <dt style={{ color: "var(--ink-faint)" }}>Freshest poll</dt>
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>

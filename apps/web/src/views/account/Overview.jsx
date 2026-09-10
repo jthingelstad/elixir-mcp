@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
+import { SlotMeters } from "../../components/SlotMeter.jsx";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -15,58 +16,6 @@ import { FirstAnswer } from "../../components/FirstAnswer.jsx";
  * Tracking, and the meters are a reading of the tier whose controls are
  * on Settings & tier.
  */
-function slotMeter(label, slot) {
-  if (!slot) return null;
-  const { used, limit } = slot;
-  // A limit of 0 is "your tier does not include any", which is not the
-  // same statement as "you have used them all" — and painting it gold
-  // would make an absence read as an achievement.
-  const none = limit === 0;
-  const full = !none && limit != null && used >= limit;
-  return (
-    <div key={label} style={{ flex: "1 1 200px" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: "8px",
-          marginBottom: "8px",
-          fontSize: "13.5px",
-        }}
-      >
-        <span style={{ color: "var(--ink-body)" }}>{label}</span>
-        {/* Gold ink at the limit, never a gold bar: gold marks ownership
-            and brand, and a gold fill would make it a measurement. */}
-        {none ? (
-          <span style={{ marginLeft: "auto", color: "var(--ink-faint)" }}>
-            none on this tier
-          </span>
-        ) : (
-          <span
-            className={"meter__value" + (full ? " meter__value--full" : "")}
-            style={{ marginLeft: "auto" }}
-          >
-            {used}/{limit ?? "∞"}
-          </span>
-        )}
-      </div>
-      <div className="meter">
-        <div
-          className="meter__fill"
-          style={{
-            width:
-              limit && limit > 0
-                ? `${Math.min(100, (used / limit) * 100)}%`
-                : used > 0
-                  ? "6%"
-                  : "0%",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
 /** One row of the compact Players/Clans lists. A link, because the whole
  *  point of these lists is that they go to Tracking. */
 function CompactRow({ primary, secondary, note, onClick }) {
@@ -147,7 +96,7 @@ export function Overview({ me, navigate }) {
         <p className="page__lede">
           {fresh
             ? "Add the player you play as. Capture starts on the next poll — usually within half an hour."
-            : `${players.length} player${players.length === 1 ? "" : "s"} and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"} on record.`}
+            : `${players.length} player${players.length === 1 ? "" : "s"} and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"} on record. Nothing needs you today.`}
         </p>
       </div>
 
@@ -186,7 +135,11 @@ export function Overview({ me, navigate }) {
                 primary={p.nickname ?? p.name ?? "—"}
                 secondary={p.player_tag}
                 note={p.is_primary ? "you" : (p.relationship ?? "watching")}
-                onClick={() => navigate("/account/tracking")}
+                onClick={() =>
+                  navigate(
+                    `/account/tracking/${encodeURIComponent(p.player_tag.replace(/^#/, ""))}`,
+                  )
+                }
               />
             ))
           )}
@@ -206,8 +159,16 @@ export function Overview({ me, navigate }) {
               <CompactRow
                 key={c.clan_tag}
                 primary={c.name ?? c.clan_tag}
-                note={c.scope}
-                onClick={() => navigate("/account/tracking")}
+                note={
+                  c.member_count
+                    ? `${c.scope} · ${c.member_count} members`
+                    : c.scope
+                }
+                onClick={() =>
+                  navigate(
+                    `/account/tracking/${encodeURIComponent(c.clan_tag.replace(/^#/, ""))}`,
+                  )
+                }
               />
             ))
           )}
@@ -247,15 +208,7 @@ export function Overview({ me, navigate }) {
               Settings &amp; tier ›
             </a>
           </div>
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            {slotMeter("Player slots", e.player_slots)}
-            {/* Two clan limits, not one: an activity slot cannot hold a
-                comprehensive clan, so a single combined meter would read
-                as room you do not have. */}
-            {slotMeter("Clan slots · activity", e.activity_clans)}
-            {slotMeter("Clan slots · comprehensive", e.comprehensive_clans)}
-            {slotMeter("Collections", e.collections)}
-          </div>
+          <SlotMeters entitlements={e} />
         </section>
       )}
     </>

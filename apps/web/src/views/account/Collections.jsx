@@ -16,12 +16,113 @@ import { Icon } from "../../components/Icon.jsx";
  * greyed control invites a click and then explains nothing. Browsing
  * public collections needs no tier at all, so that link is offered.
  */
+/** The create form, in place: a collection is a slug, a title, a kind,
+ *  who may see it and how deeply its members are recorded. Membership is
+ *  edited on the collection's own record. */
+function NewCollection({ onSaved, onClose }) {
+  const [form, setForm] = useState({
+    slug: "",
+    title: "",
+    kind: "player",
+    visibility: "private",
+    scope: "comprehensive",
+  });
+  const [err, setErr] = useState("");
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  return (
+    <form
+      className="panel"
+      style={{ marginBottom: "18px" }}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const r = await api.myCollectionAction({ action: "upsert", ...form });
+        if (r.ok) onSaved(form.slug);
+        else setErr(r.data?.message ?? "Could not create that.");
+      }}
+    >
+      <div className="panel__head">
+        <span className="panel-title">New collection</span>
+        <button
+          type="button"
+          className="btn btn--sm"
+          style={{ marginLeft: "auto" }}
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+      <div
+        className="panel__body"
+        style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+      >
+        <label style={{ flex: "1 1 160px" }}>
+          <span className="field-label">Slug</span>
+          <input
+            className="mono"
+            required
+            pattern="[a-z0-9][a-z0-9-]{1,38}"
+            placeholder="war-carriers-2026"
+            value={form.slug}
+            onChange={set("slug")}
+          />
+        </label>
+        <label style={{ flex: "2 1 220px" }}>
+          <span className="field-label">Title</span>
+          <input
+            required
+            maxLength={80}
+            placeholder="War carriers 2026"
+            value={form.title}
+            onChange={set("title")}
+          />
+        </label>
+        <label style={{ flex: "1 1 120px" }}>
+          <span className="field-label">Kind</span>
+          <select value={form.kind} onChange={set("kind")}>
+            <option value="player">players</option>
+            <option value="clan">clans</option>
+          </select>
+        </label>
+        <label style={{ flex: "1 1 120px" }}>
+          <span className="field-label">Visibility</span>
+          <select value={form.visibility} onChange={set("visibility")}>
+            <option value="private">private</option>
+            <option value="public">public</option>
+          </select>
+        </label>
+        <label style={{ flex: "1 1 140px" }}>
+          <span className="field-label">Scope</span>
+          <select value={form.scope} onChange={set("scope")}>
+            <option value="comprehensive">comprehensive</option>
+            <option value="activity">activity</option>
+          </select>
+        </label>
+        {err && (
+          <p className="field-error" style={{ flexBasis: "100%" }}>
+            {err}
+          </p>
+        )}
+        <div style={{ flexBasis: "100%" }}>
+          <button className="btn btn--primary">Create</button>
+        </div>
+      </div>
+      <div className="panel__note">
+        Membership is a reason to record: adding a member starts capture, and
+        removing the last reason stops it. Members are added on the
+        collection&rsquo;s record.
+      </div>
+    </form>
+  );
+}
+
 export function Collections({ me, navigate }) {
   const [data, setData] = useState(null);
   const [sent, setSent] = useState("");
+  const [creating, setCreating] = useState(false);
 
+  const load = () => api.myCollections().then((r) => r.ok && setData(r.data));
   useEffect(() => {
-    api.myCollections().then((r) => r.ok && setData(r.data));
+    load();
   }, []);
 
   const limit = me?.entitlements?.collections?.limit;
@@ -45,7 +146,7 @@ export function Collections({ me, navigate }) {
           <p className="page__lede">
             {locked
               ? "A set of players or clans recorded together, and served to any agent that asks for it."
-              : "Players or clans you want recorded together. Adding a member starts capture for them."}
+              : "Players or clans you want recorded together. Membership is a reason to record: adding a member starts capture; removing may stop it."}
           </p>
         </div>
         {!locked && (
@@ -62,7 +163,7 @@ export function Collections({ me, navigate }) {
             </span>
             <button
               className="btn btn--primary"
-              onClick={() => navigate("/explore")}
+              onClick={() => setCreating((v) => !v)}
             >
               <Icon name="plus" size={16} />
               New collection
@@ -70,6 +171,17 @@ export function Collections({ me, navigate }) {
           </span>
         )}
       </div>
+
+      {creating && !locked && (
+        <NewCollection
+          onClose={() => setCreating(false)}
+          onSaved={(slug) => {
+            setCreating(false);
+            load();
+            navigate(`/explore/collection/${encodeURIComponent(slug)}`);
+          }}
+        />
+      )}
 
       {locked ? (
         <section className="panel" style={{ maxWidth: "66ch" }}>
@@ -177,7 +289,9 @@ export function Collections({ me, navigate }) {
                     <a
                       style={{ fontWeight: 600 }}
                       onClick={() =>
-                        navigate(`/explore/col/${encodeURIComponent(c.slug)}`)
+                        navigate(
+                          `/explore/collection/${encodeURIComponent(c.slug)}`,
+                        )
                       }
                     >
                       {c.title}
@@ -198,7 +312,7 @@ export function Collections({ me, navigate }) {
                           background:
                             c.visibility === "public"
                               ? "var(--ok)"
-                              : "var(--ink-quiet-icon)",
+                              : "var(--warn)",
                         }}
                       />
                       {c.visibility}

@@ -2,6 +2,7 @@ import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
 import { LogTable } from "../components/LogTable.jsx";
+import { Icon } from "../components/Icon.jsx";
 import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
 
 /**
@@ -98,6 +99,7 @@ function AdminRequests() {
 
   return (
     <LogTable
+      crumb="Admin"
       title="Access requests"
       note="Granted by hand, oldest first."
       cols={[
@@ -178,6 +180,7 @@ function AdminAccounts() {
 
   return (
     <LogTable
+      crumb="Admin"
       title="Accounts"
       note="Everyone with a door. Tiers set what we record and the daily call budget — never read access."
       cols={[
@@ -226,6 +229,7 @@ function AdminUsage() {
 
   return (
     <LogTable
+      crumb="Admin"
       title="Usage across accounts"
       note="Seven days. The shared fetch budget is on Status."
       cols={[
@@ -274,6 +278,7 @@ function AdminFeedback({ navigate }) {
 
   return (
     <LogTable
+      crumb="Admin"
       title="Feedback queue"
       note="Sent from the console and from elixir_feedback at the MCP door."
       cols={[
@@ -332,6 +337,7 @@ function AdminCollections({ navigate }) {
   return (
     <>
       <LogTable
+        crumb="Admin"
         title="Collections"
         note="Curated sets served to every account through collections_browse and Explore."
         cols={[
@@ -434,7 +440,7 @@ function AdminCollectors({ navigate }) {
         <p className="page__lede">
           Lifecycle is forward-only: pending, then probation once the key is
           issued and it is heartbeating, then active. Issuing the IP-bound CR
-          key and the IAM user is manual.
+          key is manual.
         </p>
       </div>
       <p className="footnote" style={{ margin: "0 0 16px", maxWidth: "78ch" }}>
@@ -442,188 +448,209 @@ function AdminCollectors({ navigate }) {
         work. Data is the last payload we accepted and recorded. A fresh
         heartbeat with stale data is an idle collector, not a broken one.
       </p>
-      <table>
-        <thead>
-          <tr>
-            <th>Collector</th>
-            <th>Operator</th>
-            <th>Status</th>
-            <th>Channel</th>
-            <th>Heartbeat</th>
-            <th>Data</th>
-            <th>Fetches (1h)</th>
-            <th>Points</th>
-            <th>Version</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {gateways.map((g) => {
-            const next = {
-              pending: "probation",
-              probation: "activate",
-              active: "drain",
-              draining: "probation",
-            }[g.status];
-            const label = {
-              probation: "Begin probation",
-              activate: "Activate",
-              drain: "Drain",
-            }[next];
-            return (
-              <tr key={g.gateway_id}>
-                <td>
-                  {/* Card name is the public identity everywhere else -
+      <div className="table__scroll">
+        <table className="table" style={{ minWidth: "900px" }}>
+          <thead>
+            <tr>
+              <th>COLLECTOR</th>
+              <th>OPERATOR</th>
+              <th>STATE</th>
+              <th>CHANNEL</th>
+              <th>HEARTBEAT</th>
+              <th>DATA</th>
+              <th className="num">FETCHES 1H</th>
+              <th className="num">POINTS</th>
+              <th>VERSION</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {gateways.map((g) => {
+              const next = {
+                pending: "probation",
+                probation: "activate",
+                active: "drain",
+                draining: "probation",
+              }[g.status];
+              // Draining goes BACK to probation: it has been active, and
+              // the word says so. Pending goes forward into it.
+              const label = {
+                probation:
+                  g.status === "draining"
+                    ? "Back to probation"
+                    : "Put on probation",
+                activate: "Activate",
+                drain: "Drain",
+              }[next];
+              return (
+                <tr key={g.gateway_id}>
+                  <td>
+                    {/* Card name is the public identity everywhere else -
                   the status page, the ladder, the MCP tools - while
                   the machine name is what you SSH into. Admin is the
                   one screen that has to join the two. */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "7px",
-                    }}
-                  >
-                    {g.card_icon && (
-                      <img
-                        src={g.card_icon}
-                        alt=""
-                        style={{ height: "22px", borderRadius: "3px" }}
-                      />
-                    )}
-                    <span style={{ fontWeight: 600 }}>
-                      {g.card_name ?? "unnamed"}
-                    </span>
-                  </div>
-                  <code style={{ color: "var(--ink-faint)" }}>{g.name}</code>
-                </td>
-                <td>
-                  {g.owner_account_id ? (
-                    <>
-                      <div>
-                        {g.owner_player_name ?? "no player claimed"}
-                        {g.owner_is_me && (
-                          <span className="chip" style={{ marginLeft: "6px" }}>
-                            you
-                          </span>
-                        )}
-                      </div>
-                      <code style={{ color: "var(--ink-faint)" }}>
-                        {g.owner_email_hash?.slice(0, 10) ?? "—"}
-                      </code>
-                    </>
-                  ) : (
-                    <span className="nil">unowned</span>
-                  )}
-                </td>
-                <td>
-                  <span
-                    className={`chip ${g.status === "active" ? "chip--ok" : g.status === "pending" ? "chip--warn" : "chip--info"}`}
-                  >
-                    {g.status}
-                  </span>
-                </td>
-                <td>
-                  <span
-                    className={`chip ${g.channel === "live" ? "chip--info" : "chip--info"}`}
-                  >
-                    {g.channel ?? "bulk"}
-                  </span>
-                </td>
-                <td>
-                  <span className={beatCls(secsSince(g.last_heartbeat_at))}>
-                    {ago(g.last_heartbeat_at)}
-                  </span>
-                </td>
-                <td>
-                  <span className={freshCls(secsSince(g.last_success_at))}>
-                    {ago(g.last_success_at)}
-                  </span>
-                </td>
-                <td>{g.fetches_last_hour}</td>
-                <td>{Number(g.fetch_points).toLocaleString()}</td>
-                <td>
-                  <code>{g.last_seen_sha ?? "—"}</code>
-                </td>
-                <td>
-                  {next && (
-                    <button
-                      className="btn--text"
-                      onClick={async () => {
-                        await api.adminGatewayAction(g.gateway_id, next);
-                        load();
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "7px",
                       }}
                     >
-                      {label ?? next}
-                    </button>
-                  )}{" "}
-                  {g.status !== "revoked" && (
-                    <button
-                      className="btn--text"
-                      onClick={async () => {
-                        const r = await api.adminGatewayAction(
-                          g.gateway_id,
-                          "provision_token",
-                        );
-                        setStaged((s) => ({
-                          ...s,
-                          [g.gateway_id]: r.ok
-                            ? { ok: true }
-                            : { error: r.data?.error ?? `HTTP ${r.status}` },
-                        }));
-                        load();
-                      }}
-                    >
-                      Provision token
-                    </button>
-                  )}{" "}
-                  {g.status !== "revoked" && (
-                    <button
-                      className="btn--text"
-                      onClick={async () => {
-                        if (
-                          window.confirm(
-                            `Revoke gateway "${g.name}"? Ingest stops accepting its results immediately.`,
-                          )
-                        ) {
-                          await api.adminGatewayAction(g.gateway_id, "revoke");
-                          load();
-                        }
-                      }}
-                    >
-                      Revoke
-                    </button>
-                  )}
-                  {(staged[g.gateway_id] || g.provision_ready) && (
-                    <div>
-                      <small>
-                        {staged[g.gateway_id]?.error ? (
-                          <>Provisioning failed: {staged[g.gateway_id].error}</>
-                        ) : g.owner_is_me ? (
-                          <>
-                            Token staged.{" "}
-                            <button
-                              className="btn--text"
-                              onClick={() => navigate("/account/collector")}
-                            >
-                              Reveal it once on your Collector page →
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            Token staged — the operator reveals it once on their
-                            Collector page.
-                          </>
-                        )}
-                      </small>
+                      {g.card_icon && (
+                        <img
+                          src={g.card_icon}
+                          alt=""
+                          style={{ height: "22px", borderRadius: "3px" }}
+                        />
+                      )}
+                      <span style={{ fontWeight: 600 }}>
+                        {g.card_name ?? "unnamed"}
+                      </span>
                     </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    <code style={{ color: "var(--ink-faint)" }}>{g.name}</code>
+                  </td>
+                  <td>
+                    {g.owner_account_id ? (
+                      <>
+                        <div>
+                          {g.owner_player_name ?? "no player claimed"}
+                          {g.owner_is_me && (
+                            <span
+                              className="chip"
+                              style={{ marginLeft: "6px" }}
+                            >
+                              you
+                            </span>
+                          )}
+                        </div>
+                        <code style={{ color: "var(--ink-faint)" }}>
+                          {g.owner_email_hash?.slice(0, 10) ?? "—"}
+                        </code>
+                      </>
+                    ) : (
+                      <span className="nil">unowned</span>
+                    )}
+                  </td>
+                  <td>
+                    {/* Tone follows the state: pending is merely new
+                      (accent), probation and draining are the two states
+                      that want an eye on them (warn), active is fine.
+                      Revoked carries no tone; it is over. */}
+                    <span
+                      className={`chip ${
+                        g.status === "active"
+                          ? "chip--ok"
+                          : g.status === "pending"
+                            ? "chip--info"
+                            : g.status === "revoked"
+                              ? ""
+                              : "chip--warn"
+                      }`}
+                    >
+                      {g.status}
+                    </span>
+                  </td>
+                  <td>{g.channel ?? "bulk"}</td>
+                  <td>
+                    <span className={beatCls(secsSince(g.last_heartbeat_at))}>
+                      {ago(g.last_heartbeat_at)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={freshCls(secsSince(g.last_success_at))}>
+                      {ago(g.last_success_at)}
+                    </span>
+                  </td>
+                  <td>{g.fetches_last_hour}</td>
+                  <td>{Number(g.fetch_points).toLocaleString()}</td>
+                  <td>
+                    <code>{g.last_seen_sha ?? "—"}</code>
+                  </td>
+                  <td>
+                    {next && (
+                      <button
+                        className="btn--text"
+                        onClick={async () => {
+                          await api.adminGatewayAction(g.gateway_id, next);
+                          load();
+                        }}
+                      >
+                        {label ?? next}
+                      </button>
+                    )}{" "}
+                    {g.status !== "revoked" && (
+                      <button
+                        className="btn--text"
+                        onClick={async () => {
+                          const r = await api.adminGatewayAction(
+                            g.gateway_id,
+                            "provision_token",
+                          );
+                          setStaged((s) => ({
+                            ...s,
+                            [g.gateway_id]: r.ok
+                              ? { ok: true }
+                              : { error: r.data?.error ?? `HTTP ${r.status}` },
+                          }));
+                          load();
+                        }}
+                      >
+                        Provision token
+                      </button>
+                    )}{" "}
+                    {g.status !== "revoked" && (
+                      <button
+                        className="btn--text"
+                        onClick={async () => {
+                          if (
+                            window.confirm(
+                              `Revoke collector "${g.name}"? Ingest stops accepting its results immediately.`,
+                            )
+                          ) {
+                            await api.adminGatewayAction(
+                              g.gateway_id,
+                              "revoke",
+                            );
+                            load();
+                          }
+                        }}
+                      >
+                        Revoke
+                      </button>
+                    )}
+                    {(staged[g.gateway_id] || g.provision_ready) && (
+                      <div>
+                        <small>
+                          {staged[g.gateway_id]?.error ? (
+                            <>
+                              Provisioning failed: {staged[g.gateway_id].error}
+                            </>
+                          ) : g.owner_is_me ? (
+                            <>
+                              Token staged.{" "}
+                              <button
+                                className="btn--text"
+                                onClick={() => navigate("/account/collector")}
+                              >
+                                Reveal it once on your Collector page →
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              Token staged — the operator reveals it once on
+                              their Collector page.
+                            </>
+                          )}
+                        </small>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
@@ -644,17 +671,53 @@ function AdminServiceTokens() {
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Service keys</h1>
-        <p className="page__lede">
-          Long-lived keys held by other products. Calls audit as{" "}
-          <code>svc:&lt;name&gt;</code>.
-        </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <p className="page__crumb">Admin · owner only</p>
+          <h1 className="page__title">Service tokens</h1>
+          <p className="page__lede">
+            Bound to the owner&rsquo;s own account. Integration keys live on
+            Integrations. Calls audit as <code>svc:&lt;name&gt;</code>.
+          </p>
+        </div>
+        <form
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+          }}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await api.adminServiceTokenAction({ name: svcName });
+            if (r.ok) {
+              setNewToken(r.data);
+              setSvcName("");
+              load();
+            }
+          }}
+        >
+          <input
+            aria-label="Token name"
+            placeholder="elixir-bot"
+            value={svcName}
+            onChange={(e) => setSvcName(e.target.value)}
+            style={{ width: "160px" }}
+          />
+          <button className="btn btn--primary" disabled={!svcName.trim()}>
+            <Icon name="key-round" size={16} />
+            Create token
+          </button>
+        </form>
       </div>
-      <p>
-        Long-lived API tokens for services (elixir-bot). Calls audit as{" "}
-        <code>svc:&lt;name&gt;</code>.
-      </p>
       {newToken && (
         <p className="notice">
           <strong>{newToken.name}</strong>: <code>{newToken.token}</code>
@@ -662,72 +725,74 @@ function AdminServiceTokens() {
           Shown once — store it now.
         </p>
       )}
-      {svcTokens.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Created</th>
-              <th>Last used</th>
-              <th>Calls (7d)</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {svcTokens.map((t) => (
-              <tr key={t.token_id}>
-                <td>
-                  <code>{t.name}</code>
-                  {t.revoked_at ? " (revoked)" : ""}
-                </td>
-                <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                <td>
-                  {t.last_used_at
-                    ? new Date(t.last_used_at).toLocaleString()
-                    : "never"}
-                </td>
-                <td>{t.calls_7d}</td>
-                <td>
-                  {!t.revoked_at && (
-                    <button
-                      className="btn--text"
-                      onClick={async () => {
-                        await api.adminServiceTokenAction({
-                          revoke_token_id: t.token_id,
-                        });
-                        load();
-                      }}
-                    >
-                      Revoke
-                    </button>
-                  )}
-                </td>
+      {svcTokens.length === 0 ? (
+        <div className="empty">
+          <div className="empty__title">No service tokens</div>
+          <p className="empty__body" style={{ marginBottom: 0 }}>
+            A token here is the owner&rsquo;s own long-lived credential for a
+            service that acts as this account. Products with their own identity
+            belong on Integrations.
+          </p>
+        </div>
+      ) : (
+        <div className="table__scroll">
+          <table className="table" style={{ minWidth: "620px" }}>
+            <thead>
+              <tr>
+                <th>NAME</th>
+                <th>CREATED</th>
+                <th>LAST USED</th>
+                <th className="num">CALLS 7D</th>
+                <th>STATE</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {svcTokens.map((t) => (
+                <tr key={t.token_id}>
+                  <td className="mono">{t.name}</td>
+                  <td className="mono">{String(t.created_at).slice(0, 10)}</td>
+                  <td className="mono">{ago(t.last_used_at)}</td>
+                  <td className="num">{t.calls_7d}</td>
+                  <td>
+                    {/* Dot and ink on one value: live is fine, revoked
+                        is over and carries no tone. */}
+                    <span
+                      className={"chip " + (t.revoked_at ? "" : "chip--ok")}
+                    >
+                      <span className="chip__dot" />
+                      {t.revoked_at ? "revoked" : "live"}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {!t.revoked_at && (
+                      <button
+                        className="btn btn--sm btn--danger"
+                        onClick={async () => {
+                          await api.adminServiceTokenAction({
+                            revoke_token_id: t.token_id,
+                          });
+                          load();
+                        }}
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const r = await api.adminServiceTokenAction({ name: svcName });
-          if (r.ok) {
-            setNewToken(r.data);
-            setSvcName("");
-            load();
-          }
-        }}
+      <p
+        className="footnote"
+        style={{ margin: "14px 2px 0", maxWidth: "78ch" }}
       >
-        <label>
-          Issue token
-          <input
-            placeholder="elixir-bot"
-            value={svcName}
-            onChange={(e) => setSvcName(e.target.value)}
-          />
-        </label>
-        <button disabled={!svcName.trim()}>Issue</button>
-      </form>
+        A token is shown once, at creation. Revoking is final: a revoked token
+        still being presented shows up on Connections as a refusal, not as a
+        call.
+      </p>
     </>
   );
 }
@@ -1138,8 +1203,8 @@ function CollectionEditor({ slug, navigate }) {
                     ? "Comprehensive follows membership as it changes and records each member's battles and profile. Activity records the clan itself: roster, war, standings, participation."
                     : "Comprehensive records each player's profile and every battle they play. Activity records the profile only."}{" "}
                   Deepening applies to everything listed here and takes effect
-                  on save. It never takes capture away from a subject somebody
-                  else is already recording.
+                  on save. It never takes capture away from a player or clan
+                  somebody else is already recording.
                 </span>
               </label>
               <label>

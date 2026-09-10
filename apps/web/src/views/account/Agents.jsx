@@ -80,8 +80,33 @@ export function AgentDetail({ id, navigate }) {
         <div>
           <h1 className="page__title">{name}</h1>
           <p className="page__lede">
-            An agent&rsquo;s name is its key&rsquo;s name, and it calls at its
-            own door.
+            {(agent.clans ?? []).length > 0 ? (
+              <>
+                Acts for{" "}
+                {(agent.clans ?? []).map((c, i) => (
+                  <span key={c.clan_tag}>
+                    {i > 0 ? ", " : ""}
+                    <a
+                      className="mono"
+                      onClick={() =>
+                        navigate(
+                          `/explore/clan/${encodeURIComponent(c.clan_tag.replace(/^#/, ""))}`,
+                        )
+                      }
+                    >
+                      {c.clan_tag}
+                    </a>
+                  </span>
+                ))}
+                . An agent&rsquo;s name is its key&rsquo;s name, and it calls at
+                its own door.
+              </>
+            ) : (
+              <>
+                Acts as you. An agent&rsquo;s name is its key&rsquo;s name, and
+                it calls at its own door.
+              </>
+            )}
           </p>
         </div>
         <span
@@ -173,6 +198,25 @@ export function AgentDetail({ id, navigate }) {
           </dd>
           <dt>Slug</dt>
           <dd className="mono">{agent.public_id ?? "—"}</dd>
+          <dt>Key issued</dt>
+          <dd>
+            {key ? (
+              <>
+                {key.created_at ? <Fresh ts={key.created_at} /> : "—"}
+                {" · "}
+                {key.last_used_at ? (
+                  <>
+                    first used{" "}
+                    <Fresh ts={key.first_used_at ?? key.last_used_at} />
+                  </>
+                ) : (
+                  "never used"
+                )}
+              </>
+            ) : (
+              <span style={{ color: "var(--ink-faint)" }}>no live key</span>
+            )}
+          </dd>
           <dt>Last successful call</dt>
           <dd>
             {agent.last_call_at ? (
@@ -339,7 +383,7 @@ export function AgentDetail({ id, navigate }) {
             Issue a new key
           </button>
           <button
-            className="btn btn--quiet"
+            className="btn btn--danger"
             disabled={busy || !key}
             onClick={async () => {
               // The emergency path — a key that leaked. Confirmed because it
@@ -387,6 +431,22 @@ export function AgentDetail({ id, navigate }) {
               the moment this one was issued.
             </p>
             <code style={{ wordBreak: "break-all" }}>{minted}</code>
+            <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+              <button
+                type="button"
+                className="btn btn--sm btn--primary"
+                onClick={() => navigator.clipboard?.writeText(minted)}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                className="btn btn--sm"
+                onClick={() => setMinted(null)}
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
       </section>

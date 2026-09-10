@@ -157,8 +157,14 @@ export function Fleet({ navigate }) {
                         style={{ height: "22px", borderRadius: "3px" }}
                       />
                     )}
+                    {/* Ownership is the one thing gold marks in a table:
+                        the name of the one that is yours, with a quiet word
+                        beside it — never a tinted row. */}
                     <a
-                      style={{ fontWeight: 600 }}
+                      style={{
+                        fontWeight: 600,
+                        color: mineIds.has(c.name) ? "var(--gold)" : undefined,
+                      }}
                       onClick={() =>
                         navigate(
                           `/status/collectors/${encodeURIComponent(c.name)}`,
@@ -167,11 +173,12 @@ export function Fleet({ navigate }) {
                     >
                       {c.name}
                     </a>
-                    {/* Ownership is the one thing gold marks in a table,
-                        and it is a word rather than a tinted row. */}
                     {mineIds.has(c.name) && (
                       <span
-                        style={{ color: "var(--gold)", fontSize: "11.5px" }}
+                        style={{
+                          color: "var(--ink-faint)",
+                          fontSize: "11.5px",
+                        }}
                       >
                         yours
                       </span>
