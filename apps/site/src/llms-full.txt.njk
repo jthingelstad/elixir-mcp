@@ -12,11 +12,11 @@ Tools published: {{ tools.count }}
 {% if stats.ok %}Corpus: {{ stats.totals.battles | number }} battles, {{ stats.totals.players | number }} players, {{ stats.totals.clans | number }} clans, {{ stats.totals.collectors_active }} active collectors, {{ stats.totals.oldest_battle | day }} to {{ stats.totals.newest_battle | day }}
 {% endif %}
 ---
-{% for d in collections.docs %}
-{{ d.rawInput | safe }}
+{% for d in collections.docs %}{% if not d.data.toolFamily and d.data.slug != "tools" %}
+{{ d.rawInput | renderDoc | safe }}
 
 ---
-{% endfor %}
+{% endif %}{% endfor %}
 ## Tool reference
 
 Every tool an agent sees through {{ site.mcpUrl }}, in published order. Generated from the server's registry.

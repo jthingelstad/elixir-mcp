@@ -409,6 +409,13 @@ export default function (eleventyConfig) {
     },
   });
   eleventyConfig.setLibrary("md", { render: (md) => marked.parse(md) });
+  /** A doc's Markdown SOURCE with its variables resolved, for the
+   *  text bundles (llms-full.txt): the same renderer the MCP corpus
+   *  uses, so neither hands a reader "{{ statistics.meta.prior_strength }}". */
+  eleventyConfig.addAsyncFilter("renderDoc", async (raw) => {
+    const { renderDoc, docContext } = await import("./src/_lib/doc-render.mjs");
+    return renderDoc(raw, await docContext());
+  });
   /** Markdown in a data string - a transcript line - as HTML. A model
    *  answers in Markdown, so the page shows what a client would show. */
   eleventyConfig.addFilter("md", (s) => marked.parse(String(s ?? "")));

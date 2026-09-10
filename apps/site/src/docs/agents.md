@@ -73,7 +73,7 @@ not be `null`. The instructions are for the model and change without notice.
 The roster is deliberately absent because the instructions are held until
 reconnect; call `clans_roster` once per run.
 
-An agent's `tools/list` has 41 tools: everything except `elixir_my_players`,
+An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`,
 `elixir_add_player` and `elixir_add_clan`, which need a self. Omit
 `clan_tag` anywhere and it means the agent's clan.
 

@@ -20,6 +20,7 @@ import {
   OAUTH_SCOPE,
   OAUTH_SCOPE_DETAILS,
   requiredOAuthScope,
+  toolsHiddenFrom,
 } from "@elixir-mcp/contracts";
 
 /** Argument summary for a tool, from its JSON Schema: enough for a
@@ -89,6 +90,10 @@ export default function tools() {
     groups,
     contractVersion: CONTRACT_VERSION,
     count: all.length,
+    // What an AGENT's tools/list holds: the person-only tools are hidden
+    // from it. Generated, because a hand-typed count was 41 while the
+    // door served 44.
+    agentCount: all.length - toolsHiddenFrom("agent").size,
     writeCount: all.filter((t) => !t.readOnly).length,
     scopes: OAUTH_SCOPE_DETAILS,
   };

@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-10",
+    title:
+      "The documentation reads right over MCP, and the search finds things",
+    body: "An agent reading the documentation through elixir_docs was getting the source rather than the page: template variables where the numbers should be, and links with nothing to resolve them against. The corpus is now rendered with the same data the site uses, its links are absolute, the agent tool count is generated rather than typed, and the quota example names a reset that has not happened yet. Search matches by word instead of exact phrase, prefers pages that hold every word, says when it fell back to any word, cuts its excerpt around the densest cluster of hits, and names the section each match sits in; a page can be read one section at a time. Two examples changed too: the roster example is kinder to the members it names, and the scouting example compares POAP KINGS against the five clans in the Clans to Watch collection, twelve races each on record.",
+  },
+  {
+    date: "2026-09-10",
     title: "Every example is a real exchange now",
     body: "The eleven examples used to be illustrations: invented clanmates, invented numbers, a citation chip under each answer. Each one has been re-run for real against the live service, as King Thing of POAP KINGS, and the answers are what came back — the tools under every window are the ones that were actually called, every number in an answer is from them, and the answers are written the way a model writes them, in Markdown, with the provenance in the sentence rather than in a chip. The home page's conversation and its three cards are the same three examples. The three builder examples read the documentation over MCP, which the service now serves through its own tools, so an agent asked how to set up a Discord bot answers from the Agents page itself.",
   },

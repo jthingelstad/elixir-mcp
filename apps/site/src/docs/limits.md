@@ -64,7 +64,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 ```json
 "quota": { "calls": { "used": 41, "max": 500, "remaining": 459 },
            "live":  { "used": 2, "max": 20, "remaining": 18 },
-           "resets_at": "2026-09-10T00:00:00.000Z" }
+           "resets_at": "{{ build.nextResetAt }}" }
 ```
 
 `max` and `remaining` are `null` when unlimited. Collector credits are already

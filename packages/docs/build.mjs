@@ -19,6 +19,43 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.resolve(here, "../../apps/site/src");
+const SITE_URL = "https://elixir.poapkings.com";
+
+// The same renderer the site's text bundle uses: a doc's Nunjucks
+// variables resolve against the same data, so an agent reads the
+// number where a person reads the number.
+const { renderDoc, docContext } = await import(
+  path.join(site, "_lib/doc-render.mjs")
+);
+const ctx = await docContext();
+
+/** Site-relative links become absolute: a corpus read over MCP has no
+ *  origin to resolve "/docs/tools" against. */
+const absolute = (md) =>
+  md.replace(/\]\((\/[^)\s]*)\)/g, (_, p) => `](${SITE_URL}${p})`);
+
+/** The H2 sections of a page, each with its slug (the site's heading
+ *  id) and its own Markdown, so a reader can pull one section. */
+function sections(md) {
+  const out = [];
+  const lines = md.split("\n");
+  let cur = null;
+  for (const line of lines) {
+    const h = /^## (.+)$/.exec(line);
+    if (h) {
+      cur = { title: h[1].trim(), slug: slugOf(h[1]), markdown: "" };
+      out.push(cur);
+    } else if (cur) cur.markdown += line + "\n";
+  }
+  return out.map((s) => ({ ...s, markdown: s.markdown.trim() }));
+}
+const slugOf = (text) =>
+  text
+    .toLowerCase()
+    .replace(/<[^>]+>/g, "")
+    .replace(/[`*_]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 /** Front matter as a flat object; the body as Markdown. */
 function parse(md) {
@@ -54,6 +91,7 @@ const docs = readdirSync(path.join(site, "docs"))
     const { data, body } = parse(
       readFileSync(path.join(site, "docs", f), "utf8"),
     );
+    const markdown = absolute(renderDoc(body, ctx));
     return {
       slug: data.slug,
       title: data.title,
@@ -61,8 +99,9 @@ const docs = readdirSync(path.join(site, "docs"))
       order: data.order ?? 0,
       lede: data.lede ?? data.description ?? "",
       description: data.description ?? "",
-      url: `https://elixir.poapkings.com/docs/${data.slug}`,
-      markdown: body,
+      url: `${SITE_URL}/docs/${data.slug}`,
+      markdown,
+      sections: sections(markdown),
     };
   })
   .sort((a, b) => a.order - b.order);
@@ -82,7 +121,7 @@ const corpus = {
       label: c.label,
       title: c.title,
       lede: c.lede,
-      url: `https://elixir.poapkings.com/examples/${c.key}`,
+      url: `${SITE_URL}/examples/${c.key}`,
       reads: c.reads,
       setup: c.setup,
       tools: String(c.script?.tool ?? "")

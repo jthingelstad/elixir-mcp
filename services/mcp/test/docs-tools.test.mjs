@@ -13,7 +13,7 @@ test("elixir_docs: the index, one page, and a search that says where", async () 
   const index = await elixirTools.elixir_docs.handler(ctx, {});
   assert.ok(index.pages.length >= 16);
   assert.ok(index.pages.some((p) => p.slug === "quickstart"));
-  assert.ok(index.pages.every((p) => p.section && p.lede && p.url));
+  assert.ok(index.pages.every((p) => p.group && p.lede && p.url));
 
   const page = await elixirTools.elixir_docs.handler(ctx, {
     page: "recording",
@@ -27,6 +27,32 @@ test("elixir_docs: the index, one page, and a search that says where", async () 
   });
   assert.ok(found.matches.length > 0);
   assert.ok(found.matches[0].excerpt.includes("live_fetch"));
+  assert.equal(found.fallback, false);
+
+  // The phrase no page contains, matched by word and pointing at the
+  // section; then that section on its own.
+  const words = await elixirTools.elixir_docs.handler(ctx, {
+    query: "pilot score minimum battles",
+  });
+  assert.equal(words.matches[0].slug, "methodology");
+  assert.ok(words.matches[0].in_section);
+  const sec = await elixirTools.elixir_docs.handler(ctx, {
+    page: "methodology",
+    section: words.matches[0].in_section,
+  });
+  assert.ok(
+    sec.markdown.length > 50 && sec.markdown.length < page.markdown.length,
+  );
+  assert.match(sec.url, /#/);
+  await assert.rejects(
+    elixirTools.elixir_docs.handler(ctx, {
+      page: "methodology",
+      section: "nope",
+    }),
+    (e) => e.code === "not_found",
+  );
+  // Rendered, not source: an agent gets the number, not the variable.
+  assert.ok(!page.markdown.includes("{{"));
 
   await assert.rejects(
     elixirTools.elixir_docs.handler(ctx, { page: "nope" }),

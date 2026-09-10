@@ -182,23 +182,20 @@ export default [
         icon: "heart-pulse",
         label: "Keep the roster healthy",
         title: "Keep the roster healthy",
-        lede: "Who is drifting, who just arrived, and who the game itself has stopped counting — before it shows up as a lost race.",
+        lede: "Who has gone quiet, who just arrived, and who the game itself has stopped counting — so a check-in happens before a race is lost.",
         reads: [
           "Roster snapshots with the game's own last-seen date per member",
-          "Join, leave and role events as they are observed",
-          "Each member's recorded record over the last 30 days",
+          "This week's race roster, which the game seeds from that date",
+          "Each member's recorded battles over the last 30 days",
         ],
         setup: ["Track your clan, comprehensive", "Read about scopes"],
         script: {
-          tool: "clans_roster · elixir_events · clans_standings",
+          tool: "clans_roster · war_current · clans_standings",
           lines: [
-            {
-              role: "user",
-              text: "Who is quietly falling off in POAP KINGS?",
-            },
+            { role: "user", text: "Who has gone quiet in POAP KINGS?" },
             {
               role: "agent",
-              text: "Three members, by the game's own last-seen date rather than by our recording:\n\n- **pax** — last seen in game August 29, no recorded battle since. Was an elder; moved to member on September 7.\n- **Th15_Guy** — last seen August 31; 26 recorded battles in the last 30 days at 31%. Also moved from elder on the 7th.\n- **Ditaka** — last seen September 3, quiet for a week.\n\nThe game left all three out of this week's race roster, which is its way of saying the same thing. Before that, pax was not an outlier at all — 158 recorded battles in the window — so this reads as a break, not a fade.\n\nOn the other side of the ledger: **NOBITA** joined September 4 and already has 309 donations this week, and **Brotherinpants** joined on the 8th. The roster stands at 49 of 50.",
+              text: "Three members have not been seen in the game for a while — by Clash Royale's own last-seen date, not by whether we happened to record them:\n\n- **pax** — last seen August 29\n- **Th15_Guy** — last seen August 31\n- **Ditaka** — last seen September 3\n\nAll three are still on the roster, and the game left them out of this week's race roster, which is what it does with anyone it has not seen since before the race started. Nothing here says why. pax was one of the more active members before that — 158 recorded battles in the last 30 days — so this reads like a break rather than a fade. A friendly check-in is the move, not a kick.\n\nThe newest arrivals are settling in fast: **NOBITA** joined September 4 and already has 309 donations this week, and **Brotherinpants** joined on the 8th. The roster stands at 49 of 50.",
             },
           ],
         },
@@ -208,23 +205,23 @@ export default [
         icon: "binoculars",
         label: "Scout the other clan",
         title: "Scout the other clan",
-        lede: "Every race captures all five clans in the bracket, so rivals accumulate a record whether or not anyone asked us to track them.",
+        lede: "Every race captures all five clans in the bracket, and a curated collection keeps the clans you care about recorded — so the comparison is always there to ask for.",
         reads: [
-          "Rival fingerprints from every race shared with a recorded clan",
-          "This week's standings and roster",
-          "Your own war history for the comparison",
+          "Rival fingerprints from every race a recorded clan has shared",
+          "Week-by-week war history for any recorded clan",
+          "The clans in a collection, recorded for as long as they stay in it",
         ],
         setup: ["Look up a clan tag", "Read the privacy posture"],
         script: {
-          tool: "war_rivals · war_current · war_history",
+          tool: "collections_get · war_rivals · war_history",
           lines: [
             {
               role: "user",
-              text: "We're racing De stichting, Legend Royale, Happy Win and Les champs this week. What do I need to know?",
+              text: "How do the five clans in our Clans to Watch collection compare to us in war?",
             },
             {
               role: "agent",
-              text: "Less than I would like — this is the first race Elixir has seen any of them in. The rivals report only accumulates from races shared with a recorded clan, so all four have exactly one sighting, and it is this one. By Sunday I will have their whole race: fame by day, finish times, and whether they close strong.\n\nWhat I can tell you is what they are up against. POAP KINGS has won **nine straight races** on record — five in Season 135 including a 38,700 Colosseum, four in Season 134 including a 51,900 one — and every regular week ended early at the finish line.\n\nAsk me again on war day 3 and I will put their fame curve next to ours.",
+              text: "Five clans, twelve races each on record since Season 133, and they split into three tiers.\n\n**The two that finish like we do**\n\n- **Calalas España** — five firsts in Season 135, every regular week finished early, and a 150,700-fame Colosseum. Mean fame 48,299 over their twelve races.\n- **#MuUuKaNs!!** — the same clean sweep, with a 144,700 Colosseum. Mean 46,450.\n\n**The middle**\n\n- **! ShocK-13 !** — fifth of five in every Season 135 race, but the fame says bracket rather than clan: 70,700 in Colosseum, and 3,300–3,900 in regular weeks against clans that were finishing.\n- **Canadian** — third or fourth all season, 3,470–4,761 fame in regular weeks and 17,600 in Colosseum.\n\n**The outlier**\n\n- **Elite Forcers** — six open members, zero fame in nine of their twelve races. Tracked for contrast, and earning its keep.\n\nFor comparison, POAP KINGS' Season 135 was five firsts with a 38,700 Colosseum. Calalas España and #MuUuKaNs!! reached the 10,000 line in every regular week just as we did; the difference is the Colosseum, where they put up nearly four times our fame.",
             },
           ],
         },

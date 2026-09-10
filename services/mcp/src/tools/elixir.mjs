@@ -443,7 +443,7 @@ export const elixirTools = {
 
   elixir_docs: {
     description:
-      "Elixir MCP's own documentation, the same pages a person reads at elixir.poapkings.com/docs, served here so you can answer 'how do I use this' from the source rather than from memory. No arguments: the index - every page with its section, title and one-line lede. page: one page's full text as Markdown. query: the pages that mention a phrase, best first, each with an excerpt around the first hit - use it before guessing which page holds a fact. Read-only; nothing about any account.",
+      "Elixir MCP's own documentation, the same pages a person reads at elixir.poapkings.com/docs, served here so you can answer 'how do I use this' from the source rather than from memory. No arguments: the index - every page with its section, lede and its own sections. page: one page's full Markdown; page + section: just that H2 section, for the long pages. query: the pages that mention the words, best first, with an excerpt around the densest cluster of hits and the section it sits in - words are matched separately, pages holding every word rank first, and the response says when it fell back to any word. Read-only; nothing about any account. The tool reference is tools/list itself; elixir_changelog says what changed in it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -452,12 +452,17 @@ export const elixirTools = {
           description:
             "A page slug from the index (e.g. quickstart, recording, agents, limits). Returns its Markdown.",
         },
+        section: {
+          type: "string",
+          description:
+            "With page: one H2 section, by its slug or title as the index lists them (e.g. the-level-curve-and-pilot-score). Returns only that section.",
+        },
         query: {
           type: "string",
           minLength: 2,
           maxLength: 80,
           description:
-            "A word or phrase to search for across every page. Ignored when page is given.",
+            "Words to search for across every page. Ignored when page is given.",
         },
       },
       additionalProperties: false,
@@ -475,25 +480,51 @@ export const elixirTools = {
             `No documentation page "${slug}".`,
             `Call elixir_docs with no arguments for the index; slugs are: ${DOCS.map((d) => d.slug).join(", ")}.`,
           );
+        if (args.section) {
+          const want = String(args.section).toLowerCase().trim();
+          const sec = doc.sections.find(
+            (x) => x.slug === want || x.title.toLowerCase() === want,
+          );
+          if (!sec)
+            throw new ToolFailure(
+              "not_found",
+              `No section "${want}" on ${doc.slug}.`,
+              `Its sections are: ${doc.sections.map((x) => x.slug).join(", ")}.`,
+            );
+          return {
+            slug: doc.slug,
+            title: doc.title,
+            section: sec.title,
+            section_slug: sec.slug,
+            url: `${doc.url}#${sec.slug}`,
+            markdown: sec.markdown,
+            corpus_built_at: CORPUS_BUILT_AT,
+            meta,
+          };
+        }
         return {
           slug: doc.slug,
           title: doc.title,
           section: doc.section,
           url: doc.url,
+          sections: doc.sections.map((x) => ({ slug: x.slug, title: x.title })),
           markdown: doc.markdown,
           corpus_built_at: CORPUS_BUILT_AT,
           meta,
         };
       }
       if (args.query) {
-        const matches = searchDocs(args.query, 8);
+        const { matches, fallback } = searchDocs(args.query, 8);
         return {
           query: String(args.query),
           matches,
+          fallback,
           note:
             matches.length === 0
-              ? "No page mentions that phrase. The index (no arguments) lists what is documented; the tool reference is tools/list itself."
-              : "Read a match in full with page: <slug>.",
+              ? "No page mentions any of those words. The index (no arguments) lists what is documented; the tool reference is tools/list itself, and elixir_examples has the worked examples."
+              : fallback
+                ? "No page holds every word, so these hold some of them. Read one with page: <slug>, or just the section named with page + section."
+                : "Read a match with page: <slug>, or just its section with page + section: <in_section>.",
           corpus_built_at: CORPUS_BUILT_AT,
           meta,
         };
@@ -501,12 +532,13 @@ export const elixirTools = {
       return {
         pages: DOCS.map((d) => ({
           slug: d.slug,
-          section: d.section,
+          group: d.section,
           title: d.title,
           lede: d.lede,
           url: d.url,
+          sections: d.sections.map((x) => x.slug),
         })),
-        note: "Read one with page: <slug>; find one with query: <phrase>. The tool reference is not a page here - it is tools/list, and elixir_changelog says what changed in it.",
+        note: "Read one with page: <slug>, one section of it with page + section, or search with query: <words>. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools), and elixir_changelog says what changed in it.",
         corpus_built_at: CORPUS_BUILT_AT,
         meta,
       };
