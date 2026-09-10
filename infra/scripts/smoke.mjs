@@ -19,6 +19,20 @@ const outputs = Object.fromEntries(
 );
 let failures = 0;
 
+/**
+ * Fetch a page as the deploy that just uploaded it, not as the edge
+ * still remembers it.
+ *
+ * The previous deploy's "home carries the live corpus" check PASSED
+ * against a CloudFront-cached copy of the old home — the page it had
+ * just uploaded did not contain the string at all. A smoke gate that
+ * can validate stale content is close to useless for its one job, which
+ * is catching a bad upload, so site pages are fetched with the cache
+ * asked to revalidate.
+ */
+const fresh = (url) =>
+  fetch(url, { cache: "no-store", headers: { "cache-control": "no-cache" } });
+
 const check = (name, ok, detail = "") => {
   console.log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? ` - ${detail}` : ""}`);
   if (!ok) failures += 1;
@@ -50,14 +64,33 @@ check(
 // that matters is that the halves are TELLING APART - before the split
 // every URL served the same shell, and a check for "Elixir MCP appears
 // somewhere" passed the whole time.
-const site = await fetch(`${mcpBase}/`);
+const site = await fresh(`${mcpBase}/`);
 check("site root serves", site.ok, String(site.status));
 const home = site.ok ? await site.text() : "";
 check(
   "home is a real document",
   home.includes("<main") && !home.includes('<div id="root"></div>'),
 );
-check("home carries the live corpus", /battles recorded/.test(home));
+// The corpus figures moved to /data with the 2026-09-09 redesign: the
+// home page leads with the transcript, and /data is the proof. Smoke
+// the page that actually carries them.
+const dataPage = await fresh(`${mcpBase}/data`);
+check("the corpus page serves", dataPage.ok, String(dataPage.status));
+const corpus = dataPage.ok ? await dataPage.text() : "";
+check(
+  "the corpus page carries live totals",
+  /battles/.test(corpus) && /[0-9],[0-9]{3}/.test(corpus),
+);
+// Home leads with the exchange rather than a counter, and the tabs
+// collapse behind one button on a phone — with Console never in it.
+check("home leads with the transcript", /data-transcript/.test(home));
+check(
+  "the narrow menu is on the bar, and Console is not in it",
+  /chrome__menu/.test(home) &&
+    !/chrome__console/.test(
+      home.slice(home.indexOf('id="chrome-sheet"')) || "x",
+    ),
+);
 
 // Browser security headers (#25). Checked on a real response because
 // a ResponseHeadersPolicy that is defined but not ATTACHED to the
