@@ -8,6 +8,8 @@ import {
   within,
 } from "@testing-library/react";
 import { Status } from "../src/views/Status.jsx";
+import { Fleet } from "../src/views/Collectors.jsx";
+import { CollectorPage } from "../src/views/CollectorDetail.jsx";
 
 const PAYLOAD = {
   as_of: "2026-09-06T15:00:00.000Z",
@@ -103,32 +105,92 @@ afterEach(() => {
 });
 
 const paint = async () => {
-  render(<Status />);
-  await waitFor(() => expect(screen.getByText("Collectors")).toBeTruthy());
+  render(<Status navigate={() => {}} />);
+  await waitFor(() => expect(screen.getByText("Work waiting")).toBeTruthy());
 };
 
-test("collectors show heartbeat AND data, so idle never reads as broken", async () => {
-  await paint();
-  // The name also appears in each chart legend, so scope to the panel.
-  const panel = screen.getByText("Collectors").closest(".panel");
-  const row = within(panel).getByText("Ram Rider").closest("div");
-  // Same collector, two very different truths, both on screen.
-  expect(within(row).getByText(/heartbeat/)).toBeTruthy();
-  expect(within(row).getByText("3s ago")).toBeTruthy();
-  expect(within(row).getByText(/^data$/)).toBeTruthy();
-  expect(within(row).getByText("20m ago")).toBeTruthy();
+/** The fleet and one collector moved off Status with the 2026-09-09 IA:
+ *  a page is the information plus a click to drill in. Both read the
+ *  same public payload, plus /api/me/gateways for what is yours. */
+const paintFleet = async (mine = []) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path) => {
+      const body = String(path).includes("me/gateways")
+        ? { gateways: mine }
+        : PAYLOAD;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
+  );
+  render(<Fleet navigate={() => {}} />);
+  await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
+};
+
+test("a collector record shows heartbeat AND data, so idle never reads as broken", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path) => {
+      const body = String(path).includes("me/gateways")
+        ? { gateways: [] }
+        : PAYLOAD;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
+  );
+  render(<CollectorPage id="Ram%20Rider" navigate={() => {}} />);
+  const clocks = await waitFor(() =>
+    screen.getByText("Two clocks").closest(".panel"),
+  );
+  // Same collector, two very different truths, both on screen — and the
+  // page says which reading this combination is.
+  expect(within(clocks).getByText("heartbeat")).toBeTruthy();
+  expect(within(clocks).getByText("3s ago")).toBeTruthy();
+  expect(within(clocks).getByText("data freshness")).toBeTruthy();
+  expect(within(clocks).getByText("20m ago")).toBeTruthy();
+  expect(within(clocks).getByText(/idle, not broken/)).toBeTruthy();
 });
 
-test("a collector credits the player who runs it, and stays quiet when there is none", async () => {
-  await paint();
-  const panel = screen.getByText("Collectors").closest(".panel");
-  const credited = within(panel).getByText("Ram Rider").closest("div");
-  expect(within(credited).getByText(/run by/)).toBeTruthy();
-  expect(within(credited).getByText("Thingelstad")).toBeTruthy();
-  // The account is never named on a public page, only the game identity.
-  expect(panel.textContent).not.toMatch(/@|email/i);
-  const uncredited = within(panel).getByText("Wall Breakers").closest("div");
-  expect(within(uncredited).queryByText(/run by/)).toBeNull();
+test("the fleet credits the player who runs a collector, and never the account", async () => {
+  await paintFleet();
+  const row = screen.getByText("Ram Rider").closest("tr");
+  expect(within(row).getByText("Thingelstad")).toBeTruthy();
+  // The operator is credited by their game identity; an address never
+  // appears on a surface everyone can read.
+  expect(document.querySelector("table").textContent).not.toMatch(/@/);
+  const uncredited = screen.getByText("Wall Breakers").closest("tr");
+  expect(within(uncredited).getByText("—")).toBeTruthy();
+});
+
+test("the fleet marks what is yours in a word, never a tinted row", async () => {
+  await paintFleet([
+    {
+      gateway_id: "g1",
+      name: "jamie-mac",
+      card_name: "Ram Rider",
+      status: "active",
+    },
+  ]);
+  const row = screen.getByText("Ram Rider").closest("tr");
+  expect(within(row).getByText("yours")).toBeTruthy();
+  expect(row.style.background).toBe("");
+  // And a reader who runs one is not told to raise their hand.
+  expect(screen.queryByText(/You don.t run one yet/)).toBeNull();
+});
+
+test("a reader who runs no collector is told what one is and what it earns", async () => {
+  await paintFleet([]);
+  expect(screen.getByText(/You don.t run one yet/)).toBeTruthy();
+  expect(screen.getByText(/10 fetches buys one extra daily call/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Raise my hand/ })).toBeTruthy();
 });
 
 test("the retired SQS queue panel is gone", async () => {
@@ -147,8 +209,9 @@ test("both capture windows render, stacked by collector", async () => {
   const segs = document.querySelectorAll(".chart .seg");
   // 5m: 2 segments in the one non-empty bucket. 24h: 2 in its non-empty one.
   expect(segs.length).toBe(4);
-  // A legend entry per collector, on each chart, beside the roster row.
-  expect(screen.getAllByText("Ram Rider").length).toBe(3);
+  // A legend entry per collector on each chart. The roster row that used
+  // to make this three moved to the fleet page.
+  expect(screen.getAllByText("Ram Rider").length).toBe(2);
 });
 
 test("hovering a bucket breaks it down by collector", async () => {
@@ -203,15 +266,20 @@ test("each capture panel states its total so a short last bar cannot read as zer
   ).toBeTruthy();
 });
 
-test("work waiting is its own gauge: due, queued, leased, done", async () => {
+test("work waiting is the pipeline in order: due, queued, leased, done", async () => {
   await paint();
-  expect(screen.getByText("Work waiting")).toBeTruthy();
-  expect(screen.getByText(/12 waiting/)).toBeTruthy();
-  expect(
-    screen.getByText(
-      /9 due for the next tick · 2 queued for a collector · 1 being fetched · 80 done this hour/,
-    ),
-  ).toBeTruthy();
-  expect(screen.getByText(/next tick can plan 270/)).toBeTruthy();
-  expect(screen.getByText(/player_battlelog 6 · clan 3/)).toBeTruthy();
+  const panel = screen.getByText("Work waiting").closest(".panel");
+  // Four stages of one journey, so four cells rather than four
+  // fractions of a bar that does not have a whole.
+  for (const [label, value] of [
+    ["due now", "9"],
+    ["queued", "2"],
+    ["being fetched", "1"],
+    ["done this hour", "80"],
+  ]) {
+    const cell = within(panel).getByText(label).closest(".stats__cell");
+    expect(within(cell).getByText(value)).toBeTruthy();
+  }
+  expect(within(panel).getByText(/player_battlelog 6 · clan 3/)).toBeTruthy();
+  expect(within(panel).getByText(/next tick can plan 270/)).toBeTruthy();
 });

@@ -7,6 +7,7 @@ import { Admin } from "./views/Admin.jsx";
 import { Data } from "./views/Data.jsx";
 import { Explore } from "./views/Explore.jsx";
 import { Status } from "./views/Status.jsx";
+import { Fleet } from "./views/Collectors.jsx";
 import { CollectorPage } from "./views/CollectorDetail.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
@@ -922,9 +923,13 @@ export function App() {
                 <Explore me={me} navigate={navigate} path={effectivePath} />
               ) : section === "status" ? (
                 activePage === "collectors" ? (
-                  <CollectorPage />
+                  itemId ? (
+                    <CollectorPage id={itemId} navigate={navigate} />
+                  ) : (
+                    <Fleet navigate={navigate} />
+                  )
                 ) : (
-                  <Status />
+                  <Status navigate={navigate} />
                 )
               ) : section === "account" ? (
                 <Dashboard

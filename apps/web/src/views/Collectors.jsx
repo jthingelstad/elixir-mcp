@@ -1,0 +1,211 @@
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
+import { Icon } from "../components/Icon.jsx";
+import { ago, secsSince } from "../lib/time.js";
+
+/**
+ * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.
+ *
+ * Health and share are PUBLIC: a collector is named for its Clash Royale
+ * card and credited to its operator, and anyone can see whether the
+ * fleet is keeping up. Endpoint mix, errors and the machine label belong
+ * to the operator and only appear on their own collectors.
+ *
+ * The two clocks are the point of the detail screen. A heartbeat is any
+ * contact with the door, including a poll that found no work; data
+ * freshness is the last payload we accepted. A fresh heartbeat with
+ * stale data is an IDLE collector, not a broken one, and reading one
+ * clock alone cannot tell you which.
+ */
+function StateChip({ collector, now }) {
+  const beat = secsSince(collector.last_heartbeat_at, now);
+  const tone =
+    collector.status !== "active"
+      ? "warn"
+      : beat == null || beat > 600
+        ? "warn"
+        : "ok";
+  const label =
+    collector.status !== "active"
+      ? collector.status
+      : beat == null || beat > 600
+        ? "behind"
+        : "healthy";
+  return (
+    <span className={`chip chip--${tone}`}>
+      <span className="chip__dot" />
+      {label}
+    </span>
+  );
+}
+
+export function Fleet({ navigate }) {
+  // Stamped once per load rather than read during render:
+  // a clock read while rendering makes every re-render a new answer.
+  const [now] = useState(() => Date.now());
+  const [status, setStatus] = useState(null);
+  const [mine, setMine] = useState(null);
+  const [raised, setRaised] = useState("");
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    api.publicStatus().then((r) => r.ok && setStatus(r.data));
+    api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
+  }, []);
+
+  if (!status) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+
+  const fleet = status.collectors ?? [];
+  const todays = fleet.reduce((n, c) => n + (c.fetches_1h ?? 0), 0);
+  const mineIds = new Set((mine ?? []).map((g) => g.card_name ?? g.name));
+  const runsOne = (mine ?? []).length > 0;
+
+  return (
+    <>
+      <div className="page__crumb">
+        <a onClick={() => navigate("/status/service")}>‹ Status</a>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h1 className="page__title">Collectors</h1>
+          <p className="page__lede">
+            Every machine fetching for the corpus, inside one shared budget.
+          </p>
+        </div>
+      </div>
+
+      {mine !== null && !runsOne && (
+        <div
+          className="empty"
+          style={{ maxWidth: "70ch", marginBottom: "18px" }}
+        >
+          <div className="empty__title">You don&rsquo;t run one yet</div>
+          <p className="empty__body">
+            A collector is a machine that fetches for the corpus on a schedule.
+            It earns you bonus quota — 10 fetches buys one extra daily call, up
+            to 4× your base.
+          </p>
+          <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+            <input
+              className="input"
+              placeholder="a name for the machine"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={{ flex: "1 1 12rem", padding: "9px 12px" }}
+            />
+            <button
+              className="btn btn--primary"
+              disabled={!name.trim()}
+              onClick={async () => {
+                const r = await api.raiseGateway(name.trim());
+                setRaised(
+                  r.ok
+                    ? "Raised — the owner is emailed and approves by hand."
+                    : (r.data?.message ?? "Could not send that."),
+                );
+              }}
+            >
+              <Icon name="plus" size={16} />
+              Raise my hand
+            </button>
+            <a className="btn" href="/docs/operators">
+              Operators guide <Icon name="arrow-right" size={15} />
+            </a>
+          </div>
+          <p className="footnote" style={{ margin: "13px 0 0" }}>
+            {raised ||
+              "Raising your hand emails the owner. Approval is by hand."}
+          </p>
+        </div>
+      )}
+
+      <div className="table__scroll">
+        <table className="table" style={{ minWidth: "640px" }}>
+          <thead>
+            <tr>
+              <th>NAME</th>
+              <th>RUN BY</th>
+              <th>LANE</th>
+              <th>LAST FETCH</th>
+              <th style={{ textAlign: "right" }}>SHARE</th>
+              <th>STATE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fleet.map((c) => (
+              <tr key={c.name}>
+                <td>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    {c.card_icon && (
+                      <img
+                        src={c.card_icon}
+                        alt=""
+                        style={{ height: "22px", borderRadius: "3px" }}
+                      />
+                    )}
+                    <a
+                      style={{ fontWeight: 600 }}
+                      onClick={() =>
+                        navigate(
+                          `/status/collectors/${encodeURIComponent(c.name)}`,
+                        )
+                      }
+                    >
+                      {c.name}
+                    </a>
+                    {/* Ownership is the one thing gold marks in a table,
+                        and it is a word rather than a tinted row. */}
+                    {mineIds.has(c.name) && (
+                      <span
+                        style={{ color: "var(--gold)", fontSize: "11.5px" }}
+                      >
+                        yours
+                      </span>
+                    )}
+                  </span>
+                </td>
+                <td>{c.operator ?? "—"}</td>
+                <td>{c.channel ?? "bulk"}</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>
+                  {ago(c.last_success_at, now)}
+                </td>
+                <td
+                  style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}
+                >
+                  {todays > 0
+                    ? `${Math.round(((c.fetches_1h ?? 0) / todays) * 100)}%`
+                    : "—"}
+                </td>
+                <td>
+                  <StateChip collector={c} now={now} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p
+        className="footnote"
+        style={{ margin: "12px 2px 0", maxWidth: "78ch" }}
+      >
+        Share is of the last hour&rsquo;s fetches. Behind means the machine has
+        not reported inside its schedule — which is not the same as broken: a
+        collector with nothing due is idle.
+      </p>
+    </>
+  );
+}

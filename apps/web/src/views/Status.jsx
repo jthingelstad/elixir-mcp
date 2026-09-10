@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
-import { ago, beatCls, freshCls, secsSince } from "../lib/time.js";
+import { Icon } from "../components/Icon.jsx";
+import { secsSince } from "../lib/time.js";
 
 /** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard —
  *  public, mobile-first, installable (add to Home Screen from this
@@ -226,137 +227,122 @@ function BudgetGauge({ budget }) {
   const pacePct = cap > 0 ? Math.min(100, (expected / cap) * 100) : 0;
   const over = used > expected * 1.25 && used > 60;
   const nearCap = pct >= 90;
+  const verdict = nearCap
+    ? "at the hour's ceiling"
+    : over
+      ? "ahead of pace"
+      : used < expected * 0.5
+        ? "below pace"
+        : "on pace";
 
   return (
-    <section className="panel" style={{ marginBottom: "20px" }}>
+    <section className="panel" style={{ marginBottom: "14px" }}>
       <div className="panel__head">
-        <span className="panel-title">Request budget, this hour</span>
-        <span
-          className="mono"
-          style={{
-            marginLeft: "auto",
-            fontSize: "11.5px",
-            color: "var(--ink-faint)",
-          }}
-        >
-          {used.toLocaleString()} / {cap.toLocaleString()}
-          {" · "}
+        <span>Shared request budget</span>
+        <span className="mono" style={{ marginLeft: "auto", fontWeight: 400 }}>
+          {used.toLocaleString()} of {cap.toLocaleString()} this hour ·{" "}
           {budget.rate_per_sec}/s
         </span>
       </div>
       <div className="panel__body">
+        {/* The fill is always --accent. State is the marker and the line
+            under it, because a meter that changes colour has stopped
+            being a measurement and become a status chip. */}
         <div
-          className="gauge"
+          className="meter meter--marked"
           role="img"
           aria-label={`${used} of ${cap} requests used this hour; ${expected} expected by now`}
         >
+          <div className="meter__fill" style={{ width: `${pct}%` }} />
           <div
-            className="gauge__fill"
+            className="meter__mark"
+            style={{ left: `${pacePct}%` }}
+            title="Pace — where we should be at this hour"
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginTop: "12px",
+            fontSize: "12.5px",
+            color: "var(--ink-faint)",
+          }}
+        >
+          <span
             style={{
-              width: `${pct}%`,
-              background: nearCap
-                ? "var(--bad)"
-                : over
-                  ? "var(--warn)"
-                  : "var(--ok)",
+              width: "2px",
+              height: "13px",
+              background: "var(--ink)",
+              display: "inline-block",
+              flex: "0 0 auto",
             }}
           />
-          <div className="gauge__pace" style={{ left: `${pacePct}%` }} />
-        </div>
-        <div className="gauge__foot">
           <span>
-            {nearCap
-              ? "at the hour's ceiling"
-              : over
-                ? "ahead of pace"
-                : used < expected * 0.5
-                  ? "below pace"
-                  : "on pace"}
-          </span>
-          <span className="mono">
-            expected by now {expected.toLocaleString()}
+            pace at {Math.round(pacePct)}% — {verdict}
           </span>
         </div>
+      </div>
+      <div className="panel__foot">
+        One budget for the whole fleet. More collectors are resilience, never
+        more quota.
       </div>
     </section>
   );
 }
 
-/**
- * Work waiting, as a queue. The capture charts show what was completed; this
- * is the other half - what is sitting there to be done. Three stages, in
- * pipeline order: due for the next tick (the scheduler plans every
- * tick_minutes, so due-ness piles up between ticks and empties at each one),
- * queued for a collector, being fetched. The bar fills against what the next
- * tick can plan; past full means a backlog is forming.
- */
+/** Work waiting, in pipeline order: due, queued, leased, done. A stat
+ *  grid rather than a bar, because these are four stages of one journey
+ *  and not four fractions of one whole. */
 function QueueGauge({ queue, now }) {
-  if (!queue || queue.due_now == null) return null;
-  const waiting = queue.due_now + queue.queued + queue.leased;
-  const cap = Math.max(1, queue.next_tick_capacity ?? 0);
-  const pct = Math.min(100, (waiting / cap) * 100);
-  const pressure = waiting > cap;
+  if (!queue) return null;
   const nextIn = queue.next_tick_at
     ? Math.max(0, Math.round((Date.parse(queue.next_tick_at) - now) / 1000))
     : null;
   const by = Object.entries(queue.due_by_endpoint ?? {}).sort(
     (a, b) => b[1] - a[1],
   );
+  const cells = [
+    [
+      "due now",
+      queue.due_now,
+      by.length > 0
+        ? by.map(([e, n]) => `${e} ${n}`).join(" · ")
+        : "nothing due",
+    ],
+    ["queued", queue.queued, "waiting for a collector to lease it"],
+    ["being fetched", queue.leased, "leased, result not back yet"],
+    ["done this hour", queue.done_hour, "admitted and recorded"],
+  ];
   return (
-    <section className="panel" style={{ marginBottom: "20px" }}>
+    <section className="panel" style={{ marginBottom: "14px" }}>
       <div className="panel__head">
-        <span className="panel-title">Work waiting</span>
-        <span
-          className="mono"
-          style={{
-            marginLeft: "auto",
-            fontSize: "11.5px",
-            color: "var(--ink-faint)",
-          }}
-        >
-          {waiting.toLocaleString()} waiting · next tick{" "}
+        <span>Work waiting</span>
+        <span className="mono" style={{ marginLeft: "auto", fontWeight: 400 }}>
+          next tick{" "}
           {nextIn == null ? "—" : nextIn === 0 ? "now" : `in ${nextIn}s`}
         </span>
       </div>
-      <div className="panel__body">
-        <div
-          className="gauge"
-          role="img"
-          aria-label={`${waiting} fetches waiting; the next tick can plan ${cap}`}
-        >
-          <div
-            className="gauge__fill"
-            style={{
-              width: `${pct}%`,
-              background: pressure ? "var(--warn)" : "var(--ok)",
-            }}
-          />
-        </div>
-        <div className="gauge__foot">
-          <span>
-            {queue.due_now.toLocaleString()} due for the next tick ·{" "}
-            {queue.queued.toLocaleString()} queued for a collector ·{" "}
-            {queue.leased.toLocaleString()} being fetched ·{" "}
-            {queue.done_hour.toLocaleString()} done this hour
-          </span>
-          <span className="mono">
-            next tick can plan {cap.toLocaleString()}
-          </span>
-        </div>
-        <div className="panel__note">
-          {by.length > 0 && (
-            <>Due now: {by.map(([e, n]) => `${e} ${n}`).join(" · ")}. </>
-          )}
-          Subjects become due between ticks and are planned at the next one,
-          every {queue.tick_minutes} minutes; the bar fills against what that
-          tick can plan, so a bar past full is a backlog forming.
-        </div>
+      <div className="stats" style={{ border: 0, borderRadius: 0 }}>
+        {cells.map(([label, value, note]) => (
+          <div className="stats__cell" key={label}>
+            <div className="label">{label}</div>
+            <div className="stats__value">{(value ?? 0).toLocaleString()}</div>
+            <div className="stats__note">{note}</div>
+          </div>
+        ))}
+      </div>
+      <div className="panel__foot">
+        Subjects become due between ticks and are planned at the next one, every{" "}
+        {queue.tick_minutes} minutes. The next tick can plan{" "}
+        {(queue.next_tick_capacity ?? 0).toLocaleString()}.
       </div>
     </section>
   );
 }
 
-export function Status() {
+export function Status({ navigate }) {
   const [data, setData] = useState(null);
   const [now, setNow] = useState(() => Date.now());
   const [err, setErr] = useState("");
@@ -392,6 +378,11 @@ export function Status() {
   if (!data) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
   const h = data.health;
+  // "Behind" is the machine's own schedule, not a health verdict: a
+  // collector polling happily with nothing to fetch is idle.
+  const behind = data.collectors.filter(
+    (c) => secsSince(c.last_heartbeat_at, now) > 600,
+  ).length;
   const series =
     data.capture_series?.length > 0
       ? data.capture_series
@@ -405,173 +396,141 @@ export function Status() {
 
   return (
     <>
-      <div className="page-head">
-        <h1 className="page-title">Status</h1>
+      <div
+        style={{
+          marginBottom: "18px",
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1 className="page__title">Status</h1>
+          <p className="page__lede">
+            The service, not your account. Everyone sees the same numbers.
+          </p>
+        </div>
         <span
-          className="mono"
           style={{
             marginLeft: "auto",
-            fontSize: "11px",
-            color: "var(--ink-faint)",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
           }}
         >
-          as of {data.as_of.slice(11, 19)}Z
+          <span className="mono" style={{ color: "var(--ink-faint)" }}>
+            as of {data.as_of.slice(11, 19)}Z
+          </span>
+          <button
+            className="btn btn--sm"
+            aria-pressed={auto}
+            onClick={() => setAuto((v) => !v)}
+          >
+            {auto ? "auto-refresh on" : "auto-refresh off"}
+          </button>
+          <button className="btn btn--sm" onClick={load}>
+            Refresh
+          </button>
         </span>
-        <button
-          className="btn--text"
-          aria-pressed={auto}
-          onClick={() => setAuto((v) => !v)}
-          style={{ fontSize: "12px" }}
-        >
-          {auto ? "auto-refresh on" : "auto-refresh off"}
-        </button>
-        <button
-          className="btn--text"
-          onClick={load}
-          style={{ fontSize: "12px" }}
-        >
-          refresh
-        </button>
       </div>
 
       <BudgetGauge budget={data.budget} />
       <QueueGauge queue={data.queue} now={now} />
 
-      <div
-        className={`notice`}
-        style={{
-          marginBottom: "20px",
-          borderColor: h.ok ? "rgba(52,211,153,.35)" : "rgba(248,113,113,.35)",
-        }}
-      >
-        <span
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <span className={`chip ${h.ok ? "chip--active" : "chip--error"}`}>
+      <section className="panel" style={{ marginBottom: "14px" }}>
+        <div className="panel__head">
+          <span>Recording</span>
+          <span
+            className={"chip " + (h.ok ? "chip--ok" : "chip--bad")}
+            style={{ marginLeft: "auto" }}
+          >
+            <span className="chip__dot" />
             {h.ok ? "recording" : "attention"}
           </span>
-          <span>
-            last admission{" "}
-            <strong>
+        </div>
+        <div className="stats" style={{ border: 0, borderRadius: 0 }}>
+          <div className="stats__cell">
+            <div className="label">last admission</div>
+            <div className="stats__value">
               {h.last_admission_seconds != null
-                ? `${Math.round(h.last_admission_seconds / 60)}m ago`
+                ? `${Math.round(h.last_admission_seconds / 60)}m`
                 : "—"}
-            </strong>{" "}
-            · <strong>{h.battles_last_hour.toLocaleString()}</strong> battles in
-            the last hour · DLQs{" "}
-            <strong
-              style={{ color: h.dlq_messages ? "var(--bad)" : undefined }}
+            </div>
+            <div className="stats__note">since a payload was recorded</div>
+          </div>
+          <div className="stats__cell">
+            <div className="label">battles</div>
+            <div className="stats__value">
+              {h.battles_last_hour.toLocaleString()}
+            </div>
+            <div className="stats__note">in the last hour</div>
+          </div>
+          <div className="stats__cell">
+            <div className="label">dead letters</div>
+            <div
+              className="stats__value"
+              style={h.dlq_messages ? { color: "var(--bad)" } : undefined}
             >
               {h.dlq_messages}
-            </strong>
-          </span>
-        </span>
-      </div>
-
-      <div className="cols">
-        <section className="panel" style={{ flex: "1 1 100%", minWidth: 0 }}>
-          <div className="panel__head">
-            <span className="panel-title">Collectors</span>
-          </div>
-          {data.collectors.map((c) => (
-            <div
-              key={c.name}
-              style={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "center",
-                padding: "10px 16px",
-                borderTop: "1px solid var(--line-soft)",
-                flexWrap: "wrap",
-              }}
-            >
-              {c.card_icon ? (
-                <img
-                  src={c.card_icon}
-                  alt=""
-                  style={{ height: "28px", borderRadius: "4px" }}
-                />
-              ) : (
-                <span
-                  className="card-slot"
-                  style={{ width: "24px", aspectRatio: "1" }}
-                />
-              )}
-              <span style={{ fontWeight: 600, fontSize: "13px" }}>
-                {c.name}
-              </span>
-              {/* Which lane it drains. The live lane is what answers an
-                  interactive live_fetch, so "who could serve a request right
-                  now" is a different question from "who is capturing". */}
-              {c.channel === "live" && (
-                <span className="chip chip--live" title="Serves the live lane">
-                  live
-                </span>
-              )}
-              <span
-                className={`chip ${
-                  c.status === "active"
-                    ? "chip--active"
-                    : c.status === "pending"
-                      ? "chip--pending"
-                      : ""
-                }`}
-              >
-                {c.status}
-              </span>
-              {c.operator && (
-                <span
-                  style={{ fontSize: "11.5px", color: "var(--ink-faint)" }}
-                  title={c.operator_tag ?? undefined}
-                >
-                  run by{" "}
-                  <span style={{ color: "var(--ink-body)" }}>{c.operator}</span>
-                </span>
-              )}
-              <span
-                style={{
-                  marginLeft: "auto",
-                  display: "flex",
-                  gap: "14px",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  className={beatCls(secsSince(c.last_heartbeat_at, now))}
-                  title="Last contact of any kind with the door, including polls that found no work."
-                >
-                  <span style={{ color: "var(--ink-faint)" }}>heartbeat </span>
-                  {ago(c.last_heartbeat_at, now)}
-                </span>
-                <span
-                  className={freshCls(secsSince(c.last_success_at, now))}
-                  title="Last payload this collector fetched that we accepted and recorded."
-                >
-                  <span style={{ color: "var(--ink-faint)" }}>data </span>
-                  {ago(c.last_success_at, now)}
-                </span>
-                <span
-                  className="mono"
-                  style={{ fontSize: "11.5px", color: "var(--ink-faint)" }}
-                >
-                  {c.fetches_1h}/h
-                </span>
-              </span>
             </div>
-          ))}
-          <div className="panel__note">
-            Volunteer machines, named for their card and credited to their
-            operator. Heartbeat is any contact; data is the last payload
-            admitted. <a href="/docs/operators">Run one</a>.
+            <div className="stats__note">
+              {h.dlq_messages ? "needs a human" : "nothing stuck"}
+            </div>
           </div>
-        </section>
-      </div>
+          {h.capture_audit_24h && (
+            <div className="stats__cell">
+              <div className="label">capture gaps</div>
+              <div className="stats__value">
+                {h.capture_audit_24h.gaps.toLocaleString()}
+              </div>
+              <div className="stats__note">
+                of {h.capture_audit_24h.polls.toLocaleString()} polls, 24h — the
+                battle log had already rolled
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <a
+        className="panel"
+        onClick={() => navigate("/status/collectors")}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          padding: "14px 16px",
+          marginBottom: "20px",
+          color: "inherit",
+        }}
+      >
+        <span style={{ color: "var(--accent-bright)", display: "flex" }}>
+          <Icon name="heart-pulse" size={18} />
+        </span>
+        <span style={{ fontSize: "14px", fontWeight: 600 }}>
+          {data.collectors.length} collector
+          {data.collectors.length === 1 ? "" : "s"} fetching
+        </span>
+        <span style={{ fontSize: "13px", color: "var(--ink-faint)" }}>
+          {behind === 0
+            ? "all reporting on schedule"
+            : `${behind} behind schedule`}
+        </span>
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "7px",
+            fontSize: "13.5px",
+            color: "var(--ink-link)",
+          }}
+        >
+          All collectors <Icon name="arrow-right" size={16} />
+        </span>
+      </a>
 
       <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel__head">

@@ -1,327 +1,403 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Fresh } from "../components/Fresh.jsx";
+import { Icon } from "../components/Icon.jsx";
+import { ago, secsSince } from "../lib/time.js";
 
-/** Account ▸ Collector (design handoff §10): deliberately small — the
- *  ladder is a joke, not a product. Per collector: avatar slot, status,
- *  points, and the QUOTA CREDITS its fetches earn (the real benefit;
- *  Jamie dropped arenas 2026-09-06). Card-derived identity: the card is
- *  the public name; the operator name is a PRIVATE machine label and
- *  never leaves the owner's own surfaces (#28). Your own gateways come
- *  from /api/me/gateways, which is why this page can show yours. */
+/**
+ * One collector.
+ *
+ * TWO CLOCKS, always both. Heartbeat is any contact with the door,
+ * including a poll that found no work. Data freshness is the last
+ * payload we accepted and recorded. A fresh heartbeat with stale data is
+ * an IDLE collector — nothing was due — and an operator reading either
+ * clock alone cannot tell idle from broken.
+ *
+ * Health and share are public, because the fleet's ability to keep up is
+ * everyone's business. The machine label, the endpoint mix, the errors
+ * and the token belong to the operator: the public name is the Clash
+ * Royale card, and the machine name never leaves the owner's surfaces.
+ */
+function Clocks({ heartbeat, data, now }) {
+  const beat = secsSince(heartbeat, now);
+  const fresh = secsSince(data, now);
+  // Alive on the door, but nothing admitted for a while: the machine is
+  // polling and finding no work. Both windows are the same ten minutes
+  // the fleet uses to call a collector "behind".
+  const idle = beat != null && beat < 600 && fresh != null && fresh > 600;
+  return (
+    <section className="panel" style={{ marginBottom: "14px" }}>
+      <div className="panel__head">Two clocks</div>
+      <div
+        style={{
+          padding: "14px 16px",
+          display: "flex",
+          gap: "26px",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+        }}
+      >
+        <span>
+          <span
+            className="label"
+            style={{ display: "block", marginBottom: "5px" }}
+          >
+            heartbeat
+          </span>
+          <span
+            className="mono"
+            style={{ display: "block", fontSize: "15px", color: "var(--ink)" }}
+          >
+            {ago(heartbeat, now)}
+          </span>
+        </span>
+        <span>
+          <span
+            className="label"
+            style={{ display: "block", marginBottom: "5px" }}
+          >
+            data freshness
+          </span>
+          <span
+            className="mono"
+            style={{ display: "block", fontSize: "15px", color: "var(--ink)" }}
+          >
+            {ago(data, now)}
+          </span>
+        </span>
+        <span
+          style={{
+            flex: "1 1 240px",
+            fontSize: "12.5px",
+            color: "var(--ink-faint)",
+            textWrap: "pretty",
+          }}
+        >
+          {idle
+            ? "Polling happily with nothing to fetch — that is idle, not broken."
+            : "Both clocks matter: a fresh heartbeat only says the machine is alive."}
+        </span>
+      </div>
+    </section>
+  );
+}
 
-export function CollectorPage() {
-  const [gateways, setGateways] = useState(null);
-  const [ladder, setLadder] = useState([]);
-  const [details, setDetails] = useState({});
-  const [form, setForm] = useState({ name: "" });
-  const [revealed, setRevealed] = useState({});
-  const [raised, setRaised] = useState(false);
-  const [err, setErr] = useState("");
+/** Fetches per hour over the last day. Inline bars, no library — the
+ *  same approach the capture charts use. A day with no fetches is a real
+ *  zero on the axis, not a gap to compress. */
+function Hours({ daily }) {
+  const rows = (daily ?? []).slice(-30);
+  const max = Math.max(...rows.map((d) => d.fetches), 1);
+  if (rows.length === 0) return null;
+  return (
+    <section className="panel" style={{ marginBottom: "14px" }}>
+      <div className="panel__head">
+        <span>Fetches per day</span>
+        <span
+          className="footnote"
+          style={{ marginLeft: "auto", fontWeight: 400 }}
+        >
+          last {rows.length} days · UTC
+        </span>
+      </div>
+      <div
+        style={{
+          padding: "18px 16px",
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "4px",
+          height: "104px",
+        }}
+      >
+        {rows.map((d) => (
+          <span
+            key={d.day}
+            title={`${d.day} · ${d.fetches} fetches${d.rejected ? `, ${d.rejected} rejected` : ""}`}
+            style={{
+              flex: "1 1 0",
+              height: `${Math.max(2, (d.fetches / max) * 100)}%`,
+              background: "var(--accent)",
+              borderRadius: "3px 3px 0 0",
+              minWidth: "4px",
+            }}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
-  const load = async () => {
-    const [mine, lad] = await Promise.all([
-      api.myGateways(),
-      api.gatewayLadder(),
-    ]);
-    if (mine.ok) {
-      const gws = mine.data.gateways ?? [];
-      setGateways(gws);
-      for (const g of gws) {
-        api
-          .gatewayDetail(g.gateway_id)
-          .then(
-            (d) =>
-              d.ok &&
-              setDetails((prev) => ({ ...prev, [g.gateway_id]: d.data })),
-          );
-      }
-    }
-    if (lad.ok) setLadder(lad.data.ladder ?? []);
-  };
+export function CollectorPage({ id, navigate }) {
+  // Stamped once per load rather than read during render:
+  // a clock read while rendering makes every re-render a new answer.
+  const [now] = useState(() => Date.now());
+  const [status, setStatus] = useState(null);
+  const [mine, setMine] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [revealed, setRevealed] = useState("");
+
   useEffect(() => {
-    load();
+    api.publicStatus().then((r) => r.ok && setStatus(r.data));
+    api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
   }, []);
 
-  const total = ladder.length;
+  const name = id ? decodeURIComponent(id) : null;
+  const pub = status?.collectors?.find((c) => c.name === name);
+  const own = (mine ?? []).find((g) => (g.card_name ?? g.name) === name);
+
+  useEffect(() => {
+    if (own && !detail)
+      api.gatewayDetail(own.gateway_id).then((r) => r.ok && setDetail(r.data));
+  }, [own, detail]);
+
+  if (!status || mine === null)
+    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+
+  if (!pub && !own)
+    return (
+      <>
+        <div className="page__crumb">
+          <a onClick={() => navigate("/status/collectors")}>‹ Collectors</a>
+        </div>
+        <div className="empty">
+          <div className="empty__title">No collector by that name</div>
+          <p className="empty__body" style={{ marginBottom: 0 }}>
+            Collectors are named for a Clash Royale card. A drained one keeps
+            its name and its points, but stops appearing in the fleet.
+          </p>
+        </div>
+      </>
+    );
+
+  const beat = secsSince(pub?.last_heartbeat_at, now);
+  const status_ = pub?.status ?? own?.status ?? "unknown";
+  const behind = status_ === "active" && (beat == null || beat > 600);
+  const tone = status_ !== "active" ? "warn" : behind ? "warn" : "ok";
+  const points = Number(
+    own?.fetch_points ?? detail?.gateway?.fetch_points ?? 0,
+  );
+  const env = revealed
+    ? `CR_API_TOKEN=your-clash-royale-key\nELIXIR_API_TOKEN=${revealed}`
+    : "";
 
   return (
     <>
-      <div className="page-head">
-        <h1 className="page-title">Collector</h1>
-        <span className="page-head__note">
-          {total > 0
-            ? `${total} are running for everyone right now — more collectors mean resilience, never a bigger rate budget.`
-            : "more collectors mean resilience, never a bigger rate budget"}
+      <div className="page__crumb">
+        <a onClick={() => navigate("/status/collectors")}>‹ Collectors</a>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h1 className="page__title">{name}</h1>
+          <p className="page__lede">
+            {own ? "Yours" : `Run by ${pub?.operator ?? "an operator"}`}
+            {own ? ` · ${own.name}` : ""}
+            {detail?.gateway?.last_seen_sha
+              ? ` · ${detail.gateway.last_seen_sha.slice(0, 7)}`
+              : ""}
+          </p>
+        </div>
+        <span className={`chip chip--${tone}`} style={{ marginLeft: "auto" }}>
+          <span className="chip__dot" />
+          {status_ !== "active" ? status_ : behind ? "behind" : "healthy"} ·
+          last {ago(pub?.last_success_at ?? own?.last_success_at, now)}
         </span>
       </div>
 
-      <div className="cols">
-        <div className="cols__main">
-          {gateways?.length === 0 && (
-            <div className="empty">
-              <div className="empty__mark">⚙</div>
-              <div className="empty__title">You don&rsquo;t run one yet</div>
-              <div className="empty__body">
-                A collector is a machine with a static IP that fetches from the
-                CR API for the whole service. Raise your hand →
-              </div>
+      {own && (
+        <div className="stats" style={{ marginBottom: "14px" }}>
+          <div className="stats__cell">
+            <div className="label">points</div>
+            <div className="stats__value">{points.toLocaleString()}</div>
+            <div className="stats__note">one per admitted fetch, lifetime</div>
+          </div>
+          <div className="stats__cell">
+            <div className="label">credits</div>
+            <div className="stats__value">
+              {Number(own.credits ?? Math.floor(points / 10)).toLocaleString()}
             </div>
-          )}
-          {(gateways ?? []).map((g) => {
-            const d = details[g.gateway_id];
-            const daily = d?.daily ?? [];
-            const max = Math.max(...daily.map((x) => x.fetches), 1);
-            return (
-              <section className="panel" key={g.gateway_id}>
-                <div
-                  className="panel__body"
-                  style={{
-                    display: "flex",
-                    gap: "14px",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
+            <div className="stats__note">
+              extra daily calls earned — 10 fetches buys one
+            </div>
+          </div>
+          <div className="stats__cell">
+            <div className="label">fetches</div>
+            <div className="stats__value">
+              {Number(own.fetches_24h ?? pub?.fetches_1h ?? 0).toLocaleString()}
+            </div>
+            <div className="stats__note">
+              {own.fetches_24h != null ? "last 24 hours" : "last hour"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {status_ === "draining" && (
+        <div className="callout callout--warn" style={{ marginBottom: "14px" }}>
+          <Icon name="circle-dashed" size={17} />
+          <span>
+            Draining — it keeps its points and its place. Bring it back with
+            probation once the machine is reachable.
+          </span>
+        </div>
+      )}
+
+      <Clocks
+        heartbeat={pub?.last_heartbeat_at}
+        data={pub?.last_success_at ?? own?.last_success_at}
+        now={now}
+      />
+
+      {own?.provision_ready && !revealed && (
+        <section
+          className="panel"
+          style={{ marginBottom: "14px", borderColor: "var(--line-strong)" }}
+        >
+          <div className="panel__head">
+            <span>Collector token</span>
+            <span
+              className="footnote"
+              style={{ marginLeft: "auto", fontWeight: 400 }}
+            >
+              staged, waiting for you
+            </span>
+          </div>
+          <div
+            style={{
+              padding: "14px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "13.5px",
+                color: "var(--ink-dim)",
+                maxWidth: "52ch",
+                textWrap: "pretty",
+              }}
+            >
+              We show it once and never again — reveal it when you are at the
+              machine.
+            </span>
+            <button
+              className="btn btn--selected"
+              style={{ marginLeft: "auto" }}
+              onClick={async () => {
+                const r = await api.gatewayEnv(own.gateway_id);
+                if (r.ok) setRevealed(r.data.env.trim());
+              }}
+            >
+              Reveal once
+            </button>
+          </div>
+        </section>
+      )}
+
+      {revealed && (
+        <section className="code" style={{ marginBottom: "14px" }}>
+          <div className="code__head">
+            <span className="label">collector token</span>
+            <span className="footnote">
+              shown once — it is gone from us now
+            </span>
+            <button
+              className="btn btn--sm"
+              style={{ marginLeft: "auto" }}
+              onClick={() => navigator.clipboard?.writeText(env)}
+            >
+              Copy
+            </button>
+          </div>
+          <pre className="code__body">{env}</pre>
+          <div className="panel__foot">
+            Paste it into the collector&rsquo;s <code>.env</code> with your own
+            Clash Royale key beside it. We kept only its hash; if you lose it,
+            ask the owner to re-provision, which invalidates this one.
+          </div>
+        </section>
+      )}
+
+      {own && <Hours daily={detail?.daily} />}
+
+      {own ? (
+        detail?.endpoints_7d?.length > 0 && (
+          <section className="panel">
+            <div className="panel__head">What it fetched</div>
+            <div style={{ padding: "6px 0" }}>
+              {detail.endpoints_7d.map((e) => {
+                const top = Math.max(
+                  ...detail.endpoints_7d.map((x) => x.calls),
+                  1,
+                );
+                return (
                   <div
-                    className="card-slot"
+                    key={e.endpoint}
                     style={{
-                      width: "44px",
-                      borderRadius: "50%",
-                      aspectRatio: "1",
+                      padding: "10px 16px",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      gap: "14px",
                     }}
                   >
                     <span
                       className="mono"
-                      style={{ fontSize: "12px", color: "var(--ink-faint)" }}
-                    >
-                      {g.name.slice(0, 2).toUpperCase()}
-                    </span>
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {g.card_name ?? g.name}
-                    </div>
-                    <div
-                      className="mono"
-                      style={{ fontSize: "11.5px", color: "var(--ink-faint)" }}
-                    >
-                      {g.name}
-                      {d?.gateway.last_seen_sha
-                        ? ` · ${d.gateway.last_seen_sha.slice(0, 7)}`
-                        : ""}
-                    </div>
-                  </div>
-                  <span
-                    className={`chip ${
-                      g.status === "active"
-                        ? "chip--active"
-                        : g.status === "pending"
-                          ? "chip--pending"
-                          : ""
-                    }`}
-                  >
-                    {g.status}
-                  </span>
-                  <Fresh ts={g.last_success_at} />
-                  <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                    <div className="stat__value" style={{ fontSize: "22px" }}>
-                      {Number(g.fetch_points ?? 0).toLocaleString()}
-                    </div>
-                    <div className="stat__sub">
-                      lifetime points · {g.fetches_24h ?? 0} / 24h
-                    </div>
-                  </div>
-                </div>
-                {g.provision_ready && !revealed[g.gateway_id] && (
-                  <div className="panel__body" style={{ paddingTop: 0 }}>
-                    <div className="notice">
-                      <span>
-                        Your collector token is ready.{" "}
-                        <button
-                          className="btn--text"
-                          onClick={async () => {
-                            const r = await api.gatewayEnv(g.gateway_id);
-                            if (!r.ok) return;
-                            setRevealed({
-                              ...revealed,
-                              [g.gateway_id]: r.data.env.trim(),
-                            });
-                          }}
-                        >
-                          Reveal it (one time)
-                        </button>{" "}
-                        — it disappears from the server the moment you look.
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {revealed[g.gateway_id] && (
-                  <div className="panel__body" style={{ paddingTop: 0 }}>
-                    <div className="notice">
-                      <div style={{ marginBottom: "6px" }}>
-                        Copy this into <code>.env</code> next to the collector,
-                        with your own CR API key beside it. It will not be shown
-                        again.
-                      </div>
-                      <pre
-                        className="mono"
-                        style={{ fontSize: "11.5px", overflowX: "auto" }}
-                      >
-                        {`CR_API_TOKEN=your-clash-royale-key
-ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`}
-                      </pre>
-                      <button
-                        className="btn"
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            `CR_API_TOKEN=your-clash-royale-key
-ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`,
-                          )
-                        }
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    alignItems: "center",
-                    padding: "10px 16px",
-                    borderTop: "1px solid var(--line-soft)",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    className="yours"
-                    style={{ fontSize: "12.5px", fontWeight: 600 }}
-                  >
-                    +
-                    {(
-                      g.credits ?? Math.floor((g.fetch_points ?? 0) / 10)
-                    ).toLocaleString()}{" "}
-                    daily tool calls earned
-                  </span>
-                  <span
-                    className="mono"
-                    style={{ fontSize: "11px", color: "var(--ink-faint)" }}
-                  >
-                    10 fetches = +1 call · capped at 4× your base quota · plus
-                    +2 player slots and +1 clan slot while it runs
-                  </span>
-                </div>
-                {daily.length > 0 && (
-                  <div className="chart">
-                    <div className="chart__head">
-                      <span className="stat__label">fetches / day · 30d</span>
-                    </div>
-                    <svg
-                      viewBox="0 0 720 60"
-                      role="img"
-                      aria-label={`${g.name} fetches per day`}
-                    >
-                      {daily.map((x, i) => {
-                        const bw = Math.max(2, 680 / daily.length - 2);
-                        const h = Math.max(1, (x.fetches / max) * 52);
-                        return (
-                          <rect
-                            key={x.day}
-                            className="bar"
-                            x={(i * 680) / daily.length}
-                            y={56 - h}
-                            width={bw}
-                            height={h}
-                          >
-                            <title>{`${x.day}: ${x.fetches} fetches (${x.admitted} admitted, ${x.rejected} rejected)`}</title>
-                          </rect>
-                        );
-                      })}
-                    </svg>
-                  </div>
-                )}
-                {d?.endpoints_7d?.length > 0 && (
-                  <div className="panel__note">
-                    last 7 days:{" "}
-                    {d.endpoints_7d
-                      .map((e) => `${e.endpoint} ${e.fetches.toLocaleString()}`)
-                      .join(" · ")}
-                    . Every 10 fetches earns +1 daily tool call on your quota.
-                  </div>
-                )}
-              </section>
-            );
-          })}
-        </div>
-
-        <div className="cols__rail">
-          <section className="panel panel--cta">
-            <div className="panel__head">
-              <span className="panel-title">Run a collector</span>
-            </div>
-            <div
-              className="panel__body"
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
-              {raised ? (
-                <div className="notice">
-                  Hand raised — the maintainer provisions your config, then it
-                  appears here as a one-time download.
-                </div>
-              ) : (
-                <>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "12.5px",
-                      color: "var(--ink-faint)",
-                    }}
-                  >
-                    A machine that stays on, with a static public IP. One shared
-                    rate budget — more machines for redundancy.
-                  </p>
-                  <label>
-                    <span className="field-label">Collector name</span>
-                    <input
-                      placeholder="magic-pines"
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                    />
-                  </label>
-
-                  {err && <span className="field-error">{err}</span>}
-                  <div>
-                    <button
-                      className="btn btn--primary"
-                      onClick={async () => {
-                        setErr("");
-                        const r = await api.raiseGateway(form.name.trim());
-                        if (r.ok) {
-                          setRaised(true);
-                          load();
-                        } else setErr(r.data?.message ?? "Could not raise.");
+                      style={{
+                        flex: "0 0 128px",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        color: "var(--ink-body)",
                       }}
                     >
-                      Raise my hand
-                    </button>
+                      {e.endpoint}
+                    </span>
+                    <span className="meter" style={{ flex: "1 1 auto" }}>
+                      <span
+                        className="meter__fill"
+                        style={{
+                          display: "block",
+                          width: `${(e.calls / top) * 100}%`,
+                        }}
+                      />
+                    </span>
+                    <span
+                      className="mono"
+                      style={{
+                        flex: "0 0 60px",
+                        textAlign: "right",
+                        color: "var(--ink)",
+                      }}
+                    >
+                      {e.calls.toLocaleString()}
+                    </span>
                   </div>
-                </>
-              )}
+                );
+              })}
             </div>
-            <div className="panel__note">
-              Every collector is named for a Clash Royale card; fetches convert
-              to real quota — daily tool calls and bonus recording slots.
+            <div className="panel__foot">
+              Seven days. The server chooses what each collector fetches; a
+              collector never picks its own targets.
             </div>
           </section>
-        </div>
-      </div>
+        )
+      ) : (
+        <section className="panel">
+          <div className="panel__body" style={{ color: "var(--ink-dim)" }}>
+            Health and share are public. Endpoint mix, errors and the machine
+            label belong to the operator.
+          </div>
+        </section>
+      )}
     </>
   );
 }
