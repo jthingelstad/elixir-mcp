@@ -46,6 +46,7 @@ import { ErrorBoundary } from "./ErrorBoundary.jsx";
 export const STATIC_LINKS = {
   home: "/",
   data: "/data",
+  useCases: "/use-cases/play",
   docs: "/docs",
   updates: "/updates",
   family: "/family",
@@ -58,6 +59,7 @@ export const STATIC_LINKS = {
 const CHROME_TABS = [
   ["Home", "/"],
   ["Data", "/data"],
+  ["Use cases", "/use-cases/play"],
   ["Docs", "/docs"],
   ["Updates", "/updates"],
   ["Family", "/family"],

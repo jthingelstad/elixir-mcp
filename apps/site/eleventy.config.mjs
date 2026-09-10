@@ -108,6 +108,17 @@ export default function (eleventyConfig) {
   );
   eleventyConfig.addFilter("day", (s) => (s ? String(s).slice(0, 10) : "—"));
 
+  /** Pick one group out of a grouped data file by name.
+   *
+   *  A filter rather than a loop with `set` inside it: Nunjucks has no
+   *  namespace assignment, so a variable set inside a for-loop does not
+   *  survive it — which rendered an entire page of use cases as an empty
+   *  shell with a working nav around it. */
+  eleventyConfig.addFilter(
+    "pickGroup",
+    (groups, name) => (groups ?? []).find((g) => g.group === name) ?? null,
+  );
+
   /**
    * Daily battle counts -> a cumulative monthly curve, as SVG paths.
    *
