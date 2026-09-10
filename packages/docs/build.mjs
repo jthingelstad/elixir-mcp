@@ -34,6 +34,9 @@ const ctx = await docContext();
 const absolute = (md) =>
   md.replace(/\]\((\/[^)\s]*)\)/g, (_, p) => `](${SITE_URL}${p})`);
 
+/** The page H1 duplicates `title`, which every reader prints itself. */
+const withoutLeadingH1 = (md) => md.replace(/^\s*# [^\n]*\n+/, "");
+
 /** Inline <svg> blocks leave the corpus: an agent asking for the
  *  architecture page was reading fifty lines of path data (review 1.3).
  *  The diagram's aria-label, the one sentence written for a reader who
@@ -107,7 +110,12 @@ const docs = readdirSync(path.join(site, "docs"))
     const { data, body } = parse(
       readFileSync(path.join(site, "docs", f), "utf8"),
     );
-    const markdown = withoutSvg(absolute(renderDoc(body, ctx)));
+    // Every page opens with an H1 equal to its title, which readers
+    // (resources/read, elixir_docs) already print from `title`; keeping
+    // it in `markdown` had every page read back with the heading twice.
+    const markdown = withoutLeadingH1(
+      withoutSvg(absolute(renderDoc(body, ctx))),
+    );
     // The index an agent reads shows the lede; a slogan-length lede
     // ("The short version: ...") says nothing about what the page
     // answers, so a lede under 40 characters yields to the description.
