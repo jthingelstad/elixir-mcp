@@ -65,25 +65,35 @@ export function AgentDetail({ id, navigate }) {
 
   return (
     <>
-      <p style={{ margin: "0 0 10px" }}>
-        <a
-          className="mono"
-          style={{ fontSize: "12px" }}
-          onClick={() => navigate("/account/agents")}
+      <div className="page__crumb">
+        <a onClick={() => navigate("/account/connections")}>‹ Connections</a>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h1 className="page__title">{name}</h1>
+          <p className="page__lede">
+            An agent&rsquo;s name is its key&rsquo;s name, and it calls at its
+            own door.
+          </p>
+        </div>
+        <span
+          className={"chip " + (suspended ? "chip--warn" : "chip--ok")}
+          style={{ marginLeft: "auto" }}
         >
-          ‹ All agents
-        </a>
-      </p>
+          <span className="chip__dot" />
+          {suspended ? "suspended" : "active"}
+        </span>
+      </div>
 
       <section className="panel" style={{ marginBottom: "16px" }}>
-        <div className="panel__head">
-          <span className="panel-title">{name}</span>
-          {suspended && (
-            <span style={{ color: "var(--bad)", fontSize: "12px" }}>
-              suspended
-            </span>
-          )}
-        </div>
         <dl className="fields">
           <dt>Name</dt>
           <dd>
@@ -171,13 +181,19 @@ export function AgentDetail({ id, navigate }) {
               <span style={{ color: "var(--ink-faint)" }}>never</span>
             )}
             {keyNeverUsed && (
-              <div style={{ fontSize: "12px", color: "var(--warn)" }}>
-                The current key has never been used
-                {key.created_at ? " since it was issued " : " "}
-                {key.created_at ? <Fresh ts={key.created_at} /> : null}. If
-                something was running before, it is still presenting the old key
-                and being refused — a refused call never reaches this page, so
-                it looks quiet rather than broken.
+              <div
+                className="callout callout--warn"
+                style={{ marginTop: "8px", whiteSpace: "normal" }}
+              >
+                <span>
+                  The current key has never been used
+                  {key.created_at ? " since it was issued " : " "}
+                  {key.created_at ? <Fresh ts={key.created_at} /> : null}. If
+                  something was running before, it is still presenting the old
+                  key and being refused — a refused call never reaches this
+                  page, so it looks quiet rather than broken. A quiet agent and
+                  a broken one look the same here.
+                </span>
               </div>
             )}
           </dd>
@@ -360,9 +376,7 @@ export function AgentDetail({ id, navigate }) {
             {suspended ? "Resume" : "Suspend"}
           </button>
           <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
-            {suspended
-              ? "Its key reads as invalid while suspended; resuming restores the same key."
-              : "Suspending makes its key read as invalid, without revoking it."}
+            Suspend is reversible — the same key comes back. Revoke is not.
           </span>
         </div>
         {minted && (

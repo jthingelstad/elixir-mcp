@@ -74,6 +74,7 @@ export const SECTIONS = {
     pages: [
       { slug: "overview", label: "Overview" },
       { slug: "tracking", label: "Tracking" },
+      { slug: "collections", label: "Collections" },
       { slug: "activity", label: "Activity" },
       { slug: "usage", label: "Usage" },
       { slug: "connections", label: "Connections" },
@@ -132,7 +133,7 @@ const ADMIN_SUBS = [
   ["collectors", "Collectors", "/admin/collectors", "owner"],
   ["service-tokens", "Service tokens", "/admin/service-tokens", "owner"],
   ["integrations", "Integrations", "/admin/integrations"],
-  ["collections", "Collections", "/admin/collections"],
+  ["collections", "All collections", "/admin/collections"],
   // "Feedback queue", not "Feedback": Access > Feedback is a top-level
   // item and stays visible while Admin is open, so the bare word would
   // put two identical labels on screen at once — the thing that broke
@@ -168,6 +169,12 @@ export const RAIL = [
     label: "Tracking",
     icon: "radar",
     to: "/account/tracking",
+  },
+  {
+    key: "collections",
+    label: "Collections",
+    icon: "bookmark",
+    to: "/account/collections",
   },
   {
     key: "activity",
@@ -276,6 +283,13 @@ export const DOC_LINKS = {
       ["Methodology", "/docs/methodology"],
       ["Tool reference", "/docs/tools"],
       ["Responses", "/docs/responses"],
+    ],
+  ],
+  collections: [
+    "Collections",
+    [
+      ["How recording works", "/docs/recording"],
+      ["Tiers & slots", "/docs/roles"],
     ],
   ],
   tracking: [

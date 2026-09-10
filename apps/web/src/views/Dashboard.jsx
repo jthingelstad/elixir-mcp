@@ -3,6 +3,7 @@ import { Activity, NotificationRecord } from "./Activity.jsx";
 import { Overview } from "./account/Overview.jsx";
 import { Tracking } from "./account/Tracking.jsx";
 import { Settings } from "./account/Settings.jsx";
+import { Collections } from "./account/Collections.jsx";
 import { AgentDetail, Agents } from "./account/Agents.jsx";
 import { FeedbackItem, Feedback } from "./account/Feedback.jsx";
 import { Connections } from "./account/Connections.jsx";
@@ -27,6 +28,8 @@ export function Dashboard({
     );
   if (page === "tracking") return <Tracking me={me} refresh={refresh} />;
   if (page === "settings") return <Settings me={me} refresh={refresh} />;
+  if (page === "collections")
+    return <Collections me={me} navigate={navigate} />;
   if (page === "agents")
     return itemId ? (
       <AgentDetail id={itemId} navigate={navigate} />
