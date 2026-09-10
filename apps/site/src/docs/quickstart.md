@@ -16,9 +16,10 @@ connected client. Most of the elapsed time is waiting for two emails.
 
 ## 1. Get an account
 
-Accounts are approved by hand. Use the request form on the [home page](/)
-with your email and your Clash Royale player tag. You will hear back either
-way. Once approved, sign in at [/signin](/signin): enter your email, then the
+Accounts are approved by hand. Ask on the sign-in card, at
+[/signin?request](/signin?request), with your email and your Clash Royale
+player tag. You will hear back either way. Once approved, sign in at the same
+place: enter your email, then the
 six-digit code from the mail (15 minutes, five attempts). The mail also
 carries a one-click link; either works.
 

@@ -42,9 +42,6 @@ export default function (eleventyConfig) {
     "../../packages/contracts/integration-api.openapi.json":
       "docs/integration-api.json",
   });
-  // The access-request form's script. An external file rather than an
-  // inline block because the CSP forbids inline script (#25).
-  eleventyConfig.addPassthroughCopy("src/assets/request-form.js");
   eleventyConfig.addPassthroughCopy("src/assets/data-live.js");
   eleventyConfig.addPassthroughCopy("src/assets/chrome-menu.js");
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");

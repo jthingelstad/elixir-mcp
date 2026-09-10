@@ -880,9 +880,9 @@ Resources:
   # site shipped no CSP, no frame-ancestors, no nosniff, no
   # Referrer-Policy and no Permissions-Policy.
   #
-  # script-src has NO 'unsafe-inline': the one inline script on the
-  # static home page moved to /assets/request-form.js so this could
-  # stay strict. tinylytics.app is allowed because BOTH halves load it:
+  # script-src has NO 'unsafe-inline': the static half's scripts are all
+  # external files for this reason (the access-request form was the last
+  # inline block; it moved to the app entirely on 2026-09-10). tinylytics.app is allowed because BOTH halves load it:
   # #25 briefly kept the embed off app.html and that protected nothing,
   # since the session cookie is Path=/ and the embed still ran on every
   # static page of the same origin (reverted 2026-09-08). So this list

@@ -80,3 +80,84 @@ test("an expired magic link says nothing is wrong with the account", async () =>
   fireEvent.click(screen.getByRole("button", { name: "Start again" }));
   expect(screen.getByLabelText("Email")).toBeTruthy();
 });
+
+/**
+ * Asking for access, which is the same door.
+ *
+ * The form used to be a second implementation on the static home page,
+ * and it failed in the worst available way: the POST landed and the page
+ * did not move, because the success path hid a form carrying inline
+ * `display: flex` and revealed a `.notice` whose class sets `display` —
+ * neither of which a `hidden` attribute can beat. A visitor could not
+ * tell "sent" from "broken", so the tests that matter here are about
+ * what the screen SAYS after the request, not that a fetch happened.
+ */
+function requestFields() {
+  return {
+    email: screen.getByLabelText("Email"),
+    tag: screen.getByLabelText("Your player tag"),
+  };
+}
+
+function fillRequest(tag = "#20JJJ2CCRU") {
+  const { email, tag: tagInput } = requestFields();
+  fireEvent.change(email, { target: { value: "j@x.com" } });
+  fireEvent.change(tagInput, { target: { value: tag } });
+  fireEvent.click(screen.getByRole("button", { name: "Request access" }));
+}
+
+test("the home page's deep link opens the asking half, not the signing-in half", () => {
+  window.history.pushState({}, "", "/signin?request");
+  render(<SignIn onAuthed={vi.fn()} />);
+  expect(screen.getByLabelText("Your player tag")).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Send sign-in email" }),
+  ).toBeNull();
+});
+
+test("sign in and request access are two steps of one card", () => {
+  render(<SignIn onAuthed={vi.fn()} />);
+  // Arriving at the sign-in step, the other door is reachable without
+  // leaving for the static site (it used to be a link to /#request).
+  fireEvent.click(screen.getByText("Request access"));
+  expect(screen.getByLabelText("Your player tag")).toBeTruthy();
+  fireEvent.click(screen.getByText("Sign in instead"));
+  expect(
+    screen.getByRole("button", { name: "Send sign-in email" }),
+  ).toBeTruthy();
+});
+
+test("a sent request SAYS SO — the screen moves", async () => {
+  window.history.pushState({}, "", "/signin?request");
+  render(<SignIn onAuthed={vi.fn()} />);
+  fillRequest();
+  expect(await screen.findByText("Your request is in")).toBeTruthy();
+  // The form is gone, not merely marked hidden: this is the whole bug.
+  expect(screen.queryByLabelText("Your player tag")).toBeNull();
+});
+
+test("a refused tag is reported on the form, and the form stays fillable", async () => {
+  window.history.pushState({}, "", "/signin?request");
+  render(<SignIn onAuthed={vi.fn()} />);
+  reply(400, { error: "invalid_tag" });
+  fillRequest("not a tag");
+  expect(
+    await screen.findByText("That doesn't look like a CR tag."),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Your player tag")).toBeTruthy();
+  expect(screen.queryByText("Your request is in")).toBeNull();
+});
+
+test("the request carries the fields the API requires", async () => {
+  window.history.pushState({}, "", "/signin?request");
+  render(<SignIn onAuthed={vi.fn()} />);
+  fillRequest();
+  await screen.findByText("Your request is in");
+  const [path, init] = global.fetch.mock.calls[0];
+  expect(path).toBe("/api/request-access");
+  expect(init.headers["x-elixir-client"]).toBe("web");
+  expect(JSON.parse(init.body)).toMatchObject({
+    email: "j@x.com",
+    player_tag: "#20JJJ2CCRU",
+  });
+});

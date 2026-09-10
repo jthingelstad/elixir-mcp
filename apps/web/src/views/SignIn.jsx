@@ -4,18 +4,29 @@ import { Icon } from "../components/Icon.jsx";
 import { takeLoginToken } from "../url-hygiene.js";
 
 /**
- * Sign in — one card, five states.
+ * Sign in, or ask to — one card, six states.
  *
  * Email, then code, and two escapes from the code step that this page
  * spent a long time without: a typo in the address left you waiting for
  * mail that was never coming, and a spent code had no way back.
  *
- * The other two states exist because both used to render as "expired or
- * already used", which is only one of them. A LINK that is expired says
- * so and says nothing is wrong with the account. An account whose access
+ * Two more exist because both used to render as "expired or already
+ * used", which is only one of them. A LINK that is expired says so and
+ * says nothing is wrong with the account. An account whose access
  * request is still WAITING now gets its own answer, because sending
  * somebody round a loop that cannot work is worse than telling them the
  * gate is deliberate.
+ *
+ * THE SIXTH IS THE ACCESS REQUEST, moved here 2026-09-10 because the
+ * two doors are one decision: you are either signing in or asking to.
+ * It lived on the static home page as a second implementation with its
+ * own fetch and its own error strings, and it BROKE SILENTLY — the POST
+ * landed, the row was created, and the success path set `.hidden` on a
+ * form carrying inline `display: flex` and on a `.notice` whose class
+ * sets `display: flex`, neither of which a `hidden` attribute can beat.
+ * The page did not move. A visitor could not tell the difference between
+ * "sent" and "did nothing", so they went away. Here the result is state,
+ * and state renders.
  */
 const card = {
   maxWidth: "440px",
@@ -64,9 +75,22 @@ function Eyebrow({ icon, tone, children }) {
   );
 }
 
+/** The home page's "Request access" button is a link to /signin?request,
+ *  so a visitor who came to ask lands on the asking half rather than on
+ *  a sign-in form for the account they are trying to get. A query, not a
+ *  path: /signin is the one route this app owns here, and everything
+ *  under it must keep reporting nothing to analytics. */
+const initialStep = () =>
+  new URLSearchParams(window.location.search).has("request")
+    ? "request"
+    : "email";
+
 export function SignIn({ onAuthed }) {
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState("email"); // email | code | redeeming | expired | pending
+  // email | request | code | redeeming | expired | pending
+  const [step, setStep] = useState(initialStep);
+  const [playerTag, setPlayerTag] = useState("");
+  const [note, setNote] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -91,6 +115,31 @@ export function SignIn({ onAuthed }) {
     await api.sendLoginEmail(email);
     setBusy(false);
     setStep("code");
+  }
+
+  /** The API answers 200 identically for a new request, a repeat, a
+   *  denied one and an already-approved address — deliberately, so this
+   *  form cannot be used to ask who has an account. So the confirmation
+   *  is the same card the pending state uses: true for all four, and one
+   *  copy instead of two that drift. */
+  async function sendRequest(e) {
+    e?.preventDefault();
+    setError("");
+    setBusy(true);
+    const res = await api.requestAccess({
+      email,
+      player_tag: playerTag,
+      note,
+    });
+    setBusy(false);
+    if (res.ok) return setStep("pending");
+    setError(
+      res.data?.error === "invalid_tag"
+        ? "That doesn't look like a CR tag."
+        : res.data?.error === "rate_limited"
+          ? "Too many requests — try again shortly."
+          : "Something went wrong — try again.",
+    );
   }
 
   if (step === "redeeming")
@@ -167,6 +216,86 @@ export function SignIn({ onAuthed }) {
           <a href="/data/dashboard">the data</a> and{" "}
           <a href="/docs">the docs</a> need no account.
         </div>
+      </div>
+    );
+
+  if (step === "request")
+    return (
+      <div style={card}>
+        <h1 className="page__title" style={{ fontSize: "28px" }}>
+          Request access
+        </h1>
+        <p
+          style={{
+            fontSize: "14.5px",
+            lineHeight: 1.6,
+            color: "var(--ink-dim)",
+            margin: "8px 0 20px",
+            textWrap: "pretty",
+          }}
+        >
+          Access is granted by hand while the recorder grows. Tell us who you
+          are in the arena.
+        </p>
+        <form onSubmit={sendRequest}>
+          <label className="field-label" htmlFor="request-email">
+            Email
+          </label>
+          <input
+            id="request-email"
+            type="email"
+            required
+            autoFocus
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={field}
+          />
+          <label className="field-label" htmlFor="request-tag">
+            Your player tag
+          </label>
+          <input
+            id="request-tag"
+            className="mono"
+            required
+            placeholder="#20JJJ2CCRU"
+            value={playerTag}
+            onChange={(e) => setPlayerTag(e.target.value)}
+            style={field}
+          />
+          <label className="field-label" htmlFor="request-note">
+            Anything we should know?{" "}
+            <span style={{ color: "var(--ink-faint)" }}>(optional)</span>
+          </label>
+          <input
+            id="request-note"
+            placeholder="Playing daily, want to run a collector…"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            style={field}
+          />
+          {error && <p className="field-error">{error}</p>}
+          <button
+            className="btn btn--primary"
+            type="submit"
+            disabled={busy}
+            style={primary}
+          >
+            {busy ? "Sending…" : "Request access"}
+          </button>
+        </form>
+        <p className="footnote" style={{ margin: "16px 0 0" }}>
+          Already approved?{" "}
+          <a
+            onClick={() => {
+              setError("");
+              setStep("email");
+            }}
+          >
+            Sign in instead
+          </a>
+          .
+        </p>
       </div>
     );
 
@@ -303,15 +432,24 @@ export function SignIn({ onAuthed }) {
       {/* Said here rather than only on the request form, because this is
           where somebody arrives believing they already have an account —
           and the honest answer to "why can't I sign in" is usually that
-          the gate is deliberate, not broken. */}
+          the gate is deliberate, not broken. The other door is a step of
+          this card now, not a link back to the static home. */}
       <p
         className="footnote"
         style={{ margin: "16px 0 0", textWrap: "pretty" }}
       >
-        No account yet? <a href="/#request">Request access</a> — it is granted
-        by hand while the corpus grows, on what you can bring to the beta:
-        playing actively, running a collector, connecting an agent and telling
-        us where it struggles.
+        No account yet?{" "}
+        <a
+          onClick={() => {
+            setError("");
+            setStep("request");
+          }}
+        >
+          Request access
+        </a>{" "}
+        — it is granted by hand while the corpus grows, on what you can bring to
+        the beta: playing actively, running a collector, connecting an agent and
+        telling us where it struggles.
       </p>
     </div>
   );

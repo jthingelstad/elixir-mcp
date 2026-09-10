@@ -371,20 +371,38 @@ test("inline HTML in a doc survives the markdown renderer", { skip }, () => {
   assert.ok(html.slice(open, close).includes("<style>"));
 });
 
-test("the request-access form posts what the API requires", { skip }, () => {
-  // The only interactive thing on the static half. It replaced a React
-  // form, and the API rejects a request without the client marker.
-  // The markup is on the page; the behaviour moved to its own file when
-  // the CSP dropped inline script (#25), so both halves are checked.
+test("asking for access is one door, and it is in the app", { skip }, () => {
+  // The static half used to carry its own copy of the request form —
+  // its own fetch, its own error strings — and it broke silently: the
+  // POST landed, and the success path set `.hidden` on a form with
+  // inline `display: flex` and a `.notice` whose class sets `display`,
+  // neither of which a hidden attribute can beat. Nothing moved on
+  // screen, so a visitor could not tell "sent" from "did nothing".
+  // The form is a step of the app's sign-in card now (2026-09-10):
+  // signing in and asking to are one decision.
   const home = read("index.html");
-  assert.match(home, /id="request-form"/);
-  for (const field of ["email", "player_tag", "note"]) {
-    assert.match(home, new RegExp(`name="${field}"`), `no ${field} field`);
+  assert.ok(
+    !home.includes("request-form"),
+    "the home page still carries the old form",
+  );
+  assert.ok(
+    !existsSync(path.join(out, "assets/request-form.js")),
+    "the old form script is still being built",
+  );
+
+  // Every call to action goes to the one door, deep-linked to the
+  // asking half of it.
+  const TARGET = 'href="/signin?request"';
+  for (const page of ["index.html", "examples/play/index.html"]) {
+    assert.ok(read(page).includes(TARGET), `${page} has no way to ask`);
   }
-  const script = read("assets/request-form.js");
-  assert.match(script, /"\/api\/request-access"/);
-  assert.match(script, /"x-elixir-client": "web"/);
-  assert.match(script, /getElementById\("request-form"\)/);
+  // Two on the home page: the hero and the panel that explains the gate.
+  assert.equal(home.split(TARGET).length - 1, 2);
+
+  // /signin is the app's, and the app is what answers there — if this
+  // ever became a static page the query would land on a document with
+  // no form in it.
+  assert.ok(!existsSync(path.join(out, "signin/index.html")));
 });
 
 // --------------------------------------------------------------- #25
@@ -462,9 +480,11 @@ test("nothing in the built site relies on inline script", { skip }, () => {
       `${page} has an inline <script> the CSP will block`,
     );
   }
-  // The home page's form handler is the one that had to move out.
-  assert.ok(read("index.html").includes("/assets/request-form.js"));
-  assert.ok(existsSync(path.join(out, "assets/request-form.js")));
+  // The pattern that keeps it that way: page behaviour is an external
+  // file. (The home page's form handler was the first to move out; the
+  // form itself has since gone to the app entirely.)
+  assert.ok(read("index.html").includes("/assets/transcript.js"));
+  assert.ok(existsSync(path.join(out, "assets/transcript.js")));
 });
 
 test(

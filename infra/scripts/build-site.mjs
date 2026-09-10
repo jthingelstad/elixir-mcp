@@ -73,6 +73,13 @@ run("npm", ["run", "build"]);
 console.error("building the app (apps/web)...");
 run("npm", ["run", "build", "-w", "@elixir-mcp/web"]);
 
+// Eleventy does not clean its own output, so a page or an asset that has
+// been DELETED from src stays in apps/site/dist and is copied into the
+// merged tree by the step below — uploaded, live, and referenced by
+// nothing. It hid a real defect on 2026-09-10: the access-request form
+// moved into the app, and its script kept being deployed. Clean first,
+// so what ships is what the source says.
+rmSync(siteDist, { recursive: true, force: true });
 console.error("building the static site (apps/site)...");
 run(
   "npm",

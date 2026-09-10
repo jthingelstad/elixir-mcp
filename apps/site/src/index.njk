@@ -23,7 +23,7 @@ navActive: home
       answer comes from the record, with the numbers behind it.
     </p>
     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px">
-      <a class="btn btn--primary" href="#request">Request access</a>
+      <a class="btn btn--primary" href="/signin?request">Request access</a>
       <a class="btn" href="/docs/quickstart">Connect your agent →</a>
     </div>
     <p class="footnote" style="margin: 0">
@@ -166,33 +166,19 @@ navActive: home
     <div style="font-size: 12.5px; color: var(--ink-faint)">
       Access is invite-approved while the recorder grows. Tell us who you are in the arena.
     </div>
-    {#- The one interactive thing on the static half. Its script is
-        /assets/request-form.js - an external file, not an inline
-        block, because the CSP has no script-src 'unsafe-inline'
-        (#25). Progressive enhancement is not available here (there
-        is no non-JS POST target), so it fails loudly rather than
-        silently swallowing a submission. -#}
-    <form id="request-form" style="display: flex; flex-direction: column; gap: 10px">
-      <label>
-        <span class="field-label">Email</span>
-        <input type="email" name="email" required placeholder="you@example.com" />
-      </label>
-      <label>
-        <span class="field-label">Your player tag</span>
-        <input class="mono" name="player_tag" required placeholder="#20JJJ2CCRU" />
-      </label>
-      <label>
-        <span class="field-label">Anything we should know? <span style="color: var(--ink-faint)">(optional)</span></span>
-        <input name="note" />
-      </label>
-      <p class="field-error" id="request-error" hidden></p>
-      <div><button class="btn btn--primary" type="submit">Request access</button></div>
-    </form>
-    <div class="notice" id="request-sent" hidden>
-      If your request is approved, you&rsquo;ll hear from us by email.
+    {#- The FORM LIVES IN THE APP (2026-09-10), on the sign-in card:
+        signing in and asking to are one decision, and this half had a
+        second implementation of the same POST that broke silently -
+        the request landed, and the success path set `.hidden` on a
+        form with inline `display: flex` and on a `.notice` whose class
+        sets `display: flex`, neither of which a `hidden` attribute can
+        beat. Nothing on the page moved. This half posts nothing and
+        holds no form now; the panel says why the gate exists and the
+        button is a link. -#}
+    <div>
+      <a class="btn btn--primary" href="/signin?request">Request access</a>
     </div>
   </div>
 </section>
 
-<script src="/assets/request-form.js" defer></script>
 <script src="/assets/transcript.js" defer></script>
