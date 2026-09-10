@@ -15,9 +15,10 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% for d in collections.docs %}- [{{ d.data.title | safe }}]({{ site.url }}{{ d | pageUrl }}): {{ d.data.description | safe }}
 {% endfor %}- [The corpus]({{ site.url }}/data): what has been recorded, how often each subject is collected, since when and for how long
 - [What's new]({{ site.url }}/updates): every user-visible change, newest first
-{% for g in usecases %}- [Use cases: {{ g.group }}]({{ site.url }}/use-cases/{{ g.cases[0].key }}): {% for c in g.cases %}{{ c.title }}{% if not loop.last %}; {% endif %}{% endfor %}
-{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
-- [Contract changelog]({{ site.url }}/data/changelog): the MCP tool contract version by version, with breaking changes called out
+{% for g in examples %}{% for c in g.cases %}- [Example: {{ c.title }}]({{ site.url }}/examples/{{ c.key }}): {{ c.lede | safe }}
+{% endfor %}{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
+{% for p in familyFlat %}{% if not p.first %}- [Family: {{ p.label }}]({{ site.url }}/family/{{ p.key }}): {{ p.lede | safe }}
+{% endif %}{% endfor %}- [Contract changelog]({{ site.url }}/data/changelog): the MCP tool contract version by version, with breaking changes called out
 
 ## Machine-readable
 - [Full content bundle]({{ site.url }}/llms-full.txt): every documentation page and the whole tool reference in one fetch

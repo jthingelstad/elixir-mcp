@@ -1,10 +1,13 @@
 ---
 slug: operators
 title: "Running a collector"
-navTitle: "Running a collector"
 description: "A collector fetches Clash Royale data for Elixir MCP with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. What you need, how to enroll, and what it earns you."
-order: 50
-section: collector
+section: record
+order: 22
+navTitle: "Run a collector"
+icon: server
+lede: "Volunteer a machine that fetches for the corpus, and what it earns you."
+console: ["Your collector", "/status/collectors", "Console ▸ Collectors"]
 ---
 
 # Running a collector

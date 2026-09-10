@@ -51,16 +51,16 @@ navActive: home
 <section class="home-section" style="margin-top: 20px">
   <div class="home-section__head">
     <h2>What people use it for</h2>
-    <a href="/use-cases/play" style="font-size: 13.5px">All 11 use cases ›</a>
+    <a href="/examples/play" style="font-size: 13.5px">All 11 examples ›</a>
   </div>
   <p style="font-size: 15px; color: var(--ink-dim); margin: 0 0 20px">
     The chips above switch the conversation. Open one for the full walkthrough.
   </p>
   <div style="display: flex; gap: 14px; flex-wrap: wrap">
     {%- set cases = [
-      ["play", "/use-cases/play#play", "Understand your own play", "Which deck is actually winning, where your losses cluster, whether last month's change worked.", "reads your recorded battles and daily snapshots"],
-      ["clan", "/use-cases/clan#clan", "Run your clan", "Who carried the race, who missed attacks, and who needs a word before the next one.", "reads war weeks past the API's 20-week window"],
-      ["friends", "/use-cases/play#friends", "Follow your friends", "Track the people you play with — climbs, deck switches, heavy days, when you last teamed up.", "reads the players you chose to track"]
+      ["play", "/examples/play", "Understand your own play", "Which deck is actually winning, where your losses cluster, whether last month's change worked.", "reads your recorded battles and daily snapshots"],
+      ["clan", "/examples/clan", "Run your clan", "Who carried the race, who missed attacks, and who needs a word before the next one.", "reads war weeks past the API's 20-week window"],
+      ["friends", "/examples/friends", "Follow your friends", "Track the people you play with — climbs, deck switches, heavy days, when you last teamed up.", "reads the players you chose to track"]
     ] %}
     {%- for c in cases %}
     <a class="case-card" href="{{ c[1] }}">

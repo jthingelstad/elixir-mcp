@@ -2413,3 +2413,330 @@ input[aria-invalid="true"] {
   font-weight: 600;
   margin: 0;
 }
+
+/* The rail's head row: section · where you are · count. On a phone it is
+   the disclosure that opens the list; on a desktop it is a title. */
+.siterail__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  margin-bottom: 6px;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: default;
+}
+.siterail__head-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.siterail__head-here {
+  font-size: 13px;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.siterail__head-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.siterail__head-chevron {
+  display: none;
+}
+.siterail__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.siterail__nav .rail__item {
+  gap: 11px;
+}
+.siterail__nav .rail__item > svg {
+  color: inherit;
+}
+.siterail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.siterail__chips a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 9px;
+}
+.siterail__chips a:hover {
+  border-color: var(--accent-deep);
+  color: var(--ink);
+}
+/* "gen" on the Tools item: generated from the registry, never hand-edited. */
+.rail__gen {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.docs-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 11px;
+  margin-bottom: 6px;
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  color: var(--ink-faint);
+  font-size: 13.5px;
+}
+.docs-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+}
+.docs-search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.docs-search kbd {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+/* Docs: article plus the "On this page" outline on the right. */
+.docs-layout {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+.docs-layout .docs__body {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 72ch;
+}
+.docs__onpage {
+  flex: 0 0 172px;
+  position: sticky;
+  top: 24px;
+  font-size: 13px;
+}
+.docs__onpage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-left: 1px solid var(--line-soft);
+  padding-left: 12px;
+}
+.docs__onpage-list a {
+  color: var(--ink-dim);
+}
+.docs__onpage-list a[aria-current] {
+  color: var(--ink);
+  box-shadow: -13px 0 0 -12px var(--accent-bright);
+}
+.docs__onpage-foot {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.docs__crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+.docs__crumb a {
+  color: var(--ink-faint);
+}
+.docs__crumb span {
+  color: var(--ink-body);
+}
+.docs__lede {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink-body);
+  margin: 0 0 24px;
+  text-wrap: pretty;
+}
+.docs__console {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-block);
+  padding: 12px 15px;
+  margin-top: 30px;
+  font-size: 14px;
+  color: var(--ink-body);
+}
+.docs__console > svg {
+  color: var(--accent-bright);
+}
+.docs__console .btn {
+  margin-left: auto;
+}
+/* Rail cards on Examples and Family: "More like this", siblings. */
+.rail-card {
+  flex: 1 1 240px;
+  display: block;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 15px;
+  color: inherit;
+}
+.rail-card:hover {
+  border-color: var(--accent-deep);
+  color: inherit;
+}
+.rail-card__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.rail-card__title > svg {
+  color: var(--accent-bright);
+}
+.rail-card__lede {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.55;
+}
+@media (max-width: 900px) {
+  .siterail__head {
+    height: 44px;
+    margin: 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r-control);
+    cursor: pointer;
+  }
+  .siterail__head-chevron {
+    display: flex;
+  }
+  .siterail__nav[data-open="false"] .siterail__list,
+  .siterail__nav[data-open="false"] .siterail__foot {
+    display: none;
+  }
+  .siterail__nav {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .siterail__nav .rail__item {
+    border-radius: var(--r-control);
+  }
+  .docs-layout {
+    flex-direction: column;
+  }
+  .docs__onpage {
+    position: static;
+    flex: 0 0 auto;
+  }
+}
+
+/* A rail item that is a button (the Updates kind filter) dresses like
+   the links beside it: the rail idiom, not the browser's. */
+.siterail__nav button.rail__item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.siterail__nav button.rail__item--on {
+  font-weight: 600;
+}
+
+/* The footer keeps to the same column as the top bar: full-width rule
+   and ground, content centred inside --page-max. It used to run edge to
+   edge on a wide window while the bar above it stopped at 1280px. */
+.disclaimer {
+  padding-left: max(
+    var(--s-6),
+    calc((100% - var(--page-max)) / 2 + var(--s-6))
+  );
+  padding-right: max(
+    var(--s-6),
+    calc((100% - var(--page-max)) / 2 + var(--s-6))
+  );
+}
+
+/* Third level of the docs rail: one tool under its family. */
+.rail__child--deep {
+  padding-left: 60px;
+  font-size: 12.5px;
+  min-height: 30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+/* Narrow: the rail column stretches its children to the viewport (a
+   column flex with align-items: flex-start sized them to their content,
+   and one wide table pushed the whole page out sideways), and a
+   Markdown table scrolls inside its own box instead. */
+@media (max-width: 900px) {
+  .siterail {
+    align-items: stretch;
+  }
+  .siterail__body {
+    width: 100%;
+    min-width: 0;
+  }
+  .docs__body table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+@media (max-width: 900px) {
+  .docs-layout {
+    align-items: stretch;
+  }
+  .docs-layout .docs__body {
+    width: 100%;
+    max-width: 100%;
+  }
+}

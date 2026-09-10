@@ -15,12 +15,18 @@
     .filter(Boolean);
   if (targets.length === 0) return;
 
+  const here = rail.querySelector("[data-rail-here]");
   function mark(id) {
     for (const a of items) {
       const on = a.getAttribute("href") === "#" + id;
-      a.classList.toggle("rail__item--on", on);
+      // A rail item takes the rail's gold rule; an outline link (the
+      // docs' "On this page") is marked by aria-current alone.
+      if (a.classList.contains("rail__item"))
+        a.classList.toggle("rail__item--on", on);
       if (on) a.setAttribute("aria-current", "location");
       else a.removeAttribute("aria-current");
+      // The head row names where you are, the way the console rail does.
+      if (on && here) here.textContent = a.textContent.trim();
     }
   }
 

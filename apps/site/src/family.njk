@@ -1,123 +1,110 @@
 ---
 layout: base.njk
-title: "The family"
-description: "The POAP KINGS products that read from Elixir MCP — the clan, Elixir Drop, the clan agent, the Discord bot and the Clash Royale API docs — plus the Clash Royale things we like but have nothing to do with."
-permalink: /family/index.html
-canonical: /family
 navActive: family
+pagination:
+  data: familyFlat
+  size: 1
+  addAllPagesToCollections: true
+  alias: p
+permalink: "{{ p | familyPath(p.first) }}"
+eleventyComputed:
+  title: "{{ p.label }}"
+  description: "{{ p.lede }}"
 ---
 {#-
-  Two kinds of group, two bylines, and no cross-selling between them.
+  One page per product, as the design draws it: the rail lists every
+  project under its group with a glyph and marks here / beta / theirs;
+  the page carries the byline, kind and state, the title, the lede, the
+  links (the first external one gold), the screenshot slot, Highlights
+  or Why we like it, How it fits, and three siblings.
 
-  Ours say how they fit the hub. Theirs say plainly that they are not
-  connected to us. Recommending somebody else's work in the same voice
-  you use to sell your own is what makes both of them untrustworthy, so
-  the byline changes per project ("Run by POAP KINGS" / "Not ours"),
-  the second panel's head changes ("How it fits" / "Where it stands"),
-  and the highlights head changes ("Highlights" / "Why we like it").
-
-  The rail lists every project in reading order and marks the one you
-  are standing on, so the hub does not advertise itself.
+  Two kinds of project, two bylines, and no cross-selling between them:
+  ours say how they fit the hub, theirs say plainly that they are not
+  connected to us. Recommending somebody else's work in the voice you
+  use to sell your own is what makes both untrustworthy.
 -#}
-<div class="page-head">
-  <div>
-    <h1 class="hero-title" style="margin-bottom: 6px">The family</h1>
-    <p class="lede" style="margin: 0; max-width: 62ch">
-      Elixir MCP is the hub: it records, and everything else pulls what it
-      needs with its own credential. None of them reaches into another, and
-      none of them holds a Clash Royale key.
-    </p>
-  </div>
-</div>
-
 <div class="siterail">
-  <nav class="siterail__nav" aria-label="Projects">
-    {%- for g in family %}
-    <div class="rail__group">{{ g.group }}</div>
-    {%- for p in g.projects %}
-    <a class="rail__item{% if p.here %} rail__item--on{% endif %}" href="#{{ p.key }}"{% if p.here %} aria-current="page"{% endif %}>
-      {{ p.label }}
-      <span class="rail__meta">
-        {%- if p.here %}here{% elif p.state == "beta" %}beta{% elif p.theirs %}theirs{% endif -%}
-      </span>
-    </a>
-    {%- endfor %}
-    {%- endfor %}
+  <aside class="siterail__nav" data-siterail data-open="false">
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="family-rail">
+      <span class="siterail__head-title">Family</span>
+      <span class="siterail__head-here">{{ p.label }}</span>
+      <span class="siterail__head-meta">{{ p.count }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="family-rail" aria-label="Projects">
+      {%- for g in family %}
+      <div class="rail__group">{{ g.group }}</div>
+      {%- for q in g.projects %}
+      <a class="rail__item{% if q.key == p.key %} rail__item--on{% endif %}" href="{{ q | familyPath(loop.first and g.group == family[0].group) | replace('/index.html', '') | replace('/family/', '/family/') }}"{% if q.key == p.key %} aria-current="page"{% endif %}>
+        {% icon q.icon, 18 %}{{ q.label }}
+        <span class="rail__meta">{% if q.here %}here{% elif q.state == "beta" %}beta{% elif g.theirs %}theirs{% endif %}</span>
+      </a>
+      {%- endfor %}
+      {%- endfor %}
+    </nav>
     <div class="siterail__foot">
-      Each one that is ours reads from the hub with its own credential.
-      <a class="btn btn--sm" href="/docs/architecture#the-shape-of-the-system">How they connect</a>
+      Each one reads from the hub. None of them reaches into another.
     </div>
-  </nav>
+  </aside>
 
   <div class="siterail__body">
-  {%- for g in family %}
-  <section style="margin-top: 8px">
-    <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line)">
-      <h2 style="font-size: 19px; font-weight: 600; margin: 0">{{ g.group }}</h2>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px">
+      <span style="font-size: 12.5px; color: var(--ink-faint)">{% if p.theirs %}Not ours &mdash; we just rate it{% else %}Run by POAP KINGS{% endif %}</span>
+      <span class="tag-chip">{{ p.kind }}</span>
+      <span class="chip {% if p.state == 'live' %}chip--ok{% else %}chip--warn{% endif %}"><span class="chip__dot"></span>{{ p.state }}</span>
+    </div>
+    <h1 class="hero-title" style="font-size: 38px; margin: 0 0 10px">{{ p.label }}</h1>
+    <p class="docs__lede" style="max-width: 62ch; margin-bottom: 22px">{{ p.lede }}</p>
+
+    {%- if p.links and p.links.length %}
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px">
+      {%- for l in p.links %}
+      <a class="btn{% if loop.first and l[1] == 'external' %} btn--primary{% endif %}" href="{{ l[2] }}"{% if l[1] == 'external' %} rel="noopener"{% endif %}>{{ l[0] }} {% icon "arrow-right", 15 %}</a>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+
+    {#- A slot, not an illustration: a described placeholder is honest
+        about a screenshot that does not exist yet, where a drawing of a
+        product nobody has seen is not. -#}
+    <div style="height: 400px; margin-bottom: 18px; border-radius: 16px; border: 1px dashed var(--line); background: var(--panel-float); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--ink-faint)">
+      {% icon "image", 28 %}
+      <span class="footnote">{{ p.shot }}</span>
     </div>
 
-    {%- for p in g.projects %}
-    <article id="{{ p.key }}" style="padding: 22px 0 30px; border-bottom: 1px solid var(--line-row)">
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px">
-        <span class="tag-chip">{{ p.kind }}</span>
-        <span class="chip {% if p.state == 'live' %}chip--ok{% else %}chip--warn{% endif %}"><span class="chip__dot"></span>{{ p.state }}</span>
-        {#- The byline is per project, so a reader skimming one card
-            never has to look up to the group head to learn whose it is. -#}
-        <span class="footnote" style="margin-left: auto">
-          {%- if p.theirs -%}Not ours &mdash; we just rate it{%- else -%}Run by POAP KINGS{%- endif -%}
-        </span>
-      </div>
-      <h3 class="page-title" style="font-size: 26px; margin: 0 0 8px">{{ p.label }}</h3>
-      <p class="lede" style="margin: 0 0 18px; max-width: 62ch; font-size: 16px">{{ p.lede }}</p>
+    <div style="display: flex; gap: 18px; flex-wrap: wrap">
+      <section class="panel" style="flex: 1 1 300px">
+        <div class="panel__head">{% if p.theirs %}Why we like it{% else %}Highlights{% endif %}</div>
+        <div class="panel__body" style="display: flex; flex-direction: column; gap: 11px">
+          {%- for point in p.points %}
+          <span style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--ink-body)">
+            <span style="width: 5px; height: 5px; border-radius: 999px; background: var(--accent-bright); flex: 0 0 auto; margin-top: 7px"></span>{{ point }}
+          </span>
+          {%- endfor %}
+        </div>
+      </section>
+      <section class="panel" style="flex: 1 1 280px">
+        <div class="panel__head">{% if p.theirs %}Where it stands{% else %}How it fits{% endif %}</div>
+        <div class="panel__body" style="font-size: 13.5px; line-height: 1.65; color: var(--ink-body)">{{ p.uses }}</div>
+        {%- if not p.theirs %}
+        <div class="panel__foot">Hub-and-spoke: the hub records, each product pulls what it needs with its own credential.</div>
+        {%- endif %}
+      </section>
+    </div>
 
-      <div style="display: flex; gap: 18px; flex-wrap: wrap">
-        <section class="panel" style="flex: 1 1 300px">
-          <div class="panel__head">{% if p.theirs %}Why we like it{% else %}Highlights{% endif %}</div>
-          <div class="panel__body" style="display: flex; flex-direction: column; gap: 11px">
-            {%- for point in p.points %}
-            <span style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--ink-body)">
-              <span style="width: 5px; height: 5px; border-radius: 999px; background: var(--accent-bright); flex: 0 0 auto; margin-top: 7px"></span>{{ point }}
-            </span>
-            {%- endfor %}
-          </div>
-        </section>
-        <section class="panel" style="flex: 1 1 280px">
-          <div class="panel__head">{% if p.theirs %}Where it stands{% else %}How it fits{% endif %}</div>
-          <div class="panel__body" style="font-size: 13.5px; line-height: 1.65; color: var(--ink-body)">{{ p.uses }}</div>
-          {%- if not p.theirs %}
-          <div class="panel__foot">
-            Hub-and-spoke: the hub records, each product pulls what it needs with
-            its own credential.
-          </div>
-          {%- endif %}
-        </section>
-      </div>
-
-      {#- The links row: the first external link is the gold primary — it
-          is the way to the thing itself — and the rest are quiet. -#}
-      {%- if p.links and p.links.length %}
-      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px">
-        {%- for l in p.links %}
-        <a class="btn{% if loop.first and l[1] == 'external' %} btn--primary{% endif %}" href="{{ l[2] }}"{% if l[1] == 'external' %} rel="noopener"{% endif %}>{{ l[0] }}{% if l[1] == 'external' %} ↗{% endif %}</a>
+    {%- if p.siblings.length %}
+    <div style="margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line-soft)">
+      <div class="label" style="margin-bottom: 12px">{% if p.theirs %}More we like{% else %}Also in the family{% endif %}</div>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap">
+        {%- for s in p.siblings %}
+        <a class="rail-card" href="{{ s | familyPath(s.key == familyFlat[0].key) | replace('/index.html', '') }}">
+          <span class="rail-card__title">{% icon s.icon, 17 %}{{ s.label }}</span>
+          <span class="rail-card__lede">{{ s.lede | truncate(120) }}</span>
+        </a>
         {%- endfor %}
       </div>
-      {%- endif %}
-
-      {#- A slot, not an illustration: a described placeholder is honest
-          about a screenshot that does not exist yet, where a drawing of a
-          product nobody has seen is not. -#}
-      <div style="margin-top: 18px; height: 240px; border-radius: var(--r-panel); border: 1px dashed var(--line); background: var(--ground-sunken); display: flex; align-items: center; justify-content: center">
-        <span class="footnote">{{ p.shot }}</span>
-      </div>
-    </article>
-    {%- endfor %}
-  </section>
-  {%- endfor %}
-
-  <p class="footnote" style="margin: 28px 0 0; max-width: 78ch">
-    Everything above that is ours reads the same recorded history your own agent
-    can read. Start with <a href="/data">the corpus</a>, or
-    <a href="/docs/quickstart">connect an agent</a>.
-  </p>
+    </div>
+    {%- endif %}
   </div>
 </div>
+
+<script defer src="/assets/site-rail.js"></script>

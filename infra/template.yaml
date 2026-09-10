@@ -1114,7 +1114,7 @@ Resources:
           '/updates': 1,
           '/data/changelog': 1
         };
-        var STATIC_PREFIXES = ['/docs/', '/use-cases/'];
+        var STATIC_PREFIXES = ['/docs/', '/examples/', '/family/'];
 
         function handler(event) {
           var request = event.request;

@@ -1,0 +1,98 @@
+---
+layout: base.njk
+navActive: examples
+pagination:
+  data: examplesFlat
+  size: 1
+  addAllPagesToCollections: true
+  alias: ex
+permalink: "/examples/{{ ex.key }}/index.html"
+eleventyComputed:
+  title: "{{ ex.title }}"
+  description: "{{ ex.lede }}"
+---
+{#-
+  One example per page, as the design draws it: a rail of all eleven
+  under their three headings with the one you are reading marked, a
+  breadcrumb, the title in the display face, the lede, the transcript
+  typed live with the tools it called linked to their reference, what
+  it reads, the steps to set it up as buttons that go somewhere real, a
+  gold Request access, and three more like it.
+
+  Every tool named under a window is in the registry — the build links
+  each one to its own heading and a test refuses a name it does not know.
+-#}
+<div class="siterail">
+  <aside class="siterail__nav" data-siterail data-open="false">
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="examples-rail">
+      <span class="siterail__head-title">Examples</span>
+      <span class="siterail__head-here">{{ ex.label }}</span>
+      <span class="siterail__head-meta">{{ ex.count }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="examples-rail" aria-label="Examples">
+      {%- for g in examples %}
+      <div class="rail__group">{{ g.group }}</div>
+      {%- for c in g.cases %}
+      <a class="rail__item{% if c.key == ex.key %} rail__item--on{% endif %}" href="/examples/{{ c.key }}"{% if c.key == ex.key %} aria-current="page"{% endif %}>{% icon c.icon, 18 %}{{ c.label }}</a>
+      {%- endfor %}
+      {%- endfor %}
+    </nav>
+    <div class="siterail__foot">
+      Every example runs against recorded history. <a href="/data">See the corpus ›</a>
+    </div>
+  </aside>
+
+  <div class="siterail__body">
+    <div class="docs__crumb">
+      <a href="/examples/play">Examples</a><span aria-hidden="true">/</span><span>{{ ex.group }}</span>
+    </div>
+    <h1 class="hero-title" style="font-size: 38px; margin: 0 0 10px">{{ ex.title }}</h1>
+    <p class="docs__lede" style="max-width: 60ch; margin-bottom: 22px">{{ ex.lede | safe }}</p>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+      {%- if ex.script %}
+      <div style="flex: 1 1 480px; min-width: 300px">
+        {%- set scripts = [{ key: ex.key, label: ex.label, tool: ex.script.tool, lines: ex.script.lines }] %}
+        {% include "transcript.njk" %}
+      </div>
+      {%- endif %}
+
+      <div style="flex: 1 1 260px; min-width: 240px; display: flex; flex-direction: column; gap: 14px">
+        <section class="panel">
+          <div class="panel__head">What it reads</div>
+          <div class="panel__body" style="display: flex; flex-direction: column; gap: 8px">
+            {%- for r in ex.reads %}
+            <span style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; line-height: 1.55; color: var(--ink-body)">
+              <span style="width: 5px; height: 5px; border-radius: 999px; background: var(--accent-bright); flex: 0 0 auto; margin-top: 7px"></span>{{ r | safe }}
+            </span>
+            {%- endfor %}
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel__head">To set this up</div>
+          <div class="panel__body" style="display: flex; flex-direction: column; gap: 9px">
+            {%- for step in ex.setup %}
+            <a class="btn" style="justify-content: space-between" href="{{ step | setupHref }}">{{ step | safe }} {% icon "arrow-right", 15 %}</a>
+            {%- endfor %}
+          </div>
+        </section>
+        <a class="btn btn--primary" style="justify-content: center" href="/#request">{% icon "user-plus", 16 %}Request access</a>
+      </div>
+    </div>
+
+    <div style="margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line-soft)">
+      <div class="label" style="margin-bottom: 12px">More like this</div>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap">
+        {%- for r in ex.related %}
+        <a class="rail-card" href="/examples/{{ r.key }}">
+          <span class="rail-card__title">{% icon r.icon, 17 %}{{ r.title }}</span>
+          <span class="rail-card__lede">{{ r.lede | safe | truncate(110) }}</span>
+        </a>
+        {%- endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer src="/assets/site-rail.js"></script>
+<script defer src="/assets/transcript.js"></script>

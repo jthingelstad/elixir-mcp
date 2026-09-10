@@ -1,10 +1,12 @@
 ---
 slug: terms
 title: "Terms"
-navTitle: "Terms"
 description: "Elixir MCP is free and unofficial. The terms covering use, the Supercell Fan Content Policy, data, availability, and account removal."
-order: 61
-section: policies
+section: policy
+order: 32
+navTitle: "Terms"
+icon: scale
+lede: "The short version: unofficial, best effort, be decent."
 ---
 
 # Terms

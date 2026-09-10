@@ -46,7 +46,7 @@ import { ErrorBoundary } from "./ErrorBoundary.jsx";
 export const STATIC_LINKS = {
   home: "/",
   data: "/data",
-  useCases: "/use-cases/play",
+  examples: "/examples/play",
   docs: "/docs",
   updates: "/updates",
   family: "/family",
@@ -55,11 +55,11 @@ export const STATIC_LINKS = {
 
 /** The top bar. Identical in both builds by construction: it names only
  *  pages that exist on both sides of the split and carries no session.
- *  The design's Use cases and Family tabs arrive with those pages. */
+ *  The design's Examples and Family tabs arrive with those pages. */
 const CHROME_TABS = [
   ["Home", "/"],
   ["Data", "/data"],
-  ["Use cases", "/use-cases/play"],
+  ["Examples", "/examples/play"],
   ["Updates", "/updates"],
   ["Docs", "/docs"],
   ["Family", "/family"],

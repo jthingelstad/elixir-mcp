@@ -1,10 +1,13 @@
 ---
 slug: events
 title: "Events and the clan pulse"
-navTitle: "Events & the pulse"
 description: "The push lane: elixir_events arguments and cursor semantics, every topic with the payload fields a reader may rely on, who is subscribed to what, the daily clan pulse digest, and why a second consumer must keep its own cursor."
-order: 32
-section: reference
+section: using
+order: 16
+navTitle: "Events"
+icon: bell
+lede: "Notifications, the event feed, and what an agent can raise."
+console: ["Your feed", "/account/activity", "Console ▸ Activity"]
 ---
 
 # Events and the clan pulse

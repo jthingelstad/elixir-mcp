@@ -1,10 +1,13 @@
 ---
 slug: recording
 title: "Recording and coverage"
-navTitle: "Recording & coverage"
 description: "What is recorded when you add a player or a clan, how one recording is shared by everyone who wants it, what activity and comprehensive scope poll, how often each subject is fetched, how to read freshness and completeness, and what live_fetch can reach."
-order: 40
-section: data
+section: start
+order: 3
+navTitle: "Recording"
+icon: radar
+lede: "What Elixir captures, how often, and why an answer is never a live scrape."
+console: ["Your tracked players and clans, and their freshness", "/account/tracking", "Console ▸ Tracking"]
 ---
 
 # Recording and coverage

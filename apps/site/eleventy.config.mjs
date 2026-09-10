@@ -19,6 +19,8 @@
  */
 import path from "node:path";
 import { createRequire } from "node:module";
+import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 
 const require = createRequire(import.meta.url);
 
@@ -48,6 +50,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
   eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");
   eleventyConfig.addPassthroughCopy("src/assets/updates-filter.js");
+  eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
 
   /** The site's canonical URL for a page: no /index.html, and no
    *  trailing slash. That is the spelling the previous sitemap
@@ -82,11 +85,9 @@ export default function (eleventyConfig) {
    */
   const SECTIONS = [
     ["start", "Start here"],
-    ["connections", "Connections"],
-    ["reference", "Reference"],
-    ["data", "The data"],
-    ["collector", "Run a collector"],
-    ["policies", "Policies"],
+    ["using", "Using it"],
+    ["record", "The record"],
+    ["policy", "Policy"],
   ];
   eleventyConfig.addCollection("docSections", (api) => {
     const pages = api
@@ -105,6 +106,84 @@ export default function (eleventyConfig) {
       pages: pages.filter((p) => p.data.section === key),
     })).filter((s) => s.pages.length > 0);
   });
+
+  /**
+   * A Lucide glyph, inlined from the package at build time.
+   *
+   * The design draws every rail with Lucide and the console uses
+   * lucide-react; the static half has no React, so it reads the same
+   * icons out of lucide-static — the package, not copies of it. Stroke
+   * and size are pinned here so two icons in one row cannot disagree,
+   * and every icon is aria-hidden: it decorates a text label and never
+   * carries meaning alone. An unknown name fails the build.
+   */
+  const iconDir = path.join(
+    path.dirname(require.resolve("lucide-static/package.json")),
+    "icons",
+  );
+  const iconCache = new Map();
+  eleventyConfig.addShortcode("icon", (name, size = 18) => {
+    if (!iconCache.has(name)) {
+      const file = path.join(iconDir, `${name}.svg`);
+      if (!existsSync(file)) throw new Error(`icon "${name}" is not in Lucide`);
+      const body = readFileSync(file, "utf8")
+        .replace(/<!--[\s\S]*?-->\s*/g, "")
+        .replace(/<svg[\s\S]*?>/, "")
+        .replace(/<\/svg>\s*$/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      iconCache.set(name, body);
+    }
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto">${iconCache.get(name)}</svg>`;
+  });
+
+  /** The H2 headings of a rendered page, for the docs rail's children
+   *  and the "On this page" outline: [{ id, text }]. */
+  eleventyConfig.addFilter("headings", (html, level = 2) => {
+    const re = new RegExp(
+      `<h${level} id="([^"]+)">([\\s\\S]*?)<\\/h${level}>`,
+      "g",
+    );
+    return [...String(html ?? "").matchAll(re)].map((m) => ({
+      id: m[1],
+      text: m[2].replace(/<[^>]+>/g, ""),
+    }));
+  });
+  /** A doc's body without its own H1: the layout draws the title in
+   *  the display face with the page's lede under it, so the markdown's
+   *  heading would repeat it. */
+  eleventyConfig.addFilter("withoutH1", (html) =>
+    String(html ?? "").replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/, ""),
+  );
+  /** When a source file last changed, from git — the "Updated" line
+   *  under the outline. A file git does not know yet reads as today. */
+  const updatedCache = new Map();
+  eleventyConfig.addFilter("updated", (inputPath) => {
+    const key = String(inputPath ?? "");
+    if (!updatedCache.has(key)) {
+      let stamp = "";
+      try {
+        stamp = execFileSync("git", ["log", "-1", "--format=%cs", "--", key], {
+          encoding: "utf8",
+        }).trim();
+      } catch {
+        stamp = "";
+      }
+      updatedCache.set(key, stamp || new Date().toISOString().slice(0, 10));
+    }
+    return updatedCache.get(key);
+  });
+  /** Where a source file is edited: the public repository, on main. */
+  eleventyConfig.addFilter(
+    "editUrl",
+    (inputPath) =>
+      `https://github.com/jthingelstad/elixir-mcp/blob/main/apps/site/${String(inputPath ?? "").replace(/^\.\//, "")}`,
+  );
+  /** A project's page: the first one is /family itself, the rest sit
+   *  under it. One document per product, the way the design draws it. */
+  eleventyConfig.addFilter("familyPath", (p, first) =>
+    first ? "/family/index.html" : `/family/${p.key}/index.html`,
+  );
 
   eleventyConfig.addFilter("number", (n) =>
     typeof n === "number" ? n.toLocaleString("en-US") : "—",

@@ -1,10 +1,13 @@
 ---
 slug: connections
 title: "Users, agents and integrations"
-navTitle: "Users, agents & integrations"
 description: "Three kinds of connection to Elixir MCP, what each one is for, and which you want. A user is you. An agent acts for a clan. An integration serves its own users."
-order: 20
-section: connections
+section: using
+order: 14
+navTitle: "Connections"
+icon: plug
+lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
+console: ["Manage your clients", "/account/connections", "Console ▸ Connections"]
 ---
 
 # Users, agents and integrations

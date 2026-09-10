@@ -33,13 +33,17 @@
       }
       h.hidden = !any;
     }
-    if (title) {
-      const label = buttons
-        .find((b) => b.dataset.kind === kind)
-        ?.firstChild?.textContent?.trim();
+    const label = buttons
+      .find((b) => b.dataset.kind === kind)
+      ?.textContent.replace(/\d+\s*$/, "")
+      .trim();
+    if (title)
       title.textContent =
         kind === "all" ? "Updates" : "Updates · " + (label ?? kind);
-    }
+    // The head row names the filter, the way the console rail names
+    // where you are.
+    const here = rail.querySelector("[data-updates-here]");
+    if (here) here.textContent = label ?? "Everything";
   }
 
   for (const b of buttons)

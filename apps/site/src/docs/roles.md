@@ -1,10 +1,13 @@
 ---
 slug: roles
 title: "Roles and quotas"
-navTitle: "Roles"
 description: "Roles never gate what you can read. Every approved account reads all recorded game data; tiers set how much Elixir MCP records for you and how many calls your agent gets per day."
-order: 22
-section: connections
+section: policy
+order: 30
+navTitle: "Roles & tiers"
+icon: shield-check
+lede: "What each tier records for you — never what you may read."
+console: ["Your tier", "/account/settings", "Console ▸ Settings"]
 ---
 
 # Roles and quotas

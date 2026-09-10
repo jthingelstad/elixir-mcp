@@ -92,7 +92,7 @@ export default [
         uses: "A first-class agent principal: its own door, its own key, its own event feed.",
         links: [
           ["See how agents work", "docs", "/docs/agents"],
-          ["Answer your clanmates", "case", "/use-cases/discord#discord"],
+          ["Answer your clanmates", "case", "/examples/discord"],
         ],
       },
       {
@@ -165,7 +165,7 @@ export default [
         uses: "You are here.",
         links: [
           ["The corpus", "data", "/data"],
-          ["Use cases", "cases", "/use-cases/play"],
+          ["Examples", "cases", "/examples/play"],
         ],
       },
     ],

@@ -36,9 +36,24 @@ const STATIC_PAGES = [
   "/",
   "/data",
   "/family",
-  "/use-cases/play",
-  "/use-cases/clan",
-  "/use-cases/discord",
+  "/examples/play",
+  "/examples/deck",
+  "/examples/ladder",
+  "/examples/friends",
+  "/examples/clan",
+  "/examples/roster",
+  "/examples/scout",
+  "/examples/recap",
+  "/examples/discord",
+  "/examples/publish",
+  "/examples/collector",
+  "/family/drop",
+  "/family/agent",
+  "/family/discord",
+  "/family/crdocs",
+  "/family/mcp",
+  "/family/royaledle",
+  "/family/royaleapi",
   "/docs",
   "/docs/about",
   "/docs/quickstart",
@@ -518,9 +533,9 @@ test(
     );
     const pages = [
       "index.html",
-      "use-cases/play/index.html",
-      "use-cases/clan/index.html",
-      "use-cases/discord/index.html",
+      ...STATIC_PAGES.filter((p) => p.startsWith("/examples/")).map(
+        (p) => `${p.slice(1)}/index.html`,
+      ),
     ];
     let seen = 0;
     for (const rel of pages) {
@@ -549,27 +564,28 @@ test(
 
 test("every family project has somewhere to go", { skip }, () => {
   // /family described eight products and linked to none of them: the
-  // data carried the links and the template never rendered them.
+  // data carried the links and the template never rendered them. One
+  // page per product now, each linking to the thing itself.
   const html = read("family/index.html");
-  for (const label of ["POAP KINGS", "Elixir Drop", "Royaledle", "RoyaleAPI"]) {
-    assert.ok(html.includes(label), `family page lost ${label}`);
-  }
-  for (const href of [
-    "https://poapkings.com",
-    "https://drop.poapkings.com",
-    "https://royaledle.org",
-    "https://royaleapi.com",
-    "/docs/agents",
-  ]) {
+  for (const label of ["POAP KINGS", "Elixir Drop", "Royaledle", "RoyaleAPI"])
+    assert.ok(html.includes(label), `the family rail lost ${label}`);
+  for (const [rel, href] of [
+    ["family/index.html", "https://poapkings.com"],
+    ["family/drop/index.html", "https://drop.poapkings.com"],
+    ["family/agent/index.html", "/docs/agents"],
+    ["family/royaledle/index.html", "https://royaledle.org"],
+    ["family/royaleapi/index.html", "https://royaleapi.com"],
+  ])
     assert.ok(
-      html.includes(`href="${href}"`),
-      `family page has no link to ${href}`,
+      read(rel).includes(`href="${href}"`),
+      `${rel} has no link to ${href}`,
     );
-  }
   // Third-party projects carry their own byline, never ours.
-  const theirs = html.slice(html.indexOf('id="royaledle"'));
+  const theirs = read("family/royaledle/index.html");
   assert.match(theirs, /Not ours/);
-  assert.doesNotMatch(theirs.slice(0, 1200), /Run by POAP KINGS/);
+  assert.doesNotMatch(theirs, /Run by POAP KINGS/);
+  assert.match(theirs, /More we like/);
+  assert.match(read("family/drop/index.html"), /Also in the family/);
 });
 
 test(

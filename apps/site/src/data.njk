@@ -20,18 +20,25 @@ navActive: data
   {#- Data stays ONE document: a reader comparing totals against the
       growth curve should not have to navigate. So the rail scrolls
       rather than swapping views; rail-anchors.js marks where you are. -#}
-  <nav class="siterail__nav" aria-label="On this page" data-rail-anchors>
-    <div class="rail__group">On this page</div>
-    <a class="rail__item" href="#totals">Corpus totals</a>
-    <a class="rail__item" href="#growth">Growth over time</a>
-    <a class="rail__item" href="#collect">What we collect</a>
-    <a class="rail__item" href="#now">Recording now</a>
-    <a class="rail__item" href="#machines">For machines</a>
+  <aside class="siterail__nav" data-siterail data-open="false" data-rail-anchors>
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="data-rail">
+      <span class="siterail__head-title">Data</span>
+      <span class="siterail__head-here" data-rail-here>Corpus totals</span>
+      <span class="siterail__head-meta">5<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="data-rail" aria-label="On this page">
+      <div class="rail__group">On this page</div>
+      <a class="rail__item" href="#totals">{% icon "chart-column", 18 %}Corpus totals</a>
+      <a class="rail__item" href="#growth">{% icon "trending-up", 18 %}Growth over time</a>
+      <a class="rail__item" href="#collect">{% icon "radar", 18 %}What we collect</a>
+      <a class="rail__item" href="#now">{% icon "radio", 18 %}Recording now</a>
+      <a class="rail__item" href="#machines">{% icon "braces", 18 %}For machines</a>
+    </nav>
     <div class="siterail__foot">
-      <a class="btn btn--sm" href="/data/changelog">Contract changelog</a>
-      <a class="btn btn--sm" href="/status/service">Status console</a>
+      <a class="btn btn--sm" href="/data/changelog">{% icon "file-text", 14 %}Contract changelog</a>
+      <a class="btn btn--sm" href="/status/service">{% icon "gauge", 14 %}Status console</a>
     </div>
-  </nav>
+  </aside>
 
   <div class="siterail__body">
 <div class="page-head" style="align-items: flex-end">
@@ -226,3 +233,4 @@ navActive: data
 
 <script defer src="/assets/data-live.js"></script>
 <script defer src="/assets/rail-anchors.js"></script>
+<script defer src="/assets/site-rail.js"></script>

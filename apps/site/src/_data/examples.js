@@ -1,5 +1,6 @@
 /**
- * Eleven use cases, each a real page.
+ * Eleven examples, each a real page (the design's "use cases"; Jamie
+ * renamed the section Examples on 2026-09-10).
  *
  * The transcript is the point of every one: what somebody actually asks,
  * what the agent answers, and the citation under the answer saying what
@@ -16,8 +17,8 @@ export default [
     cases: [
       {
         key: "play",
-        label: "Understand your play",
         icon: "trending-up",
+        label: "Understand your play",
         title: "Understand your own play",
         lede: "Not “you won 61%” — which deck, which matchup, which minute of the match, and whether last month's change actually worked.",
         reads: [
@@ -53,8 +54,8 @@ export default [
       },
       {
         key: "deck",
-        label: "Pick your next deck",
         icon: "layers",
+        label: "Pick your next deck",
         title: "Pick your next deck",
         lede: "What is winning at your trophy range, weighted by recorded results rather than by how often you see it on a stream.",
         reads: [
@@ -81,8 +82,8 @@ export default [
       },
       {
         key: "ladder",
-        label: "Push with evidence",
         icon: "trophy",
+        label: "Push with evidence",
         title: "Push with evidence",
         lede: "Trophy pushes fail for boring, findable reasons. A record of every session makes the pattern visible instead of anecdotal.",
         reads: [
@@ -109,8 +110,8 @@ export default [
       },
       {
         key: "friends",
-        label: "Follow your friends",
         icon: "users",
+        label: "Follow your friends",
         title: "Follow your friends",
         lede: "The people you play with, tracked because you asked — climbs, deck switches, heavy days, and when you last teamed up.",
         reads: [
@@ -151,8 +152,8 @@ export default [
     cases: [
       {
         key: "clan",
-        label: "Win your river race",
         icon: "swords",
+        label: "Win your river race",
         title: "Win your river race",
         lede: "Fame by member, attacks used by day, and the corrected history of races the game's own API has already forgotten.",
         reads: [
@@ -188,8 +189,8 @@ export default [
       },
       {
         key: "roster",
-        label: "Keep the roster healthy",
         icon: "heart-pulse",
+        label: "Keep the roster healthy",
         title: "Keep the roster healthy",
         lede: "Who is drifting away, who is carrying, and who joined and never got going — before it shows up as a lost race.",
         reads: [
@@ -216,8 +217,8 @@ export default [
       },
       {
         key: "scout",
-        label: "Scout the other clan",
         icon: "binoculars",
+        label: "Scout the other clan",
         title: "Scout the other clan",
         lede: "Any clan Elixir has recorded can be read by anyone. Reading is universal — a tier only changes what we record for you.",
         reads: [
@@ -244,8 +245,8 @@ export default [
       },
       {
         key: "recap",
-        label: "Write the weekly recap",
         icon: "pen-line",
+        label: "Write the weekly recap",
         title: "Write the weekly recap",
         lede: "The numbers are already recorded; the writing is the only work. Your agent drafts it and you paste it into clan chat.",
         reads: [
@@ -277,8 +278,8 @@ export default [
     cases: [
       {
         key: "discord",
-        label: "Answer your clanmates",
         icon: "bot",
+        label: "Answer your clanmates",
         title: "Answer your clanmates",
         lede: "An agent acts for one clan rather than for you: its own door, its own key, its own feed — and a map from a Discord id to a player tag.",
         reads: [
@@ -305,8 +306,8 @@ export default [
       },
       {
         key: "publish",
-        label: "Publish your own stats",
         icon: "share-2",
+        label: "Publish your own stats",
         title: "Publish your own stats",
         lede: "Build a clan site or a bot on the record instead of on a second Clash key. Pull at build time; no scraping, no push.",
         reads: [
@@ -333,8 +334,8 @@ export default [
       },
       {
         key: "collector",
-        label: "Run a collector",
         icon: "server",
+        label: "Run a collector",
         title: "Run a collector",
         lede: "Volunteer a machine that fetches for the corpus. It is named for a card, credited to you, and it raises what Elixir records for you.",
         reads: [

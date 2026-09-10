@@ -17,29 +17,36 @@ navActive: updates
 {%- set contract = updatesView | ofKind("contract") %}
 {%- set retired = updatesView | ofKind("retired") %}
 <div class="siterail">
-  <nav class="siterail__nav" aria-label="Updates" data-updates-rail>
+  <aside class="siterail__nav" data-siterail data-open="false" data-updates-rail>
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="updates-rail">
+      <span class="siterail__head-title">Updates</span>
+      <span class="siterail__head-here" data-updates-here>Everything</span>
+      <span class="siterail__head-meta">{{ updatesView.length }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="updates-rail" aria-label="Updates">
     <div class="rail__group">By kind</div>
-    <button type="button" class="rail__item rail__item--on" data-kind="all" aria-pressed="true">Everything <span class="rail__meta">{{ updatesView.length }}</span></button>
+    <button type="button" class="rail__item rail__item--on" data-kind="all" aria-pressed="true">{% icon "list", 18 %}Everything <span class="rail__meta">{{ updatesView.length }}</span></button>
     {#- A kind with nothing in it is not offered: a filter that empties
         the page is a dead end, not a choice. -#}
     {%- if shipped.length %}
-    <button type="button" class="rail__item" data-kind="shipped" aria-pressed="false">Shipped <span class="rail__meta">{{ shipped.length }}</span></button>
+    <button type="button" class="rail__item" data-kind="shipped" aria-pressed="false">{% icon "check-check", 18 %}Shipped <span class="rail__meta">{{ shipped.length }}</span></button>
     {%- endif %}
     {%- if contract.length %}
-    <button type="button" class="rail__item" data-kind="contract" aria-pressed="false">Contract <span class="rail__meta">{{ contract.length }}</span></button>
+    <button type="button" class="rail__item" data-kind="contract" aria-pressed="false">{% icon "file-code", 18 %}Contract <span class="rail__meta">{{ contract.length }}</span></button>
     {%- endif %}
     {%- if retired.length %}
-    <button type="button" class="rail__item" data-kind="retired" aria-pressed="false">Retired <span class="rail__meta">{{ retired.length }}</span></button>
+    <button type="button" class="rail__item" data-kind="retired" aria-pressed="false">{% icon "archive", 18 %}Retired <span class="rail__meta">{{ retired.length }}</span></button>
     {%- endif %}
     <div class="rail__group">Archive</div>
     {%- for m in months %}
-    <a class="rail__item" href="#{{ m.key }}">{{ m.label }} <span class="rail__meta">{{ m.items.length }}</span></a>
+    <a class="rail__item" href="#{{ m.key }}">{% icon "calendar-days", 18 %}{{ m.label }} <span class="rail__meta">{{ m.items.length }}</span></a>
     {%- endfor %}
+    </nav>
     <div class="siterail__foot">
-      <a class="btn btn--sm" href="/feed.xml" title="Subscribe to Elixir MCP updates">Subscribe (RSS)</a>
-      <a class="btn btn--sm" href="/data/changelog">Contract changelog</a>
+      <a class="btn btn--sm" href="/feed.xml" title="Subscribe to Elixir MCP updates">{% icon "rss", 14 %}Subscribe</a>
+      <a class="btn btn--sm" href="/data/changelog">{% icon "file-text", 14 %}Contract changelog</a>
     </div>
-  </nav>
+  </aside>
 
   <div class="siterail__body">
     <h1 class="hero-title" style="margin-bottom: 6px" data-updates-title>Updates</h1>
@@ -73,3 +80,4 @@ navActive: updates
 </div>
 
 <script defer src="/assets/updates-filter.js"></script>
+<script defer src="/assets/site-rail.js"></script>
