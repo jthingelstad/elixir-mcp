@@ -1,0 +1,143 @@
+<!--
+  The source of src/assets/og.png, the share image every page names in
+  og:image. Tokens are copied from packages/design/styles.css. To
+  re-render after a change (headless Chrome, from this directory):
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --virtual-time-budget=3000 --screenshot=src/assets/og.png "file://$PWD/og-card.html"
+
+  1200x630 is the size every network renders at full width; a test
+  pins it. The display face is Supercell's, under the Fan Content
+  Policy, as everywhere else on the site.
+-->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Clash Royale";
+        src: url("../web/public/assets/fonts/Clash_Regular.otf")
+          format("opentype");
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        background: #0c0920;
+        background-image: radial-gradient(
+          70rem 34rem at 60% -14rem,
+          #191140,
+          #0c0920
+        );
+        font-family:
+          Inter,
+          -apple-system,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        color: #faf8ff;
+        position: relative;
+      }
+      .card {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        gap: 56px;
+        padding: 0 96px;
+        box-sizing: border-box;
+      }
+      .mark {
+        flex: 0 0 auto;
+        width: 220px;
+        height: 220px;
+      }
+      .text {
+        min-width: 0;
+      }
+      .word {
+        font-family: "Clash Royale", serif;
+        font-size: 96px;
+        line-height: 1;
+        background: linear-gradient(180deg, #ffe99a, #f5c84c);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        letter-spacing: 0.5px;
+      }
+      .tag {
+        margin-top: 22px;
+        font-size: 40px;
+        font-weight: 600;
+        color: #faf8ff;
+        letter-spacing: -0.2px;
+      }
+      .sub {
+        margin-top: 14px;
+        font-size: 28px;
+        color: #bdb4e2;
+      }
+      .foot {
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        bottom: 44px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 22px;
+        color: #a29ad0;
+        letter-spacing: 0.3px;
+      }
+      .rule {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #6d28d9, #8b5cf6 40%, #f5c84c);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="rule"></div>
+    <div class="card">
+      <svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffe99a" />
+            <stop offset="1" stop-color="#f5c84c" />
+          </linearGradient>
+        </defs>
+        <circle
+          cx="256"
+          cy="256"
+          r="218"
+          fill="none"
+          stroke="#5b2fe0"
+          stroke-width="30"
+        />
+        <rect
+          x="148"
+          y="148"
+          width="216"
+          height="216"
+          rx="6"
+          transform="rotate(45 256 256)"
+          fill="url(#g)"
+        />
+      </svg>
+      <div class="text">
+        <div class="word">Elixir MCP</div>
+        <div class="tag">Clash Royale history, recorded.</div>
+        <div class="sub">Served to your own AI agent over MCP.</div>
+      </div>
+    </div>
+    <div class="foot">
+      <span>elixir.poapkings.com</span><span>a POAP KINGS product</span>
+    </div>
+  </body>
+</html>

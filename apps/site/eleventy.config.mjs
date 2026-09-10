@@ -51,6 +51,8 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");
   eleventyConfig.addPassthroughCopy("src/assets/updates-filter.js");
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
+  // The share image every page's og:image and twitter:image name.
+  eleventyConfig.addPassthroughCopy("src/assets/og.png");
 
   /** The site's canonical URL for a page: no /index.html, and no
    *  trailing slash. That is the spelling the previous sitemap

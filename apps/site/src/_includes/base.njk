@@ -10,6 +10,18 @@
     <meta property="og:description" content="{{ description | esc }}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="{{ site.url }}{{ page | pageUrl }}" />
+    <meta property="og:site_name" content="{{ site.name }}" />
+    {#- One share image for the site; the title and description above
+        are the per-page half of the card. 1200x630, the size every
+        network renders at full width. -#}
+    <meta property="og:image" content="{{ site.url }}/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="{{ site.name }}: {{ site.tagline }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ title }} - {{ site.name }}" />
+    <meta name="twitter:description" content="{{ description | esc }}" />
+    <meta name="twitter:image" content="{{ site.url }}/assets/og.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

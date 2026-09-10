@@ -141,6 +141,7 @@ for (const required of [
   "tools.json",
   "feed.xml",
   "assets/site.css",
+  "assets/og.png",
 ]) {
   if (!files.has(required)) problems.push(`${required} is missing`);
 }

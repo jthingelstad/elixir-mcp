@@ -116,9 +116,26 @@ test(
         ),
         `${page} has a wrong or missing canonical link`,
       );
+      // A shared link renders a card from these; a page without them
+      // shares as a bare URL.
+      for (const tag of [
+        '<meta property="og:title" content="',
+        '<meta property="og:description" content="',
+        '<meta property="og:image" content="https://elixir.poapkings.com/assets/og.png"',
+        '<meta name="twitter:card" content="summary_large_image"',
+      ])
+        assert.ok(html.includes(tag), `${page} lacks ${tag}`);
     }
   },
 );
+
+test("the share image is a 1200x630 PNG", { skip }, () => {
+  const png = readFileSync(path.join(out, "assets/og.png"));
+  assert.equal(png.subarray(1, 4).toString(), "PNG");
+  // IHDR: width and height are the two big-endian uint32s at 16 and 20.
+  assert.equal(png.readUInt32BE(16), 1200);
+  assert.equal(png.readUInt32BE(20), 630);
+});
 
 test("no two pages share a title or description", { skip }, () => {
   const seen = new Map();
