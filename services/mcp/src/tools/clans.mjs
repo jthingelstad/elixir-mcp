@@ -7,7 +7,7 @@ import {
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { formatLocal } from "../time.mjs";
-import { ToolFailure, entitledClan } from "./shared.mjs";
+import { ToolFailure, entitledClan, buildMeta } from "./shared.mjs";
 
 import {
   LEVEL_EDGES_SQL,
@@ -279,7 +279,9 @@ export const clansTools = {
             elder: row?.elders ?? 0,
             member: row?.members ?? 0,
           },
-          meta: responseMeta({ as_of: new Date().toISOString() }),
+          // The clan's own poll clock, not a bare as_of: a roster with no
+          // freshness read as "never polled" on every console record.
+          meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"]),
         };
       }
 
@@ -352,12 +354,12 @@ export const clansTools = {
           ...(tz ? { at_local: formatLocal(e.window_end, tz) } : {}),
           detail: e.payload,
         })),
-        meta: responseMeta({
-          as_of: new Date().toISOString(),
+        meta: {
+          ...(await buildMeta(ctx.db, ctx.account, clanTag, ["clan"])),
           ...(ctx.account.timezone
             ? { timezone_applied: ctx.account.timezone }
             : {}),
-        }),
+        },
       };
     },
   },

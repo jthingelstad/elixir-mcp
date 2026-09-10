@@ -75,7 +75,9 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
-                r.status as recording_status, r.scope as effective_scope
+                r.status as recording_status, r.scope as effective_scope,
+                (select count(*)::int from clan_membership cm
+                  where cm.clan_tag = ac.clan_tag and cm.left_observed_at is null) as member_count
          from account_clan ac
          left join clan c on c.clan_tag = ac.clan_tag
          left join recording r on r.subject_type = 'clan'

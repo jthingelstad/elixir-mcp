@@ -42,7 +42,14 @@ export function accountRoutes({
                   (select count(*)::int from api_receipt ar
                    where ar.entity_key = r.subject_tag
                      and ar.fetched_at > now() - interval '24 hours') as fetches_24h
-         from recording r where r.requested_by = $1 and r.subject_type = 'player'`,
+         from recording r
+         where (r.requested_by = $1 and r.subject_type = 'player')
+            -- The clans this account tracks, whoever first asked for them:
+            -- Tracking shows one freshness column over both kinds, and a
+            -- clan row with no recording read as "off" however live it was.
+            or (r.subject_type = 'clan' and r.status = 'active'
+                and r.subject_tag in (select clan_tag from account_clan
+                                       where account_id = $1))`,
         [account.accountId],
       );
       const { rows: ent } = await db.query(
@@ -64,8 +71,33 @@ export function accountRoutes({
       const e = ent[0];
       const q = roleQuotas(e.role, { operator: e.operator });
       const lim = (v) => (v === Infinity ? null : v); // null = unlimited on the wire
+      // The rail's signals (design 2026-09-09): a count of the reader's
+      // own things on Connections and Feedback, an unread dot on
+      // Activity, and an alert dot on Connections when a credential of
+      // theirs that no longer works is still being presented. Counted
+      // here rather than by the pages, so the rail can show them on
+      // every screen without every screen fetching four lists.
+      const { rows: sig } = await db.query(
+        `select
+           (select count(*)::int from oauth_family f
+             join account a on a.account_id = f.account_id
+            where (f.account_id = $1 or a.owned_by_account_id = $1)
+              and f.revoked_at is null and f.absolute_expires_at > now())
+           + (select count(*)::int from account a
+              where a.owned_by_account_id = $1 and a.kind = 'agent'
+                and a.status <> 'disabled') as connections,
+           (select count(*)::int from feedback where account_id = $1) as feedback,
+           (select count(*)::int from event_feed ef
+             where ef.account_id = $1
+               and ef.event_id > (select events_seen_through from account
+                                  where account_id = $1)) as events_unseen,
+           (select count(*)::int from credential_refusal
+             where account_id = $1 and day > current_date - 7) as refusals_7d`,
+        [account.accountId],
+      );
       return json(200, {
         authenticated: true,
+        signals: sig[0],
         is_owner: account.isOwner,
         is_admin: account.isAdmin,
         timezone: account.timezone,
@@ -351,6 +383,8 @@ export function accountRoutes({
       // account_id -- so counting only $1 showed "42 of 500" to somebody the
       // limiter had already counted to 500. The page whose whole job is "am I
       // near my limit" has to count what the limiter counts.
+      // Fourteen days, because the page draws them as a bar per day and
+      // a week is too short a run to see a shape in.
       const { rows: days } = await db.query(
         `select (created_at at time zone 'UTC')::date::text as day, count(*)::int as calls,
                 count(*) filter (where error_code is not null)::int as errors,
@@ -359,8 +393,36 @@ export function accountRoutes({
          where (account_id = $1 or account_id = any(coalesce(
                  (select array_agg(account_id) from account where owned_by_account_id = $1),
                  '{}'::uuid[])))
-           and created_at > now() - interval '7 days'
+           and created_at > now() - interval '14 days'
          group by 1 order by 1 desc`,
+        [account.accountId],
+      );
+      // WHO spent it: a client signed in as you (its registered name),
+      // an agent of yours (its key's name), a service token on your own
+      // account, or the console's explorer. Seven days, like the tools.
+      const { rows: callers } = await db.query(
+        `select coalesce(
+                  case when m.account_id <> $1 then
+                    (select st.name from service_token st
+                      where st.account_id = m.account_id
+                      order by st.token_id limit 1) end,
+                  case when m.token_id is not null then
+                    'svc:' || (select st.name from service_token st
+                               where st.token_id = m.token_id) end,
+                  m.client_name,
+                  case when m.surface = 'web' then 'Console' end,
+                  'unnamed client') as name,
+                case when m.account_id <> $1 then 'agent'
+                     when m.token_id is not null then 'service token'
+                     when m.surface = 'web' then 'console'
+                     else 'client' end as kind,
+                count(*)::int as calls
+         from mcp_call_audit m
+         where (m.account_id = $1 or m.account_id = any(coalesce(
+                 (select array_agg(account_id) from account where owned_by_account_id = $1),
+                 '{}'::uuid[])))
+           and m.created_at > now() - interval '7 days'
+         group by 1, 2 order by 3 desc limit 8`,
         [account.accountId],
       );
       const { rows: tools } = await db.query(
@@ -385,6 +447,7 @@ export function accountRoutes({
       const lim = (v) => (unlimited || v === Infinity ? null : v);
       return json(200, {
         days,
+        by_caller: callers,
         top_tools: tools,
         today_calls: days.find((d) => d.day === today)?.calls ?? 0,
         // Broken out so the page can say where the spend went rather than

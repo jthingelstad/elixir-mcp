@@ -14,7 +14,7 @@ export function feedbackRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at
+                response, responded_at, created_at, shipped_in
          from feedback where account_id = $1
          order by feedback_id desc limit 50`,
         [account.accountId],
