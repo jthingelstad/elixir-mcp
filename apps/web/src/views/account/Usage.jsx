@@ -19,24 +19,29 @@ export function Usage({ me }) {
       </div>
       <div className="cols">
         <div className="cols__main">
-          <section className="panel">
-            <div className="panel__head">
-              <span className="panel-title">Daily tool calls</span>
-              <span
-                className="mono"
-                style={{
-                  marginLeft: "auto",
-                  fontSize: "11.5px",
-                  color: "var(--ink-faint)",
-                }}
-              >
+          {/* Bare on the page: rows of data are not a panel. The head
+              is a row above the table rather than a card around it. */}
+          <section>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "10px",
+                flexWrap: "wrap",
+                padding: "0 0 13px",
+              }}
+            >
+              <span style={{ fontSize: "14px", fontWeight: 600 }}>
+                Daily tool calls
+              </span>
+              <span className="mono" style={{ color: "var(--ink-faint)" }}>
                 {usage.today_calls} of {usage.quota_max ?? "∞"} today
                 {usage.agent_calls_today > 0 &&
                   ` · ${usage.agent_calls_today} from your agents`}
               </span>
             </div>
-            <div className="tablewrap">
-              <table>
+            <div className="table__scroll">
+              <table className="table">
                 <thead>
                   <tr>
                     <th>DAY</th>
@@ -72,12 +77,15 @@ export function Usage({ me }) {
                 </tbody>
               </table>
             </div>
-            <div className="panel__note">
+            <p
+              className="footnote"
+              style={{ margin: "14px 2px 0", maxWidth: "78ch" }}
+            >
               Live CR fetches today: {usage.live_today ?? 0} of{" "}
               {usage.live_max ?? me?.entitlements?.live_fetches_per_day ?? "∞"}{" "}
               — the live lane spends the shared CR budget; recorded reads do
               not.
-            </div>
+            </p>
           </section>
         </div>
         <div className="cols__rail">

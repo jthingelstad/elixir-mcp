@@ -91,12 +91,19 @@ export function Integrations() {
           /api/v1; nothing is pushed to them.
         </p>
       </div>
-      <section className="panel" style={{ marginBottom: "16px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Held by</span>
+      <section style={{ marginBottom: "16px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: "10px",
+            padding: "0 0 13px",
+          }}
+        >
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>Held by</span>
         </div>
-        <div className="tablewrap">
-          <table>
+        <div className="table__scroll">
+          <table className="table">
             <thead>
               <tr>
                 <th>Name</th>

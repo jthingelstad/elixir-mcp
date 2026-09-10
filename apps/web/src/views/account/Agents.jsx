@@ -391,26 +391,36 @@ export function AgentDetail({ id, navigate }) {
         )}
       </section>
 
-      <section className="panel" style={{ marginBottom: "16px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Who it answers for</span>
-        </div>
+      {/* Rows of data are not a panel: the head is a row above the
+          table, and the explanation sits under it as a footnote. */}
+      <section style={{ marginBottom: "16px" }}>
         <div
-          className="panel__body"
-          style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: "10px",
+            flexWrap: "wrap",
+            padding: "0 0 13px",
+          }}
         >
-          An agent serves many people through one connection. This is the map
-          from an id on its own surface — a Discord user, say — to the player it
-          answers about. The agent builds it with elixir_identify.
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>
+            Who it answers for
+          </span>
+          <span className="footnote">
+            an id on its own surface, mapped to a player
+          </span>
         </div>
         {identities?.length === 0 && (
-          <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
-            Nobody mapped yet.
+          <div className="empty">
+            <p className="empty__body" style={{ marginBottom: 0 }}>
+              Nobody mapped yet. An agent builds this itself with
+              elixir_identify, the first time somebody asks it about themselves.
+            </p>
           </div>
         )}
         {identities?.length > 0 && (
-          <div className="tablewrap">
-            <table>
+          <div className="table__scroll">
+            <table className="table">
               <thead>
                 <tr>
                   <th>THEIR ID</th>
@@ -445,21 +455,34 @@ export function AgentDetail({ id, navigate }) {
         )}
       </section>
 
-      <section className="panel">
-        <div className="panel__head">
-          <span className="panel-title">Its notifications</span>
-          <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
+      <section>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: "10px",
+            flexWrap: "wrap",
+            padding: "0 0 13px",
+          }}
+        >
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>
+            Its notifications
+          </span>
+          <span className="footnote">
             newest first · reading here never marks them seen
           </span>
         </div>
         {events?.length === 0 && (
-          <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
-            Nothing yet.
+          <div className="empty">
+            <p className="empty__body" style={{ marginBottom: 0 }}>
+              Nothing yet. This fills while the players and clans it answers for
+              have their notify switch on.
+            </p>
           </div>
         )}
         {events?.length > 0 && (
-          <div className="tablewrap">
-            <table>
+          <div className="table__scroll">
+            <table className="table">
               <thead>
                 <tr>
                   <th>WHEN</th>
@@ -564,16 +587,18 @@ export function Agents({ navigate }) {
             </div>
 
             {principals?.agents?.length === 0 && (
-              <div
-                className="panel__body"
-                style={{ color: "var(--ink-faint)" }}
-              >
-                No agents yet.
+              <div className="panel__body">
+                <div className="empty">
+                  <p className="empty__body" style={{ marginBottom: 0 }}>
+                    No agents yet. An agent is for a clan you already record —
+                    it answers your clanmates without any of them signing in.
+                  </p>
+                </div>
               </div>
             )}
             {principals?.agents?.length > 0 && (
-              <div className="tablewrap">
-                <table>
+              <div className="table__scroll">
+                <table className="table">
                   <thead>
                     <tr>
                       <th>AGENT</th>
