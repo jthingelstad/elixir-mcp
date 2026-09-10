@@ -788,9 +788,8 @@ function AdminServiceTokens() {
             Headless credentials you issue by hand: one per consuming service,
             no browser and no consent screen, each acting with the entitlements
             of the account it is bound to. Not a user&rsquo;s connection &mdash;
-            those are on{" "}
-            <a href="/admin/connections">Connections across accounts</a>.
-            Integration keys live on Integrations. Calls audit as{" "}
+            those are on <a href="/admin/connections">Connections</a>, under
+            Admin. Integration keys live on Integrations. Calls audit as{" "}
             <code>svc:&lt;name&gt;</code>.
           </p>
         </div>
@@ -1196,9 +1195,7 @@ function CollectionEditor({ slug, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No collection “{slug}”.{" "}
-          <a onClick={() => navigate("/admin/collections")}>
-            All collections ›
-          </a>
+          <a onClick={() => navigate("/admin/collections")}>Collections ›</a>
         </div>
       </div>
     );
@@ -1218,7 +1215,7 @@ function CollectionEditor({ slug, navigate }) {
           style={{ fontSize: "12px" }}
           onClick={() => navigate("/admin/collections")}
         >
-          ‹ All collections
+          ‹ Collections
         </a>
       </p>
       {err && <p className="field-error">{err}</p>}
