@@ -1108,7 +1108,9 @@ Resources:
         Runtime: cloudfront-js-2.0
       FunctionCode: |
         var STATIC_PAGES = {
+          '/data': 1,
           '/docs': 1,
+          '/family': 1,
           '/updates': 1,
           '/data/changelog': 1
         };

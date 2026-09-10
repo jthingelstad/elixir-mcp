@@ -34,6 +34,8 @@ const skip = built
 /** The pages the static site claims, as canonical paths. */
 const STATIC_PAGES = [
   "/",
+  "/data",
+  "/family",
   "/docs",
   "/docs/about",
   "/docs/quickstart",

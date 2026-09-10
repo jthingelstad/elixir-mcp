@@ -13,7 +13,9 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 ## Documentation
 - [All documentation]({{ site.url }}/docs): index of every page below
 {% for d in collections.docs %}- [{{ d.data.title | safe }}]({{ site.url }}{{ d | pageUrl }}): {{ d.data.description | safe }}
-{% endfor %}- [What's new]({{ site.url }}/updates): every user-visible change, newest first
+{% endfor %}- [The corpus]({{ site.url }}/data): what has been recorded, how often each subject is collected, since when and for how long
+- [What's new]({{ site.url }}/updates): every user-visible change, newest first
+- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
 - [Contract changelog]({{ site.url }}/data/changelog): the MCP tool contract version by version, with breaking changes called out
 
 ## Machine-readable

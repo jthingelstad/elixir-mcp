@@ -33,9 +33,10 @@
           <a class="wordmark" href="/">{{ site.name }}</a>
           <nav>
             <a href="/"{% if navActive == "home" %} aria-current="page"{% endif %}>Home</a>
-            <a href="/data/dashboard"{% if navActive == "data" %} aria-current="page"{% endif %}>Data</a>
+            <a href="/data"{% if navActive == "data" %} aria-current="page"{% endif %}>Data</a>
             <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
             <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
+            <a href="/family"{% if navActive == "family" %} aria-current="page"{% endif %}>Family</a>
           </nav>
           {#- Sign in reads as the action it is, in the same gold as Request
               access on the home page — it was a grey link beside four other

@@ -45,8 +45,10 @@ import { ErrorBoundary } from "./ErrorBoundary.jsx";
  *  where a document was expected. */
 export const STATIC_LINKS = {
   home: "/",
+  data: "/data",
   docs: "/docs",
   updates: "/updates",
+  family: "/family",
   changelog: "/data/changelog",
 };
 
@@ -55,9 +57,10 @@ export const STATIC_LINKS = {
  *  The design's Use cases and Family tabs arrive with those pages. */
 const CHROME_TABS = [
   ["Home", "/"],
-  ["Data", "/data/dashboard"],
+  ["Data", "/data"],
   ["Docs", "/docs"],
   ["Updates", "/updates"],
+  ["Family", "/family"],
 ];
 
 /**
@@ -110,6 +113,10 @@ export const SECTIONS = {
   data: {
     label: "Data",
     authed: false,
+    // /data itself is the site's corpus page now, not this section's
+    // index: it is a real document, crawlable and readable with no
+    // session, so the app must hand the bare path back.
+    staticIndex: true,
     pages: [
       { slug: "dashboard", label: "Dashboard" },
       // Changelog is a static page; the top bar links out to it.
@@ -418,7 +425,6 @@ const REDIRECTS = {
   "/clan": "/explore",
   "/account": "/account/overview",
   "/admin": "/admin/requests",
-  "/data": "/data/dashboard",
   "/explore/player": "/explore",
   "/explore/clan": "/explore",
   "/explore/collections": "/explore",
@@ -447,6 +453,7 @@ export function legalRoute(path) {
   // belongs to the other half, so hand it back rather than quietly
   // substituting the section's default page.
   if (sec.pages.some((p) => p.slug === page && p.static)) return null;
+  if (!page && sec.staticIndex) return null;
   const appPages = sec.pages.filter((p) => !p.static);
   if (appPages.length === 0) return `/${section}`;
   if (appPages.some((p) => p.slug === page)) return path;

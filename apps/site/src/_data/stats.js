@@ -26,7 +26,15 @@ export default async function stats() {
       console.warn("[site] stats skipped: no totals in response");
       return { ok: false, totals: null };
     }
-    return { ok: true, totals: body.totals, series_days: body.series?.length };
+    return {
+      ok: true,
+      totals: body.totals,
+      // The Data page draws the cumulative curve from this at BUILD
+      // time: a chart that is true at deploy and needs no JavaScript
+      // beats one that arrives after a fetch, or not at all.
+      series: body.series ?? null,
+      series_days: body.series?.battles_daily?.length,
+    };
   } catch (err) {
     console.warn(`[site] stats skipped: ${err.message}`);
     return { ok: false, totals: null };

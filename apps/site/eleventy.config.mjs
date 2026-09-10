@@ -44,6 +44,7 @@ export default function (eleventyConfig) {
   // inline block because the CSP forbids inline script (#25).
   eleventyConfig.addPassthroughCopy("src/assets/request-form.js");
   eleventyConfig.addPassthroughCopy("src/assets/nav-session.js");
+  eleventyConfig.addPassthroughCopy("src/assets/data-live.js");
 
   /** The site's canonical URL for a page: no /index.html, and no
    *  trailing slash. That is the spelling the previous sitemap
@@ -106,6 +107,80 @@ export default function (eleventyConfig) {
     typeof n === "number" ? n.toLocaleString("en-US") : "—",
   );
   eleventyConfig.addFilter("day", (s) => (s ? String(s).slice(0, 10) : "—"));
+
+  /**
+   * Daily battle counts -> a cumulative monthly curve, as SVG paths.
+   *
+   * Cumulative, because the question the Data page answers is "how much
+   * is in here", and that only ever goes up. Bucketed by the month a
+   * battle was PLAYED, so a backfilled archive lands where it belongs
+   * rather than on the day it arrived.
+   *
+   * A month with no battles keeps its width: the shape of the corpus is
+   * part of the truth, and compressing an empty stretch would draw a
+   * line that never happened.
+   */
+  eleventyConfig.addFilter("cumulativeByMonth", (daily) => {
+    if (!Array.isArray(daily) || daily.length === 0) return {};
+    const byMonth = new Map();
+    for (const d of daily) {
+      const key = String(d.day).slice(0, 7);
+      byMonth.set(key, (byMonth.get(key) ?? 0) + (d.battles ?? 0));
+    }
+    const months = [...byMonth.keys()].sort();
+    // Fill the gaps so an empty month occupies its own width.
+    const [y0, m0] = months[0].split("-").map(Number);
+    const [y1, m1] = months.at(-1).split("-").map(Number);
+    const keys = [];
+    for (let y = y0, m = m0; y < y1 || (y === y1 && m <= m1);) {
+      keys.push(`${y}-${String(m).padStart(2, "0")}`);
+      m += 1;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+    }
+    let total = 0;
+    const running = keys.map((k) => {
+      total += byMonth.get(k) ?? 0;
+      return { key: k, total };
+    });
+    const top = running.at(-1).total || 1;
+    const X0 = 20,
+      X1 = 640,
+      Y0 = 140,
+      Y1 = 12;
+    const at = (i) =>
+      running.length === 1 ? X1 : X0 + ((X1 - X0) * i) / (running.length - 1);
+    const y = (v) => Y0 - (Y0 - Y1) * (v / top);
+    const points = running.map((r, i) => ({
+      x: Math.round(at(i) * 10) / 10,
+      y: Math.round(y(r.total) * 10) / 10,
+      label: new Date(`${r.key}-01T12:00:00Z`).toLocaleString("en-US", {
+        month: "short",
+        timeZone: "UTC",
+      }),
+      total: r.total,
+    }));
+    const line = points
+      .map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`)
+      .join(" ");
+    const short = (v) =>
+      v >= 1000
+        ? `${Math.round(v / 100) / 10}k`.replace(".0k", "k")
+        : String(v);
+    return {
+      points,
+      line,
+      area: `${line} L${points.at(-1).x},${Y0} L${points[0].x},${Y0} Z`,
+      tipX: points.at(-1).x,
+      tipY: points.at(-1).y,
+      top: short(top),
+      half: short(Math.round(top / 2)),
+      first: running[0].key,
+      last: running.at(-1).key,
+    };
+  });
 
   /**
    * RFC-822, which is what RSS 2.0 actually requires.

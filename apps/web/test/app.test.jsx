@@ -59,8 +59,11 @@ test("the app owns its own sections and disowns the static ones", async () => {
   expect(legalRoute("/")).toBe(null);
   expect(legalRoute("/bogus")).toBe(null);
   // The changelog sits inside an app section but is a static page, so
-  // it must never be chosen as the section's default page.
-  expect(legalRoute("/data")).toBe("/data/dashboard");
+  // it must never be chosen as the section's default page. /data itself
+  // is a static page too now — the corpus proof — so the bare path goes
+  // back to the site rather than resolving to the app's dashboard.
+  expect(legalRoute("/data")).toBe(null);
+  expect(legalRoute("/data/nonsense")).toBe("/data/dashboard");
 });
 
 test("sign-in flow: email step then code step authenticates", async () => {
