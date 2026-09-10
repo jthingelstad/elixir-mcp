@@ -455,3 +455,48 @@ test(
     assertResponseMeta(JSON.parse(decoded));
   },
 );
+
+test(
+  "the narrow menu opens, closes, and never swallows Console",
+  { skip },
+  async () => {
+    // The static half's menu is hand-written JavaScript, so it gets the
+    // same exercise the app's React one does. Two properties: the six tabs
+    // collapse behind one button, and the CONSOLE BUTTON IS NOT IN THERE —
+    // it is the way into the product, and a menu is the wrong place for it.
+    const { JSDOM } = await import("jsdom");
+    const dom = new JSDOM(read("index.html"), { runScripts: "outside-only" });
+    const { window } = dom;
+    const script = readFileSync(
+      path.join(repoRoot, "apps/site/src/assets/chrome-menu.js"),
+      "utf8",
+    );
+    window.eval(script);
+
+    const button = window.document.querySelector("[data-chrome-menu]");
+    const sheet = window.document.getElementById("chrome-sheet");
+    assert.ok(button && sheet, "the narrow menu is not in the markup");
+    assert.equal(sheet.dataset.open, "false");
+    // Present with JavaScript off too: a crawler and a reader without it
+    // both still find every destination.
+    assert.equal(sheet.querySelectorAll("a").length, 6);
+    assert.ok(!/Console/.test(sheet.textContent), "Console is inside the menu");
+
+    button.dispatchEvent(new window.Event("click", { bubbles: true }));
+    assert.equal(sheet.dataset.open, "true");
+    assert.equal(button.getAttribute("aria-expanded"), "true");
+
+    // Escape, and a tap on the page behind it, both close it. A sheet you
+    // can only dismiss by finding the same small button again is a trap.
+    window.document.dispatchEvent(
+      new window.KeyboardEvent("keydown", { key: "Escape" }),
+    );
+    assert.equal(sheet.dataset.open, "false");
+
+    button.dispatchEvent(new window.Event("click", { bubbles: true }));
+    window.document.body.dispatchEvent(
+      new window.Event("click", { bubbles: true }),
+    );
+    assert.equal(sheet.dataset.open, "false");
+  },
+);

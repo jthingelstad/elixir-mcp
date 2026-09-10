@@ -41,7 +41,11 @@
       <header class="chrome">
         <div class="chrome__inner">
           <a class="wordmark" href="/">{{ site.name }}</a>
-          <nav aria-label="{{ site.name }}" style="display: flex; gap: 22px">
+          {#- The SAME markup as apps/web renders, at every width: which
+              one is showing is a media query's decision, not this
+              template's and not the app's. That is what keeps the two
+              bars one bar. -#}
+          <nav class="chrome__nav" aria-label="{{ site.name }}">
             <a class="chrome__tab{% if navActive == "home" %} chrome__tab--on{% endif %}" href="/">Home</a>
             <a class="chrome__tab{% if navActive == "data" %} chrome__tab--on{% endif %}" href="/data">Data</a>
             <a class="chrome__tab{% if navActive == "cases" %} chrome__tab--on{% endif %}" href="/use-cases/play">Use cases</a>
@@ -49,11 +53,25 @@
             <a class="chrome__tab{% if navActive == "docs" %} chrome__tab--on{% endif %}" href="/docs">Docs</a>
             <a class="chrome__tab{% if navActive == "family" %} chrome__tab--on{% endif %}" href="/family">Family</a>
           </nav>
+          {#- Never inside the menu, at any width. -#}
           <a class="chrome__console" href="/account/overview">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
             Console
           </a>
+          <button type="button" class="chrome__menu" aria-label="Menu" aria-expanded="false" aria-controls="chrome-sheet" data-chrome-menu>
+            <svg data-menu-open width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            <svg data-menu-close hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
         </div>
+
+        <nav class="chrome__sheet" id="chrome-sheet" aria-label="{{ site.name }} menu" data-open="false">
+          <a href="/"{% if navActive == "home" %} aria-current="page"{% endif %}>Home</a>
+          <a href="/data"{% if navActive == "data" %} aria-current="page"{% endif %}>Data</a>
+          <a href="/use-cases/play"{% if navActive == "cases" %} aria-current="page"{% endif %}>Use cases</a>
+          <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
+          <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
+          <a href="/family"{% if navActive == "family" %} aria-current="page"{% endif %}>Family</a>
+        </nav>
       </header>
 
       {% if nav2 %}
@@ -83,6 +101,9 @@
     {#- Tinylytics: a static page is a real document load, so the embed
         records the hit by itself. No pushState bridge is needed here -
         that belongs to the app. Same privacy posture: anonymous only. -#}
+    {#- The narrow menu. External file, never inline: the CSP forbids
+        inline script and a test pins that. -#}
+    <script defer src="/assets/chrome-menu.js"></script>
     <script defer src="https://tinylytics.app/embed/{{ site.tinylyticsId }}/min.js?hits&countries&events"></script>
   </body>
 </html>

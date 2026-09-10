@@ -10,7 +10,13 @@
  * while the reader is on another.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  cleanup,
+  within,
+} from "@testing-library/react";
 import { App, RAIL, DOC_LINKS, legalRoute, railPosition } from "../src/App.jsx";
 
 const ME = {
@@ -110,7 +116,11 @@ test("wide: the rail is a list, with no disclosure to open", async () => {
   await waitFor(() =>
     expect(screen.getByRole("navigation", { name: "Console sections" })),
   );
-  expect(screen.queryByRole("button", { expanded: false })).toBeNull();
+  // Scoped to the rail: the top bar has its own expandable button now
+  // (the narrow menu), which is a different control on a different
+  // element and is present at every width.
+  const rail = document.querySelector(".rail");
+  expect(within(rail).queryByRole("button", { expanded: false })).toBeNull();
   expect(screen.getByRole("link", { name: /Tracking/ })).toBeTruthy();
 });
 
@@ -125,13 +135,17 @@ test("narrow: the rail is a disclosure above the content, not a drawer", async (
 
   // Closed, it names the section and hides the list — and it is a
   // sibling of the content, never positioned over it.
-  const toggle = await screen.findByRole("button", { expanded: false });
+  const rail = await waitFor(() => {
+    const el = document.querySelector(".rail");
+    expect(el).toBeTruthy();
+    return el;
+  });
+  const toggle = within(rail).getByRole("button", { expanded: false });
   expect(toggle.textContent).toContain("Overview");
   expect(
     screen.queryByRole("navigation", { name: "Console sections" }),
   ).toBeNull();
 
-  const rail = document.querySelector(".rail");
   const main = document.querySelector("main");
   expect(
     rail.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,

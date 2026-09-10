@@ -529,38 +529,76 @@ function useNarrow() {
 /** The top bar. No session, by design — see the note at the head of the
  *  file. The Console button is a place, not a state: signed out it lands
  *  on the sign-in wall, which is the honest answer. */
-function Chrome({ navigate, narrow }) {
+function Chrome({ navigate }) {
+  const [menu, setMenu] = useState(false);
+
+  // Escape closes it, because a sheet you can only dismiss by finding
+  // the same small button again is a trap on a phone.
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e) => e.key === "Escape" && setMenu(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menu]);
+
   return (
     <header className="chrome">
       <div className="chrome__inner">
         <a className="wordmark" href={STATIC_LINKS.home}>
           {SITE}
         </a>
-        {/* Below the breakpoint the tabs would wrap under the wordmark
-            and push the Console button off the row. They reappear at the
-            foot of the rail, which is where the narrow layout keeps
-            everything that is navigation. */}
-        {!narrow && (
-          <nav aria-label="Elixir MCP" style={{ display: "flex", gap: "22px" }}>
-            {CHROME_TABS.map(([label, href]) => (
-              <a className="chrome__tab" key={href} href={href}>
-                {label}
-              </a>
-            ))}
-          </nav>
-        )}
+
+        {/* The SAME markup at every width — which width is showing is a
+            media query's decision, not this component's. That is what
+            keeps this bar and the Eleventy one the same bar. */}
+        <nav className="chrome__nav" aria-label={SITE}>
+          {CHROME_TABS.map(([label, href]) => (
+            <a className="chrome__tab" key={href} href={href}>
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        {/* Never inside the menu, at any width: it is the way into the
+            product, and burying it behind a button costs a tap on the
+            one thing most people came for. */}
         <a
           className="chrome__console"
           href="/account/overview"
           onClick={(e) => {
             e.preventDefault();
+            setMenu(false);
             navigate("/account/overview");
           }}
         >
           <Icon name="gauge" size={17} />
           Console
         </a>
+
+        <button
+          type="button"
+          className="chrome__menu"
+          aria-label="Menu"
+          aria-expanded={menu}
+          aria-controls="chrome-sheet"
+          onClick={() => setMenu((v) => !v)}
+        >
+          <Icon name={menu ? "x" : "menu"} size={20} />
+        </button>
       </div>
+
+      <nav
+        className="chrome__sheet"
+        id="chrome-sheet"
+        aria-label={`${SITE} menu`}
+        data-open={menu ? "true" : "false"}
+      >
+        {CHROME_TABS.map(([label, href]) => (
+          <a key={href} href={href} onClick={() => setMenu(false)}>
+            {label}
+          </a>
+        ))}
+      </nav>
     </header>
   );
 }
@@ -688,23 +726,10 @@ function Rail({ me, here, navigate, narrow, counts }) {
 
       {(!narrow || open) && (
         <div style={{ marginTop: "auto", paddingTop: "16px" }}>
-          {narrow && (
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px 16px",
-                fontSize: "13.5px",
-                padding: "0 11px 14px",
-              }}
-            >
-              {CHROME_TABS.map(([label, href]) => (
-                <a key={href} href={href}>
-                  {label}
-                </a>
-              ))}
-            </div>
-          )}
+          {/* The site's links used to be repeated here at narrow
+              widths, because the top bar dropped them. The bar keeps
+              them in its own menu now, so this was two answers to one
+              question. */}
           <div className="rail__identity">
             <span
               style={{
@@ -911,7 +936,7 @@ export function App() {
 
   return (
     <div className="shell">
-      <Chrome navigate={navigate} narrow={narrow} />
+      <Chrome navigate={navigate} />
 
       <div
         style={{

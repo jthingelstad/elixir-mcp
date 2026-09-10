@@ -244,6 +244,7 @@ table {
    ================================================================== */
 
 .chrome {
+  position: relative; /* the narrow menu sheet hangs off this */
   background: var(--ground-chrome);
   border-bottom: 1px solid var(--line-soft);
 }
@@ -269,6 +270,107 @@ table {
   color: var(--ink);
   font-weight: 600;
   box-shadow: var(--mark-tab);
+}
+
+/* The narrow menu.
+ *
+ * Below the breakpoint the six tabs cannot share a row with the wordmark
+ * and the Console button, so they collapse into a sheet behind one
+ * button on the RIGHT. The Console button never goes in there: it is the
+ * way into the product and stays on the bar at every width.
+ *
+ * Which width is showing is decided HERE, in one media query, rather
+ * than in each build's own JavaScript — that is what keeps the Eleventy
+ * bar and the React bar the same bar. Both render the same markup at all
+ * times; CSS chooses.
+ */
+/* The tab row. Its display lives HERE and never inline: an inline style
+   beats any stylesheet rule, so a `display: flex` attribute on this
+   element silently defeats the media query below and the bar keeps its
+   six tabs at every width. */
+.chrome__nav {
+  display: flex;
+  gap: 22px;
+}
+
+.chrome__menu {
+  display: none; /* wide: the tabs are on the bar */
+  align-items: center;
+  justify-content: center;
+  width: var(--hit);
+  height: var(--hit);
+  flex: 0 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  color: var(--ink-body);
+}
+.chrome__menu:hover {
+  border-color: var(--accent-deep);
+  color: var(--ink);
+}
+/* The `hidden` ATTRIBUTE does not hide an <svg>. The UA rule that
+   implements it lives in the HTML namespace and an svg element is not in
+   it, so the static half's button rendered its open AND close icon side
+   by side. The app half swaps components and never had the problem. */
+.chrome__menu svg[hidden] {
+  display: none;
+}
+
+.chrome__sheet {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .chrome__inner {
+    gap: 0 12px;
+  }
+  /* The tab row goes; the button that opens it arrives. */
+  .chrome__nav {
+    display: none;
+  }
+  .chrome__menu {
+    display: flex;
+    order: 3; /* rightmost, after the Console button */
+  }
+  .chrome__console {
+    order: 2;
+    margin-left: auto;
+  }
+  /* The sheet drops below the bar rather than over the page: the bar is
+     56-60px and a full-screen overlay for six links is a modal for
+     something that is not a decision. */
+  .chrome__sheet[data-open="true"] {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 30;
+    background: var(--ground-chrome);
+    border-bottom: 1px solid var(--line-soft);
+    box-shadow: var(--shadow-float);
+    padding: 8px 12px 14px;
+  }
+  .chrome__sheet a {
+    display: flex;
+    align-items: center;
+    min-height: var(--hit-touch);
+    padding: 0 11px;
+    border-radius: var(--r-control);
+    font-size: 15px;
+    color: var(--ink-dim);
+  }
+  .chrome__sheet a:hover,
+  .chrome__sheet a[aria-current] {
+    background: var(--hover-rail);
+    color: var(--ink);
+  }
+  .chrome__sheet a[aria-current] {
+    font-weight: 600;
+    box-shadow: var(--mark-current);
+  }
 }
 
 .chrome__console {

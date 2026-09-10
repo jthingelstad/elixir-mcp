@@ -12,6 +12,7 @@ import {
   HeartPulse,
   LayoutDashboard,
   LogOut,
+  Menu,
   MessageSquare,
   Plug,
   Plus,
@@ -20,6 +21,7 @@ import {
   Settings,
   ShieldCheck,
   UserRound,
+  X,
 } from "lucide-react";
 
 /**
@@ -56,6 +58,7 @@ const ICONS = {
   "heart-pulse": HeartPulse,
   "layout-dashboard": LayoutDashboard,
   "log-out": LogOut,
+  menu: Menu,
   "message-square": MessageSquare,
   plug: Plug,
   plus: Plus,
@@ -64,6 +67,7 @@ const ICONS = {
   settings: Settings,
   "shield-check": ShieldCheck,
   "user-round": UserRound,
+  x: X,
 };
 
 export function Icon({ name, size = 18 }) {

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-10",
+    title: "The top bar collapses into a menu on a phone",
+    body: "Six tabs, a wordmark and a Console button do not fit on a phone. The tabs now collapse behind one button on the right, and the sheet drops below the bar rather than covering the page — six links is a menu, not a modal. The Console button stays on the bar at every width: it is the way into the product, and putting it behind a menu would cost a tap on the one thing most people came for. Both halves of the site render the same markup at every width and let a single media query decide which is showing, so the bar you see on a marketing page and the bar you see in the console are the same bar. With JavaScript off the six links are still in the page and still work.",
+  },
+  {
+    date: "2026-09-10",
     title: "The site says what this is for, and shows the corpus",
     body: "The home page used to lead with a counter panel. A number says the corpus is big; it cannot say what it is for, which is the only thing a home page has to do. It leads with a conversation now — a real question, the answer, and under the answer the citation naming what was read to produce it, with the tools it called linked to their own reference pages so you can check that every one exists. Three chips switch between your play, your clan and your friends. The whole exchange is in the page itself and reads fine with JavaScript off. The counters moved to /data, which is now the corpus proof: five totals, a cumulative growth curve bucketed by when battles were PLAYED, what we collect and how long it is kept, and the machine-readable surfaces — all baked at deploy, so a crawler, an agent and somebody who has not signed in read the same thing. Eleven use cases got real pages, one per audience, each with the exchange that makes it concrete and the two steps to set it up. /family says what each POAP KINGS product is and how it fits, and puts the Clash Royale things we merely like in their own group with a byline that says outright they are not connected to us. The tool reference stopped being a wall: forty-four tools on one page are now eight family pages, one per group, nested under Tools in the documentation rail.",
   },

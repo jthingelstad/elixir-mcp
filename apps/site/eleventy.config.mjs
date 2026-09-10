@@ -44,6 +44,7 @@ export default function (eleventyConfig) {
   // inline block because the CSP forbids inline script (#25).
   eleventyConfig.addPassthroughCopy("src/assets/request-form.js");
   eleventyConfig.addPassthroughCopy("src/assets/data-live.js");
+  eleventyConfig.addPassthroughCopy("src/assets/chrome-menu.js");
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
 
   /** The site's canonical URL for a page: no /index.html, and no
