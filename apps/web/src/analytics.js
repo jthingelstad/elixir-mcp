@@ -17,20 +17,37 @@
  * The one carve-out that IS real: /signin never loads it, because the magic
  * token rides that URL. localhost never tracks. The login_token scrub lives in
  * url-hygiene.js — first-party hygiene, and main.jsx runs it before this.
+ *
+ * That carve-out used to take the ROUTE BRIDGE down with it, and the bridge is
+ * how this SPA reports anything after its first document. A magic link lands on
+ * /signin and the app pushStates to /account/overview without a reload, so a
+ * session that entered the console the ordinary way reported NOT ONE page —
+ * every screen the 2026-09-09 console redesign added was invisible for exactly
+ * the people who use it most. The two jobs are now separate: the embed records
+ * the document load and is the part /signin skips; the bridge records
+ * navigation and is installed always.
  */
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 
 export function loadTinylytics() {
   if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
     return;
+
+  // Always, and before the early return below: patching pushState is what
+  // makes the rest of the session countable.
+  bridgeRouteChanges();
+
+  // The embed reads the address bar as it executes, so it is the one thing
+  // that must not run while a magic token is in it. Nothing is lost by
+  // skipping it: the document hit it would have recorded is the /signin view
+  // we deliberately do not keep, and every hit after this one is a beacon
+  // built from the ROUTE (analyticsLocation), never from the raw URL.
   if (window.location.pathname.startsWith("/signin")) return;
 
   const script = document.createElement("script");
   script.defer = true;
   script.src = `https://tinylytics.app/embed/${SITE_ID}/min.js?hits&countries&events&beacon`;
   document.body.appendChild(script);
-
-  bridgeRouteChanges();
 }
 
 /**
@@ -61,7 +78,14 @@ function bridgeRouteChanges() {
   let last = analyticsLocation();
   const send = () => {
     const next = analyticsLocation();
-    if (next === null || next.url === last?.url) return;
+    // /signin reports nothing, and it also ENDS the view before it: sign out,
+    // sign back in, and landing on the page you left is a new view, not the
+    // same one continuing.
+    if (next === null) {
+      last = null;
+      return;
+    }
+    if (next.url === last?.url) return;
     const referrer = last ? last.url : document.referrer;
     last = next;
     try {

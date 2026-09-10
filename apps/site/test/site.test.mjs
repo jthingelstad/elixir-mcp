@@ -13,7 +13,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,6 +26,18 @@ const repoRoot = path.resolve(
 const out = path.join(repoRoot, "dist/site");
 const read = (rel) => readFileSync(path.join(out, rel), "utf8");
 const built = existsSync(path.join(out, "index.html"));
+
+/** Every built HTML document, as paths relative to dist/site. */
+function htmlPages(dir = out, base = out) {
+  const found = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...htmlPages(full, base));
+    else if (entry.name.endsWith(".html"))
+      found.push(path.relative(base, full));
+  }
+  return found;
+}
 
 const skip = built
   ? false
@@ -412,6 +424,28 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
     read(bundle.slice(1)).includes("tinylytics.app/collector/"),
     "the app bundle beacons route changes to the collector",
   );
+});
+
+test("every built page counts its own visit", { skip }, () => {
+  // The embed rides the ONE layout, which is why nothing had to be done
+  // per page - and why nothing says so if a page stops using that
+  // layout. The 2026-09-09 redesign moved every rail and renamed a
+  // whole section; a page that quietly left base.njk would still look
+  // right and would simply stop being counted. So the assertion is over
+  // the built tree rather than a list: a new page is covered by this
+  // test the moment it exists.
+  const pages = htmlPages().filter((rel) => rel !== "app.html");
+  assert.ok(pages.length > 40, `only ${pages.length} pages built`);
+  for (const rel of pages) {
+    assert.ok(
+      read(rel).includes("tinylytics.app/embed/"),
+      `${rel} carries no analytics - has it left base.njk?`,
+    );
+  }
+  // app.html is the exception and not an omission: the application
+  // loads the embed from its bundle, because it also has to bridge
+  // pushState and skip /signin.
+  assert.ok(!read("app.html").includes("tinylytics.app/embed/"));
 });
 
 test("nothing in the built site relies on inline script", { skip }, () => {

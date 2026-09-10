@@ -59,9 +59,12 @@ hits and visitor country. No cookies, no cross-site tracking, and **no
 account is ever attached to a view**. We cannot tell from analytics who
 was signed in, and we do not try.
 
-The sign-in page is the one deliberate exception and loads no analytics
-at all, because a magic sign-in link arrives as part of that URL and a
-live credential should not travel anywhere it does not have to.
+The sign-in page is the one deliberate exception: it loads no analytics
+script, and the view itself is never recorded, because a magic sign-in
+link arrives as part of that URL and a live credential should not travel
+anywhere it does not have to. Pages you visit after signing in are
+counted like any other, and by their path alone — what a view reports is
+built from the route, never from the address bar.
 
 What a page view records is the page: `/explore/player`, `/status/service`,
 `/account`. Where a page is about a specific record, the Clash Royale

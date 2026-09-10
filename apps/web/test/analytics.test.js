@@ -7,8 +7,14 @@
  * personal data, and an earlier version of this file threw them away as if
  * they were. The record belongs in the query string, not the path: it is an
  * attribute of the /explore/player page, not a page of its own.
+ *
+ * The loading half needs a real origin: on localhost this module deliberately
+ * does nothing, so a default jsdom URL would make every assertion below pass
+ * for the wrong reason.
+ *
+ * @vitest-environment-options { "url": "https://elixir.poapkings.com/" }
  */
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { analyticsLocation } from "../src/analytics.js";
 
 const ORIGIN = "https://elixir.poapkings.com";
@@ -58,5 +64,85 @@ describe("analyticsLocation", () => {
     expect(at("/explore/player/2ABC").url).not.toBe(
       at("/explore/player/9XYZ").url,
     );
+  });
+});
+
+/**
+ * Loading, which is a separate question from what a view SAYS.
+ *
+ * The embed and the route bridge do different jobs — one records the document
+ * load, the other records pushState navigation — and /signin only has a reason
+ * to skip the first. When it skipped both, a magic-link session reported
+ * nothing at all: the app lands on /signin and pushStates into the console
+ * without ever loading another document.
+ */
+describe("loadTinylytics", () => {
+  const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
+  let pushState;
+  let beacons;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    pushState = window.history.pushState;
+    beacons = [];
+    Object.defineProperty(window.navigator, "sendBeacon", {
+      value: (url) => (beacons.push(url), true),
+      configurable: true,
+      writable: true,
+    });
+    document.body.innerHTML = "";
+  });
+
+  afterEach(() => {
+    window.history.pushState = pushState;
+  });
+
+  const embeds = () =>
+    [...document.body.querySelectorAll("script")].map((s) => s.src);
+
+  const load = async (path) => {
+    window.history.replaceState({}, "", path);
+    const { loadTinylytics } = await import("../src/analytics.js");
+    loadTinylytics();
+  };
+
+  test("a session that starts on /signin reports every page AFTER it", async () => {
+    await load("/signin");
+    // The embed reads the address bar as it runs, and the magic token is in it.
+    expect(embeds()).toEqual([]);
+
+    window.history.pushState({}, "", "/account/overview");
+
+    expect(beacons).toHaveLength(1);
+    const sent = new URL(beacons[0]);
+    expect(sent.host).toBe("tinylytics.app");
+    expect(sent.pathname).toBe(`/collector/${SITE_ID}`);
+    expect(sent.searchParams.get("path")).toBe("/account/overview");
+  });
+
+  test("the beacon carries the route, never the address bar", async () => {
+    await load("/signin");
+    window.history.pushState({}, "", "/account/overview?login_token=secret");
+    expect(beacons[0]).not.toContain("secret");
+  });
+
+  test("an ordinary start loads the embed and bridges as well", async () => {
+    await load("/account/overview");
+    expect(embeds()).toEqual([
+      `https://tinylytics.app/embed/${SITE_ID}/min.js?hits&countries&events&beacon`,
+    ]);
+
+    // The embed already recorded this document; only the NEXT page beacons.
+    window.history.pushState({}, "", "/account/usage");
+    expect(beacons).toHaveLength(1);
+    expect(new URL(beacons[0]).searchParams.get("path")).toBe("/account/usage");
+  });
+
+  test("signing out and back in counts the landing page again", async () => {
+    await load("/account/overview");
+    window.history.pushState({}, "", "/signin");
+    expect(beacons).toHaveLength(0);
+    window.history.pushState({}, "", "/account/overview");
+    expect(beacons).toHaveLength(1);
   });
 });
