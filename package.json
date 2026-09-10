@@ -27,7 +27,7 @@
   "scripts": {
     "build": "npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",
     "pretest": "npm run build",
-    "test": "npm test -ws --if-present && node --test \"AGENT-TEAM/scripts/**/*.test.mjs\"",
+    "test": "npm test -ws --if-present && node --test \"AGENT-TEAM/scripts/**/*.test.mjs\" \"clients/**/*.test.mjs\"",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
