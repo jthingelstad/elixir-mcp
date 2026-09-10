@@ -1,31 +1,75 @@
 ---
 layout: base.njk
-title: "What's new"
+title: "Updates"
 description: "Everything shipped on Elixir MCP, newest first: what changed, and why it matters to players and their agents."
 permalink: /updates/index.html
 canonical: /updates
 navActive: updates
-prose: true
 ---
-<div class="page-head">
-  <h1 class="page-title">What&rsquo;s new</h1>
-  <p class="page-head__note">Every user-visible change, newest first. For the tool contract specifically, see the <a href="/data/changelog">changelog</a>.</p>
-  <a class="feed-link" href="/feed.xml" title="Subscribe to Elixir MCP updates">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="19" r="2.6"/>
-      <path d="M2.4 10.6a1.9 1.9 0 0 1 0-3.8A15.3 15.3 0 0 1 17.6 22a1.9 1.9 0 0 1-3.8 0A11.5 11.5 0 0 0 2.4 10.6z"/>
-      <path d="M2.4 3.8a1.9 1.9 0 0 1 0-3.8h.1A22 22 0 0 1 24 22a1.9 1.9 0 0 1-3.8 0A18.2 18.2 0 0 0 2.4 3.8z"/>
-    </svg>
-    RSS
-  </a>
+{#-
+  What changed, newest first, with a rail that filters by kind and jumps
+  by month. The kind is derived from the entry (a version in the title
+  is a contract change; a retirement says so), never typed twice. With
+  JavaScript off every entry shows and the month links still jump.
+-#}
+{%- set months = updatesView | byMonth %}
+{%- set shipped = updatesView | ofKind("shipped") %}
+{%- set contract = updatesView | ofKind("contract") %}
+{%- set retired = updatesView | ofKind("retired") %}
+<div class="siterail">
+  <nav class="siterail__nav" aria-label="Updates" data-updates-rail>
+    <div class="rail__group">By kind</div>
+    <button type="button" class="rail__item rail__item--on" data-kind="all" aria-pressed="true">Everything <span class="rail__meta">{{ updatesView.length }}</span></button>
+    {#- A kind with nothing in it is not offered: a filter that empties
+        the page is a dead end, not a choice. -#}
+    {%- if shipped.length %}
+    <button type="button" class="rail__item" data-kind="shipped" aria-pressed="false">Shipped <span class="rail__meta">{{ shipped.length }}</span></button>
+    {%- endif %}
+    {%- if contract.length %}
+    <button type="button" class="rail__item" data-kind="contract" aria-pressed="false">Contract <span class="rail__meta">{{ contract.length }}</span></button>
+    {%- endif %}
+    {%- if retired.length %}
+    <button type="button" class="rail__item" data-kind="retired" aria-pressed="false">Retired <span class="rail__meta">{{ retired.length }}</span></button>
+    {%- endif %}
+    <div class="rail__group">Archive</div>
+    {%- for m in months %}
+    <a class="rail__item" href="#{{ m.key }}">{{ m.label }} <span class="rail__meta">{{ m.items.length }}</span></a>
+    {%- endfor %}
+    <div class="siterail__foot">
+      <a class="btn btn--sm" href="/feed.xml" title="Subscribe to Elixir MCP updates">Subscribe (RSS)</a>
+      <a class="btn btn--sm" href="/data/changelog">Contract changelog</a>
+    </div>
+  </nav>
+
+  <div class="siterail__body">
+    <h1 class="hero-title" style="margin-bottom: 6px" data-updates-title>Updates</h1>
+    <p class="lede" style="margin: 0 0 22px; max-width: 60ch">
+      What changed, newest first. Contract changes carry a version — the full
+      <a href="/data/changelog">changelog</a> has every one.
+    </p>
+
+    {%- for m in months %}
+    <h2 id="{{ m.key }}" class="label" style="margin: 26px 0 12px">{{ m.label }}</h2>
+    {%- for u in m.items %}
+    <article class="panel" style="margin-bottom: var(--s-4)" data-kind="{{ u.kind }}">
+      <div class="panel__head" style="flex-wrap: wrap; gap: 11px">
+        <span class="chip {% if u.kind == 'shipped' %}chip--ok{% elif u.kind == 'contract' %}chip--info{% else %}chip--warn{% endif %}">{{ u.kind }}</span>
+        <span class="panel-title">{{ u.title }}</span>
+        <span style="margin-left: auto; display: flex; align-items: center; gap: 10px">
+          {%- if u.version %}
+          <span class="mono" style="font-size: 12px; color: var(--ink-body); border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 7px">{{ u.version }}</span>
+          {%- endif %}
+          <time class="mono" style="font-size: 12px; color: var(--ink-faint)" datetime="{{ u.date }}">{{ u.date }}</time>
+        </span>
+      </div>
+      <div class="panel__body"><p style="color: var(--ink-body); margin: 0; line-height: 1.65; text-wrap: pretty">{{ u.body }}</p></div>
+      {%- if u.link %}
+      <div style="padding: 0 18px 14px"><a class="btn btn--sm" href="{{ u.link }}">In the changelog →</a></div>
+      {%- endif %}
+    </article>
+    {%- endfor %}
+    {%- endfor %}
+  </div>
 </div>
 
-{%- for u in updates %}
-<section class="panel" style="margin-bottom: var(--s-4)" id="{{ u.date }}-{{ loop.index }}">
-  <div class="panel__head">
-    <span class="panel-title">{{ u.title }}</span>
-    <time class="mono" style="margin-left: auto; font-size: 11px; color: var(--ink-faint)" datetime="{{ u.date }}">{{ u.date }}</time>
-  </div>
-  <div class="panel__body"><p style="color: var(--ink-body); margin: 0">{{ u.body }}</p></div>
-</section>
-{%- endfor %}
+<script defer src="/assets/updates-filter.js"></script>

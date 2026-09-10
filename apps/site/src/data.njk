@@ -16,6 +16,24 @@ navActive: data
 {%- set t = stats.totals %}
 {%- set n = "—" %}
 
+<div class="siterail">
+  {#- Data stays ONE document: a reader comparing totals against the
+      growth curve should not have to navigate. So the rail scrolls
+      rather than swapping views; rail-anchors.js marks where you are. -#}
+  <nav class="siterail__nav" aria-label="On this page" data-rail-anchors>
+    <div class="rail__group">On this page</div>
+    <a class="rail__item" href="#totals">Corpus totals</a>
+    <a class="rail__item" href="#growth">Growth over time</a>
+    <a class="rail__item" href="#collect">What we collect</a>
+    <a class="rail__item" href="#now">Recording now</a>
+    <a class="rail__item" href="#machines">For machines</a>
+    <div class="siterail__foot">
+      <a class="btn btn--sm" href="/data/changelog">Contract changelog</a>
+      <a class="btn btn--sm" href="/status/service">Status console</a>
+    </div>
+  </nav>
+
+  <div class="siterail__body">
 <div class="page-head" style="align-items: flex-end">
   <div>
     <h1 class="hero-title" style="margin-bottom: 6px">The corpus</h1>
@@ -25,7 +43,7 @@ navActive: data
     </p>
   </div>
   <span class="mono" style="margin-left: auto; text-align: right; font-size: 12px; color: var(--ink-faint)">
-    {% if t %}as of {{ t.newest_battle | day }}{% else %}awaiting the next build{% endif %}<br />rebuilt on every deploy
+    {% if t %}as of {{ t.newest_battle | stamp }}{% else %}awaiting the next build{% endif %}<br />rebuilt on every deploy
   </span>
 </div>
 
@@ -63,6 +81,12 @@ navActive: data
     series. A month with no battles is a real zero on the axis: the shape
     of the corpus is part of the truth, so nothing is compressed. -#}
 {%- set curve = stats.series.battles_daily | cumulativeByMonth %}
+{% if not curve.points %}
+<section class="panel" id="growth" style="margin-bottom: 22px">
+  <div class="panel__head"><span>The corpus keeps growing</span></div>
+  <div class="panel__body footnote">The growth curve is drawn from the daily series at build time; this build had no series to draw from.</div>
+</section>
+{% endif %}
 {% if curve.points %}
 <section class="panel" id="growth" style="margin-bottom: 22px">
   <div class="panel__head">
@@ -197,5 +221,8 @@ navActive: data
   <a href="/data/dashboard">daily corpus charts</a>. The tool contract&rsquo;s own
   history is the <a href="/data/changelog">changelog</a>.
 </p>
+  </div>
+</div>
 
 <script defer src="/assets/data-live.js"></script>
+<script defer src="/assets/rail-anchors.js"></script>

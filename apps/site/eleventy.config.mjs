@@ -46,6 +46,8 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/data-live.js");
   eleventyConfig.addPassthroughCopy("src/assets/chrome-menu.js");
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
+  eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");
+  eleventyConfig.addPassthroughCopy("src/assets/updates-filter.js");
 
   /** The site's canonical URL for a page: no /index.html, and no
    *  trailing slash. That is the spelling the previous sitemap
@@ -108,6 +110,32 @@ export default function (eleventyConfig) {
     typeof n === "number" ? n.toLocaleString("en-US") : "—",
   );
   eleventyConfig.addFilter("day", (s) => (s ? String(s).slice(0, 10) : "—"));
+  /** "2026-09-09 18:44Z" — a timestamp to the minute, for an as-of. */
+  eleventyConfig.addFilter("stamp", (s) =>
+    s ? String(s).slice(0, 16).replace("T", " ") + "Z" : "—",
+  );
+  eleventyConfig.addFilter("ofKind", (entries, kind) =>
+    (entries ?? []).filter((e) => e.kind === kind),
+  );
+  /** Updates grouped by month, newest first, for the archive rail and
+   *  the month headings — derived from the dates, never typed twice. */
+  eleventyConfig.addFilter("byMonth", (entries) => {
+    const months = new Map();
+    for (const u of entries ?? []) {
+      const key = String(u.date).slice(0, 7);
+      if (!months.has(key)) months.set(key, []);
+      months.get(key).push(u);
+    }
+    return [...months.entries()].map(([key, items]) => ({
+      key,
+      label: new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
+      items,
+    }));
+  });
 
   /** Pick one group out of a grouped data file by name.
    *
@@ -128,15 +156,49 @@ export default function (eleventyConfig) {
       .filter(Boolean),
   );
 
-  /** Where a named tool is documented. Unknown names fall back to the
-   *  index rather than a 404: the transcript names a couple of tools by
-   *  their display grouping rather than their registry name. */
+  /** Where a named tool is documented: its family page, at the heading
+   *  the tool-group include gives it (`id="<name>"`), so a reader lands
+   *  on the tool and not the top of a page. A name the registry does not
+   *  know falls back to the index rather than a 404 — and the build
+   *  refuses it below, because the site's copy promises every tool it
+   *  names is real. */
   eleventyConfig.addFilter("toolHref", function (name) {
     const data = this.ctx?.tools ?? {};
     const hit = (data.all ?? []).find((t) => t.name === name);
     const group = (data.groups ?? []).find((g) => g.group === hit?.group);
-    return group ? `/docs/tools/${group.slug}` : "/docs/tools";
+    return group ? `/docs/tools/${group.slug}#${name}` : "/docs/tools";
   });
+
+  /** Where a use case's "To set this up" step goes. The design draws
+   *  the steps as buttons and leaves their targets blank; these are the
+   *  pages that actually do each thing, so a step is never a dead
+   *  button. An unmapped label falls back to the quickstart. */
+  const SETUP_HREF = {
+    "Track your player": "/account/tracking",
+    "Connect a client": "/docs/quickstart",
+    "Read the methodology": "/docs/methodology",
+    "Set your timezone": "/account/settings",
+    "Track a friend's tag": "/account/tracking",
+    "Turn on notifications": "/docs/events",
+    "Track your clan": "/account/tracking",
+    "Choose a recording scope": "/docs/recording#scope-what-is-actually-polled",
+    "Track your clan, comprehensive": "/account/tracking",
+    "Read about scopes": "/docs/recording#scope-what-is-actually-polled",
+    "Look up a clan tag": "/explore/clans",
+    "Read the privacy posture": "/docs/privacy",
+    "Create an agent": "/account/agents",
+    "Read the agents doc": "/docs/agents",
+    "Read the integrations doc": "/docs/integrations",
+    "Request a service key":
+      "/docs/integrations#provisioning-and-administration",
+    "Read the operators guide": "/docs/operators",
+    "Raise your hand": "/status/collectors",
+  };
+  eleventyConfig.addFilter(
+    "setupHref",
+    (label) =>
+      SETUP_HREF[String(label).replace(/’/g, "'")] ?? "/docs/quickstart",
+  );
 
   /** The same, for the generated tool families. */
   eleventyConfig.addFilter(

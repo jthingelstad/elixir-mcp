@@ -500,3 +500,87 @@ test(
     assert.equal(sheet.dataset.open, "false");
   },
 );
+
+test(
+  "every tool a transcript names is in the registry, and links to its heading",
+  { skip },
+  async () => {
+    // The home page and the use-case pages promise that every tool under
+    // a transcript window is real. Eight of the design's placeholder
+    // names were not (2026-09-10); the copy claimed they were anyway.
+    const { makeRegistry } = await import(
+      path.join(repoRoot, "services/mcp/src/tools.mjs")
+    );
+    const names = new Set(
+      makeRegistry()
+        .declarations()
+        .map((d) => d.name),
+    );
+    const pages = [
+      "index.html",
+      "use-cases/play/index.html",
+      "use-cases/clan/index.html",
+      "use-cases/discord/index.html",
+    ];
+    let seen = 0;
+    for (const rel of pages) {
+      const html = read(rel);
+      for (const m of html.matchAll(
+        /<a class="mono" href="([^"]+)">([a-z_]+)<\/a>/g,
+      )) {
+        const [, href, name] = m;
+        seen += 1;
+        assert.ok(names.has(name), `${rel} names ${name}, not in the registry`);
+        assert.match(
+          href,
+          new RegExp(`^/docs/tools/[a-z-]+#${name}$`),
+          `${rel}: ${name} should link to its own heading`,
+        );
+        const [family, anchor] = href.replace("/docs/tools/", "").split("#");
+        assert.ok(
+          read(`docs/tools/${family}/index.html`).includes(`id="${anchor}"`),
+          `${href} has no heading to land on`,
+        );
+      }
+    }
+    assert.ok(seen >= 14, `expected transcript tool links, saw ${seen}`);
+  },
+);
+
+test("every family project has somewhere to go", { skip }, () => {
+  // /family described eight products and linked to none of them: the
+  // data carried the links and the template never rendered them.
+  const html = read("family/index.html");
+  for (const label of ["POAP KINGS", "Elixir Drop", "Royaledle", "RoyaleAPI"]) {
+    assert.ok(html.includes(label), `family page lost ${label}`);
+  }
+  for (const href of [
+    "https://poapkings.com",
+    "https://drop.poapkings.com",
+    "https://royaledle.org",
+    "https://royaleapi.com",
+    "/docs/agents",
+  ]) {
+    assert.ok(
+      html.includes(`href="${href}"`),
+      `family page has no link to ${href}`,
+    );
+  }
+  // Third-party projects carry their own byline, never ours.
+  const theirs = html.slice(html.indexOf('id="royaledle"'));
+  assert.match(theirs, /Not ours/);
+  assert.doesNotMatch(theirs.slice(0, 1200), /Run by POAP KINGS/);
+});
+
+test(
+  "updates carry a kind, a month anchor and a version where one shipped",
+  { skip },
+  () => {
+    const html = read("updates/index.html");
+    assert.match(html, /<h2 id="2026-09"/);
+    assert.match(html, /data-kind="shipped"/);
+    assert.match(html, /data-kind="contract"/);
+    assert.ok(existsSync(path.join(out, "assets/updates-filter.js")));
+    assert.ok(existsSync(path.join(out, "assets/rail-anchors.js")));
+  },
+);

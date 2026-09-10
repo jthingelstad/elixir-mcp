@@ -27,7 +27,7 @@ export default [
         ],
         setup: ["Track your player", "Connect a client"],
         script: {
-          tool: "players_timeline · decks_performance · battles_search",
+          tool: "players_timeline · battles_decks · battles_query",
           lines: [
             {
               role: "user",
@@ -64,7 +64,7 @@ export default [
         ],
         setup: ["Track your player", "Read the methodology"],
         script: {
-          tool: "meta_decks · decks_performance · cards_catalog",
+          tool: "battles_meta_decks · battles_decks · cards_catalog",
           lines: [
             {
               role: "user",
@@ -92,7 +92,7 @@ export default [
         ],
         setup: ["Track your player", "Set your timezone"],
         script: {
-          tool: "players_timeline · battles_search",
+          tool: "players_timeline · battles_query",
           lines: [
             {
               role: "user",
@@ -120,7 +120,7 @@ export default [
         ],
         setup: ["Track a friend's tag", "Turn on notifications"],
         script: {
-          tool: "players_profile · players_timeline · events",
+          tool: "players_profile · players_timeline · elixir_events",
           lines: [
             {
               role: "user",
@@ -162,7 +162,7 @@ export default [
         ],
         setup: ["Track your clan", "Choose a recording scope"],
         script: {
-          tool: "war_current · clans_roster · war_participation",
+          tool: "war_current · clans_roster · war_history",
           lines: [
             {
               role: "user",
@@ -199,7 +199,7 @@ export default [
         ],
         setup: ["Track your clan, comprehensive", "Read about scopes"],
         script: {
-          tool: "clans_roster · war_participation · players_timeline",
+          tool: "clans_roster · war_history · players_timeline",
           lines: [
             {
               role: "user",
@@ -227,7 +227,7 @@ export default [
         ],
         setup: ["Look up a clan tag", "Read the privacy posture"],
         script: {
-          tool: "clans_roster · war_participation · meta_decks",
+          tool: "clans_roster · war_history · battles_meta_decks",
           lines: [
             {
               role: "user",
@@ -255,7 +255,7 @@ export default [
         ],
         setup: ["Track your clan", "Connect a client"],
         script: {
-          tool: "war_current · war_participation · clans_timeline",
+          tool: "war_current · war_history · clans_standings",
           lines: [
             {
               role: "user",
@@ -316,7 +316,7 @@ export default [
         ],
         setup: ["Read the integrations doc", "Request a service key"],
         script: {
-          tool: "clans_timeline · war_participation · players_profile",
+          tool: "clans_standings · war_history · players_profile",
           lines: [
             {
               role: "user",
@@ -344,7 +344,7 @@ export default [
         ],
         setup: ["Read the operators guide", "Raise your hand"],
         script: {
-          tool: "gateways · api_receipt",
+          tool: "elixir_collectors · elixir_coverage",
           lines: [
             {
               role: "user",

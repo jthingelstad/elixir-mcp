@@ -1,132 +1,207 @@
 ---
 layout: base.njk
-title: "Explore your Clash Royale world with AI"
-description: "Point Claude, ChatGPT or any AI agent at your own Clash Royale history and your clan's. Ask it anything, in plain language, over MCP."
+title: "Give your agent a real Clash record"
+description: "Elixir records Clash Royale history — battles, rosters, river races — and serves it to your own AI agent over MCP. Ask in plain language; the answer comes from the record, with the numbers behind it."
 permalink: /index.html
 canonical: /
 navActive: home
 ---
 {%- set t = stats.totals %}
+{%- set lastDay = stats.series.battles_daily | last if stats.series and stats.series.battles_daily else null %}
 <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; padding-top: 24px">
   <div style="flex: 1 1 480px; min-width: 0">
-    <div class="eyebrow" style="margin-bottom: 14px">YOUR CLASH ROYALE WORLD · OPEN TO ANY AI AGENT · REMOTE MCP SERVER</div>
-    <h1 class="hero-title">Point your AI at your Clash Royale world.</h1>
-    <p class="lede" style="margin: 0 0 14px">
-      Clash Royale generates an enormous amount of detail about you and your
-      clan — every battle, every deck, every promotion, every war. Elixir MCP
-      opens all of it to <strong>Claude, ChatGPT, or whichever agent you
-      already use</strong>, so you can explore it by just asking.
+    {#- The pill is baked from the daily series at deploy and says so by
+        wording: "today" is the last day the series holds. -#}
+    <span class="chip chip--ok" style="margin-bottom: 18px; display: inline-flex">
+      <span class="chip__dot"></span>
+      recording now{% if lastDay %} · {{ lastDay.battles | number }} battles recorded today{% endif %}
+    </span>
+    <h1 class="hero-title">Give your agent a real Clash record.</h1>
+    <p class="lede" style="margin: 0 0 24px; max-width: 50ch">
+      Elixir records Clash Royale history — battles, rosters, river races — and
+      serves it to your own AI agent over MCP. You ask in plain language; the
+      answer comes from the record, with the numbers behind it.
     </p>
-    <p class="lede" style="margin: 0 0 10px">
-      <em>&ldquo;Which of my decks actually beats Hog cycle?&rdquo;</em><br />
-      <em>&ldquo;Who in the clan is quietly carrying war?&rdquo;</em><br />
-      <em>&ldquo;Am I better since I swapped to Firecracker?&rdquo;</em>
-    </p>
-    <p class="lede" style="margin: 0 0 20px">
-      Answered from the record — because we keep the history the game itself
-      throws away.
-    </p>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px">
       <a class="btn btn--primary" href="#request">Request access</a>
-      <a class="btn btn--quiet" href="/docs/quickstart">Connect your agent →</a>
-      <span style="font-size: 12px; color: var(--ink-faint)">approval-gated · free while in early access</span>
+      <a class="btn" href="/docs/quickstart">Connect your agent →</a>
     </div>
+    <p class="footnote" style="margin: 0">
+      Granted by hand while the corpus grows. Reading is universal — a tier only
+      changes what we record for you.
+    </p>
   </div>
 
   {#- The transcript replaces the counter panel here: a number says the
       corpus is big, an exchange says what it is FOR, and that is the
-      argument the home page has to make. The counters moved to /data,
-      which is the page about how much there is. -#}
+      argument the home page has to make. The counters sit below the
+      fold, and /data is the page about how much there is. -#}
   <div style="flex: 1 1 440px; min-width: 320px">
+    {%- set scripts = transcript %}
     {% include "transcript.njk" %}
     <p class="footnote" style="margin: 12px 2px 0">
       An illustration of a real exchange: every tool named under the window
-      exists today, and the citation under each answer is the kind this
-      service actually returns. <a href="/data">The corpus</a> has the numbers.
+      is in the registry and linked to its reference, and the citation under
+      each answer is the kind this service actually returns. The numbers are
+      illustrative; <a href="/data">the corpus</a> has the real ones.
     </p>
   </div>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 48px">
-  <section class="panel" id="request">
-    <div class="panel__head"><span class="panel-title">Request access</span></div>
-    <div class="panel__body" style="display: flex; flex-direction: column; gap: 10px">
-      <div style="font-size: 12.5px; color: var(--ink-faint)">
-        Access is invite-approved while the recorder grows. Tell us who you are in the arena.
-      </div>
-      {#- The one interactive thing on the static half. Its script is
-          /assets/request-form.js - an external file, not an inline
-          block, because the CSP has no script-src 'unsafe-inline'
-          (#25). Progressive enhancement is not available here (there
-          is no non-JS POST target), so it fails loudly rather than
-          silently swallowing a submission. -#}
-      <form id="request-form" style="display: flex; flex-direction: column; gap: 10px">
-        <label>
-          <span class="field-label">Email</span>
-          <input type="email" name="email" required placeholder="you@example.com" />
-        </label>
-        <label>
-          <span class="field-label">Your player tag</span>
-          <input class="mono" name="player_tag" required placeholder="#20JJJ2CCRU" />
-        </label>
-        <label>
-          <span class="field-label">Anything we should know? <span style="color: var(--ink-faint)">(optional)</span></span>
-          <input name="note" />
-        </label>
-        <p class="field-error" id="request-error" hidden></p>
-        <div><button class="btn btn--primary" type="submit">Request access</button></div>
-      </form>
-      <div class="notice" id="request-sent" hidden>
-        If your request is approved, you&rsquo;ll hear from us by email.
-      </div>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel__head"><span class="panel-title">How it works</span></div>
-    <div class="panel__body" style="display: flex; flex-direction: column; gap: 14px">
-      {%- set steps = [
-        ["01", "Add your players and clans. Added means recorded — capture starts on the next poll and never stops."],
-        ["02", "Connect your own AI agent over MCP. It sees your full recorded history with your entitlements applied."],
-        ["03", "Ask it anything the game can't answer. Every number ships its sample size — observation, never opinion."]
-      ] %}
-      {%- for s in steps %}
-      <div style="display: flex; gap: 12px">
-        <span class="mono" style="color: var(--ink-link); font-weight: 600">{{ s[0] }}</span>
-        <span style="font-size: 12.5px; color: var(--ink-body); line-height: 1.55">{{ s[1] }}</span>
-      </div>
-      {%- endfor %}
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel__head">
-      <span class="panel-title">What&rsquo;s new</span>
-      <a class="mono" style="margin-left: auto; font-size: 11px" href="/updates">All updates ›</a>
-    </div>
-    <div class="panel__body" style="display: flex; flex-direction: column; gap: 12px">
-      {%- for u in updates.slice(0, 4) %}
-      <div style="display: flex; gap: 12px">
-        <span class="mono" style="flex: 0 0 52px; font-size: 11px; color: var(--ink-faint)">{{ u.date | replace("2026-", "") }}</span>
-        <span style="font-size: 12.5px; line-height: 1.5">
-          <strong>{{ u.title }}.</strong>
-          <span style="color: var(--ink-body)">{{ u.body | clamp(140) }}</span>
+<section class="home-section" style="margin-top: 20px">
+  <div class="home-section__head">
+    <h2>What people use it for</h2>
+    <a href="/use-cases/play" style="font-size: 13.5px">All 11 use cases ›</a>
+  </div>
+  <p style="font-size: 15px; color: var(--ink-dim); margin: 0 0 20px">
+    The chips above switch the conversation. Open one for the full walkthrough.
+  </p>
+  <div style="display: flex; gap: 14px; flex-wrap: wrap">
+    {%- set cases = [
+      ["play", "/use-cases/play#play", "Understand your own play", "Which deck is actually winning, where your losses cluster, whether last month's change worked.", "reads your recorded battles and daily snapshots"],
+      ["clan", "/use-cases/clan#clan", "Run your clan", "Who carried the race, who missed attacks, and who needs a word before the next one.", "reads war weeks past the API's 20-week window"],
+      ["friends", "/use-cases/play#friends", "Follow your friends", "Track the people you play with — climbs, deck switches, heavy days, when you last teamed up.", "reads the players you chose to track"]
+    ] %}
+    {%- for c in cases %}
+    <a class="case-card" href="{{ c[1] }}">
+      <span style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px">
+        <span class="case-card__icon" aria-hidden="true">
+          {%- if c[0] == "play" -%}
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          {%- elif c[0] == "clan" -%}
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+          {%- else -%}
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {%- endif -%}
         </span>
-      </div>
+        <span style="font-size: 16px; font-weight: 600; color: var(--ink)">{{ c[2] }}</span>
+      </span>
+      <span style="display: block; font-size: 14px; line-height: 1.6; color: var(--ink-body); margin-bottom: 10px">{{ c[3] }}</span>
+      <span style="display: block; font-size: 13px; color: var(--ink-faint)">{{ c[4] }}</span>
+    </a>
+    {%- endfor %}
+  </div>
+</section>
+
+<section class="home-section">
+  <div class="home-section__head"><h2>How it works</h2></div>
+  <div class="pipeline">
+    {%- set steps = [
+      ["Collectors fetch", "Volunteer machines poll the game's API on a schedule the hub sets, inside one shared request budget. They choose nothing; the server does.", "M6 8h12M6 12h12M6 16h8"],
+      ["Elixir records", "Every payload is admitted once and kept: battles, rosters, snapshots, river races — including the weeks the API itself forgets.", "M4 6h16v12H4zM8 10h8M8 14h5"],
+      ["Your agent reads", "Connect Claude, ChatGPT or any MCP client. It gets the tools, your entitlements, and every answer with its sample size.", "M12 3v18M3 12h18"]
+    ] %}
+    {%- for s in steps %}
+    <div class="pipeline__step">
+      <span class="pipeline__icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ s[2] }}"/></svg>
+      </span>
+      <span>
+        <span style="display: block; font-size: 15.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px">{{ s[0] }}</span>
+        <span style="display: block; font-size: 14px; line-height: 1.6; color: var(--ink-dim)">{{ s[1] }}</span>
+      </span>
+    </div>
+    {%- endfor %}
+  </div>
+</section>
+
+<section class="home-section">
+  <div class="home-section__head">
+    <h2>What it is reading</h2>
+    <a href="/data" style="font-size: 13.5px">The corpus ›</a>
+  </div>
+  {#- The one place a number is gold on the home page: a brand moment
+      on the marketing half, not a reading in the console. Baked at
+      deploy from the same stats /data draws. -#}
+  <div class="stats">
+    <div class="stats__cell">
+      <div class="label">battles</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}—{% endif %}</div>
+      <div class="stats__note">{% if t %}since {{ t.oldest_battle | day }}{% else %}recorded{% endif %}</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">players</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.players | number }}{% else %}—{% endif %}</div>
+      <div class="stats__note">observed</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">clans</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.clans | number }}{% else %}—{% endif %}</div>
+      <div class="stats__note">observed</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">war weeks</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}—{% endif %}</div>
+      <div class="stats__note">recorded races</div>
+    </div>
+  </div>
+</section>
+
+<section class="home-section" style="display: flex; gap: 32px; flex-wrap: wrap">
+  <div style="flex: 1 1 420px; min-width: 0">
+    <div class="home-section__head">
+      <h2>What&rsquo;s new</h2>
+      <a href="/updates" style="font-size: 13.5px">All updates ›</a>
+    </div>
+    <div class="panel">
+      {%- for u in updates.slice(0, 4) %}
+      <a href="/updates#{{ u.date | truncate(7, true, "") }}" style="display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-top: 1px solid var(--line-soft); color: inherit">
+        <span class="mono" style="font-size: 12px; color: var(--ink-faint); flex: 0 0 58px; padding-top: 2px">{{ u.date | replace("2026-", "") }}</span>
+        <span>
+          <span style="display: block; font-size: 14.5px; font-weight: 600; color: var(--ink)">{{ u.title }}</span>
+          <span style="display: block; font-size: 13.5px; color: var(--ink-dim); margin-top: 2px">{{ u.body | clamp(140) }}</span>
+        </span>
+      </a>
       {%- endfor %}
     </div>
-  </section>
-</div>
-
-<section class="panel" style="margin-top: 20px">
-  <div class="panel__head"><span class="panel-title">Connect an agent</span></div>
-  <div class="panel__body">
-    <p style="color: var(--ink-body); margin: 0 0 var(--s-3)">
-      Point any MCP client at <code>{{ site.mcpUrl }}</code>. Your agent gets
-      {{ tools.count }} tools across {{ tools.groups | length }} groups — the full
-      reference is in <a href="/docs/tools">the docs</a>, and machine-readable at
-      <a href="/tools.json">/tools.json</a> and <a href="/llms.txt">/llms.txt</a>.
+  </div>
+  <div style="flex: 1 1 260px; min-width: 0">
+    <div class="home-section__head"><h2>For machines</h2></div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <a class="machine-link" href="/api/public/stats">/api/public/stats</a>
+      <a class="machine-link" href="/llms.txt">/llms.txt</a>
+      <a class="machine-link" href="/tools.json">/tools.json</a>
+      <a class="machine-link" href="/feed.xml">/feed.xml</a>
+    </div>
+    <p class="footnote" style="margin: 14px 0 0">
+      The tool list is generated from the registry, so it cannot drift from
+      what the door actually serves: {{ tools.count }} tools across
+      {{ tools.groups | length }} groups, at <code>{{ site.mcpUrl }}</code>.
     </p>
+  </div>
+</section>
+
+<section class="panel" id="request" style="margin-top: 20px; max-width: 560px">
+  <div class="panel__head"><span class="panel-title">Request access</span></div>
+  <div class="panel__body" style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 12.5px; color: var(--ink-faint)">
+      Access is invite-approved while the recorder grows. Tell us who you are in the arena.
+    </div>
+    {#- The one interactive thing on the static half. Its script is
+        /assets/request-form.js - an external file, not an inline
+        block, because the CSP has no script-src 'unsafe-inline'
+        (#25). Progressive enhancement is not available here (there
+        is no non-JS POST target), so it fails loudly rather than
+        silently swallowing a submission. -#}
+    <form id="request-form" style="display: flex; flex-direction: column; gap: 10px">
+      <label>
+        <span class="field-label">Email</span>
+        <input type="email" name="email" required placeholder="you@example.com" />
+      </label>
+      <label>
+        <span class="field-label">Your player tag</span>
+        <input class="mono" name="player_tag" required placeholder="#20JJJ2CCRU" />
+      </label>
+      <label>
+        <span class="field-label">Anything we should know? <span style="color: var(--ink-faint)">(optional)</span></span>
+        <input name="note" />
+      </label>
+      <p class="field-error" id="request-error" hidden></p>
+      <div><button class="btn btn--primary" type="submit">Request access</button></div>
+    </form>
+    <div class="notice" id="request-sent" hidden>
+      If your request is approved, you&rsquo;ll hear from us by email.
+    </div>
   </div>
 </section>
 

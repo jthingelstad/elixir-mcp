@@ -12,6 +12,11 @@
  * Screenshots are real product shots when they exist; a described slot
  * holds the place until then, rather than an illustration standing in
  * for a product nobody has seen.
+ *
+ * Every link is [label, kind, href]. The first external link of a
+ * project is the gold primary — it is the way to the thing itself; the
+ * rest are quiet. The Discord bot has no public invite yet, so its link
+ * says where it actually goes.
  */
 export default [
   {
@@ -34,8 +39,8 @@ export default [
         ],
         uses: "Recorded comprehensively by Elixir MCP — it is the most complete clan in the corpus.",
         links: [
-          ["Visit the clan page", "external"],
-          ["Open the clan record", "record"],
+          ["Visit the clan page", "external", "https://poapkings.com"],
+          ["Open the clan record", "record", "/explore/clan/J2RGCRVG"],
         ],
       },
     ],
@@ -60,8 +65,8 @@ export default [
         ],
         uses: "Reads player profiles and the interpreted war clock from Elixir MCP, so it holds no Clash key of its own.",
         links: [
-          ["Play Elixir Drop", "external"],
-          ["How it reads the hub", "docs"],
+          ["Play Elixir Drop", "external", "https://drop.poapkings.com"],
+          ["How it reads the hub", "docs", "/docs/integrations"],
         ],
       },
     ],
@@ -86,8 +91,8 @@ export default [
         ],
         uses: "A first-class agent principal: its own door, its own key, its own event feed.",
         links: [
-          ["See how agents work", "docs"],
-          ["Answer your clanmates", "case"],
+          ["See how agents work", "docs", "/docs/agents"],
+          ["Answer your clanmates", "case", "/use-cases/discord#discord"],
         ],
       },
       {
@@ -105,8 +110,12 @@ export default [
         ],
         uses: "Creates and runs an agent principal on your behalf; every call is charged to your daily budget.",
         links: [
-          ["Add it to your server", "external"],
-          ["Create an agent", "console"],
+          [
+            "Set it up from GitHub",
+            "external",
+            "https://github.com/jthingelstad/elixir-mcp-discord",
+          ],
+          ["Create an agent", "console", "/account/agents"],
         ],
       },
     ],
@@ -131,8 +140,12 @@ export default [
         ],
         uses: "Independent of the hub — it documents Supercell's API, which is what Elixir MCP records from.",
         links: [
-          ["Read the docs", "external"],
-          ["Our own tool reference", "docs"],
+          [
+            "Read the docs",
+            "external",
+            "https://github.com/jthingelstad/cr-agent-api-docs",
+          ],
+          ["Our own tool reference", "docs", "/docs/tools"],
         ],
       },
       {
@@ -151,8 +164,8 @@ export default [
         ],
         uses: "You are here.",
         links: [
-          ["The corpus", "data"],
-          ["Use cases", "cases"],
+          ["The corpus", "data", "/data"],
+          ["Use cases", "cases", "/use-cases/play"],
         ],
       },
     ],
@@ -177,7 +190,7 @@ export default [
           "No account, nothing to install",
         ],
         uses: "No connection to Elixir MCP — we just play it.",
-        links: [["royaledle.org", "external"]],
+        links: [["royaledle.org", "external", "https://royaledle.org"]],
       },
       {
         key: "royaleapi",
@@ -194,7 +207,7 @@ export default [
           "Where we sanity-check our own numbers",
         ],
         uses: "Independent of us. Complementary, not competing: they answer what is happening now, we answer what happened over months.",
-        links: [["royaleapi.com", "external"]],
+        links: [["royaleapi.com", "external", "https://royaleapi.com"]],
       },
     ],
   },

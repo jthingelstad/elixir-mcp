@@ -2249,3 +2249,167 @@ input[aria-invalid="true"] {
 .first-answer summary {
   cursor: pointer;
 }
+
+/* ==================================================================
+   Site rails (design handoff 2026-09-09, step 7)
+
+   Use cases, Data, Updates and Family each carry a rail on the left:
+   the console's rail idiom — group eyebrow, item, gold rule on the
+   current one — as a SIBLING of the content, never over it. Below the
+   one breakpoint it stacks above the content as a wrapping row.
+   ================================================================== */
+.siterail {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+.siterail__nav {
+  flex: 0 0 236px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 16px;
+}
+.siterail__nav .rail__item {
+  min-height: 36px;
+  padding: 8px 11px;
+}
+.siterail__nav .rail__group:first-child {
+  padding-top: 4px;
+}
+.siterail__body {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.siterail__foot {
+  margin-top: 22px;
+  padding: 14px 11px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+  color: var(--ink-faint);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.siterail__foot .btn {
+  justify-content: flex-start;
+}
+@media (max-width: 900px) {
+  .siterail {
+    flex-direction: column;
+  }
+  .siterail__nav {
+    position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+  .siterail__nav .rail__group {
+    flex-basis: 100%;
+    padding: 10px 4px 2px;
+  }
+  .siterail__nav .rail__item {
+    border-radius: var(--r-control);
+  }
+  .siterail__foot {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+}
+
+/* The caret while a transcript line is being typed. */
+@keyframes caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.transcript__typing .transcript__text::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--accent-bright);
+  animation: caret 1s step-end infinite;
+}
+
+/* The home page's "how it works" pipeline and use-case cards. */
+.pipeline {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.pipeline__step {
+  flex: 1 1 250px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.pipeline__icon,
+.case-card__icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-bright);
+}
+.case-card__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.case-card {
+  flex: 1 1 280px;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  padding: 18px;
+  color: inherit;
+}
+.case-card:hover {
+  border-color: var(--accent-deep);
+  color: inherit;
+}
+.machine-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 11px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-body);
+}
+.machine-link:hover {
+  border-color: var(--accent-deep);
+  color: var(--ink);
+}
+.home-section {
+  padding: 22px 0 38px;
+  border-top: 1px solid var(--line-soft);
+}
+.home-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 22px 0 14px;
+}
+.home-section__head h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}

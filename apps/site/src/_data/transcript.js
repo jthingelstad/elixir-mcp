@@ -13,7 +13,7 @@ export default [
   {
     key: "play",
     label: "Your play",
-    tool: "players_timeline · decks_performance · battles_search",
+    tool: "players_timeline · battles_decks · battles_query",
     lines: [
       {
         role: "user",
@@ -38,7 +38,7 @@ export default [
   {
     key: "clan",
     label: "Your clan",
-    tool: "war_current · clans_roster · war_participation",
+    tool: "war_current · clans_roster · war_history",
     lines: [
       {
         role: "user",
@@ -63,7 +63,7 @@ export default [
   {
     key: "friends",
     label: "Your friends",
-    tool: "players_profile · players_timeline · events",
+    tool: "players_profile · players_timeline · elixir_events",
     lines: [
       {
         role: "user",

@@ -7,12 +7,17 @@ canonical: /family
 navActive: family
 ---
 {#-
-  Two groups, two bylines, and no cross-selling between them.
+  Two kinds of group, two bylines, and no cross-selling between them.
 
   Ours say how they fit the hub. Theirs say plainly that they are not
   connected to us. Recommending somebody else's work in the same voice
   you use to sell your own is what makes both of them untrustworthy, so
-  the byline changes and the "how it fits" line says "no connection".
+  the byline changes per project ("Run by POAP KINGS" / "Not ours"),
+  the second panel's head changes ("How it fits" / "Where it stands"),
+  and the highlights head changes ("Highlights" / "Why we like it").
+
+  The rail lists every project in reading order and marks the one you
+  are standing on, so the hub does not advertise itself.
 -#}
 <div class="page-head">
   <div>
@@ -25,64 +30,94 @@ navActive: family
   </div>
 </div>
 
-{%- for g in family %}
-<section style="margin-top: 34px">
-  <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line)">
-    <h2 style="font-size: 19px; font-weight: 600; margin: 0">{{ g.group }}</h2>
-    <span class="footnote" style="margin-left: auto">
-      {%- if g.theirs -%}
-        not ours, and not connected to us &mdash; we just play them
-      {%- else -%}
-        a POAP KINGS product
-      {%- endif -%}
-    </span>
-  </div>
-
-  {%- for p in g.projects %}
-  <article style="padding: 22px 0; border-bottom: 1px solid var(--line-row)">
-    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px">
-      <span class="tag-chip">{{ p.kind }}</span>
-      <span class="chip {% if p.state == 'live' %}chip--ok{% else %}chip--warn{% endif %}"><span class="chip__dot"></span>{{ p.state }}</span>
+<div class="siterail">
+  <nav class="siterail__nav" aria-label="Projects">
+    {%- for g in family %}
+    <div class="rail__group">{{ g.group }}</div>
+    {%- for p in g.projects %}
+    <a class="rail__item{% if p.here %} rail__item--on{% endif %}" href="#{{ p.key }}"{% if p.here %} aria-current="page"{% endif %}>
+      {{ p.label }}
+      <span class="rail__meta">
+        {%- if p.here %}here{% elif p.state == "beta" %}beta{% elif p.theirs %}theirs{% endif -%}
+      </span>
+    </a>
+    {%- endfor %}
+    {%- endfor %}
+    <div class="siterail__foot">
+      Each one that is ours reads from the hub with its own credential.
+      <a class="btn btn--sm" href="/docs/architecture#the-shape-of-the-system">How they connect</a>
     </div>
-    <h3 class="page-title" style="font-size: 26px; margin: 0 0 8px">{{ p.label }}</h3>
-    <p class="lede" style="margin: 0 0 18px; max-width: 62ch; font-size: 16px">{{ p.lede }}</p>
+  </nav>
 
-    <div style="display: flex; gap: 18px; flex-wrap: wrap">
-      <section class="panel" style="flex: 1 1 300px">
-        <div class="panel__head">What it is</div>
-        <div class="panel__body" style="display: flex; flex-direction: column; gap: 11px">
-          {%- for point in p.points %}
-          <span style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--ink-body)">
-            <span style="width: 5px; height: 5px; border-radius: 999px; background: var(--accent-bright); flex: 0 0 auto; margin-top: 7px"></span>{{ point }}
-          </span>
-          {%- endfor %}
-        </div>
-      </section>
-      <section class="panel" style="flex: 1 1 280px">
-        <div class="panel__head">{% if p.theirs %}Where it stands{% else %}How it fits{% endif %}</div>
-        <div class="panel__body" style="font-size: 13.5px; line-height: 1.65; color: var(--ink-body)">{{ p.uses }}</div>
-        {%- if not p.theirs %}
-        <div class="panel__foot">
-          Hub-and-spoke: the hub records, each product pulls what it needs with
-          its own credential.
-        </div>
-        {%- endif %}
-      </section>
+  <div class="siterail__body">
+  {%- for g in family %}
+  <section style="margin-top: 8px">
+    <div style="display: flex; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line)">
+      <h2 style="font-size: 19px; font-weight: 600; margin: 0">{{ g.group }}</h2>
     </div>
 
-    {#- A slot, not an illustration: a described placeholder is honest
-        about a screenshot that does not exist yet, where a drawing of a
-        product nobody has seen is not. -#}
-    <div class="card-slot" style="margin-top: 18px; height: 220px; border-radius: var(--r-panel); display: flex; align-items: center; justify-content: center">
-      <span class="footnote">{{ p.shot }}</span>
-    </div>
-  </article>
+    {%- for p in g.projects %}
+    <article id="{{ p.key }}" style="padding: 22px 0 30px; border-bottom: 1px solid var(--line-row)">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px">
+        <span class="tag-chip">{{ p.kind }}</span>
+        <span class="chip {% if p.state == 'live' %}chip--ok{% else %}chip--warn{% endif %}"><span class="chip__dot"></span>{{ p.state }}</span>
+        {#- The byline is per project, so a reader skimming one card
+            never has to look up to the group head to learn whose it is. -#}
+        <span class="footnote" style="margin-left: auto">
+          {%- if p.theirs -%}Not ours &mdash; we just rate it{%- else -%}Run by POAP KINGS{%- endif -%}
+        </span>
+      </div>
+      <h3 class="page-title" style="font-size: 26px; margin: 0 0 8px">{{ p.label }}</h3>
+      <p class="lede" style="margin: 0 0 18px; max-width: 62ch; font-size: 16px">{{ p.lede }}</p>
+
+      <div style="display: flex; gap: 18px; flex-wrap: wrap">
+        <section class="panel" style="flex: 1 1 300px">
+          <div class="panel__head">{% if p.theirs %}Why we like it{% else %}Highlights{% endif %}</div>
+          <div class="panel__body" style="display: flex; flex-direction: column; gap: 11px">
+            {%- for point in p.points %}
+            <span style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--ink-body)">
+              <span style="width: 5px; height: 5px; border-radius: 999px; background: var(--accent-bright); flex: 0 0 auto; margin-top: 7px"></span>{{ point }}
+            </span>
+            {%- endfor %}
+          </div>
+        </section>
+        <section class="panel" style="flex: 1 1 280px">
+          <div class="panel__head">{% if p.theirs %}Where it stands{% else %}How it fits{% endif %}</div>
+          <div class="panel__body" style="font-size: 13.5px; line-height: 1.65; color: var(--ink-body)">{{ p.uses }}</div>
+          {%- if not p.theirs %}
+          <div class="panel__foot">
+            Hub-and-spoke: the hub records, each product pulls what it needs with
+            its own credential.
+          </div>
+          {%- endif %}
+        </section>
+      </div>
+
+      {#- The links row: the first external link is the gold primary — it
+          is the way to the thing itself — and the rest are quiet. -#}
+      {%- if p.links and p.links.length %}
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px">
+        {%- for l in p.links %}
+        <a class="btn{% if loop.first and l[1] == 'external' %} btn--primary{% endif %}" href="{{ l[2] }}"{% if l[1] == 'external' %} rel="noopener"{% endif %}>{{ l[0] }}{% if l[1] == 'external' %} ↗{% endif %}</a>
+        {%- endfor %}
+      </div>
+      {%- endif %}
+
+      {#- A slot, not an illustration: a described placeholder is honest
+          about a screenshot that does not exist yet, where a drawing of a
+          product nobody has seen is not. -#}
+      <div style="margin-top: 18px; height: 240px; border-radius: var(--r-panel); border: 1px dashed var(--line); background: var(--ground-sunken); display: flex; align-items: center; justify-content: center">
+        <span class="footnote">{{ p.shot }}</span>
+      </div>
+    </article>
+    {%- endfor %}
+  </section>
   {%- endfor %}
-</section>
-{%- endfor %}
 
-<p class="footnote" style="margin: 28px 0 0; max-width: 78ch">
-  Everything above that is ours reads the same recorded history your own agent
-  can read. Start with <a href="/data">the corpus</a>, or
-  <a href="/docs/quickstart">connect an agent</a>.
-</p>
+  <p class="footnote" style="margin: 28px 0 0; max-width: 78ch">
+    Everything above that is ours reads the same recorded history your own agent
+    can read. Start with <a href="/data">the corpus</a>, or
+    <a href="/docs/quickstart">connect an agent</a>.
+  </p>
+  </div>
+</div>

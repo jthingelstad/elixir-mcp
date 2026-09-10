@@ -1,17 +1,21 @@
 {#-
   The transcript: the site's argument in one box.
 
-  Every line is rendered server-side inside data-script panes, so the
-  whole conversation is readable with JavaScript off. transcript.js
-  hides those and types the same text back into the stage — it takes
-  content away and gives it back, never the other way round.
+  Takes `scripts` (a list of { key, label, tool, lines }) — the home page
+  passes its three, a use-case section passes its one. Every line is
+  rendered server-side inside data-script panes, so the whole
+  conversation is readable with JavaScript off. transcript.js hides
+  those and types the same text back into the stage — it takes content
+  away and gives it back, never the other way round.
 -#}
 <div class="transcript" data-transcript>
+  {%- if scripts.length > 1 %}
   <div style="display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px">
-    {%- for s in transcript %}
+    {%- for s in scripts %}
     <button type="button" class="btn btn--sm" data-topic="{{ s.key }}" aria-pressed="{{ "true" if loop.first else "false" }}">{{ s.label }}</button>
     {%- endfor %}
   </div>
+  {%- endif %}
 
   <div class="transcript__window">
     <div class="transcript__chrome">
@@ -31,7 +35,7 @@
       {#- Typed into by the script; empty until then. -#}
       <div data-stage></div>
 
-      {%- for s in transcript %}
+      {%- for s in scripts %}
       <div data-script="{{ s.key }}"{% if not loop.first %} hidden{% endif %}>
         {%- for line in s.lines %}
         <div data-line="{{ line.role }}" class="{{ 'transcript__user' if line.role == 'user' else 'transcript__agent' }}">
@@ -48,12 +52,12 @@
       </div>
     </div>
 
-    <div class="transcript__tools" data-tools data-for="{{ transcript[0].key }}">
-      {%- for s in transcript %}
+    <div class="transcript__tools" data-tools data-for="{{ scripts[0].key }}">
+      {%- for s in scripts %}
       <span class="transcript__tools-set" data-tools-for="{{ s.key }}"{% if not loop.first %} hidden{% endif %}>
         {%- for name in s.tool | toolNames %}
-        {#- Straight to the family page that documents it, so a reader
-            can check that every tool named here exists. -#}
+        {#- Straight to the tool's own heading on its family page, so a
+            reader can check that every tool named here exists. -#}
         <a class="mono" href="{{ name | toolHref }}">{{ name }}</a>
         {%- endfor %}
       </span>
