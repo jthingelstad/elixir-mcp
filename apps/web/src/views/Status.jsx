@@ -217,7 +217,10 @@ function ChartLegend({ series }) {
  * fill level with it is on pace, well short is idle, past it is a burst.
  */
 function BudgetGauge({ budget }) {
-  if (!budget) return null;
+  // The page that answers "is the recorder broken" must not be the page
+  // that breaks: a body missing a number renders without that panel
+  // rather than taking the screen down with it.
+  if (typeof budget?.used_hour !== "number") return null;
   const {
     used_hour: used,
     capacity_hour: cap,
@@ -296,7 +299,7 @@ function BudgetGauge({ budget }) {
  *  grid rather than a bar, because these are four stages of one journey
  *  and not four fractions of one whole. */
 function QueueGauge({ queue, now }) {
-  if (!queue) return null;
+  if (typeof queue?.due_now !== "number") return null;
   const nextIn = queue.next_tick_at
     ? Math.max(0, Math.round((Date.parse(queue.next_tick_at) - now) / 1000))
     : null;
