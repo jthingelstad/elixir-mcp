@@ -84,6 +84,11 @@ test("account journey: add a player, capture arrives, copy a question, open pers
       case "/api/me/connections":
         data = { connections: [] };
         break;
+      // Connections lists agents beside clients now: one table for
+      // everything that can call with your authority.
+      case "/api/me/principals":
+        data = { agents: [] };
+        break;
       case "/api/claims":
         expect(init.method).toBe("POST");
         expect(JSON.parse(init.body).player_tag).toBe(player.player_tag);
