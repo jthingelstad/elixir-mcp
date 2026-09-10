@@ -260,6 +260,21 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Changelog",
     readOnly: true,
   },
+  elixir_docs: {
+    group: "Elixir MCP",
+    title: "Documentation",
+    readOnly: true,
+  },
+  elixir_examples: {
+    group: "Elixir MCP",
+    title: "Examples",
+    readOnly: true,
+  },
+  elixir_updates: {
+    group: "Elixir MCP",
+    title: "What's new",
+    readOnly: true,
+  },
   elixir_identify: {
     group: "Elixir MCP",
     title: "Who is asking",

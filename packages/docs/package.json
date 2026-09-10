@@ -1,0 +1,12 @@
+{
+  "name": "@elixir-mcp/docs",
+  "version": "0.1.0",
+  "description": "Elixir MCP's own documentation, examples and updates as a corpus the MCP door can serve: built from the same sources that render the site, so an agent reads exactly what a person reads.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.mjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "npm run build && node --test"
+  }
+}

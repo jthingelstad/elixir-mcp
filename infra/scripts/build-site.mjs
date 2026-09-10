@@ -66,6 +66,10 @@ function walk(root, base = root) {
 }
 
 // 1. Build both halves ------------------------------------------------------
+// The contract and the docs corpus first: the tool reference imports the
+// registry, and the registry now serves the corpus.
+console.error("building the contract and the docs corpus...");
+run("npm", ["run", "build"]);
 console.error("building the app (apps/web)...");
 run("npm", ["run", "build", "-w", "@elixir-mcp/web"]);
 

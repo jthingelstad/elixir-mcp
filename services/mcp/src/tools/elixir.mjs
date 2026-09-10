@@ -9,6 +9,13 @@ import {
   roleQuotas,
 } from "@elixir-mcp/contracts";
 import { addPlayer, removePlayer } from "@elixir-mcp/claims";
+import {
+  DOCS,
+  EXAMPLES,
+  UPDATES,
+  CORPUS_BUILT_AT,
+  searchDocs,
+} from "@elixir-mcp/docs";
 import { emitFeedEvent, FEED_TOPICS } from "../feed.mjs";
 import { captureCoverage } from "../coverage.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
@@ -429,6 +436,160 @@ export const elixirTools = {
         ...(args.since ? { since: String(args.since) } : {}),
         entries,
         note: "Tool schemas cache client-side - if tools_added lists something you can't see, ask your user to refresh the connector.",
+        meta: responseMeta({ as_of: new Date().toISOString() }),
+      };
+    },
+  },
+
+  elixir_docs: {
+    description:
+      "Elixir MCP's own documentation, the same pages a person reads at elixir.poapkings.com/docs, served here so you can answer 'how do I use this' from the source rather than from memory. No arguments: the index - every page with its section, title and one-line lede. page: one page's full text as Markdown. query: the pages that mention a phrase, best first, each with an excerpt around the first hit - use it before guessing which page holds a fact. Read-only; nothing about any account.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        page: {
+          type: "string",
+          description:
+            "A page slug from the index (e.g. quickstart, recording, agents, limits). Returns its Markdown.",
+        },
+        query: {
+          type: "string",
+          minLength: 2,
+          maxLength: 80,
+          description:
+            "A word or phrase to search for across every page. Ignored when page is given.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      // The envelope is closed (assertResponseMeta), so when the corpus
+      // was built rides in the body, not in meta.
+      const meta = responseMeta({ as_of: new Date().toISOString() });
+      if (args.page) {
+        const slug = String(args.page).toLowerCase().trim();
+        const doc = DOCS.find((d) => d.slug === slug);
+        if (!doc)
+          throw new ToolFailure(
+            "not_found",
+            `No documentation page "${slug}".`,
+            `Call elixir_docs with no arguments for the index; slugs are: ${DOCS.map((d) => d.slug).join(", ")}.`,
+          );
+        return {
+          slug: doc.slug,
+          title: doc.title,
+          section: doc.section,
+          url: doc.url,
+          markdown: doc.markdown,
+          corpus_built_at: CORPUS_BUILT_AT,
+          meta,
+        };
+      }
+      if (args.query) {
+        const matches = searchDocs(args.query, 8);
+        return {
+          query: String(args.query),
+          matches,
+          note:
+            matches.length === 0
+              ? "No page mentions that phrase. The index (no arguments) lists what is documented; the tool reference is tools/list itself."
+              : "Read a match in full with page: <slug>.",
+          corpus_built_at: CORPUS_BUILT_AT,
+          meta,
+        };
+      }
+      return {
+        pages: DOCS.map((d) => ({
+          slug: d.slug,
+          section: d.section,
+          title: d.title,
+          lede: d.lede,
+          url: d.url,
+        })),
+        note: "Read one with page: <slug>; find one with query: <phrase>. The tool reference is not a page here - it is tools/list, and elixir_changelog says what changed in it.",
+        corpus_built_at: CORPUS_BUILT_AT,
+        meta,
+      };
+    },
+  },
+
+  elixir_examples: {
+    description:
+      "Eleven worked examples of what people ask an agent connected to Elixir MCP and what it answers - for players (understand your play, pick a deck, push with evidence, follow friends), clan leaders (win the river race, keep the roster healthy, scout the other clan, write the weekly recap) and builders (answer clanmates in Discord, publish your own stats, run a collector). Each carries the exchange, what it reads, the tools it calls and how to set it up. No arguments: the index. example: one in full. Use it to show a new user what is possible, or to pattern an answer on a worked one. The numbers inside a transcript are illustrative; the tools are real.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        example: {
+          type: "string",
+          description:
+            "An example slug from the index (e.g. play, clan, discord). Returns its transcript, reads, tools and setup steps.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      // The envelope is closed (assertResponseMeta), so when the corpus
+      // was built rides in the body, not in meta.
+      const meta = responseMeta({ as_of: new Date().toISOString() });
+      if (args.example) {
+        const slug = String(args.example).toLowerCase().trim();
+        const ex = EXAMPLES.find((e) => e.slug === slug);
+        if (!ex)
+          throw new ToolFailure(
+            "not_found",
+            `No example "${slug}".`,
+            `Slugs are: ${EXAMPLES.map((e) => e.slug).join(", ")}.`,
+          );
+        return { ...ex, corpus_built_at: CORPUS_BUILT_AT, meta };
+      }
+      return {
+        examples: EXAMPLES.map((e) => ({
+          slug: e.slug,
+          group: e.group,
+          title: e.title,
+          lede: e.lede,
+          tools: e.tools,
+          url: e.url,
+        })),
+        note: "Read one with example: <slug>.",
+        corpus_built_at: CORPUS_BUILT_AT,
+        meta,
+      };
+    },
+  },
+
+  elixir_updates: {
+    description:
+      "What's new on Elixir MCP: every user-visible change, newest first, as written for people at elixir.poapkings.com/updates. Distinct from elixir_changelog, which is the tool CONTRACT version by version; this is the product. since: only entries on or after a date. limit: how many (default 10, max 50). Use it to tell a user what changed since they last looked, or to check whether a behaviour you remember is still current.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        since: {
+          type: "string",
+          description:
+            "A date (YYYY-MM-DD); entries from that day on, newest first.",
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 50,
+          default: 10,
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const since = args.since ? String(args.since).slice(0, 10) : null;
+      if (since && !/^\d{4}-\d{2}-\d{2}$/.test(since))
+        throw new ToolFailure("bad_request", "since must be YYYY-MM-DD.");
+      const limit = Math.min(50, Math.max(1, Number(args.limit ?? 10)));
+      const all = since ? UPDATES.filter((u) => u.date >= since) : UPDATES;
+      return {
+        ...(since ? { since } : {}),
+        total: all.length,
+        entries: all.slice(0, limit),
+        note: "The tool contract's own history is elixir_changelog.",
+        corpus_built_at: CORPUS_BUILT_AT,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

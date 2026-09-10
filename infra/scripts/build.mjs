@@ -27,6 +27,9 @@ export const LAMBDAS = [
 ];
 
 export async function buildAll() {
+  // The contract (dist/*.js) and the docs corpus (dist/corpus.json) are
+  // generated; the MCP bundle imports both, so they are built first.
+  execFileSync("npm", ["run", "build"], { cwd: repoRoot, stdio: "inherit" });
   await rm(distRoot, { recursive: true, force: true });
   const artifacts = [];
   for (const { name, entry } of LAMBDAS) {

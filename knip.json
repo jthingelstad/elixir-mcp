@@ -19,6 +19,10 @@
       "entry": [],
       "project": []
     },
+    "packages/docs": {
+      "entry": ["build.mjs", "src/index.mjs", "*.test.mjs"],
+      "project": ["*.mjs", "src/**/*.mjs"]
+    },
     "services/auth": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
