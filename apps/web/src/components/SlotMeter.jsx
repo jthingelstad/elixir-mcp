@@ -1,5 +1,5 @@
 /**
- * One slot meter, read by Overview and Settings & tier. Same numbers,
+ * One slot meter, read by Overview and the profile. Same numbers,
  * same names, same ink on both pages — the design's rule is that shared
  * numbers are derived once, and the two pages used to name the same
  * limit "Clan slots" and "clan watches" a click apart.

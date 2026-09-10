@@ -256,7 +256,7 @@ export default function (eleventyConfig) {
     "Track your player": "/account/tracking",
     "Connect a client": "/docs/quickstart",
     "Read the methodology": "/docs/methodology",
-    "Set your timezone": "/account/settings",
+    "Set your timezone": "/account/profile",
     "Track a friend's tag": "/account/tracking",
     "Turn on notifications": "/docs/events",
     "Track your clan": "/account/tracking",

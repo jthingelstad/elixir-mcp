@@ -13,7 +13,7 @@ import { quotaReading } from "../../lib/quota.js";
  *
  * These are panels, not tables: a meter and a bar chart are readings,
  * and the design frames readings. The quota numbers come through
- * lib/quota.js so Settings & tier shows the same ones.
+ * lib/quota.js so the profile shows the same ones.
  */
 
 function QuotaCard({ title, line }) {

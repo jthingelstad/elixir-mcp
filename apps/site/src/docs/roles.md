@@ -7,7 +7,7 @@ order: 30
 navTitle: "Roles & tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
-console: ["Your tier", "/account/settings", "Console ▸ Settings"]
+console: ["Your tier", "/account/profile", "Console ▸ Profile"]
 ---
 
 # Roles and quotas

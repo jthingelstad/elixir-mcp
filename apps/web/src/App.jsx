@@ -84,9 +84,8 @@ export const SECTIONS = {
       { slug: "usage", label: "Usage" },
       { slug: "connections", label: "Connections" },
       { slug: "agents", label: "Agents" },
-      { slug: "settings", label: "Settings & tier" },
-      { slug: "feedback", label: "Feedback" },
       { slug: "profile", label: "Profile" },
+      { slug: "feedback", label: "Feedback" },
     ],
   },
   explore: { label: "Explore", authed: true, pages: [] },
@@ -210,10 +209,10 @@ export const RAIL = [
     ],
   },
   {
-    key: "settings",
-    label: "Settings & tier",
-    icon: "settings",
-    to: "/account/settings",
+    key: "profile",
+    label: "Profile",
+    icon: "user-round",
+    to: "/account/profile",
   },
   {
     key: "feedback",
@@ -413,13 +412,6 @@ export const DOC_LINKS = {
   profile: [
     "Your account",
     [
-      ["Privacy", "/docs/privacy"],
-      ["Tiers & roles", "/docs/roles"],
-    ],
-  ],
-  settings: [
-    "Your tier",
-    [
       ["Tiers & roles", "/docs/roles"],
       ["Limits", "/docs/limits"],
       ["Privacy", "/docs/privacy"],
@@ -513,6 +505,8 @@ const REDIRECTS = {
   "/dashboard": "/account/overview",
   "/clan": "/explore",
   "/account": "/account/overview",
+  // Settings & tier folded into the profile (2026-09-10).
+  "/account/settings": "/account/profile",
   "/admin": "/admin/requests",
   "/explore/player": "/explore",
   "/explore/clan": "/explore",

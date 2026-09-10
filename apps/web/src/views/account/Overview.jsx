@@ -14,7 +14,7 @@ import { SlotMeters } from "../../components/SlotMeter.jsx";
  *
  * So: no table, no toggle, no form. The compact lists are links into
  * Tracking, and the meters are a reading of the tier whose controls are
- * on Settings & tier.
+ * on the profile.
  */
 /** One row of the compact Players/Clans lists. A link, because the whole
  *  point of these lists is that they go to Tracking. */
@@ -203,9 +203,9 @@ export function Overview({ me, navigate }) {
             <span className="chip chip--tier">{me.role}</span>
             <a
               style={{ marginLeft: "auto", fontSize: "13px" }}
-              onClick={() => navigate("/account/settings")}
+              onClick={() => navigate("/account/profile")}
             >
-              Settings &amp; tier ›
+              Profile ›
             </a>
           </div>
           <SlotMeters entitlements={e} />
