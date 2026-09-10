@@ -33,36 +33,18 @@ navActive: home
     </div>
   </div>
 
-  <section class="panel" style="flex: 1 1 320px; max-width: 420px">
-    <div class="panel__head">
-      <span style="font-size: 13px; font-weight: 600; color: var(--ink-body)">The corpus, live</span>
-      <span class="mono" style="margin-left: auto; font-size: 11px; color: var(--ink-faint)">as of {{ t.newest_battle | day }}</span>
-    </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr">
-      <div style="padding: 16px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft)">
-        <div class="stat__value" style="font-size: 30px">{{ t.battles | number }}</div>
-        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">battles recorded</div>
-      </div>
-      <div style="padding: 16px; border-bottom: 1px solid var(--line-soft)">
-        <div class="stat__value" style="font-size: 30px">{{ t.players | number }}</div>
-        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">players observed</div>
-      </div>
-      <div style="padding: 16px; border-right: 1px solid var(--line-soft)">
-        <div class="stat__value" style="font-size: 30px">{{ t.clans | number }}</div>
-        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">clans observed</div>
-      </div>
-      <div style="padding: 16px">
-        <div class="stat__value" style="font-size: 30px">{{ t.collectors_active | number }}</div>
-        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">collectors active</div>
-      </div>
-    </div>
-    <div style="padding: 10px 16px; border-top: 1px solid var(--line-soft); display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-faint); flex-wrap: wrap">
-      <span class="mono" style="color: var(--ink-body); font-size: 11px">oldest battle {{ t.oldest_battle | day }}</span>
-      <span>·</span>
-      <span>refreshed each deploy</span>
-      <a style="margin-left: auto" href="/data/dashboard">Data ›</a>
-    </div>
-  </section>
+  {#- The transcript replaces the counter panel here: a number says the
+      corpus is big, an exchange says what it is FOR, and that is the
+      argument the home page has to make. The counters moved to /data,
+      which is the page about how much there is. -#}
+  <div style="flex: 1 1 440px; min-width: 320px">
+    {% include "transcript.njk" %}
+    <p class="footnote" style="margin: 12px 2px 0">
+      An illustration of a real exchange: every tool named under the window
+      exists today, and the citation under each answer is the kind this
+      service actually returns. <a href="/data">The corpus</a> has the numbers.
+    </p>
+  </div>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 48px">
@@ -149,3 +131,4 @@ navActive: home
 </section>
 
 <script src="/assets/request-form.js" defer></script>
+<script src="/assets/transcript.js" defer></script>

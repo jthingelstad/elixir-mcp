@@ -1,0 +1,63 @@
+{#-
+  The transcript: the site's argument in one box.
+
+  Every line is rendered server-side inside data-script panes, so the
+  whole conversation is readable with JavaScript off. transcript.js
+  hides those and types the same text back into the stage — it takes
+  content away and gives it back, never the other way round.
+-#}
+<div class="transcript" data-transcript>
+  <div style="display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px">
+    {%- for s in transcript %}
+    <button type="button" class="btn btn--sm" data-topic="{{ s.key }}" aria-pressed="{{ "true" if loop.first else "false" }}">{{ s.label }}</button>
+    {%- endfor %}
+  </div>
+
+  <div class="transcript__window">
+    <div class="transcript__chrome">
+      <span style="display: flex; gap: 6px">
+        <span class="transcript__pip"></span><span class="transcript__pip"></span><span class="transcript__pip"></span>
+      </span>
+      <span style="display: flex; align-items: baseline; gap: 7px; margin-left: 6px">
+        <span style="font-size: 13px; font-weight: 600; color: var(--ink)">Tower Sage</span>
+        <span class="footnote">your agent</span>
+      </span>
+      <span style="margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-faint)">
+        <span class="chip__dot" style="background: var(--ok)"></span>elixir-mcp connected
+      </span>
+    </div>
+
+    <div class="transcript__body">
+      {#- Typed into by the script; empty until then. -#}
+      <div data-stage></div>
+
+      {%- for s in transcript %}
+      <div data-script="{{ s.key }}"{% if not loop.first %} hidden{% endif %}>
+        {%- for line in s.lines %}
+        <div data-line="{{ line.role }}" class="{{ 'transcript__user' if line.role == 'user' else 'transcript__agent' }}">
+          <span class="transcript__text" data-text>{{ line.text | safe }}</span>
+          {%- if line.cite %}<span class="transcript__cite" data-cite>{{ line.cite | safe }}</span>{% endif %}
+        </div>
+        {%- endfor %}
+      </div>
+      {%- endfor %}
+
+      <div class="transcript__thinking" data-thinking hidden>
+        <span class="transcript__dots"><span></span><span></span><span></span></span>
+        reading recorded history
+      </div>
+    </div>
+
+    <div class="transcript__tools" data-tools data-for="{{ transcript[0].key }}">
+      {%- for s in transcript %}
+      <span class="transcript__tools-set" data-tools-for="{{ s.key }}"{% if not loop.first %} hidden{% endif %}>
+        {%- for name in s.tool | toolNames %}
+        {#- Straight to the family page that documents it, so a reader
+            can check that every tool named here exists. -#}
+        <a class="mono" href="{{ name | toolHref }}">{{ name }}</a>
+        {%- endfor %}
+      </span>
+      {%- endfor %}
+    </div>
+  </div>
+</div>

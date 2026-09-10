@@ -825,6 +825,141 @@ table {
 }
 
 /* ==================================================================
+   Transcript — the home page's signature element
+   ================================================================== */
+
+/* A fixed-height window with the conversation pinned to the BOTTOM, so a
+   long answer pushes older messages up and out instead of growing the
+   box and shoving the page down while somebody is reading it. */
+.transcript__window {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #150f36;
+  overflow: hidden;
+  box-shadow: var(--shadow-float);
+}
+.transcript__chrome {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 15px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--ground-chrome);
+}
+.transcript__pip {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+.transcript__body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 14px;
+  height: 352px;
+  overflow: hidden;
+}
+.transcript__body > [data-stage] {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.transcript__user {
+  align-self: flex-end;
+  max-width: 82%;
+  background: var(--line-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px 14px 4px 14px;
+  padding: 11px 14px;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.transcript__agent {
+  max-width: 94%;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-body);
+  text-wrap: pretty;
+}
+/* The citation under an answer. An answer with no sample behind it is an
+   opinion, so this is not decoration. */
+.transcript__cite {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  padding: 4px 9px;
+}
+/* :not([hidden]) because a class that sets `display` beats the UA's
+   [hidden] rule — which is how the thinking dots stayed on screen
+   underneath an answer that had already finished typing. */
+.transcript__thinking:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.transcript__dots {
+  display: flex;
+  gap: 4px;
+}
+.transcript__dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--accent-bright);
+  animation: transcript-think 1s ease-in-out infinite;
+}
+.transcript__dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.transcript__dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes transcript-think {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+.transcript__tools-set:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.transcript__tools {
+  padding: 11px 15px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--ground-chrome);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* With the script off, every scripted exchange is on the page and has to
+   scroll rather than be clipped to the window's height. */
+.transcript__body:has([data-script]:not([hidden])) {
+  height: auto;
+  overflow: visible;
+}
+
+/* ==================================================================
    Carried forward from the 2026-09-05 sheet — the surfaces the handoff
    does not redraw yet (site chrome, docs, charts, record browser). These
    are retargeted onto the tokens above and go as their screens land.

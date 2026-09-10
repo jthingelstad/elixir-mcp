@@ -45,6 +45,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/request-form.js");
   eleventyConfig.addPassthroughCopy("src/assets/nav-session.js");
   eleventyConfig.addPassthroughCopy("src/assets/data-live.js");
+  eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
 
   /** The site's canonical URL for a page: no /index.html, and no
    *  trailing slash. That is the spelling the previous sitemap
@@ -118,6 +119,25 @@ export default function (eleventyConfig) {
     "pickGroup",
     (groups, name) => (groups ?? []).find((g) => g.group === name) ?? null,
   );
+  /** The tools a transcript names, as a list. They arrive as one
+   *  display string because that is how the design writes them. */
+  eleventyConfig.addFilter("toolNames", (s) =>
+    String(s ?? "")
+      .split("·")
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
+
+  /** Where a named tool is documented. Unknown names fall back to the
+   *  index rather than a 404: the transcript names a couple of tools by
+   *  their display grouping rather than their registry name. */
+  eleventyConfig.addFilter("toolHref", function (name) {
+    const data = this.ctx?.tools ?? {};
+    const hit = (data.all ?? []).find((t) => t.name === name);
+    const group = (data.groups ?? []).find((g) => g.group === hit?.group);
+    return group ? `/docs/tools/${group.slug}` : "/docs/tools";
+  });
+
   /** The same, for the generated tool families. */
   eleventyConfig.addFilter(
     "pickToolGroup",
