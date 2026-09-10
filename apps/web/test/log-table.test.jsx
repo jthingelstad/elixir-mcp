@@ -53,7 +53,7 @@ afterEach(() => {
 const PAGES = [
   [
     "Activity ▸ Notifications",
-    <Activity sub="notifications" navigate={() => {}} />,
+    () => <Activity sub="notifications" navigate={() => {}} />,
     {
       "me/events": {
         events: [
@@ -71,7 +71,7 @@ const PAGES = [
   ],
   [
     "Activity ▸ MCP requests",
-    <Activity sub="requests" navigate={() => {}} />,
+    () => <Activity sub="requests" navigate={() => {}} />,
     {
       "me/requests": {
         requests: [
@@ -88,7 +88,7 @@ const PAGES = [
   ],
   [
     "Activity ▸ Account events",
-    <Activity sub="events" navigate={() => {}} />,
+    () => <Activity sub="events" navigate={() => {}} />,
     {
       "me/activity": {
         events: [
@@ -103,7 +103,7 @@ const PAGES = [
   ],
   [
     "Admin ▸ Requests",
-    <Admin me={ME} page="requests" navigate={() => {}} />,
+    () => <Admin me={ME} page="requests" navigate={() => {}} />,
     {
       "admin/requests": {
         requests: [
@@ -119,7 +119,7 @@ const PAGES = [
   ],
   [
     "Admin ▸ Accounts",
-    <Admin me={ME} page="accounts" navigate={() => {}} />,
+    () => <Admin me={ME} page="accounts" navigate={() => {}} />,
     {
       "admin/accounts": {
         accounts: [
@@ -138,7 +138,7 @@ const PAGES = [
   ],
   [
     "Admin ▸ Feedback queue",
-    <Admin me={ME} page="feedback" navigate={() => {}} />,
+    () => <Admin me={ME} page="feedback" navigate={() => {}} />,
     {
       "admin/feedback": {
         feedback: [
@@ -156,7 +156,7 @@ const PAGES = [
   ],
   [
     "Admin ▸ Collections",
-    <Admin me={ME} page="collections" navigate={() => {}} />,
+    () => <Admin me={ME} page="collections" navigate={() => {}} />,
     {
       "admin/collections": {
         collections: [
@@ -173,7 +173,7 @@ const PAGES = [
   ],
   [
     "Admin ▸ Across accounts",
-    <Admin me={ME} page="usage" navigate={() => {}} />,
+    () => <Admin me={ME} page="usage" navigate={() => {}} />,
     {
       "admin/usage": {
         accounts: [
@@ -191,10 +191,10 @@ const PAGES = [
   ],
 ];
 
-for (const [name, element, body] of PAGES) {
+for (const [name, mount, body] of PAGES) {
   test(`${name} renders through the one log table`, async () => {
     stub(body);
-    render(element);
+    render(mount());
     const table = await waitFor(() => {
       const t = document.querySelector("table.table");
       expect(t, "not the shared table").toBeTruthy();
