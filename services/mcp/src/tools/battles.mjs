@@ -1494,13 +1494,13 @@ export const battlesTools = {
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        clauses.push(`and b.type = any($${params.length})`);
+        clauses.push(`and r.type = any($${params.length})`);
       }
       if (args.trophy_band) {
         const [lo, hi] = BANDS[args.trophy_band];
         params.push(lo, hi);
         clauses.push(
-          `and bp.starting_trophies >= $${params.length - 1} and bp.starting_trophies < $${params.length}`,
+          `and r.starting_trophies >= $${params.length - 1} and r.starting_trophies < $${params.length}`,
         );
       }
       const EDGES = LEVEL_EDGES_SQL;

@@ -11,17 +11,28 @@ export function medianSortedScores(scores) {
     : (scores[middle - 1] + scores[middle]) / 2;
 }
 
+/**
+ * The scored population as a temp table (one transaction), from which the
+ * curve and every score are read. `clauses` filter the RECENT rows (alias
+ * r: r.type, r.starting_trophies) so a mode or trophy-band condition
+ * applies to both participants.
+ *
+ * The 2026-09-10 review measured this at 6-22 seconds per call: the
+ * "exactly two participants" rule was a correlated count per row. It is
+ * one group-by over the window now.
+ */
 export function levelPairsSql(clauses = []) {
   return `create temp table lv_pairs on commit drop as
-    with sides as (
-      select bp.battle_id, bp.player_tag, bp.side, bp.outcome, b.battle_time,
-             bp.deck_avg_level as lvl
+    with recent as (
+      select bp.battle_id, bp.player_tag, bp.side, bp.outcome, bp.starting_trophies,
+             b.battle_time, b.type, bp.deck_avg_level as lvl
       from battle_participant bp join battle b on b.battle_id = bp.battle_id
-      where bp.deck_avg_level is not null and b.type_class = 'pvp'
-        and bp.outcome in ('win','loss')
-        and b.battle_time > now() - $1::interval
-        and (select count(*) from battle_participant allp
-             where allp.battle_id = bp.battle_id) = 2
+      where b.battle_time > now() - $1::interval and b.type_class = 'pvp'),
+    duos as (
+      select battle_id from recent group by battle_id having count(*) = 2),
+    sides as (
+      select r.* from recent r join duos d on d.battle_id = r.battle_id
+      where r.lvl is not null and r.outcome in ('win','loss')
         ${clauses.join(" ")})
     select a.battle_id, a.player_tag, a.outcome, a.battle_time,
            a.lvl - o.lvl as gap
