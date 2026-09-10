@@ -92,7 +92,10 @@ test("sign-in flow: email step then code step authenticates", async () => {
     },
   });
   render(<App />);
-  fireEvent.click(await screen.findByText("Sign in"));
+  // The top bar has no signed-in state by design, so Console is the way
+  // in: signed out it lands on the wall, which offers Sign in.
+  fireEvent.click(await screen.findByText("Console"));
+  fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
   fireEvent.change(await screen.findByLabelText(/Email/), {
     target: { value: "j@x.com" },
   });
@@ -217,10 +220,10 @@ test("the tab title names the page, most specific part first", async () => {
     return titleFor(section, SECTIONS[section], path);
   };
   expect(t("/")).toBe("Elixir MCP");
-  expect(t("/data/status")).toBe("Status - Data - Elixir MCP");
+  expect(t("/status/service")).toBe("Status - Elixir MCP");
   expect(t("/data/dashboard")).toBe("Dashboard - Data - Elixir MCP");
-  expect(t("/admin/gateways")).toBe("Collectors - Admin - Elixir MCP");
-  expect(t("/account/collector")).toBe("Collector - Account - Elixir MCP");
+  expect(t("/admin/collectors")).toBe("Collectors - Admin - Elixir MCP");
+  expect(t("/status/collectors")).toBe("Collectors - Status - Elixir MCP");
   // Explore owns its sub-pages, so a record beats the page slug: it is
   // the most specific thing shown.
   expect(t("/explore/player/%2320JJJ2CCRU")).toBe(

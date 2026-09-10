@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-/** Account ▸ Activity (design handoff §8): three segmented tabs, one
- *  table whose columns change per tab; each tab names its source in
- *  the footnote. Latency over 300ms renders amber. The notifications
- *  view never advances the agents' seen-cursor. */
-const TABS = ["MCP requests", "Account events", "Notifications"];
+/** Account ▸ Activity: one table whose columns change per view; each view
+ *  names its source in the footnote. Latency over 300ms renders amber.
+ *  The notifications view never advances the agents' seen-cursor.
+ *
+ *  The three views are rail sub-pages now (2026-09-09 IA), so the rail
+ *  drives which one is showing and Activity lands on Notifications —
+ *  the pipe your connections read from, which is what a reader opening
+ *  Activity is usually asking about. The segmented control below is the
+ *  old in-page tab set and goes when the log table is unified (handoff
+ *  step 5). */
+const TABS = ["Notifications", "MCP requests", "Account events"];
+const BY_SUB = {
+  notifications: "Notifications",
+  requests: "MCP requests",
+  events: "Account events",
+};
 
-export function Activity() {
-  const [tab, setTab] = useState(TABS[0]);
+export function Activity({ sub }) {
+  const tab = BY_SUB[sub] ?? TABS[0];
   const [requests, setRequests] = useState(null);
   const [events, setEvents] = useState(null);
   const [feed, setFeed] = useState(null);
@@ -27,27 +38,11 @@ export function Activity() {
 
   return (
     <>
-      <div className="page-head">
-        <h1 className="page-title">Activity</h1>
-        <span className="page-head__note">
+      <div style={{ marginBottom: "20px" }}>
+        <h1 className="page__title">{tab}</h1>
+        <p className="page__lede">
           what your agents did, what your account did, what your pipe holds
-        </span>
-      </div>
-      <div
-        className="segmented"
-        role="tablist"
-        style={{ marginBottom: "16px" }}
-      >
-        {TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={t === tab ? "true" : "false"}
-            onClick={() => setTab(t)}
-          >
-            {t}
-          </button>
-        ))}
+        </p>
       </div>
 
       <section className="panel">

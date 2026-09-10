@@ -282,7 +282,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
         )}
       </div>
 
-      <div className="panel" hidden={page !== "tokens"}>
+      <div className="panel" hidden={page !== "service-tokens"}>
         <div className="panel__head">
           <span className="panel-title">Service tokens</span>
           <span
@@ -375,7 +375,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
         </form>
       </div>
 
-      <div className="panel" hidden={page !== "gateways"}>
+      <div className="panel" hidden={page !== "collectors"}>
         <div className="panel__head">
           <span className="panel-title">Gateways</span>
         </div>

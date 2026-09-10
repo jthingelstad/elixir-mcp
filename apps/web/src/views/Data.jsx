@@ -4,7 +4,6 @@ import { api } from "../api.js";
 /** Eight weeks. Long enough to see a trend, short enough that a daily bar is
  *  still a bar rather than a hairline. */
 const WINDOW_DAYS = 56;
-import { Status } from "./Status.jsx";
 
 /** Data (design handoff §2-3): the ONLY place charts belong. Full
  *  recorded history, daily, UTC; today's partial bar at 35% so an
@@ -85,7 +84,7 @@ function Chart({ label, series, hover, setHover, todayIdx }) {
 
 const fmt = (n) => (n == null ? "—" : n.toLocaleString());
 
-export function Data({ page }) {
+export function Data() {
   const [stats, setStats] = useState(null);
   const [err, setErr] = useState("");
   const [hover, setHover] = useState(null);
@@ -96,7 +95,6 @@ export function Data({ page }) {
     });
   }, []);
 
-  if (page === "status") return <Status />;
   const t = stats?.totals;
   /**
    * All three charts on one fixed axis: the last eight weeks.
