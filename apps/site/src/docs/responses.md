@@ -68,8 +68,9 @@ required fields only.
 **`quota`** — your spend against both daily budgets, on every response, so a
 plan can be priced before it starts rather than discovered mid-sweep. `calls`
 is tool calls today (`used`, `max`, `remaining`); `live` is live fetches today.
-Every tool call costs one call; `live_fetch` and `players_profile` with
-`live: true` additionally cost one live fetch. `max` and `remaining` are `null`
+Every tool call costs one call; `live_fetch`, and `live: true` on
+`players_profile`, `clans_roster`, `war_current` and `battles_query`,
+additionally cost one live fetch. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
 midnight, when both counters roll. Collector credits are already included in
 `calls.max`. An agent spends its owner's call budget and its owner's live
@@ -82,6 +83,27 @@ call history, with these ids, is on **Account → Activity**.
 **`contract_version`** — the tool contract this response was produced under. If
 it differs from what you cached, re-read `tools/list`; `elixir_changelog(since)`
 says what moved.
+
+### Beside the envelope
+
+Three keys ride at the top level of every response, next to the fields the
+tool is for, since contract 1.0.0:
+
+**`applied`** — the one echo block: what the tool actually used. `window`
+(`from`, `to`, `source`, `timezone`) on every windowed tool, plus `limit`,
+`sort`, `mode`, `min_battles`, `segment` and `verbosity` where they apply.
+`window.source` is `argument`, `default`, `unbounded` or `fixed`; read it
+before you say "your last 30 days". It replaces the old `filters_applied`,
+`window_from`, `window_to`, `window_days` and `limit_applied` keys.
+
+**`notes`** — `notes[]`, one-sentence caveats to repeat when quoting the
+numbers. They replace the fifteen `*_note` keys the 0.x contracts carried;
+`meta.completeness_note` stays in the envelope because it is about capture,
+not about the tool.
+
+**`docs`** — a `page#section` pointer into the documentation where the
+formulas behind the answer live; hand it to `elixir_docs({ page, section })`
+or read `elixir://docs/<page>#<section>`.
 
 ## Knowing who you are connected as
 
@@ -164,9 +186,11 @@ ended. This does not assert the next period was captured: use `game_clock` for
 the policy clock and the source observation for what the recorder knows.
 
 An MCP result over 48,000 characters of compact JSON is a structured
-`bad_request` error ("Result exceeds 48000 characters."), not a cut-off
-success. It retains its request ID, sets `isError`, and names the arguments
-that narrow the call. No partial result should be interpreted as complete.
+`result_too_large` error ("Result exceeds 48000 characters."), not a cut-off
+success: the request was fine and the result was not deliverable. It retains
+its request ID, sets `isError`, and names the arguments that narrow the call
+(`verbosity: "compact"` is usually enough). No partial result should be
+interpreted as complete.
 
 ## Errors
 
@@ -176,9 +200,12 @@ A failed call returns a structured body rather than prose:
 { "error": { "code": "not_found", "message": "…", "hint": "…" } }
 ```
 
-The `code` is from a closed set of seven, listed with the JSON-RPC and HTTP
-layers on the [Protocol reference](/docs/protocol#errors); the `hint` says
-what would fix it. Errors carry a `meta` envelope too, with the same
+The `code` is from a closed set of nine, listed with the JSON-RPC and HTTP
+layers on the [Protocol reference](/docs/protocol#errors); the `hint` names
+the one call that would fix it. Two are worth branching on by code rather
+than by message: `no_subject` (nothing to answer about: no primary player,
+an unmapped `on_behalf_of`, an agent with no recorded clan) and
+`result_too_large` (narrow the arguments). Errors carry a `meta` envelope too, with the same
 `request_id` — a call that failed is still a call you can ask us about.
 
 **A note for client authors:** check the error body, not just the transport

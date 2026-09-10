@@ -3,7 +3,7 @@ slug: methodology
 title: "How the numbers are made"
 description: "The populations, denominators, shrinkage formula and limits behind the meta tools and Pilot Score. Descriptive evidence, not proof of skill or improvement."
 section: record
-order: 20
+order: 21
 navTitle: "Methodology"
 icon: flask-conical
 lede: "How derived numbers are computed — pilot score, meta segments, war participation."

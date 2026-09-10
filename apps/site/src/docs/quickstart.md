@@ -22,13 +22,13 @@ way. Once approved, sign in at [/signin](/signin): enter your email, then the
 six-digit code from the mail (15 minutes, five attempts). The mail also
 carries a one-click link; either works.
 
-## 2. Add your player
+## 2. Track your player
 
-On **Account → Overview**, add your player tag. Adding **is** recording: the
-scheduler starts fetching your profile and battle log at its next tick, and
-history builds from there. Your first player becomes your **primary**, which
-is what every tool means when you omit `player_tag`. Add alts and friends the
-same way and mark the relationship; every tier holds 50 players. See
+On **Account → Overview**, track your player tag. Tracking **is** recording:
+the scheduler starts fetching your profile and battle log at its next tick,
+and history builds from there. Your first player becomes your **primary**,
+which is what every tool means when you omit `player_tag`. Track alts and
+friends the same way and mark the relationship; every tier holds 50 players. See
 [Recording and coverage](/docs/recording) for what gets fetched and how often.
 
 You can connect a client while capture is still pending.
@@ -43,9 +43,9 @@ https://elixir.poapkings.com/mcp
 
 The door speaks Streamable HTTP over JSON and authenticates with OAuth 2.1
 (dynamic client registration, PKCE S256, a `resource` parameter naming the
-endpoint). The first connection asks for `cr:read` only; a write tool asks
-for its own capability the first time you use it and the client reconnects
-for it. Details are on the [Protocol reference](/docs/protocol).
+endpoint). A client that names no scope is offered every capability, ticked,
+on the consent page; untick what you do not want, and change it later under
+Account → Connections. Details are on the [Protocol reference](/docs/protocol).
 
 ### Claude.ai
 
@@ -117,7 +117,10 @@ exists, a seven-day review once battles are in (30 days if the last week is
 empty), a deck comparison when two decks appear, a week-over-week comparison
 when both windows have battles. Copy one into your client. You never need
 to tell the client your tag; if it starts by listing your players, that is a
-bug worth reporting.
+bug worth reporting. The agent can also read this manual itself: `elixir_docs`
+serves these pages over the connection, and the eleven
+[examples](/examples/play) are offered as prompts, so "how do I scout a
+bracket?" is a question it can answer before it calls anything.
 
 The same page counts successful player, battle and war reads through your
 personal connections over the last seven days, so you can tell an authorized

@@ -3,7 +3,7 @@ slug: integrations
 title: "Integrations"
 description: "The REST API for platforms: admin-issued credentials, recorded profiles, asynchronous refreshes, a game clock, and automatic collection enrollment."
 section: record
-order: 23
+order: 24
 navTitle: "Integrations"
 icon: share-2
 lede: "First-party services reading the hub with a service key."

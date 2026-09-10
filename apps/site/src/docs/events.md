@@ -15,7 +15,10 @@ console: ["Your feed", "/account/activity", "Console ▸ Activity"]
 Most tools answer a question you asked. The event feed is the other
 direction: it tells you something happened so a scheduled agent can wake up
 and look instead of polling everything on a timer. Reading it needs only
-`cr:read`.
+`cr:read`, and since 1.0.0 the tool is annotated `readOnlyHint: true`:
+advancing your own seen-cursor is a bookmark, not account state anyone else
+can see, so a client that auto-approves read-only tools does not prompt on
+every poll.
 
 ## `elixir_events`
 
@@ -47,8 +50,10 @@ consumer its own [agent](/docs/agents) (each has its own feed and cursor), or
 poll with `mark_seen: false` and keep your own `since`. The code for the
 second shape is on the [agents page](/docs/agents#consuming-the-event-feed).
 
-`meta.events_pending` on any response counts rows past the account cursor. A
-consumer that never marks will always see it non-zero; that is fine.
+`meta.events_pending` on any response, including this tool's own, counts rows
+past the account cursor. A consumer that never marks will always see it
+non-zero; that is fine. `meta.feedback_responses_pending` rides beside it, so
+a feed poll also says whether `elixir_my_feedback` is worth a call.
 
 ## Who hears what
 

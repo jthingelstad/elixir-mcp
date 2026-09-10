@@ -32,7 +32,7 @@ on [Reading a response](/docs/responses).
 | Any non-POST | HTTP 405 with `allow: POST` and an empty body. This includes `GET /mcp`. |
 | Malformed JSON (after auth) | HTTP 400 `{"error":"invalid_json"}` |
 | CORS | No `Access-Control-*` headers and no `OPTIONS` handling. Browser-resident clients need a proxy. |
-| Capabilities declared | `tools: { listChanged: true }` only. No resources, prompts, or logging. |
+| Capabilities declared | `tools: { listChanged: true }`, `resources: { subscribe: false, listChanged: false }`, `prompts: { listChanged: false }`. No logging. Every `tools/call` result carries the same JSON as `structuredContent` beside the text block. |
 
 `public_id` is 8 to 16 characters of `[a-z0-9]`.
 
@@ -50,7 +50,7 @@ Refusals:
 
 | Case | Status | Body | Header |
 |---|---|---|---|
-| No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read"` |
+| No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read recordings:write collections:write account:write feedback:write"` |
 | Unknown, expired, revoked, or suspended credential | 401 | same | same |
 | Valid credential at the wrong door | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
 | Tool needs a scope the token lacks | 403 | JSON-RPC error `-32003` (below) | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted + required>", resource_metadata="…"` |
@@ -87,19 +87,21 @@ the call log.
 {
   "resource": "https://elixir.poapkings.com/mcp",
   "authorization_servers": ["https://elixir.poapkings.com"],
-  "scopes_supported": ["cr:read"],
+  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write"],
   "bearer_methods_supported": ["header"]
 }
 ```
 
-The protected-resource document lists only `cr:read` on purpose: the write
-scopes are granted by step-up, not discovery. **A client that never steps up is
-not a dead end.** The consent page lists every capability the request did not
-ask for as an unticked checkbox, and what you tick is added to the grant, so a
-person can allow `feedback:write` to a client that only ever requests
-`cr:read`. The token response reports the scope actually granted (RFC 6749
-§3.3), which is how the client learns it holds more than it asked for. Both
-documents are cacheable for 300 seconds. There is no revocation or introspection endpoint; a person
+Both documents advertise all five capabilities, and so does the 401
+challenge's `scope`. **A client that names no scope in particular is offered
+every capability, ticked, on the consent page**, where the person can untick
+any of them (since 1.0.0; before it the default was `cr:read` alone, which
+refused the feedback every agent is told to file on its own judgment). A
+client that asks for less is offered the rest as unticked checkboxes, and what
+you tick is added to the grant, so a person can allow `feedback:write` to a
+client that only ever requests `cr:read`. The token response reports the scope
+actually granted (RFC 6749 §3.3), which is how the client learns it holds more
+than it asked for. Both documents are cacheable for 300 seconds. There is no revocation or introspection endpoint; a person
 revokes a connection on Account → Connections.
 
 ### Dynamic client registration
@@ -130,7 +132,7 @@ GET and POST:
 | `redirect_uri` | one of the registered URIs | `redirect_uri not registered` |
 | `code_challenge` | required, 43 to 128 chars of `[A-Za-z0-9_-]` | `invalid code_challenge` |
 | `code_challenge_method` | `S256` (default); nothing else | `code_challenge_method must be S256` |
-| `scope` | space-separated; must include `cr:read`; unknown scopes refused; empty means `cr:read` | `invalid_scope` |
+| `scope` | space-separated; must include `cr:read`; unknown scopes refused; empty or absent means every capability, offered ticked at consent | `invalid_scope` |
 | `resource` | **required**: the exact door URL the token is for (`https://elixir.poapkings.com/mcp` for a person) | `invalid_target` |
 | `state` | optional; over 512 chars is silently replaced by empty | – |
 
@@ -178,7 +180,7 @@ grant. Refreshing never widens scope.
 | Scope | Grants | Tools that need it |
 |---|---|---|
 | `cr:read` | every read tool, `live_fetch`, and `elixir_events` (advancing your cursor is a bookmark, not an account change) | all others |
-| `recordings:write` | add or remove players and clans | `elixir_add_player`, `elixir_add_clan` |
+| `recordings:write` | track or stop tracking players and clans | `elixir_track_player`, `elixir_track_clan` |
 | `collections:write` | edit collections you own | `collections_edit` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
 | `feedback:write` | file attributed feedback | `elixir_feedback` |
@@ -191,7 +193,7 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
   "error": { "code": -32003,
     "message": "The access token lacks the capability required by this tool: recordings:write.",
     "data": { "required_scope": "recordings:write", "granted_scope": "cr:read",
-              "hint": "Reconnect this client and grant 'recordings:write' on the consent page (the first connection grants only cr:read). Owner-issued service tokens carry every capability. Read tools, including elixir_events, need only cr:read." } } }
+              "hint": "Reconnect this client and keep 'recordings:write' ticked on the consent page (every capability is offered, ticked, unless the client asked for less), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_events, need only cr:read." } } }
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client
@@ -201,8 +203,8 @@ If your client does not implement that step-up - several do not, and some
 render the 403 as an expired credential - you have two ways in, neither of
 which needs the client to cooperate:
 
-- **At consent:** reconnect and tick the missing capability on the consent
-  page, which offers every scope the request left out.
+- **At consent:** reconnect and keep the capability ticked on the consent
+  page, which offers every scope, ticked unless the client asked for less.
 - **After the fact:** Account -> Connections lists every live OAuth
   connection with its capabilities and lets you change them. This covers the
   personal door and every agent or integration door you own, each of which
@@ -223,19 +225,31 @@ list.
 
 | Kind | Door | Hidden tools | Tools listed |
 |---|---|---|---|
-| `person` | `/mcp` | none | 44 |
-| `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `elixir_add_player`, `elixir_add_clan` | 41 |
-| `integration` | `/i/<public_id>/mcp` | the three above plus `elixir_nickname`, `elixir_events` | 39 |
+| `person` | `/mcp` | none | {{ tools.count }} |
+| `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `elixir_track_player`, `elixir_track_clan` | {{ tools.agentCount }} |
+| `integration` | `/i/<public_id>/mcp` | the three above plus `elixir_nickname`, `elixir_events` | {{ tools.integrationCount }} |
 
-Hiding is enforced: calling a hidden tool answers JSON-RPC `-32601` with
-`data.kind` and a hint. Do not rely on a cached `tools/list` from another kind
-of connection.
+The counts are generated from the registry at build time. Hiding is
+enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
+and a hint. Do not rely on a cached `tools/list` from another kind of
+connection.
+
+Tools are declared in group order, then by title, so a client that keeps
+server order shows the domain: **Account** (what you track and who you know),
+**Players**, **Battles**, **Cards**, **Clans**, **War**, **Collections**,
+**Live** (the one raw lane), **Feed** (the push lane), **Service** (the fleet
+and the corpus) and **Help** (the documentation, examples, updates, changelog
+and the feedback loop). The group rides each tool's title
+(`Players · Player profile`); names never carry it, so regrouping breaks
+nothing. One page per group is under [Tools](/docs/tools).
 
 ## `initialize`
 
 ```json
 { "protocolVersion": "2025-06-18",
-  "capabilities": { "tools": { "listChanged": true } },
+  "capabilities": { "tools": { "listChanged": true },
+                    "resources": { "subscribe": false, "listChanged": false },
+                    "prompts": { "listChanged": false } },
   "serverInfo": { "name": "elixir-mcp", "title": "Elixir MCP - Clash Royale history, recorded",
                   "version": "{{ tools.contractVersion }}+tools.3f1c9a2b7d4e", "websiteUrl": "https://elixir.poapkings.com/" },
   "instructions": "…",
@@ -245,9 +259,24 @@ of connection.
 ```
 
 `instructions` is prose tuned for the model (it names your primary, alts,
-friends and clan, or the clan an agent acts for) and changes without notice;
+friends and clan, or the clan an agent acts for, then states the argument
+conventions below once, then where to start) and changes without notice;
 never parse it. The same facts ride in `_meta` as data; see
 [Reading a response](/docs/responses#knowing-who-you-are-connected-as).
+
+Resources and prompts are declared beside tools since 1.0.0, because a
+stateless server cannot push `notifications/tools/list_changed` and clients
+list resources lazily at read time, so the documentation stays reachable when
+a cached `tools/list` is stale:
+
+| Method | Returns |
+|---|---|
+| `resources/list` | `elixir://docs` (the index), `elixir://docs/<slug>` for every page, `elixir://examples`, `elixir://examples/<slug>`, `elixir://changelog`, `elixir://updates`, `elixir://cards` |
+| `resources/templates/list` | `elixir://docs/{slug}`, `elixir://docs/{slug}#{section}` (one H2 section), `elixir://examples/{slug}` |
+| `resources/read` | Markdown for pages, sections and examples; JSON for the indexes, the changelog, the updates and the card catalog. An unknown URI is JSON-RPC `-32002` |
+| `prompts/list`, `prompts/get` | the eleven [examples](/examples/play) as prompts, each a user message carrying the example's question and the tools it uses |
+
+Reading a resource spends no daily quota; the hourly rate limit still applies.
 
 ## Versioning and the cache-buster
 
@@ -276,7 +305,8 @@ never carries internals.
 |---|---|---|
 | `-32600` | not a JSON-RPC 2.0 object, or a batch | 400 |
 | `-32601` | unknown method, or a tool hidden from this principal kind | 200 |
-| `-32602` | unknown tool name | 200 |
+| `-32602` | unknown tool name, or unknown prompt | 200 |
+| `-32002` | unknown resource URI | 200 |
 | `-32029` | daily tool-call quota reached; message names the cap and "It resets at midnight UTC." | 200 |
 | `-32003` | insufficient scope | 403 |
 
@@ -293,51 +323,97 @@ never carries internals.
 | `invalid_tag` | input failed tag normalisation; hint states the rule |
 | `not_entitled` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
 | `not_recorded` | the subject is valid but nothing has been recorded for it |
-| `not_found` | unknown to the record and to the live API; also "no default player" cases |
+| `not_found` | unknown to the record and to the live API; an unknown docs page, example or collection |
+| `no_subject` | nothing to answer about: no primary player on the account, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag) |
 | `quota_exceeded` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | the live lane timed out, has no collector, or the payload was refused at admission |
-| `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, oversized result |
+| `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
+| `result_too_large` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 
-Check the error body, not only the transport flag. `hint` says what would fix
-the call; `meta.request_id` identifies it for a report.
+Every code is one branch: the message is for a person, the hint names one
+executable next step (a tool and its arguments), and an agent should never
+have to read the message to know which case it is in. Check the error body,
+not only the transport flag; `meta.request_id` identifies the call for a
+report.
 
 ## The response cap
 
 A result over **48,000 characters** of compact JSON is not delivered sliced.
-The body is replaced by a `bad_request` error, "Result exceeds 48000
-characters.", with a hint naming the tool's narrowing arguments (or, for a
-tool without any, asking you to report the `request_id`). The original
-`request_id` is preserved and `isError` is set. `battles_query` refuses
-`limit` above 25 unless `verbosity: "compact"` for this reason.
+The body is replaced by a `result_too_large` error, "Result exceeds 48000
+characters.", with a hint naming the tool's narrowing arguments and, where
+the tool has it, `verbosity: "compact"` (or, for a tool without any, asking
+you to report the `request_id`). The original `request_id` is preserved and
+`isError` is set. `battles_query` refuses `limit` above 25 unless
+`verbosity: "compact"` for this reason, and `live_fetch` refuses a
+`/players/{tag}/battlelog` path with the same code before spending a live
+fetch, pointing at `battles_query({ live: true })`.
 
 ## Argument conventions
 
+The same conventions hold on every tool; the `initialize` instructions state
+them once and the per-argument descriptions are one line each. The shorter
+version, with the tool map, is [Choosing a tool](/docs/choosing-a-tool).
+
+**What omitting an argument means** depends on the tool's family, and the
+first sentence of every description says which:
+
+| Family | Omitted argument | Means |
+|---|---|---|
+| Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `battles_levels`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
+| Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | the recorded clan: a person's first tracked clan, an agent's clan |
+| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity`, `badges_holders`) | the whole `segment` object | the entire recorded corpus |
+| `game_clock`, `cards_catalog`, the Help tools | nothing to omit | no subject at all |
+
+No default is ever looked up first, and there is no "no default" guess: a
+player tool with nothing to answer about is `no_subject` with the fixing call
+in its hint.
+
 - **Tags.** `#` plus 3 to 12 characters from `0289PYLQGRJCUV`. Input is
   trimmed and upper-cased, a missing `#` is added, and the letter O folds to
-  zero. Anything else is `invalid_tag`.
-- **Omit `player_tag` to mean the caller**: your primary player on a personal
-  connection, or whoever `on_behalf_of` maps to on an agent. An empty string
-  is refused as a caller bug, never treated as "default".
+  zero. Anything else is `invalid_tag`. `*_tag` is one tag, `*_tags` an
+  array, `collection` a collection's slug.
 - **`on_behalf_of`** (≤200 chars, opaque) selects the end user on an agent
-  connection; ignored on a personal one. See [Agents](/docs/agents).
-- **Omit `clan_tag`** to mean your recorded clan (a person's first added clan,
-  an agent's clan).
+  connection; ignored on a personal one. An empty `player_tag` is refused as
+  a caller bug, never treated as "default". See [Agents](/docs/agents).
 - **Validation is strict** since 0.39.2: arguments are checked against the
   published `inputSchema` before the handler runs. An unknown enum value, an
   inverted date window, or a `limit` above the declared maximum is
   `bad_request`, never clamped or emptied.
-- **Dates** accept an ISO instant or `YYYY-MM-DD`; a date-only value resolves
-  in the account's timezone. Meta-style tools default `from` to 28 days ago.
-- **Timestamps** in responses are ISO 8601 UTC with a trailing `Z`.
+- **Windows** are `from` (inclusive) and `to` (exclusive) on every windowed
+  tool: an ISO instant, or `YYYY-MM-DD` resolved in the account's timezone,
+  where a date-only `to` covers that whole day. `days` and `weeks` (and
+  `seasons` on `war_history`) are sugar for `from`. The per-tool defaults are
+  on [Time and clocks](/docs/clocks#windows-and-timezones).
+- **`timezone`** on any windowed tool is an IANA zone for that call alone:
+  it resolves the date-only bounds and every local label
+  (`battle_time_local` is ISO 8601 with its offset). Default: the account's
+  timezone. An unknown zone is `bad_request`.
+- **`applied`** is the one echo block on every response: `window` (`from`,
+  `to`, `source` of `argument` | `default` | `unbounded` | `fixed`,
+  `timezone`), `limit`, `sort`, `mode`, `min_battles`, `segment`,
+  `verbosity`, as used. There are no `filters_applied`, `window_*` or
+  `limit_applied` keys.
+- **`verbosity: full | compact`** is the one size control, on
+  `battles_query`, `war_current`, `clans_roster`, `battles_levels`,
+  `players_collection` and `cards_catalog`; each description says what
+  `compact` drops. There is no other flag for size.
+- **`notes[]` and `docs`** ride every response: one-sentence caveats to
+  repeat, and a `page#section` pointer into this documentation
+  (`elixir_docs({ page, section })` or `elixir://docs/<page>#<section>`).
+  Formulas live in the docs, never in a note.
+- **Timestamps** in responses are ISO 8601 UTC with a trailing `Z`;
   `meta.timezone_applied` names the display zone when local labels were used.
+  Events carry `created_at`.
 - **Null is unknown, never zero**: a source never polled has `observed_at:
   null` and `freshness_seconds: null`; an unknown war attendance is `null`; a
   destroyed tower is `0` and unreported tower data is `null`.
-- **Cursors.** `battles_query` returns an opaque `next_cursor` (`null` means
-  the end; a forged or stale cursor is `bad_request`) and echoes
-  `limit_applied`. `elixir_events` uses an integer `since` by `event_id`.
-- **Verbosity.** Only `battles_query` has `verbosity: full | compact`;
-  `compact` drops per-card decks and `tower_hp` but keeps `deck_hash`.
+- **Cursors.** `battles_query` returns `next_cursor` (`null` means the end).
+  Treat it as opaque: pass it back unchanged, never parse or construct one; a
+  forged or stale cursor is `bad_request`. `elixir_events` uses an integer
+  `since` by `event_id`.
+- **`live: true`** on `players_profile`, `clans_roster`, `war_current` and
+  `battles_query` reads the game first at the cost of one live fetch and
+  answers in the usual shape; the four are annotated `openWorldHint`.
 
 ## Identifiers the record uses
 
@@ -363,6 +439,16 @@ tool without any, asking you to report the `request_id`). The original
   tools_added?, breaking? }`, newest first.
 
 ## Machine-readable surfaces
+
+Over the connection itself, three read-only Help tools serve this
+documentation from the same sources the site renders: `elixir_docs` (the
+index; one page by slug; one H2 section with `page` + `section`; or a word
+search with `query`), `elixir_examples` (the eleven worked examples with the
+tools each calls) and `elixir_updates` (What's new, newest first, `since` a
+date). The same text is reachable as resources at `elixir://docs`,
+`elixir://docs/<slug>`, `elixir://docs/<slug>#<section>`, `elixir://examples`,
+`elixir://examples/<slug>`, `elixir://changelog`, `elixir://updates` and
+`elixir://cards`, and the examples as prompts. Over plain HTTPS:
 
 | URL | Contents |
 |---|---|

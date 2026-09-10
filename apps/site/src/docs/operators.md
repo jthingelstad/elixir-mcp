@@ -3,7 +3,7 @@ slug: operators
 title: "Running a collector"
 description: "A collector fetches Clash Royale data for Elixir MCP with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. What you need, how to enroll, and what it earns you."
 section: record
-order: 22
+order: 23
 navTitle: "Run a collector"
 icon: server
 lede: "Volunteer a machine that fetches for the corpus, and what it earns you."

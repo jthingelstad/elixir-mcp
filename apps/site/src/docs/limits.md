@@ -31,9 +31,9 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Explorer calls per hour | the website's Explore page | same bucket as above | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits, capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
 | Explorer calls per day | Explore page | same bucket | same | HTTP 429 `{"error":"quota_exceeded","message":"Daily tool-call quota reached (N per day)…"}` |
-| Live fetches per day | `live_fetch`, `players_profile` with `live: true`; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
-| Player slots | `elixir_add_player`, `POST /api/claims` | live count | 50 (member to partner), +2 with an active collector; override `max_player_recordings` | MCP: `quota_exceeded` "Added players are capped at N for the <role> tier." Web: HTTP 429 same message |
-| Clan slots, activity | `elixir_add_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10, +1 with an active collector | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
+| Live fetches per day | `live_fetch`, and `live: true` on `players_profile`, `clans_roster`, `war_current` and `battles_query`; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
+| Player slots | `elixir_track_player`, `POST /api/claims` | live count | 50 (member to partner), +2 with an active collector; override `max_player_recordings` | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
+| Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10, +1 with an active collector | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
 | Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
 | Collections | `POST /api/me/collections` | live count | 0 / 0 / 5 / 20 | HTTP 403 `not_entitled` "Creating collections needs the family tier or above" or HTTP 429 `quota_exceeded` "The <role> tier can curate up to N collections." |
 | Collection members per call | `collections_edit` | per call | 500 tags | `bad_request`; a single malformed tag fails the whole call |
@@ -54,7 +54,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | REST profile refreshes per day | `POST /api/v1/profile-refreshes` | usage row | per integration, default 1,000; an idempotent replay does not spend one | HTTP 429 problem `refresh_quota_exceeded`, `Retry-After: 3600` |
 | REST batch size | `POST …/members` | per call | 1 to 500 tags | HTTP 400 problem `invalid_members` |
 | REST collection capacity | grant | per grant, default 10,000 | over the limit | HTTP 409 problem `enrollment_limit` |
-| Response size | every tool result | per call | 48,000 characters | `bad_request` "Result exceeds 48000 characters." (see [Protocol](/docs/protocol#the-response-cap)) |
+| Response size | every tool result | per call | 48,000 characters | `result_too_large` "Result exceeds 48000 characters.", with a hint naming the arguments that narrow it (see [Protocol](/docs/protocol#the-response-cap)); `live_fetch` refuses a battle-log path with the same code before spending the lane |
 | Audit argument size | the call log | per call | 4,000 bytes | arguments are trimmed in the log only; the call is unaffected |
 
 ## Reading your balance
@@ -87,6 +87,7 @@ if the quota store is unreachable, approved accounts keep working.
 | Call log rows | indefinitely; `viewer_ip` cleared after 30 days; arguments cleared after 90 days |
 | Credential refusal counts | 30 days |
 | Event feed rows | 30 days |
+| Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the console stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
 | Console sessions | 90 days absolute, 9 days sliding; rows purged 30 days after |
 | Sign-in codes | 15 minutes live; rows purged 30 days after expiry |

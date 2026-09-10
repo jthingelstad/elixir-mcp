@@ -30,9 +30,12 @@ flow. Access is approval-gated while the recorder grows —
 <h2>Authorization capabilities</h2>
 
 <p>The connection page lists these before you enter your sign-in code. Every OAuth
-grant includes <code>cr:read</code>; the others are added only when the client
-requests them. If a connected agent needs a capability it does not have, Elixir MCP
-refuses the call and asks the client to reconnect for that specific permission.</p>
+grant includes <code>cr:read</code>. A client that names no scope in particular is
+offered every capability, ticked, on the consent page, where you can untick any of
+them; a client that asks for less is offered the rest unticked. If a connected agent
+needs a capability it does not have, Elixir MCP refuses the call and asks the client
+to reconnect for that specific permission, or you change the connection's
+capabilities under Account → Connections.</p>
 
 <ul>
   {%- for s in tools.scopes %}
@@ -45,9 +48,23 @@ because that is what their original consent page promised. Owner-issued service
 tokens are different: they are full-capability administrative credentials for
 trusted headless integrations, shown once and revocable from the console.</p>
 
+<h2>What every response carries</h2>
+
+<p>Beside the fields a tool is for, every response carries the same four things:
+<code>applied</code>, the one echo block saying what the tool actually used
+(window, limit, sort, mode, segment, verbosity); <code>notes[]</code>, one-sentence
+caveats to repeat with the numbers; <code>docs</code>, a <code>page#section</code>
+pointer into <a href="/docs">this documentation</a> where the formulas live; and
+<code>meta</code>, the envelope described on <a href="/docs/responses">Reading a
+response</a>. {{ tools.outputSchemaCount }} tools also declare an
+<code>outputSchema</code>, rendered under each as "What comes back"; the argument
+conventions they all share are on the
+<a href="/docs/protocol#argument-conventions">Protocol reference</a> and, shorter, on
+<a href="/docs/choosing-a-tool">Choosing a tool</a>.</p>
+
 <h2>The families</h2>
 
-<p>Forty-four tools on one page is a wall, so each group is its own page.
+<p>{{ tools.count }} tools on one page is a wall, so each group is its own page.
 Every tool appears on exactly one of them.</p>
 
 <dl class="outline">

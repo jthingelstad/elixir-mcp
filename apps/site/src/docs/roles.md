@@ -91,24 +91,24 @@ and enrollment limits. It has no personal subject or inherited admin authority.
 | Signs in with | OAuth | OAuth or a key | a key |
 | Available to | everyone | everyone, per clan you record | admin provisioned |
 
-## Added means recorded
+## Tracked means recorded
 
-Adding a player or clan to your account IS the act of recording it —
+Tracking a player or clan on your account IS the act of recording it —
 there is no separate watch step and no approval queue; your tier's slots
 are the only gate, and capture starts immediately. The one per-subject
 setting is **notify**: whether that player or clan feeds your event pipe
 (`elixir_events`). Remove a subject and its slot frees; a clan's shared
-recording stops only when no account has it added.
+recording stops only when no account tracks it.
 
 ## Why fifty players, at every tier
 
 One comprehensive clan watch already records about fifty players, so tracking
 fifty individually costs the service exactly what a single comprehensive slot
 has always cost. And most of them are already recorded anyway — **a recording
-is shared by everyone watching it**, so adding a clanmate of a clan already
+is shared by everyone watching it**, so tracking a clanmate of a clan already
 being captured is free.
 
-That is also what makes relationships worth having. Each player you add is your
+That is also what makes relationships worth having. Each player you track is your
 **primary** (you), an **alt** (also you, another tag), a **friend** you follow,
 or someone you're **watching** — and "how are my friends playing?" is only a
 question worth asking if there is room to keep friends in.

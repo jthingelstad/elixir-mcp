@@ -36,7 +36,9 @@ surface, and is never sold, shared, or used to advertise. We also store
 your timezone if you set one, and operational records of your own
 activity: sign-ins, claims, recording changes, and your agent's tool
 calls (used for quotas and product improvement — you can see your own
-usage under Usage).
+usage under Usage). The request and response of each tool call are kept
+for 90 days and are visible to you under Activity, where each request id
+opens the call record.
 
 **Who can see what.** All recorded game data — battles, profiles,
 clans, war — is readable by every approved account, the same way the

@@ -85,6 +85,57 @@ across separate clients, and that is untouched.
   published `/tools.json` and the docs page are generated from the live
   registry at build time for exactly this reason.
 
+## Tool conventions
+
+The 1.0.0 contract (review `docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md`, 2.3)
+made these uniform; the registry tests enforce the mechanical ones. The
+product meaning of each lives on the site (`protocol.md`, "Argument
+conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
+
+- **Names.** `<domain>_<noun>` for reads; `<domain>_<verb>_<noun>` only for
+  writes. `*_tag` is one tag, `*_tags` an array, `collection` a slug.
+- **Defaults by family.** Player-shaped tools default `player_tag` to the
+  caller (`subject()`); clan tools default `clan_tag` to the recorded clan
+  (`entitledClan()`); segment tools take a nested `segment` and default to
+  the corpus (`SEGMENT_SCHEMA`, `segmentFilter()`). The first sentence of the
+  description says which, in the fixed phrase. Nothing to default to is
+  `no_subject`, never a guess.
+- **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
+  `weeks` as sugar, resolved once by `resolveWindow()`; date-only bounds in
+  `zoneFor()`'s zone, which the per-call `timezone` argument overrides.
+- **One `applied` block** per response (`appliedBlock()`): `window` with its
+  `source`, plus `limit`, `sort`, `mode`, `segment`, `verbosity` as used.
+  Never `filters_applied`, `window_*`, `limit_applied`.
+- **Size.** `verbosity: full | compact` (`VERBOSITY(compactDesc)`) is the only
+  size control. No `summary`, `include_*` or `detail` flags.
+- **Prose.** `notes: string[]` of one-sentence caveats (`notes()`),
+  `methodology{}` where a formula applies, and `docs: docsRef(page, section)`.
+  Formulas live on the docs page the pointer names, not in a note. No
+  top-level key matching `/_note$/` outside `meta.completeness_note`.
+- **Errors.** The closed set in `packages/contracts/src/errors.ts`; every
+  `ToolFailure` hint names one executable next step (a tool and its
+  arguments). `no_subject` for nothing to answer about; `result_too_large`
+  for a cap breach, raised by the protocol layer and by `live_fetch` for a
+  battle log.
+- **Annotations** (`packages/contracts/src/tool-groups.ts`): `readOnly` true
+  unless account state visible to others changes (the events cursor is a
+  bookmark); `destructive` true if any action removes or replaces;
+  `openWorld` true if any path, including a `live: true` flag, reaches the
+  CR API.
+- **Declarations.** Description at most 600 characters; shared schemas by
+  reference (`TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
+  `MODE_SCHEMA`, `SEGMENT_SCHEMA`, `TIMEZONE_SCHEMA`), never re-typed;
+  `limit` carries a `maximum`; the most-called tools declare an
+  `outputSchema` (`services/mcp/src/output-schemas.mjs`) that the registry
+  validates responses against.
+- **Every docs pointer resolves.** `services/mcp/test/docs-pointers.test.mjs`
+  scans the tool modules for `docsRef(...)` and `*_DOCS` literals and fails
+  when the page or H2 section is not in the built corpus. Add the section to
+  the page before adding the pointer; never bend a pointer to a heading
+  that says something else.
+- **Every tool is in a group** that exists in `GROUP_ORDER`, and the tool
+  reference (`apps/site/src/docs/tools/<group>.njk`) has one page per group.
+
 ## Ingest invariants
 
 - Ingest is the admission boundary: validate identity fields and must-have keys

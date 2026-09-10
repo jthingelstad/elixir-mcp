@@ -1,7 +1,7 @@
 ---
 slug: recording
 title: "Recording and coverage"
-description: "What is recorded when you add a player or a clan, how one recording is shared by everyone who wants it, what activity and comprehensive scope poll, how often each subject is fetched, how to read freshness and completeness, and what live_fetch can reach."
+description: "What is recorded when you track a player or a clan, how one recording is shared by everyone who wants it, what activity and comprehensive scope poll, how often each subject is fetched, how to read freshness and completeness, and what live_fetch can reach."
 section: start
 order: 3
 navTitle: "Recording"
@@ -41,19 +41,21 @@ Three things worth knowing:
 
 ## Added means recorded
 
-There is no watch step and no approval queue. Adding a subject to your account
-is the request to record it, and capture starts at the next scheduler tick.
+There is no watch step and no approval queue. **Tracked means recorded**:
+tracking a subject on your account is the request to record it, and capture
+starts at the next scheduler tick. (Before contract 1.0.0 the tools said
+"add"; the act is the same.)
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_add_player({ player_tag, relationship?, make_primary? })` | Account → Tracking | `recordings:write` |
-| Record a clan | `elixir_add_clan({ clan_tag, scope? })` | Account → Overview | `recordings:write` |
+| Record a player | `elixir_track_player({ player_tag, relationship? })` | Account → Tracking | `recordings:write` |
+| Record a clan | `elixir_track_clan({ clan_tag, scope? })` | Account → Overview | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
 
 Slots are the only gate; see [Limits](/docs/limits).
 
-### One recording, many reasons
+## One recording, many reasons
 
 Every subject has at most one active recording, shared by everyone who wants
 it. The recorder counts the reasons a subject is wanted and starts, widens,
@@ -61,9 +63,9 @@ or stops the recording accordingly:
 
 | Reason | Source |
 |---|---|
-| claimed | any account added the player |
-| added | any account added the clan |
-| added deep | any account added the clan at `comprehensive` scope |
+| claimed | any account tracks the player |
+| added | any account tracks the clan |
+| added deep | any account tracks the clan at `comprehensive` scope |
 | collected | the subject is a member of a collection |
 | collected deep | a member of a `comprehensive` collection |
 | ops | the maintainer records it directly; never stopped by user actions |
@@ -73,33 +75,34 @@ recording stops only when no reason remains anywhere. A clan's scope settles
 up or down to the widest remaining reason; a player's scope only ever widens.
 History is never deleted when a recording stops.
 
-### Scope: what is actually polled
+## Scope: what is actually polled
 
 | Subject | `activity` | `comprehensive` |
 |---|---|---|
 | Player | profile only | profile and battle log |
 | Clan | clan roster, current river race, river race log | the same, plus profile and battle log for **every current member**, following joins and leaves |
 
-Players you add are always comprehensive. `elixir_add_clan` defaults to
+Players you track are always comprehensive. `elixir_track_clan` defaults to
 `comprehensive`; the member tier has no comprehensive slot, so pass
 `scope: "activity"` there. A recorded player's current clan is also read
 every 15 minutes for roster and membership tracking, without a slot and
 without polling the other members.
 
-### Relationships, primary, nicknames
+## Relationships, primary, nicknames
 
-Each player you add is your `primary` (exactly one; the first you add),
-an `alt`, a `friend`, or someone you are `watching` (the default). The
-primary is what "omit `player_tag`" means on your connection. Claims are
-taken at your word (`claim_status: unverified`); several accounts may add the
-same player and share the recording.
+Each player you track is your `primary` (exactly one: the first you track,
+or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
+someone you are `watching` (the default). The primary is what "omit
+`player_tag`" means on your connection. Claims are taken at your word
+(`claim_status: unverified`); several accounts may track the same player and
+share the recording.
 
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account and your agents see;
 `players_search` ranks your nicknames first. It is the one write the website's
 Explore page performs.
 
-### Collections
+## Collections
 
 A collection is a curated, named group (slug `^[a-z0-9][a-z0-9-]{1,38}$`,
 public or private, `player` or `clan` kind) that **records its members**:
@@ -165,31 +168,41 @@ modes the battle log never shows, so a ratio under 1.0 is an upper bound on
 loss; and the tail after the latest profile snapshot is not measured. Missing
 coverage is unknown, not evidence of absence.
 
-`players_timeline` adds `snapshots_available_from` and a `range_note` when
-you ask for dates before snapshots began.
+`players_timeline` adds `snapshots_available_from`, and a line in `notes[]`,
+when you ask for dates before snapshots began.
 
 ## Reading the game live
 
-`live_fetch({ path })` performs one authenticated GET against the Clash
-Royale API through the live lane and records the result on the way back.
+Four recorded tools take `live: true` and read the game first, then answer
+in their usual shape at the cost of one live fetch: `players_profile` for
+any tag, `clans_roster` and `war_current` for **any clan, recorded or not**,
+and `battles_query` to poll a player's battle log once before answering (the
+"what did they just play" path). Prefer these; they are the live lane with
+the record's shape.
+
+`live_fetch({ path })` is the raw catch-all: one authenticated GET against
+the Clash Royale API through the live lane, recorded on the way back.
 
 | Allowed `path` | Recorded as |
 |---|---|
 | `/players/{tag}` | `player` |
-| `/players/{tag}/battlelog` | `player_battlelog` |
 | `/clans/{tag}` | `clan` |
 | `/clans/{tag}/currentriverrace` | `currentriverrace` |
 | `/clans/{tag}/riverracelog` | `riverracelog` |
 | `/locations/{id}/rankings/players` | `rankings_players` (`id` is `global` or numeric) |
 | `/locations/{id}/pathoflegend/players` | `rankings_pol` |
 
-Anything else is `bad_request`. The response is `{ path, live: true, data,
-meta }` with `data` the raw payload: card levels there are on the API's
-rarity-relative scale (a maxed legendary reads 8/8), while every recorded
-tool serves the in-game 1 to 16 scale; `cards_catalog` carries both maxima.
-The call waits up to 12 seconds for a live-channel collector and answers
-`live_unavailable` otherwise. `players_profile({ live: true })` is the same
-lane for one profile and falls back to the recorded snapshot with a hint.
+`/players/{tag}/battlelog` is **refused** with `result_too_large` before the
+lane is spent: a raw battle log cannot fit the 48,000-character delivery cap,
+so the fetch would cost a live call and deliver nothing;
+`battles_query({ player_tag, live: true })` polls the log once and answers in
+the compact recorded shape. Anything else is `bad_request`. The response is
+`{ path, live: true, data, meta }` with `data` the raw payload: card levels
+there are on the API's rarity-relative scale (a maxed legendary reads 8/8),
+while every recorded tool serves the in-game 1 to 16 scale; `cards_catalog`
+carries both maxima. The call waits up to 12 seconds for a live-channel
+collector and answers `live_unavailable` otherwise; `players_profile({ live:
+true })` falls back to the recorded snapshot with a hint.
 
 Live fetches are capped per day by tier (20 / 100 / 250 / 1,000; owner and
 admin unlimited) and an agent spends its owner's allowance. Leaderboard

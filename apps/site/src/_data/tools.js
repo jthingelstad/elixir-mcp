@@ -21,6 +21,8 @@ import {
   OAUTH_SCOPE_DETAILS,
   requiredOAuthScope,
   toolsHiddenFrom,
+  MODE_GROUPS,
+  typesForModeGroup,
 } from "@elixir-mcp/contracts";
 
 /** Argument summary for a tool, from its JSON Schema: enough for a
@@ -35,6 +37,21 @@ function args(schema) {
     description: spec.description ?? "",
     enum: spec.enum ?? null,
     default: spec.default ?? null,
+  }));
+}
+
+/** The top-level response fields of a declared outputSchema, flattened
+ *  the way args() flattens the inputSchema: enough for "what comes back"
+ *  without reproducing the schema (the raw schema rides beside it). */
+function returns(schema) {
+  const props = schema?.properties ?? {};
+  const required = new Set(schema?.required ?? []);
+  return Object.entries(props).map(([name, spec]) => ({
+    name,
+    type: Array.isArray(spec.type) ? spec.type.join(" | ") : (spec.type ?? ""),
+    required: required.has(name),
+    description: spec.description ?? "",
+    enum: spec.enum ?? null,
   }));
 }
 
@@ -53,11 +70,15 @@ export default function tools() {
       openWorld: cls.openWorld ?? false,
       scope: scope ?? OAUTH_SCOPE.READ,
       args: args(d.inputSchema),
+      // 1.0.0: the most-called tools declare what comes back. Null on
+      // the rest, so a template can tell "undeclared" from "nothing".
+      outputSchema: d.outputSchema ?? null,
+      returns: d.outputSchema ? returns(d.outputSchema) : null,
     };
   });
 
   // A slug per group, so the reference can be a family of small pages
-  // rather than one wall of forty-four tools. Derived from the group's
+  // rather than one wall of tools. Derived from the group's
   // own name: the registry is the source of truth for the taxonomy, and
   // a hand-kept list of families beside it would be a second one.
   const slugOf = (group) =>
@@ -94,7 +115,18 @@ export default function tools() {
     // from it. Generated, because a hand-typed count was 41 while the
     // door served 44.
     agentCount: all.length - toolsHiddenFrom("agent").size,
+    integrationCount: all.length - toolsHiddenFrom("integration").size,
     writeCount: all.filter((t) => !t.readOnly).length,
+    outputSchemaCount: all.filter((t) => t.outputSchema).length,
     scopes: OAUTH_SCOPE_DETAILS,
+    // The six mode groups and the API battle types each folds, from the
+    // contract, so the battle-model page's table cannot drift from what
+    // `mode` accepts. Rides here rather than its own data file because
+    // the corpus renderer (apps/site/src/_lib/doc-render.mjs) loads
+    // exactly this file, and the page must read the same over MCP.
+    modes: MODE_GROUPS.map((group) => ({
+      group,
+      types: typesForModeGroup(group),
+    })),
   };
 }

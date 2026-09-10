@@ -368,7 +368,7 @@ export const DOC_LINKS = {
     "Notifications",
     [
       ["Events & the feed", "/docs/events"],
-      ["elixir_events", "/docs/tools/elixir-mcp#elixir_events"],
+      ["elixir_events", "/docs/tools/feed#elixir_events"],
     ],
   ],
   "activity:notification": [
@@ -439,7 +439,7 @@ export const DOC_LINKS = {
     "Feedback",
     [
       ["About the project", "/docs/about"],
-      ["elixir_feedback", "/docs/tools/elixir-mcp#elixir_feedback"],
+      ["elixir_feedback", "/docs/tools/help#elixir_feedback"],
     ],
   ],
   "status:collectors": [

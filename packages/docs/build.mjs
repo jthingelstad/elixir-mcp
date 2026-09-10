@@ -34,6 +34,16 @@ const ctx = await docContext();
 const absolute = (md) =>
   md.replace(/\]\((\/[^)\s]*)\)/g, (_, p) => `](${SITE_URL}${p})`);
 
+/** Inline <svg> blocks leave the corpus: an agent asking for the
+ *  architecture page was reading fifty lines of path data (review 1.3).
+ *  The diagram's aria-label, the one sentence written for a reader who
+ *  cannot see it, stays as a line of text. */
+const withoutSvg = (md) =>
+  md.replace(/<svg\b([^>]*)>[\s\S]*?<\/svg>/g, (_, attrs) => {
+    const label = /aria-label="([^"]*)"/.exec(attrs)?.[1];
+    return label ? `[Diagram: ${label}]` : "";
+  });
+
 /** The H2 sections of a page, each with its slug (the site's heading
  *  id) and its own Markdown, so a reader can pull one section. */
 function sections(md) {
@@ -49,11 +59,17 @@ function sections(md) {
   }
   return out.map((s) => ({ ...s, markdown: s.markdown.trim() }));
 }
+/** GitHub-style heading slugs, the shape the code's docs pointers use
+ *  (docsRef("recording", "the-games-own-last-seen")): lower-case, inline
+ *  markup and quotation stripped, every other non-alphanumeric run a
+ *  single hyphen, trimmed. The site's renderer (apps/site/eleventy.config.mjs)
+ *  is the same on every heading without punctuation; keep H2 titles free
+ *  of apostrophes and quotes and the two never disagree. */
 const slugOf = (text) =>
   text
     .toLowerCase()
     .replace(/<[^>]+>/g, "")
-    .replace(/[`*_]/g, "")
+    .replace(/[`*_'"\u2018\u2019\u201c\u201d]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
@@ -91,13 +107,17 @@ const docs = readdirSync(path.join(site, "docs"))
     const { data, body } = parse(
       readFileSync(path.join(site, "docs", f), "utf8"),
     );
-    const markdown = absolute(renderDoc(body, ctx));
+    const markdown = withoutSvg(absolute(renderDoc(body, ctx)));
+    // The index an agent reads shows the lede; a slogan-length lede
+    // ("The short version: ...") says nothing about what the page
+    // answers, so a lede under 40 characters yields to the description.
+    const lede = String(data.lede ?? "");
     return {
       slug: data.slug,
       title: data.title,
       section: SECTIONS[data.section] ?? data.section,
       order: data.order ?? 0,
-      lede: data.lede ?? data.description ?? "",
+      lede: lede.length >= 40 ? lede : (data.description ?? lede),
       description: data.description ?? "",
       url: `${SITE_URL}/docs/${data.slug}`,
       markdown,

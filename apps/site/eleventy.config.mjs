@@ -398,6 +398,11 @@ export default function (eleventyConfig) {
     text
       .toLowerCase()
       .replace(/<[^>]+>/g, "")
+      // marked hands over ESCAPED text: an apostrophe arrives as &#39;
+      // and a quote as &quot;, which used to slug "the game's own" into
+      // the-game-39-s-own. Drop entities and quotes first so the site's
+      // fragment and the docs corpus's section slug are the same string.
+      .replace(/&#\d+;|&quot;|&#x[0-9a-f]+;|['"\u2019\u201c\u201d]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
   marked.use({

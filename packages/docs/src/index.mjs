@@ -11,12 +11,18 @@ export const EXAMPLES = corpus.examples;
 export const UPDATES = corpus.updates;
 export const CORPUS_BUILT_AT = corpus.built_at;
 
-/** Query terms: lower-case words of two or more characters. */
+/** Query terms: lower-case words of two or more characters. A plural's
+ *  trailing "s" is dropped so "quotas" finds "quota" the way "quota"
+ *  already found "quotas" by substring (review 1.3); "ss" endings and
+ *  short words are left alone. */
+const singular = (t) =>
+  t.length >= 4 && t.endsWith("s") && !t.endsWith("ss") ? t.slice(0, -1) : t;
 const terms = (q) =>
   String(q ?? "")
     .toLowerCase()
     .split(/[^a-z0-9_]+/)
-    .filter((t) => t.length >= 2);
+    .filter((t) => t.length >= 2)
+    .map(singular);
 
 /** Every index of `needle` in `hay` (both lower-case). */
 function positions(hay, needle) {

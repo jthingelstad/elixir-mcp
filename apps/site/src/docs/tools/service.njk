@@ -1,0 +1,20 @@
+---
+layout: doc.njk
+slug: tools-service
+title: "Tools: Service"
+navTitle: "Service"
+order: 120
+section: using
+toolFamily: "Service"
+description: "The Service tools your agent sees through Elixir MCP: what each one answers, what it takes, and which capability it needs."
+permalink: /docs/tools/service/index.html
+canonical: /docs/tools/service
+---
+<p class="page-head__note"><a href="/docs/tools">‹ All tools</a></p>
+
+<h1>Service</h1>
+
+<p>{{ (tools.groups | pickToolGroup("Service")).tools | length }} of the {{ tools.count }} tools in the registry. Generated from what <code>tools/list</code> returns, so this is exactly what your agent sees.</p>
+
+{%- set group = tools.groups | pickToolGroup("Service") %}
+{% include "tool-group.njk" %}

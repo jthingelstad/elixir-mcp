@@ -74,7 +74,7 @@ The roster is deliberately absent because the instructions are held until
 reconnect; call `clans_roster` once per run.
 
 An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`,
-`elixir_add_player` and `elixir_add_clan`, which need a self. Omit
+`elixir_track_player` and `elixir_track_clan`, which need a self. Omit
 `clan_tag` anywhere and it means the agent's clan.
 
 ## Knowing which human is asking
@@ -83,12 +83,13 @@ MCP carries no per-request user identity, so the agent supplies one.
 `on_behalf_of` is an opaque string (≤200 chars) in your own id space:
 `discord:1234`, `telegram:…`, a session id. Pass it on every call that could
 mean "me". The first time an id is unknown, the subject-resolving tools
-answer `not_found`:
+answer `no_subject` (there is nothing to answer about; an agent has no self
+to fall back on):
 
 ```json
-{ "error": { "code": "not_found",
+{ "error": { "code": "no_subject",
     "message": "No player is mapped to discord:1234 yet.",
-    "hint": "Ask who they are in the clan, then call elixir_identify once with their player_tag. Or pass player_tag explicitly." } }
+    "hint": "Ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly." } }
 ```
 
 Map it once with `elixir_identify` (scope `account:write`). The tag must be a
@@ -104,7 +105,7 @@ anyway. `elixir_my_identities` lists what the agent has learned.
 member (discord:1234): how am I doing?
 
 → players_summary({ on_behalf_of: "discord:1234" })
-← { error: { code: "not_found", message: "No player is mapped to discord:1234 yet.", hint: "…" } }
+← { error: { code: "no_subject", message: "No player is mapped to discord:1234 yet.", hint: "…" } }
 
 agent: I don't have you linked yet. Which player are you in POAP KINGS?
 member: Raquaza
@@ -114,10 +115,12 @@ member: Raquaza
 
 → elixir_identify({ external_id: "discord:1234", player_tag: "#UL2V9QRG0" })
 ← { external_id: "discord:1234", player_tag: "#UL2V9QRG0", name: "raquaza", clan_tag: "#J2RGCRVG",
-    note: "Pass this external_id as on_behalf_of from now on; omit player_tag and it means them." }
+    notes: ["Pass this external_id as on_behalf_of from now on; omit player_tag and it means them.", …],
+    docs: "agents#knowing-which-human-is-asking" }
 
 → players_summary({ on_behalf_of: "discord:1234" })
 ← { player_tag: "#UL2V9QRG0", name: "raquaza", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
+    applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "recording#completeness",
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
 ```
 
@@ -150,6 +153,19 @@ if (page.has_more) continue;               // same call again, before sleeping
 Payload floors per topic are on [Events](/docs/events). `meta.events_pending`
 on any other response tells you the account cursor has unread rows, which is
 only meaningful if something marks. Events prune after 30 days.
+
+**Polling has a price.** A loop that calls `elixir_events` and
+`elixir_my_feedback` every 300 seconds makes about 576 calls a day, well over
+a member's whole budget of 500 tool calls, and even the feed alone every five
+minutes is 288 calls, 58% of it, for a feed that is empty most of the time
+(the review that produced contract 1.0.0 found 56% of all traffic was
+polling). Two rules keep it cheap: **read `elixir_my_feedback` only when
+`meta.feedback_responses_pending > 0`**, and `meta.events_pending` and
+`meta.feedback_responses_pending` now ride **every** response, including
+`elixir_events` itself and `game_clock`, so any call you were making anyway
+tells you whether the next one is worth it. A routine that has nothing else
+to do can still poll the feed on a timer, but hourly is plenty; the daily
+`clan_pulse` lands at 07:00 UTC and `war_day_open` at the policy reset.
 
 A routine that runs once a day around 07:30 UTC sees the `clan_pulse`
 digest, drills with `clans_standings` or `battles_trends` when something

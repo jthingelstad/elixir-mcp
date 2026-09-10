@@ -29,4 +29,22 @@
 {%- else %}
 <p class="sample">Takes no arguments.</p>
 {%- endif %}
+{%- if t.returns %}
+<p class="sample">What comes back (declared <code>outputSchema</code>; fields marked required are always present):</p>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+    <tbody>
+      {%- for f in t.returns %}
+      <tr>
+        <td><code>{{ f.name }}</code></td>
+        <td class="mono">{{ f.type }}</td>
+        <td>{% if f.required %}yes{% else %}<span class="nil">no</span>{% endif %}</td>
+        <td>{{ f.description | esc }}{% if f.enum %} <span class="mono">({{ f.enum | join(" · ") }})</span>{% endif %}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endif %}
 {%- endfor %}
