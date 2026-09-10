@@ -37,10 +37,15 @@
 
       {%- for s in scripts %}
       <div data-script="{{ s.key }}"{% if not loop.first %} hidden{% endif %}>
+        {#- A model answers in Markdown, so an agent line is rendered as
+            the HTML a client would show; a question stays a sentence. -#}
         {%- for line in s.lines %}
         <div data-line="{{ line.role }}" class="{{ 'transcript__user' if line.role == 'user' else 'transcript__agent' }}">
-          <span class="transcript__text" data-text>{{ line.text | safe }}</span>
-          {%- if line.cite %}<span class="transcript__cite" data-cite>{{ line.cite | safe }}</span>{% endif %}
+          {%- if line.role == 'user' %}
+          <span class="transcript__text" data-text>{{ line.text }}</span>
+          {%- else %}
+          <div class="transcript__text transcript__md" data-text>{{ line.text | md | safe }}</div>
+          {%- endif %}
         </div>
         {%- endfor %}
       </div>

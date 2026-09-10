@@ -38,13 +38,18 @@ function run(root) {
   if (!stage || keys.length === 0) return;
 
   // Every line of every script, read out of the markup that already
-  // renders them, so the copy lives in one place.
+  // renders them, so the copy lives in one place. An agent line is
+  // rendered Markdown; it is typed by revealing its text nodes in
+  // order, so the bold, the lists and the code arrive with the words.
   const read = (key) =>
-    [...scripts.get(key).querySelectorAll("[data-line]")].map((el) => ({
-      role: el.dataset.line,
-      text: el.querySelector("[data-text]").textContent.trim(),
-      cite: el.querySelector("[data-cite]")?.textContent.trim() ?? null,
-    }));
+    [...scripts.get(key).querySelectorAll("[data-line]")].map((el) => {
+      const text = el.querySelector("[data-text]");
+      return {
+        role: el.dataset.line,
+        html: text.innerHTML,
+        length: text.textContent.length,
+      };
+    });
 
   let key = keys[0];
   let lines = read(key);
@@ -57,18 +62,31 @@ function run(root) {
     const wrap = document.createElement("div");
     wrap.className =
       line.role === "user" ? "transcript__user" : "transcript__agent";
-    const text = document.createElement("span");
-    text.className = "transcript__text";
+    const text = document.createElement(line.role === "user" ? "span" : "div");
+    text.className =
+      "transcript__text" + (line.role === "user" ? "" : " transcript__md");
+    text.innerHTML = line.html;
+    // Every text node, with its full content, so reveal() can hand out
+    // the first N characters across them in document order.
+    const walker = document.createTreeWalker(text, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode())
+      nodes.push({ node: n, full: n.textContent });
+    for (const { node } of nodes) node.textContent = "";
+    wrap._nodes = nodes;
     wrap.appendChild(text);
-    if (line.cite) {
-      const cite = document.createElement("span");
-      cite.className = "transcript__cite";
-      cite.textContent = line.cite;
-      cite.hidden = true;
-      wrap.appendChild(cite);
-    }
     stage.appendChild(wrap);
     return wrap;
+  }
+
+  /** Show the first `count` characters of a bubble, across its nodes. */
+  function reveal(wrap, count) {
+    let left = count;
+    for (const { node, full } of wrap._nodes) {
+      const take = Math.max(0, Math.min(full.length, left));
+      node.textContent = full.slice(0, take);
+      left -= take;
+    }
   }
 
   let current = null;
@@ -131,13 +149,10 @@ function run(root) {
       current = bubble(line);
       ch = 0;
     }
-    const text = current.querySelector(".transcript__text");
-    ch = Math.min(line.text.length, ch + (SPEED[line.role] ?? 2));
-    text.textContent = line.text.slice(0, ch);
-    current.classList.toggle("transcript__typing", ch < line.text.length);
-    if (ch >= line.text.length) {
-      const cite = current.querySelector(".transcript__cite");
-      if (cite) cite.hidden = false;
+    ch = Math.min(line.length, ch + (SPEED[line.role] ?? 2));
+    reveal(current, ch);
+    current.classList.toggle("transcript__typing", ch < line.length);
+    if (ch >= line.length) {
       current = null;
       at += 1;
       ch = 0;

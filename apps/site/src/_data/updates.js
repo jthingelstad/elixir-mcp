@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-10",
+    title: "Every example is a real exchange now",
+    body: "The eleven examples used to be illustrations: invented clanmates, invented numbers, a citation chip under each answer. Each one has been re-run for real against the live service, as King Thing of POAP KINGS, and the answers are what came back — the tools under every window are the ones that were actually called, every number in an answer is from them, and the answers are written the way a model writes them, in Markdown, with the provenance in the sentence rather than in a chip. The home page's conversation and its three cards are the same three examples. The three builder examples read the documentation over MCP, which the service now serves through its own tools, so an agent asked how to set up a Discord bot answers from the Agents page itself.",
+  },
+  {
+    date: "2026-09-10",
     title: "Examples, one page each, and the site's rails as designed",
     body: "Use cases are now Examples: eleven pages, one per example, each with the rail of all eleven beside it, the exchange typed live, what it reads, the steps to set it up as buttons, and three more like it. The family page is one page per product with the same rail. The documentation got the rail the design drew for it: a search box, four groups with a glyph on every page, the tool families under Tools, the page's own sections under the page you are on, and the machine-readable surfaces at the foot; each page carries its lede, an outline on the right that follows you as you scroll, a link to edit it, and when it last changed. Data and Updates got their head rows and glyphs, and Updates now carries every contract version beside the product updates. The footer keeps to the same column as the top bar on a wide screen. And the service documents itself over MCP: three read-only tools return this documentation, the examples and this list, built from the same files the site renders, so an agent asked how to use Elixir MCP answers from the same text you read here.",
   },

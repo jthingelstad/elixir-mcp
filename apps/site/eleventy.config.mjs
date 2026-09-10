@@ -409,6 +409,9 @@ export default function (eleventyConfig) {
     },
   });
   eleventyConfig.setLibrary("md", { render: (md) => marked.parse(md) });
+  /** Markdown in a data string - a transcript line - as HTML. A model
+   *  answers in Markdown, so the page shows what a client would show. */
+  eleventyConfig.addFilter("md", (s) => marked.parse(String(s ?? "")));
 
   /** First paragraph of a doc, as plain text, for meta descriptions and
    *  the docs index. */

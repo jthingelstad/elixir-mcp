@@ -40,10 +40,10 @@ navActive: home
     {%- set scripts = transcript %}
     {% include "transcript.njk" %}
     <p class="footnote" style="margin: 12px 2px 0">
-      An illustration of a real exchange: every tool named under the window
-      is in the registry and linked to its reference, and the citation under
-      each answer is the kind this service actually returns. The numbers are
-      illustrative; <a href="/data">the corpus</a> has the real ones.
+      A real exchange, recorded on 2026-09-10: each question was put to the
+      live door, the tools under the window are the ones that answered it,
+      and every number came back from them. <a href="/data">The corpus</a>
+      has today&rsquo;s totals.
     </p>
   </div>
 </div>
@@ -57,27 +57,16 @@ navActive: home
     The chips above switch the conversation. Open one for the full walkthrough.
   </p>
   <div style="display: flex; gap: 14px; flex-wrap: wrap">
-    {%- set cases = [
-      ["play", "/examples/play", "Understand your own play", "Which deck is actually winning, where your losses cluster, whether last month's change worked.", "reads your recorded battles and daily snapshots"],
-      ["clan", "/examples/clan", "Run your clan", "Who carried the race, who missed attacks, and who needs a word before the next one.", "reads war weeks past the API's 20-week window"],
-      ["friends", "/examples/friends", "Follow your friends", "Track the people you play with — climbs, deck switches, heavy days, when you last teamed up.", "reads the players you chose to track"]
-    ] %}
-    {%- for c in cases %}
-    <a class="case-card" href="{{ c[1] }}">
+    {#- The same three examples the transcript's chips switch between,
+        read from the examples data so the two cannot drift. -#}
+    {%- for c in transcript %}
+    <a class="case-card" href="/examples/{{ c.key }}">
       <span style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px">
-        <span class="case-card__icon" aria-hidden="true">
-          {%- if c[0] == "play" -%}
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-          {%- elif c[0] == "clan" -%}
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
-          {%- else -%}
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          {%- endif -%}
-        </span>
-        <span style="font-size: 16px; font-weight: 600; color: var(--ink)">{{ c[2] }}</span>
+        <span class="case-card__icon">{% icon c.icon, 19 %}</span>
+        <span style="font-size: 16px; font-weight: 600; color: var(--ink)">{{ c.title }}</span>
       </span>
-      <span style="display: block; font-size: 14px; line-height: 1.6; color: var(--ink-body); margin-bottom: 10px">{{ c[3] }}</span>
-      <span style="display: block; font-size: 13px; color: var(--ink-faint)">{{ c[4] }}</span>
+      <span style="display: block; font-size: 14px; line-height: 1.6; color: var(--ink-body); margin-bottom: 10px">{{ c.lede | safe }}</span>
+      <span style="display: block; font-size: 13px; color: var(--ink-faint)">reads {{ c.proof | lower }}</span>
     </a>
     {%- endfor %}
   </div>
