@@ -1,28 +1,39 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { Icon } from "../../components/Icon.jsx";
+import { LogTable } from "../../components/LogTable.jsx";
+import { Markdown } from "../../components/Markdown.jsx";
+import { ago } from "../../lib/time.js";
 
 /**
  * Feedback — what you have told us, and what we did about it.
  *
- * Drawn as the 2026-09-09 design draws it: a title with one gold
- * "Send feedback" control beside it, and the items as bare rows on the
- * page, each row a link into its own record. Not a card: the list IS the
- * page, and a panel around it with its own title was the panel-title
- * shape the rail replaced.
- *
- * The compose form is the one thing that opens in place, because a
- * separate page for a textarea is a trip for nothing.
+ * The list is the console's one log table, like Notifications: an id
+ * that opens the record, when, the category, the first line of what
+ * was said, its state, and whether the maintainer has replied. The
+ * record shows the note and the reply in full, rendered as the
+ * Markdown they were written in — a note with paragraphs and a list
+ * used to arrive as one run of text.
  */
 
 /** One tone per status, read by the list and the record so the two can
- *  never disagree. The design's map: new is unread (accent), planned is
- *  a promise still open (warn), done is kept (ok); seen and declined
- *  carry no tone, because neither asks anything of the reader. */
-function statusTone(status) {
+ *  never disagree: new is unread (accent), planned is a promise still
+ *  open (warn), done is kept (ok); seen and declined carry no tone. */
+const TONE = { new: "accent-bright", planned: "warn", done: "ok" };
+function statusChip(status) {
   return (
     { new: "chip--info", planned: "chip--warn", done: "chip--ok" }[status] ?? ""
   );
+}
+
+/** The first line of a note, shortened for a table cell. */
+function firstLine(text, max = 72) {
+  const line =
+    String(text ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .find(Boolean) ?? "";
+  return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
 }
 
 const CATEGORIES = ["general", "bug", "data_quality", "feature", "praise"];
@@ -39,10 +50,7 @@ function Shipped({ version, navigate }) {
         borderRadius: "6px",
         padding: "1px 7px",
       }}
-      onClick={(e) => {
-        e.stopPropagation();
-        navigate("/data/changelog");
-      }}
+      onClick={() => navigate("/data/changelog")}
       title="The contract version this shipped in"
     >
       shipped {version}
@@ -99,9 +107,9 @@ export function FeedbackItem({ id, navigate }) {
             color: "var(--ink)",
           }}
         >
-          #{item.feedback_id}
+          fb_{item.feedback_id}
         </h1>
-        <span className={`chip ${statusTone(item.status)}`}>{item.status}</span>
+        <span className={`chip ${statusChip(item.status)}`}>{item.status}</span>
         <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
           {item.category?.replaceAll("_", " ")} ·{" "}
           {item.created_at?.slice(0, 10)}
@@ -111,42 +119,30 @@ export function FeedbackItem({ id, navigate }) {
         </span>
         <Shipped version={item.shipped_in} navigate={navigate} />
       </div>
-      <p
+
+      <Markdown
+        text={item.message}
         style={{
           fontSize: "16px",
-          lineHeight: 1.65,
           color: "var(--ink)",
           margin: "0 0 22px",
           maxWidth: "70ch",
-          textWrap: "pretty",
         }}
-      >
-        {item.message}
-      </p>
+      />
 
       {item.response ? (
         <section
           style={{
             borderLeft: "2px solid var(--accent-bright)",
             padding: "2px 0 2px 16px",
+            maxWidth: "70ch",
           }}
         >
           <div className="label" style={{ marginBottom: "8px" }}>
             Maintainer
             {item.responded_at ? ` · ${item.responded_at.slice(0, 10)}` : ""}
           </div>
-          <p
-            style={{
-              fontSize: "14.5px",
-              lineHeight: 1.7,
-              color: "var(--ink-body)",
-              margin: 0,
-              maxWidth: "70ch",
-              textWrap: "pretty",
-            }}
-          >
-            {item.response}
-          </p>
+          <Markdown text={item.response} />
         </section>
       ) : (
         <p style={{ fontSize: "13.5px", color: "var(--ink-faint)", margin: 0 }}>
@@ -197,9 +193,9 @@ function Compose({ onSent, onClose }) {
               ))}
             </select>
             <textarea
-              rows={5}
+              rows={6}
               aria-label="Message"
-              placeholder="Wrong-looking data, a missing capability, praise…"
+              placeholder="Wrong-looking data, a missing capability, praise… Markdown is fine."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
@@ -229,6 +225,7 @@ function Compose({ onSent, onClose }) {
 export function Feedback({ navigate }) {
   const [items, setItems] = useState(null);
   const [composing, setComposing] = useState(false);
+  const [now] = useState(() => Date.now());
   const load = () =>
     api
       .myFeedback()
@@ -236,117 +233,60 @@ export function Feedback({ navigate }) {
   useEffect(() => {
     load();
   }, []);
+
+  const rows = (items ?? []).map((f) => [
+    {
+      text: `fb_${f.feedback_id}`,
+      onClick: () => navigate(`/account/feedback/${f.feedback_id}`),
+    },
+    { text: ago(f.created_at, now), title: f.created_at },
+    (f.category ?? "general").replaceAll("_", " "),
+    { text: firstLine(f.message), title: f.message },
+    TONE[f.status]
+      ? { text: f.status, tone: TONE[f.status] }
+      : (f.status ?? ""),
+    f.response
+      ? {
+          text: "replied",
+          title: f.responded_at ? `replied ${f.responded_at.slice(0, 10)}` : "",
+        }
+      : "—",
+  ]);
+
   return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "20px",
-        }}
-      >
-        <div>
-          <h1 className="page__title">Feedback</h1>
-          <p className="page__lede">
-            What you have told us, and what we did about it. Every item gets a
-            response; nothing is actioned invisibly.
-          </p>
-        </div>
+    <LogTable
+      title="Feedback"
+      note="What you have told us, and what we did about it. Every item gets a response; nothing is actioned invisibly."
+      actions={
         <button
           className="btn btn--primary"
-          style={{ marginLeft: "auto" }}
           onClick={() => setComposing((v) => !v)}
         >
           <Icon name="plus" size={16} />
           Send feedback
         </button>
-      </div>
-
-      {composing && (
-        <Compose onSent={load} onClose={() => setComposing(false)} />
-      )}
-
-      {items?.length === 0 && (
-        <div className="empty">
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            Nothing filed yet — your agent can file too, with{" "}
-            <code>elixir_feedback</code>.
-          </p>
-        </div>
-      )}
-
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {(items ?? []).map((f) => (
-          <a
-            key={f.feedback_id}
-            href={`/account/feedback/${f.feedback_id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(`/account/feedback/${f.feedback_id}`);
-            }}
-            style={{
-              display: "block",
-              padding: "14px 2px",
-              borderBottom: "1px solid var(--line-row)",
-              color: "inherit",
-            }}
-          >
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                flexWrap: "wrap",
-                marginBottom: "6px",
-              }}
-            >
-              <span className={`chip ${statusTone(f.status)}`}>{f.status}</span>
-              <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-                {f.category?.replaceAll("_", " ")}
-              </span>
-              <Shipped version={f.shipped_in} navigate={navigate} />
-              <span
-                className="mono"
-                style={{
-                  marginLeft: "auto",
-                  fontSize: "12px",
-                  color: "var(--ink-faint)",
-                }}
-              >
-                {f.created_at?.slice(0, 10)}
-              </span>
-            </span>
-            <span
-              style={{
-                display: "block",
-                fontSize: "14px",
-                color: "var(--ink-body)",
-                lineHeight: 1.55,
-                textWrap: "pretty",
-              }}
-            >
-              {f.message}
-            </span>
-            {f.response && (
-              <span
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "7px",
-                  marginTop: "7px",
-                  fontSize: "12.5px",
-                  color: "var(--accent-bright)",
-                }}
-              >
-                <Icon name="message-square" size={14} />
-                maintainer replied
-              </span>
-            )}
-          </a>
-        ))}
-      </div>
-    </>
+      }
+      above={
+        composing ? (
+          <Compose onSent={load} onClose={() => setComposing(false)} />
+        ) : null
+      }
+      cols={[
+        ["ID", "left"],
+        ["WHEN", "left"],
+        ["CATEGORY", "left"],
+        ["SAID", "left"],
+        ["STATE", "left"],
+        ["REPLY", "left"],
+      ]}
+      rows={rows}
+      monoCols={[0, 1]}
+      filters={[
+        { key: "category", label: "Category", col: 2 },
+        { key: "state", label: "State", col: 4 },
+      ]}
+      empty="Nothing filed yet — your agent can file too, with elixir_feedback."
+      footnote="Open an item to read the whole note and the maintainer's reply. A filed note cannot be edited; send another if something changed."
+    />
   );
 }

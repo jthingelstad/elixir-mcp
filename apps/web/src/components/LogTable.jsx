@@ -53,6 +53,10 @@ export function LogTable({
   footnote,
   empty = "Nothing yet.",
   minWidth = 620,
+  /** Controls that belong beside the title (a page's one primary action). */
+  actions = null,
+  /** Rendered between the title and the table: a form the action opens. */
+  above = null,
 }) {
   const [picked, setPicked] = useState({});
   const [page, setPage] = useState(0);
@@ -77,11 +81,23 @@ export function LogTable({
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        {crumb && <div className="page__crumb">{crumb}</div>}
-        <h1 className="page__title">{title}</h1>
-        {note && <p className="page__lede">{note}</p>}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          {crumb && <div className="page__crumb">{crumb}</div>}
+          <h1 className="page__title">{title}</h1>
+          {note && <p className="page__lede">{note}</p>}
+        </div>
+        {actions && <div style={{ marginLeft: "auto" }}>{actions}</div>}
       </div>
+      {above}
 
       {filters.length > 0 && rows.length > 0 && (
         <div

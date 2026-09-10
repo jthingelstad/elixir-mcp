@@ -2782,3 +2782,65 @@ input[aria-invalid="true"] {
 .transcript__md blockquote p {
   margin: 0 0 6px;
 }
+
+/* Markdown a person wrote (feedback, a maintainer's reply), at body size. */
+.md {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-body);
+  text-wrap: pretty;
+}
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md pre {
+  margin: 0 0 10px;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md ul,
+.md ol {
+  padding-left: 22px;
+}
+.md li {
+  margin: 3px 0;
+}
+.md strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.md h1,
+.md h2,
+.md h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 14px 0 6px;
+}
+.md code {
+  font-size: 12.5px;
+  color: var(--ink-code);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.md pre {
+  padding: 10px 12px;
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  overflow-x: auto;
+}
+.md pre code {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.md blockquote {
+  padding: 6px 12px;
+  border-left: 2px solid var(--accent-bright);
+  color: var(--ink-dim);
+}
