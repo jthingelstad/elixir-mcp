@@ -428,9 +428,13 @@ in its hint.
 
 ## Feedback and the changelog, over the wire
 
-- `elixir_feedback({ message, category?, context? })`: `message` 1 to 4000
-  chars; `category` one of `general` (default), `bug`, `data_quality`,
-  `feature`, `praise`, `other`. Never metered.
+- `elixir_feedback({ message, category?, context?, request_id? })`: `message`
+  1 to 4000 chars; `category` one of `general` (default), `bug`,
+  `data_quality`, `feature`, `praise`, `other`. `request_id` is the
+  `meta.request_id` of the call the feedback is about — every response
+  carries one, and passing it attaches that exact request, its arguments and
+  its answer to the report, so the maintainer sees what you saw. `context`
+  stays free text for naming a tool or a question. Never metered.
 - `elixir_my_feedback({ limit?, status?, since? })`: `status` one of `new`,
   `seen`, `planned`, `done`, `declined`; returns `response`, `responded_at`,
   `shipped_in`, `related_tools`. Reading it clears

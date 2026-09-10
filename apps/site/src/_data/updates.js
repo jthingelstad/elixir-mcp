@@ -10,6 +10,27 @@
 export default [
   {
     date: "2026-09-10",
+    title: "Approval starts recording what you asked for",
+    body: "The player tag on your access request is claimed and recorded the moment you are approved, and the clan that player is in is followed too, at activity scope — the one clan slot every tier has, which is exactly what it is for. Sign in and the console already knows who you are. Two related fixes: tracking a player another account already records now shows you their history instead of an empty page (the recording belongs to the player, not to whoever asked first), and the Tracking page's nudge to follow your own clan offers the slot you actually have rather than a comprehensive one it would refuse.",
+  },
+  {
+    date: "2026-09-10",
+    title: "Updates and the corpus are pages you can link to",
+    body: "Every update is its own page now, so you can send somebody one, and the tool-contract changelog is part of the same stream rather than a second page saying the same thing — a version's summary, the tools it added and what it broke sit with the release that carried them. The Data section is five pages instead of one long scroll, and the growth chart is battles per day as bars rather than a cumulative monthly curve: a running total only ever goes up and to the right, which hides the day a collector stalled.",
+  },
+  {
+    date: "2026-09-10",
+    title: "Feedback can carry the call it is about",
+    body: "Report this call on a request record now attaches that request as a field on the report — the arguments, the answer and the timings ride along, so there is nothing to describe. Agents can do the same: elixir_feedback takes request_id (contract 1.1.0), which every response already hands you as meta.request_id. In the console, feedback and maintainer replies render as the Markdown they were written in on both sides of the queue.",
+  },
+  {
+    date: "2026-09-10",
+    title:
+      "Console: your tier as a table, dismissible warnings, one page per collector",
+    body: "Profile shows the same eight limits the Tiers page publishes, with what you are using beside each one, instead of four meters. A warning about an expired credential still being presented can be dismissed — it comes back if it happens again another day. Busiest tools on Usage open the requests for that tool. Admin got the email address on Accounts, a record page for each account, a page listing every account's connections with a revoke, and a collector fleet that is a list of five columns with the actions moved onto each collector's own page. Player tags in URLs no longer carry an encoded hash, so the links from Overview into Tracking and Explore work.",
+  },
+  {
+    date: "2026-09-10",
     title: "Requesting access happens where you sign in",
     body: "The access-request form now lives on the sign-in card in the console, as the other half of one question: you are either signing in or asking to. Every Request access button leads there. The form used to have a second copy on the home page, and it was failing in the quietest possible way — your request was recorded, and the page did not move, so there was nothing on screen to tell you it had been sent. If you asked for access and never heard anything, the request is with us; nothing was lost.",
   },

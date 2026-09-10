@@ -82,11 +82,21 @@ History is never deleted when a recording stops.
 | Player | profile only | profile and battle log |
 | Clan | clan roster, current river race, river race log | the same, plus profile and battle log for **every current member**, following joins and leaves |
 
-Players you track are always comprehensive. `elixir_track_clan` defaults to
-`comprehensive`; the member tier has no comprehensive slot, so pass
-`scope: "activity"` there. A recorded player's current clan is also read
-every 15 minutes for roster and membership tracking, without a slot and
-without polling the other members.
+Put plainly: **activity follows the clan itself** — its roster, its members
+arriving and leaving, and its river races. **Comprehensive also records every
+member's battles**, which is what builds the clan a full history rather than a
+record of who was in it.
+
+Every tier has one activity clan slot, and it is meant for your own clan: it is
+what approval spends when your access request is granted, so the clan you play
+in is being followed from your first sign-in. Comprehensive is the upgrade, and
+it costs proportionally more to run — the member tier has none, so
+`elixir_track_clan`, which defaults to `comprehensive`, needs
+`scope: "activity"` there.
+
+Players you track are always comprehensive. A recorded player's current clan is
+also read every 15 minutes for roster and membership tracking, without a slot
+and without polling the other members.
 
 ## Relationships, primary, nicknames
 
