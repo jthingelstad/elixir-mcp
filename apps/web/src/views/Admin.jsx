@@ -140,23 +140,32 @@ function AdminAccounts({ navigate }) {
     load();
   }, [load]);
 
-  // Six columns became four. The ops-lane overrides, the collector flag
-  // and the tier prompt moved to the record page: a list is for finding
-  // an account, and everything you can DO to one belongs where you have
-  // opened it and can see what you are changing.
-  const rows = accounts.map((a) => [
-    {
-      text: a.email ?? principalLabel(a),
-      title: a.account_id,
-      onClick: () => navigate(`/admin/accounts/${a.account_id}`),
-    },
-    a.status,
-    {
-      text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
-      tone: a.pending_role_request ? "warn" : undefined,
-    },
-    `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
-  ]);
+  // Six columns became four, then five. The ops-lane overrides, the
+  // collector flag and the tier prompt moved to the record page: a list
+  // is for finding an account, and everything you can DO to one belongs
+  // where you have opened it and can see what you are changing.
+  //
+  // PEOPLE ONLY (Jamie, 2026-09-10). An agent or an integration is an
+  // account in the schema (0053) but not a signup: they arrive when
+  // somebody creates one, they have no email and no tier of their own,
+  // and listing them beside their owners made the queue of actual humans
+  // impossible to read. They are counted here and named on the record.
+  const rows = accounts
+    .filter((a) => !a.owned_by_account_id)
+    .map((a) => [
+      {
+        text: a.email ?? principalLabel(a),
+        title: a.account_id,
+        onClick: () => navigate(`/admin/accounts/${a.account_id}`),
+      },
+      a.status,
+      {
+        text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
+        tone: a.pending_role_request ? "warn" : undefined,
+      },
+      `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
+      a.children ? String(a.children) : "—",
+    ]);
 
   return (
     <LogTable
@@ -168,6 +177,7 @@ function AdminAccounts({ navigate }) {
         ["STATUS", "left"],
         ["TIER", "left"],
         ["TRACKING", "left"],
+        ["AGENTS & INTEGRATIONS", "right"],
       ]}
       rows={rows}
       monoCols={[0]}
@@ -177,7 +187,7 @@ function AdminAccounts({ navigate }) {
       ]}
       minWidth={620}
       empty="No accounts yet."
-      footnote="An account is named by the address it signs in with. Open one to change its tier or read its overrides. Upgrade requests land in Feedback and are flagged in the tier column."
+      footnote="People only. An agent or an integration is an account too, owned by whoever created it — the last column counts them, and the record page names them. An account is named by the address it signs in with; open one to change its tier or read its overrides. Upgrade requests land in Feedback and are flagged in the tier column."
     />
   );
 }
@@ -267,6 +277,16 @@ function AdminAccountDetail({ id, navigate }) {
         </div>
       </div>
     );
+
+  // An agent or an integration is an account owned by the person who
+  // created it (0053). Both directions are useful here: what this
+  // account runs, and — if you opened one of those — whose it is.
+  const children = (accounts ?? []).filter(
+    (x) => x.owned_by_account_id === a.account_id,
+  );
+  const parent = a.owned_by_account_id
+    ? (accounts ?? []).find((x) => x.account_id === a.owned_by_account_id)
+    : null;
 
   const facts = [
     ["Email", a.email ?? "— (predates the address being kept)"],
@@ -378,6 +398,55 @@ function AdminAccountDetail({ id, navigate }) {
           </p>
         </div>
       </section>
+
+      {/* What this account RUNS. An agent or an integration is an account
+          of its own (0053) with its own door and its own connections, so
+          it needs to be reachable — it is simply not a signup, which is
+          why the list does not carry them. */}
+      {children.length > 0 && (
+        <section
+          className="panel"
+          style={{ maxWidth: "680px", marginTop: "14px" }}
+        >
+          <div className="panel__head">
+            <span className="panel-title">Agents and integrations</span>
+            <span className="caveat" style={{ marginLeft: "auto" }}>
+              {children.length} owned by this account
+            </span>
+          </div>
+          <dl className="fields" style={{ margin: 0 }}>
+            {children.map((c) => (
+              <Fragment key={c.account_id}>
+                <dt>{c.kind ?? "principal"}</dt>
+                <dd>
+                  <a
+                    onClick={() => navigate(`/admin/accounts/${c.account_id}`)}
+                  >
+                    {c.principal_name ??
+                      c.public_id ??
+                      c.account_id.slice(0, 8)}
+                  </a>
+                  <span style={{ color: "var(--ink-faint)" }}>
+                    {" · "}
+                    {c.status}
+                    {c.public_id ? ` · ${c.public_id}` : ""}
+                  </span>
+                </dd>
+              </Fragment>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      {parent && (
+        <p className="footnote" style={{ margin: "14px 0 0" }}>
+          This {a.kind ?? "principal"} belongs to{" "}
+          <a onClick={() => navigate(`/admin/accounts/${parent.account_id}`)}>
+            {parent.email ?? principalLabel(parent)}
+          </a>{" "}
+          — it spends their entitlements and their daily budget.
+        </p>
+      )}
     </>
   );
 }
@@ -437,7 +506,7 @@ function AdminConnections() {
   return (
     <LogTable
       crumb="Admin"
-      title="Connections across accounts"
+      title="Connections"
       note="Every live OAuth connection, whoever holds it. Revoking one ends it on its next call and lands on that account's own event log."
       cols={[
         ["ACCOUNT", "left"],

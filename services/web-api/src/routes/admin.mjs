@@ -238,7 +238,13 @@ export function adminRoutes({
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select a.account_id, a.email_hash, a.email, a.status, a.role, a.is_owner,
-                a.kind, a.public_id,
+                a.kind, a.public_id, a.owned_by_account_id,
+                -- Agents and integrations are accounts too (0053), owned by
+                -- the person who created them. The list shows people and
+                -- says how many principals each one runs; the record page
+                -- names them.
+                (select count(*)::int from account c
+                  where c.owned_by_account_id = a.account_id) as children,
                 (select st.name from service_token st
                   where st.account_id = a.account_id and st.revoked_at is null
                   order by st.created_at limit 1) as principal_name,

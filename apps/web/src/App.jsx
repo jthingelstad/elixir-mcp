@@ -135,14 +135,18 @@ export const SECTIONS = {
 const ADMIN_SUBS = [
   ["requests", "Requests", "/admin/requests"],
   ["accounts", "Accounts", "/admin/accounts"],
-  // "Connections across accounts", never bare "Connections": Account >
-  // Connections is a top-level rail item and stays visible while Admin
-  // is open, and no two items a reader can see at once share a label.
-  ["connections", "Connections across accounts", "/admin/connections"],
+  // Bare "Connections" and "Collections" here, though Account has items
+  // by those names too (Jamie, 2026-09-10: "crazy long and odd"). The
+  // house rule against two identical labels on screen at once is about
+  // AMBIGUITY, and these are not ambiguous: admin sub-items render
+  // indented under the Admin row that is one line above them, so the
+  // qualifier the long label was carrying is already on screen. The
+  // page's own crumb says Admin as well.
+  ["connections", "Connections", "/admin/connections"],
   ["collectors", "Collectors", "/admin/collectors", "owner"],
   ["service-tokens", "Service tokens", "/admin/service-tokens", "owner"],
   ["integrations", "Integrations", "/admin/integrations"],
-  ["collections", "All collections", "/admin/collections"],
+  ["collections", "Collections", "/admin/collections"],
   // "Feedback queue", not "Feedback": Access > Feedback is a top-level
   // item and stays visible while Admin is open, so the bare word would
   // put two identical labels on screen at once — the thing that broke
