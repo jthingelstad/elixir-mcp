@@ -507,6 +507,189 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   assert.equal(nonOwner.statusCode, 403);
 });
 
+test("call record: own rows and owned agents' rows open; others 404; admin opens any; capture reads back", async () => {
+  // A member's call, an agent-of-theirs' call, and somebody else's call.
+  const cookie = memberCookie;
+  const { rows: acct } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  const me = acct[0].account_id;
+  const { rows: agentRows } = await db.query(
+    `insert into account (email_hash, status, kind, owned_by_account_id)
+     values ('call-record-agent', 'approved', 'agent', $1) returning account_id`,
+    [me],
+  );
+  const agent = agentRows[0].account_id;
+  const { rows: strangerRows } = await db.query(
+    `insert into account (email_hash, status) values ('call-record-stranger', 'approved')
+     returning account_id`,
+  );
+  const stranger = strangerRows[0].account_id;
+  const ids = {
+    first: crypto.randomUUID(),
+    mine: crypto.randomUUID(),
+    later: crypto.randomUUID(),
+    agents: crypto.randomUUID(),
+    theirs: crypto.randomUUID(),
+  };
+  // Three calls by the console explorer on the member's account (same
+  // credential: no token, no grant, surface web), in order.
+  await db.query(
+    `insert into mcp_call_audit
+       (account_id, request_id, surface, tool, args, duration_ms, result_bytes,
+        created_at, captured, db_ms, db_queries, live_wait_ms, serialize_ms,
+        cold_start, principal_kind, on_behalf_of, client_name, viewer_country)
+     values
+       ($1, $2, 'web', 'game_clock', '{}', 12, 200, now() - interval '3 minutes',
+        false, 1, 1, null, 0, true, 'person', null, null, 'US'),
+       ($1, $3, 'web', 'war_current', '{"clan_tag":"#ABC"}', 340, 9000, now() - interval '2 minutes',
+        true, 210, 7, 95, 3, false, 'person', 'discord:1', null, 'US'),
+       ($1, $4, 'web', 'players_profile', '{}', 50, 300, now() - interval '1 minute',
+        false, 20, 2, null, 1, false, 'person', null, null, 'US')`,
+    [me, ids.first, ids.mine, ids.later],
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, request_id, surface, tool, principal_kind)
+     values ($1, $2, 'mcp', 'clans_roster', 'agent')`,
+    [agent, ids.agents],
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, request_id, surface, tool)
+     values ($1, $2, 'mcp', 'clans_roster')`,
+    [stranger, ids.theirs],
+  );
+
+  const get = (path, c = cookie, h = handler) =>
+    h(event({ method: "GET", path, cookie: c, body: undefined }));
+
+  // The row, with every 0063 column, and its neighbours by credential.
+  const res = await get(`/api/me/activity/calls/${ids.mine}`);
+  assert.equal(res.statusCode, 200, res.body);
+  const rec = parse(res);
+  assert.equal(rec.call.tool, "war_current");
+  assert.equal(rec.call.request_id, ids.mine);
+  assert.equal(rec.call.db_ms, 210);
+  assert.equal(rec.call.db_queries, 7);
+  assert.equal(rec.call.live_wait_ms, 95);
+  assert.equal(rec.call.serialize_ms, 3);
+  assert.equal(rec.call.cold_start, false);
+  assert.equal(rec.call.principal_kind, "person");
+  assert.equal(rec.call.on_behalf_of, "discord:1");
+  assert.equal(rec.call.captured, true);
+  assert.equal(
+    rec.prev.request_id,
+    ids.first,
+    "previous by the same credential",
+  );
+  assert.equal(rec.next.request_id, ids.later, "next by the same credential");
+  assert.equal(rec.call.viewer_ip, undefined, "the address is not served");
+  // captured=true but this handler has no store: say so, never 500.
+  assert.equal(rec.capture_error, "unconfigured");
+  assert.equal(rec.request, null);
+
+  // An owned agent's row opens; a stranger's does not exist here.
+  assert.equal(
+    (await get(`/api/me/activity/calls/${ids.agents}`)).statusCode,
+    200,
+  );
+  assert.equal(
+    (await get(`/api/me/activity/calls/${ids.theirs}`)).statusCode,
+    404,
+  );
+  assert.equal(
+    (await get(`/api/me/activity/calls/not-a-uuid`)).statusCode,
+    404,
+  );
+  assert.equal(
+    (await get(`/api/me/activity/calls/${ids.mine}/deeper`)).statusCode,
+    404,
+  );
+  assert.equal(
+    (
+      await handler(
+        event({
+          method: "GET",
+          path: `/api/me/activity/calls/${ids.mine}`,
+          body: undefined,
+        }),
+      )
+    ).statusCode,
+    401,
+  );
+
+  // Admin: any row; a member is refused.
+  assert.equal(
+    (await get(`/api/admin/calls/${ids.theirs}`, bossCookie)).statusCode,
+    200,
+  );
+  assert.equal(
+    (await get(`/api/admin/calls/${ids.theirs}`, cookie)).statusCode,
+    403,
+  );
+
+  // With a store, the captured body comes back through the same route,
+  // gunzipped, under the same session check.
+  const { gzipSync } = await import("node:zlib");
+  const { captureKey } = await import("../../mcp/src/capture.mjs");
+  const stored = {
+    request: { tool: "war_current", arguments: { clan_tag: "#ABC" } },
+    response: { war: { day: 2 }, meta: { request_id: ids.mine } },
+    timings: { db_ms: 210 },
+    captured_at: "2026-09-10T12:00:00.000Z",
+  };
+  const asked = [];
+  const fakeS3 = {
+    send: async (cmd) => {
+      asked.push(cmd.input.Key);
+      const body = gzipSync(JSON.stringify(stored));
+      return { Body: { transformToByteArray: async () => body } };
+    },
+  };
+  const withStore = makeHandler({
+    databaseUrl: DB_URL,
+    secret: SECRET,
+    sendLoginEmail: async () => {},
+    capture: { s3: fakeS3, bucket: "archive" },
+  });
+  const full = parse(
+    await get(`/api/me/activity/calls/${ids.mine}`, cookie, withStore),
+  );
+  assert.deepEqual(full.request, stored.request);
+  assert.deepEqual(full.response, stored.response);
+  assert.equal(full.captured_at, stored.captured_at);
+  assert.equal(full.capture_error, undefined);
+  // The key is rebuilt from the row's created_at, the way the writer built it.
+  assert.equal(asked[0], captureKey(full.call.created_at, ids.mine));
+  assert.match(asked[0], /^calls\/dt=\d{4}-\d{2}-\d{2}\/request_id=/);
+
+  // A store that cannot find it: the row still answers.
+  const missing = makeHandler({
+    databaseUrl: DB_URL,
+    secret: SECRET,
+    sendLoginEmail: async () => {},
+    capture: {
+      s3: {
+        send: async () => {
+          throw new Error("NoSuchKey");
+        },
+      },
+      bucket: "archive",
+    },
+  });
+  const orig = console.error;
+  console.error = () => {};
+  try {
+    const gone = parse(
+      await get(`/api/me/activity/calls/${ids.mine}`, cookie, missing),
+    );
+    assert.equal(gone.call.tool, "war_current");
+    assert.equal(gone.capture_error, "unavailable");
+  } finally {
+    console.error = orig;
+  }
+});
+
 test("connections: list shows OAuth families; revoke disconnects; others' families untouchable", async () => {
   const cookie = memberCookie;
   const { rows: acct } = await db.query(

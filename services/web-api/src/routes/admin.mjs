@@ -8,6 +8,7 @@ import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
 import { emitAccountTierChanged } from "../../../mcp/src/feed.mjs";
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
+import { loadCallRecord } from "../call-record.mjs";
 const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
 export function adminRoutes({
@@ -16,8 +17,21 @@ export function adminRoutes({
   logEvent,
   notifyOwner,
   sendWelcomeEmail,
+  capture = null,
 }) {
   return {
+    "GET /api/admin/calls/*": async (db, event) => {
+      // The same record as /api/me/activity/calls/<id>, over every
+      // account: the review's "what did elixir-bot send" is one click.
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const requestId = String(event.pathParam ?? "");
+      if (!UUID_RE.test(requestId)) return json(404, { error: "not_found" });
+      const record = await loadCallRecord(db, { requestId, capture });
+      if (!record) return json(404, { error: "not_found" });
+      return json(200, record);
+    },
+
     "GET /api/admin/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });

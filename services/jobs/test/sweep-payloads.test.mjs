@@ -304,3 +304,34 @@ test("an expired collector bearer is nulled, not merely made unclaimable", async
     "a bearer still inside its window survives",
   );
 });
+
+test("captured bodies expire on the same 90-day clock as the arguments", async () => {
+  const acct = (
+    await db.query(
+      `insert into account (email_hash, status) values ('sweep-capture', 'approved')
+       returning account_id`,
+    )
+  ).rows[0].account_id;
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, captured, created_at) values
+       ($1, 'war_current', true, now() - interval '89 days'),
+       ($1, 'war_current', true, now() - interval '91 days'),
+       ($1, 'war_current', false, now() - interval '91 days')`,
+    [acct],
+  );
+  const out = await sweepOperational(DB_URL);
+  assert.equal(
+    out.audit_capture_expired,
+    1,
+    "only the captured row past 90 days",
+  );
+  const { rows } = await db.query(
+    `select captured from mcp_call_audit where account_id = $1 order by created_at desc`,
+    [acct],
+  );
+  assert.deepEqual(
+    rows.map((r) => r.captured),
+    [true, false, false],
+    "inside the window stays captured; outside is released",
+  );
+});

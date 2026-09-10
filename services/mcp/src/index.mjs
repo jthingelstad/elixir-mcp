@@ -2,6 +2,7 @@
 
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { makeHandler } from "./handler.mjs";
+import { makeCaptureStore } from "./capture.mjs";
 import { enqueueJob } from "../../scheduler/src/ledger.mjs";
 import { ownerNotifyMessage } from "../../web-api/src/notify.mjs";
 
@@ -14,6 +15,13 @@ export const handler = makeHandler({
   // live-channel collectors lease them at the door.
   enqueueLiveJob: (db, job) => enqueueJob(db, job),
   originSecret: process.env.ORIGIN_SECRET || null,
+  // Call capture (review Part 5): on when ARCHIVE_BUCKET is set, off
+  // otherwise. The bodies land beside the payload archive under calls/.
+  capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),
+  // One EMF line per call on stdout. This function is on the Text log
+  // format (no LoggingConfig in infra/template.yaml), so a raw write is
+  // one log event; console.log would prefix it and break extraction.
+  emitMetrics: (line) => process.stdout.write(line),
   // Same relay, same message shape as the site API (notify.mjs).
   notifyOwner: process.env.EMAIL_QUEUE_URL
     ? (spec) =>

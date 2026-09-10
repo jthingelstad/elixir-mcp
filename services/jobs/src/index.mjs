@@ -366,6 +366,16 @@ export async function sweepOperational(databaseUrl) {
          where created_at < now() - interval '90 days' and args is not null`,
       )
     ).rowCount;
+    // The captured bodies follow the same 90-day rule as the arguments.
+    // The objects themselves expire under the archive bucket's calls/
+    // lifecycle rule (infra/template.yaml); this flips the pointer so the
+    // console stops offering a body the bucket no longer has.
+    out.audit_capture_expired = (
+      await db.query(
+        `update mcp_call_audit set captured = false
+         where captured and created_at < now() - interval '90 days'`,
+      )
+    ).rowCount;
     return out;
   } finally {
     await db.end();

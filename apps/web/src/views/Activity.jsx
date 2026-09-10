@@ -54,10 +54,15 @@ export function Activity({ sub, navigate }) {
         text: String(r.duration_ms ?? ""),
         ink: r.duration_ms > 300 ? "var(--warn)" : undefined,
       },
-      {
-        text: r.request_id ? r.request_id.slice(0, 8) : "—",
-        title: r.request_id ?? "",
-      },
+      // The id opens the call record - request, response, timings -
+      // the way a notification id opens its body.
+      r.request_id
+        ? {
+            text: r.request_id.slice(0, 8),
+            title: r.request_id,
+            onClick: () => navigate?.(`/account/activity/c/${r.request_id}`),
+          }
+        : "—",
     ]);
     return (
       <LogTable
@@ -80,7 +85,7 @@ export function Activity({ sub, navigate }) {
           { key: "result", label: "Result", col: 3 },
         ]}
         empty="No calls yet. A connection appears here the first time it reads."
-        footnote="mcp_call_audit — every tool call your connections and this site's explorer made, last 200. REQUEST is the id the caller was handed in meta.request_id; hover for the whole of it."
+        footnote="mcp_call_audit — every tool call your connections and this site's explorer made, last 200. REQUEST is the id the caller was handed in meta.request_id; open it for the request, the response and where the time went."
       />
     );
   }

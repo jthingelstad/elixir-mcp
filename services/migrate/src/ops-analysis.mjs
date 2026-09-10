@@ -250,6 +250,52 @@ export async function auditCensus(databaseUrl, spec) {
          and array_length(f.related_tools, 1) > 0
        order by f.feedback_id desc limit 50`,
     );
+    // 0063: which KIND of principal made the calls, and how the cold
+    // starts fall. principal_kind is null on rows older than the column;
+    // those show as '(unknown)' rather than being folded into person.
+    const { rows: perPrincipalKind } = await db.query(
+      `select coalesce(principal_kind, '(unknown)') as principal_kind,
+              count(*)::int as calls,
+              count(distinct account_id)::int as accounts,
+              count(*) filter (where error_code is not null)::int as errors,
+              count(*) filter (where rpc_error_code is not null)::int as rpc_refusals,
+              count(*) filter (where on_behalf_of is not null)::int as delegated,
+              round(avg(duration_ms))::int as avg_ms
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+       group by 1 order by calls desc`,
+      [days],
+    );
+    const {
+      rows: [coldStarts],
+    } = await db.query(
+      `select count(*) filter (where cold_start)::int as cold,
+              count(*) filter (where cold_start is not null)::int as measured,
+              round(avg(duration_ms) filter (where cold_start))::int as cold_avg_ms,
+              round(avg(duration_ms) filter (where cold_start = false))::int as warm_avg_ms
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)`,
+      [days],
+    );
+    // Where the wall time goes, per tool: the database, the live lane,
+    // or the answer's own size. Rows without db_ms predate the column.
+    const { rows: timings } = await db.query(
+      `select tool,
+              count(*)::int as calls,
+              round(avg(duration_ms))::int as avg_ms,
+              round(avg(db_ms))::int as avg_db_ms,
+              round(percentile_cont(0.95) within group (order by db_ms))::int as p95_db_ms,
+              round(avg(db_queries))::int as avg_db_queries,
+              count(*) filter (where live_wait_ms is not null)::int as live_calls,
+              round(avg(live_wait_ms))::int as avg_live_wait_ms,
+              round(percentile_cont(0.95) within group (order by live_wait_ms))::int as p95_live_wait_ms,
+              round(avg(serialize_ms))::int as avg_serialize_ms
+       from mcp_call_audit
+       where created_at > now() - make_interval(days => $1)
+         and db_ms is not null
+       group by tool order by calls desc`,
+      [days],
+    );
     const called = new Set(perTool.map((r) => r.tool));
     const never_called = Object.keys(TOOL_GROUPS).filter((t) => !called.has(t));
     return {
@@ -257,6 +303,9 @@ export async function auditCensus(databaseUrl, spec) {
       per_tool: perTool,
       per_surface: perSurface,
       per_client: perClient,
+      per_principal_kind: perPrincipalKind,
+      cold_starts: coldStarts,
+      timings,
       top_errors: errors,
       live_fetch: {
         calls: liveShare.live_calls,

@@ -40,6 +40,25 @@ import {
   bearer,
 } from "./http.mjs";
 
+/**
+ * Routes are keyed by exact "METHOD /path". A record route with the id in
+ * the path (`GET /api/me/activity/calls/<request_id>`) registers as
+ * `GET /api/me/activity/calls/*` and receives the last segment, decoded,
+ * as `event.pathParam`. One segment only: anything deeper is a 404.
+ */
+function wildcardRoute(routes, method, path, event) {
+  const cut = path.lastIndexOf("/");
+  if (cut <= 0 || cut === path.length - 1) return null;
+  const route = routes[`${method} ${path.slice(0, cut)}/*`];
+  if (!route) return null;
+  try {
+    event.pathParam = decodeURIComponent(path.slice(cut + 1));
+  } catch {
+    return null;
+  }
+  return route;
+}
+
 export function makeHandler({
   databaseUrl,
   secret,
@@ -50,6 +69,9 @@ export function makeHandler({
   track = null,
   collectorDoor = null,
   originSecret = null,
+  /** { s3, bucket } for reading captured tool calls (capture.mjs
+   *  makeCaptureStore); null = the call record carries the row only. */
+  capture = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
   const ping = async (eventName, value) => {
@@ -145,7 +167,7 @@ export function makeHandler({
       sendLoginEmail,
       notifyOwner,
     }),
-    ...accountRoutes({ resolveAccount, logEvent, notifyOwner }),
+    ...accountRoutes({ resolveAccount, logEvent, notifyOwner, capture }),
     ...collectionsRoutes({ resolveAccount, logEvent }),
     ...publicRoutes({ queueStats }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
@@ -157,6 +179,7 @@ export function makeHandler({
       logEvent,
       notifyOwner,
       sendWelcomeEmail,
+      capture,
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),
     ...integrationsRoutes({ resolveAccount, logEvent }),
@@ -169,7 +192,10 @@ export function makeHandler({
       event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
     const path = event.rawPath ?? event.path ?? "/";
     const isIntegration = path.startsWith("/api/v1/");
-    const route = isIntegration ? integrationApi : routes[`${method} ${path}`];
+    const route = isIntegration
+      ? integrationApi
+      : (routes[`${method} ${path}`] ??
+        wildcardRoute(routes, method, path, event));
     if (!route) return json(404, { error: "not_found" });
     let body = {};
     if (event.body) {

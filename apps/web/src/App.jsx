@@ -271,12 +271,20 @@ export function railPosition(path) {
   if (section === "data" && page === "dashboard") return { key: "explore" };
   if (section === "account") {
     // /account/activity/n/<id> is a notification record, which belongs
-    // to the Notifications sub-page rather than being one of its own.
+    // to the Notifications sub-page rather than being one of its own;
+    // /account/activity/c/<request_id> is a call record and belongs to
+    // MCP requests the same way.
     if (page === "activity")
       return {
         key: "activity",
-        sub: rest === "n" ? "notifications" : (rest ?? "notifications"),
+        sub:
+          rest === "n"
+            ? "notifications"
+            : rest === "c"
+              ? "requests"
+              : (rest ?? "notifications"),
         ...(rest === "n" ? { doc: "activity:notification" } : {}),
+        ...(rest === "c" ? { doc: "activity:call" } : {}),
       };
     if (page === "connections") return { key: "connections", sub: "clients" };
     // The agent record is addressable in its own right, but it belongs
@@ -376,6 +384,16 @@ export const DOC_LINKS = {
       ["Protocol", "/docs/protocol"],
       ["Limits", "/docs/limits"],
       ["Responses", "/docs/responses"],
+    ],
+  ],
+  // The record of one call: what the request and response mean, and
+  // how long the body is kept.
+  "activity:call": [
+    "One call",
+    [
+      ["Response envelope", "/docs/responses#the-fields"],
+      ["Retention", "/docs/limits#retention-windows"],
+      ["Privacy", "/docs/privacy"],
     ],
   ],
   "activity:events": [
@@ -578,7 +596,10 @@ function useRoute() {
   }, []);
   const navigate = useCallback((to) => {
     window.history.pushState({}, "", to);
-    setPath(to);
+    // The route is the path; a query string rides along in the URL for
+    // the page to read (a feedback prefill) and never reaches the
+    // section/page/id split.
+    setPath(to.split("?")[0]);
   }, []);
   return { path, navigate };
 }

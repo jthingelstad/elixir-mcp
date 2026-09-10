@@ -7,12 +7,20 @@
  */
 
 import { createHash, randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { responseMeta } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
 import { pendingHints } from "./tools/shared.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./protocol.mjs";
+import { captureCall } from "./capture.mjs";
 
 const MAX_AUDIT_ARG_BYTES = 4000;
+const MAX_ON_BEHALF_OF_CHARS = 200;
+
+/** Flipped after the first call this sandbox serves. A Lambda module is
+ *  evaluated once per sandbox, so "first invocation since load" IS the
+ *  cold start, and it is what explains the latency outliers (review 4.2). */
+let coldStart = true;
 
 /** Nothing in the tool surface is named any of these, and nothing
  *  should be: an audit row is evidence, not a place for a credential to
@@ -83,7 +91,14 @@ export function boundedArgs(args) {
   };
 }
 
-async function audit(
+/**
+ * One mcp_call_audit row. Every column after oauth_family_id is
+ * additive (0063) and NULL when not measured, so a row written by the
+ * refusal hook (no tool ran, nothing to time) and a row written by the
+ * invoker share this one insert. The first three positions are pinned
+ * by tests: account_id, token_id, request_id.
+ */
+export async function auditRow(
   db,
   {
     accountId,
@@ -100,12 +115,19 @@ async function audit(
     viewerCountry,
     clientName,
     oauthFamilyId,
+    captured = false,
+    timings = {},
+    coldStart: cold = null,
+    principalKind = null,
+    onBehalfOf = null,
+    rpcErrorCode = null,
   },
 ) {
   try {
     await db.query(
-      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code, viewer_ip, viewer_country, client_name, oauth_family_id)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code, viewer_ip, viewer_country, client_name, oauth_family_id,
+         created_at, captured, db_ms, db_queries, live_wait_ms, serialize_ms, cold_start, principal_kind, on_behalf_of, rpc_error_code)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
       [
         accountId,
         tokenId ?? null,
@@ -121,6 +143,19 @@ async function audit(
         viewerCountry ?? null,
         clientName ?? null,
         oauthFamilyId ?? null,
+        // The call's own start, not the insert's: the capture key is
+        // partitioned by this day and the reader rebuilds it from
+        // created_at, so the two must come from the same clock reading.
+        new Date(startedAt).toISOString(),
+        captured === true,
+        timings.db_ms ?? null,
+        timings.db_queries ?? null,
+        timings.live_wait_ms ?? null,
+        timings.serialize_ms ?? null,
+        cold,
+        principalKind,
+        onBehalfOf,
+        rpcErrorCode,
       ],
     );
   } catch (err) {
@@ -129,6 +164,94 @@ async function audit(
     // used to be a silent hole. Say so, and keep serving.
     console.error("audit_write_failed", tool, surface, err?.message);
   }
+}
+
+/** The delegated id as the caller gave it, for the census; bounded so a
+ *  hostile argument cannot grow the row. */
+export function onBehalfOfOf(args) {
+  const v = args?.on_behalf_of ?? args?.segment?.on_behalf_of ?? null;
+  if (v === null || v === undefined) return null;
+  return String(v).slice(0, MAX_ON_BEHALF_OF_CHARS);
+}
+
+/**
+ * The tool's database, timed. One client is one connection and pg
+ * serialises whatever it is sent (docs/ENGINEERING.md), so the sum of
+ * query wall time is exact rather than an estimate. A Proxy over the
+ * shared client rather than a mutation of it: the invoker's own audit
+ * insert and the pending-hints read go to the untimed client, so
+ * db_ms is the TOOL's work and nothing else.
+ */
+export function timedDb(db, t) {
+  return new Proxy(db, {
+    get(target, prop) {
+      if (prop !== "query") {
+        const v = target[prop];
+        return typeof v === "function" ? v.bind(target) : v;
+      }
+      return async (...a) => {
+        const t0 = performance.now();
+        try {
+          return await target.query(...a);
+        } finally {
+          t.db_ms += performance.now() - t0;
+          t.db_queries += 1;
+        }
+      };
+    },
+  });
+}
+
+/** The live lane, timed: how long the call sat waiting on a collector.
+ *  null until the first live call, so "no live fetch" and "a live fetch
+ *  that returned at once" stay distinguishable. */
+function timedLive(live, t) {
+  return async (...a) => {
+    const t0 = performance.now();
+    try {
+      return await live(...a);
+    } finally {
+      t.live_wait_ms = (t.live_wait_ms ?? 0) + (performance.now() - t0);
+    }
+  };
+}
+
+const METRICS_NAMESPACE = "ElixirMCP/Tools";
+
+/**
+ * One CloudWatch EMF line per call (services/scheduler/src/metrics.mjs is
+ * the pattern: the function runs in a NAT-free VPC with no CloudWatch
+ * endpoint, so the metric rides the log-delivery path and can never
+ * block a call). Emitted BOTH with the Tool dimension and without, so
+ * the per-tool series exist for a dashboard and the alarm
+ * (ToolLatencyP95Alarm) watches the one undimensioned p95.
+ */
+export function toolEmf(
+  { tool, durationMs, dbMs, resultBytes, error },
+  now = Date.now(),
+) {
+  return JSON.stringify({
+    _aws: {
+      Timestamp: now,
+      CloudWatchMetrics: [
+        {
+          Namespace: METRICS_NAMESPACE,
+          Dimensions: [["Tool"], []],
+          Metrics: [
+            { Name: "DurationMs", Unit: "Milliseconds" },
+            { Name: "DbMs", Unit: "Milliseconds" },
+            { Name: "ResultBytes", Unit: "Bytes" },
+            { Name: "Errors", Unit: "Count" },
+          ],
+        },
+      ],
+    },
+    Tool: tool,
+    DurationMs: durationMs,
+    DbMs: dbMs ?? 0,
+    ResultBytes: resultBytes ?? 0,
+    Errors: error ? 1 : 0,
+  });
 }
 
 /**
@@ -159,13 +282,26 @@ export function makeInvoker({
   oauthFamilyId = null,
   track = null,
   notifyOwner = null,
+  /** { s3, bucket } from capture.mjs makeCaptureStore(); null = no capture. */
+  capture = null,
+  /** Where the EMF line goes; null = no metrics (tests, the web explorer). */
+  emitMetrics = null,
 }) {
-  return async function invokeTool(name, args) {
+  const principalKind = account.kind ?? "person";
+  return async function invokeTool(name, args, { finalizeMeta = null } = {}) {
     const startedAt = Date.now();
     // Minted before the tool runs so the audit row and the caller's copy are
     // the same value even when the tool throws.
     const requestId = randomUUID();
     const tokenId = account.tokenId ?? null;
+    const cold = coldStart;
+    coldStart = false;
+    const timings = {
+      db_ms: 0,
+      db_queries: 0,
+      live_wait_ms: null,
+      serialize_ms: null,
+    };
     // Ambient product signal (Tinylytics): tool name only, never args.
     // Fired AFTER the tool runs (finally) so the ping's SQS round-trip
     // never sits in front of the answer (review item 1).
@@ -180,10 +316,19 @@ export function makeInvoker({
         // Analytics must never break serving (house rule).
       }
     };
+    // What the caller gets, and what the row says about it. Composed in
+    // the try/catch; everything that records it runs in the finally, so
+    // capture and audit are behind the answer, never in front of it.
+    let outcome;
     try {
       const body = await registry.invoke(
         name,
-        { db, account, live, notifyOwner },
+        {
+          db: timedDb(db, timings),
+          account,
+          live: live ? timedLive(live, timings) : null,
+          notifyOwner,
+        },
         args,
       );
       // The two pending hints ride EVERY response (review 4.1): they used
@@ -194,41 +339,20 @@ export function makeInvoker({
         const hints = await pendingHints(db, account);
         for (const [k, v] of Object.entries(hints)) body.meta[k] = v;
       }
+      const s0 = performance.now();
       const resultBytes = JSON.stringify(body).length;
-      await audit(db, {
-        viewerIp,
-        viewerCountry,
-        clientName,
-        oauthFamilyId,
-        accountId: account.accountId,
-        tokenId,
-        requestId,
-        surface,
-        tool: name,
-        args,
-        startedAt,
+      timings.serialize_ms = performance.now() - s0;
+      outcome = {
+        body: stampRequestId(body, requestId),
+        isError: false,
         resultBytes,
         // Mirror the protocol renderer's condition: auditing runs
         // before rendering, so compute rather than observe (sol-6 F8).
         truncated: surface !== "web" && resultBytes > MCP_RESULT_MAX_CHARS,
-      });
-      return { body: stampRequestId(body, requestId), isError: false };
+      };
     } catch (err) {
       if (err instanceof ToolFailure) {
-        await audit(db, {
-          viewerIp,
-          viewerCountry,
-          clientName,
-          accountId: account.accountId,
-          tokenId,
-          requestId,
-          surface,
-          tool: name,
-          args,
-          startedAt,
-          errorCode: err.code,
-        });
-        return {
+        outcome = {
           body: {
             error: {
               code: err.code,
@@ -241,12 +365,73 @@ export function makeInvoker({
             }),
           },
           isError: true,
+          errorCode: err.code,
+        };
+      } else {
+        // Opaque to the caller, never opaque to the operator: the audit row
+        // says "internal" and this line says what actually broke.
+        console.error(
+          "tool_failed_unexpectedly",
+          name,
+          requestId,
+          err?.message,
+        );
+        outcome = {
+          body: {
+            error: {
+              code: "bad_request",
+              message: `Tool ${name} failed unexpectedly.`,
+            },
+            meta: responseMeta({
+              as_of: new Date().toISOString(),
+              request_id: requestId,
+            }),
+          },
+          isError: true,
+          errorCode: "internal",
         };
       }
-      // Opaque to the caller, never opaque to the operator: the audit row
-      // says "internal" and this line says what actually broke.
-      console.error("tool_failed_unexpectedly", name, requestId, err?.message);
-      await audit(db, {
+    } finally {
+      // The protocol layer stamps meta.quota (the after-the-call balance)
+      // through this hook BEFORE capture, so the captured response is the
+      // one the client received, quota included.
+      if (finalizeMeta && outcome?.body?.meta) {
+        try {
+          await finalizeMeta(outcome.body.meta);
+        } catch (err) {
+          console.error("finalize_meta_failed", name, err?.message);
+        }
+      }
+      const rounded = {
+        db_ms: Math.round(timings.db_ms),
+        db_queries: timings.db_queries,
+        live_wait_ms:
+          timings.live_wait_ms === null
+            ? null
+            : Math.round(timings.live_wait_ms),
+        serialize_ms:
+          timings.serialize_ms === null
+            ? null
+            : Math.round(timings.serialize_ms),
+      };
+      // The body first (it is what the row points at), then the row.
+      // The request goes through the same key-name redaction as the
+      // bounded args: nothing in the surface takes a secret, and capture
+      // must not be the place one turns up.
+      const captured = await captureCall({
+        ...(capture ?? {}),
+        requestId,
+        at: startedAt,
+        request: { tool: name, arguments: redactArgs(args ?? {}) },
+        response: outcome.body,
+        timings: { ...rounded, cold_start: cold },
+        meta: {
+          surface,
+          principal_kind: principalKind,
+          client_name: clientName,
+        },
+      });
+      await auditRow(db, {
         viewerIp,
         viewerCountry,
         clientName,
@@ -258,23 +443,32 @@ export function makeInvoker({
         tool: name,
         args,
         startedAt,
-        errorCode: "internal",
+        resultBytes: outcome.resultBytes,
+        truncated: outcome.truncated,
+        errorCode: outcome.errorCode,
+        captured,
+        timings: rounded,
+        coldStart: cold,
+        principalKind,
+        onBehalfOf: onBehalfOfOf(args),
       });
-      return {
-        body: {
-          error: {
-            code: "bad_request",
-            message: `Tool ${name} failed unexpectedly.`,
-          },
-          meta: responseMeta({
-            as_of: new Date().toISOString(),
-            request_id: requestId,
-          }),
-        },
-        isError: true,
-      };
-    } finally {
+      if (emitMetrics) {
+        try {
+          emitMetrics(
+            `${toolEmf({
+              tool: name,
+              durationMs: Date.now() - startedAt,
+              dbMs: rounded.db_ms,
+              resultBytes: outcome.resultBytes,
+              error: outcome.errorCode != null,
+            })}\n`,
+          );
+        } catch {
+          // A metric must never break serving.
+        }
+      }
       await ping();
     }
+    return { body: outcome.body, isError: outcome.isError };
   };
 }

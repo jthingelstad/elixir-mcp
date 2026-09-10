@@ -317,6 +317,7 @@ export async function handleMcpMessage(message, context) {
   if (method === "tools/call") {
     const name = String(params.name ?? "");
     if (!context.registry.has(name)) {
+      await context.auditRefusal?.(-32602, name, params.arguments);
       return {
         statusCode: 200,
         payload: rpcError(id, -32602, `Unknown tool: ${name}`, {
@@ -332,6 +333,7 @@ export async function handleMcpMessage(message, context) {
       context.registry.availableTo &&
       !context.registry.availableTo(name, context.kind)
     ) {
+      await context.auditRefusal?.(-32601, name, params.arguments);
       return {
         statusCode: 200,
         payload: rpcError(
@@ -347,6 +349,11 @@ export async function handleMcpMessage(message, context) {
     }
     const quota = await context.spendQuota();
     if (!quota.allowed) {
+      await context.auditRefusal?.(
+        MCP_QUOTA_ERROR_CODE,
+        name,
+        params.arguments,
+      );
       return {
         statusCode: 200,
         payload: rpcError(
@@ -364,19 +371,26 @@ export async function handleMcpMessage(message, context) {
       params.arguments && typeof params.arguments === "object"
         ? params.arguments
         : {};
-    const invoked = await context.invokeTool(name, args);
     // Agents self-moderate better than they handle walls: the spend rides
     // every response meta, unlimited accounts included (feedback #17).
-    if (invoked.body?.meta) {
+    // Stamped through the invoker's finalizeMeta hook so the captured
+    // response carries it too; read AFTER the call so a live fetch the
+    // tool just made is already counted.
+    const stampQuota = async (meta) => {
       const after = context.spendQuota.describe
         ? await context.spendQuota.describe()
         : {};
-      invoked.body.meta.quota = quotaMeta({
+      meta.quota = quotaMeta({
         count: after.count ?? quota.count,
         max: quota.max,
         live: after.live ?? quota.live,
       });
-    }
+    };
+    const invoked = await context.invokeTool(name, args, {
+      finalizeMeta: stampQuota,
+    });
+    if (invoked.body?.meta && !invoked.body.meta.quota)
+      await stampQuota(invoked.body.meta);
     const { text, truncated, body } = renderToolResultText(
       context.registry,
       name,

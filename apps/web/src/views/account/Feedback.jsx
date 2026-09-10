@@ -154,9 +154,17 @@ export function FeedbackItem({ id, navigate }) {
   );
 }
 
-function Compose({ onSent, onClose }) {
+/** A prefill carried in the URL: /account/feedback?context=request_id:<id>
+ *  opens the form with the id already in the note, because the docs tell
+ *  people to quote it and the call record links here. Read once. */
+function prefillFromUrl() {
+  const context = new URLSearchParams(window.location.search).get("context");
+  return context ? String(context).slice(0, 200) : "";
+}
+
+function Compose({ onSent, onClose, context = "" }) {
   const [category, setCategory] = useState("general");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(context ? `${context}\n\n` : "");
   const [sent, setSent] = useState(false);
   const [failed, setFailed] = useState("");
   return (
@@ -205,7 +213,11 @@ function Compose({ onSent, onClose }) {
                 className="btn btn--primary"
                 disabled={!message.trim()}
                 onClick={async () => {
-                  const r = await api.sendFeedback(message, category);
+                  const r = await api.sendFeedback(
+                    message,
+                    category,
+                    context || undefined,
+                  );
                   if (r.ok) {
                     setSent(true);
                     onSent();
@@ -224,7 +236,8 @@ function Compose({ onSent, onClose }) {
 
 export function Feedback({ navigate }) {
   const [items, setItems] = useState(null);
-  const [composing, setComposing] = useState(false);
+  const [context] = useState(prefillFromUrl);
+  const [composing, setComposing] = useState(() => Boolean(context));
   const [now] = useState(() => Date.now());
   const load = () =>
     api
@@ -268,7 +281,11 @@ export function Feedback({ navigate }) {
       }
       above={
         composing ? (
-          <Compose onSent={load} onClose={() => setComposing(false)} />
+          <Compose
+            onSent={load}
+            onClose={() => setComposing(false)}
+            context={context}
+          />
         ) : null
       }
       cols={[

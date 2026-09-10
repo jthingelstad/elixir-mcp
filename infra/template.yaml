@@ -262,12 +262,21 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/payloads/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              # Captured tool calls (review 2026-09-10 Part 5): the
+              # console's call record reads one body at a time through
+              # the session check. Read only; the MCP door writes them.
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub
+                  - ${Arn}/calls/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
 
-  # The MCP/OAuth door sends login mail. It has no archive env var and
-  # never touched the bucket; it used to hold Get/Put on it anyway.
+  # The MCP/OAuth door sends login mail and, since 0063, writes the
+  # request/response of every tool call under calls/ (nothing else on
+  # the bucket: the payload archive is the collector door's).
   McpRole:
     Type: AWS::IAM::Role
     Properties:
@@ -288,6 +297,11 @@ Resources:
               - Effect: Allow
                 Action: [sqs:SendMessage, sqs:GetQueueUrl]
                 Resource: !GetAtt EmailQueue.Arn
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub
+                  - ${Arn}/calls/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
 
   # The tick only touches Postgres and stdout (ledger health rides EMF,
   # not the CloudWatch API). No queues, no bucket.
@@ -457,6 +471,8 @@ Resources:
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
           ORIGIN_SECRET: !Ref OriginSecret
+          # Call capture is on when this is set (services/mcp/src/capture.mjs).
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
           # The Status page's "work waiting" gauge re-runs the scheduler's
           # eligibility query, so it must see the same A/B arm and know the
           # tick cadence. Keep ELIXIR_LOSS_BOUND identical to the scheduler's.
@@ -715,6 +731,17 @@ Resources:
             Transitions:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
+          # Captured tool calls follow the call log's own rule: the
+          # arguments leave the audit row after 90 days, so the bodies
+          # do too (docs/limits retention table). The housekeeping job
+          # flips mcp_call_audit.captured on the same clock.
+          - Id: calls-expire
+            Status: Enabled
+            Prefix: calls/
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+            ExpirationInDays: 90
           # Payloads are content-addressed, so an overwrite means
           # something went wrong rather than something changed. Keep a
           # year of superseded versions - long enough to notice and
@@ -1296,6 +1323,26 @@ Resources:
       Period: 300
       EvaluationPeriods: 3
       Threshold: 8000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # Per-call latency as the TOOL layer sees it (ElixirMCP/Tools, emitted
+  # by the invoker as EMF), which the Lambda Duration above cannot split
+  # from OAuth and metadata traffic. The invoker emits every metric both
+  # with the Tool dimension and without; per-tool alarms are too many,
+  # so this one watches the undimensioned p95.
+  ToolLatencyP95Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-tool-latency-p95
+      Namespace: ElixirMCP/Tools
+      MetricName: DurationMs
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      Threshold: 10000
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]

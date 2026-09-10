@@ -26,7 +26,7 @@ import {
 import { FULL_OAUTH_SCOPE, responseMeta } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
 import { makeRegistry } from "./tools.mjs";
-import { makeInvoker } from "./invoker.mjs";
+import { makeInvoker, auditRow, onBehalfOfOf } from "./invoker.mjs";
 import { makeQuota } from "./quota.mjs";
 import { makeOauthRoutes, rawBody } from "./oauth-routes.mjs";
 import { describeIdentity } from "./identity.mjs";
@@ -43,6 +43,10 @@ export function makeHandler({
   track = null,
   originSecret = null,
   notifyOwner = null,
+  /** { s3, bucket } from capture.mjs makeCaptureStore(); null = no capture. */
+  capture = null,
+  /** Where the per-call EMF line goes; null = no metrics. */
+  emitMetrics = null,
 }) {
   // Transport-level refusals - a rate limit, a database that will not
   // connect - are answered with the SAME envelope a tool refusal uses.
@@ -300,6 +304,33 @@ export function makeHandler({
           body: JSON.stringify({ error: "invalid_json" }),
         };
       }
+      const surface = account.serviceName
+        ? `svc:${account.serviceName}`
+        : "mcp";
+      const clientName = account.serviceName ?? account.clientName ?? null;
+      // A JSON-RPC-layer refusal never reaches the invoker, so until 0063
+      // a quota wall or a hidden-tool refusal was invisible in the log
+      // (review 5.2). One row per refusal: the tool asked for, the code,
+      // bounded arguments, and a minted request_id - error_code stays
+      // null because no tool ran. Awaited, because the connection closes
+      // when this handler returns.
+      const auditRefusal = (rpcCode, toolName, args = {}) =>
+        auditRow(db, {
+          accountId: account.accountId,
+          tokenId: account.tokenId ?? null,
+          requestId: randomUUID(),
+          surface,
+          tool: String(toolName ?? ""),
+          args: args && typeof args === "object" ? args : {},
+          startedAt: Date.now(),
+          viewerIp,
+          viewerCountry,
+          clientName,
+          oauthFamilyId: account.oauthFamilyId ?? null,
+          principalKind: account.kind ?? "person",
+          onBehalfOf: onBehalfOfOf(args),
+          rpcErrorCode: rpcCode,
+        });
       if (message?.method === "tools/call" && message.id !== undefined) {
         const tool = String(message.params?.name ?? "");
         if (registry.has(tool)) {
@@ -308,6 +339,7 @@ export function makeHandler({
             const challengeScope = normalizeScope(
               `${account.scope} ${requiredScope}`,
             );
+            await auditRefusal(-32003, tool, message.params?.arguments);
             return {
               statusCode: 403,
               headers: {
@@ -382,21 +414,26 @@ export function makeHandler({
         // agent's is shaped around a clan; an integration's around the corpus.
         kind: account.kind ?? "person",
         spendQuota: makeQuota({ db, account }),
+        // protocol.mjs calls this at its own refusal sites (unknown tool,
+        // hidden tool, daily quota): auditRefusal(rpcCode, toolName, args).
+        auditRefusal,
         invokeTool: makeInvoker({
           db,
           account,
           registry,
           live,
-          surface: account.serviceName ? `svc:${account.serviceName}` : "mcp",
+          surface,
           // Five agents on one account used to be five identical audit rows of
           // "something called war_current". These say which credential, from
           // where, calling itself what.
           viewerIp,
           viewerCountry,
-          clientName: account.serviceName ?? account.clientName ?? null,
+          clientName,
           oauthFamilyId: account.oauthFamilyId ?? null,
           track,
           notifyOwner,
+          capture,
+          emitMetrics,
         }),
       });
       return {

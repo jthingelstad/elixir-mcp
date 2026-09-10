@@ -83,6 +83,8 @@ export const api = {
   publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
   myRequests: () => request("GET", "/api/me/requests"),
+  callRecord: (request_id) =>
+    request("GET", `/api/me/activity/calls/${encodeURIComponent(request_id)}`),
   myEvents: () => request("GET", "/api/me/events"),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level

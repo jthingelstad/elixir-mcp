@@ -11,13 +11,15 @@ import { normalizeScope } from "../../../auth/src/index.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 
-import { json } from "../http.mjs";
+import { json, UUID_RE } from "../http.mjs";
 import { senderRef } from "../notify.mjs";
+import { loadCallRecord } from "../call-record.mjs";
 
 export function accountRoutes({
   resolveAccount,
   logEvent,
   notifyOwner = async () => {},
+  capture = null,
 }) {
   return {
     "GET /api/me": async (db, event) => {
@@ -534,6 +536,24 @@ export function accountRoutes({
         [account.accountId],
       );
       return json(200, { requests: rows });
+    },
+
+    "GET /api/me/activity/calls/*": async (db, event) => {
+      // One call, opened from the Activity log (review 2026-09-10 Part
+      // 5): the row with its timings, and the captured request and
+      // response when they landed. Own rows and owned agents' rows only;
+      // the id is the request_id the caller was handed in meta.
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const requestId = String(event.pathParam ?? "");
+      if (!UUID_RE.test(requestId)) return json(404, { error: "not_found" });
+      const record = await loadCallRecord(db, {
+        requestId,
+        ownerAccountId: account.accountId,
+        capture,
+      });
+      if (!record) return json(404, { error: "not_found" });
+      return json(200, record);
     },
 
     "GET /api/me/events": async (db, event) => {

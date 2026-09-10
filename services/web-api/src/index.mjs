@@ -12,6 +12,7 @@ import { makeHandler } from "./handler.mjs";
 import { makeCollectorDoor } from "./collector-door.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { makeArchive } from "../../ingest/src/handler.mjs";
+import { makeCaptureStore } from "../../mcp/src/capture.mjs";
 
 const sqs = new SQSClient({});
 const queueUrl = process.env.EMAIL_QUEUE_URL;
@@ -96,6 +97,9 @@ export const handler = makeHandler({
         })
     : null,
   notifyOwner,
+  // Captured tool calls are read back for the console's call record;
+  // absent bucket = the record carries the row only.
+  capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),
   collectorDoor: makeCollectorDoor({
     ingest: (db, envelope) => {
       const archive = makeArchive(process.env.ARCHIVE_BUCKET);
