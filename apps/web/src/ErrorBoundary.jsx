@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component {
     return (
       <div className="panel" style={{ margin: "24px 0" }}>
         <h2 style={{ marginTop: 0 }}>This section failed to render.</h2>
-        <p style={{ color: "var(--faint)" }}>
+        <p style={{ color: "var(--ink-faint)" }}>
           The rest of the site still works — use the navigation above. If you
           can, send this text with a note about what you were doing:
         </p>

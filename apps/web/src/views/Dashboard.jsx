@@ -8,7 +8,7 @@ import { Connections } from "./account/Connections.jsx";
 import { Usage } from "./account/Usage.jsx";
 
 export function Dashboard({ me, refresh, navigate, page, itemId }) {
-  if (me === null) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   if (page === "activity") return <Activity />;
   if (page === "collector") return <CollectorPage />;
   if (page === "agents")

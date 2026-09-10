@@ -22,7 +22,7 @@ export function FeedbackItem({ id, navigate }) {
         </div>
       </div>
     );
-  if (!item) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   return (
     <>
       <p style={{ margin: "0 0 10px" }}>
@@ -36,7 +36,7 @@ export function FeedbackItem({ id, navigate }) {
       </p>
       <section className="panel" style={{ maxWidth: "640px" }}>
         <div className="panel__head">
-          <span className="mono" style={{ color: "var(--dim)" }}>
+          <span className="mono" style={{ color: "var(--ink-faint)" }}>
             #{item.feedback_id}
           </span>
           <span className="tag-chip">{item.category}</span>
@@ -56,7 +56,7 @@ export function FeedbackItem({ id, navigate }) {
             style={{
               marginLeft: "auto",
               fontSize: "11px",
-              color: "var(--dim)",
+              color: "var(--ink-faint)",
             }}
           >
             filed {item.created_at?.slice(0, 10)} · via {item.surface}
@@ -71,13 +71,13 @@ export function FeedbackItem({ id, navigate }) {
         {item.response ? (
           <div
             className="panel__body"
-            style={{ borderTop: "1px solid var(--edge-soft)" }}
+            style={{ borderTop: "1px solid var(--line-soft)" }}
           >
             <div
               className="mono"
               style={{
                 fontSize: "11px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
                 marginBottom: "6px",
               }}
             >
@@ -102,7 +102,7 @@ export function FeedbackItem({ id, navigate }) {
         ) : (
           <div
             className="panel__foot"
-            style={{ fontSize: "12px", color: "var(--faint)" }}
+            style={{ fontSize: "12px", color: "var(--ink-faint)" }}
           >
             Awaiting a maintainer response — every item gets one, and a response
             lands in your event feed.
@@ -136,14 +136,14 @@ export function Feedback({ navigate }) {
               style={{
                 marginLeft: "auto",
                 fontSize: "11px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
               }}
             >
               never actioned invisibly
             </span>
           </div>
           {items?.length === 0 && (
-            <div className="panel__body" style={{ color: "var(--faint)" }}>
+            <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
               Nothing filed yet — your agent can file too, with{" "}
               <code>elixir_feedback</code>.
             </div>
@@ -153,7 +153,7 @@ export function Feedback({ navigate }) {
               key={f.feedback_id}
               style={{
                 padding: "12px 16px",
-                borderTop: "1px solid var(--edge-soft)",
+                borderTop: "1px solid var(--line-soft)",
               }}
             >
               <div
@@ -197,7 +197,7 @@ export function Feedback({ navigate }) {
                   style={{
                     marginLeft: "auto",
                     fontSize: "11px",
-                    color: "var(--dim)",
+                    color: "var(--ink-faint)",
                   }}
                 >
                   {f.created_at?.slice(0, 10)}
@@ -207,7 +207,7 @@ export function Feedback({ navigate }) {
                 style={{
                   fontSize: "12.5px",
                   marginTop: "6px",
-                  color: "var(--muted)",
+                  color: "var(--ink-body)",
                 }}
               >
                 {f.message}
@@ -217,7 +217,7 @@ export function Feedback({ navigate }) {
                   style={{
                     marginTop: "8px",
                     paddingLeft: "12px",
-                    borderLeft: "2px solid var(--edge-strong)",
+                    borderLeft: "2px solid var(--line-strong)",
                     fontSize: "12.5px",
                     lineHeight: 1.55,
                   }}

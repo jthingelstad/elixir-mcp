@@ -96,7 +96,7 @@ export function CollectorPage() {
                   >
                     <span
                       className="mono"
-                      style={{ fontSize: "12px", color: "var(--dim)" }}
+                      style={{ fontSize: "12px", color: "var(--ink-faint)" }}
                     >
                       {g.name.slice(0, 2).toUpperCase()}
                     </span>
@@ -107,7 +107,7 @@ export function CollectorPage() {
                     </div>
                     <div
                       className="mono"
-                      style={{ fontSize: "11.5px", color: "var(--dim)" }}
+                      style={{ fontSize: "11.5px", color: "var(--ink-faint)" }}
                     >
                       {g.name}
                       {d?.gateway.last_seen_sha
@@ -194,7 +194,7 @@ ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`,
                     gap: "12px",
                     alignItems: "center",
                     padding: "10px 16px",
-                    borderTop: "1px solid var(--edge-soft)",
+                    borderTop: "1px solid var(--line-soft)",
                     flexWrap: "wrap",
                   }}
                 >
@@ -210,7 +210,7 @@ ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`,
                   </span>
                   <span
                     className="mono"
-                    style={{ fontSize: "11px", color: "var(--dim)" }}
+                    style={{ fontSize: "11px", color: "var(--ink-faint)" }}
                   >
                     10 fetches = +1 call · capped at 4× your base quota · plus
                     +2 player slots and +1 clan slot while it runs
@@ -279,14 +279,14 @@ ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`,
                     style={{
                       margin: 0,
                       fontSize: "12.5px",
-                      color: "var(--faint)",
+                      color: "var(--ink-faint)",
                     }}
                   >
                     A machine that stays on, with a static public IP. One shared
                     rate budget — more machines for redundancy.
                   </p>
                   <label>
-                    <span className="label">Collector name</span>
+                    <span className="field-label">Collector name</span>
                     <input
                       placeholder="magic-pines"
                       value={form.name}
@@ -299,7 +299,7 @@ ELIXIR_API_TOKEN=${revealed[g.gateway_id]}`,
                   {err && <span className="field-error">{err}</span>}
                   <div>
                     <button
-                      className="btn btn--gold"
+                      className="btn btn--primary"
                       onClick={async () => {
                         setErr("");
                         const r = await api.raiseGateway(form.name.trim());

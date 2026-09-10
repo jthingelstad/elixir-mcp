@@ -27,7 +27,7 @@ function Freshness({ meta }) {
     return <span className="freshness freshness--never">never polled</span>;
   const cls =
     s < 900
-      ? "freshness freshness--fresh"
+      ? "freshness freshness--live"
       : s < 86400
         ? "freshness freshness--stale"
         : "freshness";
@@ -135,7 +135,7 @@ function NicknameEditor({ nick, onSaved }) {
   };
   return (
     <div className="panel__actions">
-      <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+      <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
         Your nickname
       </span>
       <input
@@ -162,7 +162,11 @@ function NicknameEditor({ nick, onSaved }) {
         </button>
       )}
       <span
-        style={{ marginLeft: "auto", fontSize: "11.5px", color: "var(--dim)" }}
+        style={{
+          marginLeft: "auto",
+          fontSize: "11.5px",
+          color: "var(--ink-faint)",
+        }}
       >
         private to your account
       </span>
@@ -345,7 +349,7 @@ function Lookup({ me, navigate }) {
               gap: "8px",
               marginTop: "10px",
               flexWrap: "wrap",
-              color: "var(--dim)",
+              color: "var(--ink-faint)",
               fontSize: "11.5px",
             }}
           >
@@ -371,7 +375,7 @@ function Lookup({ me, navigate }) {
                 style={{
                   marginLeft: "auto",
                   fontSize: "11px",
-                  color: "var(--dim)",
+                  color: "var(--ink-faint)",
                 }}
               >
                 &ldquo;{matches.query}&rdquo;
@@ -385,7 +389,7 @@ function Lookup({ me, navigate }) {
                   display: "flex",
                   gap: "10px",
                   padding: "10px 16px",
-                  borderTop: "1px solid var(--edge-soft)",
+                  borderTop: "1px solid var(--line-soft)",
                   fontSize: "12.5px",
                   color: "var(--ink)",
                   flexWrap: "wrap",
@@ -404,7 +408,7 @@ function Lookup({ me, navigate }) {
                     style={{
                       marginLeft: "auto",
                       fontSize: "11px",
-                      color: "var(--dim)",
+                      color: "var(--ink-faint)",
                     }}
                   >
                     {m.clan_tag}
@@ -430,7 +434,7 @@ function Lookup({ me, navigate }) {
               <span
                 className="mono"
                 style={{
-                  color: "var(--red)",
+                  color: "var(--bad)",
                   fontWeight: 600,
                   fontSize: "11.5px",
                 }}
@@ -460,14 +464,14 @@ function Lookup({ me, navigate }) {
               style={{
                 marginLeft: "auto",
                 fontSize: "11px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
               }}
             >
               this browser only
             </span>
           </div>
           {recent().length === 0 && (
-            <div className="panel__body" style={{ color: "var(--faint)" }}>
+            <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
               Nothing yet.
             </div>
           )}
@@ -479,14 +483,14 @@ function Lookup({ me, navigate }) {
                 display: "flex",
                 gap: "10px",
                 padding: "10px 16px",
-                borderTop: "1px solid var(--edge-soft)",
+                borderTop: "1px solid var(--line-soft)",
                 fontSize: "12.5px",
                 color: "var(--ink)",
                 flexWrap: "wrap",
               }}
             >
               <span className="tag">{r.tag}</span>
-              <span style={{ color: "var(--faint)" }}>{r.name}</span>
+              <span style={{ color: "var(--ink-faint)" }}>{r.name}</span>
               <span className="kind-chip">{r.kind}</span>
             </a>
           ))}
@@ -500,7 +504,7 @@ function Lookup({ me, navigate }) {
               style={{
                 marginLeft: "auto",
                 fontSize: "11px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
               }}
             >
               curator lists
@@ -514,7 +518,7 @@ function Lookup({ me, navigate }) {
                 display: "flex",
                 gap: "10px",
                 padding: "10px 16px",
-                borderTop: "1px solid var(--edge-soft)",
+                borderTop: "1px solid var(--line-soft)",
                 fontSize: "12.5px",
                 color: "var(--ink)",
               }}
@@ -525,7 +529,7 @@ function Lookup({ me, navigate }) {
                 className="mono"
                 style={{
                   marginLeft: "auto",
-                  color: "var(--dim)",
+                  color: "var(--ink-faint)",
                   fontSize: "11.5px",
                 }}
               >
@@ -620,7 +624,8 @@ function RecordPage({ me, navigate, kind, rawId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, rawId, bump]);
 
-  if (state.loading) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (state.loading)
+    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   if (state.error) {
     return (
       <div className="empty" style={{ maxWidth: "560px", margin: "32px auto" }}>
@@ -746,7 +751,7 @@ function RecordPage({ me, navigate, kind, rawId }) {
                 style={{
                   marginLeft: "auto",
                   fontSize: "11px",
-                  color: "var(--dim)",
+                  color: "var(--ink-faint)",
                 }}
               >
                 references are links
@@ -1102,8 +1107,8 @@ function buildView(kind, rawId, res, me) {
           {
             text: m.recording ? "recording" : "observed",
             style: m.recording
-              ? { color: "var(--green)" }
-              : { color: "var(--faint)" },
+              ? { color: "var(--ok)" }
+              : { color: "var(--ink-faint)" },
           },
         ]),
       },

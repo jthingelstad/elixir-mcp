@@ -207,7 +207,7 @@ export function Integrations() {
           </label>
           <fieldset
             style={{
-              border: "1px solid var(--edge)",
+              border: "1px solid var(--line)",
               borderRadius: "8px",
               padding: "12px",
             }}

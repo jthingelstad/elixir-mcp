@@ -27,37 +27,37 @@ navActive: home
       throws away.
     </p>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-      <a class="btn btn--gold" href="#request">Request access</a>
+      <a class="btn btn--primary" href="#request">Request access</a>
       <a class="btn btn--quiet" href="/docs/quickstart">Connect your agent →</a>
-      <span style="font-size: 12px; color: var(--dim)">approval-gated · free while in early access</span>
+      <span style="font-size: 12px; color: var(--ink-faint)">approval-gated · free while in early access</span>
     </div>
   </div>
 
   <section class="panel" style="flex: 1 1 320px; max-width: 420px">
     <div class="panel__head">
-      <span style="font-size: 13px; font-weight: 600; color: var(--muted)">The corpus, live</span>
-      <span class="mono" style="margin-left: auto; font-size: 11px; color: var(--faint)">as of {{ t.newest_battle | day }}</span>
+      <span style="font-size: 13px; font-weight: 600; color: var(--ink-body)">The corpus, live</span>
+      <span class="mono" style="margin-left: auto; font-size: 11px; color: var(--ink-faint)">as of {{ t.newest_battle | day }}</span>
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr">
-      <div style="padding: 16px; border-right: 1px solid var(--edge-soft); border-bottom: 1px solid var(--edge-soft)">
+      <div style="padding: 16px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft)">
         <div class="stat__value" style="font-size: 30px">{{ t.battles | number }}</div>
-        <div style="font-size: 12px; color: var(--faint); margin-top: 6px">battles recorded</div>
+        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">battles recorded</div>
       </div>
-      <div style="padding: 16px; border-bottom: 1px solid var(--edge-soft)">
+      <div style="padding: 16px; border-bottom: 1px solid var(--line-soft)">
         <div class="stat__value" style="font-size: 30px">{{ t.players | number }}</div>
-        <div style="font-size: 12px; color: var(--faint); margin-top: 6px">players observed</div>
+        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">players observed</div>
       </div>
-      <div style="padding: 16px; border-right: 1px solid var(--edge-soft)">
+      <div style="padding: 16px; border-right: 1px solid var(--line-soft)">
         <div class="stat__value" style="font-size: 30px">{{ t.clans | number }}</div>
-        <div style="font-size: 12px; color: var(--faint); margin-top: 6px">clans observed</div>
+        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">clans observed</div>
       </div>
       <div style="padding: 16px">
         <div class="stat__value" style="font-size: 30px">{{ t.collectors_active | number }}</div>
-        <div style="font-size: 12px; color: var(--faint); margin-top: 6px">collectors active</div>
+        <div style="font-size: 12px; color: var(--ink-faint); margin-top: 6px">collectors active</div>
       </div>
     </div>
-    <div style="padding: 10px 16px; border-top: 1px solid var(--edge-soft); display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--dim); flex-wrap: wrap">
-      <span class="mono" style="color: var(--muted); font-size: 11px">oldest battle {{ t.oldest_battle | day }}</span>
+    <div style="padding: 10px 16px; border-top: 1px solid var(--line-soft); display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-faint); flex-wrap: wrap">
+      <span class="mono" style="color: var(--ink-body); font-size: 11px">oldest battle {{ t.oldest_battle | day }}</span>
       <span>·</span>
       <span>refreshed each deploy</span>
       <a style="margin-left: auto" href="/data/dashboard">Data ›</a>
@@ -69,7 +69,7 @@ navActive: home
   <section class="panel" id="request">
     <div class="panel__head"><span class="panel-title">Request access</span></div>
     <div class="panel__body" style="display: flex; flex-direction: column; gap: 10px">
-      <div style="font-size: 12.5px; color: var(--faint)">
+      <div style="font-size: 12.5px; color: var(--ink-faint)">
         Access is invite-approved while the recorder grows. Tell us who you are in the arena.
       </div>
       {#- The one interactive thing on the static half. Its script is
@@ -80,19 +80,19 @@ navActive: home
           silently swallowing a submission. -#}
       <form id="request-form" style="display: flex; flex-direction: column; gap: 10px">
         <label>
-          <span class="label">Email</span>
+          <span class="field-label">Email</span>
           <input type="email" name="email" required placeholder="you@example.com" />
         </label>
         <label>
-          <span class="label">Your player tag</span>
+          <span class="field-label">Your player tag</span>
           <input class="mono" name="player_tag" required placeholder="#20JJJ2CCRU" />
         </label>
         <label>
-          <span class="label">Anything we should know? <span style="color: var(--dim)">(optional)</span></span>
+          <span class="field-label">Anything we should know? <span style="color: var(--ink-faint)">(optional)</span></span>
           <input name="note" />
         </label>
         <p class="field-error" id="request-error" hidden></p>
-        <div><button class="btn btn--gold" type="submit">Request access</button></div>
+        <div><button class="btn btn--primary" type="submit">Request access</button></div>
       </form>
       <div class="notice" id="request-sent" hidden>
         If your request is approved, you&rsquo;ll hear from us by email.
@@ -110,8 +110,8 @@ navActive: home
       ] %}
       {%- for s in steps %}
       <div style="display: flex; gap: 12px">
-        <span class="mono" style="color: var(--purple-link); font-weight: 600">{{ s[0] }}</span>
-        <span style="font-size: 12.5px; color: var(--muted); line-height: 1.55">{{ s[1] }}</span>
+        <span class="mono" style="color: var(--ink-link); font-weight: 600">{{ s[0] }}</span>
+        <span style="font-size: 12.5px; color: var(--ink-body); line-height: 1.55">{{ s[1] }}</span>
       </div>
       {%- endfor %}
     </div>
@@ -125,10 +125,10 @@ navActive: home
     <div class="panel__body" style="display: flex; flex-direction: column; gap: 12px">
       {%- for u in updates.slice(0, 4) %}
       <div style="display: flex; gap: 12px">
-        <span class="mono" style="flex: 0 0 52px; font-size: 11px; color: var(--dim)">{{ u.date | replace("2026-", "") }}</span>
+        <span class="mono" style="flex: 0 0 52px; font-size: 11px; color: var(--ink-faint)">{{ u.date | replace("2026-", "") }}</span>
         <span style="font-size: 12.5px; line-height: 1.5">
           <strong>{{ u.title }}.</strong>
-          <span style="color: var(--muted)">{{ u.body | clamp(140) }}</span>
+          <span style="color: var(--ink-body)">{{ u.body | clamp(140) }}</span>
         </span>
       </div>
       {%- endfor %}
@@ -139,7 +139,7 @@ navActive: home
 <section class="panel" style="margin-top: 20px">
   <div class="panel__head"><span class="panel-title">Connect an agent</span></div>
   <div class="panel__body">
-    <p style="color: var(--muted); margin: 0 0 var(--s-3)">
+    <p style="color: var(--ink-body); margin: 0 0 var(--s-3)">
       Point any MCP client at <code>{{ site.mcpUrl }}</code>. Your agent gets
       {{ tools.count }} tools across {{ tools.groups | length }} groups — the full
       reference is in <a href="/docs/tools">the docs</a>, and machine-readable at

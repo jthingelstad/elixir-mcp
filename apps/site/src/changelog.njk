@@ -28,10 +28,10 @@ nav2:
 <section class="panel" style="margin-bottom: var(--s-4)" id="v{{ c.version }}">
   <div class="panel__head">
     <span class="panel-title mono">{{ c.version }}</span>
-    <time class="mono" style="margin-left: auto; font-size: 11px; color: var(--dim)" datetime="{{ c.date }}">{{ c.date }}</time>
+    <time class="mono" style="margin-left: auto; font-size: 11px; color: var(--ink-faint)" datetime="{{ c.date }}">{{ c.date }}</time>
   </div>
   <div class="panel__body">
-    <p style="color: var(--muted); margin: 0">{{ c.summary }}</p>
+    <p style="color: var(--ink-body); margin: 0">{{ c.summary }}</p>
     {%- if c.tools_added %}
     <p class="sample" style="margin-top: var(--s-3)">Tools added: {% for t in c.tools_added %}<code>{{ t }}</code>{% if not loop.last %} · {% endif %}{% endfor %}</p>
     {%- endif %}

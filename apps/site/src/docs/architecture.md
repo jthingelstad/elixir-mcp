@@ -21,10 +21,10 @@ been replaced.
      style="width:100%;height:auto;font-family:inherit">
   <style>
     .box { fill: none; stroke: var(--ink); stroke-width: 2.5; }
-    .store { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .store { fill: none; stroke: var(--ink-faint); stroke-width: 1.5; stroke-dasharray: 6 4; }
     .lbl { fill: var(--ink); font-size: 16px; }
-    .sub { fill: var(--faint); font-size: 12px; font-style: italic; }
-    .edge { stroke: var(--faint); stroke-width: 1.5; }
+    .sub { fill: var(--ink-faint); font-size: 12px; font-style: italic; }
+    .edge { stroke: var(--ink-faint); stroke-width: 1.5; }
     .note { fill: var(--gold); font-size: 11.5px; }
   </style>
   <!-- consumers -->

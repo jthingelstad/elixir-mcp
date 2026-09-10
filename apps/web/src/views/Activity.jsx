@@ -54,7 +54,10 @@ export function Activity() {
         {tab === "MCP requests" && (
           <>
             {requests?.length === 0 && (
-              <div className="panel__body" style={{ color: "var(--faint)" }}>
+              <div
+                className="panel__body"
+                style={{ color: "var(--ink-faint)" }}
+              >
                 No calls yet.
               </div>
             )}
@@ -83,7 +86,7 @@ export function Activity() {
                           className="num"
                           style={
                             r.duration_ms > 300
-                              ? { color: "var(--amber)" }
+                              ? { color: "var(--warn)" }
                               : undefined
                           }
                         >
@@ -97,7 +100,7 @@ export function Activity() {
                           ) : (
                             <span
                               className="mono"
-                              style={{ color: "var(--dim)" }}
+                              style={{ color: "var(--ink-faint)" }}
                             >
                               {((r.result_bytes ?? 0) / 1024).toFixed(1)}kb
                               {r.truncated ? " · truncated" : ""}
@@ -110,7 +113,7 @@ export function Activity() {
                             reports an answer that looks wrong. */}
                         <td
                           className="mono"
-                          style={{ color: "var(--faint)" }}
+                          style={{ color: "var(--ink-faint)" }}
                           title={r.request_id ?? ""}
                         >
                           {r.request_id ? r.request_id.slice(0, 8) : "—"}
@@ -131,7 +134,10 @@ export function Activity() {
         {tab === "Account events" && (
           <>
             {events?.length === 0 && (
-              <div className="panel__body" style={{ color: "var(--faint)" }}>
+              <div
+                className="panel__body"
+                style={{ color: "var(--ink-faint)" }}
+              >
                 Nothing yet.
               </div>
             )}
@@ -172,7 +178,10 @@ export function Activity() {
         {tab === "Notifications" && (
           <>
             {feed?.events?.length === 0 && (
-              <div className="panel__body" style={{ color: "var(--faint)" }}>
+              <div
+                className="panel__body"
+                style={{ color: "var(--ink-faint)" }}
+              >
                 Nothing yet — everything you add feeds this pipe while its
                 notify switch is on.
               </div>
@@ -199,7 +208,10 @@ export function Activity() {
                           <td className="mono">{when(e.created_at)}</td>
                           <td>{e.topic.replaceAll("_", " ")}</td>
                           <td className="tag">{e.subject_tag ?? ""}</td>
-                          <td className="mono" style={{ color: "var(--dim)" }}>
+                          <td
+                            className="mono"
+                            style={{ color: "var(--ink-faint)" }}
+                          >
                             {e.payload?.count
                               ? `${e.payload.count} battles`
                               : (e.payload?.scope ?? e.payload?.role ?? "")}

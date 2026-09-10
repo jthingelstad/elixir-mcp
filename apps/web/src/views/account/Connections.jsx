@@ -32,7 +32,7 @@ export function Connections({ me, navigate }) {
             <p
               style={{
                 fontSize: "12.5px",
-                color: "var(--faint)",
+                color: "var(--ink-faint)",
                 marginTop: 0,
               }}
             >
@@ -43,7 +43,7 @@ export function Connections({ me, navigate }) {
           {refusals.length > 0 && (
             <div
               className="panel__body"
-              style={{ color: "var(--amber)", fontSize: "12.5px" }}
+              style={{ color: "var(--warn)", fontSize: "12.5px" }}
             >
               <strong>
                 Something is presenting a credential of yours that no longer
@@ -68,7 +68,7 @@ export function Connections({ me, navigate }) {
                   ) : null}
                 </div>
               ))}
-              <div style={{ marginTop: "6px", color: "var(--faint)" }}>
+              <div style={{ marginTop: "6px", color: "var(--ink-faint)" }}>
                 Usually a client you disconnected that is still running. It
                 cannot read anything — but until it is stopped or reconnected,
                 it will keep trying.
@@ -76,7 +76,7 @@ export function Connections({ me, navigate }) {
             </div>
           )}
           {connections?.length === 0 && (
-            <div className="panel__body" style={{ color: "var(--faint)" }}>
+            <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
               Nothing connected yet.
             </div>
           )}
@@ -103,7 +103,7 @@ export function Connections({ me, navigate }) {
                           <div
                             style={{
                               fontSize: "11.5px",
-                              color: "var(--faint)",
+                              color: "var(--ink-faint)",
                             }}
                           >
                             {c.principal.name ?? c.principal.kind}
@@ -117,7 +117,7 @@ export function Connections({ me, navigate }) {
                           <div
                             style={{
                               fontSize: "11.5px",
-                              color: "var(--faint)",
+                              color: "var(--ink-faint)",
                             }}
                           >
                             you
@@ -155,7 +155,7 @@ export function Connections({ me, navigate }) {
                             {c.usage.country ? ` · ${c.usage.country}` : ""}
                           </>
                         ) : (
-                          <span style={{ color: "var(--faint)" }}>—</span>
+                          <span style={{ color: "var(--ink-faint)" }}>—</span>
                         )}
                       </td>
                       <td>{c.usage?.calls_7d ?? 0}</td>
@@ -189,9 +189,9 @@ export function Connections({ me, navigate }) {
                 gap: "8px",
                 alignItems: "center",
                 padding: "10px 12px",
-                background: "var(--well)",
-                border: "1px solid var(--edge)",
-                borderRadius: "var(--r-md)",
+                background: "var(--ground-sunken)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-control)",
               }}
             >
               <code style={{ flex: 1 }}>{url}</code>
@@ -206,7 +206,7 @@ export function Connections({ me, navigate }) {
                 {copied ? "copied" : "copy"}
               </button>
             </div>
-            <p style={{ fontSize: "12.5px", color: "var(--faint)" }}>
+            <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
               Add it as a remote MCP server in your client of choice — the OAuth
               sign-in uses the same email as this account.
             </p>

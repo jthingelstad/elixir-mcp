@@ -6,7 +6,7 @@ export function Usage({ me }) {
   useEffect(() => {
     api.usage().then((r) => r.ok && setUsage(r.data));
   }, []);
-  if (!usage) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (!usage) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   const max = Math.max(...(usage.days ?? []).map((d) => d.calls), 1);
   return (
     <div className="cols">
@@ -19,7 +19,7 @@ export function Usage({ me }) {
               style={{
                 marginLeft: "auto",
                 fontSize: "11.5px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
               }}
             >
               {usage.today_calls} of {usage.quota_max ?? "∞"} today
@@ -44,7 +44,7 @@ export function Usage({ me }) {
                     <td className="num">{d.calls}</td>
                     <td className="num">
                       {d.errors ? (
-                        <span style={{ color: "var(--red)" }}>{d.errors}</span>
+                        <span style={{ color: "var(--bad)" }}>{d.errors}</span>
                       ) : (
                         <span className="nil">—</span>
                       )}
@@ -93,7 +93,7 @@ export function Usage({ me }) {
                     <code>{t.tool}</code>
                     <span
                       className="mono"
-                      style={{ marginLeft: "auto", color: "var(--dim)" }}
+                      style={{ marginLeft: "auto", color: "var(--ink-faint)" }}
                     >
                       {t.calls}
                     </span>

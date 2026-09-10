@@ -248,7 +248,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                         style={{
                           marginLeft: "6px",
                           fontSize: "10.5px",
-                          color: "var(--dim)",
+                          color: "var(--ink-faint)",
                         }}
                       >
                         responded
@@ -290,7 +290,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
             style={{
               marginLeft: "auto",
               fontSize: "11px",
-              color: "var(--red)",
+              color: "var(--bad)",
             }}
           >
             shown once at issue — never recoverable
@@ -384,7 +384,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
           active. Issuing the IP-bound CR key and IAM user is manual — see
           docs/OPERATORS.md.
         </p>
-        <p style={{ color: "var(--dim)" }}>
+        <p style={{ color: "var(--ink-faint)" }}>
           Heartbeat is any contact with the door, including polls that found no
           work; Data is the last payload we accepted and recorded. Both are the
           same relative clock the public status page shows.
@@ -442,7 +442,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                         {g.card_name ?? "unnamed"}
                       </span>
                     </div>
-                    <code style={{ color: "var(--dim)" }}>{g.name}</code>
+                    <code style={{ color: "var(--ink-faint)" }}>{g.name}</code>
                   </td>
                   <td>
                     {g.owner_account_id ? (
@@ -458,7 +458,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
                             </span>
                           )}
                         </div>
-                        <code style={{ color: "var(--dim)" }}>
+                        <code style={{ color: "var(--ink-faint)" }}>
                           {g.owner_email_hash?.slice(0, 10) ?? "—"}
                         </code>
                       </>
@@ -820,7 +820,7 @@ function AdminFeedbackItem({ id, navigate }) {
         </div>
       </div>
     );
-  if (!item) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   const setStatus = async (status, withResponse) => {
     setSaved("");
     const r = await api.adminFeedbackStatus(
@@ -846,7 +846,7 @@ function AdminFeedbackItem({ id, navigate }) {
       </p>
       <section className="panel" style={{ maxWidth: "680px" }}>
         <div className="panel__head">
-          <span className="mono" style={{ color: "var(--dim)" }}>
+          <span className="mono" style={{ color: "var(--ink-faint)" }}>
             #{item.feedback_id}
           </span>
           <span className="tag-chip">{item.category}</span>
@@ -860,7 +860,7 @@ function AdminFeedbackItem({ id, navigate }) {
             style={{
               marginLeft: "auto",
               fontSize: "11px",
-              color: "var(--dim)",
+              color: "var(--ink-faint)",
             }}
           >
             {item.from_player ?? "unknown filer"} · via {item.surface} ·{" "}
@@ -876,13 +876,13 @@ function AdminFeedbackItem({ id, navigate }) {
         {item.context && (
           <div
             className="panel__body"
-            style={{ borderTop: "1px solid var(--edge-soft)" }}
+            style={{ borderTop: "1px solid var(--line-soft)" }}
           >
             <div
               className="mono"
               style={{
                 fontSize: "11px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
                 marginBottom: "6px",
               }}
             >
@@ -903,14 +903,14 @@ function AdminFeedbackItem({ id, navigate }) {
         <div
           className="panel__body"
           style={{
-            borderTop: "1px solid var(--edge-soft)",
+            borderTop: "1px solid var(--line-soft)",
             display: "flex",
             flexDirection: "column",
             gap: "10px",
           }}
         >
           <label>
-            <span className="label">Maintainer response</span>
+            <span className="field-label">Maintainer response</span>
             <textarea
               rows={4}
               value={response}
@@ -947,7 +947,7 @@ function AdminFeedbackItem({ id, navigate }) {
               Send response
             </button>
             {saved && (
-              <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+              <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
                 {saved}
               </span>
             )}
@@ -1009,7 +1009,7 @@ function CollectionEditor({ slug, navigate }) {
       </div>
     );
   if (!col || !meta || tagText === null)
-    return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   const membersText = (col.members ?? []).join("\n");
   const pending = tagText
     .split(/\n/)
@@ -1049,7 +1049,7 @@ function CollectionEditor({ slug, navigate }) {
                 thing: you think about the membership, not the diff. */}
             <div className="panel__body">
               <label>
-                <span className="label">
+                <span className="field-label">
                   Members — one {col.kind} tag per line
                 </span>
                 <textarea
@@ -1104,7 +1104,7 @@ function CollectionEditor({ slug, navigate }) {
                     Discard changes
                   </button>
                 )}
-                <span style={{ color: "var(--faint)", fontSize: "11.5px" }}>
+                <span style={{ color: "var(--ink-faint)", fontSize: "11.5px" }}>
                   {dirty
                     ? `${pending.length} tag${pending.length === 1 ? "" : "s"} — unsaved`
                     : `${pending.length} tag${pending.length === 1 ? "" : "s"}`}
@@ -1112,7 +1112,7 @@ function CollectionEditor({ slug, navigate }) {
               </div>
               <p
                 style={{
-                  color: "var(--faint)",
+                  color: "var(--ink-faint)",
                   fontSize: "11.5px",
                   marginBottom: 0,
                 }}
@@ -1144,14 +1144,14 @@ function CollectionEditor({ slug, navigate }) {
               }}
             >
               <label>
-                <span className="label">Title</span>
+                <span className="field-label">Title</span>
                 <input
                   value={meta.title}
                   onChange={(e) => setMeta({ ...meta, title: e.target.value })}
                 />
               </label>
               <label>
-                <span className="label">Description</span>
+                <span className="field-label">Description</span>
                 <textarea
                   rows={10}
                   maxLength={2000}
@@ -1162,14 +1162,14 @@ function CollectionEditor({ slug, navigate }) {
                   style={{ resize: "vertical" }}
                 />
                 <span
-                  className="label"
-                  style={{ color: "var(--faint)", fontWeight: 400 }}
+                  className="field-label"
+                  style={{ color: "var(--ink-faint)", fontWeight: 400 }}
                 >
                   {meta.description.length}/2000
                 </span>
               </label>
               <label>
-                <span className="label">How deeply to record</span>
+                <span className="field-label">How deeply to record</span>
                 <select
                   value={meta.scope ?? "comprehensive"}
                   onChange={(e) => setMeta({ ...meta, scope: e.target.value })}
@@ -1188,8 +1188,8 @@ function CollectionEditor({ slug, navigate }) {
                   </option>
                 </select>
                 <span
-                  className="label"
-                  style={{ color: "var(--faint)", fontWeight: 400 }}
+                  className="field-label"
+                  style={{ color: "var(--ink-faint)", fontWeight: 400 }}
                 >
                   {col.kind === "clan"
                     ? "Comprehensive follows membership as it changes and records each member's battles and profile. Activity records the clan itself: roster, war, standings, participation."
@@ -1200,7 +1200,7 @@ function CollectionEditor({ slug, navigate }) {
                 </span>
               </label>
               <label>
-                <span className="label">Visibility</span>
+                <span className="field-label">Visibility</span>
                 <select
                   value={meta.visibility}
                   onChange={(e) =>

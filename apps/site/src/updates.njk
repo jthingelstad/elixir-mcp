@@ -24,8 +24,8 @@ prose: true
 <section class="panel" style="margin-bottom: var(--s-4)" id="{{ u.date }}-{{ loop.index }}">
   <div class="panel__head">
     <span class="panel-title">{{ u.title }}</span>
-    <time class="mono" style="margin-left: auto; font-size: 11px; color: var(--dim)" datetime="{{ u.date }}">{{ u.date }}</time>
+    <time class="mono" style="margin-left: auto; font-size: 11px; color: var(--ink-faint)" datetime="{{ u.date }}">{{ u.date }}</time>
   </div>
-  <div class="panel__body"><p style="color: var(--muted); margin: 0">{{ u.body }}</p></div>
+  <div class="panel__body"><p style="color: var(--ink-body); margin: 0">{{ u.body }}</p></div>
 </section>
 {%- endfor %}

@@ -175,7 +175,7 @@ export function Data({ page }) {
               style={{
                 marginLeft: "auto",
                 fontSize: "11px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
               }}
             >
               as of {t?.newest_battle?.slice(0, 10)}

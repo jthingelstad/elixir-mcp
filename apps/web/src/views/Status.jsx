@@ -23,7 +23,7 @@ const SERIES_COLORS = [
   "var(--series-5)",
   "var(--series-6)",
 ];
-const colorFor = (i) => SERIES_COLORS[i] ?? "var(--neutral)";
+const colorFor = (i) => SERIES_COLORS[i] ?? "var(--ink-quiet-icon)";
 
 /** Rounded top on the data-end only: the cap belongs to the stack, not
  *  to every segment inside it. */
@@ -236,7 +236,7 @@ function BudgetGauge({ budget }) {
           style={{
             marginLeft: "auto",
             fontSize: "11.5px",
-            color: "var(--dim)",
+            color: "var(--ink-faint)",
           }}
         >
           {used.toLocaleString()} / {cap.toLocaleString()}
@@ -255,10 +255,10 @@ function BudgetGauge({ budget }) {
             style={{
               width: `${pct}%`,
               background: nearCap
-                ? "var(--red)"
+                ? "var(--bad)"
                 : over
-                  ? "var(--amber)"
-                  : "var(--green)",
+                  ? "var(--warn)"
+                  : "var(--ok)",
             }}
           />
           <div className="gauge__pace" style={{ left: `${pacePct}%` }} />
@@ -311,7 +311,7 @@ function QueueGauge({ queue, now }) {
           style={{
             marginLeft: "auto",
             fontSize: "11.5px",
-            color: "var(--dim)",
+            color: "var(--ink-faint)",
           }}
         >
           {waiting.toLocaleString()} waiting · next tick{" "}
@@ -328,7 +328,7 @@ function QueueGauge({ queue, now }) {
             className="gauge__fill"
             style={{
               width: `${pct}%`,
-              background: pressure ? "var(--amber)" : "var(--green)",
+              background: pressure ? "var(--warn)" : "var(--ok)",
             }}
           />
         </div>
@@ -389,7 +389,7 @@ export function Status() {
   }, [auto, load]);
 
   if (err) return <p className="field-error">{err}</p>;
-  if (!data) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (!data) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
   const h = data.health;
   const series =
@@ -409,7 +409,11 @@ export function Status() {
         <h1 className="page-title">Status</h1>
         <span
           className="mono"
-          style={{ marginLeft: "auto", fontSize: "11px", color: "var(--dim)" }}
+          style={{
+            marginLeft: "auto",
+            fontSize: "11px",
+            color: "var(--ink-faint)",
+          }}
         >
           as of {data.as_of.slice(11, 19)}Z
         </span>
@@ -461,7 +465,7 @@ export function Status() {
             · <strong>{h.battles_last_hour.toLocaleString()}</strong> battles in
             the last hour · DLQs{" "}
             <strong
-              style={{ color: h.dlq_messages ? "var(--red)" : undefined }}
+              style={{ color: h.dlq_messages ? "var(--bad)" : undefined }}
             >
               {h.dlq_messages}
             </strong>
@@ -482,7 +486,7 @@ export function Status() {
                 gap: "10px",
                 alignItems: "center",
                 padding: "10px 16px",
-                borderTop: "1px solid var(--edge-soft)",
+                borderTop: "1px solid var(--line-soft)",
                 flexWrap: "wrap",
               }}
             >
@@ -522,11 +526,11 @@ export function Status() {
               </span>
               {c.operator && (
                 <span
-                  style={{ fontSize: "11.5px", color: "var(--faint)" }}
+                  style={{ fontSize: "11.5px", color: "var(--ink-faint)" }}
                   title={c.operator_tag ?? undefined}
                 >
                   run by{" "}
-                  <span style={{ color: "var(--muted)" }}>{c.operator}</span>
+                  <span style={{ color: "var(--ink-body)" }}>{c.operator}</span>
                 </span>
               )}
               <span
@@ -542,19 +546,19 @@ export function Status() {
                   className={beatCls(secsSince(c.last_heartbeat_at, now))}
                   title="Last contact of any kind with the door, including polls that found no work."
                 >
-                  <span style={{ color: "var(--dim)" }}>heartbeat </span>
+                  <span style={{ color: "var(--ink-faint)" }}>heartbeat </span>
                   {ago(c.last_heartbeat_at, now)}
                 </span>
                 <span
                   className={freshCls(secsSince(c.last_success_at, now))}
                   title="Last payload this collector fetched that we accepted and recorded."
                 >
-                  <span style={{ color: "var(--dim)" }}>data </span>
+                  <span style={{ color: "var(--ink-faint)" }}>data </span>
                   {ago(c.last_success_at, now)}
                 </span>
                 <span
                   className="mono"
-                  style={{ fontSize: "11.5px", color: "var(--dim)" }}
+                  style={{ fontSize: "11.5px", color: "var(--ink-faint)" }}
                 >
                   {c.fetches_1h}/h
                 </span>

@@ -157,7 +157,7 @@ export function Overview({ me, refresh, navigate }) {
                         <td className="num">{rec?.fetches_24h ?? ""}</td>
                         <td>
                           {c.is_primary ? (
-                            <span style={{ color: "var(--faint)" }}>
+                            <span style={{ color: "var(--ink-faint)" }}>
                               primary
                             </span>
                           ) : (
@@ -213,7 +213,7 @@ export function Overview({ me, refresh, navigate }) {
             </div>
           )}
           <div className="panel__actions">
-            <span style={{ fontSize: "12.5px", color: "var(--faint)" }}>
+            <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
               Add a player
             </span>
             <input
@@ -250,7 +250,7 @@ export function Overview({ me, refresh, navigate }) {
               style={{
                 marginLeft: "auto",
                 fontSize: "12px",
-                color: "var(--dim)",
+                color: "var(--ink-faint)",
               }}
             >
               added = recorded
@@ -388,7 +388,7 @@ export function Overview({ me, refresh, navigate }) {
             </div>
           )}
           <div className="panel__actions">
-            <span style={{ fontSize: "12.5px", color: "var(--faint)" }}>
+            <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
               Add a clan
             </span>
             <input
@@ -475,7 +475,7 @@ function TierRail({ me }) {
           style={{
             display: "flex",
             fontSize: "12px",
-            color: "var(--faint)",
+            color: "var(--ink-faint)",
             marginBottom: "4px",
           }}
         >
@@ -514,7 +514,11 @@ function TierRail({ me }) {
         {meterRow("clan watches · comprehensive", e.comprehensive_clans)}
         {meterRow("collections", e.collections)}
         <div
-          style={{ fontSize: "12px", color: "var(--faint)", marginTop: "12px" }}
+          style={{
+            fontSize: "12px",
+            color: "var(--ink-faint)",
+            marginTop: "12px",
+          }}
         >
           <span className="mono">{e.mcp_calls_per_day ?? "∞"}</span> tool calls
           / day · <span className="mono">{e.live_fetches_per_day ?? "∞"}</span>{" "}
@@ -563,7 +567,7 @@ function TierRail({ me }) {
               <span
                 style={{
                   fontSize: "12px",
-                  color: "var(--dim)",
+                  color: "var(--ink-faint)",
                   flexBasis: "100%",
                 }}
               >

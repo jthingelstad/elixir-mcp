@@ -44,7 +44,7 @@ export function AgentDetail({ id, navigate }) {
         </div>
       </div>
     );
-  if (!agent) return <p style={{ color: "var(--faint)" }}>Loading…</p>;
+  if (!agent) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
   const live = (agent.tokens ?? []).filter((k) => !k.revoked_at);
   const suspended = agent.status !== "approved";
@@ -79,7 +79,7 @@ export function AgentDetail({ id, navigate }) {
         <div className="panel__head">
           <span className="panel-title">{name}</span>
           {suspended && (
-            <span style={{ color: "var(--red)", fontSize: "12px" }}>
+            <span style={{ color: "var(--bad)", fontSize: "12px" }}>
               suspended
             </span>
           )}
@@ -152,7 +152,7 @@ export function AgentDetail({ id, navigate }) {
               </>
             )}
             {renameError && (
-              <div style={{ fontSize: "12px", color: "var(--amber)" }}>
+              <div style={{ fontSize: "12px", color: "var(--warn)" }}>
                 {renameError}
               </div>
             )}
@@ -168,10 +168,10 @@ export function AgentDetail({ id, navigate }) {
             {agent.last_call_at ? (
               <Fresh ts={agent.last_call_at} />
             ) : (
-              <span style={{ color: "var(--faint)" }}>never</span>
+              <span style={{ color: "var(--ink-faint)" }}>never</span>
             )}
             {keyNeverUsed && (
-              <div style={{ fontSize: "12px", color: "var(--amber)" }}>
+              <div style={{ fontSize: "12px", color: "var(--warn)" }}>
                 The current key has never been used
                 {key.created_at ? " since it was issued " : " "}
                 {key.created_at ? <Fresh ts={key.created_at} /> : null}. If
@@ -190,7 +190,7 @@ export function AgentDetail({ id, navigate }) {
                 {agent.last_seen.client ? ` · ${agent.last_seen.client}` : ""}
               </>
             ) : (
-              <span style={{ color: "var(--faint)" }}>
+              <span style={{ color: "var(--ink-faint)" }}>
                 not seen since addresses were recorded
               </span>
             )}
@@ -208,7 +208,7 @@ export function AgentDetail({ id, navigate }) {
         {agent.refusals_7d?.length > 0 && (
           <div
             className="panel__body"
-            style={{ color: "var(--amber)", fontSize: "12.5px" }}
+            style={{ color: "var(--warn)", fontSize: "12.5px" }}
           >
             <strong>
               Refused attempts in the last 7 days — something is still
@@ -233,7 +233,7 @@ export function AgentDetail({ id, navigate }) {
                 ) : null}
               </div>
             ))}
-            <div style={{ marginTop: "6px", color: "var(--faint)" }}>
+            <div style={{ marginTop: "6px", color: "var(--ink-faint)" }}>
               A revoked key that is still being used means a runtime somewhere
               was never given the new one.
             </div>
@@ -242,7 +242,7 @@ export function AgentDetail({ id, navigate }) {
         {!key && (
           <div
             className="panel__body"
-            style={{ color: "var(--amber)", fontSize: "12.5px" }}
+            style={{ color: "var(--warn)", fontSize: "12.5px" }}
           >
             <strong>No live key.</strong> This agent cannot authenticate until
             you issue one. Its identity, its clan and everything it has learned
@@ -262,9 +262,9 @@ export function AgentDetail({ id, navigate }) {
                 gap: "8px",
                 alignItems: "center",
                 padding: "10px 12px",
-                background: "var(--well)",
-                border: "1px solid var(--edge)",
-                borderRadius: "var(--r-md)",
+                background: "var(--ground-sunken)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-control)",
               }}
             >
               <code style={{ flex: 1, wordBreak: "break-all" }}>
@@ -359,7 +359,7 @@ export function AgentDetail({ id, navigate }) {
           >
             {suspended ? "Resume" : "Suspend"}
           </button>
-          <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+          <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
             {suspended
               ? "Its key reads as invalid while suspended; resuming restores the same key."
               : "Suspending makes its key read as invalid, without revoking it."}
@@ -383,14 +383,14 @@ export function AgentDetail({ id, navigate }) {
         </div>
         <div
           className="panel__body"
-          style={{ fontSize: "12.5px", color: "var(--faint)" }}
+          style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}
         >
           An agent serves many people through one connection. This is the map
           from an id on its own surface — a Discord user, say — to the player it
           answers about. The agent builds it with elixir_identify.
         </div>
         {identities?.length === 0 && (
-          <div className="panel__body" style={{ color: "var(--faint)" }}>
+          <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
             Nobody mapped yet.
           </div>
         )}
@@ -434,12 +434,12 @@ export function AgentDetail({ id, navigate }) {
       <section className="panel">
         <div className="panel__head">
           <span className="panel-title">Its notifications</span>
-          <span style={{ fontSize: "12px", color: "var(--faint)" }}>
+          <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
             newest first · reading here never marks them seen
           </span>
         </div>
         {events?.length === 0 && (
-          <div className="panel__body" style={{ color: "var(--faint)" }}>
+          <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
             Nothing yet.
           </div>
         )}
@@ -529,7 +529,7 @@ export function Agents({ navigate }) {
             <p
               style={{
                 fontSize: "12.5px",
-                color: "var(--faint)",
+                color: "var(--ink-faint)",
                 marginTop: 0,
               }}
             >
@@ -542,7 +542,7 @@ export function Agents({ navigate }) {
           </div>
 
           {principals?.agents?.length === 0 && (
-            <div className="panel__body" style={{ color: "var(--faint)" }}>
+            <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
               No agents yet.
             </div>
           )}
@@ -583,7 +583,9 @@ export function Agents({ navigate }) {
                           {a.last_call_at ? (
                             <Fresh ts={a.last_call_at} />
                           ) : (
-                            <span style={{ color: "var(--faint)" }}>never</span>
+                            <span style={{ color: "var(--ink-faint)" }}>
+                              never
+                            </span>
                           )}
                           {live[0] &&
                             !live[0].last_used_at &&
@@ -591,7 +593,7 @@ export function Agents({ navigate }) {
                               <div
                                 style={{
                                   fontSize: "11px",
-                                  color: "var(--amber)",
+                                  color: "var(--warn)",
                                 }}
                               >
                                 new key unused
@@ -603,7 +605,7 @@ export function Agents({ navigate }) {
                           {a.status === "approved" ? (
                             "active"
                           ) : (
-                            <span style={{ color: "var(--red)" }}>
+                            <span style={{ color: "var(--bad)" }}>
                               suspended
                             </span>
                           )}
@@ -647,7 +649,7 @@ export function Agents({ navigate }) {
 
           <div className="panel__body">
             {clans.length === 0 ? (
-              <p style={{ fontSize: "12.5px", color: "var(--faint)" }}>
+              <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
                 Add a clan on your Overview first — an agent needs a clan to act
                 for.
               </p>
@@ -678,7 +680,7 @@ export function Agents({ navigate }) {
               </form>
             )}
             {error && (
-              <p style={{ fontSize: "12.5px", color: "var(--amber)" }}>
+              <p style={{ fontSize: "12.5px", color: "var(--warn)" }}>
                 {error}
               </p>
             )}

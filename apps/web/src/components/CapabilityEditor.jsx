@@ -60,13 +60,13 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
             onChange={() => toggle(value)}
           />{" "}
           <span className="mono">{value}</span> — {title}
-          <div style={{ color: "var(--faint)", marginLeft: "20px" }}>
+          <div style={{ color: "var(--ink-faint)", marginLeft: "20px" }}>
             {description}
           </div>
         </label>
       ))}
       {error && (
-        <div style={{ color: "var(--amber)", fontSize: "12.5px" }}>{error}</div>
+        <div style={{ color: "var(--warn)", fontSize: "12.5px" }}>{error}</div>
       )}
       <button
         disabled={saving}

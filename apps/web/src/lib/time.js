@@ -32,7 +32,7 @@ export function ago(ts, now = Date.now()) {
  *  admitted payloads without anything being wrong. */
 export function freshCls(seconds) {
   if (seconds == null) return "freshness freshness--never";
-  if (seconds < 900) return "freshness freshness--fresh";
+  if (seconds < 900) return "freshness freshness--live";
   if (seconds < 86400) return "freshness freshness--stale";
   return "freshness";
 }
@@ -43,7 +43,7 @@ export function freshCls(seconds) {
  *  than that means the process is gone rather than idle. */
 export function beatCls(seconds) {
   if (seconds == null) return "freshness freshness--never";
-  if (seconds < 300) return "freshness freshness--fresh";
+  if (seconds < 300) return "freshness freshness--live";
   if (seconds < 3600) return "freshness freshness--stale";
   return "freshness";
 }

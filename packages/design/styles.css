@@ -1,29 +1,28 @@
-/* elixir.poapkings.com — evolved token system + component styles
-   Design handoff, 2026-09-05.
+/* Elixir MCP — design tokens and component rules
+   Design handoff of 2026-09-09 (contract 0.42.0), which supersedes the
+   2026-09-05 sheet: every token is renamed to say the job it does
+   (--ground, --line, --ink-dim, --accent) rather than what it looks
+   like (--bg0, --edge, --muted, --purple).
 
-   THE single stylesheet for both halves of the site (split 2026-09-07):
-   apps/web imports it through Vite, apps/site copies it to
-   /assets/site.css. It lives in its own package so neither half owns
-   it and neither can fork it; a test asserts the served copy is these
-   exact bytes.
+   THE single stylesheet for both halves of the site: apps/web imports it
+   through Vite, apps/site copies it to /assets/site.css. It lives in its
+   own package so neither half owns it and neither can fork it; a test
+   asserts the served copy is these exact bytes.
 
-   What changed from the current file, in one paragraph: the Drop palette
-   is intact (same bg0/bg1/panel/edge/ink/muted/purple/gold hexes); added
-   are a --well surface, a --panel-2 raised surface, a three-step edge
-   scale, --dim for footnotes and chart axes, --purple-bright for chart
-   ink and links, --amber and --neutral for status. Radii shrink
-   (20 -> 12 for panels), the drop shadow is gone from panels (edges do
-   the work; the only shadow left is on popovers), the content column
-   widens 46rem -> 70rem for console and data pages, body type drops
-   16 -> 14px with 13px table rows, and every number carries
-   tabular-nums. The Clash display face (Supercell Fan Kit, already
-   vendored in Drop) carries the brand shell only: wordmark, page
-   titles, hero, and big single numerals. It never touches a table.
+   The source of truth for these values is the handoff's Design System
+   file (Tokens page). Keep them in step.
 
-   Fonts: "Clash" is Supercell's official Clash Royale display font from
-   the Supercell Fan Kit, used under the Fan Content Policy. Copy
-   Clash_Regular.otf to /assets/fonts/ (same file Drop ships) along with
-   its README.md compliance note. */
+   Four things the handoff sheet does not carry are kept below, because
+   they are not palette values it renamed — they are jobs it does not
+   cover: the @font-face, the collector series colours (validated for
+   the dark plot surface, adjacent-pair colourblind separation and 3:1
+   contrast — do not reorder or substitute by eye), the focus ring, and
+   the 4pt spacing scale.
+
+   Fonts: "Clash Royale" is Supercell's official display font from the
+   Supercell Fan Kit, used under the Fan Content Policy. Copy
+   Clash_Regular.otf to /assets/fonts/ along with its README.md
+   compliance note. */
 
 @font-face {
   font-family: "Clash Royale";
@@ -36,49 +35,61 @@
 /* ── Tokens ───────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — unchanged from Drop, plus two new steps */
-  --bg0: #070610; /* stage */
-  --bg1: #0b0920; /* stage glow */
-  --well: #0a0818; /* NEW: inputs, code, chart plots, table footers */
-  --panel: #120f2a; /* panel */
-  --panel-2: #181439; /* NEW: raised — active tab, popover, CTA panel */
-  --panel-foot: #0e0b22; /* NEW: panel action bars */
+  /* ---- Ground: page up to a raised panel -------------------------- */
+  --ground: #0c0920; /* page background, under the radial wash */
+  --ground-chrome: #100c26; /* header, footer, rail */
+  --ground-sunken: #120d2e; /* code blocks, meter troughs, inputs */
+  --panel: #1a1440; /* cards, panels, chip backgrounds */
+  --panel-raised: #221a52; /* secondary buttons, tag pills */
+  --panel-head: #181135; /* header strip inside a code panel */
 
-  /* Edges — a three-step scale replaces the single --edge */
-  --edge-soft: #1f1a42; /* NEW: table row rules, internal dividers */
-  --edge: #2a2450; /* panel borders, inputs */
-  --edge-strong: #3b3370; /* NEW: hover, caveat chips, empty states */
+  /* The page wash. One gradient, same on every surface. */
+  --page-wash: radial-gradient(70rem 34rem at 60% -14rem, #191140, #0c0920);
 
-  /* Ink */
-  --ink: #f7f4ff;
-  --muted: #c8c1e6; /* body copy, CR tags */
-  --faint: #a99fce; /* labels, secondary values */
-  --dim: #8a81b3; /* NEW: footnotes, mono labels, chart axes */
+  /* ---- Line: three weights, each with a job ----------------------- */
+  --line: #3a3175; /* panel borders, table header rule */
+  --line-soft: #2d2560; /* chrome dividers, panel internals */
+  --line-row: #241d4e; /* the rule under a table row */
+  --line-strong: #4c4193; /* emphasised panel, input border */
 
-  /* Brand metal — gold. Wordmark, page titles, ★ "yours",
-     achievement moments. NEVER a data value. */
+  /* ---- Ink -------------------------------------------------------- */
+  --ink: #faf8ff; /* primary text, numbers, active nav */
+  --ink-body: #ddd7f5; /* body copy in panels and tables */
+  --ink-dim: #bdb4e2; /* ledes, inactive nav, secondary copy */
+  --ink-faint: #a29ad0; /* labels, footnotes, provenance */
+  --ink-link: #b49dfb; /* links and Clash Royale tags */
+  --ink-link-hover: #d3c4ff;
+  --ink-code: #e6dfff; /* inside a code block */
+  --ink-quiet-icon: #8b7fc7; /* an icon that is deliberately inert */
+
+  /* ---- Signal ----------------------------------------------------- */
+  /* Gold is brand and ownership. NEVER a data value. */
   --gold: #f5c84c;
-  --gold-lite: #ffe99a;
-  --ink-on-gold: #2a1500;
-  --gold-grad: linear-gradient(180deg, var(--gold-lite), var(--gold));
+  --gold-light: #ffe99a;
+  --gold-grad: linear-gradient(180deg, #ffe99a, #f5c84c);
+  --gold-on: #2a1500; /* text on a gold surface */
 
-  /* Working accent — purple. Tier-2 nav, focus, primary buttons,
-     chart ink, meters. */
-  --purple: #6d28d9;
-  --purple-bright: #8b5cf6; /* NEW: chart bars, links, meters */
-  --purple-link: #a78bfa; /* NEW: link ink on dark */
-  --purple-soft: rgba(139, 92, 246, 0.16);
-  --purple-row: rgba(139, 92, 246, 0.08); /* NEW: table row hover */
-  --purple-glow: rgba(109, 40, 217, 0.35);
+  --accent: #8b5cf6; /* meter fills, charts, marks */
+  --accent-bright: #a78bfa; /* icons, accent ink, unread dot */
+  --accent-deep: #6d28d9; /* selected control, primary non-brand */
 
-  /* Categorical series — collectors on the capture charts. Fixed
-     order, assigned by the collector's enrolment (never its rank), so
-     a new collector appends a colour instead of repainting everyone.
-     Validated against the --well plot surface for the dark-mode
-     lightness band, chroma floor, colourblind separation of every
-     ADJACENT pair (they touch in a stack) and 3:1 contrast. Do not
-     reorder or substitute by eye — re-run the check. Beyond six
-     collectors the rest fold into --neutral. */
+  --ok: #4ade80; /* recording, healthy, granted, win */
+  --warn: #fcd34d; /* attention, behind, waiting, retired */
+  --bad: #fb7185; /* refused, failed, revoked, loss */
+
+  --ok-fill: rgba(74, 222, 128, 0.13);
+  --ok-edge: rgba(74, 222, 128, 0.4);
+  --warn-fill: rgba(252, 211, 77, 0.1);
+  --warn-edge: rgba(252, 211, 77, 0.45);
+  --bad-fill: rgba(251, 113, 133, 0.12);
+  --bad-edge: rgba(251, 113, 133, 0.4);
+  --info-fill: rgba(139, 92, 246, 0.16);
+  --info-edge: var(--line-strong);
+
+  /* Categorical series — collectors on the capture charts. Fixed order,
+     assigned by the collector's enrolment (never its rank), so a new
+     collector appends a colour instead of repainting everyone. Beyond
+     six collectors the rest fold into --ink-quiet-icon. */
   --series-1: #8b5cf6;
   --series-2: #65a30d;
   --series-3: #db2777;
@@ -86,39 +97,71 @@
   --series-5: #ea580c;
   --series-6: #3b82f6;
 
-  /* Status */
-  --green: #34d399; /* active, win, fresh */
-  --amber: #fbbf24; /* NEW: stale, pending */
-  --red: #f87171; /* error, loss */
-  --neutral: #5b5486; /* NEW: off, stopped, never */
+  /* ---- Interaction ------------------------------------------------ */
+  --hover-rail: rgba(139, 92, 246, 0.14);
+  --hover-row: rgba(139, 92, 246, 0.07);
+  --hover-child: rgba(139, 92, 246, 0.1);
+  --mark-current: inset 2px 0 0 var(--gold); /* current rail item */
+  --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
 
-  /* Radius — panels come down from 20px */
-  --r-sm: 4px; /* chips, code, mono tags */
-  --r-md: 8px; /* inputs, buttons */
-  --r-lg: 12px; /* panels */
-  --r-pill: 999px; /* status chips only */
+  --focus-glow: rgba(139, 92, 246, 0.28);
+  --ring: 0 0 0 3px var(--focus-glow);
 
-  /* Elevation — edges, not shadows */
-  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55); /* popovers only */
-  --ring: 0 0 0 3px var(--purple-glow); /* focus */
-  --inset: inset 0 1px 0 rgba(0, 0, 0, 0.5); /* wells */
+  /* ---- Type ------------------------------------------------------- */
+  --font: Inter, system-ui, sans-serif;
+  --font-display: "Clash Royale", Inter, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
 
-  /* Spacing — 4pt */
+  --t-h1-site: 36px; /* site + design-system h1 */
+  --t-h1-page: 30px; /* console page title */
+  --t-h2: 18px;
+  --t-panel-head: 14px;
+  --t-body: 15px;
+  --t-body-sm: 13.5px;
+  --t-label: 11px; /* uppercase, .09em tracking */
+  --t-mono: 12.5px;
+  --t-stat: 20px; /* mono stat value */
+  --lh-body: 1.5;
+  --lh-prose: 1.65;
+
+  /* ---- Geometry --------------------------------------------------- */
+  --rail-w: 256px;
+  --page-max: 1280px;
+  --content-max: 1020px; /* console page content */
+  --prose-max: 72ch;
+  --pad-page: 32px;
+  --pad-page-narrow: 16px;
+
+  --r-chip: 8px;
+  --r-control: 10px;
+  --r-block: 12px;
+  --r-panel: 14px;
+  --r-rail: 0 10px 10px 0; /* squared into the current-item rule */
+  --r-pill: 999px;
+
+  --hit: 40px; /* desktop row / control */
+  --hit-touch: 44px; /* narrow viewport */
+
+  --bp-narrow: 900px; /* ONE breakpoint, all surfaces */
+
+  --shadow-modal: 0 24px 70px rgba(4, 2, 12, 0.5);
+  --shadow-float: 0 20px 60px rgba(4, 2, 12, 0.45);
+
+  /* Spacing — 4pt. Not a handoff token: the sheet names no spacing
+     scale, and the component layer below is written against this one. */
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
   --s-4: 16px;
+  --s-5: 20px;
   --s-6: 24px;
   --s-8: 32px;
   --s-12: 48px;
-
-  --col: 70rem; /* 1120px — console + data pages */
-  --col-prose: 46rem; /* docs, sign-in, single-form pages */
-
-  --font-display: "Clash Royale", "Inter", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
+
+/* ==================================================================
+   Base
+   ================================================================== */
 
 *,
 *::before,
@@ -129,35 +172,695 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(80rem 40rem at 50% -10rem, var(--bg1), var(--bg0))
-    var(--bg0);
+  background: var(--page-wash) var(--ground);
   color: var(--ink);
-  font: 14px/1.5 var(--font-body);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--purple-link);
+  color: var(--ink-link);
   text-decoration: none;
   cursor: pointer;
 }
 a:hover {
-  color: #c4b5fd;
+  color: var(--ink-link-hover);
+}
+code,
+pre {
+  font-family: var(--font-mono);
+}
+table {
+  border-collapse: collapse;
 }
 
-/* ── Type ─────────────────────────────────────────────────── */
+/* Clash Royale is for display type only — never body, never tables. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
 
-/* The brand shell: display face, weight 400 (Clash has one weight),
-   positive letter-spacing (it is a wide face, negative tracking fights
-   it). Everything else is Inter. */
 .wordmark {
-  font: 400 19px/1 var(--font-display);
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  font-size: 24px;
   background: var(--gold-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+
+.label {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+}
+.footnote {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* A form's own label. The handoff gives `.label` to the uppercase
+   eyebrow, which is what it means everywhere in the design; this is the
+   sentence-case one that sits above an input. */
+.field-label {
+  display: block;
+  margin-bottom: var(--s-1);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* ==================================================================
+   Shell
+   ================================================================== */
+
+.chrome {
+  background: var(--ground-chrome);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.chrome__inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0 22px;
+  padding: 0 24px;
+  min-height: 60px;
+}
+
+/* The top bar carries NO signed-in state — it must render identically in
+   the Eleventy build and the app. Session lives in the rail. */
+.chrome__tab {
+  padding: 19px 0;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.chrome__tab--on {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--mark-tab);
+}
+
+.chrome__console {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gold-grad);
+  color: var(--gold-on);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 17px;
+  border-radius: var(--r-control);
+}
+
+/* ==================================================================
+   Rail
+   ================================================================== */
+
+.rail {
+  flex: 0 0 var(--rail-w);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground-chrome);
+  border-right: 1px solid var(--line-soft);
+  padding: 20px 12px 28px;
+}
+
+.rail__group {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 16px 11px 6px;
+}
+
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: var(--hit);
+  padding: 10px 11px;
+  border-radius: var(--r-rail);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  background: transparent;
+}
+.rail__item:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
+}
+
+/* Current item: rule + weight. Never a filled block — background is
+   reserved for hover, and only hover. */
+.rail__item--on {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--mark-current);
+}
+
+.rail__child {
+  display: flex;
+  align-items: center;
+  padding: 8px 11px 8px 44px;
+  border-radius: var(--r-rail);
+  font-size: var(--t-body-sm);
+  color: var(--ink-faint);
+}
+.rail__child:hover {
+  background: var(--hover-child);
+  color: var(--ink);
+}
+.rail__child--on {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--mark-current);
+}
+
+.rail__meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.rail__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  flex: 0 0 auto;
+}
+.rail__dot--unread {
+  background: var(--accent-bright);
+}
+.rail__dot--alert {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.22);
+}
+
+.rail__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 11px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+@media (max-width: 900px) {
+  /* The rail becomes a disclosure ABOVE the content — never a drawer over
+     it. The closed row names the section and where you are in it. */
+  .rail {
+    flex: 0 0 auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-soft);
+    padding: 10px 12px 12px;
+  }
+  .rail__toggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    height: var(--hit-touch);
+    box-sizing: border-box;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r-control);
+    padding: 0 11px;
+    color: var(--ink);
+    text-align: left;
+  }
+}
+
+/* ==================================================================
+   Page
+   ================================================================== */
+
+.page {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--pad-page) var(--pad-page) 64px;
+}
+.page__inner {
+  max-width: var(--content-max);
+}
+.page__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--t-h1-page);
+  margin: 0;
+}
+.page__lede {
+  margin: 7px 0 0;
+  color: var(--ink-dim);
+  font-size: 14px;
+  max-width: 66ch;
+  text-wrap: pretty;
+}
+.page__crumb {
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 22px var(--pad-page-narrow) 56px;
+  }
+}
+
+/* Docs strip — foot of EVERY console page, same slot, driven by one map. */
+.page__docs {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ==================================================================
+   Panels — for meters, stat grids, code, callouts. NEVER around a table.
+   ================================================================== */
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  overflow: hidden;
+}
+.panel__head {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--t-panel-head);
+  font-weight: 600;
+}
+.panel__body {
+  padding: 16px;
+}
+.panel__foot {
+  border-top: 1px solid var(--line-soft);
+  padding: 11px 16px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.callout {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  border-radius: var(--r-block);
+  padding: 13px 15px;
+  font-size: var(--t-body-sm);
+  line-height: 1.6;
+  color: var(--ink-body);
+  text-wrap: pretty;
+}
+.callout--warn {
+  background: var(--warn-fill);
+  border: 1px solid var(--warn-edge);
+}
+.callout--info {
+  background: var(--info-fill);
+  border: 1px solid var(--info-edge);
+}
+
+/* An empty state says WHY it is empty, then offers one action. */
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: var(--r-block);
+  padding: 16px;
+  max-width: 60ch;
+}
+.empty__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.empty__body {
+  font-size: var(--t-body-sm);
+  line-height: 1.6;
+  color: var(--ink-dim);
+  margin: 0 0 13px;
+  text-wrap: pretty;
+}
+
+/* ==================================================================
+   Table — interface, not a report.
+   No card, no fills, no zebra. Hover is the only row background.
+   ================================================================== */
+
+.table {
+  width: 100%;
+  font-size: var(--t-body-sm);
+  border-collapse: collapse;
+}
+.table__scroll {
+  overflow: auto;
+  margin: 0 -2px;
+}
+
+.table th {
+  position: sticky; /* long logs keep their header */
+  top: 0;
+  z-index: 1;
+  background: var(--ground-sunken);
+  padding: 9px 14px;
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-align: left;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--line);
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-row);
+  border-top: 0;
+  color: var(--ink-body);
+  white-space: nowrap;
+}
+.table td--num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+.table tbody tr:hover {
+  background: var(--hover-row);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 2px 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  flex-wrap: wrap;
+}
+
+/* ==================================================================
+   Chips — ink, fill and border ALWAYS derive from one tone.
+   ================================================================== */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--r-pill);
+  padding: 4px 12px;
+}
+.chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.chip--ok {
+  color: var(--ok);
+  background: var(--ok-fill);
+  border: 1px solid var(--ok-edge);
+}
+.chip--warn {
+  color: var(--warn);
+  background: var(--warn-fill);
+  border: 1px solid var(--warn-edge);
+}
+.chip--bad {
+  color: var(--bad);
+  background: var(--bad-fill);
+  border: 1px solid var(--bad-edge);
+}
+.chip--info {
+  color: var(--accent-bright);
+  background: var(--info-fill);
+  border: 1px solid var(--info-edge);
+}
+
+/* Gold is not a state. This is the tier badge and nothing else. */
+.chip--tier {
+  color: var(--gold-on);
+  background: var(--gold-grad);
+  font-weight: 700;
+  padding: 3px 11px;
+}
+
+/* ==================================================================
+   Meter — fill is ALWAYS --accent. Gold appears only as ink at a limit.
+   ================================================================== */
+
+.meter {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+.meter__fill {
+  height: 100%;
+  background: var(--accent);
+}
+.meter__value {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+.meter__value--full {
+  color: var(--gold);
+} /* at or over the limit */
+
+/* The budget variant carries a pace marker, so no overflow:hidden. */
+.meter--marked {
+  position: relative;
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-soft);
+}
+.meter--marked .meter__fill {
+  border-radius: var(--r-pill);
+}
+.meter__mark {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+/* ==================================================================
+   Stat grid — mono value, and every cell carries its window.
+   ================================================================== */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  overflow: hidden;
+}
+.stats__cell {
+  background: var(--panel);
+  padding: 15px 16px;
+}
+.stats__value {
+  font-family: var(--font-mono);
+  font-size: var(--t-stat);
+  color: var(--ink);
+}
+.stats__note {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 5px;
+}
+
+/* Brand counters (Home, corpus totals) are the ONE place a number is gold —
+   they are a brand moment, not a reading. */
+.stats__value--brand {
+  font-family: var(--font-display);
+  font-size: 27px;
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ==================================================================
+   Controls
+   ================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--t-body-sm);
+  border-radius: var(--r-control);
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-raised);
+  color: var(--ink);
+}
+.btn:hover {
+  border-color: var(--accent-deep);
+}
+.btn--primary {
+  background: var(--gold-grad);
+  color: var(--gold-on);
+  font-weight: 700;
+  border: 0;
+  padding: 10px 16px;
+}
+.btn--selected {
+  background: var(--accent-deep);
+  border-color: var(--accent);
+}
+.btn--quiet {
+  background: transparent;
+  color: var(--ink-dim);
+}
+.btn--danger {
+  background: var(--bad-fill);
+  border-color: var(--bad-edge);
+  color: var(--bad);
+}
+.btn--sm {
+  font-size: 12.5px;
+  padding: 5px 11px;
+  border-radius: var(--r-chip);
+}
+
+.input {
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  color: var(--ink);
+  font-size: var(--t-body);
+  padding: 12px 13px;
+}
+
+.select {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-body);
+  font-size: 13px;
+  padding: 8px 11px;
+}
+
+/* ==================================================================
+   Code / record panels
+   ================================================================== */
+
+.code {
+  border: 1px solid var(--line);
+  border-radius: var(--r-block);
+  background: var(--ground-sunken);
+  overflow: hidden;
+}
+.code__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 11px 15px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--panel-head);
+}
+.code__body {
+  margin: 0;
+  padding: 14px 16px;
+  overflow: auto;
+  font-size: var(--t-mono);
+  line-height: 1.65;
+  color: var(--ink-code);
+}
+
+/* Freshness is honest: a timestamp, "never polled", "derived" and
+   "membership" are four different statements, not one placeholder. */
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+.freshness--live {
+  color: var(--ok);
+}
+.freshness--stale {
+  color: var(--warn);
+}
+.freshness--derived {
+  color: var(--accent-bright);
+}
+.freshness--never {
+  color: var(--ink-faint);
+}
+
+/* ==================================================================
+   Carried forward from the 2026-09-05 sheet — the surfaces the handoff
+   does not redraw yet (site chrome, docs, charts, record browser). These
+   are retargeted onto the tokens above and go as their screens land.
+   ================================================================== */
+
+/* The 2026-09-05 chips (dot + lowercase mono) still render on Status,
+   Explore, Admin, Feedback and the collector pages. The handoff's `.chip`
+   is a different shape — ink/fill/border from one tone, an explicit dot
+   element — so the old geometry is scoped to the old modifiers rather
+   than left on the base, where it leaked a mono face and a second dot
+   into every new chip. Goes when those screens are rebuilt. */
+.chip--active,
+.chip--pending,
+.chip--error,
+.chip--live {
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border: 1px solid var(--line);
+  font: 11.5px var(--font-mono);
+  color: var(--ink-faint);
+}
+.chip--active::before,
+.chip--pending::before,
+.chip--error::before,
+.chip--live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-quiet-icon);
+}
+/* ── Type ─────────────────────────────────────────────────── */
+
+/* The brand shell: display face, weight 400 (Clash has one weight),
+   positive letter-spacing (it is a wide face, negative tracking fights
+   it). Everything else is Inter. */
 h1,
 .page-title {
   margin: 0;
@@ -188,43 +891,37 @@ h1,
   line-height: 1;
 }
 .stat__value--text {
-  font: 600 13px/1.3 var(--font-body);
+  font: 600 13px/1.3 var(--font);
   letter-spacing: 0;
 }
 .stat__label {
   font: 600 11px var(--font-mono);
   letter-spacing: 0.06em;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .stat__sub {
   margin-top: 6px;
   font: 11px var(--font-mono);
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 .lede {
   font-size: 16px;
-  color: var(--muted);
+  color: var(--ink-body);
   max-width: 560px;
   text-wrap: pretty;
 }
 .eyebrow {
   font: 600 11px var(--font-mono);
   letter-spacing: 0.1em;
-  color: var(--purple-link);
-}
-code,
-.mono {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--muted);
+  color: var(--ink-link);
 }
 /* CR tags are identifiers, not achievements — lavender mono, not gold.
    This is a change from the current file. */
 .tag {
   font-family: var(--font-mono);
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--ink-body);
 }
 /* ★ marks what is YOURS: primary player tag, home clan, your row. */
 .yours {
@@ -240,7 +937,7 @@ code,
 }
 .wrap {
   width: 100%;
-  max-width: var(--col);
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 0 var(--s-6);
 }
@@ -249,7 +946,7 @@ main.wrap {
   padding: var(--s-6) var(--s-6) var(--s-12);
 }
 .wrap--prose {
-  max-width: var(--col-prose);
+  max-width: var(--prose-max);
 }
 
 /* Page head: title, one line of context, freshness pushed right */
@@ -262,7 +959,7 @@ main.wrap {
 }
 .page-head__note {
   font-size: 13px;
-  color: var(--faint);
+  color: var(--ink-faint);
   text-wrap: pretty;
 }
 .page-head .freshness {
@@ -296,7 +993,7 @@ main.wrap {
 
 /* Tier 1 — product areas. Gold underline, gold ink. */
 .nav1 {
-  border-bottom: 1px solid var(--edge-soft);
+  border-bottom: 1px solid var(--line-soft);
 }
 .nav1__inner {
   display: flex;
@@ -320,7 +1017,7 @@ main.wrap {
   align-items: center;
   min-height: 56px;
   font-size: 13.5px;
-  color: var(--muted);
+  color: var(--ink-body);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
@@ -328,7 +1025,7 @@ main.wrap {
   color: var(--ink);
 }
 .nav1 nav a[aria-current] {
-  color: var(--gold-lite);
+  color: var(--gold-light);
   font-weight: 600;
   border-bottom-color: var(--gold);
 }
@@ -343,7 +1040,7 @@ main.wrap {
   align-items: center;
   gap: 12px;
   font-size: 12.5px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 /* Sign out is a button here, because it is an action rather than a place.
    It has to sit level with the links beside it and read the same. */
@@ -366,8 +1063,8 @@ main.wrap {
    which is the same surface every panel and control in the app uses -- so
    the application looks assembled from its own material. */
 .nav1--app {
-  background: var(--well);
-  border-bottom-color: var(--edge);
+  background: var(--ground-sunken);
+  border-bottom-color: var(--line);
 }
 
 /* Reads as a label on the wordmark, never as a link. Small, quiet, and the
@@ -376,12 +1073,12 @@ main.wrap {
   align-self: center;
   margin-left: -16px;
   padding: 2px 7px;
-  border: 1px solid var(--edge);
+  border: 1px solid var(--line);
   border-radius: 999px;
   font-size: 10.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--ink-faint);
   user-select: none;
 }
 
@@ -393,11 +1090,11 @@ main.wrap {
   gap: 18px;
   margin-top: var(--s-6);
   padding-top: var(--s-4);
-  border-top: 1px solid var(--edge-soft);
+  border-top: 1px solid var(--line-soft);
   font-size: 12.5px;
 }
 .sitelinks a {
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 .sitelinks a:hover {
   color: var(--ink);
@@ -407,7 +1104,7 @@ main.wrap {
    NOT pills: pills are what the current file uses for both tier 2 and
    in-page tabs, which is why they read the same. */
 .nav2 {
-  border-bottom: 1px solid var(--edge-soft);
+  border-bottom: 1px solid var(--line-soft);
 }
 .nav2__inner {
   display: flex;
@@ -420,7 +1117,7 @@ main.wrap {
 .nav2 a {
   padding: 10px 12px;
   font-size: 13px;
-  color: var(--faint);
+  color: var(--ink-faint);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
@@ -429,7 +1126,7 @@ main.wrap {
 }
 .nav2 a[aria-current] {
   color: var(--ink);
-  border-bottom-color: var(--purple-bright);
+  border-bottom-color: var(--accent);
 }
 
 /* In-page tabs — a segmented control sunk in a well. Third distinct
@@ -439,9 +1136,9 @@ main.wrap {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  background: var(--well);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-md);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
   max-width: 100%;
   overflow-x: auto;
 }
@@ -450,15 +1147,15 @@ main.wrap {
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--faint);
+  color: var(--ink-faint);
   font: inherit;
   font-size: 12.5px;
   white-space: nowrap;
   cursor: pointer;
 }
 .segmented button[aria-selected="true"] {
-  background: var(--panel-2);
-  border-color: var(--edge-strong);
+  background: var(--panel-raised);
+  border-color: var(--line-strong);
   color: var(--ink);
   font-weight: 600;
 }
@@ -474,7 +1171,7 @@ main.wrap {
   flex-wrap: wrap;
 }
 .trail__sep {
-  color: var(--edge-strong);
+  color: var(--line-strong);
 }
 .trail a[aria-current] {
   color: var(--ink);
@@ -483,31 +1180,14 @@ main.wrap {
 
 /* ── Panel ────────────────────────────────────────────────── */
 
-.panel {
-  border: 1px solid var(--edge);
-  border-radius: var(--r-lg);
-  background: var(--panel);
-  overflow: hidden; /* keeps table corners inside the radius */
-}
-.panel__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px var(--s-4);
-  border-bottom: 1px solid var(--edge);
-  flex-wrap: wrap;
-}
-.panel__body {
-  padding: 14px var(--s-4);
-}
 /* Action bar at the foot of a panel (add-a-player, add-a-clan) */
 .panel__actions {
   display: flex;
   gap: var(--s-2);
   align-items: center;
   padding: 12px var(--s-4);
-  border-top: 1px solid var(--edge-soft);
-  background: var(--panel-foot);
+  border-top: 1px solid var(--line-soft);
+  background: var(--panel-head);
   flex-wrap: wrap;
 }
 /* The honesty footnote. Every panel that shows a derived number gets
@@ -515,28 +1195,19 @@ main.wrap {
    tooltip — a caveat you have to hover for is a caveat you hid. */
 .panel__note {
   padding: 10px var(--s-4);
-  border-top: 1px solid var(--edge-soft);
+  border-top: 1px solid var(--line-soft);
   font-size: 12px;
   line-height: 1.5;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .panel--cta {
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
 }
 
 /* ── Stat strip ───────────────────────────────────────────── */
 
 /* Corpus totals, player summary. 1px gaps over --edge-soft give hairline
    dividers without per-cell border bookkeeping. */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1px;
-  background: var(--edge-soft);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-}
 .stats > * {
   padding: var(--s-4);
   background: var(--panel);
@@ -558,70 +1229,53 @@ th {
   padding: var(--s-2) var(--s-3);
   font: 600 11px var(--font-mono);
   letter-spacing: 0.06em;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 td {
   padding: 9px var(--s-3);
-  border-top: 1px solid var(--edge-soft);
+  border-top: 1px solid var(--line-row);
 }
 tbody tr:hover td {
-  background: var(--purple-row);
+  background: var(--hover-row);
 }
 .num {
   text-align: right;
 }
 /* Your row (your clan in war standings, your player in a roster) */
 tr.yours td {
-  color: var(--gold-lite);
+  color: var(--gold-light);
 }
 /* Empty weeks and null values stay in the table so gaps are visible */
 .nil {
-  color: var(--neutral);
+  color: var(--ink-quiet-icon);
 }
 
 /* ── Chips ────────────────────────────────────────────────── */
 
 /* Status — state, never judgment. Dot + lowercase mono. */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 9px 2px 7px;
-  border: 1px solid var(--edge);
-  border-radius: var(--r-pill);
-  font: 11.5px var(--font-mono);
-  color: var(--faint);
-}
-.chip::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--neutral);
-}
 .chip--active {
-  color: var(--green);
+  color: var(--ok);
   border-color: rgba(52, 211, 153, 0.35);
   background: rgba(52, 211, 153, 0.08);
 }
 .chip--active::before {
-  background: var(--green);
+  background: var(--ok);
 }
 .chip--pending {
-  color: var(--amber);
+  color: var(--warn);
   border-color: rgba(251, 191, 36, 0.35);
   background: rgba(251, 191, 36, 0.08);
 }
 .chip--pending::before {
-  background: var(--amber);
+  background: var(--warn);
 }
 .chip--error {
-  color: var(--red);
+  color: var(--bad);
   border-color: rgba(248, 113, 113, 0.35);
   background: rgba(248, 113, 113, 0.08);
 }
 .chip--error::before {
-  background: var(--red);
+  background: var(--bad);
 }
 
 /* Outcomes are text colour only — a win chip on every battle row is
@@ -630,31 +1284,31 @@ tr.yours td {
   font: 600 11.5px var(--font-mono);
 }
 .outcome--win {
-  color: var(--green);
+  color: var(--ok);
 }
 .outcome--loss {
-  color: var(--red);
+  color: var(--bad);
 }
 .outcome--draw {
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 /* Scope, role, kind — neutral square mono tags, no dot */
 .tag-chip {
   padding: 2px var(--s-2);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--ground-sunken);
   font: 11.5px var(--font-mono);
-  color: var(--muted);
+  color: var(--ink-body);
 }
 .kind-chip {
   padding: 3px 7px;
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
   font: 600 10px var(--font-mono);
   letter-spacing: 0.1em;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 
 /* ── The honesty set ─────────────────────────────────────────
@@ -665,46 +1319,32 @@ tr.yours td {
    thin sample without hiding the number. */
 .sample {
   padding: 1px 6px;
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
   font: 11px var(--font-mono);
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 
 /* Caveat — dashed edge, always lowercase, in the panel head or a column
    header. Dashed is the signal: this is a qualification, not a state. */
 .caveat {
   padding: 1px 7px;
-  border: 1px dashed var(--edge-strong);
-  border-radius: var(--r-sm);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-chip);
   font: 11px var(--font-mono);
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 
 /* Freshness — how old is this number. green < 15m, amber < 24h,
    neutral beyond, and "as of <date>" for snapshots. */
-.freshness {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 11.5px var(--font-mono);
-  color: var(--muted);
-}
-.freshness::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--neutral);
-}
 .freshness--fresh::before {
-  background: var(--green);
+  background: var(--ok);
 }
 .freshness--stale::before {
-  background: var(--amber);
+  background: var(--warn);
 }
 .freshness--never {
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 /* Disclaimer — the Supercell fan-content note, on every surface. Given
@@ -715,28 +1355,28 @@ tr.yours td {
   gap: 10px;
   align-items: flex-start;
   padding: var(--s-4) var(--s-6) var(--s-6);
-  border-top: 1px solid var(--edge-soft);
+  border-top: 1px solid var(--line-soft);
   flex-wrap: wrap;
 }
 .disclaimer__tag {
   flex: none;
   margin-top: 1px;
   padding: 2px 6px;
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
   font: 600 10px var(--font-mono);
   letter-spacing: 0.08em;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .disclaimer__text {
   flex: 1 1 320px;
   font-size: 11.5px;
   line-height: 1.5;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .disclaimer__family {
   font: 11px var(--font-mono);
-  color: var(--neutral);
+  color: var(--ink-quiet-icon);
   white-space: nowrap;
 }
 
@@ -746,38 +1386,11 @@ button {
   font: inherit;
   cursor: pointer;
 }
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  padding: 7px 14px;
-  border: 0;
-  border-radius: var(--r-md);
-  background: var(--purple);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.4);
-}
-.btn:hover {
-  filter: brightness(1.1);
-}
-.btn--quiet {
-  background: transparent;
-  border: 1px solid var(--edge);
-  color: var(--muted);
-  font-weight: 500;
-  box-shadow: none;
-}
-.btn--quiet:hover {
-  border-color: var(--edge-strong);
-  color: var(--ink);
-}
 .btn--text {
   padding: 4px var(--s-2);
   background: transparent;
   border: 1px solid transparent;
-  color: var(--faint);
+  color: var(--ink-faint);
   font-size: 12px;
   font-weight: 400;
   box-shadow: none;
@@ -788,13 +1401,13 @@ button {
    submit inside the sign-in form itself; those are .btn. */
 .btn--gold {
   background: var(--gold-grad);
-  color: var(--ink-on-gold);
+  color: var(--gold-on);
   font-weight: 700;
   box-shadow: none;
 }
 .btn:disabled {
-  background: var(--edge);
-  color: var(--faint);
+  background: var(--line);
+  color: var(--ink-faint);
   cursor: default;
   filter: none;
 }
@@ -804,20 +1417,14 @@ button {
 label {
   display: block;
 }
-.label {
-  display: block;
-  margin-bottom: var(--s-1);
-  font-size: 12px;
-  color: var(--faint);
-}
 input,
 select,
 textarea {
   width: 100%;
   padding: 7px 10px;
-  background: var(--well);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-md);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
   color: var(--ink);
   font: inherit;
   font-size: 13px;
@@ -829,12 +1436,12 @@ input[data-tag] {
 }
 input::placeholder,
 textarea::placeholder {
-  color: var(--neutral);
+  color: var(--ink-quiet-icon);
 }
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--purple);
+  border-color: var(--accent-deep);
   box-shadow: var(--ring);
 }
 textarea {
@@ -842,10 +1449,10 @@ textarea {
 }
 .field-error {
   font-size: 12.5px;
-  color: var(--red);
+  color: var(--bad);
 }
 input[aria-invalid="true"] {
-  border-color: var(--red);
+  border-color: var(--bad);
 }
 
 /* The notify bell becomes a switch — a bell glyph is a notification,
@@ -857,7 +1464,7 @@ input[aria-invalid="true"] {
   padding: 0;
   border: 0;
   border-radius: var(--r-pill);
-  background: var(--edge);
+  background: var(--line);
   vertical-align: middle;
 }
 .switch::after {
@@ -868,11 +1475,11 @@ input[aria-invalid="true"] {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--dim);
+  background: var(--ink-faint);
   transition: left 0.15s ease;
 }
 .switch[aria-checked="true"] {
-  background: var(--purple);
+  background: var(--accent-deep);
 }
 .switch[aria-checked="true"]::after {
   left: 14px;
@@ -880,19 +1487,6 @@ input[aria-invalid="true"] {
 }
 
 /* Quota / slot meters */
-.meter {
-  height: 3px;
-  border-radius: 2px;
-  background: var(--well);
-  overflow: hidden;
-}
-.meter__fill {
-  height: 100%;
-  background: var(--purple-bright);
-}
-.meter--gold .meter__fill {
-  background: linear-gradient(90deg, var(--gold), var(--gold-lite));
-}
 
 /* ── Notices and empty states ─────────────────────────────── */
 
@@ -900,27 +1494,20 @@ input[aria-invalid="true"] {
   display: flex;
   gap: 10px;
   padding: 10px var(--s-3);
-  background: var(--bg1);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-md);
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--ink-body);
 }
 .notice::before {
   content: "";
   flex: none;
   width: 3px;
   border-radius: 2px;
-  background: var(--purple-bright);
+  background: var(--accent);
 }
 
-.empty {
-  padding: 28px 20px;
-  border: 1px dashed var(--edge-strong);
-  border-radius: var(--r-lg);
-  background: var(--well);
-  text-align: center;
-}
 .empty__mark {
   display: flex;
   align-items: center;
@@ -928,20 +1515,10 @@ input[aria-invalid="true"] {
   width: 36px;
   height: 36px;
   margin: 0 auto var(--s-3);
-  border: 1px solid var(--edge-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 50%;
   font: 600 14px var(--font-mono);
-  color: var(--dim);
-}
-.empty__title {
-  font-size: 14px;
-  font-weight: 600;
-}
-.empty__body {
-  margin-top: var(--s-1);
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 /* ── Record browser (Explore) ─────────────────────────────── */
@@ -957,7 +1534,7 @@ input[aria-invalid="true"] {
   max-width: 640px;
   margin-bottom: 20px;
   font-size: 13px;
-  color: var(--faint);
+  color: var(--ink-faint);
   text-wrap: pretty;
 }
 /* Field table: label gutter in --panel-foot, value column with links */
@@ -967,20 +1544,20 @@ input[aria-invalid="true"] {
 }
 .fields dt {
   padding: 9px var(--s-3);
-  border-top: 1px solid var(--edge-soft);
-  background: var(--panel-foot);
+  border-top: 1px solid var(--line-soft);
+  background: var(--panel-head);
   font: 11px var(--font-mono);
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .fields dd {
   margin: 0;
   padding: 9px var(--s-3);
-  border-top: 1px solid var(--edge-soft);
+  border-top: 1px solid var(--line-soft);
   font-size: 12.5px;
 }
 .fields dd .hint {
   font: 11px var(--font-mono);
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 
 /* "What we have" coverage tiles. Hide the whole panel when a record has
@@ -996,19 +1573,19 @@ input[aria-invalid="true"] {
   flex-direction: column;
   gap: 2px;
   padding: 10px var(--s-3);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
   color: var(--ink);
 }
 .tile[href] {
-  border-color: var(--edge-strong);
+  border-color: var(--line-strong);
 }
 .tile[href]:hover {
-  background: var(--purple-row);
+  background: var(--hover-row);
 }
 .tile__label {
   font-size: 12px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 /* Tool-call bar: the call that produced this page, plus raw JSON and a
@@ -1030,10 +1607,10 @@ input[aria-invalid="true"] {
 }
 .raw {
   padding: var(--s-3) var(--s-4);
-  border-top: 1px solid var(--edge-soft);
-  background: var(--well);
+  border-top: 1px solid var(--line-soft);
+  background: var(--ground-sunken);
   font: 11.5px/1.6 var(--font-mono);
-  color: var(--muted);
+  color: var(--ink-body);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1053,7 +1630,7 @@ input[aria-invalid="true"] {
 
 .chart {
   padding: 14px var(--s-4) 6px;
-  border-top: 1px solid var(--edge-soft);
+  border-top: 1px solid var(--line-soft);
 }
 .chart__head {
   display: flex;
@@ -1071,7 +1648,7 @@ input[aria-invalid="true"] {
 .chart__at {
   min-width: 80px;
   font: 11.5px var(--font-mono);
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .chart svg {
   display: block;
@@ -1089,29 +1666,29 @@ input[aria-invalid="true"] {
   fill: rgba(139, 92, 246, 0.35);
 }
 .chart .grid {
-  stroke: var(--edge-soft);
+  stroke: var(--line-soft);
   stroke-dasharray: 2 4;
 }
 .chart .axis {
-  stroke: var(--edge);
+  stroke: var(--line);
 }
 .chart .ref {
-  stroke: var(--edge-strong);
+  stroke: var(--line-strong);
   stroke-dasharray: 3 3;
 }
 .chart .rule {
-  stroke: var(--muted);
+  stroke: var(--ink-body);
   stroke-dasharray: 3 3;
 }
 .chart .line-yours {
   fill: none;
-  stroke: var(--gold-lite);
+  stroke: var(--gold-light);
   stroke-width: 2;
   stroke-linejoin: round;
 }
 .chart .line-corpus {
   fill: none;
-  stroke: var(--purple-bright);
+  stroke: var(--accent);
   stroke-width: 2;
   stroke-linejoin: round;
 }
@@ -1120,12 +1697,12 @@ input[aria-invalid="true"] {
 }
 .chart text {
   font: 10px var(--font-mono);
-  fill: var(--dim);
+  fill: var(--ink-faint);
 }
 .chart .seg {
   /* A 2px surface-coloured gap keeps touching segments legible; it is
      what makes the stack readable without outlining every rectangle. */
-  stroke: var(--well);
+  stroke: var(--ground-sunken);
   stroke-width: 2;
 }
 .chart .hit {
@@ -1138,7 +1715,7 @@ input[aria-invalid="true"] {
   outline: none;
 }
 .chart .reject-tick {
-  stroke: var(--red);
+  stroke: var(--bad);
   stroke-width: 2;
 }
 
@@ -1148,7 +1725,7 @@ input[aria-invalid="true"] {
 /* The bucket still being filled: an outline at the base, never a bar. */
 .chart .pending {
   fill: none;
-  stroke: var(--faint);
+  stroke: var(--ink-faint);
   stroke-width: 1.5;
   stroke-dasharray: 3 3;
 }
@@ -1160,15 +1737,15 @@ input[aria-invalid="true"] {
   z-index: 5;
   min-width: 150px;
   padding: 8px 10px;
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--panel-raised);
   box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
   pointer-events: none;
   font-size: 11.5px;
 }
 .charttip__head {
-  color: var(--faint);
+  color: var(--ink-faint);
   font: 11px var(--font-mono);
   margin-bottom: 5px;
 }
@@ -1177,7 +1754,7 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 7px;
   padding: 1px 0;
-  color: var(--muted);
+  color: var(--ink-body);
 }
 .charttip__row .num {
   margin-left: auto;
@@ -1193,8 +1770,8 @@ input[aria-invalid="true"] {
 .charttip__foot {
   margin-top: 5px;
   padding-top: 5px;
-  border-top: 1px solid var(--edge-soft);
-  color: var(--faint);
+  border-top: 1px solid var(--line-soft);
+  color: var(--ink-faint);
 }
 .chart-legend {
   display: flex;
@@ -1207,7 +1784,7 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 /* ── Placeholders ─────────────────────────────────────────────
@@ -1215,11 +1792,11 @@ input[aria-invalid="true"] {
    loads, this striped fill holds the slot — do not draw card art. */
 .card-slot {
   aspect-ratio: 5 / 6;
-  border: 1px solid var(--edge);
+  border: 1px solid var(--line);
   border-radius: 6px;
   background: repeating-linear-gradient(
     135deg,
-    var(--panel-2) 0 4px,
+    var(--panel-raised) 0 4px,
     var(--panel) 4px 8px
   );
 }
@@ -1255,7 +1832,7 @@ input[aria-invalid="true"] {
 }
 .outline dd {
   margin: 2px 0 0;
-  color: var(--muted);
+  color: var(--ink-body);
   font-size: 13.5px;
   line-height: 1.5;
 }
@@ -1269,7 +1846,7 @@ input[aria-invalid="true"] {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--dim);
+  color: var(--ink-faint);
 }
 .docs__toc-section:first-of-type {
   padding-top: 8px;
@@ -1278,10 +1855,10 @@ input[aria-invalid="true"] {
   padding: 7px 10px;
   border-radius: 6px;
   font-size: 13px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 .docs__toc a[aria-current] {
-  background: var(--panel-2);
+  background: var(--panel-raised);
   color: var(--ink);
 }
 .docs__body {
@@ -1292,9 +1869,9 @@ input[aria-invalid="true"] {
 }
 .docs__body pre {
   padding: var(--s-3);
-  background: var(--well);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-md);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
   overflow-x: auto;
 }
 
@@ -1323,7 +1900,7 @@ input[aria-invalid="true"] {
     grid-template-columns: 1fr;
   }
   .fields dt {
-    border-top: 1px solid var(--edge-soft);
+    border-top: 1px solid var(--line-soft);
     padding-bottom: 0;
     background: transparent;
   }
@@ -1343,8 +1920,8 @@ input[aria-invalid="true"] {
   position: relative;
   height: 10px;
   border-radius: 5px;
-  background: var(--well);
-  border: 1px solid var(--edge);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 .gauge__fill {
@@ -1366,7 +1943,7 @@ input[aria-invalid="true"] {
   gap: 12px;
   margin-top: 6px;
   font-size: 12px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 
 /* The live lane. Distinct from chip--active (which means "this collector is
@@ -1386,10 +1963,10 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  border: 1px solid var(--edge);
+  border: 1px solid var(--line);
   border-radius: 999px;
   font-size: 12px;
-  color: var(--faint);
+  color: var(--ink-faint);
   text-decoration: none;
 }
 .feed-link:hover {
@@ -1431,7 +2008,7 @@ input[aria-invalid="true"] {
 }
 .first-answer__steps span {
   margin-top: 6px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 .first-answer__sample {
   line-height: 1.6;
@@ -1439,7 +2016,7 @@ input[aria-invalid="true"] {
 .first-answer__times,
 .first-answer__readout {
   font-size: 12px;
-  color: var(--faint);
+  color: var(--ink-faint);
   line-height: 1.7;
 }
 .first-answer__actions {
@@ -1455,7 +2032,7 @@ input[aria-invalid="true"] {
   gap: 12px;
 }
 .first-answer__questions article {
-  border: 1px solid var(--edge);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
 }
@@ -1484,7 +2061,7 @@ input[aria-invalid="true"] {
 .first-answer__questions details {
   margin: 12px 0;
   font-size: 12px;
-  color: var(--faint);
+  color: var(--ink-faint);
 }
 .first-answer summary {
   cursor: pointer;

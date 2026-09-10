@@ -184,7 +184,7 @@ function SignInWall({ navigate }) {
         <h1 className="page-title" style={{ marginBottom: "8px" }}>
           Sign in first
         </h1>
-        <p style={{ color: "var(--faint)", fontSize: "13px" }}>
+        <p style={{ color: "var(--ink-faint)", fontSize: "13px" }}>
           This part of Elixir MCP shows your recorded history. Sign in with the
           email on your access request.
         </p>
@@ -308,7 +308,7 @@ export function App() {
             ) : effectivePath === "/signin" ? null : (
               /* No point offering the page you are standing on. */
               <a
-                className="btn btn--gold btn--sm"
+                className="btn btn--primary btn--sm"
                 href="/signin"
                 onClick={(e) => {
                   e.preventDefault();

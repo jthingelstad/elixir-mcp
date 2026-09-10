@@ -69,13 +69,13 @@ export function SignIn({ onAuthed }) {
       {step === "email" && (
         <>
           <div className="panel__body" style={column}>
-            <div style={{ fontSize: "12.5px", color: "var(--faint)" }}>
+            <div style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
               We&rsquo;ll email a sign-in link and a 6-digit code to your
               approved address.
             </div>
             <form onSubmit={sendEmail} style={column}>
               <label>
-                <span className="label">Email</span>
+                <span className="field-label">Email</span>
                 <input
                   type="email"
                   required
@@ -136,7 +136,7 @@ export function SignIn({ onAuthed }) {
               }}
             >
               <label>
-                <span className="label">6-digit code</span>
+                <span className="field-label">6-digit code</span>
                 <input
                   className="mono"
                   inputMode="numeric"
