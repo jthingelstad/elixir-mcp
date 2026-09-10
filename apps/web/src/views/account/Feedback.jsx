@@ -50,7 +50,7 @@ function Shipped({ version, navigate }) {
         borderRadius: "6px",
         padding: "1px 7px",
       }}
-      onClick={() => navigate("/data/changelog")}
+      onClick={() => navigate("/updates")}
       title="The contract version this shipped in"
     >
       shipped {version}

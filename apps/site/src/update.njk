@@ -1,0 +1,77 @@
+---
+pagination:
+  data: updatesView
+  size: 1
+  alias: u
+  # Without this only the FIRST paginated page joins collections, so the
+  # sitemap listed one update out of a hundred and forty-eight.
+  addAllPagesToCollections: true
+permalink: "/updates/{{ u.slug }}/index.html"
+layout: base.njk
+prose: true
+navActive: updates
+eleventyComputed:
+  title: "{{ u.title }}"
+  canonical: "/updates/{{ u.slug }}"
+  description: "{{ u.body | clamp(150) }}"
+---
+{#-
+  One update, on its own page (2026-09-10). Both halves of the stream land
+  here: a product release and a tool-contract version. The contract's own
+  page under /data used to be the second place a version was published, and
+  it said the same thing in a different order — this is the one place now,
+  so a version's summary, the tools it added and what it broke sit together
+  with the release that carried them.
+
+  The body is Markdown. It always was — updates.js is prose written by
+  hand and the contract summaries carry `code` spans — and the index used
+  to print the source characters.
+-#}
+<p style="margin: 0 0 14px">
+  <a class="mono" style="font-size: 12px" href="/updates">‹ All updates</a>
+</p>
+
+<div style="display: flex; align-items: center; gap: 11px; flex-wrap: wrap; margin-bottom: 6px">
+  <span class="chip {% if u.kind == 'shipped' %}chip--ok{% elif u.kind == 'contract' %}chip--info{% else %}chip--warn{% endif %}">{{ u.kind }}</span>
+  {%- if u.version %}
+  <span class="mono" style="font-size: 12px; color: var(--ink-body); border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 7px">{{ u.version }}</span>
+  {%- endif %}
+  <time class="mono" style="font-size: 12px; color: var(--ink-faint)" datetime="{{ u.date }}">{{ u.date }}</time>
+</div>
+
+<h1 class="page-title" style="margin-bottom: 18px">{{ u.title }}</h1>
+
+<div class="prose">{{ u.body | md | safe }}</div>
+
+{%- if u.tools_added and u.tools_added.length %}
+<section class="panel" style="margin-top: 22px">
+  <div class="panel__head"><span class="panel-title">Tools added</span></div>
+  <div class="panel__body">
+    {%- for t in u.tools_added %}
+    <a class="mono" href="{{ t | toolHref }}">{{ t }}</a>{% if not loop.last %} · {% endif %}
+    {%- endfor %}
+  </div>
+</section>
+{%- endif %}
+
+{%- if u.breaking %}
+<section class="panel" style="margin-top: 16px; border-color: var(--warn-edge)">
+  <div class="panel__head"><span class="panel-title">Breaking</span></div>
+  <div class="panel__body prose">{{ u.breaking | md | safe }}</div>
+</section>
+{%- endif %}
+
+{%- if u.link %}
+<p style="margin-top: 20px"><a class="btn btn--sm" href="{{ u.link }}">More on this →</a></p>
+{%- endif %}
+
+{#- Newer and older, because an update is usually read as part of a run of
+    them, and the pagination data is already in date order. -#}
+<nav style="display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line-soft); font-size: 13.5px">
+  {%- if pagination.href.previous %}
+  <a href="{{ pagination.href.previous }}">‹ Newer</a>
+  {%- endif %}
+  {%- if pagination.href.next %}
+  <a style="margin-left: auto" href="{{ pagination.href.next }}">Older ›</a>
+  {%- endif %}
+</nav>

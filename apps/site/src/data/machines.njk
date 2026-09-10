@@ -1,0 +1,30 @@
+---
+layout: data-page.njk
+title: "For machines"
+description: "The machine-readable surfaces of Elixir MCP: public stats and status JSON, the tool list, llms.txt and the update feed. No key needed."
+permalink: /data/machines/index.html
+canonical: /data/machines
+dataNav: machines
+---
+<div class="page-head">
+  <h1 class="hero-title" style="margin-bottom: 6px">For machines</h1>
+  <p class="lede" style="margin: 0; max-width: 60ch">
+    Read the corpus&rsquo;s public shape without an account, a key or a browser.
+  </p>
+</div>
+
+<section class="panel" style="max-width: 520px">
+  <div class="panel__body">
+    <div style="display: flex; flex-direction: column; gap: 7px">
+      <a class="mono" href="/api/public/stats">/api/public/stats</a>
+      <a class="mono" href="/api/public/status">/api/public/status</a>
+      <a class="mono" href="/tools.json">/tools.json</a>
+      <a class="mono" href="/llms.txt">/llms.txt</a>
+      <a class="mono" href="/feed.xml">/feed.xml</a>
+    </div>
+    <p class="footnote" style="margin: 12px 0 0">
+      No key needed for any of these. The recorded history itself needs an
+      account, over <a href="/docs/protocol">MCP</a>.
+    </p>
+  </div>
+</section>

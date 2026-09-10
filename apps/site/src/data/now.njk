@@ -1,0 +1,39 @@
+---
+layout: data-page.njk
+title: "Recording now"
+description: "What Elixir MCP is recording at this moment: the last battle seen, battles this hour, and how many collectors are running."
+permalink: /data/now/index.html
+canonical: /data/now
+dataNav: now
+---
+{%- set t = stats.totals %}
+{%- set n = "—" %}
+<div class="page-head">
+  <h1 class="hero-title" style="margin-bottom: 6px">Recording now</h1>
+  <p class="lede" style="margin: 0; max-width: 60ch">
+    The only live numbers on this half of the site.
+  </p>
+</div>
+
+{#- With JavaScript off this shows the deploy-time values and still reads
+    true, which is why the numbers are rendered server-side and replaced
+    only if the fetch succeeds. -#}
+<section class="panel" style="border-color: var(--ok-edge); max-width: 520px">
+  <div class="panel__body">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 11px">
+      <span class="chip chip--ok"><span class="chip__dot"></span>recording</span>
+      <span style="font-size: 15px; font-weight: 600">Right now</span>
+      <span class="mono" style="margin-left: auto; font-size: 11.5px; color: var(--ink-faint)">live · cached 60s</span>
+    </div>
+    <div style="display: flex; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--ink-body)">
+      <span>last battle <strong data-live="last" style="color: var(--ink)">{% if t %}{{ t.newest_battle | day }}{% else %}{{ n }}{% endif %}</strong></span>
+      <span><strong data-live="hour" style="color: var(--ink)">{{ n }}</strong> this hour</span>
+      <span><strong data-live="collectors" style="color: var(--ink)">{% if t %}{{ t.collectors_active }}{% else %}{{ n }}{% endif %}</strong> collectors</span>
+    </div>
+    <p class="footnote" style="margin: 11px 0 0">
+      Operators get the whole picture in the <a href="/status/service">console&rsquo;s status page</a>.
+    </p>
+  </div>
+</section>
+
+<script defer src="/assets/data-live.js"></script>

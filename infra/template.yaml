@@ -1137,14 +1137,21 @@ Resources:
         Comment: Route content paths to the static site and app paths to the app shell
         Runtime: cloudfront-js-2.0
       FunctionCode: |
+        // The Data section is five static pages; /data/dashboard is the
+        // app's charts and must NOT match, which is why these are listed
+        // rather than prefixed. /updates/ is prefixed: every update is
+        // its own page and there is no app route under it.
         var STATIC_PAGES = {
           '/data': 1,
+          '/data/growth': 1,
+          '/data/collect': 1,
+          '/data/now': 1,
+          '/data/machines': 1,
           '/docs': 1,
           '/family': 1,
-          '/updates': 1,
-          '/data/changelog': 1
+          '/updates': 1
         };
-        var STATIC_PREFIXES = ['/docs/', '/examples/', '/family/'];
+        var STATIC_PREFIXES = ['/docs/', '/examples/', '/family/', '/updates/'];
 
         function handler(event) {
           var request = event.request;

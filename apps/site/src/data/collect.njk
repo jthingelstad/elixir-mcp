@@ -1,0 +1,72 @@
+---
+layout: data-page.njk
+title: "What we collect"
+description: "What Elixir MCP records, how often each thing is collected, since when, and how long it is kept."
+permalink: /data/collect/index.html
+canonical: /data/collect
+dataNav: collect
+---
+{%- set t = stats.totals %}
+{%- set n = "—" %}
+<div class="page-head">
+  <h1 class="hero-title" style="margin-bottom: 6px">What we collect</h1>
+  <p class="lede" style="margin: 0; max-width: 60ch">
+    What is recorded, how often, and how long it is kept.
+  </p>
+</div>
+
+<section class="panel" style="margin-bottom: 22px">
+  <div class="panel__head">
+    <span>What we collect</span>
+    <a style="margin-left: auto; font-size: 13px; font-weight: 400" href="/docs/recording">How recording works ›</a>
+  </div>
+  <div class="table__scroll">
+    <table class="table" style="min-width: 620px">
+      <thead>
+        <tr>
+          <th>WHAT</th>
+          <th>HOW OFTEN</th>
+          <th>SINCE</th>
+          <th>KEPT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Player battle logs</td>
+          <td>every 5&ndash;30 min while active</td>
+          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>full history today</td>
+        </tr>
+        <tr>
+          <td>Player profiles</td>
+          <td>daily snapshot</td>
+          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>full history today</td>
+        </tr>
+        <tr>
+          <td>Clans</td>
+          <td>every 15 min</td>
+          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>full history today</td>
+        </tr>
+        <tr>
+          <td>River races (clan wars)</td>
+          <td>weekly, corrected as the race runs</td>
+          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>full history today</td>
+        </tr>
+        <tr>
+          <td>Decks, cards, matchups</td>
+          <td>derived from recorded battles</td>
+          <td>&mdash;</td>
+          <td>recomputed</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel__foot" style="font-size: 13px; color: var(--ink-dim)">
+    Recording is requested per player and per clan by the people who own them.
+    Raw payloads are kept about 60 days; the canonical record is not rebuilt
+    from them. Account data is never public.
+  </div>
+</section>

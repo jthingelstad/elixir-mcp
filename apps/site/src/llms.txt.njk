@@ -13,13 +13,16 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 ## Documentation
 - [All documentation]({{ site.url }}/docs): index of every page below
 {% for d in collections.docs %}- [{{ d.data.title | safe }}]({{ site.url }}{{ d | pageUrl }}): {{ d.data.description | safe }}
-{% endfor %}- [The corpus]({{ site.url }}/data): what has been recorded, how often each subject is collected, since when and for how long
-- [What's new]({{ site.url }}/updates): every user-visible change, newest first
+{% endfor %}- [The corpus]({{ site.url }}/data): the totals - battles, players, clans, war weeks and snapshots recorded so far
+- [Growth over time]({{ site.url }}/data/growth): battles recorded per day, bucketed by when they were played
+- [What we collect]({{ site.url }}/data/collect): each subject, how often it is collected, since when and how long it is kept
+- [Recording now]({{ site.url }}/data/now): the live strip - last battle seen, battles this hour, collectors running
+- [For machines]({{ site.url }}/data/machines): the public JSON and text surfaces, no key needed
+- [What's new]({{ site.url }}/updates): every user-visible change, newest first, each on its own page
 {% for g in examples %}{% for c in g.cases %}- [Example: {{ c.title }}]({{ site.url }}/examples/{{ c.key }}): {{ c.lede | safe }}
 {% endfor %}{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
 {% for p in familyFlat %}{% if not p.first %}- [Family: {{ p.label }}]({{ site.url }}/family/{{ p.key }}): {{ p.lede | safe }}
-{% endif %}{% endfor %}- [Contract changelog]({{ site.url }}/data/changelog): the MCP tool contract version by version, with breaking changes called out
-
+{% endif %}{% endfor %}
 ## Machine-readable
 - [Full content bundle]({{ site.url }}/llms-full.txt): every documentation page and the whole tool reference in one fetch
 - [Tool registry JSON]({{ site.url }}/tools.json): all {{ tools.count }} tools with groups, descriptions, arguments, and required OAuth capabilities

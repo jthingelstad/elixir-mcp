@@ -7,10 +7,15 @@ canonical: /updates
 navActive: updates
 ---
 {#-
-  What changed, newest first, with a rail that filters by kind and jumps
-  by month. The kind is derived from the entry (a version in the title
-  is a contract change; a retirement says so), never typed twice. With
-  JavaScript off every entry shows and the month links still jump.
+  The index: a rail that filters by kind and jumps by month, and a body of
+  PREVIEWS. Each one opens its own page (2026-09-10, Jamie) so a single
+  update can be linked to, quoted and read on its own — a hundred entries
+  on one scroll could only ever be linked to by anchor, and the contract
+  entries in particular are long.
+
+  The kind is derived from the entry (a version in the title is a contract
+  change; a retirement says so), never typed twice. With JavaScript off
+  every entry shows and the month links still jump.
 -#}
 {%- set months = updatesView | byMonth %}
 {%- set shipped = updatesView | ofKind("shipped") %}
@@ -44,24 +49,23 @@ navActive: updates
     </nav>
     <div class="siterail__foot">
       <a class="btn btn--sm" href="/feed.xml" title="Subscribe to Elixir MCP updates">{% icon "rss", 14 %}Subscribe</a>
-      <a class="btn btn--sm" href="/data/changelog">{% icon "file-text", 14 %}Contract changelog</a>
     </div>
   </aside>
 
   <div class="siterail__body">
     <h1 class="hero-title" style="margin-bottom: 6px" data-updates-title>Updates</h1>
     <p class="lede" style="margin: 0 0 22px; max-width: 60ch">
-      What changed, newest first. Contract changes carry a version — the full
-      <a href="/data/changelog">changelog</a> has every one.
+      What changed, newest first — product releases and tool-contract versions
+      in one stream. Open one for the whole entry.
     </p>
 
     {%- for m in months %}
     <h2 id="{{ m.key }}" class="label" style="margin: 26px 0 12px">{{ m.label }}</h2>
     {%- for u in m.items %}
-    <article class="panel" style="margin-bottom: var(--s-4)" data-kind="{{ u.kind }}">
+    <article class="panel" style="margin-bottom: var(--s-3)" data-kind="{{ u.kind }}">
       <div class="panel__head" style="flex-wrap: wrap; gap: 11px">
         <span class="chip {% if u.kind == 'shipped' %}chip--ok{% elif u.kind == 'contract' %}chip--info{% else %}chip--warn{% endif %}">{{ u.kind }}</span>
-        <span class="panel-title">{{ u.title }}</span>
+        <a class="panel-title" href="/updates/{{ u.slug }}">{{ u.title }}</a>
         <span style="margin-left: auto; display: flex; align-items: center; gap: 10px">
           {%- if u.version %}
           <span class="mono" style="font-size: 12px; color: var(--ink-body); border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 7px">{{ u.version }}</span>
@@ -69,10 +73,13 @@ navActive: updates
           <time class="mono" style="font-size: 12px; color: var(--ink-faint)" datetime="{{ u.date }}">{{ u.date }}</time>
         </span>
       </div>
-      <div class="panel__body"><p style="color: var(--ink-body); margin: 0; line-height: 1.65; text-wrap: pretty">{{ u.body }}</p></div>
-      {%- if u.link %}
-      <div style="padding: 0 18px 14px"><a class="btn btn--sm" href="{{ u.link }}">In the changelog →</a></div>
-      {%- endif %}
+      {#- The preview is a clamp of the prose, not the prose: a contract
+          summary runs to a thousand words and the index is for finding
+          the one you want. -#}
+      <div class="panel__body">
+        <p style="color: var(--ink-body); margin: 0 0 10px; line-height: 1.65; text-wrap: pretty">{{ u.body | clamp(260) }}</p>
+        <a href="/updates/{{ u.slug }}" style="font-size: 13.5px">Read it ›</a>
+      </div>
     </article>
     {%- endfor %}
     {%- endfor %}

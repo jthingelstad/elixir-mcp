@@ -1,0 +1,66 @@
+---
+layout: data-page.njk
+title: "Growth over time"
+description: "Battles recorded per day by Elixir MCP, bucketed by when they were played rather than when they were collected."
+permalink: /data/growth/index.html
+canonical: /data/growth
+dataNav: growth
+---
+{%- set bars = stats.series.battles_daily | dailyBars %}
+<div class="page-head">
+  <h1 class="hero-title" style="margin-bottom: 6px">Growth over time</h1>
+  <p class="lede" style="margin: 0; max-width: 60ch">
+    Battles recorded per day. Bucketed by when they were
+    <em style="color: var(--ink-body)">played</em>, not when we collected them.
+  </p>
+</div>
+
+{% if not bars.bars %}
+<section class="panel">
+  <div class="panel__head"><span>Battles per day</span></div>
+  <div class="panel__body footnote">The chart is drawn from the daily series at build time; this build had no series to draw from.</div>
+</section>
+{% endif %}
+{% if bars.bars %}
+<section class="panel" style="margin-bottom: 22px">
+  <div class="panel__head">
+    <span>Battles per day</span>
+    <span class="footnote" style="border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font-weight: 400">{{ bars.days }} days · UTC</span>
+  </div>
+  <div style="padding: 18px 18px 8px">
+    {#- Bars, not a cumulative curve (2026-09-10): a running total only
+        ever goes up and to the right, so a day the collectors stalled
+        was invisible in it — and that is the day worth seeing. A day
+        with no battles keeps its width as a real zero. -#}
+    <svg viewBox="0 0 700 168" style="width: 100%; height: auto; display: block" role="img"
+         aria-label="Battles recorded per day, {{ bars.first }} to {{ bars.last }}, peaking at {{ bars.top }} on {{ bars.busiest.day }}">
+      <line x1="20" x2="640" y1="140" y2="140" stroke="var(--line)"></line>
+      <line x1="20" x2="640" y1="76" y2="76" stroke="var(--line-soft)" stroke-dasharray="2 5"></line>
+      <line x1="20" x2="640" y1="12" y2="12" stroke="var(--line-soft)" stroke-dasharray="2 5"></line>
+      {%- for b in bars.bars %}
+      <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.width }}" height="{{ b.height }}" fill="var(--accent-bright)" opacity="0.85">
+        <title>{{ b.day }} · {{ b.battles | number }} battles</title>
+      </rect>
+      {%- endfor %}
+      <text x="648" y="16" fill="var(--ink-faint)" font-size="11" font-family="ui-monospace, Menlo, monospace">{{ bars.top | number }}</text>
+      <text x="648" y="80" fill="var(--ink-faint)" font-size="11" font-family="ui-monospace, Menlo, monospace">{{ bars.half | number }}</text>
+      {%- for tick in bars.ticks %}
+      <text x="{{ tick.x }}" y="158" fill="var(--ink-faint)" font-size="11" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">{{ tick.label }}</text>
+      {%- endfor %}
+    </svg>
+  </div>
+  <div class="panel__foot" style="font-size: 13px; color: var(--ink-dim)">
+    {{ bars.total | number }} battles over these {{ bars.days }} days, a mean of
+    {{ bars.mean | number }} a day; the busiest was {{ bars.busiest.day }} with
+    {{ bars.busiest.battles | number }}. A backfilled archive lands on the day it was
+    played rather than the day it arrived, so filling a gap changes the past
+    here — which is the point. The newest day is partial.
+  </div>
+</section>
+{% endif %}
+
+<p class="footnote" style="max-width: 78ch">
+  Full history is deliberate today; a retention policy comes as the corpus
+  grows, and it will be published here. Per-collector daily charts are in the
+  <a href="/data/dashboard">console</a>.
+</p>

@@ -32,7 +32,7 @@ import { ErrorBoundary } from "./ErrorBoundary.jsx";
  * exception, because it is a number and not a list.
  *
  * This app is the site's DYNAMIC half (2026-09-07 split). Home, docs,
- * updates and the contract changelog are real pages built by apps/site
+ * updates (each one its own page) are real documents built by apps/site
  * and served from the same hostname; they are reached with plain hrefs
  * (STATIC_LINKS below), which are full page loads on purpose. Anything
  * the app does not recognise leaves for the static home rather than
@@ -50,7 +50,6 @@ export const STATIC_LINKS = {
   docs: "/docs",
   updates: "/updates",
   family: "/family",
-  changelog: "/data/changelog",
 };
 
 /** The top bar. Identical in both builds by construction: it names only
@@ -119,11 +118,7 @@ export const SECTIONS = {
     // index: it is a real document, crawlable and readable with no
     // session, so the app must hand the bare path back.
     staticIndex: true,
-    pages: [
-      { slug: "dashboard", label: "Charts" },
-      // Changelog is a static page; the top bar links out to it.
-      { slug: "changelog", label: "Changelog", static: true },
-    ],
+    pages: [{ slug: "dashboard", label: "Charts" }],
   },
 };
 

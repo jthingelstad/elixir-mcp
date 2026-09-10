@@ -1,0 +1,63 @@
+---
+layout: data-page.njk
+title: "The corpus"
+description: "Everything Elixir MCP has recorded: battles, players, clans, war weeks and daily snapshots. Aggregates are public by design."
+permalink: /data/index.html
+canonical: /data
+dataNav: totals
+---
+{#-
+  The corpus proof, and the reason this is a real document rather than a
+  screen in the app: an aggregate is public by design, and a crawler, an
+  agent and a person who has not signed in should all be able to read it.
+  Baked at deploy from /api/public/stats.
+-#}
+{%- set t = stats.totals %}
+{%- set n = "—" %}
+<div class="page-head" style="align-items: flex-end">
+  <div>
+    <h1 class="hero-title" style="margin-bottom: 6px">The corpus</h1>
+    <p class="lede" style="margin: 0; max-width: 58ch">
+      Everything Elixir has recorded. Aggregates are public by design; what
+      belongs to an account never is.
+    </p>
+  </div>
+  <span class="mono" style="margin-left: auto; text-align: right; font-size: 12px; color: var(--ink-faint)">
+    {% if t %}as of {{ t.newest_battle | stamp }}{% else %}awaiting the next build{% endif %}<br />rebuilt on every deploy
+  </span>
+</div>
+
+{#- Five totals. This is the ONE place a number is gold: a brand moment
+    on the marketing half, not a reading in the console. -#}
+<div class="stats" style="margin-bottom: 22px">
+  <div class="stats__cell">
+    <div class="label">battles</div>
+    <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}{{ n }}{% endif %}</div>
+    <div class="stats__note">{% if t %}{{ t.oldest_battle | day }} → {{ t.newest_battle | day }}{% else %}recorded{% endif %}</div>
+  </div>
+  <div class="stats__cell">
+    <div class="label">players</div>
+    <div class="stats__value stats__value--brand">{% if t %}{{ t.players | number }}{% else %}{{ n }}{% endif %}</div>
+    <div class="stats__note">observed{% if t %} · {{ t.players_recording | number }} recorded{% endif %}</div>
+  </div>
+  <div class="stats__cell">
+    <div class="label">clans</div>
+    <div class="stats__value stats__value--brand">{% if t %}{{ t.clans | number }}{% else %}{{ n }}{% endif %}</div>
+    <div class="stats__note">observed{% if t %} · {{ t.clans_recording | number }} recorded{% endif %}</div>
+  </div>
+  <div class="stats__cell">
+    <div class="label">war weeks</div>
+    <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}{{ n }}{% endif %}</div>
+    <div class="stats__note">past the API&rsquo;s 20-week window</div>
+  </div>
+  <div class="stats__cell">
+    <div class="label">snapshots</div>
+    <div class="stats__value stats__value--brand">{% if t %}{{ t.snapshots | number }}{% else %}{{ n }}{% endif %}</div>
+    <div class="stats__note">daily player snapshots</div>
+  </div>
+</div>
+
+<p class="lede" style="max-width: 62ch; font-size: 15px">
+  <a href="/data/growth">How it grew</a> · <a href="/data/collect">what we collect and for how long</a> ·
+  <a href="/data/now">what is being recorded right now</a> · <a href="/data/machines">the machine-readable surfaces</a>.
+</p>

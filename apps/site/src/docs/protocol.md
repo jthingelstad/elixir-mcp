@@ -456,6 +456,6 @@ date). The same text is reachable as resources at `elixir://docs`,
 | `/llms-full.txt` | every documentation page and the full tool reference in one fetch |
 | `/tools.json` | the registry as JSON: name, group, description, arguments, required scope |
 | `/docs/integration-api.json` | the REST API's OpenAPI 3.1 document |
-| `/data/changelog` | the contract changelog, the same list `elixir_changelog` returns |
+| `/updates` | every shipped change, contract versions included - the same list `elixir_changelog` returns, with the releases around it |
 | `/feed.xml` | RSS 2.0 of What's new |
 | `/api/public/stats`, `/api/public/status` | live corpus totals and recording health, no authentication |

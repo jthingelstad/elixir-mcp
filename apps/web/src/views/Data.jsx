@@ -10,9 +10,10 @@ const WINDOW_DAYS = 56;
  *  unfinished day never reads as a drop; one hover index drives all
  *  three small multiples with the value printed in each head.
  *
- *  The contract changelog used to be a third page here. It is content,
- *  not live data, so it moved to the static site at /data/changelog
- *  where a crawler and an agent can read it. */
+ *  The contract changelog used to be a third page here, then a static
+ *  page of its own. It is one half of Updates now (2026-09-10): a
+ *  version and the release that carried it were two pages saying the
+ *  same thing in a different order. */
 
 const W = 720;
 const H = 96;

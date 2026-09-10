@@ -143,7 +143,7 @@ account); people file it on the site. Every item gets a maintainer
 response — `elixir_my_feedback` shows the full ledger, a
 `feedback_responded` event lands in your feed, and shipped fixes link
 the change. The same loop feeds the public
-[Changelog](/data/changelog): contract versions are machine-readable
+[Updates](/updates): contract versions are machine-readable
 (`elixir_changelog`), so an agent can ask "what changed since 0.20?"
 and discover capabilities that landed mid-session. Several shipped
 tools trace directly to agent-filed feedback.

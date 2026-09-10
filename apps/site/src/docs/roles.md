@@ -150,4 +150,4 @@ overrides exist for cases the ladder doesn't fit — just ask.
   free.
 - Where each number is enforced and what a refusal looks like is on
   [Limits](/docs/limits). Limits may evolve during the alpha; the
-  [changelog](/data/changelog) and `elixir_changelog` tool record every change.
+  [updates](/updates) and the `elixir_changelog` tool record every change.

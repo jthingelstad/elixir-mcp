@@ -1,0 +1,48 @@
+---
+layout: base.njk
+navActive: data
+---
+{#-
+  The Data section's shell: one rail, five pages (2026-09-10, Jamie).
+
+  It was one long document with the rail scrolling to anchors, which made
+  every part of the corpus share a URL — you could not send somebody the
+  growth chart, and the page carried five sections' worth of markup to
+  show one. The rail links to real pages now; `dataNav` in a page's front
+  matter says which one is current.
+-#}
+{%- set pages = [
+  { url: "/data", label: "Corpus totals", key: "totals", icon: "chart-column" },
+  { url: "/data/growth", label: "Growth over time", key: "growth", icon: "trending-up" },
+  { url: "/data/collect", label: "What we collect", key: "collect", icon: "radar" },
+  { url: "/data/now", label: "Recording now", key: "now", icon: "radio" },
+  { url: "/data/machines", label: "For machines", key: "machines", icon: "braces" }
+] %}
+{%- set here = pages | selectattr("key", "equalto", dataNav) | first %}
+<div class="siterail">
+  <aside class="siterail__nav" data-siterail data-open="false">
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="data-rail">
+      <span class="siterail__head-title">Data</span>
+      <span class="siterail__head-here">{{ here.label if here else "The corpus" }}</span>
+      <span class="siterail__head-meta">{{ pages.length }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="data-rail" aria-label="Data">
+      <div class="rail__group">The corpus</div>
+      {%- for p in pages %}
+      <a class="rail__item{% if p.key == dataNav %} rail__item--on{% endif %}"
+         {% if p.key == dataNav %}aria-current="page"{% endif %}
+         href="{{ p.url }}">{% icon p.icon, 18 %}{{ p.label }}</a>
+      {%- endfor %}
+    </nav>
+    <div class="siterail__foot">
+      <a class="btn btn--sm" href="/data/dashboard">{% icon "chart-column", 14 %}Daily charts</a>
+      <a class="btn btn--sm" href="/status/service">{% icon "gauge", 14 %}Status console</a>
+    </div>
+  </aside>
+
+  <div class="siterail__body">
+    {{ content | safe }}
+  </div>
+</div>
+
+<script defer src="/assets/site-rail.js"></script>

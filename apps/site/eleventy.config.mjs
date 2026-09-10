@@ -296,6 +296,84 @@ export default function (eleventyConfig) {
    * part of the truth, and compressing an empty stretch would draw a
    * line that never happened.
    */
+  /**
+   * Battles per DAY as bars (2026-09-10, Jamie: "I would rather show
+   * daily as a bar chart").
+   *
+   * A cumulative monthly curve only ever goes up and to the right, which
+   * makes it a picture of the corpus being big rather than of the
+   * recorder working: a day the collectors stalled is invisible in it,
+   * and that is the day worth seeing. Bars are per day, gaps included as
+   * real zeroes, so a flat stretch reads as a flat stretch.
+   */
+  eleventyConfig.addFilter("dailyBars", (daily, days = 120) => {
+    if (!Array.isArray(daily) || daily.length === 0) return {};
+    const byDay = new Map(
+      daily.map((d) => [String(d.day).slice(0, 10), d.battles ?? 0]),
+    );
+    const sorted = [...byDay.keys()].sort();
+    // Every day between the first and the last, so an empty one keeps
+    // its width instead of being closed over.
+    const start = new Date(`${sorted.at(-1)}T00:00:00Z`);
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+    const keys = [];
+    const cursor = new Date(
+      Math.max(start, new Date(`${sorted[0]}T00:00:00Z`)),
+    );
+    const end = new Date(`${sorted.at(-1)}T00:00:00Z`);
+    while (cursor <= end) {
+      keys.push(cursor.toISOString().slice(0, 10));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    const values = keys.map((k) => byDay.get(k) ?? 0);
+    const top = Math.max(...values, 1);
+    const X0 = 20,
+      X1 = 640,
+      Y0 = 140,
+      Y1 = 12;
+    const slot = (X1 - X0) / keys.length;
+    const round = (n) => Math.round(n * 10) / 10;
+    const bars = keys.map((k, i) => {
+      const h = ((Y0 - Y1) * values[i]) / top;
+      return {
+        x: round(X0 + slot * i),
+        // A gap of at least a pixel between bars, and never wider than
+        // the slot: with 120 days the bars are thin and the gaps matter.
+        width: round(Math.max(slot - Math.min(1.5, slot * 0.25), 0.6)),
+        y: round(Y0 - h),
+        height: round(Math.max(h, values[i] > 0 ? 1 : 0)),
+        day: k,
+        battles: values[i],
+      };
+    });
+    // A label every fortnight or so, and always the ends: a tick per day
+    // is unreadable at this width.
+    const step = Math.max(1, Math.round(keys.length / 6));
+    const ticks = bars
+      .filter((b, i) => i % step === 0 || i === bars.length - 1)
+      .map((b) => ({
+        x: round(b.x + b.width / 2),
+        label: new Date(`${b.day}T12:00:00Z`).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        }),
+      }));
+    const total = values.reduce((a, b) => a + b, 0);
+    return {
+      bars,
+      ticks,
+      top,
+      half: Math.round(top / 2),
+      first: keys[0],
+      last: keys.at(-1),
+      days: keys.length,
+      total,
+      mean: Math.round(total / keys.length),
+      busiest: bars.reduce((a, b) => (b.battles > a.battles ? b : a), bars[0]),
+    };
+  });
+
   eleventyConfig.addFilter("cumulativeByMonth", (daily) => {
     if (!Array.isArray(daily) || daily.length === 0) return {};
     const byMonth = new Map();

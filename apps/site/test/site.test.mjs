@@ -100,8 +100,21 @@ const STATIC_PAGES = [
   "/docs/methodology",
   "/docs/operators",
   "/updates",
-  "/data/changelog",
+  "/data/growth",
+  "/data/collect",
+  "/data/now",
+  "/data/machines",
 ];
+
+/** Every update is its own page (2026-09-10), so the list is derived from
+ *  the entries rather than pinned: pinning a hundred and forty-eight
+ *  slugs would be a second copy of updates.js that nobody would keep. */
+async function updatePages() {
+  const { default: view } = await import(
+    path.join(repoRoot, "apps/site/src/_data/updatesView.js")
+  );
+  return view.map((u) => `/updates/${u.slug}`);
+}
 
 test(
   "every static page is a real document, not the app shell",
@@ -150,6 +163,9 @@ test("the share image is a 1200x630 PNG", { skip }, () => {
 });
 
 test("no two pages share a title or description", { skip }, () => {
+  // Over the pinned pages. Two updates have shared a title before now
+  // (the same ship written up twice), which is a content problem, not a
+  // routing one — their URLs still differ, because the date leads.
   const seen = new Map();
   for (const page of STATIC_PAGES) {
     const rel = page === "/" ? "index.html" : `${page.slice(1)}/index.html`;
@@ -164,11 +180,14 @@ test("no two pages share a title or description", { skip }, () => {
   }
 });
 
-test("the sitemap lists exactly the static pages", { skip }, () => {
+test("the sitemap lists exactly the static pages", { skip }, async () => {
   const locs = [...read("sitemap.xml").matchAll(/<loc>([^<]+)<\/loc>/g)]
     .map((m) => m[1].replace("https://elixir.poapkings.com", "") || "/")
     .sort();
-  assert.deepEqual(locs, [...STATIC_PAGES].sort());
+  // Still exact — a sitemap entry that resolves to nothing is the defect
+  // this test was written for — but the update pages are derived.
+  const expected = [...STATIC_PAGES, ...(await updatePages())].sort();
+  assert.deepEqual(locs, expected);
 });
 
 test("the app shell is not indexable", { skip }, () => {
@@ -205,6 +224,11 @@ test(
         routerPages.includes(page) || prefixes.some((p) => page.startsWith(p));
       assert.ok(routed, `the edge router sends ${page} to the app shell`);
     }
+    // Every update page is routed by the /updates/ prefix, not listed.
+    assert.ok(
+      prefixes.includes("/updates/"),
+      "the edge router sends /updates/<slug> to the app shell",
+    );
     // And nothing routed to the site should be missing from the build.
     for (const page of routerPages) {
       assert.ok(
