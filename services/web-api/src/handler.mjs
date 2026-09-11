@@ -217,12 +217,37 @@ export function makeHandler({
           : json(400, { error: "invalid_json" });
       }
     }
+    // One timing line per request, so a slow page can be attributed to
+    // a route rather than read off the Lambda's undifferentiated
+    // REPORT (2026-09-11: the console rail lagged the page and nobody
+    // could say which call). The ROUTE KEY, never the raw path: a
+    // wildcard suffix is a request id or a name.
+    const started = Date.now();
+    const routeKey = isIntegration
+      ? `${method} /api/v1/*`
+      : routes[`${method} ${path}`]
+        ? `${method} ${path}`
+        : `${method} ${path.slice(0, path.lastIndexOf("/"))}/*`;
+    let status = 500;
+    let connectMs = 0;
     const db = new pg.Client({ connectionString: databaseUrl });
-    await db.connect();
     try {
-      return await route(db, event, body);
+      await db.connect();
+      connectMs = Date.now() - started;
+      const res = await route(db, event, body);
+      status = res?.statusCode ?? 200;
+      return res;
     } finally {
-      await db.end();
+      await db.end().catch(() => {});
+      console.log(
+        JSON.stringify({
+          at: new Date().toISOString(),
+          http: routeKey,
+          status,
+          ms: Date.now() - started,
+          connect_ms: connectMs,
+        }),
+      );
     }
   };
 }
