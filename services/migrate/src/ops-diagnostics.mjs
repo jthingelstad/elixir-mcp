@@ -38,6 +38,8 @@ export async function stats(databaseUrl) {
  * This IAM-only operation exposes no payloads or credentials. Requeueing is
  * deliberately guarded against a queued twin, preserves the original job id,
  * and resets the exhausted lease-attempt counter for a fresh delivery cycle.
+ * A named redundant dead row may instead be folded only if a queued or leased
+ * twin currently carries the same work; it can never erase an uncovered job.
  */
 export async function ledger(databaseUrl, spec = {}) {
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -93,7 +95,44 @@ export async function ledger(databaseUrl, spec = {}) {
       };
     }
 
-    return { error: "ledger op must be dead or requeue" };
+    if (op === "fold") {
+      const jobIds = [...new Set(spec.job_ids ?? [])]
+        .map((id) => String(id))
+        .filter((id) => /^[1-9][0-9]*$/.test(id));
+      if (jobIds.length === 0 || jobIds.length > 100)
+        return { error: "job_ids must contain 1 to 100 positive integers" };
+
+      const { rows } = await db.query(
+        `with redundant as (
+           select j.job_id
+           from job j
+           where j.job_id = any($1::bigint[])
+             and j.status = 'dead'
+             and exists (
+               select 1 from job twin
+               where twin.job_id <> j.job_id
+                 and twin.endpoint = j.endpoint
+                 and twin.entity_key = j.entity_key
+                 and twin.status in ('queued', 'leased')
+             )
+         )
+         update job j
+         set status = 'done', done_at = now()
+         from redundant r
+         where j.job_id = r.job_id
+         returning j.job_id, j.endpoint, j.entity_key, j.lane`,
+        [jobIds],
+      );
+      return {
+        requested: jobIds.length,
+        folded: rows,
+        skipped: jobIds.filter(
+          (id) => !rows.some((row) => String(row.job_id) === id),
+        ),
+      };
+    }
+
+    return { error: "ledger op must be dead, requeue, or fold" };
   } finally {
     await db.end();
   }

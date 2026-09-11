@@ -75,6 +75,10 @@ async function settleOnce(db) {
     const { rows: diedRows } = await db.query(
       `update job set status = 'dead', done_at = now()
        where ${expired} and attempts >= $2
+         and not exists (select 1 from job q
+                         where q.endpoint = job.endpoint
+                           and q.entity_key = job.entity_key
+                           and q.status = 'queued')
        returning leased_by`,
       [LEASE_TTL_S, MAX_ATTEMPTS],
     );

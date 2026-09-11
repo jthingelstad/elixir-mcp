@@ -181,6 +181,15 @@ test("ledger ops inspect and selectively requeue dead collector work", async () 
       [recoverable.job_id],
     );
     assert.deepEqual(recovered.skipped, [blocked.job_id]);
+    const folded = await ledger(SCRATCH_URL, {
+      op: "fold",
+      job_ids: [blocked.job_id],
+    });
+    assert.deepEqual(
+      folded.folded.map((job) => job.job_id),
+      [blocked.job_id],
+    );
+    assert.deepEqual(folded.skipped, []);
     const {
       rows: [job],
     } = await db.query(
@@ -193,6 +202,12 @@ test("ledger ops inspect and selectively requeue dead collector work", async () 
       leased_by: null,
       done_at: null,
     });
+    const {
+      rows: [foldedJob],
+    } = await db.query(`select status from job where job_id = $1`, [
+      blocked.job_id,
+    ]);
+    assert.equal(foldedJob.status, "done");
   } finally {
     await db.end();
   }

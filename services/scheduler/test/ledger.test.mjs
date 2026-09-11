@@ -133,7 +133,7 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
   });
   const j3 = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
   await db.query(
-    `update job set leased_at = now() - interval '5 minutes' where job_id = $1`,
+    `update job set leased_at = now() - interval '5 minutes', attempts = 5 where job_id = $1`,
     [j3.job_id],
   );
   await enqueueJob(db, {
@@ -142,6 +142,7 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
     lane: "bulk",
   });
   const s3 = await settleLeases(db);
+  assert.equal(s3.died, 0, "an exhausted redundant lease is not a dead job");
   assert.equal(s3.folded, 1, "redundant stale lease closes quietly");
 
   const stats = await ledgerStats(db);
