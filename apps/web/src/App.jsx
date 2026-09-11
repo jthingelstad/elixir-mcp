@@ -50,6 +50,7 @@ export const STATIC_LINKS = {
   docs: "/docs",
   updates: "/updates",
   family: "/family",
+  support: "/support",
 };
 
 /** The top bar. Identical in both builds by construction: it names only
@@ -62,6 +63,7 @@ const CHROME_TABS = [
   ["Updates", "/updates"],
   ["Docs", "/docs"],
   ["Family", "/family"],
+  ["Support", "/support"],
 ];
 
 /**

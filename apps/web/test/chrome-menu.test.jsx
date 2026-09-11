@@ -39,7 +39,7 @@ test("the menu button opens a sheet with every tab in it", async () => {
   expect(sheet.dataset.open).toBe("false");
   // The links are in the markup either way — a crawler and a reader with
   // no JavaScript both still find them.
-  expect(sheet.querySelectorAll("a")).toHaveLength(6);
+  expect(sheet.querySelectorAll("a")).toHaveLength(7);
 
   fireEvent.click(button);
   expect(button.getAttribute("aria-expanded")).toBe("true");

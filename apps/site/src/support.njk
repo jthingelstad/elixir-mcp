@@ -1,0 +1,275 @@
+---
+layout: base.njk
+navActive: support
+title: "Support Elixir"
+description: "Elixir MCP is free to use and independently run. What keeping it going costs, how to sponsor it on GitHub, how running a collector differs from sponsoring, and where the record stands — with nothing for sale."
+permalink: /support/index.html
+canonical: /support
+---
+{#-
+  The Support page, as the 2026-09-10 design draws it: a rail of five
+  anchors on one document (like the Data page used to be, and for the
+  same reason the Data page stopped: these five sections are one
+  argument, not five destinations), the sponsor button first, then why
+  the record matters, what the money pays for, GitHub Sponsors, the
+  collector alternative, and the corpus counters.
+
+  The whole page rests on one promise, repeated at the top, in the
+  Sponsors panel and at the foot: sponsorship changes nothing about an
+  account. Supercell's Fan Content Policy forbids selling access, and
+  reading is universal by design (docs/roles). Every number here is
+  baked from the same stats endpoint /data reads, so the page can never
+  quote a figure the corpus page would contradict.
+-#}
+{%- set t = stats.totals %}
+{%- set n = "—" %}
+{%- set sponsorUrl = "https://github.com/sponsors/jthingelstad" %}
+{%- set sections = [
+  { id: "why", label: "Why it matters", icon: "history" },
+  { id: "costs", label: "What it pays for", icon: "receipt" },
+  { id: "sponsors", label: "GitHub Sponsors", icon: "heart" },
+  { id: "collector", label: "Run a Collector", icon: "server" },
+  { id: "record", label: "Where the record stands", icon: "chart-column" }
+] %}
+<div class="siterail">
+  <aside class="siterail__nav" data-siterail data-open="false">
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="support-rail">
+      <span class="siterail__head-title">Support</span>
+      <span class="siterail__head-here" data-rail-here>{{ sections[0].label }}</span>
+      <span class="siterail__head-meta">{{ sections.length }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="support-rail" aria-label="On this page" data-rail-anchors>
+      <div class="rail__group">On this page</div>
+      {%- for s in sections %}
+      <a class="rail__item{% if loop.first %} rail__item--on{% endif %}" href="#{{ s.id }}">{% icon s.icon, 18 %}{{ s.label }}</a>
+      {%- endfor %}
+    </nav>
+    <div class="siterail__foot">
+      Elixir is free to use. Reading is universal, and sponsorship does not change that.
+    </div>
+  </aside>
+
+  <div class="siterail__body">
+    <h1 class="hero-title" style="font-size: 38px; margin: 0 0 10px">Support Elixir</h1>
+    <p class="docs__lede" style="max-width: 60ch; margin-bottom: 22px">
+      Elixir is free to use and independently run. Keeping it going takes
+      storage, compute, APIs, AI services, and collection that never stops.
+      If the record is useful to you, you can help pay for it.
+    </p>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px">
+      <a class="btn btn--gold" href="{{ sponsorUrl }}" rel="noopener">{% icon "heart", 17 %}Sponsor Elixir on GitHub</a>
+      <a class="btn" href="/docs/operators">{% icon "server", 17 %}Run a Collector</a>
+    </div>
+    <p class="footnote" style="font-size: 13.5px; line-height: 1.6; margin: 0 0 30px; max-width: 66ch; text-wrap: pretty">
+      Voluntary, and that is the whole arrangement: no extra quota, no longer
+      retention, no features, no priority. Supercell&rsquo;s
+      <a href="https://www.supercell.com/fan-content-policy">Fan Content Policy</a>
+      forbids selling access &mdash; and we would not want to sell it anyway.
+    </p>
+
+    {#- Why. The table's right-hand column is the corpus talking: since-date,
+        snapshot count and war weeks come from the stats bake, so the
+        argument for the archive is made with the archive's own figures. -#}
+    <section class="panel" id="why" style="margin-bottom: 22px">
+      <div class="panel__head">
+        <h2 style="font-size: 15px; font-weight: 600; margin: 0">Clash Royale forgets. Elixir remembers.</h2>
+        <a href="/data/collect" style="margin-left: auto; font-size: 13px; white-space: nowrap">What we collect &rsaquo;</a>
+      </div>
+      <p class="panel__body" style="margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-body); max-width: 74ch; text-wrap: pretty">
+        The game&rsquo;s API answers <em style="color: var(--ink)">now</em>. It
+        holds the last handful of battles, the current roster, a rolling
+        window of war weeks &mdash; and everything older is gone, not archived.
+        Elixir records history while it still exists, so the same question
+        can be asked next season.
+      </p>
+      <div class="table__scroll">
+        <table class="table" style="min-width: 600px">
+          <thead>
+            <tr>
+              <th>WHAT</th>
+              <th>THE GAME&rsquo;S API</th>
+              <th>ELIXIR</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color: var(--ink)">Battles</td>
+              <td style="color: var(--ink-dim)">about the last 30 per player</td>
+              <td>every battle recorded{% if t %} since {{ t.oldest_battle | day }}{% endif %}</td>
+            </tr>
+            <tr>
+              <td style="color: var(--ink)">Player history</td>
+              <td style="color: var(--ink-dim)">current snapshot only</td>
+              <td>daily snapshots{% if t %} &middot; {{ t.snapshots | number }} so far{% endif %}</td>
+            </tr>
+            <tr>
+              <td style="color: var(--ink)">Trophy progression</td>
+              <td style="color: var(--ink-dim)">current and best</td>
+              <td>the whole curve, day by day</td>
+            </tr>
+            <tr>
+              <td style="color: var(--ink)">Deck usage</td>
+              <td style="color: var(--ink-dim)">not exposed</td>
+              <td>derived from recorded battles</td>
+            </tr>
+            <tr>
+              <td style="color: var(--ink)">Clan history</td>
+              <td style="color: var(--ink-dim)">current roster</td>
+              <td>roster read every 15 minutes</td>
+            </tr>
+            <tr>
+              <td style="color: var(--ink)">Clan wars</td>
+              <td style="color: var(--ink-dim)">rolling 20 weeks</td>
+              <td>{% if t %}{{ t.war_weeks | number }} war weeks and counting{% else %}every war week, past the API&rsquo;s window{% endif %}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__foot" style="font-size: 13px; color: var(--ink-dim); text-wrap: pretty">
+        No sponsor owns any part of the record. Sponsorship pays to keep the
+        archive running; what is in it belongs to the people and clans who
+        asked us to record them.
+      </div>
+    </section>
+
+    {#- Costs. Six lines, deliberately mundane: the point is that this is a
+        bill, not a pitch. -#}
+    <section id="costs" style="margin-bottom: 22px">
+      <h2 style="font-size: 20px; font-weight: 600; margin: 0 0 4px">What sponsorship pays for</h2>
+      <p style="font-size: 14px; color: var(--ink-faint); margin: 0 0 14px; max-width: 60ch">
+        High level, and honestly mundane. This is the bill for keeping a
+        record that grows every day.
+      </p>
+      <div class="stats" style="grid-template-columns: repeat(auto-fit, minmax(264px, 1fr))">
+        {%- set costs = [
+          ["Storage and backups", "database", "The corpus and its point-in-time backups grow every day and never shrink."],
+          ["App and API infrastructure", "server", "The hub, the MCP endpoint, this site, and the queues behind them."],
+          ["Continuous collection", "radar", "Battle, player, clan and river-race polling that runs every few minutes."],
+          ["AI and model usage", "bot", "Agent-facing surfaces and the enrichment that runs over recorded history."],
+          ["Monitoring and tooling", "activity", "Alarms, request budgets, the operator console — how a gap gets noticed."],
+          ["Long-term retention", "archive", "Keeping history past the point the game's API drops it. That is the point."]
+        ] %}
+        {%- for c in costs %}
+        <div class="stats__cell">
+          <div style="display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 600; color: var(--ink); margin-bottom: 5px"><span style="color: var(--accent-bright); display: flex">{% icon c[1], 17 %}</span>{{ c[0] }}</div>
+          <div style="font-size: 13px; line-height: 1.55; color: var(--ink-dim); text-wrap: pretty">{{ c[2] }}</div>
+        </div>
+        {%- endfor %}
+      </div>
+    </section>
+
+    {#- Sponsors. Suggested amounts, not tiers: the word "tier" already
+        means something on this site (docs/roles), and these must never be
+        confused with it. -#}
+    <section class="panel" id="sponsors" style="margin-bottom: 22px; background: var(--panel-float); border-color: rgba(245, 200, 76, 0.42)">
+      <div class="panel__head">
+        <span style="display: flex; color: var(--gold)">{% icon "heart", 17 %}</span>
+        <h2 style="font-size: 15px; font-weight: 600; margin: 0">GitHub Sponsors</h2>
+        <span class="mono" style="margin-left: auto; font-size: 12px; color: var(--ink-faint)">github.com/sponsors/jthingelstad</span>
+      </div>
+      <p style="padding: 14px 16px 4px; margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-body); max-width: 70ch; text-wrap: pretty">
+        Three suggested levels &mdash; not plans, and not a menu. They exist so
+        the amount is easy to pick, and nothing about your Elixir account
+        changes when you pick one.
+      </p>
+      <div style="padding: 10px 16px 0">
+        {%- set levels = [
+          ["Elixir Supporter", "$5 / month", "Help keep Elixir running and preserving Clash Royale history."],
+          ["Elixir Steward", "$10 / month", "Cover a steady share of storage, collection and the daily running costs."],
+          ["Elixir Sustainer", "$20 / month", "Additional support for the long-term operation and growth of Elixir."]
+        ] %}
+        {%- for l in levels %}
+        <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 13px 0; border-top: 1px solid var(--line-soft)">
+          <span style="font-size: 14.5px; font-weight: 600; color: var(--ink); flex: 0 0 auto">{{ l[0] }}</span>
+          <span class="mono" style="font-size: 13px; color: var(--gold); flex: 0 0 auto">{{ l[1] }}</span>
+          <span style="font-size: 13.5px; line-height: 1.5; color: var(--ink-dim); flex: 1 1 260px; min-width: 0; text-wrap: pretty">{{ l[2] }}</span>
+        </div>
+        {%- endfor %}
+      </div>
+      <div class="panel__actions" style="gap: 14px; margin-top: 13px; background: none">
+        <a class="btn btn--gold" href="{{ sponsorUrl }}" rel="noopener">{% icon "heart", 17 %}Sponsor Elixir on GitHub</a>
+        <span style="font-size: 13px; line-height: 1.55; color: var(--ink-faint); flex: 1 1 220px; min-width: 0; text-wrap: pretty">
+          Custom amounts and one-off sponsorships work the same way. Cancel
+          whenever; nothing you rely on depends on it.
+        </span>
+      </div>
+    </section>
+
+    {#- Collector. The one place on this page where something DOES change an
+        account (collectors earn quota), so the separation from sponsorship
+        is stated in a callout rather than left to inference. -#}
+    <section class="panel" id="collector" style="margin-bottom: 22px; background: var(--panel-float); border-color: var(--line-strong)">
+      <div class="panel__head">
+        <span style="display: flex; color: var(--accent-bright)">{% icon "server", 17 %}</span>
+        <h2 style="font-size: 15px; font-weight: 600; margin: 0">Contribute capacity instead</h2>
+        <span class="tag-chip" style="margin-left: auto">Collector</span>
+      </div>
+      <p style="padding: 14px 16px 0; margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-body); max-width: 72ch; text-wrap: pretty">
+        A Collector is a small process you run that fetches Clash Royale data
+        on Elixir&rsquo;s behalf and hands it to the hub. More Collectors means
+        more of the game recorded, more often. Active Collectors do earn
+        additional quota &mdash; that is capacity you contributed coming back
+        to you, not a reward for paying.
+      </p>
+      <div style="margin: 14px 16px; padding: 12px 14px; border-left: 2px solid var(--gold); background: var(--panel); font-size: 14px; line-height: 1.6; color: var(--ink-body); text-wrap: pretty">
+        Sponsorship supports the project financially. Collectors add to
+        Elixir&rsquo;s operating capacity. They are separate, and only one of
+        them changes what the network can record.
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; padding: 0 16px 16px">
+        <a class="btn" href="/docs/operators">Collector setup guide {% icon "arrow-right", 15 %}</a>
+        <a class="btn btn--quiet" href="/status/collectors">Raise your hand in the console</a>
+      </div>
+    </section>
+
+    {#- The record. The SAME four brand counters as Home and /data, from the
+        same bake — a fundraising page that quoted its own numbers would be
+        the first place the site contradicted itself. -#}
+    <section id="record" style="margin-bottom: 22px">
+      <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px">
+        <h2 style="font-size: 20px; font-weight: 600; margin: 0">Where the record stands</h2>
+        <a href="/data" style="font-size: 13.5px">Full corpus &rsaquo;</a>
+      </div>
+      <div class="stats">
+        <div class="stats__cell">
+          <div class="label">battles</div>
+          <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}{{ n }}{% endif %}</div>
+          <div class="stats__note">{% if t %}since {{ t.oldest_battle | day }}{% else %}recorded{% endif %}</div>
+        </div>
+        <div class="stats__cell">
+          <div class="label">players</div>
+          <div class="stats__value stats__value--brand">{% if t %}{{ t.players | number }}{% else %}{{ n }}{% endif %}</div>
+          <div class="stats__note">observed</div>
+        </div>
+        <div class="stats__cell">
+          <div class="label">clans</div>
+          <div class="stats__value stats__value--brand">{% if t %}{{ t.clans | number }}{% else %}{{ n }}{% endif %}</div>
+          <div class="stats__note">observed</div>
+        </div>
+        <div class="stats__cell">
+          <div class="label">war weeks</div>
+          <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}{{ n }}{% endif %}</div>
+          <div class="stats__note">recorded races</div>
+        </div>
+      </div>
+      <p class="footnote" style="margin: 11px 0 0; max-width: 70ch; text-wrap: pretty">
+        Same numbers the Data page reads, from the same statistics endpoint
+        &mdash; not a fundraising figure.{% if t %} Captured by
+        {{ t.collectors_active | number }} active
+        collector{% if t.collectors_active != 1 %}s{% endif %}; the oldest
+        recorded battle is from {{ t.oldest_battle | day }}.{% else %} Figures are baked at
+        build time and arrive on the next build.{% endif %}
+      </p>
+    </section>
+
+    <div class="panel" style="padding: 16px 18px; font-size: 14.5px; line-height: 1.65; color: var(--ink-body); max-width: 76ch; text-wrap: pretty">
+      Elixir is a free community project. Sponsorship is optional and gives no
+      additional features, quota, retention, or access &mdash; at any amount.
+      The record stays the same for everyone reading it.
+    </div>
+  </div>
+</div>
+
+<script defer src="/assets/site-rail.js"></script>
+<script defer src="/assets/rail-anchors.js"></script>

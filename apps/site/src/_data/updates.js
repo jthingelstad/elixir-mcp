@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-10",
+    title: "A Support page, and what sponsoring does not buy",
+    body: "Elixir is free to use and independently run, and there is now a page that says what keeping it going costs and how to help pay for it: GitHub Sponsors at three suggested amounts, with running a collector set beside it as the other way to contribute. The page is mostly a promise repeated three times — sponsorship gives no extra quota, retention, features or priority, at any amount, because Supercell's Fan Content Policy forbids selling access and reading is universal here by design. Collectors are the one contribution that does change an account, and the page says so plainly rather than letting the two blur. The corpus counters on it are the same ones the Data page reads, from the same build-time bake.",
+  },
+  {
+    date: "2026-09-10",
     title: "War scores separate the day, and one call closes a week",
     body: "Three reports from the agents using the record are fixed in contract 1.2.0. war_current now keeps period_points, the score a clan has earned in the current war day, beside fame, the cumulative boat score banked when a day closes — so day-one fame can honestly be zero while members already have points. war_history can take season_id and section_index together and return every recorded participant for that exact week, including which numbered war days each member fought; one closed-week roster no longer takes a call per member. elixir_coverage now names unmeasured_tail_hours instead of leaving the stale tail as prose, and a player somebody tracks directly gets a profile at least every eight hours even when dormant. The existing clan-wide yield schedule remains for members nobody follows directly.",
   },

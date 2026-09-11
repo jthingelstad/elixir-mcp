@@ -104,6 +104,7 @@ const STATIC_PAGES = [
   "/data/collect",
   "/data/now",
   "/data/machines",
+  "/support",
 ];
 
 /** Every update is its own page (2026-09-10), so the list is derived from
@@ -578,7 +579,7 @@ test(
   { skip },
   async () => {
     // The static half's menu is hand-written JavaScript, so it gets the
-    // same exercise the app's React one does. Two properties: the six tabs
+    // same exercise the app's React one does. Two properties: the seven tabs
     // collapse behind one button, and the CONSOLE BUTTON IS NOT IN THERE —
     // it is the way into the product, and a menu is the wrong place for it.
     const { JSDOM } = await import("jsdom");
@@ -596,7 +597,7 @@ test(
     assert.equal(sheet.dataset.open, "false");
     // Present with JavaScript off too: a crawler and a reader without it
     // both still find every destination.
-    assert.equal(sheet.querySelectorAll("a").length, 6);
+    assert.equal(sheet.querySelectorAll("a").length, 7);
     assert.ok(!/Console/.test(sheet.textContent), "Console is inside the menu");
 
     button.dispatchEvent(new window.Event("click", { bubbles: true }));

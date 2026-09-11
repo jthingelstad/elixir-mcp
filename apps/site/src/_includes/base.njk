@@ -64,6 +64,7 @@
             <a class="chrome__tab{% if navActive == "updates" %} chrome__tab--on{% endif %}" href="/updates">Updates</a>
             <a class="chrome__tab{% if navActive == "docs" %} chrome__tab--on{% endif %}" href="/docs">Docs</a>
             <a class="chrome__tab{% if navActive == "family" %} chrome__tab--on{% endif %}" href="/family">Family</a>
+            <a class="chrome__tab{% if navActive == "support" %} chrome__tab--on{% endif %}" href="/support">Support</a>
           </nav>
           {#- Never inside the menu, at any width. -#}
           <a class="chrome__console" href="/account/overview">
@@ -83,6 +84,7 @@
           <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
           <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
           <a href="/family"{% if navActive == "family" %} aria-current="page"{% endif %}>Family</a>
+          <a href="/support"{% if navActive == "support" %} aria-current="page"{% endif %}>Support</a>
         </nav>
       </header>
 

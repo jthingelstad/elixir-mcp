@@ -22,7 +22,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% for g in examples %}{% for c in g.cases %}- [Example: {{ c.title }}]({{ site.url }}/examples/{{ c.key }}): {{ c.lede | safe }}
 {% endfor %}{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
 {% for p in familyFlat %}{% if not p.first %}- [Family: {{ p.label }}]({{ site.url }}/family/{{ p.key }}): {{ p.lede | safe }}
-{% endif %}{% endfor %}
+{% endif %}{% endfor %}- [Support Elixir]({{ site.url }}/support): free to use and independently run; what it costs, GitHub Sponsors, and why sponsoring changes nothing about an account
 ## Machine-readable
 - [Full content bundle]({{ site.url }}/llms-full.txt): every documentation page and the whole tool reference in one fetch
 - [Tool registry JSON]({{ site.url }}/tools.json): all {{ tools.count }} tools with groups, descriptions, arguments, and required OAuth capabilities

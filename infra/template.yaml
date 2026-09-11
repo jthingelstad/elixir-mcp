@@ -1149,7 +1149,8 @@ Resources:
           '/data/machines': 1,
           '/docs': 1,
           '/family': 1,
-          '/updates': 1
+          '/updates': 1,
+          '/support': 1
         };
         var STATIC_PREFIXES = ['/docs/', '/examples/', '/family/', '/updates/'];
 
