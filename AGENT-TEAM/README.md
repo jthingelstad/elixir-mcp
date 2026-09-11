@@ -84,7 +84,8 @@ Cross-cutting work keeps one originating owner through acceptance.
   API surprises us.
 - Live evidence: `https://elixir.poapkings.com/api/public/status` (including
   DB-backed collector heartbeat, admission, and recent-fetch signals), the
-  migrate lambda ops (`{probe}`, `{stats}`, `{feedback_pending}`…), the jobs
+  migrate lambda ops (`{stats}`, `{tables}`, `{feedback_pending}`…; `{probe}`
+  is an on-demand census, never a routine read — see Run Elixir MCP), the jobs
   lambda (`{clan_pulse}`, sweeps), CloudWatch alarms and service metrics, and
   `mcp_call_audit`. Per-gateway CloudWatch metrics were retired with the
   zero-trust collector door.

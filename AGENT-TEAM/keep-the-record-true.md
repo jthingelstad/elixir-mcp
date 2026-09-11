@@ -13,6 +13,17 @@ samples real values against game reality (the Observatory rule).
   24h and trend): gaps mean the rotating battlelog rolled past unseen
   battles — quantify which subjects and whether cadence policy or fleet
   capacity is the cause. First-polls are history arriving, never gaps.
+  Since 2026-09-11 the scheduler SKIPS a battle-log or profile poll when
+  a roster fresher than the last poll shows the member idle since it
+  (sighting older than two hours: `ROSTER_GATE_SESSION_HOURS` in
+  `services/scheduler/src/plan.mjs`). That trades fetches for trust in
+  the roster's `lastSeen`, so gaps are the gate's first symptom: a gap
+  rate above the ~0.1% it was (7 of 5,500) with the gapped subjects'
+  rosters showing them idle is the gate being wrong, and the grace is
+  the lever — never silence the audit. Profiles have no fairness floor
+  any more; on the Monday after 00:10Z confirm every recorded player
+  whose last snapshot had donations > 0 got a `season_roll` snapshot,
+  and name the misses.
 - **Projection spot-checks.** Pick a handful of recent battles/war rows
   and trace payload → projection: battle_time semantics (ISO-Z, played
   not observed), points-vs-fame discipline (member points are never

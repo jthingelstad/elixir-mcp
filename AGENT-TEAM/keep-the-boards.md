@@ -19,14 +19,18 @@ is not made until the season is over.
 
 Establish, with receipts:
 
-- **The snapshots arrived.** For the global `pol` board: a
-  `ranking_snapshot` observed within the last two hours, and no gap longer
-  than three hours in the last 24 (`last_confirmed_at` counts — an
-  unchanged board confirmed on the hour is a fetch that happened). For the
-  262 location boards: every enabled board observed or confirmed within
-  the last 36 hours. Read through `rankings_players` (`snapshot.observed_at`,
-  `snapshot.unchanged_until`) or the migrate lambda's `{stats: true}`;
-  never a hand SQL against production.
+- **The snapshots arrived.** Every board is daily since 2026-09-11,
+  read in the first planning tick after 10:00Z (the global `pol` board
+  was hourly). For the global board: one `ranking_snapshot` observed or
+  confirmed between 10:00Z and 10:15Z today — exactly one, not several
+  (`last_confirmed_at` counts: an unchanged board confirmed is a fetch
+  that happened). For the 262 location boards: every enabled board
+  observed or confirmed within the last 26 hours. Read through
+  `rankings_players` (`snapshot.observed_at`, `snapshot.unchanged_until`)
+  or the migrate lambda's `{stats: true}`; never a hand SQL against
+  production. This run is scheduled AFTER 10:00Z so today's board is the
+  one it reads; a run that lands before it reads yesterday's and must say
+  so rather than call it late.
 - **Nothing is truncated.** `snapshot.truncated` is false on the latest
   global snapshot. If it is true the board has passed the request limit
   and following the cursor is now due — write the finding, do not widen

@@ -15,4 +15,4 @@ Event follow-ups are explicit starts. Due subtasks use completion receipts.
 | Keep the Record True | ACTIVE | Daily at 05:30, 17:30 | `keep-the-record-true` |
 | Close the Loop | ACTIVE | Daily at 06:45, 18:45; Friday evening synthesis once per Chicago ISO week; catch up if blocked | `close-the-loop` |
 | Guard the Door | ACTIVE | Daily at 02:15; Full weekly sweep on Sunday; retain required boundary checks every run | `guard-the-door` |
-| Keep the Boards | ACTIVE | Daily at 04:20 | `keep-the-boards` |
+| Keep the Boards | ACTIVE | Daily at 05:20 (after the 10:00Z daily board lands; was 04:20 until 2026-09-12) | `keep-the-boards` |

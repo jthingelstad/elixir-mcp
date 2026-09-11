@@ -72,7 +72,7 @@ status = "ACTIVE"
 # Daily, after the global board's 09:00Z hour has landed and before the US
 # morning; the season-boundary checks are part of the same run in the three
 # days after a first-Monday roll.
-rrule = "RRULE:FREQ=DAILY;BYHOUR=4;BYMINUTE=20"
+rrule = "RRULE:FREQ=DAILY;BYHOUR=5;BYMINUTE=20"
 model = "gpt-5.6-terra"
 reasoning_effort = "high"
 execution_environment = "local"
