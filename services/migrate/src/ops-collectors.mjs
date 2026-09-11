@@ -88,3 +88,28 @@ export async function collectorReleaseOp(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** {gateway_recover: {name}} - un-quarantine a collector: draining -> active
+ *  with the missed-lease streak cleared. The lever the 2026-09-11
+ *  quarantine needed and did not have; the console's own transitions now
+ *  clear the streak too, so this is for the night nobody is at the
+ *  console. `name` is the machine name or the card name. */
+export async function gatewayRecoverOp(databaseUrl, spec) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const name = String(spec?.name ?? "");
+    if (!name) return { error: "name required" };
+    const { rows } = await db.query(
+      `update gateway set status = 'active', missed_streak = 0
+       where (name = $1 or card_name = $1) and status in ('draining', 'probation')
+       returning gateway_id, name, card_name, status`,
+      [name],
+    );
+    if (rows.length === 0)
+      return { error: `no draining or probation gateway named ${name}` };
+    return { ok: true, ...rows[0] };
+  } finally {
+    await db.end();
+  }
+}

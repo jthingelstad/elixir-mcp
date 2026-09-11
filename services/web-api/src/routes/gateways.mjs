@@ -247,9 +247,17 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       }[body.action];
       const from = TRANSITIONS[body.action];
       if (!to) return json(400, { error: "bad_request" });
+      // Re-entry to probation is a human saying "try again", so it clears
+      // the missed-lease streak. Without this a quarantined collector was
+      // dead for good: the streak only resets on a successful submit,
+      // which needs a lease, which the streak refuses (found 2026-09-11
+      // when a door-side ceiling refused every season-final submission,
+      // both collectors quarantined, and "Back to probation" then
+      // "Activate" put them straight back into quarantine).
       const { rows } = await db.query(
         `update gateway set status = $2,
-                cr_key_ref = coalesce($3, cr_key_ref)
+                cr_key_ref = coalesce($3, cr_key_ref),
+                missed_streak = case when $2 = 'probation' then 0 else missed_streak end
          where gateway_id::text = $1 and status = any($4)
          returning gateway_id, name, status`,
         [String(body.gateway_id ?? ""), to, body.cr_key_ref ?? null, from],

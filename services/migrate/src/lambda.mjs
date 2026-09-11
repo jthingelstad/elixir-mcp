@@ -23,6 +23,7 @@ import {
   gatewayProvision,
   collectorTokenOp,
   collectorReleaseOp,
+  gatewayRecoverOp,
 } from "./ops-collectors.mjs";
 import {
   stats,
@@ -93,6 +94,14 @@ export async function handler(event) {
     const result = await collectorReleaseOp(
       process.env.DATABASE_URL,
       event.collector_release,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.gateway_recover) {
+    const result = await gatewayRecoverOp(
+      process.env.DATABASE_URL,
+      event.gateway_recover,
     );
     console.log(JSON.stringify(result));
     return result;
