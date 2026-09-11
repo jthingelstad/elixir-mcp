@@ -21,6 +21,7 @@ import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
 import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
+import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
 import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
 import {
   projectRankingBoard,
@@ -294,12 +295,24 @@ const PROJECTORS = {
       fetchedAt,
       receiptId,
     });
+    // The collection (0076): cards and tower troops, levels on the
+    // display scale, with card_unlocked / card_leveled nods.
+    const cards = await projectPlayerCards(db, {
+      playerTag: entityKey,
+      payload,
+      fetchedAt,
+    });
     return {
       projected: "player",
       clanTag,
       snapshot,
+      cardsChanged: cards.changed,
       // Collected, never emitted here: the flush runs after commit.
-      feedEvents: [...badges.feedEvents, ...snapshot.feedEvents],
+      feedEvents: [
+        ...badges.feedEvents,
+        ...snapshot.feedEvents,
+        ...cards.feedEvents,
+      ],
     };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
@@ -407,9 +420,11 @@ const PROJECTORS = {
   async globaltournaments(db, { payload, fetchedAt }) {
     return projectTournaments(db, { payload, fetchedAt });
   },
-  async cards() {
-    // The catalog is served straight from the payload store (get_card_catalog).
-    return { projected: "none" };
+  async cards(db, { payload, fetchedAt }) {
+    // The catalog is a table (0076); cards_catalog and the resources door
+    // read it there, never the payload cache.
+    const { changed } = await projectCardCatalog(db, { payload, fetchedAt });
+    return { projected: "cards", changed };
   },
 };
 
@@ -515,6 +530,16 @@ export async function processResult(db, rawMessage, deps = {}) {
       // xmax = 0 marks a genuine insert (vs the dedup update path):
       // only NEW content goes to the S3 archive — content-identical
       // refetches add a receipt, never an object.
+      //
+      // The JSON column is a cache for a reader that is waiting on this
+      // exact payload, and the only such reader is live_fetch, on the
+      // live lane, within seconds (0071/0072 made it a two-hour cache;
+      // 2026-09-11: every bulk payload was still written to TOAST and
+      // nulled two hours later for nobody - ~60 KB per profile poll).
+      // A LANE rule, not an endpoint one: bulk payloads keep the hash
+      // row for dedup and go to S3; every product-facing datum has its
+      // own projection, and tools never read this column.
+      const cacheJson = msg.job.lane === "live";
       const {
         rows: [payloadRow],
       } = await db.query(
@@ -522,16 +547,21 @@ export async function processResult(db, rawMessage, deps = {}) {
          values ($1, $2, $3, $4, $5)
          on conflict (endpoint, entity_key, payload_hash)
            do update set last_fetched_at = now(),
-             -- The JSON is a ~48h cache of the S3 object (0071): a
-             -- refetch of content the sweep has already nulled puts it
-             -- back for live_fetch to read.
+             -- A live refetch of content the sweep has already nulled
+             -- puts it back for live_fetch to read.
              payload_json = coalesce(api_payload.payload_json, excluded.payload_json)
          returning (xmax = 0) as fresh_content`,
         // first_fetched_at is the COLLECTOR's fetch time, not ingest
         // now(): the S3 archive key below is built from it, and the
         // weekly sweep reconstructs that key from this column — the
         // two must agree or every twin lookup misses (sol-6 finding 6).
-        [endpoint, entityKey, hash, JSON.stringify(payload), msg.fetched_at],
+        [
+          endpoint,
+          entityKey,
+          hash,
+          cacheJson ? JSON.stringify(payload) : null,
+          msg.fetched_at,
+        ],
       );
       if (payloadRow.fresh_content && deps.archive) {
         await deps.archive.put(

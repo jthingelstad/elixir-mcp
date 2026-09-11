@@ -4,7 +4,7 @@ import { readRecordedProfile } from "../../../ingest/src/recorded-profile.mjs";
  *  (1.0.0): `applied`, `notes[]` + `docs`, `verbosity`. */
 
 import {
-  displayCard,
+  MAX_DISPLAY_LEVEL,
   cardForms,
   normalizeTag,
   responseMeta,
@@ -448,30 +448,55 @@ export const playersTools = {
           args.on_behalf_of,
         )
       ).tag;
+      // The collection is a table (0076), joined to the catalog for the
+      // static facts; levels are already on the 1-16 scale.
       const { rows } = await ctx.db.query(
-        `select p.payload_json->'cards' as cards,
-                p.payload_json->'currentDeckSupportCards' as support_cards,
-                (p.payload_json->>'collectionLevel')::int as collection_level,
-                p.last_fetched_at
-         from api_payload p
-         where p.endpoint = 'player' and p.entity_key = $1
-         order by p.last_fetched_at desc limit 1`,
+        `select pc.card_id, pc.level, pc.count, pc.evolution_level, pc.star_level, pc.observed_at,
+                c.name, c.kind, c.rarity, c.elixir_cost, c.max_level, c.max_evolution_level, c.icon_urls
+         from player_card pc
+         left join card c on c.card_id = pc.card_id
+         where pc.player_tag = $1
+         order by pc.card_id`,
         [tag],
       );
-      const row = rows[0];
-      if (!row) {
+      if (rows.length === 0) {
         throw new ToolFailure(
           "not_recorded",
-          `No profile payload recorded for ${tag} yet.`,
-          "Recording may have just started; players_profile({ live: true }) fetches one now.",
+          `No collection recorded for ${tag} yet.`,
+          "The collection is read from the player's profile; players_profile({ live: true }) fetches one now.",
         );
       }
+      const { rows: lvl } = await ctx.db.query(
+        `select (lifetime->>'collectionLevel')::int as collection_level
+         from player_snapshot_daily where player_tag = $1
+         order by snapshot_date desc, snapshot_kind desc limit 1`,
+        [tag],
+      );
+      const asOf = rows.reduce(
+        (m, r) => (r.observed_at > m ? r.observed_at : m),
+        rows[0].observed_at,
+      );
       const compact = args.verbosity === "compact";
-      const shape = (c) => {
+      const shape = (r) => {
         const full = {
-          ...displayCard(c),
-          forms_available: cardForms(c.maxEvolutionLevel),
-          forms_unlocked: cardForms(c.evolutionLevel),
+          id: r.card_id,
+          name: r.name ?? null,
+          level: r.level,
+          maxLevel: MAX_DISPLAY_LEVEL,
+          ...(r.max_level !== null ? { maxLevelRarityScale: r.max_level } : {}),
+          ...(r.count !== null ? { count: r.count } : {}),
+          ...(r.star_level !== null ? { starLevel: r.star_level } : {}),
+          ...(r.evolution_level !== null
+            ? { evolutionLevel: r.evolution_level }
+            : {}),
+          ...(r.max_evolution_level !== null
+            ? { maxEvolutionLevel: r.max_evolution_level }
+            : {}),
+          ...(r.rarity ? { rarity: r.rarity } : {}),
+          ...(r.elixir_cost !== null ? { elixirCost: r.elixir_cost } : {}),
+          ...(r.icon_urls ? { iconUrls: r.icon_urls } : {}),
+          forms_available: cardForms(r.max_evolution_level),
+          forms_unlocked: cardForms(r.evolution_level),
         };
         return compact
           ? {
@@ -485,10 +510,10 @@ export const playersTools = {
       return {
         player_tag: tag,
         applied: appliedBlock({ verbosity: compact ? "compact" : "full" }),
-        collection_level: row.collection_level,
-        cards: (row.cards ?? []).map(shape),
-        support_cards: (row.support_cards ?? []).map(shape),
-        as_of_payload: row.last_fetched_at.toISOString(),
+        collection_level: lvl[0]?.collection_level ?? null,
+        cards: rows.filter((r) => r.kind !== "support").map(shape),
+        support_cards: rows.filter((r) => r.kind === "support").map(shape),
+        as_of_payload: asOf.toISOString(),
         notes: notes(
           "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
           "Levels are the in-game 1-16 scale; starLevel is cosmetic.",

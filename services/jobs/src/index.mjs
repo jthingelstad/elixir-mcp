@@ -13,9 +13,9 @@ import pg from "pg";
  *  superseded payload rows (not the latest per endpoint+entity) leave
  *  Postgres only after their S3 twin HEAD-verifies; and the JSON of any
  *  row not fetched for two hours is nulled the same way (0071/0072),
- *  because the column is a cache of the archive, not the archive - the
- *  readers are live_fetch (seconds after admission) and the card
- *  catalog, whose one 'cards' row is kept. Bounded per run — the next
+ *  because the column is a cache of the archive, not the archive - its
+ *  one reader is live_fetch, seconds after admission (0076: only
+ *  live-lane payloads are cached at all). Bounded per run — the next
  *  hour takes the next slice. */
 export async function sweepPayloads(databaseUrl, s3override) {
   const bucket = process.env.ARCHIVE_BUCKET;
@@ -58,12 +58,13 @@ export async function sweepPayloads(databaseUrl, s3override) {
       swept += 1;
     }
     // Phase two: the cache window. Rows still holding JSON two hours
-    // after their last fetch give it up once the archive has it.
+    // after their last fetch give it up once the archive has it. Only
+    // live-lane payloads carry JSON at all since 0076; nothing is exempt
+    // by endpoint name - the catalog and the collection are tables.
     const { rows: stale } = await db.query(
       `select payload_id, endpoint, entity_key, payload_hash, first_fetched_at
        from api_payload
        where payload_json is not null
-         and endpoint <> 'cards'
          and last_fetched_at < now() - interval '2 hours'
        order by last_fetched_at limit 5000`,
     );

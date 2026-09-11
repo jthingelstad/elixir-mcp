@@ -83,6 +83,21 @@ export const TOPIC_CONTRACTS = {
     coalesce: true,
     payload: ["count"],
   },
+  // The collection (0076): a card the player did not have, and a level
+  // that went up. Counts ticking toward the next level are recorded, not
+  // announced. Split at the emitter like the badge tiers.
+  card_unlocked: {
+    stream: "player",
+    audience: { person: true, agent: true },
+    coalesce: true,
+    payload: ["count"],
+  },
+  card_leveled: {
+    stream: "player",
+    audience: { person: true, agent: true },
+    coalesce: true,
+    payload: ["count"],
+  },
   pol_promotion: {
     stream: "player",
     audience: { person: true, agent: true },

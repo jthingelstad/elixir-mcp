@@ -49,9 +49,18 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   migration ladder produce the same schema — the drift between "what a new
   install gets" and "what production accumulated" has bitten this family
   before. Re-pin it from a **fresh scratch database**, never the dev one.
-- **Canonical tables are lossless by policy.** Projections are rebuildable only
-  within the ~60-day raw-payload window; battles, snapshots and receipts are the
-  system of record and must never need a rebuild.
+- **Canonical tables are lossless by policy.** Projections are rebuildable
+  from the S3 payload archive (every distinct payload, forever); battles,
+  snapshots and receipts are the system of record and must never need a
+  rebuild.
+- **Tools never read `api_payload`.** Its JSON column is a cache for a reader
+  waiting on that exact payload - `live_fetch`, on the live lane, within
+  seconds - and only live-lane payloads carry it (a lane rule, never an
+  endpoint exemption). Every product-facing datum has a projection: the
+  card catalog is `card`, a player's collection is `player_card` (0076).
+  On 2026-09-11 the catalog had a by-name carve-out in the sweep and the
+  collection had none, and `players_collection` answered `cards: []` for
+  most players most of the day.
 
 ## One client is one connection, so one query at a time
 

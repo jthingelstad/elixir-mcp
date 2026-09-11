@@ -21,17 +21,15 @@ import {
   notes,
   META_METHODOLOGY,
 } from "./shared.mjs";
+import { catalogItems } from "./cards.mjs";
 
 /** Resolve a card by id or by EXACT name (case-insensitive) against the
  *  recorded catalog. A name that only matches as a substring is refused
  *  with the candidates: Witch and Mother Witch are one fuzzy match apart. */
 async function resolveCard(db, { card_id, card }) {
-  const { rows } = await db.query(
-    `select payload_json->'items' as items from api_payload
-     where endpoint = 'cards' and entity_key = 'GLOBAL'
-     order by last_fetched_at desc limit 1`,
-  );
-  const items = rows[0]?.items ?? [];
+  const items = (await catalogItems(db))
+    .filter((r) => r.kind === "card")
+    .map((r) => r.item);
   if (card_id !== undefined) {
     const id = Number(card_id);
     const hit = items.find((c) => c.id === id);

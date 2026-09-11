@@ -11,3 +11,6 @@ package-lock.json
 
 # Hand-authored prose; prettier pairs glob asterisks as emphasis and corrupts them.
 *.md
+
+# Local agent settings: untracked (global gitignore), not ours to format.
+.claude/

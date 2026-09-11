@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "Your card collection is recorded, and it tells you when it changes",
+    body: "players_collection now reads a player's cards and tower troops from the record - levels on the in-game 1-16 scale, counts toward the next level, which forms are unlocked - instead of a payload cache that has been empty for most players most of the day since this morning's cache change. Two new nods on the event feed: card_unlocked when a card the player did not have appears, and card_leveled when a level goes up. Counts ticking toward the next level are recorded but never announced, and a player's first observed collection is silent. Collections fill as profiles are polled; nothing is backfilled.",
+  },
+  {
+    date: "2026-09-11",
     title: "The global board is recorded daily, at the reset",
     body: "The global Path of Legends board was snapshotted every hour: twenty-four copies of a thousand places a day, for a board that only needs to be remembered as it stood at each reset. It is now read once per board-day, in the first planning tick after 10:00Z, so a season's last daily snapshot is the board going into the roll. The golden board for a finished season is unchanged: the API's own final standing, fetched once and kept in full. Every other leaderboard was already daily and now shares the same anchor.",
   },

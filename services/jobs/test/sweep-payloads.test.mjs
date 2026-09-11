@@ -120,7 +120,7 @@ test("a superseded row is retired only once its twin is confirmed", async () => 
   );
 });
 
-test("the cache window: JSON older than two hours is nulled once S3 has it; fresh rows and the cards row keep theirs", async () => {
+test("the cache window: JSON older than two hours is nulled once S3 has it; fresh rows keep theirs, and no endpoint is exempt", async () => {
   await db.query(`delete from api_payload`);
   const old = await payload(
     "player",
@@ -143,8 +143,9 @@ test("the cache window: JSON older than two hours is nulled once S3 has it; fres
     "2026-09-01T10:00:00Z",
     "2026-09-01T10:00:00Z",
   );
-  // The card catalog's row is exempt however old: it is read by the
-  // fleet's card assignment, not by a waiting live_fetch.
+  // The card catalog's row used to be exempt by name (0072); since 0076
+  // the catalog is a table and this row is a row like any other. A
+  // lane rule, never an endpoint exemption.
   const cards = await payload(
     "cards",
     "GLOBAL",
@@ -174,7 +175,7 @@ test("the cache window: JSON older than two hours is nulled once S3 has it; fres
       cleared: r.cleared,
       unarchived: r.unarchived,
     },
-    { swept: 0, stale: 2, cleared: 1, unarchived: 1 },
+    { swept: 0, stale: 3, cleared: 2, unarchived: 1 },
   );
   const { rows } = await db.query(
     `select entity_key, payload_json is null as cleared from api_payload order by payload_id`,
@@ -183,7 +184,7 @@ test("the cache window: JSON older than two hours is nulled once S3 has it; fres
     { entity_key: "#OLD", cleared: true },
     { entity_key: "#FRESH", cleared: false },
     { entity_key: "#ORPHAN", cleared: false },
-    { entity_key: "GLOBAL", cleared: false },
+    { entity_key: "GLOBAL", cleared: true },
   ]);
   assert.deepEqual(
     await liveIds(),

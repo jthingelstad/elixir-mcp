@@ -88,6 +88,8 @@ one row with a running `count`; discrete topics arrive one per occurrence.
 | `career_wins_milestone` | career wins crossed a multiple of 1,000 | `{ count }` |
 | `collection_level_milestone` | collection level went up | `{ count }` |
 | `pol_promotion` | Path of Legends league went up; a season reset going down is not a nod | `{ count }` |
+| `card_unlocked` | a card the player did not have appeared in their collection | `{ count }` |
+| `card_leveled` | a card's level went up (counts ticking toward the next level are not a nod) | `{ count }` |
 
 A subject's first snapshot emits nothing: a newly added player arrives with
 a full badge shelf and that is history, not news.

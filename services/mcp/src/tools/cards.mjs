@@ -39,19 +39,48 @@ const compactCard = (c) => ({
   forms_available: c.forms_available,
 });
 
-/** The latest recorded catalog, shaped. Shared with the resources door. */
-export async function readCatalog(db) {
+/** The catalog rows in the API's own item shape (0076: the `card`
+ *  table, never the payload cache), oldest id first. Shared by
+ *  cards_catalog, cards_synergy's name resolution and the collector
+ *  card avatars. */
+export async function catalogItems(db) {
   const { rows } = await db.query(
-    `select payload_json->'items' as items, payload_json->'supportItems' as support_items, last_fetched_at
-     from api_payload where endpoint = 'cards' and entity_key = 'GLOBAL'
-     order by last_fetched_at desc limit 1`,
+    `select card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level, icon_urls, observed_at
+     from card order by card_id`,
   );
-  const row = rows[0];
-  if (!row) return null;
+  return rows.map((r) => ({
+    kind: r.kind,
+    observed_at: r.observed_at,
+    item: {
+      id: r.card_id,
+      name: r.name,
+      ...(r.max_level !== null ? { maxLevel: r.max_level } : {}),
+      ...(r.max_evolution_level !== null
+        ? { maxEvolutionLevel: r.max_evolution_level }
+        : {}),
+      ...(r.elixir_cost !== null ? { elixirCost: r.elixir_cost } : {}),
+      ...(r.icon_urls ? { iconUrls: r.icon_urls } : {}),
+      ...(r.rarity ? { rarity: r.rarity } : {}),
+    },
+  }));
+}
+
+/** The recorded catalog, shaped. Shared with the resources door. */
+export async function readCatalog(db) {
+  const rows = await catalogItems(db);
+  if (rows.length === 0) return null;
+  const asOf = rows.reduce(
+    (m, r) => (r.observed_at > m ? r.observed_at : m),
+    rows[0].observed_at,
+  );
   return {
-    cards: (row.items ?? []).map(shapeCatalogCard),
-    tower_troops: (row.support_items ?? []).map(shapeCatalogCard),
-    as_of: row.last_fetched_at.toISOString(),
+    cards: rows
+      .filter((r) => r.kind === "card")
+      .map((r) => shapeCatalogCard(r.item)),
+    tower_troops: rows
+      .filter((r) => r.kind === "support")
+      .map((r) => shapeCatalogCard(r.item)),
+    as_of: asOf.toISOString(),
   };
 }
 
