@@ -368,10 +368,13 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
  * @returns {{outcome: string, [k: string]: unknown}}
  */
 // Bound on the DECOMPRESSED body (issue #4). The largest legitimate CR
-// payload is a ~300 KB raw battlelog (DESIGN §5.1); a 400 KB compressed
-// submission could otherwise expand far past the shared web API Lambda's
-// memory. Enforced inside zlib, before any string or JSON work.
-const MAX_DECOMPRESSED_BYTES = 2 * 1024 * 1024;
+// payload is now a season's FINAL Path of Legends board: 9,999 places,
+// about 1.5 MB raw (0069) - the 2 MiB this used to be cleared it by a
+// third, and a longer-named field would not have. 16 MiB is a hard
+// ceiling against a malicious or broken submission expanding past the
+// web API Lambda's 512 MB, not a size anything real approaches. Enforced
+// inside zlib, before any string or JSON work.
+const MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024;
 
 export async function processResult(db, rawMessage, deps = {}) {
   // Phase timings ride every outcome (a few Date.now() calls): the

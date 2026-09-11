@@ -31,9 +31,6 @@ const TOKEN_PREFIX = "emcg_";
 const LEASE_TTL_S = 90;
 const MAX_OUTSTANDING = 2;
 const MISSED_STREAK_QUARANTINE = 10;
-// The transport bound on the COMPRESSED body (base64 chars). Ingest
-// separately bounds the DECOMPRESSED size (issue #4).
-const MAX_BODY_GZ_B64 = 400_000;
 
 /**
  * Per-token request budgets (issue #11), the thing
@@ -102,6 +99,15 @@ const CONFIG = {
   overflow_bytes: 5_000_000,
   poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
 };
+
+// The transport bound on the COMPRESSED body (base64 chars). ONE number,
+// the same one the door serves to collectors, because on 2026-09-11 there
+// were two: CONFIG.overflow_bytes was raised to 5 MB and this stayed at
+// 400,000, so every season-final board (~400 KB encoded) was refused with
+// bad_body, the collector's lease sat unsubmitted for its 90 seconds, and
+// the fleet ran at a third of its pace until the door and the collectors
+// agreed again. Ingest separately bounds the DECOMPRESSED size (issue #4).
+const MAX_BODY_GZ_B64 = CONFIG.overflow_bytes;
 
 function sha256hex(value) {
   return crypto.createHash("sha256").update(value).digest("hex");

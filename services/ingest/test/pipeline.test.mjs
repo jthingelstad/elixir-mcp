@@ -849,8 +849,12 @@ test("capture audit: overlapping polls are gapless; a fully-rolled log flags a g
 test("decompression is bounded: a compression bomb is rejected as body:too_large with no payload row (issue #4)", async () => {
   const before = (await ctx.db.query(`select count(*)::int n from api_payload`))
     .rows[0].n;
-  // 4 MiB of one byte gzips to a few KB: tiny on the wire, huge inflated.
-  const bomb = gzipSync(Buffer.alloc(4 * 1024 * 1024, 0x30)).toString("base64");
+  // 32 MiB of one byte gzips to a few KB: tiny on the wire, huge inflated.
+  // (The bound rose to 16 MiB with 0069 so a 9,999-place season final,
+  // ~1.5 MB raw, clears it with room; the bomb has to be past that.)
+  const bomb = gzipSync(Buffer.alloc(32 * 1024 * 1024, 0x30)).toString(
+    "base64",
+  );
   assert.ok(bomb.length < 50_000, "the bomb is small on the wire");
   const result = await processResult(ctx.db, {
     v: 1,
