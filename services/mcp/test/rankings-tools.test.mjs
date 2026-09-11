@@ -12,7 +12,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { projectRankingBoard } from "../../ingest/src/rankings.mjs";
+import {
+  projectRankingBoard,
+  projectClanBoard,
+  projectEvents,
+} from "../../ingest/src/rankings.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 
@@ -93,6 +97,61 @@ before(async () => {
       fetchedAt: at,
     });
   }
+  // A clan ladder, two events days, and a season final (0069).
+  await projectClanBoard(db, {
+    board: "clans",
+    entityKey: "global",
+    receiptId: null,
+    fetchedAt: T2,
+    payload: {
+      items: [
+        {
+          tag: "#2PPPP",
+          name: "Alpha",
+          rank: 1,
+          previousRank: 2,
+          clanScore: 90000,
+          members: 50,
+          badgeId: 7,
+          location: { id: 57000249 },
+        },
+        {
+          tag: "#2GGGG",
+          name: "Gamma",
+          rank: 2,
+          previousRank: 1,
+          clanScore: 89000,
+          members: 49,
+          badgeId: 8,
+        },
+      ],
+      paging: {},
+    },
+  });
+  await projectEvents(db, {
+    fetchedAt: T1,
+    payload: [
+      { eventTag: "#R8U2RCJ", title: "C.H.A.O.S", description: "modifiers" },
+      { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
+    ],
+  });
+  await projectEvents(db, {
+    fetchedAt: "2026-09-12T10:00:00Z",
+    payload: [
+      { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
+    ],
+  });
+  await projectRankingBoard(db, {
+    board: "pol_final",
+    entityKey: "135",
+    receiptId: null,
+    payload: {
+      items: [player(1, "#2G0GG", "g-one", 3914, ["#2GGGG", "Gamma"])],
+      paging: {},
+    },
+    fetchedAt: "2026-09-07T10:30:00Z",
+    seasonId: "135",
+  });
   invoke = makeInvoker({
     db,
     account: {
@@ -252,4 +311,108 @@ test("live: true and as_of together are refused rather than guessed between", as
   });
   assert.equal(isError, true);
   assert.equal(body.error.code, "bad_request");
+});
+
+test("a season's final board is read by season, not by date", async () => {
+  const { body, isError } = await invoke("rankings_players", {
+    board: "pol_final",
+    season: 135,
+    limit: 5,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.applied.season, 135);
+  assert.equal(body.snapshot.season_id, "135");
+  assert.deepEqual(
+    body.players.map((p) => [p.rank, p.name, p.rating]),
+    [[1, "g-one", 3914]],
+  );
+
+  const { body: live, isError: refused } = await invoke("rankings_players", {
+    board: "pol_final",
+    live: true,
+  });
+  assert.equal(refused, true);
+  assert.equal(live.error.code, "bad_request");
+});
+
+test("rankings_clan_ladder: the clan-side board, with the game's own previous rank", async () => {
+  const { body, isError } = await invoke("rankings_clan_ladder", {
+    location: "global",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.deepEqual(
+    body.clans.map((c) => [
+      c.rank,
+      c.name,
+      c.score,
+      c.previous_rank,
+      c.members,
+    ]),
+    [
+      [1, "Alpha", 90000, 2, 50],
+      [2, "Gamma", 89000, 1, 49],
+    ],
+  );
+  assert.equal(body.clans[0].location_id, 57000249);
+  assert.ok(body.notes.some((n) => n.includes("clan score")));
+});
+
+test("rankings_timeline: a player's rank at every snapshot, null when below the floor", async () => {
+  const { body, isError } = await invoke("rankings_timeline", {
+    player_tag: "#2P0PP",
+    location: "US",
+    from: "2026-09-11T00:00:00Z",
+    to: "2026-09-11T23:59:59Z",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.applied.subject, "player");
+  assert.deepEqual(
+    body.points.map((p) => [p.observed_at, p.rank, p.rating]),
+    [
+      [new Date(T1).toISOString(), 2, 2150],
+      [new Date(T2).toISOString(), 1, 2210],
+    ],
+  );
+  // Somebody never on this board: two snapshots, both off_board.
+  const { body: ghost } = await invoke("rankings_timeline", {
+    player_tag: "#2LLLL",
+    location: "US",
+    from: "2026-09-11",
+    to: "2026-09-11",
+  });
+  assert.deepEqual(
+    ghost.points.map((p) => p.on_board),
+    [false, false],
+  );
+});
+
+test("rankings_timeline: the board's own curve - floor, summit, field", async () => {
+  const { body } = await invoke("rankings_timeline", {
+    location: "US",
+    from: "2026-09-11",
+    to: "2026-09-11",
+  });
+  assert.equal(body.applied.subject, "board");
+  assert.deepEqual(
+    body.points.map((p) => [p.rated_players, p.floor_rating, p.first.name]),
+    [
+      [8, 1850, "g-one"],
+      [8, 1850, "a-one"],
+    ],
+  );
+});
+
+test("game_events: what was on, by the days it was seen", async () => {
+  const { body, isError } = await invoke("game_events", {
+    from: "2026-09-11",
+    to: "2026-09-12",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const merge = body.events.find((e) => e.title === "Merge Tactics");
+  const chaos = body.events.find((e) => e.title === "C.H.A.O.S");
+  assert.deepEqual(merge.days_seen, ["2026-09-11", "2026-09-12"]);
+  assert.deepEqual(chaos.days_seen, ["2026-09-11"]);
+  assert.equal(body.latest_sighting_day, "2026-09-12");
+  assert.equal(merge.running_on_latest_day, true);
+  assert.equal(chaos.running_on_latest_day, false);
 });

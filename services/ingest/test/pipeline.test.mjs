@@ -707,6 +707,39 @@ test("a Path of Legends board is recorded as a snapshot, and its top-N become re
   assert.equal(presence[0].sticky, true);
 });
 
+test("a board admission stamps poll_state under the board's own key, so the planner sees it fetched", async () => {
+  // The leak: normalizeTag('global') is null, so nothing was stamped and
+  // every board was starved on every tick (~1,500 fetches/hour, 04:19Z
+  // 2026-09-11). The scheduler seeds poll_state with the location_key;
+  // admission must write the very same string.
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint) values ('global', 'rankings_pol')
+     on conflict do nothing`,
+  );
+  const r = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "global",
+      payload: {
+        items: [
+          { tag: "#99GU92P0", name: "Top One", rank: 1, eloRating: 2100 },
+        ],
+        paging: {},
+      },
+      fetchedAt: new Date().toISOString(),
+    }),
+  );
+  assert.equal(r.outcome, "admitted", JSON.stringify(r));
+  const { rows } = await ctx.db.query(
+    `select last_admitted_at from poll_state where subject_tag = 'global' and endpoint = 'rankings_pol'`,
+  );
+  assert.ok(
+    rows[0]?.last_admitted_at,
+    "the board's freshness advanced on admission",
+  );
+});
+
 test("a board with a cursor past our limit is recorded as truncated", async () => {
   const r = await processResult(
     ctx.db,

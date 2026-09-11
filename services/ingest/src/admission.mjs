@@ -122,6 +122,17 @@ function admitRankings(payload, errors) {
   if (!Array.isArray(payload?.items)) errors.push("items:missing");
 }
 
+/** /events is a BARE ARRAY of { eventTag, title, description } - the one
+ *  list endpoint the API does not wrap in items (cr-agent-api-docs). */
+function admitEvents(payload, errors) {
+  if (!Array.isArray(payload)) errors.push("array:missing");
+  else
+    payload.forEach((e, i) => {
+      if (typeof e?.eventTag !== "string")
+        errors.push(`[${i}].eventTag:missing`);
+    });
+}
+
 const VALIDATORS = {
   player: admitPlayer,
   player_battlelog: admitBattlelog,
@@ -131,6 +142,13 @@ const VALIDATORS = {
   cards: admitCards,
   rankings_players: admitRankings,
   rankings_pol: admitRankings,
+  rankings_pol_season: admitRankings,
+  rankings_clans_loc: admitRankings,
+  rankings_clanwars: admitRankings,
+  leaderboards: admitRankings,
+  leaderboard: admitRankings,
+  events: admitEvents,
+  globaltournaments: admitRankings,
 };
 
 /**

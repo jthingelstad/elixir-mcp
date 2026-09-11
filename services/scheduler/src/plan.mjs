@@ -29,6 +29,7 @@
  */
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
+import { seasonFromDate } from "../../ingest/src/war-clock.mjs";
 
 const MINUTE = 60_000;
 
@@ -54,6 +55,16 @@ export const CADENCE = {
   // API's cache (max-age ~60s) makes each hourly read new.
   rankings_pol: { every: 1440, floor: 2880 },
   rankings_players: { every: 1440, floor: 2880 },
+  // 0069. A season's final board is fetched ONCE (see selectEligible: due
+  // while no snapshot for that season exists), so its cadence is moot but
+  // the floor keeps a failed fetch retried daily rather than every tick.
+  rankings_pol_season: { every: 1440, floor: 1440 },
+  rankings_clans_loc: { every: 1440, floor: 2880 },
+  rankings_clanwars: { every: 1440, floor: 2880 },
+  leaderboards: { every: 1440, floor: 2880 },
+  leaderboard: { every: 1440, floor: 2880 },
+  events: { every: 1440, floor: 2880 },
+  globaltournaments: { every: 1440, floor: 2880 },
 };
 
 /**
@@ -158,10 +169,7 @@ export function yieldCadenceMinutes(row, now = new Date()) {
   if (row.endpoint === "currentriverrace") {
     return row.hint === "training" ? 120 : 30;
   }
-  if (
-    (row.endpoint === "rankings_pol" || row.endpoint === "rankings_players") &&
-    row.board_every != null
-  ) {
+  if (BOARD_ENDPOINTS.has(row.endpoint) && row.board_every != null) {
     return Number(row.board_every);
   }
   return CADENCE[row.endpoint].every;
@@ -228,6 +236,22 @@ export function jitterFactor(subjectTag, endpoint) {
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 export const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
 
+/** Endpoints planned from ranking_board rows rather than recordings, with
+ *  the endpoint -> board name the row is found under (0068/0069). */
+const BOARD_OF = {
+  rankings_pol: "pol",
+  rankings_players: "trophy",
+  rankings_clans_loc: "clans",
+  rankings_clanwars: "clanwars",
+  leaderboard: "mode",
+};
+const BOARD_ENDPOINTS = new Set(Object.keys(BOARD_OF));
+/** SQL for the same map, so the eligibility query and the seed agree. */
+const BOARD_OF_SQL = `case ps.endpoint
+  when 'rankings_pol' then 'pol' when 'rankings_players' then 'trophy'
+  when 'rankings_clans_loc' then 'clans' when 'rankings_clanwars' then 'clanwars'
+  when 'leaderboard' then 'mode' end`;
+
 export async function settleBudget(db, now) {
   const {
     rows: [b],
@@ -250,7 +274,7 @@ export async function settleBudget(db, now) {
   return { tokens, liveReserve: Number(b.live_reserve) };
 }
 
-async function seedPollState(db) {
+async function seedPollState(db, now = new Date()) {
   // Player endpoints for actively recorded players; clan endpoint for
   // followed clans (clan auto-follow: derived from recorded players'
   // profile stamps, §4.2).
@@ -276,14 +300,35 @@ async function seedPollState(db) {
   await db.query(`
     insert into poll_state (subject_tag, endpoint) values ('GLOBAL', 'cards')
     on conflict do nothing`);
-  // Leaderboards (0068): one row per enabled board, keyed by location.
-  // Disabled boards fall out through the eligibility clause.
+  // Leaderboards (0068/0069): one row per enabled board, keyed by the
+  // board's location_key (a location, or a game-mode board's id). Disabled
+  // boards fall out through the eligibility clause.
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
     select b.location_key,
-           case b.board when 'pol' then 'rankings_pol' else 'rankings_players' end
-    from ranking_board b where b.enabled
+           case b.board
+             when 'pol' then 'rankings_pol' when 'trophy' then 'rankings_players'
+             when 'clans' then 'rankings_clans_loc' when 'clanwars' then 'rankings_clanwars'
+             when 'mode' then 'leaderboard' end
+    from ranking_board b
+    where b.enabled and b.board in ('pol', 'trophy', 'clans', 'clanwars', 'mode')
     on conflict do nothing`);
+  // The subject-less daily reads (0069), GLOBAL like the card catalog.
+  await db.query(`
+    insert into poll_state (subject_tag, endpoint)
+    values ('GLOBAL', 'leaderboards'), ('GLOBAL', 'events'), ('GLOBAL', 'globaltournaments')
+    on conflict do nothing`);
+  // Season finals (0069): a row per season from S97 - the ranked ladder's
+  // first - through the one that just ended. The current season's board
+  // is not final until it rolls; the tick after the roll adds its row.
+  await db.query(
+    `
+    insert into poll_state (subject_tag, endpoint)
+    select s::text, 'rankings_pol_season'
+    from generate_series(97, $1::int) s
+    on conflict do nothing`,
+    [seasonFromDate(now.getTime()).seasonId - 1],
+  );
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
   // for EVERY clan scope; player endpoints for every OPEN member only at
   // scope 'comprehensive' (0023). Roster-driven: joins get seeded
@@ -329,8 +374,7 @@ async function selectEligible(db, now, arm) {
              -- hourly, everything else daily unless its row says otherwise.
              (select b.every_minutes from ranking_board b
                where b.location_key = ps.subject_tag
-                 and b.board = case ps.endpoint when 'rankings_pol' then 'pol' else 'trophy' end
-                 and ps.endpoint in ('rankings_pol', 'rankings_players')) as board_every,
+                 and b.board = ${BOARD_OF_SQL}) as board_every,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
       where (ps.endpoint in ('player_battlelog', 'player') and (
@@ -352,11 +396,17 @@ async function selectEligible(db, now, arm) {
                or exists (
                  select 1 from recording r
                  where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
-         or (ps.endpoint = 'cards' and ps.subject_tag = 'GLOBAL')
-         or (ps.endpoint in ('rankings_pol', 'rankings_players') and exists (
+         or (ps.endpoint in ('cards', 'leaderboards', 'events', 'globaltournaments')
+             and ps.subject_tag = 'GLOBAL')
+         or (ps.endpoint in ('rankings_pol', 'rankings_players', 'rankings_clans_loc', 'rankings_clanwars', 'leaderboard')
+             and exists (
                select 1 from ranking_board b
                where b.location_key = ps.subject_tag and b.enabled
-                 and b.board = case ps.endpoint when 'rankings_pol' then 'pol' else 'trophy' end))
+                 and b.board = ${BOARD_OF_SQL}))
+         -- A season's final is wanted exactly until we hold it.
+         or (ps.endpoint = 'rankings_pol_season' and not exists (
+               select 1 from ranking_snapshot s
+               where s.board = 'pol_final' and s.season_id = ps.subject_tag))
          or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
@@ -474,7 +524,7 @@ export async function planTick(
   { arm = lossBoundArm() } = {},
 ) {
   const { tokens, liveReserve } = await settleBudget(db, now);
-  await seedPollState(db);
+  await seedPollState(db, now);
 
   const bulkBudget = Math.floor(tokens * (1 - liveReserve));
   if (bulkBudget <= 0)

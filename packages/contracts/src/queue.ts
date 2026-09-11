@@ -174,6 +174,25 @@ const CR_PATH_BY_ENDPOINT: Record<string, (key: string) => string> = {
     `/locations/${encodeURIComponent(key)}/rankings/players?limit=1000`,
   rankings_pol: (key) =>
     `/locations/${encodeURIComponent(key)}/pathoflegend/players?limit=1000`,
+  // A SEASON'S FINAL Path of Legends board (0069): the key is the numeric
+  // season id. Served at full depth - 9,999 places, no cursor - for every
+  // season since S97, and a different view from the current-season board
+  // above, which lists only players above the rating floor. No limit:
+  // the default is the whole board.
+  rankings_pol_season: (key) =>
+    `/locations/global/pathoflegend/${encodeURIComponent(key)}/rankings/players`,
+  // The clan ladders by location (0069).
+  rankings_clans_loc: (key) =>
+    `/locations/${encodeURIComponent(key)}/rankings/clans?limit=1000`,
+  rankings_clanwars: (key) =>
+    `/locations/${encodeURIComponent(key)}/rankings/clanwars?limit=1000`,
+  // The game-mode boards (0069): the list, then each board by its id.
+  leaderboards: () => `/leaderboards`,
+  leaderboard: (key) => `/leaderboard/${encodeURIComponent(key)}?limit=1000`,
+  // What is on (0069): the events and tournaments running right now,
+  // which the API forgets the moment they end.
+  events: () => `/events`,
+  globaltournaments: () => `/globaltournaments`,
 };
 
 export function crPathForJob(job: {

@@ -141,6 +141,23 @@ board lists only players above that floor, and a season resets everyone below
 it, so a board is small in a season's first days and fills through the month.
 `live: true` on either reads the game first and records what it read.
 
+**Everything else the API forgets about a season** is recorded beside it.
+A season's **final** Path of Legends board — the settled standing at full
+depth, 9,999 places — is fetched once the day after it rolls and was
+backfilled for every season since S97, the ranked ladder's first; read it
+with `board: pol_final` and a `season`. The **clan ladders** (`clans` by clan
+score, `clanwars` by clan war trophies, 1,000 places by location) are
+recorded daily for global, the United States and Japan — `rankings_clan_ladder`.
+The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the
+rest) are enumerated from the API daily, so a board that rotates in is
+followed without anyone naming it — `board: mode` with the board's id.
+**What was on** — the events the API listed as running, with no dates — is
+recorded daily as sightings, so `game_events` is the season's calendar built
+from the days each event was seen. `rankings_timeline` reads any of the player
+boards across a window: a player's rank and rating at every snapshot, a
+clan's rated players and best rank, or the board's own floor, summit and
+field size — the season story at hourly resolution.
+
 **A top-200 appearance on the global board is a recording reason.** Any
 player who reaches it is recorded at comprehensive scope — every battle,
 with the rank and rating each one carried — until the next season roll plus

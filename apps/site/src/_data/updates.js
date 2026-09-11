@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "Everything else the API forgets about a season",
+    body: "Every Path of Legends season's final standing since S97 — the settled board at full depth, 9,999 places — is now in the record, backfilled, and each new season's final is fetched the day after it rolls. The clan ladders (clan score, clan war trophies) are recorded daily for global, the US and Japan; the game-mode leaderboards (Merge Tactics, Touchdown, 2v2 League…) are enumerated from the API so a rotating board is followed, never named; and the events the game lists as running are recorded daily as sightings, since the API gives no dates, so the season has a calendar. Three new tools read it — rankings_clan_ladder, rankings_timeline (a player's rank at every snapshot, a clan's, or the board's own floor and summit), game_events — and rankings_players takes board pol_final with a season, or board mode with a leaderboard id. Contract 1.4.0. Also fixed: since last night's deploy every board was being re-planned every fifteen minutes as never-fetched — about 1,500 extra fetches an hour — because admission stamped the board's freshness under the wrong key.",
+  },
+  {
+    date: "2026-09-11",
     title: "The leaderboards are recorded",
     body: "The CR API shows a ranking as it is this minute and forgets it. Elixir now keeps it: the global Path of Legends board every hour, and every one of the 262 locations the API lists once a day — a snapshot per fetch that changed, a row per placed player with rank, rating, name and clan. Two new tools read it back: rankings_players for a board as of now or any earlier instant (who was #1 on the 3rd), paged because a board can run to a thousand places; rankings_clans for which clans have the most rated players, counted over everyone above the rating floor rather than a top-100 slice. And a top-200 appearance on the global board now records the player — every battle, with the rank and rating each one carried — until the next season roll plus three days, so the season's story of its eventual #1 is captured from the first hours. Contract 1.3.0.",
   },

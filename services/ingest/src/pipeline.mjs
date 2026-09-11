@@ -21,10 +21,36 @@ import { ingestClanRoster } from "./roster.mjs";
 import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
-import { projectRankingBoard } from "./rankings.mjs";
+import {
+  projectRankingBoard,
+  projectClanBoard,
+  projectLeaderboardList,
+  projectEvents,
+  projectTournaments,
+} from "./rankings.mjs";
+
+/** Endpoints whose entity is a LOCATION or an ID, not a CR tag (0068/0069).
+ *  poll_state is keyed by the same string the scheduler seeded - the
+ *  board's location_key, a season id, a leaderboard id - so admission must
+ *  stamp exactly that. Running the key through normalizeTag instead
+ *  returned null for 'global', the stamp was never written, and every one
+ *  of the 263 boards was STARVED on every tick from the moment 0068 shipped:
+ *  re-planned every fifteen minutes, ~1,500 fetches an hour against a
+ *  recorder that normally does 170. Found live at 04:19Z on 2026-09-11 from
+ *  source_polls.observed_at being null on a board with two snapshots. */
+const KEYED_BY_LOCATION = new Set([
+  "rankings_players",
+  "rankings_pol",
+  "rankings_pol_season",
+  "rankings_clans_loc",
+  "rankings_clanwars",
+  "leaderboard",
+]);
 
 function subjectTag(endpoint, entityKey) {
   if (entityKey === "GLOBAL") return null;
+  if (KEYED_BY_LOCATION.has(endpoint))
+    return String(entityKey ?? "").toLowerCase() || null;
   try {
     return normalizeTag(entityKey);
   } catch {
@@ -266,6 +292,53 @@ const PROJECTORS = {
       payload,
       fetchedAt,
     });
+  },
+  // 0069: the finals, the clan ladders, the game-mode boards, what is on.
+  async rankings_pol_season(db, { entityKey, receiptId, payload, fetchedAt }) {
+    return projectRankingBoard(db, {
+      board: "pol_final",
+      entityKey,
+      receiptId,
+      payload,
+      fetchedAt,
+      seasonId: String(entityKey),
+    });
+  },
+  async rankings_clans_loc(db, { entityKey, receiptId, payload, fetchedAt }) {
+    return projectClanBoard(db, {
+      board: "clans",
+      entityKey,
+      receiptId,
+      payload,
+      fetchedAt,
+    });
+  },
+  async rankings_clanwars(db, { entityKey, receiptId, payload, fetchedAt }) {
+    return projectClanBoard(db, {
+      board: "clanwars",
+      entityKey,
+      receiptId,
+      payload,
+      fetchedAt,
+    });
+  },
+  async leaderboards(db, { payload }) {
+    return projectLeaderboardList(db, { payload });
+  },
+  async leaderboard(db, { entityKey, receiptId, payload, fetchedAt }) {
+    return projectRankingBoard(db, {
+      board: "mode",
+      entityKey,
+      receiptId,
+      payload,
+      fetchedAt,
+    });
+  },
+  async events(db, { payload, fetchedAt }) {
+    return projectEvents(db, { payload, fetchedAt });
+  },
+  async globaltournaments(db, { payload, fetchedAt }) {
+    return projectTournaments(db, { payload, fetchedAt });
   },
   async cards() {
     // The catalog is served straight from the payload store (get_card_catalog).

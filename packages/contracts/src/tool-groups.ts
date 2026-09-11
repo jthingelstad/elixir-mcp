@@ -304,6 +304,22 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     readOnly: true,
     openWorld: true,
   },
+  rankings_clan_ladder: {
+    group: "Rankings",
+    title: "Clan leaderboard",
+    readOnly: true,
+    openWorld: true,
+  },
+  rankings_timeline: {
+    group: "Rankings",
+    title: "Leaderboard over time",
+    readOnly: true,
+  },
+  game_events: {
+    group: "Rankings",
+    title: "What was on",
+    readOnly: true,
+  },
 
   // Collections — curated groupings (owner-published lists + your own).
   collections_browse: {

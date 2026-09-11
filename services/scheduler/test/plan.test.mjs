@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
+import { seasonFromDate } from "../../ingest/src/war-clock.mjs";
 import {
   planTick,
   CADENCE,
@@ -59,12 +60,14 @@ async function setState(tag, endpoint, { yieldBph, admitted, planned } = {}) {
   );
 }
 
-/** Park the always-eligible GLOBAL cards row so job-set assertions stay
- *  about their own subjects. */
+/** Park the always-eligible GLOBAL rows - the card catalog and, since
+ *  0069, the game-mode board list, the events and the tournaments - so
+ *  job-set assertions stay about their own subjects. */
 async function freshenCards(at) {
   await db.query(
     `insert into poll_state (subject_tag, endpoint, last_admitted_at, last_planned_at)
-     values ('GLOBAL', 'cards', $1, $1)
+     select 'GLOBAL', e, $1, $1
+     from unnest(array['cards', 'leaderboards', 'events', 'globaltournaments']) e
      on conflict (subject_tag, endpoint)
        do update set last_admitted_at = $1, last_planned_at = $1`,
     [at],
@@ -106,6 +109,16 @@ beforeEach(async () => {
   // Like the GLOBAL cards row they are parked here so each test's job-set
   // is about its own subjects; the boards test enables what it needs.
   await db.query("update ranking_board set enabled = false");
+  // A season's final is due until we hold it (0069): pretend we hold every
+  // ended season, so the finals stay out of the other tests' job sets. The
+  // finals test deletes one to prove the one-shot.
+  await db.query("delete from ranking_snapshot where board = 'pol_final'");
+  await db.query(
+    `insert into ranking_snapshot (board, location_key, season_id, observed_at, last_confirmed_at, content_hash, entries)
+     select 'pol_final', 'global', s::text, now(), now(), 'held-' || s, 9999
+     from generate_series(97, $1::int) s`,
+    [seasonFromDate(NOW.getTime()).seasonId - 1],
+  );
 });
 
 after(async () => {
@@ -121,9 +134,15 @@ test("new subject seeds both player endpoints plus the followed clan", async () 
   await setTokens(100);
   const { jobs } = await planTick(db, NOW);
   const keys = jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort();
+  // A fresh tick also plans every subject-less daily read once: the card
+  // catalog, and since 0069 the game-mode board list, the events and the
+  // tournaments.
   assert.deepEqual(keys, [
     "cards:GLOBAL",
     "clan:#J2RGCRVG",
+    "events:GLOBAL",
+    "globaltournaments:GLOBAL",
+    "leaderboards:GLOBAL",
     "player:#20JJJ2CCRU",
     "player_battlelog:#20JJJ2CCRU",
   ]);
@@ -283,6 +302,38 @@ test("a leaderboard is planned on its own cadence: the global board hourly, a co
   await setTokens(100);
   const { jobs: j4 } = await planTick(db, NOW);
   assert.equal(j4.length, 0, "a board nobody remembers is not fetched");
+});
+
+test("a season's final board is fetched once: due while we do not hold it, never again after", async () => {
+  await freshenCards(NOW);
+  const ended = seasonFromDate(NOW.getTime()).seasonId - 1;
+  // We hold every final but the one that just ended.
+  await db.query(
+    `delete from ranking_snapshot where board = 'pol_final' and season_id = $1`,
+    [String(ended)],
+  );
+  await setTokens(100);
+  const { jobs } = await planTick(db, NOW);
+  assert.deepEqual(
+    jobs.map((j) => `${j.endpoint}:${j.entity_key}`),
+    [`rankings_pol_season:${ended}`],
+  );
+  // The current season is never planned: it is not final until it rolls.
+  assert.ok(!jobs.some((j) => j.entity_key === String(ended + 1)));
+
+  // Once the snapshot exists the row is no longer eligible, however stale.
+  await db.query(
+    `insert into ranking_snapshot (board, location_key, season_id, observed_at, last_confirmed_at, content_hash, entries)
+     values ('pol_final', 'global', $1, now(), now(), 'held', 9999)`,
+    [String(ended)],
+  );
+  await setState(String(ended), "rankings_pol_season", {
+    admitted: min(10_000),
+    planned: min(10_000),
+  });
+  await setTokens(100);
+  const { jobs: again } = await planTick(db, NOW);
+  assert.equal(again.length, 0, "a held final is never fetched again");
 });
 
 test("budget accrues with elapsed time and caps at the carryover ceiling", async () => {

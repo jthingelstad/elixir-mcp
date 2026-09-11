@@ -27,7 +27,9 @@ test("all fixture payloads admit", async () => {
 });
 
 test("unknown endpoints are rejected, never silently admitted", () => {
-  const result = admit("leaderboards", []);
+  // `leaderboards` was the example here until 0069 made it a real
+  // endpoint; the property is about a name the table does not know.
+  const result = admit("no_such_endpoint", []);
   assert.equal(result.ok, false);
   assert.match(result.errors[0], /endpoint:unknown/);
 });
