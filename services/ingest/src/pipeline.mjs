@@ -91,7 +91,10 @@ export async function stampBurst(db, playerTag, asOf) {
 }
 
 const PROJECTORS = {
-  async player_battlelog(db, { entityKey, receiptId, payload, fetchedAt }) {
+  async player_battlelog(
+    db,
+    { entityKey, receiptId, payload, fetchedAt, observed, filtered },
+  ) {
     // Backfill guard: a replayed OLD payload is history, not activity
     // (heat retired 2026-09-05; yield_bph is the one activity signal),
     // and it neither consults nor moves the high-water mark (0073).
@@ -101,6 +104,13 @@ const PROJECTORS = {
       receiptId,
       payload,
       highWater: fresh,
+      // The collector already filtered under the lease's mark: the body
+      // is the new battles only, and these counts stand in for what it
+      // could no longer see in the payload.
+      collectorFilter:
+        Number.isInteger(observed) && Number.isInteger(filtered)
+          ? { observed, filtered }
+          : null,
     });
     await refreshDailyRollups(db, result.affectedPairs);
     if (fresh && result.captureAudit?.audited) {
@@ -521,6 +531,8 @@ export async function processResult(db, rawMessage, deps = {}) {
         receiptId,
         payload,
         fetchedAt: msg.fetched_at,
+        observed: msg.observed,
+        filtered: msg.filtered,
       });
       t = mark("project_ms", t);
 

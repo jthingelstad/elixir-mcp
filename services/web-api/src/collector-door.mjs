@@ -19,7 +19,7 @@
  */
 
 import crypto from "node:crypto";
-import { crPathForJob } from "@elixir-mcp/contracts";
+import { crPathForJob, crBattleTime } from "@elixir-mcp/contracts";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import {
   leaseJob,
@@ -186,6 +186,19 @@ async function authGateway(db, event, statuses) {
     [sha256hex(token), statuses],
   );
   return rows[0] ?? null;
+}
+
+/** The filter a lease may carry (contracts LeaseFilter): the observer's
+ *  battlelog high-water mark (0073), spelled the way the API spells
+ *  battleTime, for bulk-lane battlelog jobs only. */
+async function leaseFilter(db, job) {
+  if (job.endpoint !== "player_battlelog" || job.lane !== "bulk") return null;
+  const { rows } = await db.query(
+    `select battle_time from battlelog_high_water where observer_tag = $1`,
+    [job.entity_key],
+  );
+  if (!rows[0]) return null;
+  return { battles_after: crBattleTime(rows[0].battle_time.toISOString()) };
 }
 
 /** A token the door knows but will never honour again. Told apart from
@@ -361,6 +374,12 @@ export function makeCollectorDoor({
         `update gateway set leases_issued = leases_issued + 1 where gateway_id = $1`,
         [gw.gateway_id],
       );
+      // Collector-side filtering (Jamie, 2026-09-11): a bulk battlelog
+      // lease carries the observer's high-water mark so the collector
+      // drops the battles the hub already holds before submitting - the
+      // duplicates never cross the wire. Never on the live lane: the
+      // agent waiting on that read gets the whole log.
+      const filter = await leaseFilter(db, job);
       return {
         status: 200,
         body: {
@@ -371,6 +390,7 @@ export function makeCollectorDoor({
           },
           cr_path: crPath,
           lease: String(job.job_id),
+          ...(filter ? { filter } : {}),
         },
       };
     },
@@ -437,6 +457,14 @@ export function makeCollectorDoor({
         fetched_at,
         status,
         ...(body?.http_status ? { http_status: Number(body.http_status) } : {}),
+        // The collector's own count of what it saw and dropped under the
+        // lease's filter; validated by the contract, read by ingest.
+        ...(Number.isInteger(body?.observed)
+          ? { observed: body.observed }
+          : {}),
+        ...(Number.isInteger(body?.filtered)
+          ? { filtered: body.filtered }
+          : {}),
         ...(status === "ok"
           ? { body_gzip_b64: body.body_gzip_b64 }
           : {

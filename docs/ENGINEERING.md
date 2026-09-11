@@ -159,6 +159,15 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   never saw — and the coverage question. Replayed history (a fetch older
   than 24h) neither consults nor moves the mark; keep it that way or an
   import silently discards everything older than the present.
+- **The mark rides the lease, so duplicates never cross the wire.** A
+  bulk-lane battlelog lease carries `filter.battles_after` (the mark, in the
+  API's own `battleTime` spelling — collectors compare strings, never parse
+  dates); the collector submits the API's array minus everything at or
+  before it, plus `observed`/`filtered` counts in the envelope. The hub's own
+  mark filter still runs underneath (a collector that ignores the filter is
+  correct, only wasteful). Never on the live lane: `live_fetch` hands the
+  agent the whole log. The archived S3 object is that filtered array — API
+  shape, new battles only, since 2026-09-11.
 - Gateways gzip every response body; a post-compression overflow is rejected
   loudly, because it means the CR response shape changed and that wants a human.
 

@@ -18,6 +18,8 @@ function message({
   fetchedAt,
   status = "ok",
   lane = "bulk",
+  observed,
+  filtered,
 }) {
   const m = {
     v: 1,
@@ -25,6 +27,7 @@ function message({
     gateway_id: gatewayId,
     fetched_at: fetchedAt,
     status,
+    ...(observed !== undefined ? { observed, filtered } : {}),
   };
   if (status === "ok") {
     const body =
@@ -897,6 +900,69 @@ test("capture audit: overlapping polls are gapless; a fully-rolled log flags a g
   ));
   assert.equal(rows.length, 2);
   assert.equal(rows[1].gap, true, "fully-rolled log = potential gap");
+
+  // A collector that filtered under the lease's mark submits only the
+  // new battles plus its counts; the verdict comes from the counts.
+  // Some dropped: the log overlapped what we had - no gap.
+  const newer = structuredClone(log)
+    .slice(0, 3)
+    .map((b, i) => ({
+      ...asObserver(b),
+      battleTime: crCompact(new Date(now + 10 * 60000 + i * 60000)),
+    }));
+  const r4 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: newer,
+      fetchedAt: iso(4, 4),
+      observed: 25,
+      filtered: 22,
+    }),
+  );
+  assert.equal(r4.outcome, "admitted", JSON.stringify(r4));
+  assert.equal(r4.projection.battlesSeen, 25, "the collector's count");
+  assert.equal(r4.projection.battlesInserted, 3);
+  // Nothing dropped from a full log: nothing was as old as the mark.
+  const rolledAgain = structuredClone(log).map((b, i) => ({
+    ...asObserver(b),
+    battleTime: crCompact(new Date(now + 20 * 60000 + i * 1000)),
+  }));
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: rolledAgain,
+      fetchedAt: iso(2, 5),
+      observed: 25,
+      filtered: 0,
+    }),
+  );
+  // No new battles at all: an empty body, counts say 25 seen, 25 known.
+  const r6 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: [],
+      fetchedAt: iso(1, 6),
+      observed: 25,
+      filtered: 25,
+    }),
+  );
+  assert.equal(r6.outcome, "admitted");
+  assert.equal(r6.projection.battlesInserted, 0);
+  ({ rows } = await ctx.db.query(
+    `select gap from capture_audit where subject_tag = $1 order by fetched_at`,
+    [tag],
+  ));
+  assert.deepEqual(
+    rows.map((r) => r.gap),
+    [false, true, false, true, false],
+    "filtered>0 = overlap; filtered=0 on a full log = gap; nothing new = no gap",
+  );
 });
 
 test("decompression is bounded: a compression bomb is rejected as body:too_large with no payload row (issue #4)", async () => {

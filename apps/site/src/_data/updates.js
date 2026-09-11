@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "Duplicate battles stop at the collector",
+    body: "A battlelog is a player's last 25 battles, and every poll used to carry all 25 to the service, which then discovered it already had most of them. Now the service remembers the newest battle each player's log has delivered, hands that mark to the collector with the lease, and the collector drops everything at or before it before submitting — the body is still exactly the API's array, just the new entries. The collector also reports how many it saw and how many it dropped, which is the capture audit stated plainly: a full log with nothing dropped rolled past what the service had. Live reads are untouched; an agent asking for a player's battles right now still gets the whole log. Collectors that don't yet honour the filter keep working, just as before.",
+  },
+  {
+    date: "2026-09-11",
     title: "The collector door tells a new operator where they stand",
     body: 'Three small additions to what a collector\'s config call returns, for the preflight command the next collector release carries (collector doctor): the address your requests arrive from, which is the one to allowlist on your Clash Royale key; the one Clash Royale path the collector may read to prove that key works from there; and an answer for a token that is installed but not yet promoted — pending reads config and nothing else, so the operator sees "not yet promoted" instead of the same 401 a typo gets. A revoked token is told so on config, once. The operators page now states the payload ceiling as it actually is, 5 MB compressed, not the 250 KB it inherited from the SQS era.',
   },

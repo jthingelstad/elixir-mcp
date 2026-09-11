@@ -267,7 +267,13 @@ function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
  */
 export async function ingestBattlelog(
   db,
-  { observerTag, receiptId, payload, highWater = false },
+  {
+    observerTag,
+    receiptId,
+    payload,
+    highWater = false,
+    collectorFilter = null,
+  },
 ) {
   const observer = normalizeTag(observerTag);
   // The newest battle this observer's own log has delivered (0073). A
@@ -417,16 +423,22 @@ export async function ingestBattlelog(
   // exactly 25 new battles is indistinguishable and reads as a gap).
   // Without a mark (replay, or a live poll before 0073's seed) it is
   // the older rule: the oldest battle was previously unseen.
-  const gap =
-    highWater && mark !== null && oldest !== null
+  // When the collector filtered under the mark, the payload is the new
+  // battles only and its oldest is past the mark by construction; the
+  // collector's counts say what it saw: nothing dropped means nothing in
+  // the log was as old as the mark - the log rolled past what we had.
+  const seen = collectorFilter ? collectorFilter.observed : battlesSeen;
+  const gap = collectorFilter
+    ? highWater && mark !== null && seen > 0 && collectorFilter.filtered === 0
+    : highWater && mark !== null && oldest !== null
       ? oldest.battle_time > mark
       : oldestWasNew;
   return {
-    battlesSeen,
-    battlesSkipped,
+    battlesSeen: seen,
+    battlesSkipped: battlesSkipped + (collectorFilter?.filtered ?? 0),
     battlesInserted,
     captureAudit:
-      hadPriorCoverage && battlesSeen > 0
+      hadPriorCoverage && seen > 0
         ? { audited: true, gap }
         : { audited: false, gap: false },
     affectedPairs: [...affected].map((k) => {

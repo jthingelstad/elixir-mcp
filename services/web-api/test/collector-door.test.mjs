@@ -207,6 +207,75 @@ test("lease: bulk collectors never receive live jobs; server computes cr_path", 
   }
 });
 
+test("a bulk battlelog lease carries the observer's mark as a filter; live leases and unmarked observers do not; the counts ride the envelope", async () => {
+  await db.query(`delete from job`);
+  await db.query(
+    `insert into player (player_tag) values ('#2PPLQQ'), ('#8LR0P09LR') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into battlelog_high_water (observer_tag, battle_time)
+     values ('#2PPLQQ', '2026-09-11T12:34:56Z') on conflict do nothing`,
+  );
+  // Marked observer, bulk lane: the filter, in the API's own spelling.
+  await enqueueJob(db, {
+    endpoint: "player_battlelog",
+    entity_key: "#2PPLQQ",
+    lane: "bulk",
+  });
+  const marked = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  assert.equal(marked.status, 200);
+  assert.deepEqual(marked.body.filter, {
+    battles_after: "20260911T123456.000Z",
+  });
+
+  // The collector's counts are stamped into the envelope, validated.
+  const before = ingested.length;
+  const done = await door.submit(db, authed(TOKEN_BULK), {
+    lease: marked.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("[]").toString("base64"),
+    fetched_at: new Date().toISOString(),
+    observed: 25,
+    filtered: 25,
+  });
+  assert.equal(done.status, 200);
+  assert.equal(ingested.length, before + 1);
+  assert.equal(ingested.at(-1).observed, 25);
+  assert.equal(ingested.at(-1).filtered, 25);
+
+  // Unmarked observer: no filter key at all.
+  await enqueueJob(db, {
+    endpoint: "player_battlelog",
+    entity_key: "#8LR0P09LR",
+    lane: "bulk",
+  });
+  const unmarked = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  assert.equal(unmarked.body.job.entity_key, "#8LR0P09LR");
+  assert.equal(unmarked.body.filter, undefined);
+  await door.submit(db, authed(TOKEN_BULK), {
+    lease: unmarked.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("[]").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+
+  // Marked observer, LIVE lane: the agent waiting gets the whole log.
+  await enqueueJob(db, {
+    endpoint: "player_battlelog",
+    entity_key: "#2PPLQQ",
+    lane: "live",
+  });
+  const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
+  assert.equal(live.body.job.lane, "live");
+  assert.equal(live.body.filter, undefined, "never on the live lane");
+  await door.submit(db, authed(TOKEN_LIVE), {
+    lease: live.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("[]").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+});
+
 test("submit: inline ingest, server-stamped identity and job id, DB-bound lease", async () => {
   await enqueueJob(db, { ...JOB, entity_key: "#8U2P0JPR" });
   const r = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });

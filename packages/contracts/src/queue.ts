@@ -12,6 +12,26 @@ export interface CrJob {
   correlation_id?: string;
 }
 
+/** What a lease may ask the collector to drop before submitting
+ *  (2026-09-11). Only on bulk-lane battlelog jobs whose observer has a
+ *  high-water mark: `battles_after` is the newest battleTime the hub has
+ *  already recorded, in the API's own battleTime format
+ *  (`20260911T120000.000Z`) so the collector compares strings and never
+ *  parses a date. A live-lane job never carries it: the agent waiting on
+ *  a live read gets the whole log. A collector that ignores the filter
+ *  is still correct, only wasteful. */
+export interface LeaseFilter {
+  battles_after?: string;
+}
+
+/** ISO instant -> the API's battleTime spelling, for LeaseFilter. */
+export function crBattleTime(iso: string): string {
+  return iso
+    .replace(/[-:]/g, "")
+    .replace(/\.\d+Z$/, "Z")
+    .replace(/Z$/, ".000Z");
+}
+
 export interface CrResultMessage {
   v: 1;
   job: CrJob;
@@ -27,6 +47,16 @@ export interface CrResultMessage {
   http_status?: number;
   /** Response body, gzipped then base64 (SQS 256KB cap; DESIGN §5.1). */
   body_gzip_b64?: string;
+  /** Collector-side filtering (2026-09-11). When the lease carried
+   *  `filter.battles_after`, the collector dropped every battle at or
+   *  before it and the body is the remainder - same shape as the API's
+   *  array, fewer entries. `observed` is the count before the filter,
+   *  `filtered` how many it dropped; new = observed - filtered. Absent
+   *  from a collector that does not filter, and the hub treats the body
+   *  as the whole log. `filtered: 0` with a mark is the capture-gap
+   *  signal: nothing in the log was as old as what the hub had. */
+  observed?: number;
+  filtered?: number;
   error?: {
     kind: "transport" | "http" | "overflow" | "breaker";
     message?: string;
@@ -150,6 +180,17 @@ export function validateResultMessage(
   if (!STATUSES.has(m.status as string)) errors.push("status:invalid");
   if (m.status === "ok" && typeof m.body_gzip_b64 !== "string")
     errors.push("body_gzip_b64:missing");
+  for (const k of ["observed", "filtered"] as const) {
+    const v = m[k];
+    if (v !== undefined && !(Number.isInteger(v) && (v as number) >= 0))
+      errors.push(`${k}:invalid`);
+  }
+  if (
+    m.observed !== undefined &&
+    m.filtered !== undefined &&
+    m.filtered > m.observed
+  )
+    errors.push("filtered:exceeds-observed");
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
 

@@ -105,6 +105,18 @@ promoted" instead of an error; a revoked token is told so (403 `revoked`)
 on config alone. A lease expires after 90 seconds
 unsubmitted; ten expired leases in a row quarantine the collector (it moves
 to `draining`, you are notified, and lease answers 409 `quarantined`).
+
+A lease may carry a **filter**. On a battlelog job it is
+`filter.battles_after`, the newest battle the service already holds for
+that player, spelled the way the API spells `battleTime`
+(`20260911T123456.000Z`). A collector that honours it drops every entry at
+or before that value before submitting — the body stays the API's own
+array, just shorter — and reports `observed` (entries before the filter)
+and `filtered` (entries dropped) beside `fetched_at`. Duplicates never cross
+the wire, and `filtered: 0` on a full log tells the service the log rolled
+past what it had. Ignoring the filter is still correct, only wasteful.
+Live reads never carry one: the agent waiting on that fetch gets the whole
+log.
 Submit answers only after the payload is admitted and committed; a rejected
 payload is still a receipt, so never fake an `ok`. Lifecycle:
 `pending → probation → active → draining → revoked`, forward only, set by
