@@ -48,6 +48,12 @@ export const CADENCE = {
   // level normalization backfills). Missing this starved prod of maxLevel
   // truth — found live 2026-09-03.
   cards: { every: 1440, floor: 2880 },
+  // Leaderboards (0068): the default is daily, and a board's own row in
+  // ranking_board overrides it — the global Path of Legends board is
+  // hourly, because hourly is the grain of a movement video and the
+  // API's cache (max-age ~60s) makes each hourly read new.
+  rankings_pol: { every: 1440, floor: 2880 },
+  rankings_players: { every: 1440, floor: 2880 },
 };
 
 /**
@@ -151,6 +157,12 @@ export function yieldCadenceMinutes(row, now = new Date()) {
   }
   if (row.endpoint === "currentriverrace") {
     return row.hint === "training" ? 120 : 30;
+  }
+  if (
+    (row.endpoint === "rankings_pol" || row.endpoint === "rankings_players") &&
+    row.board_every != null
+  ) {
+    return Number(row.board_every);
   }
   return CADENCE[row.endpoint].every;
 }
@@ -264,6 +276,14 @@ async function seedPollState(db) {
   await db.query(`
     insert into poll_state (subject_tag, endpoint) values ('GLOBAL', 'cards')
     on conflict do nothing`);
+  // Leaderboards (0068): one row per enabled board, keyed by location.
+  // Disabled boards fall out through the eligibility clause.
+  await db.query(`
+    insert into poll_state (subject_tag, endpoint)
+    select b.location_key,
+           case b.board when 'pol' then 'rankings_pol' else 'rankings_players' end
+    from ranking_board b where b.enabled
+    on conflict do nothing`);
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
   // for EVERY clan scope; player endpoints for every OPEN member only at
   // scope 'comprehensive' (0023). Roster-driven: joins get seeded
@@ -305,6 +325,12 @@ async function selectEligible(db, now, arm) {
                  and b.endpoint = 'player_battlelog') as activity_bph,
              exists (select 1 from claim c
                      where c.player_tag = ps.subject_tag) as directly_tracked,
+             -- A leaderboard's own cadence (0068): the global board is
+             -- hourly, everything else daily unless its row says otherwise.
+             (select b.every_minutes from ranking_board b
+               where b.location_key = ps.subject_tag
+                 and b.board = case ps.endpoint when 'rankings_pol' then 'pol' else 'trophy' end
+                 and ps.endpoint in ('rankings_pol', 'rankings_players')) as board_every,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
       where (ps.endpoint in ('player_battlelog', 'player') and (
@@ -327,6 +353,10 @@ async function selectEligible(db, now, arm) {
                  select 1 from recording r
                  where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
          or (ps.endpoint = 'cards' and ps.subject_tag = 'GLOBAL')
+         or (ps.endpoint in ('rankings_pol', 'rankings_players') and exists (
+               select 1 from ranking_board b
+               where b.location_key = ps.subject_tag and b.enabled
+                 and b.board = case ps.endpoint when 'rankings_pol' then 'pol' else 'trophy' end))
          or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
@@ -338,7 +368,7 @@ async function selectEligible(db, now, arm) {
            -- fell back to the profile row's own NULL yield_bph, and every
            -- profile kept polling on the 480 branch (measured: 33/h before,
            -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
-           activity_bph, directly_tracked
+           activity_bph, directly_tracked, board_every
     from state`,
   );
 

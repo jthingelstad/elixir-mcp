@@ -165,10 +165,15 @@ const CR_PATH_BY_ENDPOINT: Record<string, (key: string) => string> = {
     `/clans/${encodeURIComponent(key)}/currentriverrace`,
   riverracelog: (key) => `/clans/${encodeURIComponent(key)}/riverracelog`,
   cards: () => `/cards`,
+  // 1000, not 100 (0068). A ranking lists every player above the rating
+  // floor — 847 globally on day 4 of S136 — and the top 100 of it is a
+  // slice, not the board. The API returned all 847 at limit=1000 with no
+  // cursor; if a board ever passes 1000 the snapshot records `truncated`
+  // rather than pretending, and following the cursor is the next step.
   rankings_players: (key) =>
-    `/locations/${encodeURIComponent(key)}/rankings/players?limit=100`,
+    `/locations/${encodeURIComponent(key)}/rankings/players?limit=1000`,
   rankings_pol: (key) =>
-    `/locations/${encodeURIComponent(key)}/pathoflegend/players?limit=100`,
+    `/locations/${encodeURIComponent(key)}/pathoflegend/players?limit=1000`,
 };
 
 export function crPathForJob(job: {

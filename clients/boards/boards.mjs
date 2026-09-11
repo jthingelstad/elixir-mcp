@@ -89,6 +89,22 @@ export const BOARDS = [
     top: 100,
     label: "Path of Legends · Japan",
   },
+  // A CLAN board derived from a player board: the clans with the most
+  // players rated in Path of Legends, globally. Counted over EVERYONE
+  // above the rating floor (847 players on 2026-09-11, growing through
+  // the month), not the top 100 — at that depth 64 clans tie at one
+  // player and there is no ranking to find. Strict ten; a tie at the
+  // cutoff goes to the clan whose best player is placed highest.
+  // The collection must be kind clan and scope ACTIVITY: ten top clans
+  // at comprehensive would be every member's battles, the single most
+  // expensive thing this system could be asked to record.
+  {
+    slug: "global-top-10-clans",
+    path: "/locations/global/pathoflegend/players",
+    derive: "clans",
+    top: 10,
+    label: "Clans most represented in Path of Legends · global",
+  },
 ];
 
 /**
@@ -164,31 +180,83 @@ async function call(name, args) {
   }
 }
 
-/** The board, newest read: canonical tag, name, clan and rank, in rank
- *  order and cut to the board's size. Kept whole rather than reduced to
- *  tags, because the report has to say WHO moved, not how many. */
-async function readBoard(board) {
-  const answer = await call("live_fetch", { path: board.path });
-  // live_fetch hands back the raw CR payload; rankings put the players
-  // in `items`, already in rank order.
-  const payload = answer.payload ?? answer.data ?? answer;
-  const items = payload.items ?? payload.Items ?? [];
-  if (!Array.isArray(items))
-    throw new Error(`${board.slug}: no items in the payload`);
-  return items
+/** One live fetch per path per run. Two boards read the global ranking
+ *  (the top-100 players and the clans derived from all of them); paying
+ *  the shared budget twice for the same payload would be careless. The
+ *  cache is a Map the RUN owns — main() makes one, a test makes its own —
+ *  rather than module state, which would make every board read whatever
+ *  the first one saw. */
+async function fetchItems(path, fetched) {
+  if (!fetched.has(path)) {
+    fetched.set(
+      path,
+      call("live_fetch", { path }).then((answer) => {
+        // live_fetch hands back the raw CR payload; rankings put the
+        // players in `items`, already in rank order.
+        const payload = answer.payload ?? answer.data ?? answer;
+        const items = payload.items ?? payload.Items ?? [];
+        if (!Array.isArray(items))
+          throw new Error(`${path}: no items in the payload`);
+        return items;
+      }),
+    );
+  }
+  return fetched.get(path);
+}
+
+/** The whole ranking as players: canonical tag, name, clan and rank, in
+ *  rank order. Kept whole rather than reduced to tags, because the report
+ *  has to say WHO moved, not how many. */
+async function readPlayers(path, fetched) {
+  return (await fetchItems(path, fetched))
     .map((i) => ({
       tag: String(i.tag ?? "").toUpperCase(),
       name: i.name ?? "",
       clan: i.clan?.name ?? "",
+      clanTag: String(i.clan?.tag ?? "").toUpperCase(),
       rank: i.rank ?? null,
       elo: i.eloRating ?? i.trophies ?? null,
     }))
-    .filter((i) => CANONICAL_TAG.test(i.tag))
-    .slice(0, board.top);
+    .filter((i) => CANONICAL_TAG.test(i.tag));
 }
 
-export async function syncBoard(board, { dryRun } = {}) {
-  const ranked = await readBoard(board);
+/** A player board: the top N of the ranking. */
+async function readBoard(board, fetched) {
+  return (await readPlayers(board.path, fetched)).slice(0, board.top);
+}
+
+/** A clan board derived from a player board: the N clans with the most
+ *  players in the WHOLE ranking, ties broken by the best-placed member.
+ *  Each entry carries the count and that best rank, so the report can
+ *  say why a clan is here and why it left. */
+async function deriveClans(board, fetched) {
+  const byClan = new Map();
+  for (const p of await readPlayers(board.path, fetched)) {
+    if (!CANONICAL_TAG.test(p.clanTag)) continue;
+    const c = byClan.get(p.clanTag) ?? {
+      tag: p.clanTag,
+      name: p.clan,
+      count: 0,
+      best: Infinity,
+    };
+    c.count += 1;
+    if (p.rank != null && p.rank < c.best) c.best = p.rank;
+    byClan.set(p.clanTag, c);
+  }
+  return [...byClan.values()]
+    .sort((a, b) => b.count - a.count || a.best - b.best)
+    .slice(0, board.top)
+    .map((c, i) => ({ ...c, rank: i + 1 }));
+}
+
+export async function syncBoard(
+  board,
+  { dryRun = false, fetched = new Map() } = {},
+) {
+  const ranked =
+    board.derive === "clans"
+      ? await deriveClans(board, fetched)
+      : await readBoard(board, fetched);
   const tags = ranked.map((r) => r.tag);
   if (tags.length === 0) {
     return { slug: board.slug, skipped: "board is empty — nothing believed" };
@@ -197,6 +265,28 @@ export async function syncBoard(board, { dryRun } = {}) {
   // What is in there now: the dry run says who would move, the real run
   // reports who did, and the collapse guard needs the size.
   const before = await call("collections_get", { collection: board.slug });
+  // The collection has to be the kind the board produces — a clan tag
+  // set into a player collection is refused by the door, but saying so
+  // here is clearer than the door's error. And a clan collection at
+  // comprehensive scope records every member of every clan in it: for
+  // ten top clans that is hundreds of battle logs, so it is refused
+  // outright rather than run by accident.
+  const kind = before.kind ?? before.collection?.kind;
+  const wantKind = board.derive === "clans" ? "clan" : "player";
+  if (kind && kind !== wantKind) {
+    return {
+      slug: board.slug,
+      skipped: `collection is kind ${kind}; this board produces ${wantKind} tags`,
+    };
+  }
+  const scope = before.scope ?? before.collection?.scope;
+  if (wantKind === "clan" && scope === "comprehensive") {
+    return {
+      slug: board.slug,
+      skipped:
+        "clan collection is at comprehensive scope — that records every member of every clan in it; make it activity",
+    };
+  }
   const held = new Map(
     (before.members ?? before.players ?? []).map((m) => {
       const tag = String(
@@ -219,6 +309,7 @@ export async function syncBoard(board, { dryRun } = {}) {
   const out = {
     slug: board.slug,
     label: board.label,
+    kind: wantKind,
     dryRun: Boolean(dryRun),
     size: tags.length,
     adding,
@@ -244,15 +335,23 @@ function report(out) {
     return lines.join("\n");
   }
   const verb = out.dryRun ? "would change" : "changed";
+  const noun = out.kind === "clan" ? "clans" : "players";
   lines.push(
-    `${out.slug} · ${out.label} · ${out.size} players · +${out.adding.length} −${out.dropping.length} ${verb}`,
+    `${out.slug} · ${out.label} · ${out.size} ${noun} · +${out.adding.length} −${out.dropping.length} ${verb}`,
   );
   const who = (p) =>
     `${p.tag.padEnd(11)} ${(p.name || "?").padEnd(18)}${p.clan ? ` (${p.clan})` : ""}`;
   for (const p of out.adding) {
+    // A clan arrives with how many rated players it has and where its
+    // best one sits; a player with the rank and rating they came in at.
     const at = p.rank != null ? ` · #${p.rank}` : "";
-    const elo = p.elo != null ? ` · ${p.elo}` : "";
-    lines.push(`  + ${who(p)}${at}${elo}`);
+    const why =
+      p.count != null
+        ? ` · ${p.count} rated · best #${p.best}`
+        : p.elo != null
+          ? ` · ${p.elo}`
+          : "";
+    lines.push(`  + ${who(p)}${at}${why}`);
   }
   for (const p of out.dropping) lines.push(`  − ${who(p)}`);
   if (out.adding.length === 0 && out.dropping.length === 0)
@@ -279,11 +378,12 @@ export async function main() {
   }
 
   const asJson = args.includes("--json");
+  const fetched = new Map(); // one ranking read per path, for the whole run
   let failed = 0;
   for (const board of boards) {
     const started = Date.now();
     try {
-      const outcome = await syncBoard(board, { dryRun });
+      const outcome = await syncBoard(board, { dryRun, fetched });
       if (asJson) {
         console.log(
           JSON.stringify({

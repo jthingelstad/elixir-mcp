@@ -102,6 +102,10 @@ beforeEach(async () => {
   await db.query("delete from poll_state");
   await db.query("delete from recording");
   await db.query(`update budget_state set tokens = 0, settled_at = $1`, [NOW]);
+  // The migration seeds 263 leaderboards, every one due on a fresh tick.
+  // Like the GLOBAL cards row they are parked here so each test's job-set
+  // is about its own subjects; the boards test enables what it needs.
+  await db.query("update ranking_board set enabled = false");
 });
 
 after(async () => {
@@ -221,6 +225,64 @@ test("clan heartbeat respects its 15-minute cadence", async () => {
     jobs2.map((j) => `${j.endpoint}:${j.entity_key}`),
     ["clan:#J2RGCRVG"],
   );
+});
+
+test("a leaderboard is planned on its own cadence: the global board hourly, a country daily", async () => {
+  await freshenCards(NOW);
+  await db.query(
+    `update ranking_board set enabled = true
+     where board = 'pol' and location_key in ('global', '57000249')`,
+  );
+  await setTokens(100);
+
+  // First tick: both boards have never been fetched, so both are due.
+  const { jobs } = await planTick(db, NOW);
+  assert.deepEqual(jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort(), [
+    "rankings_pol:57000249",
+    "rankings_pol:global",
+  ]);
+
+  // Forty minutes on: neither is due — hourly has not elapsed, daily is far off.
+  await setState("global", "rankings_pol", {
+    admitted: min(40),
+    planned: min(40),
+  });
+  await setState("57000249", "rankings_pol", {
+    admitted: min(40),
+    planned: min(40),
+  });
+  await setTokens(100);
+  const { jobs: j2 } = await planTick(db, NOW);
+  assert.equal(j2.length, 0);
+
+  // Seventy minutes on: the hourly global board is due, the daily US one is not.
+  // (Cadences carry +/-15% jitter, so probe outside the band.)
+  await setState("global", "rankings_pol", {
+    admitted: min(70),
+    planned: min(70),
+  });
+  await setState("57000249", "rankings_pol", {
+    admitted: min(70),
+    planned: min(70),
+  });
+  await setTokens(100);
+  const { jobs: j3 } = await planTick(db, NOW);
+  assert.deepEqual(
+    jobs.length && j3.map((j) => `${j.endpoint}:${j.entity_key}`),
+    ["rankings_pol:global"],
+  );
+
+  // A disabled board falls out without touching poll_state.
+  await db.query(
+    `update ranking_board set enabled = false where location_key = 'global'`,
+  );
+  await setState("global", "rankings_pol", {
+    admitted: min(200),
+    planned: min(200),
+  });
+  await setTokens(100);
+  const { jobs: j4 } = await planTick(db, NOW);
+  assert.equal(j4.length, 0, "a board nobody remembers is not fetched");
 });
 
 test("budget accrues with elapsed time and caps at the carryover ceiling", async () => {

@@ -16,6 +16,8 @@ let server;
 let seen;
 let boardItems;
 let members;
+let memberKind = "player";
+let memberScope = "activity";
 
 /** The two tools this client calls, answered the way the door answers. */
 before(async () => {
@@ -30,7 +32,9 @@ before(async () => {
       if (name === "live_fetch") {
         result = { structuredContent: { payload: { items: boardItems } } };
       } else if (name === "collections_get") {
-        result = { structuredContent: { members } };
+        result = {
+          structuredContent: { kind: memberKind, scope: memberScope, members },
+        };
       } else if (name === "collections_edit") {
         result = {
           structuredContent: {
@@ -168,4 +172,104 @@ test("a malformed tag in the payload is dropped, not passed on", async () => {
   assert.equal(out.size, 10);
   const edit = seen.find((c) => c.params.name === "collections_edit");
   assert.ok(edit.params.arguments.tags.every((t) => t.startsWith("#")));
+});
+
+/**
+ * The derived clan board. Counted over the WHOLE ranking, not a top-N
+ * slice; ties at the cutoff go to the clan whose best player is placed
+ * highest; and a collection of the wrong kind or the wrong scope is
+ * refused here, in words, rather than by the door.
+ */
+const clanBoard = {
+  slug: "global-top-10-clans",
+  path: "/locations/global/pathoflegend/players",
+  derive: "clans",
+  top: 2,
+};
+const inClan = (i, clanTag, clanName) => ({
+  ...ranked(1)[0],
+  tag: tagFor(i),
+  rank: i + 1,
+  clan: { tag: clanTag, name: clanName },
+});
+
+test("clans are ranked by rated players, ties by best-placed member", async () => {
+  const { syncBoard } = await import("./boards.mjs");
+  seen = [];
+  // Alpha has 3, Beta and Gamma have 2 each; Gamma's best is #1, Beta's #5.
+  boardItems = [
+    inClan(0, "#2GGG", "Gamma"),
+    inClan(1, "#2PPP", "Alpha"),
+    inClan(2, "#2PPP", "Alpha"),
+    inClan(3, "#2PPP", "Alpha"),
+    inClan(4, "#2YYY", "Beta"),
+    inClan(5, "#2GGG", "Gamma"),
+    inClan(6, "#2YYY", "Beta"),
+    { ...ranked(1)[0], tag: tagFor(7), rank: 8 }, // no clan: not counted
+  ];
+  members = [];
+  memberKind = "clan";
+  memberScope = "activity";
+
+  const out = await syncBoard(clanBoard, { dryRun: false });
+  assert.equal(out.kind, "clan");
+  assert.deepEqual(
+    out.adding.map((c) => [c.name, c.count, c.best]),
+    [
+      ["Alpha", 3, 2],
+      ["Gamma", 2, 1],
+    ],
+    "Gamma takes the tie over Beta on its #1 player",
+  );
+  const edit = seen.find((c) => c.params.name === "collections_edit");
+  assert.deepEqual(edit.params.arguments.tags, ["#2PPP", "#2GGG"]);
+});
+
+test("a clan board into a player collection is refused in words", async () => {
+  const { syncBoard } = await import("./boards.mjs");
+  seen = [];
+  boardItems = [inClan(0, "#2PPP", "Alpha")];
+  members = [];
+  memberKind = "player";
+  memberScope = "activity";
+  const out = await syncBoard(clanBoard, { dryRun: false });
+  assert.match(out.skipped, /kind player/);
+  assert.equal(
+    seen.filter((c) => c.params.name === "collections_edit").length,
+    0,
+  );
+});
+
+test("a comprehensive clan collection is refused: that is every member's battles", async () => {
+  const { syncBoard } = await import("./boards.mjs");
+  seen = [];
+  boardItems = [inClan(0, "#2PPP", "Alpha")];
+  members = [];
+  memberKind = "clan";
+  memberScope = "comprehensive";
+  const out = await syncBoard(clanBoard, { dryRun: false });
+  assert.match(out.skipped, /comprehensive/);
+  assert.equal(
+    seen.filter((c) => c.params.name === "collections_edit").length,
+    0,
+  );
+});
+
+test("two boards on one ranking spend one live fetch", async () => {
+  const { syncBoard, BOARDS } = await import("./boards.mjs");
+  seen = [];
+  boardItems = ranked(30).map((i, n) => inClan(n, "#2PPP", "Alpha"));
+  members = [];
+  memberKind = "player";
+  memberScope = "activity";
+  const fetched = new Map(); // the run's cache, shared by both boards
+  await syncBoard(board, { dryRun: true, fetched });
+  memberKind = "clan";
+  await syncBoard(
+    { ...clanBoard, path: board.path },
+    { dryRun: true, fetched },
+  );
+  const fetches = seen.filter((c) => c.params.name === "live_fetch");
+  assert.equal(fetches.length, 1, "the second board reused the ranking");
+  assert.ok(BOARDS.some((b) => b.derive === "clans"));
 });

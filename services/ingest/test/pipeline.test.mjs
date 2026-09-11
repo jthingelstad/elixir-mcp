@@ -566,6 +566,171 @@ test("rankings payloads admit and accrete player identity (feedback #6)", async 
   assert.equal(rows[0].name, "Top One");
 });
 
+/**
+ * The board is recorded (0068): a snapshot per fetch that changed, a row
+ * per place, and a presence that records the top-N for the season.
+ */
+test("a Path of Legends board is recorded as a snapshot, and its top-N become recorded players", async () => {
+  // The global board records its top 200 (seeded); a scratch board with
+  // a small record_top keeps the assertions readable.
+  await ctx.db.query(
+    `insert into ranking_board (board, location_key, label, location_kind, every_minutes, record_top, enabled)
+     values ('pol', '57009999', 'Testland', 'country', 60, 2, true)
+     on conflict (board, location_key) do update set record_top = 2`,
+  );
+  const at = (m) => new Date(Date.now() - m * 60000).toISOString();
+  const board = (items) => ({ items, paging: {} });
+  const first = board([
+    {
+      tag: "#99GU92P0",
+      name: "Top One",
+      rank: 1,
+      eloRating: 2100,
+      clan: { tag: "#GRGYQ0JU", name: "PTL Germany" },
+    },
+    {
+      tag: "#2PPLQQ",
+      name: "Top Two",
+      rank: 2,
+      eloRating: 2050,
+      clan: { tag: "#GRGYQ0JU", name: "PTL Germany" },
+    },
+    { tag: "#8LR0P09LR", name: "Third", rank: 3, eloRating: 1990 },
+  ]);
+
+  const r1 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "57009999",
+      payload: first,
+      fetchedAt: at(120),
+    }),
+  );
+  assert.equal(r1.outcome, "admitted", JSON.stringify(r1));
+  assert.equal(r1.projection.wrote, true);
+  assert.equal(r1.projection.players, 3);
+  assert.equal(
+    r1.projection.presences_new,
+    2,
+    "only the top 2 are recorded on this board",
+  );
+  assert.equal(r1.projection.recordings_started, 2);
+
+  const { rows: entries } = await ctx.db.query(
+    `select e.rank, e.player_tag, e.rating, e.clan_tag from ranking_entry e
+     join ranking_snapshot s using (snapshot_id)
+     where s.board = 'pol' and s.location_key = '57009999' order by e.rank`,
+  );
+  assert.deepEqual(
+    entries.map((e) => [e.rank, e.player_tag, e.rating, e.clan_tag]),
+    [
+      [1, "#99GU92P0", 2100, "#GRGYQ0JU"],
+      [2, "#2PPLQQ", 2050, "#GRGYQ0JU"],
+      [3, "#8LR0P09LR", 1990, null],
+    ],
+  );
+  const { rows: rec } = await ctx.db.query(
+    `select subject_tag, origin, scope from recording
+     where subject_type = 'player' and subject_tag in ('#99GU92P0', '#2PPLQQ', '#8LR0P09LR') and status = 'active'
+     order by subject_tag`,
+  );
+  assert.deepEqual(
+    rec.map((x) => [x.subject_tag, x.origin, x.scope]),
+    [
+      ["#2PPLQQ", "ranking", "comprehensive"],
+      ["#99GU92P0", "ranking", "comprehensive"],
+    ],
+    "the top two are recorded in full, by the ranking, not by anyone's claim",
+  );
+
+  // The same board an hour later writes NOTHING new: the snapshot is
+  // confirmed, not duplicated.
+  const r2 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "57009999",
+      payload: first,
+      fetchedAt: at(60),
+    }),
+  );
+  assert.equal(r2.outcome, "admitted");
+  assert.equal(r2.projection.wrote, false);
+  const { rows: snaps } = await ctx.db.query(
+    `select count(*)::int as n, max(last_confirmed_at) > min(observed_at) as confirmed_later
+     from ranking_snapshot where board = 'pol' and location_key = '57009999'`,
+  );
+  assert.equal(snaps[0].n, 1);
+  assert.equal(snaps[0].confirmed_later, true);
+
+  // A movement writes a second snapshot; a rename alone would not have.
+  // Top Two drops to #3: still recorded — presence is sticky for the season.
+  const moved = board([
+    {
+      tag: "#99GU92P0",
+      name: "Top One",
+      rank: 1,
+      eloRating: 2120,
+      clan: { tag: "#GRGYQ0JU", name: "PTL Germany" },
+    },
+    { tag: "#8LR0P09LR", name: "Third", rank: 2, eloRating: 2060 },
+    {
+      tag: "#2PPLQQ",
+      name: "Top Two",
+      rank: 3,
+      eloRating: 2040,
+      clan: { tag: "#GRGYQ0JU", name: "PTL Germany" },
+    },
+  ]);
+  const r3 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "57009999",
+      payload: moved,
+      fetchedAt: at(1),
+    }),
+  );
+  assert.equal(r3.projection.wrote, true);
+  assert.equal(r3.projection.presences_new, 1, "Third entered the top 2");
+  const { rows: still } = await ctx.db.query(
+    `select count(*)::int as n from recording
+     where subject_tag = '#2PPLQQ' and status = 'active'`,
+  );
+  assert.equal(still[0].n, 1, "dropping to #3 does not stop the record");
+  const { rows: presence } = await ctx.db.query(
+    `select best_rank, sticky_until > now() + interval '1 day' as sticky from ranking_presence
+     where player_tag = '#2PPLQQ' and board = 'pol' and location_key = '57009999'`,
+  );
+  assert.equal(presence[0].best_rank, 2);
+  assert.equal(presence[0].sticky, true);
+});
+
+test("a board with a cursor past our limit is recorded as truncated", async () => {
+  const r = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "57009998",
+      payload: {
+        items: [
+          { tag: "#99GU92P0", name: "Top One", rank: 1, eloRating: 2100 },
+        ],
+        paging: { cursors: { after: "eyJwb3MiOjEwMDB9" } },
+      },
+      fetchedAt: new Date().toISOString(),
+    }),
+  );
+  assert.equal(r.outcome, "admitted", JSON.stringify(r));
+  assert.equal(r.projection.truncated, true);
+  // An unknown location is remembered, not scheduled.
+  const { rows } = await ctx.db.query(
+    `select enabled, record_top from ranking_board where board = 'pol' and location_key = '57009998'`,
+  );
+  assert.deepEqual(rows[0], { enabled: false, record_top: 0 });
+});
+
 function crCompact(d) {
   return d
     .toISOString()

@@ -132,6 +132,22 @@ export function seasonFromDate(atMs) {
   };
 }
 
+/** When the season containing atMs ends: the next first-Monday reset.
+ *  ranking_presence holds a player's recording until this plus a grace,
+ *  so the opening hours of the next season are captured for last
+ *  season's field. */
+export function nextSeasonStartMs(atMs) {
+  const { seasonStartMs } = seasonFromDate(atMs);
+  const d = new Date(seasonStartMs);
+  let y = d.getUTCFullYear();
+  let m = d.getUTCMonth() + 1;
+  if (m > 11) {
+    m = 0;
+    y += 1;
+  }
+  return firstMondayResetMs(y, m);
+}
+
 export function inferSeasonId(liveSeasonId, logged, atMs = null) {
   if (typeof liveSeasonId === "number") return liveSeasonId;
   // Stateless: the calendar decides. The old logged-state roll inference

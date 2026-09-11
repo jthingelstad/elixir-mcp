@@ -100,6 +100,13 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
                join collection c on c.collection_id = m.collection_id
                where m.subject_tag = $1 and c.kind = $2
                  and c.scope = 'comprehensive') as collected_deep,
+       -- A live top-N appearance on a board that records (0068). Sticky
+       -- for the season plus a grace, so a player who dips to #101 for an
+       -- afternoon keeps their record, and last season's field is still
+       -- recorded through the empty hours after the roll.
+       ($2 = 'player'
+        and exists (select 1 from ranking_presence
+                    where player_tag = $1 and sticky_until > now())) as ranked,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active' and origin = 'ops') as ops,
@@ -108,14 +115,25 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
                  and status = 'active') as active`,
     [tag, subjectType],
   );
-  const { claimed, added, added_deep, collected, collected_deep, ops, active } =
-    rows[0];
-  const wanted = claimed || added || collected;
+  const {
+    claimed,
+    added,
+    added_deep,
+    collected,
+    collected_deep,
+    ranked,
+    ops,
+    active,
+  } = rows[0];
+  const wanted = claimed || added || collected || ranked;
   // A claim means somebody added this player to their account, which has
   // always meant full capture. A clan carries the depth each account
-  // asked for; a collection the depth it asked for. Widest reason wins.
+  // asked for; a collection the depth it asked for. A ranking presence is
+  // the season story and is always full capture. Widest reason wins.
   const scope =
-    claimed || added_deep || collected_deep ? "comprehensive" : "activity";
+    claimed || added_deep || collected_deep || ranked
+      ? "comprehensive"
+      : "activity";
 
   if (ops) return { started: false, stopped: false };
 
@@ -126,16 +144,17 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
         [tag],
       );
     }
+    // A ranking has no account behind it; the owner stands as requester,
+    // as ops recordings do. Named reasons first: a claim is somebody's,
+    // a collection is a curator's, a ranking is the service's own.
+    const origin =
+      claimed || added ? "claim" : collected ? "collection" : "ranking";
     await db.query(
       `insert into recording (subject_type, subject_tag, requested_by, origin, scope)
-       values ($2, $1, $3, $4, $5)`,
-      [
-        tag,
-        subjectType,
-        requestedBy,
-        claimed || added ? "claim" : "collection",
-        scope,
-      ],
+       values ($2, $1,
+               coalesce($3::uuid, (select account_id from account where is_owner limit 1)),
+               $4, $5)`,
+      [tag, subjectType, requestedBy ?? null, origin, scope],
     );
     return { started: true, stopped: false };
   }

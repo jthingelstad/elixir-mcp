@@ -89,10 +89,17 @@ const CONFIG = {
   min_client_version: "2.0.0",
   pacing_ms: 1500,
   breaker: { threshold_403: 5, cooldown_s: 300 },
-  // Judged by collectors on the gzip+base64 ENCODED size (DESIGN §5.1):
-  // raw battlelogs above this routinely compress 10-20x and must not be
-  // discarded (collector issue #1).
-  overflow_bytes: 250_000,
+  // Judged by collectors on the gzip+base64 ENCODED size. 250,000 was
+  // SQS's 256 KB message ceiling minus an envelope, and the transport
+  // stopped being SQS at 0040 — this door is an HTTP API behind API
+  // Gateway (10 MB) and a Lambda (6 MB per synchronous invocation). The
+  // ceiling is the platform's; this sits under it with room for the
+  // envelope. Base64 is 4/3 of gzip, so ~3.7 MB of gzip, on the order of
+  // 40-80 MB of raw CR JSON: nothing the API returns is within two
+  // orders of magnitude. Raw battlelogs above 250 KB compress 10-20x and
+  // must never be discarded (collector issue #1) — now they never were
+  // going to be.
+  overflow_bytes: 5_000_000,
   poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
 };
 

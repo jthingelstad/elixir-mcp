@@ -8,8 +8,9 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1126.0",
+    "@elixir-mcp/claims": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
-    "pg": "^8.13.0",
-    "@aws-sdk/client-s3": "^3.1126.0"
+    "pg": "^8.13.0"
   }
 }
