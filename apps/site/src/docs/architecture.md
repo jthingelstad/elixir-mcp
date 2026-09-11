@@ -175,8 +175,8 @@ analytics outage can never page anyone or delay a login email.
   lifecycle to Infrequent Access at 30 days) before the database commit
   — a committed row always has its S3 twin. S3 is the system of record
   for raw observations; Postgres keeps a payload's JSON only as a
-  two-day cache (what `live_fetch` and the card catalog read within
-  seconds of admission), and a daily sweep nulls older JSON and retires
+  two-hour cache (what `live_fetch` reads within seconds of admission;
+  the card catalog's row is kept), and an hourly sweep nulls older JSON and retires
   superseded rows only after verifying their archived copy — the
   database holds metadata, S3 holds the bytes. Athena (via one Glue table with
   partition projection) and DuckDB both query the layout directly.

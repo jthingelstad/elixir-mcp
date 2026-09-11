@@ -120,7 +120,7 @@ test("a superseded row is retired only once its twin is confirmed", async () => 
   );
 });
 
-test("the cache window: JSON older than two days is nulled once S3 has it; fresh rows keep theirs", async () => {
+test("the cache window: JSON older than two hours is nulled once S3 has it; fresh rows and the cards row keep theirs", async () => {
   await db.query(`delete from api_payload`);
   const old = await payload(
     "player",
@@ -143,12 +143,27 @@ test("the cache window: JSON older than two days is nulled once S3 has it; fresh
     "2026-09-01T10:00:00Z",
     "2026-09-01T10:00:00Z",
   );
+  // The card catalog's row is exempt however old: it is read by the
+  // fleet's card assignment, not by a waiting live_fetch.
+  const cards = await payload(
+    "cards",
+    "GLOBAL",
+    "f".repeat(64),
+    "2026-09-01T10:00:00Z",
+    "2026-09-01T10:00:00Z",
+  );
   const s3 = fakeS3([
     archiveKey(
       "player",
       "#OLD",
       old.first_fetched_at.toISOString(),
       "c".repeat(64),
+    ),
+    archiveKey(
+      "cards",
+      "GLOBAL",
+      cards.first_fetched_at.toISOString(),
+      "f".repeat(64),
     ),
   ]);
   const r = await sweepPayloads(DB_URL, s3);
@@ -168,10 +183,13 @@ test("the cache window: JSON older than two days is nulled once S3 has it; fresh
     { entity_key: "#OLD", cleared: true },
     { entity_key: "#FRESH", cleared: false },
     { entity_key: "#ORPHAN", cleared: false },
+    { entity_key: "GLOBAL", cleared: false },
   ]);
   assert.deepEqual(
     await liveIds(),
-    [old.payload_id, fresh.payload_id, orphan.payload_id].map(Number),
+    [old.payload_id, fresh.payload_id, orphan.payload_id, cards.payload_id].map(
+      Number,
+    ),
     "the window nulls JSON; it never deletes a latest row",
   );
 });

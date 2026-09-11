@@ -9,12 +9,14 @@
 
 import pg from "pg";
 
-/** Daily Postgres sweep ({sweep_payloads: true}, EventBridge 08:15Z):
+/** Hourly Postgres sweep ({sweep_payloads: true}, EventBridge :15):
  *  superseded payload rows (not the latest per endpoint+entity) leave
  *  Postgres only after their S3 twin HEAD-verifies; and the JSON of any
- *  row not fetched for two days is nulled the same way (0071), because
- *  the column is a cache of the archive, not the archive. Bounded per
- *  run — tomorrow's run takes the next slice. */
+ *  row not fetched for two hours is nulled the same way (0071/0072),
+ *  because the column is a cache of the archive, not the archive - the
+ *  readers are live_fetch (seconds after admission) and the card
+ *  catalog, whose one 'cards' row is kept. Bounded per run — the next
+ *  hour takes the next slice. */
 export async function sweepPayloads(databaseUrl, s3override) {
   const bucket = process.env.ARCHIVE_BUCKET;
   if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
@@ -55,13 +57,14 @@ export async function sweepPayloads(databaseUrl, s3override) {
       ]);
       swept += 1;
     }
-    // Phase two: the cache window. Rows still holding JSON two days
+    // Phase two: the cache window. Rows still holding JSON two hours
     // after their last fetch give it up once the archive has it.
     const { rows: stale } = await db.query(
       `select payload_id, endpoint, entity_key, payload_hash, first_fetched_at
        from api_payload
        where payload_json is not null
-         and last_fetched_at < now() - interval '48 hours'
+         and endpoint <> 'cards'
+         and last_fetched_at < now() - interval '2 hours'
        order by last_fetched_at limit 5000`,
     );
     let cleared = 0;
@@ -316,7 +319,7 @@ async function computeClanPulse(db, tag, anchoredPeriod) {
   };
 }
 
-/** Operational-row sweep ({sweep_operational: true}, daily, rides the
+/** Operational-row sweep ({sweep_operational: true}, hourly, rides the
  *  same EventBridge rule as the payload sweep): docs/archive/DB-AUDIT-2026-09-04.md R3 — every
  *  check is already expiry-aware, these rows are pure dead weight.
  *  oauth_token keeps 90 days (not 30): rotated-token rows are the
