@@ -266,7 +266,7 @@ export const clansTools = {
 
   clans_roster: {
     description:
-      "A clan's roster, yours by default: roles, latest trophies and donations per member, activity recency (last recorded battle and the game's own last-seen), and recent join/leave/role events. verbosity compact answers 'how many members' and 'what is this clan called' with the name, the count and the role breakdown only. live: true reads ANY clan fresh from the game first (one live fetch), recorded or not.",
+      "A clan's roster, yours by default: roles, latest trophies and donations per member, activity recency (last recorded battle and the game's own last-seen), and recent join/leave/role events. verbosity compact answers 'how many members' and 'what is this clan called' with the name, the count and the role breakdown only. live: true asks for a fresh read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
     inputSchema: {
       type: "object",
       properties: {

@@ -103,7 +103,7 @@ function modeClause(args, add) {
 export const battlesTools = {
   battles_query: {
     description:
-      "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true polls the player's battle log once before answering (one live fetch) - the 'what did they just play' path; the recorded log is otherwise within an hour for anyone recently asked about.",
+      "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true asks for a battle-log poll no older than a minute - the 'what did they just play' path - served if in hand, otherwise queued while the record answers with live_status pending; the recorded log is otherwise within an hour for anyone recently asked about.",
     inputSchema: {
       type: "object",
       properties: {

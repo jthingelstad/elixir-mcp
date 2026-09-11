@@ -184,7 +184,7 @@ export const playersTools = {
 
   players_profile: {
     description:
-      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan (with badge and the player's role), attributes (arena, best trophies, favourite card, account age) and current badge state, as of the last profile poll. live: true fetches ANY tag fresh from the game (one live fetch), recorded or not, and records it. For tag-to-name only, players_names resolves up to 100 tags without the live lane.",
+      "Latest recorded profile snapshot for a tag: trophies, Path of Legends, league stats, donations, lifetime counters, collection level, clan (with badge and the player's role), attributes (arena, best trophies, favourite card, account age) and current badge state, as of the last profile poll. live: true asks for a fresh read of ANY tag, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending (live_pending if nothing is recorded yet). For tag-to-name only, players_names resolves up to 100 tags without the live lane.",
     inputSchema: {
       type: "object",
       properties: {

@@ -265,7 +265,7 @@ export async function resolveEntitledClan(db, account, inputTag) {
       throw {
         code: "not_recorded",
         message: `${tag} is not a recorded clan.`,
-        hint: "Pass live: true on clans_roster or war_current to read it fresh from the game (one live fetch), or elixir_track_clan({ clan_tag }) to start recording it. Recorded clans are readable by everyone.",
+        hint: "Pass live: true on clans_roster or war_current for a fresh read (queued and answered from the record if none is in hand), or elixir_track_clan({ clan_tag }) to start recording it. Recorded clans are readable by everyone.",
       };
     }
     return tag;

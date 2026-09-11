@@ -172,7 +172,7 @@ function snapshotBlock(snapshot, row) {
 export const rankingsTools = {
   rankings_players: {
     description:
-      "A recorded leaderboard, the global Path of Legends board by default: every placed player with rank, rating, name and clan, as of the latest snapshot or any earlier instant (as_of). Every board is recorded daily at the 10:00Z reset, so this answers who was where and when - the API itself only ever shows now. Paged with limit and offset because a whole board can run to a thousand places. verbosity compact returns rank, tag and rating only. live: true reads the game first (one live fetch) and records what it read.",
+      "A recorded leaderboard, the global Path of Legends board by default: every placed player with rank, rating, name and clan, as of the latest snapshot or any earlier instant (as_of). Every board is recorded daily at the 10:00Z reset, so this answers who was where and when - the API itself only ever shows now. Paged with limit and offset because a whole board can run to a thousand places. verbosity compact returns rank, tag and rating only. live: true asks for a fresh read: served if in hand, otherwise queued while the latest snapshot answers with live_status pending.",
     inputSchema: {
       type: "object",
       properties: {
