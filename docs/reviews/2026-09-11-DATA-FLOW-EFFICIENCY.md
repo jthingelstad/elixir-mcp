@@ -1,0 +1,494 @@
+# Data flow and efficiency review — 2026-09-11
+
+**Status:** analysis only. Nothing in product code changed. Written the
+afternoon after two RDS memory recoveries (09:31Z and 14:02Z) on the
+db.t4g.micro, and after the day's four fixes (guarded upserts 0071, the
+two-hour payload cache 0071/0072, the battlelog high-water mark 0073, the
+mark riding the lease 0074 + collector v2.0.29, and the clan cadence 05112f0).
+
+**Lens.** Every fetch, byte, row, index probe and Lambda millisecond has to
+earn its place: *does it add information a reader will ever use?* Numbers
+over adjectives. Every number below names its source; the method and the
+things that could not be measured are in the appendix.
+
+**Sources.** The migrate Lambda's read-only `tables` / `stats` ops (14:33Z),
+CloudWatch (RDS, Lambda, `ElixirMCP/*` EMF), Logs Insights over the six
+Lambda log groups, Cost Explorer (Sep 1–10), the S3 payload archive (per-
+endpoint inventory, and 433 consecutive payloads for 17 entities downloaded
+and diffed locally — real tags and names stayed on this machine), the
+scheduler / door / ingest / tool source, the collector repo, and
+`cr-agent-api-docs` for what the API itself does.
+
+---
+
+## 0. The five findings that change the picture
+
+1. **The database instance is not where the money goes; idle polling is.**
+   The stack's run-rate is ≈ $51/month. The RDS instance is $7.90 of that
+   (a 1-year all-upfront reserved instance bought 2026-09-07 for $95; the
+   $96.88 September RDS line is that purchase, not usage). The web-api
+   Lambda is ≈ $30/month net of free tier — 63,074 invocations and 163,318
+   billed seconds in the last 24 hours (p50 253 ms, p95 8.2 s). Roughly
+   three quarters of that is the two **live-channel** collectors (Ram Rider,
+   Tesla) each running an unbroken loop of 8-second long-polls against the
+   door, which the door services with a 500 ms database re-check loop. That
+   loop is ≈ 350,000 Postgres transactions a day, the 148,875 sequential
+   scans of `job`, and the 342,445 heartbeat updates on the 4-row `gateway`
+   table. It exists to serve `live_fetch`, which was called **16 times in
+   the last seven days**.
+
+2. **The second crash was triggered by diagnostics, not by ingest.** Between
+   13:25Z and 13:49Z the migrate Lambda's `probe` op ran thirteen times to
+   completion (96–150 s each) plus two 300 s timeouts. `probe`'s
+   `level_census` expands every deck in `battle_participant` with
+   `jsonb_array_elements` (180k rows) on every call. ReadIOPS sat at ~500
+   for 25 minutes, CPU at 27%, the scheduler and MCP Lambdas timed out from
+   13:50Z, and at 14:06Z RDS cut `shared_buffers` from 23,081 to 11,295
+   pages (180 MB → 88 MB) as its own mitigation. The instance now runs with
+   half the buffer cache it had this morning. The first crash's precursor
+   is the same shape: one migrate invocation that ran to its 300 s timeout
+   in the 09:20Z bin with no output logged.
+
+3. **Today's cache change broke a tool.** `players_collection` reads
+   `api_payload.payload_json->'cards'`; the hourly sweep now nulls that
+   JSON two hours after the last fetch, and the tool falls through to
+   `cards: []` with no error. Confirmed live at 14:42Z on the caller's own
+   tag: `as_of_payload` 11:03Z, `collection_level: null`, `cards: []`. The
+   collection is 61% of every profile payload by bytes and is kept nowhere
+   except as a hash in `player_snapshot_daily.collection_hash`. The `cards`
+   catalog got an `endpoint <> 'cards'` carve-out in the sweep for the same
+   reason and the collection did not; both are the same defect — product
+   tools reading an ingest artifact.
+
+4. **The clan roster is the cheapest activity sensor we have, and the
+   scheduler does not use it.** A roster fetch is 2.2 KB compressed and
+   carries the game's own `lastSeen` for ~50 players. In the diffed
+   sample, 3.2 members' `lastSeen` moved per 20-minute poll. A player
+   whose `lastSeen` has not moved since their last battlelog poll cannot
+   have new battles; 61.5% of battlelog polls last hour found nothing new
+   (142 of 231; 6,332 of 7,099 entries dropped at the collector). The
+   `clan` endpoint at 31% of all fetches looked like the waste; it is
+   closer to the thing that could remove most of the *player-endpoint*
+   waste, if its cadence stays at or above the cadence it gates.
+
+5. **Two tables will outgrow the instance on their own: `ranking_entry`
+   (+~24,000 rows and ~5 MB a day from the hourly global board alone, read
+   by `rankings_players` 245 times a week — the boards client — and by
+   `rankings_timeline` once) and `battle_participant` (+~25,000 rows and
+   ~45 MB a day incl. indexes).** Everything else is small or bounded. The
+   1 GB question is not data size — the live working set is ~150–250 MB of
+   indexes and recent pages — it is process memory under churn: autovacuum
+   on the tables that were rewritten 8× per insert, the 60 KB profile
+   payloads written to TOAST and nulled two hours later, and ad-hoc full
+   scans.
+
+---
+
+## 1. Where the money goes (run-rate, this stack)
+
+| Line | $/month | Basis |
+|---|---:|---|
+| Lambda compute (all six functions) | ≈ 30 net (35 gross) | 88,011 GB-s/day measured from `@billedDuration` over the last 24 h; arm64 $0.0000133/GB-s; 400k GB-s/mo free tier |
+| — of which web-api (the collector door + site API) | 33 gross | 83,619 GB-s/day; 63,074 invocations; avg 2.59 s |
+| — of which the two live-channel long-poll loops | ≈ 20–27 | inferred: p50 253 ms vs avg 2.59 s; two collectors × 8 s waits × continuous |
+| VPC interface endpoint (SQS, for the in-VPC email enqueue) | ≈ 10 | Cost Explorer `VpcEndpoint-Hours` $3.48 / 10 days |
+| RDS db.t4g.micro | 7.92 | $95 all-upfront 1-yr RI, active since 2026-09-07; size-flexible within the t4g family |
+| RDS gp3 storage 20 GB + 7-day backups | ≈ 2 | `RDS:GP3-Storage` $0.08/day; backups inside the free 20 GB |
+| CloudWatch (16 alarms + logs) | ≈ 2 | `CW:AlarmMonitorUsage` 15.9 |
+| S3 archive (0.42 GB, 39k objects) + requests | ≈ 1.5 | 66,894 Tier-1 + 120,042 Tier-2 requests in 10 days (the sweep's HEADs are most of Tier-2) |
+| API Gateway | ≈ 0.5 | 169,806 requests / 10 days |
+| **Total** | **≈ 51** | |
+
+Account-wide lines that are not this stack but dwarf its database: AWS
+Config $6.64 (2,212 configuration items in 10 days, much of it this
+stack's deploy churn), Bedrock ≈ $20.
+
+**What this says.** Upgrading the instance to db.t4g.small costs ≈ $11.7/mo
+(the RI covers half of a small). That is less than what the live lane's
+idle polling costs today. The order of operations is: stop paying $20–27/mo
+to wait on a queue that is empty 99% of the time, then decide the instance.
+
+---
+
+## 2. (a) Flow per endpoint: what a poll adds, what repeats, where it dies, what it costs
+
+Fetch mix since 2026-09-03 (55,715 receipts): battlelog 40.4%, clan 32.0%,
+player 20.7%, currentriverrace 4.1%, rankings_pol 3.3%, everything else
+0.2%. Hour 12Z today (before 05112f0): 1,234 fetches — battlelog 248,
+player 79, clan + war 906 (73%). Hour 13Z (after): 922 — 188 / 51 / 682.
+
+Payload sizes are archive averages (compressed, distinct-content objects)
+and local measurements (raw). "Repeats" is the share of a payload that
+restates what the record already holds, from field-level diffs of
+consecutive payloads keyed by tag/id (see appendix A).
+
+| Endpoint | Subjects · cadence | Wire (gz / raw) | What one poll adds | Repeats what we hold | Where the repetition dies today | Cost before it dies (per poll) |
+|---|---|---|---|---|---|---|
+| **player_battlelog** | ~980 observers · yield EWMA 15 m–24 h, burst bound, reader cap, floor 24 h | 16.4 KB / 282 KB API→collector; **after 0074: ~1–3 KB hub-bound, 26 B (`[]`) when nothing new** | 3.3 new battles per poll fleet-wide (767 across 231 polls last hour); 61.5% of polls add nothing; sample: 12% of entries new, 83% overlap | 89.2% of entries (6,332 / 7,099 last hour); 69% of raw bytes are card lists whose names/icons repeat the catalog | **Collector** (the mark) for entries; the hub's mark filter underneath; content-hash dedup at the door for the rest | Collector: full 282 KB download + gunzip + filter (the API has no `since`). Hub: 1 mark read, 1 player upsert (unnest), receipt, payload row (jsonb TOAST of the filtered array), S3 put when content is new; when new: multi-row battle + participant insert, observation rows, rollup delete/insert per (player, day), burst window query, EWMA update. ~9 statements when empty, ~15–20 when not. Lambda p50 ~250 ms. |
+| **player** | ~1,000 · 8 h active / 24 h / 72 h dormant; tracked cap 8 h; pre-reset force | 14.5 KB / 60 KB | A handful of counters (donations, battleCount, trophies: <1 change each per poll), 2.6 badge progress ticks of 139, 9.6 card-count changes (chest openings) | cards 61% of bytes (kept only as a hash), badges 28% (guarded upsert writes only the 2.6 that moved), 9% of polls byte-identical | **Projector**, mostly: badges guarded; snapshot overwrites the day row; **but** `player` identity row and `years_played` rewrite unguarded every poll; the whole 60 KB lands in TOAST and is nulled 2 h later (two TOAST writes + dead space per poll for a reader that never comes) | ~10 statements; ~50 KB TOAST written then deleted; 1 S3 put (14.5 KB); Lambda ~200 ms. |
+| **clan** | 301 clans (30 tracked, ~270 incidental) · since 05112f0: 15 m/60 m/4 h tracked, 4 h/12 h/24 h incidental; was flat 15 m | 2.2 KB / 13.2 KB | 3.2 `lastSeen` moves, ~1 donation counter, 0.04 membership events, 0 role changes per 20-min poll | 98% of bytes is `memberList`; clanRank/donations/trophies/clanScore (the most-changed fields) are never projected; 23% of fetches byte-identical | **Projector**: per-member guarded `player` upsert (only lastSeen/name changes write); membership diff. **Not dying:** the `clan` row rewrite (unguarded: 21,377 updates on 5,151 rows), and the 50 per-member round trips | ~55 statements (one per member), 1–2 dead tuples, 1 S3 put; the cheapest fetch we make on the wire. |
+| **currentriverrace** | ~30 tracked clans · 30 m war days / 120 m training | 5.4–8.7 KB / 60 KB | War days: decksUsedToday/fame deltas for our ~45 participants (≈10 changed leaves per poll), periodPoints. Training days: essentially nothing we store | **68% of bytes are the other four clans' participant lists, projected as 5 standings rows and otherwise dropped**; the rest is MAX-merged | **Projector**, but with unguarded MAX-merge upserts: `war_participation` 145,432 updates on 12,739 inserts (11:1), `war_attendance_day` 79,924 on 2,700 (30:1), `war_week_clan` 5,190 on 310 | ~155 statements per poll (3 per participant + standings), ~60 dead tuples, 1 S3 put. The most write-amplified endpoint left. |
+| **riverracelog** | ~30 clans · daily | ~50 KB / — | Final standings once a week; otherwise a re-read of logged weeks | ~90% (10 logged weeks re-upserted daily) | Projector (coalesce/MAX) | ~150 statements/day/clan; negligible |
+| **rankings_pol** (global, hourly) | 1 board hourly + 262 locations daily | 30 KB / 106 KB (global); 1.9 KB avg elsewhere | 667 rank moves, ~90 rating changes, ~70 entrants in/out per hour among 1,000 | Every hour differs, so nothing dies: 1,000 new `ranking_entry` rows + 1,000 `player.last_seen_at` touches per hour | Content hash at the projector (identical → `last_confirmed_at` only) — never fires for the global board | ~24,000 rows/day, ~5 MB/day, 24,000 dead `player` tuples/day; the fastest-growing table |
+| rankings_pol_season, leaderboard(s), rankings_clans/clanwars, events, globaltournaments, cards | once / daily | 400 KB (a final) … 32 B | Bounded, daily, one-time | n/a | n/a | Negligible at steady state (the 470k finals rows were one-time) |
+
+Two things the table makes plain:
+
+- **The API has no delta form**, so collector-side filtering saves hub
+  ingress, S3 objects, TOAST and Lambda parse time — not API bytes and not
+  budget tokens. A token is only saved by *not polling*, which is a
+  scheduler decision (section 4).
+- Of the five write-amplified sites found this morning, three were fixed
+  (battles, participants, rollups). Two remain: the war projector's
+  MAX-merge upserts and the identity rewrites (`clan` row, `player` row on
+  profile, `player.last_seen_at` hourly touch from boards). Same one-line
+  fix as this morning's.
+
+---
+
+## 3. (b) Storage: hot, cold, derived, and what it costs
+
+Production at 14:33Z: 1,000 MB total. pg_stat counters below are since an
+unknown reset (`stats_since: null`), several days; the NOTES numbers at
+11:54Z are consistent with the same window.
+
+| Table | Size (heap+idx+toast) | Rows | Growth | Hot / cold | Canonical / derived / cache | Readers (tools) | Write pattern now |
+|---|---:|---:|---|---|---|---|---|
+| `api_payload` | **379 MB** (4.7 + 4.5 + **370 dead TOAST**) | 2,718 | 0 (sweep keeps latest per entity) | cold | cache of S3 | `cards_catalog`, `cards_synergy` (cards row); `players_collection` (**broken**); `live_fetch` | 22,187 ins / 21,616 del / 29,199 upd; TOAST churn ≈ every admitted payload written then nulled |
+| `battle_participant` | 329 MB (251 + 77) | 179,829 | ≈ +25k rows, +45 MB/day | hot (last 14–30 d by `player_time` index); cold beyond | canonical | `battles_*` (20 refs), `opponents`, `war`, `clans`, `synergy`, `shared` | guarded since 0071; 722k historical updates on 100k inserts, now ≈ 1:1 |
+| `ranking_entry` | 109 MB | 518,880 | +24k rows / +5 MB per day | latest snapshot hot; history cold | canonical (append-only) | `rankings_players` (245 calls/7 d), `rankings_timeline` (1) | insert-only |
+| `battle` | 32 MB | 79,216 | +~12k/day | hot | canonical | as participants | guarded |
+| `player` | 28 MB | 197,954 | slow | hot (names) | canonical | everything, for names; `players_search` shows `last_seen` | **1,446,677 updates** (86% HOT); hourly `last_seen_at` touch from boards/logs ≈ 24k/day |
+| `api_receipt` | 22.6 MB | 55,715 | +6.5k rows, ~2.7 MB/day | 24 h hot | canonical (audit) | `elixir_coverage`, status, call audit | append |
+| `player_badge` | 22.6 MB | 138,516 | slow | warm | canonical | `badges_*` | guarded (6,525 upd) |
+| `battle_observation` | 21 MB | 82,595 | +~3 MB/day | **write-only since 0073** | audit (seeded the mark) | none in `services/mcp` | append |
+| `player_daily_battle_rollup` | 16 MB | 97,178 | small now | warm | derived (rebuildable) | timeline/summary | 471k deletes historically, now ≈ new battles only |
+| `job` | 9.2 MB | 35,951 | churn | hot control | operational | door, scheduler, status | 148,875 seq scans (the lease loop's `count(*)` by `leased_by` has no index) |
+| `player_snapshot_daily` | 4.5 MB | 5,441 | +~1k/day | warm | canonical | `players_*`, `elixir_*` | overwrite within day |
+| `war_participation` / `war_attendance_day` / `war_week_clan` | 5 MB | 20k | small | hot on war days | canonical | `war_*` | **unguarded MAX-merge: 230k updates on 16k inserts** |
+| `clan_membership` | 2.1 MB | 11,372 | small | hot (1.96M idx scans) | canonical | many | fine |
+| `poll_state` / `gateway` / `rate_limit` / `budget_state` | <1 MB | — | — | hot control | operational | scheduler, door | 91k / 342k / 147k / 3k updates, all HOT — WAL, not bloat |
+| `capture_audit`, `mcp_call_audit`, `clan_event`, `player_event` | 4 MB | — | append | cold after a day | audit | status, coverage, events | append |
+
+**Hot working set** (what must stay in memory for the recorder and the
+tools to be fast): the control tables, `player` PK, `battle` PK,
+`battle_participant` PK + `player_time` index for recent days,
+`clan_membership`, `battlelog_high_water`, `poll_state` ≈ 150–250 MB.
+`shared_buffers` was 180 MB this morning and is 88 MB now (RDS's automatic
+cut at 14:06Z); the rest is served from the OS page cache and, when that is
+squeezed, from disk (ReadIOPS 500–1,000 during the crash windows). A 1 GB
+instance holds this working set; it does not hold it *and* a 2-minute
+jsonb expansion of every deck *and* three autovacuum workers at 64 MB each
+*and* 60 KB profile bodies being written and nulled all day.
+
+**Which tables need to be relational.** The tools join on `battle`,
+`battle_participant`, `player`, `clan_membership`, `player_snapshot_daily`,
+`player_badge`, the `war_*` set and the control tables — those stay.
+`ranking_entry` is read by snapshot id (`as_of`) and by (player, time) for
+the timeline; append-only, columnar-shaped, and the only table that grows
+~2 GB a year at today's scope. It is the one Parquet-in-S3 candidate with a
+matching access pattern (a nightly export of snapshots older than N days,
+DuckDB in the jobs Lambda or Athena for the timeline; the latest snapshot
+per board stays relational for `rankings_players`). `battle_observation`
+needs no home at all now. `api_payload` should hold nothing a tool reads.
+DynamoDB: still no access pattern — the hot writes are relational upserts
+that 52 tools read back relationally; the declined-today decision stands.
+
+**Disk vs memory.** The 370 MB of dead TOAST under `api_payload` is disk,
+not memory; a one-off `VACUUM FULL api_payload` (2,718 rows; seconds) gets
+it back and is safe off-peak. It is not what crashed the instance.
+
+---
+
+## 4. (c) The cadence principle
+
+Today's rules: yield EWMA to `TARGET_BATCH` for battlelogs; a burst (loss)
+bound; a reader cap; activity buckets for profiles; war-day type for river
+races; liveliness × relationship for clans; flat daily for boards and the
+catalog; a fairness floor; starved-first ordering; a 10% live reserve; a
+bucket cap. They were added one at a time and each is defensible. There is
+one principle underneath, and it has two terms, not one.
+
+**Poll a subject when the expected new information per fetch justifies a
+token — except where waiting loses information, in which case poll before
+the loss.** Formally, for subject *s* on endpoint *e*:
+
+```
+next_poll(s, e) = min(
+  t_last + I_target(e) / Î(s, e),        # information-rate term
+  t_loss(s, e),                          # loss-deadline term (hard)
+  t_last + floor(e)                      # reader promise (a ceiling on staleness)
+)  and never sooner than t_last + max_age(e)   # the API's own cache: a poll inside it returns the cached copy
+```
+
+- **Î(s, e)** is the expected information rate: battles per hour for
+  battlelogs (the yield EWMA, already there); the same signal for
+  profiles (a profile only changes when the player plays, opens chests or
+  donates — all of which move the roster `lastSeen`); membership events
+  per hour for clans (stamped since 05112f0); decks-used deltas for the
+  river race; the board's own content hash for rankings (identical →
+  slower). **The free signals are all in hand already**: `battleTime`,
+  `lastSeen`, `decksUsedToday`, counters, content hashes, and now the
+  collector's `observed`/`filtered`.
+- **t_loss** is where the endpoint's source *forgets*: the battlelog is a
+  30-entry rotating window (the burst bound is exactly this term);
+  `decksUsedToday` resets at the war-day boundary (one poll in the last hour
+  of a war day is sufficient for attendance; 30-minute polling all day is
+  paying for yield signalling, not attendance); the pre-reset donation
+  snapshot (already forced). Everything else is cumulative or
+  current-state: waiting delays, it does not lose.
+- **max_age** is the API's `cache-control`: `/clans/{tag}` and
+  `/currentriverrace` 120 s, `/players`, `/battlelog`, rankings 60 s
+  (`cr-agent-api-docs`, index.md). Nothing in today's rules goes under it,
+  but it is the floor the rule should name.
+- **floor(e)** is the fairness floor. It is a *reader* promise ("never
+  staler than a day"), not an information rule. Keep it, and say that is
+  what it is.
+
+**What the principle changes.**
+
+| Today's rule | Under the principle | Verdict |
+|---|---|---|
+| Yield EWMA → `TARGET_BATCH` | is the information-rate term for battlelogs | keep |
+| Burst (loss) bound | is the loss-deadline term | keep; promote from `half` arm to all once the A/B is read |
+| Reader cap | a reader-value term (information *a reader will use*) | keep |
+| Profile activity buckets (8 h / 24 h / 72 h) | replaced by a **gate**: skip the profile poll when the roster's `lastSeen` for this player has not moved since the last admitted profile (the profile cannot have changed except by clan/name events, which the roster also carries). For players in no polled clan, fall back to the buckets | change |
+| Battlelog yield when a fresh roster says `lastSeen ≤ last battlelog poll` | **skip the poll** — no battles are possible without being online. Fleet-wide 61.5% of battlelog polls are empty; the sample says 3.2 of ~50 members move per 20-min poll. Expect roughly half of battlelog fetches and most profile fetches to disappear for clan members | change (the biggest saving left) |
+| Clan liveliness × relationship (05112f0) | keep for *incidental* clans. For *tracked* clans the roster is the gate for ~50 subjects' battlelog and profile polls: its cadence must be ≤ the cadence it gates, so 15 minutes while awake is right and is the cheapest 15-minute fetch in the system (2.2 KB) | keep, restated |
+| War day 30 m / training 120 m | training days carry near-zero information → 4–6 h; war days: 60 m plus one forced poll in the last hour of each war day for attendance | change (small: 4% of fetches) |
+| Flat daily boards | boards are reader-driven (the boards client); the global hourly board is a product decision (the season-story video). Daily locations at 1.9 KB are already cheap | keep |
+| Fairness floor, starved-first | reader promise; keep, but a starved *dormant* profile (floor 72 h) is a poll for a snapshot nobody reads — see question 3 | keep |
+| Live reserve 10%, bucket cap 300 s | budget mechanics; irrelevant while use is 15–35% of ceiling | keep |
+
+**Where no-change detection should live, per endpoint, and its contract
+cost:**
+
+| Endpoint | Cheapest place | Saves | Contract cost |
+|---|---|---|---|
+| battlelog | collector (done, 0074); **plus scheduler gate** by roster `lastSeen` | mark: hub bytes/rows; gate: the token itself (~50% of battlelog fetches) | mark: shipped (two optional fields). Gate: none (server-side) |
+| player | **scheduler gate** by roster `lastSeen` (saves the token); a collector-side canonical hash second (saves 14.5 KB, the TOAST write, the snapshot no-op — but not the token) | gate: most profile fetches for clan members; hash: bytes | gate: none. Hash: one optional lease field (`filter.unchanged_if_hash`), one optional submit flag (`unchanged: true`, no body), and the projector must write the day's snapshot row from the previous one — moderate |
+| clan | hub (it *is* the sensor; every poll carries new `lastSeen`) — never the collector | n/a | none; fix the projector's per-member loop and the unguarded clan row instead |
+| currentriverrace | projector (drop the other clans' participants before projection — already effectively dropped; guard the MAX-merge upserts) | ~60 dead tuples and ~100 no-op statements per poll | none |
+| rankings global hourly | projector (content hash; done) — it never fires. Storage is the question, not detection | — | none |
+| everything daily | nothing to detect | — | — |
+
+Trust note: the collector's `observed`/`filtered` are asserted, not
+verifiable. A lying collector that submits `[]` with `observed = filtered`
+makes the hub believe nothing happened, which stretches the yield cadence
+toward 24 h for that subject. Bounded (other collectors take the next lease,
+the fairness floor catches it), but it is a new lever the zero-trust doc's
+"lying collector" section does not yet mention. A roster-`lastSeen` gate
+cross-checks it for free.
+
+---
+
+## 5. (d) Ranked changes — cost saved per unit of effort and risk
+
+Effort in engineer-hours is a guess; savings are measured or derived above.
+
+| # | Change | Layer | Effort / risk | Budget | Postgres | S3 | $ / month |
+|---|---|---|---|---|---|---|---|
+| 1 | **Stop the idle long-poll burn.** Door: re-check every 2 s not 500 ms; `live_wait_s` 8 → 2 (or move Ram Rider to the bulk channel and keep one live collector); settle the ledger from the scheduler tick, not on every lease call. `live_fetch` (16 calls/7 d) then waits ≤ 4–20 s longer | door / config | 2–4 h; low. Latency of live reads is the only trade (question 6) | 0 | −300k tx/day, −148k `job` seq scans, −340k `gateway` updates | 0 | **−20 to −27** |
+| 2 | **Cache only what a waiting reader asked for.** Write `api_payload.payload_json` only for `lane = 'live'` jobs (and until #3 lands, the cards row) — a *lane* rule, not an endpoint carve-out. Bulk payloads keep the hash row (dedup) and go to S3 only | projector | 2 h; low | 0 | −≈95% of TOAST writes (every admitted bulk payload, ~60 KB profile / ~30–80 KB filtered log, written then nulled) and the autovacuum behind them | 0 | 0 (memory headroom) |
+| 3 | **Give the catalog and the collection a real home; delete the `endpoint <> 'cards'` carve-out.** `card` table (≈120 rows, replaced on change) read by `cards_catalog`/`cards_synergy`; `player_collection` (one compact row per player: ids, level, count, evolution; ~2–3 KB → ~25 MB for 10k players) written guarded from the profile projector, read by `players_collection`. No tool reads `api_payload` afterwards | projector / storage | 1 day; low | 0 | +25 MB once; −1 special case | 0 | 0 (restores a broken tool) |
+| 4 | **Guard the remaining unguarded upserts** — `war_participation`, `war_attendance_day`, `war_week_clan`, the `clan` row, the profile's `player` row and `years_played`; collapse the roster's 50 per-member statements and the race's 3-per-participant into single `unnest` statements | projector | 3–4 h; low (same pattern as 0071) | 0 | −≈230k dead tuples per window, −~150 round trips per race poll, −50 per roster poll | 0 | 0 (memory / IO) |
+| 5 | **Roster-`lastSeen` gate for battlelog and profile polls** (section 4). Needs one sentence verified against `cr-agent-api-docs`: `lastSeen` moves on any session, so "unchanged ⇒ no battles" holds | scheduler | 1 day + tests; medium (a wrong assumption reads as capture loss — the capture audit will show it) | **−≈50% battlelog, −most profile fetches for clan members (≈ −150–200/hr of today's ~300)** | proportional | −≈2k objects/day | 0 (Lambda ms) |
+| 6 | **`ranking_entry` history to Parquet in S3**, nightly, snapshots older than 7–14 days; latest per board stays relational | storage | 1–2 days; medium (timeline reads two stores) | 0 | −5 MB/day of growth on the hot instance | +5 MB/day (cents) | 0 |
+| 7 | **Bound `probe`** — sample `level_census` (5k battles), and put the census on a nightly EMF metric instead of an ad-hoc op; alarm on migrate duration > 60 s | ops | 1 h; none | 0 | removes the trigger of the second crash | 0 | 0 |
+| 8 | `player.last_seen_at` touch: hourly → daily | projector | 15 min; none (only `players_search` shows it) | 0 | −≈23k dead tuples/day | 0 | 0 |
+| 9 | Stop writing `battle_observation` (the mark and the receipt carry coverage now); or keep it and add nothing | projector / storage | 1 h; low — confirm no reader | 0 | −3 MB/day, −1 statement/poll | 0 | 0 |
+| 10 | War cadence: training 2 h → 4 h; war day 30 m → 60 m + one forced last-hour poll | scheduler | 1 h; low | −≈30/hr | small | small | 0 |
+| 11 | `VACUUM FULL api_payload` once, off-peak | storage | minutes; locks a 2.7k-row table | 0 | −370 MB disk | 0 | 0 |
+| 12 | Enhanced Monitoring at 60 s before buying a bigger instance (OS memory split is invisible today: no EM, no Performance Insights) | ops | 10 min; ≈ $0.5/mo | 0 | 0 | 0 | +0.5 |
+| 13 | Retention: `api_receipt` and `mcp_call_audit` 90 d, `job` done rows 7 d, `capture_audit` 30 d | storage | 1 h; low | 0 | bounds four append tables | 0 | 0 |
+
+Not recommended: multiplying the rate budget (section 6.1); moving hot
+tables to DynamoDB (no access pattern); an archive retention policy (the
+whole archive is $0.01/month of storage — section 6.3); a collector-side
+diff engine (section 6.2).
+
+---
+
+## 6. (e) The standing decisions, argued
+
+1. **One global budget; the fleet is redundancy.** Keep — but for a
+   different reason than the one written down. The budget is not binding:
+   543 used in the first 40 minutes of hour 14Z (≈ 815/hr) against 3,600,
+   with `due_starved: 9`; the 2026-09-10 review measured a 49-hour mean of
+   170/hr. Multiplying it would change no fetch. On the terms: Supercell
+   publishes no number; `cr-agent-api-docs` records observed behaviour only
+   (no rate headers, 403 on overage, ~2 s spacing safe, limits appear
+   per-IP; keys are IP-allowlisted). The terms review NOTES cites
+   (`elixir-mcp-terms-review.md`) **is not in the repo** — the pointer is
+   dead; it should be restored or the decision re-recorded from the terms
+   themselves. The constraint that actually binds is *work per fetch on a
+   1 GB database*, and that is the review's subject.
+
+2. **Collectors are dumb proxies.** Extend the definition rather than break
+   it: a collector applies **server-named filters over the server-named
+   path** — the mark today, a hash tomorrow — and never chooses targets,
+   never keeps state across leases, never interprets payloads. That line
+   keeps the collector testable with a fixture and keeps the hub correct
+   when the filter is ignored. Where it stops: computing deltas (needs the
+   previous payload on the collector — state), or stripping fields the hub
+   "doesn't need" (interpretation; the roster's `lastSeen` is the example of
+   a field that looked like noise and is the sensor). Hash-based
+   `unchanged` is fine; anything beyond it is not worth its contract.
+
+3. **Archive every distinct payload, in the API's shape, forever.** Keep,
+   and stop worrying about it: 420 MB and 39k objects after eight days,
+   growing ~20 MB and ~2k objects a day — $0.01/month of storage, ≈ $0.10 of
+   PUTs. The only readers are replay (`migrate`) and the captured tool-call
+   record; nobody reads it to answer a question. The right question is not
+   cost but *what it is for* (question 4): if it is the rebuild source, the
+   filtered battlelog arrays since 0074 are still complete (every battle
+   crosses once), and the `[]` objects (one per player, content-addressed)
+   are harmless. Sampling or diffs would save nothing measurable and would
+   cost the "API's own shape" property. A lifecycle rule to Infrequent
+   Access after 30 days saves cents; do it or don't.
+
+4. **Postgres holds canonical records losslessly; tools read relationally.**
+   Keep for everything that is joined. Change for `ranking_entry` (§3): it
+   is the one canonical table whose growth is unbounded by subject count
+   (one board × 24/day × 1,000 rows regardless of how many players we
+   record) and whose reads are by snapshot. The 60-day raw-payload
+   rebuild window in ENGINEERING.md is now the *S3* window (Postgres holds
+   2 hours), which is fine and should be reworded.
+
+5. **Replay bypasses freshness and the mark; live reads return whole
+   payloads; the hub stays correct when a filter is ignored.** All three
+   are right and cheap. The mark's per-observer scope is right (the
+   opponent-log trap is real). One addition: the collector's counts are
+   asserted (§4, trust note) — the doc should say so.
+
+6. **The 1 GB instance.** Not yet. The crashes were memory under *churn and
+   ad-hoc scans*, not data. After #1, #2, #4 and #7 the recurring churn
+   (TOAST write-and-null, the war upserts' dead tuples, the idle loop's
+   transactions) and the trigger (probe) are gone. Then measure 24 hours
+   with Enhanced Monitoring on: if `SwapUsage` stays above ~50 MB or
+   `FreeableMemory` under ~150 MB at steady state, buy the small — the RI
+   makes it $11.7/month, and RDS will not give back the 180 MB
+   `shared_buffers` on its own (it is a parameter now; restore it in a
+   custom group once memory is understood).
+
+---
+
+## 7. (f) What in today's changes is wrong or fragile
+
+1. **`players_collection` is broken** (confirmed live, §0.3). Any consumer
+   of it — elixir-bot, Drop, an agent — sees an empty collection for every
+   player whose profile was polled more than two hours ago, which is every
+   player 22 hours a day. No error, no note: `cards: []` beside a real
+   `as_of_payload`. Fix by #3, or by extending #2's lane rule until #3
+   lands. This should be fixed before anything else in this list.
+2. **The `cards` carve-out is the same defect with a bandage on it.** A
+   sweep that knows endpoint names is a policy with a hole in it; the
+   next endpoint a tool reads from `api_payload` gets another `<>`. Rule:
+   tools never read `api_payload`; it is an ingest artifact. (Jamie's point
+   on 2026-09-11; agreed.)
+3. **The 2-hour cache writes every bulk payload to TOAST for readers that
+   never come.** `live_fetch` is 16 calls a week and reads within seconds.
+   The design nulled the JSON to save 400 MB of resident TOAST and kept the
+   write. #2 removes it.
+4. **`probe` is a full-table jsonb expansion and it was run fifteen times
+   in 25 minutes on a swapping instance.** The op is fine as a nightly
+   census; as an interactive lever with "retry on TooManyRequests" advice
+   it is the one thing today that demonstrably took the database down.
+5. **The high-water mark's capture-audit under the collector filter reads
+   `filtered === 0` as a gap.** Correct, but it also fires on the first
+   filtered poll of a player whose seeded mark sits behind a log that
+   rolled — which is a genuine gap, so the two `gaps` last hour are probably
+   honest. Worth confirming against those two receipts before trusting the
+   rate.
+6. **The clan cadence for incidental clans (4 h / 12 h / 24 h) coarsens
+   membership tenure for ~270 clans' members** — joins and departures are
+   observed at up to 24-hour granularity, and `game_last_seen_at` for
+   ranked players goes stale by the same amount. That is the intended
+   trade; it is also in tension with #5 (the roster as the gate): a gate
+   from a 12-hour-old roster can only ever say "known idle", never "known
+   active". The 15-minute tracked cadence is what makes the gate work, so
+   05112f0 should not be pushed further for tracked clans.
+7. **Two counts of 30 vs 25.** The scheduler's `LOG_CAPACITY = 30` (measured
+   over 2,000 payloads) and 0073's comment "a log is the last 25 battles"
+   disagree; `cr-agent-api-docs` says ~30–40. Only the loss math uses the
+   number, and it uses 30. Fix the comment before someone tunes to it.
+8. **RDS silently halved `shared_buffers`** at 14:06Z. Nothing in the repo
+   records it; the next person reading `{tables:true}` will see 11,295
+   pages and assume it was always so.
+9. **`ELIXIR_LOSS_BOUND` is still `half`** three days after the A/B began
+   and the arms were noted as unbalanced at baseline. Either read the
+   result or promote it; a half-applied loss bound is a half-kept promise.
+10. **Small:** the `job` lease loop's `count(*) … where leased_by = $1 and
+    status = 'leased'` has no supporting index (148,875 seq scans);
+    trivial to add, irrelevant once #1 lands.
+
+---
+
+## 8. (g) Questions only Jamie can answer
+
+1. **"Every 15 minutes while awake" for tracked clans** — is that a product
+   promise readers rely on, or is the roster's job to be the activity
+   sensor? The answer is the same cadence, but it changes what the docs
+   should say and whether 05112f0's tracked branch can ever be stretched.
+2. **How coarse may membership tenure get for incidental clans?** 24 hours
+   today. If a ranked player's clan history matters for the season-story
+   video, 4 hours everywhere is +~200 fetches/hr (still <15% of ceiling).
+3. **Do dormant players need a daily snapshot at all?** The 72-hour floor
+   forces a profile poll and a 60 KB payload for a player nobody reads and
+   whose counters have not moved. A gate (#5) would skip it; the timeline
+   would then show a flat line from the last snapshot, which is also the
+   truth. Is "a row every N days" a promise?
+4. **What is the archive for?** Rebuild source (then it is complete and
+   done), audit of what the API said (then keep `[]` objects too), or a
+   dataset (then Parquet exports are the real product and the raw objects
+   are the staging area). Cost is not a factor at $0.01/month.
+5. **Is `players_collection` a promise?** If yes, #3 builds it a table
+   (~25 MB). If no, retire the tool and the carve-out together.
+6. **What latency may `live_fetch` have?** Today ≈ 2.3 s average because two
+   collectors long-poll continuously (≈ $20–27/month and 350k DB
+   transactions a day). At 2-second waits it is ≤ 5 s; on the bulk lane
+   alone it is ≤ 25 s. Sixteen calls a week.
+7. **How far back must the hourly global board be readable relationally?**
+   Drives when #6 (Parquet) must land: at +5 MB/day the table passes
+   `battle_participant` in about six weeks.
+8. **Instance:** spend $11.7/month now, or spend a week on #1/#2/#4/#7 and
+   measure first? This review says measure; the RI makes either choice
+   cheap to reverse.
+9. **The terms review** — where is `elixir-mcp-terms-review.md`? NOTES
+   links it as the basis of golden rule 3 and it is not in the repo.
+
+---
+
+## Appendix A — Method and instruments
+
+- **Payload diffs.** 433 objects for 17 entities downloaded from the
+  archive to this machine: 2 clans (80 payloads, one full day of a tracked
+  clan at 20-minute polls), 2 river races (44), 6 players (167 profiles,
+  122 battlelogs), the global PoL board (20 hourly). Consecutive payloads
+  per entity were flattened to leaf paths; lists of members, participants,
+  cards and badges were keyed by tag/id/name so reordering does not read as
+  change. Numbers are per consecutive pair. Payloads carry real tags and
+  names; none appear in this document.
+- **Tables and churn.** `{tables:true}` and `{stats:true}` on the migrate
+  Lambda at 14:33Z; pg_stat counters are cumulative since an unknown reset
+  and span several days (they agree with the 11:54Z values in NOTES).
+- **Lambda.** CloudWatch `Invocations`/`Duration` per function (7 days and
+  hourly today); Logs Insights `REPORT` lines in 10-minute bins around both
+  crashes; `@billedDuration × memory` over the last 24 hours for dollars.
+- **RDS.** `FreeableMemory`, `SwapUsage`, `Read/WriteIOPS`, `CPU`,
+  `DatabaseConnections` hourly for 48 hours and at 5-minute resolution
+  around both recoveries; `describe-events` for the recovery and the
+  `shared_buffers` notice. Enhanced Monitoring and Performance Insights are
+  off, so the OS-level memory split (Postgres vs page cache vs RDS agent)
+  could not be seen.
+- **Cost.** Cost Explorer Sep 1–10 by service and by usage type; the RI
+  from `describe-reserved-db-instances`.
+- **Not measured.** Per-route split of web-api invocations (no access
+  logs) — the lease/submit split is inferred from p50 vs mean and from
+  `fetches_1h` on the status page. API→collector bytes are computed from
+  archive object sizes, which are distinct-content only (a lower bound on
+  fetches, an exact count of objects). The `probe` op was not re-run for
+  this review, on purpose.
+- **Nothing was written to production.** Two read-only MCP calls
+  (`players_collection`, `elixir_coverage`) on the caller's own tag
+  confirmed §0.3.
