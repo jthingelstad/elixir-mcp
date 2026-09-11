@@ -648,6 +648,88 @@ is the iteration Jamie will want to look at in the browser twice.
 
 ---
 
+## 10. Jamie's answers (2026-09-11 evening) and what they change
+
+The ten questions in §8 are answered. Recorded here verbatim in
+substance, each with the consequence for the recommendations above; §10.3
+is the revised ranked list where it differs from §5. These are product
+decisions and are the standing ones from now — NOTES carries the pointer.
+
+### 10.1 The decisions
+
+| # | Question | Decision | What it changes |
+|---|---|---|---|
+| 1 | Is "every 15 minutes while awake" a promise? | **No.** Membership events are what the roster poll is for; they are infrequent; detecting a join or leave within a few hours is fine. | The roster is no longer polled for itself at 15 min. Its cadence has two inputs: the membership-event rate (hours) and the *gate* it can provide for its members' battlelog and profile polls (§4, #5). The 15-minute branch of 05112f0 goes; the tracked/incidental split goes with it for the roster (it stays for river-race polling, which only tracked clans get). |
+| 2 | How coarse may incidental membership tenure be? | **Coarse is fine.** | 05112f0's 4 h / 12 h / 24 h stands as the *ceiling* for every clan; one rule for all clans (§10.2). |
+| 3 | Do dormant players need a daily snapshot? | **No.** Players may be idle; there is no obligation. | The 72-hour profile floor is retired; a profile is polled when the roster's `lastSeen` has moved since the last admitted profile, when a battlelog delivered battles, or by the pre-reset watcher — and the watcher only for players whose last snapshot had donations > 0. ~68% of subjects sit on the daily branch and ~17% on the 3-day branch (09-09 audit); most of that spend (~50 of ~80 profile fetches an hour, and a 60 KB payload each) disappears. |
+| 4 | What is the archive for? | **A rebuild source, and more importantly the substrate for future analytics the SQL will not do well (map-reduce, Athena) and for AI corpus building not yet envisioned.** | This is the biggest reframing. The archive is the *dataset*, Postgres is the *serving store*. Consequences: keep every payload, in the API's shape, forever (settled); the Hive layout stays; the filtered battlelog arrays since 0074 are still a complete corpus (every battle crosses once) and the `[]` objects are harmless noise; **an analytics layer is now a real direction** — nightly Parquet exports of the projected tables (battles, participants, snapshots, rankings) beside the raw archive, Athena/DuckDB-readable, partitioned by day — and any history question the hot instance cannot afford (card history, board history, season stories) is answered *from S3*, not by keeping more in Postgres. The 60-day rebuild window in ENGINEERING.md is the S3 window and should say so. |
+| 5 | Is `players_collection` a promise? | **Yes** — the cards a player holds power deck-building suggestions on the tool surface, and should build a history of player events ("unlocked Mega Knight"). Jamie: "perhaps a gap in our collection today." | It is a gap: the collection is stored only as a hash, and there are no card events. #3 becomes a `player_card` table (player, card id, level, count, evolution/star form, first_seen_at, observed_at; guarded upsert from the profile projector; ~150k rows / ~20 MB for the ~1,200 profile subjects) plus two feed topics, `card_unlocked` and `card_leveled`, on the same first-observation-is-silent rule the badges use. Card *history* beyond "current" is an S3 question (answer 4): every profile payload since 09-04 is in the archive, so the history can be backfilled from there rather than kept relationally. |
+| 6 | Live latency? | **Asynchronous `live_fetch` would be really smart — and then the special collector status for live goes and the whole fleet handles it.** | §9.2 variant **C** is chosen, not A. `live: true` comes to mean: *answer from a receipt newer than the endpoint's own `max-age` if one exists; otherwise enqueue one priority job (idempotent — one queued per subject) and return the recorded answer now with `pending: true, retry_after_s`.* The second call finds it. Delete: `gateway.channel`, `live_reserve`, `poll.live_wait_s`, the 12-second Postgres poll in `services/mcp/src/live.mjs`, and the live branch in both collector twins. Idle check-ins can then be 30 s (≈ $0.2/mo), and every collector — operators' included — picks up priority work; the door stamps and the hub verifies a live result exactly like a bulk one. |
+| 7 | How far back must the hourly global board be readable? | **"We got a little crazy with the global leaderboard."** Snapshot it daily at the global reset; make sure the golden board is locked at the end of the season. | `ranking_board` global `pol` `every_minutes` 60 → 1440 — a one-row change, no deploy. `ranking_entry` growth 24k → 1k rows/day; the Parquet move (#6) is no longer needed for growth (it may still come from answer 4, as an export). The 1,000 hourly `player.last_seen_at` touches go with it. The golden board is already the finals path (`rankings_pol_season`, fetched once per settled month from the API's own final, 9,999 places); the daily snapshot is the running record, not the lock. One open detail: *which* daily moment — the 10:00Z season-roll hour is the natural one. |
+| 8 | Instance now or measure first? | **Make the changes and see where the new baseline is.** | Matches §6.6. Enhanced Monitoring on before the baseline is read (#12). |
+| 9 | The missing terms review | "Not sure what is needed." | Nothing operational. NOTES links a file (`elixir-mcp-terms-review.md`) that is not in the repo; either the file is restored from wherever it lives or the link is removed and golden rule 3's basis re-recorded in NOTES. It matters only because rule 3 cites it as evidence. |
+| 10 | What do points reward? | **A fetch that results in data. No points for a fetch that returned nothing.** | `fetch_points` increments only when the receipt's `new_facts > 0` (§9.3's column). Collectors do not choose targets, so this changes the scoreboard, not behaviour — but it stops the scoreboard rewarding the thing the design is removing. Whether lifetime points are recomputed retroactively is open (they can be, from receipts, once the column is backfilled from the archive — answer 4 again). |
+
+### 10.2 One rule for the roster, now that it is not a promise
+
+With answers 1–3 the clan roster's cadence is the min of two needs, both
+cheap to compute from what the projector already stamps:
+
+- **Membership-event need:** `clamp(1 / event_rate_ewma, 1 h, 24 h)` —
+  hours for almost every clan (0.04 events per poll in the sample).
+- **Gate need:** if any comprehensive member of this clan has a battlelog
+  or profile poll due sooner than that, poll the roster *first*, at that
+  earlier time, and let `lastSeen` decide whether the member's poll
+  happens. One 2.2 KB roster fetch stands in for up to ~50 member polls,
+  of which ~61% would have been empty; it pays for itself when two or
+  more members are due.
+
+Everything else in 05112f0 — liveliness, churn, the tracked/incidental
+distinction — collapses into those two lines for the roster endpoint.
+The API's 120 s `max-age` on `/clans/{tag}` is the floor nothing goes
+under.
+
+### 10.3 Revised ranked list (supersedes §5 where they differ)
+
+| # | Change | Layer | Effort / risk | Effect |
+|---|---|---|---|---|
+| 0 | **Global PoL board hourly → daily** (`ranking_board` row) | data | 1 minute; none | −23 fetches/day; −23k `ranking_entry` rows/day (−5 MB/day); −23k `player` touches/day |
+| 1 | **Check-ins, not polling** (§9.1) with **async live** (§9.2 C): `next_check_in_s`, idle 30 s; delete channel, reserve, the 12 s live poll; `live: true` = fresh-or-pending | door / collector / mcp | 1–2 days incl. a collector release and a contract minor for the pending shape; low–medium | ≈ −$28/mo Lambda; −320k DB tx/day; every collector serves live |
+| 2 | **Cache only live-lane payloads** (a lane rule) — interim until #3 lands; the `cards` carve-out goes with #3 | projector | 2 h; low | −≈95% TOAST churn |
+| 3 | **`card` catalog table + `player_card` table + `card_unlocked` / `card_leveled` feed topics**; `players_collection` reads the table; tools never read `api_payload` | projector / storage / mcp | 1–2 days; low | restores a broken tool, closes the collection gap, +~20 MB |
+| 4 | **Guard the remaining upserts** (war MAX-merges, `clan` row, profile `player` row, `years_played`) and collapse per-member loops to `unnest` | projector | 3–4 h; low | −≈230k dead tuples/window; −~200 round trips per race+roster poll |
+| 5 | **Roster gate + one roster rule** (§10.2) + **retire the dormant profile floor** (answer 3) + pre-reset watcher only where donations > 0 | scheduler | 1–2 days + tests; medium (verify `lastSeen` semantics on live data for a day; the capture audit is the check) | −≈50% battlelog fetches, −≈60% profile fetches, −the 60 KB payloads behind them; roster fetches roughly unchanged for tracked clans, fewer elsewhere |
+| 6 | **Analytics layer in S3** (answer 4): nightly Parquet of battles / participants / snapshots / rankings beside the raw archive; Athena table definitions; card history backfilled from archived profiles | jobs / storage | 2–3 days; low (additive, off the hot path) | none on the instance; the dataset becomes queryable |
+| 7 | **Bound `probe`**, nightly census, alarm on migrate duration | ops | 1 h; none | removes the trigger of the 14:02Z recovery |
+| 8 | `player.last_seen_at` touch daily, not hourly | projector | 15 min | −≈23k dead tuples/day (mostly moot after #0) |
+| 9 | Stop writing `battle_observation` | projector | 1 h | −3 MB/day |
+| 10 | War cadence: training 4 h, war day 60 m + forced last-hour poll | scheduler | 1 h | −≈30 fetches/hr |
+| 11 | `VACUUM FULL api_payload` once | storage | minutes | −370 MB disk |
+| 12 | Enhanced Monitoring before reading the new baseline (answer 8) | ops | 10 min | visibility |
+| 13 | Retention on the four append tables | storage | 1 h | bounded growth |
+| 14 | **Receipt columns + collector visibility** (§9.3); **points only for `new_facts > 0`** (answer 10) | door / projector / web | 1–2 days; ship the columns with #1 | makes #1 and #5 visible; scoreboard matches the design |
+
+Dropped from §5: the Parquet-for-growth move (#6 old) — answer 7 removes
+the growth, answer 4 turns the export into a feature rather than a
+pressure valve.
+
+### 10.4 Follow-ups worth one line each from Jamie
+
+1. **The daily board moment:** 10:00Z (the season-roll hour, so the last
+   daily snapshot of a season is also the pre-roll board), or another?
+2. **Membership detection ceiling:** "a few hours" — is 4 h the number to
+   write down for tracked clans, with 24 h for the rest?
+3. **`live: true` returning the recorded answer plus `pending`** (rather
+   than only `pending`) — agreed? It means an agent always gets *something*
+   on the first call.
+4. **Card history depth:** current state + events from now, with history
+   backfilled from the archive when the analytics layer exists — or is
+   relational history wanted sooner?
+5. **Points:** recompute lifetime from receipts once `new_facts` is
+   backfilled, or count from the day it ships?
+
+---
+
 ## Appendix A — Method and instruments
 
 - **Payload diffs.** 433 objects for 17 entities downloaded from the
