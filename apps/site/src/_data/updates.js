@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-11",
+    title: "The leaderboards are recorded",
+    body: "The CR API shows a ranking as it is this minute and forgets it. Elixir now keeps it: the global Path of Legends board every hour, and every one of the 262 locations the API lists once a day — a snapshot per fetch that changed, a row per placed player with rank, rating, name and clan. Two new tools read it back: rankings_players for a board as of now or any earlier instant (who was #1 on the 3rd), paged because a board can run to a thousand places; rankings_clans for which clans have the most rated players, counted over everyone above the rating floor rather than a top-100 slice. And a top-200 appearance on the global board now records the player — every battle, with the rank and rating each one carried — until the next season roll plus three days, so the season's story of its eventual #1 is captured from the first hours. Contract 1.3.0.",
+  },
+  {
     date: "2026-09-10",
     title: "A Support page, and what sponsoring does not buy",
     body: "Elixir is free to use and independently run, and there is now a page that says what keeping it going costs and how to help pay for it: GitHub Sponsors at three suggested amounts, with running a collector set beside it as the other way to contribute. The page is mostly a promise repeated three times — sponsorship gives no extra quota, retention, features or priority, at any amount, because Supercell's Fan Content Policy forbids selling access and reading is universal here by design. Collectors are the one contribution that does change an account, and the page says so plainly rather than letting the two blur. The corpus counters on it are the same ones the Data page reads, from the same build-time bake.",

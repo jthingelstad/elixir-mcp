@@ -68,6 +68,7 @@ or stops the recording accordingly:
 | added deep | any account tracks the clan at `comprehensive` scope |
 | collected | the subject is a member of a collection |
 | collected deep | a member of a `comprehensive` collection |
+| ranked | the player appeared in the recording top-N of a [leaderboard](#leaderboards) this season; comprehensive, and sticky until the next season roll plus three days |
 | ops | the maintainer records it directly; never stopped by user actions |
 
 The widest reason wins. Removing your own reason frees your slot; the
@@ -121,6 +122,33 @@ collection's scope (`comprehensive` by default). `collections_edit` takes
 `add`, `remove` or `set` with up to 500 tags per call and refuses the whole
 call on one malformed tag. Collections are a family-tier feature; reading
 public ones needs only `cr:read`.
+
+## Leaderboards
+
+The CR API shows a ranking as it is this minute and forgets it. The recorder
+keeps it: the **global Path of Legends board every hour**, and every location
+the API lists — 262 countries and regions — **once a day**. Each fetch that
+differs from the last becomes a snapshot with a row per placed player (rank,
+rating, name, clan); an identical later fetch confirms the existing snapshot
+rather than duplicating it, so the record also says how long a board held.
+
+`rankings_players` reads a board — the latest, or as it was at any earlier
+instant with `as_of` — paged, because a whole board can run to a thousand
+places. `rankings_clans` aggregates it: which clans have the most rated
+players, ties broken by the clan's best-placed player. Both count over
+**everyone above the rating floor**, not a top-100 slice; a Path of Legends
+board lists only players above that floor, and a season resets everyone below
+it, so a board is small in a season's first days and fills through the month.
+`live: true` on either reads the game first and records what it read.
+
+**A top-200 appearance on the global board is a recording reason.** Any
+player who reaches it is recorded at comprehensive scope — every battle,
+with the rank and rating each one carried — until the next season roll plus
+three days, however far they fall in between. That grace is deliberate: the
+board is empty for the first hours after a roll, and the only way the opening
+battles of the next season's #1 are captured is that they were recorded for
+being in last season's field. The Trophy Road boards are watched but have
+been served empty by the API for recent seasons.
 
 ## How often a subject is fetched
 

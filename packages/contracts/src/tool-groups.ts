@@ -104,6 +104,7 @@ export const GROUP_ORDER = [
   "Cards",
   "Clans",
   "War",
+  "Rankings",
   "Collections",
   "Live",
   "Feed",
@@ -287,6 +288,22 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   },
   war_history: { group: "War", title: "War history", readOnly: true },
   war_rivals: { group: "War", title: "Scouting Report", readOnly: true },
+
+  // Rankings — the recorded leaderboards (0068): the global Path of
+  // Legends board hourly, every location daily. `live: true` reaches the
+  // game, so both are open-world.
+  rankings_players: {
+    group: "Rankings",
+    title: "Leaderboard players",
+    readOnly: true,
+    openWorld: true,
+  },
+  rankings_clans: {
+    group: "Rankings",
+    title: "Clans on the leaderboard",
+    readOnly: true,
+    openWorld: true,
+  },
 
   // Collections — curated groupings (owner-published lists + your own).
   collections_browse: {

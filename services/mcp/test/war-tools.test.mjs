@@ -309,9 +309,9 @@ test("war_current exposes the poll age separately from the first period sighting
   }
 });
 
-test("the registry declares 47 tools, every one classified and annotated", () => {
+test("the registry declares 49 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 47);
+  assert.equal(decls.length, 49);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -347,9 +347,11 @@ test("the registry declares 47 tools, every one classified and annotated", () =>
       "clans_roster",
       "live_fetch",
       "players_profile",
+      "rankings_clans",
+      "rankings_players",
       "war_current",
     ],
-    "the raw lane and the four tools with a live flag reach outside the corpus",
+    "the raw lane and the six tools with a live flag reach outside the corpus",
   );
 });
 
