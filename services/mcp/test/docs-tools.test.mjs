@@ -85,7 +85,10 @@ test("elixir_updates: newest first, since a date, bounded", async () => {
     limit: 50,
   });
   assert.ok(since.entries.every((u) => u.date >= "2026-09-09"));
-  assert.equal(since.total, since.entries.length);
+  // total counts everything since the date; entries are the bounded
+  // page of it (the two were equal only while fewer than 50 fit).
+  assert.equal(since.entries.length, Math.min(since.total, 50));
+  assert.ok(since.total >= since.entries.length);
   await assert.rejects(
     elixirTools.elixir_updates.handler(ctx, { since: "yesterday" }),
     (e) => e.code === "bad_request",
