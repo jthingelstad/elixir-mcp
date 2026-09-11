@@ -36,4 +36,7 @@ receipts in the current hour and migrate `{stats:true}` returned successfully.
 Verification: `npm test --workspace @elixir-mcp/mcp` (249 passing),
 `npm test --workspace @elixir-mcp/web-api` (96 passing), and
 `npm test --workspace @elixir-mcp/auth` (28 passing). Full `npm run verify`
-remains the pre-push gate.
+passed before commit `f8462e2`. The commit was pushed and the full deployment
+completed at 2026-09-11T07:23Z (`UPDATE_COMPLETE`, migrations 70/0); the
+post-deploy smoke suite passed, including OAuth discovery, MCP 401 refusal,
+origin refusal, CSP, HSTS, no-cookie API behavior and public status.
