@@ -184,7 +184,8 @@ test("the body is captured gzipped at calls/dt=<day>/request_id=<id>.json.gz", a
   });
   const { body } = await invoke("war_current", {
     clan_tag: "#ABC",
-    token: "sk-should-not-land",
+    access_token: "should-not-land",
+    refresh_token: "should-not-land-either",
   });
   const row = db.writes[0];
   assert.equal(row[COL.captured], true);
@@ -205,9 +206,14 @@ test("the body is captured gzipped at calls/dt=<day>/request_id=<id>.json.gz", a
   assert.equal(stored.request.tool, "war_current");
   assert.equal(stored.request.arguments.clan_tag, "#ABC");
   assert.equal(
-    stored.request.arguments.token,
+    stored.request.arguments.access_token,
     "[redacted]",
-    "the invoker's redaction applies to the capture too",
+    "credential-shaped arguments are redacted from the capture",
+  );
+  assert.equal(
+    stored.request.arguments.refresh_token,
+    "[redacted]",
+    "refresh credentials cannot land in the capture either",
   );
   assert.deepEqual(stored.response.answer, [1, 2, 3]);
   assert.equal(

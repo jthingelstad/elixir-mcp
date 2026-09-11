@@ -27,7 +27,7 @@ let coldStart = true;
  *  turn up because some future tool took one as an argument. Checked by
  *  key name before anything is serialized. */
 const REDACTED_KEYS =
-  /^(token|secret|password|passwd|authorization|bearer|api_?key|credential|code|session)$/i;
+  /^(token|access_token|refresh_token|id_token|secret|client_secret|password|passwd|authorization|bearer|api_?key|credential|code|code_verifier|session|private_key)$/i;
 
 function redactArgs(value) {
   if (Array.isArray(value)) return value.map(redactArgs);
