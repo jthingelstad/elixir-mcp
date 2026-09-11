@@ -7,17 +7,26 @@ production acceptance rather than handing steps to another role.
 
 Read order for every run:
 
-1. `CLAUDE.md` (the repo golden rules)
-2. this file
+1. `AGENTS.md` (the repo golden rules) and `docs/ENGINEERING.md`
+2. this file and `AGENT-TEAM/READING.md`
 3. `AGENT-TEAM/README.md`
-4. the objective file named by the automation
+4. the objective file and the current source documents selected by READING
+
+READING is a document map, not a second product specification.
 
 ## The operating loop
 
 1. **Preflight.** Run `AGENT-TEAM/scripts/preflight.sh` from the repo
-   root. It verifies the checkout is on `main`, clean, and synchronized,
-   and prints a live health snapshot. A non-zero exit means stop and
-   report — never pull, rebase, stash, or act on unexpected local state.
+   root. Its `OBSERVATION` verdict describes the public status probe;
+   `MUTATION` describes checkout eligibility. Exit 1 prohibits mutation,
+   not safe observation; exit 2 means the preflight itself could not run.
+   A dirty, ahead, behind, detached, unsynchronized or leased checkout
+   stays read-only. Never pull, rebase, stash, publish pre-existing work,
+   or execute another worker's uncommitted helper. Continue independent
+   read-only triage with trusted installed tools or a verified committed
+   helper and the already-authorized identity. A failed status probe is
+   an operational finding, not proof all other read sources are unavailable.
+   Check queued notes read-only; transcribing or clearing them is a mutation.
 2. **Measure before changing.** Establish the live state from the
    objective's authoritative evidence: the public status endpoint, the
    migrate/jobs lambda read ops, CloudWatch metrics, `mcp_call_audit`,
@@ -31,7 +40,14 @@ Read order for every run:
    Guards and prompt patches are last resorts; the emitter or schema is
    almost always the right seam (see `docs/NOTES.md`: "normalize the
    shape at the source").
-5. **Claim the checkout lease before the first mutation:**
+5. **Check readiness, then claim the checkout lease before the first mutation.**
+   For a runtime fix, verify the documented identity, required read access,
+   deployment prerequisites and rollback path before editing. A successful
+   identity check alone does not prove deployment permissions. Do not request
+   broader access or perform a test mutation to establish readiness. Docs and
+   offline tooling changes do not require AWS credentials.
+
+   Claim only when the intended work is eligible:
 
    ```bash
    node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard>
@@ -43,27 +59,24 @@ Read order for every run:
    an objective run or an interactive session — owns the checkout:
    stop before mutation. Never infer staleness from age alone; use the
    documented `clear-stale` path (it refuses dirty worktrees).
-6. **Blocked on credentials? Hand the checkout back.** If AWS
-   credentials are missing or expired at any point — `ExpiredToken`,
-   `AccessDenied` on `--profile jamie`, an unreachable role — the run
-   is over: it cannot measure production and must not keep the lease.
-   From a clean worktree:
+6. **Blocked on credentials? Preserve the work and hand back a clean checkout.**
+   Missing or expired access stops only the dependent operation. Continue
+   independent safe reads, and never widen credentials. If no edits were made,
+   use `objective-lease.mjs abort <objective> --lease-id <id> --reason "<reason>"`
+   to release a clean checkout and queue the exact blocked capability.
 
-   ```bash
-   node AGENT-TEAM/scripts/objective-lease.mjs abort <objective> \
-     --lease-id <id> --reason "ExpiredToken on --profile jamie"
-   ```
+   If this run has edits, complete offline gates and commit only its verified,
+   coherent work when safe. Record the commit, tests, deployment still owed,
+   dependent-change boundary, acceptance predicate and next owner check in
+   `AGENT-TEAM/notes/`; a source commit is not a shipped runtime fix. Do not
+   deploy past blocked infrastructure. Push only when the verified source is
+   safe to publish without that deployment, then abort from the clean tree.
+   If the change cannot be made coherent, verified and clean, retain the lease
+   and report exact recovery steps; never stash, discard, or abandon edits to
+   make abort succeed. The dirty-worktree refusal remains enforced.
 
-   That releases the lease and queues a note for Jamie that the next
-   preflight prints. **If the worktree is dirty, abort refuses**: never
-   abandon uncommitted work to take a lease back. Report instead, and
-   leave the lease held for a human. This rule exists because Keep the
-   Record True stalled on an ExpiredToken on 2026-09-08, held the
-   `record` lease, and blocked Close the Loop the same morning — one
-   expired credential cost two objectives their day.
-
-   A run that finds queued notes at preflight transcribes them into
-   `docs/NOTES.md` under a dated heading and then clears the queue
+   A run with mutation eligibility and its own lease transcribes queued notes
+   into `docs/NOTES.md` under a dated heading and only then clears the queue
    (`notes --clear`), so an escalation reaches the ledger even though
    the run that raised it could not commit.
 
@@ -111,3 +124,19 @@ Numbers with receipts: every claim in a note names its source (the
 endpoint, the query, the metric, the commit). If the evidence and a
 comment disagree, trust the live reader — comments describe past
 architecture here more than once (`docs/NOTES.md` has the scars).
+
+## Definition checks and recurring work
+
+Calendar schedules live in `automations.toml`; `SCHEDULE.md` is generated from it.
+Read interval/date guards in the installed prompt before starting an objective.
+Event phrases are explicit starts, not hidden automatic triggers. Recurring
+subtasks record last successful evidence and next due date in the normal run
+note/current state. A retry checks the receipt before repeating side effects.
+A missed due pass stays due; record why it is blocked and retry at the next
+eligible invocation, rather than silently waiting another week or quarter.
+
+For an operating-instruction correction, record the exact failure, its cause,
+the smallest contract edit, a case in `AGENT-TEAM/evals/decision-cases.json`,
+and the next comparable natural evidence. Follow the evaluation README. A
+passing fixture/contract test does not establish model decision quality;
+without comparable natural evidence report `insufficient_sample`.

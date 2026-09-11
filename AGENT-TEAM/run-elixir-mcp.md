@@ -32,6 +32,15 @@ Establish, with receipts:
 - **Doors.** MCP and web-api error alarms quiet; p95 latency alarm
   quiet; OAuth discovery serving (the deploy smoke checks these — a run
   after a deploy re-verifies with reads).
+- **Discord preview.** Own operational acceptance of `../elixir-mcp-discord`:
+  managed service `com.poapkings.elixir-mcp-discord`, its existing run ledger,
+  event cursor freshness, correct principal/contract version, both configured
+  budget lanes and their refusal evidence, and feedback delivery. Use bounded
+  natural logs and existing state. Coordinate host service faults with Run
+  Operations; follow the preview's own instructions for any source change.
+  Do not restart merely for changed prompts, run a routine early, replay a
+  backlog, or add local game data/fallback to hide an upstream limitation.
+  Close the Loop owns the resulting tool-friction and answer-quality findings.
 - **Cost.** The monthly cost alarm state; RDS storage headroom
   (autoscaling floor 20GB, max 100GB); anything trending that would
   surprise Jamie at the bill.
@@ -53,8 +62,16 @@ Establish, with receipts:
 - **Quarterly** (and after any schema-shape change to the account
   tables): rehearse restore. Restore the latest RDS snapshot to a
   scratch instance, run the schema fingerprint against it, time the
-  procedure, write the steps and timing into `docs/NOTES.md`. Backups
-  that have never restored are hypotheses.
+  procedure, write the steps and timing into `docs/NOTES.md`. Record the
+  last successful rehearsal, snapshot/source age, next quarterly due date,
+  schema revision, acceptance result and cleanup evidence. Unknown prior
+  success is due for review, never presumed complete. Check the receipt
+  before retrying; a schema change can make a new rehearsal due sooner.
+  Name and cost-bound the scratch instance before creation; confirm its
+  deletion after the test without touching retained production snapshots.
+  Recover Projects owns the host/project backup inventory and checks this
+  RDS receipt as a separate coverage item. Backups that have never restored
+  are hypotheses.
 
 ## Success
 

@@ -14,12 +14,14 @@ defect somewhere.
 
 ## The team
 
-| Objective | File | Cadence | Primary question |
-|---|---|---|---|
-| **Run Elixir MCP** | `run-elixir-mcp.md` | Every twelve hours, and after deploys/incidents | Is the recorder pipeline healthy end to end — queues drained, collectors heartbeating, doors serving, cost visible and intended? |
-| **Keep the Record True** | `keep-the-record-true.md` | Daily | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
-| **Close the Loop** | `close-the-loop.md` | Daily; deeper Friday pass | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
-| **Guard the Door** | `guard-the-door.md` | Sunday, and after security-sensitive changes | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
+| Objective | File | Primary question |
+|---|---|---|
+| **Run Elixir MCP** | `run-elixir-mcp.md` | Is the recorder pipeline healthy end to end — queues drained, collectors heartbeating, doors serving, cost visible and intended? |
+| **Keep the Record True** | `keep-the-record-true.md` | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
+| **Close the Loop** | `close-the-loop.md` | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
+| **Guard the Door** | `guard-the-door.md` | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
+
+Calendar cadence: [generated schedule](SCHEDULE.md), sourced from `automations.toml`.
 
 Guard the Door is an independent control: Run cannot waive its findings,
 and it never weakens an entitlement or privacy boundary to make another
@@ -54,6 +56,10 @@ Cross-cutting work keeps one originating owner through acceptance.
 - **elixir-bot AGENT-TEAM** owns community facts and the clan agent's
   behavior. This team owns the recorded game facts elixir-bot consumes
   over its service token. Contract changes land server-side here first.
+- **elixir-mcp-discord preview** has operational ownership in Run Elixir MCP
+  and tool-friction/quality ownership in Close the Loop. Its own repository
+  rules govern fixes; host signal triage remains with Run Operations. The
+  preview has no local game-data fallback and must never replay old activity.
 - **Interactive Claude sessions** (Jamie-directed feature work) share
   this checkout. Every mutating actor — objective run or interactive
   session — serializes through the checkout lease
@@ -64,7 +70,8 @@ Cross-cutting work keeps one originating owner through acceptance.
 ## Project map
 
 - `CLAUDE.md` / `AGENTS.md` — golden rules; `docs/ENGINEERING.md` is the spec
-  of record; `docs/NOTES.md` is the decision ledger (newest near the top).
+  of engineering invariants; `docs/NOTES.md` is the decision ledger (newest last).
+  `AGENT-TEAM/READING.md` selects authoritative product docs for each objective.
 - `packages/contracts` — tool schemas, queue contracts, error enum,
   changelog. Version rules in `docs/ENGINEERING.md`.
 - `services/` — mcp (door + tools), web-api, ingest, scheduler, migrate
@@ -91,3 +98,11 @@ Cross-cutting work keeps one originating owner through acceptance.
    contract bumps append to the changelog.
 4. Commit to `main`; small, message-first commits; assert HEAD moved.
 5. A healthy no-op is a successful run. Do not manufacture work.
+
+## Calendar implementation
+
+All times above are America/Chicago. Scheduled starts can run a minute or two
+late because the app adds jitter. Autonomous checks can finish outside Jamie's
+project windows; nonurgent decisions wait for early morning or early evening.
+The manifest records the installed schedule and prompt, including the explicit
+repository directory when the app launches from Projects.
