@@ -20,6 +20,7 @@ defect somewhere.
 | **Keep the Record True** | `keep-the-record-true.md` | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
 | **Close the Loop** | `close-the-loop.md` | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
 | **Guard the Door** | `guard-the-door.md` | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
+| **Keep the Boards** | `keep-the-boards.md` | Did every leaderboard snapshot land, is a top-200 appearance recording the player for the season, and do the board-driven collections equal today's board? |
 
 Calendar cadence: [generated schedule](SCHEDULE.md), sourced from `automations.toml`.
 

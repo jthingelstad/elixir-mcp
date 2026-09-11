@@ -6,7 +6,7 @@
  * this checkout). Claim before the first mutation, check before edit
  * and before push, release only with a clean worktree.
  *
- *   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|session>
+ *   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|boards|session>
  *   node AGENT-TEAM/scripts/objective-lease.mjs check <objective> --lease-id <id>
  *   node AGENT-TEAM/scripts/objective-lease.mjs release <objective> --lease-id <id>
  *   node AGENT-TEAM/scripts/objective-lease.mjs abort <objective> --lease-id <id> --reason "<text>"
@@ -40,7 +40,14 @@ import {
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const OBJECTIVES = new Set(["run", "record", "loop", "guard", "session"]);
+const OBJECTIVES = new Set([
+  "run",
+  "record",
+  "loop",
+  "guard",
+  "boards",
+  "session",
+]);
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
