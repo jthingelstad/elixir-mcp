@@ -69,6 +69,33 @@ test("re-ingest is idempotent", async () => {
   assert.equal(afterCount, beforeCount);
 });
 
+test("re-ingest WRITES nothing: no new tuple versions, no rollup pairs", async () => {
+  // xmin is the transaction that wrote the row version; an unchanged
+  // resubmission must leave every xmin where it was. Before 2026-09-11
+  // the enrich upsert rewrote every conflicting row (~8 writes per real
+  // insert), and the rollup refresh rebuilt every pair in the payload.
+  const log = await fixture("player_battlelog/with_boat_and_duel.json");
+  const observer = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
+  const versions = async () =>
+    (
+      await ctx.db.query(`
+        select 'b' as t, battle_id as k, xmin::text as v from battle
+        union all
+        select 'p', battle_id || '|' || player_tag, xmin::text from battle_participant
+        union all
+        select 'pl', player_tag, xmin::text from player
+        order by 1, 2`)
+    ).rows;
+  const before = await versions();
+  const result = await ingestBattlelog(ctx.db, {
+    observerTag: observer,
+    receiptId,
+    payload: log,
+  });
+  assert.deepEqual(await versions(), before, "no row version moved");
+  assert.deepEqual(result.affectedPairs, [], "nothing to roll up");
+});
+
 test("second observer dedupes to the same battles, adds observations", async () => {
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
   const beforeCount = (await ctx.db.query("select count(*)::int n from battle"))

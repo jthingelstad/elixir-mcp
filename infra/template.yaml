@@ -624,13 +624,16 @@ Resources:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
 
-  # Weekly Postgres payload sweep (DATA-TOOLS section 1): superseded
-  # payload rows leave Postgres once their S3 twin is HEAD-verified.
+  # Daily Postgres payload sweep (DATA-TOOLS section 1): superseded
+  # payload rows leave Postgres once their S3 twin is HEAD-verified, and
+  # the JSON of rows older than two days is nulled the same way (0071:
+  # the column is a cache of the archive). Daily since 2026-09-11 - the
+  # weekly slice of 2000 could never have drained the 20k cached rows.
   PayloadSweepRule:
     Type: AWS::Events::Rule
     Properties:
       Name: elixir-mcp-payload-sweep
-      ScheduleExpression: cron(15 8 ? * MON *)
+      ScheduleExpression: cron(15 8 * * ? *)
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
           Id: payload-sweep

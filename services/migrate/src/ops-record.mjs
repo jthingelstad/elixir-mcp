@@ -74,7 +74,7 @@ export async function exportPayloads(databaseUrl, spec, s3override) {
     const { rows } = await db.query(
       `select payload_id, endpoint, entity_key, payload_hash, payload_json,
               first_fetched_at
-       from api_payload where payload_id > $1
+       from api_payload where payload_id > $1 and payload_json is not null
        order by payload_id limit $2`,
       [afterId, limit],
     );

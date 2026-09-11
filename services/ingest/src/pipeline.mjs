@@ -461,7 +461,11 @@ export async function processResult(db, rawMessage, deps = {}) {
         `insert into api_payload (endpoint, entity_key, payload_hash, payload_json, first_fetched_at)
          values ($1, $2, $3, $4, $5)
          on conflict (endpoint, entity_key, payload_hash)
-           do update set last_fetched_at = now()
+           do update set last_fetched_at = now(),
+             -- The JSON is a ~48h cache of the S3 object (0071): a
+             -- refetch of content the sweep has already nulled puts it
+             -- back for live_fetch to read.
+             payload_json = coalesce(api_payload.payload_json, excluded.payload_json)
          returning (xmax = 0) as fresh_content`,
         // first_fetched_at is the COLLECTOR's fetch time, not ingest
         // now(): the S3 archive key below is built from it, and the

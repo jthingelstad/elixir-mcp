@@ -125,7 +125,9 @@ export async function projectRankingBoard(
        select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
        on conflict (player_tag) do update set
          last_seen_at = now(),
-         name = coalesce(player.name, excluded.name)`,
+         name = coalesce(player.name, excluded.name)
+       where (player.name is null and excluded.name is not null)
+          or player.last_seen_at < now() - interval '1 hour'`,
       [ordered.map((e) => e.tag), ordered.map((e) => e.name)],
     );
   }

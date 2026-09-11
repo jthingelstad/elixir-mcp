@@ -9,10 +9,12 @@
 
 import pg from "pg";
 
-/** Weekly Postgres sweep ({sweep_payloads: true}, EventBridge MON 08:15Z):
+/** Daily Postgres sweep ({sweep_payloads: true}, EventBridge 08:15Z):
  *  superseded payload rows (not the latest per endpoint+entity) leave
- *  Postgres only after their S3 twin HEAD-verifies. Bounded per run —
- *  next week's run takes the next slice. */
+ *  Postgres only after their S3 twin HEAD-verifies; and the JSON of any
+ *  row not fetched for two days is nulled the same way (0071), because
+ *  the column is a cache of the archive, not the archive. Bounded per
+ *  run — tomorrow's run takes the next slice. */
 export async function sweepPayloads(databaseUrl, s3override) {
   const bucket = process.env.ARCHIVE_BUCKET;
   if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
@@ -53,7 +55,44 @@ export async function sweepPayloads(databaseUrl, s3override) {
       ]);
       swept += 1;
     }
-    return { candidates: rows.length, swept, missing };
+    // Phase two: the cache window. Rows still holding JSON two days
+    // after their last fetch give it up once the archive has it.
+    const { rows: stale } = await db.query(
+      `select payload_id, endpoint, entity_key, payload_hash, first_fetched_at
+       from api_payload
+       where payload_json is not null
+         and last_fetched_at < now() - interval '48 hours'
+       order by last_fetched_at limit 5000`,
+    );
+    let cleared = 0;
+    let unarchived = 0; // no twin: the JSON stays, the export fills the gap
+    for (const r of stale) {
+      const key = archiveKey(
+        r.endpoint,
+        r.entity_key,
+        r.first_fetched_at.toISOString(),
+        r.payload_hash,
+      );
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+      } catch {
+        unarchived += 1;
+        continue;
+      }
+      await db.query(
+        `update api_payload set payload_json = null where payload_id = $1`,
+        [r.payload_id],
+      );
+      cleared += 1;
+    }
+    return {
+      candidates: rows.length,
+      swept,
+      missing,
+      stale: stale.length,
+      cleared,
+      unarchived,
+    };
   } finally {
     await db.end();
   }
@@ -277,7 +316,7 @@ async function computeClanPulse(db, tag, anchoredPeriod) {
   };
 }
 
-/** Weekly operational-row sweep ({sweep_operational: true}, rides the
+/** Operational-row sweep ({sweep_operational: true}, daily, rides the
  *  same EventBridge rule as the payload sweep): docs/archive/DB-AUDIT-2026-09-04.md R3 — every
  *  check is already expiry-aware, these rows are pure dead weight.
  *  oauth_token keeps 90 days (not 30): rotated-token rows are the

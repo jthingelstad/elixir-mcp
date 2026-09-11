@@ -53,7 +53,14 @@ export async function ingestClanRoster(
              -- null-safe fallback keeps the freshest sighting either way.
              game_last_seen_at = greatest(
                excluded.game_last_seen_at,
-               player.game_last_seen_at)`,
+               player.game_last_seen_at)
+         -- Only when something moves: a roster is polled far more often
+         -- than a member plays, and an unchanged row rewritten is a dead
+         -- tuple for nothing.
+         where player.name is distinct from coalesce(excluded.name, player.name)
+            or player.game_last_seen_at is distinct from
+               greatest(excluded.game_last_seen_at, player.game_last_seen_at)
+            or player.last_seen_at < excluded.last_seen_at - interval '1 hour'`,
       [m.tag, m.name, at, m.gameLastSeen],
     );
   }

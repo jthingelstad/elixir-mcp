@@ -120,6 +120,62 @@ test("a superseded row is retired only once its twin is confirmed", async () => 
   );
 });
 
+test("the cache window: JSON older than two days is nulled once S3 has it; fresh rows keep theirs", async () => {
+  await db.query(`delete from api_payload`);
+  const old = await payload(
+    "player",
+    "#OLD",
+    "c".repeat(64),
+    "2026-09-01T10:00:00Z",
+    "2026-09-01T10:00:00Z",
+  );
+  const fresh = await payload(
+    "player",
+    "#FRESH",
+    "d".repeat(64),
+    new Date().toISOString(),
+    new Date().toISOString(),
+  );
+  const orphan = await payload(
+    "player",
+    "#ORPHAN",
+    "e".repeat(64),
+    "2026-09-01T10:00:00Z",
+    "2026-09-01T10:00:00Z",
+  );
+  const s3 = fakeS3([
+    archiveKey(
+      "player",
+      "#OLD",
+      old.first_fetched_at.toISOString(),
+      "c".repeat(64),
+    ),
+  ]);
+  const r = await sweepPayloads(DB_URL, s3);
+  assert.deepEqual(
+    {
+      swept: r.swept,
+      stale: r.stale,
+      cleared: r.cleared,
+      unarchived: r.unarchived,
+    },
+    { swept: 0, stale: 2, cleared: 1, unarchived: 1 },
+  );
+  const { rows } = await db.query(
+    `select entity_key, payload_json is null as cleared from api_payload order by payload_id`,
+  );
+  assert.deepEqual(rows, [
+    { entity_key: "#OLD", cleared: true },
+    { entity_key: "#FRESH", cleared: false },
+    { entity_key: "#ORPHAN", cleared: false },
+  ]);
+  assert.deepEqual(
+    await liveIds(),
+    [old.payload_id, fresh.payload_id, orphan.payload_id].map(Number),
+    "the window nulls JSON; it never deletes a latest row",
+  );
+});
+
 test("no twin, no delete -- and the miss is reported rather than swallowed", async () => {
   // The safety property. A key mismatch between the writer and this reader
   // lands here, and because it is fail-safe it is silent in production: the

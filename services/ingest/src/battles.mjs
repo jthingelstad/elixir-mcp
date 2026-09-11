@@ -234,6 +234,13 @@ function paramValues(cols, row) {
 /** Multi-row variant: one statement for the whole payload (R1 — the
  *  census showed the projector's sequential round trips are 93% of
  *  ingest cost). Enrichment semantics identical to insertSql. */
+// Upsert-and-enrich, touching a row only when it would change. Without the
+// WHERE, Postgres writes a new tuple version for every conflicting row even
+// when every coalesce() resolves to the value already there - and a
+// battlelog is 25 battles resubmitted on every poll, so that was ~8 writes
+// per real insert on battle and battle_participant (found 2026-09-11 when
+// the t4g.micro swapped itself into a crash). Returns only the rows that
+// were inserted or changed, keyed, so callers can tell which.
 function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
   const rows = [];
   for (let r = 0; r < rowCount; r += 1) {
@@ -244,9 +251,14 @@ function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
   const sets = enrichCols
     .map((c) => `${c} = coalesce(${table}.${c}, excluded.${c})`)
     .join(", ");
+  const current = enrichCols.map((c) => `${table}.${c}`).join(", ");
+  const resolved = enrichCols
+    .map((c) => `coalesce(${table}.${c}, excluded.${c})`)
+    .join(", ");
   return `insert into ${table} (${cols.join(", ")}) values ${rows.join(", ")}
           on conflict (${conflictTarget}) do update set ${sets}
-          returning (xmax = 0) as inserted`;
+          where (${current}) is distinct from (${resolved})
+          returning ${conflictTarget}, (xmax = 0) as inserted`;
 }
 
 /**
@@ -274,14 +286,12 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
     const { battle, participants } = canonicalizeBattle(entry);
     battlesSeen += 1;
     battles.set(battle.battle_id, battle);
-    const day = battle.battle_time.slice(0, 10);
     for (const p of participants) {
       parts.set(`${battle.battle_id}|${p.player_tag}`, {
         ...p,
         battle_id: battle.battle_id,
         battle_time: battle.battle_time,
       });
-      affected.add(`${p.player_tag}|${day}`);
     }
   }
 
@@ -301,7 +311,9 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
      select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
      on conflict (player_tag) do update set
        last_seen_at = now(),
-       name = coalesce(player.name, excluded.name)`,
+       name = coalesce(player.name, excluded.name)
+     where (player.name is null and excluded.name is not null)
+        or player.last_seen_at < now() - interval '1 hour'`,
     [tags, tags.map((t) => nameByTag.get(t) ?? null)],
   );
 
@@ -327,14 +339,15 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
     battlesInserted = rows.filter((r) => r.inserted).length;
     // The payload's oldest battle: if it was previously UNSEEN, the
     // rotating log may have rolled past battles we never captured.
-    let oldestIdx = 0;
-    battleRows.forEach((b, i) => {
-      if (b.battle_time < battleRows[oldestIdx].battle_time) oldestIdx = i;
-    });
-    oldestWasNew = rows[oldestIdx]?.inserted === true;
+    let oldest = battleRows[0];
+    for (const b of battleRows)
+      if (b.battle_time < oldest.battle_time) oldest = b;
+    oldestWasNew = rows.some(
+      (r) => r.inserted && r.battle_id === oldest.battle_id,
+    );
 
     const partRows = [...parts.keys()].sort().map((k) => parts.get(k));
-    await db.query(
+    const { rows: partsWritten } = await db.query(
       insertManySql(
         "battle_participant",
         PARTICIPANT_COLS,
@@ -344,6 +357,18 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
       ),
       partRows.flatMap((p) => paramValues(PARTICIPANT_COLS, p)),
     );
+    // Rollups are derived from these rows, so only a (player, day) whose
+    // battle or participant row was actually written needs recomputing.
+    // Before this, every poll rebuilt every pair in the payload - 469k
+    // rows deleted to keep 96k.
+    const changedBattles = new Set(rows.map((r) => r.battle_id));
+    for (const p of partRows)
+      if (changedBattles.has(p.battle_id))
+        affected.add(`${p.player_tag}|${p.battle_time.slice(0, 10)}`);
+    for (const r of partsWritten)
+      affected.add(
+        `${r.player_tag}|${parts.get(`${r.battle_id}|${r.player_tag}`).battle_time.slice(0, 10)}`,
+      );
 
     await db.query(
       `insert into battle_observation (battle_id, observer_tag, receipt_id)
