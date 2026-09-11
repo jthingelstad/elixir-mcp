@@ -288,7 +288,7 @@ Effort in engineer-hours is a guess; savings are measured or derived above.
 
 | # | Change | Layer | Effort / risk | Budget | Postgres | S3 | $ / month |
 |---|---|---|---|---|---|---|---|
-| 1 | **Stop the idle long-poll burn.** Door: re-check every 2 s not 500 ms; `live_wait_s` 8 → 2 (or move Ram Rider to the bulk channel and keep one live collector); settle the ledger from the scheduler tick, not on every lease call. `live_fetch` (16 calls/7 d) then waits ≤ 4–20 s longer | door / config | 2–4 h; low. Latency of live reads is the only trade (question 6) | 0 | −300k tx/day, −148k `job` seq scans, −340k `gateway` updates | 0 | **−20 to −27** |
+| 1 | **Replace polling with check-ins** (§9.1): no long-poll, no 500 ms DB loop; the door answers every call with `next_check_in_s`; settle the ledger from the scheduler tick. Live becomes a priority flag with a stated latency, not a channel (§9.2) | door / collector / config | 1 day incl. a collector release; low. Live latency is the only trade, and Jamie has accepted seconds | 0 | −300k tx/day, −148k `job` seq scans, −340k `gateway` updates | 0 | **−25 to −30** |
 | 2 | **Cache only what a waiting reader asked for.** Write `api_payload.payload_json` only for `lane = 'live'` jobs (and until #3 lands, the cards row) — a *lane* rule, not an endpoint carve-out. Bulk payloads keep the hash row (dedup) and go to S3 only | projector | 2 h; low | 0 | −≈95% of TOAST writes (every admitted bulk payload, ~60 KB profile / ~30–80 KB filtered log, written then nulled) and the autovacuum behind them | 0 | 0 (memory headroom) |
 | 3 | **Give the catalog and the collection a real home; delete the `endpoint <> 'cards'` carve-out.** `card` table (≈120 rows, replaced on change) read by `cards_catalog`/`cards_synergy`; `player_collection` (one compact row per player: ids, level, count, evolution; ~2–3 KB → ~25 MB for 10k players) written guarded from the profile projector, read by `players_collection`. No tool reads `api_payload` afterwards | projector / storage | 1 day; low | 0 | +25 MB once; −1 special case | 0 | 0 (restores a broken tool) |
 | 4 | **Guard the remaining unguarded upserts** — `war_participation`, `war_attendance_day`, `war_week_clan`, the `clan` row, the profile's `player` row and `years_played`; collapse the roster's 50 per-member statements and the race's 3-per-participant into single `unnest` statements | projector | 3–4 h; low (same pattern as 0071) | 0 | −≈230k dead tuples per window, −~150 round trips per race poll, −50 per roster poll | 0 | 0 (memory / IO) |
@@ -301,6 +301,7 @@ Effort in engineer-hours is a guess; savings are measured or derived above.
 | 11 | `VACUUM FULL api_payload` once, off-peak | storage | minutes; locks a 2.7k-row table | 0 | −370 MB disk | 0 | 0 |
 | 12 | Enhanced Monitoring at 60 s before buying a bigger instance (OS memory split is invisible today: no EM, no Performance Insights) | ops | 10 min; ≈ $0.5/mo | 0 | 0 | 0 | +0.5 |
 | 13 | Retention: `api_receipt` and `mcp_call_audit` 90 d, `job` done rows 7 d, `capture_audit` 30 d | storage | 1 h; low | 0 | bounds four append tables | 0 | 0 |
+| 14 | **Collector visibility** (§9.3): three nullable receipt columns (`rows_written`, `new_facts`, `ingest_ms`) + one optional submit field (API body bytes), then yield / edge-filter / door-calls-per-fetch on the fleet, detail and status pages | door / projector / web | 1–2 days; low. Ship the columns with #1's release | 0 | +12 B per receipt | 0 | 0 — it is what makes #1 and #5 visible |
 
 Not recommended: multiplying the rate budget (section 6.1); moving hot
 tables to DynamoDB (no access pattern); an archive retention policy (the
@@ -444,10 +445,12 @@ diff engine (section 6.2).
    are the staging area). Cost is not a factor at $0.01/month.
 5. **Is `players_collection` a promise?** If yes, #3 builds it a table
    (~25 MB). If no, retire the tool and the carve-out together.
-6. **What latency may `live_fetch` have?** Today ≈ 2.3 s average because two
-   collectors long-poll continuously (≈ $20–27/month and 350k DB
-   transactions a day). At 2-second waits it is ≤ 5 s; on the bulk lane
-   alone it is ≤ 25 s. Sixteen calls a week.
+6. **What latency may `live_fetch` have?** Answered 2026-09-11 afternoon:
+   seconds are fine, an LLM is never bothered by a few seconds, and live
+   should be an escape hatch rather than a lane the whole fleet is shaped
+   around. §9.2 turns that into a design; the one number still open is
+   whether the escape hatch stays synchronous (≤ 15 s, check-ins every
+   10 s) or goes asynchronous ("requested; ask again").
 7. **How far back must the hourly global board be readable relationally?**
    Drives when #6 (Parquet) must land: at +5 MB/day the table passes
    `battle_participant` in about six weeks.
@@ -456,6 +459,192 @@ diff engine (section 6.2).
    cheap to reverse.
 9. **The terms review** — where is `elixir-mcp-terms-review.md`? NOTES
    links it as the basis of golden rule 3 and it is not in the repo.
+10. **What do collector points reward?** Today one per admitted fetch,
+    lifetime; credits at ten fetches each. Under §9 a fetch that found
+    nothing new is the thing we are trying to stop doing, so counting it
+    the same as a war-day harvest works against the design. Points for
+    *new facts* (battles, events, changed rows) are computable from the
+    same receipt columns §9.3 asks for — but changing what a ladder
+    counts is a product decision, and it retroactively reorders the
+    ladder.
+
+---
+
+## 9. Additions after Jamie's read (2026-09-11 afternoon)
+
+Three points from Jamie on the first draft: the Lambda line was invisible
+and is big; collectors poll far too fast and even "live" can wait seconds,
+so rethink whether the live lane makes sense at all; and the collector
+pages in the admin should show efficiency — what is filtered at the edge —
+not just fetch counts. This section is the design sketch for each, with
+the numbers that bound it. It will take iterations; the goal here is to
+fix the shape and the arithmetic so the iterations are small.
+
+### 9.1 Check-ins, not polling
+
+**What happens today.** Work is planned in 5-minute ticks (~50 jobs a
+tick at this hour; the tick can plan 270). Collectors discover it by
+polling `/lease`: the bulk collector waits 2 s per call and sleeps 20 s
+when empty; the two live-channel collectors wait 8 s per call and never
+sleep. The door services a wait by re-checking Postgres every 500 ms
+(`begin` → advisory lock → `count(*)` on `job` → `select … for update skip
+locked` → `rollback`) and runs `settleLeases` (three updates over `job`)
+on every call. Per collector per fetch that is ≈ 2.7 door calls; per idle
+hour it is 450 calls × 8 s of Lambda per live collector. Measured: 63,074
+web-api invocations and 163,318 billed seconds a day, p50 253 ms (the
+submits), mean 2.59 s (the waits).
+
+**The model to move to.** A collector *checks in*; the door answers
+immediately with either a job or nothing, plus **`next_check_in_s`** — the
+server telling the collector when to come back. No `wait_s`, no server
+loop. The value is computed from what the door can see in the same
+query it already runs: `0` while queued work remains for this
+collector's lanes, `10` when the queue is empty (so a live request is
+picked up within ten seconds by whichever collector checks in first), and
+`idle_backoff_s` (20–30) when the collector is on probation or the
+scheduler tick is more than a minute away. The collector sleeps exactly
+that long. Contract cost: one optional field in the lease response; a
+collector that ignores it keeps its current loop and merely wastes its
+own time, so the door's `poll.*_wait_s` go to 0 in the same deploy and
+the hub is correct either way.
+
+| | Door calls / hr (3 collectors, ~600 fetches/hr) | Lambda s / hr | ≈ $ / month | DB transactions / day |
+|---|---:|---:|---:|---:|
+| Today (measured) | ≈ 2,600 | ≈ 6,800 | 30 | ≈ 350k polling + 15k work |
+| Check-ins, `next_check_in_s` 0 / 10 / 30 | ≈ 1,200 work + 1,080 idle | ≈ 350 | ≈ 1.5 | ≈ 30k |
+| + batch leases (up to 10 jobs per check-in, submits unchanged) | ≈ 700 + 1,080 | ≈ 250 | ≈ 1 | ≈ 25k |
+
+Batch leases are the second step, not the first: once the waits are gone
+a door call costs ~250 ms, and 1,200 of them an hour is $1.50. Do the
+one-field change, measure, and only then decide whether batches (which
+change the quarantine arithmetic — `missed_streak` counts leases, and an
+abandoned batch of ten is an instant quarantine) are worth their contract.
+
+**Ledger settlement** moves to the scheduler tick (every 5 minutes; the
+lease TTL is 90 s, so a lease is settled at most ~5 minutes late instead
+of ~2 s late — nothing waits on that except the quarantine counter). The
+door stops running three `job` updates per call.
+
+### 9.2 Live: an escape hatch, not a lane
+
+**What live is today.** A gateway attribute (`channel = 'live'`, set at
+enrollment; there is no admin switch), a job lane (`lane = 'live'`, which
+`leaseJob` already serves first), a 10% budget reserve the planner never
+spends, the 8-second long-poll above, and on the MCP side a 12-second
+Postgres poll for the receipt (`services/mcp/src/live.mjs`,
+`timeoutMs = 12000`) inside a 25-second Lambda. `live: true` exists on
+`players_profile`, `clans_roster`, `war_current` and `battles_query`, plus
+`live_fetch`. Sixteen calls in seven days; mean 2.3 s.
+
+**What it is for.** A reader who wants *now*, not the record: "what did I
+just play", a roster right after a kick, a race score mid-day. The reader
+cap already makes the *next* scheduled poll of anything a reader asked
+about ≤ 60 minutes away; live closes the last hour. That is worth
+keeping as an escape hatch. It is not worth a channel, a reserve, or the
+fleet's polling rhythm.
+
+**The design.** Retire the *channel* and the *reserve*; keep the *lane*
+as queue priority (already true) and the tool flag. Latency becomes a
+stated number that falls out of §9.1:
+
+| Variant | Live latency (lease → admitted) | What changes | Cost |
+|---|---|---|---|
+| A. Synchronous, check-ins every 10 s when idle | ≤ 10 s pickup + ~1.5 s fetch + ~0.3 s admit ≈ **≤ 12 s**, typically 6 s | `live.mjs` timeout 12 s → 18 s (inside the 25 s Lambda); nothing else | ≈ $0.5/mo of idle check-ins |
+| B. Synchronous, check-ins every 30 s | ≤ 32 s | exceeds the MCP Lambda; would need a longer Lambda timeout and a client that waits | ≈ $0.2/mo |
+| C. Asynchronous: the tool returns `pending` with the job id at once; the agent calls again (or the next scheduled read finds it) | pickup as A or B, no waiting Lambda | a new response shape on five tools (contract minor) and a behaviour LLM clients handle but do not love: an extra turn | lowest |
+
+Recommend **A**, with **C as the fallback the tool takes when no collector
+has checked in within the window** (fleet asleep, all on probation) instead
+of today's bare `timeout`. Then delete: `channel`, `live_reserve`,
+`poll.live_wait_s`, the live long-poll branch in both collector twins, and
+the "collectors on the live channel are ours" distinction in
+COLLECTOR-ZERO-TRUST.md §"Channels" — every collector is a bulk collector
+that happens to pick up priority work first. The zero-trust posture is
+unchanged: live jobs were already leasable by any collector allowed the
+lane; making every collector eligible only means an operator's collector
+may serve a live read, which the door already stamps and the hub already
+verifies like any other submission.
+
+**Does live make sense at all?** As the hatch, yes, at ~$0 once §9.1 lands.
+What does not make sense is spending the fleet's shape on it — and the
+numbers say that is exactly what has been happening: roughly $25 of the
+$30 web-api line, and the majority of the door's database traffic, are
+the cost of a two-second promise made to sixteen calls a week.
+
+### 9.3 Collector visibility: show efficiency, not activity
+
+**What the pages show today** (screenshots, 2026-09-11 14:5xZ). Fleet:
+name, operator, state, heartbeat age, fetches in the last hour. Detail:
+machine/state/channel/points/version, three tiles (points lifetime,
+credits, fetches 24 h), two clocks, fetches per day (9 days), "what it
+fetched" by endpoint. Status: budget used vs ceiling, work waiting,
+recording health, capture per collector in 5-minute and hourly buckets.
+Every number is a count of *fetches*. A collector that fetched 7,797
+payloads of which 61% carried nothing new looks identical to one that
+fetched 7,797 payloads of news, and the edge filter that dropped 89% of
+battlelog entries last hour is invisible.
+
+**What the pages should answer.** For each collector, and for the fleet:
+*how much did it fetch, how much of that was new, how much never reached
+the hub, and what did the hub have to do with it?*
+
+**Fleet table** — replace "fetches 1h" with four columns:
+
+| Column | Definition | Source today |
+|---|---|---|
+| Fetches 1 h | admitted receipts | `api_receipt` (exists) |
+| **Yield** | new battles + membership events + changed rows per fetch (or simply "% of fetches that changed the record") | projection result per receipt — needs one nullable column (§ below) |
+| **Filtered at edge** | entries dropped by the collector ÷ entries observed, battlelog receipts | `api_receipt.observed / filtered` (0074, exists) |
+| **Door calls / fetch** | check-ins per admitted fetch (1.0 is perfect; today ≈ 2.7) | the per-gateway `rate_limit` bucket `collector-work#<id>` already counts calls per hour |
+
+Keep state and heartbeat; drop the "revoked 7 d ago · 0" row from the
+default filter (it is noise on a four-row page).
+
+**Detail page** — the three tiles become five, and "what it fetched"
+gains a second bar per endpoint:
+
+- Tiles: fetches 24 h · **new information 24 h** (battles / events /
+  changed snapshot rows) · **bytes: API → collector vs collector → hub**
+  (the edge filter in bytes; the hub knows the submitted size from
+  `body_gzip_b64.length`, the collector reports the API body size in one
+  optional integer beside `observed`) · **hub cost 24 h** (ingest ms and
+  rows written, from `processResult`'s `timings` and the projection
+  counts) · door calls / fetch.
+- "What it fetched": per endpoint, fetches *and* yield — for
+  `player_battlelog` new battles per fetch and the nothing-new share; for
+  `clan` membership events and `lastSeen` moves per fetch; for `player`
+  changed snapshot fields per fetch; for boards changed-vs-confirmed
+  snapshots. This is the per-endpoint table of §2 drawn live, per
+  collector.
+- Points: today "one per admitted fetch, lifetime" rewards fetching. If
+  points are meant to reward *contribution*, they should count
+  information (new battles, events) rather than payloads — otherwise a
+  collector on a nothing-new subject earns the same as one that harvested
+  a war day. That is a product decision (question 10 below), and the
+  number is available once the receipt carries the projection counts.
+
+**Status page** — the budget bar stays, but beside "596 of 3,600 this
+hour" put **"of which 41% changed the record"** (or the per-fetch yield),
+and add one tile to Recording: **filtered at the edge, last hour**
+(entries observed / dropped / crossed — `battlelog_filter_last_hour`
+already exists in `{stats}`). The capture charts could stack *yielding*
+vs *empty* fetches instead of (or under) per-collector colour.
+
+**What it needs from the data.** Almost all of it exists after 0074; the
+gap is that the projection's result (`battlesInserted`, `joined`,
+`departed`, `roleChanged`, `changed` badges, snapshot written, rows
+written) is computed inside `processResult` and thrown away after the
+door's reply. Three nullable columns on `api_receipt` — `rows_written
+integer`, `new_facts integer` (the endpoint's own definition of "new":
+battles, events, changed rows), `ingest_ms integer` — and one optional
+submit field for the API body size, give every page above its numbers
+without a second store or a scan. `api_receipt` is 22 MB and append-only;
+this adds ~12 bytes a row.
+
+**Ordering.** 9.1 first (it is the money and it needs a collector
+release either way), the receipt columns in the same release, then the
+pages — the fleet table and status additions are small; the detail page
+is the iteration Jamie will want to look at in the browser twice.
 
 ---
 
