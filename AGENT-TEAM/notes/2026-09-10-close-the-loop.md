@@ -36,3 +36,17 @@ adds `unmeasured_tail_hours` to coverage, caps directly tracked profiles at
 eight hours, and includes `request_id` in the operator feedback queue. The
 contract changelog, product update and public methodology pages move with it.
 
+## Verification and closure
+
+- `npm run verify` passed, including the clean static-site merge, all workspace
+  tests, the migration ladder and a freshly regenerated schema fingerprint.
+- Commit `5340006` was pushed to `origin/main`. The production deploy reached
+  `UPDATE_COMPLETE`, migration 0067 reported `applied: 66, ran: 1`, the
+  CloudFront invalidation completed, and all 40 deploy smoke checks passed.
+- Live contract 1.2.0 acceptance returned one exact closed week with 57
+  identified member rows, and coverage returned both `measured_hours` and a
+  numeric `unmeasured_tail_hours`.
+- A fresh live race read at 00:07:23Z returned POAP KINGS with `fame: 0` and
+  `period_points: 5875`, proving the reported distinction on the shipped code.
+- Feedback 29, 30 and 31 were each answered as `done`, linked to 1.2.0 and the
+  affected tools. A final queue read returned zero pending items.
