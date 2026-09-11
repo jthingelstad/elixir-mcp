@@ -954,6 +954,23 @@ test("capture audit: overlapping polls are gapless; a fully-rolled log flags a g
   );
   assert.equal(r6.outcome, "admitted");
   assert.equal(r6.projection.battlesInserted, 0);
+  const { rows: receipts } = await ctx.db.query(
+    `select observed, filtered from api_receipt
+     where endpoint = 'player_battlelog' and entity_key = $1 order by fetched_at`,
+    [tag],
+  );
+  assert.deepEqual(
+    receipts.map((r) => [r.observed, r.filtered]),
+    [
+      [null, null],
+      [null, null],
+      [null, null],
+      [25, 22],
+      [25, 0],
+      [25, 25],
+    ],
+    "the counts are the receipt's record of what the poll found (0074)",
+  );
   ({ rows } = await ctx.db.query(
     `select gap from capture_audit where subject_tag = $1 order by fetched_at`,
     [tag],

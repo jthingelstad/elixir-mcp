@@ -496,8 +496,8 @@ export async function processResult(db, rawMessage, deps = {}) {
 
     const { rows: receiptRows } = await db.query(
       `insert into api_receipt
-         (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission, admission_errors, job_id)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+         (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission, admission_errors, job_id, observed, filtered)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        on conflict (gateway_id, endpoint, entity_key, fetched_at) do nothing
        returning receipt_id`,
       [
@@ -509,6 +509,8 @@ export async function processResult(db, rawMessage, deps = {}) {
         admission.ok ? "admitted" : "rejected",
         admission.ok ? null : JSON.stringify(admission.errors),
         Number.isInteger(msg.job_id) ? msg.job_id : null,
+        Number.isInteger(msg.observed) ? msg.observed : null,
+        Number.isInteger(msg.filtered) ? msg.filtered : null,
       ],
     );
     if (receiptRows.length === 0) {

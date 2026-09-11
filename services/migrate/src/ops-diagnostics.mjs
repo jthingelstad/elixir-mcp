@@ -20,6 +20,17 @@ export async function stats(databaseUrl) {
       receipts_by_endpoint: `select json_object_agg(endpoint, n) n from (
          select endpoint, count(*)::int n from api_receipt group by endpoint) x`,
       audit_calls: `select count(*)::int n from mcp_call_audit`,
+      // The collector-side filter's effect, last hour (0074): polls that
+      // carried counts, what they saw, what never crossed the wire.
+      battlelog_filter_last_hour: `select json_build_object(
+           'polls', count(*)::int,
+           'observed', coalesce(sum(observed), 0)::int,
+           'filtered', coalesce(sum(filtered), 0)::int,
+           'nothing_new', count(*) filter (where filtered = observed)::int,
+           'gaps', count(*) filter (where filtered = 0 and observed > 0)::int) n
+         from api_receipt
+         where endpoint = 'player_battlelog' and observed is not null
+           and fetched_at > now() - interval '1 hour'`,
     })) {
       counts[key] = (await db.query(sql)).rows[0].n;
     }
