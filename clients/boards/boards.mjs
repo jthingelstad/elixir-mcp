@@ -28,18 +28,34 @@
  * this ships with ONE board and a --dry-run: measure the fetch rate for a
  * week before adding a second.
  *
- *   node boards.mjs --dry-run     say what would change, write nothing
- *   node boards.mjs               do it
+ *   node boards.mjs --dry-run     say WHO would be added and dropped, write nothing
+ *   node boards.mjs               do it, and say who moved
  *   node boards.mjs --board=pol-global-top-100
+ *   node boards.mjs --json        one machine-readable line per board, for a log
  *
- * ELIXIR_TOKEN is a service token (svt_...) for an account that OWNS the
- * collections below; collections_edit refuses somebody else's.
+ * ELIXIR_MCP_TOKEN is a service token (svt_...) for an account that OWNS
+ * the collections below; collections_edit refuses somebody else's. Put it
+ * in a .env beside this file, or in the environment.
  */
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
+import path from "node:path";
+
+// A .env beside this file, if there is one. Loaded first so an exported
+// variable still wins over it, and quietly absent so a launchd job that
+// sets the environment itself needs no file. Same names as the Discord
+// consumer's .env, so the two clients read alike. The file is covered by
+// the repo's .env ignore rule; keep it mode 0600.
+try {
+  process.loadEnvFile(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), ".env"),
+  );
+} catch {
+  // no .env here; the environment is the environment
+}
 
 const ENDPOINT =
   process.env.ELIXIR_MCP_URL ?? "https://elixir.poapkings.com/mcp";
-const TOKEN = process.env.ELIXIR_TOKEN;
+const TOKEN = process.env.ELIXIR_MCP_TOKEN;
 
 /**
  * The boards. Adding one is a line here, not a rewrite — but each one is
@@ -57,13 +73,43 @@ export const BOARDS = [
     top: 100,
     label: "Path of Legends · global",
   },
+  // Regional boards are season-shaped: the ranking lists only players
+  // above a rating floor, so they are small on day one and fill through
+  // the month. "top-100" is the cap, not a promise — the US had 98 rated
+  // players and Japan 34 when these were added (2026-09-10, day 3).
+  {
+    slug: "pol-us-top-100",
+    path: "/locations/57000249/pathoflegend/players",
+    top: 100,
+    label: "Path of Legends · United States",
+  },
+  {
+    slug: "pol-jp-top-100",
+    path: "/locations/57000122/pathoflegend/players",
+    top: 100,
+    label: "Path of Legends · Japan",
+  },
 ];
 
-/** A board that comes back short is usually a season boundary, not news:
- *  the ranking is empty for the first hours of a season (cr-agent-api-docs,
- *  locations). Writing that as a `set` would empty the collection, so a
- *  board has to arrive at least this full to be believed. */
-const MIN_FILL = 0.5;
+/**
+ * When NOT to believe a board.
+ *
+ * A Path of Legends ranking lists only players above a rating floor, and a
+ * season resets everyone below it: three days into S136 the global board
+ * had 836 players, the US 98, Japan 34, India 4. So a SMALL board is not
+ * suspicious — early in a season every regional board is small, and a
+ * collection that starts empty should simply take what is there.
+ *
+ * What is suspicious is a board that has COLLAPSED against what the
+ * collection already holds: a hundred members yesterday, five today. That
+ * is the season boundary (or an API hiccup returning a stub), and writing
+ * it through would stop ninety-five recordings tonight and restart them
+ * over the next fortnight as players climb back. So the collection holds
+ * last season's set until the new board fills back to at least this share
+ * of it. An EMPTY board is never written, whatever the collection holds.
+ */
+const COLLAPSE_SHARE = 0.5;
+const COLLAPSE_FLOOR = 20; // below this many members there is nothing to collapse from
 
 /** The CR tag alphabet, copied from packages/contracts (CR_TAG_ALPHABET)
  *  rather than imported: this file is a standalone client with no
@@ -118,7 +164,9 @@ async function call(name, args) {
   }
 }
 
-/** The board, newest read, as canonical tags in rank order. */
+/** The board, newest read: canonical tag, name, clan and rank, in rank
+ *  order and cut to the board's size. Kept whole rather than reduced to
+ *  tags, because the report has to say WHO moved, not how many. */
 async function readBoard(board) {
   const answer = await call("live_fetch", { path: board.path });
   // live_fetch hands back the raw CR payload; rankings put the players
@@ -128,55 +176,88 @@ async function readBoard(board) {
   if (!Array.isArray(items))
     throw new Error(`${board.slug}: no items in the payload`);
   return items
-    .map((i) => String(i.tag ?? "").toUpperCase())
-    .filter((t) => CANONICAL_TAG.test(t))
+    .map((i) => ({
+      tag: String(i.tag ?? "").toUpperCase(),
+      name: i.name ?? "",
+      clan: i.clan?.name ?? "",
+      rank: i.rank ?? null,
+      elo: i.eloRating ?? i.trophies ?? null,
+    }))
+    .filter((i) => CANONICAL_TAG.test(i.tag))
     .slice(0, board.top);
 }
 
 export async function syncBoard(board, { dryRun } = {}) {
-  const tags = await readBoard(board);
-  if (tags.length < board.top * MIN_FILL) {
-    return {
-      slug: board.slug,
-      skipped: `board returned ${tags.length} of ${board.top} — too short to trust (season boundary?)`,
-    };
+  const ranked = await readBoard(board);
+  const tags = ranked.map((r) => r.tag);
+  if (tags.length === 0) {
+    return { slug: board.slug, skipped: "board is empty — nothing believed" };
   }
 
-  // What is in there now, so a dry run can say what would move and a real
-  // run has something to report beyond a count.
+  // What is in there now: the dry run says who would move, the real run
+  // reports who did, and the collapse guard needs the size.
   const before = await call("collections_get", { collection: board.slug });
-  const had = new Set(
-    (before.members ?? before.players ?? []).map((m) =>
-      String(m.player_tag ?? m.tag ?? m).toUpperCase(),
-    ),
+  const held = new Map(
+    (before.members ?? before.players ?? []).map((m) => {
+      const tag = String(
+        m.player_tag ?? m.subject_tag ?? m.tag ?? m,
+      ).toUpperCase();
+      return [tag, { tag, name: m.name ?? "" }];
+    }),
   );
-  const wanted = new Set(tags);
-  const adding = tags.filter((t) => !had.has(t));
-  const dropping = [...had].filter((t) => !wanted.has(t));
-
-  if (dryRun) {
+  if (held.size >= COLLAPSE_FLOOR && tags.length < held.size * COLLAPSE_SHARE) {
     return {
       slug: board.slug,
-      dryRun: true,
-      size: tags.length,
-      adding: adding.length,
-      dropping: dropping.length,
-      sample: adding.slice(0, 5),
+      skipped: `board returned ${tags.length} against ${held.size} held — collapsed (season boundary?), holding the current set`,
     };
   }
 
-  const done = await call("collections_edit", {
+  const wanted = new Set(tags);
+  const adding = ranked.filter((r) => !held.has(r.tag));
+  const dropping = [...held.values()].filter((m) => !wanted.has(m.tag));
+
+  const out = {
+    slug: board.slug,
+    label: board.label,
+    dryRun: Boolean(dryRun),
+    size: tags.length,
+    adding,
+    dropping,
+  };
+  if (dryRun) return out;
+
+  out.result = await call("collections_edit", {
     collection: board.slug,
     action: "set",
     tags,
   });
-  return {
-    slug: board.slug,
-    size: tags.length,
-    adding: adding.length,
-    dropping: dropping.length,
-    result: done,
-  };
+  return out;
+}
+
+/** The report a person reads: one line per player who moved, with the
+ *  rank and rating they arrived at. A count says a board churned; a name
+ *  says whether that was the summit changing hands or the floor shifting. */
+function report(out) {
+  const lines = [];
+  if (out.skipped) {
+    lines.push(`${out.slug} · skipped: ${out.skipped}`);
+    return lines.join("\n");
+  }
+  const verb = out.dryRun ? "would change" : "changed";
+  lines.push(
+    `${out.slug} · ${out.label} · ${out.size} players · +${out.adding.length} −${out.dropping.length} ${verb}`,
+  );
+  const who = (p) =>
+    `${p.tag.padEnd(11)} ${(p.name || "?").padEnd(18)}${p.clan ? ` (${p.clan})` : ""}`;
+  for (const p of out.adding) {
+    const at = p.rank != null ? ` · #${p.rank}` : "";
+    const elo = p.elo != null ? ` · ${p.elo}` : "";
+    lines.push(`  + ${who(p)}${at}${elo}`);
+  }
+  for (const p of out.dropping) lines.push(`  − ${who(p)}`);
+  if (out.adding.length === 0 && out.dropping.length === 0)
+    lines.push("  no change");
+  return lines.join("\n");
 }
 
 export async function main() {
@@ -197,18 +278,26 @@ export async function main() {
     process.exit(2);
   }
 
+  const asJson = args.includes("--json");
   let failed = 0;
   for (const board of boards) {
     const started = Date.now();
     try {
       const outcome = await syncBoard(board, { dryRun });
-      console.log(
-        JSON.stringify({
-          at: new Date().toISOString(),
-          ms: Date.now() - started,
-          ...outcome,
-        }),
-      );
+      if (asJson) {
+        console.log(
+          JSON.stringify({
+            at: new Date().toISOString(),
+            ms: Date.now() - started,
+            ...outcome,
+            adding: outcome.adding?.map((p) => p.tag),
+            dropping: outcome.dropping?.map((p) => p.tag),
+          }),
+        );
+      } else {
+        console.log(report(outcome));
+        console.log();
+      }
     } catch (err) {
       failed += 1;
       // One board failing must not stop the next: a rate limit on one

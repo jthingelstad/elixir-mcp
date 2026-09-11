@@ -33,14 +33,29 @@ fetch rate for a week before adding a second.
 ## Running it
 
 ```sh
-export ELIXIR_TOKEN=svt_...        # see below
-node boards.mjs --dry-run          # say what would change, write nothing
-node boards.mjs                    # do it
+cp .env.example .env && chmod 600 .env   # then paste the token in (see below)
+node boards.mjs --dry-run                # say what would change, write nothing
+node boards.mjs                          # do it
 node boards.mjs --board=pol-global-top-100
 ```
 
-One line of JSON per board on stdout, one on stderr for a board that failed;
-a failing board never stops the next one. Exit 1 if any board failed.
+The script loads `clients/boards/.env` itself if it exists; an exported
+`ELIXIR_MCP_TOKEN` in the environment wins over the file. The `.env` is covered
+by the repo's ignore rule — `git ls-files clients/boards` should never show it.
+
+The output names **who** moved — every player added with the rank and rating
+they arrived at, every player dropped — because a count says a board churned and
+a name says whether that was the summit changing hands or the floor shifting.
+`--json` gives one machine-readable line per board instead, for a log. A board
+that fails is reported on stderr and never stops the next one; exit 1 if any
+failed.
+
+```
+pol-global-top-100 · Path of Legends · global · 100 players · +25 −25 would change
+  + #PCPUU8Y8Y  Jerry              (North Rebellion) · #18 · 2053
+  …
+  − #92L9R2JG   Surgical Goblin
+```
 
 ### The token
 
@@ -62,17 +77,18 @@ is the principal binding doing its job.
   <string>/opt/homebrew/bin/node</string>
   <string>/Users/otto/Projects/clash-royale/elixir-mcp/clients/boards/boards.mjs</string>
 </array>
-<key>EnvironmentVariables</key>
-<dict><key>ELIXIR_TOKEN</key><string>svt_…</string></dict>
 <key>StartCalendarInterval</key>
 <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>20</integer></dict>
 ```
 
-A launchd job gets a minimal `PATH`, so name the node binary in full.
+A launchd job gets a minimal `PATH`, so name the node binary in full. The token
+comes from the `.env` beside the script, so the plist carries no secret.
 
 ## Adding a board
 
-A line in `BOARDS`, and another hundred players recorded. `path` must be a
+A line in `BOARDS`, and up to another hundred players recorded. Regional
+boards are season-shaped: `top` is the cap, not a promise, and a board will be
+small early in the month and fill as players climb past the floor. `path` must be a
 `live_fetch` path — `/locations/{id}/pathoflegend/players` or
 `/locations/{id}/rankings/players`, where `{id}` is `global` or a numeric
 location id. The game-mode boards (Merge Tactics, Touchdown, and the rest of
@@ -81,9 +97,14 @@ from here; adding them would mean widening that allowlist in the service.
 
 ## Guards
 
-- A board that comes back under half full is not believed and nothing is
-  written: the ranking is empty for the first hours of a season, and writing
-  that as a `set` would empty the collection and stop a hundred recordings.
+- A board that has **collapsed** against what the collection holds — a hundred
+  members yesterday, five today — is not written; the collection keeps last
+  season's set until the new board fills back to half of it. That is the season
+  boundary: Path of Legends lists only players above a rating floor and a
+  season resets everyone below it. A *small* board is not suspicious on its
+  own — on day 3 of S136 the US had 98 rated players, Japan 34, India 4 — and a
+  collection that starts empty takes what is there. An empty board is never
+  written.
 - A malformed tag is dropped rather than failing the call — one bad entry in a
   payload must not leave a collection unsynced.
 - `node --test clients/**/*.test.mjs` runs the client against a fake door; it

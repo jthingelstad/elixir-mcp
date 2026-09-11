@@ -47,7 +47,7 @@ before(async () => {
   });
   await new Promise((r) => server.listen(0, r));
   process.env.ELIXIR_MCP_URL = `http://127.0.0.1:${server.address().port}/mcp`;
-  process.env.ELIXIR_TOKEN = "svt_test";
+  process.env.ELIXIR_MCP_TOKEN = "svt_test";
 });
 after(() => server.close());
 
@@ -78,8 +78,12 @@ test("a full board replaces the membership with exactly today's players", async 
   const out = await syncBoard(board, { dryRun: false });
   // Ranked order, cut to the board's size.
   assert.equal(out.size, 10);
-  assert.equal(out.dropping, 1, "the player who fell off is dropped");
-  assert.equal(out.adding, 9);
+  assert.equal(out.dropping.length, 1, "the player who fell off is dropped");
+  assert.equal(out.dropping[0].tag, "#2PLLGQ");
+  assert.equal(out.adding.length, 9);
+  // Named, ranked, placed: the report says WHO moved, not how many.
+  assert.equal(out.adding[0].name, "p1");
+  assert.equal(out.adding[0].rank, 2);
 
   const edit = seen.find((c) => c.params.name === "collections_edit");
   assert.equal(
@@ -91,16 +95,48 @@ test("a full board replaces the membership with exactly today's players", async 
   assert.equal(edit.params.arguments.tags[0], tagFor(0));
 });
 
-test("a short board is not believed, and nothing is written", async () => {
+test("a board that collapsed against the held set is not written", async () => {
   const { syncBoard } = await import("./boards.mjs");
   seen = [];
-  // A season boundary empties the ranking for a few hours. Writing that
-  // as a `set` would empty the collection and stop a hundred recordings.
+  // A season boundary resets everyone below the rating floor: a hundred
+  // members yesterday, three today. Writing that through would stop
+  // ninety-seven recordings tonight and restart them over the fortnight.
   boardItems = ranked(3);
+  members = ranked(100).map((i) => ({ player_tag: i.tag }));
+
+  const out = await syncBoard(board, { dryRun: false });
+  assert.match(out.skipped, /collapsed/);
+  assert.equal(
+    seen.filter((c) => c.params.name === "collections_edit").length,
+    0,
+  );
+});
+
+test("a small board into a small collection is simply the truth", async () => {
+  const { syncBoard } = await import("./boards.mjs");
+  seen = [];
+  // Early in a season every regional board is small — Japan had 34
+  // players on day 3, India 4 — and a collection that starts empty takes
+  // what is there rather than waiting for a hundred that may never come.
+  boardItems = ranked(4);
+  members = [];
+
+  const out = await syncBoard(board, { dryRun: false });
+  assert.equal(out.size, 4);
+  assert.equal(
+    seen.filter((c) => c.params.name === "collections_edit").length,
+    1,
+  );
+});
+
+test("an empty board is never written, whatever is held", async () => {
+  const { syncBoard } = await import("./boards.mjs");
+  seen = [];
+  boardItems = [];
   members = [{ player_tag: tagFor(0) }];
 
   const out = await syncBoard(board, { dryRun: false });
-  assert.match(out.skipped, /too short/);
+  assert.match(out.skipped, /empty/);
   assert.equal(
     seen.filter((c) => c.params.name === "collections_edit").length,
     0,
@@ -115,7 +151,7 @@ test("a dry run reports the move and writes nothing", async () => {
 
   const out = await syncBoard(board, { dryRun: true });
   assert.equal(out.dryRun, true);
-  assert.equal(out.adding, 9);
+  assert.equal(out.adding.length, 9);
   assert.equal(
     seen.filter((c) => c.params.name === "collections_edit").length,
     0,
