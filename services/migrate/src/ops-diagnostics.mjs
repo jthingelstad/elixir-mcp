@@ -30,6 +30,76 @@ export async function stats(databaseUrl) {
 }
 
 /**
+ * Ledger incident reader and recovery ({ledger: {op, job_ids?}}).
+ *
+ * Dead jobs are the collector path's durable DLQ. An operator must be able to
+ * inspect their exact receipts before deciding to requeue them, and recovery
+ * must name those receipts rather than sweeping every historical failure.
+ * This IAM-only operation exposes no payloads or credentials. Requeueing is
+ * deliberately guarded against a queued twin, preserves the original job id,
+ * and resets the exhausted lease-attempt counter for a fresh delivery cycle.
+ */
+export async function ledger(databaseUrl, spec = {}) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const op = String(spec.op ?? "dead");
+    if (op === "dead") {
+      const { rows } = await db.query(
+        `select j.job_id, j.endpoint, j.entity_key, j.lane, j.attempts,
+                j.created_at, j.leased_at, j.done_at,
+                g.name as gateway_name, g.card_name as gateway_card_name
+         from job j
+         left join gateway g on g.gateway_id = j.leased_by
+         where j.status = 'dead'
+         order by j.done_at, j.job_id`,
+      );
+      return { dead: rows };
+    }
+
+    if (op === "requeue") {
+      const jobIds = [...new Set(spec.job_ids ?? [])]
+        .map((id) => String(id))
+        .filter((id) => /^[1-9][0-9]*$/.test(id));
+      if (jobIds.length === 0 || jobIds.length > 100)
+        return { error: "job_ids must contain 1 to 100 positive integers" };
+
+      const { rows } = await db.query(
+        `with recoverable as (
+           select j.job_id
+           from job j
+           where j.job_id = any($1::bigint[])
+             and j.status = 'dead'
+             and not exists (
+               select 1 from job queued
+               where queued.endpoint = j.endpoint
+                 and queued.entity_key = j.entity_key
+                 and queued.status = 'queued')
+         )
+         update job j
+         set status = 'queued', attempts = 0, leased_at = null,
+             leased_by = null, done_at = null
+         from recoverable r
+         where j.job_id = r.job_id
+         returning j.job_id, j.endpoint, j.entity_key, j.lane`,
+        [jobIds],
+      );
+      return {
+        requested: jobIds.length,
+        requeued: rows,
+        skipped: jobIds.filter(
+          (id) => !rows.some((row) => String(row.job_id) === id),
+        ),
+      };
+    }
+
+    return { error: "ledger op must be dead or requeue" };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
  * War-reset drift census ({war_drift: true}) — read-only.
  *
  * Supercell's policy reset is 10:00 UTC, but clans are matched into

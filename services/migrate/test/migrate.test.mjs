@@ -7,6 +7,7 @@ import pg from "pg";
 import { migrate, loadMigrations } from "../src/migrate.mjs";
 import { schemaFingerprint } from "../src/fingerprint.mjs";
 import { abYield } from "../src/ops-analysis.mjs";
+import { ledger } from "../src/ops-diagnostics.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -119,6 +120,79 @@ test("core invariants hold", async () => {
                 values ('#J2RGCRVG', '#2PP0V90Y', now() + interval '1 hour')`),
       /duplicate key/,
     );
+  } finally {
+    await db.end();
+  }
+});
+
+test("ledger ops inspect and selectively requeue dead collector work", async () => {
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  try {
+    const {
+      rows: [account],
+    } = await db.query(
+      `insert into account (email_hash, status)
+       values ('ledger-ops', 'approved') returning account_id`,
+    );
+    const {
+      rows: [gateway],
+    } = await db.query(
+      `insert into gateway (owner_account_id, name, card_name, status)
+       values ($1, 'ledger-ops-gateway', 'Ledger Ops', 'active')
+       returning gateway_id`,
+      [account.account_id],
+    );
+    const {
+      rows: [recoverable],
+    } = await db.query(
+      `insert into job (endpoint, entity_key, lane, status, attempts, leased_by, done_at)
+       values ('player', '#LEDGERA', 'bulk', 'dead', 5, $1, now())
+       returning job_id`,
+      [gateway.gateway_id],
+    );
+    const {
+      rows: [blocked],
+    } = await db.query(
+      `insert into job (endpoint, entity_key, lane, status, attempts, done_at)
+       values ('clan', '#LEDGERB', 'bulk', 'dead', 5, now())
+       returning job_id`,
+    );
+    await db.query(
+      `insert into job (endpoint, entity_key, lane) values ('clan', '#LEDGERB', 'bulk')`,
+    );
+
+    const inspected = await ledger(SCRATCH_URL, { op: "dead" });
+    assert.deepEqual(
+      inspected.dead
+        .filter((job) =>
+          [recoverable.job_id, blocked.job_id].includes(job.job_id),
+        )
+        .map((job) => job.job_id),
+      [recoverable.job_id, blocked.job_id],
+    );
+
+    const recovered = await ledger(SCRATCH_URL, {
+      op: "requeue",
+      job_ids: [recoverable.job_id, blocked.job_id],
+    });
+    assert.deepEqual(
+      recovered.requeued.map((job) => job.job_id),
+      [recoverable.job_id],
+    );
+    assert.deepEqual(recovered.skipped, [blocked.job_id]);
+    const {
+      rows: [job],
+    } = await db.query(
+      `select status, attempts, leased_by, done_at from job where job_id = $1`,
+      [recoverable.job_id],
+    );
+    assert.deepEqual(job, {
+      status: "queued",
+      attempts: 0,
+      leased_by: null,
+      done_at: null,
+    });
   } finally {
     await db.end();
   }
