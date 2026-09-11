@@ -28,6 +28,21 @@ export function ago(ts, now = Date.now()) {
   return `${Math.round(s / 86400)}d ago`;
 }
 
+/** Exact relative time, two units: "12s ago", "3m 12s ago", "2h 14m ago",
+ *  "3d 5h ago". For a table that is read to compare rows against each
+ *  other - the fleet page, where "3m ago" five times over hid that the
+ *  collectors were fetching in lockstep (2026-09-11). Reads as of the
+ *  `now` it was rendered with, like `ago`. */
+export function agoExact(ts, now = Date.now()) {
+  if (!ts) return "never";
+  const s = Math.round(secsSince(ts, now));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s ago`;
+  if (s < 86400)
+    return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ago`;
+  return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h ago`;
+}
+
 /** Freshness of recorded DATA: a collector can idle a while between
  *  admitted payloads without anything being wrong. */
 export function freshCls(seconds) {

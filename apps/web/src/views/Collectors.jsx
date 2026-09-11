@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Icon } from "../components/Icon.jsx";
-import { ago, secsSince } from "../lib/time.js";
+import { agoExact, secsSince } from "../lib/time.js";
 
 /**
  * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.
@@ -118,6 +118,7 @@ export function Fleet({ navigate }) {
               <th style={{ textAlign: "right" }}>YIELD</th>
               <th>LAST FETCH</th>
               <th style={{ textAlign: "right" }}>SHARE</th>
+              <th>VERSION</th>
               <th>STATE</th>
             </tr>
           </thead>
@@ -176,8 +177,11 @@ export function Fleet({ navigate }) {
                     ? `${Math.round(c.yield_24h * 100)}%`
                     : "—"}
                 </td>
-                <td style={{ fontFamily: "var(--font-mono)" }}>
-                  {ago(c.last_success_at, now)}
+                <td
+                  style={{ fontFamily: "var(--font-mono)" }}
+                  title="as of when this page loaded"
+                >
+                  {agoExact(c.last_success_at, now)}
                 </td>
                 <td
                   style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}
@@ -185,6 +189,12 @@ export function Fleet({ navigate }) {
                   {todays > 0
                     ? `${Math.round(((c.fetches_1h ?? 0) / todays) * 100)}%`
                     : "—"}
+                </td>
+                <td
+                  style={{ fontFamily: "var(--font-mono)" }}
+                  title="the client version it last submitted with"
+                >
+                  {c.version ?? "—"}
                 </td>
                 <td>
                   <StateChip collector={c} now={now} />

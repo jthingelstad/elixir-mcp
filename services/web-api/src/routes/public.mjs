@@ -27,6 +27,7 @@ export function publicRoutes({ queueStats }) {
       const collectors = await q(
         `select coalesce(g.card_name, 'unnamed') as name, g.card_icon, g.status,
                 g.channel, g.last_success_at, g.last_heartbeat_at,
+                g.last_seen_sha,
                 op.name as operator,
                 op.player_tag as operator_tag,
                 (select count(*)::int from api_receipt ar
@@ -267,6 +268,11 @@ export function publicRoutes({ queueStats }) {
             last_heartbeat_at: c.last_heartbeat_at?.toISOString() ?? null,
             operator: c.operator ?? null,
             operator_tag: c.operator_tag ?? null,
+            // The client version the collector last submitted with
+            // (x-collector-version; the column predates the rename).
+            // Public because the client is: a fleet that has not all
+            // picked up a named release is visible at a glance.
+            version: c.last_seen_sha ?? null,
             // Which lane this collector drains. The live lane is what serves
             // an interactive live_fetch, so "who can answer a request right
             // now" is a different question from "who is capturing", and the
