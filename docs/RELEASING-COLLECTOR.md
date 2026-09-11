@@ -34,6 +34,20 @@ The newest tag with `prerelease=true` is your candidate.
 Nothing installs a candidate on its own, so put it on a canary by hand.
 A NAS or a spare box is ideal; do not use the whole fleet.
 
+> **A Go collector cannot soak a candidate.** Found on the v2.0.26
+> release (2026-09-11): Ram Rider came up on the candidate, asked the
+> update authority, was told v2.0.22 was named, and downgraded itself in
+> one second — `update authority names v2.0.22; self-updating` followed by
+> `updated; exiting for supervisor restart`. That is the self-update doing
+> its job, and it is why v2.0.23–25 were never soaked or named. **Soak the
+> Python twin instead**: it never self-updates (that is the point of it),
+> so stage `collector.py` from the candidate on a Python machine, restart
+> it through its supervisor, and read its log for the version line and an
+> activity summary. The Go binary is then named on the strength of its
+> tests and the shared logic the twin exercised. A `ELIXIR_MCP_PIN_VERSION`
+> for Go canaries is the fix that would make this section true again for
+> both; until it ships, this is the procedure.
+
 ```sh
 TAG=v2.0.NN     # the candidate
 base=https://github.com/jthingelstad/elixir-mcp-collector/releases/download/$TAG
