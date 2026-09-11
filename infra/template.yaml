@@ -198,6 +198,27 @@ Resources:
       DeletionProtection: true
       EnablePerformanceInsights: false
       AutoMinorVersionUpgrade: true
+      # Enhanced Monitoring at one minute (review 2026-09-11, item 12):
+      # the two memory recoveries that day were invisible from the
+      # instance metrics alone - FreeableMemory and SwapUsage say the box
+      # is squeezed, not by whom. This is the OS-level split (Postgres vs
+      # page cache vs RDS agent) the instance-class decision waits on.
+      # About $0.50/month of CloudWatch Logs.
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt DbMonitoringRole.Arn
+
+  DbMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-rds-monitoring
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: monitoring.rds.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
 
   # ---------------------------------------------------------------- queues
   EmailQueue:
