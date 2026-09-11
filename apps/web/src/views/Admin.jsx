@@ -732,6 +732,19 @@ function AdminCollectors({ navigate }) {
     },
     { text: ago(g.last_heartbeat_at), title: g.last_heartbeat_at ?? "never" },
     String(g.fetches_last_hour ?? 0),
+    // What the fetches were worth (review §9.3): the share that changed
+    // the record, what the edge filter dropped before the wire, and door
+    // calls per admitted fetch (1.0 is perfect; long-polling was ~2.7).
+    typeof g.yield_24h === "number" || typeof g.yield_24h === "string"
+      ? `${Math.round(Number(g.yield_24h) * 100)}%`
+      : "—",
+    typeof g.edge_filtered_24h === "number" ||
+    typeof g.edge_filtered_24h === "string"
+      ? `${Math.round(Number(g.edge_filtered_24h) * 100)}%`
+      : "—",
+    g.door_calls_hour && g.fetches_last_hour
+      ? (g.door_calls_hour / g.fetches_last_hour).toFixed(1)
+      : "—",
   ]);
 
   return (
@@ -745,13 +758,16 @@ function AdminCollectors({ navigate }) {
         ["STATE", "left"],
         ["HEARTBEAT", "left"],
         ["FETCHES 1H", "right"],
+        ["YIELD 24H", "right"],
+        ["EDGE FILTER", "right"],
+        ["CALLS/FETCH", "right"],
       ]}
       rows={rows}
-      monoCols={[3]}
+      monoCols={[3, 4, 5, 6, 7]}
       filters={[{ key: "state", label: "State", col: 2 }]}
-      minWidth={640}
+      minWidth={880}
       empty="No collectors yet."
-      footnote="Heartbeat is any contact with the door, including polls that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Issuing the IP-bound CR key is manual."
+      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch is door calls per admitted fetch this hour (1.0 is perfect). Issuing the IP-bound CR key is manual."
     />
   );
 }

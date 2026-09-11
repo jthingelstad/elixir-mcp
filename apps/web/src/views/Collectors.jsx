@@ -133,7 +133,7 @@ export function Fleet({ navigate }) {
             <tr>
               <th>NAME</th>
               <th>RUN BY</th>
-              <th>LANE</th>
+              <th style={{ textAlign: "right" }}>YIELD</th>
               <th>LAST FETCH</th>
               <th style={{ textAlign: "right" }}>SHARE</th>
               <th>STATE</th>
@@ -186,7 +186,14 @@ export function Fleet({ navigate }) {
                   </span>
                 </td>
                 <td>{c.operator ?? "—"}</td>
-                <td>{c.channel ?? "bulk"}</td>
+                <td
+                  style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}
+                  title="share of the last day's fetches that changed the record"
+                >
+                  {typeof c.yield_24h === "number"
+                    ? `${Math.round(c.yield_24h * 100)}%`
+                    : "—"}
+                </td>
                 <td style={{ fontFamily: "var(--font-mono)" }}>
                   {ago(c.last_success_at, now)}
                 </td>
@@ -209,9 +216,10 @@ export function Fleet({ navigate }) {
         className="footnote"
         style={{ margin: "12px 2px 0", maxWidth: "78ch" }}
       >
-        Share is of the last hour&rsquo;s fetches. Behind means the machine has
-        not reported inside its schedule — which is not the same as broken: a
-        collector with nothing due is idle.
+        Yield is the share of the last day&rsquo;s fetches that changed the
+        record; share is of the last hour&rsquo;s fetches. Behind means the
+        machine has not reported inside its schedule — which is not the same as
+        broken: a collector with nothing due is idle.
       </p>
     </>
   );

@@ -167,8 +167,6 @@ function Operations({ g, staged, setStaged, reload }) {
         <dd className="mono">{g.name}</dd>
         <dt>state</dt>
         <dd>{g.status}</dd>
-        <dt>channel</dt>
-        <dd>{g.channel ?? "bulk"}</dd>
         <dt>points</dt>
         <dd className="mono">{Number(g.fetch_points ?? 0).toLocaleString()}</dd>
         <dt>version</dt>

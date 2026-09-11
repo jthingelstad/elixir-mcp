@@ -101,7 +101,8 @@ test("the fleet list finds a collector; it does not operate on one", async () =>
   // name rather than a column: the card is the identity every other
   // surface uses, and the list is for finding the row you want.
   const row = screen.getByText("Ram Rider").closest("tr");
-  expect(row.querySelectorAll("td").length).toBe(5);
+  // Five columns became eight on 2026-09-11: yield, edge filter, calls/fetch.
+  expect(row.querySelectorAll("td").length).toBe(8);
   expect(within(row).getByTitle("jamie-mac")).toBeTruthy();
   expect(within(row).getByText("Thingelstad")).toBeTruthy();
   expect(within(row).getByText("active")).toBeTruthy();

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "The fleet pages say what a fetch was worth",
+    body: "A collector that fetched a thousand payloads of nothing looked identical to one that fetched a thousand payloads of news. Every receipt now records what its fetch was worth - rows the projection inserted or changed, the bytes read from the API, the time the admission took - and the fleet pages show it: yield (the share of the last day's fetches that changed the record), the share of battle-log entries dropped at the edge before the wire, and door calls per fetch. The budget line on the status page says how much of the hour's spend changed the record. Forward-only from today.",
+  },
+  {
+    date: "2026-09-11",
     title: "The roster says who has played; the recorder stops asking the rest",
     body: "Six in ten battle-log polls came back with nothing new, and most profile polls confirmed a profile that had not moved. A clan roster already carries the game's own lastSeen for every member in one small fetch, so the scheduler now reads it first: when a roster fresher than a member's last poll shows they have not been in the game since, that poll is skipped. A sighting under two hours old never gates, so a session in progress is always followed. Profiles have no floor any more - an idle player owes the record no snapshot - and are read every eight hours once the roster shows them active.",
   },

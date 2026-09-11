@@ -31,7 +31,17 @@ export function publicRoutes({ queueStats }) {
                 op.player_tag as operator_tag,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
-                   and ar.fetched_at > now() - interval '1 hour') as fetches_1h
+                   and ar.fetched_at > now() - interval '1 hour') as fetches_1h,
+                (select round(avg(case when ar.new_facts > 0 then 1 else 0 end), 3)
+                   from api_receipt ar where ar.gateway_id = g.gateway_id
+                   and ar.fetched_at > now() - interval '24 hours'
+                   and ar.new_facts is not null) as yield_24h,
+                (select case when sum(ar.observed) > 0
+                          then round(sum(ar.filtered)::numeric / sum(ar.observed), 3) end
+                   from api_receipt ar where ar.gateway_id = g.gateway_id
+                   and ar.endpoint = 'player_battlelog'
+                   and ar.fetched_at > now() - interval '24 hours'
+                   and ar.observed is not null) as edge_filtered_24h
          from gateway g
          left join lateral (
            select p.name, p.player_tag
@@ -149,7 +159,10 @@ export function publicRoutes({ queueStats }) {
         `select rate_per_sec, burst, live_reserve, tokens, settled_at from budget_state`,
       );
       const usedRow = await q(
-        `select count(*)::int as used from api_receipt
+        `select count(*)::int as used,
+                count(*) filter (where new_facts > 0)::int as useful,
+                count(*) filter (where new_facts is not null)::int as measured
+         from api_receipt
          where fetched_at >= date_trunc('hour', now())`,
       );
       const ratePerSec = Number(budgetRow[0]?.rate_per_sec ?? 1);
@@ -161,6 +174,10 @@ export function publicRoutes({ queueStats }) {
         rate_per_sec: ratePerSec,
         capacity_hour: Math.round(ratePerSec * 3600),
         used_hour: usedRow[0]?.used ?? 0,
+        // Of those, how many changed the record (0077) - the number that
+        // says whether the budget bought information or repetition.
+        useful_hour: usedRow[0]?.useful ?? 0,
+        measured_hour: usedRow[0]?.measured ?? 0,
         expected_hour: Math.round(ratePerSec * 3600 * elapsed),
         hour_started_at: hourStart.toISOString(),
         live_reserve: Number(budgetRow[0]?.live_reserve ?? 0),
@@ -256,6 +273,12 @@ export function publicRoutes({ queueStats }) {
             // page could not previously tell them apart.
             channel: c.channel ?? "bulk",
             fetches_1h: c.fetches_1h,
+            // What the fetches were worth (0077): share of the last day's
+            // that changed the record, and the share of battle-log
+            // entries dropped at the edge. Null until receipts carry it.
+            yield_24h: c.yield_24h === null ? null : Number(c.yield_24h),
+            edge_filtered_24h:
+              c.edge_filtered_24h === null ? null : Number(c.edge_filtered_24h),
           })),
           capture_series: captureSeries,
           capture_5m: hour,

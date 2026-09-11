@@ -167,7 +167,8 @@ test("the fleet credits the player who runs a collector, and never the account",
   // appears on a surface everyone can read.
   expect(document.querySelector("table").textContent).not.toMatch(/@/);
   const uncredited = screen.getByText("Wall Breakers").closest("tr");
-  expect(within(uncredited).getByText("—")).toBeTruthy();
+  // Two dashes since 2026-09-11: no operator credit, and no yield yet.
+  expect(within(uncredited).getAllByText("—").length).toBeGreaterThan(0);
 });
 
 test("the fleet marks what is yours in a word, never a tinted row", async () => {

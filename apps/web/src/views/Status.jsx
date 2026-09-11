@@ -245,6 +245,9 @@ function BudgetGauge({ budget }) {
         <span className="mono" style={{ marginLeft: "auto", fontWeight: 400 }}>
           {used.toLocaleString()} of {cap.toLocaleString()} this hour ·{" "}
           {budget.rate_per_sec}/s
+          {typeof budget.useful_hour === "number" && budget.measured_hour > 0
+            ? ` · ${Math.round((budget.useful_hour / budget.measured_hour) * 100)}% changed the record`
+            : ""}
         </span>
       </div>
       <div className="panel__body">

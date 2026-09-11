@@ -132,7 +132,25 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
                 op.name as owner_player_name,
                 op.player_tag as owner_player_tag,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
-                 and r.fetched_at > now() - interval '1 hour') as fetches_last_hour
+                 and r.fetched_at > now() - interval '1 hour') as fetches_last_hour,
+                -- What the fetches were worth (0077, review §9.3): the share
+                -- that changed the record, what the edge filter dropped, and
+                -- how many door calls each admitted fetch cost. Null until a
+                -- receipt carries the column.
+                (select round(avg(case when r.new_facts > 0 then 1 else 0 end), 3)
+                   from api_receipt r where r.gateway_id = g.gateway_id
+                   and r.fetched_at > now() - interval '24 hours'
+                   and r.new_facts is not null) as yield_24h,
+                (select case when sum(r.observed) > 0
+                          then round(sum(r.filtered)::numeric / sum(r.observed), 3) end
+                   from api_receipt r where r.gateway_id = g.gateway_id
+                   and r.endpoint = 'player_battlelog'
+                   and r.fetched_at > now() - interval '24 hours'
+                   and r.observed is not null) as edge_filtered_24h,
+                (select rl.count from rate_limit rl
+                   where rl.bucket = 'collector-work#' || g.gateway_id::text
+                     and rl.window_start = to_timestamp(floor(extract(epoch from now()) / 3600) * 3600)
+                 ) as door_calls_hour
          from gateway g
          left join account a on a.account_id = g.owner_account_id
          left join lateral (
