@@ -178,7 +178,7 @@ async function authGateway(db, event, statuses) {
   const { rows } = await db.query(
     `update gateway set last_heartbeat_at = now()
      where token_hash = $1 and status = any($2)
-     returning gateway_id, name, channel, status, missed_streak`,
+     returning gateway_id, name, card_name, channel, status, missed_streak`,
     [sha256hex(token), statuses],
   );
   return rows[0] ?? null;
@@ -275,7 +275,12 @@ export function makeCollectorDoor({
         status: 200,
         body: {
           ...CONFIG,
-          gateway: { name: gw.name, channel: gw.channel, status: gw.status },
+          gateway: {
+            name: gw.name,
+            card: gw.card_name,
+            channel: gw.channel,
+            status: gw.status,
+          },
           // The caller's address as the door saw it: the egress IP the
           // operator must allowlist on their CR key, read without the
           // collector talking to anything but this door.

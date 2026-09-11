@@ -134,6 +134,11 @@ test("config: contract constants, channel, the update authority, and what doctor
     "the egress IP as the door saw it",
   );
   assert.equal(r.body.doctor.cr_path, "/locations?limit=1");
+  assert.equal(r.body.gateway.name, "bulk-op");
+  assert.ok(
+    "card" in r.body.gateway,
+    "the public identity rides beside the private machine name",
+  );
 });
 
 test("a pending token reads config (so doctor can say 'not yet promoted') but leases nothing", async () => {
