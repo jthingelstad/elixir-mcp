@@ -14,7 +14,7 @@ Per board, two calls to `https://elixir.poapkings.com/mcp`:
 
 | call | why |
 |---|---|
-| `live_fetch` | one raw GET against the CR API through the hub's live lane, so **no CR token lives here** and this can run anywhere. Spends one fetch from the shared budget. |
+| `rankings_players` / `rankings_clans` | the **recorded** board (contract 1.3.0). The hub records the global Path of Legends board hourly and every location daily, so this reads the record and spends nothing from the shared CR budget. Until 1.3.0 the client read the game through `live_fetch`, which was capped at the top 100 and threw the board away. |
 | `collections_edit` with `action: "set"` | replaces the membership with exactly today's board. `add` would leave last week's players behind and the collection would slowly become "everyone who was ever up there". |
 
 The door is stateless JSON-RPC — no `initialize` handshake, no session id, no
@@ -23,12 +23,12 @@ file with no dependencies.
 
 ## What it costs
 
-**Collection membership is a recording reason.** Every player in one of these
-boards is recorded while they stay in it, and stops when they drop out unless
-something else keeps them. A top-100 board is therefore about a hundred
-recorded players against one shared CR budget — roughly doubling the recorded
-set as it stands today. That is why this ships with one board: measure the
-fetch rate for a week before adding a second.
+**Collection membership is a recording reason**, so a player board records its
+members while they stay in it. The reads themselves cost nothing now — they
+come from the record, not the game — and the global top 200 is recorded by the
+hub for the whole season regardless, so a global top-100 collection adds no
+recording load at all. Regional boards do add their members; a clan board at
+activity scope adds each clan's roster and war reads.
 
 ## Running it
 
@@ -86,14 +86,18 @@ comes from the `.env` beside the script, so the plist carries no secret.
 
 ## Adding a board
 
-A line in `BOARDS`, and up to another hundred players recorded. Regional
-boards are season-shaped: `top` is the cap, not a promise, and a board will be
-small early in the month and fill as players climb past the floor. `path` must be a
-`live_fetch` path — `/locations/{id}/pathoflegend/players` or
-`/locations/{id}/rankings/players`, where `{id}` is `global` or a numeric
-location id. The game-mode boards (Merge Tactics, Touchdown, and the rest of
-`/leaderboards`) are **not** on the live lane's allowlist and cannot be reached
-from here; adding them would mean widening that allowlist in the service.
+A line in `BOARDS`. `location` is what `rankings_players` takes — `global`, a
+numeric CR location id, or a two-letter country code — and the hub records
+every location the API lists, so any of them is available. A board with
+`derive: "clans"` is the clans most represented on the ranking, via
+`rankings_clans`, counted over everyone above the rating floor. Regional boards
+are season-shaped: `top` is the cap, not a promise, and a board will be small
+early in the month and fill as players climb past the floor.
+
+Membership still records players (a collection is a recording reason), but the
+global top 200 is already recorded by the hub for the season — ranking presence
+is its own reason since 0068 — so these collections add far less recording load
+than they once did.
 
 ## Guards
 

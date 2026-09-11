@@ -10,9 +10,13 @@
  *
  * TWO CALLS PER BOARD, both over one HTTP endpoint:
  *
- *   live_fetch      one raw GET against the CR API through the hub's live
- *                   lane, so no CR token lives here and this can run
- *                   anywhere. It spends one fetch from the shared budget.
+ *   rankings_players / rankings_clans
+ *                   the RECORDED board (contract 1.3.0). The hub records
+ *                   the global Path of Legends board hourly and every
+ *                   location daily, so this reads the record and spends
+ *                   nothing from the shared CR budget. Until 1.3.0 this
+ *                   client read the game through live_fetch, which was
+ *                   capped at the top 100 and threw the board away.
  *   collections_edit action "set" replaces the membership with exactly
  *                   today's board. add/remove would leave last week's
  *                   players behind and the collection would slowly become
@@ -58,18 +62,22 @@ const ENDPOINT =
 const TOKEN = process.env.ELIXIR_MCP_TOKEN;
 
 /**
- * The boards. Adding one is a line here, not a rewrite — but each one is
- * another hundred players recorded, so add them one at a time.
+ * The boards. Adding one is a line here, not a rewrite.
  *
- * `path` must be a live_fetch path: /locations/{id}/pathoflegend/players
- * or /locations/{id}/rankings/players, where {id} is `global` or a
- * numeric location. The game-mode boards (/leaderboards) are not on the
- * live lane's allowlist and cannot be reached from here yet.
+ * `location` is what rankings_players takes: `global`, a numeric CR
+ * location id, or a two-letter country code. `board` is pol (Path of
+ * Legends) or trophy. A board with `derive: "clans"` is the clans most
+ * represented on the ranking, via rankings_clans.
+ *
+ * Membership still records players (a collection is a recording reason),
+ * but the global top 200 is ALREADY recorded by the hub for the season —
+ * ranking presence is its own reason since 0068 — so these collections
+ * now add far less recording load than they did.
  */
 export const BOARDS = [
   {
     slug: "pol-global-top-100",
-    path: "/locations/global/pathoflegend/players",
+    location: "global",
     top: 100,
     label: "Path of Legends · global",
   },
@@ -79,28 +87,27 @@ export const BOARDS = [
   // players and Japan 34 when these were added (2026-09-10, day 3).
   {
     slug: "pol-us-top-100",
-    path: "/locations/57000249/pathoflegend/players",
+    location: "US",
     top: 100,
     label: "Path of Legends · United States",
   },
   {
     slug: "pol-jp-top-100",
-    path: "/locations/57000122/pathoflegend/players",
+    location: "JP",
     top: 100,
     label: "Path of Legends · Japan",
   },
-  // A CLAN board derived from a player board: the clans with the most
-  // players rated in Path of Legends, globally. Counted over EVERYONE
-  // above the rating floor (847 players on 2026-09-11, growing through
-  // the month), not the top 100 — at that depth 64 clans tie at one
-  // player and there is no ranking to find. Strict ten; a tie at the
-  // cutoff goes to the clan whose best player is placed highest.
+  // A CLAN board: the clans with the most players rated in Path of
+  // Legends, globally — rankings_clans counts over EVERYONE above the
+  // rating floor (847 players on 2026-09-11, growing through the month),
+  // not the top 100, where sixty-four clans tie at one player. Strict
+  // ten; the hub breaks a tie at the cutoff by best-placed player.
   // The collection must be kind clan and scope ACTIVITY: ten top clans
   // at comprehensive would be every member's battles, the single most
   // expensive thing this system could be asked to record.
   {
     slug: "global-top-10-clans",
-    path: "/locations/global/pathoflegend/players",
+    location: "global",
     derive: "clans",
     top: 10,
     label: "Clans most represented in Path of Legends · global",
@@ -126,14 +133,6 @@ export const BOARDS = [
  */
 const COLLAPSE_SHARE = 0.5;
 const COLLAPSE_FLOOR = 20; // below this many members there is nothing to collapse from
-
-/** The CR tag alphabet, copied from packages/contracts (CR_TAG_ALPHABET)
- *  rather than imported: this file is a standalone client with no
- *  dependencies, which is most of why it is easy to run anywhere. A tag
- *  the hub would refuse is dropped here instead of failing the whole
- *  call — one malformed entry in a leaderboard payload must not leave a
- *  collection unsynced. There is no letter O in the alphabet. */
-const CANONICAL_TAG = /^#[0289PYLQGRJCUV]{3,12}$/;
 
 async function rpc(method, params) {
   const res = await fetch(ENDPOINT, {
@@ -180,73 +179,80 @@ async function call(name, args) {
   }
 }
 
-/** One live fetch per path per run. Two boards read the global ranking
- *  (the top-100 players and the clans derived from all of them); paying
- *  the shared budget twice for the same payload would be careless. The
+/** One read of a board per run, shared by every collection drawn from it
+ *  (the top-100 players and the clans are the same global board). The
  *  cache is a Map the RUN owns — main() makes one, a test makes its own —
  *  rather than module state, which would make every board read whatever
  *  the first one saw. */
-async function fetchItems(path, fetched) {
-  if (!fetched.has(path)) {
+const PAGE = 500;
+
+/** The whole recorded board as players, in rank order. Paged: a board can
+ *  run to a thousand places and the door delivers 500 at most per call. */
+async function readPlayers(board, fetched) {
+  const key = `players:${board.board ?? "pol"}:${board.location}`;
+  if (!fetched.has(key)) {
     fetched.set(
-      path,
-      call("live_fetch", { path }).then((answer) => {
-        // live_fetch hands back the raw CR payload; rankings put the
-        // players in `items`, already in rank order.
-        const payload = answer.payload ?? answer.data ?? answer;
-        const items = payload.items ?? payload.Items ?? [];
-        if (!Array.isArray(items))
-          throw new Error(`${path}: no items in the payload`);
-        return items;
-      }),
+      key,
+      (async () => {
+        const players = [];
+        let snapshot = null;
+        for (let offset = 0; ; offset += PAGE) {
+          const page = await call("rankings_players", {
+            board: board.board ?? "pol",
+            location: board.location,
+            limit: PAGE,
+            offset,
+          });
+          snapshot = page.snapshot;
+          for (const p of page.players ?? []) {
+            players.push({
+              tag: String(p.player_tag).toUpperCase(),
+              name: p.name ?? "",
+              clan: p.clan_name ?? "",
+              clanTag: String(p.clan_tag ?? "").toUpperCase(),
+              rank: p.rank ?? null,
+              elo: p.rating ?? null,
+            });
+          }
+          if (!snapshot || offset + PAGE >= snapshot.entries) break;
+        }
+        return { players, snapshot };
+      })(),
     );
   }
-  return fetched.get(path);
+  return fetched.get(key);
 }
 
-/** The whole ranking as players: canonical tag, name, clan and rank, in
- *  rank order. Kept whole rather than reduced to tags, because the report
- *  has to say WHO moved, not how many. */
-async function readPlayers(path, fetched) {
-  return (await fetchItems(path, fetched))
-    .map((i) => ({
-      tag: String(i.tag ?? "").toUpperCase(),
-      name: i.name ?? "",
-      clan: i.clan?.name ?? "",
-      clanTag: String(i.clan?.tag ?? "").toUpperCase(),
-      rank: i.rank ?? null,
-      elo: i.eloRating ?? i.trophies ?? null,
-    }))
-    .filter((i) => CANONICAL_TAG.test(i.tag));
-}
-
-/** A player board: the top N of the ranking. */
+/** A player board: the top N of the recorded ranking. */
 async function readBoard(board, fetched) {
-  return (await readPlayers(board.path, fetched)).slice(0, board.top);
+  const { players } = await readPlayers(board, fetched);
+  return players.slice(0, board.top);
 }
 
-/** A clan board derived from a player board: the N clans with the most
- *  players in the WHOLE ranking, ties broken by the best-placed member.
- *  Each entry carries the count and that best rank, so the report can
- *  say why a clan is here and why it left. */
+/** A clan board: the hub's own aggregate over the whole ranking, ties
+ *  already broken by best-placed player. Each entry carries the count and
+ *  that best rank, so the report can say why a clan is here. */
 async function deriveClans(board, fetched) {
-  const byClan = new Map();
-  for (const p of await readPlayers(board.path, fetched)) {
-    if (!CANONICAL_TAG.test(p.clanTag)) continue;
-    const c = byClan.get(p.clanTag) ?? {
-      tag: p.clanTag,
-      name: p.clan,
-      count: 0,
-      best: Infinity,
-    };
-    c.count += 1;
-    if (p.rank != null && p.rank < c.best) c.best = p.rank;
-    byClan.set(p.clanTag, c);
+  const key = `clans:${board.board ?? "pol"}:${board.location}`;
+  if (!fetched.has(key)) {
+    fetched.set(
+      key,
+      call("rankings_clans", {
+        board: board.board ?? "pol",
+        location: board.location,
+        limit: board.top,
+      }).then((r) =>
+        (r.clans ?? []).map((c) => ({
+          tag: String(c.clan_tag).toUpperCase(),
+          name: c.clan_name ?? "",
+          count: c.rated_players,
+          best: c.best_rank,
+          rank: c.rank,
+        })),
+      ),
+    );
   }
-  return [...byClan.values()]
-    .sort((a, b) => b.count - a.count || a.best - b.best)
-    .slice(0, board.top)
-    .map((c, i) => ({ ...c, rank: i + 1 }));
+  return fetched.get(key);
 }
 
 export async function syncBoard(

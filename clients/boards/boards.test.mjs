@@ -29,8 +29,46 @@ before(async () => {
       seen.push(call);
       const { name, arguments: args } = call.params;
       let result;
-      if (name === "live_fetch") {
-        result = { structuredContent: { payload: { items: boardItems } } };
+      if (name === "rankings_players") {
+        // The recorded board, paged the way the door pages it.
+        const all = boardItems.map((i) => ({
+          rank: i.rank,
+          player_tag: i.tag,
+          name: i.name,
+          rating: i.eloRating ?? null,
+          clan_tag: i.clan?.tag ?? null,
+          clan_name: i.clan?.name ?? null,
+        }));
+        const offset = args.offset ?? 0;
+        result = {
+          structuredContent: {
+            snapshot: all.length ? { entries: all.length } : null,
+            players: all.slice(offset, offset + (args.limit ?? 100)),
+          },
+        };
+      } else if (name === "rankings_clans") {
+        // The hub's aggregate: count over the whole board, ties by best rank.
+        const by = new Map();
+        for (const i of boardItems) {
+          if (!i.clan) continue;
+          const c = by.get(i.clan.tag) ?? {
+            clan_tag: i.clan.tag,
+            clan_name: i.clan.name,
+            rated_players: 0,
+            best_rank: Infinity,
+          };
+          c.rated_players += 1;
+          c.best_rank = Math.min(c.best_rank, i.rank);
+          by.set(i.clan.tag, c);
+        }
+        const clans = [...by.values()]
+          .sort(
+            (a, b) =>
+              b.rated_players - a.rated_players || a.best_rank - b.best_rank,
+          )
+          .slice(0, args.limit ?? 25)
+          .map((c, n) => ({ ...c, rank: n + 1 }));
+        result = { structuredContent: { clans } };
       } else if (name === "collections_get") {
         result = {
           structuredContent: { kind: memberKind, scope: memberScope, members },
@@ -57,7 +95,7 @@ after(() => server.close());
 
 const board = {
   slug: "pol-global-top-100",
-  path: "/locations/global/pathoflegend/players",
+  location: "global",
   top: 10,
 };
 /** Tags from the real CR alphabet (0289PYLQGRJCUV): the first fixtures
@@ -162,14 +200,23 @@ test("a dry run reports the move and writes nothing", async () => {
   );
 });
 
-test("a malformed tag in the payload is dropped, not passed on", async () => {
+test("the board is read in pages and reassembled whole", async () => {
   const { syncBoard } = await import("./boards.mjs");
   seen = [];
-  boardItems = [...ranked(12), { tag: "not-a-tag" }, { name: "no tag at all" }];
+  // 12 places against a 10-place board: the client pages the record at
+  // 500 a call, so one call here — but the shape is what is pinned: the
+  // top 10 of a board that is longer than 10.
+  boardItems = ranked(12);
   members = [];
+  memberKind = "player";
+  memberScope = "activity";
 
   const out = await syncBoard(board, { dryRun: false });
-  assert.equal(out.size, 10);
+  assert.equal(out.size, 10, JSON.stringify(out));
+  const reads = seen.filter((c) => c.params.name === "rankings_players");
+  assert.equal(reads.length, 1);
+  assert.equal(reads[0].params.arguments.location, "global");
+  assert.equal(reads[0].params.arguments.limit, 500);
   const edit = seen.find((c) => c.params.name === "collections_edit");
   assert.ok(edit.params.arguments.tags.every((t) => t.startsWith("#")));
 });
@@ -182,7 +229,7 @@ test("a malformed tag in the payload is dropped, not passed on", async () => {
  */
 const clanBoard = {
   slug: "global-top-10-clans",
-  path: "/locations/global/pathoflegend/players",
+  location: "global",
   derive: "clans",
   top: 2,
 };
@@ -255,7 +302,7 @@ test("a comprehensive clan collection is refused: that is every member's battles
   );
 });
 
-test("two boards on one ranking spend one live fetch", async () => {
+test("two collections on one board read the record once each way, never the game", async () => {
   const { syncBoard, BOARDS } = await import("./boards.mjs");
   seen = [];
   boardItems = ranked(30).map((i, n) => inClan(n, "#2PPP", "Alpha"));
@@ -264,12 +311,24 @@ test("two boards on one ranking spend one live fetch", async () => {
   memberScope = "activity";
   const fetched = new Map(); // the run's cache, shared by both boards
   await syncBoard(board, { dryRun: true, fetched });
+  await syncBoard(board, { dryRun: true, fetched }); // a second player board on the same ranking
   memberKind = "clan";
   await syncBoard(
-    { ...clanBoard, path: board.path },
+    { ...clanBoard, location: board.location },
     { dryRun: true, fetched },
   );
-  const fetches = seen.filter((c) => c.params.name === "live_fetch");
-  assert.equal(fetches.length, 1, "the second board reused the ranking");
+  const players = seen.filter((c) => c.params.name === "rankings_players");
+  const clans = seen.filter((c) => c.params.name === "rankings_clans");
+  assert.equal(
+    players.length,
+    1,
+    "the ranking was read once for both player boards",
+  );
+  assert.equal(clans.length, 1);
+  assert.equal(
+    seen.filter((c) => c.params.name === "live_fetch").length,
+    0,
+    "nothing reaches the game",
+  );
   assert.ok(BOARDS.some((b) => b.derive === "clans"));
 });
