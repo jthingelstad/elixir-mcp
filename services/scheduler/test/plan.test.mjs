@@ -216,8 +216,27 @@ test("a planned job is not re-enqueued while in flight", async () => {
   assert.equal(second.jobs.length, 0, "last_planned_at suppresses replanning");
 });
 
-test("clan heartbeat respects its 15-minute cadence", async () => {
+test("clan cadence: who cares x how alive it is now (2026-09-11)", async () => {
   await freshenCards(NOW);
+  const setClan = (tag, { hint, churn = null, minutesAgo }) =>
+    db.query(
+      `insert into poll_state (subject_tag, endpoint, hint, yield_bph, last_admitted_at, last_planned_at)
+       values ($1, 'clan', $2, $3, $4, $4)
+       on conflict (subject_tag, endpoint) do update set
+         hint = excluded.hint, yield_bph = excluded.yield_bph,
+         last_admitted_at = excluded.last_admitted_at, last_planned_at = excluded.last_planned_at`,
+      [tag, hint, churn, min(minutesAgo)],
+    );
+  const planned = async () => {
+    await setTokens(100);
+    const { jobs } = await planTick(db, NOW);
+    return jobs
+      .filter((j) => j.endpoint === "clan")
+      .map((j) => j.entity_key)
+      .sort();
+  };
+
+  // An INCIDENTAL clan: a recorded player is in it, nobody tracks it.
   await addPlayer("#20JJJ2CCRU", { clan: "#J2RGCRVG" });
   await setState("#20JJJ2CCRU", "player_battlelog", {
     admitted: min(1),
@@ -227,27 +246,49 @@ test("clan heartbeat respects its 15-minute cadence", async () => {
     admitted: min(1),
     planned: min(1),
   });
-  await setState("#J2RGCRVG", "clan", {
-    admitted: min(10),
-    planned: min(10),
-  });
-  await setTokens(100);
-  const { jobs } = await planTick(db, NOW);
-  assert.equal(jobs.length, 0, "10 minutes since clan poll: not yet due");
-
-  // 18, not 16. Cadences carry a stable per-subject jitter of +/-15%, so a
-  // 15-minute heartbeat is due somewhere in [12.75, 17.25] depending on the
-  // tag -- probing at 16 tested this tag's hash rather than the cadence. Both
-  // probes now sit outside the band, which is what the test always meant.
-  await setState("#J2RGCRVG", "clan", {
-    admitted: min(18),
-    planned: min(18),
-  });
-  const { jobs: jobs2 } = await planTick(db, NOW);
+  // Nothing stamped yet: the active branch - 4 hours, not 15 minutes.
+  await setClan("#J2RGCRVG", { hint: null, minutesAgo: 60 });
+  assert.deepEqual(await planned(), [], "incidental, unknown: not due at 60m");
+  await setClan("#J2RGCRVG", { hint: null, minutesAgo: 300 });
   assert.deepEqual(
-    jobs2.map((j) => `${j.endpoint}:${j.entity_key}`),
-    ["clan:#J2RGCRVG"],
+    await planned(),
+    ["#J2RGCRVG"],
+    "incidental, active: due past 4h",
   );
+  await setClan("#J2RGCRVG", { hint: "idle", minutesAgo: 300 });
+  assert.deepEqual(await planned(), [], "incidental, idle: 12h");
+  await setClan("#J2RGCRVG", { hint: "asleep", minutesAgo: 900 });
+  assert.deepEqual(await planned(), [], "incidental, asleep: 24h");
+  await setClan("#J2RGCRVG", { hint: "asleep", minutesAgo: 1700 });
+  assert.deepEqual(await planned(), ["#J2RGCRVG"]);
+
+  // The same clan once somebody TRACKS it.
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
+     values ('clan', '#J2RGCRVG', $1, 'activity')`,
+    [accountId],
+  );
+  // 18, not 16: cadences carry a stable per-subject jitter of +/-15%, so
+  // 15 minutes is due somewhere in [12.75, 17.25] depending on the tag.
+  await setClan("#J2RGCRVG", { hint: "active", minutesAgo: 10 });
+  assert.deepEqual(await planned(), [], "tracked, active: 10m is not yet 15m");
+  await setClan("#J2RGCRVG", { hint: "active", minutesAgo: 18 });
+  assert.deepEqual(await planned(), ["#J2RGCRVG"], "tracked, active: 15m");
+  await setClan("#J2RGCRVG", { hint: "idle", minutesAgo: 40 });
+  assert.deepEqual(await planned(), [], "tracked, idle: 60m");
+  await setClan("#J2RGCRVG", { hint: "idle", minutesAgo: 75 });
+  assert.deepEqual(await planned(), ["#J2RGCRVG"]);
+  await setClan("#J2RGCRVG", { hint: "idle", churn: 0.2, minutesAgo: 18 });
+  assert.deepEqual(
+    await planned(),
+    ["#J2RGCRVG"],
+    "tracked, idle but churning >=3/day: 15m",
+  );
+  await setClan("#J2RGCRVG", { hint: "asleep", minutesAgo: 200 });
+  assert.deepEqual(await planned(), [], "tracked, asleep: 4h");
+  await setClan("#J2RGCRVG", { hint: "asleep", minutesAgo: 300 });
+  assert.deepEqual(await planned(), ["#J2RGCRVG"]);
+  await db.query(`delete from recording where subject_type = 'clan'`);
 });
 
 test("a leaderboard is planned on its own cadence: the global board hourly, a country daily", async () => {

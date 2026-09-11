@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "Clan rosters follow the clan's day",
+    body: "Every clan was read every 15 minutes around the clock — a heartbeat inherited from the single-clan bot, applied to 288 clans, 258 of them polled only because a top-ranked player happens to be a member. It was 31% of everything the recorder had ever fetched, for rosters whose membership changes zero to three times a day. Now the roster's own lastSeen stamps set the pace: a clan you track is read every 15 minutes while three or more members are in the game, hourly once nobody has been for an hour (unless people are joining and leaving), and every four hours once nobody has been seen for a day. A clan read only because a recorded player is in it is read a few times a day on the same signal; that player's profile polls carry their clan tag, so their membership history is never lost, only coarser. live: true on clans_roster still reads the game this minute.",
+  },
+  {
+    date: "2026-09-11",
     title: "Duplicate battles stop at the collector",
     body: "A battlelog is a player's last 25 battles, and every poll used to carry all 25 to the service, which then discovered it already had most of them. Now the service remembers the newest battle each player's log has delivered, hands that mark to the collector with the lease, and the collector drops everything at or before it before submitting — the body is still exactly the API's array, just the new entries. The collector also reports how many it saw and how many it dropped, which is the capture audit stated plainly: a full log with nothing dropped rolled past what the service had. Live reads are untouched; an agent asking for a player's battles right now still gets the whole log. Collectors that don't yet honour the filter keep working, just as before.",
   },

@@ -91,6 +91,7 @@ export async function ingestClanRoster(
 
   let joined = 0;
   let departed = 0;
+  let roleChanged = 0;
   // Push lane (Jamie, 2026-09-06: "clan notifications aren't working" -
   // the only clan topic was the WEEKLY war boundary): roster changes
   // are the clan happenings people mean. Collected here, emitted by
@@ -142,6 +143,7 @@ export async function ingestClanRoster(
         name: m.name,
         role: m.role,
       });
+      roleChanged += 1;
     }
   }
 
@@ -174,5 +176,22 @@ export async function ingestClanRoster(
     }
   }
 
-  return { members: members.length, joined, departed, feedEvents };
+  // Liveliness, from the game's own lastSeen stamps (2026-09-11): how
+  // many members were in the game within the last hour of this
+  // observation, and within the last day. The clan cadence reads it -
+  // a clan with nobody online cannot be joining, leaving or promoting.
+  const atMs = Date.parse(at);
+  const seenWithin = (ms) =>
+    members.filter(
+      (m) => m.gameLastSeen && atMs - Date.parse(m.gameLastSeen) <= ms,
+    ).length;
+  return {
+    members: members.length,
+    joined,
+    departed,
+    roleChanged,
+    activeNow: seenWithin(3600_000),
+    seen24h: seenWithin(86_400_000),
+    feedEvents,
+  };
 }

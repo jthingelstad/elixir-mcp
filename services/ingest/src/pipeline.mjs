@@ -162,12 +162,49 @@ const PROJECTORS = {
       [entityKey],
     );
     const windowStart = rows[0]?.last_admitted_at?.toISOString() ?? null;
-    return ingestClanRoster(db, {
+    const result = await ingestClanRoster(db, {
       payload,
       observedAt: fetchedAt,
       windowStart,
       receiptId,
     });
+    // The clan cadence's two inputs (2026-09-11), stamped on the clan's
+    // own poll_state row the way the battlelog stamps yield_bph: hint is
+    // liveliness now (active: three or more members in the game this
+    // hour; idle: someone in the last day; asleep: nobody), yield_bph is
+    // the EWMA of membership events per hour (joins, departures, role
+    // changes) over the window since the last admission. Replayed
+    // history stamps nothing.
+    const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
+    if (fresh) {
+      const liveliness =
+        result.activeNow >= 3
+          ? "active"
+          : result.seen24h >= 1
+            ? "idle"
+            : "asleep";
+      const hours = windowStart
+        ? Math.max(
+            (Date.parse(fetchedAt) - Date.parse(windowStart)) / 3600_000,
+            1 / 60,
+          )
+        : null;
+      const events = result.joined + result.departed + result.roleChanged;
+      // Upsert: the freshness stamp that creates the row runs after the
+      // projector, so a clan's first admission has no row yet.
+      await db.query(
+        `insert into poll_state (subject_tag, endpoint, hint, yield_bph)
+         values ($1, 'clan', $2, $3::numeric)
+         on conflict (subject_tag, endpoint) do update set
+           hint = excluded.hint,
+           yield_bph = case
+             when $3::numeric is null then poll_state.yield_bph
+             when poll_state.yield_bph is null then $3::numeric
+             else 0.7 * poll_state.yield_bph + 0.3 * $3::numeric end`,
+        [entityKey, liveliness, hours === null ? null : events / hours],
+      );
+    }
+    return result;
   },
   async player(db, { entityKey, receiptId, payload, fetchedAt }) {
     // Identity refresh + clan auto-follow stamp (§4.2).

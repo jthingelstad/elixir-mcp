@@ -229,6 +229,77 @@ test("valid clan payload projects roster and advances freshness", async () => {
   assert.equal(ps.rows.length, 1);
 });
 
+test("a live roster stamps the clan cadence's inputs: liveliness now and membership churn", async () => {
+  // Fresh fetch (within 24h) so the stamp applies; lastSeen is rewritten
+  // relative to the fetch so the buckets are deterministic.
+  const fetchedAt = new Date(Date.now() - 60_000).toISOString();
+  const cr = (msAgo) =>
+    new Date(Date.parse(fetchedAt) - msAgo)
+      .toISOString()
+      .replaceAll("-", "")
+      .replaceAll(":", "");
+  const clan = structuredClone(await fixture("clan/roster.json"));
+  clan.tag = "#2GUY2";
+  clan.memberList.forEach((m, i) => {
+    // Five members in the game this hour, ten more today, the rest a week ago.
+    m.lastSeen = cr(
+      i < 5 ? 10 * 60_000 : i < 15 ? 5 * 3600_000 : 7 * 86_400_000,
+    );
+  });
+  const r1 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "clan",
+      entityKey: "#2GUY2",
+      payload: clan,
+      fetchedAt,
+    }),
+  );
+  assert.equal(r1.outcome, "admitted", JSON.stringify(r1));
+  assert.equal(r1.projection.activeNow, 5);
+  assert.equal(r1.projection.seen24h, 15);
+  let { rows } = await ctx.db.query(
+    `select hint, yield_bph from poll_state where subject_tag = '#2GUY2' and endpoint = 'clan'`,
+  );
+  assert.equal(rows[0].hint, "active");
+  assert.equal(rows[0].yield_bph, null, "no window yet, so no churn rate");
+
+  // Two hours later: nobody this hour, two members left, one joined -
+  // three events over the window, and the clan reads as idle.
+  const later = new Date(Date.parse(fetchedAt) + 2 * 3600_000).toISOString();
+  const next = structuredClone(clan);
+  next.memberList.forEach((m) => {
+    m.lastSeen = cr(-2 * 3600_000 + 3 * 3600_000); // an hour before `later`
+  });
+  next.memberList.splice(0, 2);
+  next.memberList.push({
+    ...clan.memberList[0],
+    tag: "#2GUY2PY",
+    name: "newcomer",
+  });
+  next.members = next.memberList.length;
+  const r2 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "clan",
+      entityKey: "#2GUY2",
+      payload: next,
+      fetchedAt: later,
+    }),
+  );
+  assert.equal(r2.outcome, "admitted", JSON.stringify(r2));
+  assert.equal(r2.projection.joined, 1);
+  assert.equal(r2.projection.departed, 2);
+  ({ rows } = await ctx.db.query(
+    `select hint, yield_bph from poll_state where subject_tag = '#2GUY2' and endpoint = 'clan'`,
+  ));
+  assert.equal(rows[0].hint, "idle");
+  assert.ok(
+    Math.abs(Number(rows[0].yield_bph) - 1.5) < 0.01,
+    `3 events over 2 hours = 1.5/h, got ${rows[0].yield_bph}`,
+  );
+});
+
 test("unparseable body: rejected receipt, no payload row", async () => {
   const before = (await ctx.db.query(`select count(*)::int n from api_payload`))
     .rows[0].n;

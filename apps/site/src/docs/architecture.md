@@ -228,7 +228,11 @@ Profiles are polled less often than battle logs (every eight hours for
 active players, daily for most, every three days for dormant ones),
 because the record keeps one snapshot per day; the one time-critical
 profile read, the pre-reset capture of the weekly donation counter, is
-forced separately. Clan rosters are read every 15 minutes, and war-race
+forced separately. Clan rosters follow the clan's own day — every 15
+minutes while members of a tracked clan are in the game, coasting to
+hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
+and a few times a day for a clan read only because a recorded player is
+in it — and war-race
 polling reads the period type the API itself reports: tight on war days,
 relaxed on training days, with the war race also raising the battle-log
 cadence of members it names as having just battled. Because every

@@ -155,7 +155,7 @@ export default [
         reads: [
           "River races recorded weekly, corrected as they run",
           "Per-member points, decks used and boat attacks",
-          "Clan facts every 15 minutes",
+          "Clan facts every 15 minutes while your clan is awake",
         ],
         setup: ["Track your clan", "Choose a recording scope"],
         script: {

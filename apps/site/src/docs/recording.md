@@ -96,8 +96,9 @@ it costs proportionally more to run — the member tier has none, so
 `scope: "activity"` there.
 
 Players you track are always comprehensive. A recorded player's current clan is
-also read every 15 minutes for roster and membership tracking, without a slot
-and without polling the other members.
+also read for roster and membership tracking — a few times a day, following
+the clan's own liveliness — without a slot and without polling the other
+members.
 
 ## Relationships, primary, nicknames
 
@@ -183,7 +184,8 @@ other.
 | Battle log, reader cap | any player resolved by a tool call (yours, or one you named) is polled at least hourly for the next 24 hours | – |
 | Battle log, floor | at least daily regardless | – |
 | Profile | every 8 hours for active players (0.5 battles/hour or more), daily for most, every 3 days when dormant; a player somebody tracks directly is capped at 8 hours even when dormant; forced once in the hour before the Monday donation reset | floor 3 days for clan-wide members nobody tracks directly |
-| Clan roster | every 15 minutes | floor 1 hour |
+| Clan roster, tracked | every 15 minutes while members are in the game (three or more seen this hour); hourly once nobody has been for an hour, unless the roster is churning (three or more joins, departures or promotions a day); every 4 hours once nobody has been seen for a day | floor 2 days |
+| Clan roster, incidental | a clan read only because a recorded player is in it: every 4 hours while members are in the game, every 12 hours when idle, daily when nobody has been seen for a day. Their profile polls carry their clan tag, so membership history is never lost, only coarser | floor 2 days |
 | Current river race | every 30 minutes on war days, every 2 hours on training days (the API names the day) | floor 2 hours |
 | River race log | daily | floor 2 days |
 | Card catalog | daily, one fetch for everyone | – |

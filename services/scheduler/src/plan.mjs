@@ -40,7 +40,13 @@ export const CADENCE = {
   // floor lives here.
   player_battlelog: { floor: 1440 },
   player: { floor: 4320 },
-  clan: { every: 15, floor: 60 },
+  // Clan: cadence comes from yieldCadenceMinutes (liveliness and churn
+  // stamped by the roster projector, and whether anyone tracks the clan);
+  // only the fairness floor lives here. Was a flat 15 minutes - the
+  // elixir-bot roster heartbeat inherited verbatim - until 2026-09-11,
+  // when 288 clans (258 of them polled only because a ranked player is a
+  // member) made it 31% of every fetch the recorder had ever made.
+  clan: { floor: 2880 },
   currentriverrace: { every: 30, floor: 120 },
   // Daily log poll: backfill at enrollment IS the first poll; thereafter
   // it heals gaps and delivers final standings (rank/trophyChange).
@@ -79,11 +85,23 @@ export const CADENCE = {
  *    snapshot barely changes), clamped [120m, 4320m].
  *  - currentriverrace: the payload NAMES war days (hint = periodType);
  *    warDay/colosseum poll at 30m, training at 120m, unknown at 30m.
- *  - clan / riverracelog / cards: fixed cadences unchanged — they are
- *    already flat and cheap.
+ *  - clan: who cares x how alive it is now (2026-09-11). A TRACKED
+ *    clan (an active clan recording) reads every 15m while members are
+ *    in the game, 60m when nobody has been for an hour (15m if it is
+ *    churning members, >=3 events/day), 4h when nobody for a day. An
+ *    INCIDENTAL clan (polled only because a recorded player is in it)
+ *    reads at 4h / 12h / 24h on the same three states; its members'
+ *    profile polls carry their clan tag, so membership history is never
+ *    lost, only coarser. Unknown liveliness (a row never stamped) takes
+ *    the active branch: discovery, not dormancy.
+ *  - riverracelog / cards: fixed cadences unchanged — flat and cheap.
  */
 const TARGET_BATCH = 5;
 const DAY = 86_400_000;
+/** Membership events per hour (joins, departures, role changes; EWMA on
+ *  the clan row's yield_bph) above which a tracked clan keeps its
+ *  15-minute cadence even when nobody has been seen this hour: 3 a day. */
+export const CLAN_CHURN_BPH = 3 / 24;
 
 /** The battlelog holds ~30 entries (measured: 1,578 of 2,000 payloads had
  *  exactly 30; the rest more). Loss math uses 30. */
@@ -168,6 +186,18 @@ export function yieldCadenceMinutes(row, now = new Date()) {
   }
   if (row.endpoint === "currentriverrace") {
     return row.hint === "training" ? 120 : 30;
+  }
+  if (row.endpoint === "clan") {
+    const live = row.hint ?? "active";
+    const churning = bph !== null && bph >= CLAN_CHURN_BPH;
+    if (row.clan_tracked) {
+      if (live === "active") return 15;
+      if (live === "idle") return churning ? 15 : 60;
+      return 240;
+    }
+    if (live === "active") return 240;
+    if (live === "idle") return 720;
+    return 1440;
   }
   if (BOARD_ENDPOINTS.has(row.endpoint) && row.board_every != null) {
     return Number(row.board_every);
@@ -371,6 +401,12 @@ async function selectEligible(db, now, arm) {
                  and b.endpoint = 'player_battlelog') as activity_bph,
              exists (select 1 from claim c
                      where c.player_tag = ps.subject_tag) as directly_tracked,
+             -- A clan someone asked us to record, as opposed to one we read
+             -- only because a recorded player is in it (the clan cadence).
+             (ps.endpoint = 'clan' and exists (
+                select 1 from recording r
+                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag
+                  and r.status = 'active')) as clan_tracked,
              -- A leaderboard's own cadence (0068): the global board is
              -- hourly, everything else daily unless its row says otherwise.
              (select b.every_minutes from ranking_board b
@@ -419,7 +455,7 @@ async function selectEligible(db, now, arm) {
            -- fell back to the profile row's own NULL yield_bph, and every
            -- profile kept polling on the 480 branch (measured: 33/h before,
            -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
-           activity_bph, directly_tracked, board_every
+           activity_bph, directly_tracked, clan_tracked, board_every
     from state`,
   );
 
