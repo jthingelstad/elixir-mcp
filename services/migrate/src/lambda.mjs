@@ -27,6 +27,7 @@ import {
 } from "./ops-collectors.mjs";
 import {
   stats,
+  tables,
   ledger,
   warDrift,
   captureAudit,
@@ -62,6 +63,12 @@ export async function handler(event) {
   }
   if (event?.stats) {
     const result = await stats(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.tables) {
+    // Sizes only - no payloads - so the whole answer is loggable.
+    const result = await tables(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

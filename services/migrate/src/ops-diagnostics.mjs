@@ -30,6 +30,66 @@ export async function stats(databaseUrl) {
 }
 
 /**
+ * Where the database's weight and churn are ({tables: true}): every user
+ * table's size (heap, indexes, TOAST), its cumulative row churn since the
+ * stats were last reset, live/dead tuples, and the settings that bound
+ * memory. IAM-only, read-only, no payloads. Added 2026-09-11 when the
+ * t4g.micro swapped itself into an unplanned recovery and the question
+ * was WHICH load, not whether.
+ */
+export async function tables(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(`
+      select s.relname as table_name,
+             pg_total_relation_size(s.relid) as total_bytes,
+             pg_relation_size(s.relid) as heap_bytes,
+             pg_indexes_size(s.relid) as index_bytes,
+             coalesce(pg_total_relation_size(c.reltoastrelid), 0) as toast_bytes,
+             s.n_live_tup as live_rows, s.n_dead_tup as dead_rows,
+             s.n_tup_ins as inserted, s.n_tup_upd as updated, s.n_tup_del as deleted,
+             s.n_tup_hot_upd as hot_updated,
+             s.seq_scan, s.seq_tup_read, s.idx_scan,
+             s.last_autovacuum, s.last_autoanalyze
+      from pg_stat_user_tables s
+      join pg_class c on c.oid = s.relid
+      order by pg_total_relation_size(s.relid) desc`);
+    const { rows: settings } = await db.query(`
+      select name, setting, unit from pg_settings
+      where name in ('shared_buffers', 'work_mem', 'maintenance_work_mem',
+                     'effective_cache_size', 'max_connections', 'autovacuum_work_mem',
+                     'wal_buffers', 'temp_buffers')`);
+    const { rows: reset } = await db.query(
+      `select stats_reset from pg_stat_database where datname = current_database()`,
+    );
+    const { rows: dbsize } = await db.query(
+      `select pg_database_size(current_database()) as bytes`,
+    );
+    return {
+      database_bytes: Number(dbsize[0].bytes),
+      stats_since: reset[0]?.stats_reset ?? null,
+      settings: Object.fromEntries(
+        settings.map((r) => [
+          r.name,
+          r.unit ? `${r.setting} ${r.unit}` : r.setting,
+        ]),
+      ),
+      tables: rows.map((r) =>
+        Object.fromEntries(
+          Object.entries(r).map(([k, v]) => [
+            k,
+            typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v,
+          ]),
+        ),
+      ),
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
  * Ledger incident reader and recovery ({ledger: {op, job_ids?}}).
  *
  * Dead jobs are the collector path's durable DLQ. An operator must be able to

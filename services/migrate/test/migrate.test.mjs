@@ -304,6 +304,24 @@ test("replay op: archive messages flow through the real pipeline in order, attri
   await check.end();
 });
 
+test("tables op: every user table's size and churn, the memory settings, no payloads", async () => {
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const out = await handler({ tables: true });
+  assert.ok(out.database_bytes > 0);
+  assert.ok("shared_buffers" in out.settings && "work_mem" in out.settings);
+  const names = out.tables.map((t) => t.table_name);
+  for (const t of ["battle", "api_receipt", "ranking_entry", "player"])
+    assert.ok(names.includes(t), `${t} is listed`);
+  const battle = out.tables.find((t) => t.table_name === "battle");
+  assert.equal(typeof battle.total_bytes, "number");
+  assert.equal(typeof battle.inserted, "number");
+  assert.ok(
+    !JSON.stringify(out).includes("body_gzip"),
+    "sizes and counters only; nothing from a payload",
+  );
+});
+
 test("probe op: hourly census counts live fetches, excludes the backfill gateway", async () => {
   // Runs after the replay test: the scratch DB holds backfill receipts
   // and battles. Those battles show as harvests; the backfill fetch must
