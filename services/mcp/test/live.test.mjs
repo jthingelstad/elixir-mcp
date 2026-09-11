@@ -289,15 +289,24 @@ test("an overlapping bulk collector's receipt can never satisfy a live wait (iss
   );
 });
 
-test("a second-precision collector clock in the same second as the request still completes the wait (prod 2026-09-06)", async () => {
+test("a second-precision collector clock in the same second as the request still completes the wait (prod 2026-09-06)", async (t) => {
   await db.query(`delete from job`);
-  const profile = await fixture("player/profile.json");
+  // Isolate the receipt identity from earlier tests, and pin a nonzero
+  // millisecond offset so this ALWAYS exercises second truncation. The
+  // polling clock advances explicitly; no host load or wall-clock boundary
+  // can accidentally change the scenario or make a failed wait hang.
+  const profile = { ...(await fixture("player/profile.json")), tag: "#P0Y8LQ" };
+  let clock = Math.floor(Date.now() / 1000) * 1000 + 789;
+  t.mock.method(Date, "now", () => clock);
   const tag = normalizeTag(profile.tag);
   const body = gzipSync(Buffer.from(JSON.stringify(profile))).toString(
     "base64",
   );
   const live = makeLive({
     timeoutMs: 3000,
+    sleep: async (ms) => {
+      clock += ms;
+    },
     enqueue: async (_db, job) => {
       const row = await enqueueJob(db, job);
       // Collectors format fetched_at at second precision: the same second
@@ -305,7 +314,7 @@ test("a second-precision collector clock in the same second as the request still
       const sameSecond = new Date(
         Math.floor(Date.now() / 1000) * 1000,
       ).toISOString();
-      await processResult(db, {
+      const admitted = await processResult(db, {
         v: 1,
         job,
         job_id: Number(row.job_id),
@@ -314,6 +323,11 @@ test("a second-precision collector clock in the same second as the request still
         status: "ok",
         body_gzip_b64: body,
       });
+      assert.equal(
+        admitted.outcome,
+        "admitted",
+        "the isolated receipt must be admitted",
+      );
       return row;
     },
   });
