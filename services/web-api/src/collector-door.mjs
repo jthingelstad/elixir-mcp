@@ -98,6 +98,10 @@ const CONFIG = {
   // going to be.
   overflow_bytes: 5_000_000,
   poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
+  // The one CR read `collector doctor` makes to prove the operator's key
+  // works from the operator's IP. Server-designated like every other
+  // path, so the probe can change without a client release.
+  doctor: { cr_path: "/locations?limit=1" },
 };
 
 // The transport bound on the COMPRESSED body (base64 chars). ONE number,
@@ -180,6 +184,21 @@ async function authGateway(db, event, statuses) {
   return rows[0] ?? null;
 }
 
+/** A token the door knows but will never honour again. Told apart from
+ *  a typo only here, on config, so a revoked operator's box can say so. */
+async function isRevokedToken(db, event) {
+  const header =
+    event.headers?.authorization ?? event.headers?.Authorization ?? "";
+  if (!header.startsWith("Bearer ")) return false;
+  const token = header.slice(7).trim();
+  if (!token.startsWith(TOKEN_PREFIX)) return false;
+  const { rows } = await db.query(
+    `select 1 from gateway where token_hash = $1 and status = 'revoked'`,
+    [sha256hex(token)],
+  );
+  return rows.length > 0;
+}
+
 /** Settle the ledger (which charges every expired lease to its own
  *  gateway), then read this gateway's current streak. */
 async function settleAndInspect(db, gatewayId) {
@@ -226,12 +245,27 @@ export function makeCollectorDoor({
 }) {
   return {
     async config(db, event) {
+      // Config answers a PENDING token too - the most common new-operator
+      // state is "installed, not yet promoted", and from inside the box it
+      // was indistinguishable from a typo (both 401). Lease and submit
+      // still refuse it; config is what `collector doctor` reads.
       const gw = await authGateway(db, event, [
+        "pending",
         "probation",
         "active",
         "draining",
       ]);
-      if (!gw) return { status: 401, body: { error: "unauthenticated" } };
+      if (!gw) {
+        if (await isRevokedToken(db, event))
+          return {
+            status: 403,
+            body: {
+              error: "revoked",
+              hint: "This collector token was revoked by the maintainer; it will never work again. Raise your hand for a new one.",
+            },
+          };
+        return { status: 401, body: { error: "unauthenticated" } };
+      }
       if (!(await withinBudget(db, gw.gateway_id, "config")))
         return budgetRefusal("config");
       const { rows: rel } = await db.query(
@@ -242,6 +276,10 @@ export function makeCollectorDoor({
         body: {
           ...CONFIG,
           gateway: { name: gw.name, channel: gw.channel, status: gw.status },
+          // The caller's address as the door saw it: the egress IP the
+          // operator must allowlist on their CR key, read without the
+          // collector talking to anything but this door.
+          observed_ip: event.requestContext?.http?.sourceIp ?? null,
           update: Object.fromEntries(
             rel.map((r) => [
               r.platform,

@@ -104,20 +104,50 @@ test("auth: bad, missing, and revoked tokens never pass", async () => {
   for (const ev of [
     { headers: {} },
     authed("emcg_wrong"),
-    authed(TOKEN_REVOKED),
     { headers: { authorization: "Bearer svc_not_a_gateway" } },
   ]) {
     const r = await door.config(db, ev);
     assert.equal(r.status, 401);
+    const l = await door.lease(db, ev, {});
+    assert.equal(l.status, 401);
   }
+  // A revoked token is refused everywhere, and told so on config only,
+  // where `collector doctor` reads it: "revoked" is not "typo".
+  const r = await door.config(db, authed(TOKEN_REVOKED));
+  assert.equal(r.status, 403);
+  assert.equal(r.body.error, "revoked");
+  assert.equal((await door.lease(db, authed(TOKEN_REVOKED), {})).status, 401);
 });
 
-test("config: contract constants, channel, and the update authority", async () => {
-  const r = await door.config(db, authed(TOKEN_BULK));
+test("config: contract constants, channel, the update authority, and what doctor needs", async () => {
+  const r = await door.config(db, {
+    ...authed(TOKEN_BULK),
+    requestContext: { http: { sourceIp: "203.0.113.7" } },
+  });
   assert.equal(r.status, 200);
   assert.equal(r.body.pacing_ms, 1500);
   assert.equal(r.body.gateway.channel, "bulk");
   assert.equal(r.body.update["go-darwin-arm64"].version, "2.0.0");
+  assert.equal(
+    r.body.observed_ip,
+    "203.0.113.7",
+    "the egress IP as the door saw it",
+  );
+  assert.equal(r.body.doctor.cr_path, "/locations?limit=1");
+});
+
+test("a pending token reads config (so doctor can say 'not yet promoted') but leases nothing", async () => {
+  const TOKEN_PENDING = "emcg_pending_token";
+  await db.query(
+    `insert into gateway (owner_account_id, name, token_hash, channel, status)
+     select owner_account_id, 'pending-op', $1, 'bulk', 'pending' from gateway limit 1`,
+    [sha256(TOKEN_PENDING)],
+  );
+  const cfg = await door.config(db, authed(TOKEN_PENDING));
+  assert.equal(cfg.status, 200);
+  assert.equal(cfg.body.gateway.status, "pending");
+  assert.equal((await door.lease(db, authed(TOKEN_PENDING), {})).status, 401);
+  assert.equal((await door.submit(db, authed(TOKEN_PENDING), {})).status, 401);
 });
 
 test("ledger: enqueue dedups per subject and live upgrades bulk", async () => {

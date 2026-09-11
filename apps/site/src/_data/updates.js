@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "The collector door tells a new operator where they stand",
+    body: 'Three small additions to what a collector\'s config call returns, for the preflight command the next collector release carries (collector doctor): the address your requests arrive from, which is the one to allowlist on your Clash Royale key; the one Clash Royale path the collector may read to prove that key works from there; and an answer for a token that is installed but not yet promoted — pending reads config and nothing else, so the operator sees "not yet promoted" instead of the same 401 a typo gets. A revoked token is told so on config, once. The operators page now states the payload ceiling as it actually is, 5 MB compressed, not the 250 KB it inherited from the SQS era.',
+  },
+  {
+    date: "2026-09-11",
     title: "The season finals, filed under the right seasons",
     body: "This morning's finals backfill fetched each season's final board by a bare number and took that number for the season the game clock counts — it is the position in the API's own list of seasons, eight higher. What the record called the S135 final was December 2025's; the eight finals since, January through August 2026, were never fetched. Every held final is relabelled (S89 through S127, October 2022 onward), the missing eight are being fetched now, and finals are fetched by the API's own name for a season from here on — the month it started in. That name is also accepted as the season argument (2026-08 beside 135), and the snapshot carries both. Contract 1.5.0. For the record there are three season numberings in play: the game clock's (S136 is September 2026), the in-game Pass's (Season 87, which the API never mentions), and the API's YYYY-MM.",
   },

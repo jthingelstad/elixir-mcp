@@ -89,14 +89,20 @@ Three routes, all `Authorization: Bearer emcg_…`:
 
 | Route | Allowed while | Limit |
 |---|---|---|
-| `GET /api/collector/config` | probation, active, draining | 120 per hour |
+| `GET /api/collector/config` | pending, probation, active, draining | 120 per hour |
 | `POST /api/collector/lease` | probation, active | 10,000 per hour shared with submit; at most 2 unsubmitted leases |
 | `POST /api/collector/submit` | probation, active, draining | same |
 
 Config hands out pacing (1,500 ms between fetches), the 403 breaker (5 in
-a row, 300 s cooldown), the payload ceiling (250,000 bytes compressed), poll
-waits (live 8 s, bulk 2 s, idle backoff 20 s), your channel, and the one
-release version and SHA-256 you may run. A lease expires after 90 seconds
+a row, 300 s cooldown), the payload ceiling (5,000,000 bytes compressed and
+base64-encoded), poll waits (live 8 s, bulk 2 s, idle backoff 20 s), your
+channel, your status, the address your requests arrive from (`observed_ip`
+— the one to allowlist on your CR key), the one Clash Royale path
+`collector doctor` may read to prove your key works from there, and the
+one release version and SHA-256 you may run. A `pending` token can read
+config and nothing else, so `doctor` can tell you "installed, not yet
+promoted" instead of an error; a revoked token is told so (403 `revoked`)
+on config alone. A lease expires after 90 seconds
 unsubmitted; ten expired leases in a row quarantine the collector (it moves
 to `draining`, you are notified, and lease answers 409 `quarantined`).
 Submit answers only after the payload is admitted and committed; a rejected
