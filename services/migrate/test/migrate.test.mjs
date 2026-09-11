@@ -447,6 +447,33 @@ test("feedback_respond accepts related_tools as an array or a comma string", asy
   assert.deepEqual(normalizeRelatedTools(""), []);
 });
 
+test("feedback_pending returns the attached request id needed for triage", async () => {
+  const { feedbackPending } = await import("../src/ops-feedback.mjs");
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  try {
+    const {
+      rows: [account],
+    } = await db.query(
+      `insert into account (email_hash, status)
+       values ('feedback-pending-request', 'approved') returning account_id`,
+    );
+    const requestId = "00000000-0000-4000-8000-000000000067";
+    await db.query(
+      `insert into feedback (account_id, surface, message, request_id)
+       values ($1, 'mcp', 'show the call attachment to the loop', $2)`,
+      [account.account_id, requestId],
+    );
+    const result = await feedbackPending(SCRATCH_URL);
+    const item = result.items.find(
+      (feedback) => feedback.message === "show the call attachment to the loop",
+    );
+    assert.equal(item.request_id, requestId);
+  } finally {
+    await db.end();
+  }
+});
+
 // The column itself accepts what the normalizer produces.
 test("normalized related_tools round-trips through the text[] column", async () => {
   const { normalizeRelatedTools } = await import("../src/ops-feedback.mjs");

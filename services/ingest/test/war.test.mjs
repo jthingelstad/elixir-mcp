@@ -56,12 +56,19 @@ test("with logged history: week, standings, POINTS participation, attendance", a
   assert.equal(result.warDay, 4);
 
   const { rows: standings } = await ctx.db.query(
-    `select count(*)::int n, max(fame)::int top from war_week_clan
+    `select count(*)::int n, max(fame)::int top,
+            max(period_points)::int as top_period_points
+     from war_week_clan
      where clan_tag = $1 and season_id = 135 and section_index = 3`,
     [CLAN],
   );
   assert.equal(standings[0].n, war.clans.length, "all race clans recorded");
   assert.ok(standings[0].top > 0, "boat fame recorded at clan level");
+  assert.equal(
+    standings[0].top_period_points,
+    Math.max(...war.clans.map((clan) => clan.periodPoints ?? 0)),
+    "the current day's period points stay distinct from banked fame",
+  );
 
   const { rows: part } = await ctx.db.query(
     `select count(*)::int n, sum(points)::int total from war_participation
@@ -98,6 +105,34 @@ test("MAX-merge: a lagging payload never regresses counters", async () => {
     [someone.tag],
   );
   assert.equal(rows[0].points, before, "stale lower value ignored");
+});
+
+test("period points follow the newest observation across a day reset", async () => {
+  const newer = structuredClone(await fixture("currentriverrace/war_day.json"));
+  newer.clans[0].periodPoints = 25;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: newer,
+    fetchedAt: "2026-08-31T08:00:00Z",
+  });
+  const stale = structuredClone(newer);
+  stale.clans[0].periodPoints = 900;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: stale,
+    fetchedAt: "2026-08-31T07:59:00Z",
+  });
+  const { rows } = await ctx.db.query(
+    `select period_points from war_week_clan
+     where clan_tag = $1 and season_id = 135 and section_index = 3
+       and participant_clan_tag = $2`,
+    [CLAN, newer.clans[0].tag],
+  );
+  assert.equal(
+    rows[0].period_points,
+    25,
+    "a newer reset can lower the day score; stale delivery cannot restore it",
+  );
 });
 
 test("war keys stamp onto ingested war battles from their own time", async () => {

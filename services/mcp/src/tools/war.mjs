@@ -213,7 +213,7 @@ export const warTools = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists (name + tag) and drops the participants array. live: true reads ANY clan fresh from the game first (one live fetch), recorded or not.",
+      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists (name + tag) and drops the participants array. live: true reads ANY clan fresh from the game first (one live fetch), recorded or not.",
     inputSchema: {
       type: "object",
       properties: {
@@ -288,7 +288,8 @@ export const warTools = {
         nextWarDayOpensAt = period.next_war_day_opens_at;
       }
       const standings = await ctx.db.query(
-        `select participant_clan_tag, participant_name, fame, rank, trophy_change, finish_time
+        `select participant_clan_tag, participant_name, fame, period_points,
+                rank, trophy_change, finish_time
            from war_week_clan
            where clan_tag = $1 and season_id = $2 and section_index = $3
            order by rank nulls last, fame desc`,
@@ -437,7 +438,10 @@ export const warTools = {
           verbosity: compact ? "compact" : "full",
           live: args.live === true ? true : undefined,
         }),
-        standings: standings.rows,
+        standings: standings.rows.map((row) => ({
+          ...row,
+          finish_time: row.finish_time?.toISOString() ?? null,
+        })),
         ...(compact ? {} : { participants: participation.rows }),
         participants_count: participation.rows.length,
         member_count:
@@ -463,7 +467,7 @@ export const warTools = {
         ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
         notes: notes(
           "points are per-member contributions; fame belongs to the boat (the clan).",
-          "standings mirror the game's race payload, so a zero-fame rival can be real (an inactive bracket).",
+          "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
           decksToday
             ? "decks_today trails actual play early in a day: cite it as observed so far, never as final."
@@ -488,7 +492,7 @@ export const warTools = {
 
   war_history: {
     description:
-      "Recorded war weeks for a clan, yours by default: final ranks, boat fame, and with player_tag (or on_behalf_of) one member's per-week points, decks and war days battled. seasons says how far back; from/to are not needed here.",
+      "Recorded war weeks for a clan, yours by default: final ranks and boat fame. With player_tag (or on_behalf_of), returns one member's per-week points, decks and war days battled. With season_id and section_index together, returns that exact week plus every recorded participant in member_weeks. seasons says how far back otherwise; from/to are not needed here.",
     inputSchema: {
       type: "object",
       properties: {
@@ -504,6 +508,19 @@ export const warTools = {
           maximum: 12,
           default: 3,
           description: "How many seasons back.",
+        },
+        season_id: {
+          type: "integer",
+          minimum: 0,
+          description:
+            "Exact season to read; supply section_index too. Returns every recorded participant for that week unless player_tag focuses one.",
+        },
+        section_index: {
+          type: "integer",
+          minimum: 0,
+          maximum: 5,
+          description:
+            "Exact section (week) within season_id; supply season_id too.",
         },
       },
       additionalProperties: false,
@@ -529,25 +546,42 @@ export const warTools = {
           "bad_request",
           `seasons must be an integer from 1 to 12 (got ${args.seasons}).`,
         );
+      const hasSeason = args.season_id !== undefined;
+      const hasSection = args.section_index !== undefined;
+      if (hasSeason !== hasSection)
+        throw new ToolFailure(
+          "bad_request",
+          "season_id and section_index must be supplied together.",
+        );
+      const exactSeason = hasSeason ? Number(args.season_id) : null;
+      const exactSection = hasSection ? Number(args.section_index) : null;
       const { rows: weeks } = await ctx.db.query(
         `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at,
-                own.fame as our_fame, own.rank as our_rank, own.trophy_change
+                own.fame as our_fame, own.rank as our_rank, own.trophy_change,
+                (w.season_id, w.section_index) =
+                  (select season_id, section_index from war_week
+                   where clan_tag = $1
+                   order by season_id desc, section_index desc limit 1) as is_latest_recorded
          from war_week w
          left join war_week_clan own on own.clan_tag = w.clan_tag
            and own.season_id = w.season_id and own.section_index = w.section_index
            and own.participant_clan_tag = w.clan_tag
          where w.clan_tag = $1
-           and w.season_id > coalesce((select max(season_id) from war_week where clan_tag = $1), 0) - $2
+           and (($3::integer is not null
+                 and w.season_id = $3 and w.section_index = $4)
+                or ($3::integer is null and w.season_id > coalesce(
+                  (select max(season_id) from war_week where clan_tag = $1), 0) - $2))
          order by w.season_id desc, w.section_index desc`,
-        [clanTag, seasons],
+        [clanTag, seasons, exactSeason, exactSection],
       );
       let memberWeeks = null;
-      if (focus) {
+      if (focus || hasSeason) {
         // war_days_battled unions TWO observation sources — decksUsedToday
         // polls AND the member's own recorded war battles. Null when the
         // week has NO coverage from either source.
         const { rows } = await ctx.db.query(
-          `select wp.season_id, wp.section_index, wp.points, wp.decks_used, wp.boat_attacks,
+          `select wp.player_tag, p.name, wp.season_id, wp.section_index,
+                  wp.points, wp.decks_used, wp.boat_attacks,
                   case when exists (select 1 from war_attendance_day cov
                                     where cov.clan_tag = wp.clan_tag
                                       and cov.season_id = wp.season_id
@@ -582,10 +616,17 @@ export const warTools = {
                                  and b.season_id = wp.season_id and b.section_index = wp.section_index
                                  and b.war_day is not null) d) as war_days
            from war_participation wp
-           where wp.clan_tag = $1 and wp.player_tag = $2
-             and wp.season_id > coalesce((select max(season_id) from war_week where clan_tag = $1), 0) - $3
-           order by wp.season_id desc, wp.section_index desc limit 40`,
-          [clanTag, focus, seasons],
+           left join player p on p.player_tag = wp.player_tag
+           where wp.clan_tag = $1
+             and ($2::text is null or wp.player_tag = $2)
+             and (($4::integer is not null
+                   and wp.season_id = $4 and wp.section_index = $5)
+                  or ($4::integer is null and wp.season_id > coalesce(
+                    (select max(season_id) from war_week where clan_tag = $1), 0) - $3))
+           order by wp.season_id desc, wp.section_index desc, wp.points desc,
+                    p.name nulls last
+           ${hasSeason ? "" : "limit 40"}`,
+          [clanTag, focus, seasons, exactSeason, exactSection],
         );
         // war_days: the day indices battled, so "played 3 of 4" can become
         // "missed day 2" (feedback item 30, 2026-09-10). Null when unknown.
@@ -596,12 +637,13 @@ export const warTools = {
       }
       // The chronologically-latest unfinished week is the one still being
       // fought; older null-standings weeks are capture gaps.
-      const newest = weeks[0];
       return {
         clan_tag: clanTag,
         applied: appliedBlock({
           clan_tag: clanTag,
-          seasons,
+          seasons: hasSeason ? undefined : seasons,
+          season_id: exactSeason ?? undefined,
+          section_index: exactSection ?? undefined,
           member: focus ?? undefined,
         }),
         weeks: weeks.map((w) => ({
@@ -609,7 +651,9 @@ export const warTools = {
           section_index: w.section_index,
           is_colosseum: w.is_colosseum,
           in_progress:
-            w === newest && w.finished_observed_at === null ? true : undefined,
+            w.is_latest_recorded && w.finished_observed_at === null
+              ? true
+              : undefined,
           finished: w.finished_observed_at?.toISOString() ?? null,
           our_rank: w.our_rank,
           our_fame: w.our_fame,
@@ -620,7 +664,7 @@ export const warTools = {
             : {}),
           trophy_change: w.trophy_change,
         })),
-        ...(weeks.length > 0
+        ...(!hasSeason && weeks.length > 0
           ? {
               history_starts_at: {
                 season_id: weeks[weeks.length - 1].season_id,
@@ -628,15 +672,20 @@ export const warTools = {
               },
             }
           : {}),
-        ...(focus ? { member: focus, member_weeks: memberWeeks } : {}),
+        ...(focus ? { member: focus } : {}),
+        ...(focus || hasSeason ? { member_weeks: memberWeeks } : {}),
         notes: notes(
           "points are per-member contributions; fame belongs to the boat (the clan).",
           "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
-          focus
-            ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
-            : "Pass player_tag for one member's week-by-week participation (member_weeks).",
+          hasSeason && !focus
+            ? "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled."
+            : focus
+              ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
+              : "Pass player_tag for one member's week-by-week participation (member_weeks).",
           "finished_early marks regular weeks where the boat hit the 10,000-fame line: decks used after the finish earn zero points, so per-deck math there is invalid.",
-          "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
+          hasSeason
+            ? null
+            : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
         ),
         docs: WAR_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),

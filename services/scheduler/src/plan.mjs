@@ -82,6 +82,10 @@ export const BURST_TTL_DAYS = 14;
  *  ones parked on the 24h fairness clamp (three of seven were, live). */
 export const READ_CAP_MINUTES = 60;
 export const READ_TTL_HOURS = 24;
+/** A player explicitly present in an account's Tracking list gets a profile
+ * at least every eight hours. Clan-wide comprehensive capture can still use
+ * the yield cadence for members nobody follows directly. */
+export const DIRECT_PROFILE_CAP_MINUTES = 480;
 
 /**
  * Minutes the loss-aware bound allows, or null when the row carries no
@@ -133,13 +137,17 @@ export function yieldCadenceMinutes(row, now = new Date()) {
       row.activity_bph === null || row.activity_bph === undefined
         ? bph
         : Number(row.activity_bph);
-    if (activity === null) return 480;
-    if (activity <= 0.02) return 4320;
+    let cadence;
+    if (activity === null) cadence = 480;
+    else if (activity <= 0.02) cadence = 4320;
     // Active players used to take 120m here, which was 70% of all profile
     // spend (measured 2026-09-09) for a projection that is a DAILY
     // snapshot; the pre-reset watcher forces the one time-critical read.
-    if (activity >= 0.5) return 480;
-    return 1440;
+    else if (activity >= 0.5) cadence = 480;
+    else cadence = 1440;
+    return row.directly_tracked
+      ? Math.min(cadence, DIRECT_PROFILE_CAP_MINUTES)
+      : cadence;
   }
   if (row.endpoint === "currentriverrace") {
     return row.hint === "training" ? 120 : 30;
@@ -295,6 +303,8 @@ async function selectEligible(db, now, arm) {
              (select b.yield_bph from poll_state b
                where b.subject_tag = ps.subject_tag
                  and b.endpoint = 'player_battlelog') as activity_bph,
+             exists (select 1 from claim c
+                     where c.player_tag = ps.subject_tag) as directly_tracked,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
       where (ps.endpoint in ('player_battlelog', 'player') and (
@@ -328,7 +338,7 @@ async function selectEligible(db, now, arm) {
            -- fell back to the profile row's own NULL yield_bph, and every
            -- profile kept polling on the 480 branch (measured: 33/h before,
            -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
-           activity_bph
+           activity_bph, directly_tracked
     from state`,
   );
 

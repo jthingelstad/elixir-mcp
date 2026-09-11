@@ -4,6 +4,12 @@
  * observed_at remain unknown rather than acquiring invented midnight times.
  */
 export async function captureCoverage(db, playerTag) {
+  const { rows: latestRows } = await db.query(
+    `select max(observed_at) as latest_observed_at
+     from player_snapshot_daily
+     where player_tag = $1 and snapshot_kind = 'daily'`,
+    [playerTag],
+  );
   const { rows } = await db.query(
     `with snapshots as (
        select observed_at as observed_to,
@@ -77,6 +83,15 @@ export async function captureCoverage(db, playerTag) {
       n + (Date.parse(r.observed_to) - Date.parse(r.observed_from)) / 3600_000,
     0,
   );
+  const latestObservedAt = latestRows[0]?.latest_observed_at ?? null;
+  const unmeasuredTailHours = latestObservedAt
+    ? Number(
+        Math.max(
+          0,
+          (Date.now() - latestObservedAt.getTime()) / 3600_000,
+        ).toFixed(2),
+      )
+    : null;
   return {
     observation_intervals: intervals,
     completeness_last_7_days: {
@@ -94,8 +109,9 @@ export async function captureCoverage(db, playerTag) {
       measured_intervals: known.length,
       measured_span: measuredSpan,
       measured_hours: known.length ? Number(measuredHours.toFixed(2)) : null,
+      unmeasured_tail_hours: unmeasuredTailHours,
       unknown_intervals: intervals.length - known.length,
-      note: "Estimate over observation intervals ending in the last seven days; an interval can begin earlier. Battles are counted in (observed_from, observed_to]. average_ratio is weighted by expected battles. IT DOES NOT MEAN THE WEEK WAS FULLY OBSERVED: measured_span is the first-to-last extent of the intervals behind it and measured_hours is their summed duration, so a high ratio over a few hours describes only those hours - compare measured_hours against 168 before reading average_ratio as a week. This does not measure unbracketed history or the tail after the latest profile; incomplete_days is deprecated and always null.",
+      note: "Estimate over observation intervals ending in the last seven days; an interval can begin earlier. Battles are counted in (observed_from, observed_to]. average_ratio is weighted by expected battles. IT DOES NOT MEAN THE WEEK WAS FULLY OBSERVED: measured_span is the first-to-last extent of the intervals behind it and measured_hours is their summed duration, so a high ratio over a few hours describes only those hours - compare measured_hours against 168 before reading average_ratio as a week. unmeasured_tail_hours is the unbracketed time since the latest profile snapshot; incomplete_days is deprecated and always null.",
     },
   };
 }

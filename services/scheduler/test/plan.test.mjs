@@ -342,10 +342,45 @@ test("yield cadence: harvest-target battlelog, stretched profiles, hinted war da
     c({ endpoint: "player", yield_bph: null, activity_bph: 0.01 }),
     4320,
   );
+  assert.equal(
+    c({
+      endpoint: "player",
+      yield_bph: null,
+      activity_bph: 0.01,
+      directly_tracked: true,
+    }),
+    480,
+    "a directly tracked player's profile has an eight-hour nominal cap",
+  );
   // The payload names war days.
   assert.equal(c({ endpoint: "currentriverrace", hint: "training" }), 120);
   assert.equal(c({ endpoint: "currentriverrace", hint: "warDay" }), 30);
   assert.equal(c({ endpoint: "currentriverrace", hint: null }), 30);
+});
+
+test("a direct claim carries the eight-hour profile cap into planning", async () => {
+  await freshenCards(NOW);
+  await addPlayer("#QRYJCU");
+  await db.query(
+    `insert into claim (account_id, player_tag)
+     values ($1, '#QRYJCU')`,
+    [accountId],
+  );
+  await setState("#QRYJCU", "player_battlelog", {
+    yieldBph: 0.01,
+    admitted: min(1),
+    planned: min(1),
+  });
+  await setState("#QRYJCU", "player", {
+    admitted: min(600),
+    planned: min(600),
+  });
+  await setTokens(100);
+  const { jobs } = await planTick(db, NOW);
+  assert.deepEqual(
+    jobs.map((job) => `${job.endpoint}:${job.entity_key}`),
+    ["player:#QRYJCU"],
+  );
 });
 
 test("yield ranking: busy-and-a-bit-overdue beats dormant-and-long-overdue; floors still dominate", async () => {

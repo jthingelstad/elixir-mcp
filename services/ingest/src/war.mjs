@@ -126,10 +126,18 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   for (const c of payload.clans ?? []) {
     await db.query(
       `insert into war_week_clan
-         (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, finish_time)
-       values ($1, $2, $3, $4, $5, $6, $7)
+         (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
+          fame, period_points, period_points_observed_at, finish_time)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        on conflict (clan_tag, season_id, section_index, participant_clan_tag) do update set
          fame = greatest(war_week_clan.fame, excluded.fame),
+         period_points = case
+           when excluded.period_points_observed_at >= coalesce(
+             war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
+           then excluded.period_points else war_week_clan.period_points end,
+         period_points_observed_at = greatest(
+           war_week_clan.period_points_observed_at,
+           excluded.period_points_observed_at),
          participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
          finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)`,
       [
@@ -139,6 +147,8 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
         normalizeTag(c.tag),
         c.name ?? null,
         c.fame ?? 0,
+        c.periodPoints ?? null,
+        fetchedAt,
         c.finishTime ? crTimeToIso(c.finishTime) : null,
       ],
     );

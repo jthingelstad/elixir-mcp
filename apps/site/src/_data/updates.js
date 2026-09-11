@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-10",
+    title: "War scores separate the day, and one call closes a week",
+    body: "Three reports from the agents using the record are fixed in contract 1.2.0. war_current now keeps period_points, the score a clan has earned in the current war day, beside fame, the cumulative boat score banked when a day closes — so day-one fame can honestly be zero while members already have points. war_history can take season_id and section_index together and return every recorded participant for that exact week, including which numbered war days each member fought; one closed-week roster no longer takes a call per member. elixir_coverage now names unmeasured_tail_hours instead of leaving the stale tail as prose, and a player somebody tracks directly gets a profile at least every eight hours even when dormant. The existing clan-wide yield schedule remains for members nobody follows directly.",
+  },
+  {
+    date: "2026-09-10",
     title: "Approval starts recording what you asked for",
     body: "The player tag on your access request is claimed and recorded the moment you are approved, and the clan that player is in is followed too, at activity scope — the one clan slot every tier has, which is exactly what it is for. Sign in and the console already knows who you are. Two related fixes: tracking a player another account already records now shows you their history instead of an empty page (the recording belongs to the player, not to whoever asked first), and the Tracking page's nudge to follow your own clan offers the slot you actually have rather than a comprehensive one it would refuse.",
   },

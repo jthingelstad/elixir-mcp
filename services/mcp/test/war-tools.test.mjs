@@ -126,19 +126,51 @@ test("war_current: latest recorded week with standings, points, note", async () 
   assert.equal(body.season_id, 134, "latest week in the log fixture");
   assert.ok(body.standings.length >= 5);
   assert.ok(body.standings.every((s) => typeof s.fame === "number"));
+  assert.ok(
+    body.standings.every(
+      (s) =>
+        Object.hasOwn(s, "period_points") &&
+        (s.period_points === null || typeof s.period_points === "number"),
+    ),
+    "current-day points are exposed separately; finished-log-only rows stay unknown",
+  );
   assert.ok(body.participants.length > 10);
   assert.ok(
     body.participants.every((p) => typeof p.in_clan === "boolean"),
     "every participant carries in_clan",
   );
   assert.match(body.notes.join(" "), /points are per-member/);
-  assert.match(body.notes.join(" "), /zero-fame rival can be real/);
+  assert.match(body.notes.join(" "), /banked at the day close/);
 });
 
 test("war_history: ranks per week and one member focus with attendance", async () => {
   const { body } = await call(invoke, "war_history", { seasons: 3 });
   assert.ok(body.weeks.length >= 9, "the log fixture spans ten weeks");
   assert.ok(body.weeks.every((w) => w.our_rank >= 1 && w.our_rank <= 5));
+
+  const closed = body.weeks.find((week) => !week.in_progress);
+  const allMembers = await call(invoke, "war_history", {
+    season_id: closed.season_id,
+    section_index: closed.section_index,
+  });
+  assert.equal(allMembers.isError, false, JSON.stringify(allMembers.body));
+  assert.equal(allMembers.body.weeks.length, 1, "exact week means one week");
+  assert.ok(
+    allMembers.body.member_weeks.length > 1,
+    "one closed-week call returns every recorded member",
+  );
+  assert.ok(
+    allMembers.body.member_weeks.every(
+      (week) =>
+        typeof week.player_tag === "string" && Object.hasOwn(week, "war_days"),
+    ),
+    "each member row is identified and carries the day indices when known",
+  );
+  const halfExact = await call(invoke, "war_history", {
+    season_id: closed.season_id,
+  });
+  assert.equal(halfExact.isError, true);
+  assert.equal(halfExact.body.error.code, "bad_request");
   // A member with points across MORE than one season, so the seasons
   // window has something to narrow.
   const focusTag = (

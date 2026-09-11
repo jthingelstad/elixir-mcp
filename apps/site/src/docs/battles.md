@@ -144,6 +144,14 @@ boat, the clan as a whole: the standings show each clan's fame and the
 week's finish line is a fame total. Dividing a clan's fame among its members
 is not a computation the record supports, and it is never done here.
 
+During a war day, `war_current.standings` also carries `period_points`: the
+clan's score in the day currently being fought. `fame` is the cumulative boat
+score banked when a day closes. They deliberately do not move together, so on
+war day 1 a clan can have non-zero member points and `period_points` while its
+banked `fame` is still zero.
+Rows restored only from finished race history have `period_points: null`
+because that endpoint does not report the former current-day value.
+
 `war_history` returns one row per recorded week with:
 
 - `in_progress`, true while the week is still being fought; on older weeks a
@@ -158,6 +166,11 @@ is not a computation the record supports, and it is never done here.
   `war_days_battled` counts the days they fought and `war_days` lists the day
   indices; `null` `war_days_battled` means per-day attendance is unknown for
   that week, not zero.
+
+Supply `season_id` and `section_index` together to select one exact week.
+Without `player_tag`, `member_weeks` then contains every recorded participant
+for that week, including their tag, name, points, decks, boat attacks and the
+same per-day attendance fields. This is the one-call closed-week roster path.
 
 Which day it is, and why a member can appear with more decks than a day
 holds, is on [Time and clocks](/docs/clocks#the-policy-day).

@@ -137,6 +137,12 @@ test("coverage uses matching observation intervals and updates when late battles
   assert.equal(complete.observation_intervals[0].ratio, 1);
   assert.equal(complete.completeness_last_7_days.incomplete_days, null);
   assert.equal(complete.completeness_last_7_days.incomplete_intervals, 0);
+  assert.equal(
+    typeof complete.completeness_last_7_days.unmeasured_tail_hours,
+    "number",
+    "the unbracketed tail is explicit beside the measured coverage",
+  );
+  assert.ok(complete.completeness_last_7_days.unmeasured_tail_hours < 0.1);
 });
 
 test("oversized tool output is a bounded JSON failure retaining the request receipt", async () => {

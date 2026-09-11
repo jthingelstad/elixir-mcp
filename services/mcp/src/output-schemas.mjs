@@ -344,7 +344,26 @@ export const OUTPUT_SCHEMAS = {
       war_day: { type: ["integer", "null"] },
       next_war_day_opens_at: { type: ["string", "null"] },
       applied: { type: "object" },
-      standings: { type: "array" },
+      standings: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            participant_clan_tag: TAG,
+            participant_name: { type: ["string", "null"] },
+            fame: COUNT,
+            period_points: {
+              type: ["integer", "null"],
+              description:
+                "Score in the current war day; null when only finished history was captured.",
+            },
+            rank: { type: ["integer", "null"] },
+            trophy_change: { type: ["integer", "null"] },
+            finish_time: { type: ["string", "null"] },
+          },
+          required: ["participant_clan_tag", "fame", "period_points"],
+        },
+      },
       participants: { type: "array" },
       participants_count: COUNT,
       member_count: COUNT,
@@ -508,7 +527,35 @@ export const OUTPUT_SCHEMAS = {
         properties: { first_date: { type: ["string", "null"] } },
       },
       observation_intervals: { type: "array" },
-      completeness_last_7_days: { type: "object" },
+      completeness_last_7_days: {
+        type: "object",
+        description:
+          "Measured intervals plus the explicit unmeasured tail after the latest profile snapshot.",
+        properties: {
+          average_ratio: { type: ["string", "null"] },
+          incomplete_days: { type: "null" },
+          incomplete_intervals: { type: ["integer", "null"] },
+          measured_intervals: COUNT,
+          measured_span: { type: ["object", "null"] },
+          measured_hours: { type: ["number", "null"] },
+          unmeasured_tail_hours: {
+            type: ["number", "null"],
+            description:
+              "Hours since the latest profile snapshot; not included in average_ratio.",
+          },
+          unknown_intervals: COUNT,
+        },
+        required: [
+          "average_ratio",
+          "incomplete_days",
+          "incomplete_intervals",
+          "measured_intervals",
+          "measured_span",
+          "measured_hours",
+          "unmeasured_tail_hours",
+          "unknown_intervals",
+        ],
+      },
       notes: NOTES,
       docs: DOCS,
       meta: META,

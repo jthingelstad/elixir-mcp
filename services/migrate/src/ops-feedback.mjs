@@ -8,7 +8,7 @@ export async function feedbackPending(databaseUrl) {
   await db.connect();
   try {
     const { rows } = await db.query(
-      `select f.feedback_id, f.surface, f.category, f.message, f.created_at,
+      `select f.feedback_id, f.surface, f.category, f.message, f.request_id, f.created_at,
               (select c.player_tag from claim c
                where c.account_id = f.account_id and c.is_primary) as from_player
        from feedback f where f.status = 'new'

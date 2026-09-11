@@ -173,7 +173,9 @@ Compare `measured_hours` against 168 before reading it as a full week. `incomple
 measured intervals with fewer captured than expected battles. Interval
 `is_complete` uses exact counts even when a rounded ratio displays as one. The old `incomplete_days` field is retained as
 null: a multi-day interval cannot establish which particular day lost battles.
-The tail since the latest profile and older unbracketed history remain unknown.
+`unmeasured_tail_hours` gives the age of the unbracketed tail since the latest
+profile snapshot; it is not included in `average_ratio`. Older unbracketed
+history remains unknown.
 
 Performance summaries aggregate the full requested time window. An explicit
 `last_n_battles` selects a recent sample; ordinary date windows have no hidden

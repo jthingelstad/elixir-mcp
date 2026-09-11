@@ -196,7 +196,7 @@ export const elixirTools = {
 
   elixir_coverage: {
     description:
-      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was tracked), and capture estimates over observation intervals ending in the last seven days. Use it to caveat answers honestly; missing coverage is unknown, not evidence of absence.",
+      "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was tracked), capture estimates over observation intervals ending in the last seven days, and unmeasured_tail_hours since the latest profile snapshot. Use it to caveat answers honestly; missing coverage is unknown, not evidence of absence.",
     inputSchema: {
       type: "object",
       properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
@@ -258,7 +258,7 @@ export const elixirTools = {
             : "No battles recorded yet for this tag.",
           "Battle capture, daily snapshots and active recording can each begin at different times; timeline data exists only from snapshots.first_date.",
           weekNote
-            ? "completeness_last_7_days covers observation intervals ENDING in the last seven days; compare measured_hours against 168 before reading average_ratio as a week, and the tail after the latest profile is not measured."
+            ? "completeness_last_7_days covers observation intervals ENDING in the last seven days; compare measured_hours against 168 before reading average_ratio as a week, and treat unmeasured_tail_hours after the latest profile as unknown."
             : null,
         ),
         docs: docsRef("recording", "completeness"),

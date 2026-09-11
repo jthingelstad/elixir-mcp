@@ -134,7 +134,7 @@ other.
 | Battle log, burst bound | poll before half the fastest time this player has recently filled the log (busiest six-hour window of the last 14 days) | never above the yield rule |
 | Battle log, reader cap | any player resolved by a tool call (yours, or one you named) is polled at least hourly for the next 24 hours | – |
 | Battle log, floor | at least daily regardless | – |
-| Profile | every 8 hours for active players (0.5 battles/hour or more), daily for most, every 3 days when dormant; forced once in the hour before the Monday donation reset | floor 3 days |
+| Profile | every 8 hours for active players (0.5 battles/hour or more), daily for most, every 3 days when dormant; a player somebody tracks directly is capped at 8 hours even when dormant; forced once in the hour before the Monday donation reset | floor 3 days for clan-wide members nobody tracks directly |
 | Clan roster | every 15 minutes | floor 1 hour |
 | Current river race | every 30 minutes on war days, every 2 hours on training days (the API names the day) | floor 2 hours |
 | River race log | daily | floor 2 days |
@@ -171,12 +171,12 @@ refused, so a stale value is honest.
 | `battles` | `recorded_appearances`, `first_recorded`, `last_recorded`, including appearances recorded from other players' logs before the tag was added |
 | `snapshots.first_date` | first daily profile snapshot; timelines exist only from here |
 | `observation_intervals[]` | consecutive profile snapshots bracket an interval; `expected_battles` is the lifetime battle counter's change, `captured_battles` counts recorded battles in `(observed_from, observed_to]`; `is_complete` and `ratio` are `null` with a `note` when the two are not comparable |
-| `completeness_last_7_days` | `average_ratio` weighted by expected battles over intervals ending in the last 7 days; `measured_intervals`, `unknown_intervals`, `incomplete_intervals`; `incomplete_days` is always `null` |
+| `completeness_last_7_days` | `average_ratio` weighted by expected battles over intervals ending in the last 7 days; `measured_intervals`, `unknown_intervals`, `incomplete_intervals`; `unmeasured_tail_hours` is the age of the unbracketed tail after the latest profile; `incomplete_days` is always `null` |
 
 Two caveats the numbers cannot escape: the lifetime counter includes some
 modes the battle log never shows, so a ratio under 1.0 is an upper bound on
-loss; and the tail after the latest profile snapshot is not measured. Missing
-coverage is unknown, not evidence of absence.
+loss; and `unmeasured_tail_hours` is not part of the ratio. Missing coverage is
+unknown, not evidence of absence.
 
 `players_timeline` adds `snapshots_available_from`, and a line in `notes[]`,
 when you ask for dates before snapshots began.
