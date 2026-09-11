@@ -265,16 +265,32 @@ function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
  * Ingest one admitted battlelog payload for one observer.
  * Idempotent; at-least-once safe. Caller owns the transaction.
  */
-export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
+export async function ingestBattlelog(
+  db,
+  { observerTag, receiptId, payload, highWater = false },
+) {
   const observer = normalizeTag(observerTag);
-  // Capture audit: only meaningful when we HAD coverage before this
-  // poll - a first poll's all-new log is history arriving, not a gap.
-  const { rows: prior } = await db.query(
-    `select 1 from battle_observation where observer_tag = $1 limit 1`,
+  // The newest battle this observer's own log has delivered (0073). A
+  // log is the last 25 battles, chronological and contiguous, so with
+  // the mark known every battle at or before it was in an earlier
+  // delivery and is dropped here before any table is touched. Replayed
+  // history passes highWater: false and neither consults nor moves it.
+  // The row's existence is also the coverage question the capture audit
+  // asks - a first poll's all-new log is history arriving, not a gap -
+  // which used to be a sequential scan of battle_observation per poll.
+  // Read as text in the canonical second-precision ISO form battle_time
+  // strings carry, so the comparison below is the same shape both sides.
+  const { rows: hwRows } = await db.query(
+    `select to_char(battle_time at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as mark
+     from battlelog_high_water where observer_tag = $1`,
     [observer],
   );
-  const hadPriorCoverage = prior.length > 0;
+  const mark = hwRows[0]?.mark ?? null;
+  const hadPriorCoverage = mark !== null;
   let battlesSeen = 0;
+  let battlesSkipped = 0;
+  let newest = null; // the payload's newest battle_time, to advance the mark
+  let oldest = null; // the payload's oldest, for the capture audit
   const affected = new Set(); // "tag|day" pairs for rollup refresh
 
   // Canonicalize everything first; the writes go out as one statement
@@ -285,6 +301,14 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
   for (const entry of payload) {
     const { battle, participants } = canonicalizeBattle(entry);
     battlesSeen += 1;
+    if (newest === null || battle.battle_time > newest.battle_time)
+      newest = battle;
+    if (oldest === null || battle.battle_time < oldest.battle_time)
+      oldest = battle;
+    if (highWater && mark !== null && battle.battle_time <= mark) {
+      battlesSkipped += 1;
+      continue;
+    }
     battles.set(battle.battle_id, battle);
     for (const p of participants) {
       parts.set(`${battle.battle_id}|${p.player_tag}`, {
@@ -339,9 +363,6 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
     battlesInserted = rows.filter((r) => r.inserted).length;
     // The payload's oldest battle: if it was previously UNSEEN, the
     // rotating log may have rolled past battles we never captured.
-    let oldest = battleRows[0];
-    for (const b of battleRows)
-      if (b.battle_time < oldest.battle_time) oldest = b;
     oldestWasNew = rows.some(
       (r) => r.inserted && r.battle_id === oldest.battle_id,
     );
@@ -377,12 +398,36 @@ export async function ingestBattlelog(db, { observerTag, receiptId, payload }) {
     );
   }
 
+  // Advance the mark past everything this delivery contained. Only a
+  // live poll moves it (a replay is history); only forward.
+  if (highWater && newest !== null) {
+    await db.query(
+      `insert into battlelog_high_water (observer_tag, battle_time)
+       values ($1, $2)
+       on conflict (observer_tag) do update
+         set battle_time = excluded.battle_time, updated_at = now()
+       where battlelog_high_water.battle_time < excluded.battle_time`,
+      [observer, newest.battle_time],
+    );
+  }
+
+  // The capture audit. With the mark known it is stated plainly: a log
+  // whose oldest battle is newer than the mark has rolled past battles
+  // this observer's log never delivered (the log holds 25; a gap of
+  // exactly 25 new battles is indistinguishable and reads as a gap).
+  // Without a mark (replay, or a live poll before 0073's seed) it is
+  // the older rule: the oldest battle was previously unseen.
+  const gap =
+    highWater && mark !== null && oldest !== null
+      ? oldest.battle_time > mark
+      : oldestWasNew;
   return {
     battlesSeen,
+    battlesSkipped,
     battlesInserted,
     captureAudit:
-      hadPriorCoverage && battles.size > 0
-        ? { audited: true, gap: oldestWasNew }
+      hadPriorCoverage && battlesSeen > 0
+        ? { audited: true, gap }
         : { audited: false, gap: false },
     affectedPairs: [...affected].map((k) => {
       const [playerTag, day] = k.split("|");

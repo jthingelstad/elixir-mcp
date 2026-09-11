@@ -144,7 +144,21 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
 - **Freshness advances only on admission, never on HTTP 200.** A rejected
   payload must not burn its subject's polling window.
 - Idempotent by construction, so at-least-once delivery and queue retries are
-  free.
+  free. **Idempotent is not the same as free of writes:** an upsert whose
+  `ON CONFLICT DO UPDATE` has no `WHERE` writes a new tuple version for every
+  conflicting row even when nothing changes, and a battlelog is 25 battles
+  resubmitted on every poll — that was ~8 writes per real insert until
+  2026-09-11. Guard every enrich upsert with `where (current) is distinct
+  from (resolved)`, and derive follow-on work (rollups) from what was
+  actually written, not from the payload.
+- **A live battlelog poll touches only what is new.** `battlelog_high_water`
+  holds the newest `battle_time` each observer's own log has delivered; ingest
+  drops everything at or before it before any table is probed (the log is
+  chronological and contiguous). The same row is the capture audit — a full
+  log whose oldest battle is newer than the mark has rolled past battles we
+  never saw — and the coverage question. Replayed history (a fetch older
+  than 24h) neither consults nor moves the mark; keep it that way or an
+  import silently discards everything older than the present.
 - Gateways gzip every response body; a post-compression overflow is rejected
   loudly, because it means the CR response shape changed and that wants a human.
 

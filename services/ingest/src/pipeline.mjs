@@ -92,15 +92,17 @@ export async function stampBurst(db, playerTag, asOf) {
 
 const PROJECTORS = {
   async player_battlelog(db, { entityKey, receiptId, payload, fetchedAt }) {
+    // Backfill guard: a replayed OLD payload is history, not activity
+    // (heat retired 2026-09-05; yield_bph is the one activity signal),
+    // and it neither consults nor moves the high-water mark (0073).
+    const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
     const result = await ingestBattlelog(db, {
       observerTag: entityKey,
       receiptId,
       payload,
+      highWater: fresh,
     });
     await refreshDailyRollups(db, result.affectedPairs);
-    // Backfill guard: a replayed OLD payload is history, not activity
-    // (heat retired 2026-09-05; yield_bph is the one activity signal).
-    const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
     if (fresh && result.captureAudit?.audited) {
       await db.query(
         `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)

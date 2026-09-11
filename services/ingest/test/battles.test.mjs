@@ -200,10 +200,81 @@ test("empty battlelog is a clean no-op", async () => {
   });
   assert.deepEqual(result, {
     battlesSeen: 0,
+    battlesSkipped: 0,
     battlesInserted: 0,
     captureAudit: { audited: false, gap: false },
     affectedPairs: [],
   });
+});
+
+test("the high-water mark: a live poll drops every battle its log already delivered before touching a table, and a full log past the mark is a gap", async () => {
+  // A fresh observer with a log shifted into its own time range, so no
+  // battle here collides with the fixtures' other observers.
+  const base = await fixture("player_battlelog/with_boat_and_duel.json");
+  const observer = "#PY2029";
+  const shift = (log, hours) =>
+    log.map((e) => {
+      const t = new Date(
+        canonicalBattleTime(e.battleTime).replace("Z", ".000Z"),
+      );
+      t.setUTCFullYear(2031);
+      t.setUTCHours(t.getUTCHours() + hours);
+      const iso = t.toISOString().replace(/[-:]/g, "").replace(".000", ".000");
+      const team = e.team.map((p, i) =>
+        i === 0 ? { ...p, tag: observer } : p,
+      );
+      return { ...e, battleTime: iso, team };
+    });
+  const log = shift(base, 0);
+  const poll = (payload, highWater) =>
+    ingestBattlelog(ctx.db, {
+      observerTag: observer,
+      receiptId,
+      payload,
+      highWater,
+    });
+
+  // First live poll: no mark yet, everything inserts, nothing skipped,
+  // and the mark lands on the newest battle.
+  const first = await poll(log, true);
+  assert.equal(first.battlesSkipped, 0);
+  assert.ok(first.battlesInserted > 0);
+  assert.deepEqual(first.captureAudit, { audited: false, gap: false });
+  const { rows: mark } = await ctx.db.query(
+    `select battle_time from battlelog_high_water where observer_tag = $1`,
+    [observer],
+  );
+  assert.equal(mark.length, 1);
+
+  // Second live poll of the same log: every battle is at or before the
+  // mark - skipped before any table is touched, no gap.
+  const second = await poll(log, true);
+  assert.equal(second.battlesSkipped, log.length, "all skipped");
+  assert.equal(second.battlesInserted, 0);
+  assert.deepEqual(second.captureAudit, { audited: true, gap: false });
+  assert.deepEqual(second.affectedPairs, []);
+
+  // A log whose OLDEST battle is newer than the mark has rolled past
+  // battles this observer never delivered: audited as a gap.
+  const later = shift(base, 24 * 30);
+  const third = await poll(later, true);
+  assert.equal(third.battlesSkipped, 0);
+  assert.deepEqual(third.captureAudit, { audited: true, gap: true });
+
+  // Replayed history: the mark is neither consulted nor moved - an old
+  // payload that the mark would have dropped still records.
+  const older = shift(base, -24 * 30);
+  const replay = await poll(older, false);
+  assert.equal(replay.battlesSkipped, 0);
+  assert.ok(replay.battlesInserted > 0, "history still lands");
+  const { rows: after } = await ctx.db.query(
+    `select battle_time from battlelog_high_water where observer_tag = $1`,
+    [observer],
+  );
+  assert.ok(
+    after[0].battle_time > mark[0].battle_time,
+    "the mark moved forward with the later log, and not back with the replay",
+  );
 });
 
 test("deck levels are stored on the display scale, norm-stamped; 0011 backfill converts raw rows once", async () => {
