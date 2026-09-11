@@ -12,6 +12,10 @@
 import { createHash } from "node:crypto";
 import pg from "pg";
 
+// Ordered in "C" collation, never the database's default: a Homebrew
+// Postgres and the CI container sort battle_observation and
+// battlelog_high_water in opposite orders under their own locales, and
+// the pin disagreed with itself for half a day (2026-09-11).
 async function schemaDescription(databaseUrl) {
   const client = new pg.Client({ connectionString: databaseUrl });
   await client.connect();
@@ -20,18 +24,18 @@ async function schemaDescription(databaseUrl) {
       select table_name, column_name, data_type, is_nullable, column_default
       from information_schema.columns
       where table_schema = 'public' and table_name <> 'schema_migrations'
-      order by table_name, column_name`);
+      order by table_name collate "C", column_name collate "C"`);
     const { rows: indexes } = await client.query(`
       select indexname, indexdef
       from pg_indexes
       where schemaname = 'public' and tablename <> 'schema_migrations'
-      order by indexname`);
+      order by indexname collate "C"`);
     const { rows: constraints } = await client.query(`
       select conrelid::regclass::text as table_name, conname, pg_get_constraintdef(oid) as def
       from pg_constraint
       where connamespace = 'public'::regnamespace
         and conrelid::regclass::text <> 'schema_migrations'
-      order by table_name, conname`);
+      order by conrelid::regclass::text collate "C", conname collate "C"`);
     return { columns, indexes, constraints };
   } finally {
     await client.end();
