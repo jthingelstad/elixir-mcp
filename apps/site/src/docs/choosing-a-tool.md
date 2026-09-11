@@ -50,8 +50,9 @@ before quoting a number.
 `war_current` once for your own standings and the five clans in the race,
 then `war_rivals` for what the record knows about each rival, then, for the
 one that matters, `war_current({ clan_tag, live: true })` or
-`clans_roster({ clan_tag, live: true })`: one live fetch each, for any clan,
-recorded or not.
+`clans_roster({ clan_tag, live: true })`: a fresh read of any clan, recorded
+or not — served at once if one is in hand, otherwise queued while the record
+answers with `live_status.state: "pending"` and when to call again.
 
 **Name to tag to drill.** `players_search({ query })` resolves a name (your
 nicknames and clanmates rank first), then any player tool with the tag. In

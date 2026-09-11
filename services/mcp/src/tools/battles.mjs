@@ -145,7 +145,7 @@ export const battlesTools = {
         live: {
           type: "boolean",
           description:
-            "Poll this player's battle log from the game first (one live fetch), then answer from the record.",
+            "Ask for a battle-log poll no older than a minute: served from the record if in hand, otherwise queued while the record answers now with live_status pending and retry_after_s.",
         },
         cursor: {
           type: "string",

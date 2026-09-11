@@ -88,13 +88,16 @@ per-collector token:
 
 - **`GET /api/collector/config`** — the launch-time contract:
   `{contract_version, pacing_ms, breaker: {threshold_403, cooldown_s},
-  overflow_bytes, poll: {live_wait_s, bulk_wait_s, idle_backoff_s},
-  min_client_version}`. Fetched at startup and re-fetched
+  overflow_bytes, check_in: {idle_s, capped_s}, submit_retry,
+  min_client_version}` (the `poll` block is still served for clients
+  from before 2026-09-11). Fetched at startup and re-fetched
   opportunistically; `min_client_version` is the kill switch that can
   force a self-update.
-- **`POST /api/collector/lease`** — long-polls live-then-bulk
-  server-side (SQS wait bounded ~10s, inside CloudFront's origin
-  timeout) and returns `{job, cr_path, lease}` or `{empty: true}`.
+- **`POST /api/collector/lease`** — a check-in (2026-09-11: never a
+  long-poll). Answers at once with `{job, cr_path, lease, filter?,
+  next_check_in_s}` or `{empty: true, next_check_in_s}`; the collector
+  sleeps exactly that long. Live jobs are served first to whichever
+  collector checks in.
   **`cr_path` is computed by the server** — the client never learns
   endpoint→path mapping, so new CR endpoints and collection changes
   ship with zero client changes. `lease` is the opaque SQS receipt
@@ -212,14 +215,15 @@ path — a path that already degrades to a structured
 `live_unavailable` rather than failing.
 
 **Decision (Jamie):** rejected — the IP-allowlist/egress cost plus the
-privacy angle settle it. Live stays on private collectors WE run; the
-channels split above is the ratified shape.
+privacy angle settle it. Live stayed on private collectors we ran until
+2026-09-11, when the live lane went asynchronous and every collector
+took priority work (see the retired-section note above).
 
 ### Costs and trade-offs, stated honestly
 
-- Long-poll concurrency is confined to the owner-run live channel
-  (one or two machines) — the open fleet holds no connections. Bulk
-  jobs gain up to one idle-backoff interval of latency, irrelevant
+- (Retired 2026-09-11: there are no long-polls at all now; a check-in
+  is one short request and the door says when to come back.) Bulk
+  jobs gain up to one check-in interval of latency, irrelevant
   against cadences measured in minutes.
 - One extra HTTPS hop per job (~50–150ms) against a 1.5s pace — negligible.
 - web-api's role gains receive/delete on request queues + send on

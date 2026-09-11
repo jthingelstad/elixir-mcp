@@ -1,11 +1,12 @@
 /** rankings_players · rankings_clans — the recorded leaderboards (0068).
  *
  *  The CR API shows a ranking as it is this minute and forgets it. The
- *  recorder keeps a snapshot of every board it watches — the global Path
- *  of Legends board hourly, every location daily — so these two tools can
- *  answer "who was #1 on the 3rd", "which clans have the most rated
- *  players", and hand a movement video its frames. `live: true` reads the
- *  game first and records what it read, the way clans_roster does. */
+ *  recorder keeps a snapshot of every board it watches — every board once
+ *  a day, in the tick after 10:00Z (the global board was hourly until
+ *  2026-09-11) — so these two tools can answer "who was #1 on the 3rd",
+ *  "which clans have the most rated players", and hand a season story its
+ *  frames. `live: true` asks for a fresh read, served if in hand or
+ *  queued (1.7.0), the way clans_roster does. */
 
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../time.mjs";
@@ -36,7 +37,7 @@ const BOARD_SCHEMA = {
   enum: ["pol", "trophy", "pol_final", "mode"],
   default: "pol",
   description:
-    "pol is the live Path of Legends board (players above the rating floor, recorded hourly for global); pol_final is a season's FINAL Path of Legends standing at full depth (9,999 places), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
+    "pol is the live Path of Legends board (players above the rating floor, recorded daily at the 10:00Z reset); pol_final is a season's FINAL Path of Legends standing at full depth (9,999 places), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
 };
 
 const SEASON_SCHEMA = {
@@ -171,7 +172,7 @@ function snapshotBlock(snapshot, row) {
 export const rankingsTools = {
   rankings_players: {
     description:
-      "A recorded leaderboard, the global Path of Legends board by default: every placed player with rank, rating, name and clan, as of the latest snapshot or any earlier instant (as_of). The global board is recorded hourly, every other location daily, so this answers who was where and when - the API itself only ever shows now. Paged with limit and offset because a whole board can run to a thousand places. verbosity compact returns rank, tag and rating only. live: true reads the game first (one live fetch) and records what it read.",
+      "A recorded leaderboard, the global Path of Legends board by default: every placed player with rank, rating, name and clan, as of the latest snapshot or any earlier instant (as_of). Every board is recorded daily at the 10:00Z reset, so this answers who was where and when - the API itself only ever shows now. Paged with limit and offset because a whole board can run to a thousand places. verbosity compact returns rank, tag and rating only. live: true reads the game first (one live fetch) and records what it read.",
     inputSchema: {
       type: "object",
       properties: {
@@ -186,7 +187,7 @@ export const rankingsTools = {
           type: "boolean",
           default: false,
           description:
-            "Fetch the board from the game first (one live fetch). Not combinable with as_of.",
+            "Ask for a read of the board no older than a minute: served if in hand, otherwise queued while the latest snapshot answers with live_status pending. Not combinable with as_of.",
         },
         verbosity: VERBOSITY("rank, player_tag and rating only."),
       },
@@ -323,7 +324,7 @@ export const rankingsTools = {
           type: "boolean",
           default: false,
           description:
-            "Fetch the board from the game first (one live fetch). Not combinable with as_of.",
+            "Ask for a read of the board no older than a minute: served if in hand, otherwise queued while the latest snapshot answers with live_status pending. Not combinable with as_of.",
         },
       },
       additionalProperties: false,
@@ -447,7 +448,7 @@ export const rankingsTools = {
           type: "boolean",
           default: false,
           description:
-            "Fetch the ladder from the game first (one live fetch). Not combinable with as_of.",
+            "Ask for a read of the ladder no older than a minute: served if in hand, otherwise queued while the latest snapshot answers with live_status pending. Not combinable with as_of.",
         },
       },
       additionalProperties: false,

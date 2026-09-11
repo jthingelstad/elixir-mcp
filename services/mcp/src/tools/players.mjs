@@ -193,7 +193,7 @@ export const playersTools = {
         live: {
           type: "boolean",
           description:
-            "Fetch fresh from the game first (one live fetch); works for a player nobody records.",
+            "Ask for a read no older than a minute; works for a player nobody records. Served if in hand, otherwise queued while the record answers with live_status pending (live_pending if nothing is recorded yet).",
         },
       },
       additionalProperties: false,

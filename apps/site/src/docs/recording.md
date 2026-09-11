@@ -142,7 +142,9 @@ players, ties broken by the clan's best-placed player. Both count over
 **everyone above the rating floor**, not a top-100 slice; a Path of Legends
 board lists only players above that floor, and a season resets everyone below
 it, so a board is small in a season's first days and fills through the month.
-`live: true` on either reads the game first and records what it read.
+`live: true` on either asks for a read of the board no older than a minute:
+served if in hand, otherwise queued while the latest snapshot answers with
+`live_status.state: "pending"`.
 
 **Everything else the API forgets about a season** is recorded beside it.
 A season's **final** Path of Legends board — the settled standing at full

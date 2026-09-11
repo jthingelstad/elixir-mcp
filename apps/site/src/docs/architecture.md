@@ -103,9 +103,12 @@ at a cabin. What makes the fleet interesting:
   server computes each job's CR path and stamps the collector's
   identity onto results itself, so impersonation is structurally
   impossible and collection changes never require a client update.
-- **Channels.** Operator collectors serve the bulk channel only —
-  scheduler-chosen work, polled lazily. The live channel (user-facing
-  fetches) runs exclusively on machines we operate.
+- **Check-ins, not polling.** A collector asks the door for work and is
+  told when to come back (`next_check_in_s`: at once while work remains,
+  fifteen seconds when the queue is empty). The door never holds a
+  connection open. Every collector serves priority work first, so a
+  `live: true` fetch is picked up by whichever machine checks in next;
+  there is no separate live channel.
 - **Self-update, server-authorized.** The config endpoint names the one
   binary version and SHA-256 a collector may install — a compromised
   release page alone cannot push code to operators. An update failure
@@ -174,11 +177,12 @@ analytics outage can never page anyone or delay a login email.
   admission (Hive-partitioned by endpoint, entity, and date; gzip JSON;
   lifecycle to Infrequent Access at 30 days) before the database commit
   — a committed row always has its S3 twin. S3 is the system of record
-  for raw observations; Postgres keeps a payload's JSON only as a
-  two-hour cache (what `live_fetch` reads within seconds of admission;
-  the card catalog's row is kept), and an hourly sweep nulls older JSON and retires
-  superseded rows only after verifying their archived copy — the
-  database holds metadata, S3 holds the bytes. Athena (via one Glue table with
+  for raw observations; Postgres keeps a payload's JSON only for a
+  fetch a reader is waiting on (a `live: true` request, read within
+  seconds of admission) and only for two hours; an hourly sweep nulls
+  it and retires superseded rows only after verifying their archived
+  copy — the database holds metadata and projections, S3 holds the
+  bytes. Athena (via one Glue table with
   partition projection) and DuckDB both query the layout directly.
 - **Snapshots and events.** Daily profile snapshots feed trophy/donation
   timelines; diffs between polls emit events with honest time semantics

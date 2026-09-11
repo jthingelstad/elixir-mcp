@@ -277,7 +277,7 @@ export const clansTools = {
         live: {
           type: "boolean",
           description:
-            "Fetch this clan from the game first (one live fetch); works for a clan nobody records.",
+            "Ask for a read of this clan no older than two minutes; works for a clan nobody records. Served if in hand, otherwise queued while the record answers with live_status pending.",
         },
       },
       additionalProperties: false,

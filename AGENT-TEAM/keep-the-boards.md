@@ -1,15 +1,17 @@
 # Keep the Boards
 
 Own the outcome: **the leaderboards are recorded as promised, and the
-collections drawn from them say something true.** The global Path of
-Legends board lands every hour and every location every day; a top-200
+collections drawn from them say something true.** Every board lands once a
+day, in the planning tick after 10:00Z (the global Path of Legends board
+was hourly until 2026-09-11; the season's golden board is its final,
+fetched once); a top-200
 appearance records the player for the season; the board-driven collections
 (`pol-global-top-100`, `pol-us-top-100`, `pol-jp-top-100`,
 `global-top-10-clans`) equal today's board; and at a season boundary the
 record behaves the way `docs/recording.md` says it does.
 
 This owner exists because a leaderboard is the one record whose gap is
-invisible: nothing errors when an hourly snapshot does not arrive, the
+invisible: nothing errors when a day's snapshot does not arrive, the
 board just has a hole in it, and the season-story video that hole ruins
 is not made until the season is over.
 
@@ -50,7 +52,8 @@ Establish, with receipts:
 
 ## Action
 
-- A missed hourly snapshot: find whether the scheduler planned it
+- A missed daily snapshot (none in the tick after 10:00Z): find whether
+  the scheduler planned it
   (`poll_state` for `rankings_pol`/`global`), a collector leased it, or
   ingest rejected it — the same three places every other missed fetch
   hides in. Fix at the seam. A board that was not planned is a Run Elixir

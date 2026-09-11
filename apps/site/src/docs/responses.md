@@ -69,8 +69,10 @@ required fields only.
 plan can be priced before it starts rather than discovered mid-sweep. `calls`
 is tool calls today (`used`, `max`, `remaining`); `live` is live fetches today.
 Every tool call costs one call; `live_fetch`, and `live: true` on
-`players_profile`, `clans_roster`, `war_current` and `battles_query`,
-additionally cost one live fetch. `max` and `remaining` are `null`
+`players_profile`, `clans_roster`, `war_current`, `battles_query` and the
+board tools, additionally cost one live fetch — charged once, when a fresh
+read is queued, never for a read already in hand or for the follow-up call
+that finds it landed. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
 midnight, when both counters roll. Collector credits are already included in
 `calls.max`. An agent spends its owner's call budget and its owner's live

@@ -31,8 +31,8 @@ const CLAN_TAG_SCHEMA = {
 };
 
 /** The clan a clan tool answers about. With live: true any clan tag is
- *  accepted - recorded or not - and its payload is fetched through the
- *  live lane first (one live fetch), the way players_profile does for a
+ *  accepted - recorded or not - and a fresh read is served if in hand or
+ *  queued (1.7.0, asynchronous), the way players_profile does for a
  *  player. Without it, the clan must be recorded. */
 async function clanSubject(ctx, args, endpoint) {
   if (args.live === true) {
@@ -195,7 +195,7 @@ export const warTools = {
         notes: notes(
           "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
           "Fame statistics cover finished races only; current_race_fame is the week in progress.",
-          "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) reads it fresh at one live fetch.",
+          "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
         ),
         docs: WAR_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -205,7 +205,7 @@ export const warTools = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists (name + tag) and drops the participants array. live: true reads ANY clan fresh from the game first (one live fetch), recorded or not.",
+      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists (name + tag) and drops the participants array. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
     inputSchema: {
       type: "object",
       properties: {
@@ -216,7 +216,7 @@ export const warTools = {
         live: {
           type: "boolean",
           description:
-            "Fetch this clan's current race from the game first (one live fetch); works for a clan nobody records.",
+            "Ask for a read of this clan's race no older than two minutes; works for a clan nobody records. Served if in hand, otherwise queued while the record answers with live_status pending.",
         },
       },
       additionalProperties: false,
