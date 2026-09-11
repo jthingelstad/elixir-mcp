@@ -69,6 +69,16 @@ function entriesOf(payload) {
   return out.filter((e) => Number.isInteger(e.rank) && e.rank > 0);
 }
 
+/** Rows to upsert, in ONE order everywhere: by tag. Two boards landing
+ *  at once each upsert thousands of player rows, and a battlelog admits
+ *  a few; if each takes its locks in its own order they deadlock, the
+ *  submit is a 500, the lease goes unsubmitted, and ten of those is a
+ *  quarantine (nine deadlocks in seven minutes at 05:01Z on 2026-09-11,
+ *  with Tesla at five). Sorted by the lock key they queue instead - the
+ *  same rule collections have used since they were written. */
+const byTag = (rows, key = "tag") =>
+  [...rows].sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0));
+
 /** What makes two boards the same board: places, tags, ratings, clans.
  *  Names are deliberately out — a rename is not a movement. */
 function contentHash(entries) {
@@ -100,13 +110,14 @@ export async function projectRankingBoard(
   // so the player tools can address it at once. Presence has a foreign
   // key to player, so this has to come first.
   if (entries.length > 0) {
+    const ordered = byTag(entries);
     await db.query(
       `insert into player (player_tag, name)
        select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
        on conflict (player_tag) do update set
          last_seen_at = now(),
          name = coalesce(player.name, excluded.name)`,
-      [entries.map((e) => e.tag), entries.map((e) => e.name)],
+      [ordered.map((e) => e.tag), ordered.map((e) => e.name)],
     );
   }
 
@@ -184,7 +195,7 @@ export async function projectRankingBoard(
   let recordingsStarted = 0;
   let newPresences = 0;
   if (recordTop > 0 && entries.length > 0) {
-    const top = entries.filter((e) => e.rank <= recordTop);
+    const top = byTag(entries.filter((e) => e.rank <= recordTop));
     const stickyUntil = new Date(
       nextSeasonStartMs(observedAt.getTime()) + STICKY_GRACE_MS,
     );
@@ -286,11 +297,12 @@ export async function projectClanBoard(
   }
   // A clan we have never seen lands a clan row so the clan tools can name it.
   if (entries.length > 0) {
+    const ordered = byTag(entries);
     await db.query(
       `insert into clan (clan_tag, name)
        select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
        on conflict (clan_tag) do update set name = coalesce(clan.name, excluded.name)`,
-      [entries.map((e) => e.tag), entries.map((e) => e.name)],
+      [ordered.map((e) => e.tag), ordered.map((e) => e.name)],
     );
   }
   await db.query(
@@ -408,8 +420,11 @@ export async function projectLeaderboardList(db, { payload }) {
 export async function projectEvents(db, { payload, fetchedAt }) {
   const observedAt = new Date(fetchedAt);
   const day = observedAt.toISOString().slice(0, 10);
-  const events = (Array.isArray(payload) ? payload : []).filter(
-    (e) => typeof e?.eventTag === "string",
+  const events = byTag(
+    (Array.isArray(payload) ? payload : []).filter(
+      (e) => typeof e?.eventTag === "string",
+    ),
+    "eventTag",
   );
   if (events.length === 0) return { projected: "events", events: 0 };
   await db.query(
