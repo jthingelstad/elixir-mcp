@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { Status } from "../src/views/Status.jsx";
 import { Fleet } from "../src/views/Collectors.jsx";
+import { RaiseCollector } from "../src/views/RaiseCollector.jsx";
 import { CollectorPage } from "../src/views/CollectorDetail.jsx";
 
 const PAYLOAD = {
@@ -136,7 +137,7 @@ const CARDS = [
   },
 ];
 
-const paintFleet = async (mine = [], cards = []) => {
+const paintFleet = async (mine = [], cards = [], navigate = () => {}) => {
   const fetchMock = vi.fn(async (path, init) => {
     const p = String(path);
     const body = p.includes("me/gateways")
@@ -154,8 +155,34 @@ const paintFleet = async (mine = [], cards = []) => {
     };
   });
   vi.stubGlobal("fetch", fetchMock);
-  render(<Fleet navigate={() => {}} />);
+  render(<Fleet navigate={navigate} />);
   await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
+  return fetchMock;
+};
+
+/** The raise form on its own page: /status/collectors/new. */
+const paintRaise = async (mine = [], cards = CARDS, navigate = () => {}) => {
+  const fetchMock = vi.fn(async (path, init) => {
+    const p = String(path);
+    const body = p.includes("me/gateways")
+      ? { gateways: mine }
+      : p.includes("gateways/cards")
+        ? { cards }
+        : p.endsWith("/api/gateways") && init?.method === "POST"
+          ? { ok: true, status: "pending", card: JSON.parse(init.body).card }
+          : {};
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  render(<RaiseCollector navigate={navigate} />);
+  await waitFor(() =>
+    expect(screen.getByRole("listbox", { name: "cards" })).toBeTruthy(),
+  );
   return fetchMock;
 };
 
@@ -213,21 +240,26 @@ test("the fleet marks what is yours in a word, never a tinted row", async () => 
   expect(row.style.background).toBe("");
   // A reader who runs one is offered another, not told they run none:
   // raising a hand is the only way a collector comes to exist, so the
-  // form never hides (Jamie, 2026-09-11).
+  // door never hides (Jamie, 2026-09-11) - and it is a door to a page
+  // of its own, not a form on top of the fleet.
   expect(screen.queryByText(/You don.t run one yet/)).toBeNull();
-  expect(screen.getByText("Run another")).toBeTruthy();
-  expect(screen.getByRole("button", { name: /Raise my hand/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Run another/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Raise my hand/ })).toBeNull();
 });
 
-test("a reader who runs no collector is told what one is and what it earns", async () => {
-  await paintFleet([]);
+test("a reader who runs no collector is told what one is and what it earns, and shown the door", async () => {
+  const navigate = vi.fn();
+  await paintFleet([], [], navigate);
   expect(screen.getByText(/You don.t run one yet/)).toBeTruthy();
   expect(screen.getByText(/10 fetches buys one extra daily call/)).toBeTruthy();
-  expect(screen.getByRole("button", { name: /Raise my hand/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Run a collector/ }));
+  expect(navigate).toHaveBeenCalledWith("/status/collectors/new");
 });
 
 test("an operator picks the card their collector wears, and a taken card cannot be picked", async () => {
-  const fetchMock = await paintFleet([], CARDS);
+  const navigate = vi.fn();
+  const fetchMock = await paintRaise([], CARDS, navigate);
+  expect(screen.getByText("Run a collector")).toBeTruthy();
   const grid = screen.getByRole("listbox", { name: "cards" });
   const raise = screen.getByRole("button", { name: /Raise my hand/ });
   fireEvent.change(screen.getByPlaceholderText("a name for the machine"), {
@@ -255,8 +287,11 @@ test("an operator picks the card their collector wears, and a taken card cannot 
   );
   expect(raise.disabled).toBe(false);
 
+  // A raise lands on the new collector's own record.
   fireEvent.click(raise);
-  await waitFor(() => expect(screen.getByText(/Raised as Golem/)).toBeTruthy());
+  await waitFor(() =>
+    expect(navigate).toHaveBeenCalledWith("/status/collectors/Golem"),
+  );
   const post = fetchMock.mock.calls.find(
     ([p, init]) =>
       String(p).endsWith("/api/gateways") && init?.method === "POST",
@@ -265,6 +300,39 @@ test("an operator picks the card their collector wears, and a taken card cannot 
     name: "attic-mini",
     card: "Golem",
   });
+});
+
+test("the raise page says 'another' to somebody who already runs one, and shows a refusal in place", async () => {
+  const fetchMock = await paintRaise([
+    { gateway_id: "g1", name: "jamie-mac", card_name: "Ram Rider" },
+  ]);
+  expect(screen.getByText("Run another collector")).toBeTruthy();
+  fetchMock.mockImplementation(async (path, init) => {
+    const p = String(path);
+    const taken = p.endsWith("/api/gateways") && init?.method === "POST";
+    const body = taken
+      ? {
+          error: "card_taken",
+          message: "That card is already another collector’s.",
+        }
+      : p.includes("gateways/cards")
+        ? { cards: CARDS }
+        : { gateways: [] };
+    return {
+      ok: !taken,
+      status: taken ? 409 : 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  fireEvent.change(screen.getByLabelText("a name for the machine"), {
+    target: { value: "attic-mini" },
+  });
+  fireEvent.click(screen.getByRole("option", { name: "Knight" }));
+  fireEvent.click(screen.getByRole("button", { name: /Raise my hand/ }));
+  await waitFor(() =>
+    expect(screen.getByText(/already another collector/)).toBeTruthy(),
+  );
 });
 
 test("an operator can re-pick their own collector's card, and the record follows it", async () => {

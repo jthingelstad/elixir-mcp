@@ -270,7 +270,7 @@ export default function (eleventyConfig) {
     "Request a service key":
       "/docs/integrations#provisioning-and-administration",
     "Read the operators guide": "/docs/operators",
-    "Raise your hand": "/status/collectors",
+    "Raise your hand": "/status/collectors/new",
   };
   eleventyConfig.addFilter(
     "setupHref",

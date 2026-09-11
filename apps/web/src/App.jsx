@@ -9,6 +9,7 @@ import { Explore } from "./views/Explore.jsx";
 import { Status } from "./views/Status.jsx";
 import { Fleet } from "./views/Collectors.jsx";
 import { CollectorPage } from "./views/CollectorDetail.jsx";
+import { RaiseCollector } from "./views/RaiseCollector.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
 /**
@@ -266,6 +267,7 @@ export function railPosition(path) {
     return {
       key: "status",
       sub: page === "collectors" ? "collectors" : undefined,
+      // A record and the raise form both read the operators guide.
       ...(page === "collectors" && rest ? { doc: "status:collector" } : {}),
     };
   if (section === "admin") return { key: "admin", sub: page ?? "requests" };
@@ -1137,7 +1139,9 @@ export function App() {
                 <Explore me={me} navigate={navigate} path={effectivePath} />
               ) : section === "status" ? (
                 activePage === "collectors" ? (
-                  itemId ? (
+                  itemId === "new" ? (
+                    <RaiseCollector navigate={navigate} />
+                  ) : itemId ? (
                     // Keyed on the name: a re-picked card moves the
                     // record's address, and the page reloads under it.
                     <CollectorPage
