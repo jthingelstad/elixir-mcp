@@ -39,7 +39,8 @@ export async function stats(databaseUrl) {
  * deliberately guarded against a queued twin, preserves the original job id,
  * and resets the exhausted lease-attempt counter for a fresh delivery cycle.
  * A named redundant dead row may instead be folded only if a queued or leased
- * twin currently carries the same work; it can never erase an uncovered job.
+ * twin currently carries the same work, or a newer twin is done with a
+ * stamped receipt; it can never erase an uncovered job.
  */
 export async function ledger(databaseUrl, spec = {}) {
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -113,7 +114,17 @@ export async function ledger(databaseUrl, spec = {}) {
                where twin.job_id <> j.job_id
                  and twin.endpoint = j.endpoint
                  and twin.entity_key = j.entity_key
-                 and twin.status in ('queued', 'leased')
+                 and (
+                   twin.status in ('queued', 'leased')
+                   or (
+                     twin.status = 'done'
+                     and twin.created_at >= j.created_at
+                     and exists (
+                       select 1 from api_receipt receipt
+                       where receipt.job_id = twin.job_id
+                     )
+                   )
+                 )
              )
          )
          update job j

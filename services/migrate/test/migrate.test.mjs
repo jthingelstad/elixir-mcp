@@ -161,6 +161,24 @@ test("ledger ops inspect and selectively requeue dead collector work", async () 
     await db.query(
       `insert into job (endpoint, entity_key, lane) values ('clan', '#LEDGERB', 'bulk')`,
     );
+    const {
+      rows: [receiptBackedDead],
+    } = await db.query(
+      `insert into job (endpoint, entity_key, lane, status, attempts, done_at)
+       values ('clan', '#LEDGERC', 'bulk', 'dead', 5, now()) returning job_id`,
+    );
+    const {
+      rows: [receiptBackedTwin],
+    } = await db.query(
+      `insert into job (endpoint, entity_key, lane, status, done_at)
+       values ('clan', '#LEDGERC', 'bulk', 'done', now()) returning job_id`,
+    );
+    await db.query(
+      `insert into api_receipt
+         (endpoint, entity_key, payload_hash, gateway_id, admission, job_id)
+       values ('clan', '#LEDGERC', 'receipt-backed', $1, 'admitted', $2)`,
+      [gateway.gateway_id, receiptBackedTwin.job_id],
+    );
 
     const inspected = await ledger(SCRATCH_URL, { op: "dead" });
     assert.deepEqual(
@@ -190,6 +208,14 @@ test("ledger ops inspect and selectively requeue dead collector work", async () 
       [blocked.job_id],
     );
     assert.deepEqual(folded.skipped, []);
+    const receiptBackedFold = await ledger(SCRATCH_URL, {
+      op: "fold",
+      job_ids: [receiptBackedDead.job_id],
+    });
+    assert.deepEqual(
+      receiptBackedFold.folded.map((job) => job.job_id),
+      [receiptBackedDead.job_id],
+    );
     const {
       rows: [job],
     } = await db.query(
