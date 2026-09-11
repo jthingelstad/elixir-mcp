@@ -1231,6 +1231,26 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # A migrate invocation that runs long is a diagnostics op scanning the
+  # production database (the 2026-09-11 14:02Z recovery followed thirteen
+  # two-minute probe runs), or a migration that needs a human watching.
+  # Migrations themselves take seconds.
+  MigrateDurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-migrate-duration
+      AlarmDescription: A migrate Lambda invocation ran longer than 90 s; a diagnostics op is scanning production
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions: [{ Name: FunctionName, Value: !Ref MigrateFunction }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 90000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
   LedgerOldestJobAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

@@ -56,9 +56,10 @@ export const CADENCE = {
   // truth — found live 2026-09-03.
   cards: { every: 1440, floor: 2880 },
   // Leaderboards (0068): the default is daily, and a board's own row in
-  // ranking_board overrides it — the global Path of Legends board is
-  // hourly, because hourly is the grain of a movement video and the
-  // API's cache (max-age ~60s) makes each hourly read new.
+  // ranking_board overrides it. Daily boards are anchored to the
+  // board-day (boardDayStartMs), so `every` here only matters for a row
+  // that asks for less than a day. The global board was hourly until
+  // 0075 (2026-09-11).
   rankings_pol: { every: 1440, floor: 2880 },
   rankings_players: { every: 1440, floor: 2880 },
   // 0069. A season's final board is fetched ONCE (see selectEligible: due
@@ -265,6 +266,25 @@ export function jitterFactor(subjectTag, endpoint) {
 
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 export const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
+
+/** A daily leaderboard is read once per board-day, and the board-day
+ *  starts at 10:00Z: the hour the Path of Legends season rolls, so a
+ *  season's last daily snapshot is the board as it stood going into the
+ *  roll (Jamie, 2026-09-11: daily at the reset, not hourly). A board
+ *  whose row says less than a day keeps its own cadence (0068). */
+export const BOARD_DAY_ANCHOR_HOUR_UTC = 10;
+
+/** Start of the current board-day: the most recent 10:00Z. */
+export function boardDayStartMs(nowMs) {
+  const d = new Date(nowMs);
+  const today = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    BOARD_DAY_ANCHOR_HOUR_UTC,
+  );
+  return nowMs >= today ? today : today - DAY;
+}
 
 /** Endpoints planned from ranking_board rows rather than recordings, with
  *  the endpoint -> board name the row is found under (0068/0069). */
@@ -477,16 +497,25 @@ async function selectEligible(db, now, arm) {
       ? r
       : { ...r, burst_bph: null, burst_at: null };
     const jitter = jitterFactor(r.subject_tag, r.endpoint) * MINUTE;
-    const due = nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;
+    // A daily board is due once per board-day, anchored, not once per
+    // elapsed day: every daily board reads in the tick after 10:00Z.
+    const dailyBoard =
+      BOARD_ENDPOINTS.has(r.endpoint) &&
+      r.board_every != null &&
+      Number(r.board_every) >= 1440;
+    const due = dailyBoard
+      ? referenceMs < boardDayStartMs(nowMs)
+      : nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;
     // Would the unbounded rule have made it due? Only the difference is
     // attributable to the bounds (the metric that proves them).
-    const dueUnbounded =
-      nowMs - referenceMs >=
-      yieldCadenceMinutes(
-        { ...row, burst_bph: null, burst_at: null, last_read_at: null },
-        now,
-      ) *
-        jitter;
+    const dueUnbounded = dailyBoard
+      ? due
+      : nowMs - referenceMs >=
+        yieldCadenceMinutes(
+          { ...row, burst_bph: null, burst_at: null, last_read_at: null },
+          now,
+        ) *
+          jitter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
     const forcedPreReset =

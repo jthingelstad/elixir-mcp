@@ -25,10 +25,20 @@ export async function ingestClanRoster(
   const clanTag = normalizeTag(payload.tag);
   const at = observedAt ?? new Date().toISOString();
 
+  // The clan row: a rename or a badge is news; last_seen_at moves at
+  // most hourly, like a player's, so a quiet clan polled all day is
+  // not rewritten all day (21,377 updates on 5,151 rows before 2026-09-11).
   await db.query(
-    `insert into clan (clan_tag, name, last_seen_at) values ($1, $2, $3)
-     on conflict (clan_tag) do update set name = excluded.name, last_seen_at = excluded.last_seen_at`,
-    [clanTag, payload.name, at],
+    `insert into clan (clan_tag, name, badge_id, last_seen_at) values ($1, $2, $3, $4)
+     on conflict (clan_tag) do update
+       set name = excluded.name,
+           badge_id = coalesce(excluded.badge_id, clan.badge_id),
+           last_seen_at = greatest(excluded.last_seen_at, clan.last_seen_at)
+     where clan.name is distinct from excluded.name
+        or (excluded.badge_id is not null and clan.badge_id is distinct from excluded.badge_id)
+        or clan.last_seen_at is null
+        or clan.last_seen_at < excluded.last_seen_at - interval '1 hour'`,
+    [clanTag, payload.name, payload.badgeId ?? null, at],
   );
 
   const members = payload.memberList.map((m) => ({
@@ -41,29 +51,37 @@ export async function ingestClanRoster(
     gameLastSeen: crTimeToIso(m.lastSeen),
   }));
 
-  for (const m of members) {
-    await db.query(
-      `insert into player (player_tag, name, last_seen_at, game_last_seen_at)
-       values ($1, $2, $3, $4)
-       on conflict (player_tag) do update
-         set name = coalesce(excluded.name, player.name),
-             last_seen_at = excluded.last_seen_at,
-             -- Never move BACKWARDS. Rosters are polled per clan and an older
-             -- payload can be admitted after a newer one; greatest() with a
-             -- null-safe fallback keeps the freshest sighting either way.
-             game_last_seen_at = greatest(
-               excluded.game_last_seen_at,
-               player.game_last_seen_at)
-         -- Only when something moves: a roster is polled far more often
-         -- than a member plays, and an unchanged row rewritten is a dead
-         -- tuple for nothing.
-         where player.name is distinct from coalesce(excluded.name, player.name)
-            or player.game_last_seen_at is distinct from
-               greatest(excluded.game_last_seen_at, player.game_last_seen_at)
-            or player.last_seen_at < excluded.last_seen_at - interval '1 hour'`,
-      [m.tag, m.name, at, m.gameLastSeen],
-    );
-  }
+  // One statement for the whole roster, tag-ordered (lock order), and
+  // guarded: only when something moves. A roster is polled far more
+  // often than a member plays, and an unchanged row rewritten is a dead
+  // tuple for nothing - and fifty round trips a poll besides.
+  const ordered = [...members].sort((a, b) =>
+    a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0,
+  );
+  await db.query(
+    `insert into player (player_tag, name, last_seen_at, game_last_seen_at)
+     select t.tag, t.name, $3::timestamptz, t.seen::timestamptz
+     from unnest($1::text[], $2::text[], $4::text[]) as t(tag, name, seen)
+     on conflict (player_tag) do update
+       set name = coalesce(excluded.name, player.name),
+           last_seen_at = excluded.last_seen_at,
+           -- Never move BACKWARDS. Rosters are polled per clan and an older
+           -- payload can be admitted after a newer one; greatest() with a
+           -- null-safe fallback keeps the freshest sighting either way.
+           game_last_seen_at = greatest(
+             excluded.game_last_seen_at,
+             player.game_last_seen_at)
+     where player.name is distinct from coalesce(excluded.name, player.name)
+        or player.game_last_seen_at is distinct from
+           greatest(excluded.game_last_seen_at, player.game_last_seen_at)
+        or player.last_seen_at < excluded.last_seen_at - interval '1 hour'`,
+    [
+      ordered.map((m) => m.tag),
+      ordered.map((m) => m.name),
+      at,
+      ordered.map((m) => m.gameLastSeen),
+    ],
+  );
 
   const { rows: open } = await db.query(
     `select player_tag, joined_observed_at, role from clan_membership

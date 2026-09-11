@@ -291,36 +291,57 @@ test("clan cadence: who cares x how alive it is now (2026-09-11)", async () => {
   await db.query(`delete from recording where subject_type = 'clan'`);
 });
 
-test("a leaderboard is planned on its own cadence: the global board hourly, a country daily", async () => {
+test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", async () => {
+  // 0075: the global board is daily like every other board, and daily
+  // boards are anchored to the board-day rather than to elapsed time.
   await freshenCards(NOW);
   await db.query(
     `update ranking_board set enabled = true
      where board = 'pol' and location_key in ('global', '57000249')`,
   );
+  const at = (iso) => new Date(iso);
   await setTokens(100);
 
-  // First tick: both boards have never been fetched, so both are due.
-  const { jobs } = await planTick(db, NOW);
+  // Never fetched: both are due at any time.
+  const { jobs } = await planTick(db, at("2026-09-03T12:00:00Z"));
   assert.deepEqual(jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort(), [
     "rankings_pol:57000249",
     "rankings_pol:global",
   ]);
 
-  // Forty minutes on: neither is due — hourly has not elapsed, daily is far off.
-  await setState("global", "rankings_pol", {
-    admitted: min(40),
-    planned: min(40),
-  });
-  await setState("57000249", "rankings_pol", {
-    admitted: min(40),
-    planned: min(40),
-  });
+  // Read at 10:02Z today: not due again at 15:00Z, nor at 09:58Z tomorrow.
+  for (const key of ["global", "57000249"]) {
+    await setState(key, "rankings_pol", {
+      admitted: at("2026-09-03T10:02:00Z"),
+      planned: at("2026-09-03T10:02:00Z"),
+    });
+  }
   await setTokens(100);
-  const { jobs: j2 } = await planTick(db, NOW);
-  assert.equal(j2.length, 0);
+  assert.equal((await planTick(db, at("2026-09-03T15:00:00Z"))).jobs.length, 0);
+  // Re-park the GLOBAL daily rows so their own day does not roll over
+  // inside this test; only the boards are under observation here.
+  await freshenCards(at("2026-09-04T09:00:00Z"));
+  await setTokens(100);
+  assert.equal((await planTick(db, at("2026-09-04T09:58:00Z"))).jobs.length, 0);
 
-  // Seventy minutes on: the hourly global board is due, the daily US one is not.
-  // (Cadences carry +/-15% jitter, so probe outside the band.)
+  // The first tick after the next 10:00Z: both due, once.
+  await setTokens(100);
+  const { jobs: j3 } = await planTick(db, at("2026-09-04T10:02:00Z"));
+  assert.deepEqual(j3.map((j) => `${j.endpoint}:${j.entity_key}`).sort(), [
+    "rankings_pol:57000249",
+    "rankings_pol:global",
+  ]);
+  await setTokens(100);
+  assert.equal(
+    (await planTick(db, at("2026-09-04T10:07:00Z"))).jobs.length,
+    0,
+    "planned this board-day already",
+  );
+
+  // A row that asks for less than a day keeps its own cadence (0068).
+  await db.query(
+    `update ranking_board set every_minutes = 60 where location_key = 'global'`,
+  );
   await setState("global", "rankings_pol", {
     admitted: min(70),
     planned: min(70),
@@ -330,9 +351,9 @@ test("a leaderboard is planned on its own cadence: the global board hourly, a co
     planned: min(70),
   });
   await setTokens(100);
-  const { jobs: j3 } = await planTick(db, NOW);
+  const { jobs: j4 } = await planTick(db, NOW);
   assert.deepEqual(
-    jobs.length && j3.map((j) => `${j.endpoint}:${j.entity_key}`),
+    j4.map((j) => `${j.endpoint}:${j.entity_key}`),
     ["rankings_pol:global"],
   );
 
@@ -344,9 +365,17 @@ test("a leaderboard is planned on its own cadence: the global board hourly, a co
     admitted: min(200),
     planned: min(200),
   });
+  await setState("57000249", "rankings_pol", {
+    admitted: min(200),
+    planned: min(200),
+  });
   await setTokens(100);
-  const { jobs: j4 } = await planTick(db, NOW);
-  assert.equal(j4.length, 0, "a board nobody remembers is not fetched");
+  const { jobs: j5 } = await planTick(db, at("2026-09-04T10:02:00Z"));
+  assert.deepEqual(
+    j5.map((j) => `${j.endpoint}:${j.entity_key}`),
+    ["rankings_pol:57000249"],
+    "a board nobody remembers is not fetched",
+  );
 });
 
 test("a season's final board is fetched once: due while we do not hold it, never again after", async () => {

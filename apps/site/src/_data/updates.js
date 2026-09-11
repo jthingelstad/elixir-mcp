@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "The global board is recorded daily, at the reset",
+    body: "The global Path of Legends board was snapshotted every hour: twenty-four copies of a thousand places a day, for a board that only needs to be remembered as it stood at each reset. It is now read once per board-day, in the first planning tick after 10:00Z, so a season's last daily snapshot is the board going into the roll. The golden board for a finished season is unchanged: the API's own final standing, fetched once and kept in full. Every other leaderboard was already daily and now shares the same anchor.",
+  },
+  {
+    date: "2026-09-11",
     title: "Clan rosters follow the clan's day",
     body: "Every clan was read every 15 minutes around the clock — a heartbeat inherited from the single-clan bot, applied to 288 clans, 258 of them polled only because a top-ranked player happens to be a member. It was 31% of everything the recorder had ever fetched, for rosters whose membership changes zero to three times a day. Now the roster's own lastSeen stamps set the pace: a clan you track is read every 15 minutes while three or more members are in the game, hourly once nobody has been for an hour (unless people are joining and leaving), and every four hours once nobody has been seen for a day. A clan read only because a recorded player is in it is read a few times a day on the same signal; that player's profile polls carry their clan tag, so their membership history is never lost, only coarser. live: true on clans_roster still reads the game this minute.",
   },

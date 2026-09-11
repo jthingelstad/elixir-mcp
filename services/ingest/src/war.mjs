@@ -112,7 +112,10 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
      values ($1, $2, $3, $4, $5)
      on conflict (clan_tag, season_id, section_index) do update set
        is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
-       started_observed_at = least(war_week.started_observed_at, excluded.started_observed_at)`,
+       started_observed_at = least(war_week.started_observed_at, excluded.started_observed_at)
+     where (not war_week.is_colosseum and excluded.is_colosseum)
+        or war_week.started_observed_at is null
+        or war_week.started_observed_at > excluded.started_observed_at`,
     [
       tag,
       clock.seasonId,
@@ -139,7 +142,17 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
            war_week_clan.period_points_observed_at,
            excluded.period_points_observed_at),
          participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
-         finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)`,
+         finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)
+       -- Touch the row only when a counter or a name actually moves: the
+       -- same race is observed dozens of times a day, and an unchanged
+       -- MAX-merge still writes a tuple version (2026-09-11: 5,190
+       -- updates on 310 rows).
+       where war_week_clan.fame < excluded.fame
+          or (excluded.period_points_observed_at >= coalesce(
+                war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
+              and war_week_clan.period_points is distinct from excluded.period_points)
+          or (war_week_clan.participant_name is null and excluded.participant_name is not null)
+          or (war_week_clan.finish_time is null and excluded.finish_time is not null)`,
       [
         tag,
         clock.seasonId,
@@ -168,51 +181,80 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   );
   const prevDecks = new Map(prevPart.map((r) => [r.player_tag, r.decks_used]));
   const deckDeltas = new Map();
-  let members = 0;
+  // One statement per table for the whole roster, ordered by tag (the
+  // lock order every bulk upsert in this repo takes), and guarded so a
+  // poll that moved nothing writes nothing: war_participation had
+  // 145,432 updates on 12,739 inserts and war_attendance_day 79,924 on
+  // 2,700 before 2026-09-11, all of them no-op MAX-merges rewritten as
+  // new tuple versions - about 150 round trips per poll besides.
+  const participants = [];
+  const seen = new Set();
   for (const p of payload.clan.participants ?? []) {
     const playerTag = normalizeTag(p.tag);
+    if (seen.has(playerTag)) continue; // ON CONFLICT cannot touch a row twice
+    seen.add(playerTag);
+    participants.push({
+      tag: playerTag,
+      name: p.name ?? null,
+      points: p.fame ?? 0,
+      decksUsed: p.decksUsed ?? 0,
+      boatAttacks: p.boatAttacks ?? 0,
+      decksUsedToday: p.decksUsedToday ?? 0,
+    });
+    const delta = (p.decksUsed ?? 0) - (prevDecks.get(playerTag) ?? 0);
+    if (delta > 0) deckDeltas.set(playerTag, delta);
+  }
+  participants.sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+  const members = participants.length;
+  if (members > 0) {
+    const tags = participants.map((p) => p.tag);
     await db.query(
-      `insert into player (player_tag, name) values ($1, $2) on conflict do nothing`,
-      [playerTag, p.name ?? null],
+      `insert into player (player_tag, name)
+       select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
+       on conflict do nothing`,
+      [tags, participants.map((p) => p.name)],
     );
     await db.query(
       `insert into war_participation
          (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
-       values ($1, $2, $3, $4, $5, $6, $7)
+       select $1, $2, $3, t.tag, t.points, t.decks, t.boats
+       from unnest($4::text[], $5::int[], $6::int[], $7::int[]) as t(tag, points, decks, boats)
        on conflict (clan_tag, season_id, section_index, player_tag) do update set
          points = greatest(war_participation.points, excluded.points),
          decks_used = greatest(war_participation.decks_used, excluded.decks_used),
-         boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)`,
+         boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)
+       where war_participation.points < excluded.points
+          or war_participation.decks_used < excluded.decks_used
+          or war_participation.boat_attacks < excluded.boat_attacks`,
       [
         tag,
         clock.seasonId,
         clock.sectionIndex,
-        playerTag,
-        p.fame ?? 0,
-        p.decksUsed ?? 0,
-        p.boatAttacks ?? 0,
+        tags,
+        participants.map((p) => p.points),
+        participants.map((p) => p.decksUsed),
+        participants.map((p) => p.boatAttacks),
       ],
     );
     if (clock.warDay !== null) {
       await db.query(
         `insert into war_attendance_day
            (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-         values ($1, $2, $3, $4, $5, $6)
+         select $1, $2, $3, $4, t.tag, t.today
+         from unnest($5::text[], $6::int[]) as t(tag, today)
          on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
-           decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today)`,
+           decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today)
+         where war_attendance_day.decks_used_today < excluded.decks_used_today`,
         [
           tag,
           clock.seasonId,
           clock.sectionIndex,
           clock.warDay,
-          playerTag,
-          p.decksUsedToday ?? 0,
+          tags,
+          participants.map((p) => p.decksUsedToday),
         ],
       );
     }
-    const delta = (p.decksUsed ?? 0) - (prevDecks.get(playerTag) ?? 0);
-    if (delta > 0) deckDeltas.set(playerTag, delta);
-    members += 1;
   }
 
   // 5. Yield feedback: members with NEW war decks just battled — raise
@@ -340,7 +382,13 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
            participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
            finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time),
            rank = coalesce(excluded.rank, war_week_clan.rank),
-           trophy_change = coalesce(excluded.trophy_change, war_week_clan.trophy_change)`,
+           trophy_change = coalesce(excluded.trophy_change, war_week_clan.trophy_change)
+         where war_week_clan.fame < excluded.fame
+            or (war_week_clan.participant_name is null and excluded.participant_name is not null)
+            or (war_week_clan.finish_time is null and excluded.finish_time is not null)
+            or (excluded.rank is not null and war_week_clan.rank is distinct from excluded.rank)
+            or (excluded.trophy_change is not null
+                and war_week_clan.trophy_change is distinct from excluded.trophy_change)`,
         [
           tag,
           item.seasonId,
@@ -371,7 +419,10 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
              on conflict (clan_tag, season_id, section_index, player_tag) do update set
                points = greatest(war_participation.points, excluded.points),
                decks_used = greatest(war_participation.decks_used, excluded.decks_used),
-               boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)`,
+               boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)
+             where war_participation.points < excluded.points
+                or war_participation.decks_used < excluded.decks_used
+                or war_participation.boat_attacks < excluded.boat_attacks`,
             [
               tag,
               item.seasonId,

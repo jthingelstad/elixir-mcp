@@ -127,8 +127,10 @@ public ones needs only `cr:read`.
 ## Leaderboards
 
 The CR API shows a ranking as it is this minute and forgets it. The recorder
-keeps it: the **global Path of Legends board every hour**, and every location
-the API lists — 262 countries and regions — **once a day**. Each fetch that
+keeps it: the global Path of Legends board and every location the API lists —
+262 countries and regions — **once a day**, in the first planning tick after
+10:00Z, the hour the season rolls, so a season's last daily snapshot is the
+board as it stood going into the roll. Each fetch that
 differs from the last becomes a snapshot with a row per placed player (rank,
 rating, name, clan); an identical later fetch confirms the existing snapshot
 rather than duplicating it, so the record also says how long a board held.
@@ -160,7 +162,7 @@ recorded daily as sightings, so `game_events` is the season's calendar built
 from the days each event was seen. `rankings_timeline` reads any of the player
 boards across a window: a player's rank and rating at every snapshot, a
 clan's rated players and best rank, or the board's own floor, summit and
-field size — the season story at hourly resolution.
+field size — the season story at daily resolution.
 
 **A top-200 appearance on the global board is a recording reason.** Any
 player who reaches it is recorded at comprehensive scope — every battle,

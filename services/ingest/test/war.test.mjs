@@ -90,6 +90,49 @@ test("with logged history: week, standings, POINTS participation, attendance", a
   assert.equal(attendance, war.clan.participants.length);
 });
 
+test("re-ingest of the same race WRITES nothing: no tuple version moves", async () => {
+  // xmin is the transaction that wrote the row version. A race is
+  // observed dozens of times a day; before 2026-09-11 every unchanged
+  // MAX-merge rewrote its row (war_participation 145k updates on 12.7k
+  // inserts, war_attendance_day 80k on 2.7k).
+  const war = await fixture("currentriverrace/war_day.json");
+  const first = await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: war,
+    fetchedAt: "2026-08-30T07:50:00Z",
+  });
+  assert.equal(first.projected, "war");
+  const versions = async () =>
+    (
+      await ctx.db.query(
+        `
+        select 'wp' as t, player_tag as k, xmin::text as v from war_participation where clan_tag = $1
+        union all
+        select 'wa', war_day || '|' || player_tag, xmin::text from war_attendance_day where clan_tag = $1
+        union all
+        select 'wc', participant_clan_tag, xmin::text from war_week_clan where clan_tag = $1
+        union all
+        select 'ww', season_id || '|' || section_index, xmin::text from war_week where clan_tag = $1
+        union all
+        select 'pl', player_tag, xmin::text from player
+        order by 1, 2`,
+        [CLAN],
+      )
+    ).rows;
+  const before = await versions();
+  assert.ok(
+    before.some((r) => r.t === "wp"),
+    "participation rows exist",
+  );
+  const again = await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: war,
+    fetchedAt: "2026-08-30T07:55:00Z",
+  });
+  assert.equal(again.members, first.members);
+  assert.deepEqual(await versions(), before, "no row version moved");
+});
+
 test("MAX-merge: a lagging payload never regresses counters", async () => {
   const war = structuredClone(await fixture("currentriverrace/war_day.json"));
   const someone = war.clan.participants.find((p) => (p.fame ?? 0) > 0);

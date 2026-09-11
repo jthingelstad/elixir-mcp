@@ -38,14 +38,28 @@ test("roster seeds players and opens memberships (clan auto-follow payoff)", asy
   assert.equal(open, 49);
 });
 
-test("re-ingest of the same roster is a no-op", async () => {
+test("re-ingest of the same roster is a no-op: no events, no tuple version moves", async () => {
   const clan = await fixture("clan/roster.json");
+  // A roster is polled far more often than a member plays; an unchanged
+  // member rewritten is a dead tuple for nothing (2026-09-11).
+  const versions = async () =>
+    (
+      await ctx.db.query(`
+        select 'pl' as t, player_tag as k, xmin::text as v from player
+        union all
+        select 'cm', clan_tag || '|' || player_tag, xmin::text from clan_membership
+        union all
+        select 'c', clan_tag, xmin::text from clan
+        order by 1, 2`)
+    ).rows;
+  const before = await versions();
   const result = await ingestClanRoster(ctx.db, {
     payload: clan,
     observedAt: "2026-09-03T14:55:34Z",
   });
   assert.equal(result.joined, 0);
   assert.equal(result.departed, 0);
+  assert.deepEqual(await versions(), before, "no row version moved");
 });
 
 test("a member disappearing closes their membership, observed not asserted", async () => {

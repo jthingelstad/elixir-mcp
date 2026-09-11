@@ -240,7 +240,17 @@ const PROJECTORS = {
                          then excluded.last_known_clan_role
                          else player.last_known_clan_role end,
              first_seen_at = least(player.first_seen_at, $4),
-             last_seen_at = greatest(player.last_seen_at, $4)`,
+             last_seen_at = greatest(player.last_seen_at, $4)
+       -- Only when the identity moves, or the sighting is an hour stale:
+       -- a profile poll that changed nothing must not rewrite the row
+       -- (1.4M updates on 157k rows before 2026-09-11).
+       where $4 < player.last_seen_at
+          or player.name is distinct from coalesce(excluded.name, player.name)
+          or player.last_known_clan_tag is distinct from
+             coalesce(excluded.last_known_clan_tag, player.last_known_clan_tag)
+          or player.last_known_clan_role is distinct from excluded.last_known_clan_role
+          or player.first_seen_at > $4
+          or player.last_seen_at < $4::timestamptz - interval '1 hour'`,
       // The role is the player's own account of their standing in the
       // clan they are in NOW. Unlike the tag it is not coalesced: a
       // player who left has no role, and saying so is the honest read.
@@ -262,7 +272,8 @@ const PROJECTORS = {
     if (yearsBadge && Number.isFinite(Number(yearsBadge.level))) {
       await db.query(
         `update player set years_played = $2, account_age_days = $3
-         where player_tag = $1`,
+         where player_tag = $1
+           and (years_played is distinct from $2 or account_age_days is distinct from $3)`,
         [
           entityKey,
           Number(yearsBadge.level),
