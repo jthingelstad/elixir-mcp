@@ -126,6 +126,11 @@ test("config: contract constants, channel, the update authority, and what doctor
   });
   assert.equal(r.status, 200);
   assert.equal(r.body.pacing_ms, 1500);
+  assert.deepEqual(r.body.submit_retry, {
+    max_attempts: 3,
+    timeout_s: 20,
+    backoff_ms: 500,
+  });
   assert.equal(r.body.gateway.channel, "bulk");
   assert.equal(r.body.update["go-darwin-arm64"].version, "2.0.0");
   assert.equal(

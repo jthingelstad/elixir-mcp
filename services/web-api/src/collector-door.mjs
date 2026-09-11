@@ -98,6 +98,10 @@ const CONFIG = {
   // going to be.
   overflow_bytes: 5_000_000,
   poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
+  // A failed ingestion must not make the collector abandon a valid lease
+  // immediately. Keep this bounded below the 90-second lease TTL: clients
+  // retry only transport failures and 5xx responses with this same envelope.
+  submit_retry: { max_attempts: 3, timeout_s: 20, backoff_ms: 500 },
   // The one CR read `collector doctor` makes to prove the operator's key
   // works from the operator's IP. Server-designated like every other
   // path, so the probe can change without a client release.
