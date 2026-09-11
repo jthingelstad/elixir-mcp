@@ -144,8 +144,11 @@ it, so a board is small in a season's first days and fills through the month.
 **Everything else the API forgets about a season** is recorded beside it.
 A season's **final** Path of Legends board — the settled standing at full
 depth, 9,999 places — is fetched once the day after it rolls and was
-backfilled for every season since S97, the ranked ladder's first; read it
-with `board: pol_final` and a `season`. The **clan ladders** (`clans` by clan
+backfilled for every season since October 2022, the ranked ladder's first;
+read it with `board: pol_final` and a `season`, either the number
+`game_clock` counts (135 for August 2026) or the API's own name for the
+season, the month it started in (`2026-08`). The Pass's in-game "Season 87"
+is a third numbering the API does not use anywhere. The **clan ladders** (`clans` by clan
 score, `clanwars` by clan war trophies, 1,000 places by location) are
 recorded daily for global, the United States and Japan — `rankings_clan_ladder`.
 The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the

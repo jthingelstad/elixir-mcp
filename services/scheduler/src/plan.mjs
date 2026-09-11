@@ -29,7 +29,7 @@
  */
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
-import { seasonFromDate } from "../../ingest/src/war-clock.mjs";
+import { settledPolMonths } from "../../ingest/src/war-clock.mjs";
 
 const MINUTE = 60_000;
 
@@ -318,16 +318,17 @@ async function seedPollState(db, now = new Date()) {
     insert into poll_state (subject_tag, endpoint)
     values ('GLOBAL', 'leaderboards'), ('GLOBAL', 'events'), ('GLOBAL', 'globaltournaments')
     on conflict do nothing`);
-  // Season finals (0069): a row per season from S97 - the ranked ladder's
-  // first - through the one that just ended. The current season's board
-  // is not final until it rolls; the tick after the roll adds its row.
+  // Season finals (0069, keyed by month since 0070): a row per settled
+  // season under the API's own name for it - `2022-10`, the ranked
+  // ladder's first, through the month that rolled most recently. The
+  // current season's board is not final until it rolls; the tick after
+  // the roll adds its row.
   await db.query(
     `
     insert into poll_state (subject_tag, endpoint)
-    select s::text, 'rankings_pol_season'
-    from generate_series(97, $1::int) s
+    select m, 'rankings_pol_season' from unnest($1::text[]) m
     on conflict do nothing`,
-    [seasonFromDate(now.getTime()).seasonId - 1],
+    [settledPolMonths(now.getTime())],
   );
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
   // for EVERY clan scope; player endpoints for every OPEN member only at
@@ -406,7 +407,7 @@ async function selectEligible(db, now, arm) {
          -- A season's final is wanted exactly until we hold it.
          or (ps.endpoint = 'rankings_pol_season' and not exists (
                select 1 from ranking_snapshot s
-               where s.board = 'pol_final' and s.season_id = ps.subject_tag))
+               where s.board = 'pol_final' and s.season_month = ps.subject_tag))
          or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))

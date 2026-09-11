@@ -151,6 +151,7 @@ before(async () => {
     },
     fetchedAt: "2026-09-07T10:30:00Z",
     seasonId: "135",
+    seasonMonth: "2026-08",
   });
   invoke = makeInvoker({
     db,
@@ -322,10 +323,30 @@ test("a season's final board is read by season, not by date", async () => {
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.applied.season, 135);
   assert.equal(body.snapshot.season_id, "135");
+  assert.equal(
+    body.snapshot.season_month,
+    "2026-08",
+    "the API's own name for the season rides beside the ordinal (0070)",
+  );
   assert.deepEqual(
     body.players.map((p) => [p.rank, p.name, p.rating]),
     [[1, "g-one", 3914]],
   );
+
+  // The API's month names the same final.
+  const { body: byMonth } = await invoke("rankings_players", {
+    board: "pol_final",
+    season: "2026-08",
+    limit: 1,
+  });
+  assert.equal(byMonth.applied.season, 135);
+  assert.equal(byMonth.snapshot.season_id, "135");
+  const { body: bad, isError: badErr } = await invoke("rankings_players", {
+    board: "pol_final",
+    season: "Minion Academy",
+  });
+  assert.equal(badErr, true);
+  assert.equal(bad.error.code, "bad_request");
 
   const { body: live, isError: refused } = await invoke("rankings_players", {
     board: "pol_final",

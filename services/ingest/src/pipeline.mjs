@@ -13,6 +13,7 @@
 
 import { emitToSubjectWatchers } from "../../mcp/src/feed.mjs";
 import { gunzipSync } from "node:zlib";
+import { polSeasonMonth, seasonIdForMonth } from "./war-clock.mjs";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
 import { admit } from "./admission.mjs";
@@ -295,13 +296,19 @@ const PROJECTORS = {
   },
   // 0069: the finals, the clan ladders, the game-mode boards, what is on.
   async rankings_pol_season(db, { entityKey, receiptId, payload, fetchedAt }) {
+    // The key is the API's month (2026-08), or - from a hand live_fetch -
+    // its numeric list position; the ordinal the record files it under is
+    // the game clock's (0070).
+    const seasonMonth = polSeasonMonth(entityKey);
+    if (!seasonMonth) return { projected: "none" };
     return projectRankingBoard(db, {
       board: "pol_final",
-      entityKey,
+      entityKey: seasonMonth,
       receiptId,
       payload,
       fetchedAt,
-      seasonId: String(entityKey),
+      seasonId: String(seasonIdForMonth(seasonMonth)),
+      seasonMonth,
     });
   },
   async rankings_clans_loc(db, { entityKey, receiptId, payload, fetchedAt }) {

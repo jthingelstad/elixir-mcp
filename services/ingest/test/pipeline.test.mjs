@@ -764,6 +764,59 @@ test("a board with a cursor past our limit is recorded as truncated", async () =
   assert.deepEqual(rows[0], { enabled: false, record_top: 0 });
 });
 
+test("a season's final is filed under the game clock's season, with the API's month beside it (0070)", async () => {
+  const final = (name, rating) => ({
+    items: [{ tag: "#99GU92P0", name, rank: 1, eloRating: rating }],
+    paging: {},
+  });
+  // The planner keys the job by the API's month.
+  const r1 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol_season",
+      entityKey: "2026-08",
+      payload: final("Flash Light", 4121),
+      fetchedAt: "2026-09-11T05:00:00Z",
+    }),
+  );
+  assert.equal(r1.outcome, "admitted", JSON.stringify(r1));
+  // A hand live_fetch by the numeric form files under the SAME season:
+  // 143 is 2026-08's position in the API's list, not a season number.
+  const r2 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol_season",
+      entityKey: "143",
+      payload: final("Flash Light", 4121),
+      fetchedAt: "2026-09-11T06:00:00Z",
+    }),
+  );
+  assert.equal(r2.outcome, "admitted", JSON.stringify(r2));
+  assert.equal(
+    r2.projection.wrote,
+    false,
+    "the same final, confirmed not twinned",
+  );
+  const { rows } = await ctx.db.query(
+    `select season_id, season_month, entries from ranking_snapshot
+     where board = 'pol_final' and season_month = '2026-08'`,
+  );
+  assert.deepEqual(rows, [
+    { season_id: "135", season_month: "2026-08", entries: 1 },
+  ]);
+  // The Pass's own "Season 87" is no season the API knows.
+  const r3 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol_season",
+      entityKey: "87",
+      payload: final("nobody", 1),
+      fetchedAt: "2026-09-11T06:00:00Z",
+    }),
+  );
+  assert.equal(r3.projection?.projected, "none", JSON.stringify(r3));
+});
+
 function crCompact(d) {
   return d
     .toISOString()

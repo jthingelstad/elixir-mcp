@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "The season finals, filed under the right seasons",
+    body: "This morning's finals backfill fetched each season's final board by a bare number and took that number for the season the game clock counts — it is the position in the API's own list of seasons, eight higher. What the record called the S135 final was December 2025's; the eight finals since, January through August 2026, were never fetched. Every held final is relabelled (S89 through S127, October 2022 onward), the missing eight are being fetched now, and finals are fetched by the API's own name for a season from here on — the month it started in. That name is also accepted as the season argument (2026-08 beside 135), and the snapshot carries both. Contract 1.5.0. For the record there are three season numberings in play: the game clock's (S136 is September 2026), the in-game Pass's (Season 87, which the API never mentions), and the API's YYYY-MM.",
+  },
+  {
+    date: "2026-09-11",
     title: "Everything else the API forgets about a season",
     body: "Every Path of Legends season's final standing since S97 — the settled board at full depth, 9,999 places — is now in the record, backfilled, and each new season's final is fetched the day after it rolls. The clan ladders (clan score, clan war trophies) are recorded daily for global, the US and Japan; the game-mode leaderboards (Merge Tactics, Touchdown, 2v2 League…) are enumerated from the API so a rotating board is followed, never named; and the events the game lists as running are recorded daily as sightings, since the API gives no dates, so the season has a calendar. Three new tools read it — rankings_clan_ladder, rankings_timeline (a player's rank at every snapshot, a clan's, or the board's own floor and summit), game_events — and rankings_players takes board pol_final with a season, or board mode with a leaderboard id. Contract 1.4.0. Also fixed: since last night's deploy every board was being re-planned every fifteen minutes as never-fetched — about 1,500 extra fetches an hour — because admission stamped the board's freshness under the wrong key.",
   },

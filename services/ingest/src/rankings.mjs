@@ -95,12 +95,21 @@ function contentHash(entries) {
  */
 export async function projectRankingBoard(
   db,
-  { board, entityKey, receiptId, payload, fetchedAt, seasonId = null },
+  {
+    board,
+    entityKey,
+    receiptId,
+    payload,
+    fetchedAt,
+    seasonId = null,
+    seasonMonth = null,
+  },
 ) {
   const entries = entriesOf(payload);
   const observedAt = new Date(fetchedAt);
   // A final board is keyed by season, not place: it lives on the one
-  // ('pol_final', 'global') board row and its season is the entity key.
+  // ('pol_final', 'global') board row; the pipeline resolves its season
+  // from the entity key (the API's month) and passes both spellings.
   const locationKey =
     board === "pol_final" ? "global" : String(entityKey ?? "").toLowerCase();
   const season =
@@ -159,8 +168,8 @@ export async function projectRankingBoard(
   } else if (entries.length > 0) {
     const { rows } = await db.query(
       `insert into ranking_snapshot
-         (board, location_key, season_id, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
-       values ($1, $2, $3, $4, $4, $5, $6, $7, $8)
+         (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
+       values ($1, $2, $3, $9, $4, $4, $5, $6, $7, $8)
        returning snapshot_id`,
       [
         board,
@@ -171,6 +180,7 @@ export async function projectRankingBoard(
         entries.length,
         truncated,
         receiptId ?? null,
+        seasonMonth,
       ],
     );
     snapshotId = rows[0].snapshot_id;

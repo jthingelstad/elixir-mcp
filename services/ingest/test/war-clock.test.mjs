@@ -287,3 +287,44 @@ test("week end is the section's last day on the same grid", () => {
   const days = Math.round((p.weekEndMs - p.endMs) / 86400_000);
   assert.equal(days, 6 - p.info.dayInSection);
 });
+
+import {
+  polSeasonMonth,
+  seasonIdForMonth,
+  settledPolMonths,
+} from "../src/war-clock.mjs";
+
+test("Path of Legends season names: the API's month, its list position, and the game clock's ordinal are one season", () => {
+  // Verified live 2026-09-11 by matching #1 players across the forms:
+  // position 136 = 2026-01, 135 = 2025-12, 97 = 2022-10, 143 = 2026-08.
+  assert.equal(polSeasonMonth("143"), "2026-08");
+  assert.equal(polSeasonMonth("136"), "2026-01");
+  assert.equal(polSeasonMonth("135"), "2025-12");
+  assert.equal(polSeasonMonth("97"), "2022-10");
+  assert.equal(polSeasonMonth("2026-08"), "2026-08", "a month is itself");
+  assert.equal(
+    polSeasonMonth("87"),
+    null,
+    "the in-game Pass number is nothing to the API",
+  );
+  assert.equal(polSeasonMonth("global"), null);
+  // The game clock counts the September 2026 season as 136, so August is 135.
+  assert.equal(seasonIdForMonth("2026-08"), 135);
+  assert.equal(seasonIdForMonth("2026-01"), 128);
+  assert.equal(seasonIdForMonth("2022-10"), 89);
+  // Settled finals on 2026-09-11: the ladder's first through the month that
+  // just rolled; the running season is not among them.
+  const settled = settledPolMonths(Date.UTC(2026, 8, 11));
+  assert.equal(settled[0], "2022-10");
+  assert.equal(settled.at(-1), "2026-08");
+  assert.equal(settled.length, 47);
+  // The October roll (first Monday, 10:00Z) settles September.
+  assert.equal(
+    settledPolMonths(Date.UTC(2026, 9, 5, 10, 0, 1)).at(-1),
+    "2026-09",
+  );
+  assert.equal(
+    settledPolMonths(Date.UTC(2026, 9, 5, 9, 59, 59)).at(-1),
+    "2026-08",
+  );
+});

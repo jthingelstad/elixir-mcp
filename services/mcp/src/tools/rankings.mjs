@@ -9,7 +9,10 @@
 
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../time.mjs";
-import { seasonFromDate } from "../../../ingest/src/war-clock.mjs";
+import {
+  seasonFromDate,
+  seasonIdForMonth,
+} from "../../../ingest/src/war-clock.mjs";
 import {
   ToolFailure,
   TAG_SCHEMA,
@@ -31,14 +34,13 @@ const BOARD_SCHEMA = {
   enum: ["pol", "trophy", "pol_final", "mode"],
   default: "pol",
   description:
-    "pol is the live Path of Legends board (players above the rating floor, recorded hourly for global); pol_final is a season's FINAL Path of Legends standing at full depth (9,999 places), one per season since S97 - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
+    "pol is the live Path of Legends board (players above the rating floor, recorded hourly for global); pol_final is a season's FINAL Path of Legends standing at full depth (9,999 places), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
 };
 
 const SEASON_SCHEMA = {
-  type: "integer",
-  minimum: 97,
+  type: ["integer", "string"],
   description:
-    "With board pol_final: which season's final board (numeric season id, e.g. 135 for August 2026). Omitted means the most recent final we hold.",
+    "With board pol_final: which season's final board - the season number as game_clock counts it (135 for August 2026), or the API's own name for the season, the month it started in (2026-08). Omitted means the most recent final we hold. The snapshot carries both spellings.",
 };
 
 const LOCATION_SCHEMA = {
@@ -66,6 +68,20 @@ const ENDPOINT_OF = {
 
 const FLOOR_NOTE =
   "Path of Legends lists only players above a rating floor, and a season resets everyone below it: a board is small in a season's first days and fills through the month.";
+
+/** The season argument as the record files it: the game clock's ordinal.
+ *  A month (2026-08, the API's own name) resolves to the ordinal; a number
+ *  is taken as one already. */
+function seasonArg(value) {
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}$/.test(raw)) return String(seasonIdForMonth(raw));
+  if (/^\d+$/.test(raw)) return raw;
+  throw new ToolFailure(
+    "bad_request",
+    `Could not read season='${raw}'.`,
+    SEASON_SCHEMA.description,
+  );
+}
 
 /** Resolve the location argument to a ranking_board row, or refuse. */
 async function boardRow(db, board, location) {
@@ -102,7 +118,7 @@ async function snapshotFor(ctx, args, row) {
       );
   }
   const { rows } = await ctx.db.query(
-    `select snapshot_id, season_id, observed_at, last_confirmed_at, entries, truncated
+    `select snapshot_id, season_id, season_month, observed_at, last_confirmed_at, entries, truncated
      from ranking_snapshot
      where board = $1 and location_key = $2
        and ($3::timestamptz is null or observed_at <= $3)
@@ -113,7 +129,7 @@ async function snapshotFor(ctx, args, row) {
       row.location_key,
       asOf,
       row.board === "pol_final" && args.season !== undefined
-        ? String(args.season)
+        ? seasonArg(args.season)
         : null,
     ],
   );
@@ -154,6 +170,8 @@ function snapshotBlock(snapshot, row) {
     // writing a twin; the two together are the interval the board held.
     unchanged_until: snapshot.last_confirmed_at.toISOString(),
     season_id: snapshot.season_id,
+    // The API's own name for a final's season (0070); null on live boards.
+    season_month: snapshot.season_month ?? null,
     entries: snapshot.entries,
     truncated: snapshot.truncated,
     cadence_minutes: row.every_minutes,

@@ -4,7 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { seasonFromDate } from "../../ingest/src/war-clock.mjs";
+import {
+  settledPolMonths,
+  seasonIdForMonth,
+} from "../../ingest/src/war-clock.mjs";
 import {
   planTick,
   CADENCE,
@@ -113,11 +116,12 @@ beforeEach(async () => {
   // ended season, so the finals stay out of the other tests' job sets. The
   // finals test deletes one to prove the one-shot.
   await db.query("delete from ranking_snapshot where board = 'pol_final'");
+  const settled = settledPolMonths(NOW.getTime());
   await db.query(
-    `insert into ranking_snapshot (board, location_key, season_id, observed_at, last_confirmed_at, content_hash, entries)
-     select 'pol_final', 'global', s::text, now(), now(), 'held-' || s, 9999
-     from generate_series(97, $1::int) s`,
-    [seasonFromDate(NOW.getTime()).seasonId - 1],
+    `insert into ranking_snapshot (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries)
+     select 'pol_final', 'global', s, m, now(), now(), 'held-' || m, 9999
+     from unnest($1::text[], $2::text[]) as t(m, s)`,
+    [settled, settled.map((m) => String(seasonIdForMonth(m)))],
   );
 });
 
@@ -306,11 +310,14 @@ test("a leaderboard is planned on its own cadence: the global board hourly, a co
 
 test("a season's final board is fetched once: due while we do not hold it, never again after", async () => {
   await freshenCards(NOW);
-  const ended = seasonFromDate(NOW.getTime()).seasonId - 1;
+  // The finals are keyed by the API's own name for a season, the month it
+  // started in (0070) - never the numeric form, which is a list position.
+  const ended = settledPolMonths(NOW.getTime()).at(-1);
+  assert.match(ended, /^\d{4}-\d{2}$/);
   // We hold every final but the one that just ended.
   await db.query(
-    `delete from ranking_snapshot where board = 'pol_final' and season_id = $1`,
-    [String(ended)],
+    `delete from ranking_snapshot where board = 'pol_final' and season_month = $1`,
+    [ended],
   );
   await setTokens(100);
   const { jobs } = await planTick(db, NOW);
@@ -319,15 +326,20 @@ test("a season's final board is fetched once: due while we do not hold it, never
     [`rankings_pol_season:${ended}`],
   );
   // The current season is never planned: it is not final until it rolls.
-  assert.ok(!jobs.some((j) => j.entity_key === String(ended + 1)));
+  const { rows: seeded } = await db.query(
+    `select subject_tag from poll_state where endpoint = 'rankings_pol_season' order by 1`,
+  );
+  assert.equal(seeded[0].subject_tag, "2022-10", "the ranked ladder's first");
+  assert.equal(seeded.at(-1).subject_tag, ended);
+  assert.ok(seeded.every((r) => /^\d{4}-\d{2}$/.test(r.subject_tag)));
 
   // Once the snapshot exists the row is no longer eligible, however stale.
   await db.query(
-    `insert into ranking_snapshot (board, location_key, season_id, observed_at, last_confirmed_at, content_hash, entries)
-     values ('pol_final', 'global', $1, now(), now(), 'held', 9999)`,
-    [String(ended)],
+    `insert into ranking_snapshot (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries)
+     values ('pol_final', 'global', $1, $2, now(), now(), 'held', 9999)`,
+    [String(seasonIdForMonth(ended)), ended],
   );
-  await setState(String(ended), "rankings_pol_season", {
+  await setState(ended, "rankings_pol_season", {
     admitted: min(10_000),
     planned: min(10_000),
   });
