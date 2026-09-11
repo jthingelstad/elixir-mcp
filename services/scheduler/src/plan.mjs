@@ -39,7 +39,12 @@ export const CADENCE = {
   // signal with explicit unknown-activity defaults); only the fairness
   // floor lives here.
   player_battlelog: { floor: 1440 },
-  player: { floor: 4320 },
+  // No fairness floor for profiles since 2026-09-11 (Jamie: players may
+  // be idle and we owe them no snapshot): a profile is polled when the
+  // roster says its owner has been in the game since the last one, on
+  // an eight-hour minimum, and the pre-reset watcher still forces the
+  // one time-critical read.
+  player: {},
   // Clan: cadence comes from yieldCadenceMinutes (liveliness and churn
   // stamped by the roster projector, and whether anyone tracks the clan);
   // only the fairness floor lives here. Was a flat 15 minutes - the
@@ -122,6 +127,36 @@ export const READ_TTL_HOURS = 24;
  * at least every eight hours. Clan-wide comprehensive capture can still use
  * the yield cadence for members nobody follows directly. */
 export const DIRECT_PROFILE_CAP_MINUTES = 480;
+/** The roster gate (2026-09-11, review §4 / §10.2). A clan roster carries
+ *  the game's own lastSeen for ~50 players at 2.2 KB; a player whose
+ *  lastSeen has not moved since their last battlelog or profile poll has
+ *  no new battles and no changed profile, so that poll is skipped. A
+ *  session in progress is the one hazard - lastSeen may mark its start -
+ *  so a sighting younger than this many hours never gates. Only a roster
+ *  admitted AFTER the poll in question can gate it. */
+export const ROSTER_GATE_SESSION_HOURS = 2;
+/** Profile minimum interval once the roster says the player was active. */
+export const PROFILE_ACTIVE_MINUTES = 480;
+
+/** Whether a fresh roster shows this player idle since their last poll. */
+export function rosterGated(row, now = new Date()) {
+  if (row.endpoint !== "player_battlelog" && row.endpoint !== "player")
+    return false;
+  if (
+    !row.roster_admitted_at ||
+    !row.game_last_seen_at ||
+    !row.last_admitted_at
+  )
+    return false;
+  const roster = new Date(row.roster_admitted_at).getTime();
+  const seen = new Date(row.game_last_seen_at).getTime();
+  const polled = new Date(row.last_admitted_at).getTime();
+  return (
+    roster > polled &&
+    seen <= polled &&
+    now.getTime() - seen > ROSTER_GATE_SESSION_HOURS * 3600_000
+  );
+}
 
 /**
  * Minutes the loss-aware bound allows, or null when the row carries no
@@ -163,6 +198,20 @@ export function yieldCadenceMinutes(row, now = new Date()) {
     return cadence;
   }
   if (row.endpoint === "player") {
+    // With a roster fresher than the last profile poll, the gate decides
+    // whether the player was active at all; the cadence is then a flat
+    // eight hours (2026-09-11). Without roster information the activity
+    // buckets below stand.
+    if (
+      row.roster_admitted_at &&
+      row.last_admitted_at &&
+      new Date(row.roster_admitted_at).getTime() >
+        new Date(row.last_admitted_at).getTime()
+    ) {
+      return row.directly_tracked
+        ? Math.min(PROFILE_ACTIVE_MINUTES, DIRECT_PROFILE_CAP_MINUTES)
+        : PROFILE_ACTIVE_MINUTES;
+    }
     // The profile row's OWN yield_bph is never written -- ingest records
     // activity against the battlelog row only -- so this read borrowed NULL
     // forever and every branch below the first was unreachable. Profiles
@@ -432,8 +481,17 @@ async function selectEligible(db, now, arm) {
              (select b.every_minutes from ranking_board b
                where b.location_key = ps.subject_tag
                  and b.board = ${BOARD_OF_SQL}) as board_every,
+             -- The roster gate's two inputs (2026-09-11): the game's own
+             -- lastSeen for this player, and when their clan's roster was
+             -- last admitted. Null for anything that is not a player row.
+             pl.game_last_seen_at,
+             (select cps.last_admitted_at from poll_state cps
+               where cps.subject_tag = pl.last_known_clan_tag
+                 and cps.endpoint = 'clan') as roster_admitted_at,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
+      left join player pl on pl.player_tag = ps.subject_tag
+        and ps.endpoint in ('player_battlelog', 'player')
       where (ps.endpoint in ('player_battlelog', 'player') and (
                exists (
                  select 1 from recording r
@@ -475,7 +533,8 @@ async function selectEligible(db, now, arm) {
            -- fell back to the profile row's own NULL yield_bph, and every
            -- profile kept polling on the 480 branch (measured: 33/h before,
            -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
-           activity_bph, directly_tracked, clan_tracked, board_every
+           activity_bph, directly_tracked, clan_tracked, board_every,
+           game_last_seen_at, roster_admitted_at
     from state`,
   );
 
@@ -487,9 +546,16 @@ async function selectEligible(db, now, arm) {
   const windowStartMs = preReset ? preResetWindowStart(now).getTime() : 0;
 
   const eligible = [];
+  let gated = 0;
   for (const r of rows) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
+    // The roster gate: a fresh roster that shows this player idle since
+    // their last poll means the poll would return what we hold.
+    if (rosterGated(r, now)) {
+      gated += 1;
+      continue;
+    }
     const referenceMs = r.reference.getTime();
     // Control-arm subjects never see their burst signal; the reader cap
     // ships to everyone (it is cheap and the freshness win is the point).
@@ -525,7 +591,8 @@ async function selectEligible(db, now, arm) {
       plannedMs < windowStartMs;
     const starved =
       forcedPreReset ||
-      (nowMs - admittedMs >= cadence.floor * MINUTE &&
+      (cadence.floor !== undefined &&
+        nowMs - admittedMs >= cadence.floor * MINUTE &&
         nowMs - plannedMs >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE);
     if (!due && !starved) continue;
     const overdueMs = nowMs - referenceMs;
@@ -555,6 +622,7 @@ async function selectEligible(db, now, arm) {
       a.endpoint.localeCompare(b.endpoint) ||
       a.subject_tag.localeCompare(b.subject_tag),
   );
+  eligible.gated = gated;
   return eligible;
 }
 
@@ -621,5 +689,6 @@ export async function planTick(
     bulkBudget,
     bounded: selected.filter((j) => j.bounded).length,
     readCapped: selected.filter((j) => j.readCapped).length,
+    gated: eligible.gated ?? 0,
   };
 }

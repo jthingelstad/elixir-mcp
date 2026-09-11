@@ -378,6 +378,126 @@ test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", a
   );
 });
 
+test("the roster gate: a fresh roster showing a member idle since their last poll skips their polls; a sighting since lets them through", async () => {
+  await freshenCards(NOW);
+  await db.query(
+    `insert into clan (clan_tag) values ('#G8Q2LPY') on conflict do nothing`,
+  );
+  await addPlayer("#G8U2L9", { clan: "#G8Q2LPY" });
+  // Both rows are DUE on their own cadence: the battlelog (5/h -> hourly)
+  // was polled three hours ago, the profile (eight hours once a roster is
+  // fresh) ten hours ago. The roster, admitted ten minutes ago, says the
+  // player was last seen twelve hours ago - before either poll, and past
+  // the session grace - so neither poll can return anything new.
+  await setState("#G8U2L9", "player_battlelog", {
+    yieldBph: 5,
+    admitted: min(180),
+    planned: min(180),
+  });
+  await setState("#G8U2L9", "player", {
+    admitted: min(600),
+    planned: min(600),
+  });
+  await setState("#G8Q2LPY", "clan", { admitted: min(10), planned: min(10) });
+  await db.query(
+    `update player set game_last_seen_at = $2 where player_tag = $1`,
+    ["#G8U2L9", min(720)],
+  );
+  await setTokens(100);
+  const idle = await planTick(db, NOW);
+  assert.deepEqual(
+    idle.jobs.filter((j) => j.entity_key === "#G8U2L9"),
+    [],
+    "idle since the last poll: nothing to fetch",
+  );
+  assert.ok(idle.gated >= 2, "both player rows were gated");
+
+  // Seen an hour ago - after both polls: both are due again.
+  await db.query(
+    `update player set game_last_seen_at = $2 where player_tag = $1`,
+    ["#G8U2L9", min(60)],
+  );
+  await setTokens(100);
+  const active = await planTick(db, NOW);
+  assert.deepEqual(
+    active.jobs
+      .filter((j) => j.entity_key === "#G8U2L9")
+      .map((j) => j.endpoint)
+      .sort(),
+    ["player", "player_battlelog"],
+  );
+
+  // A roster OLDER than the last poll knows nothing about it: no gate,
+  // even with an ancient sighting.
+  await setState("#G8U2L9", "player_battlelog", {
+    yieldBph: 5,
+    admitted: min(180),
+    planned: min(180),
+  });
+  await setState("#G8Q2LPY", "clan", { admitted: min(300), planned: min(300) });
+  await db.query(
+    `update player set game_last_seen_at = $2 where player_tag = $1`,
+    ["#G8U2L9", min(720)],
+  );
+  await setTokens(100);
+  const stale = await planTick(db, NOW);
+  assert.ok(
+    stale.jobs.some(
+      (j) => j.entity_key === "#G8U2L9" && j.endpoint === "player_battlelog",
+    ),
+    "an old roster cannot vouch for idleness",
+  );
+});
+
+test("profiles have no dormant floor; with a fresh roster the cadence is a flat eight hours", async () => {
+  await freshenCards(NOW);
+  await db.query(
+    `insert into clan (clan_tag) values ('#R9YQ0LP') on conflict do nothing`,
+  );
+  await addPlayer("#R9YQ0L2", { clan: "#R9YQ0LP" });
+  // Dormant, no roster information: the 3-day bucket, and NOT starved at 2 days.
+  await setState("#R9YQ0L2", "player_battlelog", {
+    yieldBph: 0.01,
+    admitted: min(2 * 1440),
+    planned: min(2 * 1440),
+  });
+  await setState("#R9YQ0L2", "player", {
+    admitted: min(2 * 1440),
+    planned: min(2 * 1440),
+  });
+  await setTokens(100);
+  const r = await planTick(db, NOW);
+  assert.ok(
+    !r.jobs.some((j) => j.entity_key === "#R9YQ0L2" && j.endpoint === "player"),
+    "two days without a floor: the dormant bucket has not elapsed",
+  );
+  // With a fresh roster saying the player was active since: eight hours.
+  await setState("#R9YQ0LP", "clan", { admitted: min(5), planned: min(5) });
+  await db.query(
+    `update player set game_last_seen_at = $2 where player_tag = $1`,
+    ["#R9YQ0L2", min(30)],
+  );
+  await setState("#R9YQ0L2", "player", {
+    admitted: min(600),
+    planned: min(600),
+  });
+  await setTokens(100);
+  const r2 = await planTick(db, NOW);
+  assert.ok(
+    r2.jobs.some((j) => j.entity_key === "#R9YQ0L2" && j.endpoint === "player"),
+    "ten hours since the last profile, active since: due",
+  );
+  assert.equal(
+    yieldCadenceMinutes({
+      endpoint: "player",
+      yield_bph: 0.01,
+      roster_admitted_at: min(5),
+      last_admitted_at: min(600),
+    }),
+    480,
+  );
+});
+
 test("a season's final board is fetched once: due while we do not hold it, never again after", async () => {
   await freshenCards(NOW);
   // The finals are keyed by the API's own name for a season, the month it

@@ -220,15 +220,22 @@ that only ever shorten each other:
   a day stale precisely when you look. Reading costs nothing beyond the
   call itself; the extra fetches are a small, bounded slice of the
   budget.
-- **Fairness floors guarantee nobody is forgotten.** Whatever the
-  signals say, every recorded player's battle log is fetched at least
-  daily and their profile at least every three days.
+- **A fairness floor guarantees no battle log is forgotten.** Whatever
+  the signals say, every recorded player's battle log is fetched at
+  least daily.
+- **The roster is the activity sensor.** A clan roster carries the
+  game's own `lastSeen` for every member in one small fetch. When a
+  roster fresher than a member's last poll shows they have not been in
+  the game since it, that battle-log or profile poll is skipped: it
+  would only return what the record already holds. A sighting younger
+  than two hours never gates, so a session in progress is always
+  followed.
 
-Profiles are polled less often than battle logs (every eight hours for
-active players, daily for most, every three days for dormant ones),
-because the record keeps one snapshot per day; the one time-critical
-profile read, the pre-reset capture of the weekly donation counter, is
-forced separately. Clan rosters follow the clan's own day — every 15
+Profiles are polled less often than battle logs - every eight hours
+once the roster shows a player active, with no floor for the idle,
+because the record keeps one snapshot per day and an idle player owes
+it none; the one time-critical profile read, the pre-reset capture of
+the weekly donation counter, is forced separately. Clan rosters follow the clan's own day — every 15
 minutes while members of a tracked clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
 and a few times a day for a clan read only because a recorded player is

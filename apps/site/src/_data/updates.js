@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "The roster says who has played; the recorder stops asking the rest",
+    body: "Six in ten battle-log polls came back with nothing new, and most profile polls confirmed a profile that had not moved. A clan roster already carries the game's own lastSeen for every member in one small fetch, so the scheduler now reads it first: when a roster fresher than a member's last poll shows they have not been in the game since, that poll is skipped. A sighting under two hours old never gates, so a session in progress is always followed. Profiles have no floor any more - an idle player owes the record no snapshot - and are read every eight hours once the roster shows them active.",
+  },
+  {
+    date: "2026-09-11",
     title: "live: true no longer waits, and every collector serves it",
     body: "Asking for a live read used to hold your call open while a dedicated collector long-polled for it - and held two collectors long-polling around the clock for the sixteen such calls a week. Now live: true means: answer from a read no older than the API's own cache if one is in hand; otherwise queue one priority fetch for the next collector that checks in and answer at once from the record, with live_status saying it is pending and when to call again. A subject with nothing recorded answers live_pending. Collectors check in instead of polling, the door tells each one when to come back, and any collector in the fleet picks up a live fetch first. Receipts now say what a fetch was worth - new facts, ingest time, bytes read - and a collector earns a point only for a fetch that returned data.",
   },
