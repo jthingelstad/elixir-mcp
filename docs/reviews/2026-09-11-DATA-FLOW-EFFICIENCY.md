@@ -713,20 +713,49 @@ Dropped from §5: the Parquet-for-growth move (#6 old) — answer 7 removes
 the growth, answer 4 turns the export into a feature rather than a
 pressure valve.
 
-### 10.4 Follow-ups worth one line each from Jamie
+### 10.4 The follow-ups, answered (2026-09-11, later)
 
-1. **The daily board moment:** 10:00Z (the season-roll hour, so the last
-   daily snapshot of a season is also the pre-roll board), or another?
-2. **Membership detection ceiling:** "a few hours" — is 4 h the number to
-   write down for tracked clans, with 24 h for the rest?
-3. **`live: true` returning the recorded answer plus `pending`** (rather
-   than only `pending`) — agreed? It means an agent always gets *something*
-   on the first call.
-4. **Card history depth:** current state + events from now, with history
-   backfilled from the archive when the analytics layer exists — or is
-   relational history wanted sooner?
-5. **Points:** recompute lifetime from receipts once `new_facts` is
-   backfilled, or count from the day it ships?
+1. **Daily board moment: 10:00Z**, the season-roll hour — the season's
+   last daily snapshot is also its pre-roll board.
+2. **Membership detection ceiling: 4 h for tracked clans, 24 h for the
+   rest.** These are the clamp bounds in §10.2's roster rule.
+3. **`live: true` returns the recorded answer *and* `pending`** — an agent
+   always gets something on the first call.
+4. **Card history: no backfill.** Capture `card_unlocked` / `card_leveled`
+   from now forward into the user's notification queue; current state in
+   `player_card`. A further review of the notification event stream is
+   queued separately — the card topics land in whatever shape that
+   review settles.
+5. **Points: count from now forward, no backfill.**
+
+### 10.5 Keep it simple — what that removes
+
+Jamie's framing for all of it: *alpha/beta, no real users yet, keep it
+simple.* Applied to the list:
+
+- **No backfills anywhere.** Not card history, not points, not
+  `new_facts` on old receipts. Every new column starts null and fills
+  from its ship date.
+- **The analytics layer (#6) is deferred**, not planned: the archive is
+  already in the shape it needs (Hive layout, API's own JSON); build the
+  export the day there is a question to ask it, not before.
+- **Batch leases (§9.1 step two) are dropped.** One field,
+  `next_check_in_s`, is the whole polling change.
+- **Visibility (#14) ships as the three receipt columns and the fleet
+  table's three new numbers** (yield, filtered at edge, door calls per
+  fetch). The detail-page redesign waits for the notification-stream
+  review, since half of what it would show is events.
+- **One roster rule** (§10.2) replaces liveliness, churn and the
+  tracked/incidental branches; the clamp is 1 h–4 h tracked, 1 h–24 h
+  otherwise.
+- **The instance stays micro** until the baseline after these changes is
+  read (answer 8).
+
+What remains is eight changes, in this order: #0 board row, #1 check-ins
++ async live, #2 lane-scoped cache, #3 catalog + `player_card` + two
+topics, #4 guarded upserts, #5 roster gate + dormant floor retired, #7
+bounded probe, #14 receipt columns + fleet numbers + points rule. Then
+measure (#12) and decide the instance.
 
 ---
 
