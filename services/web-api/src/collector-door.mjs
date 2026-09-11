@@ -21,11 +21,7 @@
 import crypto from "node:crypto";
 import { crPathForJob, crBattleTime } from "@elixir-mcp/contracts";
 import { checkRateLimit } from "@elixir-mcp/auth";
-import {
-  leaseJob,
-  completeJob,
-  settleLeases as settleLedger,
-} from "../../scheduler/src/ledger.mjs";
+import { leaseJob, completeJob } from "../../scheduler/src/ledger.mjs";
 
 const TOKEN_PREFIX = "emcg_";
 const LEASE_TTL_S = 90;
@@ -97,7 +93,15 @@ const CONFIG = {
   // must never be discarded (collector issue #1) — now they never were
   // going to be.
   overflow_bytes: 5_000_000,
-  poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
+  // Served for clients older than 2026-09-11: they still send wait_s and
+  // sleep idle_backoff_s on empty. The door honours at most a 2 s wait.
+  // Current clients ignore these and follow next_check_in_s.
+  poll: { live_wait_s: 2, bulk_wait_s: 2, idle_backoff_s: 20 },
+  // Check-ins, not polling (2026-09-11): the door answers at once and
+  // says when to come back. 0 while work remains for the collector,
+  // idle_s when the queue is empty - which is also the worst-case
+  // pickup delay of a live: true fetch (review §9.1, §10.4).
+  check_in: { idle_s: 15, capped_s: 5 },
   // A failed ingestion must not make the collector abandon a valid lease
   // immediately. Keep this bounded below the 90-second lease TTL: clients
   // retry only transport failures and 5xx responses with this same envelope.
@@ -107,6 +111,9 @@ const CONFIG = {
   // path, so the probe can change without a client release.
   doctor: { cr_path: "/locations?limit=1" },
 };
+
+/** Compatibility ceiling for a wait_s from a pre-check-in client. */
+const LEGACY_WAIT_MAX_S = 2;
 
 // The transport bound on the COMPRESSED body (base64 chars). ONE number,
 // the same one the door serves to collectors, because on 2026-09-11 there
@@ -216,10 +223,12 @@ async function isRevokedToken(db, event) {
   return rows.length > 0;
 }
 
-/** Settle the ledger (which charges every expired lease to its own
- *  gateway), then read this gateway's current streak. */
-async function settleAndInspect(db, gatewayId) {
-  await settleLedger(db);
+/** This gateway's current streak. Settlement (which charges every
+ *  expired lease to its gateway) runs on the scheduler tick, every five
+ *  minutes; it used to run here on every lease call as well - three
+ *  updates over `job` per check-in, for a counter nothing reads faster
+ *  than the tick (2026-09-11). */
+async function inspectStreak(db, gatewayId) {
   const { rows } = await db.query(
     `select missed_streak as streak from gateway where gateway_id = $1`,
     [gatewayId],
@@ -319,7 +328,7 @@ export function makeCollectorDoor({
         return budgetRefusal("work");
       const tooOld = versionRefusal(event);
       if (tooOld) return tooOld;
-      const { streak } = await settleAndInspect(db, gw.gateway_id);
+      const { streak } = await inspectStreak(db, gw.gateway_id);
       if (streak >= MISSED_STREAK_QUARANTINE) {
         // Black-hole quarantine: stop serving, drain, tell the owner.
         await db.query(
@@ -338,19 +347,22 @@ export function makeCollectorDoor({
           },
         };
       }
+      // Every collector serves both lanes (2026-09-11): live is a
+      // priority flag on a job, not a kind of collector. leaseJob orders
+      // live first, so whichever collector checks in next takes it.
+      const lanes = ["live", "bulk"];
+      // A check-in answers at once. A client from before 2026-09-11 still
+      // sends wait_s; it is honoured for at most LEGACY_WAIT_MAX_S with a
+      // one-second re-check so an old live-channel loop cannot spin on an
+      // empty queue, and it goes away once the fleet has updated.
       const wait = Math.min(
         Math.max(Number(body?.wait_s ?? 0), 0),
-        gw.channel === "live"
-          ? CONFIG.poll.live_wait_s
-          : CONFIG.poll.bulk_wait_s,
+        LEGACY_WAIT_MAX_S,
       );
-      const lanes = gw.channel === "live" ? ["live", "bulk"] : ["bulk"];
-      // Short re-check loop standing in for the old SQS long poll (0040):
-      // each pass is the atomic cap-check-and-grant above.
       const deadline = Date.now() + wait * 1000;
       let grant = await leaseUnderCap(db, gw.gateway_id, lanes);
       while (!grant.capped && !grant.job && Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 1000));
         grant = await leaseUnderCap(db, gw.gateway_id, lanes);
       }
       if (grant.capped) {
@@ -359,16 +371,21 @@ export function makeCollectorDoor({
           body: {
             error: "lease_cap",
             hint: `At most ${MAX_OUTSTANDING} unsubmitted leases; submit or wait ${LEASE_TTL_S}s.`,
+            next_check_in_s: CONFIG.check_in.capped_s,
           },
         };
       }
       const job = grant.job;
-      if (!job) return { status: 200, body: { empty: true } };
+      if (!job)
+        return {
+          status: 200,
+          body: { empty: true, next_check_in_s: CONFIG.check_in.idle_s },
+        };
       const crPath = crPathForJob(job);
       if (!crPath) {
         // Unmappable endpoint: close it out rather than bouncing forever.
         await completeJob(db, { jobId: job.job_id, gatewayId: gw.gateway_id });
-        return { status: 200, body: { empty: true } };
+        return { status: 200, body: { empty: true, next_check_in_s: 0 } };
       }
       await db.query(
         `update gateway set leases_issued = leases_issued + 1 where gateway_id = $1`,
@@ -391,6 +408,8 @@ export function makeCollectorDoor({
           cr_path: crPath,
           lease: String(job.job_id),
           ...(filter ? { filter } : {}),
+          // There may be more: come straight back after submitting.
+          next_check_in_s: 0,
         },
       };
     },
@@ -464,6 +483,9 @@ export function makeCollectorDoor({
           : {}),
         ...(Number.isInteger(body?.filtered)
           ? { filtered: body.filtered }
+          : {}),
+        ...(Number.isInteger(body?.api_bytes) && body.api_bytes >= 0
+          ? { api_bytes: body.api_bytes }
           : {}),
         ...(status === "ok"
           ? { body_gzip_b64: body.body_gzip_b64 }

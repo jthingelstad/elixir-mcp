@@ -20,6 +20,7 @@ test("error taxonomy is closed and stable", () => {
   assert.deepEqual([...ERROR_CODES].sort(), [
     "bad_request",
     "invalid_tag",
+    "live_pending",
     "live_unavailable",
     "no_subject",
     "not_entitled",

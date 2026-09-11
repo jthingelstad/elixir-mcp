@@ -26,7 +26,9 @@ import {
   docsRef,
   buildMeta,
   requireEnum,
-  spendLiveQuota,
+  liveRead,
+  liveStatus,
+  livePendingNote,
 } from "./shared.mjs";
 
 const BOARD_SCHEMA = {
@@ -136,15 +138,11 @@ async function snapshotFor(ctx, args, row) {
   return { snapshot: rows[0] ?? null, asOf };
 }
 
-async function liveRead(ctx, row) {
-  if (!ctx.live)
-    throw new ToolFailure(
-      "live_unavailable",
-      "The live lane is not configured here.",
-      "Call again without live: true.",
-    );
-  await spendLiveQuota(ctx);
-  const result = await ctx.live(ctx.db, {
+/** live: true on a board (1.7.0, asynchronous): fresh if a read inside
+ *  the API's cache window is in hand, else queued; the recorded snapshot
+ *  answers either way, with live_status. */
+async function liveBoard(ctx, row) {
+  return liveRead(ctx, {
     endpoint:
       row.board === "pol"
         ? "rankings_pol"
@@ -153,14 +151,6 @@ async function liveRead(ctx, row) {
           : "rankings_players",
     entityKey: row.location_key,
   });
-  if (!result.ok)
-    throw new ToolFailure(
-      "live_unavailable",
-      result.reason === "rejected"
-        ? "The live fetch returned a payload our admission rejected."
-        : "No gateway completed the live fetch in time.",
-      "Call again without live: true for the recorded view, or retry shortly.",
-    );
 }
 
 function snapshotBlock(snapshot, row) {
@@ -218,7 +208,7 @@ export const rankingsTools = {
           "A season's final board does not change; live: true has nothing to read.",
           "Omit live, or read the live board with board: pol.",
         );
-      if (args.live === true) await liveRead(ctx, row);
+      const live = args.live === true ? await liveBoard(ctx, row) : null;
       const { snapshot, asOf } = await snapshotFor(ctx, args, row);
       const limit = Math.min(500, Math.max(1, Number(args.limit ?? 100)));
       const offset = Math.max(0, Number(args.offset ?? 0));
@@ -253,9 +243,13 @@ export const rankingsTools = {
             country_code: row.country_code,
           },
           applied,
+          ...(live ? { live_status: liveStatus(live) } : {}),
+          ...(live ? { live_status: liveStatus(live) } : {}),
           snapshot: null,
           players: [],
           notes: notes(
+            livePendingNote(live),
+            livePendingNote(live),
             asOf
               ? "No snapshot of this board exists on or before as_of; recording began 2026-09-11."
               : "This board has not been recorded yet. It is on the schedule; live: true reads it from the game now.",
@@ -282,6 +276,7 @@ export const rankingsTools = {
           country_code: row.country_code,
         },
         applied,
+        ...(live ? { live_status: liveStatus(live) } : {}),
         snapshot: snapshotBlock(snapshot, row),
         players: rows.map((r) =>
           compact
@@ -296,6 +291,7 @@ export const rankingsTools = {
               },
         ),
         notes: notes(
+          livePendingNote(live),
           FLOOR_NOTE,
           snapshot.truncated
             ? "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing."
@@ -342,7 +338,7 @@ export const rankingsTools = {
           "Pass one or the other.",
         );
       const row = await boardRow(ctx.db, board, args.location);
-      if (args.live === true) await liveRead(ctx, row);
+      const live = args.live === true ? await liveBoard(ctx, row) : null;
       const { snapshot, asOf } = await snapshotFor(ctx, args, row);
       const limit = Math.min(200, Math.max(1, Number(args.limit ?? 25)));
       const applied = appliedBlock({
@@ -364,9 +360,13 @@ export const rankingsTools = {
           board,
           location: { key: row.location_key, label: row.label },
           applied,
+          ...(live ? { live_status: liveStatus(live) } : {}),
+          ...(live ? { live_status: liveStatus(live) } : {}),
           snapshot: null,
           clans: [],
           notes: notes(
+            livePendingNote(live),
+            livePendingNote(live),
             "This board has not been recorded yet. It is on the schedule; live: true reads it from the game now.",
           ),
           docs: docsRef("recording", "leaderboards"),
@@ -400,6 +400,7 @@ export const rankingsTools = {
           country_code: row.country_code,
         },
         applied,
+        ...(live ? { live_status: liveStatus(live) } : {}),
         snapshot: snapshotBlock(snapshot, row),
         clans_total: rows[0]?.clans_total ?? 0,
         players_without_clan: unclanned[0]?.n ?? 0,
@@ -413,6 +414,7 @@ export const rankingsTools = {
           best_player_name: r.best_player_name,
         })),
         notes: notes(
+          livePendingNote(live),
           "Counted over every placed player in the snapshot; rated_players rises through a season as more of a clan's players cross the floor, so compare clans within one snapshot, not counts across dates.",
           "Ties in rated_players are ordered by best_rank, the rank of the clan's best-placed player.",
           FLOOR_NOTE,
@@ -460,27 +462,13 @@ export const rankingsTools = {
           "Pass one or the other.",
         );
       const row = await boardRow(ctx.db, board, args.location);
-      if (args.live === true) {
-        if (!ctx.live)
-          throw new ToolFailure(
-            "live_unavailable",
-            "The live lane is not configured here.",
-            "Call again without live: true.",
-          );
-        await spendLiveQuota(ctx);
-        const result = await ctx.live(ctx.db, {
-          endpoint: ENDPOINT_OF[board],
-          entityKey: row.location_key,
-        });
-        if (!result.ok)
-          throw new ToolFailure(
-            "live_unavailable",
-            result.reason === "rejected"
-              ? "The live fetch returned a payload our admission rejected."
-              : "No gateway completed the live fetch in time.",
-            "Call again without live: true for the recorded view, or retry shortly.",
-          );
-      }
+      const live =
+        args.live === true
+          ? await liveRead(ctx, {
+              endpoint: ENDPOINT_OF[board],
+              entityKey: row.location_key,
+            })
+          : null;
       const { snapshot, asOf } = await snapshotFor(ctx, args, row);
       const limit = Math.min(500, Math.max(1, Number(args.limit ?? 100)));
       const offset = Math.max(0, Number(args.offset ?? 0));
@@ -510,9 +498,13 @@ export const rankingsTools = {
           board,
           location,
           applied,
+          ...(live ? { live_status: liveStatus(live) } : {}),
+          ...(live ? { live_status: liveStatus(live) } : {}),
           snapshot: null,
           clans: [],
           notes: notes(
+            livePendingNote(live),
+            livePendingNote(live),
             "This ladder has not been recorded yet. It is on the schedule; live: true reads it from the game now.",
           ),
           docs: docsRef("recording", "leaderboards"),
@@ -527,6 +519,7 @@ export const rankingsTools = {
         board,
         location,
         applied,
+        ...(live ? { live_status: liveStatus(live) } : {}),
         snapshot: snapshotBlock(snapshot, row),
         clans: rows.map((r) => ({
           rank: r.rank,
@@ -539,6 +532,7 @@ export const rankingsTools = {
           location_id: r.location_id,
         })),
         notes: notes(
+          livePendingNote(live),
           board === "clanwars"
             ? "score is clan war trophies on this board."
             : "score is clan score - the sum the game ranks clans by - on this board.",

@@ -326,7 +326,8 @@ never carries internals.
 | `not_found` | unknown to the record and to the live API; an unknown docs page, example or collection |
 | `no_subject` | nothing to answer about: no primary player on the account, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag) |
 | `quota_exceeded` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
-| `live_unavailable` | the live lane timed out, has no collector, or the payload was refused at admission |
+| `live_unavailable` | the live lane is not configured, or the fresh payload was refused at admission |
+| `live_pending` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. The hint carries `retry_after_s` (1.7.0) |
 | `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 
@@ -411,9 +412,12 @@ in its hint.
   Treat it as opaque: pass it back unchanged, never parse or construct one; a
   forged or stale cursor is `bad_request`. `elixir_events` uses an integer
   `since` by `event_id`.
-- **`live: true`** on `players_profile`, `clans_roster`, `war_current` and
-  `battles_query` reads the game first at the cost of one live fetch and
-  answers in the usual shape; the four are annotated `openWorldHint`.
+- **`live: true`** on `players_profile`, `clans_roster`, `war_current`,
+  `battles_query` and the board tools asks for a read no older than the
+  API's cache. Asynchronous (1.7.0): fresh if in hand, otherwise queued
+  and answered now from the record with `live_status: { state:
+  "pending", retry_after_s }`; call again after that. The tools are
+  annotated `openWorldHint`.
 
 ## Identifiers the record uses
 

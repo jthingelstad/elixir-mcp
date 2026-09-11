@@ -9,7 +9,8 @@ import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import { livePathToJob } from "../live.mjs";
 import {
   ToolFailure,
-  spendLiveQuota,
+  liveRead,
+  liveStatus,
   appliedBlock,
   notes,
   docsRef,
@@ -52,27 +53,25 @@ export const liveTools = {
           `battles_query({ player_tag: "${job.entityKey}", live: true }) polls the log once and answers from the record in the compact shape.`,
         );
       }
-      if (!ctx.live) {
+      // 1.7.0: asynchronous. The raw path needs the payload itself, so a
+      // fresh read without one in hand is queued like a stale one.
+      const live = await liveRead(ctx, {
+        endpoint: job.endpoint,
+        entityKey: job.entityKey,
+        needPayload: true,
+      });
+      if (live.state === "pending") {
         throw new ToolFailure(
-          "live_unavailable",
-          "The live lane is not configured here.",
-          "Recorded-data tools remain available.",
+          "live_pending",
+          `A fresh read of ${args.path} is queued.`,
+          `Call again in ${live.retry_after_s} s; the recorded-data tools answer now.`,
         );
       }
-      await spendLiveQuota(ctx);
-      const result = await ctx.live(ctx.db, job);
-      if (!result.ok) {
-        throw new ToolFailure(
-          "live_unavailable",
-          result.reason === "rejected"
-            ? "The live fetch returned a payload our admission rejected."
-            : "No gateway completed the live fetch in time.",
-          "The recorded-data tools remain available; try again shortly.",
-        );
-      }
+      const result = { payload: live.payload };
       return {
         path: String(args.path),
         live: true,
+        live_status: liveStatus(live),
         applied: appliedBlock({
           path: String(args.path),
           endpoint: job.endpoint,

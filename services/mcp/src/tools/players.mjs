@@ -15,7 +15,10 @@ import {
   VERBOSITY,
   requireEnum,
   ToolFailure,
-  spendLiveQuota,
+  liveRead,
+  liveStatus,
+  livePendingNote,
+  notRecordedOrPending,
   TAG_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
   subject,
@@ -205,39 +208,23 @@ export const playersTools = {
           args.on_behalf_of,
         )
       ).tag;
-      if (args.live === true) {
-        if (!ctx.live) {
-          throw new ToolFailure(
-            "live_unavailable",
-            "The live lane is not configured here.",
-            "Call again without live: true.",
-          );
-        }
-        await spendLiveQuota(ctx);
-        // Fetch through the lane; the projector updates the snapshot the
-        // moment it's admitted, so the normal read below serves it fresh.
-        const result = await ctx.live(ctx.db, {
-          endpoint: "player",
-          entityKey: tag,
-        });
-        if (!result.ok) {
-          throw new ToolFailure(
-            "live_unavailable",
-            "No gateway completed the live fetch in time.",
-            "Serving recorded data: call again without live: true.",
-          );
-        }
-      }
+      // live: true (1.7.0, asynchronous): a fresh read is served from the
+      // record it just updated; otherwise one is queued and the record as
+      // it stands answers now, with live_status saying when to call again.
+      const live =
+        args.live === true
+          ? await liveRead(ctx, { endpoint: "player", entityKey: tag })
+          : null;
       const row = await readRecordedProfile(ctx.db, tag);
       if (!row)
-        throw new ToolFailure(
-          "not_recorded",
+        throw notRecordedOrPending(
+          live,
           `${tag} is not in the record yet.`,
           "live: true reads any tag from the game.",
         );
       if (!row.snapshot_date) {
-        throw new ToolFailure(
-          "not_recorded",
+        throw notRecordedOrPending(
+          live,
           `${tag} is known but has no profile snapshot yet.`,
           "Recording may have just started; try elixir_coverage, or live: true.",
         );
@@ -246,6 +233,7 @@ export const playersTools = {
         player_tag: row.player_tag,
         name: row.name,
         applied: appliedBlock({ live: args.live === true ? true : undefined }),
+        ...(live ? { live_status: liveStatus(live) } : {}),
         clan: row.last_known_clan_tag
           ? {
               clan_tag: row.last_known_clan_tag,
@@ -275,6 +263,7 @@ export const playersTools = {
           lifetime: row.lifetime,
         },
         notes: notes(
+          livePendingNote(live),
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
           "attributes and clan carry ids only; names and icons resolve through cards_catalog.",
         ),

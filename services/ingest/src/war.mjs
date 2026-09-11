@@ -126,8 +126,9 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   );
 
   // 3. Standings across the race's clans (fame here is the boat's own).
+  let facts = anchorInsert.length;
   for (const c of payload.clans ?? []) {
-    await db.query(
+    const { rowCount } = await db.query(
       `insert into war_week_clan
          (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
           fame, period_points, period_points_observed_at, finish_time)
@@ -165,6 +166,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
         c.finishTime ? crTimeToIso(c.finishTime) : null,
       ],
     );
+    facts += rowCount;
   }
 
   // 4. Participation: the payload's per-member "fame" is POINTS here.
@@ -214,7 +216,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
        on conflict do nothing`,
       [tags, participants.map((p) => p.name)],
     );
-    await db.query(
+    const { rowCount: partMoved } = await db.query(
       `insert into war_participation
          (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
        select $1, $2, $3, t.tag, t.points, t.decks, t.boats
@@ -236,8 +238,9 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
         participants.map((p) => p.boatAttacks),
       ],
     );
+    facts += partMoved;
     if (clock.warDay !== null) {
-      await db.query(
+      const { rowCount: dayMoved } = await db.query(
         `insert into war_attendance_day
            (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
          select $1, $2, $3, $4, t.tag, t.today
@@ -254,6 +257,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
           participants.map((p) => p.decksUsedToday),
         ],
       );
+      facts += dayMoved;
     }
   }
 
@@ -296,6 +300,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     kind: clock.kind,
     members,
     battlers_signaled: deckDeltas.size,
+    facts,
     feedEvents,
   };
 }
@@ -333,6 +338,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
   const newestSeason = Math.max(...seasons, -Infinity);
 
   let weeks = 0;
+  let facts = 0;
   for (const item of items) {
     const finished = crTimeToIso(item.createdDate);
     const isColosseum =
@@ -349,9 +355,12 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
        values ($1, $2, $3, $4, $5)
        on conflict (clan_tag, season_id, section_index) do update set
          is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
-         finished_observed_at = coalesce(war_week.finished_observed_at, excluded.finished_observed_at)`,
+         finished_observed_at = coalesce(war_week.finished_observed_at, excluded.finished_observed_at)
+       where (not war_week.is_colosseum and excluded.is_colosseum)
+          or (war_week.finished_observed_at is null and excluded.finished_observed_at is not null)`,
       [tag, item.seasonId, item.sectionIndex, isColosseum, finished],
     );
+    if (newlyFinished) facts += 1;
     // Push lane: fire on the null->set transition only, recency-guarded
     // so a history backfill never floods the feed with ancient weeks.
     // Collected here, emitted by the pipeline AFTER commit — an insert
@@ -372,7 +381,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
 
     for (const standing of item.standings ?? []) {
       const participantTag = normalizeTag(standing.clan.tag);
-      await db.query(
+      const { rowCount: standingMoved } = await db.query(
         `insert into war_week_clan
            (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
             fame, finish_time, rank, trophy_change)
@@ -403,6 +412,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
           standing.trophyChange ?? null,
         ],
       );
+      facts += standingMoved;
 
       // Participation: the enrolled clan's OWN members only (clan-scoped).
       if (participantTag === tag) {
@@ -412,7 +422,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
             `insert into player (player_tag, name) values ($1, $2) on conflict do nothing`,
             [playerTag, p.name ?? null],
           );
-          await db.query(
+          const { rowCount: memberMoved } = await db.query(
             `insert into war_participation
                (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
              values ($1, $2, $3, $4, $5, $6, $7)
@@ -433,6 +443,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
               p.boatAttacks ?? 0,
             ],
           );
+          facts += memberMoved;
         }
       }
     }
@@ -441,6 +452,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     projected: "riverracelog",
     weeks,
     seasons: [...seasons].sort((a, b) => a - b),
+    facts,
     feedEvents,
   };
 }

@@ -1,64 +1,94 @@
 /**
- * The live lane — DESIGN §5.1. An MCP call enqueues a live-lane job
- * (gateways drain live before bulk), then polls Postgres for the
- * resulting receipt: the fetch flows through the normal results->ingest
- * path, which is also what makes live fetches opportunistically recorded.
- * Bounded wait; a structured live_unavailable, never a hang. The
- * scheduler's live_reserve is the budget this lane spends.
+ * The live lane, asynchronous (2026-09-11; review §9.2 / §10, Jamie:
+ * "async live_fetch would be really smart").
+ *
+ * `live: true` means: answer from a read of the game no older than the
+ * API's own cache if one is in hand; otherwise queue ONE priority fetch
+ * and answer now with `pending` and when to call again. Nothing waits on
+ * a collector inside a call. Every collector in the fleet picks up
+ * priority work - there is no live channel - and a queued live fetch is
+ * charged once, when it is minted, never on the follow-up call that
+ * finds it landed.
+ *
+ * Why freshness rather than job binding: the CR API serves a cached copy
+ * for max-age seconds (60 s for players, battle logs and boards; 120 s
+ * for clans and the river race - cr-agent-api-docs), so a receipt inside
+ * that window IS what a new fetch would return, whichever lane fetched it.
  */
 
-const POLL_INTERVAL_MS = 400;
+/** The API's cache-control max-age per endpoint, in seconds. */
+const MAX_AGE_S = {
+  clan: 120,
+  currentriverrace: 120,
+  riverracelog: 120,
+};
+const DEFAULT_MAX_AGE_S = 60;
 
-export function makeLive({
-  enqueue,
-  timeoutMs = 12000,
-  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
-}) {
-  return async function liveFetch(db, { endpoint, entityKey }) {
-    // Receipts carry the collector's SECOND-precision fetched_at, so a
-    // fetch that completes in the same wall-clock second as this request
-    // sorts BEFORE a millisecond `since` and would be dropped (prod
-    // verification 2026-09-06: two healthy live collectors, an admitted
-    // receipt at 13:19:09.000, since=13:19:09.2xx -> timeout). Floor to
-    // the second with a small margin. The job_id binding below is the
-    // real correctness guard; this only bounds the scan.
-    const since = new Date(Math.floor(Date.now() / 1000) * 1000 - 5000);
-    const enqueued = await enqueue(db, {
+export function makeLive({ enqueue, retryAfterS = 15 }) {
+  return async function liveFetch(
+    db,
+    { endpoint, entityKey, needPayload = false, beforeMint = async () => {} },
+  ) {
+    const maxAge = MAX_AGE_S[endpoint] ?? DEFAULT_MAX_AGE_S;
+    const { rows: fresh } = await db.query(
+      `select r.admission, r.admission_errors, r.fetched_at, p.payload_json
+       from api_receipt r
+       left join api_payload p on p.endpoint = r.endpoint
+         and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash
+       where r.endpoint = $1 and r.entity_key = $2
+         and r.fetched_at >= now() - make_interval(secs => $3)
+       order by r.receipt_id desc limit 1`,
+      [endpoint, entityKey, maxAge],
+    );
+    const latest = fresh[0];
+    if (latest) {
+      if (latest.admission !== "admitted")
+        return {
+          ok: false,
+          reason: "rejected",
+          errors: latest.admission_errors,
+        };
+      if (!needPayload || latest.payload_json)
+        return {
+          ok: true,
+          fetched_at: latest.fetched_at.toISOString(),
+          payload: latest.payload_json ?? null,
+        };
+    }
+    // One open job per subject: a second ask while the first is queued
+    // or leased is the same ask, and is not charged again.
+    const { rows: open } = await db.query(
+      `select job_id, lane, status from job
+       where endpoint = $1 and entity_key = $2 and status in ('queued', 'leased')
+       order by job_id desc limit 1`,
+      [endpoint, entityKey],
+    );
+    if (open[0]) {
+      if (open[0].lane !== "live" && open[0].status === "queued") {
+        // Promote the queued bulk row: live jumps the queue.
+        await enqueue(db, { endpoint, entity_key: entityKey, lane: "live" });
+      }
+      return {
+        ok: false,
+        reason: "pending",
+        retry_after_s: retryAfterS,
+        job_id: Number(open[0].job_id),
+        minted: false,
+      };
+    }
+    await beforeMint();
+    const row = await enqueue(db, {
       endpoint,
       entity_key: entityKey,
       lane: "live",
     });
-    // Bind the wait to THIS job (issue #3): the receipt must carry our
-    // job_id AND come from a live-channel collector. A bulk collector's
-    // receipt for the same subject — leased before we asked — is still
-    // recorded opportunistically, but it never serves a live answer
-    // (the ratified channel boundary). No job id = nothing can match.
-    const jobId = Number.isInteger(enqueued?.job_id)
-      ? enqueued.job_id
-      : Number(enqueued?.job_id) || null;
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      await sleep(POLL_INTERVAL_MS);
-      const { rows } = await db.query(
-        `select r.admission, r.admission_errors, p.payload_json
-         from api_receipt r
-         join gateway g on g.gateway_id = r.gateway_id and g.channel = 'live'
-         left join api_payload p on p.endpoint = r.endpoint
-           and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash
-         where r.endpoint = $1 and r.entity_key = $2 and r.fetched_at >= $3
-           and r.job_id = $4
-         order by r.receipt_id desc limit 1`,
-        [endpoint, entityKey, since, jobId],
-      );
-      const row = rows[0];
-      if (row) {
-        if (row.admission === "admitted" && row.payload_json) {
-          return { ok: true, payload: row.payload_json };
-        }
-        return { ok: false, reason: "rejected", errors: row.admission_errors };
-      }
-    }
-    return { ok: false, reason: "timeout" };
+    return {
+      ok: false,
+      reason: "pending",
+      retry_after_s: retryAfterS,
+      job_id: Number(row?.job_id),
+      minted: true,
+    };
   };
 }
 

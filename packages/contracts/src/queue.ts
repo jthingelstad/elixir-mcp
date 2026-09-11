@@ -24,6 +24,20 @@ export interface LeaseFilter {
   battles_after?: string;
 }
 
+/** What /lease answers (2026-09-11: check-ins, not polling). A collector
+ *  calls, gets a job or `empty`, and `next_check_in_s`: when to call
+ *  again. 0 while work remains for it, the idle interval otherwise. The
+ *  door no longer waits on a queue; a collector that ignores the field
+ *  is still correct, only wasteful. */
+export interface LeaseResponse {
+  empty?: boolean;
+  job?: CrJob;
+  cr_path?: string;
+  lease?: string;
+  filter?: LeaseFilter;
+  next_check_in_s: number;
+}
+
 /** ISO instant -> the API's battleTime spelling, for LeaseFilter. */
 export function crBattleTime(iso: string): string {
   return iso
@@ -57,6 +71,10 @@ export interface CrResultMessage {
    *  signal: nothing in the log was as old as what the hub had. */
   observed?: number;
   filtered?: number;
+  /** Raw response bytes read from the CR API before any filter
+   *  (2026-09-11, review §9.3): what the edge filter saved is the
+   *  difference between this and the body it submitted. Optional. */
+  api_bytes?: number;
   error?: {
     kind: "transport" | "http" | "overflow" | "breaker";
     message?: string;
@@ -180,7 +198,7 @@ export function validateResultMessage(
   if (!STATUSES.has(m.status as string)) errors.push("status:invalid");
   if (m.status === "ok" && typeof m.body_gzip_b64 !== "string")
     errors.push("body_gzip_b64:missing");
-  for (const k of ["observed", "filtered"] as const) {
+  for (const k of ["observed", "filtered", "api_bytes"] as const) {
     const v = m[k];
     if (v !== undefined && !(Number.isInteger(v) && (v as number) >= 0))
       errors.push(`${k}:invalid`);

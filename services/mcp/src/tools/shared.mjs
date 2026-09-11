@@ -54,7 +54,7 @@ export function liveBudgetFor(account) {
   };
 }
 
-export async function spendLiveQuota(ctx) {
+async function spendLiveQuota(ctx) {
   const budget = liveBudgetFor(ctx.account);
   if (budget.cap === Infinity) return;
   const day = new Date().toISOString().slice(0, 10);
@@ -272,6 +272,65 @@ export function resolveWindow(
 
 /** The one echo block. Undefined values are dropped so a tool spreads
  *  whatever it applied and the response carries only what is true. */
+/** live: true, asynchronously (1.7.0). Returns { state: "fresh",
+ *  fetched_at, payload } when a read inside the API's own cache window is
+ *  in hand, or { state: "pending", retry_after_s } after queueing one
+ *  priority fetch (charged to the live quota only when minted). Throws
+ *  live_unavailable when the lane is not configured or the fresh payload
+ *  was rejected at admission. Tools answer from the record either way;
+ *  a subject with no record at all raises live_pending via
+ *  notRecordedOrPending(). */
+export async function liveRead(ctx, { endpoint, entityKey, needPayload }) {
+  if (!ctx.live)
+    throw new ToolFailure(
+      "live_unavailable",
+      "The live lane is not configured here.",
+      "Call again without live: true.",
+    );
+  const r = await ctx.live(ctx.db, {
+    endpoint,
+    entityKey,
+    needPayload: needPayload === true,
+    beforeMint: () => spendLiveQuota(ctx),
+  });
+  if (r.ok)
+    return { state: "fresh", fetched_at: r.fetched_at, payload: r.payload };
+  if (r.reason === "rejected")
+    throw new ToolFailure(
+      "live_unavailable",
+      "The live fetch returned a payload our admission rejected.",
+      "Call again without live: true for the recorded view.",
+    );
+  return { state: "pending", retry_after_s: r.retry_after_s };
+}
+
+/** The `live_status` block a live: true answer carries. */
+export function liveStatus(live) {
+  if (!live) return undefined;
+  return live.state === "fresh"
+    ? { state: "fresh", fetched_at: live.fetched_at }
+    : { state: "pending", retry_after_s: live.retry_after_s };
+}
+
+/** The one-sentence caveat for a pending live read (a note, not a key). */
+export function livePendingNote(live) {
+  return live?.state === "pending"
+    ? `A fresh read of the game is queued; call again in ${live.retry_after_s} s for it - this answer is the record as it stands.`
+    : null;
+}
+
+/** A not_recorded refusal becomes live_pending when a live read is queued:
+ *  the subject may exist and be moments away. */
+export function notRecordedOrPending(live, message, hint) {
+  if (live?.state === "pending")
+    return new ToolFailure(
+      "live_pending",
+      `${message} A live read is queued.`,
+      `Call again in ${live.retry_after_s} s.`,
+    );
+  return new ToolFailure("not_recorded", message, hint);
+}
+
 export function appliedBlock(fields) {
   const out = {};
   for (const [k, v] of Object.entries(fields ?? {}))

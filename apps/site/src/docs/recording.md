@@ -235,15 +235,26 @@ when you ask for dates before snapshots began.
 
 ## Reading the game live
 
-Four recorded tools take `live: true` and read the game first, then answer
-in their usual shape at the cost of one live fetch: `players_profile` for
-any tag, `clans_roster` and `war_current` for **any clan, recorded or not**,
-and `battles_query` to poll a player's battle log once before answering (the
-"what did they just play" path). Prefer these; they are the live lane with
-the record's shape.
+`live: true` is a request for a read of the game no older than the API's
+own cache: 60 seconds for players, battle logs and boards, 120 for clans
+and the river race. It is **asynchronous**. If such a read is in hand, the
+tool answers from it (`live_status.state: "fresh"`). If not, one priority
+fetch is queued for the next collector that checks in and the tool answers
+*now* from the record as it stands, with `live_status: { state: "pending",
+retry_after_s }` and a note saying so; call again after that and the fresh
+view is there. A subject with no record at all answers `live_pending` with
+the same `retry_after_s`. Nothing waits on a collector inside a call.
+
+Six recorded tools take the flag: `players_profile` for any tag,
+`clans_roster` and `war_current` for **any clan, recorded or not**,
+`battles_query` to poll a player's battle log (the "what did they just
+play" path), and the two board tools. Prefer these; they are the live lane
+with the record's shape.
 
 `live_fetch({ path })` is the raw catch-all: one authenticated GET against
-the Clash Royale API through the live lane, recorded on the way back.
+the Clash Royale API through the live lane, recorded on the way back. It
+needs the payload itself, so it answers `live_pending` until one is in
+hand, then `{ path, live: true, live_status, data, meta }`.
 
 | Allowed `path` | Recorded as |
 |---|---|
@@ -262,10 +273,13 @@ the compact recorded shape. Anything else is `bad_request`. The response is
 `{ path, live: true, data, meta }` with `data` the raw payload: card levels
 there are on the API's rarity-relative scale (a maxed legendary reads 8/8),
 while every recorded tool serves the in-game 1 to 16 scale; `cards_catalog`
-carries both maxima. The call waits up to 12 seconds for a live-channel
-collector and answers `live_unavailable` otherwise; `players_profile({ live:
-true })` falls back to the recorded snapshot with a hint.
+carries both maxima. `live_unavailable` is answered only when the lane is
+not configured or the fresh payload was refused at admission.
 
 Live fetches are capped per day by tier (20 / 100 / 250 / 1,000; owner and
-admin unlimited) and an agent spends its owner's allowance. Leaderboard
-fetches also enrol the ranked tags into the corpus.
+admin unlimited) and an agent spends its owner's allowance. A queued fetch
+is charged once, when it is queued; a fresh read already in hand and the
+follow-up call that finds it are free. Every collector in the fleet picks
+up a queued live fetch first, so the worst-case wait is one check-in
+interval (15 seconds) plus the fetch. Leaderboard fetches also enrol the
+ranked tags into the corpus.

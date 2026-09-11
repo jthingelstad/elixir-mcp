@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "live: true no longer waits, and every collector serves it",
+    body: "Asking for a live read used to hold your call open while a dedicated collector long-polled for it - and held two collectors long-polling around the clock for the sixteen such calls a week. Now live: true means: answer from a read no older than the API's own cache if one is in hand; otherwise queue one priority fetch for the next collector that checks in and answer at once from the record, with live_status saying it is pending and when to call again. A subject with nothing recorded answers live_pending. Collectors check in instead of polling, the door tells each one when to come back, and any collector in the fleet picks up a live fetch first. Receipts now say what a fetch was worth - new facts, ingest time, bytes read - and a collector earns a point only for a fetch that returned data.",
+  },
+  {
+    date: "2026-09-11",
     title: "Your card collection is recorded, and it tells you when it changes",
     body: "players_collection now reads a player's cards and tower troops from the record - levels on the in-game 1-16 scale, counts toward the next level, which forms are unlocked - instead of a payload cache that has been empty for most players most of the day since this morning's cache change. Two new nods on the event feed: card_unlocked when a card the player did not have appears, and card_leveled when a level goes up. Counts ticking toward the next level are recorded but never announced, and a player's first observed collection is silent. Collections fill as profiles are polled; nothing is backfilled.",
   },

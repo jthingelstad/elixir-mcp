@@ -267,6 +267,7 @@ export async function projectRankingBoard(
     players: entries.length,
     snapshot_id: snapshotId,
     wrote,
+    facts: wrote ? entries.length : 0,
     truncated,
     presences_new: newPresences,
     recordings_started: recordingsStarted,
@@ -393,6 +394,7 @@ export async function projectClanBoard(
     location: locationKey,
     clans: entries.length,
     wrote: true,
+    facts: entries.length,
     truncated,
   };
 }
@@ -421,7 +423,7 @@ export async function projectLeaderboardList(db, { payload }) {
      where board = 'mode' and enabled and not (location_key = any($1::text[]))`,
     [ids],
   );
-  return { projected: "leaderboards", boards: ids.length, retired };
+  return { projected: "leaderboards", boards: ids.length, retired, facts: 0 };
 }
 
 /**
@@ -460,7 +462,12 @@ export async function projectEvents(db, { payload, fetchedAt }) {
      select unnest($1::text[]), $2::date on conflict do nothing`,
     [events.map((e) => e.eventTag), day],
   );
-  return { projected: "events", events: events.length, day };
+  return {
+    projected: "events",
+    events: events.length,
+    day,
+    facts: events.length,
+  };
 }
 
 /** Global tournaments (0069): rare, small, kept whole. */
@@ -478,5 +485,9 @@ export async function projectTournaments(db, { payload, fetchedAt }) {
        payload = excluded.payload, last_seen_at = greatest(game_tournament.last_seen_at, excluded.last_seen_at)`,
     [items.map((t) => t.tag), items.map((t) => JSON.stringify(t)), observedAt],
   );
-  return { projected: "tournaments", tournaments: items.length };
+  return {
+    projected: "tournaments",
+    tournaments: items.length,
+    facts: items.length,
+  };
 }

@@ -11,7 +11,8 @@ export const ERROR_CODES = [
   "not_recorded", // subject is valid but has no recording
   "not_found", // subject unknown to us and to the live API
   "quota_exceeded", // per-account quota or rate limit hit (JSON-RPC -32029)
-  "live_unavailable", // live-lane fetch timed out or no gateway available
+  "live_unavailable", // the live lane is not configured, or the fetched payload was rejected at admission
+  "live_pending", // live: true asked for a fresh read and none was in hand; a fetch is queued, call again in retry_after_s (1.7.0)
   "bad_request", // structurally invalid input other than tags
   "no_subject", // nothing to answer about: no default player, an unmapped on_behalf_of, or a clanless agent (1.0.0)
   "result_too_large", // the request was fine; the result exceeded the delivery cap - narrow the arguments (1.0.0)

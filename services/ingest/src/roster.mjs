@@ -58,7 +58,7 @@ export async function ingestClanRoster(
   const ordered = [...members].sort((a, b) =>
     a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0,
   );
-  await db.query(
+  const { rowCount: playersChanged } = await db.query(
     `insert into player (player_tag, name, last_seen_at, game_last_seen_at)
      select t.tag, t.name, $3::timestamptz, t.seen::timestamptz
      from unnest($1::text[], $2::text[], $4::text[]) as t(tag, name, seen)
@@ -208,6 +208,9 @@ export async function ingestClanRoster(
     joined,
     departed,
     roleChanged,
+    // What this poll added to the record (0077): membership events and
+    // member rows that moved (a name, a lastSeen, an hour-stale sighting).
+    facts: joined + departed + roleChanged + playersChanged,
     activeNow: seenWithin(3600_000),
     seen24h: seenWithin(86_400_000),
     feedEvents,

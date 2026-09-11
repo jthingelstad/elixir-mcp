@@ -16,7 +16,10 @@ import {
   appliedBlock,
   notes,
   docsRef,
-  spendLiveQuota,
+  liveRead,
+  liveStatus,
+  livePendingNote,
+  notRecordedOrPending,
 } from "./shared.mjs";
 
 const CLOCK_DOCS = docsRef("clocks", "the-policy-day");
@@ -33,12 +36,6 @@ const CLAN_TAG_SCHEMA = {
  *  player. Without it, the clan must be recorded. */
 async function clanSubject(ctx, args, endpoint) {
   if (args.live === true) {
-    if (!ctx.live)
-      throw new ToolFailure(
-        "live_unavailable",
-        "The live lane is not configured here.",
-        "Call again without live: true.",
-      );
     let tag;
     if (args.clan_tag === undefined) {
       tag = await entitledClan(ctx.db, ctx.account, undefined);
@@ -53,19 +50,14 @@ async function clanSubject(ctx, args, endpoint) {
         );
       }
     }
-    await spendLiveQuota(ctx);
-    const result = await ctx.live(ctx.db, { endpoint, entityKey: tag });
-    if (!result.ok)
-      throw new ToolFailure(
-        "live_unavailable",
-        result.reason === "rejected"
-          ? "The live fetch returned a payload our admission rejected."
-          : "No gateway completed the live fetch in time.",
-        "Call again without live: true for the recorded view, or retry shortly.",
-      );
-    return tag;
+    // 1.7.0: asynchronous - fresh if in hand, else queued and pending.
+    const live = await liveRead(ctx, { endpoint, entityKey: tag });
+    return { tag, live };
   }
-  return entitledClan(ctx.db, ctx.account, args.clan_tag);
+  return {
+    tag: await entitledClan(ctx.db, ctx.account, args.clan_tag),
+    live: null,
+  };
 }
 
 export const warTools = {
@@ -230,7 +222,11 @@ export const warTools = {
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const clanTag = await clanSubject(ctx, args, "currentriverrace");
+      const { tag: clanTag, live } = await clanSubject(
+        ctx,
+        args,
+        "currentriverrace",
+      );
       const compact = args.verbosity === "compact";
       const { rows: weekRows } = await ctx.db.query(
         `select season_id, section_index, is_colosseum from war_week
@@ -238,8 +234,8 @@ export const warTools = {
         [clanTag],
       );
       if (!weekRows[0]) {
-        throw new ToolFailure(
-          "not_recorded",
+        throw notRecordedOrPending(
+          live,
           "No war weeks recorded for this clan yet.",
           args.live
             ? "The live payload was admitted but no race projected; the clan may be between races. Try war_rivals for its history."
@@ -438,6 +434,7 @@ export const warTools = {
           verbosity: compact ? "compact" : "full",
           live: args.live === true ? true : undefined,
         }),
+        ...(live ? { live_status: liveStatus(live) } : {}),
         standings: standings.rows.map((row) => ({
           ...row,
           finish_time: row.finish_time?.toISOString() ?? null,
@@ -466,6 +463,7 @@ export const warTools = {
             }),
         ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
         notes: notes(
+          livePendingNote(live),
           "points are per-member contributions; fame belongs to the boat (the clan).",
           "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",

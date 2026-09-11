@@ -177,21 +177,29 @@ test("ledger: enqueue dedups per subject and live upgrades bulk", async () => {
   await db.query(`delete from job`);
 });
 
-test("lease: bulk collectors never receive live jobs; server computes cr_path", async () => {
-  await enqueueJob(db, { ...JOB, lane: "live" });
-  const empty = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
-  assert.equal(empty.body.empty, true, "the only job is live; bulk sees none");
+test("lease: every collector serves the live lane first; the server computes cr_path and says when to come back", async () => {
+  // Check-ins, not polling (2026-09-11): an empty answer says come back in
+  // idle_s; a granted job says come straight back; there is no live channel.
+  const idle = await door.lease(db, authed(TOKEN_BULK), {});
+  assert.equal(idle.body.empty, true);
+  assert.equal(idle.body.next_check_in_s, 15, "idle: the check-in interval");
 
   await enqueueJob(db, { ...JOB, entity_key: "#2YG98VVQ", lane: "bulk" });
-  const r = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  await enqueueJob(db, { ...JOB, lane: "live" });
+  const r = await door.lease(db, authed(TOKEN_BULK), {});
   assert.equal(r.status, 200);
-  assert.equal(r.body.job.entity_key, "#2YG98VVQ");
-  assert.equal(r.body.cr_path, "/players/%232YG98VVQ");
+  assert.equal(
+    r.body.job.lane,
+    "live",
+    "a bulk operator takes the live job first",
+  );
+  assert.equal(r.body.next_check_in_s, 0, "work remains: come straight back");
+  assert.equal(r.body.cr_path, "/players/%2320JJJ2CCRU");
   assert.match(r.body.lease, /^\d+$/, "the lease is a ledger row id");
 
-  // Live channel drains live first.
-  const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
-  assert.equal(live.body.job.lane, "live");
+  const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 8 });
+  assert.equal(live.body.job.entity_key, "#2YG98VVQ");
+  assert.equal(live.body.next_check_in_s, 0);
 
   for (const [tok, lease] of [
     [TOKEN_BULK, r.body.lease],
@@ -297,6 +305,7 @@ test("submit: inline ingest, server-stamped identity and job id, DB-bound lease"
 
   const good = await door.submit(db, authed(TOKEN_BULK), {
     lease: r.body.lease,
+    api_bytes: 4321,
     status: "ok",
     body_gzip_b64: Buffer.from("z").toString("base64"),
     fetched_at: new Date().toISOString(),
@@ -307,6 +316,11 @@ test("submit: inline ingest, server-stamped identity and job id, DB-bound lease"
   const envelope = ingested.at(-1);
   const bulk = await gatewayRow("bulk-op");
   assert.equal(envelope.gateway_id, bulk.gateway_id, "identity from token");
+  assert.equal(
+    envelope.api_bytes,
+    4321,
+    "what the collector read, on the envelope",
+  );
   assert.equal(
     envelope.job.entity_key,
     "#8U2P0JPR",
@@ -482,6 +496,9 @@ test("owner-first settlement charges the same (issue #6)", async () => {
   await db.query(
     `update job set leased_at = now() - interval '10 minutes' where status = 'leased'`,
   );
+  // Settlement runs on the scheduler tick since 2026-09-11, never per
+  // lease call; the owner's own poll then reads the settled streak.
+  await settleLeases(db);
   const quarantined = await door.lease(db, authed(TOKEN_ABANDON_OWNER), {
     wait_s: 0,
   });

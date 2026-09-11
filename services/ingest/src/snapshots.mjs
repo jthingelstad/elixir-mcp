@@ -223,10 +223,20 @@ export async function projectPlayerSnapshot(
     });
   }
 
+  // Did the snapshot say anything new (0077)? The day row is rewritten
+  // on every poll so observed_at is honest; this is whether a counter a
+  // reader looks at moved since the previous snapshot.
+  const moved =
+    !prev ||
+    prev.battle_count !== (payload.battleCount ?? null) ||
+    prev.donations !== (payload.donations ?? null) ||
+    prev.wins !== (payload.wins ?? null) ||
+    prev.best_trophies !== (payload.bestTrophies ?? null);
   return {
     day,
     kind,
     hadPrevious: Boolean(prev),
+    moved,
     feedEvents: milestones(playerTag, prev, payload),
   };
 }

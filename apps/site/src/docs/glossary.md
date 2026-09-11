@@ -70,7 +70,9 @@ API key and posts it back; the fleet the recorder runs on. See
 
 **live lane** — the one path that reaches the Clash Royale API at read time:
 `live_fetch`, and `live: true` on `players_profile`, `clans_roster`,
-`war_current` and `battles_query`. Capped per day by tier.
+`war_current`, `battles_query` and the board tools. Asynchronous: a fresh
+read is served if in hand, otherwise queued for the next collector and
+answered from the record with `live_status`. Capped per day by tier.
 
 ## Battles and numbers
 

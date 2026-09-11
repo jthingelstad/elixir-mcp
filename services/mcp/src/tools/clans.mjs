@@ -22,7 +22,10 @@ import {
   appliedBlock,
   notes,
   docsRef,
-  spendLiveQuota,
+  liveRead,
+  liveStatus,
+  livePendingNote,
+  notRecordedOrPending,
 } from "./shared.mjs";
 
 import {
@@ -281,13 +284,8 @@ export const clansTools = {
     },
     async handler(ctx, args) {
       let clanTag;
+      let live = null;
       if (args.live === true) {
-        if (!ctx.live)
-          throw new ToolFailure(
-            "live_unavailable",
-            "The live lane is not configured here.",
-            "Call again without live: true.",
-          );
         if (args.clan_tag === undefined) {
           clanTag = await entitledClan(ctx.db, ctx.account, undefined);
         } else {
@@ -301,19 +299,8 @@ export const clansTools = {
             );
           }
         }
-        await spendLiveQuota(ctx);
-        const result = await ctx.live(ctx.db, {
-          endpoint: "clan",
-          entityKey: clanTag,
-        });
-        if (!result.ok)
-          throw new ToolFailure(
-            "live_unavailable",
-            result.reason === "rejected"
-              ? "The live fetch returned a payload our admission rejected."
-              : "No gateway completed the live fetch in time.",
-            "Call again without live: true for the recorded view, or retry shortly.",
-          );
+        // 1.7.0: asynchronous - fresh if in hand, else queued and pending.
+        live = await liveRead(ctx, { endpoint: "clan", entityKey: clanTag });
       } else {
         clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       }
@@ -342,14 +329,15 @@ export const clansTools = {
         );
         const row = rows[0];
         if (!row)
-          throw new ToolFailure(
-            "not_recorded",
+          throw notRecordedOrPending(
+            live,
             `${clanTag} is not in the record.`,
             "live: true reads it from the game.",
           );
         return {
           clan_tag: clanTag,
           applied,
+          ...(live ? { live_status: liveStatus(live) } : {}),
           name: row.name ?? null,
           member_count: row.member_count ?? 0,
           role_counts: {
@@ -368,8 +356,8 @@ export const clansTools = {
         [clanTag],
       );
       if (!clanRow.rows[0])
-        throw new ToolFailure(
-          "not_recorded",
+        throw notRecordedOrPending(
+          live,
           `${clanTag} is not in the record.`,
           "live: true reads it from the game.",
         );
@@ -402,6 +390,7 @@ export const clansTools = {
       return {
         clan_tag: clanTag,
         applied,
+        ...(live ? { live_status: liveStatus(live) } : {}),
         name: clanRow.rows[0]?.name ?? null,
         member_count: roster.rows.length,
         members: roster.rows.map((m) => ({
@@ -429,6 +418,7 @@ export const clansTools = {
           detail: e.payload,
         })),
         notes: notes(
+          livePendingNote(live),
           "last_seen_in_game is the game's own lastSeen (when the player was last ACTIVE), captured from roster polls; last_recorded_battle only moves when a battle was captured; null means no polled roster has carried them.",
           "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
           "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",

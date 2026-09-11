@@ -147,7 +147,21 @@ instantly). **Can no longer:** touch any AWS API, impersonate another
 collector, delete work unprocessed, forge metrics, or learn anything
 about the tenant beyond three HTTPS endpoints.
 
-### Channels: bulk for operators, live for us (Jamie, 2026-09-06)
+### Channels: bulk for operators, live for us (Jamie, 2026-09-06) — RETIRED 2026-09-11
+
+> **Superseded.** Live is a priority flag on a job, not a kind of
+> collector (review §9.2 / §10, Jamie: async live, let the whole fleet
+> handle it). Every collector checks in and takes live jobs first; the
+> door answers at once with `next_check_in_s`; `live: true` is
+> asynchronous on the MCP side (fresh if in hand, else queued and the
+> record answers now). The security argument below still holds where it
+> matters: a live job reveals only a subject tag the recorder already
+> polls, its result is admitted and verified like any bulk submission,
+> and it reaches a user only through the record. What went away was the
+> latency SLA that needed standing long-polls - and with it roughly $25
+> a month of Lambda and 350,000 database transactions a day serving
+> sixteen calls a week. The `channel` column and its display remain for
+> now (expand-and-contract); nothing reads it for routing.
 
 Instead of one lease door with QoS, the fleet splits into two
 **server-assigned channels**, carried in the config payload so it is

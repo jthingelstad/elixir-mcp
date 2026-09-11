@@ -179,6 +179,23 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   shape, new battles only, since 2026-09-11.
 - Gateways gzip every response body; a post-compression overflow is rejected
   loudly, because it means the CR response shape changed and that wants a human.
+- **Collectors check in; the door never waits.** `/lease` answers at once
+  with a job or `empty` and `next_check_in_s` (0 while work remains, the
+  idle interval otherwise); every collector serves the live lane first.
+  There is no live channel and no long-poll: the old 500 ms re-check loop
+  was ~350k transactions a day and most of the web-api Lambda bill. Ledger
+  settlement runs on the scheduler tick, not per call.
+- **`live: true` is asynchronous.** Fresh if a receipt inside the API's own
+  `max-age` is in hand (whichever lane fetched it - the API would serve the
+  same cached copy), else one priority job is minted (charged once, at the
+  mint; a second ask while it is open is the same ask) and the record
+  answers now with `live_status.pending`. Nothing polls Postgres inside an
+  MCP call (`services/mcp/src/live.mjs`).
+- **A receipt says what the fetch was worth** (0077): `new_facts` is the
+  projection's own count of rows inserted or changed, `ingest_ms` the
+  transaction's wall time, `api_bytes` what the collector read before any
+  filter. Points reward `new_facts > 0` only. Every projector returns
+  `facts`; a new one must.
 
 ## Where the patterns live
 

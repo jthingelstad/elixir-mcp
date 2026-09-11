@@ -140,6 +140,59 @@ test("a profile re-poll within the hour leaves the player row's version alone", 
   assert.notEqual(await version(), before, "an hour on, the sighting moves");
 });
 
+test("a fetch that returned data earns a point and a new_facts count; one that repeated the record earns nothing", async () => {
+  const log = await fixture("player_battlelog/with_boat_and_duel.json");
+  const tag = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
+  const points = async () => await db_points_query();
+  async function db_points_query() {
+    const { rows } = await ctx.db.query(
+      `select fetch_points from gateway where gateway_id = $1`,
+      [gatewayId],
+    );
+    return rows[0].fetch_points;
+  }
+  const before = await points();
+  const first = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: log,
+      fetchedAt: new Date(Date.now() - 60_000).toISOString(),
+    }),
+  );
+  assert.equal(first.outcome, "admitted");
+  const receipt = async (id) =>
+    (
+      await ctx.db.query(
+        `select new_facts, ingest_ms from api_receipt where receipt_id = $1`,
+        [id],
+      )
+    ).rows[0];
+  const r1 = await receipt(first.receiptId);
+  assert.ok(r1.new_facts > 0, "new battles are facts");
+  assert.ok(r1.ingest_ms >= 0, "ingest time recorded");
+  assert.equal(Number(await points()), Number(before) + 1);
+
+  const second = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: log,
+      fetchedAt: new Date().toISOString(),
+    }),
+  );
+  assert.equal(second.outcome, "admitted");
+  const r2 = await receipt(second.receiptId);
+  assert.equal(r2.new_facts, 0, "nothing the record did not hold");
+  assert.equal(
+    Number(await points()),
+    Number(before) + 1,
+    "no point for no data",
+  );
+});
+
 test("donation decrease across snapshots emits donation_reset with evidence", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
   const tag = meta["player/profile.json"].entity_key;

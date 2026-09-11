@@ -8,7 +8,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { makeLive, livePathToJob } from "../src/live.mjs";
-import { enqueueJob, leaseJob } from "../../scheduler/src/ledger.mjs";
+import { enqueueJob } from "../../scheduler/src/ledger.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -36,11 +36,11 @@ async function fixture(rel) {
  *  live gateway, which is what the waiter binds to (issue #3). */
 function fakeGatewayLive(payloadByKey) {
   return makeLive({
-    timeoutMs: 3000,
+    retryAfterS: 15,
     enqueue: async (_db, job) => {
       const row = await enqueueJob(db, job);
       const payload = payloadByKey[`${job.endpoint}:${job.entity_key}`];
-      if (!payload) return row; // never fulfilled -> timeout path
+      if (!payload) return row; // never fulfilled -> stays pending
       await processResult(db, {
         v: 1,
         job,
@@ -52,8 +52,33 @@ function fakeGatewayLive(payloadByKey) {
           "base64",
         ),
       });
+      // A real submit closes the lease; the next ask must see no open job.
+      await db.query(`update job set status = 'done' where job_id = $1`, [
+        row.job_id,
+      ]);
       return row;
     },
+  });
+}
+
+/** A recorded-but-stale profile for a tag: a bulk receipt older than the
+ *  API's cache window, so live: true has something to answer from and a
+ *  reason to queue. */
+async function recordStale(profile, minutesAgo = 10) {
+  const job = {
+    endpoint: "player",
+    entity_key: normalizeTag(profile.tag),
+    lane: "bulk",
+  };
+  await processResult(db, {
+    v: 1,
+    job,
+    gateway_id: gatewayId,
+    fetched_at: new Date(Date.now() - minutesAgo * 60_000).toISOString(),
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(profile))).toString(
+      "base64",
+    ),
   });
 }
 
@@ -116,16 +141,21 @@ test("livePathToJob maps the allowlist and rejects the rest", () => {
   );
 });
 
-test("live_fetch round-trips through the REAL pipeline and records opportunistically", async () => {
+test("live_fetch: the first ask queues and answers live_pending; the second finds the fresh payload, recorded", async () => {
   const profile = await fixture("player/profile.json");
   const tag = normalizeTag(profile.tag);
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  const first = await invoke("live_fetch", { path: `/players/${tag}` });
+  assert.equal(first.isError, true);
+  assert.equal(first.body.error.code, "live_pending");
+  assert.match(first.body.error.hint, /15 s/);
   const { body, isError } = await invoke("live_fetch", {
     path: `/players/${tag}`,
   });
   assert.equal(isError, false, JSON.stringify(body).slice(0, 200));
   assert.equal(body.live, true);
+  assert.equal(body.live_status.state, "fresh");
   assert.equal(body.data.tag, profile.tag, "API-shaped passthrough");
   // Opportunistic recording: the fetch left a snapshot behind.
   const snaps = (
@@ -137,52 +167,114 @@ test("live_fetch round-trips through the REAL pipeline and records opportunistic
   assert.ok(snaps > 0, "live fetch was recorded");
 });
 
-test("players_profile live:true refreshes then serves the snapshot", async () => {
+test("players_profile live:true answers from the record NOW with pending, then serves the fresh snapshot", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
-  const tag = normalizeTag(profile.tag);
+  profile.tag = "#PP0Y8LQ";
+  const tag = profile.tag;
+  await db.query(`delete from api_receipt where entity_key = $1`, [tag]);
+  await recordStale(profile, 10); // creates the player row the claim needs
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary) values ($1, $2, 'unverified', true)
      on conflict do nothing`,
     [account.accountId, tag],
   );
-  profile.trophies += 99;
-  const live = fakeGatewayLive({ [`player:${tag}`]: profile });
+  const fresher = structuredClone(profile);
+  fresher.trophies += 99;
+  // A collector fulfils the queued job BETWEEN the two calls, as in
+  // production; the first call sees only the record as it stands.
+  let queued = null;
+  const live = makeLive({
+    retryAfterS: 15,
+    enqueue: async (_db, job) => (queued = await enqueueJob(db, job)),
+  });
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke("players_profile", { live: true });
-  assert.equal(isError, false, JSON.stringify(body).slice(0, 200));
+  const first = await invoke("players_profile", {
+    player_tag: tag,
+    live: true,
+  });
+  assert.ok(queued, "a priority fetch was queued");
+  await processResult(db, {
+    v: 1,
+    job: { endpoint: "player", entity_key: tag, lane: "live" },
+    job_id: Number(queued.job_id),
+    gateway_id: gatewayId,
+    fetched_at: new Date().toISOString(),
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(fresher))).toString(
+      "base64",
+    ),
+  });
+  await db.query(`update job set status = 'done' where job_id = $1`, [
+    queued.job_id,
+  ]);
+  assert.equal(first.isError, false, JSON.stringify(first.body).slice(0, 200));
+  assert.equal(first.body.live_status.state, "pending");
+  assert.equal(first.body.live_status.retry_after_s, 15);
   assert.equal(
-    body.snapshot.trophies,
+    first.body.snapshot.trophies,
     profile.trophies,
-    "served fresh from the live fetch",
+    "the record as it stands",
   );
+  assert.match(first.body.notes.join(" "), /queued; call again in 15 s/);
+  const second = await invoke("players_profile", {
+    player_tag: tag,
+    live: true,
+  });
+  assert.equal(second.isError, false);
+  assert.equal(second.body.live_status.state, "fresh");
+  assert.equal(second.body.snapshot.trophies, fresher.trophies, "served fresh");
 });
 
-test("an unfulfilled live job times out to a structured live_unavailable", async () => {
+test("an unfulfilled live ask stays live_pending; asking again neither mints a second job nor charges twice", async () => {
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
-  const { body, isError } = await invoke("live_fetch", {
-    path: "/clans/#GQ0YLCYJ",
-  });
-  assert.equal(isError, true);
-  assert.equal(body.error.code, "live_unavailable");
+  const day = new Date().toISOString().slice(0, 10);
+  const bucket = async () =>
+    (
+      await db.query(
+        `select coalesce(sum(count), 0)::int as n from rate_limit where bucket = $1 and window_start = $2::date`,
+        [`liveday#${account.accountId}`, day],
+      )
+    ).rows[0].n;
+  const before = await bucket();
+  for (let i = 0; i < 2; i += 1) {
+    const { body, isError } = await invoke("live_fetch", {
+      path: "/clans/#GQ0YLCYJ",
+    });
+    assert.equal(isError, true);
+    assert.equal(body.error.code, "live_pending");
+  }
+  const { rows: jobs } = await db.query(
+    `select count(*)::int n from job where entity_key = '#GQ0YLCYJ' and status in ('queued', 'leased')`,
+  );
+  assert.equal(jobs[0].n, 1, "one open job for the subject");
+  assert.equal(await bucket(), before + 1, "charged once, when minted");
 });
 
-test("the live daily cap trips as quota_exceeded", async () => {
-  const profile = await fixture("player/profile.json");
-  const tag = normalizeTag(profile.tag);
+test("the live daily cap trips as quota_exceeded before anything is minted", async () => {
+  const tag = "#QQ0Y8LQ";
   const day = new Date().toISOString().slice(0, 10);
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 50)
      on conflict (bucket, window_start) do update set count = 50`,
     [`liveday#${account.accountId}`, day],
   );
-  const live = fakeGatewayLive({ [`player:${tag}`]: profile });
+  const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
   const { body, isError } = await invoke("live_fetch", {
     path: `/players/${tag}`,
   });
   assert.equal(isError, true);
   assert.equal(body.error.code, "quota_exceeded");
+  const { rows: jobs } = await db.query(
+    `select count(*)::int n from job where entity_key = $1`,
+    [tag],
+  );
+  assert.equal(jobs[0].n, 0, "nothing minted for a refused ask");
+  await db.query(
+    `delete from rate_limit where bucket = $1 and window_start = $2::date`,
+    [`liveday#${account.accountId}`, day],
+  );
 });
 
 test("rankings paths map to leaderboard jobs; bad locations refuse (feedback #6)", async (t) => {
@@ -203,142 +295,43 @@ test("rankings paths map to leaderboard jobs; bad locations refuse (feedback #6)
   t.assert.strictEqual(bad.error, "bad_request");
 });
 
-test("an overlapping bulk collector's receipt can never satisfy a live wait (issue #3)", async () => {
-  await db.query(`delete from job`); // earlier tests leave a queued live row for this subject
-  const profile = await fixture("player/profile.json");
-  const tag = normalizeTag(profile.tag);
-  const body = gzipSync(Buffer.from(JSON.stringify(profile))).toString(
-    "base64",
-  );
-  // A bulk-channel operator already holds a lease on this subject.
-  const {
-    rows: [bulkGw],
-  } = await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status, channel)
-     values ($1, 'bulk-op', '127.0.0.2', 'active', 'bulk') returning gateway_id`,
-    [account.accountId],
-  );
-  await enqueueJob(db, { endpoint: "player", entity_key: tag, lane: "bulk" });
-  const bulkJob = await leaseJob(db, {
-    gatewayId: bulkGw.gateway_id,
-    lanes: ["bulk"],
-  });
-  assert.ok(bulkJob, "the bulk operator holds the subject");
-
-  // The live request mints its OWN row (the bulk one is leased), and the
-  // BULK result lands first: admitted, recorded — and ignored by the wait.
-  let liveJobId;
+test("a bulk receipt inside the API's cache window IS the live answer; outside it, a fetch is queued", async () => {
+  // The CR API serves a cached copy for max-age seconds, so a receipt
+  // inside that window is what a new fetch would return, whichever lane
+  // fetched it. That replaces the old job-id binding (issue #3).
+  const profile = structuredClone(await fixture("player/profile.json"));
+  profile.tag = "#RR0Y8LQ";
+  const tag = profile.tag;
+  await db.query(`delete from job where entity_key = $1`, [tag]);
+  let minted = 0;
   const live = makeLive({
-    timeoutMs: 1500,
     enqueue: async (_db, job) => {
-      const row = await enqueueJob(db, job);
-      liveJobId = Number(row.job_id);
-      assert.notEqual(
-        liveJobId,
-        Number(bulkJob.job_id),
-        "live got its own row",
-      );
-      await processResult(db, {
-        v: 1,
-        job: { ...job, lane: "bulk" },
-        job_id: Number(bulkJob.job_id),
-        gateway_id: bulkGw.gateway_id,
-        fetched_at: new Date().toISOString(),
-        status: "ok",
-        body_gzip_b64: body,
-      });
-      return row;
+      minted += 1;
+      return enqueueJob(db, job);
     },
   });
-  const r = await live(db, { endpoint: "player", entityKey: tag });
-  assert.equal(r.ok, false);
-  assert.equal(
-    r.reason,
-    "timeout",
-    "the bulk receipt neither completes nor rejects the live wait",
-  );
-  const { rows: recorded } = await db.query(
-    `select 1 from api_receipt where job_id = $1 and admission = 'admitted'`,
-    [Number(bulkJob.job_id)],
-  );
-  assert.equal(recorded.length, 1, "...yet the bulk fetch WAS recorded");
+  await recordStale(profile, 0); // a bulk fetch seconds ago
+  const fresh = await live(db, { endpoint: "player", entityKey: tag });
+  assert.equal(fresh.ok, true);
+  assert.equal(minted, 0, "nothing queued: the record is as fresh as the API");
 
-  // The authorized live-channel result for the live job completes it.
-  const live2 = makeLive({
-    timeoutMs: 3000,
-    enqueue: async (_db, job) => {
-      const row = await enqueueJob(db, job); // upgrades to the queued live row
-      assert.equal(Number(row.job_id), liveJobId, "same pending live job");
-      await processResult(db, {
-        v: 1,
-        job,
-        job_id: Number(row.job_id),
-        gateway_id: gatewayId,
-        fetched_at: new Date().toISOString(),
-        status: "ok",
-        body_gzip_b64: body,
-      });
-      return row;
-    },
-  });
-  const ok = await live2(db, { endpoint: "player", entityKey: tag });
-  assert.equal(
-    ok.ok,
-    true,
-    "a matching live-channel receipt completes the wait",
+  await db.query(`delete from api_receipt where entity_key = $1`, [tag]);
+  await recordStale(profile, 5); // five minutes: past the 60 s window
+  const stale = await live(db, { endpoint: "player", entityKey: tag });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.reason, "pending");
+  assert.equal(minted, 1, "one priority fetch queued");
+  const { rows } = await db.query(
+    `select lane from job where entity_key = $1 and status = 'queued'`,
+    [tag],
+  );
+  assert.deepEqual(
+    rows.map((r) => r.lane),
+    ["live"],
+    "queued on the live lane, which any collector serves first",
   );
 });
 
-test("a second-precision collector clock in the same second as the request still completes the wait (prod 2026-09-06)", async (t) => {
-  await db.query(`delete from job`);
-  // Isolate the receipt identity from earlier tests, and pin a nonzero
-  // millisecond offset so this ALWAYS exercises second truncation. The
-  // polling clock advances explicitly; no host load or wall-clock boundary
-  // can accidentally change the scenario or make a failed wait hang.
-  const profile = { ...(await fixture("player/profile.json")), tag: "#P0Y8LQ" };
-  let clock = Math.floor(Date.now() / 1000) * 1000 + 789;
-  t.mock.method(Date, "now", () => clock);
-  const tag = normalizeTag(profile.tag);
-  const body = gzipSync(Buffer.from(JSON.stringify(profile))).toString(
-    "base64",
-  );
-  const live = makeLive({
-    timeoutMs: 3000,
-    sleep: async (ms) => {
-      clock += ms;
-    },
-    enqueue: async (_db, job) => {
-      const row = await enqueueJob(db, job);
-      // Collectors format fetched_at at second precision: the same second
-      // as `since`, truncated below its milliseconds.
-      const sameSecond = new Date(
-        Math.floor(Date.now() / 1000) * 1000,
-      ).toISOString();
-      const admitted = await processResult(db, {
-        v: 1,
-        job,
-        job_id: Number(row.job_id),
-        gateway_id: gatewayId,
-        fetched_at: sameSecond,
-        status: "ok",
-        body_gzip_b64: body,
-      });
-      assert.equal(
-        admitted.outcome,
-        "admitted",
-        "the isolated receipt must be admitted",
-      );
-      return row;
-    },
-  });
-  const r = await live(db, { endpoint: "player", entityKey: tag });
-  assert.equal(r.ok, true, "same-second truncation must not drop the receipt");
-});
-
-// An agent spends its OWNER's live lane, exactly as it spends the owner's
-// daily calls: N agents on one account share one allowance. The bucket
-// used to be keyed on the agent's own id, so every agent got a fresh
-// live budget its owner never had (fixed 2026-09-09).
 test("an agent's live fetch is charged to its owner's bucket, and the owner's cap applies", async () => {
   const profile = await fixture("player/profile.json");
   const tag = normalizeTag(profile.tag);
@@ -368,6 +361,8 @@ test("an agent's live fetch is charged to its owner's bucket, and the owner's ca
       liveOverride: null,
     },
   };
+  await db.query(`delete from api_receipt where entity_key = $1`, [tag]);
+  await db.query(`delete from job where entity_key = $1`, [tag]);
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({
     db,
@@ -376,7 +371,7 @@ test("an agent's live fetch is charged to its owner's bucket, and the owner's ca
     live,
   });
   const first = await invoke("live_fetch", { path: `/players/${tag}` });
-  assert.equal(first.isError, false, JSON.stringify(first.body));
+  assert.equal(first.body.error?.code, "live_pending", "queued and charged");
   const { rows: buckets } = await db.query(
     `select bucket, count from rate_limit where bucket like 'liveday#%' and window_start = $1::date
        and bucket in ($2, $3)`,
@@ -393,7 +388,7 @@ test("an agent's live fetch is charged to its owner's bucket, and the owner's ca
     `update rate_limit set count = 20 where bucket = $1 and window_start = $2::date`,
     [`liveday#${ownerId}`, day],
   );
-  const refused = await invoke("live_fetch", { path: `/players/${tag}` });
+  const refused = await invoke("live_fetch", { path: `/players/#UU0Y8LQ` });
   assert.equal(refused.isError, true);
   assert.equal(refused.body.error.code, "quota_exceeded");
   assert.match(refused.body.error.message, /20\/day for the member tier/);

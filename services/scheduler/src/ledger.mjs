@@ -19,7 +19,7 @@ export async function enqueueJob(db, { endpoint, entity_key, lane }) {
        do update set lane = case
          when excluded.lane = 'live' or job.lane = 'live' then 'live'
          else 'bulk' end
-     returning job_id, lane`,
+     returning job_id, lane, (xmax = 0) as inserted`,
     [endpoint, entity_key, lane],
   );
   return rows[0];

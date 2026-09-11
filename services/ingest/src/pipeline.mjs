@@ -228,7 +228,7 @@ const PROJECTORS = {
     // Observation-time semantics so replayed old payloads can never
     // regress identity: stamps apply only when this observation is the
     // newest; first/last_seen bracket honestly.
-    await db.query(
+    const { rowCount: identityMoved } = await db.query(
       `insert into player (player_tag, name, last_known_clan_tag, first_seen_at, last_seen_at, last_known_clan_role)
        values ($1, $2, $3, $4, $4, $5)
        on conflict (player_tag) do update
@@ -307,6 +307,11 @@ const PROJECTORS = {
       clanTag,
       snapshot,
       cardsChanged: cards.changed,
+      facts:
+        identityMoved +
+        badges.changed +
+        cards.changed +
+        (snapshot.moved ? 1 : 0),
       // Collected, never emitted here: the flush runs after commit.
       feedEvents: [
         ...badges.feedEvents,
@@ -424,7 +429,7 @@ const PROJECTORS = {
     // The catalog is a table (0076); cards_catalog and the resources door
     // read it there, never the payload cache.
     const { changed } = await projectCardCatalog(db, { payload, fetchedAt });
-    return { projected: "cards", changed };
+    return { projected: "cards", changed, facts: changed };
   },
 };
 
@@ -574,8 +579,8 @@ export async function processResult(db, rawMessage, deps = {}) {
 
     const { rows: receiptRows } = await db.query(
       `insert into api_receipt
-         (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission, admission_errors, job_id, observed, filtered)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission, admission_errors, job_id, observed, filtered, api_bytes)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        on conflict (gateway_id, endpoint, entity_key, fetched_at) do nothing
        returning receipt_id`,
       [
@@ -589,6 +594,7 @@ export async function processResult(db, rawMessage, deps = {}) {
         Number.isInteger(msg.job_id) ? msg.job_id : null,
         Number.isInteger(msg.observed) ? msg.observed : null,
         Number.isInteger(msg.filtered) ? msg.filtered : null,
+        Number.isInteger(msg.api_bytes) ? msg.api_bytes : null,
       ],
     );
     if (receiptRows.length === 0) {
@@ -600,11 +606,6 @@ export async function processResult(db, rawMessage, deps = {}) {
 
     let projection = null;
     if (admission.ok) {
-      await db.query(
-        `update gateway set last_success_at = now(), fetch_points = fetch_points + 1
-         where gateway_id::text = $1`,
-        [msg.gateway_id],
-      );
       const projector = PROJECTORS[endpoint];
       projection = await projector(db, {
         entityKey,
@@ -615,6 +616,21 @@ export async function processResult(db, rawMessage, deps = {}) {
         filtered: msg.filtered,
       });
       t = mark("project_ms", t);
+      // What the fetch was worth (0077): the projection's own count of
+      // rows it inserted or changed, and the transaction's wall time so
+      // far. A point rewards a fetch that returned data, never one that
+      // repeated what was held (Jamie, 2026-09-11).
+      const facts = Number.isInteger(projection?.facts) ? projection.facts : 0;
+      await db.query(
+        `update api_receipt set new_facts = $2, ingest_ms = $3 where receipt_id = $1`,
+        [receiptId, facts, Date.now() - t0],
+      );
+      await db.query(
+        `update gateway set last_success_at = now(),
+                fetch_points = fetch_points + case when $2 > 0 then 1 else 0 end
+         where gateway_id::text = $1`,
+        [msg.gateway_id, facts],
+      );
 
       // Freshness advances on admission only. GLOBAL (the card catalog)
       // is a subject too — without this it replans on cadence alone and

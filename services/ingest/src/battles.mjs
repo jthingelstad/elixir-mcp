@@ -437,6 +437,7 @@ export async function ingestBattlelog(
     battlesSeen: seen,
     battlesSkipped: battlesSkipped + (collectorFilter?.filtered ?? 0),
     battlesInserted,
+    facts: battlesInserted,
     captureAudit:
       hadPriorCoverage && seen > 0
         ? { audited: true, gap }

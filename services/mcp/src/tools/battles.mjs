@@ -32,7 +32,9 @@ import {
   appliedBlock,
   notes,
   docsRef,
-  spendLiveQuota,
+  liveRead,
+  liveStatus,
+  livePendingNote,
   segmentFilter,
   ebShrink,
   META_METHODOLOGY,
@@ -184,29 +186,19 @@ export const battlesTools = {
         );
         tag = s.tag;
       }
+      let live = null;
       if (args.live === true) {
         if (!tag)
           throw new ToolFailure(
             "bad_request",
             "live: true needs a player (player_tag or the default subject), not battle_id or a corpus-wide deck_hash.",
           );
-        if (!ctx.live)
-          throw new ToolFailure(
-            "live_unavailable",
-            "The live lane is not configured here.",
-            "Call again without live: true.",
-          );
-        await spendLiveQuota(ctx);
-        const result = await ctx.live(ctx.db, {
+        // 1.7.0: asynchronous - a fresh poll is already in the record,
+        // otherwise one is queued and the record answers now.
+        live = await liveRead(ctx, {
           endpoint: "player_battlelog",
           entityKey: tag,
         });
-        if (!result.ok)
-          throw new ToolFailure(
-            "live_unavailable",
-            "No gateway completed the live battle-log poll in time.",
-            "Serving recorded data: call again without live: true.",
-          );
       }
       const win = resolveWindow(ctx, args);
       const tz = win.timezone;
@@ -488,6 +480,7 @@ export const battlesTools = {
           against_card: args.against_card,
           live: args.live === true ? true : undefined,
         }),
+        ...(live ? { live_status: liveStatus(live) } : {}),
         battles,
         ...(totalCount !== undefined ? { total_count: totalCount } : {}),
         // Explicit null = end of results (absent-vs-null was ambiguous).
@@ -496,6 +489,7 @@ export const battlesTools = {
             ? `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`
             : null,
         notes: notes(
+          livePendingNote(live),
           caveats,
           deckStats &&
             "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
