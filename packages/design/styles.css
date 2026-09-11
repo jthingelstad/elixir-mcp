@@ -2852,3 +2852,74 @@ input[aria-invalid="true"] {
   border-left: 2px solid var(--accent-bright);
   color: var(--ink-dim);
 }
+
+/* ==================================================================
+   Card picker — an operator chooses the Clash Royale card that is
+   their collector's public face. A card is one collector's, so a
+   taken one is shown, dimmed, and not offered; gold marks the pick
+   the way it marks everything that is yours.
+   ================================================================== */
+
+.cardpick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cardpick__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 6px;
+  max-height: 232px;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+}
+.cardpick__card {
+  appearance: none;
+  border: 2px solid transparent;
+  border-radius: var(--r-chip);
+  background: none;
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cardpick__card:hover {
+  border-color: var(--line-strong);
+}
+.cardpick__card:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.cardpick__card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+}
+.cardpick__card--picked {
+  border-color: var(--gold);
+}
+.cardpick__card--taken {
+  cursor: not-allowed;
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+.cardpick__card--taken:hover {
+  border-color: transparent;
+}
+.cardpick__caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  min-height: 20px;
+}
+.cardpick__caption strong {
+  color: var(--gold);
+  font-weight: 600;
+}

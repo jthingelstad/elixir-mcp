@@ -112,23 +112,51 @@ const paint = async () => {
 /** The fleet and one collector moved off Status with the 2026-09-09 IA:
  *  a page is the information plus a click to drill in. Both read the
  *  same public payload, plus /api/me/gateways for what is yours. */
-const paintFleet = async (mine = []) => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (path) => {
-      const body = String(path).includes("me/gateways")
-        ? { gateways: mine }
-        : PAYLOAD;
-      return {
-        ok: true,
-        status: 200,
-        json: async () => body,
-        text: async () => JSON.stringify(body),
-      };
-    }),
-  );
+const CARDS = [
+  {
+    name: "Knight",
+    icon: "https://cdn/knight.png",
+    rarity: "common",
+    elixir_cost: 3,
+    taken: false,
+  },
+  {
+    name: "Ram Rider",
+    icon: "https://cdn/ram.png",
+    rarity: "legendary",
+    elixir_cost: 5,
+    taken: true,
+  },
+  {
+    name: "Golem",
+    icon: "https://cdn/golem.png",
+    rarity: "epic",
+    elixir_cost: 8,
+    taken: false,
+  },
+];
+
+const paintFleet = async (mine = [], cards = []) => {
+  const fetchMock = vi.fn(async (path, init) => {
+    const p = String(path);
+    const body = p.includes("me/gateways")
+      ? { gateways: mine }
+      : p.includes("gateways/cards")
+        ? { cards }
+        : p.endsWith("/api/gateways") && init?.method === "POST"
+          ? { ok: true, status: "pending", card: JSON.parse(init.body).card }
+          : PAYLOAD;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  vi.stubGlobal("fetch", fetchMock);
   render(<Fleet navigate={() => {}} />);
   await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
+  return fetchMock;
 };
 
 test("a collector record shows heartbeat AND data, so idle never reads as broken", async () => {
@@ -183,8 +211,12 @@ test("the fleet marks what is yours in a word, never a tinted row", async () => 
   const row = screen.getByText("Ram Rider").closest("tr");
   expect(within(row).getByText("yours")).toBeTruthy();
   expect(row.style.background).toBe("");
-  // And a reader who runs one is not told to raise their hand.
+  // A reader who runs one is offered another, not told they run none:
+  // raising a hand is the only way a collector comes to exist, so the
+  // form never hides (Jamie, 2026-09-11).
   expect(screen.queryByText(/You don.t run one yet/)).toBeNull();
+  expect(screen.getByText("Run another")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Raise my hand/ })).toBeTruthy();
 });
 
 test("a reader who runs no collector is told what one is and what it earns", async () => {
@@ -192,6 +224,110 @@ test("a reader who runs no collector is told what one is and what it earns", asy
   expect(screen.getByText(/You don.t run one yet/)).toBeTruthy();
   expect(screen.getByText(/10 fetches buys one extra daily call/)).toBeTruthy();
   expect(screen.getByRole("button", { name: /Raise my hand/ })).toBeTruthy();
+});
+
+test("an operator picks the card their collector wears, and a taken card cannot be picked", async () => {
+  const fetchMock = await paintFleet([], CARDS);
+  const grid = screen.getByRole("listbox", { name: "cards" });
+  const raise = screen.getByRole("button", { name: /Raise my hand/ });
+  fireEvent.change(screen.getByPlaceholderText("a name for the machine"), {
+    target: { value: "attic-mini" },
+  });
+  // A name alone is not enough: the card is the collector's public face.
+  expect(raise.disabled).toBe(true);
+
+  // Ram Rider is somebody's already: shown so you can see it went,
+  // dimmed, and a click does nothing.
+  const ram = within(grid).getByRole("option", { name: "Ram Rider" });
+  expect(ram.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(ram);
+  expect(raise.disabled).toBe(true);
+  expect(screen.getByText(/Pick a card/)).toBeTruthy();
+
+  // The search narrows the grid; a free pick names the collector.
+  fireEvent.change(screen.getByLabelText("find a card"), {
+    target: { value: "gol" },
+  });
+  expect(within(grid).queryByRole("option", { name: "Knight" })).toBeNull();
+  fireEvent.click(within(grid).getByRole("option", { name: "Golem" }));
+  expect(screen.getByText(/Your collector will be/).textContent).toMatch(
+    /Golem · epic · 8 elixir/,
+  );
+  expect(raise.disabled).toBe(false);
+
+  fireEvent.click(raise);
+  await waitFor(() => expect(screen.getByText(/Raised as Golem/)).toBeTruthy());
+  const post = fetchMock.mock.calls.find(
+    ([p, init]) =>
+      String(p).endsWith("/api/gateways") && init?.method === "POST",
+  );
+  expect(JSON.parse(post[1].body)).toEqual({
+    name: "attic-mini",
+    card: "Golem",
+  });
+});
+
+test("an operator can re-pick their own collector's card, and the record follows it", async () => {
+  const navigate = vi.fn();
+  const fetchMock = vi.fn(async (path, init) => {
+    const p = String(path);
+    const body = p.includes("me/gateways")
+      ? {
+          gateways: [
+            {
+              gateway_id: "g1",
+              name: "jamie-mac",
+              card_name: "Ram Rider",
+              card_icon: "https://cdn/ram.png",
+              status: "active",
+            },
+          ],
+        }
+      : p.includes("gateways/cards")
+        ? { cards: CARDS }
+        : p.includes("me/gateway-card")
+          ? { ok: true, card: JSON.parse(init.body).card }
+          : p.includes("gateway-detail")
+            ? { gateway: {}, daily: [], endpoints_7d: [] }
+            : PAYLOAD;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  render(<CollectorPage id="Ram%20Rider" navigate={navigate} />);
+  const panel = await waitFor(() =>
+    screen.getByText("Your card").closest(".panel"),
+  );
+  expect(within(panel).getByText("Ram Rider")).toBeTruthy();
+  fireEvent.click(within(panel).getByRole("button", { name: "Change" }));
+  const grid = await waitFor(() =>
+    within(panel).getByRole("listbox", { name: "cards" }),
+  );
+  // Your own card is yours, not "taken" from you; the button waits for
+  // a DIFFERENT pick.
+  expect(
+    within(grid)
+      .getByRole("option", { name: "Ram Rider" })
+      .getAttribute("aria-disabled"),
+  ).toBe("false");
+  expect(within(panel).getByRole("button", { name: /Make it/ }).disabled).toBe(
+    true,
+  );
+  fireEvent.click(within(grid).getByRole("option", { name: "Knight" }));
+  fireEvent.click(
+    within(panel).getByRole("button", { name: "Make it Knight" }),
+  );
+  await waitFor(() =>
+    expect(navigate).toHaveBeenCalledWith("/status/collectors/Knight"),
+  );
+  const post = fetchMock.mock.calls.find(([p]) =>
+    String(p).includes("me/gateway-card"),
+  );
+  expect(JSON.parse(post[1].body)).toEqual({ id: "g1", card: "Knight" });
 });
 
 test("the retired SQS queue panel is gone", async () => {

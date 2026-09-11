@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { CardPicker } from "../components/CardPicker.jsx";
 import { Icon } from "../components/Icon.jsx";
 import { ago, secsSince } from "../lib/time.js";
 
@@ -47,10 +48,15 @@ export function Fleet({ navigate }) {
   const [mine, setMine] = useState(null);
   const [raised, setRaised] = useState("");
   const [name, setName] = useState("");
+  const [cards, setCards] = useState([]);
+  const [card, setCard] = useState("");
 
+  const loadCards = () =>
+    api.gatewayCards().then((r) => r.ok && setCards(r.data.cards ?? []));
   useEffect(() => {
     api.publicStatus().then((r) => r.ok && setStatus(r.data));
     api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
+    loadCards();
   }, []);
 
   if (!status) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
@@ -82,17 +88,34 @@ export function Fleet({ navigate }) {
         </div>
       </div>
 
-      {mine !== null && !runsOne && (
+      {/* Raising a hand is the ONLY way a collector comes to exist, for
+          anyone, any number of times (Jamie, 2026-09-11): a collector is
+          bound to the account that raised it, so an admin never creates
+          one — the admin screens only manage what an operator raised.
+          The box used to hide once you ran one, which read as "there is
+          no way to add another". Only the pitch changes. */}
+      {mine !== null && (
         <div
           className="empty"
           style={{ maxWidth: "70ch", marginBottom: "18px" }}
         >
-          <div className="empty__title">You don&rsquo;t run one yet</div>
+          <div className="empty__title">
+            {runsOne ? "Run another" : "You don’t run one yet"}
+          </div>
           <p className="empty__body">
-            A collector is a machine that fetches for the corpus on a schedule.
-            It earns you bonus quota — 10 fetches buys one extra daily call, up
-            to 4× your base.
+            {runsOne
+              ? "Every collector you run is yours and earns on the same ladder. Name the new machine and raise your hand again."
+              : "A collector is a machine that fetches for the corpus on a schedule. It earns you bonus quota — 10 fetches buys one extra daily call, up to 4× your base."}{" "}
+            It wears a Clash Royale card as its public name — pick your
+            favourite, as long as nobody else has it.
           </p>
+          {/* The card is the collector's public face and the operator
+              picks it — a favourite, and one nobody else holds. */}
+          {cards.length > 0 && (
+            <div style={{ margin: "0 0 12px" }}>
+              <CardPicker cards={cards} value={card} onChange={setCard} />
+            </div>
+          )}
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
             <input
               className="input"
@@ -103,14 +126,24 @@ export function Fleet({ navigate }) {
             />
             <button
               className="btn btn--primary"
-              disabled={!name.trim()}
+              disabled={!name.trim() || (cards.length > 0 && !card)}
               onClick={async () => {
-                const r = await api.raiseGateway(name.trim());
+                const r = await api.raiseGateway(name.trim(), card || null);
                 setRaised(
                   r.ok
-                    ? "Raised — the owner is emailed and approves by hand."
+                    ? `Raised as ${r.data.card ?? "a collector"} — the owner is emailed and approves by hand.`
                     : (r.data?.message ?? "Could not send that."),
                 );
+                if (r.ok) {
+                  setName("");
+                  setCard("");
+                  api
+                    .myGateways()
+                    .then((m) => m.ok && setMine(m.data.gateways ?? []));
+                }
+                // Either way the catalog may have moved: a refusal means
+                // somebody took the card since it was drawn.
+                loadCards();
               }}
             >
               <Icon name="plus" size={16} />

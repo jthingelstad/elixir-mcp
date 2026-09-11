@@ -84,7 +84,11 @@ export const api = {
     request("POST", "/api/admin/gateways", { gateway_id, action }),
   myGateways: () => request("GET", "/api/me/gateways"),
   gatewayLadder: () => request("GET", "/api/gateways/ladder"),
-  raiseGateway: (name) => request("POST", "/api/gateways", { name }),
+  raiseGateway: (name, card) =>
+    request("POST", "/api/gateways", { name, card }),
+  gatewayCards: () => request("GET", "/api/gateways/cards"),
+  pickGatewayCard: (id, card) =>
+    request("POST", "/api/me/gateway-card", { id, card }),
   requestRole: (role, note) =>
     request("POST", "/api/me/role-request", { role, note }),
   adminAccounts: () => request("GET", "/api/admin/accounts"),

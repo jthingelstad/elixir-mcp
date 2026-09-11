@@ -1,7 +1,18 @@
 import crypto from "node:crypto";
-import { ensureGatewayCards } from "../../../mcp/src/gateway-cards.mjs";
+import {
+  ensureGatewayCards,
+  gatewayCardCatalog,
+  isCardTakenError,
+  resolveGatewayCard,
+} from "../../../mcp/src/gateway-cards.mjs";
 
 import { UUID_RE, json } from "../http.mjs";
+
+// The two ways a pick is refused, worded for the form that shows them.
+const cardRefusal = (error) =>
+  error === "card_taken"
+    ? [409, { error, message: "That card is already another collector’s." }]
+    : [400, { error, message: "That is not a card we know." }];
 
 export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
   return {
@@ -166,6 +177,19 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       return json(200, { gateways: rows });
     },
 
+    // The pickable cards and who holds which: the raise form and the
+    // operator's own record draw the picker from this.
+    "GET /api/gateways/cards": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      return json(200, { cards: await gatewayCardCatalog(db) });
+    },
+
+    // Raising a hand is the ONLY way a collector comes to exist (Jamie,
+    // 2026-09-11): it is bound to the account that raised it, any
+    // account can raise any number, and the admin lane manages what was
+    // raised rather than creating. The operator names their favourite
+    // card as its public face; a card is one live collector's.
     "POST /api/gateways": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
@@ -176,6 +200,12 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         .toLowerCase();
       if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(name))
         return json(400, { error: "invalid_name" });
+      let card = null;
+      if (body.card != null && String(body.card).trim() !== "") {
+        const pick = await resolveGatewayCard(db, body.card);
+        if (pick.error) return json(...cardRefusal(pick.error));
+        card = pick.card;
+      }
       // Zero-trust: no IP collected - the CR key's IP binding is
       // operator<->Supercell business (COLLECTOR-ZERO-TRUST.md).
       const dupe = await db.query(
@@ -183,19 +213,74 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         [name],
       );
       if (dupe.rows.length > 0) return json(409, { error: "name_taken" });
-      const { rows } = await db.query(
-        `insert into gateway (owner_account_id, name)
-         values ($1, $2) returning gateway_id`,
-        [account.accountId, name],
-      );
+      let rows;
+      try {
+        ({ rows } = await db.query(
+          `insert into gateway (owner_account_id, name, card_name, card_icon)
+           values ($1, $2, $3, $4) returning gateway_id`,
+          [account.accountId, name, card?.name ?? null, card?.icon ?? null],
+        ));
+      } catch (err) {
+        if (isCardTakenError(err)) return json(...cardRefusal("card_taken"));
+        throw err;
+      }
       await notifyOwner({ kind: "gateway_request", playerTag: name });
-      await logEvent(db, account.accountId, "gateway_raised", { name });
+      await logEvent(db, account.accountId, "gateway_raised", {
+        name,
+        card: card?.name ?? null,
+      });
       return json(200, {
         ok: true,
         gateway_id: rows[0].gateway_id,
         status: "pending",
+        card: card?.name ?? null,
         next: "The owner issues an IP-bound CR key and credentials, then follow docs/OPERATORS.md.",
       });
+    },
+
+    // An operator can re-pick their own collector's card - the ones
+    // raised before 0078 were dealt one at random. The card is the
+    // public name, so the record's URL moves with it.
+    "POST /api/me/gateway-card": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const id = String(body.id ?? "");
+      if (!UUID_RE.test(id)) return json(404, { error: "not_found" });
+      const { rows: own } = await db.query(
+        `select card_name from gateway
+         where gateway_id = $1 and owner_account_id = $2 and status <> 'revoked'`,
+        [id, account.accountId],
+      );
+      if (!own[0]) return json(404, { error: "not_found" });
+      const wanted = String(body.card ?? "").trim();
+      if (
+        own[0].card_name &&
+        own[0].card_name.toLowerCase() === wanted.toLowerCase()
+      )
+        return json(200, { ok: true, card: own[0].card_name });
+      const pick = await resolveGatewayCard(db, wanted);
+      if (pick.error) return json(...cardRefusal(pick.error));
+      let rows;
+      try {
+        ({ rows } = await db.query(
+          `update gateway set card_name = $3, card_icon = $4
+           where gateway_id = $1 and owner_account_id = $2
+             and status <> 'revoked'
+           returning name, card_name`,
+          [id, account.accountId, pick.card.name, pick.card.icon],
+        ));
+      } catch (err) {
+        if (isCardTakenError(err)) return json(...cardRefusal("card_taken"));
+        throw err;
+      }
+      if (!rows[0]) return json(404, { error: "not_found" });
+      await logEvent(db, account.accountId, "gateway_card_picked", {
+        gateway: rows[0].name,
+        card: rows[0].card_name,
+      });
+      return json(200, { ok: true, card: rows[0].card_name });
     },
 
     "GET /api/me/gateways": async (db, event) => {

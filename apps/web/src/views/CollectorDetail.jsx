@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api.js";
+import { CardPicker } from "../components/CardPicker.jsx";
 import { Icon } from "../components/Icon.jsx";
 import { ago, secsSince, beatCls } from "../lib/time.js";
 
@@ -227,6 +228,103 @@ function Operations({ g, staged, setStaged, reload }) {
   );
 }
 
+/**
+ * The operator's own card, and the means to change it. Collectors
+ * raised before the pick existed were dealt a card at random (0019), so
+ * the record is where a favourite gets chosen after the fact. The card
+ * is the public name, so a change moves this page's address with it.
+ */
+function YourCard({ own, navigate }) {
+  const [open, setOpen] = useState(false);
+  const [cards, setCards] = useState([]);
+  const [pick, setPick] = useState(own.card_name ?? "");
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    if (open && cards.length === 0)
+      api.gatewayCards().then((r) => r.ok && setCards(r.data.cards ?? []));
+  }, [open, cards.length]);
+  return (
+    <section className="panel" style={{ marginBottom: "14px" }}>
+      <div className="panel__head">
+        <span>Your card</span>
+        <button
+          className="btn btn--sm"
+          style={{ marginLeft: "auto" }}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? "Keep it" : "Change"}
+        </button>
+      </div>
+      <div style={{ padding: "12px 16px" }}>
+        {!open ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "13.5px",
+              color: "var(--ink-dim)",
+            }}
+          >
+            {own.card_icon && (
+              <img
+                src={own.card_icon}
+                alt=""
+                style={{ height: "26px", borderRadius: "3px" }}
+              />
+            )}
+            <span>
+              This collector is{" "}
+              <strong style={{ color: "var(--gold)" }}>
+                {own.card_name ?? "not named yet"}
+              </strong>{" "}
+              — its public name on every fleet page.
+            </span>
+          </div>
+        ) : (
+          <>
+            <CardPicker
+              cards={cards}
+              value={pick}
+              onChange={setPick}
+              current={own.card_name}
+            />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "9px",
+                marginTop: "10px",
+              }}
+            >
+              <button
+                className="btn btn--primary"
+                disabled={!pick || pick === own.card_name}
+                onClick={async () => {
+                  const r = await api.pickGatewayCard(own.gateway_id, pick);
+                  if (r.ok) {
+                    navigate(
+                      `/status/collectors/${encodeURIComponent(r.data.card)}`,
+                    );
+                  } else {
+                    setNote(r.data?.message ?? "Could not change that.");
+                    api
+                      .gatewayCards()
+                      .then((c) => c.ok && setCards(c.data.cards ?? []));
+                  }
+                }}
+              >
+                Make it {pick || "…"}
+              </button>
+              {note && <span className="footnote">{note}</span>}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function CollectorPage({ id, navigate, me }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
@@ -360,6 +458,8 @@ export function CollectorPage({ id, navigate, me }) {
           </div>
         </div>
       )}
+
+      {own && <YourCard key={own.gateway_id} own={own} navigate={navigate} />}
 
       {status_ === "draining" && (
         <div className="callout callout--warn" style={{ marginBottom: "14px" }}>

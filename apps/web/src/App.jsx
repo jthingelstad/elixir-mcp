@@ -1138,7 +1138,14 @@ export function App() {
               ) : section === "status" ? (
                 activePage === "collectors" ? (
                   itemId ? (
-                    <CollectorPage id={itemId} navigate={navigate} me={me} />
+                    // Keyed on the name: a re-picked card moves the
+                    // record's address, and the page reloads under it.
+                    <CollectorPage
+                      key={itemId}
+                      id={itemId}
+                      navigate={navigate}
+                      me={me}
+                    />
                   ) : (
                     <Fleet navigate={navigate} />
                   )

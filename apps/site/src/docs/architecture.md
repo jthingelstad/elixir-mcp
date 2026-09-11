@@ -89,8 +89,8 @@ that runs anywhere with a static IP — a Mac in a closet, a Synology NAS
 at a cabin. What makes the fleet interesting:
 
 - **Card identities.** Every collector is named after a Clash Royale
-  card and appears publicly only by that card name — machine labels and
-  IPs stay private. The console's [Status](/status/service) page shows
+  card — the operator's pick, and one collector per card — and appears
+  publicly only by that card name; machine labels and IPs stay private. The console's [Status](/status/service) page shows
   each card's heartbeat and hourly fetch rate, and `/api/public/status`
   publishes the same fleet without a session.
 - **Credits.** Fetches earn points, and points convert to the

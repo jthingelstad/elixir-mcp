@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "Your collector wears the card you pick",
+    body: "Running a collector is a favour, so the favour gets to choose its face: when you raise your hand at Status > Collectors you now pick the Clash Royale card your collector is named for, and a collector you already run can change its card from its own page. A card belongs to one collector - a taken one is shown dimmed, and the record refuses a double pick even when two operators reach for it at once. The form no longer hides once you run one: raising a hand is the only way a collector comes to exist, it is always yours, and you can raise as many machines as you run.",
+  },
+  {
+    date: "2026-09-11",
     title: "The fleet pages say what a fetch was worth",
     body: "A collector that fetched a thousand payloads of nothing looked identical to one that fetched a thousand payloads of news. Every receipt now records what its fetch was worth - rows the projection inserted or changed, the bytes read from the API, the time the admission took - and the fleet pages show it: yield (the share of the last day's fetches that changed the record), the share of battle-log entries dropped at the edge before the wire, and door calls per fetch. The budget line on the status page says how much of the hour's spend changed the record. Forward-only from today.",
   },

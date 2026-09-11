@@ -2840,3 +2840,195 @@ test("connection capabilities can be edited afterwards, including on an owned ag
   );
   assert.equal(stillMine.rows[0].scope, "cr:read", "untouched by the stranger");
 });
+
+// ------------------------------------------------------------- 0078
+test("an operator picks their collector's card; a card is one live collector's", async () => {
+  // A catalog to pick from: the recorded card table, not a fixture list.
+  // Earlier tests raised collectors before any card existed, so the
+  // first fleet read below deals those a face; the picks here come from
+  // what that leaves free.
+  await db.query(
+    `insert into card (card_id, name, kind, rarity, elixir_cost, icon_urls) values
+       (26000000, 'Knight', 'card', 'common', 3, '{"medium":"https://cdn/knight.png"}'),
+       (26000001, 'Archers', 'card', 'common', 3, '{"medium":"https://cdn/archers.png"}'),
+       (26000002, 'Goblins', 'card', 'common', 2, '{"medium":"https://cdn/goblins.png"}'),
+       (26000003, 'Giant', 'card', 'rare', 5, '{"medium":"https://cdn/giant.png"}'),
+       (26000004, 'P.E.K.K.A', 'card', 'epic', 7, '{"medium":"https://cdn/pekka.png"}'),
+       (26000005, 'Minions', 'card', 'common', 3, '{"medium":"https://cdn/minions.png"}'),
+       (26000006, 'Balloon', 'card', 'epic', 5, '{"medium":"https://cdn/balloon.png"}'),
+       (26000007, 'Witch', 'card', 'epic', 5, '{"medium":"https://cdn/witch.png"}'),
+       (26000008, 'Barbarians', 'card', 'common', 5, '{"medium":"https://cdn/barbs.png"}'),
+       (26000009, 'Golem', 'card', 'epic', 8, '{"medium":"https://cdn/golem.png"}'),
+       (26000063, 'Mega Knight', 'card', 'legendary', 7, '{"medium":"https://cdn/mk.png"}'),
+       (159000000, 'Tower Princess', 'support', 'common', null, '{}')
+     on conflict (card_id) do nothing`,
+  );
+  const PICKER = "picker@example.com";
+  await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')`,
+    [emailHash(PICKER)],
+  );
+  const cookie = await signIn(PICKER, "203.0.113.41");
+  await handler(
+    event({
+      method: "GET",
+      path: "/api/gateways/ladder",
+      cookie,
+      body: undefined,
+    }),
+  );
+
+  // The catalog says what is free. Mega Knight is held by the basement
+  // iMac from the test above; tower troops are not a face.
+  const catalog = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/gateways/cards",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const byName = Object.fromEntries(catalog.cards.map((c) => [c.name, c]));
+  assert.equal(byName["Mega Knight"].taken, true);
+  assert.ok(!byName["Tower Princess"], "support cards are not pickable");
+  const free = catalog.cards.filter((c) => !c.taken).map((c) => c.name);
+  assert.ok(free.length >= 3, `enough free cards to pick from: ${free}`);
+  const [first, secondCard, third] = free;
+
+  // A held card is refused with a reason the form can show.
+  const held = await handler(
+    event({
+      path: "/api/gateways",
+      cookie,
+      body: { name: "picker-one", card: "Mega Knight" },
+    }),
+  );
+  assert.equal(held.statusCode, 409);
+  assert.equal(parse(held).error, "card_taken");
+  const unknown = await handler(
+    event({
+      path: "/api/gateways",
+      cookie,
+      body: { name: "picker-one", card: "Pekka Prime" },
+    }),
+  );
+  assert.equal(unknown.statusCode, 400);
+  assert.equal(parse(unknown).error, "unknown_card");
+
+  // The pick lands, case-insensitively, and shows on the operator's own
+  // list from the start rather than after a fleet read dealt one.
+  const raise = parse(
+    await handler(
+      event({
+        path: "/api/gateways",
+        cookie,
+        body: { name: "picker-one", card: first.toLowerCase() },
+      }),
+    ),
+  );
+  assert.equal(raise.status, "pending");
+  assert.equal(raise.card, first);
+  const mine = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/gateways",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  const g = mine.gateways.find((x) => x.name === "picker-one");
+  assert.equal(g.card_name, first);
+  assert.equal(g.card_icon, byName[first].icon);
+
+  // A second collector from the same account is fine - raising is the
+  // only way one comes to exist and there is no cap - but not on the
+  // same card.
+  const twin = await handler(
+    event({
+      path: "/api/gateways",
+      cookie,
+      body: { name: "picker-two", card: first },
+    }),
+  );
+  assert.equal(twin.statusCode, 409);
+  const second = parse(
+    await handler(
+      event({
+        path: "/api/gateways",
+        cookie,
+        body: { name: "picker-two", card: secondCard },
+      }),
+    ),
+  );
+  assert.equal(second.card, secondCard, JSON.stringify(second));
+
+  // Re-picking your own collector's card: to a free one yes, to a held
+  // one no, and only your own.
+  const swap = await handler(
+    event({
+      path: "/api/me/gateway-card",
+      cookie,
+      body: { id: raise.gateway_id, card: "Mega Knight" },
+    }),
+  );
+  assert.equal(swap.statusCode, 409);
+  const same = await handler(
+    event({
+      path: "/api/me/gateway-card",
+      cookie,
+      body: { id: raise.gateway_id, card: first },
+    }),
+  );
+  assert.equal(same.statusCode, 200, "your own current card is a no-op");
+  // Revoking the twin frees its card for the first.
+  await db.query(
+    `update gateway set status = 'revoked' where name = 'picker-two'`,
+  );
+  const moved = parse(
+    await handler(
+      event({
+        path: "/api/me/gateway-card",
+        cookie,
+        body: { id: raise.gateway_id, card: secondCard },
+      }),
+    ),
+  );
+  assert.equal(moved.card, secondCard, JSON.stringify(moved));
+  const notMine = await handler(
+    event({
+      path: "/api/me/gateway-card",
+      cookie: memberCookie,
+      body: { id: raise.gateway_id, card: third },
+    }),
+  );
+  assert.equal(
+    notMine.statusCode,
+    404,
+    "somebody else's collector is not yours to re-face",
+  );
+
+  // The lazy deal only hands out FREE cards, so no two live collectors
+  // ever share a face.
+  await db.query(
+    `insert into gateway (owner_account_id, name, status)
+     select account_id, 'picker-blank', 'pending' from account where email_hash = $1`,
+    [emailHash(PICKER)],
+  );
+  await handler(
+    event({
+      method: "GET",
+      path: "/api/gateways/ladder",
+      cookie,
+      body: undefined,
+    }),
+  );
+  const { rows: dupes } = await db.query(
+    `select card_name, count(*) from gateway
+     where status <> 'revoked' group by 1 having count(*) > 1`,
+  );
+  assert.deepEqual(dupes, [], "no live card is shared, and none is null");
+});
