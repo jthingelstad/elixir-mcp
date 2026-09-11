@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-11",
+    title: "Collectors take turns instead of arriving together",
+    body: "Told the same fifteen seconds from the same empty queue, every collector in the fleet came back on the same second and hit the door as a pack after each scheduler tick. The door now gives each active collector its own slot in the idle cycle, evenly spaced across the fleet and measured against the clock rather than against the last call: five collectors check in one every three seconds, a collector that just drained a burst of work falls straight back into its own slot, and a machine joining or leaving re-spaces the rest within a cycle. Nothing to update on a collector - it already sleeps exactly what the door says.",
+  },
+  {
+    date: "2026-09-11",
     title: "Your collector wears the card you pick",
     body: "Running a collector is a favour, so the favour gets to choose its face: when you raise your hand at Status > Collectors you now pick the Clash Royale card your collector is named for, and a collector you already run can change its card from its own page. A card belongs to one collector - a taken one is shown dimmed, and the record refuses a double pick even when two operators reach for it at once. The form no longer hides once you run one: raising a hand is the only way a collector comes to exist, it is always yours, and you can raise as many machines as you run.",
   },

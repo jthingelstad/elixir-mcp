@@ -100,7 +100,10 @@ const CONFIG = {
   // Check-ins, not polling (2026-09-11): the door answers at once and
   // says when to come back. 0 while work remains for the collector,
   // idle_s when the queue is empty - which is also the worst-case
-  // pickup delay of a live: true fetch (review §9.1, §10.4).
+  // pickup delay of a live: true fetch (review §9.1, §10.4). The idle
+  // answer is PHASED per collector (phasedCheckIn), never the bare
+  // constant: told "15 s" from the same empty queue, five collectors
+  // arrived together after every scheduler tick.
   check_in: { idle_s: 15, capped_s: 5 },
   // A failed ingestion must not make the collector abandon a valid lease
   // immediately. Keep this bounded below the 90-second lease TTL: clients
@@ -114,6 +117,57 @@ const CONFIG = {
 
 /** Compatibility ceiling for a wait_s from a pre-check-in client. */
 const LEGACY_WAIT_MAX_S = 2;
+
+/** A collector heard from this recently holds a slot in the idle cycle.
+ *  Matches the collectors' own watchdog: five minutes with no door
+ *  contact and a collector exits, so one silent that long is not in the
+ *  fleet either. */
+const FLEET_WINDOW = "5 minutes";
+
+/**
+ * Seconds until this collector's next idle slot on the wall clock.
+ *
+ * Every active collector owns a fixed phase in the idle cycle, evenly
+ * spaced by its rank in the fleet (N collectors, idle_s seconds: one
+ * check-in every idle_s / N). The answer is the distance from now to
+ * that phase - a property of the fleet and the clock, not of when the
+ * caller last called - so collectors that arrive together are spread
+ * within one cycle and stay spread, a collector that drained a burst of
+ * work falls straight back into its own slot, and the fleet changing
+ * size re-spaces everyone by the next cycle. Integer seconds because the
+ * Go client parses next_check_in_s into an int; never 0 (that means
+ * "come straight back"), so a caller sitting on its own slot is told
+ * a full cycle.
+ */
+export function phasedCheckIn({ rank, fleet, idleS, nowMs }) {
+  const slot = Math.floor((rank * idleS) / Math.max(fleet, 1));
+  const nowS = Math.floor(nowMs / 1000);
+  const wait = (((slot - nowS) % idleS) + idleS) % idleS;
+  return wait === 0 ? idleS : wait;
+}
+
+async function idleCheckIn(db, gatewayId, nowMs) {
+  // The caller is always in this list: authGateway just stamped its
+  // heartbeat. uuid order is arbitrary but stable, which is all a rank
+  // needs.
+  const { rows } = await db.query(
+    `select gateway_id from gateway
+      where status in ('probation', 'active')
+        and last_heartbeat_at > now() - $1::interval
+      order by gateway_id`,
+    [FLEET_WINDOW],
+  );
+  const rank = Math.max(
+    rows.findIndex((r) => r.gateway_id === gatewayId),
+    0,
+  );
+  return phasedCheckIn({
+    rank,
+    fleet: rows.length,
+    idleS: CONFIG.check_in.idle_s,
+    nowMs,
+  });
+}
 
 // The transport bound on the COMPRESSED body (base64 chars). ONE number,
 // the same one the door serves to collectors, because on 2026-09-11 there
@@ -268,6 +322,7 @@ async function leaseUnderCap(db, gatewayId, lanes) {
 export function makeCollectorDoor({
   ingest, // async (db, resultEnvelope) -> pipeline outcome (0040 inline)
   notifyOwner = async () => {},
+  now = () => Date.now(), // the idle cycle's clock; injected by tests
 }) {
   return {
     async config(db, event) {
@@ -379,7 +434,10 @@ export function makeCollectorDoor({
       if (!job)
         return {
           status: 200,
-          body: { empty: true, next_check_in_s: CONFIG.check_in.idle_s },
+          body: {
+            empty: true,
+            next_check_in_s: await idleCheckIn(db, gw.gateway_id, now()),
+          },
         };
       const crPath = crPathForJob(job);
       if (!crPath) {

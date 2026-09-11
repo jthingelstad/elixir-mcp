@@ -96,8 +96,10 @@ per-collector token:
 - **`POST /api/collector/lease`** — a check-in (2026-09-11: never a
   long-poll). Answers at once with `{job, cr_path, lease, filter?,
   next_check_in_s}` or `{empty: true, next_check_in_s}`; the collector
-  sleeps exactly that long. Live jobs are served first to whichever
-  collector checks in.
+  sleeps exactly that long. The idle answer is phased per collector
+  (its own slot in the 15 s cycle, evenly spaced across the active
+  fleet), so collectors never converge on the same second. Live jobs
+  are served first to whichever collector checks in.
   **`cr_path` is computed by the server** — the client never learns
   endpoint→path mapping, so new CR endpoints and collection changes
   ship with zero client changes. `lease` is the opaque SQS receipt

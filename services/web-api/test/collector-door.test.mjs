@@ -9,6 +9,7 @@ import {
   makeCollectorDoor,
   parseClientVersion,
   clientMeetsMinimum,
+  phasedCheckIn,
 } from "../src/collector-door.mjs";
 import {
   enqueueJob,
@@ -32,6 +33,8 @@ const TOKEN_ABANDON_OWNER = "emcg_abandon_owner_settles_token";
 
 let db;
 let door;
+// The door's idle-cycle clock, frozen so phase assertions are exact.
+let clockMs = Date.now();
 const notices = [];
 const ingested = [];
 
@@ -89,6 +92,7 @@ before(async () => {
       return { outcome: "admitted" };
     },
     notifyOwner: async (n) => notices.push(n),
+    now: () => clockMs,
   });
 });
 
@@ -177,12 +181,58 @@ test("ledger: enqueue dedups per subject and live upgrades bulk", async () => {
   await db.query(`delete from job`);
 });
 
+test("phasedCheckIn: each collector owns an evenly spaced slot on the wall clock", () => {
+  const idleS = 15;
+  const fleet = 5;
+  const nowMs = 1_000 * (15 * 4_000 + 4); // four seconds into a cycle
+  const waits = Array.from({ length: fleet }, (_, rank) =>
+    phasedCheckIn({ rank, fleet, idleS, nowMs }),
+  );
+  const phases = waits.map((w) => (4 + w) % idleS);
+  assert.deepEqual(phases, [0, 3, 6, 9, 12], "one slot every idle_s / N");
+  for (const w of waits) assert.ok(w >= 1 && w <= idleS, `1..idle_s: ${w}`);
+  // Sitting on its own slot, a collector is told a full cycle, never 0.
+  assert.equal(phasedCheckIn({ rank: 0, fleet, idleS, nowMs: 0 }), idleS);
+  // A fleet of one still idles a whole cycle.
+  assert.equal(phasedCheckIn({ rank: 0, fleet: 1, idleS, nowMs }), 11);
+  // The phase is the fleet's, not the caller's: asked again at any
+  // other instant the same collector lands on the same second.
+  for (const tick of [0, 1, 7, 14, 29, 61]) {
+    const w = phasedCheckIn({ rank: 2, fleet, idleS, nowMs: 1_000 * tick });
+    assert.equal((tick + w) % idleS, 6);
+  }
+});
+
 test("lease: every collector serves the live lane first; the server computes cr_path and says when to come back", async () => {
-  // Check-ins, not polling (2026-09-11): an empty answer says come back in
-  // idle_s; a granted job says come straight back; there is no live channel.
+  // Check-ins, not polling (2026-09-11): an empty answer says come back
+  // at the caller's own slot in the idle cycle (1..idle_s, phased per
+  // collector so a fleet never arrives together); a granted job says
+  // come straight back; there is no live channel.
+  // Both collectors have to be in the fleet (heard from inside the
+  // window) before their slots are comparable; a first contact grows
+  // the fleet and re-spaces everyone on their next check-in.
+  await door.lease(db, authed(TOKEN_LIVE), {});
   const idle = await door.lease(db, authed(TOKEN_BULK), {});
   assert.equal(idle.body.empty, true);
-  assert.equal(idle.body.next_check_in_s, 15, "idle: the check-in interval");
+  assert.ok(
+    idle.body.next_check_in_s >= 1 && idle.body.next_check_in_s <= 15,
+    `idle: within the check-in cycle, got ${idle.body.next_check_in_s}`,
+  );
+  const nowS = Math.floor(clockMs / 1000);
+  const phase = (nowS + idle.body.next_check_in_s) % 15;
+  const other = await door.lease(db, authed(TOKEN_LIVE), {});
+  assert.notEqual(
+    (nowS + other.body.next_check_in_s) % 15,
+    phase,
+    "two collectors asked at the same instant get different slots",
+  );
+  clockMs += 7_000;
+  const again = await door.lease(db, authed(TOKEN_BULK), {});
+  assert.equal(
+    (Math.floor(clockMs / 1000) + again.body.next_check_in_s) % 15,
+    phase,
+    "seven seconds later the same collector is steered to the same slot",
+  );
 
   await enqueueJob(db, { ...JOB, entity_key: "#2YG98VVQ", lane: "bulk" });
   await enqueueJob(db, { ...JOB, lane: "live" });

@@ -105,7 +105,10 @@ at a cabin. What makes the fleet interesting:
   impossible and collection changes never require a client update.
 - **Check-ins, not polling.** A collector asks the door for work and is
   told when to come back (`next_check_in_s`: at once while work remains,
-  fifteen seconds when the queue is empty). The door never holds a
+  otherwise the seconds until that collector's own slot in a fifteen-second
+  idle cycle). Every active collector owns an evenly spaced slot, so a
+  fleet of five idles at one check-in every three seconds instead of all
+  five arriving together after each scheduler tick. The door never holds a
   connection open. Every collector serves priority work first, so a
   `live: true` fetch is picked up by whichever machine checks in next;
   there is no separate live channel.

@@ -180,8 +180,12 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
 - Gateways gzip every response body; a post-compression overflow is rejected
   loudly, because it means the CR response shape changed and that wants a human.
 - **Collectors check in; the door never waits.** `/lease` answers at once
-  with a job or `empty` and `next_check_in_s` (0 while work remains, the
-  idle interval otherwise); every collector serves the live lane first.
+  with a job or `empty` and `next_check_in_s` (0 while work remains; when
+  idle, the seconds to the caller's own slot in the 15 s cycle - slots are
+  evenly spaced by rank among collectors heard from in the last 5 minutes,
+  computed against the wall clock, so a fleet of N idles one check-in
+  every 15/N s and never arrives together after a scheduler tick;
+  `phasedCheckIn` in the door); every collector serves the live lane first.
   There is no live channel and no long-poll: the old 500 ms re-check loop
   was ~350k transactions a day and most of the web-api Lambda bill. Ledger
   settlement runs on the scheduler tick, not per call.
