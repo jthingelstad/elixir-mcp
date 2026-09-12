@@ -47,6 +47,8 @@ export function makeHandler({
   capture = null,
   /** Where the per-call EMF line goes; null = no metrics. */
   emitMetrics = null,
+  /** The site session secret, for consent by session (oauth-routes.mjs). */
+  sessionSecret = null,
 }) {
   // Transport-level refusals - a rate limit, a database that will not
   // connect - are answered with the SAME envelope a tool refusal uses.
@@ -92,7 +94,7 @@ export function makeHandler({
 
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
-  const oauth = makeOauthRoutes({ issuer, sendLoginEmail });
+  const oauth = makeOauthRoutes({ issuer, sendLoginEmail, sessionSecret });
   // The personal resource's metadata document. Agent and integration doors
   // point at their own path-suffixed one, built per request below, so a client
   // 401'd at an agent URL discovers THAT resource rather than this one.

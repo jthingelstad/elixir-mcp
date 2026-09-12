@@ -15,6 +15,10 @@ export const handler = makeHandler({
   // live-channel collectors lease them at the door.
   enqueueLiveJob: (db, job) => enqueueJob(db, job),
   originSecret: process.env.ORIGIN_SECRET || null,
+  // The site's session secret: /oauth/authorize honours a signed-in
+  // browser and signs a consenting one in (0083). The only door route
+  // CloudFront forwards the cookie to.
+  sessionSecret: process.env.SESSION_SECRET || null,
   // Call capture (review Part 5): on when ARCHIVE_BUCKET is set, off
   // otherwise. The bodies land beside the payload archive under calls/.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),

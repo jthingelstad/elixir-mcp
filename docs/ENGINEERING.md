@@ -239,7 +239,9 @@ agreement and protocol serialization tests alongside endpoint-specific tests.
 
 The public [integration guide](../apps/site/src/docs/integrations.md) and
 `packages/contracts/integration-api.openapi.json` define `/api/v1`. The API runs
-in web-api behind a no-cookie CloudFront behavior. `service_token.audience`
+in web-api behind a no-cookie CloudFront behavior. (The only door route that
+sees the session cookie is `/oauth/authorize`, the consent page, on its own
+behavior since 0083; it resolves the site session with the same secret.) `service_token.audience`
 separates REST and MCP credentials, and `integration` holds permissions and
 capacity independently of the sponsoring person. Admin management lives in
 `services/web-api/src/routes/integrations.mjs`; personal principal routes cannot

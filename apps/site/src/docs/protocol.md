@@ -38,7 +38,11 @@ on [Reading a response](/docs/responses).
 
 ## Authentication
 
-Bearer only. Cookies never reach the door.
+Bearer only. Cookies never reach the door: `/mcp`, the principal doors,
+`/oauth/token` and the discovery documents are served behind a CloudFront
+behavior that forwards none. The one exception is the consent page itself,
+`/oauth/authorize`, which is a browser page and honours the site session
+(below).
 
 | Credential | Shape | Where it works |
 |---|---|---|
@@ -153,6 +157,16 @@ this flow), then enters the code beside a list of the capabilities the client
 asked for. Success redirects with HTTP 303 to `redirect_uri` carrying `code`,
 `state` (if given) and `iss`. Authorization codes are `eac_…`, single use, 300
 seconds.
+
+A browser already signed in to elixir.poapkings.com skips the email and the
+code: the page says who it is signed in as, lists the same capabilities, and
+one **Authorize** completes the consent. `switch=1` on the authorize URL
+forces the email step (a shared browser). A client that asks for
+`account:email` from an account with no address on file is sent the code way
+regardless, because that is where the address is recorded. Consent by code
+signs the browser in to the site as well, so the next consent, and the
+console, do not ask again. Nothing about the grant differs between the two
+paths.
 
 For an agent door (`/a/<public_id>/mcp`), only the agent's owner may consent,
 and the resulting grant is for the agent, not the person. An agent that does

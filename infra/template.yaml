@@ -538,6 +538,10 @@ Resources:
           ELIXIR_LOSS_BOUND: half
           SCHEDULER_TICK_MINUTES: !Ref SchedulerTickMinutes
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
+          # Consent honours the site session and mints one (0083). Same
+          # secret as the site API, so a cookie either origin set resolves
+          # at the other.
+          SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
 
   SchedulerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -925,6 +929,8 @@ Resources:
         SigningProtocol: sigv4
 
   # Cookies and the contract header flow to the site API; caching off.
+  # user-agent is forwarded for the Profile page's device list (a short
+  # label is derived from it; the string itself is never stored).
   SiteApiOriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
     Properties:
@@ -939,6 +945,31 @@ Resources:
               content-type,
               authorization,
               x-collector-version,
+              user-agent,
+              cloudfront-viewer-address,
+              cloudfront-viewer-country,
+            ]
+        QueryStringsConfig: { QueryStringBehavior: all }
+
+  # The ONE door route that sees the session cookie: the consent page.
+  # A person signed in to the site consents without a code, and a person
+  # who consents by code is signed in to the site (0083). Only that
+  # cookie, and only on /oauth/authorize; /mcp, /oauth/token and every
+  # other door route keep the no-cookie policy below.
+  OauthAuthorizeOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: elixir-mcp-oauth-authorize
+        CookiesConfig:
+          CookieBehavior: whitelist
+          Cookies: [__Host-elixir_session]
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers:
+            [
+              content-type,
+              user-agent,
               cloudfront-viewer-address,
               cloudfront-viewer-country,
             ]
@@ -1186,6 +1217,17 @@ Resources:
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          # Listed before /oauth/*: CloudFront takes the first pattern
+          # that matches. GET and POST both carry the cookie (the consent
+          # form posts back here); SameSite=Lax keeps a cross-site POST
+          # from carrying it.
+          - PathPattern: /oauth/authorize
+            TargetOriginId: mcpapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            OriginRequestPolicyId: !Ref OauthAuthorizeOriginRequestPolicy
           - PathPattern: /oauth/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only

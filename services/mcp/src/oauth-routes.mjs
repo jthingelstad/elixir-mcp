@@ -8,6 +8,15 @@
  * and denied emails: "if your account is approved, a code is on its way"
  * (never an email oracle).
  *
+ * Since 2026-09-12 the site session counts here too. /oauth/authorize is
+ * the ONE door route CloudFront forwards the session cookie to (its own
+ * behavior in infra/template.yaml; /mcp, /oauth/token and the rest stay
+ * cookie-free): a person signed in to elixir.poapkings.com is shown the
+ * consent page with no code to fetch, and a person who consents by code
+ * is signed in to the site on the way out. Every consent used to cost a
+ * trip to the inbox, whoever you were; connecting the family's own
+ * products (Elixir Clan, Elixir Drop) made that a daily tax.
+ *
  * CSP on these pages keeps form-action https: — 'self' alone silently
  * blocks the consent redirect in Chromium (librarian's shipped trap).
  */
@@ -39,6 +48,12 @@ import {
   redeemRefreshToken,
   validateAccessToken,
   OAUTH_SCOPES,
+  resolveSession,
+  createSession,
+  readSessionCookie,
+  sessionCookie,
+  sessionSeenFrom,
+  ABSOLUTE_CAP_DAYS,
 } from "@elixir-mcp/auth";
 import {
   OAUTH_SCOPE,
@@ -300,7 +315,12 @@ async function validatedAuthRequest(db, q, targetFor) {
   };
 }
 
-export function makeOauthRoutes({ issuer, sendLoginEmail }) {
+export function makeOauthRoutes({
+  issuer,
+  sendLoginEmail,
+  /** The site session secret. Unset = consent knows nothing of sessions. */
+  sessionSecret = null,
+}) {
   /** The three legal audiences: the personal door and one per principal. */
   const targetFor = (value) => {
     const canonical = canonicalResource(value);
@@ -308,6 +328,143 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
     if (!canonical.startsWith(issuer)) return null;
     return resourceForPath(canonical.slice(issuer.length), issuer);
   };
+
+  /**
+   * The person the browser is signed in as, or null. The row's own gate
+   * applies (approved, unrevoked, unexpired), and the address on file
+   * comes along so the page can say who, and so a client asking for
+   * account:email can be refused this shortcut when there is none to
+   * give (the code path records one).
+   */
+  async function signedIn(db, event) {
+    if (!sessionSecret) return null;
+    const token = readSessionCookie(event);
+    if (!token) return null;
+    const session = await resolveSession(db, {
+      secret: sessionSecret,
+      token,
+      seen: sessionSeenFrom(event),
+    });
+    if (!session) return null;
+    const { rows } = await db.query(
+      `select account_id, email, newsletter_opt_in from account where account_id = $1`,
+      [session.accountId],
+    );
+    return rows[0]
+      ? {
+          ...rows[0],
+          email_hash: session.emailHash,
+          sessionId: session.sessionId,
+        }
+      : null;
+  }
+
+  /** The email step's page, shared by the GET and by a session that lapsed. */
+  const emailStepPage = (q, clientName, lead = "") =>
+    page(
+      "Connect to Elixir MCP",
+      `<h1>Connect ${esc(clientName)}</h1>
+       ${lead}
+       <p>Enter the email on your approved Elixir MCP account and we&rsquo;ll send a sign-in code.</p>
+       <form method="post" action="/oauth/authorize">
+         <input type="hidden" name="step" value="email">${hiddenAuthFields(q)}
+         <input type="email" name="email" placeholder="you@example.com" required autofocus>
+         <button>Send code</button>
+       </form>`,
+    );
+
+  /** What the client will be able to do, worded for the target's kind. */
+  const capabilitiesBlock = (v, verb) =>
+    v.target.kind === "person"
+      ? `<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${consentCapabilities(v.scope)}`
+      : `<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
+         <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
+         ${consentCapabilities(v.scope)}`;
+
+  /**
+   * The consent act itself, once the person is known: the principal
+   * check, the widening checkboxes, the auth code, the redirect. The
+   * same whether the person proved themselves with a code just now or
+   * was already signed in; only the log line names which.
+   */
+  async function completeConsent(
+    db,
+    event,
+    { v, account, hash, boundScope, how },
+  ) {
+    // The person proved who they are. If the audience names a principal,
+    // the grant belongs to THAT account -- so every token minted from this
+    // code carries the agent's identity, budget and tool surface, and the
+    // person's own data is not reachable through it at all.
+    const owned = await principalForTarget(db, v.target);
+    if (
+      !owned.ok ||
+      (owned.principal &&
+        owned.principal.owned_by_account_id !== account.account_id)
+    ) {
+      authLog("oauth_principal_refused", {
+        email: emailRef(hash),
+        resource: v.resource,
+        kind: v.target.kind,
+      });
+      return html(
+        403,
+        page(
+          "Elixir MCP",
+          `<h1>Not yours to connect</h1><p>That agent or integration is not one you own.</p>`,
+        ),
+      );
+    }
+
+    // The human is the only party who can widen a grant, and only to
+    // capabilities this server defines. The base is the scope BOUND at
+    // the email step (or shown on the signed-in page), never a re-posted
+    // ?scope=, so nothing can move the grant behind the checkboxes.
+    // ...and only to a STANDARD capability: account:email is never
+    // widened into, whatever the form posts.
+    const added = formValues(event, "grant").filter(
+      (value) =>
+        STANDARD_OAUTH_SCOPES.includes(value) && !boundScope.includes(value),
+    );
+    const grantedScope = normalizeScope([boundScope, ...added].join(" "));
+    if (added.length > 0)
+      authLog("oauth_scope_widened", {
+        email: emailRef(hash),
+        request: requestRef(v.codeChallenge),
+        client: v.client.clientName,
+        requested: boundScope,
+        added: added.join(" "),
+      });
+    const code = await createAuthCode(db, {
+      clientId: v.client.clientId,
+      accountId: owned.principal?.account_id ?? account.account_id,
+      redirectUri: v.redirectUri,
+      scope: grantedScope,
+      resource: v.resource,
+      codeChallenge: v.codeChallenge,
+    });
+    const url = new URL(v.redirectUri);
+    url.searchParams.set("code", code);
+    if (v.state) url.searchParams.set("state", v.state);
+    url.searchParams.set("iss", issuer); // RFC 9207
+    const headers = { location: url.toString(), "cache-control": "no-store" };
+    // Consent by code IS a sign-in, so the site gets its session here
+    // too: the next consent, and the console, will not ask again.
+    if (how === "code" && sessionSecret) {
+      const minted = await createSession(db, {
+        secret: sessionSecret,
+        accountId: account.account_id,
+        emailHash: hash,
+        seen: sessionSeenFrom(event),
+      });
+      headers["set-cookie"] = sessionCookie(
+        minted.token,
+        ABSOLUTE_CAP_DAYS * 24 * 3600,
+      );
+    }
+    return { statusCode: 303, headers, body: "" };
+  }
+
   return {
     async register(db, event) {
       const ip = event.requestContext?.http?.sourceIp ?? "unknown";
@@ -357,19 +514,37 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
           ),
         );
-      return html(
-        200,
-        page(
-          "Connect to Elixir MCP",
-          `<h1>Connect ${esc(v.client.clientName)}</h1>
-           <p>Enter the email on your approved Elixir MCP account and we&rsquo;ll send a sign-in code.</p>
-           <form method="post" action="/oauth/authorize">
-             <input type="hidden" name="step" value="email">${hiddenAuthFields(q)}
-             <input type="email" name="email" placeholder="you@example.com" required autofocus>
-             <button>Send code</button>
-           </form>`,
-        ),
-      );
+      // Signed in to the site already? Then this is a consent page, not
+      // a sign-in page. ?switch=1 is the way out for a shared browser.
+      // A client that wants the address (account:email) from an account
+      // that has none on file still goes the code way: that is where
+      // the address gets recorded.
+      const me = q.switch ? null : await signedIn(db, event);
+      if (me && !(v.scope.includes(OAUTH_SCOPE.ACCOUNT_EMAIL) && !me.email)) {
+        authLog("oauth_consent_from_session", {
+          email: emailRef(me.email_hash),
+          request: requestRef(v.codeChallenge),
+          client: v.client.clientName,
+          resource: v.resource,
+          kind: v.target.kind,
+        });
+        const switchUrl = `/oauth/authorize?${new URLSearchParams({ ...q, switch: "1" })}`;
+        return html(
+          200,
+          page(
+            "Connect to Elixir MCP",
+            `<h1>Connect ${esc(v.client.clientName)}</h1>
+             <p>You are signed in to Elixir${me.email ? ` as <strong>${esc(me.email)}</strong>` : ""}.</p>
+             ${capabilitiesBlock(v, "Authorizing")}
+             <form method="post" action="/oauth/authorize">
+               <input type="hidden" name="step" value="session">${hiddenAuthFields(q)}
+               <button>Authorize</button>
+             </form>
+             <p><a href="${esc(switchUrl)}">Not you? Sign in with a code instead.</a></p>`,
+          ),
+        );
+      }
+      return html(200, emailStepPage(q, v.client.clientName));
     },
 
     async authorizePost(db, event) {
@@ -383,8 +558,38 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
           ),
         );
-      const hash = emailHash(form.email);
       const ip = event.requestContext?.http?.sourceIp ?? "unknown";
+
+      if (form.step === "session") {
+        // SameSite=Lax means a cross-site POST arrives without the cookie,
+        // so a session here is a same-site consent from our own page.
+        const me = await signedIn(db, event);
+        if (!me)
+          return html(
+            200,
+            emailStepPage(
+              form,
+              v.client.clientName,
+              "<p>Your Elixir sign-in has ended; sign in with a code to continue.</p>",
+            ),
+          );
+        authLog("oauth_session_accepted", {
+          email: emailRef(me.email_hash),
+          request: requestRef(v.codeChallenge),
+          client: v.client.clientName,
+          resource: v.resource,
+          kind: v.target.kind,
+        });
+        return completeConsent(db, event, {
+          v,
+          account: me,
+          hash: me.email_hash,
+          boundScope: v.scope,
+          how: "session",
+        });
+      }
+
+      const hash = emailHash(form.email);
 
       if (form.step === "email") {
         const allowed = await checkRateLimit(db, {
@@ -427,13 +632,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
             "Enter your code",
             `<h1>Check your email</h1>
              <p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>
-             ${
-               v.target.kind === "person"
-                 ? `<p><strong>Entering it authorizes ${esc(v.client.clientName)} to:</strong></p>${consentCapabilities(v.scope)}`
-                 : `<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
-                    <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
-                    ${consentCapabilities(v.scope)}`
-             }
+             ${capabilitiesBlock(v, "Entering it")}
              <form method="post" action="/oauth/authorize">
                <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
                <input type="hidden" name="email" value="${esc(form.email)}">
@@ -555,66 +754,13 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
            where account_id = $1 and email is distinct from $2`,
           [account.account_id, String(form.email).trim().toLowerCase()],
         );
-        // The person proved who they are. If the audience names a principal,
-        // the grant belongs to THAT account -- so every token minted from this
-        // code carries the agent's identity, budget and tool surface, and the
-        // person's own data is not reachable through it at all.
-        const owned = await principalForTarget(db, v.target);
-        if (
-          !owned.ok ||
-          (owned.principal &&
-            owned.principal.owned_by_account_id !== account.account_id)
-        ) {
-          authLog("oauth_principal_refused", {
-            email: emailRef(hash),
-            resource: v.resource,
-            kind: v.target.kind,
-          });
-          return html(
-            403,
-            page(
-              "Elixir MCP",
-              `<h1>Not yours to connect</h1><p>That agent or integration is not one you own.</p>`,
-            ),
-          );
-        }
-
-        // The human is the only party who can widen a grant, and only to
-        // capabilities this server defines. The base is the scope BOUND at
-        // the email step, never this form's, so a re-posted ?scope= cannot
-        // move the grant behind the checkboxes.
-        // ...and only to a STANDARD capability: account:email is never
-        // widened into, whatever the form posts.
-        const added = formValues(event, "grant").filter(
-          (value) =>
-            STANDARD_OAUTH_SCOPES.includes(value) && !ctx.scope.includes(value),
-        );
-        const grantedScope = normalizeScope([ctx.scope, ...added].join(" "));
-        if (added.length > 0)
-          authLog("oauth_scope_widened", {
-            email: emailRef(hash),
-            request: requestRef(v.codeChallenge),
-            client: v.client.clientName,
-            requested: ctx.scope,
-            added: added.join(" "),
-          });
-        const code = await createAuthCode(db, {
-          clientId: v.client.clientId,
-          accountId: owned.principal?.account_id ?? account.account_id,
-          redirectUri: v.redirectUri,
-          scope: grantedScope,
-          resource: ctx.resource,
-          codeChallenge: v.codeChallenge,
+        return completeConsent(db, event, {
+          v,
+          account,
+          hash,
+          boundScope: ctx.scope,
+          how: "code",
         });
-        const url = new URL(v.redirectUri);
-        url.searchParams.set("code", code);
-        if (v.state) url.searchParams.set("state", v.state);
-        url.searchParams.set("iss", issuer); // RFC 9207
-        return {
-          statusCode: 303,
-          headers: { location: url.toString(), "cache-control": "no-store" },
-          body: "",
-        };
       }
       return html(400, page("Elixir MCP", "<h1>Bad request</h1>"));
     },
