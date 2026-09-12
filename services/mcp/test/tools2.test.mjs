@@ -666,11 +666,7 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
   assert.equal(row.shipped_in, "0.16.0");
   assert.deepEqual(row.related_tools, ["elixir_changelog"]);
   const after2 = await call("players_summary", {});
-  assert.equal(
-    after2.body.meta.feedback_responses_pending,
-    undefined,
-    "hint clears once responses are read",
-  );
+  assert.equal(after2.body.meta.feedback_responses_pending, 0);
 });
 
 test("push lane: implicit subscriptions feed elixir_events; cursor advances; meta hints", async () => {
@@ -707,7 +703,7 @@ test("push lane: implicit subscriptions feed elixir_events; cursor advances; met
   const after = await call("elixir_events", {});
   assert.equal(after.body.events.length, 0);
   const perf2 = await call("players_summary", { player_tag: OBSERVER });
-  assert.equal(perf2.body.meta.events_pending, undefined);
+  assert.equal(perf2.body.meta.events_pending, 0);
 
   // Explicit cursor + topic filter replays selectively.
   const replay = await call("elixir_events", {
@@ -1179,7 +1175,7 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
       [id],
     );
     await db.query(
-      "insert into battle_participant (battle_id,player_tag,side,outcome,deck_hash,deck) values ($1,$2,0,$3,'decided-test',$4)",
+      "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,deck) values ($1,$2,now(),0,$3,'decided-test',$4)",
       [
         id,
         tag,
@@ -1244,7 +1240,7 @@ test("card meta does not dilute usage with empty card arrays", async () => {
     "insert into battle (battle_id,battle_time,type,type_class) values ('meta-empty',now(),'PvP','pvp')",
   );
   await db.query(
-    "insert into battle_participant (battle_id,player_tag,side,outcome,deck) values ('meta-empty',$1,0,'win','{\"cards\":[]}')",
+    "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck) values ('meta-empty',$1,now(),0,'win','{\"cards\":[]}')",
     [tag],
   );
   const result = await call("battles_meta_cards", {

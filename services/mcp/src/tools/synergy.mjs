@@ -110,10 +110,10 @@ export const synergyTools = {
       ];
       if (seg.where) where.push(seg.where);
       params.push(win.from);
-      where.push(`b.battle_time >= $${params.length}`);
+      where.push(`${seg.timeColumn} >= $${params.length}`);
       if (win.to) {
         params.push(win.to);
-        where.push(`b.battle_time < $${params.length}`);
+        where.push(`${seg.timeColumn} < $${params.length}`);
       }
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {

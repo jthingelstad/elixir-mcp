@@ -1064,11 +1064,11 @@ export const battlesTools = {
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
       params.push(from);
-      scope.push(`b.battle_time >= $${params.length}`);
+      scope.push(`${seg.timeColumn} >= $${params.length}`);
       const to = win.to;
       if (to) {
         params.push(to);
-        scope.push(`b.battle_time < $${params.length}`);
+        scope.push(`${seg.timeColumn} < $${params.length}`);
       }
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
@@ -1208,11 +1208,11 @@ export const battlesTools = {
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
       params.push(from);
-      scope.push(`b.battle_time >= $${params.length}`);
+      scope.push(`${seg.timeColumn} >= $${params.length}`);
       const to = win.to;
       if (to) {
         params.push(to);
-        scope.push(`b.battle_time < $${params.length}`);
+        scope.push(`${seg.timeColumn} < $${params.length}`);
       }
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
@@ -1237,24 +1237,22 @@ export const battlesTools = {
            select bp.player_tag, bp.outcome,
                   (c.value->>'id')::bigint as card_id,
                   c.value->>'name' as name,
-                  coalesce((c.value->>'evolutionLevel')::int, 0) as evolution
+                  coalesce((c.value->>'evolutionLevel')::int, 0) as evolution,
+                  c.ordinality = 1 as first_card
            from battle_participant bp
            join battle b on b.battle_id = bp.battle_id
-           cross join lateral jsonb_array_elements(bp.deck->'cards') c
-           where ${where.join(" and ")}),
-         totals as (
-           select count(*)::int as decided,
-                  count(*) filter (where bp.outcome = 'win')::int as wins
-           from battle_participant bp
-           join battle b on b.battle_id = bp.battle_id
+           cross join lateral jsonb_array_elements(bp.deck->'cards')
+             with ordinality as c(value, ordinality)
            where ${where.join(" and ")})
          select s.card_id, s.name, s.evolution,
                 count(*)::int as battles,
                 count(*) filter (where s.outcome = 'win')::int as wins,
                 count(*) filter (where s.outcome = 'loss')::int as losses,
                 count(distinct s.player_tag)::int as players,
-                (select decided from totals) as total_decided,
-                (select wins from totals) as total_wins
+                (sum(count(*) filter (where s.first_card)) over ())::int
+                  as total_decided,
+                (sum(count(*) filter (where s.first_card and s.outcome = 'win'))
+                  over ())::int as total_wins
          from sides s
          group by s.card_id, s.name, s.evolution`,
         params,
@@ -1362,11 +1360,11 @@ export const battlesTools = {
       // the first row is a whole week.
       params.push(win.from);
       where.push(
-        `b.battle_time >= date_trunc('week', $${params.length}::timestamptz)`,
+        `${seg.timeColumn} >= date_trunc('week', $${params.length}::timestamptz)`,
       );
       if (win.to) {
         params.push(win.to);
-        where.push(`b.battle_time < $${params.length}`);
+        where.push(`${seg.timeColumn} < $${params.length}`);
       }
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {

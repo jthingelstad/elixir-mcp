@@ -419,10 +419,8 @@ export async function pendingHints(db, account) {
       [account.accountId],
     );
     return {
-      ...(row.fb_pending > 0
-        ? { feedback_responses_pending: row.fb_pending }
-        : {}),
-      ...(row.events_pending > 0 ? { events_pending: row.events_pending } : {}),
+      feedback_responses_pending: row.fb_pending,
+      events_pending: row.events_pending,
     };
   } catch (err) {
     console.error("pending_hints_failed", err?.message);
@@ -513,7 +511,8 @@ export function requireOrderedWindow(from, to) {
  *  tools: `args.segment` holds exactly one of player_tag / clan_tag /
  *  collection, or is absent = the whole recorded corpus (universal
  *  reads). Returns a WHERE fragment + params slice that scopes
- *  battle_participant rows to the segment's players, plus the echo. */
+ *  battle_participant rows to the segment's players, the time column
+ *  whose leading index matches that scope, plus the echo. */
 export async function segmentFilter(ctx, args, params) {
   const seg = args.segment ?? {};
   const picked = ["player_tag", "clan_tag", "collection"].filter(
@@ -538,6 +537,7 @@ export async function segmentFilter(ctx, args, params) {
     params.push(tag);
     return {
       where: `bp.player_tag = $${params.length}`,
+      timeColumn: "bp.battle_time",
       label: tag,
       echo: { kind: "player", player_tag: tag },
     };
@@ -548,6 +548,7 @@ export async function segmentFilter(ctx, args, params) {
     return {
       where: `bp.player_tag in (select cm.player_tag from clan_membership cm
                where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
+      timeColumn: "bp.battle_time",
       label: clanTag,
       echo: { kind: "clan", clan_tag: clanTag },
     };
@@ -571,11 +572,17 @@ export async function segmentFilter(ctx, args, params) {
     return {
       where: `bp.player_tag in (select m.subject_tag from collection_member m
                where m.collection_id = $${params.length})`,
+      timeColumn: "bp.battle_time",
       label: slug,
       echo: { kind: "collection", collection: slug },
     };
   }
-  return { where: null, label: "corpus", echo: { kind: "corpus" } };
+  return {
+    where: null,
+    timeColumn: "b.battle_time",
+    label: "corpus",
+    echo: { kind: "corpus" },
+  };
 }
 
 /** Empirical-Bayes shrinkage (META-INTEL): pull small samples toward
