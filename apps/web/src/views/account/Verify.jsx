@@ -171,51 +171,12 @@ export function Verify({ refresh, navigate }) {
     <div>
       <h1 className="page__title">Verify</h1>
       <p className="page__lede">
-        Prove that you control a player by setting a deck we name. Nothing to
-        install, nothing to share: we only read your public profile.
+        Prove that you control a player by playing one battle with a deck we
+        name. Nothing to install, nothing to share: we only read your public
+        battle log.
       </p>
     </div>
   );
-
-  if (challenge && challenge.state === "verified")
-    return (
-      <>
-        {header}
-        <section className="panel verify__done">
-          <div className="panel__body">
-            <VerifiedBurst
-              name={challenge.name ?? challenge.player_tag}
-              battle={challenge.last_battle}
-            />
-            <p className="verify__next">
-              You can switch your deck back now.
-              {challenge.verified_at && (
-                <span className="verify__when">
-                  {" "}
-                  Verified at {clock(challenge.verified_at)}.
-                </span>
-              )}
-            </p>
-            <div className="verify__actions">
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={() => setChallenge(null)}
-              >
-                Done
-              </button>
-              <button
-                type="button"
-                className="btn btn--quiet"
-                onClick={() => navigate?.("/account/tracking")}
-              >
-                Go to Tracking
-              </button>
-            </div>
-          </div>
-        </section>
-      </>
-    );
 
   if (challenge && challenge.state === "expired")
     return (
@@ -254,7 +215,13 @@ export function Verify({ refresh, navigate }) {
       </>
     );
 
-  if (challenge && challenge.state === "open") {
+  // Open and verified share one page: the brief and the latest battle
+  // stay put, and the unlock lands where the cards lit up (Jamie).
+  if (
+    challenge &&
+    (challenge.state === "open" || challenge.state === "verified")
+  ) {
+    const verified = challenge.state === "verified";
     const left = minutesLeft(challenge.expires_at, now);
     return (
       <>
@@ -264,7 +231,13 @@ export function Verify({ refresh, navigate }) {
             <strong>{challenge.name ?? challenge.player_tag}</strong>{" "}
             <span className="mono">{challenge.player_tag}</span>
           </p>
-          <span className="chip chip--info">{left} min left</span>
+          {verified ? (
+            <span className="chip chip--ok">
+              <Icon name="shield-check" size={14} /> Verified
+            </span>
+          ) : (
+            <span className="chip chip--info">{left} min left</span>
+          )}
         </div>
         <div className="verify__panels">
           <section className="panel">
@@ -291,7 +264,12 @@ export function Verify({ refresh, navigate }) {
                   <span className="verify__dot" aria-hidden="true" />
                 )}
                 <span>
-                  {challenge.last_battle ? (
+                  {verified ? (
+                    <>
+                      <strong>Verified</strong> · the proof:{" "}
+                      {resultLine(challenge.last_battle)}
+                    </>
+                  ) : challenge.last_battle ? (
                     <>
                       <strong>{challenge.matched}</strong> of {challenge.of} in
                       that deck · {resultLine(challenge.last_battle)}
@@ -302,31 +280,71 @@ export function Verify({ refresh, navigate }) {
                   {" · "}log read {clock(challenge.read_at)}
                 </span>
               </div>
-              <div className="verify__tick" aria-hidden="true">
-                <i key={tick} />
-              </div>
+              {!verified && (
+                <div className="verify__tick" aria-hidden="true">
+                  <i key={tick} />
+                </div>
+              )}
               <DeckGrid
                 cards={challenge.last_battle?.cards ?? null}
                 label="The deck in your latest battle"
                 dimUnmatched
               />
-              <p className="verify__hint">
-                A finished battle reaches the game's log within about a minute.
-                Keep this page open; it checks every 15 seconds, and the
-                challenge stays open for an hour.
-              </p>
+              {!verified && (
+                <p className="verify__hint">
+                  A finished battle reaches the game's log within about a
+                  minute. Keep this page open; it checks every 15 seconds, and
+                  the challenge stays open for an hour.
+                </p>
+              )}
             </div>
           </section>
         </div>
-        <div className="verify__actions">
-          <button
-            type="button"
-            className="btn btn--quiet"
-            onClick={() => setChallenge(null)}
-          >
-            Back
-          </button>
-        </div>
+        {verified ? (
+          <section className="panel verify__done">
+            <div className="panel__body">
+              <VerifiedBurst
+                name={challenge.name ?? challenge.player_tag}
+                battle={challenge.last_battle}
+              />
+              <p className="verify__next">
+                You can switch your deck back now.
+                {challenge.verified_at && (
+                  <span className="verify__when">
+                    {" "}
+                    Verified at {clock(challenge.verified_at)}.
+                  </span>
+                )}
+              </p>
+              <div className="verify__actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => setChallenge(null)}
+                >
+                  Done
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  onClick={() => navigate?.("/account/tracking")}
+                >
+                  Go to Tracking
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <div className="verify__actions">
+            <button
+              type="button"
+              className="btn btn--quiet"
+              onClick={() => setChallenge(null)}
+            >
+              Back
+            </button>
+          </div>
+        )}
       </>
     );
   }
@@ -438,6 +456,16 @@ export function Verify({ refresh, navigate }) {
 /** The unlock: cards have already flipped into place one by one; the
  *  badge lands and a burst radiates. Reduced motion gets the badge
  *  without the flight. */
+/** The API's mode names are identifiers (Showdown_Friendly,
+ *  Ranked1v1_NewArena2); make them readable without a lookup table. */
+function modeLabel(mode) {
+  if (!mode) return "";
+  return String(mode)
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .trim();
+}
+
 /** "Win 3-1 vs Name · Path of Legends · 14:03" */
 function resultLine(b) {
   if (!b) return "";
@@ -454,7 +482,7 @@ function resultLine(b) {
         : b.outcome === "draw"
           ? "Draw"
           : "Played";
-  return `${verb}${score} vs ${who}${b.mode ? ` · ${b.mode}` : ""} · ${clock(b.battle_time)}`;
+  return `${verb}${score} vs ${who}${b.mode ? ` · ${modeLabel(b.mode)}` : ""} · ${clock(b.battle_time)}`;
 }
 
 function VerifiedBurst({ name, battle }) {
@@ -470,7 +498,7 @@ function VerifiedBurst({ name, battle }) {
             aria-hidden="true"
           />
         ))}
-      <div className="verify__badge" role="status">
+      <div className="verify__badge">
         <Icon name="shield-check" size={28} />
         Verified
       </div>

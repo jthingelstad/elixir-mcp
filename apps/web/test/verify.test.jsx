@@ -236,6 +236,14 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
   expect(screen.getByRole("status").textContent).toMatch(/Verified/);
   expect(screen.getByText(/The proof: Win 3-1 vs Rival/)).toBeTruthy();
   expect(document.querySelectorAll(".verify__spark").length).toBe(12);
+  // The unlock lands on the same page: the brief and the proving battle
+  // stay, with all eight lit, and the timer is gone.
+  expect(
+    screen.getByRole("heading", { name: "Play one battle with this deck" }),
+  ).toBeTruthy();
+  const lit = screen.getByRole("list", { name: "The deck to play" });
+  expect(lit.querySelectorAll(".deck__slot--matched").length).toBe(8);
+  expect(screen.queryByText(/min left/)).toBeNull();
   // The poll stops once verified: no further status reads.
   const before = global.fetch.mock.calls.filter((c) =>
     String(c[0]).startsWith("/api/me/verify/"),
