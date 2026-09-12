@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-12",
+    title: "Battle logs keep their own capture schedule",
+    body: "The roster gate treated the game's last-seen stamp as proof that a member could not have played. The capture audit proved otherwise: a completed session can fill the roughly 30-battle log before that stamp is observed again. It still skips an unchanged profile, where a delayed stamp cannot lose history, but battle logs now always follow their yield, burst and reader limits. Status keeps publishing the gap count so this correction is measured rather than assumed.",
+  },
+  {
+    date: "2026-09-12",
     title: "Fewer sign-ins, and a list of where you are signed in",
     body: "Elixir was asking for sign-in more than it should have, and a census of the owner's own sessions showed why: sessions were not expiring, sign-ins were happening beside live ones. Four causes, fixed. When the page could not reach Elixir it showed the sign-in wall; now it retries once and then says Elixir didn't answer, and never calls you signed out for a request that did not get through. Every OAuth consent went to your inbox even when you were signed in; now the consent page honours your sign-in (one Authorize), and consenting by code signs you in to the site too. The idle window is thirty days instead of nine (ninety at most, as before). And a sign-in started on one screen and finished on another - the link opened in the phone's mail app - now signs in the screen that asked, at once from the same address and after a yes from a different one; the sixth email in an hour is answered honestly instead of promised. New on Console ▸ Profile: Devices, every place you are signed in with a sign-out for each and one for everywhere else.",
   },

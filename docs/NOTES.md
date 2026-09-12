@@ -1212,3 +1212,39 @@ valid sessions existed. Four causes, all in the code, and one gap:
 
 Contract unchanged (no tool moved); protocol doc updated; What's-new entry.
 The migrate/ops `sessions` census stays as a read-only diagnostic.
+
+## 2026-09-12 — Capture truth: `lastSeen` cannot gate battle logs
+
+The scheduled Keep the Record True read at 22:3xZ found the public pipeline
+healthy (latest fetch/admission under four minutes, DLQ 0) but
+`capture_audit_24h` at **88 gaps / 4,101 eligible battle-log polls (2.15%)**.
+The private read-only census returned 87 / 4,084 shortly before; the three-day
+reader returned 117 / 11,894 (0.98%). This is not the old incidental-roster
+finding aging through the window: the one-day census included new gaps through
+22:32:55Z, long after the tracked-roster restriction deployed. The last-hour
+stats read 7 gaps in 225 polls.
+
+The current direct CR probes were ordinary and the projector model held:
+King Thing's profile and 30-entry battle log carried the expected compact UTC
+`battleTime`, rarity-relative levels and distinct evolution fields; the current
+race was `warDay` period 5 / section 0 with POAP KINGS' fame 6,811 distinct
+from period points 8,000. The private clock reader still reports the policy
+grid (80 anchors / 10 clans, median offset 7 minutes), and the real-fixture
+ingest, battle, war and clock suite passed. No CR API documentation change is
+due.
+
+The newest sampled gap (`#PQQPUR8UL`, admitted 22:22:51Z) was a full battle
+log from a player whose live clan roster reports last seen 21:35:53Z; the clan
+was otherwise active (17 members seen in the following hour). That is the
+unsafe sequence: a completed session can rotate a roughly 30-entry log before
+the next observed `lastSeen` reopens a scheduler path. The same-clock 24-hour
+`ab_yield` read also had capture gaps in both arms (treated 29 / 2,411,
+control 58 / 1,673), so changing the loss-bound arm would not repair the
+cause.
+
+**Decision and repair:** roster `lastSeen` remains a profile-efficiency signal,
+where a delayed stamp cannot erase history, but no longer suppresses a due
+battle-log poll. Battle logs always use their yield, burst and reader rules.
+The scheduler regression pins this separation; recording docs and What's New
+state the revised promise. Deploy and a new read-only capture census are the
+acceptance criteria; source publication alone is not completion.

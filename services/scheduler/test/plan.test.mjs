@@ -20,6 +20,7 @@ import {
   READ_CAP_MINUTES,
   eligibleNow,
   queueSummary,
+  rosterGated,
 } from "../src/plan.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -378,7 +379,7 @@ test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", a
   );
 });
 
-test("the roster gate: a fresh roster showing a member idle since their last poll skips their polls; a sighting since lets them through", async () => {
+test("the roster gate saves idle profiles but never suppresses a battle log", async () => {
   await freshenCards(NOW);
   await db.query(
     `insert into clan (clan_tag) values ('#G8Q2LPY') on conflict do nothing`,
@@ -395,8 +396,9 @@ test("the roster gate: a fresh roster showing a member idle since their last pol
   // Both rows are DUE on their own cadence: the battlelog (5/h -> hourly)
   // was polled three hours ago, the profile (eight hours once a roster is
   // fresh) ten hours ago. The roster, admitted ten minutes ago, says the
-  // player was last seen twelve hours ago - before either poll, and past
-  // the session grace - so neither poll can return anything new.
+  // player was last seen twelve hours ago. That is enough to skip a profile,
+  // but not a rotating battle log: an unseen completed session can have
+  // filled it before lastSeen is observed again.
   await setState("#G8U2L9", "player_battlelog", {
     yieldBph: 5,
     admitted: min(180),
@@ -414,13 +416,18 @@ test("the roster gate: a fresh roster showing a member idle since their last pol
   await setTokens(100);
   const idle = await planTick(db, NOW);
   assert.deepEqual(
-    idle.jobs.filter((j) => j.entity_key === "#G8U2L9"),
-    [],
-    "idle since the last poll: nothing to fetch",
+    idle.jobs.filter((j) => j.entity_key === "#G8U2L9").map((j) => j.endpoint),
+    ["player_battlelog"],
+    "an idle roster cannot suppress capture",
   );
-  assert.ok(idle.gated >= 2, "both player rows were gated");
+  assert.equal(idle.gated, 1, "only the profile row was gated");
 
-  // Seen an hour ago - after both polls: both are due again.
+  // Seen an hour ago - after both polls: the profile becomes eligible too.
+  await setState("#G8U2L9", "player_battlelog", {
+    yieldBph: 5,
+    admitted: min(180),
+    planned: min(180),
+  });
   await db.query(
     `update player set game_last_seen_at = $2 where player_tag = $1`,
     ["#G8U2L9", min(60)],
@@ -435,32 +442,26 @@ test("the roster gate: a fresh roster showing a member idle since their last pol
     ["player", "player_battlelog"],
   );
 
-  // A roster OLDER than the last poll knows nothing about it: no gate,
-  // even with an ancient sighting.
-  await setState("#G8U2L9", "player_battlelog", {
-    yieldBph: 5,
-    admitted: min(180),
-    planned: min(180),
-  });
-  await setState("#G8Q2LPY", "clan", { admitted: min(300), planned: min(300) });
-  await db.query(
-    `update player set game_last_seen_at = $2 where player_tag = $1`,
-    ["#G8U2L9", min(720)],
-  );
-  await setTokens(100);
-  const stale = await planTick(db, NOW);
-  assert.ok(
-    stale.jobs.some(
-      (j) => j.entity_key === "#G8U2L9" && j.endpoint === "player_battlelog",
+  // A roster OLDER than the last profile poll knows nothing about it, even
+  // with an ancient sighting.
+  assert.equal(
+    rosterGated(
+      {
+        endpoint: "player",
+        roster_tracked: true,
+        roster_admitted_at: min(720),
+        game_last_seen_at: min(720),
+        last_admitted_at: min(600),
+      },
+      NOW,
     ),
-    "an old roster cannot vouch for idleness",
+    false,
+    "an old roster cannot vouch for an unchanged profile",
   );
 
   // The same fresh, idle-since roster from an INCIDENTAL clan (no clan
-  // recording) gates nothing: read every 4-24 h, it cannot stand in for
-  // the poll. Measured 2026-09-12: capture gaps 0.13% -> 1.5% in the
-  // gate's first day, from players whose only roster was an incidental
-  // clan's.
+  // recording) gates no profile: read every 4-24 h, it cannot stand in for
+  // a fresh player observation.
   await db.query(
     `delete from recording where subject_type = 'clan' and subject_tag = '#G8Q2LPY'`,
   );

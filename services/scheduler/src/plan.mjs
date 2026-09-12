@@ -127,26 +127,19 @@ export const READ_TTL_HOURS = 24;
  * at least every eight hours. Clan-wide comprehensive capture can still use
  * the yield cadence for members nobody follows directly. */
 export const DIRECT_PROFILE_CAP_MINUTES = 480;
-/** The roster gate (2026-09-11, review §4 / §10.2). A clan roster carries
- *  the game's own lastSeen for ~50 players at 2.2 KB; a player whose
- *  lastSeen has not moved since their last battlelog or profile poll has
- *  no new battles and no changed profile, so that poll is skipped. A
- *  session in progress is the one hazard - lastSeen may mark its start -
- *  so a sighting younger than this many hours never gates. Only a roster
- *  admitted AFTER the poll in question can gate it, and only a TRACKED
- *  clan's roster (read every 15-60 min while members play): an incidental
- *  clan's roster is read every 4-24 h, and in the gate's first day those
- *  rosters held back polls of players who then played a whole 25-battle
- *  session before the roster noticed (capture gaps 0.13% -> 1.5%,
- *  2026-09-12). Measured, decided, recorded in NOTES. */
+/** The roster gate applies to profiles only. A clan roster carries the
+ *  game's own lastSeen for ~50 players at 2.2 KB; when it has not moved since
+ *  a profile poll, that profile is not expected to have changed. It cannot
+ *  vouch for a battle log: a completed session can rotate the log before the
+ *  next observed lastSeen makes the player eligible again. Capture gaps made
+ *  that failure mode measurable on 2026-09-12. */
 export const ROSTER_GATE_SESSION_HOURS = 2;
 /** Profile minimum interval once the roster says the player was active. */
 export const PROFILE_ACTIVE_MINUTES = 480;
 
 /** Whether a fresh roster shows this player idle since their last poll. */
 export function rosterGated(row, now = new Date()) {
-  if (row.endpoint !== "player_battlelog" && row.endpoint !== "player")
-    return false;
+  if (row.endpoint !== "player") return false;
   if (
     !row.roster_tracked ||
     !row.roster_admitted_at ||
@@ -562,8 +555,9 @@ async function selectEligible(db, now, arm) {
   for (const r of rows) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
-    // The roster gate: a fresh roster that shows this player idle since
-    // their last poll means the poll would return what we hold.
+    // A fresh roster can suppress an unchanged profile. Battle logs remain
+    // eligible on their own cadence: lastSeen is not a safe negative signal
+    // for capture completeness.
     if (rosterGated(r, now)) {
       gated += 1;
       continue;
