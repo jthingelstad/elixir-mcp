@@ -34,12 +34,13 @@ function event({
   body,
   form,
   ip = "9.9.9.9",
+  headers = {},
 }) {
   return {
     rawPath: p,
     requestContext: { http: { method, sourceIp: ip } },
     queryStringParameters: query,
-    headers: {},
+    headers,
     body: form ? new URLSearchParams(form).toString() : body,
   };
 }
@@ -89,6 +90,7 @@ test("discovery documents are well-formed and cacheable", async () => {
     "collections:write",
     "account:write",
     "feedback:write",
+    "account:email",
   ]);
   const pr = await handler(
     event({ method: "GET", path: "/.well-known/oauth-protected-resource" }),
@@ -102,6 +104,7 @@ test("discovery documents are well-formed and cacheable", async () => {
     "collections:write",
     "account:write",
     "feedback:write",
+    "account:email",
   ]);
 });
 
@@ -896,4 +899,70 @@ test("a grant value this server does not define is ignored, not granted", async 
     "cr:read feedback:write",
     "only capabilities in the server's own list survive the form",
   );
+});
+
+test("account:email is never offered unasked, and a token without it cannot read userinfo", async () => {
+  const { emailStep, tokens } = await consentFlow({
+    grants: ["account:email"],
+  });
+  assert.doesNotMatch(
+    emailStep.body,
+    /name="grant" value="account:email"/,
+    "the email capability is not a checkbox a client can be handed",
+  );
+  assert.equal(tokens.scope, "cr:read", "posting it as a grant is ignored");
+  const refused = await handler(
+    event({
+      method: "GET",
+      path: "/oauth/userinfo",
+      headers: { authorization: `Bearer ${tokens.access_token}` },
+    }),
+  );
+  assert.equal(refused.statusCode, 403);
+  assert.match(refused.headers["www-authenticate"], /insufficient_scope/);
+  assert.match(refused.headers["www-authenticate"], /account:email/);
+});
+
+test("a client that asks for account:email is shown it, and userinfo answers the address the code proved", async () => {
+  const { emailStep, tokens } = await consentFlow({
+    scope: "cr:read account:email",
+  });
+  assert.match(emailStep.body, /Know your email address/);
+  assert.equal(tokens.scope, "cr:read account:email");
+  const answer = await handler(
+    event({
+      method: "GET",
+      path: "/oauth/userinfo",
+      headers: { authorization: `Bearer ${tokens.access_token}` },
+    }),
+  );
+  assert.equal(answer.statusCode, 200);
+  const info = JSON.parse(answer.body);
+  assert.equal(info.email, EMAIL);
+  assert.equal(info.email_verified, true);
+  assert.equal(info.kind, "person");
+  const {
+    rows: [row],
+  } = await db.query(
+    `select account_id, email from account where email_hash = $1`,
+    [emailHash(EMAIL)],
+  );
+  assert.equal(info.sub, row.account_id, "sub is the stable account id");
+  assert.equal(row.email, EMAIL, "consent recorded the address");
+  assert.equal(answer.headers["cache-control"], "no-store");
+
+  const anon = await handler(event({ method: "GET", path: "/oauth/userinfo" }));
+  assert.equal(anon.statusCode, 401);
+  const discovery = JSON.parse(
+    (
+      await handler(
+        event({
+          method: "GET",
+          path: "/.well-known/oauth-authorization-server",
+        }),
+      )
+    ).body,
+  );
+  assert.equal(discovery.userinfo_endpoint, `${ISSUER}/oauth/userinfo`);
+  assert.ok(discovery.scopes_supported.includes("account:email"));
 });

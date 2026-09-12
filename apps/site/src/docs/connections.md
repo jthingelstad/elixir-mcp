@@ -39,6 +39,16 @@ player tag and it means you.
 You can only have one self, so there is nothing to configure. This is the
 connection almost everybody wants.
 
+### Signing in to other Elixir products with this account
+
+Elixir Clan (and, soon, Elixir Drop) can sign you in **with Elixir**: the
+same consent page, plus one extra line, *Know your email address*, which
+only an app that asks for it is ever shown. That is how those products know
+you are the same person you are here. It is listed on Connections like any
+other client, and disconnecting it there ends its access; the address
+itself is never shown to an MCP client or an agent. See
+[Protocol → Signing a person in](/docs/protocol#signing-a-person-in-with-elixir).
+
 ### Your first question
 
 On **Connections**, **Try asking…** offers questions based on your

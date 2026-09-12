@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { OAUTH_SCOPES } from "@elixir-mcp/contracts";
+import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { api } from "../../api.js";
@@ -358,7 +358,7 @@ export function AgentDetail({ id, navigate }) {
               // before scopes existed still hold, so it must be resolved
               // before it reaches the checkboxes or a key that can do
               // everything would render as one that can do nothing.
-              scope={key.scope ?? OAUTH_SCOPES.join(" ")}
+              scope={key.scope ?? STANDARD_OAUTH_SCOPES.join(" ")}
               onSave={async (scope) => {
                 const r = await api.setPrincipalScope(id, scope);
                 if (r.ok) load();

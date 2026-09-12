@@ -37,9 +37,14 @@ import {
   redeemAuthCode,
   mintTokens,
   redeemRefreshToken,
+  validateAccessToken,
   OAUTH_SCOPES,
 } from "@elixir-mcp/auth";
-import { OAUTH_SCOPE_DETAILS } from "@elixir-mcp/contracts";
+import {
+  OAUTH_SCOPE,
+  OAUTH_SCOPE_DETAILS,
+  STANDARD_OAUTH_SCOPES,
+} from "@elixir-mcp/contracts";
 
 const DCR_GLOBAL_DAILY_CAP = 200;
 
@@ -221,7 +226,11 @@ function consentCapabilities(scope) {
   const line = ({ title, description }) =>
     `<strong>${esc(title)}</strong> — ${esc(description)}`;
   const asked = OAUTH_SCOPE_DETAILS.filter((d) => granted.has(d.scope));
-  const rest = OAUTH_SCOPE_DETAILS.filter((d) => !granted.has(d.scope));
+  // A non-standard capability (account:email) is never offered unasked:
+  // it appears only in the list above, when the client named it.
+  const rest = OAUTH_SCOPE_DETAILS.filter(
+    (d) => d.standard && !granted.has(d.scope),
+  );
   return (
     `<ul>${asked.map((d) => `<li>${line(d)}</li>`).join("")}</ul>` +
     (rest.length === 0
@@ -537,6 +546,15 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           resource: v.resource,
           kind: v.target.kind,
         });
+        // Consent is a sign-in: record the address on the way past, as the
+        // site's sign-in does, so /oauth/userinfo can answer for an account
+        // that predates Elixir keeping it. The hash still decided which
+        // account this is.
+        await db.query(
+          `update account set email = $2
+           where account_id = $1 and email is distinct from $2`,
+          [account.account_id, String(form.email).trim().toLowerCase()],
+        );
         // The person proved who they are. If the audience names a principal,
         // the grant belongs to THAT account -- so every token minted from this
         // code carries the agent's identity, budget and tool surface, and the
@@ -565,8 +583,11 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
         // capabilities this server defines. The base is the scope BOUND at
         // the email step, never this form's, so a re-posted ?scope= cannot
         // move the grant behind the checkboxes.
+        // ...and only to a STANDARD capability: account:email is never
+        // widened into, whatever the form posts.
         const added = formValues(event, "grant").filter(
-          (value) => OAUTH_SCOPES.includes(value) && !ctx.scope.includes(value),
+          (value) =>
+            STANDARD_OAUTH_SCOPES.includes(value) && !ctx.scope.includes(value),
         );
         const grantedScope = normalizeScope([ctx.scope, ...added].join(" "));
         if (added.length > 0)
@@ -682,6 +703,59 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
       return json(400, { error: "unsupported_grant_type" });
     },
 
+    /**
+     * Who the token's person is, for a client that holds account:email.
+     * The one place the account's address leaves Elixir, and only to a
+     * client the person granted that capability on the consent page (it
+     * is never offered unasked). `sub` is the account id, stable for the
+     * account's life; `email_verified` is always true because a person
+     * proved the address with a code before any grant existed.
+     */
+    async userinfo(db, event) {
+      const auth = String(
+        event.headers?.authorization ?? event.headers?.Authorization ?? "",
+      );
+      const challenge = (error, extra = "") => ({
+        statusCode: error === "insufficient_scope" ? 403 : 401,
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "www-authenticate": `Bearer error="${error}"${extra}`,
+        },
+        body: JSON.stringify({ error }),
+      });
+      if (!auth.toLowerCase().startsWith("bearer "))
+        return challenge("invalid_token");
+      const account = await validateAccessToken(db, auth.slice(7).trim(), {
+        resource: `${issuer}/mcp`,
+      });
+      if (!account) return challenge("invalid_token");
+      if (!account.scopes.includes(OAUTH_SCOPE.ACCOUNT_EMAIL))
+        return challenge(
+          "insufficient_scope",
+          `, scope="${OAUTH_SCOPE.ACCOUNT_EMAIL}"`,
+        );
+      const { rows } = await db.query(
+        `select email from account where account_id = $1`,
+        [account.accountId],
+      );
+      const email = rows[0]?.email ?? null;
+      if (!email) {
+        // An account that predates Elixir keeping the address, whose
+        // holder has not signed in since. The next consent fills it.
+        return json(404, {
+          error: "email_unavailable",
+          message:
+            "This account has no recorded email address yet. Signing in to Elixir once records it.",
+        });
+      }
+      return json(
+        200,
+        { sub: account.accountId, email, email_verified: true, kind: "person" },
+        { "cache-control": "no-store" },
+      );
+    },
+
     authorizationServerMetadata() {
       return json(
         200,
@@ -690,6 +764,7 @@ export function makeOauthRoutes({ issuer, sendLoginEmail }) {
           authorization_endpoint: `${issuer}/oauth/authorize`,
           token_endpoint: `${issuer}/oauth/token`,
           registration_endpoint: `${issuer}/oauth/register`,
+          userinfo_endpoint: `${issuer}/oauth/userinfo`,
           response_types_supported: ["code"],
           grant_types_supported: ["authorization_code", "refresh_token"],
           code_challenge_methods_supported: ["S256"],

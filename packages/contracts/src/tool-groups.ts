@@ -20,6 +20,10 @@ export const OAUTH_SCOPE = {
   COLLECTIONS_WRITE: "collections:write",
   ACCOUNT_WRITE: "account:write",
   FEEDBACK_WRITE: "feedback:write",
+  /** The one scope that is never offered unless asked for (2026-09-12):
+   *  a first-party web product signing a person in with Elixir needs
+   *  the email on the account, and nothing else ever does. */
+  ACCOUNT_EMAIL: "account:email",
 } as const;
 
 export type OAuthScope = (typeof OAUTH_SCOPE)[keyof typeof OAUTH_SCOPE];
@@ -31,38 +35,59 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
   scope: OAuthScope;
   title: string;
   description: string;
+  /** Offered ticked on the consent page and part of the default grant.
+   *  A non-standard scope is granted only when the client names it. */
+  standard: boolean;
 }> = [
   {
     scope: OAUTH_SCOPE.READ,
     title: "Read recorded game data",
     description:
       "Profiles, battles, clans, war, collections, and the live-fetch allowance.",
+    standard: true,
   },
   {
     scope: OAUTH_SCOPE.RECORDINGS_WRITE,
     title: "Change what you track",
     description: "Track or stop tracking players and clans on your account.",
+    standard: true,
   },
   {
     scope: OAUTH_SCOPE.COLLECTIONS_WRITE,
     title: "Edit collections",
     description: "Change membership in collections you own.",
+    standard: true,
   },
   {
     scope: OAUTH_SCOPE.ACCOUNT_WRITE,
     title: "Update account preferences",
     description: "Change private nicknames and end-user identity mappings.",
+    standard: true,
   },
   {
     scope: OAUTH_SCOPE.FEEDBACK_WRITE,
     title: "Send feedback",
     description: "File attributed feedback with the maintainer.",
+    standard: true,
+  },
+  {
+    scope: OAUTH_SCOPE.ACCOUNT_EMAIL,
+    title: "Know your email address",
+    description:
+      "Read the email on your Elixir account, so this app can sign you in as the same person. Offered only to an app that asks for it.",
+    standard: false,
   },
 ];
 
 export const OAUTH_SCOPES: readonly OAuthScope[] = OAUTH_SCOPE_DETAILS.map(
   ({ scope }) => scope,
 );
+/** The scopes a client gets without asking, and the ones the consent page
+ *  offers ticked. account:email is deliberately not among them. */
+export const STANDARD_OAUTH_SCOPES: readonly OAuthScope[] =
+  OAUTH_SCOPE_DETAILS.filter(({ standard }) => standard).map(
+    ({ scope }) => scope,
+  );
 export const DEFAULT_OAUTH_SCOPE: OAuthScope = OAUTH_SCOPE.READ;
 
 /** What a client that asks for nothing in particular gets (1.0.0): every
@@ -71,7 +96,7 @@ export const DEFAULT_OAUTH_SCOPE: OAuthScope = OAUTH_SCOPE.READ;
  *  agent is told to perform on its own judgment (file feedback) was
  *  refused on every connection whose client never stepped up, which is
  *  most of them (review Part 3.3; feedback item 30 opens with exactly that). */
-export const FULL_OAUTH_SCOPE: string = OAUTH_SCOPES.join(" ");
+export const FULL_OAUTH_SCOPE: string = STANDARD_OAUTH_SCOPES.join(" ");
 
 export interface ToolClass {
   /** Display group; groups cluster in clients that sort by title. */

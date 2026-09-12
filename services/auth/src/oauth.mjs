@@ -18,6 +18,7 @@ import crypto from "node:crypto";
 import {
   DEFAULT_OAUTH_SCOPE,
   OAUTH_SCOPES,
+  STANDARD_OAUTH_SCOPES,
   FULL_OAUTH_SCOPE,
 } from "@elixir-mcp/contracts";
 
@@ -606,8 +607,12 @@ export async function validateServiceToken(
     // them retroactively would revoke authority nobody agreed to give up.
     // New keys are written narrow: Drop needs cr:read to read a war clock, not
     // the ability to edit collections and change account settings.
-    scope: row.token_scope ?? OAUTH_SCOPES.join(" "),
-    scopes: row.token_scope ? row.token_scope.split(" ") : [...OAUTH_SCOPES],
+    // "Every capability" for a key is the STANDARD set: account:email is
+    // a person's address, and a service key is never a person.
+    scope: row.token_scope ?? FULL_OAUTH_SCOPE,
+    scopes: row.token_scope
+      ? row.token_scope.split(" ")
+      : [...STANDARD_OAUTH_SCOPES],
     kind: row.kind,
     ownedByAccountId: row.owned_by_account_id,
     publicId: row.public_id,

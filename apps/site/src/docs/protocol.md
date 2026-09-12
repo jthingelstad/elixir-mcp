@@ -72,11 +72,12 @@ the call log.
   "authorization_endpoint": "https://elixir.poapkings.com/oauth/authorize",
   "token_endpoint": "https://elixir.poapkings.com/oauth/token",
   "registration_endpoint": "https://elixir.poapkings.com/oauth/register",
+  "userinfo_endpoint": "https://elixir.poapkings.com/oauth/userinfo",
   "response_types_supported": ["code"],
   "grant_types_supported": ["authorization_code", "refresh_token"],
   "code_challenge_methods_supported": ["S256"],
   "token_endpoint_auth_methods_supported": ["none"],
-  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write"]
+  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email"]
 }
 ```
 
@@ -87,14 +88,17 @@ the call log.
 {
   "resource": "https://elixir.poapkings.com/mcp",
   "authorization_servers": ["https://elixir.poapkings.com"],
-  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write"],
+  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email"],
   "bearer_methods_supported": ["header"]
 }
 ```
 
-Both documents advertise all five capabilities, and so does the 401
-challenge's `scope`. **A client that names no scope in particular is offered
-every capability, ticked, on the consent page**, where the person can untick
+Both documents list every capability the server defines. The five
+**standard** ones are what the 401 challenge's `scope` advertises and what a
+client gets without asking; `account:email` is the exception, described
+under [Signing a person in](#signing-a-person-in-with-elixir). **A client
+that names no scope in particular is offered every standard capability,
+ticked, on the consent page**, where the person can untick
 any of them (since 1.0.0; before it the default was `cr:read` alone, which
 refused the feedback every agent is told to file on its own judgment). A
 client that asks for less is offered the rest as unticked checkboxes, and what
@@ -184,6 +188,7 @@ grant. Refreshing never widens scope.
 | `collections:write` | edit collections you own | `collections_edit` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
 | `feedback:write` | file attributed feedback | `elixir_feedback` |
+| `account:email` | read the account's email address at `/oauth/userinfo` | no tool; see below |
 
 Canonical order is the order above. A call to a tool outside the token's
 scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
@@ -217,6 +222,31 @@ which needs the client to cooperate:
 
 Either way the grant is yours; the client cannot ask on your behalf. Service
 tokens issued with no scope carry every capability.
+
+### Signing a person in with Elixir
+
+A web product in the Elixir family (Elixir Clan, Elixir Drop) can use Elixir
+as its sign-in. The grant it needs is the ordinary one plus **`account:email`**,
+the one capability that is never offered unasked: it does not appear ticked
+on the consent page, is not part of the default grant, is never widened into
+from a checkbox or from Account → Connections, and is not advertised in a 401
+challenge. A client that names it in `scope` sees it listed with the rest on
+the consent page, and the person can decline the whole connection.
+
+`GET /oauth/userinfo` with a bearer access token whose grant carries it:
+
+```json
+{ "sub": "<stable account id>", "email": "you@example.com", "email_verified": true, "kind": "person" }
+```
+
+`email_verified` is always true: the person proved the address with a code
+before any grant existed, and consent records the address on the account.
+Refusals: 401 `invalid_token` (no bearer, or not a live personal-door token),
+403 `insufficient_scope` with `WWW-Authenticate: Bearer error="insufficient_scope", scope="account:email"`,
+and 404 `email_unavailable` for an account that predates Elixir keeping the
+address and whose holder has not signed in since (the next consent fills
+it). The answer is never cached. It is the only place an account's address
+leaves Elixir.
 
 ## Principals and what each sees
 

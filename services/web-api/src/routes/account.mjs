@@ -396,12 +396,17 @@ export function accountRoutes({
           error: "invalid_scope",
           hint: `Space-separated, must include cr:read, and each must be one of: ${OAUTH_SCOPES.join(", ")}.`,
         });
+      // A non-standard capability (account:email) can be taken back here
+      // but never handed to a client that did not ask for it at consent:
+      // the update keeps it only where the family already holds it.
       const { rows } = await db.query(
         `update oauth_family f set scope = $3
          where f.family_id::text = $1 and f.revoked_at is null
            and f.account_id in (
              select account_id from account
              where account_id = $2 or owned_by_account_id = $2)
+           and (position('account:email' in $3) = 0
+                or position('account:email' in f.scope) > 0)
          returning f.family_id, f.scope`,
         [String(body.family_id ?? ""), account.accountId, scope],
       );

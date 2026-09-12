@@ -20,6 +20,7 @@ import {
   validateAccessToken,
   OAUTH_SCOPES,
 } from "../src/index.mjs";
+import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -74,8 +75,18 @@ test("redirect URI validation: https or localhost http only, no fragments", () =
 });
 
 test("scope normalization is a closed set", () => {
-  // A client that names no scope is offered every capability (1.0.0).
-  assert.equal(normalizeScope(""), OAUTH_SCOPES.join(" "));
+  // A client that names no scope is offered every STANDARD capability
+  // (1.0.0); account:email is granted only to a client that names it.
+  assert.equal(normalizeScope(""), STANDARD_OAUTH_SCOPES.join(" "));
+  assert.equal(
+    normalizeScope(""),
+    OAUTH_SCOPES.filter((s) => s !== "account:email").join(" "),
+  );
+  assert.equal(
+    normalizeScope("account:email cr:read"),
+    "cr:read account:email",
+    "asked for by name, it is accepted and ordered last",
+  );
   assert.equal(normalizeScope("cr:read"), "cr:read");
   assert.equal(
     normalizeScope("feedback:write cr:read feedback:write"),

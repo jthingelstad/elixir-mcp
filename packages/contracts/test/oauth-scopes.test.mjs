@@ -1,8 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  FULL_OAUTH_SCOPE,
   OAUTH_SCOPE,
+  OAUTH_SCOPE_DETAILS,
   OAUTH_SCOPES,
+  STANDARD_OAUTH_SCOPES,
   DEFAULT_OAUTH_SCOPE,
   requiredOAuthScope,
   TOOL_GROUPS,
@@ -16,7 +19,16 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
     "collections:write",
     "account:write",
     "feedback:write",
+    "account:email",
   ]);
+  // The default grant and the consent page's ticked extras are the
+  // STANDARD five; account:email is granted only to a client that names it.
+  assert.deepEqual(STANDARD_OAUTH_SCOPES, OAUTH_SCOPES.slice(0, 5));
+  assert.equal(FULL_OAUTH_SCOPE, STANDARD_OAUTH_SCOPES.join(" "));
+  assert.equal(
+    OAUTH_SCOPE_DETAILS.find((d) => d.scope === "account:email").standard,
+    false,
+  );
 });
 
 test("every tool has exactly the capability its behavior requires", () => {

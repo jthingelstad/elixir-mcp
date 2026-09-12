@@ -151,6 +151,8 @@ export function makeHandler({
           return await oauth.authorizePost(db, event);
         if (method === "POST" && path === "/oauth/token")
           return await oauth.token(db, event);
+        if (method === "GET" && path === "/oauth/userinfo")
+          return await oauth.userinfo(db, event);
         return {
           statusCode: 404,
           headers: { "content-type": "application/json" },

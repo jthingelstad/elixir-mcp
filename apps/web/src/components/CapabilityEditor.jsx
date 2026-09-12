@@ -48,7 +48,11 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
 
   return (
     <div>
-      {OAUTH_SCOPE_DETAILS.map(({ scope: value, title, description }) => (
+      {OAUTH_SCOPE_DETAILS.filter(
+        // A non-standard capability (account:email) can be taken back
+        // here but never handed to a client that did not ask for it.
+        ({ scope: value, standard }) => standard || current.includes(value),
+      ).map(({ scope: value, title, description }) => (
         <label key={value} style={{ display: "block", fontSize: "12.5px" }}>
           <input
             type="checkbox"
