@@ -10,6 +10,7 @@ import { AgentDetail, Agents } from "./account/Agents.jsx";
 import { FeedbackItem, Feedback } from "./account/Feedback.jsx";
 import { Connections } from "./account/Connections.jsx";
 import { Usage } from "./account/Usage.jsx";
+import { Verify } from "./account/Verify.jsx";
 
 /** The Account section's pages. */
 export function Dashboard({
@@ -58,6 +59,8 @@ export function Dashboard({
       <Connections me={me} navigate={navigate} />
     );
   if (page === "usage") return <Usage me={me} navigate={navigate} />;
+  if (page === "verify")
+    return <Verify refresh={refresh} navigate={navigate} />;
   if (page === "feedback")
     return itemId ? (
       <FeedbackItem id={itemId} navigate={navigate} />

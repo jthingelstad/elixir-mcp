@@ -1,4 +1,5 @@
 import { integrationsRoutes } from "./routes/integrations.mjs";
+import { verifyRoutes } from "./routes/verify.mjs";
 import { integrationApi, integrationProblem } from "./integration-api.mjs";
 import { randomUUID } from "node:crypto";
 /**
@@ -210,6 +211,7 @@ export function makeHandler({
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),
     ...integrationsRoutes({ resolveAccount, logEvent }),
+    ...verifyRoutes({ resolveAccount, logEvent }),
   };
 
   return async function handler(event, context) {

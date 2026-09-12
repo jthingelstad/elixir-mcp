@@ -81,6 +81,7 @@ export const SECTIONS = {
     pages: [
       { slug: "overview", label: "Overview" },
       { slug: "tracking", label: "Tracking" },
+      { slug: "verify", label: "Verify" },
       { slug: "collections", label: "Collections" },
       { slug: "activity", label: "Activity" },
       { slug: "usage", label: "Usage" },
@@ -185,6 +186,13 @@ export const RAIL = [
     label: "Tracking",
     icon: "radar",
     to: "/account/tracking",
+  },
+  // Proving a claim is a step in your record, next to what you track.
+  {
+    key: "verify",
+    label: "Verify",
+    icon: "shield-check",
+    to: "/account/verify",
   },
   {
     key: "collections",
@@ -361,6 +369,17 @@ export const DOC_LINKS = {
       ["How recording works", "/docs/recording"],
       ["Scopes", "/docs/recording#scope-what-is-actually-polled"],
       ["Tiers & slots", "/docs/roles"],
+    ],
+  ],
+  verify: [
+    "Proving a claim",
+    [
+      ["Verify", "/docs/verify"],
+      [
+        "Claims and relationships",
+        "/docs/recording#relationships-primary-nicknames",
+      ],
+      ["Privacy", "/docs/privacy"],
     ],
   ],
   // The record of one tracked thing: the page with the notify switch on

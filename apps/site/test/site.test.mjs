@@ -99,6 +99,7 @@ const STATIC_PAGES = [
   "/docs/glossary",
   "/docs/methodology",
   "/docs/operators",
+  "/docs/verify",
   "/updates",
   "/data/growth",
   "/data/collect",

@@ -143,6 +143,15 @@
   --hit: 40px; /* desktop row / control */
   --hit-touch: 44px; /* narrow viewport */
 
+  /* ---- Motion (2026-09-12, with Verify) ----------------------------
+     Three durations and one curve; nothing else animates. The
+     prefers-reduced-motion rule at the end of this file turns every
+     animation and transition off in one place. */
+  --dur-fast: 150ms;
+  --dur-base: 320ms;
+  --dur-slow: 700ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
   --bp-narrow: 900px; /* ONE breakpoint, all surfaces */
 
   --shadow-modal: 0 24px 70px rgba(4, 2, 12, 0.5);
@@ -2922,4 +2931,280 @@ input[aria-invalid="true"] {
 .cardpick__caption strong {
   color: var(--gold);
   font-weight: 600;
+}
+
+/* ==================================================================
+   Verify - the deck-slot challenge (2026-09-12). Player-facing and
+   mobile first: the member is on the phone the game is on. Two rows of
+   four, like the game; thumb-sized controls; a visible tick so the live
+   half can be watched moving.
+   ================================================================== */
+
+.deck {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.deck__slot {
+  position: relative;
+  aspect-ratio: 5 / 6;
+  border: 2px solid var(--line);
+  border-radius: var(--r-block);
+  background: var(--ground-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.deck__slot img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.deck__slot--empty {
+  border-style: dashed;
+  color: var(--ink-faint);
+}
+.deck__slot--dim img {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.deck__slot--matched {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 3px var(--ok-fill);
+  animation: deck-land var(--dur-slow) var(--ease-out);
+}
+.deck__name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  color: #fff;
+  background: rgba(4, 2, 12, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.deck__fallback {
+  font-size: 12px;
+  color: var(--ink-dim);
+  padding: 4px;
+  text-align: center;
+}
+.deck__check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: var(--ok);
+  background: var(--panel);
+  border-radius: 50%;
+  display: inline-flex;
+}
+@keyframes deck-land {
+  0% {
+    transform: scale(0.8) rotateY(90deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06) rotateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.verify__panels {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-4);
+}
+@media (min-width: 900px) {
+  .verify__panels {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.verify__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--hit-touch);
+  padding: 6px 0;
+}
+.verify__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.verify__list .verify__row + .verify__row {
+  border-top: 1px solid var(--line);
+}
+.verify__who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.verify__lead {
+  font-size: var(--t-body);
+  color: var(--ink-body);
+  margin: 0 0 var(--s-3);
+}
+.verify__hint {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: var(--s-3) 0 0;
+}
+.verify__live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  min-height: 24px;
+}
+.verify__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: verify-pulse 1.2s ease-in-out infinite;
+}
+@keyframes verify-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+.verify__tick {
+  height: 3px;
+  margin: 6px 0 10px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.verify__tick > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  animation: verify-tick 15s linear forwards;
+}
+@keyframes verify-tick {
+  to {
+    width: 100%;
+  }
+}
+.verify__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: var(--s-4);
+}
+.verify__actions .btn {
+  min-height: var(--hit-touch);
+}
+.verify__form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.verify__form .input {
+  flex: 1 1 200px;
+  min-height: var(--hit-touch);
+}
+.verify__form .btn {
+  min-height: var(--hit-touch);
+}
+.verify__burst {
+  position: relative;
+  text-align: center;
+  padding: var(--s-6) 0 var(--s-4);
+  overflow: hidden;
+}
+.verify__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ok);
+  animation: badge-land var(--dur-slow) var(--ease-out);
+}
+@keyframes badge-land {
+  0% {
+    transform: translateY(-28px) scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(4px) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+.verify__spark {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: var(--gold);
+  transform: rotate(var(--a)) translateY(0);
+  opacity: 0;
+  animation: spark var(--dur-slow) var(--ease-out) forwards;
+}
+@keyframes spark {
+  0% {
+    transform: rotate(var(--a)) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateY(-90px);
+    opacity: 0;
+  }
+}
+.verify__next {
+  font-size: var(--t-body);
+  margin: 0;
+  text-align: center;
+}
+.verify__when {
+  color: var(--ink-dim);
+}
+.verify__error {
+  color: var(--bad);
+  font-size: 13px;
+  margin: var(--s-3) 0 0;
+}
+
+/* One switch for every animation and transition on every surface. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .verify__tick > i {
+    width: 100%;
+  }
+  .verify__spark {
+    display: none;
+  }
 }

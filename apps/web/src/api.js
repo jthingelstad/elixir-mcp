@@ -117,6 +117,11 @@ export const api = {
     request("POST", "/api/admin/accounts", { account_id, role }),
   myCollections: () => request("GET", "/api/me/collections"),
   myClans: () => request("GET", "/api/me/clans"),
+  verifyList: () => request("GET", "/api/me/verify"),
+  verifyStart: (player_tag) =>
+    request("POST", "/api/me/verify", { player_tag }),
+  verifyStatus: (id) =>
+    request("GET", `/api/me/verify/${encodeURIComponent(id)}`),
   publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
   myRequests: () => request("GET", "/api/me/requests"),
