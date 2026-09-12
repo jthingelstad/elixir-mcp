@@ -35,3 +35,26 @@ After Jamie renews the `jamie` AWS profile, the next Record run should invoke
 were gated while roster evidence said idle, fix the gate at the scheduler with
 a real-fixture regression, then deploy and perform the same readers as
 read-only acceptance.
+
+## Repair and deployed acceptance — 2026-09-12T22:41Z
+
+AWS read and deployment access was renewed. Public status at 22:36Z was
+healthy (DLQ 0, latest fetch/admission 211 seconds) but reported 88 gaps in
+4,101 polls (2.15%). The private readers returned 87 / 4,084 for one day and
+117 / 11,894 for three days; the last-hour stats had 7 gaps in 225 polls. A
+current CR API sample retained the expected 30-entry log, compact UTC battle
+timestamps, rarity-relative levels, evolution fields, and distinct river-race
+fame versus period points. The policy-clock reader returned 80 anchors across
+10 clans with a 7-minute median offset. No API-model drift was found.
+
+The high-gap sample `#PQQPUR8UL` had a 30-entry gap admitted at 22:22:51Z and
+the live roster later reported `lastSeen` 21:35:53Z, while 17 clan members were
+seen in the following hour. This made roster `lastSeen` an unsafe negative
+signal for a rotating battle log, even when the clan is active. Commit
+`bd85c9b` stops that gate from suppressing `player_battlelog` while retaining
+it for profiles, with a scheduler regression, recording docs, update copy and
+the durable decision in `docs/NOTES.md`. `npm run verify` passed. It was pushed
+and deployed; the scheduler Lambda is Active with lastModified
+2026-09-12T22:40:27Z, the public update page is live, and the newest audited
+gap remained 22:32:55Z (before deploy). Keep the capture rate as an active
+24-hour and three-day watch; do not claim the trailing rate has recovered yet.
