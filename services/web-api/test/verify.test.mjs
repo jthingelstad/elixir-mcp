@@ -66,14 +66,39 @@ async function seedCollection(tag, n = 20) {
   );
 }
 
-async function setDeck(tag, ids, observedAt = new Date()) {
+let battleSeq = 0;
+/** A recorded battle for `tag` with the given deck, against a stand-in
+ *  opponent; the shape the battlelog projector writes. */
+async function playBattle(tag, ids, at = new Date(), outcome = "win") {
+  battleSeq += 1;
+  const battleId = `verify-battle-${process.pid}-${battleSeq}`;
+  const opponent = "#PPRJ8V0L";
   await db.query(
-    `insert into player_current_deck (player_tag, cards, deck_hash, observed_at)
-     values ($1, $2::jsonb, $3, $4)
-     on conflict (player_tag) do update set cards = excluded.cards,
-       deck_hash = excluded.deck_hash, observed_at = excluded.observed_at`,
-    [tag, JSON.stringify(ids.map((id) => ({ id }))), ids.join(","), observedAt],
+    `insert into player (player_tag, name) values ($1, 'Rival') on conflict do nothing`,
+    [opponent],
   );
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, game_mode_name)
+     values ($1, $2, 'pathOfLegend', 'pvp', 'Ranked1v1_NewArena2')`,
+    [battleId, at],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, crowns, deck, outcome, battle_time)
+     values ($1, $2, 0, $5, $3::jsonb, $4, $6),
+            ($1, $7, 1, $8, '{"norm":1,"cards":[]}'::jsonb, $9, $6)`,
+    [
+      battleId,
+      tag,
+      JSON.stringify({ norm: 1, cards: ids.map((id) => ({ id, level: 14 })) }),
+      outcome,
+      outcome === "win" ? 3 : 1,
+      at,
+      opponent,
+      outcome === "win" ? 1 : 3,
+      outcome === "win" ? "loss" : "win",
+    ],
+  );
+  return battleId;
 }
 
 before(async () => {
@@ -175,7 +200,7 @@ test("start: creates the claim if absent, draws eight owned plain cards, is idem
     "eight distinct",
   );
   assert.equal(c.live_pending, true);
-  assert.deepEqual(asked, [{ endpoint: "player", entityKey: TAG }]);
+  assert.deepEqual(asked, [{ endpoint: "player_battlelog", entityKey: TAG }]);
   // The claim exists now, unverified, and the account's live quota is untouched.
   const { rows: claim } = await db.query(
     `select status from claim where account_id = $1 and player_tag = $2`,
@@ -217,7 +242,7 @@ test("start: creates the claim if absent, draws eight owned plain cards, is idem
   assert.equal(open[0].n, 1, "one open challenge per claim");
 });
 
-test("poll: partial matches light up, a full match observed after the brief verifies the claim, and a later poll resumes the verified state", async () => {
+test("poll: a near-miss battle lights up what matched, a battle after the brief with the target deck verifies the claim and names the proof, and a later poll resumes the verified state", async () => {
   const routes = verifyRoutes({
     resolveAccount: async () => ({
       accountId: person,
@@ -241,10 +266,11 @@ test("poll: partial matches light up, a full match observed after the brief veri
   const target = open[0].target_card_ids;
   const poll = () => routes["GET /api/me/verify/*"](db, { pathParam: id });
 
-  // Nothing seen yet.
+  // No battle yet.
   let r = JSON.parse((await poll()).body);
   assert.equal(r.state, "open");
-  assert.equal(r.seen, null);
+  assert.equal(r.last_battle, null);
+  assert.equal(r.battles_since, 0);
   assert.equal(r.matched, 0);
 
   // Half the target in the slot: four light up, not verified. Fillers come
@@ -252,33 +278,54 @@ test("poll: partial matches light up, a full match observed after the brief veri
   const fillers = Array.from({ length: 20 }, (_, i) => 26000001 + i)
     .filter((id) => !target.includes(id))
     .slice(0, 4);
-  await setDeck(TAG, [...target.slice(0, 4), ...fillers]);
+  await playBattle(
+    TAG,
+    [...target.slice(0, 4), ...fillers],
+    new Date(),
+    "loss",
+  );
   r = JSON.parse((await poll()).body);
   assert.equal(r.state, "open");
   assert.equal(r.matched, 4);
   assert.equal(r.target.filter((x) => x.matched).length, 4);
-  assert.equal(r.seen.length, 8);
+  assert.equal(r.battles_since, 1);
+  assert.equal(r.last_battle.cards.length, 8);
+  assert.equal(r.last_battle.outcome, "loss");
+  assert.equal(r.last_battle.opponent.name, "Rival");
+  assert.equal(r.last_battle.proof, false);
 
-  // The full target, but observed BEFORE the brief: not proof.
-  await setDeck(TAG, target, new Date(Date.now() - 3600_000));
+  // The full target, but played BEFORE the brief: not proof.
+  await playBattle(TAG, target, new Date(Date.now() - 3600_000));
   r = JSON.parse((await poll()).body);
-  assert.equal(
-    r.state,
-    "open",
-    "a deck seen before the challenge proves nothing",
-  );
+  assert.equal(r.state, "open", "a battle before the challenge proves nothing");
 
-  // The full target, in a different order, seen now: verified.
-  await setDeck(TAG, [...target].reverse());
+  // The full target, in a different order, played now: verified, and the
+  // proving battle is named with its result.
+  const proofId = await playBattle(
+    TAG,
+    [...target].reverse(),
+    new Date(),
+    "win",
+  );
   r = JSON.parse((await poll()).body);
   assert.equal(r.state, "verified");
   assert.ok(r.verified_at);
+  assert.equal(r.last_battle.battle_id, proofId);
+  assert.equal(r.last_battle.proof, true);
+  assert.equal(r.last_battle.outcome, "win");
+  assert.equal(r.matched, 8);
+  const { rows: ch } = await db.query(
+    `select proof_battle_id, outcome from claim_challenge where challenge_id = $1`,
+    [id],
+  );
+  assert.equal(ch[0].proof_battle_id, proofId);
+  assert.equal(ch[0].outcome, "verified");
   const { rows: claim } = await db.query(
     `select status, verified_method, verified_at from claim where account_id = $1 and player_tag = $2`,
     [person, TAG],
   );
   assert.equal(claim[0].status, "verified");
-  assert.equal(claim[0].verified_method, "deck_slot");
+  assert.equal(claim[0].verified_method, "deck_battle");
   assert.ok(claim[0].verified_at);
 
   // Resume: polling again says verified; starting again says verified.
@@ -400,7 +447,7 @@ test("a player with no recorded collection yet: the start asks for a read and sa
   );
 });
 
-test("expiry: an open challenge past its time reads as expired, and a new start draws a fresh target", async () => {
+test("expiry: an open challenge past its time reads as expired, and a restart hands back the SAME target", async () => {
   await seedCollection(OTHER_TAG);
   const routes = verifyRoutes({
     resolveAccount: async () => ({
@@ -440,6 +487,11 @@ test("expiry: an open challenge past its time reads as expired, and a new start 
   );
   assert.equal(second.state, "open");
   assert.notEqual(second.challenge_id, first.challenge_id);
+  assert.deepEqual(
+    second.target.map((x) => x.id),
+    first.target.map((x) => x.id),
+    "a challenge that never matched is not a new deck to build",
+  );
 });
 
 test("rate limits: starts are capped per hour, and the live lane is asked at most once per cadence while polling", async () => {

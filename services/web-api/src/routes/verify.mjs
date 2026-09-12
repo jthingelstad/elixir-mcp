@@ -7,20 +7,26 @@ import { makeLive } from "../../../mcp/src/live.mjs";
 import { enqueueJob } from "../../../scheduler/src/ledger.mjs";
 
 /**
- * Verify (0080): prove that the signed-in account controls a player by
- * having them set a target deck - the one player-settable field the CR
- * API shows. Three routes: the list, start (idempotent while open), and
- * the poll the wizard reads every ~15 s.
+ * Verify (0080, battles since 0081): prove that the signed-in account
+ * controls a player by having them PLAY ONE BATTLE with a target deck.
+ * The battle log records the deck each participant played and is fresh
+ * within a minute of a match; the profile's currentDeck, the first
+ * design, did not move for over an hour after an in-game slot change
+ * (measured 2026-09-12). Three routes: the list, start (idempotent while
+ * open), and the poll the wizard reads every ~15 s.
  *
- * Reads go through the live lane like `live: true` on players_profile,
- * but with NO quota hook: a person proving who they are may hold no tier.
+ * Reads go through the live lane like `live: true` on battles_query, but
+ * with NO quota hook: a person proving who they are may hold no tier.
  * The challenge row carries the job it asked for, and api_receipt.job_id
  * (0041) says a fetch was a verification read. The browser never causes
  * a fetch directly: the poll route mints at most one live read every
  * LIVE_READ_EVERY_S while the challenge is open and being watched.
  */
 export const DECK_SIZE = 8;
-const CHALLENGE_MINUTES = 20;
+const CHALLENGE_MINUTES = 60;
+/** A restart after a challenge that never matched hands back the SAME
+ *  eight cards for this long, so a slow player does not rebuild a deck. */
+const REUSE_TARGET_HOURS = 24;
 const LIVE_READ_EVERY_S = 45;
 const POLL_EVERY_S = 15;
 /** Challenge starts per hour, per account and per tag: the wizard must
@@ -70,30 +76,61 @@ async function expireStale(db, accountId, tag) {
   );
 }
 
-/** What the wizard sees: the target with art, the deck last seen with
- *  art and per-card match, and the outcome. */
-async function present(db, row, { livePending = false } = {}) {
-  const targetIds = row.target_card_ids.map(Number);
-  const { rows: seen } = await db.query(
-    `select d.cards, d.observed_at,
-            (select r.fetched_at from api_receipt r
-              where r.entity_key = $1 and r.endpoint = 'player'
-                and r.admission = 'admitted'
-              order by r.fetched_at desc limit 1) as profile_at
-       from player_current_deck d where d.player_tag = $1`,
-    [row.player_tag],
+/** The battles this player has played since the brief, newest first,
+ *  each with the ids of the deck they used. Duels (rounds) carry no
+ *  single deck and never match. */
+async function battlesSince(db, tag, since, limit = 10) {
+  const { rows } = await db.query(
+    `select bp.battle_id, bp.battle_time, bp.deck, bp.outcome, bp.crowns, bp.side,
+            b.type, b.game_mode_name,
+            (select json_build_object('player_tag', o.player_tag, 'name', p.name, 'crowns', o.crowns)
+               from battle_participant o join player p on p.player_tag = o.player_tag
+              where o.battle_id = bp.battle_id and o.side <> bp.side
+              order by o.player_tag limit 1) as opponent
+       from battle_participant bp join battle b on b.battle_id = bp.battle_id
+      where bp.player_tag = $1 and bp.battle_time >= $2::timestamptz
+      order by bp.battle_time desc limit $3`,
+    [tag, since, limit],
   );
-  const deck = seen[0] ?? null;
-  const seenIds = deck ? deck.cards.map((c) => Number(c.id)) : [];
-  const art = await cardsById(db, [...new Set([...targetIds, ...seenIds])]);
-  const targetSet = new Set(targetIds);
-  const seenSet = new Set(seenIds);
-  const { rows: profile } = await db.query(
+  return rows.map((r) => ({
+    ...r,
+    ids: Array.isArray(r.deck?.cards)
+      ? r.deck.cards.map((c) => Number(c.id)).filter(Number.isInteger)
+      : [],
+  }));
+}
+
+/** When the battle log was last read for this player. */
+async function battlelogReadAt(db, tag) {
+  const { rows } = await db.query(
     `select r.fetched_at from api_receipt r
-      where r.entity_key = $1 and r.endpoint = 'player' and r.admission = 'admitted'
+      where r.entity_key = $1 and r.endpoint = 'player_battlelog' and r.admission = 'admitted'
       order by r.fetched_at desc limit 1`,
-    [row.player_tag],
+    [tag],
   );
+  return rows[0]?.fetched_at ?? null;
+}
+
+/** What the wizard sees: the target with art, the latest battle since
+ *  the brief with its deck marked card by card and its result, how many
+ *  battles have been seen since, and the outcome. */
+async function present(db, row, { livePending = false, battle = null } = {}) {
+  const targetIds = row.target_card_ids.map(Number);
+  const targetSet = new Set(targetIds);
+  const since = await battlesSince(db, row.player_tag, row.created_at);
+  // The proving battle when verified, else the newest since the brief.
+  const shown =
+    battle ??
+    (row.proof_battle_id
+      ? (since.find((b) => b.battle_id === row.proof_battle_id) ?? null)
+      : (since[0] ?? null));
+  const shownIds = shown ? shown.ids : [];
+  const shownSet = new Set(shownIds);
+  const art = await cardsById(db, [...new Set([...targetIds, ...shownIds])]);
+  const card = (id, matched) => ({
+    ...(art.get(id) ?? { id, name: null, icon: null }),
+    matched,
+  });
   return {
     state: row.outcome,
     challenge_id: row.challenge_id,
@@ -102,19 +139,23 @@ async function present(db, row, { livePending = false } = {}) {
     created_at: row.created_at,
     expires_at: row.expires_at,
     verified_at: row.verified_at ?? null,
-    target: targetIds.map((id) => ({
-      ...(art.get(id) ?? { id, name: null, icon: null }),
-      matched: seenSet.has(id),
-    })),
-    seen: deck
-      ? seenIds.map((id) => ({
-          ...(art.get(id) ?? { id, name: null, icon: null }),
-          matched: targetSet.has(id),
-        }))
+    target: targetIds.map((id) => card(id, shownSet.has(id))),
+    battles_since: since.length,
+    last_battle: shown
+      ? {
+          battle_id: shown.battle_id,
+          battle_time: shown.battle_time,
+          type: shown.type,
+          mode: shown.game_mode_name ?? null,
+          outcome: shown.outcome ?? null,
+          crowns: shown.crowns ?? null,
+          opponent: shown.opponent ?? null,
+          cards: shownIds.map((id) => card(id, targetSet.has(id))),
+          proof: row.proof_battle_id === shown.battle_id,
+        }
       : null,
-    seen_at: deck?.observed_at ?? null,
-    profile_at: profile[0]?.fetched_at ?? deck?.profile_at ?? null,
-    matched: targetIds.filter((id) => seenSet.has(id)).length,
+    read_at: await battlelogReadAt(db, row.player_tag),
+    matched: targetIds.filter((id) => shownSet.has(id)).length,
     of: DECK_SIZE,
     live_pending: livePending,
     retry_after_s: POLL_EVERY_S,
@@ -144,7 +185,10 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
    *  Returns whether a read is pending and, when one was minted or
    *  promoted, its job id. */
   async function requestRead(db, tag) {
-    const r = await liveRead(db, { endpoint: "player", entityKey: tag });
+    const r = await liveRead(db, {
+      endpoint: "player_battlelog",
+      entityKey: tag,
+    });
     if (r.ok) return { pending: false, jobId: null, fresh: true };
     if (r.reason === "pending") return { pending: true, jobId: r.job_id };
     return { pending: false, jobId: null, fresh: false };
@@ -275,7 +319,9 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       // ago has no collection yet: ask for a read and say so.
       const owned = await ownedPlainCards(db, tag);
       if (owned.length < DECK_SIZE) {
-        const read = await requestRead(db, tag);
+        // The collection lives on the profile: that one read is a profile.
+        const p = await liveRead(db, { endpoint: "player", entityKey: tag });
+        const read = { pending: !p.ok && p.reason === "pending" };
         return json(202, {
           state: "collecting",
           player_tag: tag,
@@ -283,7 +329,22 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
           retry_after_s: POLL_EVERY_S,
         });
       }
-      const target = shuffle(owned).slice(0, DECK_SIZE);
+      // A challenge that ran out without a match hands back the same
+      // eight cards for a day: the player may already hold that deck.
+      const { rows: prior } = await db.query(
+        `select target_card_ids from claim_challenge
+          where account_id = $1 and player_tag = $2 and outcome = 'expired'
+            and created_at > now() - make_interval(hours => $3)
+          order by created_at desc limit 1`,
+        [account.accountId, tag, REUSE_TARGET_HOURS],
+      );
+      const ownedSet = new Set(owned);
+      const reusable = prior[0]?.target_card_ids?.map(Number) ?? [];
+      const target =
+        reusable.length === DECK_SIZE &&
+        reusable.every((id) => ownedSet.has(id))
+          ? reusable
+          : shuffle(owned).slice(0, DECK_SIZE);
       const { rows: created } = await db.query(
         `insert into claim_challenge (account_id, player_tag, target_card_ids, expires_at)
          values ($1, $2, $3::int[], now() + make_interval(mins => $4))
@@ -332,31 +393,21 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         return json(200, await present(db, { ...row, outcome: "expired" }));
       }
 
-      // The proof: the deck seen AFTER the brief holds exactly the target.
-      const { rows: seen } = await db.query(
-        `select cards, observed_at from player_current_deck where player_tag = $1`,
-        [row.player_tag],
-      );
-      const deck = seen[0];
-      if (
-        deck &&
-        new Date(deck.observed_at).getTime() >=
-          new Date(row.created_at).getTime() &&
-        deckMatches(
-          row.target_card_ids,
-          deck.cards.map((c) => c.id),
-        )
-      ) {
+      // The proof: a battle played AFTER the brief with exactly the target.
+      const since = await battlesSince(db, row.player_tag, row.created_at);
+      const proof = since.find((b) => deckMatches(row.target_card_ids, b.ids));
+      if (proof) {
         await db.query("begin");
         try {
           await db.query(
-            `update claim set status = 'verified', verified_method = 'deck_slot', verified_at = now()
+            `update claim set status = 'verified', verified_method = 'deck_battle', verified_at = now()
               where account_id = $1 and player_tag = $2`,
             [account.accountId, row.player_tag],
           );
           await db.query(
-            `update claim_challenge set outcome = 'verified', completed_at = now() where challenge_id = $1`,
-            [row.challenge_id],
+            `update claim_challenge set outcome = 'verified', completed_at = now(), proof_battle_id = $2
+              where challenge_id = $1`,
+            [row.challenge_id, proof.battle_id],
           );
           await db.query("commit");
         } catch (err) {
@@ -368,16 +419,22 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         }
         await logEvent(db, account.accountId, "claim_verified", {
           player_tag: row.player_tag,
-          method: "deck_slot",
+          method: "deck_battle",
+          battle_id: proof.battle_id,
         });
         const done = await claimFor(db, account.accountId, row.player_tag);
         return json(
           200,
-          await present(db, {
-            ...row,
-            outcome: "verified",
-            verified_at: done?.verified_at ?? new Date().toISOString(),
-          }),
+          await present(
+            db,
+            {
+              ...row,
+              outcome: "verified",
+              proof_battle_id: proof.battle_id,
+              verified_at: done?.verified_at ?? new Date().toISOString(),
+            },
+            { battle: proof },
+          ),
         );
       }
 
@@ -400,7 +457,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         );
       } else {
         const { rows: openJob } = await db.query(
-          `select 1 from job where endpoint = 'player' and entity_key = $1
+          `select 1 from job where endpoint = 'player_battlelog' and entity_key = $1
              and status in ('queued', 'leased') limit 1`,
           [row.player_tag],
         );

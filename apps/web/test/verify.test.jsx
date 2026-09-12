@@ -47,19 +47,38 @@ const OPEN = {
   created_at: "2026-09-12T14:00:00Z",
   expires_at: new Date(Date.now() + 19 * 60_000).toISOString(),
   target: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => card(i)),
-  seen: null,
-  seen_at: null,
-  profile_at: null,
+  battles_since: 0,
+  last_battle: null,
+  read_at: null,
   matched: 0,
   of: 8,
   live_pending: true,
   retry_after_s: 15,
 };
+const battle = (cards, outcome, proof = false) => ({
+  battle_id: `b-${outcome}`,
+  battle_time: "2026-09-12T14:01:30Z",
+  type: "pathOfLegend",
+  mode: "Path of Legends",
+  outcome,
+  crowns: outcome === "win" ? 3 : 1,
+  opponent: {
+    player_tag: "#RIVAL",
+    name: "Rival",
+    crowns: outcome === "win" ? 1 : 3,
+  },
+  cards,
+  proof,
+});
 const PARTIAL = {
   ...OPEN,
   target: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => card(i, i <= 3)),
-  seen: [1, 2, 3, 20, 21, 22, 23, 24].map((i) => card(i, i <= 3)),
-  seen_at: "2026-09-12T14:01:30Z",
+  battles_since: 1,
+  last_battle: battle(
+    [1, 2, 3, 20, 21, 22, 23, 24].map((i) => card(i, i <= 3)),
+    "loss",
+  ),
+  read_at: "2026-09-12T14:01:30Z",
   matched: 3,
   live_pending: false,
 };
@@ -67,7 +86,12 @@ const VERIFIED = {
   ...PARTIAL,
   state: "verified",
   target: PARTIAL.target.map((c) => ({ ...c, matched: true })),
-  seen: PARTIAL.target.map((c) => ({ ...c, matched: true })),
+  battles_since: 2,
+  last_battle: battle(
+    PARTIAL.target.map((c) => ({ ...c, matched: true })),
+    "win",
+    true,
+  ),
   matched: 8,
   verified_at: "2026-09-12T14:02:10Z",
 };
@@ -163,15 +187,21 @@ test("the picker lists the account's players and a start shows the eight-card br
   expect(screen.getAllByRole("button", { name: "Verify" }).length).toBe(1);
   expect(screen.getAllByLabelText("Verified").length).toBeGreaterThanOrEqual(1);
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() => screen.getByRole("heading", { name: "Set this deck" }));
+  await waitFor(() =>
+    screen.getByRole("heading", { name: "Play one battle with this deck" }),
+  );
   expect(posts).toEqual([{ player_tag: "#2PP0V90Y" }]);
-  const target = screen.getByRole("list", { name: "The deck to set" });
+  const target = screen.getByRole("list", { name: "The deck to play" });
   expect(target.querySelectorAll(".deck__slot").length).toBe(8);
   expect(target.querySelectorAll("img").length).toBe(8);
-  // Nothing seen yet: eight empty slots on the live side, and 0 of 8.
-  const seen = screen.getByRole("list", { name: "The deck Elixir last saw" });
+  // No battle yet: eight empty slots on the live side.
+  const seen = screen.getByRole("list", {
+    name: "The deck in your latest battle",
+  });
   expect(seen.querySelectorAll(".deck__slot--empty").length).toBe(8);
-  expect(screen.getByRole("status").textContent).toMatch(/0 of 8 in place/);
+  expect(screen.getByRole("status").textContent).toMatch(
+    /No battle since you started/,
+  );
   expect(screen.getByText(/19 min left/)).toBeTruthy();
 });
 
@@ -181,18 +211,22 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
   render(<App />);
   await waitFor(() => screen.getByText("King Thing"));
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() => screen.getByRole("heading", { name: "Set this deck" }));
+  await waitFor(() =>
+    screen.getByRole("heading", { name: "Play one battle with this deck" }),
+  );
 
   await act(async () => {
     await vi.advanceTimersByTimeAsync(15_100);
   });
   await waitFor(() =>
-    expect(screen.getByRole("status").textContent).toMatch(/3 of 8 in place/),
+    expect(screen.getByRole("status").textContent).toMatch(
+      /3 of 8 in that deck · Loss 1-3 vs Rival · Path of Legends/,
+    ),
   );
-  const target = screen.getByRole("list", { name: "The deck to set" });
+  const target = screen.getByRole("list", { name: "The deck to play" });
   expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
   expect(screen.getByRole("status").textContent).toMatch(
-    /last read \d\d:\d\d:\d\d/,
+    /log read \d\d:\d\d:\d\d/,
   );
 
   await act(async () => {
@@ -200,6 +234,7 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
   });
   await waitFor(() => screen.getByText(/switch your deck back now/));
   expect(screen.getByRole("status").textContent).toMatch(/Verified/);
+  expect(screen.getByText(/The proof: Win 3-1 vs Rival/)).toBeTruthy();
   expect(document.querySelectorAll(".verify__spark").length).toBe(12);
   // The poll stops once verified: no further status reads.
   const before = global.fetch.mock.calls.filter((c) =>
@@ -229,7 +264,9 @@ test("reduced motion: the badge lands without sparks", async () => {
   render(<App />);
   await waitFor(() => screen.getByText("King Thing"));
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() => screen.getByRole("heading", { name: "Set this deck" }));
+  await waitFor(() =>
+    screen.getByRole("heading", { name: "Play one battle with this deck" }),
+  );
   await act(async () => {
     await vi.advanceTimersByTimeAsync(15_100);
   });
@@ -276,6 +313,8 @@ test("a start that finds no collection yet says so and retries", async () => {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(15_100);
   });
-  await waitFor(() => screen.getByRole("heading", { name: "Set this deck" }));
+  await waitFor(() =>
+    screen.getByRole("heading", { name: "Play one battle with this deck" }),
+  );
   expect(n).toBe(2);
 });

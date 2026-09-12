@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-12",
+    title: "Verify asks for one battle, not a deck slot",
+    body: "The first Verify waited for your profile's current deck to show the eight cards. On the owner's own account it never did: the API kept reporting the old deck for over an hour after the slot was selected, with the game closed. The battle log has no such lag, so Verify now asks you to play one battle with the deck, any 1v1, win or lose, and shows that battle's result as the proof. Challenges stay open for an hour, a restart hands back the same eight cards for a day, only your primary player or an alt can be verified, and verified players carry a checkmark wherever they are listed.",
+  },
+  {
+    date: "2026-09-12",
     title: "Verify: prove a player is yours with a deck",
     body: "A claim on a player was taken on trust. Console ▸ Verify now proves it with the one field the game lets you set and the API shows to everyone: your active deck. Elixir names eight cards you own, shown two rows of four like the game; you put them in an empty deck slot and select it, and the page beside the brief shows what Elixir last saw, card by card, refreshed every fifteen seconds until all eight light up. Then the claim is marked verified and you switch your deck back. Challenges last twenty minutes, resume across a refresh, and the reads they ask for are not charged to your live-fetch allowance. Nothing is gated on it yet; the fact now exists for products that will.",
   },

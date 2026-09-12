@@ -3186,6 +3186,12 @@ input[aria-invalid="true"] {
 .verify__when {
   color: var(--ink-dim);
 }
+.verify__result {
+  margin: var(--s-2) 0 0;
+  font-size: var(--t-body);
+  color: var(--ink-body);
+  text-align: center;
+}
 .verified {
   display: inline-flex;
   align-items: center;

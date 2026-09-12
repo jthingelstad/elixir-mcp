@@ -183,7 +183,10 @@ export function Verify({ refresh, navigate }) {
         {header}
         <section className="panel verify__done">
           <div className="panel__body">
-            <VerifiedBurst name={challenge.name ?? challenge.player_tag} />
+            <VerifiedBurst
+              name={challenge.name ?? challenge.player_tag}
+              battle={challenge.last_battle}
+            />
             <p className="verify__next">
               You can switch your deck back now.
               {challenge.verified_at && (
@@ -266,19 +269,21 @@ export function Verify({ refresh, navigate }) {
         <div className="verify__panels">
           <section className="panel">
             <div className="panel__head">
-              <h2>Set this deck</h2>
+              <h2>Play one battle with this deck</h2>
             </div>
             <div className="panel__body">
               <p className="verify__lead">
-                Put these 8 cards in an empty deck slot and select it. Switch
-                back afterwards.
+                Build these 8 cards in a deck slot and play one battle with it.
+                Any 1v1 counts; Trophy Road or Path of Legends is quickest. Win
+                or lose, the battle is the proof, and you can switch back
+                afterwards.
               </p>
-              <DeckGrid cards={challenge.target} label="The deck to set" />
+              <DeckGrid cards={challenge.target} label="The deck to play" />
             </div>
           </section>
           <section className="panel">
             <div className="panel__head">
-              <h2>What Elixir sees</h2>
+              <h2>Your latest battle</h2>
             </div>
             <div className="panel__body">
               <div className="verify__live" role="status">
@@ -286,23 +291,29 @@ export function Verify({ refresh, navigate }) {
                   <span className="verify__dot" aria-hidden="true" />
                 )}
                 <span>
-                  <strong>{challenge.matched}</strong> of {challenge.of} in
-                  place · last read{" "}
-                  {clock(challenge.profile_at ?? challenge.seen_at)}
+                  {challenge.last_battle ? (
+                    <>
+                      <strong>{challenge.matched}</strong> of {challenge.of} in
+                      that deck · {resultLine(challenge.last_battle)}
+                    </>
+                  ) : (
+                    <>No battle since you started</>
+                  )}
+                  {" · "}log read {clock(challenge.read_at)}
                 </span>
               </div>
               <div className="verify__tick" aria-hidden="true">
                 <i key={tick} />
               </div>
               <DeckGrid
-                cards={challenge.seen}
-                label="The deck Elixir last saw"
+                cards={challenge.last_battle?.cards ?? null}
+                label="The deck in your latest battle"
                 dimUnmatched
               />
               <p className="verify__hint">
-                The game's API caches profiles, so a freshly set deck usually
-                shows here in under a minute, sometimes a few. Keep this page
-                open; it checks every 15 seconds.
+                A finished battle reaches the game's log within about a minute.
+                Keep this page open; it checks every 15 seconds, and the
+                challenge stays open for an hour.
               </p>
             </div>
           </section>
@@ -427,7 +438,26 @@ export function Verify({ refresh, navigate }) {
 /** The unlock: cards have already flipped into place one by one; the
  *  badge lands and a burst radiates. Reduced motion gets the badge
  *  without the flight. */
-function VerifiedBurst({ name }) {
+/** "Win 3-1 vs Name · Path of Legends · 14:03" */
+function resultLine(b) {
+  if (!b) return "";
+  const who = b.opponent?.name ?? b.opponent?.player_tag ?? "an opponent";
+  const score =
+    b.crowns != null && b.opponent?.crowns != null
+      ? ` ${b.crowns}-${b.opponent.crowns}`
+      : "";
+  const verb =
+    b.outcome === "win"
+      ? "Win"
+      : b.outcome === "loss"
+        ? "Loss"
+        : b.outcome === "draw"
+          ? "Draw"
+          : "Played";
+  return `${verb}${score} vs ${who}${b.mode ? ` · ${b.mode}` : ""} · ${clock(b.battle_time)}`;
+}
+
+function VerifiedBurst({ name, battle }) {
   const still = reducedMotion();
   return (
     <div className="verify__burst" data-motion={still ? "reduced" : "full"}>
@@ -448,6 +478,9 @@ function VerifiedBurst({ name }) {
         <strong>{name}</strong> is yours. Every agent that asks about you can
         now be told so.
       </p>
+      {battle && (
+        <p className="verify__result">The proof: {resultLine(battle)}</p>
+      )}
     </div>
   );
 }
