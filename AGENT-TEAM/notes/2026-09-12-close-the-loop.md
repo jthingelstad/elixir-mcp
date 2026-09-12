@@ -41,8 +41,19 @@ or contract version changes; docs ship with What's New and the MCP corpus.
 
 `npm run verify` passed (formatting, lint, Knip and all workspace tests) before
 publication. The four focused pulse tests also pass, with the new checks
-demonstrated failing against the old example. Site/MCP publication and live
-read-back are the remaining acceptance steps.
+demonstrated failing against the old example. `87a8134` is pushed and deployed;
+the deploy exited zero (79 migrations already applied, none run), validated
+the 260-file merged build and passed its live smoke gate. All 22 built-site
+checks pass without skips. Read-only acceptance at 06:52 CDT confirmed the
+correct JSON example in the public event guide and in
+`elixir_docs({page:"events",section:"the-clan-pulse"})`, request
+`796e96e8-58c2-4fe5-8529-ef28a66b9c03`. The public What's New correction is
+also live. The final feedback read-back remains empty; health is green with
+239-second fetch/admission age and zero queued, leased, dead or DLQ jobs.
+
+Natural preview logs since the previous run contain three `routine_posted`
+receipts (war-deck-check once, clan-feed twice), two `events_consumed` receipts,
+and no warning, failed or skipped routines. These were observed, not triggered.
 
 ## Existing receipts and watches
 
