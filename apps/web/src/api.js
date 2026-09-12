@@ -52,6 +52,16 @@ export const api = {
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>
     request("POST", "/api/auth/code", { email, code }),
+  // The cross-context handoff (0083): the screen that asked polls; the
+  // screen that opened the link from elsewhere confirms.
+  pollSignIn: (poll_id) => request("POST", "/api/auth/poll", { poll_id }),
+  confirmHandoff: (confirm) =>
+    request("POST", "/api/auth/handoff", { confirm }),
+  sessions: () => request("GET", "/api/me/sessions"),
+  revokeSession: (session_id) =>
+    request("POST", "/api/me/sessions/revoke", { session_id }),
+  revokeSessionsEverywhere: () =>
+    request("POST", "/api/me/sessions/revoke", { everywhere: true }),
   dismissRefusal: (body) =>
     request("POST", "/api/me/connections/refusals/dismiss", body),
   signOut: () => request("POST", "/api/session/signout", {}),

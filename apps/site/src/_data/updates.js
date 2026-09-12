@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-12",
+    title: "Fewer sign-ins, and a list of where you are signed in",
+    body: "Elixir was asking for sign-in more than it should have, and a census of the owner's own sessions showed why: sessions were not expiring, sign-ins were happening beside live ones. Four causes, fixed. When the page could not reach Elixir it showed the sign-in wall; now it retries once and then says Elixir didn't answer, and never calls you signed out for a request that did not get through. Every OAuth consent went to your inbox even when you were signed in; now the consent page honours your sign-in (one Authorize), and consenting by code signs you in to the site too. The idle window is thirty days instead of nine (ninety at most, as before). And a sign-in started on one screen and finished on another - the link opened in the phone's mail app - now signs in the screen that asked, at once from the same address and after a yes from a different one; the sixth email in an hour is answered honestly instead of promised. New on Console ▸ Profile: Devices, every place you are signed in with a sign-out for each and one for everywhere else.",
+  },
+  {
+    date: "2026-09-12",
     title: "clans_participation: every member's week, in one call",
     body: "A clan's own participation rules need the same few facts about every member: battles and ranked battles per week, the donation counter at week end, war decks per day, when the record first saw them, when they last played. Getting those for fifty members meant a call per member. clans_participation answers all of it for every open member in one call, per ISO week for up to eight weeks, with each war week's per-day decks where a poll saw the day and null where none did, and the recording horizon stated (tenure_known is false for anyone already present at the first roster poll). It measures and never rates: no score, no threshold, no rank. Elixir Clan reads it to run a clan's policy; any consumer can.",
   },

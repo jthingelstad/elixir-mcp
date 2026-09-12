@@ -1148,3 +1148,67 @@ path. **Acceptance:** the one deliberate end-to-end run is on Jamie's
 own tag (King Thing) — recorded below when done.
 
 **VERIFY ACCEPTED, BY A BATTLE, NOT A DECK SLOT (2026-09-12 13:37–15:3xZ; 0081; commits 5ca41ad / 2ea4c47 / 7582b4e / abfa39c, each deployed):** The deck-slot run on King Thing started 13:37:50Z. Live reads landed (13:37:52, 13:42:52, 13:46:38, 13:48:10Z) and every one carried the old deck; slot 5 was complete and selected by 13:44Z. The CR API was then probed directly once a minute (`infra/scripts/cr-api.mjs`, what it is for): from 13:53Z to 14:54Z `currentDeck` never moved, `battleCount` stayed 1927, with the game closed from 13:56Z and no battle. Jamie: "seems much slower to sync than expected… this will change how the UX communicates… ask the player to do a Classic 1v1 battle with a specific deck… plus you can show the results of the battle." **Pivot shipped in ~40 minutes:** proof = a battle in the player's own log, played after the brief, whose deck is exactly the eight target ids (`battle_participant.deck.cards[].id`, order/level/form ignored); live reads ask for `player_battlelog`; the proving battle and its result ride the poll (`last_battle`, `proof_battle_id` on the challenge); challenges last 60 min; a restart after a miss reuses the expired target for a day. **Acceptance:** Jamie played a friendly (trail `Showdown_Friendly`, loss 0-2 vs Youthlest) at 14:54:58Z; the log read carrying it landed 14:55:26Z; the claim verified 14:55:39Z — **41 s battle to verified, 28 s battle to first read.** `elixir_my_players` shows `claim_status: verified`. **The API finding, recorded in cr-agent-api-docs (10daec9, pushed):** `currentDeck` changed only at 14:56:23Z, ~90 s after that battle, and then showed the SELECTED slot's deck, not the battle's — the profile is a client-synced snapshot that a battle pushes and idling, closing the app and editing slots do not. **UX changes from the run, all Jamie's:** only the primary or an alt can be verified (`not_yours`); the page lists only those and adds nothing (`not_tracked`; Tracking adds); a checkmark (`VerifiedMark`) beside verified players in the picker, Tracking, Overview and the tracked record; the unlock lands on the two-panel page where the cards lit up (timer chip → Verified chip, all eight lit, proof line + Done under the panels); the unlock says how many seconds after the battle Elixir saw it ("that is how closely the record follows you"); mode ids read as words. **Proposed, not built:** draw the target from the player's own most-played recent deck with two random owned cards swapped in (playable by construction, unmistakable by the swaps; reject any deck they played in the last month; random only for players with no battles) — Jamie: "make sure the deck we ask them to play isn't miserable"; off-page completion (a job checks open challenges on each admitted battlelog, marks the claim, emails and feeds an event) so the page is optional; `verified: true` on `elixir_my_players` / the principal block (it already carries `claim_status`). The 0080 `player_current_deck` projection stays (harmless, written when the deck moves); the 0080 method value `deck_slot` stays readable.
+
+## 2026-09-12 — The sign-in review: why "log in a lot" was true (0083)
+
+Jamie: "it seems like Elixir is making me log in a lot." The server-side
+sessions were sound (multi-session, sliding, revoked only by sign-out), so
+the first answer — "a nine-day idle" — was wrong, and Jamie said so: "9 day
+idle is impossible. I've been using it daily." A read-only census was added
+to the ops Lambda (`{"sessions": true}`, `ops-diagnostics.mjs`) and it
+settled it: 24 sessions in 30 days, 16 of them the owner's, and on
+2026-09-08 alone seven minted at 00:19, 03:07, 05:36, 05:52, 17:22, 19:56
+and 21:58 — several explicitly revoked (sign-outs), the rest still live and
+seen through 09-12. Sessions were not dying. Sign-ins were happening WHILE
+valid sessions existed. Four causes, all in the code, and one gap:
+
+1. **The wall on a transport failure.** `api.me()` answers
+   `{ ok: false, data: {} }` on a timeout, a dropped connection or an edge
+   error page, and `authenticated = me?.authenticated === true` read that as
+   signed out: the "Sign in first" wall, the person signed in again, a second
+   session beside the first. The 09-10 5xx burst (1,684) and the 09-12 stalls
+   in front of the edge were exactly this. Now: one quiet retry 1.5 s later,
+   then "Elixir didn't answer — you are not signed out" with Try again, and
+   an already-loaded `me` is kept. The wall is only ever shown for a
+   `200 { authenticated: false }`.
+2. **Every OAuth consent was a sign-in.** `/oauth/*` sat behind the
+   no-cookie policy, so the door could not know you were signed in to the
+   site, and every connect — Claude, then Clan, then Drop, then Clan again —
+   went to the inbox (six of the day's eleven consents were mine, testing).
+   Now `/oauth/authorize` has its own CloudFront behavior forwarding the ONE
+   cookie (`__Host-elixir_session`), the door resolves it with the same
+   secret, and a signed-in browser sees "You are signed in as … Authorize"
+   with the same capability checkboxes; `?switch=1` is the way out; a client
+   asking for `account:email` from an account with no address on file still
+   goes the code way (that is where the address gets recorded). Consent by
+   code now sets the site cookie on its 303, so the console is signed in
+   afterwards too. `/mcp`, `/oauth/token`, `/a/*`, `/i/*` stay cookie-free;
+   SameSite=Lax means a cross-site form POST cannot carry the cookie to the
+   consent form.
+3. **Sliding window 9 d → 30 d** (absolute 90 unchanged). Nine days was
+   shorter than a holiday. The cookie already lasted 90.
+4. **No cross-context handoff.** Start on the desktop, open the link on the
+   phone, and the desktop stayed on the code step. Drop's poll-id pattern,
+   ported: `POST /api/auth` answers a `poll_id` (minted for every request,
+   stored only when a row is — no oracle), the code step polls
+   `POST /api/auth/poll` every 4 s for the link's 15 min, and a redeem from
+   the SAME viewer address marks the row ready at once. From a DIFFERENT
+   address the redeeming screen is asked first ("Also sign in where you
+   started? Chrome on Mac, US at 3:04 PM") and answers through
+   `POST /api/auth/handoff` with a one-time confirm secret bound to the
+   account that redeemed — somebody who clicks a link they never asked for
+   is the person best placed to say no. Also: the sixth sign-in email in an
+   hour is answered plainly (`limited: true` + message) instead of "one is
+   on its way" about a mail that was never sent; the counter runs for any
+   address so it is not an oracle either.
+5. **Devices on Profile** (Jamie's ask): `GET /api/me/sessions` lists every
+   live session (client label from the user agent — "Safari on iPhone" —
+   never the raw string; viewer address and country; created/last seen/
+   expires), this one marked; `POST /api/me/sessions/revoke` takes one
+   `session_id` (never the current one: that is the rail's button) or
+   `everywhere: true`, which keeps the current session so the list can be
+   read afterwards. CloudFront now forwards `user-agent` to the site API
+   for the label.
+
+Contract unchanged (no tool moved); protocol doc updated; What's-new entry.
+The migrate/ops `sessions` census stays as a read-only diagnostic.

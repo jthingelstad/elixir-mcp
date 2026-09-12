@@ -1035,15 +1035,66 @@ function SignInWall({ navigate }) {
   );
 }
 
+/**
+ * /api/me could not be reached: a timeout, a dropped connection, an edge
+ * error page, a 5xx. Distinct from "not signed in", which is what this
+ * used to render as. The session was fine; the wall said otherwise; the
+ * person signed in again and a second session was minted beside the
+ * first. The census of 2026-09-12 showed exactly that: seven sessions
+ * for one person in one day, none expired.
+ */
+function Unavailable({ onRetry, busy }) {
+  return (
+    <div style={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
+      <div style={{ maxWidth: "400px", textAlign: "center" }}>
+        <h1 className="page__title" style={{ fontSize: "24px" }}>
+          Elixir didn&rsquo;t answer
+        </h1>
+        <p style={{ color: "var(--ink-faint)", fontSize: "13px" }}>
+          The page could not check who you are. You are not signed out; the
+          request did not get through. Try again in a moment.
+        </p>
+        <button
+          className="btn"
+          onClick={onRetry}
+          disabled={busy}
+          style={{ marginTop: "8px" }}
+        >
+          {busy ? "Trying…" : "Try again"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const transportFailed = (res) =>
+  !res.ok && (res.status === 0 || res.status >= 500 || res.error);
+
 export function App() {
   const { path, navigate } = useRoute();
   const [me, setMe] = useState(null); // null = loading
+  const [unreachable, setUnreachable] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const narrow = useNarrow();
 
+  // One quiet retry before the page says anything: a stall in front of
+  // the edge is usually gone a second later. If it is not, the page says
+  // Elixir did not answer and offers to try again; it never says "sign
+  // in first" about a session it could not check.
   const refresh = useCallback(async () => {
-    const { data } = await api.me();
-    setMe(data);
-    return data;
+    let res = await api.me();
+    if (transportFailed(res)) {
+      await new Promise((r) => setTimeout(r, 1500));
+      res = await api.me();
+    }
+    if (transportFailed(res)) {
+      setUnreachable(true);
+      setMe((prev) => prev ?? { authenticated: false });
+      return null;
+    }
+    setUnreachable(false);
+    setMe(res.data);
+    return res.data;
   }, []);
 
   useEffect(() => {
@@ -1107,7 +1158,8 @@ export function App() {
         : null,
   };
 
-  const needsAuth = sec?.authed && !authed && me !== null;
+  const needsAuth = sec?.authed && !authed && me !== null && !unreachable;
+  const showUnavailable = sec?.authed && !authed && unreachable;
   const showRail =
     authed && !needsAuth && effectivePath !== "/signin" && Boolean(here.key);
 
@@ -1148,6 +1200,15 @@ export function App() {
                   onAuthed={async () => {
                     await refresh();
                     navigate("/account/overview");
+                  }}
+                />
+              ) : showUnavailable ? (
+                <Unavailable
+                  busy={retrying}
+                  onRetry={async () => {
+                    setRetrying(true);
+                    await refresh();
+                    setRetrying(false);
                   }}
                 />
               ) : needsAuth ? (

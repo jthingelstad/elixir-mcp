@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { Icon } from "../components/Icon.jsx";
 import { takeLoginToken } from "../url-hygiene.js";
@@ -16,6 +16,16 @@ import { takeLoginToken } from "../url-hygiene.js";
  * request is still WAITING now gets its own answer, because sending
  * somebody round a loop that cannot work is worse than telling them the
  * gate is deliberate.
+ *
+ * THE HANDOFF (0083, 2026-09-12). The screen that asks for the email
+ * keeps asking whether the link has been opened somewhere else - the
+ * phone's mail app, another browser - and signs itself in when it has.
+ * Before this, clicking the link on the phone left the desktop tab on
+ * the code step, waiting for a code the click had already spent. And a
+ * screen that opens a link from a different address than the one that
+ * asked is shown the asking screen's country and time and asked whether
+ * to sign that one in too: somebody who clicks a link they never
+ * requested is the person best placed to say no.
  *
  * THE SIXTH IS THE ACCESS REQUEST, moved here 2026-09-10 because the
  * two doors are one decision: you are either signing in or asking to.
@@ -94,6 +104,18 @@ export function SignIn({ onAuthed }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // What the API said when the email was asked for: the poll id this
+  // screen holds, and whether the send was refused for the hour.
+  const [asked, setAsked] = useState(null);
+  // A link opened here from a different address than the screen that
+  // asked: { confirm, started } until answered.
+  const [handoff, setHandoff] = useState(null);
+  // The poll below must not restart every render (App hands down a fresh
+  // onAuthed each time), so it reads the latest through a ref.
+  const onAuthedRef = useRef(onAuthed);
+  useEffect(() => {
+    onAuthedRef.current = onAuthed;
+  });
 
   // A magic link lands here as /signin?login_token=... — read from the value
   // lifted out of the URL at boot, not from the URL itself, which by now has
@@ -103,17 +125,48 @@ export function SignIn({ onAuthed }) {
     if (!token) return;
     setStep("redeeming");
     api.redeemToken(token).then((res) => {
-      if (res.ok) onAuthed();
-      else setStep(res.data?.error === "not_approved" ? "pending" : "expired");
+      if (!res.ok)
+        return setStep(
+          res.data?.error === "not_approved" ? "pending" : "expired",
+        );
+      if (res.data?.handoff?.state === "confirm") {
+        setHandoff(res.data.handoff);
+        return setStep("handoff");
+      }
+      onAuthed();
     });
   }, [onAuthed]);
+
+  // While the code step waits, ask every four seconds whether the link
+  // was opened somewhere else and allowed; the link's own fifteen
+  // minutes bound it. A collected handoff IS the sign-in.
+  useEffect(() => {
+    if (step !== "code" || !asked?.poll_id) return undefined;
+    let stopped = false;
+    const startedAt = Date.now();
+    const timer = setInterval(async () => {
+      if (stopped || Date.now() - startedAt > 15 * 60 * 1000)
+        return clearInterval(timer);
+      const res = await api.pollSignIn(asked.poll_id);
+      if (stopped) return;
+      if (res.ok && res.data?.ready) {
+        clearInterval(timer);
+        onAuthedRef.current();
+      }
+    }, 4000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [step, asked]);
 
   async function sendEmail(e) {
     e?.preventDefault();
     setError("");
     setBusy(true);
-    await api.sendLoginEmail(email);
+    const res = await api.sendLoginEmail(email);
     setBusy(false);
+    setAsked(res.ok ? res.data : null);
     setStep("code");
   }
 
@@ -146,6 +199,59 @@ export function SignIn({ onAuthed }) {
     return (
       <div style={card}>
         <p style={{ margin: 0, color: "var(--ink-dim)" }}>Signing you in…</p>
+      </div>
+    );
+
+  if (step === "handoff")
+    return (
+      <div style={card}>
+        <Eyebrow icon="circle-check" tone="ok">
+          signed in here
+        </Eyebrow>
+        <h1 className="page__title" style={{ fontSize: "26px" }}>
+          Also sign in where you started?
+        </h1>
+        <p
+          style={{
+            fontSize: "14.5px",
+            lineHeight: 1.6,
+            color: "var(--ink-dim)",
+            margin: "8px 0 18px",
+            textWrap: "pretty",
+          }}
+        >
+          This sign-in was asked for from a different place
+          {handoff?.started?.client ? ` (${handoff.started.client}` : ""}
+          {handoff?.started?.country
+            ? `${handoff?.started?.client ? ", " : " ("}${handoff.started.country}`
+            : ""}
+          {handoff?.started?.client || handoff?.started?.country ? ")" : ""}
+          {handoff?.started?.at
+            ? ` at ${new Date(handoff.started.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+            : ""}
+          . If that was you, sign it in too. If it was not, leave it out.
+        </p>
+        <button
+          className="btn btn--primary"
+          style={primary}
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await api.confirmHandoff(handoff.confirm);
+            setBusy(false);
+            onAuthed();
+          }}
+        >
+          {busy ? "Signing it in…" : "Yes, that was me"}
+        </button>
+        <button
+          className="btn"
+          style={{ ...primary, marginTop: "10px" }}
+          disabled={busy}
+          onClick={() => onAuthed()}
+        >
+          No, just here
+        </button>
       </div>
     );
 
@@ -314,9 +420,16 @@ export function SignIn({ onAuthed }) {
             textWrap: "pretty",
           }}
         >
-          If your account is approved, one is on its way to{" "}
-          <span style={{ color: "var(--ink)" }}>{email}</span>. Click the link,
-          or type the code here.
+          {asked?.limited ? (
+            <span style={{ color: "var(--warn)" }}>{asked.message} </span>
+          ) : (
+            <>
+              If your account is approved, one is on its way to{" "}
+              <span style={{ color: "var(--ink)" }}>{email}</span>.{" "}
+            </>
+          )}
+          Click the link, or type the code here. Opening the link on another
+          device signs this screen in too.
         </p>
         <form
           onSubmit={async (e) => {
