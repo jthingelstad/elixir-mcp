@@ -3186,6 +3186,13 @@ input[aria-invalid="true"] {
 .verify__when {
   color: var(--ink-dim);
 }
+.verify__seen {
+  margin: var(--s-3) auto 0;
+  max-width: 44ch;
+  font-size: 13px;
+  color: var(--ink-dim);
+  text-align: center;
+}
 .verify__result {
   margin: var(--s-2) 0 0;
   font-size: var(--t-body);

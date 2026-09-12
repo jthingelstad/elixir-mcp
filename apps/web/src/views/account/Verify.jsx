@@ -306,6 +306,7 @@ export function Verify({ refresh, navigate }) {
               <VerifiedBurst
                 name={challenge.name ?? challenge.player_tag}
                 battle={challenge.last_battle}
+                seenAfterS={challenge.seen_after_s}
               />
               <p className="verify__next">
                 You can switch your deck back now.
@@ -485,7 +486,7 @@ function resultLine(b) {
   return `${verb}${score} vs ${who}${b.mode ? ` · ${modeLabel(b.mode)}` : ""} · ${clock(b.battle_time)}`;
 }
 
-function VerifiedBurst({ name, battle }) {
+function VerifiedBurst({ name, battle, seenAfterS }) {
   const still = reducedMotion();
   return (
     <div className="verify__burst" data-motion={still ? "reduced" : "full"}>
@@ -508,6 +509,14 @@ function VerifiedBurst({ name, battle }) {
       </p>
       {battle && (
         <p className="verify__result">The proof: {resultLine(battle)}</p>
+      )}
+      {seenAfterS != null && (
+        <p className="verify__seen">
+          Elixir saw this battle in the game&rsquo;s public log{" "}
+          <strong>{seenAfterS} seconds</strong> after it was played. That is how
+          closely the record follows you: every battle, every day, with nothing
+          installed.
+        </p>
       )}
     </div>
   );

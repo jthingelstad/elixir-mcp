@@ -94,6 +94,7 @@ const VERIFIED = {
   ),
   matched: 8,
   verified_at: "2026-09-12T14:02:10Z",
+  seen_after_s: 28,
 };
 
 let statusQueue;
@@ -235,6 +236,7 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
   await waitFor(() => screen.getByText(/switch your deck back now/));
   expect(screen.getByRole("status").textContent).toMatch(/Verified/);
   expect(screen.getByText(/The proof: Win 3-1 vs Rival/)).toBeTruthy();
+  expect(screen.getByText(/28 seconds/)).toBeTruthy();
   expect(document.querySelectorAll(".verify__spark").length).toBe(12);
   // The unlock lands on the same page: the brief and the proving battle
   // stay, with all eight lit, and the timer is gone.

@@ -314,6 +314,11 @@ test("poll: a near-miss battle lights up what matched, a battle after the brief 
   assert.equal(r.last_battle.proof, true);
   assert.equal(r.last_battle.outcome, "win");
   assert.equal(r.matched, 8);
+  assert.equal(
+    r.seen_after_s,
+    null,
+    "no log read in the scratch record: nothing to claim",
+  );
   const { rows: ch } = await db.query(
     `select proof_battle_id, outcome from claim_challenge where challenge_id = $1`,
     [id],

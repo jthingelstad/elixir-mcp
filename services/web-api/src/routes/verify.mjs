@@ -131,6 +131,7 @@ async function present(db, row, { livePending = false, battle = null } = {}) {
     ...(art.get(id) ?? { id, name: null, icon: null }),
     matched,
   });
+  const readAt = await battlelogReadAt(db, row.player_tag);
   return {
     state: row.outcome,
     challenge_id: row.challenge_id,
@@ -154,7 +155,20 @@ async function present(db, row, { livePending = false, battle = null } = {}) {
           proof: row.proof_battle_id === shown.battle_id,
         }
       : null,
-    read_at: await battlelogReadAt(db, row.player_tag),
+    read_at: readAt,
+    // How close the record follows the player: seconds from the proving
+    // battle's time to the log read that carried it (the unlock says so).
+    seen_after_s:
+      shown && readAt && row.proof_battle_id === shown.battle_id
+        ? Math.max(
+            0,
+            Math.round(
+              (new Date(readAt).getTime() -
+                new Date(shown.battle_time).getTime()) /
+                1000,
+            ),
+          )
+        : null,
     matched: targetIds.filter((id) => shownSet.has(id)).length,
     of: DECK_SIZE,
     live_pending: livePending,
