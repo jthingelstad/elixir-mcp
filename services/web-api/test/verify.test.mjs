@@ -136,6 +136,12 @@ before(async () => {
   }
   handler = makeHandler({ databaseUrl, secret: "test" });
   await seedCollection(TAG);
+  // Claims are made under Tracking; Verify proves them.
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'unverified', true, 'primary')`,
+    [person, TAG],
+  );
 });
 after(async () => {
   await db.end();
@@ -153,7 +159,7 @@ test("deckMatches: the set of eight ids, order and duplicates aside", () => {
   assert.equal(deckMatches(t, [1, 1, 2, 3, 4, 5, 6, 7]), false);
 });
 
-test("start: creates the claim if absent, draws eight owned plain cards, is idempotent while open, and asks the live lane without a quota", async () => {
+test("start: draws eight owned plain cards, is idempotent while open, asks the live lane without a quota, and refuses a tag that is not tracked", async () => {
   const asked = [];
   const live = async (_db, args) => {
     asked.push(args);
@@ -177,6 +183,13 @@ test("start: creates the claim if absent, draws eight owned plain cards, is idem
     logEvent: async () => {},
     live,
   });
+  const untracked = await routes["POST /api/me/verify"](
+    db,
+    {},
+    { player_tag: "#PPUV0LC2" },
+  );
+  assert.equal(untracked.statusCode, 404);
+  assert.equal(JSON.parse(untracked.body).error, "not_tracked");
   const started = await routes["POST /api/me/verify"](
     db,
     {},
@@ -350,7 +363,7 @@ test("poll: a near-miss battle lights up what matched, a battle after the brief 
   assert.ok(mine.verified_at);
 });
 
-test("only the primary or an alt can be verified: a watched player is refused, and the first tag entered here became the primary", async () => {
+test("only the primary or an alt can be verified: a watched player is refused", async () => {
   const routes = verifyRoutes({
     resolveAccount: async () => ({
       accountId: other,
@@ -384,12 +397,6 @@ test("only the primary or an alt can be verified: a watched player is refused, a
     list.players.find((p) => p.player_tag === "#PPCGRJ8V").eligible,
     false,
   );
-  const { rows } = await db.query(
-    `select is_primary, relationship from claim where account_id = $1 and player_tag = $2`,
-    [person, TAG],
-  );
-  assert.equal(rows[0].is_primary, true);
-  assert.equal(rows[0].relationship, "primary");
 });
 
 test("a tag verified by one account cannot be started by another", async () => {
@@ -411,7 +418,7 @@ test("a tag verified by one account cannot be started by another", async () => {
   assert.equal(JSON.parse(r.body).error, "verified_elsewhere");
 });
 
-test("a player with no recorded collection yet: the start asks for a read and says collecting", async () => {
+test("an alt with no recorded collection yet: the start asks for a read and says collecting", async () => {
   const asked = [];
   const routes = verifyRoutes({
     resolveAccount: async () => ({
@@ -431,6 +438,15 @@ test("a player with no recorded collection yet: the start asks for a read and sa
       };
     },
   });
+  await db.query(
+    `insert into player (player_tag) values ($1) on conflict do nothing`,
+    [OTHER_TAG],
+  );
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'unverified', false, 'alt')`,
+    [other, OTHER_TAG],
+  );
   const r = await routes["POST /api/me/verify"](
     db,
     {},
@@ -441,15 +457,6 @@ test("a player with no recorded collection yet: the start asks for a read and sa
   assert.equal(body.state, "collecting");
   assert.equal(body.live_pending, true);
   assert.deepEqual(asked, [{ endpoint: "player", entityKey: OTHER_TAG }]);
-  const { rows: claim } = await db.query(
-    `select status from claim where account_id = $1 and player_tag = $2`,
-    [other, OTHER_TAG],
-  );
-  assert.equal(
-    claim[0].status,
-    "unverified",
-    "the claim was created, unverified",
-  );
 });
 
 test("expiry: an open challenge past its time reads as expired, and a restart hands back the SAME target", async () => {

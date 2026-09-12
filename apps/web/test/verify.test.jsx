@@ -183,8 +183,9 @@ test("the picker lists the account's players and a start shows the eight-card br
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Verify" }));
   await waitFor(() => screen.getByText("King Thing"));
-  // A friend is not yours to verify; a verified alt carries the mark and no button.
-  expect(screen.getByText("not yours to verify")).toBeTruthy();
+  // A friend is not listed at all; a verified alt carries the mark and no button.
+  expect(screen.queryByText("A Friend")).toBeNull();
+  expect(screen.getByText("My Alt")).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "Verify" }).length).toBe(1);
   expect(screen.getAllByLabelText("Verified").length).toBeGreaterThanOrEqual(1);
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));

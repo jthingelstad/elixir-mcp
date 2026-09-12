@@ -1,7 +1,6 @@
 import { randomInt } from "node:crypto";
 import { json } from "../http.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { addPlayer } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { makeLive } from "../../../mcp/src/live.mjs";
 import { enqueueJob } from "../../../scheduler/src/ledger.mjs";
@@ -287,26 +286,14 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       );
       if (elsewhere[0]) return json(409, { error: "verified_elsewhere" });
 
-      let claim = await claimFor(db, account.accountId, tag);
-      if (!claim) {
-        // A tag entered here is being claimed as yours: an alt unless it
-        // becomes the primary by being the first.
-        const added = await addPlayer(db, account, {
-          tag,
-          via: "verify",
-          relationship: "alt",
+      // Adding a player is Tracking's job (Jamie, 2026-09-12): this page
+      // proves claims that exist, as the primary or an alt.
+      const claim = await claimFor(db, account.accountId, tag);
+      if (!claim)
+        return json(404, {
+          error: "not_tracked",
+          message: "Add the player under Tracking first, then verify it here.",
         });
-        if (!added.ok) {
-          const status =
-            added.error === "quota_exceeded"
-              ? 429
-              : added.error === "not_entitled"
-                ? 403
-                : 404;
-          return json(status, { error: added.error, limit: added.limit });
-        }
-        claim = await claimFor(db, account.accountId, tag);
-      }
       if (!eligibleClaim(claim))
         return json(403, {
           error: "not_yours",

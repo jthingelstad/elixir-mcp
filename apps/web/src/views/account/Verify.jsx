@@ -17,8 +17,6 @@ import { VerifiedMark } from "../../components/VerifiedMark.jsx";
  * Mobile first: the member is on the phone the game is on, switching
  * between the game and this page. Big cards, thumb-sized controls.
  */
-const TAG_OK = /^#?[0289PYLQGRJCUVOo]{3,12}$/;
-
 function reducedMotion() {
   return (
     typeof window !== "undefined" &&
@@ -56,6 +54,8 @@ function messageFor(r) {
       return "Only a person's account can hold a claim.";
     case "not_yours":
       return "Only your primary player or an alt can be verified. Change the relationship under Tracking if this player is yours.";
+    case "not_tracked":
+      return "Add the player under Tracking first, as yours or an alt, then verify it here.";
     case "invalid_tag":
       return "That does not look like a player tag. Tags look like #2PP0V90Y.";
     case "timeout":
@@ -72,7 +72,6 @@ export function Verify({ refresh, navigate }) {
   const [collecting, setCollecting] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [tag, setTag] = useState("");
   const [tick, setTick] = useState(0);
   const [now, setNow] = useState(() => Date.now());
 
@@ -156,16 +155,6 @@ export function Verify({ refresh, navigate }) {
   useEffect(() => {
     startRef.current = start;
   });
-
-  function submitTag(e) {
-    e.preventDefault();
-    const t = tag.trim().toUpperCase();
-    if (!TAG_OK.test(t)) {
-      setErr("That does not look like a player tag. Tags look like #2PP0V90Y.");
-      return;
-    }
-    start(t.startsWith("#") ? t : `#${t}`);
-  }
 
   const header = (
     <div>
@@ -350,8 +339,10 @@ export function Verify({ refresh, navigate }) {
     );
   }
 
-  // The picker.
-  const players = list?.players ?? [];
+  // The picker: only the players that are yours to prove (you and your
+  // alts). Friends and watched players are theirs; adding a player at all
+  // is Tracking's job, so this page has one.
+  const players = (list?.players ?? []).filter((p) => p.eligible !== false);
   return (
     <>
       {header}
@@ -379,7 +370,8 @@ export function Verify({ refresh, navigate }) {
             <p style={{ color: "var(--ink-faint)" }}>Loading…</p>
           ) : players.length === 0 ? (
             <p className="verify__lead">
-              You have not added a player yet. Enter your tag below to start.
+              Nothing to verify yet. Add your player, or an alt, under Tracking
+              first; then it appears here.
             </p>
           ) : (
             <ul className="verify__list">
@@ -397,10 +389,6 @@ export function Verify({ refresh, navigate }) {
                     <span className="chip chip--ok">
                       <Icon name="shield-check" size={14} /> Verified
                     </span>
-                  ) : p.eligible === false ? (
-                    <span className="verify__hint" style={{ margin: 0 }}>
-                      not yours to verify
-                    </span>
                   ) : (
                     <button
                       type="button"
@@ -415,34 +403,6 @@ export function Verify({ refresh, navigate }) {
               ))}
             </ul>
           )}
-        </div>
-      </section>
-      <section className="panel">
-        <div className="panel__head">
-          <h2>Another tag</h2>
-        </div>
-        <div className="panel__body">
-          <form className="verify__form" onSubmit={submitTag}>
-            <input
-              id="verify-tag"
-              aria-label="Player tag"
-              className="input"
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
-              placeholder="#2PP0V90Y"
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-            <button type="submit" className="btn" disabled={busy || !tag}>
-              Verify this tag
-            </button>
-          </form>
-          <p className="verify__hint">
-            A tag you have not added yet is added first as an alt, unverified,
-            and recorded from then on. Only your primary player or an alt can be
-            verified; friends and watched players are theirs to prove.
-          </p>
         </div>
       </section>
       {err && (

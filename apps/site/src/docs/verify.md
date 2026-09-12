@@ -24,10 +24,10 @@ Only you can decide which eight cards your player takes into a battle,
 and the game's battle log records exactly that for every match. That is
 the challenge.
 
-1. Pick the player, under **Console ▸ Verify**. Only your primary player
-   or an alt can be verified; a friend or a player you merely watch is
-   theirs to prove. A tag you have not added yet is added first, as an
-   alt, and recorded from then on.
+1. Pick the player, under **Console ▸ Verify**. The page lists your
+   primary player and your alts, the claims that are yours to prove; a
+   friend or a player you merely watch is theirs. Players are added under
+   Tracking, as always; Verify only proves them.
 2. Elixir names eight cards, drawn at random from the cards your recorded
    collection says you own, and shows them the way the game lays a deck
    out: two rows of four. Tower troops are never among them.
