@@ -1006,3 +1006,79 @@ hours), ship #8, and re-read Enhanced Monitoring after a day; if swap still
 climbs then, go small. **Regressed:** capture gaps 0.13% → 1.5% (the gate,
 §3). **Did not deliver:** profile fetches unchanged (§2). **Under-counted
 by the review, not a change:** `ranking_entry` at ~12–13 MB/day (§4).
+
+## 2026-09-12 — The seven questions from the 24-hour read, decided and shipped
+
+Jamie read the section above and took the open questions one by one
+(commit 59608b1; deployed 12:5xZ; parameter group applied 12:58Z).
+
+**Decisions.** (1) **The gate needs a tracked roster.** The 1.5% capture
+gap was not the two-hour session grace: the players who lost battles sat
+in *incidental* clans, whose rosters are read every 4–24 h, and the code
+still reads a tracked clan's roster every 15–60 min while members play.
+`rosterGated` now requires `roster_tracked` (an active clan recording on
+the member's `last_known_clan_tag`); an incidental roster never gates, and
+those members return to their yield cadence. The planner test walks the
+same roster through both cases. Expected cost: 30–50 of the ~110
+battlelog fetches/hr the gate removed come back. **The capture audit is
+the check: read `capture_audit_24h.gaps` tomorrow against 55/3,646.** (2)
+**`shared_buffers` 88 MB** (11264 pages) in the parameter group, the
+value RDS chose under pressure on 09-11 and the only swap-free window the
+micro has had; resize only if swap climbs again after a day of Enhanced
+Monitoring. (3) **The `player` sighting touch is daily**, not hourly, at
+all four sites (profile identity upsert, roster `unnest`, battlelog and
+board accretion); the clan row keeps its hourly rule. Safe for the
+profile's `$4 >= last_seen_at` name ordering because an identity CHANGE
+always stamps `last_seen_at` exactly; only the no-change touch is coarse.
+(4) **Profiles stay at 8 h once active.** Jamie: "we will never find a
+universal polling rate that is both efficient and works for thousands of
+players" — the direction is adaptive per-player polling, recorded below,
+and the 8 h placeholder stands until `new_facts` has a few weeks of
+history. (5) **`ranking_entry` growth accepted** (~60k rows, 12–13 MB a
+day from the 262 daily location boards); revisit when the database passes
+3 GB; the archive holds every board payload. (6) **The door's legacy path
+is gone**: no `wait_s` loop, no `poll` block, `min_client_version` 2.0.30
+with `CollectorMinEnforce=1` (a stale client gets 426 on lease and
+submit, never on config; an unparseable version such as `py-dev` is
+allowed by design). The `gateway.channel` column drop rides the next
+migration. (7) **`battle_observation` is no longer written.** Jamie asked
+whether a tool to query battle performance had gone unwired; no — it was
+a three-column provenance row (battle, observer, receipt) with no reader
+but the migrate census, which now sums `new_facts`; every performance
+tool reads `battle` / `battle_participant`. Table stays until a later
+contract drop.
+
+**The adaptive-polling direction (standing).** What is adaptive today is
+one scalar per player (`yield_bph`) plus the burst bound and the reader
+cap; everything else is a clock. The record now holds what a per-player
+model needs: every battle timestamp (players keep the same two or three
+hour windows), session structure, the roster's `lastSeen`, and since
+0077 the profile's own `new_facts`. Path, each step scored by yield and
+capture gaps: **(a)** a per-player 24×7 activity histogram from
+`battle_participant`, rebuilt nightly by the jobs Lambda into
+`poll_state`, and the battlelog's next poll placed where the expected
+count crosses the batch target (fleet-average rhythm as the cold-start
+prior until ~20 battles); **(b)** profiles driven by facts — a battlelog
+that delivered battles primes a profile, the snapshot day boundary primes
+one, the receipt's `new_facts` history sets the rest; **(c)** one due-time
+function per endpoint (expected facts per token at time t, plus a loss
+term) so clans, war and boards join the same rule. At alpha this is a
+histogram, not a learner; the per-tick cost is unchanged. **Product
+tie-in (Jamie):** the same histogram is a player-facing visual — a
+GitHub-style contribution graph of a player's battle activity, which
+`player_daily_battle_rollup` can already draw at day resolution today;
+the nightly job should feed both.
+
+**Shipped and observed.** Deploy smoke green. The stack's parameter-group
+update RESTARTED the instance by itself at 12:58:23Z (shutdown →
+restarted in 14 s; "Finished updating DB parameter group" five seconds
+before), so a static parameter change through the template is a
+14-second outage, not a pending-reboot — the opposite of yesterday's
+dynamic-only swap, which needed a manual reboot. `{tables}` reads
+`shared_buffers` 11264 pages; first Enhanced Monitoring sample after:
+free 167 MB, cached 196 MB, swap used 12 MB (was 66 MB at 11:57Z). The
+fleet re-checked in within a minute; no 426 in the door log; versions
+unchanged. **Tomorrow's read:** `capture_audit_24h.gaps`, swap and
+FreeableMemory over the day at 88 MB, `player` updates in `{tables}`
+(expect ~1/10th of 6.6k/hr), `PlannedJobs` per hour (expect ~330–350
+against 299), and `battle_observation.inserted` unchanged.
