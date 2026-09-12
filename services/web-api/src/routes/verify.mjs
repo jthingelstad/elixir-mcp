@@ -53,7 +53,7 @@ async function cardsById(db, ids) {
 async function claimFor(db, accountId, tag) {
   const { rows } = await db.query(
     `select c.player_tag, c.status, c.verified_at, c.verified_method, c.is_primary,
-            p.name
+            c.relationship, p.name
        from claim c join player p on p.player_tag = c.player_tag
       where c.account_id = $1 and c.player_tag = $2`,
     [accountId, tag],
@@ -121,6 +121,13 @@ async function present(db, row, { livePending = false } = {}) {
   };
 }
 
+/** Only a claim that says "this is me" can be proven: the primary or an
+ *  alt (Jamie, 2026-09-12). A friend or a watched player is somebody
+ *  else's to verify. */
+function eligibleClaim(claim) {
+  return claim.is_primary === true || claim.relationship === "alt";
+}
+
 /** The eight target ids are all in the deck the player has selected. */
 export function deckMatches(targetIds, seenIds) {
   const target = new Set(targetIds.map(Number));
@@ -182,6 +189,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
           verified_at: r.verified_at ?? null,
           is_primary: r.is_primary === true,
           relationship: r.relationship,
+          eligible: eligibleClaim(r),
           challenge: r.challenge ?? null,
         })),
         poll_every_s: POLL_EVERY_S,
@@ -223,7 +231,13 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
 
       let claim = await claimFor(db, account.accountId, tag);
       if (!claim) {
-        const added = await addPlayer(db, account, { tag, via: "verify" });
+        // A tag entered here is being claimed as yours: an alt unless it
+        // becomes the primary by being the first.
+        const added = await addPlayer(db, account, {
+          tag,
+          via: "verify",
+          relationship: "alt",
+        });
         if (!added.ok) {
           const status =
             added.error === "quota_exceeded"
@@ -235,6 +249,11 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         }
         claim = await claimFor(db, account.accountId, tag);
       }
+      if (!eligibleClaim(claim))
+        return json(403, {
+          error: "not_yours",
+          message: "Only your primary player or an alt can be verified.",
+        });
       if (claim.status === "verified")
         return json(200, {
           state: "verified",

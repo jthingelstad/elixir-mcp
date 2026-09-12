@@ -1,3 +1,4 @@
+import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { tagPath } from "../../lib/tag-url.js";
@@ -133,7 +134,12 @@ export function Overview({ me, navigate }) {
             players.map((p) => (
               <CompactRow
                 key={p.player_tag}
-                primary={p.nickname ?? p.name ?? "—"}
+                primary={
+                  <>
+                    {p.nickname ?? p.name ?? "—"}
+                    {p.status === "verified" && <VerifiedMark />}
+                  </>
+                }
                 secondary={p.player_tag}
                 note={p.is_primary ? "you" : (p.relationship ?? "watching")}
                 onClick={() =>

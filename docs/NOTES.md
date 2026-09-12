@@ -1082,3 +1082,67 @@ unchanged. **Tomorrow's read:** `capture_audit_24h.gaps`, swap and
 FreeableMemory over the day at 88 MB, `player` updates in `{tables}`
 (expect ~1/10th of 6.6k/hr), `PlannedJobs` per hour (expect ~330–350
 against 299), and `battle_observation.inserted` unchanged.
+
+## 2026-09-12 — Verify: a claim becomes a fact (0080, deployed 13:4xZ)
+
+Jamie's brief: a wizard that proves a signed-in account controls a
+player through the one player-settable, API-visible field, `currentDeck`
+(`verifytoken` is scope-restricted, `currentFavouriteCard` is not
+settable, tested earlier). Products about to gate leader-only views on a
+verified claim need the fact to exist. Commits 9c504fa + 16e93d8.
+
+**Where the codebase disagreed with the brief, and what was done.**
+`claim.status` / `verified_method` had existed since 0001 with no writer;
+0080 adds `verified_at` and nothing else on the claim. 0008's
+favourite-card `verification_challenge` had no reader anywhere and is
+DROPPED; `claim_challenge` (method `deck_slot`, `target_card_ids int[]`,
+20-minute expiry, `outcome open|verified|expired`, `live_job_id`,
+`live_reads`; one open per claim by partial unique index; cascades with
+the claim) replaces it. `currentDeck` was projected nowhere and the
+payload cache is live-lane-only, so `player_current_deck` (cards jsonb,
+`deck_hash` via the contracts' `deckHash`, `observed_at`, `receipt_id`)
+is a new projection written only when the hash moves, replay-safe, and
+counted as a fact. No "system lane": `job.lane` is a two-value check
+wired into the contracts and the collectors' lane grants; the
+integration API's pattern is reused instead — enqueue on the live lane
+through `makeLive({ enqueue: enqueueJob })` with NO quota hook (the only
+place `spendLiveQuota` is wired is the MCP `liveRead`), and the challenge
+row carries the job id so `api_receipt.job_id` says a fetch was a
+verification read. Form ambiguity is solved by the match rule, not by
+card choice: the set of eight card ids, order, level and form ignored;
+tower troops (`card.kind = 'support'`) are never drawn. Proof must be
+observed AFTER the brief (`player_current_deck.observed_at >=
+challenge.created_at`); a matching deck seen earlier proves nothing.
+
+**Routes** (`services/web-api/src/routes/verify.mjs`): `GET /api/me/verify`
+(each claim's state and open challenge), `POST /api/me/verify` (creates
+the claim through `addPlayer` if absent — which starts recording — then
+draws eight owned plain cards; idempotent while open; 202 `collecting`
+with a live read minted when the collection has not landed yet; 409
+`verified_elsewhere` when another account holds the tag; 429 at five
+starts an hour per account AND per tag), `GET /api/me/verify/<id>` (the
+15 s poll: target and seen deck with card art from `card.icon_urls`, per-
+card match, `live_pending`; the server mints at most one live read every
+45 s while the challenge is open and being polled; a full match verifies
+claim and challenge in one transaction, catching the
+`claim_one_verified_per_tag` race as 409). **Console**: `Verify` in the
+rail's "Your record" group at `/account/verify`; `views/account/Verify.jsx`
+(picker → brief + live half → verified / expired), `components/DeckGrid.jsx`
+(two rows of four, per-slot match state), the unlock (badge lands, twelve
+sparks) — and the FIRST motion tokens in `styles.css` (`--dur-fast/base/
+slow`, `--ease-out`) plus one `prefers-reduced-motion` rule for every
+surface, which the console never had. Docs `/docs/verify`, What's-new
+entry, docs strip. **Tests**: eight route tests over the real handler and
+a scratch database (owned-and-plain draw, one open per claim, quota
+untouched and job id recorded, partial/before-brief/full match, resume,
+verified-elsewhere, collecting, expiry, start and read-cadence limits,
+HTTP auth); the projector's guarded deck write; four vitest cases for
+the wizard including reduced motion. Lesson from the run: a test that
+seeds filler cards by fixed id against a RANDOM target is flaky by
+construction — fillers come from outside the target (16e93d8).
+
+**Not done, on purpose:** no MCP tool change (a `verified: true` on
+`elixir_my_players` and the principal block is the obvious one-liner,
+proposed separately); nothing gates on the fact yet; no clan-chat vouch
+path. **Acceptance:** the one deliberate end-to-end run is on Jamie's
+own tag (King Thing) — recorded below when done.

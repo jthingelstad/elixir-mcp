@@ -298,6 +298,48 @@ test("poll: partial matches light up, a full match observed after the brief veri
   assert.ok(mine.verified_at);
 });
 
+test("only the primary or an alt can be verified: a watched player is refused, and the first tag entered here became the primary", async () => {
+  const routes = verifyRoutes({
+    resolveAccount: async () => ({
+      accountId: other,
+      role: "member",
+      kind: "person",
+    }),
+    logEvent: async () => {},
+    live: async () => ({
+      ok: true,
+      fetched_at: new Date().toISOString(),
+      payload: null,
+    }),
+  });
+  await db.query(
+    `insert into player (player_tag) values ('#PPCGRJ8V') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, '#PPCGRJ8V', 'unverified', false, 'watching')`,
+    [other],
+  );
+  const r = await routes["POST /api/me/verify"](
+    db,
+    {},
+    { player_tag: "#PPCGRJ8V" },
+  );
+  assert.equal(r.statusCode, 403);
+  assert.equal(JSON.parse(r.body).error, "not_yours");
+  const list = JSON.parse((await routes["GET /api/me/verify"](db, {})).body);
+  assert.equal(
+    list.players.find((p) => p.player_tag === "#PPCGRJ8V").eligible,
+    false,
+  );
+  const { rows } = await db.query(
+    `select is_primary, relationship from claim where account_id = $1 and player_tag = $2`,
+    [person, TAG],
+  );
+  assert.equal(rows[0].is_primary, true);
+  assert.equal(rows[0].relationship, "primary");
+});
+
 test("a tag verified by one account cannot be started by another", async () => {
   const routes = verifyRoutes({
     resolveAccount: async () => ({

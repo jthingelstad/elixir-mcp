@@ -29,7 +29,7 @@ export function accountRoutes({
       // anyway, so Promise.all bought no parallelism and only tripped the
       // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const claims = await db.query(
-        `select c.player_tag, c.status, c.is_primary, c.notify, c.relationship,
+        `select c.player_tag, c.status, c.verified_at, c.is_primary, c.notify, c.relationship,
                   p.name, p.last_known_clan_tag,
                   nn.nickname
            from claim c join player p on p.player_tag = c.player_tag

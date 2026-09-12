@@ -91,6 +91,27 @@ function mockFetch() {
             verified_at: null,
             is_primary: true,
             relationship: "primary",
+            eligible: true,
+            challenge: null,
+          },
+          {
+            player_tag: "#FRIEND01",
+            name: "A Friend",
+            status: "unverified",
+            verified_at: null,
+            is_primary: false,
+            relationship: "friend",
+            eligible: false,
+            challenge: null,
+          },
+          {
+            player_tag: "#ALT00001",
+            name: "My Alt",
+            status: "verified",
+            verified_at: "2026-09-11T10:00:00Z",
+            is_primary: false,
+            relationship: "alt",
+            eligible: true,
             challenge: null,
           },
         ],
@@ -137,6 +158,10 @@ test("the picker lists the account's players and a start shows the eight-card br
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Verify" }));
   await waitFor(() => screen.getByText("King Thing"));
+  // A friend is not yours to verify; a verified alt carries the mark and no button.
+  expect(screen.getByText("not yours to verify")).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "Verify" }).length).toBe(1);
+  expect(screen.getAllByLabelText("Verified").length).toBeGreaterThanOrEqual(1);
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));
   await waitFor(() => screen.getByRole("heading", { name: "Set this deck" }));
   expect(posts).toEqual([{ player_tag: "#2PP0V90Y" }]);
@@ -167,7 +192,7 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
   const target = screen.getByRole("list", { name: "The deck to set" });
   expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
   expect(screen.getByRole("status").textContent).toMatch(
-    /last seen \d\d:\d\d:\d\d/,
+    /last read \d\d:\d\d:\d\d/,
   );
 
   await act(async () => {

@@ -1,3 +1,4 @@
+import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
@@ -76,7 +77,12 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         }}
       >
         <div>
-          <h1 className="page__title">{name}</h1>
+          <h1 className="page__title">
+            {name}
+            {!isClan && claim?.status === "verified" && (
+              <VerifiedMark size={20} />
+            )}
+          </h1>
           <p className="page__lede">
             <a
               className="mono"

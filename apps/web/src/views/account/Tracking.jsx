@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { Icon } from "../../components/Icon.jsx";
+import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { ago, secsSince } from "../../lib/time.js";
 
 /**
@@ -62,6 +63,7 @@ export function Tracking({ me, refresh, navigate }) {
         name: c.nickname ?? c.name ?? "—",
         rel: c.is_primary ? "you" : (c.relationship ?? "watching"),
         primary: c.is_primary,
+        verified: c.status === "verified",
         fresh: freshness(rec?.freshest_poll, now),
         day: rec?.fetches_24h ?? 0,
       };
@@ -245,6 +247,7 @@ export function Tracking({ me, refresh, navigate }) {
                       >
                         {r.name}
                       </a>
+                      {r.verified && <VerifiedMark />}
                     </span>
                     <a
                       className="mono"

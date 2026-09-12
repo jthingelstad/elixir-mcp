@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { Icon } from "../../components/Icon.jsx";
 import { DeckGrid } from "../../components/DeckGrid.jsx";
+import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 
 /**
  * Verify — prove that this account controls a player.
@@ -53,6 +54,8 @@ function messageFor(r) {
       return "Your tier has no free player slot for a new tag. Remove one under Tracking, or verify a player you already track.";
     case "not_entitled":
       return "Only a person's account can hold a claim.";
+    case "not_yours":
+      return "Only your primary player or an alt can be verified. Change the relationship under Tracking if this player is yours.";
     case "invalid_tag":
       return "That does not look like a player tag. Tags look like #2PP0V90Y.";
     case "timeout":
@@ -284,8 +287,8 @@ export function Verify({ refresh, navigate }) {
                 )}
                 <span>
                   <strong>{challenge.matched}</strong> of {challenge.of} in
-                  place · last seen{" "}
-                  {clock(challenge.seen_at ?? challenge.profile_at)}
+                  place · last read{" "}
+                  {clock(challenge.profile_at ?? challenge.seen_at)}
                 </span>
               </div>
               <div className="verify__tick" aria-hidden="true">
@@ -353,15 +356,20 @@ export function Verify({ refresh, navigate }) {
               {players.map((p) => (
                 <li key={p.player_tag} className="verify__row">
                   <span className="verify__who">
-                    <strong>{p.name ?? p.player_tag}</strong>{" "}
+                    <strong>{p.name ?? p.player_tag}</strong>
+                    {p.status === "verified" && <VerifiedMark />}{" "}
                     <span className="mono">{p.player_tag}</span>
-                    {p.is_primary && (
-                      <span className="chip chip--tier">primary</span>
-                    )}
+                    <span className="chip chip--tier">
+                      {p.is_primary ? "you" : (p.relationship ?? "watching")}
+                    </span>
                   </span>
                   {p.status === "verified" ? (
                     <span className="chip chip--ok">
                       <Icon name="shield-check" size={14} /> Verified
+                    </span>
+                  ) : p.eligible === false ? (
+                    <span className="verify__hint" style={{ margin: 0 }}>
+                      not yours to verify
                     </span>
                   ) : (
                     <button
@@ -401,8 +409,9 @@ export function Verify({ refresh, navigate }) {
             </button>
           </form>
           <p className="verify__hint">
-            A tag you have not added yet is added first, unverified, and
-            recorded from then on.
+            A tag you have not added yet is added first as an alt, unverified,
+            and recorded from then on. Only your primary player or an alt can be
+            verified; friends and watched players are theirs to prove.
           </p>
         </div>
       </section>
