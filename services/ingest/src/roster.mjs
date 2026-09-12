@@ -74,7 +74,7 @@ export async function ingestClanRoster(
      where player.name is distinct from coalesce(excluded.name, player.name)
         or player.game_last_seen_at is distinct from
            greatest(excluded.game_last_seen_at, player.game_last_seen_at)
-        or player.last_seen_at < excluded.last_seen_at - interval '1 hour'`,
+        or player.last_seen_at < excluded.last_seen_at - interval '1 day'`,
     [
       ordered.map((m) => m.tag),
       ordered.map((m) => m.name),

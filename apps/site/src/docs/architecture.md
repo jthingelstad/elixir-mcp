@@ -232,11 +232,16 @@ that only ever shorten each other:
   least daily.
 - **The roster is the activity sensor.** A clan roster carries the
   game's own `lastSeen` for every member in one small fetch. When a
-  roster fresher than a member's last poll shows they have not been in
-  the game since it, that battle-log or profile poll is skipped: it
-  would only return what the record already holds. A sighting younger
-  than two hours never gates, so a session in progress is always
-  followed.
+  tracked clan's roster (read every 15 to 60 minutes while members
+  play) is fresher than a member's last poll and shows they have not
+  been in the game since it, that battle-log or profile poll is
+  skipped: it would only return what the record already holds. A
+  sighting younger than two hours never gates, so a session in
+  progress is always followed. An incidental clan's roster is read
+  every 4 to 24 hours and never gates: in the gate's first day those
+  rosters held back the polls of players who then played a whole
+  25-battle session before the roster noticed, and capture gaps went
+  from 0.1% to 1.5%.
 
 Profiles are polled less often than battle logs - every eight hours
 once the roster shows a player active, with no floor for the idle,

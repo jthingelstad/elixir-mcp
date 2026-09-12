@@ -95,10 +95,11 @@ test("later poll the same day overwrites; first sight emitted no events", async 
   assert.equal(events, 0, "no diff events on first-sight day");
 });
 
-test("a profile re-poll within the hour leaves the player row's version alone", async () => {
+test("a profile re-poll within the day leaves the player row's version alone", async () => {
   // The identity upsert used to rewrite the player row on every profile
   // poll (1.4M updates on 157k rows before 2026-09-11); now only a moved
-  // identity field or an hour-stale sighting writes.
+  // identity field or a day-stale sighting writes (hourly until
+  // 2026-09-12, when the touch was still 6.6k updates an hour).
   const profile = await fixture("player/profile.json");
   const tag = meta["player/profile.json"].entity_key;
   await processResult(
@@ -137,7 +138,17 @@ test("a profile re-poll within the hour leaves the player row's version alone", 
       fetchedAt: "2026-09-02T11:30:00Z",
     }),
   );
-  assert.notEqual(await version(), before, "an hour on, the sighting moves");
+  assert.equal(await version(), before, "same identity, same day: no write");
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: "2026-09-03T10:30:00Z",
+    }),
+  );
+  assert.notEqual(await version(), before, "a day on, the sighting moves");
 });
 
 test("a fetch that returned data earns a point and a new_facts count; one that repeated the record earns nothing", async () => {

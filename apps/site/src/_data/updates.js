@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-12",
+    title: "Only a tracked clan's roster gates a player's polls",
+    body: "The first day of the roster gate was measured against the review that proposed it. Battle-log fetches halved as promised and the web door's cost fell 97%, but capture gaps rose from 0.1% to 1.5%: a roster read every 4 to 24 hours (an incidental clan, polled only because a recorded player sits in it) was holding back the battle-log polls of players who then played a full 25-battle session before it noticed. Now only a tracked clan's roster, read every 15 to 60 minutes while members play, can gate. Also today: a player's last-seen stamp moves at most daily instead of hourly (it was the busiest write left), the per-battle observer table is no longer written, and collectors below 2.0.30 are refused work with a clear message instead of served through the old long-poll path.",
+  },
+  {
+    date: "2026-09-12",
     title: "The clan-pulse example matches the digest",
     body: "The event guide's example called the pulse's war discriminator day_kind and showed roster changes as member lists. The digest has always returned war.kind and numeric joined/left counts. The example now matches, explains when war_day and decks_today appear, and points to the individual roster-change events. No tool or payload changed.",
   },

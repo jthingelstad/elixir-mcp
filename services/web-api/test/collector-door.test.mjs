@@ -601,7 +601,7 @@ test("a too-old client is refused work but NEVER refused config", async (t) => {
     ...authed(TOKEN_BULK),
     headers: {
       ...authed(TOKEN_BULK).headers,
-      "x-collector-version": "v2.0.19",
+      "x-collector-version": "v2.0.30",
     },
   };
 
@@ -615,7 +615,7 @@ test("a too-old client is refused work but NEVER refused config", async (t) => {
   const leased = await door.lease(db, stale, {});
   assert.equal(leased.status, 426);
   assert.equal(leased.body.error, "client_too_old");
-  assert.equal(leased.body.min_client_version, "2.0.0");
+  assert.equal(leased.body.min_client_version, "2.0.30");
 
   const submitted = await door.submit(db, stale, { lease: 1 });
   assert.equal(submitted.status, 426);

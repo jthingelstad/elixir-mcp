@@ -37,8 +37,8 @@ const MISSED_STREAK_QUARANTINE = 10;
  * database.
  *
  * The numbers come from what a collector actually does rather than
- * from a round number. Pacing floor is 1500ms and the bulk long-poll
- * waits 2s, so the busiest honest collector runs roughly 2,000 leases
+ * from a round number. Pacing floor is 1500ms and an idle check-in
+ * comes every 15/N s, so the busiest honest collector runs roughly 2,000 leases
  * and 2,000 submits an hour; WORK is set at more than double that, so
  * no honest client can reach it even mid-backfill with a fleet several
  * times this size. Config is a launch-time contract a collector reads
@@ -79,7 +79,11 @@ function budgetRefusal(kind) {
 }
 const CONFIG = {
   contract_version: 2,
-  min_client_version: "2.0.0",
+  // 2.0.30 (2026-09-12): the first client that checks in instead of
+  // long-polling. Below it the door refuses lease and submit (426) when
+  // COLLECTOR_MIN_ENFORCE=1; config is never refused. Unparseable
+  // versions (a py-dev checkout) are allowed, by design.
+  min_client_version: "2.0.30",
   pacing_ms: 1500,
   breaker: { threshold_403: 5, cooldown_s: 300 },
   // Judged by collectors on the gzip+base64 ENCODED size. 250,000 was
@@ -93,10 +97,6 @@ const CONFIG = {
   // must never be discarded (collector issue #1) — now they never were
   // going to be.
   overflow_bytes: 5_000_000,
-  // Served for clients older than 2026-09-11: they still send wait_s and
-  // sleep idle_backoff_s on empty. The door honours at most a 2 s wait.
-  // Current clients ignore these and follow next_check_in_s.
-  poll: { live_wait_s: 2, bulk_wait_s: 2, idle_backoff_s: 20 },
   // Check-ins, not polling (2026-09-11): the door answers at once and
   // says when to come back. 0 while work remains for the collector,
   // idle_s when the queue is empty - which is also the worst-case
@@ -114,9 +114,6 @@ const CONFIG = {
   // path, so the probe can change without a client release.
   doctor: { cr_path: "/locations?limit=1" },
 };
-
-/** Compatibility ceiling for a wait_s from a pre-check-in client. */
-const LEGACY_WAIT_MAX_S = 2;
 
 /** A collector heard from this recently holds a slot in the idle cycle.
  *  Matches the collectors' own watchdog: five minutes with no door
@@ -293,8 +290,7 @@ async function inspectStreak(db, gatewayId) {
 /** Atomic per-gateway capacity check + grant (issue #5). A transaction-
  *  scoped advisory lock keyed on the gateway serializes concurrent
  *  lease calls from one token, so the outstanding count and the grant
- *  observe the same state. Held only across this check-and-grant,
- *  never across the poll wait. */
+ *  observe the same state. Held only across this check-and-grant. */
 async function leaseUnderCap(db, gatewayId, lanes) {
   await db.query("begin");
   try {
@@ -376,7 +372,8 @@ export function makeCollectorDoor({
       };
     },
 
-    async lease(db, event, body) {
+    // The body is unread since 2026-09-12: wait_s was the only field.
+    async lease(db, event, _body) {
       const gw = await authGateway(db, event, ["probation", "active"]);
       if (!gw) return { status: 401, body: { error: "unauthenticated" } };
       if (!(await withinBudget(db, gw.gateway_id, "work")))
@@ -406,20 +403,11 @@ export function makeCollectorDoor({
       // priority flag on a job, not a kind of collector. leaseJob orders
       // live first, so whichever collector checks in next takes it.
       const lanes = ["live", "bulk"];
-      // A check-in answers at once. A client from before 2026-09-11 still
-      // sends wait_s; it is honoured for at most LEGACY_WAIT_MAX_S with a
-      // one-second re-check so an old live-channel loop cannot spin on an
-      // empty queue, and it goes away once the fleet has updated.
-      const wait = Math.min(
-        Math.max(Number(body?.wait_s ?? 0), 0),
-        LEGACY_WAIT_MAX_S,
-      );
-      const deadline = Date.now() + wait * 1000;
-      let grant = await leaseUnderCap(db, gw.gateway_id, lanes);
-      while (!grant.capped && !grant.job && Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 1000));
-        grant = await leaseUnderCap(db, gw.gateway_id, lanes);
-      }
+      // A check-in answers at once. The pre-2026-09-11 wait_s long-poll
+      // was honoured for a day of compatibility and removed 2026-09-12
+      // once the fleet reported 2.0.30 clients; a client that still
+      // sends wait_s is ignored and, below the minimum, refused.
+      const grant = await leaseUnderCap(db, gw.gateway_id, lanes);
       if (grant.capped) {
         return {
           status: 429,

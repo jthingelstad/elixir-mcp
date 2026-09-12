@@ -242,16 +242,20 @@ const PROJECTORS = {
                          else player.last_known_clan_role end,
              first_seen_at = least(player.first_seen_at, $4),
              last_seen_at = greatest(player.last_seen_at, $4)
-       -- Only when the identity moves, or the sighting is an hour stale:
+       -- Only when the identity moves, or the sighting is a DAY stale:
        -- a profile poll that changed nothing must not rewrite the row
-       -- (1.4M updates on 157k rows before 2026-09-11).
+       -- (1.4M updates on 157k rows before 2026-09-11; hourly touches
+       -- were still 6.6k updates an hour on 2026-09-12). Safe for the
+       -- ordering above: an identity change always stamps last_seen_at
+       -- exactly, so an older payload can never pass the $4 >= guard
+       -- past a newer name; only the no-change touch is coarse.
        where $4 < player.last_seen_at
           or player.name is distinct from coalesce(excluded.name, player.name)
           or player.last_known_clan_tag is distinct from
              coalesce(excluded.last_known_clan_tag, player.last_known_clan_tag)
           or player.last_known_clan_role is distinct from excluded.last_known_clan_role
           or player.first_seen_at > $4
-          or player.last_seen_at < $4::timestamptz - interval '1 hour'`,
+          or player.last_seen_at < $4::timestamptz - interval '1 day'`,
       // The role is the player's own account of their standing in the
       // clan they are in NOW. Unlike the tag it is not coalesced: a
       // player who left has no role, and saying so is the honest read.

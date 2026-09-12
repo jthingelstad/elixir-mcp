@@ -384,6 +384,14 @@ test("the roster gate: a fresh roster showing a member idle since their last pol
     `insert into clan (clan_tag) values ('#G8Q2LPY') on conflict do nothing`,
   );
   await addPlayer("#G8U2L9", { clan: "#G8Q2LPY" });
+  // The gate needs a TRACKED clan (2026-09-12): its roster is read every
+  // 15-60 min while members play, so "idle since" is a claim about the
+  // last hour, not the last day.
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
+     values ('clan', '#G8Q2LPY', $1, 'comprehensive')`,
+    [accountId],
+  );
   // Both rows are DUE on their own cadence: the battlelog (5/h -> hourly)
   // was polled three hours ago, the profile (eight hours once a roster is
   // fresh) ten hours ago. The roster, admitted ten minutes ago, says the
@@ -447,6 +455,36 @@ test("the roster gate: a fresh roster showing a member idle since their last pol
     ),
     "an old roster cannot vouch for idleness",
   );
+
+  // The same fresh, idle-since roster from an INCIDENTAL clan (no clan
+  // recording) gates nothing: read every 4-24 h, it cannot stand in for
+  // the poll. Measured 2026-09-12: capture gaps 0.13% -> 1.5% in the
+  // gate's first day, from players whose only roster was an incidental
+  // clan's.
+  await db.query(
+    `delete from recording where subject_type = 'clan' and subject_tag = '#G8Q2LPY'`,
+  );
+  await setState("#G8U2L9", "player_battlelog", {
+    yieldBph: 5,
+    admitted: min(180),
+    planned: min(180),
+  });
+  await setState("#G8U2L9", "player", {
+    admitted: min(600),
+    planned: min(600),
+  });
+  await setState("#G8Q2LPY", "clan", { admitted: min(10), planned: min(10) });
+  await setTokens(100);
+  const incidental = await planTick(db, NOW);
+  assert.deepEqual(
+    incidental.jobs
+      .filter((j) => j.entity_key === "#G8U2L9")
+      .map((j) => j.endpoint)
+      .sort(),
+    ["player", "player_battlelog"],
+    "an incidental clan's roster never gates",
+  );
+  assert.equal(incidental.gated, 0, "nothing gated without a tracked roster");
 });
 
 test("profiles have no dormant floor; with a fresh roster the cadence is a flat eight hours", async () => {

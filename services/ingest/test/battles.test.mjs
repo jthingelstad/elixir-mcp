@@ -96,7 +96,7 @@ test("re-ingest WRITES nothing: no new tuple versions, no rollup pairs", async (
   assert.deepEqual(result.affectedPairs, [], "nothing to roll up");
 });
 
-test("second observer dedupes to the same battles, adds observations", async () => {
+test("second observer dedupes to the same battles and writes no observation rows", async () => {
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
   const beforeCount = (await ctx.db.query("select count(*)::int n from battle"))
     .rows[0].n;
@@ -109,10 +109,13 @@ test("second observer dedupes to the same battles, adds observations", async () 
   const afterCount = (await ctx.db.query("select count(*)::int n from battle"))
     .rows[0].n;
   assert.equal(afterCount, beforeCount);
-  const { rows } = await ctx.db.query(
-    `select count(distinct observer_tag)::int n from battle_observation`,
+  // Two observers delivered the same battles and no observation rows
+  // were written (battle_observation retired 2026-09-12); the battles
+  // themselves are unchanged.
+  const { rows: obs } = await ctx.db.query(
+    `select count(*)::int n from battle_observation`,
   );
-  assert.equal(rows[0].n, 2);
+  assert.equal(obs[0].n, 0);
 });
 
 test("2v2 battles carry four participants, symmetrically", async () => {

@@ -9,15 +9,12 @@ export async function abYield(databaseUrl, spec) {
     const windowStats = async (startIso) => {
       const { rows } = await db.query(
         `with live as (
-           select r.receipt_id, r.endpoint, r.entity_key, r.fetched_at
+           select r.receipt_id, r.endpoint, r.entity_key, r.fetched_at, r.new_facts
            from api_receipt r
            join gateway g on g.gateway_id = r.gateway_id
            where g.name <> 'backfill-elixir-bot'
              and r.fetched_at >= $1::timestamptz
-             and r.fetched_at < $1::timestamptz + make_interval(hours => $2)),
-         first_obs as (
-           select bo.battle_id, min(bo.receipt_id) as receipt_id
-           from battle_observation bo group by bo.battle_id)
+             and r.fetched_at < $1::timestamptz + make_interval(hours => $2))
          select
            (select count(*)::int from live) as fetches,
            (select count(*)::int from live where endpoint = 'player_battlelog') as battlelog_fetches,
@@ -25,9 +22,11 @@ export async function abYield(databaseUrl, spec) {
             where endpoint = 'player_battlelog') as battlelog_subjects,
            (select count(*)::int from live
             where endpoint in ('currentriverrace', 'riverracelog')) as war_fetches,
-           (select count(*)::int from first_obs fo
-            join live l on l.receipt_id = fo.receipt_id
-            where l.endpoint = 'player_battlelog') as battles_captured`,
+           -- Battles this window's polls added: the receipt's own count
+           -- (0077; null before 2026-09-11). battle_observation is no
+           -- longer written.
+           (select coalesce(sum(new_facts), 0)::int from live
+            where endpoint = 'player_battlelog') as battles_captured`,
         [startIso, hours],
       );
       return rows[0];
@@ -41,7 +40,7 @@ export async function abYield(databaseUrl, spec) {
     const armStats = async (startIso) => {
       const { rows } = await db.query(
         `with seq as (
-           select r.receipt_id, r.entity_key, r.fetched_at, r.payload_hash,
+           select r.receipt_id, r.entity_key, r.fetched_at, r.payload_hash, r.new_facts,
                   lag(r.payload_hash) over (partition by r.entity_key order by r.fetched_at) as prev_hash
            from api_receipt r
            join gateway g on g.gateway_id = r.gateway_id
@@ -49,18 +48,13 @@ export async function abYield(databaseUrl, spec) {
              and r.endpoint = 'player_battlelog'
              and r.fetched_at >= $1::timestamptz - interval '2 days'
              and r.fetched_at < $1::timestamptz + make_interval(hours => $2)),
-         win as (select * from seq where fetched_at >= $1::timestamptz),
-         first_obs as (
-           select bo.battle_id, min(bo.receipt_id) as receipt_id
-           from battle_observation bo group by bo.battle_id)
+         win as (select * from seq where fetched_at >= $1::timestamptz)
          select w.entity_key,
                 count(*)::int as fetches,
                 count(*) filter (where w.prev_hash = w.payload_hash)::int as zero_yield,
                 count(ca.receipt_id)::int as audited,
                 count(ca.receipt_id) filter (where ca.gap)::int as gaps,
-                (select count(*)::int from first_obs fo
-                  join win w2 on w2.receipt_id = fo.receipt_id
-                  where w2.entity_key = w.entity_key) as battles
+                coalesce(sum(w.new_facts), 0)::int as battles
          from win w
          left join capture_audit ca on ca.receipt_id = w.receipt_id
          group by w.entity_key`,

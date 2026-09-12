@@ -24,7 +24,7 @@ before(async () => {
 
 after(async () => ctx.drop());
 
-test("real cross-observer logs dedupe to one battle with two observations", async () => {
+test("real cross-observer logs dedupe to one battle seen by both observers", async () => {
   const logA = await fixture("player_battlelog/with_clanmate_2v2.json");
   const logB = await fixture("player_battlelog/counterpart_2v2_teammate.json");
   const obsA = meta["player_battlelog/with_clanmate_2v2.json"].entity_key;
@@ -68,15 +68,23 @@ test("real cross-observer logs dedupe to one battle with two observations", asyn
   assert.equal(participants[0].side0, 2, "team partition intact");
   assert.equal(participants[0].side1, 2);
 
-  const { rows: observations } = await ctx.db.query(
-    `select observer_tag from battle_observation where battle_id = $1 order by observer_tag`,
-    [battleId],
+  // Both observers sit in the battle as participants; the per-observer
+  // provenance row (battle_observation) is no longer written (2026-09-12).
+  const { rows: observers } = await ctx.db.query(
+    `select player_tag from battle_participant
+     where battle_id = $1 and player_tag = any($2) order by player_tag`,
+    [battleId, [obsA, obsB]],
   );
   assert.deepEqual(
-    observations.map((o) => o.observer_tag),
+    observers.map((o) => o.player_tag),
     [obsA, obsB].sort(),
-    "one observation per observer",
+    "both observers are participants of the one battle",
   );
+  const { rows: obs } = await ctx.db.query(
+    `select count(*)::int n from battle_observation where battle_id = $1`,
+    [battleId],
+  );
+  assert.equal(obs[0].n, 0, "no observation rows are written");
 
   // Outcomes are per-participant facts and must be consistent regardless of
   // which perspective landed first: teammates share a fate in 2v2.

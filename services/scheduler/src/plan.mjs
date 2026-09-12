@@ -133,7 +133,12 @@ export const DIRECT_PROFILE_CAP_MINUTES = 480;
  *  no new battles and no changed profile, so that poll is skipped. A
  *  session in progress is the one hazard - lastSeen may mark its start -
  *  so a sighting younger than this many hours never gates. Only a roster
- *  admitted AFTER the poll in question can gate it. */
+ *  admitted AFTER the poll in question can gate it, and only a TRACKED
+ *  clan's roster (read every 15-60 min while members play): an incidental
+ *  clan's roster is read every 4-24 h, and in the gate's first day those
+ *  rosters held back polls of players who then played a whole 25-battle
+ *  session before the roster noticed (capture gaps 0.13% -> 1.5%,
+ *  2026-09-12). Measured, decided, recorded in NOTES. */
 export const ROSTER_GATE_SESSION_HOURS = 2;
 /** Profile minimum interval once the roster says the player was active. */
 export const PROFILE_ACTIVE_MINUTES = 480;
@@ -143,6 +148,7 @@ export function rosterGated(row, now = new Date()) {
   if (row.endpoint !== "player_battlelog" && row.endpoint !== "player")
     return false;
   if (
+    !row.roster_tracked ||
     !row.roster_admitted_at ||
     !row.game_last_seen_at ||
     !row.last_admitted_at
@@ -488,6 +494,12 @@ async function selectEligible(db, now, arm) {
              (select cps.last_admitted_at from poll_state cps
                where cps.subject_tag = pl.last_known_clan_tag
                  and cps.endpoint = 'clan') as roster_admitted_at,
+             -- Only a tracked clan's roster is fresh enough to gate
+             -- (2026-09-12); an incidental one is read every 4-24 h.
+             (ps.endpoint in ('player_battlelog', 'player') and exists (
+                select 1 from recording r
+                where r.subject_type = 'clan' and r.subject_tag = pl.last_known_clan_tag
+                  and r.status = 'active')) as roster_tracked,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
       from poll_state ps
       left join player pl on pl.player_tag = ps.subject_tag
@@ -534,7 +546,7 @@ async function selectEligible(db, now, arm) {
            -- profile kept polling on the 480 branch (measured: 33/h before,
            -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
            activity_bph, directly_tracked, clan_tracked, board_every,
-           game_last_seen_at, roster_admitted_at
+           game_last_seen_at, roster_admitted_at, roster_tracked
     from state`,
   );
 

@@ -127,7 +127,7 @@ export async function projectRankingBoard(
          last_seen_at = now(),
          name = coalesce(player.name, excluded.name)
        where (player.name is null and excluded.name is not null)
-          or player.last_seen_at < now() - interval '1 hour'`,
+          or player.last_seen_at < now() - interval '1 day'`,
       [ordered.map((e) => e.tag), ordered.map((e) => e.name)],
     );
   }

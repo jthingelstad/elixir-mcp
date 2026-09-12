@@ -269,7 +269,8 @@ export async function ingestBattlelog(
   db,
   {
     observerTag,
-    receiptId,
+    // receiptId is accepted for callers' sake and unused since the
+    // battle_observation write went (2026-09-12).
     payload,
     highWater = false,
     collectorFilter = null,
@@ -343,7 +344,7 @@ export async function ingestBattlelog(
        last_seen_at = now(),
        name = coalesce(player.name, excluded.name)
      where (player.name is null and excluded.name is not null)
-        or player.last_seen_at < now() - interval '1 hour'`,
+        or player.last_seen_at < now() - interval '1 day'`,
     [tags, tags.map((t) => nameByTag.get(t) ?? null)],
   );
 
@@ -397,11 +398,11 @@ export async function ingestBattlelog(
         `${r.player_tag}|${parts.get(`${r.battle_id}|${r.player_tag}`).battle_time.slice(0, 10)}`,
       );
 
-    await db.query(
-      `insert into battle_observation (battle_id, observer_tag, receipt_id)
-       select unnest($1::text[]), $2, $3 on conflict do nothing`,
-      [[...battles.keys()], observer, receiptId],
-    );
+    // battle_observation is no longer written (2026-09-12): the receipt
+    // carries what this poll saw and dropped (0074) and what it added
+    // (0077), and battlelog_high_water carries coverage (0073). Nothing
+    // read the table; provenance per battle stays in the archive under
+    // payloads/endpoint=player_battlelog/entity=<observer>.
   }
 
   // Advance the mark past everything this delivery contained. Only a

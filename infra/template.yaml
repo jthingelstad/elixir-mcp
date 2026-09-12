@@ -230,6 +230,12 @@ Resources:
         # Autovacuum runs over one second are the other thing that eats
         # a micro's memory and I/O without any request naming it.
         log_autovacuum_min_duration: 1000
+        # 88 MB, in 8 kB pages. The engine default on a micro is 180 MB;
+        # RDS cut it to 88 MB itself under memory pressure on 2026-09-11
+        # and the ten hours at 88 MB were the only swap-free window the
+        # instance has had (9-27 MB against 56-100 MB). Static: applies
+        # at the next reboot. docs/NOTES.md 2026-09-12.
+        shared_buffers: 11264
 
   # Declared so retention is set before RDS starts writing; left to RDS
   # the group is created with never-expire.
