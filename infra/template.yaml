@@ -824,6 +824,34 @@ Resources:
           Columns:
             - { Name: json, Type: string }
 
+  # CloudFront standard (access) logs for the one hostname. Turned on
+  # 2026-09-12 after a browser-side stall left no trace at the origin:
+  # Lambda, API Gateway and CloudFront metrics were all clean, so the
+  # edge's own request log is the only evidence that can place the next
+  # one. ACLs stay enabled on this bucket because standard logging is
+  # delivered through the awslogsdelivery ACL grant; 30 days matches the
+  # Lambda log groups.
+  EdgeLogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub elixir-mcp-edge-logs-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-30d
+            Status: Enabled
+            ExpirationInDays: 30
+
   SiteBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -994,6 +1022,10 @@ Resources:
         Enabled: true
         Comment: elixir.poapkings.com
         HttpVersion: http2and3
+        Logging:
+          Bucket: !GetAtt EdgeLogBucket.RegionalDomainName
+          Prefix: cloudfront/
+          IncludeCookies: false
         Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref "AWS::NoValue"]
         ViewerCertificate: !If
           - HasSiteCert
