@@ -60,6 +60,28 @@ function wildcardRoute(routes, method, path, event) {
   return route;
 }
 
+// The soft deadline sits under the Lambda timeout by a margin that
+// covers writing the line and ending the client. Outside Lambda (tests,
+// no context) there is no deadline unless the caller supplies one.
+const DEADLINE_MARGIN_MS = 1500;
+function deadlineMs(context) {
+  if (typeof context?.getRemainingTimeInMillis !== "function") return null;
+  return Math.max(context.getRemainingTimeInMillis() - DEADLINE_MARGIN_MS, 1);
+}
+
+async function withDeadline(ms, run, onTimeout) {
+  if (ms === null) return run();
+  let timer;
+  const expiry = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(onTimeout()), ms);
+  });
+  try {
+    return await Promise.race([run(), expiry]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function makeHandler({
   databaseUrl,
   secret,
@@ -190,7 +212,7 @@ export function makeHandler({
     ...integrationsRoutes({ resolveAccount, logEvent }),
   };
 
-  return async function handler(event) {
+  return async function handler(event, context) {
     // Through CloudFront, or not at all (see auth origin.mjs).
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
@@ -221,23 +243,45 @@ export function makeHandler({
     // a route rather than read off the Lambda's undifferentiated
     // REPORT (2026-09-11: the console rail lagged the page and nobody
     // could say which call). The ROUTE KEY, never the raw path: a
-    // wildcard suffix is a request id or a name.
+    // wildcard suffix is a request id or a name. The line carries the
+    // Lambda request id so it joins the REPORT line, and the SOFT
+    // DEADLINE below is what guarantees it is written at all: a route
+    // that hangs on the database used to run into the 20 s Lambda kill,
+    // which leaves a REPORT and no route (the 09-11 RDS recoveries:
+    // 113 such lines, none attributable). Now the handler answers 504
+    // itself a little before the kill, so the line says which route,
+    // and the client gets JSON rather than a gateway error page.
     const started = Date.now();
     const routeKey = isIntegration
       ? `${method} /api/v1/*`
       : routes[`${method} ${path}`]
         ? `${method} ${path}`
         : `${method} ${path.slice(0, path.lastIndexOf("/"))}/*`;
+    const requestId = context?.awsRequestId ?? null;
     let status = 500;
     let connectMs = 0;
+    let timedOut = false;
     const db = new pg.Client({ connectionString: databaseUrl });
     try {
-      await db.connect();
-      connectMs = Date.now() - started;
-      const res = await route(db, event, body);
+      const res = await withDeadline(
+        deadlineMs(context),
+        async () => {
+          await db.connect();
+          connectMs = Date.now() - started;
+          return route(db, event, body);
+        },
+        () => {
+          timedOut = true;
+          return isIntegration
+            ? integrationProblem(504, "timeout", requestId ?? randomUUID())
+            : json(504, { error: "timeout" });
+        },
+      );
       status = res?.statusCode ?? 200;
       return res;
     } finally {
+      // A timed-out route may still hold a query; ending the client
+      // cancels the socket, and the query with it.
       await db.end().catch(() => {});
       console.log(
         JSON.stringify({
@@ -246,6 +290,8 @@ export function makeHandler({
           status,
           ms: Date.now() - started,
           connect_ms: connectMs,
+          ...(requestId ? { request_id: requestId } : {}),
+          ...(timedOut ? { timed_out: true } : {}),
         }),
       );
     }

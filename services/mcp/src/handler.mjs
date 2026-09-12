@@ -98,7 +98,13 @@ export function makeHandler({
   // 401'd at an agent URL discovers THAT resource rather than this one.
   const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
 
-  return async function handler(event) {
+  // One line per HTTP request, the same shape as the site API's
+  // (web-api handler.mjs). The EMF line and the call log cover tool
+  // CALLS; until this line, initialize, tools/list, the OAuth routes and
+  // every 401/403 refusal left nothing at all, so a run of 4xx on the
+  // door was a count with no story. The door key never carries a
+  // per-principal id (/a/<id> logs as /a/*).
+  async function dispatch(event) {
     // Through CloudFront, or not at all: the viewer headers this door
     // records are only trustworthy when the distribution set them.
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
@@ -444,5 +450,55 @@ export function makeHandler({
     } finally {
       await db.end();
     }
+  }
+
+  return async function handler(event, context) {
+    const started = Date.now();
+    const method =
+      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
+    const path = event.rawPath ?? event.path ?? "/";
+    const rpc = rpcSummary(event);
+    let status = 500;
+    try {
+      const res = await dispatch(event);
+      status = res?.statusCode ?? 200;
+      return res;
+    } finally {
+      const requestId = context?.awsRequestId ?? null;
+      console.log(
+        JSON.stringify({
+          at: new Date().toISOString(),
+          http: `${method} ${doorKey(path)}`,
+          ...rpc,
+          status,
+          ms: Date.now() - started,
+          ...(requestId ? { request_id: requestId } : {}),
+        }),
+      );
+    }
   };
+}
+
+function doorKey(path) {
+  return path.replace(/\/([ai])\/[^/]+/g, "/$1/*");
+}
+
+// The JSON-RPC method and, for tools/call, the tool name - read
+// leniently, because this runs for every request including the ones
+// dispatch will refuse as invalid JSON.
+function rpcSummary(event) {
+  if (!event.body) return {};
+  try {
+    const raw = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64").toString("utf8")
+      : event.body;
+    const message = JSON.parse(raw);
+    if (!message || typeof message.method !== "string") return {};
+    const out = { rpc: message.method };
+    if (message.method === "tools/call" && message.params?.name)
+      out.tool = String(message.params.name);
+    return out;
+  } catch {
+    return {};
+  }
 }

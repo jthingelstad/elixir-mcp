@@ -146,3 +146,35 @@ describe("loadTinylytics", () => {
     expect(beacons).toHaveLength(1);
   });
 });
+
+describe("failure events", async () => {
+  const { trackEvent, routeLabel } = await import("../src/analytics.js");
+
+  test("a route label collapses the id, never the route", () => {
+    expect(routeLabel("GET", "/api/admin/calls/abc-123")).toBe(
+      "GET /api/admin/calls/*",
+    );
+    expect(routeLabel("GET", "/api/me/gateways")).toBe("GET /api/me/gateways");
+    expect(routeLabel("POST", "/api/explore")).toBe("POST /api/explore");
+  });
+
+  test("an event is one click on a hidden collector node, then gone", () => {
+    const clicks = [];
+    const onClick = (ev) => {
+      const node = ev.target.closest?.("[data-tinylytics-event]");
+      if (node)
+        clicks.push([
+          node.getAttribute("data-tinylytics-event"),
+          node.getAttribute("data-tinylytics-event-value"),
+        ]);
+    };
+    document.addEventListener("click", onClick);
+    try {
+      trackEvent("web.api_timeout", "GET /api/me");
+    } finally {
+      document.removeEventListener("click", onClick);
+    }
+    expect(clicks).toEqual([["web.api_timeout", "GET /api/me"]]);
+    expect(document.querySelector("[data-tinylytics-event]")).toBeNull();
+  });
+});

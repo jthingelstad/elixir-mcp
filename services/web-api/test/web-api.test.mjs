@@ -3032,3 +3032,47 @@ test("an operator picks their collector's card; a card is one live collector's",
   );
   assert.deepEqual(dupes, [], "no live card is shared, and none is null");
 });
+
+test("a route that outlives the soft deadline answers 504 and still logs its route", async () => {
+  // The Lambda context says 1 ms is left after the margin, so the route
+  // cannot finish. Without the deadline the runtime would kill the
+  // function and the timing line — the only thing that names the
+  // route — would never be written.
+  const lines = [];
+  const realLog = console.log;
+  console.log = (line) => lines.push(line);
+  let res;
+  try {
+    res = await handler(
+      event({ method: "GET", path: "/api/public/status", body: undefined }),
+      { awsRequestId: "req-deadline", getRemainingTimeInMillis: () => 1501 },
+    );
+  } finally {
+    console.log = realLog;
+  }
+  assert.equal(res.statusCode, 504);
+  assert.deepEqual(parse(res), { error: "timeout" });
+  const timing = lines.map((l) => JSON.parse(l)).find((l) => l.http);
+  assert.equal(timing.http, "GET /api/public/status");
+  assert.equal(timing.status, 504);
+  assert.equal(timing.timed_out, true);
+  assert.equal(timing.request_id, "req-deadline");
+});
+
+test("a request that finishes carries its request id on the timing line", async () => {
+  const lines = [];
+  const realLog = console.log;
+  console.log = (line) => lines.push(line);
+  try {
+    await handler(
+      event({ method: "GET", path: "/api/public/status", body: undefined }),
+      { awsRequestId: "req-fine", getRemainingTimeInMillis: () => 20_000 },
+    );
+  } finally {
+    console.log = realLog;
+  }
+  const timing = lines.map((l) => JSON.parse(l)).find((l) => l.http);
+  assert.equal(timing.status, 200);
+  assert.equal(timing.request_id, "req-fine");
+  assert.equal(timing.timed_out, undefined);
+});

@@ -1,16 +1,33 @@
 /** Site API client: same-origin /api/*, cookie-authed, contract header on
  *  every request (the CSRF marker web-api requires on state changes). */
 
+import { trackEvent, routeLabel } from "./analytics.js";
+
+// Just past the API's own soft deadline (web-api answers 504 at ~18.5 s),
+// so no request the server would have answered is cut short, and a
+// connection that stalls in front of the edge — which the origin can
+// never log — fails here as a reported event instead of hanging the
+// view (2026-09-12: three such stalls, ~1 min each, no trace anywhere).
+const TIMEOUT_MS = 20_000;
+
 async function request(method, path, body) {
-  const res = await fetch(path, {
-    method,
-    credentials: "same-origin",
-    headers: {
-      "x-elixir-client": "web",
-      ...(body !== undefined ? { "content-type": "application/json" } : {}),
-    },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      method,
+      credentials: "same-origin",
+      headers: {
+        "x-elixir-client": "web",
+        ...(body !== undefined ? { "content-type": "application/json" } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (err) {
+    const error = err?.name === "TimeoutError" ? "timeout" : "network";
+    trackEvent(`web.api_${error}`, routeLabel(method, path));
+    return { ok: false, status: 0, data: {}, error };
+  }
   const text = await res.text();
   let data = {};
   try {
@@ -19,6 +36,10 @@ async function request(method, path, body) {
     // Every /api route answers JSON. Anything else was produced in
     // FRONT of the API — an edge error page — so whatever status it
     // arrived with, this is a failure and must never read as success.
+    trackEvent(
+      "web.api_bad_response",
+      `${res.status} ${routeLabel(method, path)}`,
+    );
     return { ok: false, status: res.status, data: {}, error: "bad_response" };
   }
   return { ok: res.ok, status: res.status, data };

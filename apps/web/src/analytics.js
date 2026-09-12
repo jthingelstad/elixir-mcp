@@ -106,3 +106,40 @@ function bridgeRouteChanges() {
   };
   window.addEventListener("popstate", send);
 }
+
+/**
+ * A browser-side failure, as a Tinylytics event (2026-09-12). The origin
+ * logs every request that reaches it; the class of problem this exists
+ * for is the one that never does — a fetch that hangs or dies before
+ * the edge, a script error in the view. Tinylytics' collector counts a
+ * click on a data-tinylytics-event node, so a programmatic event is a
+ * hidden node clicked once. Best-effort: never throws, never on
+ * localhost, and silent until the embed has loaded.
+ *
+ * `value` must never carry a URL, a token or free text from an error;
+ * callers pass a route KEY or a bounded label.
+ */
+export function trackEvent(event, value) {
+  try {
+    if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
+      return;
+    const node = document.createElement("button");
+    node.type = "button";
+    node.hidden = true;
+    node.setAttribute("data-tinylytics-event", event);
+    if (value) node.setAttribute("data-tinylytics-event-value", value);
+    document.body.appendChild(node);
+    node.click();
+    node.remove();
+  } catch {
+    // Analytics is best-effort and must never turn one failure into two.
+  }
+}
+
+/** The route key a failure reports: method and path with any id collapsed
+ *  to `*`, so /api/admin/calls/<id> is one event, not one per record. */
+export function routeLabel(method, path) {
+  const segments = path.split("/").filter(Boolean);
+  const head = segments.slice(0, 3).join("/");
+  return `${method} /${head}${segments.length > 3 ? "/*" : ""}`;
+}

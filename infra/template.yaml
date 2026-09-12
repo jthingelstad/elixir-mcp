@@ -172,6 +172,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    DependsOn: DbPostgresLogGroup
     Properties:
       # Renamed at the 2026-09-06 encryption migration: restoring from
       # the encrypted snapshot is a REPLACEMENT, and the retained old
@@ -206,6 +207,37 @@ Resources:
       # About $0.50/month of CloudWatch Logs.
       MonitoringInterval: 60
       MonitoringRoleArn: !GetAtt DbMonitoringRole.Arn
+      # The statement side of a stall (2026-09-12). Enhanced Monitoring
+      # says the box is squeezed; the Postgres log says by WHICH query,
+      # and whether it was waiting on a lock. Exported to CloudWatch so
+      # it survives the instance and can be queried beside the Lambda
+      # lines. The custom parameter group only takes effect after one
+      # manual reboot (a group swap is applied at reboot even when every
+      # parameter in it is dynamic) - docs/NOTES.md 2026-09-12.
+      DBParameterGroupName: !Ref DbParameterGroup
+      EnableCloudwatchLogsExports: [postgresql]
+
+  DbParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Family: postgres17
+      Description: elixir-mcp postgres17 - slow statements and lock waits to the log
+      Parameters:
+        # One second: at this volume the whole log is a few lines an hour
+        # in steady state and every line is one worth reading.
+        log_min_duration_statement: 1000
+        log_lock_waits: 1
+        # Autovacuum runs over one second are the other thing that eats
+        # a micro's memory and I/O without any request naming it.
+        log_autovacuum_min_duration: 1000
+
+  # Declared so retention is set before RDS starts writing; left to RDS
+  # the group is created with never-expire.
+  DbPostgresLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/rds/instance/elixir-mcp-enc/postgresql
+      RetentionInDays: 14
 
   DbMonitoringRole:
     Type: AWS::IAM::Role

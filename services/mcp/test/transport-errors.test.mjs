@@ -92,3 +92,46 @@ test("a refusal never leaks the connection string or an internal stack", async (
   );
   assert.doesNotMatch(res.body, /127\.0\.0\.1|postgres:\/\/|ECONNREFUSED/i);
 });
+
+test("every request leaves one timing line: door, rpc method, tool, status, request id", async () => {
+  const lines = [];
+  const realLog = console.log;
+  console.log = (line) => lines.push(line);
+  try {
+    await handler(
+      event({
+        path: "/a/0123456789ab/mcp",
+        headers: { authorization: "Bearer svt_whatever" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "game_clock", arguments: {} },
+        }),
+      }),
+      { awsRequestId: "req-mcp-1" },
+    );
+    // Not JSON at all: the line still says which door and what status.
+    await handler(
+      event({
+        path: "/oauth/token",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: "grant_type=authorization_code&code=x",
+      }),
+      { awsRequestId: "req-mcp-2" },
+    );
+  } finally {
+    console.log = realLog;
+  }
+  const timing = lines.map((l) => JSON.parse(l)).filter((l) => l.http);
+  assert.equal(timing.length, 2);
+  assert.equal(timing[0].http, "POST /a/*/mcp", "never the per-principal id");
+  assert.equal(timing[0].rpc, "tools/call");
+  assert.equal(timing[0].tool, "game_clock");
+  assert.equal(timing[0].status, 503);
+  assert.equal(timing[0].request_id, "req-mcp-1");
+  assert.equal(typeof timing[0].ms, "number");
+  assert.equal(timing[1].http, "POST /oauth/token");
+  assert.equal(timing[1].rpc, undefined);
+  assert.equal(timing[1].status, 503);
+});
