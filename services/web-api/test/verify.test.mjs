@@ -247,14 +247,12 @@ test("poll: partial matches light up, a full match observed after the brief veri
   assert.equal(r.seen, null);
   assert.equal(r.matched, 0);
 
-  // Half the target in the slot: four light up, not verified.
-  await setDeck(TAG, [
-    ...target.slice(0, 4),
-    26000015,
-    26000016,
-    26000017,
-    26000018,
-  ]);
+  // Half the target in the slot: four light up, not verified. Fillers come
+  // from outside the (random) target, or a lucky draw could match five.
+  const fillers = Array.from({ length: 20 }, (_, i) => 26000001 + i)
+    .filter((id) => !target.includes(id))
+    .slice(0, 4);
+  await setDeck(TAG, [...target.slice(0, 4), ...fillers]);
   r = JSON.parse((await poll()).body);
   assert.equal(r.state, "open");
   assert.equal(r.matched, 4);
