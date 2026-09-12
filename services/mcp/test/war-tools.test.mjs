@@ -1198,36 +1198,33 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     for (const w of member.weeks) {
       assert.ok(Number.isInteger(w.battles) && w.battles >= 0);
       assert.ok(w.donations === null || Number.isInteger(w.donations));
-      assert.ok(
-        (w.donations === null) === (w.donation_snapshots === 0),
-        "donations is null exactly when no snapshot fell in the week",
-      );
     }
     assert.ok(
       member.days_since_battle === null ||
         typeof member.days_since_battle === "number",
     );
     for (const w of member.war_weeks) {
-      assert.equal(w.days.length, 4);
-      for (const d of w.days) {
-        assert.ok(
-          d.decks_used_today === null || Number.isInteger(d.decks_used_today),
-        );
-        assert.ok(Number.isInteger(d.war_battles));
-      }
+      assert.ok(
+        Number.isInteger(w.war_week) && w.war_week < body.war_weeks.length,
+      );
+      assert.equal(w.decks_by_day.length, 4);
+      for (const d of w.decks_by_day)
+        assert.ok(d === null || Number.isInteger(d));
+      assert.equal(w.war_battles_by_day.length, 4);
     }
   }
-  const named = [
-    ...new Set(
-      body.members.flatMap((x) =>
-        x.war_weeks.map((w) => `${w.season_id}/${w.section_index}`),
-      ),
-    ),
-  ];
-  assert.deepEqual(
-    named.sort(),
-    body.war_weeks.map((w) => `${w.season_id}/${w.section_index}`).sort(),
-  );
+  const compact = (
+    await call(invoke, "clans_participation", {
+      weeks: 2,
+      verbosity: "compact",
+    })
+  ).body;
+  assert.equal(compact.applied.verbosity, "compact");
+  for (const member of compact.members)
+    for (const w of member.war_weeks)
+      assert.deepEqual(Object.keys(w).sort(), ["decks_used", "war_week"]);
+  for (const x of body.members)
+    assert.equal(x.war_weeks.length, body.war_weeks.length);
   // The naming test: no field name, note or docs pointer is a judgment.
   // (The game's own role values, "elder" among them, are facts.)
   const keys = new Set();
