@@ -14,13 +14,22 @@ import { ABSOLUTE_CAP_DAYS } from "./session.mjs";
 
 export async function createSession(
   db,
-  { secret, accountId, emailHash, now = Date.now() },
+  { secret, accountId, emailHash, now = Date.now(), seen = null },
 ) {
   const minted = createSessionToken({ secret, sub: emailHash, now });
   await db.query(
-    `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at)
-     values ($1, $2, to_timestamp($3), now() + make_interval(days => $4))`,
-    [minted.sessionId, accountId, minted.slidingExpiresAt, ABSOLUTE_CAP_DAYS],
+    `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at,
+                          client, last_seen_from, last_seen_country)
+     values ($1, $2, to_timestamp($3), now() + make_interval(days => $4), $5, $6, $7)`,
+    [
+      minted.sessionId,
+      accountId,
+      minted.slidingExpiresAt,
+      ABSOLUTE_CAP_DAYS,
+      seen?.client ?? null,
+      seen?.from ?? null,
+      seen?.country ?? null,
+    ],
   );
   return minted;
 }
@@ -29,15 +38,23 @@ export async function createSession(
  * Resolve a token to an approved account, enforcing: valid signature,
  * unexpired claims, live unrevoked row, absolute cap, and the ACCESS GATE
  * (§6.1 step 0 — only approved accounts resolve, on every request).
- * Slides the row's expiry as a side effect.
+ * Slides the row's expiry as a side effect, and moves the where-from
+ * columns when the caller passes what it saw (the same UPDATE, so the
+ * device list costs the request nothing extra).
  */
-export async function resolveSession(db, { secret, token, now = Date.now() }) {
+export async function resolveSession(
+  db,
+  { secret, token, now = Date.now(), seen = null },
+) {
   const claims = verifySessionToken({ secret, token, now });
   if (!claims?.sid || !claims?.sub) return null;
   const { rows } = await db.query(
     `update session s
      set last_seen_at = now(),
-         sliding_expires_at = least(now() + make_interval(secs => $3), s.absolute_expires_at)
+         sliding_expires_at = least(now() + make_interval(secs => $3), s.absolute_expires_at),
+         client = coalesce($4, s.client),
+         last_seen_from = coalesce($5, s.last_seen_from),
+         last_seen_country = coalesce($6, s.last_seen_country)
      from account a
      where s.session_id = $1
        and s.account_id = a.account_id
@@ -48,7 +65,14 @@ export async function resolveSession(db, { secret, token, now = Date.now() }) {
        and s.absolute_expires_at > now()
      returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role, a.kind,
                a.mcp_daily_quota, a.live_daily_quota`,
-    [claims.sid, claims.sub, SESSION_TTL_SECONDS],
+    [
+      claims.sid,
+      claims.sub,
+      SESSION_TTL_SECONDS,
+      seen?.client ?? null,
+      seen?.from ?? null,
+      seen?.country ?? null,
+    ],
   );
   const row = rows[0] ?? null;
   return row
@@ -79,4 +103,42 @@ export async function revokeSession(db, sessionId) {
     `update session set revoked_at = now() where session_id = $1 and revoked_at is null`,
     [sessionId],
   );
+}
+
+/**
+ * Every session still able to act for an account, newest first, for the
+ * Profile page. Revoked and expired rows are not "devices"; the page
+ * lists what could still sign in as you, and nothing that cannot.
+ */
+export async function listSessions(db, accountId) {
+  const { rows } = await db.query(
+    `select session_id, created_at, last_seen_at, sliding_expires_at,
+            client, last_seen_from, last_seen_country
+       from session
+      where account_id = $1 and revoked_at is null
+        and sliding_expires_at > now() and absolute_expires_at > now()
+      order by last_seen_at desc`,
+    [accountId],
+  );
+  return rows;
+}
+
+/**
+ * Revoke one of the account's OWN sessions by id (the account scope is
+ * the authorization: a session id from another account revokes nothing),
+ * or all of them except the one asking. Returns how many were revoked.
+ */
+export async function revokeAccountSessions(
+  db,
+  accountId,
+  { sessionId = null, except = null } = {},
+) {
+  const { rowCount } = await db.query(
+    `update session set revoked_at = now()
+      where account_id = $1 and revoked_at is null
+        and ($2::text is null or session_id = $2)
+        and ($3::text is null or session_id <> $3)`,
+    [accountId, sessionId, except],
+  );
+  return rowCount;
 }

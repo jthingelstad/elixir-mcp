@@ -26,13 +26,19 @@ export async function startMagicLogin(
     purpose = "web",
     context = null,
     ttlSeconds = MAGIC_TTL_SECONDS,
+    // The cross-context handoff (0083): the secret the asking browser
+    // holds, and where it asked from. Both optional; the OAuth shell
+    // passes neither.
+    pollId = null,
+    startedFrom = null,
   },
 ) {
   const token = createMagicToken();
   const code = createMagicCode();
   await db.query(
-    `insert into magic_login (token_hash, email_hash, code_hash, purpose, context, expires_at)
-     values ($1, $2, $3, $4, $5, now() + make_interval(secs => $6))`,
+    `insert into magic_login (token_hash, email_hash, code_hash, purpose, context, expires_at,
+                              poll_id_hash, started_from)
+     values ($1, $2, $3, $4, $5, now() + make_interval(secs => $6), $7, $8)`,
     [
       sha256hex(token),
       emailHash,
@@ -40,6 +46,8 @@ export async function startMagicLogin(
       purpose,
       context ? JSON.stringify(context) : null,
       ttlSeconds,
+      pollId ? sha256hex(pollId) : null,
+      startedFrom ? JSON.stringify(startedFrom) : null,
     ],
   );
   return { token, code };
@@ -53,10 +61,72 @@ export async function redeemMagicToken(db, token) {
     `update magic_login
      set used_at = now()
      where token_hash = $1 and used_at is null and expires_at > now()
-     returning email_hash, purpose, context`,
+     returning token_hash, email_hash, purpose, context, poll_id_hash, started_from`,
     [sha256hex(value)],
   );
   return rows[0] ?? null;
+}
+
+/**
+ * The cross-context handoff, three moves on the row the link burned.
+ *
+ * A sign-in that starts on one screen and is finished on another - the
+ * desktop tab that asked, the phone mail app that opened the link - used
+ * to leave the screen that asked signed out, waiting on a code that the
+ * person had already spent by clicking. Drop solved this with a poll id
+ * (drop.poapkings.com, /auth/poll) and the same shape is used here.
+ *
+ * The one thing added is WHERE the two sides are. A link opened from the
+ * same address as the request (the phone's mail app beside the phone's
+ * browser) hands the session over at once. A link opened from a
+ * different address is asked first, on the screen that opened it: "also
+ * sign in the screen that asked, from <country> at <time>?" Somebody who
+ * clicks a link they never requested is the person best placed to say no.
+ */
+export async function offerHandoff(db, { tokenHash, state }) {
+  // The confirm secret is returned to the redeeming screen only; the
+  // row keeps its hash, like every other credential here.
+  const confirm = state === "confirm" ? createMagicToken() : null;
+  await db.query(
+    `update magic_login
+       set handoff_state = $2, handoff_confirm_hash = $3
+     where token_hash = $1 and poll_id_hash is not null and handoff_state = 'none'`,
+    [tokenHash, state, confirm ? sha256hex(confirm) : null],
+  );
+  return confirm;
+}
+
+/** The redeeming screen said yes. Bound to the account that redeemed. */
+export async function confirmHandoff(db, { confirm, emailHash }) {
+  const value = validMagicToken(confirm);
+  if (!value) return false;
+  const { rowCount } = await db.query(
+    `update magic_login
+       set handoff_state = 'ready', handoff_confirm_hash = null
+     where handoff_confirm_hash = $1 and email_hash = $2
+       and handoff_state = 'confirm' and used_at > now() - make_interval(secs => $3)`,
+    [sha256hex(value), emailHash, MAGIC_TTL_SECONDS],
+  );
+  return rowCount === 1;
+}
+
+/**
+ * The asking screen collects its session: exactly once, and only within
+ * the link's own lifetime of the redemption. Returns the email hash to
+ * mint for, or null while there is nothing to collect.
+ */
+export async function takeHandoff(db, pollId) {
+  const value = validMagicToken(pollId);
+  if (!value) return null;
+  const { rows } = await db.query(
+    `update magic_login
+       set handoff_state = 'taken'
+     where poll_id_hash = $1 and handoff_state = 'ready'
+       and used_at > now() - make_interval(secs => $2)
+     returning email_hash`,
+    [sha256hex(value), MAGIC_TTL_SECONDS],
+  );
+  return rows[0]?.email_hash ?? null;
 }
 
 /**

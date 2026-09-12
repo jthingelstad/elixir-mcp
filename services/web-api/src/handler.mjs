@@ -18,6 +18,7 @@ import {
   approvedAccount,
   createSession,
   resolveSession,
+  sessionSeenFrom,
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
@@ -120,7 +121,14 @@ export function makeHandler({
       !event.headers?.[CONTRACT_HEADER]
     )
       return null;
-    return resolveSession(db, { secret, token });
+    return resolveSession(db, {
+      secret,
+      token,
+      // Where this request came from, for the Profile page's device
+      // list. Bearer callers are not devices; the columns stay as the
+      // browser left them.
+      seen: fromBearer ? null : sessionSeenFrom(event),
+    });
   }
 
   let exploreRegistryCache = null;
@@ -139,7 +147,11 @@ export function makeHandler({
       .catch(() => {});
   }
 
-  async function mintSessionResponse(db, hash) {
+  async function mintSessionResponse(
+    db,
+    hash,
+    { event = null, extra = {} } = {},
+  ) {
     const account = await approvedAccount(db, hash);
     if (!account) {
       // A VALID code for an account that is not approved yet is not the
@@ -160,6 +172,7 @@ export function makeHandler({
       secret,
       accountId: account.account_id,
       emailHash: hash,
+      seen: event ? sessionSeenFrom(event) : null,
     });
     await logEvent(db, account.account_id, "signed_in");
     // The signup funnel's last step, and the only one that means the product
@@ -181,7 +194,7 @@ export function makeHandler({
     await onboardAccount(db, account.account_id);
     return json(
       200,
-      { authenticated: true },
+      { authenticated: true, ...extra },
       { "set-cookie": sessionCookie(minted.token, 90 * 24 * 3600) },
     );
   }

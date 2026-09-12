@@ -3,8 +3,14 @@
 export const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const COOKIE_NAME = "__Host-elixir_session";
+import { sessionCookie, readSessionCookie } from "@elixir-mcp/auth";
+
 export const CONTRACT_HEADER = "x-elixir-client";
+// The cookie's name and attributes live with the auth package now, because
+// the MCP door sets the same cookie at consent (0083); these names stay
+// for the routes that always used them.
+export { sessionCookie };
+export const readCookie = readSessionCookie;
 
 export const json = (statusCode, body, headers = {}) => ({
   statusCode,
@@ -15,19 +21,6 @@ export const json = (statusCode, body, headers = {}) => ({
   },
   body: JSON.stringify(body),
 });
-
-export function sessionCookie(token, maxAgeSeconds) {
-  return `${COOKIE_NAME}=${token}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
-}
-
-export function readCookie(event) {
-  const cookies =
-    event.cookies ?? String(event.headers?.cookie ?? "").split("; ");
-  for (const c of cookies) {
-    if (c.startsWith(`${COOKIE_NAME}=`)) return c.slice(COOKIE_NAME.length + 1);
-  }
-  return "";
-}
 
 export function bearer(event) {
   const auth = String(event.headers?.authorization ?? "");
