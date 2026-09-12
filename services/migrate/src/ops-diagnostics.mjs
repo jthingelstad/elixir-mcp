@@ -486,3 +486,28 @@ export async function inspect(databaseUrl) {
     await db.end();
   }
 }
+
+/** Read-only session census ({sessions: true}): every session row of the
+ *  last 30 days by account (email ref only), with when it was minted, last
+ *  seen, and whether it is live, expired or revoked. No tokens, no
+ *  addresses. How "why do I keep signing in?" gets a factual answer. */
+export async function sessions(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select left(a.email_hash, 8) as account, a.role,
+              s.created_at, s.last_seen_at, s.sliding_expires_at, s.absolute_expires_at, s.revoked_at,
+              case when s.revoked_at is not null then 'revoked'
+                   when s.sliding_expires_at < now() then 'idle_expired'
+                   when s.absolute_expires_at < now() then 'capped'
+                   else 'live' end as state
+       from session s join account a on a.account_id = s.account_id
+       where s.created_at > now() - interval '30 days'
+       order by a.email_hash, s.created_at`,
+    );
+    return { sessions: rows };
+  } finally {
+    await db.end();
+  }
+}

@@ -33,6 +33,7 @@ import {
   captureAudit,
   probe,
   inspect,
+  sessions,
 } from "./ops-diagnostics.mjs";
 import {
   abYield,
@@ -74,6 +75,11 @@ export async function handler(event) {
   }
   if (event?.ledger) {
     const result = await ledger(process.env.DATABASE_URL, event.ledger);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.sessions) {
+    const result = await sessions(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
