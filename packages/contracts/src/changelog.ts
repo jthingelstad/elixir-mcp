@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.9.0",
+    date: "2026-09-12",
+    summary:
+      "NEW TOOL clans_participation: every open member's participation week by week in one call. Per ISO week (1 to 8, default 5, current week partial): battles, ranked_battles, donations (the weekly counter at week end, null with no snapshot). Per recorded war week: decks_used, points, and days[] with decks_used_today (null where the day was not polled), finalized and war_battles. Per member: joined_observed_at, tenure_known (false when present at the first roster poll), days_in_clan_observed, last_battle_time, days_since_battle. Per clan: recording_active_since and first_roster_observed_at. Facts and windows only; nothing here scores, ranks or judges.",
+    tools_added: ["clans_participation"],
+  },
+  {
     version: "1.8.0",
     date: "2026-09-12",
     summary:

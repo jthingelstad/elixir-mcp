@@ -92,3 +92,25 @@ export function formatLocal(isoOrDate, timeZone) {
   const mm = String(abs % 60).padStart(2, "0");
   return `${local}${offsetMin === 0 ? "Z" : `${sign}${hh}:${mm}`}`;
 }
+
+/** Monday 00:00 UTC of the ISO week containing `date`. */
+export function isoWeekStart(date) {
+  const d = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+  const day = d.getUTCDay() || 7; // Monday = 1 ... Sunday = 7
+  d.setUTCDate(d.getUTCDate() - (day - 1));
+  return d;
+}
+
+/** "2026-W37": the ISO year and week of `date` (a UTC instant). */
+export function isoWeekLabel(date) {
+  const d = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day); // the week's Thursday decides the year
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d - yearStart) / 86400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}

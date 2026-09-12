@@ -27,6 +27,7 @@ conventions that hold everywhere.
 | What day is it in the game? Season, war day, when it rolls | `game_clock` |
 | My clan today: standings, who still has decks | `war_current` (`decks_today` is the nudge list) |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
+| What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked, donations, war days per member per week, in one call) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
 | What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment` |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |

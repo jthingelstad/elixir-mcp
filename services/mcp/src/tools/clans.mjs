@@ -1,4 +1,4 @@
-/** clans_standings · clans_pilot_scores · clans_roster. Conventions
+/** clans_standings · clans_pilot_scores · clans_roster · clans_participation. Conventions
  *  (1.0.0): from/to + days sugar, `applied`, `notes[]` + `docs`,
  *  `verbosity` (replacing summary: true), `live: true` on the roster. */
 
@@ -8,6 +8,7 @@ import {
   MODE_GROUPS,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
+import { isoWeekLabel, isoWeekStart } from "../time.mjs";
 import { formatLocal } from "../time.mjs";
 import {
   ToolFailure,
@@ -428,6 +429,255 @@ export const clansTools = {
           ...(await buildMeta(ctx.db, ctx.account, clanTag, ["clan"])),
           ...(tz ? { timezone_applied: tz } : {}),
         },
+      };
+    },
+  },
+
+  clans_participation: {
+    description:
+      "Every open member's participation, week by week, in ONE call: per ISO week the battles played, ranked battles and the donation counter at week end; per recorded war week the decks used and each war day's decks (null where the day was not polled); per member the observed join, whether that join predates the recording, the last recorded battle and days since it. Facts with their windows and the recording horizon, no rating or ranking: the raw material for any clan's own participation rules. weeks 1 to 8, default 5; the current week is partial and says so.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        clan_tag: CLAN_TAG_SCHEMA,
+        weeks: {
+          type: "integer",
+          minimum: 1,
+          maximum: 8,
+          default: 5,
+          description:
+            "How many ISO weeks back, the current partial week included.",
+        },
+      },
+      additionalProperties: false,
+    },
+    async handler(ctx, args) {
+      const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+      const weeks = Number(args.weeks ?? 5);
+      if (!Number.isInteger(weeks) || weeks < 1 || weeks > 8)
+        throw new ToolFailure("bad_request", "weeks must be 1-8.");
+      const clanRow = await ctx.db.query(
+        `select c.name,
+                (select min(joined_observed_at) from clan_membership where clan_tag = c.clan_tag) as first_roster_observed_at,
+                (select min(created_at) from recording
+                  where subject_type = 'clan' and subject_tag = c.clan_tag and status = 'active') as recording_active_since
+         from clan c where c.clan_tag = $1`,
+        [clanTag],
+      );
+      const clan = clanRow.rows[0];
+      if (!clan)
+        throw new ToolFailure(
+          "not_recorded",
+          `${clanTag} is not in the record.`,
+          "elixir_track_clan({ clan_tag }) starts recording it.",
+        );
+      const now = new Date();
+      const thisWeekStart = isoWeekStart(now);
+      const from = new Date(
+        thisWeekStart.getTime() - (weeks - 1) * 7 * 86400_000,
+      );
+      const weekBounds = [];
+      for (let i = 0; i < weeks; i += 1) {
+        const start = new Date(from.getTime() + i * 7 * 86400_000);
+        const end = new Date(start.getTime() + 7 * 86400_000);
+        weekBounds.push({
+          iso_week: isoWeekLabel(start),
+          from: start.toISOString(),
+          to: end.toISOString(),
+          complete: end <= now,
+        });
+      }
+      const members = await ctx.db.query(
+        `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
+                (select max(b.battle_time) from battle_participant bp
+                 join battle b on b.battle_id = bp.battle_id
+                 where bp.player_tag = cm.player_tag) as last_battle
+         from clan_membership cm
+         join player p on p.player_tag = cm.player_tag
+         where cm.clan_tag = $1 and cm.left_observed_at is null
+         order by cm.player_tag`,
+        [clanTag],
+      );
+      const tags = members.rows.map((m) => m.player_tag);
+      // Battles per member per ISO week, ranked counted beside all.
+      const battles = await ctx.db.query(
+        `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
+                count(*)::int as battles,
+                count(*) filter (where b.type = any($3))::int as ranked_battles
+         from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id
+         where bp.player_tag = any($1) and bp.battle_time >= $2
+         group by bp.player_tag, date_trunc('week', bp.battle_time)`,
+        [tags, from, typesForModeGroup("ranked")],
+      );
+      // The donation counter at the end of each ISO week: the largest
+      // daily snapshot inside it (the counter resets Mondays).
+      const donations = await ctx.db.query(
+        `select player_tag, date_trunc('week', snapshot_date::timestamp) as week_start,
+                max(donations)::int as donations, count(*)::int as snapshots
+         from player_snapshot_daily
+         where player_tag = any($1) and snapshot_kind = 'daily' and snapshot_date >= $2::date
+         group by player_tag, date_trunc('week', snapshot_date::timestamp)`,
+        [tags, from],
+      );
+      // War weeks the clan recorded inside the window, with each member's
+      // decks and, where polled, each war day's decks.
+      const warWeeks = await ctx.db.query(
+        `select w.season_id, w.section_index, w.is_colosseum,
+                w.started_observed_at, w.finished_observed_at
+         from war_week w
+         where w.clan_tag = $1
+           and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $2
+         order by w.season_id, w.section_index`,
+        [clanTag, from],
+      );
+      const participation = await ctx.db.query(
+        `select wp.player_tag, wp.season_id, wp.section_index, wp.decks_used, wp.points
+         from war_participation wp
+         where wp.clan_tag = $1 and wp.player_tag = any($2)
+           and (wp.season_id, wp.section_index) in (
+             select w.season_id, w.section_index from war_week w
+             where w.clan_tag = $1
+               and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
+        [clanTag, tags, from],
+      );
+      const attendance = await ctx.db.query(
+        `select ad.player_tag, ad.season_id, ad.section_index, ad.war_day,
+                ad.decks_used_today, ad.finalized
+         from war_attendance_day ad
+         where ad.clan_tag = $1 and ad.player_tag = any($2)
+           and (ad.season_id, ad.section_index) in (
+             select w.season_id, w.section_index from war_week w
+             where w.clan_tag = $1
+               and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
+        [clanTag, tags, from],
+      );
+      const battledDays = await ctx.db.query(
+        `select bp.player_tag, b.season_id, b.section_index, b.war_day, count(*)::int as war_battles
+         from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id
+         where bp.player_tag = any($1) and bp.clan_tag = $2
+           and b.war_day is not null and bp.battle_time >= $3
+         group by bp.player_tag, b.season_id, b.section_index, b.war_day`,
+        [tags, clanTag, from],
+      );
+
+      const keyWeek = (d) => new Date(d).toISOString();
+      const byMemberWeek = new Map();
+      for (const r of battles.rows)
+        byMemberWeek.set(`${r.player_tag}|${keyWeek(r.week_start)}`, r);
+      const donationByWeek = new Map();
+      for (const r of donations.rows)
+        donationByWeek.set(`${r.player_tag}|${keyWeek(r.week_start)}`, r);
+      const partByKey = new Map();
+      for (const r of participation.rows)
+        partByKey.set(`${r.player_tag}|${r.season_id}|${r.section_index}`, r);
+      const daysByKey = new Map();
+      for (const r of attendance.rows) {
+        const k = `${r.player_tag}|${r.season_id}|${r.section_index}`;
+        if (!daysByKey.has(k)) daysByKey.set(k, new Map());
+        daysByKey.get(k).set(r.war_day, {
+          decks_used_today: r.decks_used_today,
+          finalized: r.finalized,
+        });
+      }
+      const battledByKey = new Map();
+      for (const r of battledDays.rows) {
+        const k = `${r.player_tag}|${r.season_id}|${r.section_index}`;
+        if (!battledByKey.has(k)) battledByKey.set(k, new Map());
+        battledByKey.get(k).set(r.war_day, r.war_battles);
+      }
+      const firstRoster = clan.first_roster_observed_at
+        ? new Date(clan.first_roster_observed_at)
+        : null;
+      const out = members.rows.map((m) => {
+        const joined = m.joined_observed_at
+          ? new Date(m.joined_observed_at)
+          : null;
+        // A member already present at the first roster poll joined at or
+        // before it; their tenure is a lower bound, not a fact.
+        const tenureKnown = Boolean(
+          joined && firstRoster && joined.getTime() > firstRoster.getTime(),
+        );
+        const last = m.last_battle ? new Date(m.last_battle) : null;
+        return {
+          player_tag: m.player_tag,
+          name: m.name,
+          role: m.role,
+          joined_observed_at: joined?.toISOString() ?? null,
+          tenure_known: tenureKnown,
+          days_in_clan_observed: joined
+            ? Math.floor((now - joined) / 86400_000)
+            : null,
+          last_battle_time: last?.toISOString() ?? null,
+          days_since_battle: last
+            ? Number(((now - last) / 86400_000).toFixed(2))
+            : null,
+          weeks: weekBounds.map((w) => {
+            const b = byMemberWeek.get(`${m.player_tag}|${w.from}`);
+            const d = donationByWeek.get(`${m.player_tag}|${w.from}`);
+            return {
+              iso_week: w.iso_week,
+              battles: b?.battles ?? 0,
+              ranked_battles: b?.ranked_battles ?? 0,
+              donations: d ? d.donations : null,
+              donation_snapshots: d?.snapshots ?? 0,
+            };
+          }),
+          war_weeks: warWeeks.rows.map((w) => {
+            const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
+            const p = partByKey.get(k);
+            const days = daysByKey.get(k);
+            const battled = battledByKey.get(k);
+            return {
+              season_id: w.season_id,
+              section_index: w.section_index,
+              decks_used: p?.decks_used ?? (days || battled ? 0 : null),
+              points: p?.points ?? null,
+              days: [1, 2, 3, 4].map((day) => ({
+                war_day: day,
+                decks_used_today: days?.get(day)?.decks_used_today ?? null,
+                finalized: days?.get(day)?.finalized ?? null,
+                war_battles: battled?.get(day) ?? 0,
+              })),
+            };
+          }),
+        };
+      });
+      return {
+        clan_tag: clanTag,
+        name: clan.name ?? null,
+        applied: appliedBlock({
+          clan_tag: clanTag,
+          weeks,
+          window: {
+            from: from.toISOString(),
+            to: null,
+            source: "argument",
+          },
+        }),
+        recording_active_since:
+          clan.recording_active_since?.toISOString?.() ?? null,
+        first_roster_observed_at: firstRoster?.toISOString() ?? null,
+        weeks: weekBounds,
+        war_weeks: warWeeks.rows.map((w) => ({
+          season_id: w.season_id,
+          section_index: w.section_index,
+          is_colosseum: w.is_colosseum,
+          started_observed_at: w.started_observed_at?.toISOString() ?? null,
+          finished_observed_at: w.finished_observed_at?.toISOString() ?? null,
+        })),
+        member_count: out.length,
+        members: out,
+        notes: notes(
+          "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
+          "donations is the game's weekly counter as of the last daily snapshot in that ISO week (it resets Mondays); null means no snapshot fell in the week.",
+          "decks_used_today is per war day from roster polls during the day, null when that day was not polled; war_battles counts the member's recorded war battles that day and never exceeds the decks used.",
+          "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
+          "Counts cover RECORDED battles only; elixir_coverage per tag says how complete a member's log is.",
+        ),
+        docs: docsRef("recording", "participation-by-week"),
+        meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"]),
       };
     },
   },

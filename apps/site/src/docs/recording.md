@@ -236,6 +236,30 @@ unknown, not evidence of absence.
 `players_timeline` adds `snapshots_available_from`, and a line in `notes[]`,
 when you ask for dates before snapshots began.
 
+## Participation by week
+
+`clans_participation({ clan_tag?, weeks? })` answers, for every open
+member of a clan in one call, what they did week by week: the raw material
+for a clan's own participation rules, which Elixir does not have. It
+measures; it never rates.
+
+| Field | Meaning |
+|---|---|
+| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`, `complete`); Monday 00:00 UTC to Monday, the current week partial |
+| `war_weeks[]` | the clan's recorded war weeks inside the window with their observed bounds; war weeks run on the game's grid, not ISO weeks |
+| `members[].weeks[]` | per ISO week: `battles`, `ranked_battles`, `donations` (the game's weekly counter as of the last daily snapshot in the week, `null` with no snapshot) |
+| `members[].war_weeks[]` | per war week: `decks_used`, `points`, and `days[]` with each war day's `decks_used_today` (from roster polls during the day; `null` when not polled), `finalized`, and `war_battles` recorded that day |
+| `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | when the record first saw them in the clan; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
+| `members[].last_battle_time`, `days_since_battle` | the last recorded battle in any clan, and its age |
+| `recording_active_since`, `first_roster_observed_at` | the recording horizon for the clan |
+
+Null is unknown, never zero, throughout: a week with no snapshot has
+`donations: null`, a war day nobody polled has `decks_used_today: null`,
+a member with no recorded battle has `days_since_battle: null`. Counts
+cover recorded battles only; `elixir_coverage` per tag says how complete
+a member's log is. `weeks` is 1 to 8 (default 5); the answer for a full
+clan over eight weeks stays under the response cap.
+
 ## Reading the game live
 
 `live: true` is a request for a read of the game no older than the API's

@@ -309,9 +309,9 @@ test("war_current exposes the poll age separately from the first period sighting
   }
 });
 
-test("the registry declares 52 tools, every one classified and annotated", () => {
+test("the registry declares 53 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 52);
+  assert.equal(decls.length, 53);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -1146,4 +1146,114 @@ test("war_current names the current members the race roster leaves out", async (
   } finally {
     await db.query("rollback");
   }
+});
+
+test("clans_participation: every open member, per ISO week and per war week, facts only", async () => {
+  const { body, isError } = await call(invoke, "clans_participation", {
+    weeks: 8,
+  });
+  assert.equal(isError, false, JSON.stringify(body).slice(0, 300));
+  assert.equal(body.clan_tag, CLAN);
+  assert.equal(body.weeks.length, 8);
+  assert.equal(
+    body.weeks.at(-1).complete,
+    false,
+    "the current week is partial",
+  );
+  assert.match(body.weeks[0].iso_week, /^\d{4}-W\d{2}$/);
+  const roster = (await call(invoke, "clans_roster", { verbosity: "compact" }))
+    .body;
+  assert.equal(
+    body.member_count,
+    roster.member_count,
+    "same open members as the roster",
+  );
+  const m = body.members[0];
+  assert.deepEqual(Object.keys(m).sort(), [
+    "days_in_clan_observed",
+    "days_since_battle",
+    "joined_observed_at",
+    "last_battle_time",
+    "name",
+    "player_tag",
+    "role",
+    "tenure_known",
+    "war_weeks",
+    "weeks",
+  ]);
+  assert.equal(m.weeks.length, 8);
+  // A member present at the first roster poll has a lower-bound tenure,
+  // never a fact; one seen joining later has a known one.
+  assert.ok(body.first_roster_observed_at);
+  for (const x of body.members)
+    assert.equal(
+      x.tenure_known,
+      x.joined_observed_at > body.first_roster_observed_at,
+      x.player_tag,
+    );
+  assert.ok(body.members.some((x) => x.tenure_known === false));
+  // Null is unknown, never zero: a week without a snapshot answers null
+  // donations; a day nobody polled answers null decks.
+  for (const member of body.members) {
+    for (const w of member.weeks) {
+      assert.ok(Number.isInteger(w.battles) && w.battles >= 0);
+      assert.ok(w.donations === null || Number.isInteger(w.donations));
+      assert.ok(
+        (w.donations === null) === (w.donation_snapshots === 0),
+        "donations is null exactly when no snapshot fell in the week",
+      );
+    }
+    assert.ok(
+      member.days_since_battle === null ||
+        typeof member.days_since_battle === "number",
+    );
+    for (const w of member.war_weeks) {
+      assert.equal(w.days.length, 4);
+      for (const d of w.days) {
+        assert.ok(
+          d.decks_used_today === null || Number.isInteger(d.decks_used_today),
+        );
+        assert.ok(Number.isInteger(d.war_battles));
+      }
+    }
+  }
+  const named = [
+    ...new Set(
+      body.members.flatMap((x) =>
+        x.war_weeks.map((w) => `${w.season_id}/${w.section_index}`),
+      ),
+    ),
+  ];
+  assert.deepEqual(
+    named.sort(),
+    body.war_weeks.map((w) => `${w.season_id}/${w.section_index}`).sort(),
+  );
+  // The naming test: no field name, note or docs pointer is a judgment.
+  // (The game's own role values, "elder" among them, are facts.)
+  const keys = new Set();
+  const walk = (v) => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object")
+      for (const [k, x] of Object.entries(v)) {
+        keys.add(k.toLowerCase());
+        walk(x);
+      }
+  };
+  walk(body);
+  const prose = [...keys, ...body.notes, body.docs].join(" ").toLowerCase();
+  for (const word of [
+    "elder",
+    "kick",
+    "promot",
+    "demot",
+    "policy",
+    "score",
+    "rank ",
+    "verdict",
+  ])
+    assert.ok(!prose.includes(word), `leaked judgment word: ${word}`);
+  const { isError: refused } = await call(invoke, "clans_participation", {
+    weeks: 9,
+  });
+  assert.equal(refused, true, "weeks above the maximum is refused");
 });

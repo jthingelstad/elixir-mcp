@@ -117,6 +117,7 @@ The defaults differ by tool, and each says which applied:
 | `battles_meta_decks`, `battles_meta_cards`, `cards_synergy` | 28 days |
 | `clans_standings` | 30 days |
 | `clans_pilot_scores` | 90 days |
+| `clans_participation` | 5 ISO weeks, the current one included |
 | `battles_trends` | 12 weeks |
 | `battles_performance`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
 

@@ -30,7 +30,13 @@ test("every windowed tool takes from and to, and the per-call timezone", () => {
   // days / weeks / seasons are sugar on top of from/to, never instead of
   // it. The two Pilot Score tools are the deliberate exception: their curve
   // is fit over a trailing window ending now, so they take days only.
-  const exempt = new Set(["battles_levels", "clans_pilot_scores"]);
+  // clans_participation is the third: its unit is the ISO week, aligned to
+  // Monday, so an arbitrary from/to would only fall between weeks.
+  const exempt = new Set([
+    "battles_levels",
+    "clans_pilot_scores",
+    "clans_participation",
+  ]);
   for (const d of WINDOWED) {
     if (exempt.has(d.name)) continue;
     const p = d.inputSchema.properties;
