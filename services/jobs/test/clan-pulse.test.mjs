@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
@@ -8,6 +9,13 @@ import { clanPulse } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
+const pulseDocs = readFileSync(
+  path.join(repoRoot, "apps/site/src/docs/events.md"),
+  "utf8",
+);
+const pulseExample = JSON.parse(
+  pulseDocs.split("## The clan pulse")[1].match(/```json\s*([\s\S]*?)```/)[1],
+);
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_pulse_${process.pid}`;
@@ -148,6 +156,12 @@ test("clan_pulse: one digest per added clan per day, facts only", async () => {
   );
   assert.equal(p.never_recorded, 1, "GHOST has no recorded history");
   assert.deepEqual(p.roster_changes_24h, { joined: 0, left: 0 });
+  for (const key of ["joined", "left"])
+    assert.equal(
+      typeof pulseExample.roster_changes_24h[key],
+      typeof p.roster_changes_24h[key],
+      `the documented roster ${key} is a count, not a member list`,
+    );
   assert.equal(p.war, undefined, "no war anchor -> no war block");
   assert.match(p.note, /RECORDED/);
 
@@ -184,4 +198,27 @@ test("a member we never polled reports an unknown poll age, not a false zero", a
     [GHOST],
   );
   assert.equal(rows[0].days_since_poll, null);
+});
+
+test("the documented pulse war discriminator matches the emitted digest", async () => {
+  await db.query(`delete from event_feed`);
+  await db.query(
+    `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
+     values ($1, 4, now())`,
+    [CLAN],
+  );
+  await clanPulse(DB_URL);
+  const { rows } = await db.query(
+    `select payload from event_feed where topic = 'clan_pulse'`,
+  );
+  const war = rows[0].payload.war;
+  assert.deepEqual(
+    Object.keys(pulseExample.war)
+      .filter((key) => key !== "decks_today")
+      .sort(),
+    Object.keys(war).sort(),
+    "the example uses the pulse's discriminator, not war_current's",
+  );
+  assert.equal(pulseExample.war.kind, war.kind);
+  assert.equal(pulseExample.war.war_day, war.war_day);
 });

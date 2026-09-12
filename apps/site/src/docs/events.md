@@ -127,8 +127,8 @@ idempotent per clan and day.
   "top_24h": [{ "player_tag": "#…", "name": "…", "battles": 31 }],
   "quiet": [{ "player_tag": "#…", "name": "…", "days_quiet": 9, "days_since_poll": 0, "recorded_since": "2026-07-08T…" }],
   "never_recorded": 2, "never_recorded_members": [{ "player_tag": "#…", "name": "…" }],
-  "war": { "day_kind": "war", "war_day": 2, "decks_today": { "untouched": 12, "partial": 6, "finished": 22, "participants": 40 } },
-  "roster_changes_24h": { "joined": [], "left": [] },
+  "war": { "kind": "war", "war_day": 2, "decks_today": { "untouched": 12, "partial": 6, "finished": 22, "participants": 40 } },
+  "roster_changes_24h": { "joined": 1, "left": 0 },
   "note": "…" }
 ```
 
@@ -139,7 +139,12 @@ idempotent per clan and day.
 - `never_recorded_members` are named, not merely counted, because `quiet` is
   built from recorded battles and structurally cannot contain them.
 - `war` is present only while the latest observed period is nominally still
-  open; `decks_today` counts trail actual play and are never final.
+  open. Its `kind` is `training` or `war`; `war_day` appears only on a war
+  day, and `decks_today` only when recorded current participants exist. These
+  counts trail actual play and are never final. Unlike `war_current`, the
+  pulse names its discriminator `kind`, not `day_kind`.
+- `roster_changes_24h.joined` and `.left` are counts, not member lists;
+  individual changes arrive as `member_joined` and `member_left` events.
 - `battles_24h` counts battles played while in this clan.
 
 It carries facts, never judgments. Thresholds beyond the five-day floor are
