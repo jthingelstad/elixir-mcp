@@ -1170,18 +1170,23 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   );
   const m = body.members[0];
   assert.deepEqual(Object.keys(m).sort(), [
+    "battles",
     "days_in_clan_observed",
     "days_since_battle",
+    "donations",
     "joined_observed_at",
     "last_battle_time",
     "name",
     "player_tag",
+    "ranked_battles",
     "role",
     "tenure_known",
-    "war_weeks",
-    "weeks",
+    "war_battles_by_day",
+    "war_decks",
+    "war_decks_by_day",
+    "war_points",
   ]);
-  assert.equal(m.weeks.length, 8);
+  assert.equal(m.battles.length, 8);
   // A member present at the first roster poll has a lower-bound tenure,
   // never a fact; one seen joining later has a known one.
   assert.ok(body.first_roster_observed_at);
@@ -1195,22 +1200,25 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   // Null is unknown, never zero: a week without a snapshot answers null
   // donations; a day nobody polled answers null decks.
   for (const member of body.members) {
-    for (const w of member.weeks) {
-      assert.ok(Number.isInteger(w.battles) && w.battles >= 0);
-      assert.ok(w.donations === null || Number.isInteger(w.donations));
-    }
+    for (const col of ["battles", "ranked_battles", "donations"])
+      assert.equal(member[col].length, body.weeks.length, col);
+    for (const b of member.battles) assert.ok(Number.isInteger(b) && b >= 0);
+    for (const d of member.donations)
+      assert.ok(d === null || Number.isInteger(d));
     assert.ok(
       member.days_since_battle === null ||
         typeof member.days_since_battle === "number",
     );
-    for (const w of member.war_weeks) {
-      assert.ok(
-        Number.isInteger(w.war_week) && w.war_week < body.war_weeks.length,
-      );
-      assert.equal(w.decks_by_day.length, 4);
-      for (const d of w.decks_by_day)
-        assert.ok(d === null || Number.isInteger(d));
-      assert.equal(w.war_battles_by_day.length, 4);
+    for (const col of [
+      "war_decks",
+      "war_points",
+      "war_decks_by_day",
+      "war_battles_by_day",
+    ])
+      assert.equal(member[col].length, body.war_weeks.length, col);
+    for (const days of member.war_decks_by_day) {
+      assert.equal(days.length, 4);
+      for (const d of days) assert.ok(d === null || Number.isInteger(d));
     }
   }
   const compact = (
@@ -1220,11 +1228,11 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     })
   ).body;
   assert.equal(compact.applied.verbosity, "compact");
-  for (const member of compact.members)
-    for (const w of member.war_weeks)
-      assert.deepEqual(Object.keys(w).sort(), ["decks_used", "war_week"]);
-  for (const x of body.members)
-    assert.equal(x.war_weeks.length, body.war_weeks.length);
+  for (const member of compact.members) {
+    assert.ok(!("war_decks_by_day" in member));
+    assert.ok(!("war_points" in member));
+    assert.equal(member.war_decks.length, compact.war_weeks.length);
+  }
   // The naming test: no field name, note or docs pointer is a judgment.
   // (The game's own role values, "elder" among them, are facts.)
   const keys = new Set();

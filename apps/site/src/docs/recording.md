@@ -247,8 +247,8 @@ measures; it never rates.
 |---|---|
 | `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`, `complete`); Monday 00:00 UTC to Monday, the current week partial |
 | `war_weeks[]` | the clan's recorded war weeks inside the window with their observed bounds; war weeks run on the game's grid, not ISO weeks |
-| `members[].weeks[]` | per ISO week: `battles`, `ranked_battles`, `donations` (the game's weekly counter as of the last daily snapshot in the week, `null` with no snapshot) |
-| `members[].war_weeks[]` | one row per entry of the top-level `war_weeks`, referenced by index (`war_week`): `decks_used`, `points`, `decks_by_day` (war days 1 to 4 from roster polls during the day; `null` where the day was not polled) and `war_battles_by_day` (the member's recorded war battles each day). `verbosity: "compact"` keeps only `decks_used` |
+| `members[].battles`, `ranked_battles`, `donations` | columns aligned to `weeks[]`, one entry per ISO week in order; `donations` is the game's weekly counter as of the last daily snapshot in the week, `null` with no snapshot |
+| `members[].war_decks`, `war_points`, `war_decks_by_day`, `war_battles_by_day` | columns aligned to `war_weeks[]`; `war_decks_by_day` holds war days 1 to 4 from roster polls during the day (`null` where the day was not polled) and `war_battles_by_day` the member's recorded war battles each day. `verbosity: "compact"` keeps only `war_decks` |
 | `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | when the record first saw them in the clan; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
 | `members[].last_battle_time`, `days_since_battle` | the last recorded battle in any clan, and its age |
 | `recording_active_since`, `first_roster_observed_at` | the recording horizon for the clan |
@@ -257,10 +257,10 @@ Null is unknown, never zero, throughout: a week with no snapshot has
 `donations: null`, a war day nobody polled has `decks_used_today: null`,
 a member with no recorded battle has `days_since_battle: null`. Counts
 cover recorded battles only; `elixir_coverage` per tag says how complete
-a member's log is. `weeks` is 1 to 8 (default 5); a full clan over eight
-weeks with the per-day arrays can pass the response cap, in which case
-the `result_too_large` hint says to narrow `weeks` or use
-`verbosity: "compact"`.
+a member's log is. `weeks` is 1 to 8 (default 5). The per-member values
+are columns rather than rows so a full clan over eight weeks fits the
+response cap; should it not, the `result_too_large` hint names `weeks`
+and `verbosity: "compact"`.
 
 ## Reading the game live
 

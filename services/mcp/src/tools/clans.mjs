@@ -449,7 +449,7 @@ export const clansTools = {
             "How many ISO weeks back, the current partial week included.",
         },
         verbosity: VERBOSITY(
-          "per war week only decks_used; no per-day arrays, no points.",
+          "war_decks only; no per-day arrays, no war_points.",
         ),
       },
       additionalProperties: false,
@@ -617,41 +617,53 @@ export const clansTools = {
           days_since_battle: last
             ? Number(((now - last) / 86400_000).toFixed(2))
             : null,
-          // One row per ISO week in `weeks` order; `donations` is null when
-          // no daily snapshot fell in the week.
-          weeks: weekBounds.map((w) => {
-            const b = byMemberWeek.get(`${m.player_tag}|${w.from}`);
-            const d = donationByWeek.get(`${m.player_tag}|${w.from}`);
-            return {
-              iso_week: w.iso_week,
-              battles: b?.battles ?? 0,
-              ranked_battles: b?.ranked_battles ?? 0,
-              donations: d ? d.donations : null,
-            };
-          }),
-          // One row per entry of the top-level war_weeks, in that order
-          // (`war_week` is its index); the per-day arrays are war days 1-4.
-          war_weeks: warWeeks.rows.map((w, i) => {
+          // Columns aligned to the top-level `weeks` and `war_weeks` (one
+          // entry each, in order): a full clan over eight weeks stays under
+          // the response cap this way and not as rows.
+          battles: weekBounds.map(
+            (w) => byMemberWeek.get(`${m.player_tag}|${w.from}`)?.battles ?? 0,
+          ),
+          ranked_battles: weekBounds.map(
+            (w) =>
+              byMemberWeek.get(`${m.player_tag}|${w.from}`)?.ranked_battles ??
+              0,
+          ),
+          donations: weekBounds.map(
+            (w) =>
+              donationByWeek.get(`${m.player_tag}|${w.from}`)?.donations ??
+              null,
+          ),
+          war_decks: warWeeks.rows.map((w) => {
             const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
-            const p = partByKey.get(k);
-            const days = daysByKey.get(k);
-            const battled = battledByKey.get(k);
-            const row = {
-              war_week: i,
-              decks_used: p?.decks_used ?? (days || battled ? 0 : null),
-            };
-            if (compact) return row;
-            return {
-              ...row,
-              points: p?.points ?? null,
-              decks_by_day: [1, 2, 3, 4].map(
-                (day) => days?.get(day)?.decks_used_today ?? null,
-              ),
-              war_battles_by_day: [1, 2, 3, 4].map(
-                (day) => battled?.get(day) ?? 0,
-              ),
-            };
+            return (
+              partByKey.get(k)?.decks_used ??
+              (daysByKey.get(k) || battledByKey.get(k) ? 0 : null)
+            );
           }),
+          ...(compact
+            ? {}
+            : {
+                war_points: warWeeks.rows.map(
+                  (w) =>
+                    partByKey.get(
+                      `${m.player_tag}|${w.season_id}|${w.section_index}`,
+                    )?.points ?? null,
+                ),
+                war_decks_by_day: warWeeks.rows.map((w) => {
+                  const days = daysByKey.get(
+                    `${m.player_tag}|${w.season_id}|${w.section_index}`,
+                  );
+                  return [1, 2, 3, 4].map(
+                    (day) => days?.get(day)?.decks_used_today ?? null,
+                  );
+                }),
+                war_battles_by_day: warWeeks.rows.map((w) => {
+                  const battled = battledByKey.get(
+                    `${m.player_tag}|${w.season_id}|${w.section_index}`,
+                  );
+                  return [1, 2, 3, 4].map((day) => battled?.get(day) ?? 0);
+                }),
+              }),
         };
       });
       return {
@@ -683,7 +695,7 @@ export const clansTools = {
         notes: notes(
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
           "donations is the game's weekly counter as of the last daily snapshot in that ISO week (it resets Mondays); null means no snapshot fell in the week.",
-          "decks_by_day is war days 1-4 from roster polls during each day, null where that day was not polled; war_battles_by_day counts the member's recorded war battles per day; a member's war_weeks rows reference the top-level war_weeks by index.",
+          "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
           "Counts cover RECORDED battles only; elixir_coverage per tag says how complete a member's log is.",
         ),
