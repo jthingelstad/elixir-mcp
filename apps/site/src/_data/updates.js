@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-12",
+    title: "The tool guide counts live reads from the registry",
+    body: "The tool-choice guide still said four tools could request a live read, even though the leaderboard tools had joined that lane. Its count now comes from the MCP registry, the same source as the generated tool reference, so the website and the guide served over MCP include every tool with a live flag. The tools, live-fetch allowances and asynchronous read behavior are unchanged.",
+  },
+  {
+    date: "2026-09-12",
     title: "Battle logs keep their own capture schedule",
     body: "The roster gate treated the game's last-seen stamp as proof that a member could not have played. The capture audit proved otherwise: a completed session can fill the roughly 30-battle log before that stamp is observed again. It still skips an unchanged profile, where a delayed stamp cannot lose history, but battle logs now always follow their yield, burst and reader limits. Status keeps publishing the gap count so this correction is measured rather than assumed.",
   },

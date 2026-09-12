@@ -36,7 +36,7 @@ conventions that hold everywhere.
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
 
 Every recorded-data tool is unlimited within the daily call budget. The
-tools that spend the live lane are `live_fetch` and the four with a `live`
+tools that spend the live lane are `live_fetch` and the {{ tools.liveFlagCount }} with a `live`
 flag; everything else reads the record.
 
 ## Three sequences

@@ -6,8 +6,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { elixirTools } from "../src/tools/elixir.mjs";
+import { makeRegistry } from "../src/tools.mjs";
 
 const ctx = { account: {}, db: null };
+
+test("the tool-choice guide counts live flags from the current registry", async () => {
+  const guide = await elixirTools.elixir_docs.handler(ctx, {
+    page: "choosing-a-tool",
+  });
+  const count = guide.markdown.match(
+    /`live_fetch` and the (\d+) with a `live`\s+flag/,
+  );
+  assert.ok(count, "the live-lane count must render from the registry");
+  const liveTools = makeRegistry()
+    .declarations()
+    .filter((tool) => tool.inputSchema.properties?.live);
+  assert.equal(Number(count[1]), liveTools.length);
+});
 
 test("elixir_docs: the index, one page, and a search that says where", async () => {
   const index = await elixirTools.elixir_docs.handler(ctx, {});

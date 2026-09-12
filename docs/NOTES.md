@@ -1248,3 +1248,16 @@ battle-log poll. Battle logs always use their yield, burst and reader rules.
 The scheduler regression pins this separation; recording docs and What's New
 state the revised promise. Deploy and a new read-only capture census are the
 acceptance criteria; source publication alone is not completion.
+
+## 2026-09-12 — The live-lane guide follows the registry
+
+Close the Loop's evening read found `/docs/choosing-a-tool` still saying
+four tools have a `live` flag while both authenticated `tools/list` and
+the public `/tools.json` at contract 1.9.0 declare seven. The board reads
+had joined the lane without moving this count. Derive `liveFlagCount`
+from the registry in the shared site/corpus data, as the existing total
+and principal counts already are; render it in the guide. A docs-tool
+regression failed on the old guide and passes on the generated count.
+What's New ships with the correction. No tool schema, semantics, quota
+or contract version changes. Acceptance requires the public guide and
+`elixir_docs` to agree after deployment.
