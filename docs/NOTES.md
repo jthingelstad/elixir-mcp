@@ -846,3 +846,163 @@ digest and `services/jobs/src/index.mjs` agree on `war.kind` and numeric
 conditional war fields, and pin the example against a scratch-database digest.
 No payload, schema or semantics change; contract 1.7.1 remains current. Publish
 both the site and MCP documentation corpus so clients see the same correction.
+
+## 2026-09-12 — The first 24 hours after the efficiency plan, measured
+
+Read 11:55–12:10Z; analysis only, no product code. Instruments: Logs
+Insights `REPORT` lines per Lambda per hour; `ElixirMCP/Ledger`
+`PlannedJobs`; `{tables:true}` and `{stats:true}` on the migrate Lambda (no
+`probe`); `/api/public/status`; RDS CloudWatch hourly plus the new Enhanced
+Monitoring stream (`RDSOSMetrics`, on since 16:26Z yesterday); the archive
+bucket's `payloads/` listing binned by object timestamp (distinct-content
+fetches, a lower bound, the same instrument the review used); the archive's
+`calls/dt=…` capture for live calls; the web-api timing line (live since
+01:2xZ). One trap for the next reader: `aws cloudwatch get-metric-statistics`
+prints datapoint timestamps in Chicago local time with no offset; every
+CloudWatch hour below has been converted to UTC. Each review claim is checked
+against what happened, and where it did not happen that is said.
+
+**1. Lambda.** `elixir-mcp-web-api` billed 7,252 s/hr on average over the 14
+hours before the push (09-10 12:00Z to 09-11 01:00Z; ~1,700 invocations/hr
+at a 2.6–5.3 s mean, the long-poll) and 194 s/hr over the 19 hours since
+17:00Z (179 s/hr excluding the 10:00Z board hour's 475 s; ~1,860
+invocations/hr at an 84–124 ms mean). At arm64 512 MB pricing that is
+$35.5/mo → $1.2/mo: invocations went UP (a check-in every 15/N s instead of
+an 8 s long-poll) and the bill went down 97%, which is the point. Door
+route split since the timing line: ~1,500 `POST /api/collector/lease` per
+hour (p50 42 ms, p99 80–220 ms; 332 ms in the board hour) and 250–350
+submits (p50 ~180 ms): five door calls per fetch, all check-ins. The legacy
+`wait_s` path (a 2 s ceiling with 1 s re-checks) would show as ≥ 1,000 ms on
+every empty lease from an old client; lease calls ≥ 900 ms are 1–11 per
+hour out of ~1,500, so no pre-check-in client is in the fleet. Versions on
+the status page: Mini P.E.K.K.A, Royal Hogs and Cannon `v2.0.30`, Witch
+`py-v2.0.30`, Skeleton Army `py-dev` (a checkout; the collector repo's HEAD
+7354e8f IS the check-in client). The `poll.*` block and `LEGACY_WAIT_MAX_S`
+in `collector-door.mjs` can go with the next door change. The mcp Lambda
+bills 3–30 s/hr at 100–300 ms per call (the 12 s poll is gone from the
+bill); scheduler ~8 s/hr, jobs ~5 s/hr.
+
+**2. Fetch volume and yield.** `PlannedJobs` per hour: ~190 on 09-10
+(before the boards and 05112f0), 1,100–1,300 through 09-11 morning
+(15-minute rosters for 301 clans), 250–465 in the 12:00–16:00Z window,
+252–403 (mean 299) since 17:00Z, and 651 in the 10:00Z board hour.
+Receipts per hour on the status page: 219–377 in quiet hours, 623 at
+10:00Z; the 24 h capture-audit poll count fell 5,500 → 3,646. From the
+archive listing, distinct-content fetches per hour after the gate against
+the 13:00–15:00Z window before it: **battlelog 75–120 (mean ~98) against
+177–245 (mean 211), −54%, as the review said; profile 41–79 (105 at 00:00Z)
+against 46–71: unchanged, the review's −60% did not happen.** Profiles are
+now read every 8 h for every player a roster shows active
+(`PROFILE_ACTIVE_MINUTES` 480), and that cadence, not the retired dormant
+floor, was already most of the profile spend; ~60 fetches/hr × 60 KB is the
+payload the gate was meant to remove and did not. Clan ~65/hr (47–107; was
+~600 at 15-minute polls, ~48 on 09-10 when only tracked clans were polled);
+river race 7–12/hr. Yield: `useful_hour / measured_hour` 209/292 (72%;
+79/112 in the first window); `yield_24h` per collector 0.73–0.83 (0.56–0.78
+in the first window, before the 24 h window had filled);
+`edge_filtered_24h` 0.83–0.88. `battlelog_filter_last_hour`: 169 polls,
+5,214 entries observed, 4,551 dropped at the collector (87%), 81 polls
+`nothing_new` (48%, against 55–61% before the gate): the gate removed about
+half the battlelog polls, and about half of what remains still finds
+nothing; the yield EWMA is the other lever. Receipts by endpoint since the
+13:1xZ reading yesterday (22.7 h): battlelog +3,475, profile +1,447, clan
++2,507, race +245.
+
+**3. The gate's safety: the regression.** `capture_audit_24h` reads **55
+gaps in 3,646 polls (1.5%) against 7 in ~5,500 (0.13%)** before; `{stats}`
+says 2 of 169 in the last hour, so the rate is steady, not a spike. There is
+no receipt reader without `probe`, so the gap receipts were read from the
+archive instead: every filtered battlelog object since 16:15Z (1,990),
+sorted by size, the 89 largest downloaded; 70 hold the full 25 entries, and
+a full log under a mark with nothing filtered is exactly the audit's gap. Of
+those 70, 53 span 1.5–4.8 h from oldest to newest battle (one sitting of
+25+ battles) and were fetched within an hour of the newest; 17 span 9 h to
+weeks (players on the 24 h floor or newly recorded, the same class as the 7
+before). They cluster at 00:00Z (17, US evening) and 10:00Z (11, the hour
+before reset). **The two-hour session grace is not the cause**: the grace
+only protects a sighting younger than 2 h. The failing sequence is a roster
+at T showing a member idle since T−3 h, the gate skipping their battlelog
+poll, a session starting after T, and the next roster (up to 4 h later for
+tracked clans, 24 h otherwise) being the first thing that can re-arm the
+poll, by which time 25 battles have rolled the log. The gate made the
+roster cadence the battlelog cadence for every idle-then-active player,
+and the roster ceiling (4 h) is longer than a 25-battle session (1.5–2 h).
+The 25 battles themselves ARE captured; what is lost is whatever preceded
+them in the sitting. Options, not decided here: (a) a gated poll still
+happens by its own yield-EWMA due time (the gate delays, never skips); (b)
+a 2 h roster ceiling for tracked clans; (c) accept ~1.5% for incidental
+clans and do (a) for tracked ones. Jamie's call; the capture audit is the
+check whichever way.
+
+**4. Postgres.** Churn since the review's 14:33Z reading (21.4 h; pg_stat
+counters, same unknown reset): `battle_participant` updates +≈400 on +35k
+inserts (was 7.5:1; guarded); `battle` +≈700 updates; `war_participation` /
+`war_attendance_day` / `war_week_clan` updates now 149.6k / 81.0k / 5.8k
+against 145k / 80k / 5k when the guard shipped, an upper bound of +4.6k /
++1.0k / +0.8k in the window against ~35k/day before; `api_payload` +5.5k
+rows inserted, +5.2k deleted, TOAST 370 → 325 MB with no VACUUM FULL (the
+sweep and autovacuum are ahead of the writes now; TOAST churn itself is not
+visible in `{tables}`); `ranking_entry` +64k rows (518,880 → 583,033),
+essentially one daily cycle of 263 boards: **~60k rows, ~12–13 MB per day
+at steady state, not the review's +5 MB.** The review's baseline predates
+the 262 daily location boards seeded on 09-11, whose ~52k rows/day now
+dwarf the global board's 1k; with `battle_participant` (+≈39k rows/day,
+385 MB) it is still one of the two unbounded growers. **`player` is the
+largest remaining write site: +140.7k updates (6.6k/hr, 86% HOT)**, the
+hourly `last_seen_at` touch (`roster.mjs` touches every member once an
+hour per roster poll; battlelogs and boards likewise). Review #8 (touch
+daily) was not among the eight and is the 15-minute fix.
+`player_daily_battle_rollup` +12k deletes/day (471k cumulative before);
+`battle_observation` +16k rows/day (#9 not done, as planned). RDS hourly:
+before the push FreeableMemory 100–114 MB, SwapUsage 56–100 MB, WriteIOPS
+10–45, ReadIOPS 12–90 with 500–1,000 peaks and 305 in the probe hour;
+after it and before the reboot (15:00Z–01:00Z) FreeableMemory 123–165 MB,
+swap 9–27 MB, WriteIOPS 7–12, ReadIOPS 11–27; **since the 01:19Z reboot
+for the parameter group, FreeableMemory 108–116 MB and swap 56–72 MB.**
+The reboot restored `shared_buffers` to 180 MB (`{tables}` settings:
+23081 × 8 kB; RDS had cut it to 88 MB at 14:06Z yesterday) and the box paid
+the 90 MB straight back in swap. CPU 5–7%, connections ≤ 4. Enhanced
+Monitoring at 11:57Z, the number the instance decision waited on: total
+943 MB; RDS management processes 375 MB RSS (40%, the largest tenant);
+Postgres backends 144 MB RSS across 9 processes (includes the touched
+share of `shared_buffers`); OS 19 MB; page cache 229 MB; free 163 MB; swap
+used 66 MB with swap-in 4 and swap-out 7 pages/s, so it is still trading
+pages slowly all day. Hourly means since 02:00Z: cached 219–243 MB, free
+157–161 MB, swap used 60–78 MB. Postgres log (on since 01:20Z): 9–34
+statements ≥ 1 s per hour, the top ones the `battles_*` tool reads (the
+card-sides CTE 9.0 s, `battle ⋈ battle_participant` scans 3.3–5.2 s, the
+`lv_pairs` temp table 4.3 s) and the roster `unnest` player insert in the
+board hour (5.0 s); 7 lock waits > 1 s at 10:02Z, boards queuing behind each
+other as designed.
+
+**5. The daily board.** Global PoL snapshots since 0075: 15:37:59Z
+yesterday (the last hourly), 00:36:40Z today, 10:07:55Z today (1,000
+entries, not truncated, `cadence_minutes` 1440). The 10:07:55Z one is the
+tick after 10:00Z: the 10:02:37Z tick planned all 263 boards (651 jobs in
+the hour) and the global board came off the queue five minutes in. The
+00:36:40Z one is not the scheduler: the call capture holds
+`rankings_players {live: true, limit: 10}` at 00:36:38Z answering
+`pending`, the fetch landed 2 s later, and the agent never called back. So:
+once at the reset, plus one live ask, as designed.
+
+**6. Live.** From the call capture, every `live: true` since the deploy:
+`players_profile` 16:07:42Z (the smoke; pending); three `battles_query` at
+18:53:49–52Z (pending, `retry_after_s` 15) with follow-ups at 18:54:16–20Z
+answering `fresh` with `fetched_at` 18:53:51 / :53 / :54, **pickup 1.6 /
+2.5 / 2.0 s from mint to fetch**; `rankings_players` 00:36:38Z (above,
+1.5 s); three `battles_query` at 11:01:56–59Z, pickup 0.7 / 0.2 / 0.6 s,
+follow-ups 30 s later `fresh`; `war_current` 11:02:43Z pending, no
+follow-up captured yet. No `live_pending` error was returned (every subject
+had a record) and no `live_fetch` call since 02:21Z yesterday. The mcp log
+line carries no arguments, so the `calls/` capture is the only place a
+`live: true` is visible.
+
+**Recommendation: stay on db.t4g.micro.** The plan took WriteIOPS to 7–12
+and CPU to 6%; memory is the only pressure left, and today's 65 MB of swap
+is the 90 MB of `shared_buffers` the reboot handed back. Before resizing
+(and stranding the micro RI bought 09-07): set `shared_buffers` to 88 MB in
+the parameter group (what RDS chose, and what ran at 9–27 MB swap for ten
+hours), ship #8, and re-read Enhanced Monitoring after a day; if swap still
+climbs then, go small. **Regressed:** capture gaps 0.13% → 1.5% (the gate,
+§3). **Did not deliver:** profile fetches unchanged (§2). **Under-counted
+by the review, not a change:** `ranking_entry` at ~12–13 MB/day (§4).
