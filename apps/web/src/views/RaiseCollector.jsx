@@ -1,5 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../api.js";
+import {
+  keys,
+  useGatewayCards,
+  useInvalidate,
+  useMyGateways,
+} from "../lib/queries.js";
 import { CardPicker } from "../components/CardPicker.jsx";
 import { Icon } from "../components/Icon.jsx";
 
@@ -17,19 +23,15 @@ import { Icon } from "../components/Icon.jsx";
  * its pending state and, later, its token live.
  */
 export function RaiseCollector({ navigate }) {
-  const [mine, setMine] = useState(null);
-  const [cards, setCards] = useState([]);
+  const mine = useMyGateways().data?.gateways ?? null;
+  const cards = useGatewayCards().data?.cards ?? [];
   const [name, setName] = useState("");
   const [card, setCard] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const loadCards = () =>
-    api.gatewayCards().then((r) => r.ok && setCards(r.data.cards ?? []));
-  useEffect(() => {
-    api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
-    loadCards();
-  }, []);
+  const invalidate = useInvalidate();
+  const loadCards = () => invalidate(keys.gatewayCards);
 
   const runsOne = (mine ?? []).length > 0;
   const ready = name.trim() && (cards.length === 0 || card);

@@ -1,12 +1,12 @@
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  render,
   screen,
   waitFor,
   cleanup,
   within,
   fireEvent,
 } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { Admin } from "../src/views/Admin.jsx";
 import { CollectorPage } from "../src/views/CollectorDetail.jsx";
 
@@ -91,7 +91,7 @@ afterEach(() => {
 
 const paint = async (navigate = vi.fn()) => {
   // The page slug took the product's word for it with the 2026-09-09 IA.
-  render(
+  renderWithProviders(
     <Admin me={{ is_admin: true }} page="collectors" navigate={navigate} />,
   );
   await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
@@ -160,7 +160,7 @@ test("the record carries the operations an admin may run, and names what it is a
       };
     }),
   );
-  render(
+  renderWithProviders(
     <CollectorPage id="Ram Rider" navigate={vi.fn()} me={{ is_admin: true }} />,
   );
   await waitFor(() => expect(screen.getByText("Operations")).toBeTruthy());
@@ -190,7 +190,9 @@ test("a reader who is not an admin gets the record without the operations", asyn
       };
     }),
   );
-  render(<CollectorPage id="Ram Rider" navigate={vi.fn()} me={{}} />);
+  renderWithProviders(
+    <CollectorPage id="Ram Rider" navigate={vi.fn()} me={{}} />,
+  );
   await waitFor(() => expect(screen.getByText("Two clocks")).toBeTruthy());
   expect(screen.queryByText("Operations")).toBeNull();
 });

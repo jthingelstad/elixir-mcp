@@ -1,17 +1,29 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { api } from "../../api.js";
+import {
+  keys,
+  useInvalidate,
+  useMyPrincipals,
+  usePrincipalEvents,
+  usePrincipalIdentities,
+} from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
 
 import { Fresh } from "../../components/Fresh.jsx";
 
 export function AgentDetail({ id, navigate }) {
-  const [agent, setAgent] = useState(null);
-  const [missed, setMissed] = useState(false);
-  const [events, setEvents] = useState(null);
-  const [identities, setIdentities] = useState(null);
+  const principals = useMyPrincipals();
+  const agent =
+    (principals.data?.agents ?? []).find((a) => a.account_id === id) ?? null;
+  const missed = principals.isFetched && !agent;
+  // Only once the agent is known to be yours: the log and identities
+  // of an id that is not never load.
+  const events = usePrincipalEvents(agent ? id : null).data?.events ?? null;
+  const identities =
+    usePrincipalIdentities(agent ? id : null).data?.identities ?? null;
   const [minted, setMinted] = useState(null);
   const [busy, setBusy] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -19,22 +31,8 @@ export function AgentDetail({ id, navigate }) {
   const [renameError, setRenameError] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const load = useCallback(async () => {
-    const r = await api.myPrincipals();
-    if (!r.ok) return;
-    const found = (r.data.agents ?? []).find((a) => a.account_id === id);
-    if (!found) return setMissed(true);
-    setAgent(found);
-    const [ev, ids] = await Promise.all([
-      api.principalEvents(id),
-      api.principalIdentities(id),
-    ]);
-    if (ev.ok) setEvents(ev.data.events ?? []);
-    if (ids.ok) setIdentities(ids.data.identities ?? []);
-  }, [id]);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.principals);
 
   if (missed)
     return (
@@ -571,16 +569,15 @@ export function AgentDetail({ id, navigate }) {
 }
 
 export function Agents({ navigate }) {
-  const [principals, setPrincipals] = useState(null);
+  const { data: principals = null } = useMyPrincipals();
   const [form, setForm] = useState({ name: "", clan_tag: "" });
   const [minted, setMinted] = useState(null);
   const [error, setError] = useState(null);
 
-  const load = () =>
-    api.myPrincipals().then((r) => r.ok && setPrincipals(r.data));
-  useEffect(() => {
-    load();
-  }, []);
+  const invalidate = useInvalidate();
+  // A new agent is a new principal AND a change to the session's
+  // connections count.
+  const load = () => invalidate();
 
   const clans = principals?.addable_clans ?? [];
 

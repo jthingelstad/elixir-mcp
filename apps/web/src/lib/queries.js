@@ -34,8 +34,23 @@ export const keys = {
   feedback: ["me", "feedback"],
   verifyList: ["me", "verify"],
   callRecord: (id) => ["me", "requests", id],
+  principalEvents: (id) => ["me", "principals", id, "events"],
+  principalIdentities: (id) => ["me", "principals", id, "identities"],
+  gatewayCards: ["gateway-cards"],
+  gatewayDetail: (id) => ["me", "gateways", id],
+  adminGateways: ["admin", "gateways"],
+  adminRequests: ["admin", "requests"],
+  adminAccounts: ["admin", "accounts"],
+  adminUsage: ["admin", "usage"],
+  adminConnections: ["admin", "connections"],
+  adminFeedback: ["admin", "feedback"],
+  adminServiceTokens: ["admin", "service-tokens"],
+  adminCall: (id) => ["admin", "calls", id],
+  adminIntegrations: ["admin", "integrations"],
+  adminCollections: ["admin", "collections"],
   status: ["status"],
   stats: ["stats"],
+  exploreCollections: ["explore", "collections"],
 };
 
 const payload = (call) => () => call().then(unwrap);
@@ -85,6 +100,92 @@ export const useMyPrincipals = () =>
     queryFn: payload(api.myPrincipals),
   });
 
+/** An agent's own log and identities, keyed under its principal so
+ *  invalidating ["me", "principals"] takes the agent list and every
+ *  agent's detail with it. */
+export const usePrincipalEvents = (id) =>
+  useQuery({
+    queryKey: keys.principalEvents(id),
+    queryFn: payload(() => api.principalEvents(id)),
+    enabled: Boolean(id),
+  });
+
+export const usePrincipalIdentities = (id) =>
+  useQuery({
+    queryKey: keys.principalIdentities(id),
+    queryFn: payload(() => api.principalIdentities(id)),
+    enabled: Boolean(id),
+  });
+
+export const useGatewayCards = ({ enabled = true } = {}) =>
+  useQuery({
+    queryKey: keys.gatewayCards,
+    queryFn: payload(api.gatewayCards),
+    enabled,
+  });
+
+export const useGatewayDetail = (id) =>
+  useQuery({
+    queryKey: keys.gatewayDetail(id),
+    queryFn: payload(() => api.gatewayDetail(id)),
+    enabled: Boolean(id),
+  });
+
+/** Admin reads: their own root, because they are the service's, not
+ *  the reader's. */
+export const useAdminGateways = ({ enabled = true } = {}) =>
+  useQuery({
+    queryKey: keys.adminGateways,
+    queryFn: payload(api.adminGateways),
+    enabled,
+  });
+
+const adminRead = (queryKey, call) => () =>
+  useQuery({ queryKey, queryFn: payload(call) });
+
+export const useAdminRequests = adminRead(
+  keys.adminRequests,
+  api.adminRequests,
+);
+export const useAdminAccounts = adminRead(
+  keys.adminAccounts,
+  api.adminAccounts,
+);
+export const useAdminUsage = adminRead(keys.adminUsage, api.adminUsage);
+export const useAdminConnections = adminRead(
+  keys.adminConnections,
+  api.adminConnections,
+);
+export const useAdminFeedback = adminRead(
+  keys.adminFeedback,
+  api.adminFeedback,
+);
+export const useAdminServiceTokens = adminRead(
+  keys.adminServiceTokens,
+  api.adminServiceTokens,
+);
+
+/** A call attached to a feedback note; a miss (not in the log) is the
+ *  error, and the panel says so. */
+export const useAdminCall = (id) =>
+  useQuery({
+    queryKey: keys.adminCall(id),
+    queryFn: payload(() => api.adminCall(id)),
+    enabled: Boolean(id),
+  });
+
+export const useAdminIntegrations = () =>
+  useQuery({
+    queryKey: keys.adminIntegrations,
+    queryFn: payload(api.adminIntegrations),
+  });
+
+export const useAdminCollections = () =>
+  useQuery({
+    queryKey: keys.adminCollections,
+    queryFn: payload(api.adminCollections),
+  });
+
 export const useMyCollections = () =>
   useQuery({
     queryKey: keys.collections,
@@ -116,6 +217,17 @@ export const usePublicStatus = (refetchInterval = false) =>
     queryKey: keys.status,
     queryFn: payload(api.publicStatus),
     refetchInterval,
+  });
+
+/** The collections the lookup offers: one bridge call, cached like a
+ *  record. A tool error reads as an empty list, as it always did. */
+export const useExploreCollections = () =>
+  useQuery({
+    queryKey: keys.exploreCollections,
+    queryFn: async () => {
+      const r = unwrap(await api.explore("collections_browse"));
+      return r.is_error ? [] : (r.body?.collections ?? []);
+    },
   });
 
 export const usePublicStats = () =>

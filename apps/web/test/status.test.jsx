@@ -1,6 +1,5 @@
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  render,
   screen,
   fireEvent,
   waitFor,
@@ -180,7 +179,7 @@ const paintRaise = async (mine = [], cards = CARDS, navigate = () => {}) => {
     };
   });
   vi.stubGlobal("fetch", fetchMock);
-  render(<RaiseCollector navigate={navigate} />);
+  renderWithProviders(<RaiseCollector navigate={navigate} />);
   await waitFor(() =>
     expect(screen.getByRole("listbox", { name: "cards" })).toBeTruthy(),
   );
@@ -202,7 +201,7 @@ test("a collector record shows heartbeat AND data, so idle never reads as broken
       };
     }),
   );
-  render(<CollectorPage id="Ram%20Rider" navigate={() => {}} />);
+  renderWithProviders(<CollectorPage id="Ram%20Rider" navigate={() => {}} />);
   const clocks = await waitFor(() =>
     screen.getByText("Two clocks").closest(".panel"),
   );
@@ -367,7 +366,7 @@ test("an operator can re-pick their own collector's card, and the record follows
     };
   });
   vi.stubGlobal("fetch", fetchMock);
-  render(<CollectorPage id="Ram%20Rider" navigate={navigate} />);
+  renderWithProviders(<CollectorPage id="Ram%20Rider" navigate={navigate} />);
   const panel = await waitFor(() =>
     screen.getByText("Your card").closest(".panel"),
   );

@@ -1,5 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../api.js";
+import { useExploreCollections, usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
 
 /**
@@ -259,18 +261,8 @@ function Lookup({ me, navigate, browse }) {
   const [miss, setMiss] = useState(null);
   const [matches, setMatches] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [collections, setCollections] = useState([]);
-  const [corpus, setCorpus] = useState(null);
-
-  useEffect(() => {
-    api.explore("collections_browse").then((r) => {
-      if (r.ok && !r.data.is_error)
-        setCollections(r.data.body?.collections ?? []);
-    });
-    api.publicStats().then((r) => {
-      if (r.ok) setCorpus(r.data.totals);
-    });
-  }, []);
+  const collections = useExploreCollections().data ?? [];
+  const corpus = usePublicStats().data?.totals ?? null;
 
   const go = useCallback(
     (kind, recId) => {
@@ -643,60 +635,62 @@ function saveTrail(t) {
 }
 
 function RecordPage({ me, navigate, kind, rawId }) {
-  const [state, setState] = useState({ loading: true });
   const [raw, setRaw] = useState(false);
-  const [bump, setBump] = useState(0);
   const href = `/explore/${kind}/${rawId}`;
 
-  useEffect(() => {
-    let live = true;
-    fetchRecord(kind, rawId)
-      .then((res) => {
-        if (!live) return;
-        const view = buildView(kind, rawId, res, me);
-        // trail: truncate on revisit, else append
-        let trail = loadTrail();
-        const at = trail.findIndex((c) => c.href === href);
-        if (at >= 0) trail = trail.slice(0, at + 1);
-        else trail = [...trail, { href, label: view.crumb }];
-        saveTrail(trail);
-        pushRecent({
-          href,
-          tag: view.tag ?? "",
-          name: view.title,
-          kind: view.kindLabel.toLowerCase(),
-        });
-        setState({ view, res, trail });
-      })
-      .catch((err) => {
-        if (live) setState({ error: err.message, code: err.code });
-      });
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, rawId, bump]);
+  // One record, one bridge call, cached by its address: Back to a record
+  // you just left is served from the cache, and a saved nickname
+  // refetches it. A tool error carries its code on the Error.
+  const record = useQuery({
+    queryKey: ["explore", kind, rawId],
+    queryFn: () => fetchRecord(kind, rawId),
+  });
+  const res = record.data;
+  const view = useMemo(
+    () => (res ? buildView(kind, rawId, res, me) : null),
+    [kind, rawId, res, me],
+  );
 
-  if (state.loading)
+  // The trail and the recent list are written when a record ARRIVES,
+  // which is the only moment a visit is a fact: truncate on revisit,
+  // else append.
+  const [trail, setTrail] = useState(loadTrail);
+  useEffect(() => {
+    if (!view) return;
+    let next = loadTrail();
+    const at = next.findIndex((c) => c.href === href);
+    if (at >= 0) next = next.slice(0, at + 1);
+    else next = [...next, { href, label: view.crumb }];
+    saveTrail(next);
+    setTrail(next);
+    pushRecent({
+      href,
+      tag: view.tag ?? "",
+      name: view.title,
+      kind: view.kindLabel.toLowerCase(),
+    });
+  }, [view, href]);
+
+  if (record.isPending)
     return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
-  if (state.error) {
+  if (record.isError) {
+    const code = record.error.code;
     return (
       <div className="empty" style={{ maxWidth: "560px", margin: "32px auto" }}>
         <div className="empty__mark">×</div>
         <div className="empty__title">
-          {state.code === "not_recorded" || state.code === "not_found"
+          {code === "not_recorded" || code === "not_found"
             ? "No records"
             : "Could not load this record"}
         </div>
         <div className="empty__body">
-          {state.error}{" "}
+          {record.error.message}{" "}
           <a onClick={() => navigate("/explore")}>Back to lookup</a>
         </div>
       </div>
     );
   }
 
-  const { view, res, trail } = state;
   const goRef = (to) => navigate(to);
 
   return (
@@ -859,7 +853,7 @@ function RecordPage({ me, navigate, kind, rawId }) {
             {view.nickEdit && (
               <NicknameEditor
                 nick={view.nickEdit}
-                onSaved={() => setBump((b) => b + 1)}
+                onSaved={() => record.refetch()}
               />
             )}
             {view.note && <div className="panel__note">{view.note}</div>}

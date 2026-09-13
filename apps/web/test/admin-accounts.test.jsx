@@ -9,13 +9,13 @@
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  render,
   screen,
   waitFor,
   cleanup,
   within,
   fireEvent,
 } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { Admin } from "../src/views/Admin.jsx";
 
 const PERSON = {
@@ -77,7 +77,9 @@ afterEach(() => {
 });
 
 test("the list carries people, and counts what each one runs", async () => {
-  render(<Admin me={{ is_admin: true }} page="accounts" navigate={vi.fn()} />);
+  renderWithProviders(
+    <Admin me={{ is_admin: true }} page="accounts" navigate={vi.fn()} />,
+  );
   await waitFor(() =>
     expect(screen.getByText("jamie@example.com")).toBeTruthy(),
   );
@@ -92,7 +94,7 @@ test("the list carries people, and counts what each one runs", async () => {
 
 test("the record names the children and navigates to each", async () => {
   const navigate = vi.fn();
-  render(
+  renderWithProviders(
     <Admin
       me={{ is_admin: true }}
       page="accounts"
@@ -112,7 +114,7 @@ test("the record names the children and navigates to each", async () => {
 
 test("a child's record says whose it is, and leads back", async () => {
   const navigate = vi.fn();
-  render(
+  renderWithProviders(
     <Admin
       me={{ is_admin: true }}
       page="accounts"

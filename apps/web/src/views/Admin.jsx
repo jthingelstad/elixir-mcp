@@ -1,6 +1,19 @@
 import { Integrations } from "./Integrations.jsx";
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
+import {
+  keys,
+  useAdminAccounts,
+  useAdminCall,
+  useAdminCollections,
+  useAdminConnections,
+  useAdminFeedback,
+  useAdminGateways,
+  useAdminRequests,
+  useAdminServiceTokens,
+  useAdminUsage,
+  useInvalidate,
+} from "../lib/queries.js";
 import { LogTable } from "../components/LogTable.jsx";
 import { Icon } from "../components/Icon.jsx";
 import { Markdown } from "../components/Markdown.jsx";
@@ -81,14 +94,9 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
 /** Access requests. Granted by hand, oldest first — the queue is short
  *  and the decision is a judgement, so there is no bulk action. */
 function AdminRequests() {
-  const [requests, setRequests] = useState([]);
-  const load = useCallback(async () => {
-    const r = await api.adminRequests();
-    if (r.ok) setRequests(r.data.requests ?? []);
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const requests = useAdminRequests().data?.requests ?? [];
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminRequests);
 
   const decide = async (hash, status) => {
     await api.adminDecide(hash, status);
@@ -129,16 +137,9 @@ function AdminRequests() {
  *  so: they are set in the ops lane, and a control here would be a
  *  second way to write them. */
 function AdminAccounts({ navigate }) {
-  const [accounts, setAccounts] = useState([]);
   // settable_roles is read by the record page, which is where a tier is
   // now changed; the list only has to find an account.
-  const load = useCallback(async () => {
-    const r = await api.adminAccounts();
-    if (r.ok) setAccounts(r.data.accounts ?? []);
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const accounts = useAdminAccounts().data?.accounts ?? [];
 
   // Six columns became four, then five. The ops-lane overrides, the
   // collector flag and the tier prompt moved to the record page: a list
@@ -195,10 +196,7 @@ function AdminAccounts({ navigate }) {
 /** Usage across accounts. The shared FETCH budget is a service-wide
  *  number and lives on Status; this is the per-account call side. */
 function AdminUsage() {
-  const [usage, setUsage] = useState(null);
-  useEffect(() => {
-    api.adminUsage().then((r) => r.ok && setUsage(r.data));
-  }, []);
+  const { data: usage = null } = useAdminUsage();
 
   const rows = (usage?.accounts ?? []).map((a) => [
     principalLabel(a) + (a.kind && a.kind !== "person" ? ` (${a.kind})` : ""),
@@ -245,21 +243,13 @@ function AdminUsage() {
  *  to read. Facts first, then the change, on a page that shows what you
  *  are changing. */
 function AdminAccountDetail({ id, navigate }) {
-  const [accounts, setAccounts] = useState(null);
-  const [settable, setSettable] = useState([]);
+  const query = useAdminAccounts();
+  const accounts = query.data?.accounts ?? null;
+  const settable = query.data?.settable_roles ?? [];
   const [role, setRole] = useState("");
   const [saved, setSaved] = useState("");
-
-  const load = useCallback(async () => {
-    const r = await api.adminAccounts();
-    if (r.ok) {
-      setAccounts(r.data.accounts ?? []);
-      setSettable(r.data.settable_roles ?? []);
-    }
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminAccounts);
 
   const a = (accounts ?? []).find((x) => String(x.account_id) === String(id));
   useEffect(() => {
@@ -462,14 +452,9 @@ function AdminAccountDetail({ id, navigate }) {
  * holds them.
  */
 function AdminConnections() {
-  const [rows, setRows] = useState([]);
-  const load = useCallback(async () => {
-    const r = await api.adminConnections();
-    if (r.ok) setRows(r.data.connections ?? []);
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const rows = useAdminConnections().data?.connections ?? [];
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminConnections);
 
   const table = rows.map((c) => [
     {
@@ -530,10 +515,7 @@ function AdminConnections() {
  *  control is on the item, because deciding what to do about a piece of
  *  feedback means reading it. */
 function AdminFeedback({ navigate }) {
-  const [feedback, setFeedback] = useState([]);
-  useEffect(() => {
-    api.adminFeedback().then((r) => r.ok && setFeedback(r.data.feedback ?? []));
-  }, []);
+  const feedback = useAdminFeedback().data?.feedback ?? [];
 
   const rows = feedback.map((f) => [
     day(f.created_at),
@@ -579,7 +561,6 @@ function AdminFeedback({ navigate }) {
 
 /** Collections curation: owner-only create/manage. */
 function AdminCollections({ navigate }) {
-  const [cols, setCols] = useState([]);
   const [form, setForm] = useState({
     slug: "",
     title: "",
@@ -589,13 +570,9 @@ function AdminCollections({ navigate }) {
   });
   const [err, setErr] = useState("");
 
-  const load = useCallback(async () => {
-    const r = await api.adminCollections();
-    if (r.ok) setCols(r.data.collections ?? []);
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const cols = useAdminCollections().data?.collections ?? [];
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminCollections);
 
   const rows = cols.map((c) => [
     {
@@ -651,6 +628,9 @@ function AdminCollections({ navigate }) {
             return;
           }
           setForm({ ...form, slug: "", title: "", description: "" });
+          // The editor reads the same list from the cache: refetch it
+          // before landing there, or the new collection is "missing".
+          await load();
           navigate(`/admin/collections/${slug}`);
         }}
       >
@@ -700,14 +680,7 @@ function AdminCollections({ navigate }) {
  * operations panel on it for whoever may act. One collector, one page.
  */
 function AdminCollectors({ navigate }) {
-  const [gateways, setGateways] = useState([]);
-  const load = useCallback(async () => {
-    const r = await api.adminGateways();
-    if (r.ok) setGateways(r.data.gateways ?? []);
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const gateways = useAdminGateways().data?.gateways ?? [];
 
   const rows = gateways.map((g) => [
     {
@@ -775,16 +748,11 @@ function AdminCollectors({ navigate }) {
 /** Service keys for other products. The key is shown once at issue and
  *  never again — only its hash is stored, so there is nothing to show. */
 function AdminServiceTokens() {
-  const [svcTokens, setSvcTokens] = useState([]);
+  const svcTokens = useAdminServiceTokens().data?.tokens ?? [];
   const [newToken, setNewToken] = useState(null);
   const [svcName, setSvcName] = useState("");
-  const load = useCallback(async () => {
-    const r = await api.adminServiceTokens();
-    if (r.ok) setSvcTokens(r.data.tokens ?? []);
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminServiceTokens);
 
   return (
     <>
@@ -938,14 +906,9 @@ function AdminServiceTokens() {
  *  description of them. Attached by the console's Report this call button
  *  and by elixir_feedback's request_id (contract 1.1.0). */
 function AttachedCall({ requestId }) {
-  const [record, setRecord] = useState(null);
-  const [missing, setMissing] = useState(false);
-  useEffect(() => {
-    api.adminCall(requestId).then((r) => {
-      if (r.ok) setRecord(r.data);
-      else setMissing(true);
-    });
-  }, [requestId]);
+  const call = useAdminCall(requestId);
+  const record = call.data ?? null;
+  const missing = call.isError;
 
   return (
     <div
@@ -998,23 +961,21 @@ function AttachedCall({ requestId }) {
  *  filer's event feed). The response box finally exposes what the API
  *  supported all along. */
 function AdminFeedbackItem({ id, navigate }) {
-  const [item, setItem] = useState(null);
-  const [missed, setMissed] = useState(false);
+  const query = useAdminFeedback();
+  const item =
+    (query.data?.feedback ?? []).find(
+      (f) => String(f.feedback_id) === String(id),
+    ) ?? null;
+  const missed = query.isFetched && !item;
   const [response, setResponse] = useState("");
   const [saved, setSaved] = useState("");
-  const load = useCallback(async () => {
-    const r = await api.adminFeedback();
-    const found = (r.data?.feedback ?? []).find(
-      (f) => String(f.feedback_id) === String(id),
-    );
-    if (found) {
-      setItem(found);
-      setResponse((prev) => prev || found.response || "");
-    } else setMissed(true);
-  }, [id]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminFeedback);
+  // The reply box starts from the saved reply, unless the operator is
+  // mid-edit: a background reload must not eat typing.
   useEffect(() => {
-    load();
-  }, [load]);
+    if (item) setResponse((prev) => prev || item.response || "");
+  }, [item]);
   if (missed)
     return (
       <div className="panel">
@@ -1172,34 +1133,31 @@ function AdminFeedbackItem({ id, navigate }) {
  *  there"). Members are rows with their own remove; the meta form
  *  edits in place; Explore shows the same collection as users see it. */
 function CollectionEditor({ slug, navigate }) {
-  const [col, setCol] = useState(null);
-  const [missed, setMissed] = useState(false);
+  const query = useAdminCollections();
+  const col =
+    (query.data?.collections ?? []).find((c) => c.slug === slug) ?? null;
+  const missed = query.isFetched && !col;
   const [meta, setMeta] = useState(null);
   const [tagText, setTagText] = useState(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
-  const load = useCallback(async () => {
-    const r = await api.adminCollections();
-    const found = (r.data?.collections ?? []).find((c) => c.slug === slug);
-    if (found) {
-      setCol(found);
-      // Reset the editor to what the server has, unless the operator is
-      // mid-edit: a background reload must not eat typing.
-      setTagText((prev) => prev ?? (found.members ?? []).join("\n"));
-      setMeta(
-        (prev) =>
-          prev ?? {
-            title: found.title,
-            description: found.description ?? "",
-            visibility: found.visibility,
-            scope: found.scope ?? "comprehensive",
-          },
-      );
-    } else setMissed(true);
-  }, [slug]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminCollections);
+  // Reset the editor to what the server has, unless the operator is
+  // mid-edit: a background reload must not eat typing.
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!col) return;
+    setTagText((prev) => prev ?? (col.members ?? []).join("\n"));
+    setMeta(
+      (prev) =>
+        prev ?? {
+          title: col.title,
+          description: col.description ?? "",
+          visibility: col.visibility,
+          scope: col.scope ?? "comprehensive",
+        },
+    );
+  }, [col]);
   const act = async (body) => {
     setErr("");
     const r = await api.adminCollectionAction(body);

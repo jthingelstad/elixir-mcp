@@ -1,5 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { api } from "../api.js";
+import {
+  keys,
+  useAdminGateways,
+  useGatewayCards,
+  useGatewayDetail,
+  useInvalidate,
+  useMyGateways,
+  usePublicStatus,
+} from "../lib/queries.js";
 import { CardPicker } from "../components/CardPicker.jsx";
 import { Icon } from "../components/Icon.jsx";
 import { ago, secsSince, beatCls } from "../lib/time.js";
@@ -236,13 +245,12 @@ function Operations({ g, staged, setStaged, reload }) {
  */
 function YourCard({ own, navigate }) {
   const [open, setOpen] = useState(false);
-  const [cards, setCards] = useState([]);
+  // The card list is read when the picker opens, not before.
+  const cardsQuery = useGatewayCards({ enabled: open });
+  const cards = cardsQuery.data?.cards ?? [];
   const [pick, setPick] = useState(own.card_name ?? "");
   const [note, setNote] = useState("");
-  useEffect(() => {
-    if (open && cards.length === 0)
-      api.gatewayCards().then((r) => r.ok && setCards(r.data.cards ?? []));
-  }, [open, cards.length]);
+  const invalidate = useInvalidate();
   return (
     <section className="panel" style={{ marginBottom: "14px" }}>
       <div className="panel__head">
@@ -308,9 +316,7 @@ function YourCard({ own, navigate }) {
                     );
                   } else {
                     setNote(r.data?.message ?? "Could not change that.");
-                    api
-                      .gatewayCards()
-                      .then((c) => c.ok && setCards(c.data.cards ?? []));
+                    invalidate(keys.gatewayCards);
                   }
                 }}
               >
@@ -329,37 +335,25 @@ export function CollectorPage({ id, navigate, me }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
   const [now] = useState(() => Date.now());
-  const [status, setStatus] = useState(null);
-  const [mine, setMine] = useState(null);
-  const [detail, setDetail] = useState(null);
+  const status = usePublicStatus().data ?? null;
+  const mine = useMyGateways().data?.gateways ?? null;
   const [revealed, setRevealed] = useState("");
   // The admin row for this collector, when the reader is one. The fleet
   // list used to carry ten columns and every action inline; the actions
   // live here now, on the record, where what you are acting on is on
   // screen (2026-09-10).
-  const [fleet, setFleet] = useState(null);
+  const fleet = useAdminGateways({ enabled: Boolean(me?.is_admin) }).data
+    ?.gateways;
   const [staged, setStaged] = useState(null);
-
-  const loadFleet = useCallback(() => {
-    if (!me?.is_admin) return;
-    api.adminGateways().then((r) => r.ok && setFleet(r.data.gateways ?? []));
-  }, [me?.is_admin]);
-
-  useEffect(() => {
-    api.publicStatus().then((r) => r.ok && setStatus(r.data));
-    api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
-    loadFleet();
-  }, [loadFleet]);
+  const invalidate = useInvalidate();
+  const loadFleet = () => invalidate(keys.adminGateways);
 
   const name = id ? decodeURIComponent(id) : null;
   const pub = status?.collectors?.find((c) => c.name === name);
   const own = (mine ?? []).find((g) => (g.card_name ?? g.name) === name);
   const admin = (fleet ?? []).find((g) => (g.card_name ?? g.name) === name);
 
-  useEffect(() => {
-    if (own && !detail)
-      api.gatewayDetail(own.gateway_id).then((r) => r.ok && setDetail(r.data));
-  }, [own, detail]);
+  const detail = useGatewayDetail(own?.gateway_id).data ?? null;
 
   if (!status || mine === null)
     return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;

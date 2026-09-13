@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../api.js";
+import {
+  keys,
+  useAdminCollections,
+  useAdminIntegrations,
+  useInvalidate,
+} from "../lib/queries.js";
 const scopes = [
   "game:read",
   "players:read",
@@ -16,28 +22,21 @@ const defaults = {
   scopes,
 };
 export function Integrations() {
-  const [items, setItems] = useState([]),
-    [collections, setCollections] = useState([]),
-    [form, setForm] = useState(defaults),
+  const integrations = useAdminIntegrations();
+  const items = integrations.data?.integrations ?? [];
+  const collections = (useAdminCollections().data?.collections ?? []).filter(
+    (x) => x.kind === "player",
+  );
+  const [form, setForm] = useState(defaults),
     [selected, setSelected] = useState(null),
     [token, setToken] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const load = useCallback(async () => {
-    const [a, c] = await Promise.all([
-      api.adminIntegrations(),
-      api.adminCollections(),
-    ]);
-    if (a.ok) setItems(a.data.integrations ?? []);
-    else setError(a.data.error ?? "Could not load integrations");
-    if (c.ok)
-      setCollections(
-        (c.data.collections ?? []).filter((x) => x.kind === "player"),
-      );
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.adminIntegrations);
+  const loadError = integrations.error
+    ? (integrations.error.data?.error ?? "Could not load integrations")
+    : "";
   const act = async (body) => {
     setBusy(true);
     setError("");
@@ -66,9 +65,9 @@ export function Integrations() {
         permissions and budget. Collection additions start recording; supplied
         tags do not prove player identity.
       </p>
-      {error && (
+      {(error || loadError) && (
         <p className="notice" role="alert">
-          {error}
+          {error || loadError}
         </p>
       )}
       {token && (
