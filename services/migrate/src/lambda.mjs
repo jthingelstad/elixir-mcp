@@ -32,6 +32,7 @@ import {
   warDrift,
   captureAudit,
   probe,
+  explainParticipation,
   inspect,
   sessions,
 } from "./ops-diagnostics.mjs";
@@ -85,6 +86,14 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.explain_participation) {
+    const result = await explainParticipation(
+      process.env.DATABASE_URL,
+      event.explain_participation,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

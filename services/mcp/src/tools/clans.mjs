@@ -9,6 +9,7 @@ import {
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { isoWeekLabel, isoWeekStart } from "../time.mjs";
+import { MEMBERS_SQL, participationQueries } from "../participation-sql.mjs";
 import { formatLocal } from "../time.mjs";
 import {
   ToolFailure,
@@ -491,80 +492,27 @@ export const clansTools = {
           complete: end <= now,
         });
       }
-      const members = await ctx.db.query(
-        `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
-                (select max(b.battle_time) from battle_participant bp
-                 join battle b on b.battle_id = bp.battle_id
-                 where bp.player_tag = cm.player_tag) as last_battle
-         from clan_membership cm
-         join player p on p.player_tag = cm.player_tag
-         where cm.clan_tag = $1 and cm.left_observed_at is null
-         order by cm.player_tag`,
-        [clanTag],
-      );
+      const members = await ctx.db.query(MEMBERS_SQL, [clanTag]);
       const tags = members.rows.map((m) => m.player_tag);
-      // Battles per member per ISO week, ranked counted beside all.
-      const battles = await ctx.db.query(
-        `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
-                count(*)::int as battles,
-                count(*) filter (where b.type = any($3))::int as ranked_battles
-         from battle_participant bp
-         join battle b on b.battle_id = bp.battle_id
-         where bp.player_tag = any($1) and bp.battle_time >= $2
-         group by bp.player_tag, date_trunc('week', bp.battle_time)`,
-        [tags, from, typesForModeGroup("ranked")],
-      );
-      // The donation counter at the end of each ISO week: the largest
-      // daily snapshot inside it (the counter resets Mondays).
-      const donations = await ctx.db.query(
-        `select player_tag, date_trunc('week', snapshot_date::timestamp) as week_start,
-                max(donations)::int as donations, count(*)::int as snapshots
-         from player_snapshot_daily
-         where player_tag = any($1) and snapshot_kind = 'daily' and snapshot_date >= $2::date
-         group by player_tag, date_trunc('week', snapshot_date::timestamp)`,
-        [tags, from],
-      );
-      // War weeks the clan recorded inside the window, with each member's
-      // decks and, where polled, each war day's decks.
-      const warWeeks = await ctx.db.query(
-        `select w.season_id, w.section_index, w.is_colosseum,
-                w.started_observed_at, w.finished_observed_at
-         from war_week w
-         where w.clan_tag = $1
-           and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $2
-         order by w.season_id, w.section_index`,
-        [clanTag, from],
-      );
-      const participation = await ctx.db.query(
-        `select wp.player_tag, wp.season_id, wp.section_index, wp.decks_used, wp.points
-         from war_participation wp
-         where wp.clan_tag = $1 and wp.player_tag = any($2)
-           and (wp.season_id, wp.section_index) in (
-             select w.season_id, w.section_index from war_week w
-             where w.clan_tag = $1
-               and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
-        [clanTag, tags, from],
-      );
-      const attendance = await ctx.db.query(
-        `select ad.player_tag, ad.season_id, ad.section_index, ad.war_day,
-                ad.decks_used_today, ad.finalized
-         from war_attendance_day ad
-         where ad.clan_tag = $1 and ad.player_tag = any($2)
-           and (ad.season_id, ad.section_index) in (
-             select w.season_id, w.section_index from war_week w
-             where w.clan_tag = $1
-               and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
-        [clanTag, tags, from],
-      );
-      const battledDays = await ctx.db.query(
-        `select bp.player_tag, b.season_id, b.section_index, b.war_day, count(*)::int as war_battles
-         from battle_participant bp
-         join battle b on b.battle_id = bp.battle_id
-         where bp.player_tag = any($1) and bp.clan_tag = $2
-           and b.war_day is not null and bp.battle_time >= $3
-         group by bp.player_tag, b.season_id, b.section_index, b.war_day`,
-        [tags, clanTag, from],
-      );
+      // The six reads that follow, from participation-sql.mjs so the
+      // migrate Lambda's explain_participation diagnostic reads the same
+      // plans this serves.
+      const reads = participationQueries({
+        clanTag,
+        tags,
+        from,
+        rankedTypes: typesForModeGroup("ranked"),
+      });
+      const run = (name) => {
+        const q = reads.find((r) => r.name === name);
+        return ctx.db.query(q.text, q.values);
+      };
+      const battles = await run("battles_by_week");
+      const donations = await run("donations_by_week");
+      const warWeeks = await run("war_weeks");
+      const participation = await run("war_participation");
+      const attendance = await run("war_attendance");
+      const battledDays = await run("war_battles_by_day");
 
       const keyWeek = (d) => new Date(d).toISOString();
       const byMemberWeek = new Map();

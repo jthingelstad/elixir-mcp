@@ -546,3 +546,68 @@ export async function sessions(databaseUrl) {
     await db.end();
   }
 }
+
+/**
+ * EXPLAIN ANALYZE the clans_participation reads for one clan
+ * ({explain_participation: {clan_tag, weeks}}), read-only. The SQL is
+ * the tool's own (services/mcp/src/participation-sql.mjs), so the
+ * plan read here is the plan being served. Added 2026-09-13 when every
+ * slow page in Elixir Clan turned out to be this one call (8.7 s for a
+ * week, 20 s for eight) and there was no other way to see why.
+ */
+export async function explainParticipation(databaseUrl, spec = {}) {
+  const [{ MEMBERS_SQL, participationQueries }, { typesForModeGroup }] =
+    await Promise.all([
+      import("../../mcp/src/participation-sql.mjs"),
+      import("@elixir-mcp/contracts"),
+    ]);
+  const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
+  const weeks = Math.min(8, Math.max(1, Number(spec.weeks ?? 8)));
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = 120000");
+    const out = [];
+    const explain = async (name, text, values) => {
+      const started = Date.now();
+      const { rows } = await db.query(
+        `explain (analyze, buffers, format text) ${text}`,
+        values,
+      );
+      out.push({
+        name,
+        ms: Date.now() - started,
+        plan: rows.map((r) => r["QUERY PLAN"]).join("\n"),
+      });
+    };
+    await explain("members", MEMBERS_SQL, [clanTag]);
+    const members = await db.query(MEMBERS_SQL, [clanTag]);
+    const tags = members.rows.map((m) => m.player_tag);
+    const now = new Date();
+    const day = now.getUTCDay() || 7;
+    const monday = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - (day - 1),
+      ),
+    );
+    const from = new Date(monday.getTime() - (weeks - 1) * 7 * 86400_000);
+    for (const q of participationQueries({
+      clanTag,
+      tags,
+      from,
+      rankedTypes: typesForModeGroup("ranked"),
+    }))
+      await explain(q.name, q.text, q.values);
+    return {
+      clan_tag: clanTag,
+      weeks,
+      members: tags.length,
+      from,
+      queries: out,
+    };
+  } finally {
+    await db.end();
+  }
+}
