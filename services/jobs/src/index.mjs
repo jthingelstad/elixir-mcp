@@ -5,9 +5,11 @@
  *  role; deliberately no migration or seeding code paths.
  *
  *  Ops payloads: {clan_pulse: true} · {sweep_payloads: true,
- *  sweep_operational: true} · {sweep_operational: true}. */
+ *  sweep_operational: true} · {sweep_operational: true} ·
+ *  {activity_histogram: true}. */
 
 import pg from "pg";
+import { activityHistogram } from "./activity.mjs";
 
 /** Hourly Postgres sweep ({sweep_payloads: true}, EventBridge :15):
  *  superseded payload rows (not the latest per endpoint+entity) leave
@@ -426,6 +428,11 @@ export async function sweepOperational(databaseUrl) {
 }
 
 export async function handler(event) {
+  if (event?.activity_histogram) {
+    const result = await activityHistogram(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ activity_histogram: result }));
+    return result;
+  }
   if (event?.clan_pulse) {
     const result = await clanPulse(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));

@@ -733,6 +733,30 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ClanPulseRule.Arn
 
+  # Nightly battle-activity histogram (0084): one row per recorded player,
+  # a decayed 24x7 rhythm and a year of UTC daily counts, rebuilt from
+  # battle_participant. 05:30Z is the fleet's quietest hour (2026-09-13
+  # read: 91-100 battlelog fetches/hr at 06-09Z against 150 in the US
+  # evening) and after the UTC day has closed, so yesterday's count is
+  # final. Read by the console today and by the scheduler later.
+  ActivityHistogramRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-activity-histogram
+      ScheduleExpression: cron(30 5 * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: activity-histogram
+          Input: '{"activity_histogram": true}'
+
+  ActivityHistogramPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ActivityHistogramRule.Arn
+
   # ------------------------------------------------------------ front doors
   SiteApi:
     Type: AWS::ApiGatewayV2::Api

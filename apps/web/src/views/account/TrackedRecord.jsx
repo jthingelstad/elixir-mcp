@@ -4,6 +4,7 @@ import { api } from "../../api.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { Icon } from "../../components/Icon.jsx";
 import { ago, secsSince } from "../../lib/time.js";
+import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 
 /**
  * One tracked player or clan: how you track it, and what that is
@@ -23,6 +24,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const [nick, setNick] = useState(null);
   const [busy, setBusy] = useState(false);
   const [now] = useState(() => Date.now());
+  const [activity, setActivity] = useState(null);
 
   const loadClans = () => api.myClans().then((r) => r.ok && setClans(r.data));
   useEffect(() => {
@@ -31,6 +33,18 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
 
   const wanted = tagFromPath(tag);
   const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
+  // The nightly histogram, players only: a clan has no rhythm of its own.
+  const tracked = Boolean(claim);
+  useEffect(() => {
+    if (!tracked) return;
+    let live = true;
+    api.battleActivity(wanted).then((r) => {
+      if (live) setActivity(r.ok ? r.data : { error: r.status });
+    });
+    return () => {
+      live = false;
+    };
+  }, [wanted, tracked]);
   const clan = (clans?.clans ?? []).find((c) => c.clan_tag === wanted);
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
 
@@ -360,6 +374,27 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           </dl>
         </section>
       </div>
+
+      {!isClan && (
+        <section className="panel" style={{ marginTop: "18px" }}>
+          <div className="panel__head">Battle activity</div>
+          {activity === null ? (
+            <p className="activity__empty">Loading…</p>
+          ) : activity.error ? (
+            <p className="activity__empty">
+              The activity graphic could not be loaded right now.
+            </p>
+          ) : (
+            <ActivityGraph data={activity} />
+          )}
+          <p className="footnote" style={{ padding: "0 16px 14px", margin: 0 }}>
+            UTC days from the record, rebuilt nightly. A hatched day was not
+            recorded — before tracking began, or a day the capture audit or the
+            coverage record marks incomplete — and is never shown as zero.{" "}
+            <a href="/docs/activity">How this is drawn</a>
+          </p>
+        </section>
+      )}
     </>
   );
 }

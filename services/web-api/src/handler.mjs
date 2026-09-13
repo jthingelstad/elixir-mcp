@@ -1,5 +1,6 @@
 import { integrationsRoutes } from "./routes/integrations.mjs";
 import { verifyRoutes } from "./routes/verify.mjs";
+import { battleActivityRoutes } from "./routes/battle-activity.mjs";
 import { integrationApi, integrationProblem } from "./integration-api.mjs";
 import { randomUUID } from "node:crypto";
 /**
@@ -225,6 +226,7 @@ export function makeHandler({
     ...principalsRoutes({ resolveAccount, logEvent }),
     ...integrationsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
+    ...battleActivityRoutes({ resolveAccount }),
   };
 
   return async function handler(event, context) {

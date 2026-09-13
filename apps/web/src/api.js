@@ -132,6 +132,12 @@ export const api = {
     request("POST", "/api/me/verify", { player_tag }),
   verifyStatus: (id) =>
     request("GET", `/api/me/verify/${encodeURIComponent(id)}`),
+  // Tags travel without their hash (lib/tag-url.js): the reader puts it back.
+  battleActivity: (player_tag) =>
+    request(
+      "GET",
+      `/api/me/battle-activity/${encodeURIComponent(String(player_tag).replace(/^#/, ""))}`,
+    ),
   publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
   myRequests: () => request("GET", "/api/me/requests"),

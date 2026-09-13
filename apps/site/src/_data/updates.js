@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-13",
+    title: "Each player you track shows a year of battle activity",
+    body: "The record of a tracked player now ends with a battle-activity graphic: a year of UTC days coloured by recorded battles, and a 24-by-7 rhythm of when that player plays, rotated into your clock. Both are rebuilt nightly from the battles already recorded. A day before recording began, or one the capture audit or the coverage record marks incomplete, is drawn as a hatched not-recorded cell and never as zero. The same histogram is the first step toward placing battle-log reads where a player actually plays; the schedule itself is unchanged until a week of histograms has been checked against the capture audit.",
+  },
+  {
+    date: "2026-09-13",
     title: "Collector efficiency now starts from a completed fetch",
     body: "The Admin collector table counted both requests every completed fetch must make — its lease and its submitted result — but compared that pair with one fetch. A perfectly efficient collector therefore appeared to make two calls per fetch. Calls/fetch now starts at that required pair, so 1.0 means no extra check-ins; the fleet's scheduling, pacing and shared Clash Royale API budget are unchanged.",
   },
