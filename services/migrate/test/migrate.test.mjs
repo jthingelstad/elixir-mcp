@@ -7,7 +7,7 @@ import pg from "pg";
 import { migrate, loadMigrations } from "../src/migrate.mjs";
 import { schemaFingerprint } from "../src/fingerprint.mjs";
 import { abYield } from "../src/ops-analysis.mjs";
-import { ledger } from "../src/ops-diagnostics.mjs";
+import { ledger, stats } from "../src/ops-diagnostics.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -123,6 +123,20 @@ test("core invariants hold", async () => {
   } finally {
     await db.end();
   }
+});
+
+test("stats exposes board cadence and ranking-presence readiness", async () => {
+  const out = await stats(SCRATCH_URL);
+  const health = out.ranking_health;
+  assert.equal(typeof health.enabled_locations, "number");
+  assert.equal(typeof health.fresh_locations, "number");
+  assert.equal(typeof health.stale_locations, "number");
+  assert.equal(typeof health.global_tick_receipts, "number");
+  assert.equal(typeof health.ranking_recordings, "number");
+  assert.equal(
+    health.enabled_locations,
+    health.fresh_locations + health.stale_locations,
+  );
 });
 
 test("ledger ops inspect and selectively requeue dead collector work", async () => {

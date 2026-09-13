@@ -1296,3 +1296,21 @@ means no calls beyond completing the fetch; higher values still expose the idle
 check-ins that the phased 15-second policy deliberately schedules. The
 collector protocol, pacing and global rate budget are unchanged. The Admin UI
 regression pins a 504-call / 252-fetch perfect example; `npm run verify` passed.
+
+## 2026-09-13 — Boards sync reads within the door cap
+
+Keep the Boards' authorized sync at 10:22Z found that a full-verbosity
+`rankings_players` request for 500 global places exceeds the MCP door's 48 kB
+result cap. The client consequently left `pol-global-top-100` stale while the
+other three collections had already updated. Its clan collection reader also
+looked only for player-shaped member fields, so a correct `clan_tag` member
+looked like `[object Object]` and caused a needless set on every run.
+
+**Decision and repair:** paginate full ranking reads at 100 places and accept
+`clan_tag` alongside player member shapes. The first repaired run set the
+global top 100; the next read reported zero additions and removals for global,
+US, Japan and the global top-10 clans. Focused client and migrate diagnostics
+tests pass. The new read-only `{stats:true}` ranking-health receipt reports all
+enabled-location freshness, reset-tick receipts and active ranking recordings,
+but is not deployed: the canonical gate is red on two unchanged ingest war-key
+tests, so this run does not deploy or claim runtime acceptance from source.

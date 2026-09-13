@@ -19,6 +19,41 @@ export async function stats(databaseUrl) {
       war_anchors: `select count(*)::int n from war_period_anchor`,
       receipts_by_endpoint: `select json_object_agg(endpoint, n) n from (
          select endpoint, count(*)::int n from api_receipt group by endpoint) x`,
+      // Keep the boards objective on its approved read path: no production
+      // SQL from an operator shell just to establish that every daily board
+      // landed, that the reset tick was singular, and that ranking presence
+      // is still holding its promised field.
+      ranking_health: `with latest as (
+         select distinct on (b.location_key) b.location_key,
+                greatest(s.observed_at, s.last_confirmed_at) as confirmed_at,
+                s.observed_at, s.last_confirmed_at, s.entries, s.truncated
+         from ranking_board b
+         left join ranking_snapshot s
+           on s.board = b.board and s.location_key = b.location_key
+         where b.board = 'pol' and b.enabled
+         order by b.location_key, s.observed_at desc nulls last
+       ), locations as (
+         select * from latest where location_key <> 'global'
+       )
+       select json_build_object(
+         'enabled_locations', (select count(*)::int from locations),
+         'fresh_locations', (select count(*)::int from locations
+           where confirmed_at >= now() - interval '26 hours'),
+         'stale_locations', (select count(*)::int from locations
+           where confirmed_at is null or confirmed_at < now() - interval '26 hours'),
+         'global_tick_receipts', (select count(*)::int from api_receipt
+           where endpoint = 'rankings_pol' and entity_key = 'global'
+             and fetched_at >= date_trunc('day', now()) + interval '10 hours'
+             and fetched_at < date_trunc('day', now()) + interval '10 hours 15 minutes'),
+         'ranking_recordings', (select count(*)::int from recording
+           where status = 'active' and origin = 'ranking'),
+         'global_snapshot', (select json_build_object(
+           'observed_at', observed_at,
+           'unchanged_until', last_confirmed_at,
+           'entries', entries,
+           'truncated', truncated)
+           from latest where location_key = 'global')
+       ) n`,
       audit_calls: `select count(*)::int n from mcp_call_audit`,
       // The collector-side filter's effect, last hour (0074): polls that
       // carried counts, what they saw, what never crossed the wire.

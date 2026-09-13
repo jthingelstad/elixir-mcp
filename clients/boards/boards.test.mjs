@@ -203,10 +203,10 @@ test("a dry run reports the move and writes nothing", async () => {
 test("the board is read in pages and reassembled whole", async () => {
   const { syncBoard } = await import("./boards.mjs");
   seen = [];
-  // 12 places against a 10-place board: the client pages the record at
-  // 500 a call, so one call here — but the shape is what is pinned: the
-  // top 10 of a board that is longer than 10.
-  boardItems = ranked(12);
+  // A 102-place board crosses the 100-place response-safe page boundary.
+  // Reassembling it proves a global 1,000-place board will not request the
+  // 500-place full response that exceeds the door's result cap.
+  boardItems = ranked(102);
   members = [];
   memberKind = "player";
   memberScope = "activity";
@@ -214,9 +214,13 @@ test("the board is read in pages and reassembled whole", async () => {
   const out = await syncBoard(board, { dryRun: false });
   assert.equal(out.size, 10, JSON.stringify(out));
   const reads = seen.filter((c) => c.params.name === "rankings_players");
-  assert.equal(reads.length, 1);
+  assert.equal(reads.length, 2);
   assert.equal(reads[0].params.arguments.location, "global");
-  assert.equal(reads[0].params.arguments.limit, 500);
+  assert.equal(reads[0].params.arguments.limit, 100);
+  assert.deepEqual(
+    reads.map((read) => read.params.arguments.offset),
+    [0, 100],
+  );
   const edit = seen.find((c) => c.params.name === "collections_edit");
   assert.ok(edit.params.arguments.tags.every((t) => t.startsWith("#")));
 });
@@ -270,6 +274,19 @@ test("clans are ranked by rated players, ties by best-placed member", async () =
   );
   const edit = seen.find((c) => c.params.name === "collections_edit");
   assert.deepEqual(edit.params.arguments.tags, ["#2PPP", "#2GGG"]);
+});
+
+test("a clan collection recognizes its clan_tag members", async () => {
+  const { syncBoard } = await import("./boards.mjs");
+  seen = [];
+  boardItems = [inClan(0, "#2PPP", "Alpha")];
+  members = [{ clan_tag: "#2PPP", name: "Alpha" }];
+  memberKind = "clan";
+  memberScope = "activity";
+
+  const out = await syncBoard({ ...clanBoard, top: 1 }, { dryRun: true });
+  assert.equal(out.adding.length, 0);
+  assert.equal(out.dropping.length, 0);
 });
 
 test("a clan board into a player collection is refused in words", async () => {

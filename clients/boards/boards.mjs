@@ -184,10 +184,14 @@ async function call(name, args) {
  *  cache is a Map the RUN owns — main() makes one, a test makes its own —
  *  rather than module state, which would make every board read whatever
  *  the first one saw. */
-const PAGE = 500;
+// The door's 48 kB response cap can reject a 500-place full-verbosity page.
+// One hundred places keeps the full names and clans used by the movement
+// report while still letting this client reconstruct a complete board.
+const PAGE = 100;
 
 /** The whole recorded board as players, in rank order. Paged: a board can
- *  run to a thousand places and the door delivers 500 at most per call. */
+ *  run to a thousand places and the door response cap keeps each full page
+ *  to 100 places. */
 async function readPlayers(board, fetched) {
   const key = `players:${board.board ?? "pol"}:${board.location}`;
   if (!fetched.has(key)) {
@@ -296,7 +300,7 @@ export async function syncBoard(
   const held = new Map(
     (before.members ?? before.players ?? []).map((m) => {
       const tag = String(
-        m.player_tag ?? m.subject_tag ?? m.tag ?? m,
+        m.player_tag ?? m.clan_tag ?? m.subject_tag ?? m.tag ?? m,
       ).toUpperCase();
       return [tag, { tag, name: m.name ?? "" }];
     }),
