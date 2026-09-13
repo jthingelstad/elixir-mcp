@@ -471,13 +471,17 @@ export async function stampWarKeys(db, { clanTag, payload, nowMs }) {
      where (b.type like 'riverRace%' or b.type = 'boatBattle')
        and b.season_id is null
        and bp.clan_tag = $1
-       and b.battle_time > now() - interval '14 days'`,
-    [tag],
+       and b.battle_time > $2::timestamptz - interval '14 days'`,
+    [tag, new Date(nowMs ?? Date.now())],
   );
   // The 14-day bound is semantic, not just fast: the live clock can only
   // resolve recent periods (cross-section = honest nulls, §4.4), so
   // older unstamped battles — e.g. archive imports beyond the log's
-  // reach — can never stamp here and would be re-probed forever.
+  // reach — can never stamp here and would be re-probed forever. It is
+  // measured from the CALLER's clock, the same one the clan clock reads:
+  // measured from the database's now() it drifted away from the fixture
+  // clock in the tests, and the war-key suite went red on 2026-09-13,
+  // exactly fourteen days after the fixture's battles, with no code change.
   let stamped = 0;
   for (const b of rows) {
     const keys = resolveWarKeys(b.battle_time.getTime(), clock);
