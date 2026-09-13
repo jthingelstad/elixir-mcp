@@ -368,8 +368,7 @@ export const clansTools = {
                 p.game_last_seen_at,
                   nn.nickname,
                   s.trophies, s.donations,
-                  (select max(b.battle_time) from battle_participant bp
-                   join battle b on b.battle_id = bp.battle_id
+                  (select max(bp.battle_time) from battle_participant bp
                    where bp.player_tag = cm.player_tag) as last_battle
            from clan_membership cm
            join player p on p.player_tag = cm.player_tag

@@ -52,8 +52,8 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
       );
       const roster = await db.query(
         `select cm.player_tag, cm.role, p.name, s.trophies, s.donations,
-                  (select max(b.battle_time) from battle_participant bp
-                   join battle b on b.battle_id = bp.battle_id where bp.player_tag = cm.player_tag) as last_battle
+                  (select max(bp.battle_time) from battle_participant bp
+                   where bp.player_tag = cm.player_tag) as last_battle
            from clan_membership cm join player p on p.player_tag = cm.player_tag
            left join lateral (select trophies, donations from player_snapshot_daily
                               where player_tag = cm.player_tag
