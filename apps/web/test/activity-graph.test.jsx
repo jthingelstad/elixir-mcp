@@ -29,11 +29,14 @@ function fixture() {
           : day === "2026-05-14"
             ? 3
             : 0;
-    const covered = day >= "2026-09-03" && day !== "2026-09-06";
+    // Log reads cover July onward; a stray May appearance; one marked
+    // September day that still holds battles (partial).
+    const covered = day >= "2026-07-08" && day !== "2026-09-06";
     days.push({
       day,
       battles,
-      status: covered ? "recorded" : battles > 0 ? "seen" : "not_recorded",
+      status: battles > 0 || covered ? "recorded" : "not_recorded",
+      ...(day === "2026-09-12" ? { partial: true } : {}),
     });
   }
   const rhythm = new Array(168).fill(0);
@@ -43,6 +46,8 @@ function fixture() {
     window_days: 365,
     half_life_days: 28,
     rhythm_battles: 262,
+    log_reads_from: "2026-07-08",
+    recorded_from: "2026-09-03T18:13:44Z",
     rhythm,
     days,
   };
@@ -78,7 +83,7 @@ test("localRhythm rotates UTC buckets into the viewer's offset", () => {
   expect(localRhythm(m, 2)[24 + 1]).toBe(1);
 });
 
-test("battles are always drawn, not recorded is its own cell, a quiet recorded day is zero, and a tap writes the caption", () => {
+test("coverage follows the log reads, not recorded is its own cell, a quiet recorded day is zero, and a tap writes the caption", () => {
   render(<ActivityGraph data={fixture()} offsetHours={0} />);
   const notRecorded = screen.getByRole("button", {
     name: /^Sun 6 Sep 2026: not recorded$/,
@@ -93,17 +98,26 @@ test("battles are always drawn, not recorded is its own cell, a quiet recorded d
   });
   expect(quiet.className).toContain("activity__cell--l0");
   expect(quiet.className).not.toContain("activity__cell--none");
-  // Before recording began: hatched only where nothing is recorded.
-  // 2025-09-14 .. 2026-09-02 plus the marked day, minus the May day: 354.
+  // Hatched: every day before the July reads except the May appearance,
+  // plus the marked quiet day. 2025-09-14 .. 2026-07-07 is 297 days.
   expect(screen.getAllByRole("button", { name: /not recorded/ }).length).toBe(
-    354,
+    297,
   );
-  // History from before tracking is drawn at its level and says so.
-  const seen = screen.getByRole("button", {
-    name: /^Thu 14 May 2026: 3 battles, outside recorded coverage$/,
+  // A stray appearance is drawn; the quiet days around it are hatched.
+  const stray = screen.getByRole("button", {
+    name: /^Thu 14 May 2026: 3 battles$/,
   });
-  expect(seen.className).toContain("activity__cell--l2");
-  expect(seen.className).not.toContain("activity__cell--none");
+  expect(stray.className).toContain("activity__cell--l2");
+  expect(
+    screen.getByRole("button", { name: /^Fri 15 May 2026: not recorded$/ })
+      .className,
+  ).toContain("activity__cell--none");
+  expect(
+    screen.getByRole("button", {
+      name: /^Sat 12 Sep 2026: 2 battles, log rolled past some$/,
+    }),
+  ).toBeTruthy();
+  expect(screen.getByText(/log read since 2026-07-08/)).toBeTruthy();
   fireEvent.click(busy);
   expect(screen.getByText("Tue 8 Sep 2026: 6 battles").className).toBe(
     "activity__caption",

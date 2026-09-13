@@ -6,15 +6,22 @@ import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
  * own players, shaped for the console graphic - a year of UTC days and a
  * 24x7 rhythm. One route, read-only; the row is the jobs Lambda's.
  *
- * The one rule that matters here: zero means "recorded, and nothing was
- * played". A day outside coverage (before the recording began, or one
- * the recorder marked incomplete) is `not_recorded` when the record holds
- * nothing for it, and `seen` when it holds battles anyway - history
- * imported before tracking, or appearances in other players' logs (King
- * Thing has 262 recorded battles since May against a recording that
- * began in September; the first cut hatched all of them, 2026-09-13).
- * The difference between "we were not looking" and "they did not play"
- * is the whole reason the record exists (docs/activity).
+ * The one rule that matters here: zero means "we were reading this
+ * player's log at the time, and nothing was played". Coverage is read
+ * from the DATA, not from the recording row (Jamie, 2026-09-13: "rely on
+ * the data being present"): a UTC day is covered when a battle-log read
+ * for this player was admitted on that day or within the two days after
+ * it (a log holds ~25 battles, so a read that soon still saw the day),
+ * and not marked by the recorder (a capture-audit gap or an incomplete
+ * coverage interval). A day WITH battles is always drawn with them,
+ * however they arrived - imported history, appearances in other logs;
+ * on a marked day they are flagged partial. The hatched cell is only a
+ * day with nothing recorded that no log read covers: unknown, never
+ * zero. The recording row's date is a footnote ("tracked since"), never
+ * a colour. The first cut anchored on the row and hatched King Thing's
+ * history from July; the second labelled it "outside coverage"; a
+ * first-battle anchor would have painted a stray May appearance's seven
+ * empty weeks as zeros. The log reads are the record of watching.
  */
 const DAY_MS = 86_400_000;
 
@@ -24,27 +31,40 @@ function utcDay(at) {
 
 /** The year of days ending on the histogram's own day: each with its
  *  count and status. Exported for the route test and the docs example. */
-export function shapeDays(row, { windowDays = row?.window_days ?? 365 } = {}) {
+/** How many days after a UTC day a battle-log read still covers it. */
+const READ_REACH_DAYS = 2;
+
+/** The UTC days a set of battle-log read days covers. */
+export function coveredDays(readDays) {
+  const out = new Set();
+  for (const d of readDays) {
+    const t = Date.parse(d + "T00:00:00Z");
+    for (let k = 0; k <= READ_REACH_DAYS; k += 1)
+      out.add(utcDay(t - k * DAY_MS));
+  }
+  return out;
+}
+
+export function shapeDays(
+  row,
+  readDays = [],
+  { windowDays = row?.window_days ?? 365 } = {},
+) {
   if (!row) return [];
   const end = Date.parse(utcDay(row.computed_at) + "T00:00:00Z");
-  const from = row.recorded_from ? utcDay(row.recorded_from) : null;
+  const covered = coveredDays(readDays);
   const marked = new Set(row.not_recorded_days ?? []);
   const counts = row.days ?? {};
   const out = [];
   for (let i = windowDays - 1; i >= 0; i -= 1) {
     const day = utcDay(end - i * DAY_MS);
     const battles = counts[day] ?? 0;
-    const covered = from !== null && day >= from && !marked.has(day);
-    // recorded: Elixir was watching, the count is the whole day.
-    // seen: battles are in the record for a day Elixir was NOT watching
-    // (an appearance in another log, or history imported before the
-    // recording began); the count is real, its completeness unknown.
-    // not_recorded: nothing recorded and nobody was watching - unknown,
-    // never zero.
+    const watched = covered.has(day) && !marked.has(day);
     out.push({
       day,
       battles,
-      status: covered ? "recorded" : battles > 0 ? "seen" : "not_recorded",
+      status: battles > 0 || watched ? "recorded" : "not_recorded",
+      ...(battles > 0 && marked.has(day) ? { partial: true } : {}),
     });
   }
   return out;
@@ -83,6 +103,21 @@ export function battleActivityRoutes({ resolveAccount }) {
         [tag],
       );
       const row = rows[0] ?? null;
+      // The record of watching: every admitted battle-log read for this
+      // player in the window, by UTC day. Import-era receipts carry the
+      // export's own fetch time, so replayed history is covered by the
+      // reads that produced it.
+      const { rows: reads } = row
+        ? await db.query(
+            `select distinct to_char(fetched_at at time zone 'UTC', 'YYYY-MM-DD') as day
+               from api_receipt
+              where endpoint = 'player_battlelog' and entity_key = $1
+                and admission = 'admitted'
+                and fetched_at > $2::timestamptz - make_interval(days => $3)`,
+            [tag, row.computed_at, row.window_days + READ_REACH_DAYS],
+          )
+        : { rows: [] };
+      const readDays = reads.map((r) => r.day);
       const { rows: rec } = await db.query(
         `select min(created_at) as recorded_from from recording
           where subject_type = 'player' and subject_tag = $1`,
@@ -107,7 +142,11 @@ export function battleActivityRoutes({ resolveAccount }) {
         first_battle_at: row?.first_battle_at?.toISOString() ?? null,
         last_battle_at: row?.last_battle_at?.toISOString() ?? null,
         not_recorded_days: row ? (row.not_recorded_days?.length ?? 0) : null,
-        days: shapeDays(row),
+        // The first and last UTC day a log read covered: what the legend
+        // calls "log read since".
+        log_reads_from: readDays.length ? readDays.sort()[0] : null,
+        log_read_days: readDays.length,
+        days: shapeDays(row, readDays),
       });
     },
   };

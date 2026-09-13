@@ -20,7 +20,7 @@
       "project": []
     },
     "packages/docs": {
-      "entry": ["build.mjs", "src/index.mjs", "*.test.mjs"],
+      "entry": ["*.test.mjs"],
       "project": ["*.mjs", "src/**/*.mjs"]
     },
     "services/auth": {

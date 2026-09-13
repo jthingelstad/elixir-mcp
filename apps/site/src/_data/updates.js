@@ -16,7 +16,7 @@ export default [
   {
     date: "2026-09-13",
     title: "Your battle activity, first thing on the Overview",
-    body: "The console now opens on a battle-activity graphic, with a chip per tracked player, and the record of each tracked player carries the same one: a year of UTC days coloured by recorded battles, and a 24-by-7 rhythm of when that player plays, rotated into your clock. Both are rebuilt nightly from the battles already recorded. Every day with recorded battles is drawn with its count, including history from before the player was tracked. A day with nothing recorded that Elixir was not watching, before recording began or one the capture audit or the coverage record marks incomplete, is drawn as a hatched not-recorded cell and never as zero. The same histogram is the first step toward placing battle-log reads where a player actually plays; the schedule itself is unchanged until a week of histograms has been checked against the capture audit.",
+    body: "The console now opens on a battle-activity graphic, with a chip per tracked player, and the record of each tracked player carries the same one: a year of UTC days coloured by recorded battles, and a 24-by-7 rhythm of when that player plays, rotated into your clock. Both are rebuilt nightly from the battles already recorded. Every day with recorded battles is drawn with its count, however the battles arrived. An empty day is zero only when a read of that player's battle log covered it; otherwise it is a hatched not-recorded cell, never a zero. The same histogram is the first step toward placing battle-log reads where a player actually plays; the schedule itself is unchanged until a week of histograms has been checked against the capture audit.",
   },
   {
     date: "2026-09-13",

@@ -1525,9 +1525,24 @@ has 262 recorded battles since 2026-05-14 against a recording that began
 zero is zero), `seen` (battles in the record for an unwatched day —
 imported history, appearances in other logs — drawn at full colour and
 labelled "outside recorded coverage"), `not_recorded` (nothing recorded
-AND unwatched — the only hatched cell). The rhythm tile never had the
-problem (it reads every battle in the window) and its header now says
-how many battles that is, so the two halves visibly agree. (2) The
+AND unwatched — the only hatched cell). Jamie then asked why the
+recording row's date should draw a line at all when the data itself
+says what is known — "rely on the data being present" — and it should
+not. A first-battle anchor was tried and rejected the same hour: his
+record holds one stray appearance on 2026-05-14 and then nothing until
+the elixir-bot raw-payload import begins on 07-08, so that anchor would
+have painted seven empty weeks as zeros. **Coverage is read from the log
+reads**: a UTC day is covered when an admitted `player_battlelog` receipt
+for the player lands on it or within the two days after (a log holds ~25
+battles), minus the recorder's marks; an empty covered day is zero, an
+empty uncovered day is hatched, a day with battles is always drawn (a
+marked one flagged `partial`, "log rolled past some"). Import-era
+receipts carry the export's own fetch time, so replayed history is
+covered by the reads that produced it. The recording date is a legend
+footnote ("log read since … · tracked since …"), never a colour. The
+`seen` status is gone. The rhythm tile never had the problem
+(it reads every battle in the window) and its header says how many
+battles that is, so the two halves visibly agree. (2) The
 graphic is the first thing on the Overview, with a chip per tracked
 player, as well as on each record page. Docs and What's-new updated with
 both.

@@ -10,7 +10,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
-import { shapeDays } from "../src/routes/battle-activity.mjs";
+import { shapeDays, coveredDays } from "../src/routes/battle-activity.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -72,14 +72,34 @@ before(async () => {
      values ('player', $1, $2, '2026-09-03T12:00:00Z')`,
     [NEW_TAG, person],
   );
+  const gatewayId = (
+    await db.query(
+      `insert into gateway (owner_account_id, name, static_ip, status)
+       values ($1, 'Test', '203.0.113.9', 'active') returning gateway_id`,
+      [person],
+    )
+  ).rows[0].gateway_id;
+  // The record of watching: admitted battle-log reads. Two in July (the
+  // import era), two in September; nothing between.
+  for (const at of [
+    "2026-07-08T10:00:00Z",
+    "2026-07-09T10:00:00Z",
+    "2026-09-08T16:00:00Z",
+    "2026-09-13T04:00:00Z",
+  ])
+    await db.query(
+      `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+       values ('player_battlelog', $1, $2, 'h', $3, 'admitted')`,
+      [TAG, at, gatewayId],
+    );
   await db.query(
     `insert into player_activity
        (player_tag, computed_at, window_days, half_life_days, rhythm, rhythm_weight,
         rhythm_battles, days, not_recorded_days, recorded_from, first_battle_at,
         last_battle_at, battles_28d)
      values ($1, '2026-09-13T05:30:00Z', 365, 28, $2::jsonb, 2.5, 3,
-             '{"2026-09-08": 3, "2026-05-14": 4}'::jsonb, '["2026-09-06"]'::jsonb,
-             '2026-09-03T12:00:00Z', '2026-09-08T14:30:00Z', '2026-09-08T15:10:00Z', 3)`,
+             '{"2026-09-08": 3, "2026-05-14": 4, "2026-09-11": 2}'::jsonb, '["2026-09-11"]'::jsonb,
+             '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3)`,
     [TAG, JSON.stringify(new Array(168).fill(0))],
   );
 });
@@ -91,37 +111,59 @@ after(async () => {
   await admin.end();
 });
 
-test("shapeDays: a year ending on the histogram's day; battles always drawn, not recorded only where nothing was recorded outside coverage, zero only where covered", () => {
-  const days = shapeDays({
-    computed_at: new Date("2026-09-13T05:30:00Z"),
-    window_days: 10,
-    recorded_from: new Date("2026-09-08T12:00:00Z"),
-    days: { "2026-09-09": 4, "2026-09-05": 1 },
-    not_recorded_days: ["2026-09-11"],
-  });
+test("coveredDays: a log read covers its day and the two before it", () => {
+  const c = coveredDays(["2026-09-10"]);
+  assert.deepEqual([...c].sort(), ["2026-09-08", "2026-09-09", "2026-09-10"]);
+});
+
+test("shapeDays: battles always drawn; zero only where a log read covers the day; hatched elsewhere; partial on a marked day with battles", () => {
+  const days = shapeDays(
+    {
+      computed_at: new Date("2026-09-13T05:30:00Z"),
+      window_days: 10,
+      days: { "2026-09-09": 4, "2026-09-05": 1, "2026-09-12": 2 },
+      not_recorded_days: ["2026-09-12"],
+    },
+    ["2026-09-09", "2026-09-13"],
+  );
   assert.equal(days.length, 10);
   assert.equal(days[0].day, "2026-09-04");
   assert.equal(days.at(-1).day, "2026-09-13");
   const by = Object.fromEntries(days.map((d) => [d.day, d]));
+  assert.equal(by["2026-09-04"].status, "not_recorded", "no read, no battle");
   assert.deepEqual(
     by["2026-09-05"],
-    { day: "2026-09-05", battles: 1, status: "seen" },
-    "battles before recording began are drawn, flagged outside coverage",
+    { day: "2026-09-05", battles: 1, status: "recorded" },
+    "a battle is drawn however it arrived",
   );
-  assert.equal(by["2026-09-06"].status, "not_recorded", "nothing, not watched");
-  assert.equal(by["2026-09-08"].status, "recorded", "the day recording began");
-  assert.deepEqual(by["2026-09-09"], {
-    day: "2026-09-09",
-    battles: 4,
+  assert.equal(by["2026-09-06"].status, "not_recorded", "nothing, unwatched");
+  assert.equal(
+    by["2026-09-07"].status,
+    "recorded",
+    "the 09-09 read reaches back two days",
+  );
+  assert.equal(by["2026-09-07"].battles, 0, "watched, nothing played");
+  assert.equal(by["2026-09-08"].status, "recorded");
+  assert.equal(
+    by["2026-09-10"].status,
+    "not_recorded",
+    "between reads, unwatched",
+  );
+  assert.equal(
+    by["2026-09-11"].status,
+    "recorded",
+    "the 09-13 read reaches it",
+  );
+  assert.deepEqual(by["2026-09-12"], {
+    day: "2026-09-12",
+    battles: 2,
     status: "recorded",
+    partial: true,
   });
-  assert.equal(by["2026-09-10"].status, "recorded");
-  assert.equal(by["2026-09-10"].battles, 0, "watched, nothing played");
-  assert.equal(by["2026-09-11"].status, "not_recorded", "a marked day");
   assert.equal(shapeDays(null).length, 0);
 });
 
-test("GET: your own player's year, oldest first, statuses as the rules say", async () => {
+test("GET: your own player's year, oldest first, coverage from the log reads", async () => {
   const r = await get(`/api/me/battle-activity/${TAG.slice(1)}`);
   assert.equal(r.statusCode, 200, r.body);
   const body = data(r);
@@ -130,20 +172,35 @@ test("GET: your own player's year, oldest first, statuses as the rules say", asy
   assert.equal(body.days.length, 365);
   assert.equal(body.days.at(-1).day, "2026-09-13");
   const by = Object.fromEntries(body.days.map((d) => [d.day, d]));
-  assert.equal(by["2026-09-01"].status, "not_recorded");
-  assert.equal(by["2026-09-06"].status, "not_recorded");
-  assert.deepEqual(by["2026-05-14"], {
-    day: "2026-05-14",
-    battles: 4,
-    status: "seen",
-  });
+  assert.equal(by["2026-05-13"].status, "not_recorded", "nothing, no read");
+  assert.deepEqual(
+    by["2026-05-14"],
+    { day: "2026-05-14", battles: 4, status: "recorded" },
+    "an imported appearance is drawn",
+  );
+  assert.equal(by["2026-06-01"].status, "not_recorded", "no read covers June");
+  assert.equal(
+    by["2026-07-07"].status,
+    "recorded",
+    "the 07-09 read reaches back",
+  );
+  assert.equal(by["2026-07-07"].battles, 0, "watched in July, nothing played");
+  assert.equal(by["2026-07-10"].status, "not_recorded", "after the July reads");
+  assert.equal(by["2026-09-06"].status, "recorded", "the 09-08 read covers it");
   assert.deepEqual(by["2026-09-08"], {
     day: "2026-09-08",
     battles: 3,
     status: "recorded",
   });
-  assert.equal(by["2026-09-10"].battles, 0);
-  assert.equal(by["2026-09-10"].status, "recorded");
+  assert.equal(by["2026-09-09"].status, "not_recorded", "between reads");
+  assert.deepEqual(
+    by["2026-09-11"],
+    { day: "2026-09-11", battles: 2, status: "recorded", partial: true },
+    "a marked day with battles is partial",
+  );
+  assert.equal(by["2026-09-12"].status, "recorded");
+  assert.equal(body.log_reads_from, "2026-07-08");
+  assert.equal(body.log_read_days, 4);
   assert.equal(body.rhythm.length, 168);
   assert.equal(body.rhythm_weight, 2.5);
   assert.equal(body.not_recorded_days, 1);

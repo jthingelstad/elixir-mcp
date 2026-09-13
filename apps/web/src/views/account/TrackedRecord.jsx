@@ -388,10 +388,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <ActivityGraph data={activity} />
           )}
           <p className="footnote" style={{ padding: "0 16px 14px", margin: 0 }}>
-            UTC days from the record, rebuilt nightly. A hatched day was not
-            recorded — before tracking began, or a day the capture audit or the
-            coverage record marks incomplete — and is never shown as zero.{" "}
-            <a href="/docs/activity">How this is drawn</a>
+            UTC days from the record, rebuilt nightly. A hatched day is not
+            recorded — before the first battle in the record, or a day the
+            capture audit or the coverage record marks incomplete — and is never
+            shown as zero. <a href="/docs/activity">How this is drawn</a>
           </p>
         </section>
       )}

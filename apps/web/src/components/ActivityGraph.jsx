@@ -7,12 +7,10 @@ import { useEffect, useRef, useState } from "react";
  * rhythm fits any width, and a tap on a cell writes what it holds into
  * the caption underneath instead of relying on hover.
  *
- * The rule the whole graphic exists to keep: zero is a day we watched
- * and nothing was played. A day with battles in the record is always
- * drawn with its count, whether Elixir was watching (recorded) or the
- * battles arrived another way (seen: imported history, appearances in
- * other logs). The hatched "not recorded" cell is only for a day that
- * holds nothing AND was not watched - unknown, never zero.
+ * The rule the whole graphic exists to keep: zero is a day a battle-log
+ * read covered and nothing was played. A day with battles is drawn with
+ * them however they arrived; the hatched "not recorded" cell is a day
+ * with nothing recorded that no log read covers - unknown, never zero.
  *
  * Colour is one sequential hue (the accent, four steps) on the console's
  * dark surface; identity is never colour alone - every cell carries its
@@ -150,9 +148,7 @@ export function ActivityGraph({ data, offsetHours = null }) {
   const cellName = (d) =>
     d.status === "not_recorded"
       ? `${dayLabel(d.day)}: not recorded`
-      : d.status === "seen"
-        ? `${dayLabel(d.day)}: ${count(d.battles)}, outside recorded coverage`
-        : `${dayLabel(d.day)}: ${count(d.battles)}`;
+      : `${dayLabel(d.day)}: ${count(d.battles)}${d.partial ? ", log rolled past some" : ""}`;
 
   return (
     <div className="activity">
@@ -206,7 +202,7 @@ export function ActivityGraph({ data, offsetHours = null }) {
       <div className="activity__caption" aria-live="polite">
         {picked
           ? cellName(days.find((d) => d.day === picked))
-          : `${withBattles} days with battles · ${coveredDays} days covered · ${notRecorded} not recorded · tap a day`}
+          : `${withBattles} days with battles · ${coveredDays - withBattles} quiet days covered · ${notRecorded} not recorded · tap a day`}
       </div>
       <div className="activity__legend">
         <span>Less</span>
@@ -217,6 +213,15 @@ export function ActivityGraph({ data, offsetHours = null }) {
         <span className="activity__legend-gap" />
         <span className="activity__cell activity__cell--none" />
         <span>not recorded</span>
+        {data.log_reads_from && <span className="activity__legend-gap" />}
+        {data.log_reads_from && (
+          <span>
+            log read since {data.log_reads_from}
+            {data.recorded_from
+              ? ` · tracked since ${data.recorded_from.slice(0, 10)}`
+              : ""}
+          </span>
+        )}
       </div>
 
       <div className="activity__rhythm-head">
@@ -282,11 +287,7 @@ export function ActivityGraph({ data, offsetHours = null }) {
               <tr key={d.day}>
                 <td className="mono">{d.day}</td>
                 <td>
-                  {d.status === "not_recorded"
-                    ? "not recorded"
-                    : d.status === "seen"
-                      ? `${d.battles} (outside coverage)`
-                      : d.battles}
+                  {d.status === "not_recorded" ? "not recorded" : d.battles}
                 </td>
               </tr>
             ))}

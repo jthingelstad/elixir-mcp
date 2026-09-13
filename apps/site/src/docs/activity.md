@@ -42,22 +42,25 @@ a question about a person.
 
 ## Not recorded is not zero
 
-A day with battles in the record is always drawn with its count. A
-hatched cell is a day that holds nothing AND that Elixir was not watching:
-it is drawn distinctly from a quiet day on purpose, because a blank day
-for a player Elixir was not yet recording would say "did not play", and
-that is not known. Three cases put a day outside coverage:
+A day with battles in the record is always drawn with its count, whichever
+way the battles arrived: live reads, history imported when the player was
+added, or appearances in other players' logs. The question the colour has
+to answer is only what an empty day means, and the record itself answers
+it: Elixir was watching a player on a day when it admitted a read of that
+player's battle log on the day or within the two days after it (a log
+holds about 25 battles, so a read that soon still saw the day). An empty
+day inside that coverage is zero. An empty day outside it is hatched,
+"not recorded", because nobody was looking and nothing is known. When you
+started tracking the player colours nothing; the legend names both dates,
+"log read since" and "tracked since".
 
-- **Before recording began.** Every day before the first recording of
-  that player. Battles often exist on such days anyway, from history
-  imported when the player was added or from appearances in other
-  players' logs; they are drawn at full colour and labelled "outside
-  recorded coverage", because the count is real but nobody can say it is
-  the whole day. Days there with nothing recorded are hatched.
+Two marks from the recorder narrow coverage further:
+
 - **A capture-audit gap.** The UTC day on which a battle-log read found
   the log had rolled past the newest battle already recorded, so whatever
   came before the log's oldest entry was never seen. The Status page
-  publishes the same audit as a count.
+  publishes the same audit as a count. Battles recorded on such a day are
+  drawn and labelled "log rolled past some".
 - **An incomplete coverage interval.** Every UTC day inside a pair of
   daily profile snapshots whose lifetime battle counter moved more than
   the battles recorded between them, the rule `elixir_coverage` uses for
@@ -65,12 +68,8 @@ that is not known. Three cases put a day outside coverage:
   The lifetime counter includes some modes the log never shows, so this
   marks generously.
 
-On those days too, recorded battles are drawn and only a day with none is
-hatched. Everything else is a recorded day, and zero there means Elixir
-was watching and no battle was played. The rhythm tile has no such
-distinction to make: it is built from every recorded battle in the
-window, whichever way it entered the record, and its header says how
-many that is.
+The rhythm tile has no such distinction to make: it is built from every
+recorded battle in the window, and its header says how many that is.
 
 ## How it is computed
 
