@@ -475,7 +475,7 @@ export function AgentDetail({ id, navigate }) {
           </div>
         )}
         {identities?.length > 0 && (
-          <div className="table__scroll">
+          <div className="table__scroll" tabIndex={0}>
             <table className="table">
               <thead>
                 <tr>
@@ -537,7 +537,7 @@ export function AgentDetail({ id, navigate }) {
           </div>
         )}
         {events?.length > 0 && (
-          <div className="table__scroll">
+          <div className="table__scroll" tabIndex={0}>
             <table className="table">
               <thead>
                 <tr>
@@ -652,7 +652,7 @@ export function Agents({ navigate }) {
               </div>
             )}
             {principals?.agents?.length > 0 && (
-              <div className="table__scroll">
+              <div className="table__scroll" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>

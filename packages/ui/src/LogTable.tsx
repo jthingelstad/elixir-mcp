@@ -169,7 +169,7 @@ export function LogTable({
         </div>
       ) : (
         <>
-          <div className="table__scroll">
+          <div className="table__scroll" tabIndex={0}>
             <table className="table" style={{ minWidth: `${minWidth}px` }}>
               <thead>
                 <tr>

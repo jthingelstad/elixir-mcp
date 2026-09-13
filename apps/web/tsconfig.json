@@ -15,5 +15,5 @@
     "isolatedModules": true,
     "types": ["vite/client"]
   },
-  "include": ["src", "test", "vite.config.mjs"]
+  "include": ["src", "test", "e2e", "vite.config.mjs", "playwright.config.ts"]
 }

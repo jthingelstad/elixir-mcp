@@ -103,7 +103,7 @@ export function Fleet({ navigate }) {
         </div>
       )}
 
-      <div className="table__scroll">
+      <div className="table__scroll" tabIndex={0}>
         <table className="table" style={{ minWidth: "640px" }}>
           <thead>
             <tr>

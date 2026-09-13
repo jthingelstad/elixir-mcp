@@ -24,3 +24,7 @@ infra/dist/
 
 # Design package test scratch
 packages/design/.test-*/
+
+# Playwright
+test-results/
+playwright-report/

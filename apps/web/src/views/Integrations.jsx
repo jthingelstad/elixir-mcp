@@ -101,7 +101,7 @@ export function Integrations() {
         >
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Held by</span>
         </div>
-        <div className="table__scroll">
+        <div className="table__scroll" tabIndex={0}>
           <table className="table">
             <thead>
               <tr>

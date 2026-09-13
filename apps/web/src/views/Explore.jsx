@@ -744,7 +744,7 @@ function RecordPage({ me, navigate, kind, rawId }) {
         <section>
           {/* Bare on the page: a record's table is interface, and a card
               around it makes the page read as a report. */}
-          <div className="table__scroll">
+          <div className="table__scroll" tabIndex={0}>
             <table className="table" style={{ minWidth: "640px" }}>
               <thead>
                 <tr>

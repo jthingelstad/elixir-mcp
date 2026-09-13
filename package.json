@@ -19,9 +19,12 @@
     "@aws-sdk/client-s3": "^3.1126.0",
     "@aws-sdk/client-secrets-manager": "^3.1126.0",
     "@aws-sdk/client-sts": "^3.1126.0",
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "esbuild": "^0.28.2",
     "knip": "^6.34.0",
     "oxlint": "^1.81.0",
+    "playwright": "^1.63.0",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2"
   },
@@ -35,6 +38,7 @@
     "knip": "knip",
     "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui",
     "verify": "npm run format:check && npm run lint && npm run knip && npm run typecheck && npm run test",
-    "cr": "node infra/scripts/cr-api.mjs"
+    "cr": "node infra/scripts/cr-api.mjs",
+    "e2e": "playwright test -c apps/web/playwright.config.ts"
   }
 }

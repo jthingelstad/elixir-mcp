@@ -179,7 +179,7 @@ export function Connections({ me, navigate }) {
           </a>
         </div>
       ) : (
-        <div className="table__scroll">
+        <div className="table__scroll" tabIndex={0}>
           <table className="table" style={{ minWidth: "760px" }}>
             <thead>
               <tr>

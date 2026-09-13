@@ -39,5 +39,10 @@ jobs:
       # entries, dangling llms.txt links and a missing app shell fail
       # here. --skip-stats keeps CI off the live stats endpoint.
       - run: node infra/scripts/build-site.mjs --skip-stats
+      # Journeys against the built tree behind the edge's document-or-shell
+      # rule, /api/* answered by route fixtures: the real bundle, the real
+      # router, the real chunks, axe on every page a journey lands on.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
       # No AWS credentials in CI, ever (AGENTS.md): template validation
       # runs locally via aws cloudformation validate-template.

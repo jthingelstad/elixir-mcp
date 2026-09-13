@@ -390,7 +390,7 @@ function TierLimits({ me, entitlements: e, usage }) {
     ["Agents", undefined, e.agents?.limit],
   ];
   return (
-    <div className="table__scroll">
+    <div className="table__scroll" tabIndex={0}>
       <table className="table" style={{ minWidth: "380px" }}>
         <thead>
           <tr>

@@ -821,7 +821,7 @@ function AdminServiceTokens() {
           </p>
         </div>
       ) : (
-        <div className="table__scroll">
+        <div className="table__scroll" tabIndex={0}>
           <table className="table" style={{ minWidth: "620px" }}>
             <thead>
               <tr>

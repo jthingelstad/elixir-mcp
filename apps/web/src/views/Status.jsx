@@ -35,7 +35,10 @@ function topCapPath(x, y, w, h, r) {
 /** One capture chart: fetches per bucket, stacked by collector, with a
  *  hover/focus tooltip breaking the bucket down. Buckets arrive
  *  gap-filled from the server, so a quiet stretch is a visible zero
- *  rather than a hole that compresses the axis. */
+ *  rather than a hole that compresses the axis. The svg is a GROUP,
+ *  not an img: each bucket is a focusable button, and an img role
+ *  hides its children from assistive tech while the keyboard still
+ *  lands on them (axe: nested-interactive). */
 function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
   const [at, setAt] = useState(null);
   const n = buckets.length || 1;
@@ -56,7 +59,7 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
   return (
     <div className="chartwrap">
       <div className="chart">
-        <svg viewBox={`0 0 720 84`} role="img" aria-label={ariaLabel}>
+        <svg viewBox={`0 0 720 84`} role="group" aria-label={ariaLabel}>
           <line className="axis" x1={0} x2={W} y1={BASE} y2={BASE} />
           {buckets.map((b, i) => {
             const x = i * slot;

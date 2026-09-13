@@ -200,7 +200,7 @@ export function Tracking({ me, refresh, navigate }) {
           </p>
         </div>
       ) : (
-        <div className="table__scroll">
+        <div className="table__scroll" tabIndex={0}>
           <table className="table" style={{ minWidth: "640px" }}>
             <thead>
               <tr>
