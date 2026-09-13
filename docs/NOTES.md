@@ -1261,3 +1261,23 @@ regression failed on the old guide and passes on the generated count.
 What's New ships with the correction. No tool schema, semantics, quota
 or contract version changes. Acceptance requires the public guide and
 `elixir_docs` to agree after deployment.
+
+## 2026-09-12 — Keep released collectors compatible with check-ins
+
+The 2026-09-12 door deployment removed the legacy `poll` object after changing
+leases from waits to immediate check-ins. The released Python 2.0.30 client
+still read `cfg["poll"]["idle_backoff_s"]` as its fallback. It consequently
+logged `poll error: 'poll'` every ten seconds and made no fetches; both Python
+gateways had eventually entered `draining`. The other three collectors kept
+the public pipeline green, but redundancy was silently reduced.
+
+Commit `21ccc5f` restores the historical `poll` object in the server's config
+alongside the authoritative `next_check_in_s` response and pins that contract
+in the collector-door test. The operator guide and What's New now distinguish
+the check-in interval from the temporary idle fallback. `npm run verify` passed;
+the stack reached `UPDATE_COMPLETE` at 01:46Z. After the two exact draining
+gateways were recovered, the local Python collector admitted seven fetches in
+its first minute and the public status showed all five collectors active, empty
+DLQs/dead work, and fresh admission. Do not remove this compatibility object
+until a named Python collector release tolerates its absence and the fleet has
+been observed on that release.
