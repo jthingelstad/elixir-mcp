@@ -21,6 +21,34 @@ export function gameClock(atMs = Date.now()) {
     seasonFromDate(atMs).seasonStartMs + 40 * DAY_MS,
   );
 
+  // The next boundaries, so a reader can schedule ITSELF ("call me three
+  // hours before the next close") instead of being told the time by a
+  // feed row (review 2026-09-13: the clock is the agent's, never the
+  // feed's). Walk the policy grid forward a fortnight; period indices
+  // reset each season, so each step re-derives its season.
+  const kindAt = (ms) => {
+    const s = seasonFromDate(ms);
+    return periodInfo(Math.floor((ms - s.seasonStartMs) / DAY_MS)).kind;
+  };
+  // "Next training" means the next training BLOCK, the one after the coming
+  // war days, not tomorrow when tomorrow is merely training day two.
+  let nextWarDayOpensMs = null;
+  let nextTrainingStartsMs = null;
+  let warSeen = info.kind === "war";
+  for (let k = 1; k <= 14; k += 1) {
+    const ms = periodStartMs + k * DAY_MS;
+    const kind = kindAt(ms);
+    if (kind === "war") {
+      warSeen = true;
+      if (nextWarDayOpensMs === null) nextWarDayOpensMs = ms;
+    } else if (warSeen && nextTrainingStartsMs === null) {
+      nextTrainingStartsMs = ms;
+    }
+    if (nextWarDayOpensMs !== null && nextTrainingStartsMs !== null) break;
+  }
+  const weekEndsMs =
+    season.seasonStartMs + (season.sectionIndex + 1) * 7 * DAY_MS;
+
   return {
     as_of: new Date(atMs).toISOString(),
     season_id: season.seasonId,
@@ -35,7 +63,15 @@ export function gameClock(atMs = Date.now()) {
     war_day: info.warDay,
     day_started_at: new Date(periodStartMs).toISOString(),
     day_ends_at: new Date(periodStartMs + DAY_MS).toISOString(),
+    war_day_closes_at:
+      info.kind === "war"
+        ? new Date(periodStartMs + DAY_MS).toISOString()
+        : null,
+    next_war_day_opens_at: new Date(nextWarDayOpensMs).toISOString(),
+    next_training_starts_at: new Date(nextTrainingStartsMs).toISOString(),
+    week_ends_at: new Date(weekEndsMs).toISOString(),
     notes: [
+      "war_day_closes_at is this day's end on a war day and null on a training day; next_war_day_opens_at is the next war day to open after this one; next_training_starts_at is when the next training block begins, after the coming war days. Schedule from these; nothing in the event feed announces the time.",
       "Days roll at 10:00 UTC, the same hour the season rolls.",
       "A season runs first Monday of the month to first Monday of the next; weeks are the Mondays between.",
       "The final week of a season is Colosseum; its practice days still report as training.",

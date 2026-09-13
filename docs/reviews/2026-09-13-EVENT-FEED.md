@@ -210,8 +210,10 @@ design change; Tier 3 and 4 follow from it.
    test can.
 2. **A finished boat has no nudge list.** When the clan's standing carries
    `finish_time` for the current week, `decks_today` (in `war_current` and the
-   pulse) reports `race_finished: true` and empties the three lists; the
-   pulse's `war` block says the same.
+   pulse) carries `race_finished_at`. The lists stay, because who played
+   today is still a fact; the instant beside them is what a reader needs to
+   know they no longer mean who owes the race anything (the entry never says
+   so itself: Part II, §9). *Shipped 1.10.0.*
 3. **Label the pulse's war block for what it is.** At 07:00Z it describes a
    day that closes at 10:00Z. Add `closes_at` (the nominal period end) so a
    reader can compute "three hours left" instead of guessing, or move the

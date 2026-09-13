@@ -369,10 +369,12 @@ export const OUTPUT_SCHEMAS = {
       member_count: COUNT,
       members_not_in_race: { type: "array" },
       period: { type: "object" },
+      race_finished_at: { type: ["string", "null"] },
       decks_today: {
         type: ["object", "null"],
         properties: {
           war_day: COUNT,
+          race_finished_at: { type: ["string", "null"] },
           untouched: { type: "array" },
           partial: { type: "array" },
           finished: { type: "array" },

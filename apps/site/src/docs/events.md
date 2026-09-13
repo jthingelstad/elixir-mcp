@@ -101,7 +101,7 @@ a full badge shelf and that is history, not news.
 | `member_joined` | somebody joined | `{ player_tag, name }` |
 | `member_left` | a membership closed; the API cannot tell leaving from being kicked, and neither can we | `{ player_tag, name, role }` |
 | `member_role_changed` | promoted or demoted | `{ player_tag, name, prev_role, new_role, direction }` |
-| `war_day_open` | a new war day first observed | `{}` |
+| `war_day_open` | **deprecated 1.10.0**: a clock fact, and the clock lives in `game_clock` (`next_war_day_opens_at`, `war_day_closes_at`); still emitted through the deprecation window | `{ season_id, section_index, war_day, is_colosseum }` |
 | `clan_war_week_finished` | the week closed | `{}` |
 | `clan_pulse` | the daily digest, 07:00 UTC | the digest (below) |
 
@@ -127,7 +127,7 @@ idempotent per clan and day.
   "top_24h": [{ "player_tag": "#…", "name": "…", "battles": 31 }],
   "quiet": [{ "player_tag": "#…", "name": "…", "days_quiet": 9, "days_since_poll": 0, "recorded_since": "2026-07-08T…" }],
   "never_recorded": 2, "never_recorded_members": [{ "player_tag": "#…", "name": "…" }],
-  "war": { "kind": "war", "war_day": 2, "decks_today": { "untouched": 12, "partial": 6, "finished": 22, "participants": 40 } },
+  "war": { "kind": "war", "war_day": 2, "decks_today": { "untouched": 12, "partial": 6, "finished": 22, "participants": 40, "race_finished_at": null } },
   "roster_changes_24h": { "joined": 1, "left": 0 },
   "note": "…" }
 ```
@@ -142,7 +142,9 @@ idempotent per clan and day.
   open. Its `kind` is `training` or `war`; `war_day` appears only on a war
   day, and `decks_today` only when recorded current participants exist. These
   counts trail actual play and are never final. Unlike `war_current`, the
-  pulse names its discriminator `kind`, not `day_kind`.
+  pulse names its discriminator `kind`, not `day_kind`. `race_finished_at`
+  is set once the clan's boat has crossed the line this week; after that the
+  counts say who played today, not who still owes the race anything.
 - `roster_changes_24h.joined` and `.left` are counts, not member lists;
   individual changes arrive as `member_joined` and `member_left` events.
 - `battles_24h` counts battles played while in this clan.
@@ -155,8 +157,10 @@ your routine's.
 1. Call `elixir_events` from your saved cursor with the topics you handle.
 2. On `clan_pulse`: read the digest; drill with `clans_standings` or
    `battles_trends` if something moved; write the brief.
-3. On `war_day_open`: note the day; in the evening read
-   `war_current.decks_today.untouched` for who still needs to play.
+3. Read `game_clock` once and schedule yourself from `war_day_closes_at`
+   and `next_war_day_opens_at`; before a close, read
+   `war_current.decks_today.untouched` for who still needs to play, unless
+   `race_finished_at` is set.
 4. On `member_joined` / `member_left`: update your notes, greet, or flag.
 
 On first run start from the newest event; an agent that posts a month of

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-13",
+    title: "The clock schedules your routine; the feed says what happened",
+    body: "game_clock now answers the next boundaries of each kind: when this war day closes, when the next war day opens, when training resumes, when the week ends. A scheduled agent reads those once and decides for itself when to look, instead of waiting for the feed to announce the time; war_day_open is therefore deprecated and keeps firing only through a deprecation window. Two feed payloads now match what the Events page promised all along: a role change says which roles and which direction, and a departure says the role that left. And war_current, like the clan pulse, marks race_finished_at once your boat has crossed the line, so a list of members with decks untouched is read as who played today rather than who still owes the race.",
+  },
+  {
+    date: "2026-09-13",
     title: "Verify asks for your own deck with two cards swapped",
     body: "The Verify challenge no longer hands you eight random cards. The target is now the deck you played most in your last ten recorded battles, with two cards swapped for cards you own of similar elixir cost; the two swaps are marked in the brief. A deck you have played in the last month is never the target, and only a player with no recorded battles still gets a random eight. The proof is unchanged: one battle, played after the brief, with exactly those eight cards.",
   },

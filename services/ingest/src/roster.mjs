@@ -18,6 +18,15 @@ import { crTimeToIso } from "./battle-time.mjs";
  * events honestly; first sight of a clan emits NO events (elixir-bot
  * invariant: the seed observation is silent — there is no diff yet).
  */
+/** The game's four roles in rank order; a change is one of two directions. */
+const ROLE_RANK = { member: 0, elder: 1, coLeader: 2, leader: 3 };
+function roleDirection(prevRole, newRole) {
+  const a = ROLE_RANK[prevRole] ?? -1;
+  const b = ROLE_RANK[newRole] ?? -1;
+  if (a < 0 || b < 0 || a === b) return "unknown";
+  return b > a ? "promoted" : "demoted";
+}
+
 export async function ingestClanRoster(
   db,
   { payload, observedAt, windowStart, receiptId },
@@ -156,10 +165,15 @@ export async function ingestClanRoster(
           role_after: m.role,
         }),
       );
+      // The floor the registry promises (feed.mjs): prev/new and which way.
+      // Emitted as {role} alone from 0.21.1 to 1.9.0 - a reader could not
+      // tell a promotion from a demotion (review 2026-09-13, finding 7).
       feed("member_role_changed", {
         player_tag: m.tag,
         name: m.name,
-        role: m.role,
+        prev_role: existing.role,
+        new_role: m.role,
+        direction: roleDirection(existing.role, m.role),
       });
       roleChanged += 1;
     }
@@ -189,6 +203,9 @@ export async function ingestClanRoster(
       feed("member_left", {
         player_tag: r.player_tag,
         name: leftName[0]?.name ?? null,
+        // The departing role: free here, unrecoverable once the membership
+        // closes, and the one key the floor promised that was missing.
+        role: r.role,
       });
       departed += 1;
     }

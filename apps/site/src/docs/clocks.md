@@ -72,6 +72,14 @@ what day a recorded battle fell on) and is the right first call when a
 question begins "today" or "this week". `war_current` is what a specific clan
 is doing inside that day.
 
+It also carries the next boundaries, so a scheduled routine can decide for
+itself when to look: `day_ends_at` (this policy day), `war_day_closes_at`
+(the same instant on a war day, `null` on a training day),
+`next_war_day_opens_at`, `next_training_starts_at`, `week_ends_at` and
+`season_ends_at`. Nothing in the event feed announces the time; a routine that
+wants to act three hours before a war day closes reads the clock once and sets
+its own timer.
+
 Because the recorder follows the policy grid, `war_current` gives you both the
 grid and what it actually saw:
 

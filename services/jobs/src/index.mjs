@@ -298,7 +298,20 @@ async function computeClanPulse(db, tag, anchoredPeriod) {
              from merged`,
             [tag, wkRows[0].season_id, wkRows[0].section_index, info.warDay],
           );
-          if (decks[0].participants > 0) war.decks_today = decks[0];
+          if (decks[0].participants > 0) {
+            // Same fact war_current carries: once our boat has crossed the
+            // line, "untouched" is who played today, not who owes the race.
+            const { rows: fin } = await db.query(
+              `select finish_time from war_week_clan
+               where clan_tag = $1 and participant_clan_tag = $1
+                 and season_id = $2 and section_index = $3`,
+              [tag, wkRows[0].season_id, wkRows[0].section_index],
+            );
+            war.decks_today = {
+              ...decks[0],
+              race_finished_at: fin[0]?.finish_time?.toISOString() ?? null,
+            };
+          }
         }
       }
     }

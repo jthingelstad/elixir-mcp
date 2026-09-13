@@ -1262,3 +1262,79 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   });
   assert.equal(refused, true, "weeks above the maximum is refused");
 });
+
+test("war_current: race_finished_at is set once our boat has crossed the line", async () => {
+  // POAP KINGS finished on day 4 at 09:38Z (2026-09-13) with 40 members still
+  // "untouched": the lists stay facts, but the instant sits beside them so a
+  // reader does not nudge toward nothing.
+  const wk = (
+    await db.query(
+      `select season_id, section_index from war_week where clan_tag = $1
+       order by season_id desc, section_index desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0];
+  const { rowCount } = await db.query(
+    `update war_week_clan set finish_time = '2026-09-13T09:38:04Z'
+     where clan_tag = $1 and participant_clan_tag = $1
+       and season_id = $2 and section_index = $3`,
+    [CLAN, wk.season_id, wk.section_index],
+  );
+  assert.equal(rowCount, 1, "our own boat is one of the five standings rows");
+  try {
+    const { body, isError } = await call(invoke, "war_current", {});
+    assert.equal(isError, false, JSON.stringify(body));
+    assert.equal(body.race_finished_at, "2026-09-13T09:38:04.000Z");
+    if (body.decks_today) {
+      assert.equal(body.decks_today.race_finished_at, body.race_finished_at);
+      assert.match(body.notes.join(" "), /crossed the finish line/);
+    }
+  } finally {
+    await db.query(
+      `update war_week_clan set finish_time = null
+       where clan_tag = $1 and participant_clan_tag = $1
+         and season_id = $2 and section_index = $3`,
+      [CLAN, wk.season_id, wk.section_index],
+    );
+  }
+});
+
+test("game_clock: the next boundaries a routine schedules itself from", async () => {
+  const { makeRegistry } = await import("../src/tools.mjs");
+  const registry = makeRegistry();
+  // Season 136 opened 2026-09-07 10:00Z: days 0-2 training (07, 08, 09),
+  // war days 1-4 on 10, 11, 12, 13; week 2 opens 14 10:00Z.
+  const training = await registry.invoke(
+    "game_clock",
+    {},
+    { at: "2026-09-08T12:00:00Z" },
+  );
+  assert.equal(training.war_day_closes_at, null);
+  assert.equal(training.next_war_day_opens_at, "2026-09-10T10:00:00.000Z");
+  assert.equal(training.next_training_starts_at, "2026-09-14T10:00:00.000Z");
+  assert.equal(training.week_ends_at, "2026-09-14T10:00:00.000Z");
+
+  const warDay4 = await registry.invoke(
+    "game_clock",
+    {},
+    { at: "2026-09-13T12:00:00Z" },
+  );
+  assert.equal(warDay4.war_day, 4);
+  assert.equal(warDay4.war_day_closes_at, "2026-09-14T10:00:00.000Z");
+  assert.equal(warDay4.day_ends_at, warDay4.war_day_closes_at);
+  assert.equal(warDay4.next_war_day_opens_at, "2026-09-17T10:00:00.000Z");
+  assert.equal(warDay4.next_training_starts_at, "2026-09-14T10:00:00.000Z");
+
+  // War day 2: the next war day is tomorrow, training is three days out.
+  const warDay2 = await registry.invoke(
+    "game_clock",
+    {},
+    { at: "2026-09-11T12:00:00Z" },
+  );
+  assert.equal(warDay2.next_war_day_opens_at, "2026-09-12T10:00:00.000Z");
+  assert.equal(warDay2.next_training_starts_at, "2026-09-14T10:00:00.000Z");
+  assert.match(
+    warDay2.notes.join(" "),
+    /nothing in the event feed announces the time/i,
+  );
+});

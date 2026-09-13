@@ -205,3 +205,69 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
     await scratch.drop();
   }
 });
+
+test("roster feed payloads carry at least the floor the registry promises", async () => {
+  // The registry tests pin the registry; this pins the EMITTER against it.
+  // From 0.21.1 to 1.9.0 member_role_changed shipped {role} and member_left
+  // shipped no role while the floor promised prev/new/direction and role
+  // (review 2026-09-13, finding 7): a reader trusting the docs could not tell
+  // a promotion from a demotion.
+  const { TOPIC_CONTRACTS } = await import("../../mcp/src/feed.mjs");
+  const clan = await fixture("clan/roster.json");
+  const fresh = await scratchDb("roster_floor");
+  try {
+    await ingestClanRoster(fresh.db, {
+      payload: clan,
+      observedAt: "2026-09-03T14:40:34Z",
+    });
+    const next = structuredClone(clan);
+    const promoted = next.memberList.find((m) => m.role === "member");
+    promoted.role = "elder";
+    const demoted = next.memberList.find((m) => m.role === "coLeader");
+    demoted.role = "member";
+    const [gone] = next.memberList.splice(
+      next.memberList.findIndex(
+        (m) => m.role === "elder" && m.tag !== promoted.tag,
+      ),
+      1,
+    );
+    const result = await ingestClanRoster(fresh.db, {
+      payload: next,
+      observedAt: "2026-09-03T15:40:34Z",
+    });
+    assert.ok(result.feedEvents.length >= 3, "three roster changes emitted");
+    for (const ev of result.feedEvents) {
+      const floor = TOPIC_CONTRACTS[ev.topic]?.payload;
+      assert.ok(floor, `${ev.topic} is a registered topic`);
+      for (const key of floor)
+        assert.ok(
+          Object.hasOwn(ev.payload, key),
+          `${ev.topic} payload carries promised key ${key}`,
+        );
+    }
+    const up = result.feedEvents.find(
+      (e) =>
+        e.topic === "member_role_changed" &&
+        e.payload.player_tag === promoted.tag,
+    );
+    assert.deepEqual(
+      [up.payload.prev_role, up.payload.new_role, up.payload.direction],
+      ["member", "elder", "promoted"],
+    );
+    const down = result.feedEvents.find(
+      (e) =>
+        e.topic === "member_role_changed" &&
+        e.payload.player_tag === demoted.tag,
+    );
+    assert.equal(down.payload.direction, "demoted");
+    const left = result.feedEvents.find((e) => e.topic === "member_left");
+    assert.equal(left.payload.player_tag, gone.tag);
+    assert.equal(
+      left.payload.role,
+      "elder",
+      "the departing role rides the event",
+    );
+  } finally {
+    await fresh.drop();
+  }
+});

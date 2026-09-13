@@ -63,7 +63,7 @@ async function clanSubject(ctx, args, endpoint) {
 export const warTools = {
   game_clock: {
     description:
-      "What time it is in Clash Royale, for nobody in particular: current season, week within the season, whether today is a training day or war day, and when each next rolls over. Needs no player and no clan. Use it to decide WHEN to look before deciding who to look at; war_current is the tool for what a specific clan is doing inside this day.",
+      "What time it is in Clash Royale, for nobody in particular: current season, week within the season, whether today is a training day or war day, when this day ends, and the next boundaries of each kind (war_day_closes_at, next_war_day_opens_at, next_training_starts_at, week_ends_at, season_ends_at) so a routine can schedule itself. Needs no player and no clan. Use it to decide WHEN to look before deciding who to look at; war_current is the tool for what a specific clan is doing inside this day.",
     inputSchema: {
       type: "object",
       properties: {
@@ -347,10 +347,18 @@ export const warTools = {
            group by war_day order by war_day`,
         [clanTag, wk.season_id, wk.section_index],
       );
+      // Our own boat's finish, if it has one this week: standings carry
+      // finish_time per participant, and ours is the one that decides
+      // whether remaining decks still add fame.
+      const raceFinishedAt =
+        standings.rows
+          .find((r) => r.participant_clan_tag === clanTag)
+          ?.finish_time?.toISOString() ?? null;
       // Today's remaining-decks picture (CLAN-PULSE.md): only while the
       // anchored war-day period is nominally still open.
       let decksToday = null;
       let overCapNote = null;
+      let raceFinishedNote = null;
       if (
         period?.war_day &&
         Date.now() < Date.parse(period.period_end_nominal)
@@ -404,6 +412,11 @@ export const warTools = {
           }));
         decksToday = {
           war_day: period.war_day,
+          // The boat may already have crossed the line (POAP KINGS did on
+          // day 4 at 09:38Z, 2026-09-13, with 40 still "untouched"). The
+          // lists stay - who played today is still a fact - but the
+          // instant is beside them so no reader nudges toward nothing.
+          race_finished_at: raceFinishedAt,
           untouched: pick(0, 0),
           partial: pick(1, 3),
           finished: pick(4, 4),
@@ -415,6 +428,9 @@ export const warTools = {
           },
           ...(overCap.length > 0 ? { over_cap: overCap } : {}),
         };
+        if (raceFinishedAt)
+          raceFinishedNote =
+            "race_finished_at is set: this clan's boat has crossed the finish line this week, so decks_today reports who played today, not who still owes the race anything.";
         if (overCap.length > 0)
           overCapNote =
             "over_cap lists members observed with more than four decks in this policy day: this clan's real reset drifts far enough from the policy hour to move battles across the boundary.";
@@ -428,6 +444,7 @@ export const warTools = {
         // game_clock (playtest round, 2026-09-09).
         day_kind: period?.kind ?? null,
         war_day: period?.war_day ?? null,
+        race_finished_at: raceFinishedAt,
         next_war_day_opens_at: nextWarDayOpensAt,
         applied: appliedBlock({
           clan_tag: clanTag,
@@ -471,6 +488,7 @@ export const warTools = {
             ? "decks_today trails actual play early in a day: cite it as observed so far, never as final."
             : null,
           overCapNote,
+          raceFinishedNote,
           "Days follow the 10:00 UTC policy reset for every clan: cite the *_nominal instants; started_observed_at is when the recorder first saw the period, observed_offset_minutes its distance from the policy hour including polling latency.",
           "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
         ),

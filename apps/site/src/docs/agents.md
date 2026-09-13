@@ -143,7 +143,7 @@ const page = await call("elixir_events", {
   since: state.since,           // integer event_id; omit on the very first run
   limit: 200,
   mark_seen: false,             // never move the account's cursor
-  topics: ["clan_pulse", "war_day_open", "member_joined", "member_left"],
+  topics: ["clan_pulse", "member_joined", "member_left"],  // war timing comes from game_clock, not the feed
 });
 for (const ev of page.events) handle(ev);   // { event_id, topic, subject_tag, payload, created_at }; coalesced topics carry payload.count
 state.since = page.next_cursor;            // last event_id returned, or unchanged when empty
@@ -165,12 +165,16 @@ polling). Two rules keep it cheap: **read `elixir_my_feedback` only when
 `elixir_events` itself and `game_clock`, so any call you were making anyway
 tells you whether the next one is worth it. A routine that has nothing else
 to do can still poll the feed on a timer, but hourly is plenty; the daily
-`clan_pulse` lands at 07:00 UTC and `war_day_open` at the policy reset.
+`clan_pulse` lands at 07:00 UTC. The feed never announces the time: read
+`game_clock` once and take `war_day_closes_at` and `next_war_day_opens_at`
+from it if your routine cares about war at all (`war_day_open` is deprecated
+for exactly this reason).
 
 A routine that runs once a day around 07:30 UTC sees the `clan_pulse`
 digest, drills with `clans_standings` or `battles_trends` when something
-moved, and on `war_day_open` checks `war_current.decks_today.untouched` in
-the evening. Facts in, judgment in your code.
+moved, and, if it schedules itself before a close from `game_clock`, checks
+`war_current.decks_today.untouched` then, unless `race_finished_at` is set.
+Facts in, judgment in your code.
 
 ## Key lifecycle
 
