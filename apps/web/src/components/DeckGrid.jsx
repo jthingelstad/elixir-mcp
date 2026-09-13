@@ -18,6 +18,7 @@ export function DeckGrid({ cards, label, dimUnmatched = false }) {
             c ? "" : "deck__slot--empty",
             c?.matched ? "deck__slot--matched" : "",
             c && dimUnmatched && !c.matched ? "deck__slot--dim" : "",
+            c?.swapped ? "deck__slot--swapped" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -31,6 +32,11 @@ export function DeckGrid({ cards, label, dimUnmatched = false }) {
                 <span className="deck__fallback">{c.name ?? c.id}</span>
               )}
               <span className="deck__name">{c.name ?? c.id}</span>
+              {c.swapped && !c.matched && (
+                <span className="deck__swap" aria-label="swapped in">
+                  <Icon name="repeat" size={12} /> swap
+                </span>
+              )}
               {c.matched && (
                 <span className="deck__check" aria-label="in place">
                   <Icon name="circle-check" size={16} />

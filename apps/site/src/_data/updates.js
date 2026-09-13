@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-13",
+    title: "Verify asks for your own deck with two cards swapped",
+    body: "The Verify challenge no longer hands you eight random cards. The target is now the deck you played most in your last ten recorded battles, with two cards swapped for cards you own of similar elixir cost; the two swaps are marked in the brief. A deck you have played in the last month is never the target, and only a player with no recorded battles still gets a random eight. The proof is unchanged: one battle, played after the brief, with exactly those eight cards.",
+  },
+  {
+    date: "2026-09-13",
     title: "Each player you track shows a year of battle activity",
     body: "The record of a tracked player now ends with a battle-activity graphic: a year of UTC days coloured by recorded battles, and a 24-by-7 rhythm of when that player plays, rotated into your clock. Both are rebuilt nightly from the battles already recorded. A day before recording began, or one the capture audit or the coverage record marks incomplete, is drawn as a hatched not-recorded cell and never as zero. The same histogram is the first step toward placing battle-log reads where a player actually plays; the schedule itself is unchanged until a week of histograms has been checked against the capture audit.",
   },

@@ -28,11 +28,18 @@ the challenge.
    primary player and your alts, the claims that are yours to prove; a
    friend or a player you merely watch is theirs. Players are added under
    Tracking, as always; Verify only proves them.
-2. Elixir names eight cards, drawn at random from the cards your recorded
-   collection says you own, and shows them the way the game lays a deck
-   out: two rows of four. Tower troops are never among them.
-3. Build that deck in a slot and play one battle with it. Any 1v1 counts,
-   win or lose; Trophy Road or Path of Legends is quickest.
+2. Elixir names eight cards and shows them the way the game lays a deck
+   out: two rows of four. The eight are **your own deck**: the one you
+   played most in your last ten recorded battles, with two cards swapped
+   for cards you own of similar elixir cost. The two swaps are marked, so
+   the brief reads as "your deck, two changes" rather than eight
+   strangers, and the deck is playable because you already play it. A
+   deck you have played in the last month is never the target; the swaps
+   are redrawn until the result is new. Only a player with no recorded
+   battles gets eight cards drawn at random from the recorded collection.
+   Tower troops are never among them.
+3. Make the two changes in a slot and play one battle with it. Any 1v1
+   counts, win or lose; Trophy Road or Path of Legends is quickest.
 4. Beside the brief, the page shows your latest battle since you started,
    with its deck marked card by card against the target, and its result.
 5. When a battle's deck is exactly the eight cards, the claim is marked

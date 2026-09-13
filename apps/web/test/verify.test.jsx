@@ -38,6 +38,8 @@ const card = (i, matched = false) => ({
   name: `Card ${i}`,
   icon: `https://api-assets.clashroyale.com/cards/300/${i}.png`,
   matched,
+  // The first two are the swaps into the player's own deck.
+  swapped: i <= 2,
 });
 const OPEN = {
   state: "open",
@@ -47,6 +49,7 @@ const OPEN = {
   created_at: "2026-09-12T14:00:00Z",
   expires_at: new Date(Date.now() + 19 * 60_000).toISOString(),
   target: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => card(i)),
+  target_source: "most_played",
   battles_since: 0,
   last_battle: null,
   read_at: null,
@@ -196,6 +199,12 @@ test("the picker lists the account's players and a start shows the eight-card br
   const target = screen.getByRole("list", { name: "The deck to play" });
   expect(target.querySelectorAll(".deck__slot").length).toBe(8);
   expect(target.querySelectorAll("img").length).toBe(8);
+  // The player's own deck with two marked swaps, and the lead says so.
+  expect(target.querySelectorAll(".deck__slot--swapped").length).toBe(2);
+  expect(screen.getAllByLabelText("swapped in").length).toBe(2);
+  expect(
+    screen.getByText(/your own recent deck with two cards swapped/),
+  ).toBeTruthy();
   // No battle yet: eight empty slots on the live side.
   const seen = screen.getByRole("list", {
     name: "The deck in your latest battle",

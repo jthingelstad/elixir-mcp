@@ -235,7 +235,9 @@ export function Verify({ refresh, navigate }) {
             </div>
             <div className="panel__body">
               <p className="verify__lead">
-                Build these 8 cards in a deck slot and play one battle with it.
+                {challenge.target_source === "most_played"
+                  ? "This is your own recent deck with two cards swapped (marked). Make those two changes in a deck slot and play one battle with it."
+                  : "Build these 8 cards in a deck slot and play one battle with it."}{" "}
                 Any 1v1 counts; Trophy Road or Path of Legends is quickest. Win
                 or lose, the battle is the proof, and you can switch back
                 afterwards.

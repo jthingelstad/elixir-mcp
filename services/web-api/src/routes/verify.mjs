@@ -1,9 +1,9 @@
-import { randomInt } from "node:crypto";
 import { json } from "../http.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { makeLive } from "../../../mcp/src/live.mjs";
 import { enqueueJob } from "../../../scheduler/src/ledger.mjs";
+import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
 
 /**
  * Verify (0080, battles since 0081): prove that the signed-in account
@@ -34,15 +34,6 @@ export const STARTS_PER_HOUR = 5;
 
 const TARGET_SQL = `select c.card_id, c.name, c.icon_urls->>'medium' as icon
                     from card c where c.card_id = any($1::int[])`;
-
-function shuffle(list) {
-  const out = [...list];
-  for (let i = out.length - 1; i > 0; i -= 1) {
-    const j = randomInt(i + 1);
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
 
 async function cardsById(db, ids) {
   if (ids.length === 0) return new Map();
@@ -116,6 +107,7 @@ async function battlelogReadAt(db, tag) {
 async function present(db, row, { livePending = false, battle = null } = {}) {
   const targetIds = row.target_card_ids.map(Number);
   const targetSet = new Set(targetIds);
+  const swappedSet = new Set((row.swapped_card_ids ?? []).map(Number));
   const since = await battlesSince(db, row.player_tag, row.created_at);
   // The proving battle when verified, else the newest since the brief.
   const shown =
@@ -139,7 +131,14 @@ async function present(db, row, { livePending = false, battle = null } = {}) {
     created_at: row.created_at,
     expires_at: row.expires_at,
     verified_at: row.verified_at ?? null,
-    target: targetIds.map((id) => card(id, shownSet.has(id))),
+    target: targetIds.map((id) => ({
+      ...card(id, shownSet.has(id)),
+      // The two cards the player has to change; the wizard marks them.
+      swapped: swappedSet.has(id),
+    })),
+    // most_played: their own recent deck with two swaps; random: eight
+    // owned cards, only when no battles are recorded.
+    target_source: row.target_source ?? null,
     battles_since: since.length,
     last_battle: shown
       ? {
@@ -209,12 +208,43 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
 
   async function ownedPlainCards(db, tag) {
     const { rows } = await db.query(
-      `select pc.card_id from player_card pc
+      `select pc.card_id, c.elixir_cost from player_card pc
          join card c on c.card_id = pc.card_id
         where pc.player_tag = $1 and c.kind = 'card'`,
       [tag],
     );
-    return rows.map((r) => r.card_id);
+    return rows;
+  }
+
+  /** What the draw needs from the record: the player's last ten decks
+   *  (newest first) and the set of decks they played in the last month.
+   *  Plain cards only - the catalog says which ids are cards. */
+  async function recentDecks(db, tag) {
+    const { rows: plainRows } = await db.query(
+      `select card_id from card where kind = 'card'`,
+    );
+    const plain = new Set(plainRows.map((r) => r.card_id));
+    const { rows: last } = await db.query(
+      `select deck from battle_participant
+        where player_tag = $1 and deck is not null
+        order by battle_time desc limit 10`,
+      [tag],
+    );
+    const { rows: month } = await db.query(
+      `select distinct on (deck_hash) deck from battle_participant
+        where player_tag = $1 and deck is not null
+          and battle_time > now() - interval '30 days'`,
+      [tag],
+    );
+    return {
+      recent: last.map((r) => deckIds(r.deck, plain)),
+      lastMonth: new Set(
+        month
+          .map((r) => deckIds(r.deck, plain))
+          .filter(Boolean)
+          .map(deckKey),
+      ),
+    };
   }
 
   return {
@@ -333,24 +363,43 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       // A challenge that ran out without a match hands back the same
       // eight cards for a day: the player may already hold that deck.
       const { rows: prior } = await db.query(
-        `select target_card_ids from claim_challenge
+        `select target_card_ids, target_source, swapped_card_ids from claim_challenge
           where account_id = $1 and player_tag = $2 and outcome = 'expired'
             and created_at > now() - make_interval(hours => $3)
           order by created_at desc limit 1`,
         [account.accountId, tag, REUSE_TARGET_HOURS],
       );
-      const ownedSet = new Set(owned);
+      const ownedSet = new Set(owned.map((r) => r.card_id));
       const reusable = prior[0]?.target_card_ids?.map(Number) ?? [];
-      const target =
+      let target;
+      let source = prior[0]?.target_source ?? null;
+      let swapped = prior[0]?.swapped_card_ids?.map(Number) ?? [];
+      if (
         reusable.length === DECK_SIZE &&
         reusable.every((id) => ownedSet.has(id))
-          ? reusable
-          : shuffle(owned).slice(0, DECK_SIZE);
+      ) {
+        target = reusable;
+      } else {
+        // The player's own most-played deck with two similar-cost cards
+        // swapped in (verify-draw.mjs): playable by construction,
+        // recognisable, and never a deck they ran this month.
+        const { recent, lastMonth } = await recentDecks(db, tag);
+        const drawn = drawTarget({
+          owned: ownedSet,
+          cost: new Map(owned.map((r) => [r.card_id, r.elixir_cost])),
+          recent,
+          lastMonth,
+        });
+        target = drawn.ids;
+        source = drawn.source;
+        swapped = drawn.swapped;
+      }
       const { rows: created } = await db.query(
-        `insert into claim_challenge (account_id, player_tag, target_card_ids, expires_at)
-         values ($1, $2, $3::int[], now() + make_interval(mins => $4))
+        `insert into claim_challenge
+           (account_id, player_tag, target_card_ids, expires_at, target_source, swapped_card_ids)
+         values ($1, $2, $3::int[], now() + make_interval(mins => $4), $5, $6::int[])
          returning *`,
-        [account.accountId, tag, target, CHALLENGE_MINUTES],
+        [account.accountId, tag, target, CHALLENGE_MINUTES, source, swapped],
       );
       const read = await requestRead(db, tag);
       if (read.pending)

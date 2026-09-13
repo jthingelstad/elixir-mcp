@@ -3001,6 +3001,24 @@ input[aria-invalid="true"] {
   padding: 4px;
   text-align: center;
 }
+.deck__slot--swapped {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+.deck__swap {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: var(--gold-on);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+}
 .deck__check {
   position: absolute;
   top: 4px;
