@@ -5,6 +5,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { migrate } from "./migrate.mjs";
+import { activityPreview } from "./ops-activity.mjs";
 
 import {
   seed,
@@ -204,6 +205,14 @@ export async function handler(event) {
     const result = await argsCensus(
       process.env.DATABASE_URL,
       event.args_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.activity_preview) {
+    const result = await activityPreview(
+      process.env.DATABASE_URL,
+      event.activity_preview,
     );
     console.log(JSON.stringify(result));
     return result;
