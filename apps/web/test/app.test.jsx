@@ -380,3 +380,39 @@ test("the Overview opens on the battle-activity graphic, with a chip per tracked
   expect(alt.getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("Record ›")).toBeTruthy();
 });
+
+test("a legacy path is redirected and the ADDRESS BAR follows it", async () => {
+  // The old REDIRECTS rendered the new page under the old address, so a
+  // bookmark to /data/status credited the old path in the report and
+  // /status/service looked unvisited. The router replaces the entry.
+  window.history.pushState({}, "", "/data/status");
+  global.fetch = mockFetch({
+    "GET /api/me": [200, { authenticated: false }],
+  });
+  render(<App />);
+  await waitFor(() => expect(window.location.pathname).toBe("/status/service"));
+  // A partial path lands on the section's first page the same way.
+  cleanup();
+  window.history.pushState({}, "", "/account");
+  render(<App />);
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/account/overview"),
+  );
+  // And the query string rides along.
+  cleanup();
+  window.history.pushState({}, "", "/admin?x=1");
+  render(<App />);
+  await waitFor(() => expect(window.location.pathname).toBe("/admin/requests"));
+  expect(window.location.search).toBe("?x=1");
+});
+
+test("every app section in the route table has a route, and nothing else does", async () => {
+  const { routeTree, SECTIONS } = await import("../src/App.jsx");
+  const routed = new Set(
+    routeTree.children.map((r) => r.path.split("/").filter(Boolean)[0]),
+  );
+  for (const section of Object.keys(SECTIONS))
+    expect(routed.has(section), `${section} has no route`).toBe(true);
+  expect(routed.has("signin")).toBe(true);
+  expect(routed.size).toBe(Object.keys(SECTIONS).length + 1);
+});

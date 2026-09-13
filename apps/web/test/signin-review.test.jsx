@@ -26,6 +26,19 @@ import { App } from "../src/App.jsx";
 import { SignIn } from "../src/views/SignIn.jsx";
 import { Profile } from "../src/views/account/Profile.jsx";
 
+/** Timers and the clock only: the router schedules its first render
+ *  on the microtask queue, and faking that leaves the app unrendered. */
+const FAKE_TIMERS = {
+  shouldAdvanceTime: true,
+  toFake: [
+    "setTimeout",
+    "clearTimeout",
+    "setInterval",
+    "clearInterval",
+    "Date",
+  ],
+};
+
 function mockFetch(routes) {
   return vi.fn(async (path, init = {}) => {
     const key = `${init.method ?? "GET"} ${path}`;
@@ -54,7 +67,6 @@ afterEach(() => {
 });
 
 test("a transport failure on /api/me is 'Elixir didn't answer', retried once, never the sign-in wall", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
   window.history.pushState({}, "", "/account/overview");
   let calls = 0;
   const err = new TypeError("Failed to fetch");
@@ -65,16 +77,19 @@ test("a transport failure on /api/me is 'Elixir didn't answer', retried once, ne
     },
   });
   render(<App />);
-  // The quiet retry sits 1.5 s after the first failure.
-  await vi.advanceTimersByTimeAsync(1600);
-  expect(await screen.findByText("Elixir didn’t answer")).toBeTruthy();
+  // The quiet retry sits 1.5 s after the first failure - real seconds
+  // here, because the query's retry and the router's first render both
+  // schedule through paths a faked clock does not advance evenly.
+  expect(
+    await screen.findByText("Elixir didn’t answer", {}, { timeout: 4000 }),
+  ).toBeTruthy();
   expect(calls).toBe(2);
   expect(screen.queryByText("Sign in first")).toBeNull();
   expect(screen.getByText(/You are not signed out/)).toBeTruthy();
 });
 
 test("an edge error page on /api/me is the same answer, and Try again recovers", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.useFakeTimers(FAKE_TIMERS);
   window.history.pushState({}, "", "/account/overview");
   let answers = 0;
   global.fetch = mockFetch({
@@ -102,7 +117,7 @@ test("an edge error page on /api/me is the same answer, and Try again recovers",
 });
 
 test("the code step polls and signs in when the link was opened elsewhere", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.useFakeTimers(FAKE_TIMERS);
   let polls = 0;
   global.fetch = mockFetch({
     "POST /api/auth": [200, { ok: true, poll_id: "p".repeat(40) }],

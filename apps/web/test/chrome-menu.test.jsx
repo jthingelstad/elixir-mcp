@@ -11,7 +11,13 @@
  * behaves, not that a breakpoint was computed in JavaScript.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import {
+  render,
+  waitFor,
+  screen,
+  fireEvent,
+  cleanup,
+} from "@testing-library/react";
 import { App } from "../src/App.jsx";
 
 beforeEach(() => {
@@ -58,7 +64,11 @@ test("the Console button is never inside the menu", async () => {
 
 test("the menu button sits after the Console button, on the right", async () => {
   render(<App />);
-  const bar = document.querySelector(".chrome__inner");
+  const bar = await waitFor(() => {
+    const el = document.querySelector(".chrome__inner");
+    if (!el) throw new Error("chrome not rendered yet");
+    return el;
+  });
   const kids = [...bar.children];
   expect(kids.indexOf(bar.querySelector(".chrome__menu"))).toBeGreaterThan(
     kids.indexOf(bar.querySelector(".chrome__console")),

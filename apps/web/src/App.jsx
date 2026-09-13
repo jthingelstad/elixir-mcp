@@ -4,18 +4,23 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import {
+  Outlet,
+  RouterProvider,
+  createBrowserHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+  notFound,
+  redirect,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { answered, createQueryClient } from "@elixir-mcp/client";
 import { api } from "./api.js";
 import { Icon } from "./components/Icon.jsx";
 import { SignIn } from "./views/SignIn.jsx";
-import { Dashboard } from "./views/Dashboard.jsx";
-import { Admin } from "./views/Admin.jsx";
-import { Data } from "./views/Data.jsx";
-import { Explore } from "./views/Explore.jsx";
-import { Status } from "./views/Status.jsx";
-import { Fleet } from "./views/Collectors.jsx";
-import { CollectorPage } from "./views/CollectorDetail.jsx";
-import { RaiseCollector } from "./views/RaiseCollector.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
 /**
@@ -629,21 +634,21 @@ export function titleFor(section, sec, path) {
   return `${lead} - ${sec.label} - ${SITE}`;
 }
 
-function useRoute() {
-  const [path, setPath] = useState(window.location.pathname);
-  useEffect(() => {
-    const onPop = () => setPath(window.location.pathname);
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-  const navigate = useCallback((to) => {
-    window.history.pushState({}, "", to);
-    // The route is the path; a query string rides along in the URL for
-    // the page to read (a feedback prefill) and never reaches the
-    // section/page/id split.
-    setPath(to.split("?")[0]);
-  }, []);
-  return { path, navigate };
+/** `navigate(to)` for the views: a path, with a query string riding
+ *  along for the page to read (a feedback prefill). The router owns
+ *  history; this is the one shape every view already calls. */
+export function useNav() {
+  const nav = useNavigate();
+  return useCallback(
+    (to) => {
+      const [pathname, qs] = String(to).split("?");
+      return nav({
+        to: pathname,
+        search: qs ? Object.fromEntries(new URLSearchParams(qs)) : {},
+      });
+    },
+    [nav],
+  );
 }
 
 /** True below the one breakpoint the whole product uses. */
@@ -1019,7 +1024,7 @@ function Disclaimer() {
   );
 }
 
-function SignInWall({ navigate }) {
+export function SignInWall({ navigate }) {
   return (
     <div className="panel" style={{ maxWidth: "420px", margin: "48px auto 0" }}>
       <div className="panel__body" style={{ textAlign: "center" }}>
@@ -1074,14 +1079,138 @@ function Unavailable({ onRetry, busy }) {
   );
 }
 
-/** The app is its own provider: one query cache per mount, so a test
- *  that renders <App /> gets a fresh one and the session it mocks is the
- *  session it sees. */
+/**
+ * The route tree. The root's beforeLoad is the old route guard as a
+ * real one: a path this app does not own leaves for the static site
+ * (Back never bounces between the halves because the entry is
+ * replaced), and a legacy or partial path is REDIRECTED - the address
+ * bar changes with it, which the render-only REDIRECTS never did, so a
+ * bookmark to /data/status now credits /status/service in the report.
+ *
+ * Sections are split by route: Admin, Explore, Status and the Account
+ * pages each arrive as their own chunk, so the sign-in wall does not
+ * carry the admin console with it.
+ */
+const rootRoute = createRootRoute({
+  beforeLoad: ({ location }) => {
+    const path = location.pathname;
+    const owned = legalRoute(REDIRECTS[path] ?? path);
+    if (owned === null) {
+      window.location.replace(STATIC_LINKS.home);
+      throw notFound();
+    }
+    if (owned !== path)
+      throw redirect({ to: owned, search: location.search, replace: true });
+  },
+  component: Shell,
+  notFoundComponent: () => null,
+});
+
+const signInRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/signin",
+  component: function SignInPage() {
+    const navigate = useNav();
+    const { refresh } = useMe();
+    return (
+      <SignIn
+        onAuthed={async () => {
+          await refresh();
+          navigate("/account/overview");
+        }}
+      />
+    );
+  },
+});
+
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/account/{-$page}/{-$itemId}/{-$recordId}",
+  component: lazyRouteComponent(
+    () => import("./pages/AccountPage.jsx"),
+    "AccountPage",
+  ),
+});
+
+const exploreRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/explore/$",
+  component: lazyRouteComponent(
+    () => import("./pages/ExplorePage.jsx"),
+    "ExplorePage",
+  ),
+});
+
+const statusRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/status/{-$page}/{-$itemId}",
+  component: lazyRouteComponent(
+    () => import("./pages/StatusPage.jsx"),
+    "StatusPage",
+  ),
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/{-$page}/{-$itemId}",
+  component: lazyRouteComponent(
+    () => import("./pages/AdminPage.jsx"),
+    "AdminPage",
+  ),
+});
+
+const dataRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/data/{-$page}",
+  component: lazyRouteComponent(() => import("./views/Data.jsx"), "Data"),
+});
+
+export const routeTree = rootRoute.addChildren([
+  signInRoute,
+  accountRoute,
+  exploreRoute,
+  statusRoute,
+  adminRoute,
+  dataRoute,
+]);
+
+/** Where a route is on the rail and in the route table, from its path:
+ *  the section, its page (validated against SECTIONS, so a stale slug
+ *  falls back to the section's first page), the rail position, the
+ *  ids. Route components read this rather than re-deriving it. */
+export function useHere() {
+  const { pathname } = useLocation();
+  const [, section, page, itemId, recordId] = pathname.split("/");
+  const sec = SECTIONS[section];
+  const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
+  const here = railPosition(pathname);
+  return {
+    path: pathname,
+    section,
+    sec,
+    activePage,
+    here,
+    itemId,
+    recordId,
+  };
+}
+
+/** The app is its own providers: one query cache and one router per
+ *  mount, so a test that renders <App /> gets a fresh one and the
+ *  session and address it sets up are the ones it sees. */
 export function App() {
   const [queryClient] = useState(createQueryClient);
+  const [router] = useState(() =>
+    createRouter({
+      routeTree,
+      history: createBrowserHistory(),
+      defaultPreload: false,
+      scrollRestoration: true,
+    }),
+  );
   return (
     <QueryClientProvider client={queryClient}>
-      <Shell />
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 }
@@ -1092,7 +1221,7 @@ export function App() {
  *  API answered "not signed in", that is the answer. A view that
  *  changes the session (sign in, a claim, a timezone) invalidates
  *  ["me"] and every rail count follows. */
-function useMe() {
+export function useMe() {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["me"],
@@ -1124,24 +1253,12 @@ function useMe() {
 }
 
 function Shell() {
-  const { path, navigate } = useRoute();
+  const navigate = useNav();
   const { me, unreachable, retrying, refresh } = useMe();
   const narrow = useNarrow();
+  const { path: effectivePath, section, sec, here } = useHere();
 
   const authed = me?.authenticated === true;
-  const owned = legalRoute(REDIRECTS[path] ?? path);
-
-  // A path this app does not own belongs to the static site. Replace
-  // the entry so Back does not bounce between the two halves.
-  useEffect(() => {
-    if (owned === null) window.location.replace(STATIC_LINKS.home);
-  }, [owned]);
-
-  const effectivePath = owned ?? "/account/overview";
-  const [, section, page, itemId, recordId] = effectivePath.split("/");
-  const sec = SECTIONS[section];
-  const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
-  const here = railPosition(effectivePath);
 
   useEffect(() => {
     document.title = titleFor(section, sec, effectivePath);
@@ -1222,62 +1339,13 @@ function Shell() {
                 without this a single bad page would keep showing its error after
                 you navigated away from it. */}
             <ErrorBoundary key={effectivePath}>
-              {owned === null ? null : effectivePath === "/signin" ? (
-                <SignIn
-                  onAuthed={async () => {
-                    await refresh();
-                    navigate("/account/overview");
-                  }}
-                />
-              ) : showUnavailable ? (
+              {showUnavailable ? (
                 <Unavailable busy={retrying} onRetry={refresh} />
               ) : needsAuth ? (
                 <SignInWall navigate={navigate} />
-              ) : section === "data" ? (
-                <Data />
-              ) : section === "explore" ? (
-                <Explore me={me} navigate={navigate} path={effectivePath} />
-              ) : section === "status" ? (
-                activePage === "collectors" ? (
-                  itemId === "new" ? (
-                    <RaiseCollector navigate={navigate} />
-                  ) : itemId ? (
-                    // Keyed on the name: a re-picked card moves the
-                    // record's address, and the page reloads under it.
-                    <CollectorPage
-                      key={itemId}
-                      id={itemId}
-                      navigate={navigate}
-                      me={me}
-                    />
-                  ) : (
-                    <Fleet navigate={navigate} />
-                  )
-                ) : (
-                  <Status navigate={navigate} />
-                )
-              ) : section === "account" ? (
-                <Dashboard
-                  me={me}
-                  refresh={refresh}
-                  navigate={navigate}
-                  page={activePage ?? "overview"}
-                  sub={here.sub}
-                  itemId={itemId}
-                  recordId={recordId}
-                />
-              ) : section === "admin" ? (
-                me?.is_admin ? (
-                  <Admin
-                    me={me}
-                    page={activePage ?? "requests"}
-                    navigate={navigate}
-                    itemId={itemId}
-                  />
-                ) : (
-                  <SignInWall navigate={navigate} />
-                )
-              ) : null}
+              ) : (
+                <Outlet />
+              )}
             </ErrorBoundary>
             {showRail && <DocsStrip here={here} />}
           </div>

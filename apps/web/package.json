@@ -14,6 +14,7 @@
     "@elixir-mcp/contracts": "*",
     "@elixir-mcp/design": "*",
     "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-router": "^1.170.36",
     "lucide-react": "^1.43.0",
     "marked": "^18.0.12",
     "react": "^19.3.0",
