@@ -1314,3 +1314,236 @@ tests pass. The new read-only `{stats:true}` ranking-health receipt reports all
 enabled-location freshness, reset-tick receipts and active ranking recordings,
 but is not deployed: the canonical gate is red on two unchanged ingest war-key
 tests, so this run does not deploy or claim runtime acceptance from source.
+
+## 2026-09-13 — The seven decisions, re-read against a full day
+
+Read 12:00–13:1xZ; analysis only. Same instruments as the 24-hour read
+(`{tables}` / `{stats}` on the migrate Lambda, no `probe`; `/api/public/status`;
+RDS CloudWatch hourly converted from the CLI's Chicago-local stamps to UTC;
+the `RDSOSMetrics` stream; `ElixirMCP/Ledger` `PlannedJobs`; the archive's
+`payloads/` listing binned by object time; the web-api timing line). Two
+readings of `{tables}` an hour apart give the per-hour write rates, since
+the counters have no absolute baseline from yesterday. One fact changes
+how the day is read: at 22:3xZ Keep the Record True removed the roster
+gate from battle logs ENTIRELY (section above), so the day splits into a
+tracked-only-gate window (12:58–22:3xZ) and a no-gate window (22:3xZ on).
+
+**1. The gate: 91 gaps in 6,025 polls (1.51%) against 55 in 3,646.** The
+rate is unchanged over 24 h and the poll count has nearly doubled, but the
+window straddles both regimes. The archive splits them: counting filtered
+battlelog objects ≥ 15 kB that are not a player's first (a full log under a
+mark, the audit's gap shape; the threshold reproduces the audit's 24 h count
+to within 7%) gives **4.2 gap-shaped logs/hr under the tracked-only gate
+(13:00–22:30Z) and 2.8/hr with no gate (23:00–10:00Z)**; `{stats}` last hour
+reads 2 gaps in 513 polls (0.4%) against 2 in 169 (1.2%) yesterday and 7 in
+225 (3.1%) at 22:3xZ. So the tracked-only restriction did NOT fix the
+regression (the 22:3xZ read found new gaps from tracked clans too), and the
+full removal roughly halved the per-hour gap rate and cut the per-poll rate
+by two thirds. What remains (~3/hr, the 0.13% class of 09-11 was ~1/hr) is
+the yield cadence itself: a player idle for a day is on the slow end of the
+EWMA, and a 25-battle sitting still rolls the log before the next read —
+the case the adaptive histogram (§ below) is for. Cost of the removal:
+battlelog polls 169 → 513/hr, but distinct-content fetches only 98 → ~125/hr
+(91–152 in quiet hours) because most of the extra polls find nothing new
+(`nothing_new` 397 of 513, 77%; `filtered` 14,972 of 15,710 entries at the
+collector, 95%). The `[]`-already-archived case costs a lease and a submit,
+no body, no object.
+
+**2. The instance at 88 MB: stays.** Enhanced Monitoring hourly means since
+the 12:58Z restart: swap used 18.5 MB in the first hour, then **26–30 MB
+flat for 22 hours (27.0 → 30.2, +0.15 MB/h)**, against 66.9 MB in the hour
+before; swap-in/out 0.2–1.5 / 0.05–0.7 pages/s against 87 / 76 before —
+the box stopped trading pages. Free 166–172 MB, cached 214–241 MB.
+CloudWatch agrees: FreeableMemory 142–157 MB (was 108–116), SwapUsage
+17–28 MB (was 56–74). At 12:02Z today: total 921 MB; RDS management 390 MB
+RSS (still the largest tenant, 42%); Postgres ~230 MB RSS (checkpointer 95
++ background writer 93 are the touched share of the 88 MB `shared_buffers`,
+rdsadmin 28); OS 39 MB; cached 214; free 155; swap 29. CPU 5.2–5.8%
+(7.2% in the board hour), WriteIOPS 7.7–12 (27 in the board hour),
+ReadIOPS 14–34 with 68–72 at 20:00Z and 10:00Z. `{tables}` reads
+`shared_buffers` 11264 pages. No further resize question is open; re-read
+only if swap passes ~50 MB.
+
+**3. `player` touches daily: 1,484 updates/hr, a fifth of 6.6k, not a
+tenth.** Two `{tables}` readings (12:00:40Z → 13:01:32Z): `player.updated`
++1,509 in 61 min (91% HOT), −78% against the 6.6k/hr of the 24-hour read;
+the interim 35-minute read said the same (1,240/hr). The four sites carry
+the one-day rule (`pipeline.mjs` profile upsert, `roster.mjs` unnest,
+`battles.mjs`, `rankings.mjs`), so what is left is real: 533 NEW player
+rows/hr (opponents and board entrants; the day after the boards were
+seeded is still accreting), identity changes on those and on the ~450
+battlelog and 67 profile reads an hour, and the first daily touch of every
+row the hourly touch used to keep warm. Read again in a week when the
+board accretion has settled before calling the residual anything. The remaining updates
+are identity changes (name/clan moves stamp `last_seen_at` exactly, as
+designed) and the once-a-day touch. Other write sites in the same window:
+battle_participant 0 updates on 2,473 inserts/hr (the guard holds), battle
+5 updates on 972 inserts/hr, war_participation / war_attendance_day 5/hr
+each, api_receipt 626/hr (one per fetch, the facts stamp), poll_state
+2,311/hr, gateway 5,076/hr (the check-in heartbeat on 6 rows, all HOT),
+rate_limit 2,680/hr, capture_audit +437 rows/hr.
+
+**4. `PlannedJobs`: 372–536/hr (mean 455) under the tracked-only gate,
+381–456 (mean 439) with no gate, 1,436 in the 10:00Z board hour, 733 at
+11:00Z.** Against the expected 330–350: higher, and the reason is in § 1 —
+battle logs returned to their yield cadence for everyone, not only
+incidental-clan members, and the planner now plans ~500 battlelog polls an
+hour of which three quarters come back empty. The board hour doubled from
+651 because Keep the Boards' 10:22Z sync (section above) set the global
+top-100 and US/Japan collections: 171 players had their FIRST battlelog
+object archived in that hour (history arriving, excluded from the audit by
+rule) and 252 profile objects landed against 55–110 in other hours.
+
+**5. `battle_observation`: unchanged.** `inserted` 60,921, `live_rows`
+99,337, `updated` 0 at both readings (12:00Z and 13:01Z). The table is dead
+weight until the contract drop.
+
+**6. The door: no 426.** 54,599 door calls in 24 h: lease 33,899 × 200,
+submit 11,665 × 200, config 121; **zero 426**, with every collector on
+2.0.30 or `py-dev`. The non-200s tell yesterday's Python story: 2 × 409
+`quarantined` at 13:32:46Z and 13:47:40Z (the two Python collectors, whose
+`poll error: 'poll'` loop leased and never submitted until the streak
+quarantined them), then **8,554 × 401** from 13:32Z to 01:47Z — a draining
+gateway is refused at the lease, and both kept checking in every 15/N s
+for twelve hours until the 01:46Z recovery; 354 × 429 `lease_cap` from
+13:03Z to 02:07Z, the same two clients holding two unsubmitted leases; 4 ×
+500 at 12:58:24–33Z, the 14-second parameter-group restart. Nothing since
+02:07Z. The profile line, for the record: 51–113 distinct-content profile
+fetches/hr, unchanged, as decided (#4).
+
+**7. Verify's first day: four starts, three verified, none refused.** The
+timing line holds 140 verify requests: 4 × `POST /api/me/verify` (13:37:50Z
+the deck-slot run on King Thing, expired; 14:50:09Z King Thing by battle,
+verified 14:55:39Z; 21:02:44Z and 00:59:01Z, the two alts), 121 polls, 14
+list reads, 1 × 401 (a pre-sign-in load). **Every start answered 200: no
+202 `collecting`, no 409, no 429, so nothing was refused — rightly or
+wrongly.** `claim_challenge` holds 4 rows (4 inserted, 43 updates = the
+polls stamping reads), and `elixir_my_players` now shows King Thing, Big
+Thing and thingles all `verified`. Live reads per challenge, from the
+archive (distinct content only, so a lower bound): thingles — the start's
+read at 21:02:47Z (3 s after the brief) and the proof read at 21:08:12Z,
+page reloaded verified at 21:08:25Z, **5 min 28 s brief to verified**; Big
+Thing — 00:59:06Z and the proof read at 01:02:37Z, verified at 01:02:46Z,
+**3 min 45 s**. King Thing's two runs: four profile reads on the deck-slot
+run (13:37:53, 13:42:53, 13:46:39, 13:48:11Z) and two battlelog reads on
+the battle run (14:50:12, 14:55:27Z). Six polls over five minutes and
+fourteen over four minutes fit the 15 s cadence with the 45 s live-read
+floor holding (≤ 7 and ≤ 5 reads minted). Nothing to fix; the target draw
+is the open UX item (§ Part 3 below, if reached).
+
+**Lines.** *Gate:* the tracked-only gate did not cure the regression and
+the 22:3xZ removal is the right call — gaps ~3/hr against ~1/hr on 09-11
+at 3× the polls, and the rest is the yield clock, which the histogram is
+built to replace; keep reading `capture_audit_24h` daily and expect ~70/day
+until step two. *Instance:* db.t4g.micro at `shared_buffers` 88 MB is
+settled — swap flat at 26–30 MB for 22 hours with no paging, 155–170 MB
+free; no resize, and the micro RI stands.
+
+## 2026-09-13 — Adaptive polling, step one: the histogram and the graphic (0084)
+
+Shaped yesterday ("The adaptive-polling direction"), built today:
+histogram and graphic first, scheduler later. **The scheduler does not
+read any of this yet**; its placement changes after a week of nightly
+histograms has been read against the capture audit.
+
+**The table.** `player_activity` (0084) beside `poll_state`, one row per
+recorded player (any `recording` row, active or not): `rhythm` — 168
+decayed weights indexed `(isodow - 1) * 24 + utc_hour`, each battle
+adding `2^(-age_days / 28)`; `rhythm_weight`, `rhythm_battles`; `days` —
+`{"YYYY-MM-DD": n}` for UTC days with a recorded battle in the last 365;
+`not_recorded_days`; `recorded_from` (the earliest recording row);
+`first/last_battle_at`, `battles_28d`. A projection over
+`battle_participant`, rebuilt in full nightly; never a system of record.
+`player_daily_battle_rollup` stays as the tools' day-resolution record;
+the graphic reads the new row so rhythm and days come from one source.
+
+**The job.** `{activity_histogram: true}` on the jobs Lambda
+(`services/jobs/src/activity.mjs`), EventBridge `cron(30 5 * * ? *)`:
+05:30Z is the fleet's quietest hour in today's read and after the UTC day
+closes. Five set-based queries over every recorded player at once plus one
+upsert per player; no per-player fan-out of coverage calls. Not-recorded
+marks come from the recorder's own two records: the UTC day of every
+`capture_audit` gap, and every UTC day inside a `player_snapshot_daily`
+interval whose lifetime `battleCount` moved more than the battles captured
+— `captureCoverage`'s rule (services/mcp/src/coverage.mjs) applied
+set-wide over the last 35 days instead of seven, with older marks carried
+forward from the previous row until they leave the year. Days BEFORE
+recording began are not stored — the reader derives them from
+`recorded_from`, so the row never becomes a copy of `recording`. Deployed 12:31Z
+(migrations 83 → 84 applied by the migrate Lambda, stack + web green,
+`elixir-mcp-activity-histogram` ENABLED). **First production run**, by
+hand at 12:32Z through the deployed job: 647 recorded players, 647 with
+battles in the year, 330 not-recorded day-marks, 13.1 s wall time — the
+graphic is live on every tracked player's record today rather than after
+tomorrow's 05:30Z.
+
+**The route.** `GET /api/me/battle-activity/<tag>` (own claims only, 404
+`not_yours`): the row shaped as 365 `{day, battles, status}` ending on the
+histogram's own UTC day, `status` `not_recorded` before `recorded_from` or
+on a marked day, `recorded` otherwise — so a zero is always "watched,
+nothing played". `computed_at: null` for a claimed player the job has not
+reached yet, and the page says so rather than drawing an empty year.
+
+**The graphic.** `components/ActivityGraph.jsx` on every tracked PLAYER's
+record (`/account/tracking/<tag>`, below the two panels): a GitHub-style
+year (weeks in columns, Monday first, newest right, horizontally scrolled
+to the newest weeks on open — the phone case), and a 24×7 rhythm tile
+rotated into the device's clock with the offset named. One sequential hue
+(the accent, four steps scaled to the player's own busiest day); a
+not-recorded day is a hatched cell that can never be confused with a quiet
+one; every cell is a button whose accessible name is the day and its
+value, a tap or focus writes it into the caption (no hover dependence),
+and the last two weeks are a table under a `details`. Labels are spelled
+in code, never by the locale (the first test run learned this on en-US).
+Docs `/docs/activity` (+ the tracked record's docs strip), What's-new.
+**Tests:** the job over a scratch database (decay at exactly one
+half-life = 0.5, both mark rules, marks never before recording,
+carry-forward across a rebuild, a zero row for a quiet recorded player,
+the handler op); the route (shape, statuses, 404/400/401, `%23` links);
+the component (hatched vs zero, caption, rotation across midnight, the
+not-computed state).
+
+**Also in this commit — the red gate.** `npm run verify` was red at 10:22Z
+on two unchanged ingest war-key tests (Keep the Boards' note). Cause:
+`stampWarKeys` bounded its candidate battles with the DATABASE's `now() -
+14 days` while the tests (and `clanClock`) run on an injected `nowMs`; the
+fixture's battles are at 2026-08-30T08:00Z, and today is the fourteenth
+day. The bound now reads from the caller's clock (`$2::timestamptz`), the
+pipeline already passes `fetchedAt`, so production behaviour is unchanged
+and the suite cannot drift red again by calendar. Not done: the
+`gateway.channel` column drop that decision (6) said would ride the next
+migration — `collector-door.mjs` still returns `channel` in the lease
+body and `public.mjs` / `gateways.mjs` still read it, so the drop waits
+for those readers (expand-and-contract), not for a migration slot.
+
+## 2026-09-13 — Verify's target is the player's own deck, two cards swapped (0085)
+
+Proposed yesterday at acceptance ("make sure the deck we ask them to play
+isn't miserable"), built today. **The draw** (`verify-draw.mjs`, pure over
+its inputs, `random` injectable): the player's most-played deck among
+their last ten recorded battles (ties to the newest; only decks every card
+of which the recorded collection says they own), with two cards swapped
+for owned cards of similar elixir cost (within 1, then 2, then any); the
+candidate pool excludes the whole BASE deck, not just the current one —
+the first cut let the second swap put the first swapped-out card back in
+(283 of 5,000 random draws kept seven of eight; a 5,000-draw test now pins
+it). Any deck the player played in the last 30 days (`battle_participant`
+distinct on `deck_hash`) is rejected and the swap redrawn, up to forty
+times; eight random owned cards only when no usable recent deck exists,
+still never one played this month. **Stored** on the challenge (0085:
+`target_source` `most_played | random`, `swapped_card_ids`), so the poll
+carries them; the 24-hour reuse of an expired target carries both too.
+**The wizard** marks the two swaps (gold ring + "swap" chip, `DeckGrid`)
+and the lead reads "your own recent deck with two cards swapped (marked)";
+a random draw keeps the old copy. Docs `/docs/verify` "The challenge"
+rewritten, What's-new. Tests: five over the pure draw, two over the real
+routes and a scratch database (three battles with A, one with B → A with
+two marked swaps, never A or B; a player with no battles → random,
+unmarked), the wizard's brief. Not built, as scoped: the off-page
+completion job (mark the claim on each admitted battle log, email, feed
+event) is the step after this one. **Deployed 12:35Z** (0085 applied by
+the migrate Lambda, 40 smoke checks green; `/docs/verify` and What's-new
+serve the new copy). Not exercised end to end on a live tag today — the
+three claims on Jamie's account are already verified, and a verification
+run is a write on live data; the next unverified alt or friend's account
+is the acceptance.
