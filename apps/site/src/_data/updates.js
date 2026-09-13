@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-12",
+    title: "Collectors keep their idle fallback during the check-in change",
+    body: "Collectors now check in and the door answers with the next interval instead of holding a poll open. One released Python collector still expected the earlier idle fallback in its configuration, so the door keeps sending that compatible value while it also sends the check-in interval. Collection and the shared rate budget are unchanged.",
+  },
+  {
+    date: "2026-09-12",
     title: "The tool guide counts live reads from the registry",
     body: "The tool-choice guide still said four tools could request a live read, even though the leaderboard tools had joined that lane. Its count now comes from the MCP registry, the same source as the generated tool reference, so the website and the guide served over MCP include every tool with a live flag. The tools, live-fetch allowances and asynchronous read behavior are unchanged.",
   },

@@ -130,6 +130,11 @@ test("config: contract constants, channel, the update authority, and what doctor
   });
   assert.equal(r.status, 200);
   assert.equal(r.body.pacing_ms, 1500);
+  assert.deepEqual(
+    r.body.poll,
+    { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
+    "released Python collectors still receive their compatibility fallback",
+  );
   assert.deepEqual(r.body.submit_retry, {
     max_attempts: 3,
     timeout_s: 20,

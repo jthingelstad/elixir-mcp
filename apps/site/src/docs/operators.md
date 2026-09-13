@@ -100,8 +100,8 @@ Three routes, all `Authorization: Bearer emcg_…`:
 
 Config hands out pacing (1,500 ms between fetches), the 403 breaker (5 in
 a row, 300 s cooldown), the payload ceiling (5,000,000 bytes compressed and
-base64-encoded), poll waits (live 8 s, bulk 2 s, idle backoff 20 s), your
-channel, your status, the address your requests arrive from (`observed_ip`
+base64-encoded), the next check-in interval, and a 20-second idle fallback
+for released collectors that still need it, your channel, your status, the address your requests arrive from (`observed_ip`
 — the one to allowlist on your CR key), the one Clash Royale path
 `collector doctor` may read to prove your key works from there, and the
 one release version and SHA-256 you may run. A `pending` token can read

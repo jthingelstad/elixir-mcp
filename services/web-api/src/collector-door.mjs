@@ -105,6 +105,12 @@ const CONFIG = {
   // constant: told "15 s" from the same empty queue, five collectors
   // arrived together after every scheduler tick.
   check_in: { idle_s: 15, capped_s: 5 },
+  // Released Python twins still read this object while using
+  // next_check_in_s for ordinary check-ins. Keep its historical values in
+  // the server response until every supported client tolerates its absence:
+  // without it, an otherwise healthy collector loops on a KeyError and
+  // silently removes a redundant fetcher from the fleet.
+  poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
   // A failed ingestion must not make the collector abandon a valid lease
   // immediately. Keep this bounded below the 90-second lease TTL: clients
   // retry only transport failures and 5xx responses with this same envelope.
