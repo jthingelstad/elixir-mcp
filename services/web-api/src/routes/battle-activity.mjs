@@ -6,12 +6,15 @@ import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
  * own players, shaped for the console graphic - a year of UTC days and a
  * 24x7 rhythm. One route, read-only; the row is the jobs Lambda's.
  *
- * The one rule that matters here: a day is emitted as `not_recorded`,
- * never as zero, when it is before recording began or the recorder
- * marked it incomplete (capture-audit gap or an incomplete coverage
- * interval). Zero means "recorded, and nothing was played" - the
- * difference between "we were not looking" and "they did not play" is
- * the whole reason the record exists (docs/activity).
+ * The one rule that matters here: zero means "recorded, and nothing was
+ * played". A day outside coverage (before the recording began, or one
+ * the recorder marked incomplete) is `not_recorded` when the record holds
+ * nothing for it, and `seen` when it holds battles anyway - history
+ * imported before tracking, or appearances in other players' logs (King
+ * Thing has 262 recorded battles since May against a recording that
+ * began in September; the first cut hatched all of them, 2026-09-13).
+ * The difference between "we were not looking" and "they did not play"
+ * is the whole reason the record exists (docs/activity).
  */
 const DAY_MS = 86_400_000;
 
@@ -31,11 +34,17 @@ export function shapeDays(row, { windowDays = row?.window_days ?? 365 } = {}) {
   for (let i = windowDays - 1; i >= 0; i -= 1) {
     const day = utcDay(end - i * DAY_MS);
     const battles = counts[day] ?? 0;
-    const recorded = from !== null && day >= from && !marked.has(day);
+    const covered = from !== null && day >= from && !marked.has(day);
+    // recorded: Elixir was watching, the count is the whole day.
+    // seen: battles are in the record for a day Elixir was NOT watching
+    // (an appearance in another log, or history imported before the
+    // recording began); the count is real, its completeness unknown.
+    // not_recorded: nothing recorded and nobody was watching - unknown,
+    // never zero.
     out.push({
       day,
       battles,
-      status: recorded ? "recorded" : "not_recorded",
+      status: covered ? "recorded" : battles > 0 ? "seen" : "not_recorded",
     });
   }
   return out;

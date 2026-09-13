@@ -318,3 +318,65 @@ test("an empty body is still a success", async () => {
   expect(res.ok).toBe(true);
   expect(res.data).toEqual({});
 });
+
+test("the Overview opens on the battle-activity graphic, with a chip per tracked player and a link to the record", async () => {
+  window.history.pushState({}, "", "/account");
+  const days = [];
+  const end = Date.parse("2026-09-13T00:00:00Z");
+  for (let i = 364; i >= 0; i -= 1) {
+    const day = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
+    days.push({
+      day,
+      battles: day === "2026-09-12" ? 4 : 0,
+      status: day >= "2026-09-03" ? "recorded" : "not_recorded",
+    });
+  }
+  const activity = {
+    player_tag: "#20JJJ2CCRU",
+    computed_at: "2026-09-13T05:30:00Z",
+    window_days: 365,
+    half_life_days: 28,
+    rhythm: new Array(168).fill(0),
+    rhythm_battles: 4,
+    days,
+  };
+  global.fetch = mockFetch({
+    "GET /api/me": [
+      200,
+      {
+        authenticated: true,
+        is_owner: false,
+        claims: [
+          { player_tag: "#20JJJ2CCRU", is_primary: true, name: "Jamie" },
+          {
+            player_tag: "#VJG0J29QP",
+            is_primary: false,
+            name: "Big Thing",
+            relationship: "alt",
+          },
+        ],
+        recordings: [],
+      },
+    ],
+    "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
+    "GET /api/me/first-answer": [200, { suggestions: [] }],
+    "GET /api/me/battle-activity/20JJJ2CCRU": [200, activity],
+    "GET /api/me/battle-activity/VJG0J29QP": [
+      200,
+      { ...activity, player_tag: "#VJG0J29QP", computed_at: null, days: [] },
+    ],
+  });
+  render(<App />);
+  // The primary's year is drawn first, without a click.
+  expect(
+    await screen.findByRole("button", { name: /^Sat 12 Sep 2026: 4 battles$/ }),
+  ).toBeTruthy();
+  expect(screen.getByText("Battle activity")).toBeTruthy();
+  const alt = screen.getByRole("button", { name: "Big Thing" });
+  expect(alt.getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(alt);
+  // The alt has no row yet: the panel says so instead of an empty year.
+  expect(await screen.findByText(/Not computed yet/)).toBeTruthy();
+  expect(alt.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("Record ›")).toBeTruthy();
+});

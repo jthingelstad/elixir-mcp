@@ -3257,6 +3257,26 @@ input[aria-invalid="true"] {
   gap: var(--s-3);
   padding: var(--s-4);
 }
+.activity__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.activity__who {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.activity__chip {
+  cursor: pointer;
+  border: 1px solid var(--line);
+}
+.activity__chip--on {
+  border-color: var(--gold);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
 .activity__empty {
   margin: 0;
   padding: var(--s-4);

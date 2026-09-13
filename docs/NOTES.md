@@ -1516,6 +1516,22 @@ migration — `collector-door.mjs` still returns `channel` in the lease
 body and `public.mjs` / `gateways.mjs` still read it, so the drop waits
 for those readers (expand-and-contract), not for a migration slot.
 
+**Two corrections the same afternoon, from Jamie's first look.** (1) The
+year hatched everything before the recording row's date, and King Thing
+has 262 recorded battles since 2026-05-14 against a recording that began
+2026-09-03 (`elixir_coverage`: `recorded_since` vs
+`recording_active_since`), so four months of real history rendered as
+"not recorded". The status rule is now three-valued: `recorded` (watched;
+zero is zero), `seen` (battles in the record for an unwatched day —
+imported history, appearances in other logs — drawn at full colour and
+labelled "outside recorded coverage"), `not_recorded` (nothing recorded
+AND unwatched — the only hatched cell). The rhythm tile never had the
+problem (it reads every battle in the window) and its header now says
+how many battles that is, so the two halves visibly agree. (2) The
+graphic is the first thing on the Overview, with a chip per tracked
+player, as well as on each record page. Docs and What's-new updated with
+both.
+
 ## 2026-09-13 — Verify's target is the player's own deck, two cards swapped (0085)
 
 Proposed yesterday at acceptance ("make sure the deck we ask them to play

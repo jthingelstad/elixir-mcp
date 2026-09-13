@@ -78,7 +78,7 @@ before(async () => {
         rhythm_battles, days, not_recorded_days, recorded_from, first_battle_at,
         last_battle_at, battles_28d)
      values ($1, '2026-09-13T05:30:00Z', 365, 28, $2::jsonb, 2.5, 3,
-             '{"2026-09-08": 3}'::jsonb, '["2026-09-06"]'::jsonb,
+             '{"2026-09-08": 3, "2026-05-14": 4}'::jsonb, '["2026-09-06"]'::jsonb,
              '2026-09-03T12:00:00Z', '2026-09-08T14:30:00Z', '2026-09-08T15:10:00Z', 3)`,
     [TAG, JSON.stringify(new Array(168).fill(0))],
   );
@@ -91,7 +91,7 @@ after(async () => {
   await admin.end();
 });
 
-test("shapeDays: a year ending on the histogram's day; not recorded before recording and where marked, zero only where recorded", () => {
+test("shapeDays: a year ending on the histogram's day; battles always drawn, not recorded only where nothing was recorded outside coverage, zero only where covered", () => {
   const days = shapeDays({
     computed_at: new Date("2026-09-13T05:30:00Z"),
     window_days: 10,
@@ -103,11 +103,12 @@ test("shapeDays: a year ending on the histogram's day; not recorded before recor
   assert.equal(days[0].day, "2026-09-04");
   assert.equal(days.at(-1).day, "2026-09-13");
   const by = Object.fromEntries(days.map((d) => [d.day, d]));
-  assert.deepEqual(by["2026-09-05"], {
-    day: "2026-09-05",
-    battles: 1,
-    status: "not_recorded",
-  });
+  assert.deepEqual(
+    by["2026-09-05"],
+    { day: "2026-09-05", battles: 1, status: "seen" },
+    "battles before recording began are drawn, flagged outside coverage",
+  );
+  assert.equal(by["2026-09-06"].status, "not_recorded", "nothing, not watched");
   assert.equal(by["2026-09-08"].status, "recorded", "the day recording began");
   assert.deepEqual(by["2026-09-09"], {
     day: "2026-09-09",
@@ -131,6 +132,11 @@ test("GET: your own player's year, oldest first, statuses as the rules say", asy
   const by = Object.fromEntries(body.days.map((d) => [d.day, d]));
   assert.equal(by["2026-09-01"].status, "not_recorded");
   assert.equal(by["2026-09-06"].status, "not_recorded");
+  assert.deepEqual(by["2026-05-14"], {
+    day: "2026-05-14",
+    battles: 4,
+    status: "seen",
+  });
   assert.deepEqual(by["2026-09-08"], {
     day: "2026-09-08",
     battles: 3,

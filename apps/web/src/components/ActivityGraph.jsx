@@ -7,9 +7,12 @@ import { useEffect, useRef, useState } from "react";
  * rhythm fits any width, and a tap on a cell writes what it holds into
  * the caption underneath instead of relying on hover.
  *
- * The rule the whole graphic exists to keep: a day the record did not
- * cover is a hatched "not recorded" cell, never a zero. Zero is a day we
- * watched and nothing was played.
+ * The rule the whole graphic exists to keep: zero is a day we watched
+ * and nothing was played. A day with battles in the record is always
+ * drawn with its count, whether Elixir was watching (recorded) or the
+ * battles arrived another way (seen: imported history, appearances in
+ * other logs). The hatched "not recorded" cell is only for a day that
+ * holds nothing AND was not watched - unknown, never zero.
  *
  * Colour is one sequential hue (the accent, four steps) on the console's
  * dark surface; identity is never colour alone - every cell carries its
@@ -138,14 +141,18 @@ export function ActivityGraph({ data, offsetHours = null }) {
     offsetHours ?? Math.round(-new Date().getTimezoneOffset() / 60);
   const rhythm = localRhythm(data.rhythm ?? [], offset);
   const rmax = rhythm.reduce((m, w) => Math.max(m, w), 0);
-  const recordedDays = days.filter((d) => d.status === "recorded").length;
-  const notRecorded = days.length - recordedDays;
+  const withBattles = days.filter((d) => d.battles > 0).length;
+  const coveredDays = days.filter((d) => d.status === "recorded").length;
+  const notRecorded = days.filter((d) => d.status === "not_recorded").length;
   const recent = days.slice(-14).reverse();
 
+  const count = (n) => `${n} ${n === 1 ? "battle" : "battles"}`;
   const cellName = (d) =>
     d.status === "not_recorded"
-      ? `${dayLabel(d.day)}: not recorded${d.battles ? ` (${d.battles} seen)` : ""}`
-      : `${dayLabel(d.day)}: ${d.battles} ${d.battles === 1 ? "battle" : "battles"}`;
+      ? `${dayLabel(d.day)}: not recorded`
+      : d.status === "seen"
+        ? `${dayLabel(d.day)}: ${count(d.battles)}, outside recorded coverage`
+        : `${dayLabel(d.day)}: ${count(d.battles)}`;
 
   return (
     <div className="activity">
@@ -199,7 +206,7 @@ export function ActivityGraph({ data, offsetHours = null }) {
       <div className="activity__caption" aria-live="polite">
         {picked
           ? cellName(days.find((d) => d.day === picked))
-          : `${recordedDays} recorded days, ${notRecorded} not recorded · tap a day`}
+          : `${withBattles} days with battles · ${coveredDays} days covered · ${notRecorded} not recorded · tap a day`}
       </div>
       <div className="activity__legend">
         <span>Less</span>
@@ -215,8 +222,9 @@ export function ActivityGraph({ data, offsetHours = null }) {
       <div className="activity__rhythm-head">
         <span>When they play, by hour and weekday ({offsetLabel(offset)})</span>
         <span className="footnote">
-          last {data.window_days} days, recent weeks weighted; half-life{" "}
-          {data.half_life_days} days
+          every recorded battle in the last {data.window_days} days
+          {data.rhythm_battles != null ? ` (${data.rhythm_battles})` : ""},
+          recent weeks weighted; half-life {data.half_life_days} days
         </span>
       </div>
       <div className="activity__rhythmwrap">
@@ -274,7 +282,11 @@ export function ActivityGraph({ data, offsetHours = null }) {
               <tr key={d.day}>
                 <td className="mono">{d.day}</td>
                 <td>
-                  {d.status === "not_recorded" ? "not recorded" : d.battles}
+                  {d.status === "not_recorded"
+                    ? "not recorded"
+                    : d.status === "seen"
+                      ? `${d.battles} (outside coverage)`
+                      : d.battles}
                 </td>
               </tr>
             ))}

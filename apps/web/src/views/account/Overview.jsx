@@ -4,6 +4,7 @@ import { api } from "../../api.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { SlotMeters } from "../../components/SlotMeter.jsx";
+import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -75,6 +76,80 @@ function ListHead({ title, navigate }) {
   );
 }
 
+/**
+ * The account's battle activity, first thing on the Overview (Jamie,
+ * 2026-09-13: "too cool to not have prominent on the Overview page").
+ * Opens on the primary player; a chip per other tracked player switches
+ * the graphic without leaving the page. Each player's own record page
+ * carries the same graphic beside its capture details.
+ */
+function OverviewActivity({ players, navigate }) {
+  const first = players.find((p) => p.is_primary) ?? players[0];
+  const [tag, setTag] = useState(first?.player_tag ?? null);
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    if (!tag) return;
+    let live = true;
+    setData(null);
+    api.battleActivity(tag).then((r) => {
+      if (live) setData(r.ok ? r.data : { error: r.status });
+    });
+    return () => {
+      live = false;
+    };
+  }, [tag]);
+  if (!first) return null;
+  const chosen = players.find((p) => p.player_tag === tag) ?? first;
+  return (
+    <section className="panel" style={{ marginBottom: "22px" }}>
+      <div className="panel__head activity__head">
+        <span>Battle activity</span>
+        <span className="activity__who">
+          {players.length > 1 ? (
+            players.map((p) => (
+              <button
+                key={p.player_tag}
+                type="button"
+                className={
+                  "chip activity__chip" +
+                  (p.player_tag === chosen.player_tag
+                    ? " activity__chip--on"
+                    : "")
+                }
+                aria-pressed={p.player_tag === chosen.player_tag}
+                onClick={() => setTag(p.player_tag)}
+              >
+                {p.nickname ?? p.name ?? p.player_tag}
+              </button>
+            ))
+          ) : (
+            <span className="chip">
+              {chosen.nickname ?? chosen.name ?? chosen.player_tag}
+            </span>
+          )}
+        </span>
+        <a
+          style={{ marginLeft: "auto", fontSize: "13px" }}
+          onClick={() =>
+            navigate(`/account/tracking/${tagPath(chosen.player_tag)}`)
+          }
+        >
+          Record ›
+        </a>
+      </div>
+      {data === null ? (
+        <p className="activity__empty">Loading…</p>
+      ) : data.error ? (
+        <p className="activity__empty">
+          The activity graphic could not be loaded right now.
+        </p>
+      ) : (
+        <ActivityGraph data={data} />
+      )}
+    </section>
+  );
+}
+
 export function Overview({ me, navigate }) {
   const [clans, setClans] = useState(null);
   useEffect(() => {
@@ -101,6 +176,10 @@ export function Overview({ me, navigate }) {
             : `${players.length} player${players.length === 1 ? "" : "s"} and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"} on record. Nothing needs you today.`}
         </p>
       </div>
+
+      {players.length > 0 && (
+        <OverviewActivity players={players} navigate={navigate} />
+      )}
 
       <FirstAnswer
         claimsKey={players

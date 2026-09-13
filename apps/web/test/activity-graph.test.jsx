@@ -1,8 +1,9 @@
 /**
- * The battle-activity graphic: a not-recorded day is its own kind of
- * cell, a recorded quiet day says zero, a tap lands the day in the
- * caption, the rhythm rotates into the viewer's clock, and a player
- * without a row yet is told so.
+ * The battle-activity graphic: a day with battles is always drawn (even
+ * outside coverage), a not-recorded day is its own kind of cell, a
+ * recorded quiet day says zero, a tap lands the day in the caption, the
+ * rhythm rotates into the viewer's clock, and a player without a row
+ * yet is told so.
  */
 import { test, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -20,13 +21,19 @@ function fixture() {
   const end = Date.parse("2026-09-13T00:00:00Z");
   for (let i = 364; i >= 0; i -= 1) {
     const day = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
+    const battles =
+      day === "2026-09-08"
+        ? 6
+        : day === "2026-09-12"
+          ? 2
+          : day === "2026-05-14"
+            ? 3
+            : 0;
+    const covered = day >= "2026-09-03" && day !== "2026-09-06";
     days.push({
       day,
-      battles: day === "2026-09-08" ? 6 : day === "2026-09-12" ? 2 : 0,
-      status:
-        day < "2026-09-03" || day === "2026-09-06"
-          ? "not_recorded"
-          : "recorded",
+      battles,
+      status: covered ? "recorded" : battles > 0 ? "seen" : "not_recorded",
     });
   }
   const rhythm = new Array(168).fill(0);
@@ -35,6 +42,7 @@ function fixture() {
     computed_at: "2026-09-13T05:30:00Z",
     window_days: 365,
     half_life_days: 28,
+    rhythm_battles: 262,
     rhythm,
     days,
   };
@@ -70,7 +78,7 @@ test("localRhythm rotates UTC buckets into the viewer's offset", () => {
   expect(localRhythm(m, 2)[24 + 1]).toBe(1);
 });
 
-test("not recorded is its own cell, a quiet recorded day is zero, and a tap writes the caption", () => {
+test("battles are always drawn, not recorded is its own cell, a quiet recorded day is zero, and a tap writes the caption", () => {
   render(<ActivityGraph data={fixture()} offsetHours={0} />);
   const notRecorded = screen.getByRole("button", {
     name: /^Sun 6 Sep 2026: not recorded$/,
@@ -85,22 +93,34 @@ test("not recorded is its own cell, a quiet recorded day is zero, and a tap writ
   });
   expect(quiet.className).toContain("activity__cell--l0");
   expect(quiet.className).not.toContain("activity__cell--none");
-  // Before recording began: hatched, whatever the count.
-  // 2025-09-14 .. 2026-09-02 plus the marked day: 355 hatched cells.
+  // Before recording began: hatched only where nothing is recorded.
+  // 2025-09-14 .. 2026-09-02 plus the marked day, minus the May day: 354.
   expect(screen.getAllByRole("button", { name: /not recorded/ }).length).toBe(
-    355,
+    354,
   );
+  // History from before tracking is drawn at its level and says so.
+  const seen = screen.getByRole("button", {
+    name: /^Thu 14 May 2026: 3 battles, outside recorded coverage$/,
+  });
+  expect(seen.className).toContain("activity__cell--l2");
+  expect(seen.className).not.toContain("activity__cell--none");
   fireEvent.click(busy);
   expect(screen.getByText("Tue 8 Sep 2026: 6 battles").className).toBe(
     "activity__caption",
   );
   // The legend swatch and the list both name it.
   expect(screen.getAllByText("not recorded").length).toBeGreaterThan(0);
-  // The rhythm: 168 cells, the Tuesday-14:00 one at the peak.
-  const peak = screen.getByRole("img", { name: /Tue 14:00: 100% of the peak/ });
+  // The rhythm: 168 cells, the Tuesday-14:00 one at the peak, every
+  // recorded battle counted in the header.
+  const peak = screen.getByRole("img", {
+    name: /Tue 14:00: 100% of the peak/,
+  });
   expect(peak.className).toContain("activity__cell--l4");
   expect(screen.getAllByRole("img").length).toBe(168);
   expect(screen.getByText(/\(UTC\)/)).toBeTruthy();
+  expect(
+    screen.getByText(/every recorded battle in the last 365 days \(262\)/),
+  ).toBeTruthy();
 });
 
 test("no row yet says so instead of drawing an empty year", () => {

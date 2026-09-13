@@ -7,13 +7,15 @@ order: 18
 navTitle: "Battle activity"
 icon: calendar-days
 lede: "Every player you track shows a year of days and the hours they play, drawn from what Elixir recorded, with the days it was not watching marked as exactly that."
-console: ["See it on a player you track", "/account/tracking", "Console ▸ Tracking ▸ a player"]
+console: ["See yours on the Overview", "/account", "Console ▸ Overview"]
 ---
 
 # Battle activity: a year of days and a weekly rhythm
 
-Open a player under **Console ▸ Tracking** and the record of that player
-ends with a graphic in two parts: a year of days, one cell per UTC day
+The first thing on **Console ▸ Overview** is your battle activity, with a
+chip per tracked player to switch between them; each player's own record
+under **Tracking** carries the same graphic beside its capture details.
+It has two parts: a year of days, one cell per UTC day
 coloured by how many battles were recorded, and a rhythm tile, twenty-four
 hours by seven weekdays, showing when that player plays. Both are drawn
 from the battles already in the record; nothing is read from the game to
@@ -40,15 +42,18 @@ a question about a person.
 
 ## Not recorded is not zero
 
-A hatched cell is a day the record does not cover. It is drawn distinctly
-from a quiet day on purpose: a blank day for a player Elixir was not yet
-recording would say "did not play", and that is not known. Three cases
-are marked:
+A day with battles in the record is always drawn with its count. A
+hatched cell is a day that holds nothing AND that Elixir was not watching:
+it is drawn distinctly from a quiet day on purpose, because a blank day
+for a player Elixir was not yet recording would say "did not play", and
+that is not known. Three cases put a day outside coverage:
 
 - **Before recording began.** Every day before the first recording of
-  that player. Battles may still show on such a day, recorded from another
-  player's log as an appearance; the cell stays hatched and the count is
-  given in its label, because an appearance is not coverage.
+  that player. Battles often exist on such days anyway, from history
+  imported when the player was added or from appearances in other
+  players' logs; they are drawn at full colour and labelled "outside
+  recorded coverage", because the count is real but nobody can say it is
+  the whole day. Days there with nothing recorded are hatched.
 - **A capture-audit gap.** The UTC day on which a battle-log read found
   the log had rolled past the newest battle already recorded, so whatever
   came before the log's oldest entry was never seen. The Status page
@@ -60,8 +65,12 @@ are marked:
   The lifetime counter includes some modes the log never shows, so this
   marks generously.
 
-Everything else is a recorded day, and zero there means Elixir was
-watching and no battle was played.
+On those days too, recorded battles are drawn and only a day with none is
+hatched. Everything else is a recorded day, and zero there means Elixir
+was watching and no battle was played. The rhythm tile has no such
+distinction to make: it is built from every recorded battle in the
+window, whichever way it entered the record, and its header says how
+many that is.
 
 ## How it is computed
 
