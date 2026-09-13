@@ -23,13 +23,19 @@ export function secsSince(
   return Math.max(0, (now - new Date(ts).getTime()) / 1000);
 }
 
-/** Coarse relative time from an age in seconds: "12s ago", "4m ago",
- *  "3h ago", "2d ago". */
+/** Coarse relative time from an age in seconds: "just now", "12s ago",
+ *  "4m ago", "60m ago", "3h ago", "2d ago". The unit turns over late
+ *  (90 s, 90 min, 2 d) so a reading stays in the finer unit while it is
+ *  still worth reading that way - "75m ago" says more than "1h ago"
+ *  about a poll. This is the vocabulary Elixir's own freshness pill
+ *  used and Clan copied; the console's lib/time turned over at 60/3600
+ *  and the two disagreed about the same instant. */
 export function agoSeconds(s: number | null | undefined): string {
   if (s == null || Number.isNaN(s)) return "never";
-  if (s < 60) return `${Math.round(s)}s ago`;
-  if (s < 3600) return `${Math.round(s / 60)}m ago`;
-  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  if (s < 1) return "just now";
+  if (s < 90) return `${Math.round(s)}s ago`;
+  if (s < 5400) return `${Math.round(s / 60)}m ago`;
+  if (s < 172800) return `${Math.round(s / 3600)}h ago`;
   return `${Math.round(s / 86400)}d ago`;
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { agoSeconds, freshCls } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useExploreCollections, usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
@@ -39,21 +40,7 @@ function Freshness({ meta, derived = false }) {
   const s = meta?.freshness_seconds;
   if (s === null || s === undefined)
     return <span className="freshness freshness--never">never polled</span>;
-  const cls =
-    s < 900
-      ? "freshness freshness--live"
-      : s < 86400
-        ? "freshness freshness--stale"
-        : "freshness";
-  const label =
-    s < 90
-      ? `${Math.round(s)}s ago`
-      : s < 5400
-        ? `${Math.round(s / 60)}m ago`
-        : s < 172800
-          ? `${Math.round(s / 3600)}h ago`
-          : `${Math.round(s / 86400)}d ago`;
-  return <span className={cls}>polled {label}</span>;
+  return <span className={freshCls(s)}>polled {agoSeconds(s)}</span>;
 }
 
 function recent() {
