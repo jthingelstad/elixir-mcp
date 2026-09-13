@@ -123,7 +123,11 @@ export function summarizeClan(e, timeZone = "UTC") {
   const a = e.activity;
   if (a.battles !== null)
     parts.push(
-      `${plural(a.battles, "battle")} by ${a.members_active} of ${a.members_total} members since ${since}`,
+      // Players who battled WHILE members over the window can exceed the
+      // roster at its end (a hopping clan saw 147 of 35): say both plainly.
+      a.members_active > a.members_total
+        ? `${plural(a.battles, "battle")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
+        : `${plural(a.battles, "battle")} by ${a.members_active} of ${a.members_total} members since ${since}`,
     );
   else
     parts.push(
@@ -157,7 +161,9 @@ export function summarizeClan(e, timeZone = "UTC") {
         .join(", ")}`,
     );
   if (moves.length) parts.push(moves.join("; "));
-  if (r.size.from !== r.size.to)
+  if (r.size.from === 0 && r.size.to > 0)
+    parts.push(`roster ${r.size.to} (recording began inside the window)`);
+  else if (r.size.from !== r.size.to)
     parts.push(`roster ${r.size.from}→${r.size.to}`);
   const w = e.war;
   if (w) {
@@ -216,7 +222,7 @@ export function summarizeClan(e, timeZone = "UTC") {
       parts.push(
         `${plural(s.arena_promotions.items.length + s.arena_promotions.more, "arena promotion")} (${s.arena_promotions.items
           .slice(0, 3)
-          .map((m) => `${m.name ?? m.tag} → ${m.arena}`)
+          .map((m) => m.name ?? m.tag)
           .join(", ")})`,
       );
     if (s.ranked_promotions.items.length)
