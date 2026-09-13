@@ -89,7 +89,7 @@ if the quota store is unreachable, approved accounts keep working.
 | Event feed rows | 30 days |
 | Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the console stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
-| Console sessions | 90 days absolute, 9 days sliding; rows purged 30 days after |
+| Console sessions | 90 days absolute, 30 days sliding; rows purged 30 days after |
 | Sign-in codes | 15 minutes live; rows purged 30 days after expiry |
 | Rate-limit counters | 7 days |
 | Integration usage rows | 90 days |

@@ -200,6 +200,15 @@ test("the app shell is not indexable", { skip }, () => {
   assert.ok(!read("sitemap.xml").includes("app.html"));
 });
 
+test("Limits states the enforced console-session lifetime", { skip }, () => {
+  // The session row, not the cookie, owns the inactivity limit. Keep the
+  // published retention table aligned with that security boundary.
+  assert.match(
+    read("docs/limits/index.html"),
+    /90 days absolute, 30 days sliding/,
+  );
+});
+
 test(
   "the edge router and the app agree on who owns which path",
   { skip },
