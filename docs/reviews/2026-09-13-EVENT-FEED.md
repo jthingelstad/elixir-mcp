@@ -1,6 +1,9 @@
 # The event feed, judged by the clans it serves — 2026-09-13
 
-**Status:** analysis only. Nothing in product code changed. Jamie's framing:
+**Status:** Parts I–III ratified by Jamie 2026-09-13 ("Let's go!"). Tier 1
+shipped as contract 1.10.0 (c9f8d0e); the entry synthesizer is committed as
+a prototype behind a read-only ops op (cbd2277); both pushed, deploy pending.
+The analysis below is as written before implementation. Jamie's framing:
 the notification stream exists to tell a consuming agent *"here is something
 you may care about"*; it was ported from elixir-bot, which was tuned for one
 mature clan, and it probably does not work at all for a clan of low-level
