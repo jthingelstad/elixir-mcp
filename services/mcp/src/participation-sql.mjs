@@ -22,16 +22,40 @@ order by cm.player_tag`;
 export function participationQueries({ clanTag, tags, from, rankedTypes }) {
   return [
     {
-      // Battles per member per ISO week, ranked counted beside all.
-      name: "battles_by_week",
-      text: `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
+      // Battles per member per ISO week, ranked counted beside all, AND
+      // the war-day battles per member, from ONE pass over the
+      // participant rows: the two used to be separate reads and each
+      // scanned the same 26k rows (8.4 s apiece on the live database,
+      // 2026-09-13). The CTE is index-only on
+      // battle_participant_player_time_cover (0086); the join to battle
+      // is a hash over the recent battles.
+      name: "battles_by_week_and_war_day",
+      text: `with bp as (
+               select bp.player_tag, bp.battle_id, bp.battle_time, bp.clan_tag
+               from battle_participant bp
+               where bp.player_tag = any($1) and bp.battle_time >= $2
+             ),
+             joined as (
+               select bp.player_tag, bp.battle_time, bp.clan_tag,
+                      b.type, b.season_id, b.section_index, b.war_day
+               from bp
+               join battle b on b.battle_id = bp.battle_id
+             )
+             select 'week' as kind, player_tag,
+                    date_trunc('week', battle_time) as week_start,
+                    null::int as season_id, null::int as section_index, null::int as war_day,
                     count(*)::int as battles,
-                    count(*) filter (where b.type = any($3))::int as ranked_battles
-             from battle_participant bp
-             join battle b on b.battle_id = bp.battle_id
-             where bp.player_tag = any($1) and bp.battle_time >= $2
-             group by bp.player_tag, date_trunc('week', bp.battle_time)`,
-      values: [tags, from, rankedTypes],
+                    count(*) filter (where type = any($3))::int as ranked_battles
+             from joined
+             group by player_tag, date_trunc('week', battle_time)
+             union all
+             select 'war_day', player_tag, null,
+                    season_id, section_index, war_day,
+                    count(*)::int, 0
+             from joined
+             where clan_tag = $4 and war_day is not null
+             group by player_tag, season_id, section_index, war_day`,
+      values: [tags, from, rankedTypes, clanTag],
     },
     {
       // The donation counter at the end of each ISO week: the largest
@@ -77,16 +101,6 @@ export function participationQueries({ clanTag, tags, from, rankedTypes }) {
                  where w.clan_tag = $1
                    and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
       values: [clanTag, tags, from],
-    },
-    {
-      name: "war_battles_by_day",
-      text: `select bp.player_tag, b.season_id, b.section_index, b.war_day, count(*)::int as war_battles
-             from battle_participant bp
-             join battle b on b.battle_id = bp.battle_id
-             where bp.player_tag = any($1) and bp.clan_tag = $2
-               and b.war_day is not null and bp.battle_time >= $3
-             group by bp.player_tag, b.season_id, b.section_index, b.war_day`,
-      values: [tags, clanTag, from],
     },
   ];
 }

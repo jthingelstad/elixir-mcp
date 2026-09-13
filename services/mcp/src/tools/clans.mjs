@@ -507,12 +507,21 @@ export const clansTools = {
         const q = reads.find((r) => r.name === name);
         return ctx.db.query(q.text, q.values);
       };
-      const battles = await run("battles_by_week");
+      const combined = await run("battles_by_week_and_war_day");
+      const battles = {
+        rows: combined.rows.filter((r) => r.kind === "week"),
+      };
+      // union all names columns after the first branch: the war-day
+      // count arrives as `battles`.
+      const battledDays = {
+        rows: combined.rows
+          .filter((r) => r.kind === "war_day")
+          .map((r) => ({ ...r, war_battles: r.battles })),
+      };
       const donations = await run("donations_by_week");
       const warWeeks = await run("war_weeks");
       const participation = await run("war_participation");
       const attendance = await run("war_attendance");
-      const battledDays = await run("war_battles_by_day");
 
       const keyWeek = (d) => new Date(d).toISOString();
       const byMemberWeek = new Map();
