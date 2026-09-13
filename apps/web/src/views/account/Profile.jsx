@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../../api.js";
+import {
+  keys,
+  useInvalidate,
+  useSessions,
+  useUsage,
+} from "../../lib/queries.js";
 import { Icon } from "../../components/Icon.jsx";
 import { quotaReading } from "../../lib/quota.js";
 import { ago } from "../../lib/time.js";
@@ -17,10 +23,7 @@ import { ago } from "../../lib/time.js";
  * disagree with them.
  */
 export function Profile({ me, refresh, navigate }) {
-  const [usage, setUsage] = useState(null);
-  useEffect(() => {
-    api.usage().then((r) => r.ok && setUsage(r.data));
-  }, []);
+  const { data: usage = null } = useUsage();
   const e = me?.entitlements;
   const quota = usage ? quotaReading(usage) : null;
   const timezones =
@@ -201,19 +204,14 @@ export function Profile({ me, refresh, navigate }) {
  * moves.
  */
 function Devices() {
-  const [sessions, setSessions] = useState(null);
+  const query = useSessions();
+  const sessions = query.data?.sessions ?? null;
+  // When the data was read: 0 until it is, and nothing below uses it
+  // before then.
+  const now = query.dataUpdatedAt;
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-  const load = useCallback(async () => {
-    const r = await api.sessions();
-    if (r.ok) {
-      setSessions(r.data.sessions);
-      setNow(Date.now());
-    }
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
+  const invalidate = useInvalidate();
+  const load = () => invalidate(keys.sessions);
   const others = sessions?.filter((s) => !s.current) ?? [];
   const where = (s) =>
     [s.from, s.country].filter(Boolean).join(" · ") || "address not seen";

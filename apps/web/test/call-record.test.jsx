@@ -6,13 +6,8 @@
  * connection and the feedback form prefilled with the request id.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  cleanup,
-} from "@testing-library/react";
+import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { CallRecord } from "../src/views/account/CallRecord.jsx";
 import { Activity } from "../src/views/Activity.jsx";
 import { railPosition, DOC_LINKS } from "../src/App.jsx";
@@ -93,7 +88,7 @@ afterEach(() => {
 test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feedback prefill", async () => {
   stub();
   const navigate = vi.fn();
-  render(<CallRecord id={ID} navigate={navigate} />);
+  renderWithProviders(<CallRecord id={ID} navigate={navigate} />);
   await waitFor(() => screen.getByRole("heading", { name: "war_history" }));
   expect(global.fetch).toHaveBeenCalledWith(
     `/api/me/activity/calls/${ID}`,
@@ -161,7 +156,7 @@ test("a row without a captured body still renders from the log's bounded argumen
     prev: null,
     next: null,
   });
-  render(<CallRecord id={ID} navigate={() => {}} />);
+  renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
   await waitFor(() => screen.getByRole("heading", { name: "elixir_events" }));
   expect(screen.getByText(/refused · daily quota/)).toBeTruthy();
   expect(screen.getByText("Not captured for this call.")).toBeTruthy();
@@ -173,7 +168,7 @@ test("a row without a captured body still renders from the log's bounded argumen
 
 test("an id that is not in the reader's log says so, with the way back", async () => {
   stub({ error: "not_found" }, 404);
-  render(<CallRecord id={ID} navigate={() => {}} />);
+  renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
   await waitFor(() => screen.getByText("That call is not in your log"));
   expect(screen.getByText("‹ MCP requests")).toBeTruthy();
 });
@@ -202,7 +197,7 @@ test("the Activity log links each request id to its record", async () => {
     }),
   );
   const navigate = vi.fn();
-  render(<Activity sub="requests" navigate={navigate} />);
+  renderWithProviders(<Activity sub="requests" navigate={navigate} />);
   await waitFor(() => screen.getByText(ID.slice(0, 8)));
   fireEvent.click(screen.getByText(ID.slice(0, 8)));
   expect(navigate).toHaveBeenCalledWith(`/account/activity/c/${ID}`);

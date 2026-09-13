@@ -1,6 +1,6 @@
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
-import { useEffect, useState } from "react";
-import { api } from "../../api.js";
+import { useState } from "react";
+import { useBattleActivity, useMyClans } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { SlotMeters } from "../../components/SlotMeter.jsx";
@@ -86,18 +86,12 @@ function ListHead({ title, navigate }) {
 function OverviewActivity({ players, navigate }) {
   const first = players.find((p) => p.is_primary) ?? players[0];
   const [tag, setTag] = useState(first?.player_tag ?? null);
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    if (!tag) return;
-    let live = true;
-    setData(null);
-    api.battleActivity(tag).then((r) => {
-      if (live) setData(r.ok ? r.data : { error: r.status });
-    });
-    return () => {
-      live = false;
-    };
-  }, [tag]);
+  // Keyed on the tag, so switching players shows that player's loading
+  // state and never the previous one's graphic (the old `live` flag).
+  const activity = useBattleActivity(tag);
+  const data = activity.error
+    ? { error: activity.error.status }
+    : (activity.data ?? null);
   if (!first) return null;
   const chosen = players.find((p) => p.player_tag === tag) ?? first;
   return (
@@ -151,10 +145,7 @@ function OverviewActivity({ players, navigate }) {
 }
 
 export function Overview({ me, navigate }) {
-  const [clans, setClans] = useState(null);
-  useEffect(() => {
-    api.myClans().then((r) => r.ok && setClans(r.data));
-  }, []);
+  const { data: clans = null } = useMyClans();
 
   const e = me.entitlements;
   const players = me.claims ?? [];

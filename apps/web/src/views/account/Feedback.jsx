@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../../api.js";
+import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
 import { Icon } from "../../components/Icon.jsx";
 import { LogTable } from "../../components/LogTable.jsx";
 import { Markdown } from "../../components/Markdown.jsx";
@@ -59,17 +60,11 @@ function Shipped({ version, navigate }) {
 }
 
 export function FeedbackItem({ id, navigate }) {
-  const [item, setItem] = useState(null);
-  const [missed, setMissed] = useState(false);
-  useEffect(() => {
-    api.myFeedback().then((r) => {
-      const found = (r.data?.feedback ?? []).find(
-        (f) => String(f.feedback_id) === String(id),
-      );
-      if (found) setItem(found);
-      else setMissed(true);
-    });
-  }, [id]);
+  const { data, isSuccess, isError } = useMyFeedback();
+  const item =
+    (data?.feedback ?? []).find((f) => String(f.feedback_id) === String(id)) ??
+    null;
+  const missed = (isSuccess || isError) && !item;
   if (missed)
     return (
       <div className="empty">
@@ -264,19 +259,19 @@ function Compose({ onSent, onClose, context = "", requestId = "" }) {
 }
 
 export function Feedback({ navigate }) {
-  const [items, setItems] = useState(null);
+  const feedback = useMyFeedback().data;
+  const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
   const [prefill] = useState(prefillFromUrl);
   const [composing, setComposing] = useState(
     () => Boolean(prefill.context) || Boolean(prefill.requestId),
   );
   const [now] = useState(() => Date.now());
-  const load = () =>
-    api
-      .myFeedback()
-      .then((r) => r.ok && setItems(r.data.feedback ?? r.data.items ?? []));
-  useEffect(() => {
-    load();
-  }, []);
+  const invalidate = useInvalidate();
+  // Sent feedback moves the rail's count too.
+  const load = () => {
+    invalidate(keys.feedback);
+    invalidate(keys.me);
+  };
 
   const rows = (items ?? []).map((f) => [
     {

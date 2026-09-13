@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api } from "../../api.js";
+import { useState } from "react";
+import { useCallRecord } from "../../lib/queries.js";
 import { Icon } from "../../components/Icon.jsx";
 
 /**
@@ -168,15 +168,10 @@ function outcomeOf(call) {
 }
 
 export function CallRecord({ id, navigate }) {
-  const [rec, setRec] = useState(null);
-  const [status, setStatus] = useState(null);
-  useEffect(() => {
-    setRec(null);
-    api.callRecord(id).then((r) => {
-      setStatus(r.status);
-      if (r.ok) setRec(r.data);
-    });
-  }, [id]);
+  // The envelope, because 403 and 404 are answers this page reads.
+  const record = useCallRecord(id);
+  const status = record.data?.status ?? (record.isError ? 0 : null);
+  const rec = record.data?.ok ? record.data.data : null;
 
   const back = (
     <div className="page__crumb">

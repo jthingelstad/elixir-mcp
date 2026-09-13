@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
+import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
 import { Icon } from "../../components/Icon.jsx";
 import { DeckGrid } from "../../components/DeckGrid.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
@@ -67,7 +68,11 @@ function messageFor(r) {
 }
 
 export function Verify({ refresh, navigate }) {
-  const [list, setList] = useState(null);
+  // The list is a read; the challenge below is a live protocol and
+  // keeps its own state.
+  const listQuery = useVerifyList();
+  const list = listQuery.data ?? null;
+  const invalidate = useInvalidate();
   const [challenge, setChallenge] = useState(null);
   const [collecting, setCollecting] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -75,14 +80,8 @@ export function Verify({ refresh, navigate }) {
   const [tick, setTick] = useState(0);
   const [now, setNow] = useState(() => Date.now());
 
-  const load = () =>
-    api.verifyList().then((r) => {
-      if (r.ok) setList(r.data);
-      else setErr(messageFor(r));
-    });
-  useEffect(() => {
-    load();
-  }, []);
+  const load = () => invalidate(keys.verifyList);
+  const listErr = listQuery.error ? messageFor(listQuery.error) : "";
 
   // Refreshing the page resumes the open challenge.
   useEffect(() => {
@@ -109,12 +108,13 @@ export function Verify({ refresh, navigate }) {
       setTick((t) => t + 1);
       setNow(Date.now());
       if (r.data.state === "verified") {
-        api.verifyList().then((l) => l.ok && setList(l.data));
+        // The list, and the session's claims with it.
+        invalidate();
         refresh?.();
       }
     }, pollEvery);
     return () => clearInterval(id);
-  }, [challengeId, challengeState, pollEvery, refresh]);
+  }, [challengeId, challengeState, pollEvery, refresh, invalidate]);
 
   // A player recorded a moment ago has no collection yet: retry the start
   // until the first profile lands. The start function is reached through
@@ -407,9 +407,9 @@ export function Verify({ refresh, navigate }) {
           )}
         </div>
       </section>
-      {err && (
+      {(err || listErr) && (
         <p className="verify__error" role="alert">
-          {err}
+          {err || listErr}
         </p>
       )}
     </>

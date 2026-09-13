@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
+import {
+  keys,
+  useConnections,
+  useInvalidate,
+  useMyPrincipals,
+} from "../../lib/queries.js";
 import { Icon } from "../../components/Icon.jsx";
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
@@ -24,22 +31,41 @@ import { Fresh } from "../../components/Fresh.jsx";
  * account would ever mention it.
  */
 export function Connections({ me, navigate }) {
-  const [connections, setConnections] = useState(null);
-  const [refusals, setRefusals] = useState([]);
-  const [agents, setAgents] = useState(null);
+  const conns = useConnections().data;
+  const connections = conns?.connections ?? null;
+  const refusals = conns?.refusals ?? [];
+  const agents = useMyPrincipals().data?.agents ?? null;
   const [copied, setCopied] = useState(false);
 
+  const invalidate = useInvalidate();
+  // A dismissed refusal also clears the rail's alert dot, which reads
+  // the session: invalidate both.
   const load = () => {
-    api.connections().then((r) => {
-      if (!r.ok) return;
-      setConnections(r.data.connections ?? []);
-      setRefusals(r.data.refusals ?? []);
-    });
-    api.myPrincipals().then((r) => r.ok && setAgents(r.data.agents ?? []));
+    invalidate(keys.connections);
+    invalidate(keys.me);
   };
-  useEffect(() => {
-    load();
-  }, []);
+  // Dismissing is optimistic - the row goes as you click - and the
+  // read is refetched afterwards either way, so a failed dismissal
+  // brings the row back rather than leaving a lie on screen.
+  const queryClient = useQueryClient();
+  const dismiss = useMutation({
+    mutationFn: (body) => api.dismissRefusal(body),
+    onMutate: (body) => {
+      queryClient.setQueryData(keys.connections, (prev) =>
+        prev
+          ? {
+              ...prev,
+              refusals: body.all
+                ? []
+                : (prev.refusals ?? []).filter(
+                    (x) => x.refusal_id !== body.refusal_id,
+                  ),
+            }
+          : prev,
+      );
+    },
+    onSettled: load,
+  });
 
   const url = `${window.location.origin}/mcp`;
   const clients = connections ?? [];
@@ -95,12 +121,7 @@ export function Connections({ me, navigate }) {
           <a
             style={{ marginLeft: "auto", flex: "none", fontSize: "13px" }}
             title="Dismiss. It returns if the credential is presented again another day."
-            onClick={async () => {
-              setRefusals((list) =>
-                list.filter((x) => x.refusal_id !== r.refusal_id),
-              );
-              await api.dismissRefusal({ refusal_id: r.refusal_id });
-            }}
+            onClick={() => dismiss.mutate({ refusal_id: r.refusal_id })}
           >
             Dismiss
           </a>
@@ -108,12 +129,7 @@ export function Connections({ me, navigate }) {
       ))}
       {refusals.length > 1 && (
         <p style={{ margin: "-6px 0 14px", fontSize: "13px" }}>
-          <a
-            onClick={async () => {
-              setRefusals([]);
-              await api.dismissRefusal({ all: true });
-            }}
-          >
+          <a onClick={() => dismiss.mutate({ all: true })}>
             Dismiss all {refusals.length}
           </a>
         </p>

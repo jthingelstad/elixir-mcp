@@ -17,6 +17,7 @@ import {
   cleanup,
   within,
 } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { LogTable } from "../src/components/LogTable.jsx";
 import { Activity } from "../src/views/Activity.jsx";
 import { Admin } from "../src/views/Admin.jsx";
@@ -194,7 +195,7 @@ const PAGES = [
 for (const [name, mount, body] of PAGES) {
   test(`${name} renders through the one log table`, async () => {
     stub(body);
-    render(mount());
+    renderWithProviders(mount());
     const table = await waitFor(() => {
       const t = document.querySelector("table.table");
       expect(t, "not the shared table").toBeTruthy();

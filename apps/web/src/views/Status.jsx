@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { api } from "../api.js";
+import { useState } from "react";
+import { usePublicStatus } from "../lib/queries.js";
 import { Icon } from "../components/Icon.jsx";
 import { secsSince } from "../lib/time.js";
 
@@ -349,38 +349,20 @@ function QueueGauge({ queue, now }) {
 }
 
 export function Status({ navigate }) {
-  const [data, setData] = useState(null);
-  const [now, setNow] = useState(() => Date.now());
-  const [err, setErr] = useState("");
   // Off by default and visible either way. It used to poll every 60s with
   // nothing on screen saying so, which is the worst of both: a tab left open
   // polled forever, and a reader had no way to know whether what they were
   // looking at was thirty seconds or three hours old.
   const [auto, setAuto] = useState(false);
+  const status = usePublicStatus(auto ? 60_000 : false);
+  const data = status.data ?? null;
+  // When the data was read: 0 until it is, and nothing below uses it
+  // before then.
+  const now = status.dataUpdatedAt;
+  const load = status.refetch;
 
-  const load = useCallback(
-    () =>
-      api.publicStatus().then((r) => {
-        if (r.ok) {
-          setData(r.data);
-          setNow(Date.now());
-          setErr("");
-        } else setErr("Could not load status.");
-      }),
-    [],
-  );
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!auto) return undefined;
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
-  }, [auto, load]);
-
-  if (err) return <p className="field-error">{err}</p>;
+  if (status.error)
+    return <p className="field-error">Could not load status.</p>;
   if (!data) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
   const h = data.health;

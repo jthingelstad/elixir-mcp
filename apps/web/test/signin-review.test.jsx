@@ -21,6 +21,7 @@ import {
   waitFor,
   cleanup,
 } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { App } from "../src/App.jsx";
 import { SignIn } from "../src/views/SignIn.jsx";
 import { Profile } from "../src/views/account/Profile.jsx";
@@ -238,7 +239,7 @@ test("Profile lists every device, marks this one, and signs the others out", asy
       return [200, { ok: true, revoked: 1 }];
     },
   });
-  render(
+  renderWithProviders(
     <Profile me={{ email: "j@x.com" }} refresh={vi.fn()} navigate={vi.fn()} />,
   );
   expect(await screen.findByText("Safari on iPhone")).toBeTruthy();

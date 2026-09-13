@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import {
+  useActivityEvents,
+  useMyEvents,
+  useMyRequests,
+} from "../lib/queries.js";
 import { LogTable } from "../components/LogTable.jsx";
 
 /**
@@ -34,18 +37,11 @@ const when = (ts) =>
 
 export function Activity({ sub, navigate }) {
   const view = BY_SUB[sub] ?? "notifications";
-  const [requests, setRequests] = useState(null);
-  const [events, setEvents] = useState(null);
-  const [feed, setFeed] = useState(null);
-
-  useEffect(() => {
-    if (view === "requests" && requests === null)
-      api.myRequests().then((r) => r.ok && setRequests(r.data.requests));
-    if (view === "events" && events === null)
-      api.activity().then((r) => r.ok && setEvents(r.data.events));
-    if (view === "notifications" && feed === null)
-      api.myEvents().then((r) => r.ok && setFeed(r.data));
-  }, [view, requests, events, feed]);
+  // Each tab loads only its own read, and a tab already read is served
+  // from the cache when you come back to it.
+  const requests = useMyRequests(view === "requests").data?.requests ?? null;
+  const events = useActivityEvents(view === "events").data?.events ?? null;
+  const feed = useMyEvents(view === "notifications").data ?? null;
 
   if (view === "requests") {
     const rows = (requests ?? []).map((r) => [
@@ -180,10 +176,7 @@ export function Activity({ sub, navigate }) {
  * cannot tell you.
  */
 export function NotificationRecord({ id, navigate }) {
-  const [feed, setFeed] = useState(null);
-  useEffect(() => {
-    api.myEvents().then((r) => r.ok && setFeed(r.data));
-  }, []);
+  const { data: feed } = useMyEvents();
 
   if (!feed) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   const row = feed.events?.find((e) => String(e.event_id) === String(id));

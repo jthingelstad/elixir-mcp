@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../../api.js";
+import { keys, useInvalidate, useMyCollections } from "../../lib/queries.js";
 import { Icon } from "../../components/Icon.jsx";
 
 /**
@@ -116,14 +117,16 @@ function NewCollection({ onSaved, onClose }) {
 }
 
 export function Collections({ me, navigate }) {
-  const [data, setData] = useState(null);
+  const { data = null } = useMyCollections();
   const [sent, setSent] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const load = () => api.myCollections().then((r) => r.ok && setData(r.data));
-  useEffect(() => {
-    load();
-  }, []);
+  const invalidate = useInvalidate();
+  // A new collection moves the rail's count too.
+  const load = () => {
+    invalidate(keys.collections);
+    invalidate(keys.me);
+  };
 
   const limit = me?.entitlements?.collections?.limit;
   // Derived from the tier against collections_max, never a stored flag.

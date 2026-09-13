@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { useState } from "react";
+import { usePublicStats } from "../lib/queries.js";
 
 /** Eight weeks. Long enough to see a trend, short enough that a daily bar is
  *  still a bar rather than a hairline. */
@@ -86,15 +86,9 @@ function Chart({ label, series, hover, setHover, todayIdx }) {
 const fmt = (n) => (n == null ? "—" : n.toLocaleString());
 
 export function Data() {
-  const [stats, setStats] = useState(null);
-  const [err, setErr] = useState("");
+  const { data: stats = null, error } = usePublicStats();
+  const err = error ? "Could not load corpus stats." : "";
   const [hover, setHover] = useState(null);
-  useEffect(() => {
-    api.publicStats().then((r) => {
-      if (r.ok) setStats(r.data);
-      else setErr("Could not load corpus stats.");
-    });
-  }, []);
 
   const t = stats?.totals;
   /**

@@ -1,6 +1,11 @@
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../../api.js";
+import {
+  useBattleActivity,
+  useInvalidate,
+  useMyClans,
+} from "../../lib/queries.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { Icon } from "../../components/Icon.jsx";
 import { ago, secsSince } from "../../lib/time.js";
@@ -20,31 +25,21 @@ import { ActivityGraph } from "../../components/ActivityGraph.jsx";
  * reason the word is "stop" and not "delete".
  */
 export function TrackedRecord({ me, refresh, navigate, tag }) {
-  const [clans, setClans] = useState(null);
+  const { data: clans = null } = useMyClans();
   const [nick, setNick] = useState(null);
   const [busy, setBusy] = useState(false);
   const [now] = useState(() => Date.now());
-  const [activity, setActivity] = useState(null);
-
-  const loadClans = () => api.myClans().then((r) => r.ok && setClans(r.data));
-  useEffect(() => {
-    loadClans();
-  }, []);
+  const invalidate = useInvalidate();
+  const loadClans = () => invalidate();
 
   const wanted = tagFromPath(tag);
   const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
   // The nightly histogram, players only: a clan has no rhythm of its own.
   const tracked = Boolean(claim);
-  useEffect(() => {
-    if (!tracked) return;
-    let live = true;
-    api.battleActivity(wanted).then((r) => {
-      if (live) setActivity(r.ok ? r.data : { error: r.status });
-    });
-    return () => {
-      live = false;
-    };
-  }, [wanted, tracked]);
+  const activityQuery = useBattleActivity(tracked ? wanted : null);
+  const activity = activityQuery.error
+    ? { error: activityQuery.error.status }
+    : (activityQuery.data ?? null);
   const clan = (clans?.clans ?? []).find((c) => c.clan_tag === wanted);
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
 

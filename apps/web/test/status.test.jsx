@@ -7,6 +7,7 @@ import {
   cleanup,
   within,
 } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { Status } from "../src/views/Status.jsx";
 import { Fleet } from "../src/views/Collectors.jsx";
 import { RaiseCollector } from "../src/views/RaiseCollector.jsx";
@@ -106,7 +107,7 @@ afterEach(() => {
 });
 
 const paint = async () => {
-  render(<Status navigate={() => {}} />);
+  renderWithProviders(<Status navigate={() => {}} />);
   await waitFor(() => expect(screen.getByText("Work waiting")).toBeTruthy());
 };
 
@@ -155,7 +156,7 @@ const paintFleet = async (mine = [], cards = [], navigate = () => {}) => {
     };
   });
   vi.stubGlobal("fetch", fetchMock);
-  render(<Fleet navigate={navigate} />);
+  renderWithProviders(<Fleet navigate={navigate} />);
   await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
   return fetchMock;
 };

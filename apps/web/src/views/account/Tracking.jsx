@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../../api.js";
+import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { Icon } from "../../components/Icon.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
@@ -34,7 +35,7 @@ function freshness(ts, now) {
 }
 
 export function Tracking({ me, refresh, navigate }) {
-  const [clans, setClans] = useState(null);
+  const { data: clans = null } = useMyClans();
   const [homeBusy, setHomeBusy] = useState(false);
   const [homeErr, setHomeErr] = useState("");
   const [filter, setFilter] = useState("all");
@@ -45,10 +46,10 @@ export function Tracking({ me, refresh, navigate }) {
   const [clanErr, setClanErr] = useState("");
   const [now] = useState(() => Date.now());
 
-  const loadClans = () => api.myClans().then((r) => r.ok && setClans(r.data));
-  useEffect(() => {
-    loadClans();
-  }, []);
+  // A tracking change moves the rail's count as well as this list, so
+  // it invalidates everything that is the reader's own, not just clans.
+  const invalidate = useInvalidate();
+  const loadClans = () => invalidate();
 
   const recFor = (t) => me.recordings?.find((r) => r.subject_tag === t);
   const e = me.entitlements;

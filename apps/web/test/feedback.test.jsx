@@ -4,7 +4,8 @@
  * reply as the Markdown they were written in.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { screen, waitFor, cleanup } from "@testing-library/react";
+import { renderWithProviders } from "./helpers.jsx";
 import { Feedback, FeedbackItem } from "../src/views/account/Feedback.jsx";
 
 const NOTE =
@@ -45,7 +46,7 @@ afterEach(() => vi.restoreAllMocks());
 
 test("the list is a table: one line per note, id links to the record", async () => {
   const navigate = vi.fn();
-  render(<Feedback navigate={navigate} />);
+  renderWithProviders(<Feedback navigate={navigate} />);
   await waitFor(() => screen.getByText("fb_14"));
   const table = screen.getByRole("table");
   expect(table.textContent).toContain(
@@ -59,7 +60,7 @@ test("the list is a table: one line per note, id links to the record", async () 
 });
 
 test("the record renders the note and the reply as Markdown, safely", async () => {
-  render(<FeedbackItem id="14" navigate={() => {}} />);
+  renderWithProviders(<FeedbackItem id="14" navigate={() => {}} />);
   await waitFor(() => screen.getByText("fb_14"));
   const items = document.querySelectorAll(".md li");
   expect(items.length).toBe(2);

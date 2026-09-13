@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { useState } from "react";
+import { useMyGateways, usePublicStatus } from "../lib/queries.js";
 import { Icon } from "../components/Icon.jsx";
 import { agoExact, secsSince } from "../lib/time.js";
 
@@ -43,13 +43,8 @@ export function Fleet({ navigate }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
   const [now] = useState(() => Date.now());
-  const [status, setStatus] = useState(null);
-  const [mine, setMine] = useState(null);
-
-  useEffect(() => {
-    api.publicStatus().then((r) => r.ok && setStatus(r.data));
-    api.myGateways().then((r) => r.ok && setMine(r.data.gateways ?? []));
-  }, []);
+  const status = usePublicStatus().data ?? null;
+  const mine = useMyGateways().data?.gateways ?? null;
 
   if (!status) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 

@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { api } from "../../api.js";
+import { useUsage } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
 
 /**
@@ -71,10 +70,8 @@ function fourteenDays(days) {
 }
 
 export function Usage({ navigate }) {
-  const [usage, setUsage] = useState(null);
-  useEffect(() => {
-    api.usage().then((r) => r.ok && setUsage(r.data));
-  }, []);
+  const { data: usage, error } = useUsage();
+  if (error) return <p className="field-error">Could not load usage.</p>;
   if (!usage) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
   const quota = quotaReading(usage);
