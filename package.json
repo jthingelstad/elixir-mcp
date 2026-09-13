@@ -22,7 +22,8 @@
     "esbuild": "^0.28.2",
     "knip": "^6.34.0",
     "oxlint": "^1.81.0",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "build": "npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",

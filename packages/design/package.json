@@ -5,5 +5,9 @@
   "type": "module",
   "exports": {
     "./styles.css": "./styles.css"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
   }
 }
