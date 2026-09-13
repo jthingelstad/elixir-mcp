@@ -1,7 +1,6 @@
+import { Icon, agoExact, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMyGateways, usePublicStatus } from "../lib/queries.js";
-import { Icon } from "../components/Icon.jsx";
-import { agoExact, secsSince } from "../lib/time.js";
 
 /**
  * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.

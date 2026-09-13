@@ -1,4 +1,4 @@
-import { Icon } from "./Icon.jsx";
+import { Icon } from "@elixir-mcp/ui";
 
 /**
  * A deck the way the game lays it out: two rows of four. `cards` is the

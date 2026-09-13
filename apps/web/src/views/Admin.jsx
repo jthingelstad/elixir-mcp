@@ -1,3 +1,4 @@
+import { Icon, LogTable, Markdown, ago } from "@elixir-mcp/ui";
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
@@ -14,10 +15,6 @@ import {
   useAdminUsage,
   useInvalidate,
 } from "../lib/queries.js";
-import { LogTable } from "../components/LogTable.jsx";
-import { Icon } from "../components/Icon.jsx";
-import { Markdown } from "../components/Markdown.jsx";
-import { ago } from "../lib/time.js";
 
 /**
  * Admin, eight pages.

@@ -1,5 +1,5 @@
+import { ago, agoExact } from "@elixir-mcp/ui";
 import { test, expect } from "vitest";
-import { ago, agoExact } from "../src/lib/time.js";
 
 const at = (secondsAgo) =>
   new Date(1_000_000_000_000 - secondsAgo * 1000).toISOString();

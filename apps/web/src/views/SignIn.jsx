@@ -1,6 +1,6 @@
+import { Icon } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Icon } from "../components/Icon.jsx";
 import { takeLoginToken } from "../url-hygiene.js";
 
 /**

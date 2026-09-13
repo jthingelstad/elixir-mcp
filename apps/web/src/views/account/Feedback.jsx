@@ -1,10 +1,7 @@
+import { Icon, LogTable, Markdown, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
-import { Icon } from "../../components/Icon.jsx";
-import { LogTable } from "../../components/LogTable.jsx";
-import { Markdown } from "../../components/Markdown.jsx";
-import { ago } from "../../lib/time.js";
 
 /**
  * Feedback — what you have told us, and what we did about it.

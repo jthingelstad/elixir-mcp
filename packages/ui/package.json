@@ -1,0 +1,27 @@
+{
+  "name": "@elixir-mcp/ui",
+  "version": "0.1.0",
+  "description": "The family's React kit on Elixir's design: the chrome, the rail and its identity block, the one log table, freshness, Markdown, icons, the error boundary, the disclaimer. Sources are TypeScript; the console consumes them through the workspace, verticals through the pinned dependency. Styles are the design package's - nothing here restyles them.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lucide-react": "^1.43.0",
+    "marked": "^18.0.12"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^19.0.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.0.1",
+    "vitest": "^5.0.0"
+  }
+}

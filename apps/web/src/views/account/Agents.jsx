@@ -1,3 +1,4 @@
+import { Fresh } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
@@ -11,8 +12,6 @@ import {
   usePrincipalIdentities,
 } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
-
-import { Fresh } from "../../components/Fresh.jsx";
 
 export function AgentDetail({ id, navigate }) {
   const principals = useMyPrincipals();

@@ -1,3 +1,4 @@
+import { Icon, ago, secsSince } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -7,8 +8,6 @@ import {
   useMyClans,
 } from "../../lib/queries.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
-import { Icon } from "../../components/Icon.jsx";
-import { ago, secsSince } from "../../lib/time.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 
 /**

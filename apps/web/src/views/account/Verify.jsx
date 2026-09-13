@@ -1,7 +1,7 @@
+import { Icon } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
-import { Icon } from "../../components/Icon.jsx";
 import { DeckGrid } from "../../components/DeckGrid.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 

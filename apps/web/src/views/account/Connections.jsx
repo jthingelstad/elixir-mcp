@@ -1,3 +1,4 @@
+import { Fresh, Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
@@ -7,10 +8,8 @@ import {
   useInvalidate,
   useMyPrincipals,
 } from "../../lib/queries.js";
-import { Icon } from "../../components/Icon.jsx";
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
-import { Fresh } from "../../components/Fresh.jsx";
 
 /**
  * Connections — everything that can call Elixir with your authority.

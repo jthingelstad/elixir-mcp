@@ -1,3 +1,4 @@
+import { Icon, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import {
@@ -6,9 +7,7 @@ import {
   useSessions,
   useUsage,
 } from "../../lib/queries.js";
-import { Icon } from "../../components/Icon.jsx";
 import { quotaReading } from "../../lib/quota.js";
-import { ago } from "../../lib/time.js";
 
 /**
  * Profile — the account you are signed in as, all on one page.

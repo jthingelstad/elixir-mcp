@@ -1,7 +1,6 @@
+import { Icon, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
-import { Icon } from "../components/Icon.jsx";
-import { secsSince } from "../lib/time.js";
 
 /** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard —
  *  public, mobile-first, installable (add to Home Screen from this

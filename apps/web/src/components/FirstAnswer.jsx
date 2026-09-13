@@ -1,5 +1,5 @@
+import { Icon } from "@elixir-mcp/ui";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
-import { Icon } from "./Icon.jsx";
 
 /**
  * "What your agent can answer" — the readiness list on Overview.

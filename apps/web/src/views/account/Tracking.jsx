@@ -1,10 +1,9 @@
+import { Icon, ago, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
-import { Icon } from "../../components/Icon.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
-import { ago, secsSince } from "../../lib/time.js";
 
 /**
  * Tracking — ONE table over both kinds, and a record per tracked thing.

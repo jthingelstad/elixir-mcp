@@ -1,7 +1,7 @@
+import { Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyCollections } from "../../lib/queries.js";
-import { Icon } from "../../components/Icon.jsx";
 
 /**
  * Your collections — a set of players or clans you want recorded

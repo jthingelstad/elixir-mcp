@@ -1,3 +1,11 @@
+import {
+  Chrome as ChromeBar,
+  Disclaimer,
+  ErrorBoundary,
+  Icon,
+  Rail as RailList,
+  RailIdentity,
+} from "@elixir-mcp/ui";
 import { useEffect, useState, useCallback } from "react";
 import {
   QueryClientProvider,
@@ -19,9 +27,7 @@ import {
 } from "@tanstack/react-router";
 import { answered, createQueryClient } from "@elixir-mcp/client";
 import { api } from "./api.js";
-import { Icon } from "./components/Icon.jsx";
 import { SignIn } from "./views/SignIn.jsx";
-import { ErrorBoundary } from "./ErrorBoundary.jsx";
 
 /**
  * Shell + rail (design handoff 2026-09-09). The three-tier top nav is
@@ -666,285 +672,77 @@ function useNarrow() {
   return narrow;
 }
 
-/** The top bar. No session, by design — see the note at the head of the
- *  file. The Console button is a place, not a state: signed out it lands
- *  on the sign-in wall, which is the honest answer. */
+/** The top bar: the kit's Chrome with the console's tabs and the gold
+ *  way in. The Console button is a place, not a state: signed out it
+ *  lands on the sign-in wall, which is the honest answer. Never inside
+ *  the menu, at any width: burying it behind a button costs a tap on
+ *  the one thing most people came for. */
 function Chrome({ navigate }) {
-  const [menu, setMenu] = useState(false);
-
-  // Escape closes it, because a sheet you can only dismiss by finding
-  // the same small button again is a trap on a phone.
-  useEffect(() => {
-    if (!menu) return;
-    const onKey = (e) => e.key === "Escape" && setMenu(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menu]);
-
   return (
-    <header className="chrome">
-      <div className="chrome__inner">
-        <a className="wordmark" href={STATIC_LINKS.home}>
-          {SITE}
-        </a>
-
-        {/* The SAME markup at every width — which width is showing is a
-            media query's decision, not this component's. That is what
-            keeps this bar and the Eleventy one the same bar. */}
-        <nav className="chrome__nav" aria-label={SITE}>
-          {CHROME_TABS.map(([label, href]) => (
-            <a className="chrome__tab" key={href} href={href}>
-              {label}
-            </a>
-          ))}
-        </nav>
-
-        {/* Never inside the menu, at any width: it is the way into the
-            product, and burying it behind a button costs a tap on the
-            one thing most people came for. */}
+    <ChromeBar
+      wordmark={SITE}
+      home={STATIC_LINKS.home}
+      tabs={CHROME_TABS.map(([label, href]) => ({ label, href }))}
+      menu
+      action={
         <a
           className="chrome__console"
           href="/account/overview"
           onClick={(e) => {
             e.preventDefault();
-            setMenu(false);
             navigate("/account/overview");
           }}
         >
           <Icon name="gauge" size={17} />
           Console
         </a>
-
-        <button
-          type="button"
-          className="chrome__menu"
-          aria-label="Menu"
-          aria-expanded={menu}
-          aria-controls="chrome-sheet"
-          onClick={() => setMenu((v) => !v)}
-        >
-          <Icon name={menu ? "x" : "menu"} size={20} />
-        </button>
-      </div>
-
-      <nav
-        className="chrome__sheet"
-        id="chrome-sheet"
-        aria-label={`${SITE} menu`}
-        data-open={menu ? "true" : "false"}
-      >
-        {CHROME_TABS.map(([label, href]) => (
-          <a key={href} href={href} onClick={() => setMenu(false)}>
-            {label}
-          </a>
-        ))}
-      </nav>
-    </header>
+      }
+    />
   );
 }
 
-/**
- * The rail. The current item is a gold left rule plus weight and
- * brighter ink — never a filled block, because background is reserved
- * for hover, and once a fill means "selected" hover has nowhere to go.
- *
- * Below 900px it becomes a DISCLOSURE ABOVE THE CONTENT: a 44px row
- * naming the section and where you are in it, expanding to the same list
- * in the same order. Not a drawer over the content — a drawer hides the
- * page you are reading in order to show you a list of pages.
- */
+/** The rail: the kit's, fed the console's route table. Items are the
+ *  RAIL config filtered by who is looking (admin pages for admins,
+ *  owner pages for the owner), with the reader's counts and the two
+ *  dots attached by key; the identity block is the way to the profile
+ *  and the way out. */
 function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
-  const [open, setOpen] = useState(false);
-  const items = RAIL.filter((r) => !r.adminOnly || me?.is_admin);
-  const current = items.find((r) => r.key === here.key);
-
-  const go = (to) => (e) => {
-    e.preventDefault();
-    setOpen(false);
-    navigate(to);
-  };
-
-  const list = (
-    <nav
-      aria-label="Console sections"
-      style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-    >
-      {items.map((row) => {
-        const on = row.key === here.key;
-        const meta = row.meta ?? counts[row.key];
-        const dot = dots[row.key];
-        const subs = (row.subs ?? []).filter(
-          ([, , , ownerOnly]) => !ownerOnly || me?.is_owner,
-        );
-        return (
-          <div key={row.key}>
-            {row.group && <div className="rail__group">{row.group}</div>}
-            <a
-              className={"rail__item" + (on ? " rail__item--on" : "")}
-              href={row.to}
-              aria-current={on ? "page" : undefined}
-              onClick={go(row.to)}
-            >
-              <Icon name={row.icon} />
-              {row.label}
-              {(meta !== undefined || dot) && (
-                <span className="rail__meta">
-                  {dot && (
-                    <span
-                      className={`rail__dot rail__dot--${dot.tone}`}
-                      title={dot.title}
-                      role="img"
-                      aria-label={dot.title}
-                    />
-                  )}
-                  {meta}
-                </span>
-              )}
-            </a>
-            {on &&
-              subs.map(([slug, label, to]) => {
-                const subOn = here.sub === slug;
-                return (
-                  <a
-                    key={slug}
-                    className={
-                      "rail__child" + (subOn ? " rail__child--on" : "")
-                    }
-                    href={to}
-                    aria-current={subOn ? "page" : undefined}
-                    onClick={go(to)}
-                  >
-                    {label}
-                  </a>
-                );
-              })}
-          </div>
-        );
-      })}
-    </nav>
-  );
-
-  const subLabel = (current?.subs ?? []).find(([s]) => s === here.sub)?.[1];
-
+  const items = RAIL.filter((r) => !r.adminOnly || me?.is_admin).map((row) => ({
+    key: row.key,
+    label: row.label,
+    icon: row.icon,
+    to: row.to,
+    group: row.group,
+    meta: row.meta ?? counts[row.key],
+    dot: dots[row.key] ?? null,
+    subs: (row.subs ?? [])
+      .filter(([, , , ownerOnly]) => !ownerOnly || me?.is_owner)
+      .map(([slug, label, to]) => ({ slug, label, to })),
+  }));
   return (
-    <aside className="rail">
-      {narrow ? (
-        <button
-          type="button"
-          className="rail__toggle"
-          aria-expanded={open}
-          onClick={() => setOpen(!open)}
-        >
-          <span style={{ fontSize: "13.5px", fontWeight: 600 }}>
-            {current?.label ?? "Console"}
-          </span>
-          <span
-            style={{
-              fontSize: "13px",
-              color: "var(--ink-faint)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {subLabel ?? ""}
-          </span>
-          <span style={{ marginLeft: "auto", display: "flex" }}>
-            <Icon name={open ? "chevron-up" : "chevron-down"} size={17} />
-          </span>
-        </button>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "9px",
-            height: "40px",
-            padding: "0 11px",
-            marginBottom: "6px",
-            borderBottom: "1px solid var(--line-soft)",
+    <RailList
+      label="Console sections"
+      items={items}
+      current={here.key}
+      sub={here.sub}
+      navigate={navigate}
+      narrow={narrow}
+      title="Console"
+      aside={me?.role ?? ""}
+      identity={
+        <RailIdentity
+          href="/account/profile"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/account/profile");
           }}
-        >
-          <span style={{ fontSize: "13.5px", fontWeight: 600 }}>Console</span>
-          <span
-            className="mono"
-            style={{ marginLeft: "auto", color: "var(--ink-faint)" }}
-          >
-            {me?.role ?? ""}
-          </span>
-        </div>
-      )}
-
-      {(!narrow || open) && list}
-
-      {(!narrow || open) && (
-        <div style={{ marginTop: "auto", paddingTop: "16px" }}>
-          {/* The site's links used to be repeated here at narrow
-              widths, because the top bar dropped them. The bar keeps
-              them in its own menu now, so this was two answers to one
-              question. */}
-          {/* The identity block is the way to the profile: who you are
-              signed in as, at which tier, in which timezone - and the
-              page where the address and timezone live. */}
-          <a
-            className="rail__identity"
-            href="/account/profile"
-            onClick={go("/account/profile")}
-            style={{ color: "inherit" }}
-          >
-            <span
-              style={{
-                width: "34px",
-                height: "34px",
-                borderRadius: "10px",
-                background: "var(--line-soft)",
-                border: "1px solid var(--line-strong)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--ink-body)",
-                flex: "0 0 auto",
-              }}
-            >
-              <Icon name="user-round" size={17} />
-            </span>
-            <span style={{ minWidth: 0, flex: "1 1 auto" }}>
-              {/* The address, as the design draws it: account.email has
-                  held it since 0046 (the earlier note that only a hash
-                  was stored was wrong). An account from before that
-                  fills in at its next sign-in and reads "Signed in"
-                  until then. */}
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "13px",
-                  color: "var(--ink)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-                title={me?.email ?? undefined}
-              >
-                {me?.email ?? "Signed in"}
-              </span>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "var(--ink-faint)",
-                }}
-              >
-                {[me?.role, me?.timezone].filter(Boolean).join(" · ")}
-              </span>
-            </span>
-            {/* A button, not a link. `/signout` is not a route: anything
-                that followed that href — a middle-click, a cmd-click, a
-                handler that threw, a click before hydration — landed on
-                the app shell, failed to resolve, and bounced to the home
-                page STILL SIGNED IN, having looked exactly like a
-                sign-out. Signing out is an action; giving it a
-                destination invented a way to believe you had done it
-                when you had not. */}
+          // The address, as the design draws it: account.email has held
+          // it since 0046. An account from before that fills in at its
+          // next sign-in and reads "Signed in" until then.
+          name={me?.email ?? "Signed in"}
+          title={me?.email ?? undefined}
+          detail={[me?.role, me?.timezone].filter(Boolean).join(" · ")}
+          action={
             <button
               type="button"
               aria-label="Sign out"
@@ -956,14 +754,13 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
                 await api.signOut();
                 window.location.assign(STATIC_LINKS.home);
               }}
-              style={{ flex: "0 0 auto" }}
             >
               <Icon name="log-out" size={16} />
             </button>
-          </a>
-        </div>
-      )}
-    </aside>
+          }
+        />
+      }
+    />
   );
 }
 
@@ -979,67 +776,34 @@ function DocsStrip({ here }) {
   const [topic, links] = entry;
   return (
     <footer className="page__docs">
-      <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "9px",
-          color: "var(--ink-faint)",
-        }}
-      >
+      <span className="flex items-center gap-[9px] text-ink-faint">
         <Icon name="book-open" size={16} />
         <span className="label">Docs · {topic}</span>
       </span>
-      <span style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      <span className="flex flex-wrap gap-2">
         {links.map(([label, href]) => (
           <a className="btn btn--sm" key={href} href={href}>
             {label}
           </a>
         ))}
       </span>
-      <a
-        style={{ marginLeft: "auto", fontSize: "13px" }}
-        href={STATIC_LINKS.docs}
-      >
+      <a className="ml-auto text-[13px]" href={STATIC_LINKS.docs}>
         All docs ›
       </a>
     </footer>
   );
 }
 
-function Disclaimer() {
-  return (
-    <footer className="disclaimer">
-      <span className="disclaimer__tag">UNOFFICIAL</span>
-      <span className="disclaimer__text">
-        This material is unofficial and is not endorsed by Supercell. For more
-        information see Supercell&rsquo;s Fan Content Policy:{" "}
-        <a href="https://www.supercell.com/fan-content-policy">
-          www.supercell.com/fan-content-policy
-        </a>
-        .
-      </span>
-      <span className="disclaimer__family">a POAP KINGS product</span>
-    </footer>
-  );
-}
-
 export function SignInWall({ navigate }) {
   return (
-    <div className="panel" style={{ maxWidth: "420px", margin: "48px auto 0" }}>
-      <div className="panel__body" style={{ textAlign: "center" }}>
-        <h1 className="page__title" style={{ marginBottom: "8px" }}>
-          Sign in first
-        </h1>
-        <p style={{ color: "var(--ink-faint)", fontSize: "13px" }}>
+    <div className="panel mx-auto mt-12 max-w-[420px]">
+      <div className="panel__body text-center">
+        <h1 className="page__title mb-2">Sign in first</h1>
+        <p className="text-[13px] text-ink-faint">
           This part of Elixir MCP shows your recorded history. Sign in with the
           email on your access request.
         </p>
-        <button
-          className="btn"
-          onClick={() => navigate("/signin")}
-          style={{ marginTop: "8px" }}
-        >
+        <button className="btn mt-2" onClick={() => navigate("/signin")}>
           Sign in
         </button>
       </div>
@@ -1057,21 +821,14 @@ export function SignInWall({ navigate }) {
  */
 function Unavailable({ onRetry, busy }) {
   return (
-    <div style={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
-      <div style={{ maxWidth: "400px", textAlign: "center" }}>
-        <h1 className="page__title" style={{ fontSize: "24px" }}>
-          Elixir didn&rsquo;t answer
-        </h1>
-        <p style={{ color: "var(--ink-faint)", fontSize: "13px" }}>
+    <div className="grid min-h-[60vh] place-items-center">
+      <div className="max-w-[400px] text-center">
+        <h1 className="page__title text-[24px]">Elixir didn&rsquo;t answer</h1>
+        <p className="text-[13px] text-ink-faint">
           The page could not check who you are. You are not signed out; the
           request did not get through. Try again in a moment.
         </p>
-        <button
-          className="btn"
-          onClick={onRetry}
-          disabled={busy}
-          style={{ marginTop: "8px" }}
-        >
+        <button className="btn mt-2" onClick={onRetry} disabled={busy}>
           {busy ? "Trying…" : "Try again"}
         </button>
       </div>
@@ -1312,15 +1069,7 @@ function Shell() {
       <Chrome navigate={navigate} />
 
       <div
-        style={{
-          maxWidth: "var(--page-max)",
-          margin: "0 auto",
-          width: "100%",
-          display: "flex",
-          alignItems: "stretch",
-          flexDirection: narrow ? "column" : "row",
-          flex: "1 1 auto",
-        }}
+        className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
       >
         {showRail && (
           <Rail

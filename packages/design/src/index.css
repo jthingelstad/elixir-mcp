@@ -7,19 +7,26 @@
    below utilities so a utility on an element can override its
    component class, which is the reason to have utilities at all.
 
-   @source names both halves' sources, so the one compiled file carries
-   every utility either uses and build-site.mjs can keep asserting that
-   /assets/site.css is these exact bytes. A vertical does NOT import
-   this file: it imports tokens.css and components.css into its own
-   Tailwind entry, with its own @source, and compiles its own file. */
+   @source names both halves' sources and the kit's (packages/ui), so
+   the one compiled file carries every utility any of them uses and
+   build-site.mjs can keep asserting that /assets/site.css is these
+   exact bytes. A vertical does NOT import this file: it imports
+   tokens.css and components.css into its own Tailwind entry, with its
+   own @source (including the kit's sources), and compiles its own
+   file. */
 
 @layer theme, base, components, utilities;
+
+/* No preflight means no `border-width: 0` reset either: a bare
+   `border-solid` shows all four sides at the UA's medium width. Write
+   `border-0 border-b` for one edge, `border` for a box. */
 
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
 @source "../../../apps/site/src";
 @source "../../../apps/web/src";
+@source "../../ui/src";
 
 /* Tailwind reads every word in those sources as a candidate class, and
    the design's `.outline` component (a definition list) shares its name

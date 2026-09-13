@@ -1,9 +1,9 @@
+import { LogTable } from "@elixir-mcp/ui";
 import {
   useActivityEvents,
   useMyEvents,
   useMyRequests,
 } from "../lib/queries.js";
-import { LogTable } from "../components/LogTable.jsx";
 
 /**
  * Activity's three views: notifications, MCP requests, account events.

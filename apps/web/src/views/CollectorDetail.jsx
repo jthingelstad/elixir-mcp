@@ -1,3 +1,4 @@
+import { Icon, ago, beatCls, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import {
@@ -10,8 +11,6 @@ import {
   usePublicStatus,
 } from "../lib/queries.js";
 import { CardPicker } from "../components/CardPicker.jsx";
-import { Icon } from "../components/Icon.jsx";
-import { ago, secsSince, beatCls } from "../lib/time.js";
 
 /**
  * One collector.

@@ -1,4 +1,4 @@
-import { Icon } from "./Icon.jsx";
+import { Icon } from "@elixir-mcp/ui";
 
 /** The checkmark beside a verified player, wherever a claim is listed:
  *  the claim was proven with the deck-slot challenge (Verify). */

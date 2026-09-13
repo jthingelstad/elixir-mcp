@@ -8,6 +8,7 @@
  * the shape every one of them renders — a bare table with a sticky
  * header, no card around it, filters built from the rows, and a pager.
  */
+import { LogTable } from "@elixir-mcp/ui";
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   render,
@@ -18,7 +19,6 @@ import {
   within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { LogTable } from "../src/components/LogTable.jsx";
 import { Activity } from "../src/views/Activity.jsx";
 import { Admin } from "../src/views/Admin.jsx";
 

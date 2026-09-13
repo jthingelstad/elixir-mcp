@@ -1,3 +1,4 @@
+import { Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import {
@@ -7,7 +8,6 @@ import {
   useMyGateways,
 } from "../lib/queries.js";
 import { CardPicker } from "../components/CardPicker.jsx";
-import { Icon } from "../components/Icon.jsx";
 
 /**
  * Status ▸ Collectors ▸ Run a collector — raising a hand, on a page of

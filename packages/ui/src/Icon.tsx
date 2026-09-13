@@ -1,21 +1,29 @@
 import {
   Activity,
   ArrowRight,
+  Award,
   BookOpen,
   Bookmark,
   ChartColumn,
+  Check,
   ChevronDown,
   ChevronUp,
   CircleCheck,
   CircleDashed,
+  Copy,
   FileText,
   Gauge,
   HeartPulse,
+  History,
+  Inbox,
   KeyRound,
+  Layers,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   MessageSquare,
+  Plane,
   Plug,
   Plus,
   Radar,
@@ -26,17 +34,18 @@ import {
   Shield,
   ShieldCheck,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 
 /**
- * The console's icons, from Lucide.
+ * The family's icons, from Lucide.
  *
  * The design draws the rail with Lucide and this is Lucide — the
- * package, not twenty glyphs copied out of it. The copies were a
- * dependency this app did not want, paid for in the currency it does not
- * want either: a set that goes stale the moment Lucide fixes a path, and
- * a wall a future screen has to climb to use a twenty-first icon.
+ * package, not forty glyphs copied out of it. The copies were a
+ * dependency the apps did not want, paid for in the currency they do
+ * not want either: a set that goes stale the moment Lucide fixes a
+ * path, and a wall a future screen has to climb to use one more icon.
  *
  * The wrapper stays, and it is doing three jobs worth keeping. It fixes
  * the stroke and size so a rail icon cannot arrive a different weight
@@ -52,43 +61,60 @@ import {
 const ICONS = {
   activity: Activity,
   "arrow-right": ArrowRight,
+  award: Award,
   "book-open": BookOpen,
   bookmark: Bookmark,
   "chart-column": ChartColumn,
+  check: Check,
   "chevron-down": ChevronDown,
   "chevron-up": ChevronUp,
   "circle-check": CircleCheck,
-  repeat: Repeat,
   "circle-dashed": CircleDashed,
+  copy: Copy,
   "file-text": FileText,
   gauge: Gauge,
   "heart-pulse": HeartPulse,
+  history: History,
+  inbox: Inbox,
   "key-round": KeyRound,
+  layers: Layers,
   "layout-dashboard": LayoutDashboard,
   "log-out": LogOut,
+  megaphone: Megaphone,
   menu: Menu,
   "message-square": MessageSquare,
+  plane: Plane,
   plug: Plug,
   plus: Plus,
   radar: Radar,
+  repeat: Repeat,
   search: Search,
   server: Server,
   settings: Settings,
   shield: Shield,
   "shield-check": ShieldCheck,
   "user-round": UserRound,
+  users: Users,
   x: X,
-};
+} as const;
 
-export function Icon({ name, size = 18 }) {
-  const Glyph = ICONS[name];
+export type IconName = keyof typeof ICONS;
+
+export function Icon({
+  name,
+  size = 18,
+}: {
+  name: IconName | string;
+  size?: number;
+}) {
+  const Glyph = ICONS[name as IconName];
   if (!Glyph) return null;
   return (
     <Glyph
       size={size}
       strokeWidth={1.9}
       aria-hidden="true"
-      style={{ flex: "0 0 auto" }}
+      className="shrink-0"
     />
   );
 }

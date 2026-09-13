@@ -1,6 +1,6 @@
+import { Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
-import { Icon } from "../../components/Icon.jsx";
 
 /**
  * One tool call: the request as sent, the response as received, and

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 /**
  * The console's ONE log table.
@@ -23,17 +23,34 @@ import { useMemo, useState } from "react";
  */
 const PAGE = 25;
 
-function cellOf(value) {
+export interface LogCell {
+  text: string;
+  tone?: string;
+  onClick?: () => void;
+  action?: () => void;
+  title?: string;
+  ink?: string;
+}
+export type LogRow = (string | number | LogCell | null | undefined)[];
+export type LogCol = [label: string, align: "left" | "right"];
+export interface LogFilter {
+  key: string;
+  label: string;
+  col: number;
+}
+
+function cellOf(value: LogRow[number]): LogCell {
   if (value == null) return { text: "" };
-  if (typeof value === "object" && !Array.isArray(value)) return value;
+  if (typeof value === "object" && !Array.isArray(value))
+    return value as LogCell;
   return { text: String(value) };
 }
 
 /** The distinct values in a column, in the order they first appear, so a
  *  filter offers what the data actually contains rather than an enum
  *  that may have drifted from it. */
-function optionsFor(rows, col) {
-  const seen = [];
+function optionsFor(rows: LogRow[], col: number): string[] {
+  const seen: string[] = [];
   for (const row of rows) {
     const text = cellOf(row[col]).text;
     if (text && !seen.includes(text)) seen.push(text);
@@ -63,8 +80,25 @@ export function LogTable({
    *  was making you ask. The selects still show it, so it can be
    *  cleared like any other filter rather than being a hidden state. */
   initialFilters = null,
+}: {
+  title: ReactNode;
+  note?: ReactNode;
+  crumb?: ReactNode;
+  cols: LogCol[];
+  rows?: LogRow[];
+  tones?: Record<string, string>;
+  monoCols?: number[];
+  filters?: LogFilter[];
+  footnote?: ReactNode;
+  empty?: ReactNode;
+  minWidth?: number;
+  actions?: ReactNode;
+  above?: ReactNode;
+  initialFilters?: Record<string, string> | null;
 }) {
-  const [picked, setPicked] = useState(() => initialFilters ?? {});
+  const [picked, setPicked] = useState<Record<string, string>>(
+    () => initialFilters ?? {},
+  );
   const [page, setPage] = useState(0);
 
   const shown = useMemo(() => {
@@ -80,49 +114,32 @@ export function LogTable({
   const window = shown.slice(at * PAGE, at * PAGE + PAGE);
   const anyPicked = Object.values(picked).some(Boolean);
 
-  const choose = (key, value) => {
+  const choose = (key: string, value: string) => {
     setPicked((p) => ({ ...p, [key]: value }));
     setPage(0);
   };
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
+      <div className="mb-[18px] flex flex-wrap items-end gap-[14px]">
         <div>
           {crumb && <div className="page__crumb">{crumb}</div>}
           <h1 className="page__title">{title}</h1>
           {note && <p className="page__lede">{note}</p>}
         </div>
-        {actions && <div style={{ marginLeft: "auto" }}>{actions}</div>}
+        {actions && <div className="ml-auto">{actions}</div>}
       </div>
       {above}
 
       {filters.length > 0 && rows.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            flexWrap: "wrap",
-            marginBottom: "14px",
-          }}
-        >
+        <div className="mb-[14px] flex flex-wrap items-center gap-2">
           {filters.map((f) => (
             <select
               key={f.key}
-              className="select"
+              className="select max-w-[210px]"
               aria-label={f.label}
               value={picked[f.key] ?? ""}
               onChange={(e) => choose(f.key, e.target.value)}
-              style={{ maxWidth: "210px" }}
             >
               <option value="">{f.label}: any</option>
               {optionsFor(rows, f.col).map((o) => (
@@ -148,9 +165,7 @@ export function LogTable({
 
       {rows.length === 0 ? (
         <div className="empty">
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            {empty}
-          </p>
+          <p className="empty__body mb-0">{empty}</p>
         </div>
       ) : (
         <>
@@ -161,9 +176,7 @@ export function LogTable({
                   {cols.map(([label, align]) => (
                     <th
                       key={label}
-                      style={
-                        align === "right" ? { textAlign: "right" } : undefined
-                      }
+                      className={align === "right" ? "text-right" : undefined}
                     >
                       {label}
                     </th>
@@ -181,18 +194,16 @@ export function LogTable({
                         <td
                           key={label}
                           title={cell.title}
-                          className={
-                            (align === "right" ? "table__td--num " : "") +
-                            (mono ? "mono" : "")
-                          }
-                          style={{
-                            textAlign: align === "right" ? "right" : undefined,
-                            fontFamily:
-                              mono || align === "right"
-                                ? "var(--font-mono)"
-                                : undefined,
-                            color: cell.ink,
-                          }}
+                          className={[
+                            align === "right"
+                              ? "table__td--num text-right"
+                              : "",
+                            mono ? "mono" : "",
+                            mono || align === "right" ? "font-mono" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          style={cell.ink ? { color: cell.ink } : undefined}
                         >
                           {cell.action ? (
                             <button
@@ -205,12 +216,8 @@ export function LogTable({
                             <a onClick={cell.onClick}>{cell.text}</a>
                           ) : tone ? (
                             <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "7px",
-                                color: `var(--${tone})`,
-                              }}
+                              className="inline-flex items-center gap-[7px]"
+                              style={{ color: `var(--${tone})` }}
                             >
                               <span
                                 className="chip__dot"
@@ -231,14 +238,7 @@ export function LogTable({
           </div>
 
           {footnote && (
-            <p
-              className="footnote"
-              style={{
-                margin: "14px 2px 0",
-                maxWidth: "78ch",
-                textWrap: "pretty",
-              }}
-            >
+            <p className="footnote mx-[2px] mt-[14px] mb-0 max-w-[78ch] text-pretty">
               {footnote}
             </p>
           )}
@@ -252,7 +252,7 @@ export function LogTable({
                 ? ` (filtered from ${rows.length.toLocaleString()})`
                 : ""}
             </span>
-            <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+            <span className="ml-auto flex gap-2">
               <button
                 className="btn btn--sm"
                 disabled={at === 0}

@@ -16,6 +16,10 @@
       "entry": ["test/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
+    "packages/ui": {
+      "entry": ["test/*.test.tsx"],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
+    },
     "packages/contracts": {
       "project": ["src/**/*.ts", "test/**/*.mjs"]
     },
