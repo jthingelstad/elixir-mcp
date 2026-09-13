@@ -1578,3 +1578,28 @@ serve the new copy). Not exercised end to end on a live tag today — the
 three claims on Jamie's account are already verified, and a verification
 run is a write on live data; the next unverified alt or friend's account
 is the acceptance.
+
+## 2026-09-13 — Ratified at session close
+
+Jamie took the day's open points one by one and accepted every
+recommendation. Recorded so nobody reopens them: (1) **the 22:3xZ removal
+of the roster gate from battle logs is ratified** as the standing decision
+(it reversed decision (1) of the morning, and the full-day read backs it).
+(2) **The extra battle-log polls are accepted** (~500/hr, three quarters
+empty, ~440 PlannedJobs/hr) until the rhythm placement lands; no yield
+tuning in between, so step two measures against a stable baseline. (3)
+**`player` touches at a fifth of 6.6k/hr, not a tenth: re-read in a week**
+once board accretion settles; act only if still above ~1,000/hr. (4) **The
+`gateway.channel` drop is dropped** — six rows, one column, and a collector
+contract field; it rides a future collector contract bump, not a migration
+slot. (5) **Verify's new draw is accepted on the next non-Jamie run**: ask
+King Levy or raquaza to verify through their own account. (6) The coverage
+rule for the activity year is the log-read rule above (his "rely on the
+data being present"); the marks that never clear are accepted for now.
+(7) Friends' activity on the Overview is fine (all recorded game data is
+readable by every account); cap the chip row to primary + alts if it
+passes ten. (8) The two knip hints are gone (this afternoon's commit). (9)
+**Adaptive polling step two runs no earlier than 2026-09-20**, after seven
+nightly histograms, with the capture audit as the check; the prompt for
+that session was handed to Jamie today and starts with a measurement, not
+code, and ships behind a flag that defaults OFF with balanced A/B arms.
