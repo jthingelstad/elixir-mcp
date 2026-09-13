@@ -4,6 +4,7 @@
   "description": "The Elixir design system: tokens, component styles and Tailwind utilities, compiled once and shared by the static site and the console. One compiled file, two consumers - never a copy. Verticals import the sources into their own Tailwind entry.",
   "type": "module",
   "exports": {
+    "./package.json": "./package.json",
     "./styles.css": "./dist/styles.css",
     "./tokens.css": "./src/tokens.css",
     "./components.css": "./src/components.css"

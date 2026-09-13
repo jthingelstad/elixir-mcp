@@ -10,8 +10,8 @@
       "project": ["src/**/*.js", "test/**/*.mjs"]
     },
     "apps/web": {
-      "entry": ["e2e/*.spec.ts", "playwright.config.ts"],
-      "project": ["src/**/*.{js,jsx}", "e2e/**/*.ts", "playwright.config.ts"]
+      "entry": ["e2e/*.spec.ts"],
+      "project": ["src/**/*.{js,jsx}", "e2e/**/*.ts"]
     },
     "packages/client": {
       "entry": ["test/*.test.ts"],

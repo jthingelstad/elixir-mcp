@@ -33,11 +33,16 @@ export default function (eleventyConfig) {
   // Resolved by PACKAGE NAME, not a relative path reaching out of this
   // workspace: the dependency is declared, traceable, and survives a
   // move of either directory.
+  // Resolved to the package's DIRECTORY, not the built file: this config
+  // is loaded by tools that run before the design build (knip, in CI),
+  // and require.resolve on a file that is not there yet throws. The
+  // copy itself runs at build time, when the root build has made it.
+  const designDir = path.dirname(
+    require.resolve("@elixir-mcp/design/package.json"),
+  );
   eleventyConfig.addPassthroughCopy({
-    [path.relative(
-      process.cwd(),
-      require.resolve("@elixir-mcp/design/styles.css"),
-    )]: "assets/site.css",
+    [path.relative(process.cwd(), path.join(designDir, "dist/styles.css"))]:
+      "assets/site.css",
   });
   eleventyConfig.addPassthroughCopy("src/robots.txt");
   eleventyConfig.addPassthroughCopy({
