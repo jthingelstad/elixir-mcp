@@ -1,4 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
+import {
+  QueryClientProvider,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { answered, createQueryClient } from "@elixir-mcp/client";
 import { api } from "./api.js";
 import { Icon } from "./components/Icon.jsx";
 import { SignIn } from "./views/SignIn.jsx";
@@ -1068,39 +1074,59 @@ function Unavailable({ onRetry, busy }) {
   );
 }
 
-const transportFailed = (res) =>
-  !res.ok && (res.status === 0 || res.status >= 500 || res.error);
-
+/** The app is its own provider: one query cache per mount, so a test
+ *  that renders <App /> gets a fresh one and the session it mocks is the
+ *  session it sees. */
 export function App() {
-  const { path, navigate } = useRoute();
-  const [me, setMe] = useState(null); // null = loading
-  const [unreachable, setUnreachable] = useState(false);
-  const [retrying, setRetrying] = useState(false);
-  const narrow = useNarrow();
+  const [queryClient] = useState(createQueryClient);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Shell />
+    </QueryClientProvider>
+  );
+}
 
-  // One quiet retry before the page says anything: a stall in front of
-  // the edge is usually gone a second later. If it is not, the page says
-  // Elixir did not answer and offers to try again; it never says "sign
-  // in first" about a session it could not check.
+/** The session, as a query. `answered` makes a stall in front of the
+ *  edge the ONE thing that rejects, so the client's retry rule - one
+ *  quiet retry after 1.5 s - applies to it and to nothing else: if the
+ *  API answered "not signed in", that is the answer. A view that
+ *  changes the session (sign in, a claim, a timezone) invalidates
+ *  ["me"] and every rail count follows. */
+function useMe() {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: ["me"],
+    queryFn: answered(api.me),
+  });
+  const { refetch } = query;
   const refresh = useCallback(async () => {
-    let res = await api.me();
-    if (transportFailed(res)) {
-      await new Promise((r) => setTimeout(r, 1500));
-      res = await api.me();
-    }
-    if (transportFailed(res)) {
-      setUnreachable(true);
-      setMe((prev) => prev ?? { authenticated: false });
-      return null;
-    }
-    setUnreachable(false);
-    setMe(res.data);
-    return res.data;
-  }, []);
+    const r = await refetch();
+    return r.data?.data ?? null;
+  }, [refetch]);
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["me"] }),
+    [queryClient],
+  );
+  // While the first answer is pending the session is unknown (null);
+  // after a failed first answer it reads as signed out AND unreachable,
+  // and the page says Elixir did not answer rather than "sign in first"
+  // about a session it could not check. A failed REFETCH keeps the last
+  // known session, which is what the old code's `prev ??` did.
+  const me =
+    query.data?.data ?? (query.isError ? { authenticated: false } : null);
+  return {
+    me,
+    unreachable: query.isError,
+    retrying: query.isFetching,
+    refresh,
+    invalidate,
+  };
+}
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+function Shell() {
+  const { path, navigate } = useRoute();
+  const { me, unreachable, retrying, refresh } = useMe();
+  const narrow = useNarrow();
 
   const authed = me?.authenticated === true;
   const owned = legalRoute(REDIRECTS[path] ?? path);
@@ -1204,14 +1230,7 @@ export function App() {
                   }}
                 />
               ) : showUnavailable ? (
-                <Unavailable
-                  busy={retrying}
-                  onRetry={async () => {
-                    setRetrying(true);
-                    await refresh();
-                    setRetrying(false);
-                  }}
-                />
+                <Unavailable busy={retrying} onRetry={refresh} />
               ) : needsAuth ? (
                 <SignInWall navigate={navigate} />
               ) : section === "data" ? (

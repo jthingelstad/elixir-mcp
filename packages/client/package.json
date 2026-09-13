@@ -1,0 +1,18 @@
+{
+  "name": "@elixir-mcp/client",
+  "version": "0.1.0",
+  "description": "The family's browser data layer: the same-origin API envelope every Elixir surface speaks ({ ok, status, data }), the fetch wrapper with its timeout and event hooks, and the TanStack Query defaults. Sources are TypeScript; the console consumes them through the workspace, verticals through the pinned dependency.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.102.8"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
+}

@@ -23,7 +23,7 @@
     "knip": "^6.34.0",
     "oxlint": "^1.81.0",
     "prettier": "^3.9.6",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
     "build": "npm run build -w @elixir-mcp/design && npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",
@@ -33,7 +33,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "typecheck": "tsc -p apps/web",
+    "typecheck": "tsc -p apps/web && tsc -p packages/client",
     "verify": "npm run format:check && npm run lint && npm run knip && npm run typecheck && npm run test",
     "cr": "node infra/scripts/cr-api.mjs"
   }

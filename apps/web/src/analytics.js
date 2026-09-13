@@ -135,11 +135,3 @@ export function trackEvent(event, value) {
     // Analytics is best-effort and must never turn one failure into two.
   }
 }
-
-/** The route key a failure reports: method and path with any id collapsed
- *  to `*`, so /api/admin/calls/<id> is one event, not one per record. */
-export function routeLabel(method, path) {
-  const segments = path.split("/").filter(Boolean);
-  const head = segments.slice(0, 3).join("/");
-  return `${method} /${head}${segments.length > 3 ? "/*" : ""}`;
-}

@@ -12,13 +12,16 @@
     "apps/web": {
       "project": ["src/**/*.{js,jsx}"]
     },
+    "packages/client": {
+      "entry": ["test/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
     "packages/contracts": {
       "project": ["src/**/*.ts", "test/**/*.mjs"]
     },
     "packages/design": {
       "entry": ["test/*.test.mjs"],
-      "project": ["test/*.test.mjs"],
-      "ignoreDependencies": ["tailwindcss"]
+      "project": ["test/*.test.mjs"]
     },
     "packages/docs": {
       "entry": ["*.test.mjs"],
