@@ -27,6 +27,40 @@ a {
 a:hover {
   color: var(--ink-link-hover);
 }
+/* A link INSIDE PROSE is underlined (Jamie, 2026-09-13): the link ink
+   against body ink is under 3:1, so colour alone did not tell a link
+   from the words round it (axe: link-in-text-block). Controls that are
+   links - the rail, the chrome, buttons, chips, table ids - stay as
+   they were; this is only where a link sits in running text. */
+p a,
+li a,
+dd a,
+.md a,
+.prose a,
+.footnote a,
+.callout a,
+.disclaimer__text a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+p a:hover,
+li a:hover,
+dd a:hover,
+.md a:hover,
+.prose a:hover,
+.footnote a:hover,
+.callout a:hover,
+.disclaimer__text a:hover {
+  text-decoration-color: currentColor;
+}
+p a.btn,
+li a.btn,
+p a.chip,
+li a.chip {
+  text-decoration: none;
+}
 code,
 pre {
   font-family: var(--font-mono);
