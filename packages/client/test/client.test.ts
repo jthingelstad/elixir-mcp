@@ -168,3 +168,19 @@ test("routeLabel is the route, never the record", () => {
   );
   expect(routeLabel("POST", "/api/claims")).toBe("POST /api/claims");
 });
+
+test("a surface can name its own routes, so a tag in the path never reaches an event", async () => {
+  const onEvent = vi.fn();
+  vi.stubGlobal("fetch", async () => {
+    throw new TypeError("Failed to fetch");
+  });
+  await createClient({
+    onEvent,
+    routeLabel: (m, p) => `${m} ${p.replace(/\/clans\/[^/]+/, "/clans/*")}`,
+  }).get("/api/clans/J2RGCRVG/manage");
+  expect(onEvent).toHaveBeenCalledWith(
+    "api_network",
+    "GET /api/clans/*/manage",
+  );
+  vi.unstubAllGlobals();
+});

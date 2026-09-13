@@ -20,6 +20,11 @@ export interface ClientOptions {
   /** Called for every slow or failed request with what only the
    *  browser knows: wall-clock ms beside the server's own timing. */
   onSlow?: (info: SlowRequest) => void;
+  /** How a request is named in an event. The default collapses
+   *  anything past three path segments; a surface whose routes carry a
+   *  tag earlier than that (Elixir Clan's /api/clans/<tag>/...) passes
+   *  its own, so no tag reaches the analytics. */
+  routeLabel?: (method: string, path: string) => string;
 }
 
 export interface SlowRequest {
@@ -56,6 +61,7 @@ export function createClient(options: ClientOptions = {}): Client {
     slowMs = 3_000,
     onEvent = () => {},
     onSlow = () => {},
+    routeLabel: label = routeLabel,
   } = options;
 
   function report(
@@ -70,12 +76,9 @@ export function createClient(options: ClientOptions = {}): Client {
     // status is the evidence (a 502 is the origin down, a 403 is the
     // WAF); the label keeps it.
     if (error === "bad_response")
-      onEvent(
-        `api_${error}`,
-        `${res?.status ?? 0} ${routeLabel(method, path)}`,
-      );
-    else if (error) onEvent(`api_${error}`, routeLabel(method, path));
-    else if (ms >= slowMs) onEvent("api_slow", routeLabel(method, path));
+      onEvent(`api_${error}`, `${res?.status ?? 0} ${label(method, path)}`);
+    else if (error) onEvent(`api_${error}`, label(method, path));
+    else if (ms >= slowMs) onEvent("api_slow", label(method, path));
     if (ms < slowMs && !error) return;
     onSlow({
       request: `${method} ${path}`,
