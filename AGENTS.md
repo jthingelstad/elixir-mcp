@@ -17,8 +17,11 @@ list lives in three places (the function in `infra/template.yaml`,
 `STATIC_LINKS` in `apps/web/src/App.jsx`, and the pages `apps/site`
 builds) and a test pins them together. Build both with
 `node infra/scripts/build-site.mjs`, which validates the merged tree
-before a deploy can upload it. Shared design tokens are one file:
-`packages/design/styles.css`.
+before a deploy can upload it. The design system is `packages/design`:
+tokens (`src/tokens.css`, with a Tailwind `@theme` map so utilities exist
+for them) and component rules (`src/components.css`), compiled ONCE by
+Tailwind v4 over both halves' sources into `dist/styles.css`, which both
+serve. Verticals import the two sources into their own Tailwind entry.
 
 `CLAUDE.md` is a symlink to this file. Do not fork them.
 

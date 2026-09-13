@@ -153,16 +153,17 @@ for (const required of [
   if (!files.has(required)) problems.push(`${required} is missing`);
 }
 
-// The shared stylesheet must be the one in packages/design, not a copy
-// that drifted.
-const designCss = path.join(repoRoot, "packages/design/styles.css");
+// The shared stylesheet must be the one packages/design compiled, not a
+// copy that drifted. Tailwind compiles ONCE there, with @source over
+// both halves, so the bytes are the same for the app and the site.
+const designCss = path.join(repoRoot, "packages/design/dist/styles.css");
 if (
   files.has("assets/site.css") &&
   !readFileSync(designCss).equals(
     readFileSync(path.join(outDir, "assets/site.css")),
   )
 ) {
-  problems.push("assets/site.css differs from packages/design/styles.css");
+  problems.push("assets/site.css differs from packages/design/dist/styles.css");
 }
 
 // Every asset the app shell references must have been merged in.

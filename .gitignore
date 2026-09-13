@@ -21,3 +21,6 @@ infra/dist/
 .backfill-progress.json
 .backfill-perf.json
 .env.gw2
+
+# Design package test scratch
+packages/design/.test-*/

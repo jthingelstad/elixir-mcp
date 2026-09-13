@@ -16,8 +16,9 @@
       "project": ["src/**/*.ts", "test/**/*.mjs"]
     },
     "packages/design": {
-      "entry": [],
-      "project": []
+      "entry": ["test/*.test.mjs"],
+      "project": ["test/*.test.mjs"],
+      "ignoreDependencies": ["tailwindcss"]
     },
     "packages/docs": {
       "entry": ["*.test.mjs"],

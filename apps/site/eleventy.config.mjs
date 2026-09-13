@@ -25,9 +25,11 @@ import { execFileSync } from "node:child_process";
 const require = createRequire(import.meta.url);
 
 export default function (eleventyConfig) {
-  // The design system is one file in packages/design, consumed by both
-  // halves: the app imports it through Vite (hashed), the static site
-  // links this copy. A test asserts the two are the same bytes.
+  // The design system is one file compiled by packages/design (Tailwind
+  // over both halves' sources), consumed by both: the app imports it
+  // through Vite (hashed), the static site links this copy. A test
+  // asserts the two are the same bytes. The root build runs the design
+  // build first, so the export resolves.
   // Resolved by PACKAGE NAME, not a relative path reaching out of this
   // workspace: the dependency is declared, traceable, and survives a
   // move of either directory.

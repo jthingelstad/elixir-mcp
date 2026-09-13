@@ -26,14 +26,15 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "build": "npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",
+    "build": "npm run build -w @elixir-mcp/design && npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",
     "pretest": "npm run build",
     "test": "npm test -ws --if-present && node --test \"AGENT-TEAM/scripts/**/*.test.mjs\" \"clients/**/*.test.mjs\"",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "verify": "npm run format:check && npm run lint && npm run knip && npm run test",
+    "typecheck": "tsc -p apps/web",
+    "verify": "npm run format:check && npm run lint && npm run knip && npm run typecheck && npm run test",
     "cr": "node infra/scripts/cr-api.mjs"
   }
 }

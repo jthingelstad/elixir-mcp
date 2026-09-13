@@ -1,0 +1,34 @@
+/* Elixir's stylesheet, compiled ONCE for both halves of the site.
+
+   Tailwind v4 without preflight: the design's own base rules in
+   components.css do that job, and the reset would change what every
+   page looks like. Layer order is declared here because tailwindcss's
+   index.css (which would declare it) is not imported: components sit
+   below utilities so a utility on an element can override its
+   component class, which is the reason to have utilities at all.
+
+   @source names both halves' sources, so the one compiled file carries
+   every utility either uses and build-site.mjs can keep asserting that
+   /assets/site.css is these exact bytes. A vertical does NOT import
+   this file: it imports tokens.css and components.css into its own
+   Tailwind entry, with its own @source, and compiles its own file. */
+
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../../../apps/site/src";
+@source "../../../apps/web/src";
+
+/* Tailwind reads every word in those sources as a candidate class, and
+   the design's `.outline` component (a definition list) shares its name
+   with the utility that sets outline-style: solid - which, in the
+   utilities layer, would win and draw a box round every one. Refused
+   here; outline-* utilities with a value are unaffected. `.table` and
+   `.grid` also collide but their utilities are no-ops on the elements
+   that carry them. */
+@source not inline("outline");
+
+@import "./tokens.css";
+@import "./components.css" layer(components);

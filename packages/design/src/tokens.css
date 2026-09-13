@@ -1,0 +1,287 @@
+/* Elixir — design tokens
+   Design handoff of 2026-09-09 (contract 0.42.0), which supersedes the
+   2026-09-05 sheet: every token is renamed to say the job it does
+   (--ground, --line, --ink-dim, --accent) rather than what it looks
+   like (--bg0, --edge, --muted, --purple).
+
+   THE tokens for every surface in the family. This file is one of two
+   sources compiled by index.css into the single stylesheet both halves
+   of elixir.poapkings.com serve (apps/web through Vite, apps/site as
+   /assets/site.css; a test asserts the served copy is those exact
+   bytes). The verticals import THIS file into their own Tailwind entry,
+   so they share the tokens and compile their own utilities.
+
+   Foundation pass 2026-09-13: the :root block below is unchanged and
+   stays the source of truth for VALUES (the handoff's Design System
+   file, Tokens page - keep them in step). The @theme block after it
+   maps those values onto Tailwind's namespaces so utilities exist for
+   them (bg-ground, text-ink-dim, border-line, rounded-panel,
+   font-display, text-body...). Tailwind's own palette, type scale,
+   radii and shadows are reset to nothing: the utility vocabulary is
+   this design's and only this design's. Spacing keeps Tailwind's
+   default 4px unit, which is the same 4pt scale as --s-*.
+
+   Four things the handoff sheet does not carry are kept below, because
+   they are not palette values it renamed — they are jobs it does not
+   cover: the @font-face, the collector series colours (validated for
+   the dark plot surface, adjacent-pair colourblind separation and 3:1
+   contrast — do not reorder or substitute by eye), the focus ring, and
+   the 4pt spacing scale.
+
+   Fonts: "Clash Royale" is Supercell's official display font from the
+   Supercell Fan Kit, used under the Fan Content Policy. Copy
+   Clash_Regular.otf to /assets/fonts/ along with its README.md
+   compliance note. */
+
+@font-face {
+  font-family: "Clash Royale";
+  src: url("/assets/fonts/Clash_Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Tokens ───────────────────────────────────────────────── */
+
+:root {
+  /* ---- Ground: page up to a raised panel -------------------------- */
+  --ground: #0c0920; /* page background, under the radial wash */
+  --ground-chrome: #100c26; /* header, footer, rail */
+  --ground-sunken: #120d2e; /* code blocks, meter troughs, inputs */
+  --panel: #1a1440; /* cards, panels, chip backgrounds */
+  --panel-raised: #221a52; /* secondary buttons, tag pills */
+  --panel-head: #181135; /* header strip inside a code panel */
+  --panel-float: #150f36; /* a card that floats: auth, the transcript */
+
+  /* The page wash. One gradient, same on every surface. */
+  --page-wash: radial-gradient(70rem 34rem at 60% -14rem, #191140, #0c0920);
+
+  /* ---- Line: three weights, each with a job ----------------------- */
+  --line: #3a3175; /* panel borders, table header rule */
+  --line-soft: #2d2560; /* chrome dividers, panel internals */
+  --line-row: #241d4e; /* the rule under a table row */
+  --line-strong: #4c4193; /* emphasised panel, input border */
+
+  /* ---- Ink -------------------------------------------------------- */
+  --ink: #faf8ff; /* primary text, numbers, active nav */
+  --ink-body: #ddd7f5; /* body copy in panels and tables */
+  --ink-dim: #bdb4e2; /* ledes, inactive nav, secondary copy */
+  --ink-faint: #a29ad0; /* labels, footnotes, provenance */
+  --ink-link: #b49dfb; /* links and Clash Royale tags */
+  --ink-link-hover: #d3c4ff;
+  --ink-code: #e6dfff; /* inside a code block */
+  --ink-quiet-icon: #8b7fc7; /* an icon that is deliberately inert */
+
+  /* ---- Signal ----------------------------------------------------- */
+  /* Gold is brand and ownership. NEVER a data value. */
+  --gold: #f5c84c;
+  --gold-light: #ffe99a;
+  --gold-grad: linear-gradient(180deg, #ffe99a, #f5c84c);
+  --gold-on: #2a1500; /* text on a gold surface */
+
+  --accent: #8b5cf6; /* meter fills, charts, marks */
+  --accent-bright: #a78bfa; /* icons, accent ink, unread dot */
+  --accent-deep: #6d28d9; /* selected control, primary non-brand */
+
+  --ok: #4ade80; /* recording, healthy, granted, win */
+  --warn: #fcd34d; /* attention, behind, waiting, retired */
+  --bad: #fb7185; /* refused, failed, revoked, loss */
+
+  --ok-fill: rgba(74, 222, 128, 0.13);
+  --ok-edge: rgba(74, 222, 128, 0.4);
+  --warn-fill: rgba(252, 211, 77, 0.1);
+  --warn-edge: rgba(252, 211, 77, 0.45);
+  --bad-fill: rgba(251, 113, 133, 0.12);
+  --bad-edge: rgba(251, 113, 133, 0.4);
+  --info-fill: rgba(139, 92, 246, 0.16);
+  --info-edge: var(--line-strong);
+
+  /* Categorical series — collectors on the capture charts. Fixed order,
+     assigned by the collector's enrolment (never its rank), so a new
+     collector appends a colour instead of repainting everyone. Beyond
+     six collectors the rest fold into --ink-quiet-icon. */
+  --series-1: #8b5cf6;
+  --series-2: #65a30d;
+  --series-3: #db2777;
+  --series-4: #0891b2;
+  --series-5: #ea580c;
+  --series-6: #3b82f6;
+
+  /* ---- Interaction ------------------------------------------------ */
+  --hover-rail: rgba(139, 92, 246, 0.14);
+  --hover-row: rgba(139, 92, 246, 0.07);
+  --hover-child: rgba(139, 92, 246, 0.1);
+  --mark-current: inset 2px 0 0 var(--gold); /* current rail item */
+  --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
+
+  --focus-glow: rgba(139, 92, 246, 0.28);
+  --ring: 0 0 0 3px var(--focus-glow);
+
+  /* ---- Type ------------------------------------------------------- */
+  --font: Inter, system-ui, sans-serif;
+  --font-display: "Clash Royale", Inter, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+
+  --t-h1-site: 36px; /* site + design-system h1 */
+  --t-h1-page: 30px; /* console page title */
+  --t-h2: 18px;
+  --t-panel-head: 14px;
+  --t-body: 15px;
+  --t-body-sm: 13.5px;
+  --t-label: 11px; /* uppercase, .09em tracking */
+  --t-mono: 12.5px;
+  --t-stat: 20px; /* mono stat value */
+  --lh-body: 1.5;
+  --lh-prose: 1.65;
+
+  /* ---- Geometry --------------------------------------------------- */
+  --rail-w: 256px;
+  --page-max: 1280px;
+  --content-max: 1020px; /* console page content */
+  --prose-max: 72ch;
+  --pad-page: 32px;
+  --pad-page-narrow: 16px;
+
+  --r-chip: 8px;
+  --r-control: 10px;
+  --r-block: 12px;
+  --r-panel: 14px;
+  --r-rail: 0 10px 10px 0; /* squared into the current-item rule */
+  --r-pill: 999px;
+
+  --hit: 40px; /* desktop row / control */
+  --hit-touch: 44px; /* narrow viewport */
+
+  /* ---- Motion (2026-09-12, with Verify) ----------------------------
+     Three durations and one curve; nothing else animates. The
+     prefers-reduced-motion rule at the end of this file turns every
+     animation and transition off in one place. */
+  --dur-fast: 150ms;
+  --dur-base: 320ms;
+  --dur-slow: 700ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --bp-narrow: 900px; /* ONE breakpoint, all surfaces */
+
+  --shadow-modal: 0 24px 70px rgba(4, 2, 12, 0.5);
+  --shadow-float: 0 20px 60px rgba(4, 2, 12, 0.45);
+
+  /* Spacing — 4pt. Not a handoff token: the sheet names no spacing
+     scale, and the component layer below is written against this one. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-12: 48px;
+}
+
+/* ── Tailwind theme: the tokens above, under the namespaces that make
+   utilities. Values are var() references and the block is `inline
+   reference`: a utility reads the :root token directly (bg-ground is
+   background-color: var(--ground)) and Tailwind emits no variables of
+   its own - :root above is the only place a value lives. Four of the
+   names (--font-display, --font-mono, --shadow-*) are already
+   Tailwind's, and without `reference` they would be re-emitted as
+   references to themselves. `initial` on a namespace drops Tailwind's
+   defaults for it. */
+
+@theme inline reference {
+  --color-*: initial;
+  --color-ground: var(--ground);
+  --color-ground-chrome: var(--ground-chrome);
+  --color-ground-sunken: var(--ground-sunken);
+  --color-panel: var(--panel);
+  --color-panel-raised: var(--panel-raised);
+  --color-panel-head: var(--panel-head);
+  --color-panel-float: var(--panel-float);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-row: var(--line-row);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-body: var(--ink-body);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-link: var(--ink-link);
+  --color-ink-link-hover: var(--ink-link-hover);
+  --color-ink-code: var(--ink-code);
+  --color-ink-quiet-icon: var(--ink-quiet-icon);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-on: var(--gold-on);
+  --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
+  --color-accent-deep: var(--accent-deep);
+  --color-ok: var(--ok);
+  --color-ok-fill: var(--ok-fill);
+  --color-ok-edge: var(--ok-edge);
+  --color-warn: var(--warn);
+  --color-warn-fill: var(--warn-fill);
+  --color-warn-edge: var(--warn-edge);
+  --color-bad: var(--bad);
+  --color-bad-fill: var(--bad-fill);
+  --color-bad-edge: var(--bad-edge);
+  --color-info-fill: var(--info-fill);
+  --color-info-edge: var(--info-edge);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+  --color-series-6: var(--series-6);
+  --color-hover-rail: var(--hover-rail);
+  --color-hover-row: var(--hover-row);
+  --color-hover-child: var(--hover-child);
+  --color-focus-glow: var(--focus-glow);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-*: initial;
+  --font-sans: var(--font);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --text-*: initial;
+  --text-h1-site: var(--t-h1-site);
+  --text-h1-page: var(--t-h1-page);
+  --text-h2: var(--t-h2);
+  --text-panel-head: var(--t-panel-head);
+  --text-body: var(--t-body);
+  --text-body--line-height: var(--lh-body);
+  --text-body-sm: var(--t-body-sm);
+  --text-label: var(--t-label);
+  --text-mono: var(--t-mono);
+  --text-stat: var(--t-stat);
+
+  --leading-body: var(--lh-body);
+  --leading-prose: var(--lh-prose);
+
+  --radius-*: initial;
+  --radius-chip: var(--r-chip);
+  --radius-control: var(--r-control);
+  --radius-block: var(--r-block);
+  --radius-panel: var(--r-panel);
+  --radius-pill: var(--r-pill);
+
+  --shadow-*: initial;
+  --shadow-modal: var(--shadow-modal);
+  --shadow-float: var(--shadow-float);
+  --shadow-ring: var(--ring);
+
+  --breakpoint-*: initial;
+  --breakpoint-wide: 900px; /* wide: at and above; max-wide: below */
+
+  --container-*: initial;
+  --container-page: var(--page-max);
+  --container-content: var(--content-max);
+  --container-prose: var(--prose-max);
+  --container-rail: var(--rail-w);
+
+  --ease-*: initial;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --default-transition-duration: var(--dur-fast);
+  --default-transition-timing-function: var(--ease-out);
+}

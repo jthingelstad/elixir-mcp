@@ -377,12 +377,19 @@ test(
   },
 );
 
-test("the shared stylesheet is the one in packages/design", { skip }, () => {
-  assert.equal(
-    read("assets/site.css"),
-    readFileSync(path.join(repoRoot, "packages/design/styles.css"), "utf8"),
-  );
-});
+test(
+  "the shared stylesheet is the one packages/design compiled",
+  { skip },
+  () => {
+    assert.equal(
+      read("assets/site.css"),
+      readFileSync(
+        path.join(repoRoot, "packages/design/dist/styles.css"),
+        "utf8",
+      ),
+    );
+  },
+);
 
 test("inline HTML in a doc survives the markdown renderer", { skip }, () => {
   // Eleventy's default markdown-it wrapped the architecture diagram's
