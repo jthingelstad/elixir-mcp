@@ -219,8 +219,9 @@ cumulative: never deploy past a commit whose infrastructure change is blocked.
 
 ## Verification follows the boundaries
 
-`npm run verify` is the same pre-push and CI gate: formatting, lint, Knip and
-all workspace tests. The root test command first builds the shared contracts,
+`npm run verify` is the same pre-push and CI gate: formatting, lint, Knip, the
+TypeScript check over the console and the kit packages, and all workspace
+tests. The root test command first builds the shared contracts,
 so a fresh checkout cannot depend on a previous local build. Knip entries name
 actual executable roots per workspace;
 remove obsolete entries instead of suppressing configuration hints. Successful

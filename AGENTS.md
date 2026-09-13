@@ -17,11 +17,28 @@ list lives in three places (the function in `infra/template.yaml`,
 `STATIC_LINKS` in `apps/web/src/App.jsx`, and the pages `apps/site`
 builds) and a test pins them together. Build both with
 `node infra/scripts/build-site.mjs`, which validates the merged tree
-before a deploy can upload it. The design system is `packages/design`:
-tokens (`src/tokens.css`, with a Tailwind `@theme` map so utilities exist
-for them) and component rules (`src/components.css`), compiled ONCE by
-Tailwind v4 over both halves' sources into `dist/styles.css`, which both
-serve. Verticals import the two sources into their own Tailwind entry.
+before a deploy can upload it.
+
+**The web foundation (2026-09-13, plan in
+`../elixir-family/plans/console-clan-foundation.md`).** `apps/web` is
+React 19 on TanStack Router (the route tree in `App.jsx`, one lazy chunk
+per section under `src/pages/`) and TanStack Query (`src/lib/queries.js`
+is the one place for keys and hooks; the reader's own things are keyed
+under `["me", ...]`, so invalidating the session refetches all of them).
+Three workspace packages are the family's, consumed by the console
+through the workspace and by the verticals as source through a pinned
+git dependency: `packages/design` - tokens (`src/tokens.css`, with a
+Tailwind `@theme inline reference` map so utilities exist for them) and
+component rules (`src/components.css`), compiled ONCE by Tailwind v4 over
+both halves' and the kit's sources into `dist/styles.css`, which both
+halves serve; `packages/ui` - Chrome, Rail, LogTable, Fresh, Markdown,
+Icon, ErrorBoundary, Disclaimer and the one clock vocabulary, TypeScript,
+written on utilities; `packages/client` - the `{ ok, status, data }`
+envelope, `createClient()`, `answered()`/`unwrap()` and the query client
+with its one retry rule. Anything a vertical needs that the kit lacks is
+a kit addition here, never a local copy there. An inline-style ratchet
+test pins the console's count and only goes down; Radix arrives with the
+first real dialog, not before.
 
 `CLAUDE.md` is a symlink to this file. Do not fork them.
 
