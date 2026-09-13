@@ -1635,3 +1635,29 @@ cursor, budget lanes and feedback delivery. Do not manufacture credentials,
 restart the healthy POAP KINGS service, or replay event history.
 
 **ELIXIR_EVENTS 2.0.0 SHIPPED, NO DEPRECATION WINDOW (2026-09-13 evening, Jamie: "there are no other users. Just make the change"):** Jamie read the preview dumps ("this all looks really good... gives the LLM the right things to go after and support with tool calls") and the 2.0.0 shape landed the same evening. `elixir_events` returns one ENTRY per subject since the account's bookmark (`account.activity_seen_at`, 0087), synthesized at read time by `services/mcp/src/activity/{entries,summary}.mjs`; args are the shared `from`/`to`/`timezone` plus `mark_seen`, `sections`, `verbosity`; `next_cursor` is the window end; `meta.events_pending` counts subjects with admissions since the bookmark. REMOVED outright: the topic rows, `topics`, the integer cursor, `war_day_open` (emitter + topic), `clan_pulse` (job, EventBridge rule, topic; design doc archived to docs/archive/CLAN-PULSE.md), and the six tool-level legacy feed tests. STILL RUNNING ON PURPOSE: the `event_feed` emitters (battles, badges, milestones, roster, week finished, account rows) and the 30-day prune, because the entry synthesizer reads badge and card-level counts from those rows until the ledger carries them, and the console Activity page still renders them. NEXT SLICE: ledger writes for badge/card/arena/PoL moments (`player_event`), an arena catalog fed from profile payloads (ids are opaque), the console Activity page on entries, then retire `event_feed`, its emitters, `TOPIC_CONTRACTS`, `events_seen_through` and the prune. projects-47 (elixir-mcp-discord) was told before the deploy.
+
+## 2026-09-13 — Capture watch extended; live profile field corrected
+
+At 22:32Z, public status was healthy (five active collectors, 210-second
+fetch/admission freshness, zero DLQ) but capture completeness remained a
+measured gap: the private read-only census found 96 gaps in 6,909 one-day
+polls (1.39%) across 89 subjects and 206/16,771 (1.23%) across three days.
+The latest gap was at 22:27:47Z, so this is ongoing cadence pressure rather
+than an aged historical window.
+
+The explicit 23-hour matched `ab_yield` comparison before/after the 22:40Z
+battle-log roster-gate removal improved all-arm gaps from 81/3,891 (2.08%) to
+88/6,644 (1.32%). The treated arm fell 1.26% to 0.48%; control 3.25% to
+2.72%. Post-fix spend increased 1.72x while battles increased 1.37x, lowering
+mean yield from 4.032 to 3.193 battles per battle-log fetch. The ratified
+policy remains: no yield change before the 72-hour, balanced-arm decision.
+
+Direct API observation surfaced one reference-documentation correction, not a
+recorder fault: player `#VGY28ULUG` returned top-level `collectionLevel: 2036`,
+exactly matching its `CollectionLevel` badge, whereas the standalone CR API
+reference called the field a zero-valued stub. Elixir already projects that
+top-level field, so no migration or backfill applies. `cr-agent-api-docs`
+commit `49ff185` updates the player and model references; its full docs build
+passed and was pushed. The same sample's 30-entry battle log, evolution forms,
+and compact UTC battle stamps matched the documented model; the 94-anchor war
+clock read remained centered at +8 minutes from the policy grid.
