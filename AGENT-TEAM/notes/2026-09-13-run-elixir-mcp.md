@@ -47,3 +47,28 @@
   on contract 1.9.0, retained its event cursor/run ledger, had both monthly
   budget lanes below their caps, and naturally delivered a feed post at 07:01Z
   plus three ask turns after 09:27Z. No source or runtime change was warranted.
+
+## Operational review — preview activation handoff
+
+- **Evidence (17:43–17:47Z):** clean synchronized preflight; public status
+  had five active collectors, 30-second fetch/admission freshness, 767
+  battles/hour, zero queue/DLQ/dead work, and 409 measured requests in the
+  3,600/hour global budget. All 15 Elixir MCP alarms were OK. The 24-hour web
+  API duration was 5,094 Lambda-seconds; RDS stayed available on
+  `db.t4g.micro`, with hourly minimum FreeableMemory 126–141 MiB and maximum
+  SwapUsage 25–29 MiB. The stats receipt found 114/262 regional Path of
+  Legends locations fresh while the global daily board was current; hand this
+  separate coverage issue to Keep the Boards.
+- **Preview finding:** `com.poapkings.elixir-mcp-discord.poapkings` is the
+  only installed, running launchd service and its state holds an agent
+  principal, contract 1.9.0, cursor 2197, no channel problem and both budget
+  lanes below cap. Ship It! and Elixir Kings have their intended instance
+  directories and routines but no state ledger or launchd plist. Their
+  documented read-only `setup --check` reports all four setup seams unresolved:
+  Elixir agent connection, Claude key, Discord application/server, and channel
+  bindings. No credential values were read.
+- **Handoff:** Jamie should complete interactive setup for both instances,
+  invite/bind each Discord bot, start its launchd label, and confirm the first
+  probe's agent principal, current contract, cursor, two budget lanes and
+  feedback delivery. Do not restart POAP KINGS, create credentials, or replay
+  old events. No server source change or deploy is appropriate.
