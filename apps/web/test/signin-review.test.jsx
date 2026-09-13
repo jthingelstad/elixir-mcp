@@ -273,3 +273,39 @@ test("Profile lists every device, marks this one, and signs the others out", asy
     screen.queryByRole("button", { name: "Sign out everywhere else" }),
   ).toBeNull();
 });
+
+test("a magic link is redeemed ONCE, however many times the page re-renders while the session settles", async () => {
+  // Live, 2026-09-13: four POST /api/auth/redeem in 600 ms - one 200 and
+  // three 400s - because the effect depended on a fresh onAuthed arrow
+  // and takeLoginToken() returns the same captured token every call.
+  vi.resetModules();
+  const { App: FreshApp } = await import("../src/App.jsx");
+  window.history.pushState({}, "", "/signin?login_token=" + "v".repeat(40));
+  let redeems = 0;
+  let authed = false;
+  global.fetch = mockFetch({
+    "POST /api/auth/redeem": () => {
+      redeems += 1;
+      if (authed) return [400, { error: "expired" }];
+      authed = true;
+      return [200, { authenticated: true }];
+    },
+    "GET /api/me": () => [
+      200,
+      authed
+        ? { authenticated: true, claims: [], recordings: [], entitlements: {} }
+        : { authenticated: false },
+    ],
+    "GET /api/me/first-answer": [200, {}],
+    "GET /api/me/clans": [200, { clans: [] }],
+    "GET /api/me/battle-activity/20JJJ2CCRU": [200, {}],
+  });
+  render(<FreshApp />);
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/account/overview"),
+  );
+  // Let any straggling re-render fire its effect, then count.
+  await new Promise((r) => setTimeout(r, 200));
+  expect(redeems).toBe(1);
+  expect(window.location.search).toBe("");
+});

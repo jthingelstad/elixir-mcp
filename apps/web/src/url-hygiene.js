@@ -34,3 +34,17 @@ export function takeLoginToken() {
   }
   return captured;
 }
+
+/** The token, ONCE: the first caller gets it and it is gone. The sign-in
+ *  view redeems through this, so however many times that view mounts or
+ *  re-renders while the session settles - and it did, four redeems in
+ *  600 ms live on 2026-09-13, three of them 400s on a spent token - the
+ *  credential is presented exactly one time. takeLoginToken() above is
+ *  for the boot-time scrub and stays memoised. */
+let consumed = false;
+export function consumeLoginToken() {
+  const token = takeLoginToken();
+  if (consumed) return null;
+  consumed = true;
+  return token;
+}

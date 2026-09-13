@@ -1,7 +1,7 @@
 import { Icon } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { takeLoginToken } from "../url-hygiene.js";
+import { consumeLoginToken } from "../url-hygiene.js";
 
 /**
  * Sign in, or ask to — one card, six states.
@@ -120,8 +120,16 @@ export function SignIn({ onAuthed }) {
   // A magic link lands here as /signin?login_token=... — read from the value
   // lifted out of the URL at boot, not from the URL itself, which by now has
   // deliberately had the credential removed.
+  //
+  // ONCE, full stop: consumeLoginToken() gives the token to one caller.
+  // This used to depend on onAuthed - a fresh arrow every render - and
+  // read a memoised token, so each re-render of this page while the
+  // session settled redeemed it again: four redeems in 600 ms live
+  // (2026-09-13), three of them 400s on a spent token, and a 400 sets
+  // "expired" - a race the navigation happened to win. A remount cannot
+  // redeem twice either.
   useEffect(() => {
-    const token = takeLoginToken();
+    const token = consumeLoginToken();
     if (!token) return;
     setStep("redeeming");
     api.redeemToken(token).then((res) => {
@@ -133,9 +141,9 @@ export function SignIn({ onAuthed }) {
         setHandoff(res.data.handoff);
         return setStep("handoff");
       }
-      onAuthed();
+      onAuthedRef.current();
     });
-  }, [onAuthed]);
+  }, []);
 
   // While the code step waits, ask every four seconds whether the link
   // was opened somewhere else and allowed; the link's own fifteen

@@ -54,7 +54,7 @@ snapshot.** Jamie's two new alts in Elixir Kings are the measurement:
 
 (counts are the coalesced `count` per topic on one UTC day; source: Jamie's
 feed). A beginner emits five to seven topic rows a day; a maxed player two.
-An agent for a 50-member entry clan therefore carries on the order of 250 to
+An agent for a 50-member beginner clan therefore carries on the order of 250 to
 350 unread rows per day, every one `{count: n}` with no name and no *which*.
 And the topics that would actually mark a beginner's moment fire never
 (`career_wins_milestone` at 1,000; `pol_promotion` needs Path of Legends) or
@@ -92,13 +92,17 @@ the Events page promise `prev_role, new_role, direction` (events 23/24,
 not what the emitter produces. A reader that trusts the floor cannot tell a
 promotion from a demotion.
 
-**8. The nudge moment is missing.** elixir-bot's most-used war signal is
-end-of-day decks remaining. The MCP has `war_day_open` (a day started, ~10:08Z)
-and a pulse at 07:00Z that happens to fall three hours before the 10:00Z
-close, an accident of scheduling that the payload does not label. For a
-US-centric clan 07:00Z is 02:00 Central. The routine recipe tells the agent to
-"set an evening follow-up" itself, which is the timer the feed exists to
-replace.
+**8. The feed tells the agent what time it is, and the clock does not tell
+it enough.** `war_day_open` is 10:00Z on a war day dressed as an event: a
+clock fact every agent can compute, presuming an interest in war the agent
+may not have. Meanwhile `game_clock`, the tool for exactly that, returns
+`day_ends_at` but not the next boundaries an agent needs to schedule itself
+("call me three hours before the next close"). The pulse's 07:00Z happens to
+fall three hours before the close, an accident the payload does not label,
+and for a US-centric clan it is 02:00 Central. The routine recipe tells the
+agent to "set an evening follow-up" itself, which is correct in principle
+(the clock is the agent's) and unsupported in practice (the clock does not
+give it the instant).
 
 **9. A nudge list for a boat that already crossed the line.** POAP KINGS
 finished the race on day 4 at 09:38Z (`finish_time` set, fame 10,134);
@@ -170,13 +174,15 @@ vocabulary, like a legend's best week.
 ## 3. What "something you may care about" means, per reader
 
 **A clan-running agent** (the stated use case). Wants to be woken for: a
-roster move with WHO (already right); the war-day nudge moment with a count
-and who (missing); a member crossing an inactivity threshold, once (missing:
-the pulse repeats it); the race finishing (missing: elixir-bot has
-`race_finished`); week and season boundaries with the result (the MCP's
-`clan_war_week_finished` payload is `{}`; the bot's carries fame, rank,
+roster move with WHO (already right); a member crossing an inactivity
+threshold, once (missing: the pulse repeats it); the race finishing (missing:
+elixir-bot has `race_finished`); the week resolving with the result (the
+MCP's `clan_war_week_finished` payload is `{}`; the bot's carries fame, rank,
 participation); a member's notable moment, named (present as an unnamed
-count). It does not want "someone played".
+count). It does not want "someone played", and it does not want to be told
+what time it is: the war-day nudge is the agent's own schedule, read off
+`game_clock` and drilled with `war_current`, if that agent cares about war
+at all. Nothing in the feed may assume it does.
 
 **A person tracking their own players and friends.** Wants their own and
 their friends' rare moments, named. Does not want `battles_recorded` at all;
@@ -242,13 +248,32 @@ design change; Tier 3 and 4 follow from it.
    tool call and one per row. The `{count} and nothing else` test pin should
    be revisited with this distinction in hand.
 
-7. **`war_day_closing`.** Emitted per clan at a fixed distance before the
-   10:00Z close (two fixed marks, 4h and 1h, is enough to start; per-clan
-   hour when there is a reason), payload `{war_day, closes_at, untouched,
-   partial, finished, participants}` counts only, plus `race_finished`. The
-   agent calls `war_current` for the names. This is the single most valuable
-   clan signal in the bot's inventory and the one the port left as "set your
-   own timer". Add `race_finished` as its own discrete event while there.
+7. **The clock is the agent's, not the feed's** (Jamie, 2026-09-13, on the
+   first draft of this item, which proposed a `war_day_closing` topic). The
+   test for a feed row is *could the agent have computed this itself?* A war
+   day ending is a clock fact: every clan closes at 10:00Z, `game_clock`
+   needs no clan, and the feed is pull, so a closing row could only be seen
+   when the agent polls anyway. It adds nothing the agent lacked and assumes
+   the agent wants a war schedule at all. So:
+   - **No `war_day_closing`.** Withdrawn.
+   - **Deprecate `war_day_open`** for the same reason; it is 10:00Z on a war
+     day dressed as an event. Keep emitting through one deprecation window
+     (the routine recipe on the Events page uses it), point readers at
+     `game_clock`.
+   - **Keep only observations:** `race_finished` (the boat crossed the line,
+     unpredictable and clan-specific) as a new discrete topic, and
+     `clan_war_week_finished` carrying the result (Tier 3.13). Whether an
+     agent cares is what the `topics` filter is for.
+   - **Make `game_clock` sufficient for self-scheduling.** Today it returns
+     `day_ends_at` and `season_ends_at` but not the next boundaries an agent
+     needs to say "call me three hours before the next close": add
+     `next_war_day_opens_at`, `war_day_closes_at` (null on training days),
+     `week_ends_at`, `next_training_starts_at`. One call, for nobody in
+     particular; an agent that does not care never asks.
+   - The pulse's 07:00Z is the same smell in a different lane: it is a time
+     we chose. It is tolerable because the pulse is a digest the agent opts
+     into by topic, and Tier 3.12 makes the hour the account's; but nothing
+     in the feed should ever tell an agent what time it is.
 
 8. **Edge-triggered quiet.** `member_quiet` emitted once per member per rung
    of a fixed ladder (5, 10, 20 recorded-quiet days), guarded by
@@ -315,6 +340,424 @@ design change; Tier 3 and 4 follow from it.
   there is nothing to mute.
 - **The drill-down stays in the tools.** Naming the subject of a nod (Tier
   2.6) is not putting analysis in the event.
+
+---
+
+# Part II — From what happens to who should hear it
+
+Jamie, 2026-09-13, after Part I: *consider everything that happens as
+players and clans play; a person's feed (self, alts, friends) and an agent's
+feed (a clan) should be fed differently; assume nothing about what the
+consuming agent is doing; a row must be something the consumer could not
+have found out on its own; it should be synthesis, summarization, activity.*
+
+## 6. The tests a row has to pass
+
+Four, applied to every candidate below.
+
+1. **Not computable by the reader.** A clock tick fails (§Tier 2.7). "The
+   day rolled" fails. "Raquaza played 13 battles since you looked" passes:
+   the reader would have to poll the record to learn it.
+2. **Assumes nothing about the reader's purpose.** A row is a description of
+   what happened to a subject, never an instruction, a threshold judgment, or
+   a presumption of interest. "Untouched: 40" is a fact about the clan;
+   "nudge these 40" is not a row.
+3. **Synthesis, not ticks.** One row summarizes a subject's activity over the
+   reader's own window (since its cursor). Ten counts on ten topics for one
+   subject is the current design's failure; one entry per subject with named
+   sections is the target.
+4. **Named.** The subject line carries the *which* (arena 14, badge "Card
+   Mastery: Hog Rider L3", joined "Ship It!"). Analysis (what it means,
+   evidence, tenure) stays with the tools.
+
+## 7. What happens in Clash Royale
+
+The full inventory, before deciding what is feed-worthy. Marked by which
+reader plausibly cares (P = a person watching self/alts/friends, A = an agent
+representing a clan), and by whether the reader could compute it (C) or it
+is an observation only the record has (O). Clock facts are marked K and are
+never rows.
+
+### A player's life
+
+| happening | P | A | kind | note |
+|---|---|---|---|---|
+| played battles (ladder, ranked, war, 2v2, challenge, tournament, event, friendly), with results and crowns | P | A (aggregate) | O | the base activity; per-person for P, per-clan totals + standouts for A |
+| trophies moved; new personal best | P | notable only | O | for a beginner every session is a new best: band it (every 500, or arena boundary) |
+| arena promotion | P | notable | O | upward only |
+| Path of Legends: promotion, global rank, season final league | P | notable | O | promotions are rare enough to name each |
+| PoL season reset (league dropped) | – | – | K-ish | a reset, not a demotion; never a row |
+| collection: card unlocked, card levelled, card maxed, evolution/hero form unlocked, collection level up | P (banded) | – | O | levelled-per-level is texture; maxed/evolution/form is a moment |
+| badges: mastery level up, one-off legendary badge, YearsPlayed anniversary | P | notable | O | named; already split at the emitter |
+| career thresholds: wins, three-crown wins, battle count, lifetime donations | P | notable | O | thousand-crossings |
+| weekly donations given/received | P (own) | A (leader, total) | O | Monday reset is K; the count is O |
+| clan membership: joined, left/kicked (indistinguishable), role changed, rejoined | P (friends) | A (own roster) | O | WHO, always |
+| war: decks used per day, points, left out of the race roster | P (own/friends) | A (aggregate) | O | per-member is texture for A; the aggregate and the outliers are the signal |
+| went quiet / came back | P (friends) | A (members) | O | edge-triggered on rungs; guarded by days_since_poll |
+| unusual burst (60 battles in a day) | P | A (standouts) | O | relative to the player's own baseline |
+| streaks (win/loss), win-rate swing | P | – | O | derived; needs a baseline; probably tool territory, not feed |
+| deck change (most-played deck changed, archetype changed) | P | – | O | synthesis from battles; a nod-worthy moment for a friend-watcher |
+| name change, favourite card change | P | A (roster names) | O | small; name change matters to rosters |
+| challenge / tournament result (12 wins, badge) | P | notable | O | from badges + battles |
+
+### A clan's life
+
+| happening | P | A | kind | note |
+|---|---|---|---|---|
+| roster: joins, leaves, role changes, net size, purge (many leaves in one poll), churn rate, hoppers | friends' clans only | A | O | discrete WHO inside one card; the purge is the pattern the agent reads from timestamps |
+| leadership change (leader transfer) | – | A | O | a role change to `leader` |
+| war: week started, war day opened/closed, season started/ended, colosseum | – | – | K | never rows; `game_clock` |
+| war: boat crossed the finish line | – | A | O | unpredictable, clan-specific |
+| war: day result (period points, standing among five), week result (fame, rank, trophy change), rival overtook | – | A | O | resolutions are observations |
+| war: participation aggregate at a moment (untouched/partial/finished, participants, members not in race) | – | A | O | fact with `as_of`; the moment is the reader's choice |
+| clan score / war trophies moved; league changed; ranking position moved | – | A | O | from clan polls and rankings |
+| donations: weekly total, leader, distribution | – | A | O | Monday reset is K |
+| activity aggregate: battles, active members, per-day shape | – | A | O | the pulse's headline numbers |
+| members quiet crossing rungs; members returned; never recorded | – | A | O | edge, named, guarded |
+| standouts: most battles, new bests, badges, promotions among members | – | A (bounded) | O | this is where 50 beginners' progression collapses into one line |
+| description / required trophies / type (open, invite, closed) / badge / location changed | – | A | O | leader actions visible in the clan payload; not recorded today (check) |
+| clan anniversary, member join anniversaries, birthdays | – | – | K / invented | elixir-bot's; a clock or a community fact, not the record's |
+
+### The game's life
+
+| happening | P | A | kind |
+|---|---|---|---|
+| season rollover, war grid | – | – | K (`game_clock`) |
+| card added, balance change, game event started/ended | P? A? | | O but global; already `game_events` / `elixir_changelog`; a global stream is a later question |
+
+### The service's life (account stream, unchanged)
+
+recording started/stopped, feedback responded, tier changed. Discrete, addressed, fine as they are.
+
+## 8. Two readers, two shapes
+
+**A person** watches people: primary, alts, friends, watching. They read at
+irregular intervals (when they open Claude), hours to days apart. The
+natural unit is *the person*: "what did each of my people do since I last
+looked?" One entry per subject, sections for battles, trophies, ranked,
+collection, badges, clan, war, quiet/returned, notables. Ten subjects, ten
+entries, each a paragraph's worth of named facts. That is the whole feed.
+
+**An agent** represents a clan and reads on its own schedule (it decides
+that from `game_clock`; §Tier 2.7). The natural unit is *the clan*: one entry
+per clan since its cursor, with sections for activity, roster (WHO, with
+timestamps and roles), war (state with `as_of`, resolutions in the window),
+quiet crossings and returns, donations, standouts (bounded, named). Members'
+individual progression appears only as standouts; a member's detail is one
+`players_summary` away. A 50-member beginner clan produces one entry, not 300
+rows, and the beginners' climb shows up as "9 members reached a new arena
+(names…)", which is synthesis.
+
+An agent may ALSO be given players to follow (its leaders, say) and then
+gets player entries for them; a person who adds a clan gets the clan
+entry. The entry's shape follows the subject kind, not the account kind. What
+the account kind decides is only the default subject set, which it already
+does.
+
+Neither shape has a `topics` list to opt into, because there are no topics:
+there are subjects and sections. A reader that does not care about war reads
+past the `war` section; a `sections` argument can trim it from the wire. No
+row ever says what time it is, and no row ever says what to do.
+
+## 9. The shape, concretely
+
+Illustrative, numbers drawn from today's reads where they exist.
+
+A person's entry (Jamie's feed, subject raquaza, window since the cursor):
+
+```json
+{ "kind": "player", "subject_tag": "#UL2V9QRG0", "name": "raquaza",
+  "relationship": "friend",
+  "window": { "from": "2026-09-11T14:00:00Z", "to": "2026-09-13T14:56:00Z" },
+  "battles": { "played": 13, "won": 8, "lost": 5, "by_mode": { "ladder": 9, "war": 4 } },
+  "trophies": { "from": 7250, "to": 7412, "best": 7412, "new_best": true },
+  "ranked": null,
+  "collection": { "level": { "from": 41, "to": 43 }, "unlocked": [], "maxed": [] },
+  "badges": [ { "name": "Card Mastery: Hog Rider", "level": 3 } ],
+  "clan": { "tag": "#J2RGCRVG", "changed": null },
+  "war": { "decks_used": 4, "war_day": 3 },
+  "presence": { "days_quiet": 0, "returned_after_days": null },
+  "notables": [ "new_best_trophies", "collection_level_up", "badge_level_up" ] }
+```
+
+A clan entry (an agent for POAP KINGS, window since its cursor):
+
+```json
+{ "kind": "clan", "subject_tag": "#J2RGCRVG", "name": "POAP KINGS", "scope": "comprehensive",
+  "window": { "from": "2026-09-12T07:00:00Z", "to": "2026-09-13T14:56:00Z" },
+  "activity": { "battles": 432, "members_active": 34, "members_total": 47, "basis": "recorded" },
+  "roster": { "joined": [ { "tag": "#20CLVPLG8R", "name": "VVSBUDGET", "at": "2026-09-12T13:37:59Z" } ],
+              "left": [ { "tag": "#LCUVPUYCY", "name": "ㅤᴀɴᴅᴇʀㅤ:)", "role": "member", "at": "2026-09-12T16:18:13Z", "tenure_hours": 3 } ],
+              "role_changes": [], "size": { "from": 46, "to": 47 } },
+  "war": { "season_id": 136, "week": 1, "day_kind": "war", "war_day": 4,
+           "race_finished_at": "2026-09-13T09:38:04Z",
+           "decks": { "as_of": "2026-09-13T14:48:01Z", "untouched": 40, "partial": 4, "finished": 3, "participants": 47 },
+           "resolved": [ { "war_day": 3, "period_points": 1500, "standing": 1 } ] },
+  "presence": { "quiet_crossed": [ { "tag": "#YC8LLR8Q2", "name": "sniperhendo", "days": 5, "days_since_poll": 0 } ],
+                "returned": [], "never_recorded": 0 },
+  "standouts": { "most_battles": [ { "tag": "#2G2RPVPP", "name": "Aaqib Javed", "battles": 62 } ],
+                 "new_bests": [], "badges": [], "promotions": [] },
+  "donations": { "week_total": 9021, "leader": { "tag": "#C920YGLC2", "name": "Vijay", "given": 881 } } }
+```
+
+Every field is a fact with its window or its `as_of`. `race_finished_at`
+being set is the only thing a war-minded agent needs to know that the
+`decks` block is moot; the entry does not say so, because that is the agent's
+inference to make.
+
+## 10. Where the rows come from: the ledger, not the fan-out
+
+The recorder already has the right table. `player_event` and `clan_event`
+(migration 0001, design §13) are per-subject ledgers with `event_id` as the
+cursor, evidence payloads, and timing windows; they hold roster events and
+donation resets today, and one tool (`clans_roster.recent_events`) reads
+them. The per-account `event_feed` (0030) was added beside them and became
+the thing every emitter writes to, with fan-out at write time on the
+premise that "accounts are few, watches are bounded". Eighteen clans in and
+that premise is the scaling problem: every clan happening is copied once
+per subscriber, then re-folded on every poll.
+
+The shape in §8 wants the opposite: **write once per subject, synthesize
+per reader at read time.**
+
+- Emitters write happenings to the subject ledger, once, named, with
+  evidence (`badge_earned {name, level}`, `arena_changed {from, to}`,
+  `card_maxed {card}`, `race_finished {at}`, `member_left {tag, name, role}`).
+  Diffs the record cannot reconstruct (badge levels, whose prior state the
+  upsert discards) become durable here; diffs it can (battles, snapshots,
+  memberships) need no ledger row at all.
+- `elixir_events` becomes a read-time synthesis: for each of the caller's
+  subjects, one entry built from the record and the ledger since the caller's
+  cursor, shaped by subject kind. The cursor is an instant (or the ledger
+  high-water id), per account, with the same `mark_seen` bookmark semantics
+  and the same "second consumer keeps its own" rule.
+- `events_pending` stays cheap: "has any subject of yours been admitted
+  since your cursor?" is one indexed lookup over `poll_state`.
+- Nothing prunes. The record is the archive; a reader that comes back after
+  40 days gets a 40-day entry, which is what it should get.
+- Fan-out, the coalescing CTE, the 30-day sweep and `event_feed` retire.
+  The account stream (feedback, recording, tier) stays as addressed rows;
+  it is small and genuinely per-account.
+
+Cost. A person's read is one entry per subject, each about a
+`players_summary` in weight. A clan entry is the pulse's query set (§0.6),
+which today costs seconds per clan; that is acceptable for a feed read a
+few times a day and should be measured (Tier 4.14) and cached per (clan,
+quarter-hour) if an agent polls harder than that. The daily pulse stops
+being a separate thing: a clan entry read at 07:00Z IS the pulse, at the
+hour the reader chose.
+
+**The smaller step, if the ledger route is too much at once:** keep
+write-time rows but fold per SUBJECT into one accumulating entry (jsonb
+merge in the coalescing CTE) instead of per (subject, topic). It fixes the
+row count and the naming, keeps fan-out and stale moment facts, and is a
+stepping stone rather than a destination.
+
+## 11. What this retires from Part I
+
+Tier 2.5 (`wake` classes), 2.6 (name the thing), 2.8 (edge-triggered
+quiet), 2.9 (beginner-aware thresholds) and Tier 3 (the pulse as a brief)
+all survive as *sections and rules inside the entry* rather than as topics.
+Tier 1 stands as written. Tier 2.7 stands: the clock is never in the feed.
+Tier 4.14 (measure) and 4.15 (pilot an agent on a foreign clan) become the
+first two steps of any implementation, not the last.
+
+---
+
+# Part III — Before implementing
+
+Jamie, 2026-09-13, on Part II: *"We aren't making an event stream for code,
+this is a notification feed for an agent. It should be as ready to use.
+Honestly it is something a person should be able to read and find valuable
+too."* Ratified: the synthesized entry is the row; the raw happenings are
+available inside it, not instead of it.
+
+## 12. The vocabulary, settled
+
+- **Entry.** One row of the feed: a subject's activity since the reader's
+  cursor. Kinds: `player_activity`, `clan_activity`, plus the account rows
+  (`feedback_responded`, `recording_started/stopped`, `account_tier_changed`).
+- **Summary.** A deterministic, templated sentence or two at the top of
+  every entry, written for a person: *"raquaza (friend): 13 battles since
+  Thursday, 8 wins; new best 7,412 trophies; Card Mastery: Hog Rider reached
+  level 3."* No model call, no judgment, every number from the sections
+  below it. This is the "ready to use" half.
+- **Sections.** The structured facts under the summary (`battles`,
+  `trophies`, `ranked`, `collection`, `badges`, `clan`, `war`, `presence`,
+  `notables` for a player; `activity`, `roster`, `war`, `presence`,
+  `standouts`, `donations` for a clan). Always present, `null` when nothing
+  happened, same keys every time.
+- **Happenings.** The named moments inside the window (`badge_earned
+  {name, level}`, `member_left {tag, name, role, at}`), available with
+  `verbosity: full`, taken from the subject ledger.
+- **Window.** `{from, to}` on every entry. `from` is the reader's cursor,
+  `to` is the response's `as_of`, and `next_cursor` is that `as_of`.
+
+## 13. Decisions to make before the first line of code
+
+Each with a recommendation. Where Jamie has already ruled, it says so.
+
+1. **Tool name.** Keep `elixir_events` and bump the contract major (the
+   response shape changes; clients pinned to 1.x keep the old shape through
+   a deprecation window). "Events" still describes it well enough, and a
+   rename costs every connected client a re-fetch for no reader benefit.
+   *Recommend: keep the name; 2.0.0.*
+
+2. **What "since your cursor" means.** The window has to partition exactly
+   across reads (no happening lost, none shown twice) and it has to be about
+   *what the record learned*, not what the clock says. Battles arrive late
+   (a log rolled, captured on the next poll); backfills arrive very late.
+   *Recommend:* the window predicate is a commit-time column (add
+   `admitted_at default now()` where a table lacks one, or the ledger's
+   `event_id` for happenings), never `battle_time` or a collector's
+   `fetched_at`; battles played inside the window count in the story;
+   battles admitted in the window but played more than 24 hours before
+   `from` are reported once as `late_captures: n` and not narrated. A test
+   pins the partition: two abutting reads over a scratch record with
+   concurrent admissions never lose or duplicate a happening.
+
+3. **First read, no cursor.** Today's advice is "start from the newest
+   event". With synthesis there is a better answer. *Recommend:* default
+   `from` is 24 hours ago; `since` also accepts an instant so a routine can
+   ask for "the last week" once; windows are capped at 30 days with
+   `applied.window` saying so.
+
+4. **Subjects with nothing to say.** A silent friend is information. A
+   silent member of a clan is already in the clan entry's `presence`.
+   *Recommend:* no entry for a quiet player subject, but the response carries
+   `quiet: [{tag, name, days_since_battle, days_since_poll}]` for player
+   subjects with nothing in the window, so silence is visible without a row
+   per silent friend.
+
+5. **Who is a subject.** A person: every claim with notify on (primary,
+   alts, friends, watching) as player entries, every added clan as a clan
+   entry. An agent: its clan(s) as clan entries, plus any player it tracks
+   explicitly. **Members of an agent's clan are not subjects** (Part I §0.3);
+   they appear inside the clan entry. *Ruled in principle by the 2026-09-08
+   frame ("agents get the clan's players and nothing beyond"); the change
+   is that "get" now means "inside the clan entry", not "as rows".*
+
+6. **Entries are shaped by subject kind, never by account kind.** A person
+   who adds a clan gets the same clan entry an agent does; an agent that
+   tracks a player gets the same player entry a person does. Account kind
+   only decides the default subject set. *Recommend as stated.*
+
+7. **Scope-aware clan entries.** An activity-scope clan has no member
+   battles of its own. *Recommend:* its entry carries `scope` and omits
+   `activity.battles`, `standouts.most_battles` and `presence.quiet`
+   (or marks them `basis: "incidental"`); `never_recorded` is not reported
+   for activity scope at all.
+
+8. **Thresholds that are disclosed, not judged.** The only thresholds in an
+   entry are rungs a reader can see: quiet crossings at 5/10/20 recorded
+   days (guarded by `days_since_poll`), trophy bests at 500-bands,
+   collection level at multiples of 5, career wins at thousands, card
+   moments at maxed/evolution/form. *Recommend these numbers; they are
+   data in one table, changeable without a code path.*
+
+9. **Bounds.** Roster lists ≤ 20 with `more: n`; standouts ≤ 5 per list;
+   badges ≤ 5 named; the existing `MCP_RESULT_MAX_CHARS` mirror applies.
+   *Recommend as stated.*
+
+10. **The ledger writes.** Every named happening becomes one
+    `player_event`/`clan_event` row at the emitter (badge level with name,
+    arena from/to, best-trophies band, collection level, card maxed /
+    evolution / form, PoL promotion with league, race finished, week
+    resolved with fame and rank, role change with prev/new/direction, leave
+    with role). One write, no fan-out. Aggregates (battles, activity,
+    donations) come from the record. *Recommend as stated; this is the
+    design's own §13 restored.*
+
+11. **What retires, and when.** `event_feed`, the coalescing CTE, the
+    30-day sweep, the `clan_pulse` job and EventBridge rule, `war_day_open`
+    and the `TOPIC_CONTRACTS` audience table. The account stream stays as
+    addressed rows. *Recommend:* ship 2.0.0 with the old shape served to
+    1.x contract pins for one window (the routine recipe on the Events page
+    is the known consumer), then remove.
+
+12. **The console's Activity page is the human surface.** It reads
+    `event_feed` today. *Recommend:* it renders the same entries through
+    `web-api`, summary line first; that is where "a person should be able to
+    read it" gets tested every day.
+
+13. **Cost and cache.** A clan entry is the pulse's query set, seconds per
+    clan today. *Recommend:* measure with the existing Server-Timing and
+    EMF before deciding on a cache; if needed, cache per (clan, quarter
+    hour) building blocks, never the reader-shaped entry.
+
+14. **`events_pending` and `game_clock`.** `events_pending` becomes "any
+    subject of yours admitted since your cursor", one indexed lookup;
+    honest, and for an active clan usually true. `game_clock` gains
+    `next_war_day_opens_at`, `war_day_closes_at`, `week_ends_at`,
+    `next_training_starts_at` so a reader can schedule itself (Part I
+    §Tier 2.7). *Recommend as stated.*
+
+15. **Docs and examples.** The Events page is rewritten around entries;
+    the agents recipe drops `topics` and keeps "own cursor, never mark" for
+    a second consumer; the examples are regenerated from the live door
+    (never invented); `CLAN-PULSE.md` is archived as superseded.
+
+## 14. Does it hold regardless of the consumer's goals?
+
+The claim to validate: one shape serves any reader without knowing what
+the reader is for. Checked against the consumers we can name.
+
+| consumer | what it reads from the same entry | gap |
+|---|---|---|
+| clan-management routine | `roster`, `presence`, `war`, `activity` | none; the nudge moment is its own schedule off `game_clock` |
+| hype / highlights bot for a clan Discord | `standouts`, `notables`, badges, bests, promotions | none; names are in the entry |
+| recruiter / churn watcher | `roster` with timestamps and tenure, `size` | a purge is visible as many leaves at one instant; no judgment needed |
+| war-only agent | `war` section; `sections: ["war"]` trims the wire | none; it never sees a clock row |
+| a person watching friends | player entries, `quiet` list, summary lines | none; this is the primary human use |
+| a personal coach for one player | player entry's battles by mode, W-L, bests; drills with `battles_performance` | the entry is the wake, the tools are the analysis, as designed |
+| a leader reading the console Activity page | the same summary lines | none, once the console renders entries (§13.12) |
+| an analyst wanting raw happenings | **not the feed**: `players_timeline`, `clans_roster.recent_events`, the ledger via tools | deliberate; the feed is a notification surface, not a firehose |
+| an integration (headless, no "me") | none (excluded today) | unchanged |
+
+What makes it robust rather than merely broad:
+
+- **Completeness is structural.** Every section is always present; a reader
+  never has to learn which keys appear when. Silence is a `null`, not an
+  absence.
+- **Neutrality is checkable.** Every threshold is a disclosed rung; every
+  moment fact carries `as_of`; every window is echoed. There is no field a
+  reader could mistake for advice. A test can assert no entry ever contains
+  a verb of instruction.
+- **The clock is never inside.** Nothing in an entry says what day it is;
+  a reader that cares asks `game_clock`.
+- **Cost is flat in what happened.** One entry per subject, bounded lists,
+  regardless of whether the subject is a maxed veteran or a beginner
+  climbing four arenas in a day. The beginner clan that broke the current
+  design is one entry with `standouts.arena_promotions: 9`.
+- **It degrades honestly.** Activity scope, never-polled members, late
+  captures and capped windows all say so in the entry rather than
+  silently narrowing it.
+- **It reads as prose.** The summary line is the same text a person and an
+  agent see; if it is not valuable to a person reading the Activity page,
+  it is not valuable to an agent either, and that is testable with fixtures
+  before any agent is connected.
+
+The one thing this cannot promise is that a reader wanting sub-minute
+notification of a single happening is served; the feed is pull, and the
+entry is a summary. That reader polls `war_current` or `clans_roster`
+directly, which is cheaper for them and for the service.
+
+## 15. Validation before build
+
+1. **Prototype the synthesizer read-only against the live record** (an ops
+   op or a script over the existing read paths, no writes) for two readers:
+   Jamie's account and a POAP KINGS agent. Dump seven days of entries at
+   three cadences (hourly, daily, weekly). Jamie reads them as a person and
+   says whether they are valuable. This is the cheapest possible test of the
+   whole premise and it costs no deploy.
+2. **Run the same dump for Canadian, ShocK-13, MuUuKaNs and GUERREIROS PT**
+   (the four clan shapes in Part I §2) and read those too; if the entry is
+   dull for a clan that does not war, or noisy for a clan that hops, fix the
+   template before the schema.
+3. **Measure the query cost** of a clan entry per window size on the live
+   database, with Server-Timing, before choosing a cache.
+4. **Then** Tier 4.15: one agent on a foreign clan for a week, reading its
+   feed daily, before the old shape is removed.
 
 ---
 
