@@ -63,8 +63,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   // periodIndex is season-monotonic and RESETS each season (cr docs),
   // so the same (clan, index) key returns every ~5 weeks. An anchor
   // more than 7 days older than the new observation is last season's:
-  // refresh it, and treat the period as newly opened (this is also
-  // what re-arms war_day_open after a season rolls). A replayed OLD
+  // refresh it, and treat the period as newly opened. A replayed OLD
   // payload can never refresh (its fetchedAt is not newer). Found by
   // the sol-6 assessment, 2026-09-05.
   const { rows: anchorInsert } = await db.query(
@@ -83,28 +82,11 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     return { projected: "anchor_only", needsBackfill: true, feedEvents: [] };
   }
 
-  // Push lane (CLAN-PULSE.md): the first observation of a war-day period
-  // is the "war day opened" moment. Recency-guarded so an archive replay
-  // never announces ancient days; collected here, emitted by the
-  // pipeline AFTER commit like every clan topic.
+  // The feed no longer announces a war day opening: that is a clock fact
+  // (game_clock), not an observation (review 2026-09-13). Clan topics that
+  // ARE observations (the week resolving) are still collected below and
+  // emitted by the pipeline after commit.
   const feedEvents = [];
-  if (
-    anchorInsert.length > 0 &&
-    clock.warDay !== null &&
-    Date.parse(fetchedAt) > Date.now() - 24 * 3600_000
-  ) {
-    feedEvents.push({
-      kind: "clan",
-      tag,
-      topic: "war_day_open",
-      payload: {
-        season_id: clock.seasonId,
-        section_index: clock.sectionIndex,
-        war_day: clock.warDay,
-        is_colosseum: clock.kind === "colosseum",
-      },
-    });
-  }
 
   // 2. The week row.
   await db.query(

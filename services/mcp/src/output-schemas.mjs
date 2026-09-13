@@ -477,22 +477,33 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       applied: { type: "object" },
-      events: {
+      window: {
+        type: "object",
+        properties: { from: ISO, to: ISO },
+        required: ["from", "to"],
+      },
+      entries: {
         type: "array",
         items: {
           type: "object",
           properties: {
-            event_id: COUNT,
-            topic: { type: "string" },
-            subject_tag: { type: "string" },
-            payload: { type: "object" },
-            created_at: ISO,
+            kind: {
+              type: "string",
+              enum: ["player_activity", "clan_activity"],
+            },
+            subject_tag: TAG,
+            name: { type: ["string", "null"] },
+            summary: { type: "string" },
+            window: { type: "object" },
+            notables: { type: "array" },
           },
-          required: ["event_id", "topic", "created_at"],
+          required: ["kind", "subject_tag", "summary", "window"],
         },
       },
-      next_cursor: COUNT,
-      seen_through: COUNT,
+      quiet: { type: "array" },
+      subjects: COUNT,
+      next_cursor: ISO,
+      seen_through: { type: ["string", "null"] },
       has_more: { type: "boolean" },
       notes: NOTES,
       docs: DOCS,
@@ -500,7 +511,9 @@ export const OUTPUT_SCHEMAS = {
     },
     required: [
       "applied",
-      "events",
+      "window",
+      "entries",
+      "quiet",
       "next_cursor",
       "seen_through",
       "has_more",

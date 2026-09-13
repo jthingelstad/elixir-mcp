@@ -112,8 +112,11 @@ of their battles would predict: a descriptive residual, not a skill rating.
 **Level Curve** — win rate by deck-average level difference across the
 corpus, the baseline Pilot Score subtracts.
 
-**pulse** — `clan_pulse`, the daily 07:00 UTC digest event for a tracked clan:
-battles, active members, who went quiet, war state, roster changes.
+**entry** — one row of the activity feed (`elixir_events`): a subject's
+activity since your bookmark, with a summary sentence a person can read and
+always-present sections of facts. A clan's entry carries battles, active
+members, who went quiet or came back, the war state, roster moves, standouts
+and donations.
 
 ## War and the clock
 

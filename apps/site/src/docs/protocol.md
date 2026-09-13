@@ -454,8 +454,8 @@ in its hint.
   destroyed tower is `0` and unreported tower data is `null`.
 - **Cursors.** `battles_query` returns `next_cursor` (`null` means the end).
   Treat it as opaque: pass it back unchanged, never parse or construct one; a
-  forged or stale cursor is `bad_request`. `elixir_events` uses an integer
-  `since` by `event_id`.
+  forged or stale cursor is `bad_request`. `elixir_events` uses instants:
+  `from`/`to`, and `next_cursor` is the window end you just read.
 - **`live: true`** on `players_profile`, `clans_roster`, `war_current`,
   `battles_query` and the board tools asks for a read no older than the
   API's cache. Asynchronous (1.7.0): fresh if in hand, otherwise queued

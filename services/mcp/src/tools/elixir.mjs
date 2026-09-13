@@ -21,7 +21,9 @@ import {
   CORPUS_BUILT_AT,
   searchDocs,
 } from "@elixir-mcp/docs";
-import { emitFeedEvent, FEED_TOPICS } from "../feed.mjs";
+import { emitFeedEvent } from "../feed.mjs";
+import { buildEntries, subjectsFor } from "../activity/entries.mjs";
+import { resolveInstant } from "../time.mjs";
 import { captureCoverage } from "../coverage.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
 import {
@@ -36,6 +38,9 @@ import {
   appliedBlock,
   notes,
   docsRef,
+  VERBOSITY,
+  WINDOW_ARGS,
+  zoneFor,
 } from "./shared.mjs";
 
 const RECORDING_DOCS = docsRef("recording", "added-means-recorded");
@@ -694,115 +699,186 @@ export const elixirTools = {
 
   elixir_events: {
     description:
-      "Your event feed: the push lane, a NOD rather than a report. It says a thing happened over here so a scheduled routine can skip the tools that would have found nothing; payloads carry a count and no analysis, so drill with the data tools. Everything you track feeds it while notify is on; an agent also hears about the players in the clan it runs. Coalesced topics (one unread row per tag with a count): battles_recorded, badge_earned, legendary_badge_earned, arena_changed, best_trophies_peak, career_wins_milestone, collection_level_milestone, pol_promotion. Discrete: member_joined, member_left (the game cannot tell a leave from a kick), member_role_changed, war_day_open, clan_war_week_finished, clan_pulse (daily digest, 07:00Z), feedback_responded, recording_started/stopped, account_tier_changed. A topic being listed never means one occurred. meta.events_pending on any response says when there is something new. Needs only cr:read: the seen-cursor is a bookmark.",
+      "Your activity feed: one ENTRY per subject you track, since your bookmark. A person's subjects are the players they track and the clans they added; an agent's is the clan it represents, whose members appear inside the clan entry, never as rows. Each entry opens with a summary sentence a person can read, then always-present sections (null when nothing happened): a player's battles, trophies, arena, ranked, collection, badges, clan, war and presence; a clan's activity, roster, war, presence, standouts and donations; plus named notables. Facts with their windows, never advice, and nothing announces the time: schedule from game_clock. Tracked players with nothing in the window are listed under quiet. Omit from to resume from your bookmark (with none, the last 24 hours; capped at 30 days); mark_seen moves the bookmark to the window end, and a second consumer on the same account passes false and keeps its own from. Needs only cr:read.",
     inputSchema: {
       type: "object",
       properties: {
-        since: {
-          type: "integer",
-          minimum: 0,
-          description:
-            "Cursor: events after this event_id. Omit to resume from your last-seen position.",
-        },
-        topics: {
-          type: "array",
-          items: { type: "string" },
-          maxItems: 12,
-          description: "Only these topics (default: all).",
-        },
-        limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+        ...WINDOW_ARGS,
         mark_seen: {
           type: "boolean",
           default: true,
           description:
-            "Advance your seen-cursor past the returned events (clears meta.events_pending). A second consumer on the same account should pass false and keep its own cursor. With a topics filter the cursor stops at the first event the filter excluded (see seen_through).",
+            "Move your bookmark to this window's end. A second consumer on the same account should pass false and keep its own since.",
         },
+        sections: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: 16,
+          description:
+            "Keep only these sections in each entry; the summary, subject, window and notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations.",
+        },
+        verbosity: VERBOSITY(
+          "summary lines, subject, window and notables only; every section is dropped.",
+        ),
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
+      const tz = zoneFor(ctx, args) ?? "UTC";
+      const DAY_MS = 86_400_000;
+      const CAP_MS = 30 * DAY_MS;
       const { rows: acct } = await ctx.db.query(
-        `select events_seen_through from account where account_id = $1`,
+        `select activity_seen_at from account where account_id = $1`,
         [ctx.account.accountId],
       );
-      // `cursor` is where this PAGE reads from; `ackFrom` is where the
-      // account has actually read up to, the only honest floor for
-      // deciding what may be marked seen (#13).
-      const ackFrom = Number(acct[0]?.events_seen_through ?? 0);
-      const cursor = args.since !== undefined ? Number(args.since) : ackFrom;
-      const limit = Math.min(Math.max(Number(args.limit ?? 50), 1), 200);
-      const topics =
-        Array.isArray(args.topics) && args.topics.length > 0
-          ? args.topics.map(String)
-          : null;
-      const unknown = topics?.find((t) => !FEED_TOPICS.includes(t));
-      if (unknown) {
+      const bookmarkMs = acct[0]?.activity_seen_at
+        ? acct[0].activity_seen_at.getTime()
+        : null;
+      let toMs = Date.now();
+      if (args.to !== undefined) {
+        const parsed = resolveInstant(tz, args.to, { endOfDay: true });
+        if (!parsed)
+          throw new ToolFailure(
+            "bad_request",
+            `Could not read 'to' (${args.to}).`,
+            "Use an ISO instant or YYYY-MM-DD.",
+          );
+        toMs = Math.min(parsed.getTime(), Date.now());
+      }
+      let fromMs;
+      let source;
+      if (args.from !== undefined) {
+        const parsed = resolveInstant(tz, args.from);
+        if (!parsed)
+          throw new ToolFailure(
+            "bad_request",
+            `Could not read 'from' (${args.from}).`,
+            "Use an ISO instant or YYYY-MM-DD.",
+          );
+        fromMs = parsed.getTime();
+        source = "argument";
+      } else if (bookmarkMs !== null) {
+        fromMs = bookmarkMs;
+        source = "bookmark";
+      } else {
+        fromMs = toMs - DAY_MS;
+        source = "default";
+      }
+      let capped = false;
+      if (toMs - fromMs > CAP_MS) {
+        fromMs = toMs - CAP_MS;
+        capped = true;
+      }
+      if (fromMs >= toMs)
         throw new ToolFailure(
           "bad_request",
-          `Unknown topic '${unknown}'.`,
-          `Topics: ${FEED_TOPICS.join(", ")}.`,
+          "from must be before to.",
+          "Pass a from earlier than to, or omit both for the window since your bookmark.",
         );
-      }
-      const { rows } = await ctx.db.query(
-        `select event_id, topic, subject_tag, payload, created_at
-         from event_feed
-         where account_id = $1 and event_id > $2
-           and ($3::text[] is null or topic = any($3))
-         order by event_id
-         limit $4`,
-        [ctx.account.accountId, cursor, topics, limit + 1],
+
+      const PLAYER_SECTIONS = [
+        "battles",
+        "trophies",
+        "arena",
+        "ranked",
+        "collection",
+        "badges",
+        "clan",
+        "war",
+        "presence",
+      ];
+      const CLAN_SECTIONS = [
+        "activity",
+        "roster",
+        "war",
+        "presence",
+        "standouts",
+        "donations",
+      ];
+      const ALWAYS = [
+        "kind",
+        "subject_tag",
+        "name",
+        "nickname",
+        "relationship",
+        "scope",
+        "window",
+        "summary",
+        "notables",
+      ];
+      const sections =
+        Array.isArray(args.sections) && args.sections.length > 0
+          ? args.sections.map(String)
+          : null;
+      const unknown = sections?.find(
+        (k) => !PLAYER_SECTIONS.includes(k) && !CLAN_SECTIONS.includes(k),
       );
-      const events = rows.slice(0, limit).map((r) => ({
-        event_id: Number(r.event_id),
-        topic: r.topic,
-        ...(r.subject_tag ? { subject_tag: r.subject_tag } : {}),
-        ...(r.payload ? { payload: r.payload } : {}),
-        created_at: r.created_at.toISOString(),
-      }));
-      const nextCursor =
-        events.length > 0 ? events[events.length - 1].event_id : cursor;
-      // Acknowledge only the contiguous run we actually returned: stop at
-      // the first event a topics filter excluded (#13), searching from
-      // ackFrom so page 2 cannot acknowledge what page 1 protected (#15).
-      let seenThrough = nextCursor;
-      if (topics && events.length > 0) {
-        const { rows: gap } = await ctx.db.query(
-          `select coalesce(min(event_id) - 1, $3::bigint) as seen_to
-           from event_feed
-           where account_id = $1 and event_id > $2 and event_id <= $3
-             and not (topic = any($4))`,
-          [ctx.account.accountId, ackFrom, nextCursor, topics],
+      if (unknown)
+        throw new ToolFailure(
+          "bad_request",
+          `Unknown section '${unknown}'.`,
+          `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}.`,
         );
-        seenThrough = Number(gap[0].seen_to);
-      }
-      if (args.mark_seen !== false && events.length > 0) {
+      const compact = args.verbosity === "compact";
+
+      const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
+      const feed = await buildEntries(ctx.db, subjects, {
+        fromMs,
+        toMs,
+        timezone: tz,
+      });
+      const keep = (entry) => {
+        if (!compact && !sections) return entry;
+        const allowed = new Set([...ALWAYS, ...(compact ? [] : sections)]);
+        return Object.fromEntries(
+          Object.entries(entry).filter(([k]) => allowed.has(k)),
+        );
+      };
+      const entries = feed.entries.map(keep);
+
+      const marking = args.mark_seen !== false;
+      if (marking) {
         await ctx.db.query(
-          `update account set events_seen_through = greatest(events_seen_through, $2)
-           where account_id = $1`,
-          [ctx.account.accountId, seenThrough],
+          `update account
+              set activity_seen_at = greatest(coalesce(activity_seen_at, 'epoch'::timestamptz),
+                                              to_timestamp($2 / 1000.0))
+            where account_id = $1`,
+          [ctx.account.accountId, toMs],
         );
       }
+      const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
       return {
         applied: appliedBlock({
-          since: cursor,
-          topics: topics ?? undefined,
-          limit,
-          mark_seen: args.mark_seen !== false,
+          window: { from: iso(fromMs), to: iso(toMs), source },
+          mark_seen: marking,
+          ...(sections ? { sections } : {}),
+          verbosity: compact ? "compact" : "full",
         }),
-        events,
-        next_cursor: nextCursor,
-        seen_through: args.mark_seen === false ? ackFrom : seenThrough,
-        has_more: rows.length > limit,
+        window: feed.window,
+        entries,
+        quiet: feed.quiet,
+        subjects: subjects.length,
+        next_cursor: iso(toMs),
+        seen_through: marking ? iso(toMs) : iso(bookmarkMs),
+        has_more: false,
         notes: notes(
-          events.length === 0
-            ? "Nothing new; track a player or clan (notify defaults on) and its events start arriving."
-            : "Pass next_cursor as since to continue; events prune after about 30 days.",
-          seenThrough < nextCursor
-            ? "Your seen-cursor stopped at seen_through because earlier events of other topics are still unread; poll without a topics filter to see them."
+          entries.length === 0 && feed.quiet.length === 0
+            ? "No subjects: track a player or clan (notify defaults on) and it appears here."
+            : "One entry per subject over the window; sections are facts with their own as_of, null when nothing happened. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+          feed.quiet.length > 0
+            ? "quiet lists tracked players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
             : null,
+          capped
+            ? "The window was capped at 30 days before to; pass from and to for older history, or use the data tools."
+            : null,
+          "Badge and card-level counts come from the recorder's badge and collection observations and may lag a poll; names arrive with the ledger.",
+          "Pass next_cursor as from to continue from here without marking.",
         ),
         docs: FEED_DOCS,
-        meta: responseMeta({ as_of: new Date().toISOString() }),
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          timezone_applied: tz,
+        }),
       };
     },
   },

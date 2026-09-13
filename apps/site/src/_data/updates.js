@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-13",
+    title: "The feed now reads like a person wrote it",
+    body: "elixir_events no longer hands an agent a pile of topic rows with counts to drill. It returns one entry per subject since you last looked: a sentence a person can read, then the facts under it, always in the same sections. For the players you track that is their battles and record, trophies and bests, arena and ranked moves, collection and badges, clan moves, war decks, and whether they went quiet or came back. For a clan it is the activity, who joined, left or changed role, the war state and the weeks that resolved, members crossing quiet rungs or returning, the standouts, and the week's donations. Nothing in an entry is advice, and nothing in the feed announces the time: a routine that cares about war reads game_clock and schedules itself. The old topic rows and the daily pulse are gone from the tool.",
+  },
+  {
+    date: "2026-09-13",
     title: "The clock schedules your routine; the feed says what happened",
     body: "game_clock now answers the next boundaries of each kind: when this war day closes, when the next war day opens, when training resumes, when the week ends. A scheduled agent reads those once and decides for itself when to look, instead of waiting for the feed to announce the time; war_day_open is therefore deprecated and keeps firing only through a deprecation window. Two feed payloads now match what the Events page promised all along: a role change says which roles and which direction, and a departure says the role that left. And war_current, like the clan pulse, marks race_finished_at once your boat has crossed the line, so a list of members with decks untouched is read as who played today rather than who still owes the race.",
   },

@@ -412,10 +412,22 @@ export async function pendingHints(db, account) {
          (select count(*)::int from feedback
           where account_id = $1 and responded_at is not null
             and response_seen_at is null) as fb_pending,
-         (select count(*)::int from event_feed ef
-          where ef.account_id = $1
-            and ef.event_id > (select events_seen_through from account
-                               where account_id = $1)) as events_pending`,
+         -- Subjects of yours the recorder admitted something for since your
+         -- activity bookmark (2.0.0): a count of subjects, so a reader knows
+         -- how many entries a feed read would carry. Null bookmark = never
+         -- marked, so anything ever admitted counts.
+         (select count(*)::int from (
+            select c.player_tag as tag from claim c
+             where c.account_id = $1 and c.notify
+            union
+            select ac.clan_tag from account_clan ac
+             where ac.account_id = $1 and ac.notify) s
+          where exists (
+            select 1 from poll_state ps
+             where ps.subject_tag = s.tag
+               and ps.last_admitted_at > coalesce(
+                 (select activity_seen_at from account where account_id = $1),
+                 'epoch'::timestamptz))) as events_pending`,
       [account.accountId],
     );
     return {

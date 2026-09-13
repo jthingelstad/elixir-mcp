@@ -102,7 +102,8 @@ function instructionsFor(kind, identity) {
     person: [
       "START with players_summary for 'how am I doing', battles_performance",
       "for a window or a before/after, battles_decks for decks, and",
-      "elixir_events for what changed. Tracked means recorded:",
+      "elixir_events for what changed (one entry per player you track).",
+      "Tracked means recorded:",
       "elixir_track_player / elixir_track_clan start capture in one act, and",
       "each player you track is your primary, an alt, a friend or someone you",
       "watch (elixir_my_players shows which). meta.events_pending signals new",
@@ -110,8 +111,9 @@ function instructionsFor(kind, identity) {
     ],
     agent: [
       "START with clans_roster (once per run; verbosity 'compact' for a",
-      "count), war_current (decks_today is the nudge list) and elixir_events",
-      "from your own cursor with mark_seen false. meta.events_pending and",
+      "count), war_current (decks_today is who still has decks) and",
+      "elixir_events from your own since with mark_seen false: one entry for",
+      "your clan, summary first, facts under it. meta.events_pending and",
       "meta.feedback_responses_pending ride every response: poll the feed",
       "and elixir_my_feedback only when they say there is something new,",
       "never on a timer.",

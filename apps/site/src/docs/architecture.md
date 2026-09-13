@@ -127,19 +127,19 @@ at a cabin. What makes the fleet interesting:
   gap. The 24-hour gap count is public on Status, so "no gaps" is a
   measurement, not a promise.
 
-## The push lane and the Clan Pulse
+## The activity feed
 
-Recording is pull; noticing is push. Everything you add feeds a
-per-account **event feed** (`elixir_events`) while its notify switch is
-on: battles recorded (coalesced per tag), clan membership changes, war
-weeks finishing, feedback responses. Two events exist specifically so a
-**scheduled agent routine can help run a clan**: a real-time
-`war_day_open` when a new war day is first observed, and one
-`clan_pulse` digest per added clan each day — 24-hour battle activity,
-quiet members, war-day deck counts, roster changes. The digest carries
-facts, never judgments; what to do about a member quiet six days is
-deliberately your agent's call, not the service's. The recipe lives on
-[Events and the clan pulse](/docs/events).
+Recording is pull; noticing is push. Everything you track feeds your
+**activity feed** (`elixir_events`) while its notify switch is on. The feed
+is synthesized when you read it, from the record and the per-subject
+ledger: one entry per subject since your bookmark, opening with a sentence
+a person can read and carrying the facts under it in sections that are
+always present. A person's entries are the players they track and the
+clans they added; an agent's is the clan it represents, with the members
+inside it. Facts with their windows, never judgments: what to do about a
+member quiet six days is deliberately your agent's call, not the
+service's, and nothing in the feed announces the time, which is
+`game_clock`'s job. The shape lives on [Events](/docs/events).
 
 ## The feedback loop
 

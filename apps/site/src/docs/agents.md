@@ -129,50 +129,48 @@ Every later call from `discord:1234` resolves with no lookup. Always read
 also keeps their battle log polled hourly for the next day, so a second
 question is fresher than the first.
 
-## Consuming the event feed
+## Consuming the activity feed
 
-`elixir_events` is the push lane. Its cursor is **per account**: two
-consumers that both call it with `mark_seen: true` will each acknowledge
-events the other never saw. A headless runtime should keep its own cursor
-and never mark:
+`elixir_events` returns one entry per subject since your bookmark. For an
+agent the subject is the clan it represents: one entry, with the roster
+moves, war state, presence crossings, standouts and donations inside it,
+and the summary sentence first. The bookmark is **per account**: two
+consumers that both call it with `mark_seen: true` will each move the
+other's window. A headless runtime keeps its own cursor and never marks:
 
 ```js
-// state.since persisted between runs; seed it from the newest event on
-// first run rather than replaying the backlog into a channel.
+// state.from persisted between runs (an ISO instant); omit on the very
+// first run and the window is the last 24 hours.
 const page = await call("elixir_events", {
-  since: state.since,           // integer event_id; omit on the very first run
-  limit: 200,
-  mark_seen: false,             // never move the account's cursor
-  topics: ["clan_pulse", "member_joined", "member_left"],  // war timing comes from game_clock, not the feed
+  from: state.from,
+  mark_seen: false,               // never move the account's bookmark
+  sections: ["roster", "war", "presence"],   // optional: trim the wire
 });
-for (const ev of page.events) handle(ev);   // { event_id, topic, subject_tag, payload, created_at }; coalesced topics carry payload.count
-state.since = page.next_cursor;            // last event_id returned, or unchanged when empty
-if (page.has_more) continue;               // same call again, before sleeping
+for (const entry of page.entries) handle(entry);   // entry.summary is the sentence; the sections are the facts
+for (const q of page.quiet) note(q);              // tracked players with nothing in the window
+state.from = page.next_cursor;                    // the window end you just read
 ```
 
-Payload floors per topic are on [Events](/docs/events). `meta.events_pending`
-on any other response tells you the account cursor has unread rows, which is
-only meaningful if something marks. Events prune after 30 days.
+The entry shape is on [Events](/docs/events). `meta.events_pending` on
+any response counts subjects of yours the recorder has admitted something
+for since your bookmark, which is only meaningful if something marks.
 
 **Polling has a price.** A loop that calls `elixir_events` and
 `elixir_my_feedback` every 300 seconds makes about 576 calls a day, well over
-a member's whole budget of 500 tool calls, and even the feed alone every five
-minutes is 288 calls, 58% of it, for a feed that is empty most of the time
-(the review that produced contract 1.0.0 found 56% of all traffic was
-polling). Two rules keep it cheap: **read `elixir_my_feedback` only when
-`meta.feedback_responses_pending > 0`**, and `meta.events_pending` and
-`meta.feedback_responses_pending` now ride **every** response, including
-`elixir_events` itself and `game_clock`, so any call you were making anyway
-tells you whether the next one is worth it. A routine that has nothing else
-to do can still poll the feed on a timer, but hourly is plenty; the daily
-`clan_pulse` lands at 07:00 UTC. The feed never announces the time: read
+a member's whole budget of 500 tool calls. Two rules keep it cheap: **read
+`elixir_my_feedback` only when `meta.feedback_responses_pending > 0`**, and
+`meta.events_pending` and `meta.feedback_responses_pending` ride **every**
+response, including `elixir_events` itself and `game_clock`, so any call you
+were making anyway tells you whether the next one is worth it. A routine
+that has nothing else to do can read the feed on a timer, but a few times a
+day is plenty: the entry is a summary of the whole window, so a longer
+window costs the same one call. The feed never announces the time: read
 `game_clock` once and take `war_day_closes_at` and `next_war_day_opens_at`
-from it if your routine cares about war at all (`war_day_open` is deprecated
-for exactly this reason).
+from it if your routine cares about war at all.
 
-A routine that runs once a day around 07:30 UTC sees the `clan_pulse`
-digest, drills with `clans_standings` or `battles_trends` when something
-moved, and, if it schedules itself before a close from `game_clock`, checks
+A routine that runs once a day reads its clan entry, drills with
+`clans_standings` or `battles_trends` when something moved, and, if it
+schedules itself before a close from `game_clock`, checks
 `war_current.decks_today.untouched` then, unless `race_finished_at` is set.
 Facts in, judgment in your code.
 

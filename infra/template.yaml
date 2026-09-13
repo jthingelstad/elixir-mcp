@@ -711,28 +711,6 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt PayloadSweepRule.Arn
 
-  # Daily clan pulse (CLAN-PULSE.md): one digest feed event per
-  # added-with-notify clan per UTC day, for agent clan-management
-  # routines. 07:00Z sits after the ~10:00Z-anchored war day has had a
-  # full evening of polls and before most routines' mornings.
-  ClanPulseRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: elixir-mcp-clan-pulse
-      ScheduleExpression: cron(0 7 * * ? *)
-      Targets:
-        - Arn: !GetAtt JobsFunction.Arn
-          Id: clan-pulse
-          Input: '{"clan_pulse": true}'
-
-  ClanPulsePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref JobsFunction
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt ClanPulseRule.Arn
-
   # Nightly battle-activity histogram (0084): one row per recorded player,
   # a decayed 24x7 rhythm and a year of UTC daily counts, rebuilt from
   # battle_participant. 05:30Z is the fleet's quietest hour (2026-09-13

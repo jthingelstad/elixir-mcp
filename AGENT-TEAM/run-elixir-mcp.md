@@ -43,9 +43,9 @@ Establish, with receipts:
   once and never retry on `TooManyRequestsException`. The whole fleet
   must stay within roughly one API key's budget — that is ToS posture,
   never an optimization target to raise.
-- **Scheduled jobs.** The jobs lambda's work happened: yesterday's
-  `clan_pulse` emitted (event_feed has today's rows), Monday's sweeps
-  ran (CloudWatch logs `/aws/lambda/elixir-mcp-jobs`).
+- **Scheduled jobs.** The jobs lambda's work happened: the nightly
+  activity histogram ran, Monday's sweeps ran (CloudWatch logs
+  `/aws/lambda/elixir-mcp-jobs`).
 - **Doors.** MCP and web-api error alarms quiet; p95 latency alarm
   quiet; OAuth discovery serving (the deploy smoke checks these — a run
   after a deploy re-verifies with reads). `elixir-mcp-migrate-duration`

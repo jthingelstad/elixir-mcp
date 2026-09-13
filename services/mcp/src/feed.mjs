@@ -137,19 +137,7 @@ export const TOPIC_CONTRACTS = {
     coalesce: false,
     payload: ["player_tag", "name", "prev_role", "new_role", "direction"],
   },
-  war_day_open: {
-    stream: "clan",
-    audience: { person: true, agent: true },
-    coalesce: false,
-    payload: [],
-  },
   clan_war_week_finished: {
-    stream: "clan",
-    audience: { person: true, agent: true },
-    coalesce: false,
-    payload: [],
-  },
-  clan_pulse: {
     stream: "clan",
     audience: { person: true, agent: true },
     coalesce: false,

@@ -86,7 +86,7 @@ Cross-cutting work keeps one originating owner through acceptance.
   DB-backed collector heartbeat, admission, and recent-fetch signals), the
   migrate lambda ops (`{stats}`, `{tables}`, `{feedback_pending}`…; `{probe}`
   is an on-demand census, never a routine read — see Run Elixir MCP), the jobs
-  lambda (`{clan_pulse}`, sweeps), CloudWatch alarms and service metrics, and
+  lambda (sweeps, the activity histogram), CloudWatch alarms and service metrics, and
   `mcp_call_audit`. Per-gateway CloudWatch metrics were retired with the
   zero-trust collector door.
 - Gates: `npm run verify` before push; deploys via
