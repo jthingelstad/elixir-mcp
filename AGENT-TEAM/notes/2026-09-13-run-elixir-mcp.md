@@ -17,3 +17,33 @@
 - **Watches:** Retain the legacy `config.poll` fallback until a named Python
   release tolerates its absence and fleet acceptance proves it. Capture audit
   is 97 gaps in 4,961 rolling-day polls and remains with Keep the Record True.
+
+## Operational review — healthy, bounded collector-door watch
+
+- **Evidence (09:42–09:52Z):** preflight was observation-available and
+  mutation-eligible from clean `main`; public status reported five active
+  collectors, 277-second fetch/admission freshness, 409 battles in the prior
+  hour, empty email DLQ/dead work, and 92 capture gaps in 5,345 rolling-day
+  battle-log polls. Migrate `{stats:true}` reported 219 battle-log polls in
+  the prior hour, with 6,254 entries filtered before submission and one gap.
+  All 15 `elixir-mcp-*` alarms were OK; the stack was `UPDATE_COMPLETE`; RDS
+  was available on `db.t4g.micro` with 20–100 GB autoscaling. OAuth discovery
+  served 200 and the MCP door returned its expected unauthenticated 405.
+- **Collector-door review:** CloudWatch showed a historical burst of 8,554
+  unauthenticated and 354 rate-limited lease requests in the preceding 24
+  hours, from two already-active collector egresses. It ended without a
+  replay, restart, or source change: the final 401 was 01:47Z and final 429
+  02:07Z; the eight-hour trailing read contained only 18 401s and 80 429s
+  from that finished interval, while all five collectors were later active
+  and admitting work. Keep this as a natural watch; do not churn a healthy
+  fleet or treat a tokenless historical request as a reason to weaken the
+  bearer-token door.
+- **Cost and preview:** the preceding-day web-api duration was 4,626
+  Lambda-seconds, dominated by normal collector lease/submit traffic; RDS
+  FreeableMemory stayed above 88 MiB and swap later settled around 26 MiB.
+  The account-wide `elixir-clan-estimated-charges` alarm remained in ALARM but
+  is not scoped to this stack; Elixir MCP's own estimated-charges alarm was
+  OK. The Discord preview launchd service was running, connected as its agent
+  on contract 1.9.0, retained its event cursor/run ledger, had both monthly
+  budget lanes below their caps, and naturally delivered a feed post at 07:01Z
+  plus three ask turns after 09:27Z. No source or runtime change was warranted.
