@@ -1281,3 +1281,18 @@ its first minute and the public status showed all five collectors active, empty
 DLQs/dead work, and fresh admission. Do not remove this compatibility object
 until a named Python collector release tolerates its absence and the fleet has
 been observed on that release.
+
+## 2026-09-13 — Collector calls/fetch counts the required pair once
+
+Run Elixir MCP's read-only CloudWatch review found 41,170 collector leases and
+9,933 submits in the preceding 24 hours. A completed admitted fetch necessarily
+uses one of each, but the Admin fleet table divided all collector-door calls by
+fetches. Its documented perfect score of 1.0 was therefore unreachable: even a
+collector with no idle check-ins displayed 2.0.
+
+**Decision and repair:** normalize `door_calls_hour` by the required lease and
+submit pair before comparing it with `fetches_last_hour`. The table's 1.0 now
+means no calls beyond completing the fetch; higher values still expose the idle
+check-ins that the phased 15-second policy deliberately schedules. The
+collector protocol, pacing and global rate budget are unchanged. The Admin UI
+regression pins a 504-call / 252-fetch perfect example; `npm run verify` passed.

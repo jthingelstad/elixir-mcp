@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-13",
+    title: "Collector efficiency now starts from a completed fetch",
+    body: "The Admin collector table counted both requests every completed fetch must make — its lease and its submitted result — but compared that pair with one fetch. A perfectly efficient collector therefore appeared to make two calls per fetch. Calls/fetch now starts at that required pair, so 1.0 means no extra check-ins; the fleet's scheduling, pacing and shared Clash Royale API budget are unchanged.",
+  },
+  {
     date: "2026-09-12",
     title: "Collectors keep their idle fallback during the check-in change",
     body: "Collectors now check in and the door answers with the next interval instead of holding a poll open. One released Python collector still expected the earlier idle fallback in its configuration, so the door keeps sending that compatible value while it also sends the check-in interval. Collection and the shared rate budget are unchanged.",

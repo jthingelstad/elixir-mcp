@@ -29,6 +29,9 @@ const GATEWAYS = [
     fetch_points: 4639,
     last_seen_sha: "v0.1.16",
     fetches_last_hour: 252,
+    // A completed fetch always consumes a lease and a submit. The table
+    // reports extra door calls above that necessary pair, so this is perfect.
+    door_calls_hour: 504,
     provision_ready: false,
   },
   {
@@ -107,6 +110,7 @@ test("the fleet list finds a collector; it does not operate on one", async () =>
   expect(within(row).getByText("Thingelstad")).toBeTruthy();
   expect(within(row).getByText("active")).toBeTruthy();
   expect(within(row).getByText("3s ago")).toBeTruthy();
+  expect(within(row).getByText("1.0")).toBeTruthy();
   // No lifecycle action inline — those moved to the record.
   expect(within(row).queryByText("Drain")).toBeNull();
 });

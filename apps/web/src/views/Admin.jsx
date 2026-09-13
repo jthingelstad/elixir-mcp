@@ -743,7 +743,7 @@ function AdminCollectors({ navigate }) {
       ? `${Math.round(Number(g.edge_filtered_24h) * 100)}%`
       : "—",
     g.door_calls_hour && g.fetches_last_hour
-      ? (g.door_calls_hour / g.fetches_last_hour).toFixed(1)
+      ? (g.door_calls_hour / (2 * g.fetches_last_hour)).toFixed(1)
       : "—",
   ]);
 
@@ -767,7 +767,7 @@ function AdminCollectors({ navigate }) {
       filters={[{ key: "state", label: "State", col: 2 }]}
       minWidth={880}
       empty="No collectors yet."
-      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch is door calls per admitted fetch this hour (1.0 is perfect). Issuing the IP-bound CR key is manual."
+      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch normalizes door calls against each admitted fetch's required lease and submit pair this hour (1.0 is perfect). Issuing the IP-bound CR key is manual."
     />
   );
 }
