@@ -1690,8 +1690,9 @@ breaches. Mode discovery failed despite its declaration (request
 cf35c2b8-48b7-4bbe-ab7c-f52e90406d6f); the default changelog exceeded the cap
 (a22c6230-ca13-4656-ae36-d84f6ecb8631). Contract 3.1.0 restores the declared
 mode catalog and adds bounded changelog pages without dropping history.
-Docs and What's New ship with it. Deployment and live acceptance are owed
-until the completion receipt in AGENT-TEAM/notes/2026-09-14-close-the-loop.md.
+Docs and What's New shipped with it. Deployment smoke and live acceptance
+passed; all four replies were re-read/written/read back by 12:02Z, backlog zero
+and zero one-day breaches. Full receipt: AGENT-TEAM/notes/2026-09-14-close-the-loop.md.
 
 The operations reader had only status=new, id order, no bound and no response
 read-back. It now counts unanswered replies regardless of status, reads the
@@ -1717,3 +1718,8 @@ The expected-state reply guard retains PostgreSQL microseconds in its read-back
 timestamp. A failing scratch regression caught the JavaScript Date millisecond
 rounding rejecting a fresh follow-up; the reader now emits a UTC timestamp at
 full precision, with both first-response replay and fresh-follow-up coverage.
+
+Catalog discovery freshness reads the scheduler's GLOBAL leaderboards source
+poll, protected by a regression against a known admission. The stale console
+e2e fixture was aligned with the shipped timeline signal/endpoint/heading; nine
+wide/narrow rendered journeys now pass, with named unread-session coverage.

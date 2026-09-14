@@ -18,8 +18,8 @@ reply replay, and response plus account event are transactional. Scratch-DB
 regression covers the read/write/read round trip, stale replay refusal and a fresh follow-up.
 A further failing regression found Date millisecond rounding rejected an exact
 PostgreSQL microsecond timestamp; the operations read-back now retains full
-UTC precision. First deploy of 8c3cfd4 passed smoke; the precision fix has
-passed the full gate and requires the final deploy before replying.
+UTC precision. The precision fix shipped as bfbee73 and passed the full gate
+and deployment smoke before replying.
 
 Final acceptance also caught discovery's freshness lookup using `catalog`
 rather than the scheduler's `GLOBAL` key. A scratch regression reproduced
@@ -71,13 +71,45 @@ remain the rollback source. No infrastructure or schema change in this run.
 
 ## Completion receipt
 
-Focused regression gate passed; full `npm run verify` passed, then rerun after
-the added #37 identity assertion. Source publication, deploy and read-only live
-acceptance are still required before feedback #38 is marked done. Private
-receipts remain under `/tmp/elixir-loop-20260914-*`; no captured bodies or
-principal identifiers were committed.
+Contract 3.1.0 shipped on main: 8c3cfd4 (discovery/history/docs), bfbee73
+(reply timestamp precision), d19284c (catalog source freshness). All three
+canonical deployments completed with smoke PASS; migrations 89 applied, zero
+new migrations. Final full `npm run verify`: 730 tests passed, zero failures,
+with format, lint, knip and type checks green.
+
+Live agent handshake: 3.1.0+tools.31c9c414d029, 53 public / 50 agent tools;
+the retired elixir_events is absent. Catalog discovery returns 30 boards;
+final freshness read 5c318e98-918e-4727-a1a4-b3482d75379b reports the GLOBAL
+leaderboards admission at 09:27:39Z. Numeric Merge board
+d1abafe7-44b3-412c-80ca-3252d201b08a succeeds with 1,000 places, explicitly
+truncated. Unknown-mode refusal 106e51cd-bcf3-4270-868f-301e2ad31fdf gives
+the executable discovery hint. Four changelog pages retain all 65 canonical
+releases (f8f9125f, a596d27a, 8a087479, 1bc35d05 request prefixes).
+Public and MCP limits, protocol, choosing-a-tool, timeline, privacy and recording
+pages passed source-specific checks without unrendered template tokens.
+
+Feedback writes were serialized by the loop lease using committed tooling,
+re-read immediately before each write and verified with a full-precision
+read-back. #35 and #36 are seen with specific existing workflows and pending
+product boundaries; #37 and #38 are done, naming 3.1.0 / 8c3cfd4. Replies landed
+12:01:59Z–12:02:02Z, all under one day. Final backlog zero, oldest unanswered
+age null, zero missed targets. No requester's read pointer was consumed.
+
+CI's pre-existing console failure was also reproduced: the fixture still sent
+events_unseen and /api/me/events, and expected a Notifications heading after
+3.0.0 retired them. Fixtures now provide timeline_pending and /api/me/timeline;
+the journey checks the Timeline heading, named session and unread row.
+Playwright: nine journeys passed across wide/narrow, including navigation,
+rail disclosure, keyboard dismissal and accessibility checks. Browser plugin
+not available; used the repository's Playwright workflow. Additional rendered
+checks at 1280×900 and 420×860 verified page identity, meaningful content,
+no framework/error boundary overlay and zero browser console/page errors.
+Screenshots inspected under the private receipt prefix; the narrow table keeps
+its existing horizontal scroll behavior. No frontend runtime change was needed.
+
+Private receipts remain under `/tmp/elixir-loop-20260914-*`; no captured bodies
+or principal identifiers were committed.
 
 W37 synthesis/completion receipt already exists and was read. Next deep pass:
 September 18 evening America/Chicago. Next daily eligible check: September 14
-18:45 CDT. Final backlog and reply/deploy receipts will replace this pending
-completion paragraph after live acceptance.
+18:45 CDT. No W37 synthesis or delivered prior reply was repeated.

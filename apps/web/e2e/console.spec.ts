@@ -95,7 +95,7 @@ test.describe("signed in", () => {
     await page.goto("/account/overview");
     const rail = page.locator(".rail");
     await expect(rail).toBeVisible();
-    // Counts are the reader's own things; the dot is the unread feed.
+    // Counts are the reader's own things; the dot is the unread timeline.
     await expect(rail.getByRole("link", { name: /Tracking/ })).toContainText(
       "1",
     );
@@ -110,7 +110,7 @@ test.describe("signed in", () => {
     // Every section is its own lazy chunk: each must arrive and render.
     const sections: [string, RegExp, string][] = [
       ["Usage", /\/account\/usage$/, "Usage"],
-      ["Activity", /\/account\/activity$/, "Notifications"],
+      ["Activity", /\/account\/activity$/, "Timeline"],
       ["Connections", /\/account\/connections$/, "Connections"],
       ["Profile", /\/account\/profile$/, "Profile"],
       ["Status", /\/status\/service$/, "Status"],
@@ -126,6 +126,13 @@ test.describe("signed in", () => {
         heading,
       );
       await rendered(page);
+      if (label === "Activity") {
+        const session = page.getByRole("row").filter({
+          hasText: "Played a battle session.",
+        });
+        await expect(session).toContainText("King Thing");
+        await expect(session).toContainText("unread");
+      }
     }
     // Subs render only under the current item: Activity's three, and the
     // current one marked.

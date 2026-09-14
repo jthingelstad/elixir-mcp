@@ -34,7 +34,7 @@ export const ME = {
     live_fetch: { used: 3, limit: 40 },
     calls: { used: 120, limit: 2000 },
   },
-  signals: { connections: 2, events_unseen: 1, refusals_7d: 0, feedback: 0 },
+  signals: { connections: 2, timeline_pending: 1, refusals_7d: 0, feedback: 0 },
 };
 
 export const SIGNED_OUT = { authenticated: false };
@@ -85,7 +85,23 @@ export function signedIn(
     ],
     "GET /api/me/clans": [200, { clans: [], home_clan: null }],
     "GET /api/me/activity": [200, { events: [] }],
-    "GET /api/me/events": [200, { events: [], unseen: 1 }],
+    "GET /api/me/timeline": [
+      200,
+      {
+        timeline: [
+          {
+            at: "2026-09-12T15:00:00Z",
+            subject_tag: "#20JJJ2CCRU",
+            subject_name: "King Thing",
+            kind: "battle_session",
+            section: "battles",
+            text: "Played a battle session.",
+            facts: { battles: 3 },
+          },
+        ],
+        read_to: null,
+      },
+    ],
     "GET /api/me/requests": [200, { requests: [] }],
     "GET /api/me/connections": [200, { connections: [], refusals: [] }],
     "GET /api/me/principals": [200, { agents: [], addable_clans: [] }],
