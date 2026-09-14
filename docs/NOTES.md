@@ -1758,3 +1758,32 @@ ranked-board refusals account for most, not all, of the 139 stale regional
 locations. Preserve admission-only freshness and the global budget; Keep the
 Boards inspects the next natural 10:00Z wave rather than manufacturing a
 request or declaring the remaining 35 locations explained.
+
+## 2026-09-14 — Close the Loop: reportable analytical query budgets
+
+Feedback #41–#46 reported a shared connection-close ceiling during three
+preview clans' 22:00Z analytical burst. CloudWatch REPORT lines from
+21:58–22:08Z confirm 18 MCP invocations killed at exactly 25 seconds; those
+calls never reached mcp_call_audit. This is a measured reliability defect,
+not six independent input-schema defects.
+
+Contract 3.2.0 gives the three affected read-only aggregations
+(battles_meta_decks, battles_meta_cards, clans_standings) an at-most-18-second
+cumulative query budget, shortened by remaining Lambda time. PostgreSQL
+statement_timeout cancels work at the remaining budget; the invoker restores
+the session setting and returns query_timeout with an executable retry and
+request_id, then captures/audits the failure. Account mutations are explicitly
+outside this boundary. No timeout, capacity, cadence or spend increase.
+
+Corpus meta computes its unchanged, unrounded prior during the existing
+population/exclusion scan instead of scanning the corpus again. Scoped meta
+still uses the whole-corpus prior; deck and card eligibility remain unchanged.
+Regression coverage verifies real scratch-Postgres cancellation, cumulative
+budgeting, connection reuse, audit identity, two scans, and the mutation boundary.
+The existing denominator and shrinkage regressions remain the numerical gate.
+
+For #39 the roster refusal now gives the exact live retry without starting an
+ongoing watch. For #40 standings discovery names the existing one-call short
+window. Trophy/streak expansion remains the earlier #35 Jamie decision; no
+new verdict, score or product direction is introduced. Full verification,
+deployment and read-only acceptance are required before any shipped claim.

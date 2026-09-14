@@ -26,6 +26,7 @@ test("error taxonomy is closed and stable", () => {
     "not_entitled",
     "not_found",
     "not_recorded",
+    "query_timeout",
     "quota_exceeded",
     "result_too_large",
   ]);

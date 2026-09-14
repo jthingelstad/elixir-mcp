@@ -647,11 +647,22 @@ export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
  *  out, so a 246-vs-212 gap is self-describing instead of something a
  *  consumer derives by subtraction across three tools (feedback #23).
  *  `where` scopes rows to segment + window + mode only. */
-export async function excludedBreakdown(db, where, params) {
+export async function excludedBreakdown(
+  db,
+  where,
+  params,
+  { withPrior = false } = {},
+) {
   const {
     rows: [r],
   } = await db.query(
-    `select count(*)::int as considered,
+    `select ${
+      withPrior
+        ? `count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_decided,
+            count(*) filter (where bp.outcome = 'win' and b.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_wins,`
+        : ""
+    }
+            count(*)::int as considered,
             count(*) filter (where b.type = any($${params.length + 1}))::int as duels,
             count(*) filter (where b.type_class = 'boat'
                                and not (b.type = any($${params.length + 1})))::int as boat,
@@ -675,6 +686,17 @@ export async function excludedBreakdown(db, where, params) {
     draws: r.draws,
     unresolved: r.unresolved,
     no_deck: r.no_deck,
+    ...(withPrior
+      ? {
+          prior: {
+            decided: r.prior_decided,
+            mean:
+              r.prior_decided >= META_METHODOLOGY.segment_min_decided
+                ? r.prior_wins / r.prior_decided
+                : null,
+          },
+        }
+      : {}),
   };
 }
 

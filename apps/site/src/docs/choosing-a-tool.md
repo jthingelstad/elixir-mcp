@@ -57,6 +57,10 @@ one that matters, `war_current({ clan_tag, live: true })` or
 `clans_roster({ clan_tag, live: true })`: a fresh read of any clan, recorded
 or not — served at once if one is in hand, otherwise queued while the record
 answers with `live_status.state: "pending"` and when to call again.
+If a rival's recorded roster returns `not_recorded`, follow its exact
+`clans_roster({ clan_tag, live: true })` retry hint; `live_pending` means wait
+`retry_after_s` and repeat, not that the roster is unobtainable. A live read
+records that observation but does not start an ongoing clan watch.
 
 **Name to tag to drill.** `players_search({ query })` resolves a name (your
 nicknames and clanmates rank first), then any player tool with the tag. In
@@ -96,3 +100,6 @@ never named.
 - **Errors are a closed set** with a `hint` naming the next call; check the
   body, not only the transport flag. The codes are on the
   [Protocol reference](/docs/protocol#errors).
+- **A heavy aggregation can return `query_timeout`** rather than a partial
+  answer. Retry after a few seconds, or narrow `from`/`to`; lowering `limit`
+  only reduces output, not scan cost. Keep the request id if it persists.

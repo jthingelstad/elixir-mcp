@@ -106,7 +106,7 @@ export function makeHandler({
   // every 401/403 refusal left nothing at all, so a run of 4xx on the
   // door was a count with no story. The door key never carries a
   // per-principal id (/a/<id> logs as /a/*).
-  async function dispatch(event) {
+  async function dispatch(event, context) {
     // Through CloudFront, or not at all: the viewer headers this door
     // records are only trustworthy when the distribution set them.
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
@@ -444,6 +444,13 @@ export function makeHandler({
           notifyOwner,
           capture,
           emitMetrics,
+          queryBudgetMs: Math.min(
+            18_000,
+            Math.max(
+              1,
+              (context?.getRemainingTimeInMillis?.() ?? 25_000) - 6_500,
+            ),
+          ),
         }),
       });
       return {
@@ -464,7 +471,7 @@ export function makeHandler({
     const rpc = rpcSummary(event);
     let status = 500;
     try {
-      const res = await dispatch(event);
+      const res = await dispatch(event, context);
       status = res?.statusCode ?? 200;
       return res;
     } finally {

@@ -375,12 +375,23 @@ never carries internals.
 | `live_pending` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. The hint carries `retry_after_s` (1.7.0) |
 | `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
+| `query_timeout` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
 
 Every code is one branch: the message is for a person, the hint names one
 executable next step (a tool and its arguments), and an agent should never
 have to read the message to know which case it is in. Check the error body,
 not only the transport flag; `meta.request_id` identifies the call for a
 report.
+
+The heavy MCP reads `battles_meta_decks`, `battles_meta_cards` and
+`clans_standings` share a query budget of **at most 18 seconds per call**,
+shortened if Lambda has less time remaining. It covers the whole aggregation,
+not a fresh allowance for each query. PostgreSQL cancels the work before the
+25-second Lambda ceiling so the tool can return `query_timeout`, a retry hint
+and `meta.request_id`, and audit the failed call. This is not a latency promise:
+a full 28-day corpus read can still exhaust the budget under load. Smaller
+`limit` values trim output, not the population scanned; narrow `from`/`to` to
+reduce work.
 
 ## The response cap
 

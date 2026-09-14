@@ -16,6 +16,7 @@ export const ERROR_CODES = [
   "bad_request", // structurally invalid input other than tags
   "no_subject", // nothing to answer about: no default player, an unmapped on_behalf_of, or a clanless agent (1.0.0)
   "result_too_large", // the request was fine; the result exceeded the delivery cap - narrow the arguments (1.0.0)
+  "query_timeout", // analytical work exceeded its cancellable query budget; retry or narrow the window (3.2.0)
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

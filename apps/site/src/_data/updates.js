@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-14",
+    title: "Slow analytical reads fail clearly, not with a closed connection",
+    body: "Deck meta, card meta and clan standings now cancel over-budget queries and return query_timeout with a request id and retry hint, leaving time to record the failure. Their MCP query budget is at most 18 seconds; a narrower from/to window reduces work, while lowering limit only trims returned rows. Corpus meta avoids a redundant scan with the same population and shrinkage math. An unrecorded rival roster now names the exact live retry, without starting an ongoing watch, and clan standings advertises the existing one-call short-window member scan. This is a reliability boundary, not a promise that every 28-day query will finish under load.",
+  },
+  {
+    date: "2026-09-14",
     title: "Discover mode boards and read every contract release",
     body: "rankings_players with board mode and location list now names the recorded leaderboard ids, including Merge Tactics; an unknown mode points to that discovery call. The contract changelog fits the response cap by returning up to 20 releases per page, with next_offset to reach the rest and the same since filter throughout. The tool-choice guide now shows the existing short-window clan standings and exact-deck clanmate drill, and makes the race-finished caveat explicit. Live-quota tool names come from the registry, and the timeline guide distinguishes player notables from clan standouts and states the ledger's indefinite retention separately from the 30-day read window.",
   },

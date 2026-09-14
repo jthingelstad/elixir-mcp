@@ -46,7 +46,7 @@ const CLAN_TAG_SCHEMA = {
 export const clansTools = {
   clans_standings: {
     description:
-      'Clan-relative performance: every open member\'s recorded win rate over a window (default 30 days), ranked, with the clan median: the "am I above average?" tool. Only members meeting min_battles are ranked; the rest are listed below the floor.',
+      "Clan-relative performance, yours by default: every open member's recorded W/L/D and win rate in ONE call over a window (default 30 days). For a 24-hour member scan use days: 1, min_battles: 1; from/to also supports shorter windows. Ranked with the clan median; members below min_battles are listed below the floor. Trophy swing and streaks still need a selected member's battles_performance.",
     inputSchema: {
       type: "object",
       properties: {
@@ -304,7 +304,23 @@ export const clansTools = {
         // 1.7.0: asynchronous - fresh if in hand, else queued and pending.
         live = await liveRead(ctx, { endpoint: "clan", entityKey: clanTag });
       } else {
-        clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+        try {
+          clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
+        } catch (err) {
+          if (err?.code === "not_recorded") {
+            const retry = {
+              ...args,
+              clan_tag: normalizeTag(String(args.clan_tag)),
+              live: true,
+            };
+            throw new ToolFailure(
+              "not_recorded",
+              err.message,
+              `Retry clans_roster(${JSON.stringify(retry)}); if live_pending, wait retry_after_s and repeat. This reads the game without starting an ongoing clan watch.`,
+            );
+          }
+          throw err;
+        }
       }
       const compact = args.verbosity === "compact";
       const applied = appliedBlock({

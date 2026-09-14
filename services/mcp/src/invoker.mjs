@@ -182,7 +182,7 @@ export function onBehalfOfOf(args) {
  * insert and the pending-hints read go to the untimed client, so
  * db_ms is the TOOL's work and nothing else.
  */
-export function timedDb(db, t) {
+export function timedDb(db, t, budget = null) {
   return new Proxy(db, {
     get(target, prop) {
       if (prop !== "query") {
@@ -192,7 +192,29 @@ export function timedDb(db, t) {
       return async (...a) => {
         const t0 = performance.now();
         try {
-          return await target.query(...a);
+          if (budget) {
+            const remaining = Math.floor(budget.deadline - performance.now());
+            if (remaining < 1) throw budget.failure();
+            if (budget.previousTimeout === null) {
+              const { rows } = await target.query(
+                "select current_setting('statement_timeout') as timeout",
+              );
+              budget.previousTimeout = rows[0].timeout;
+            }
+            // Cancel in PostgreSQL, not just the client's promise: abandoned
+            // work would keep competing with the next caller after Lambda dies.
+            await target.query(
+              "select set_config('statement_timeout', $1, false)",
+              [String(remaining)],
+            );
+          }
+          const result = await target.query(...a);
+          if (budget && performance.now() >= budget.deadline)
+            throw budget.failure();
+          return result;
+        } catch (err) {
+          if (budget && err?.code === "57014") throw budget.failure();
+          throw err;
         } finally {
           t.db_ms += performance.now() - t0;
           t.db_queries += 1;
@@ -286,6 +308,8 @@ export function makeInvoker({
   capture = null,
   /** Where the EMF line goes; null = no metrics (tests, the web explorer). */
   emitMetrics = null,
+  /** MCP's heavy reads leave time for a structured reply, capture and audit. */
+  queryBudgetMs = null,
 }) {
   const principalKind = account.kind ?? "person";
   return async function invokeTool(name, args, { finalizeMeta = null } = {}) {
@@ -320,17 +344,46 @@ export function makeInvoker({
     // the try/catch; everything that records it runs in the finally, so
     // capture and audit are behind the answer, never in front of it.
     let outcome;
+    // These are read-only aggregations, never a partly applied account write.
+    const budget =
+      queryBudgetMs !== null &&
+      ["battles_meta_decks", "battles_meta_cards", "clans_standings"].includes(
+        name,
+      )
+        ? {
+            deadline: performance.now() + queryBudgetMs,
+            previousTimeout: null,
+            failure: () =>
+              new ToolFailure(
+                "query_timeout",
+                `Tool ${name} exceeded its query time budget; no analytical result was returned.`,
+                `Retry ${name}(${JSON.stringify(args ?? {})}) after a few seconds, or narrow from/to first; quote meta.request_id if it persists.`,
+              ),
+          }
+        : null;
+    const restoreTimeout = async () => {
+      if (
+        budget?.previousTimeout !== null &&
+        budget?.previousTimeout !== undefined
+      ) {
+        await db.query("select set_config('statement_timeout', $1, false)", [
+          budget.previousTimeout,
+        ]);
+        budget.previousTimeout = null;
+      }
+    };
     try {
       const body = await registry.invoke(
         name,
         {
-          db: timedDb(db, timings),
+          db: timedDb(db, timings, budget),
           account,
           live: live ? timedLive(live, timings) : null,
           notifyOwner,
         },
         args,
       );
+      await restoreTimeout();
       // The two pending hints ride EVERY response (review 4.1): they used
       // to ride only the tools that built a full envelope, so the consumer
       // whose one regular call is elixir_timeline never saw
@@ -392,6 +445,9 @@ export function makeInvoker({
         };
       }
     } finally {
+      await restoreTimeout().catch((err) =>
+        console.error("query_timeout_restore_failed", name, err?.message),
+      );
       // The protocol layer stamps meta.quota (the after-the-call balance)
       // through this hook BEFORE capture, so the captured response is the
       // one the client received, quota included.
