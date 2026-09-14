@@ -309,6 +309,13 @@ test("mode board discovery lists recorded ids and unknown modes give an executab
   await db.query(`insert into ranking_board (board, location_key, label, location_kind)
     values ('mode', '170000019', 'Merge Tactics', 'global'),
            ('mode', '170000020', 'Touchdown', 'global')`);
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at)
+     values ('GLOBAL', 'leaderboards', $1)
+     on conflict (subject_tag, endpoint) do update
+     set last_admitted_at = excluded.last_admitted_at`,
+    [T2],
+  );
   const { body, isError } = await invoke("rankings_players", {
     board: "mode",
     location: "list",
@@ -322,6 +329,10 @@ test("mode board discovery lists recorded ids and unknown modes give an executab
     ],
   );
   assert.equal(body.applied.location, "list");
+  assert.equal(
+    body.meta.source_polls.leaderboards.observed_at,
+    new Date(T2).toISOString(),
+  );
   const missing = await invoke("rankings_players", {
     board: "mode",
     location: "999",

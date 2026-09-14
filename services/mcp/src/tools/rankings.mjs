@@ -230,7 +230,7 @@ export const rankingsTools = {
             "These are the recorded mode-board ids; a board's presence does not establish battle-log coverage for that mode.",
           ),
           docs: docsRef("recording", "leaderboards"),
-          meta: await buildMeta(ctx.db, ctx.account, "catalog", [
+          meta: await buildMeta(ctx.db, ctx.account, "GLOBAL", [
             "leaderboards",
           ]),
         };

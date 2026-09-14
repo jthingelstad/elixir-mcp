@@ -21,6 +21,11 @@ PostgreSQL microsecond timestamp; the operations read-back now retains full
 UTC precision. First deploy of 8c3cfd4 passed smoke; the precision fix has
 passed the full gate and requires the final deploy before replying.
 
+Final acceptance also caught discovery's freshness lookup using `catalog`
+rather than the scheduler's `GLOBAL` key. A scratch regression reproduced
+the unknown freshness despite a known admission; discovery now reads the
+catalog's actual source poll clock.
+
 Live 3.0.0 refusals: mode catalog discovery
 `cf35c2b8-48b7-4bbe-ab7c-f52e90406d6f`; default changelog
 `a22c6230-ca13-4656-ae36-d84f6ecb8631`. Failing regressions reproduced both
