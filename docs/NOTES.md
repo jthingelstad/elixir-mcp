@@ -1739,3 +1739,11 @@ This preserves the HTTP-200 meaning of `api_receipt` while making the next
 daily board wave diagnosable. Regression coverage pins recording, aggregation
 and retention; deployment and the first live error receipt remain required
 before attributing the current 139 stale regional boards.
+
+**DEPLOYED (2026-09-14 13:55Z):** commit `7b2ab5a` passed `npm run verify`,
+then `AWS_PROFILE=jamie node infra/scripts/deploy.mjs` applied migration 0090
+and completed the stack update and external smoke suite. A live, read-only
+`{stats:true}` acceptance returned `fetch_errors_24h: { total: 0,
+by_endpoint: [] }`; the 123 fresh / 139 stale regional split remains an
+unattributed pre-receipt observation. Leave the next daily board wave to
+produce natural evidence; do not manufacture a non-200 result.

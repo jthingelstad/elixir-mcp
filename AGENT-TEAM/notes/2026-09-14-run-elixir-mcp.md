@@ -33,5 +33,11 @@
   validated non-200 result without changing admission freshness; `{stats:true}`
   groups the last 24 hours by endpoint, HTTP status and error kind; the hourly
   operational sweep expires it after seven days. No collector release is
-  needed. Targeted ingest, jobs and migrate suites passed. Deployment and a
-  read-only post-deploy stats acceptance are pending.
+  needed. Targeted ingest, jobs and migrate suites passed.
+- **Deployment and acceptance (13:55Z):** `7b2ab5a` passed the full repository
+  gate, migration 0090 applied, and the stack reached `UPDATE_COMPLETE`.
+  Deployment smoke re-verified the OAuth/MCP door, status, CSP, corpus,
+  registry and site paths. A live read-only `{stats:true}` returned an empty
+  `fetch_errors_24h` aggregate; this confirms the deployed reader shape but
+  does not manufacture an error. The next natural daily board wave is the
+  acceptance watch for attributing the still-stale regional locations.
