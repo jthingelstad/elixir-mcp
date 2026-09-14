@@ -669,12 +669,24 @@ test("feedback operations bound oldest-first triage and read back replies withou
       0,
       "stale read cannot replay a response",
     );
+    assert.equal(
+      (
+        await feedbackRespond(SCRATCH_URL, {
+          ...reply,
+          status: "planned",
+          response: "A precise follow-up.",
+          expected: after.feedback,
+        })
+      ).updated,
+      1,
+      "a fresh read of a non-null response timestamp remains writable",
+    );
     const events = await db.query(
       `select count(*)::int as n from account_event
       where account_id=$1 and kind='feedback_responded'`,
       [account.account_id],
     );
-    assert.equal(events.rows[0].n, 1);
+    assert.equal(events.rows[0].n, 2);
   } finally {
     await db.query("delete from feedback where account_id=$1", [
       account.account_id,

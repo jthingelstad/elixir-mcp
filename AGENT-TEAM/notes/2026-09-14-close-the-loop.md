@@ -15,7 +15,11 @@ items at every status, reports oldest age/overdue count and returns 25 by
 created time then id. `feedback_read` supplies current status/response without
 consuming the requester's inbox; an optional expected-state check blocks stale
 reply replay, and response plus account event are transactional. Scratch-DB
-regression covers the read/write/read round trip and one event after a replay.
+regression covers the read/write/read round trip, stale replay refusal and a fresh follow-up.
+A further failing regression found Date millisecond rounding rejected an exact
+PostgreSQL microsecond timestamp; the operations read-back now retains full
+UTC precision. First deploy of 8c3cfd4 passed smoke; the precision fix has
+passed the full gate and requires the final deploy before replying.
 
 Live 3.0.0 refusals: mode catalog discovery
 `cf35c2b8-48b7-4bbe-ab7c-f52e90406d6f`; default changelog

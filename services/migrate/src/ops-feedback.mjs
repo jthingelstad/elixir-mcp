@@ -1,7 +1,9 @@
 import pg from "pg";
 
 const FEEDBACK_FIELDS = `f.feedback_id, f.surface, f.category, f.message, f.request_id,
-  f.created_at, f.status, f.response, f.responded_at, f.shipped_in, f.related_tools,
+  f.created_at, f.status, f.response,
+  to_char(f.responded_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as responded_at,
+  f.shipped_in, f.related_tools,
   (select c.player_tag from claim c where c.account_id = f.account_id and c.is_primary) as from_player`;
 
 /** Unanswered feedback: count the full backlog, return its oldest 25.

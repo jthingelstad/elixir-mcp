@@ -1712,3 +1712,8 @@ W37 synthesis is already complete; the next pass is due September 18 evening
 Chicago time. Preview natural traffic is on 3.0.0 for all three live principals;
 no routine, message or replay was triggered for acceptance. The #33 natural
 all-evidence-failed comparison remains insufficient_sample.
+
+The expected-state reply guard retains PostgreSQL microseconds in its read-back
+timestamp. A failing scratch regression caught the JavaScript Date millisecond
+rounding rejecting a fresh follow-up; the reader now emits a UTC timestamp at
+full precision, with both first-response replay and fresh-follow-up coverage.
