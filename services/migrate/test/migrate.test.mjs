@@ -137,6 +137,57 @@ test("stats exposes board cadence and ranking-presence readiness", async () => {
     health.enabled_locations,
     health.fresh_locations + health.stale_locations,
   );
+  assert.equal(out.fetch_errors_24h.total, 0);
+  assert.deepEqual(out.fetch_errors_24h.by_endpoint, []);
+});
+
+test("stats groups bounded non-200 collector outcomes by endpoint", async () => {
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  try {
+    const {
+      rows: [account],
+    } = await db.query(
+      `insert into account (email_hash, status) values ('stats-fetch-errors', 'approved')
+       returning account_id`,
+    );
+    const {
+      rows: [gateway],
+    } = await db.query(
+      `insert into gateway (owner_account_id, name, static_ip, status)
+       values ($1, 'stats-fetch-errors-gw', '127.0.0.8', 'active')
+       returning gateway_id`,
+      [account.account_id],
+    );
+    await db.query(
+      `insert into collector_fetch_error
+         (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+       values
+         ($1, 'rankings_pol', 'us', now(), 404, 'http'),
+         ($1, 'rankings_pol', 'ca', now() + interval '1 second', 404, 'http'),
+         ($1, 'player', '#STATS', now() + interval '2 seconds', null, 'transport')`,
+      [gateway.gateway_id],
+    );
+
+    const out = await stats(SCRATCH_URL);
+    assert.deepEqual(out.fetch_errors_24h, {
+      total: 3,
+      by_endpoint: [
+        {
+          endpoint: "rankings_pol",
+          count: 2,
+          outcomes: [{ http_status: "404", kind: "http", count: 2 }],
+        },
+        {
+          endpoint: "player",
+          count: 1,
+          outcomes: [{ http_status: "none", kind: "transport", count: 1 }],
+        },
+      ],
+    });
+  } finally {
+    await db.end();
+  }
 });
 
 test("ledger ops inspect and selectively requeue dead collector work", async () => {

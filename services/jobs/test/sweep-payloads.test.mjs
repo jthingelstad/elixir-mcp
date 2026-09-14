@@ -308,6 +308,35 @@ test("each retention window keeps what is inside it and drops what is not", asyn
   assert.equal(await count("rate_limit"), 1);
 });
 
+test("collector fetch errors follow the seven-day operational receipt window", async () => {
+  const owner = (
+    await db.query(
+      `insert into account (email_hash, status) values ('sweep-fetch-error', 'approved')
+       returning account_id`,
+    )
+  ).rows[0].account_id;
+  const gateway = (
+    await db.query(
+      `insert into gateway (owner_account_id, name, static_ip, status)
+       values ($1, 'sweep-fetch-error-gw', '127.0.0.4', 'active')
+       returning gateway_id`,
+      [owner],
+    )
+  ).rows[0].gateway_id;
+  await db.query(
+    `insert into collector_fetch_error
+       (gateway_id, endpoint, entity_key, fetched_at, error_kind, recorded_at)
+     values
+       ($1, 'rankings_pol', 'global', now() - interval '6 days', 'http', now() - interval '6 days'),
+       ($1, 'rankings_pol', 'us', now() - interval '8 days', 'http', now() - interval '8 days')`,
+    [gateway],
+  );
+
+  const out = await sweepOperational(DB_URL);
+  assert.equal(out.collector_fetch_error, 1);
+  assert.equal(await count("collector_fetch_error"), 1);
+});
+
 test("an expired collector bearer is nulled, not merely made unclaimable", async () => {
   // It is a live credential sitting in plaintext; past its window it was
   // already unclaimable (#31), and this stops it being readable too.

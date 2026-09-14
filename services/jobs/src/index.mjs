@@ -168,6 +168,12 @@ export async function sweepOperational(databaseUrl) {
         `delete from job where status = 'done' and done_at < now() - interval '7 days'`,
       )
     ).rowCount;
+    out.collector_fetch_error = (
+      await db.query(
+        `delete from collector_fetch_error
+         where recorded_at < now() - interval '7 days'`,
+      )
+    ).rowCount;
     out.job_dead = (
       await db.query(
         `delete from job where status = 'dead' and done_at < now() - interval '30 days'`,

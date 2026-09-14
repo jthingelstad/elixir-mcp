@@ -1723,3 +1723,19 @@ Catalog discovery freshness reads the scheduler's GLOBAL leaderboards source
 poll, protected by a regression against a known admission. The stale console
 e2e fixture was aligned with the shipped timeline signal/endpoint/heading; nine
 wide/narrow rendered journeys now pass, with named unread-session coverage.
+
+## 2026-09-14 — Run Elixir MCP: non-200 collector receipts
+
+The regional Path of Legends freshness gap had a blind collector/result seam:
+the scheduler planned 270 jobs at 10:02Z and the ledger drained, but a
+non-200 collector result deliberately made no `api_receipt`, leaving the ops
+reader unable to distinguish an upstream refusal from a collector failure.
+Migration 0090 adds `collector_fetch_error`, a seven-day operational receipt
+with only job/gateway, endpoint, entity key, fetch time, HTTP status and error
+kind — no payload or error body. The ingest pipeline records it without
+advancing freshness, the hourly operational sweep prunes it with completed
+jobs, and migrate `{stats:true}` reports a 24-hour endpoint/outcome aggregate.
+This preserves the HTTP-200 meaning of `api_receipt` while making the next
+daily board wave diagnosable. Regression coverage pins recording, aggregation
+and retention; deployment and the first live error receipt remain required
+before attributing the current 139 stale regional boards.

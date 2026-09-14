@@ -319,7 +319,7 @@ test("unparseable body: rejected receipt, no payload row", async () => {
   assert.equal(after, before, "no payload row for unparseable bodies");
 });
 
-test("fetch_error writes nothing durable", async () => {
+test("fetch_error records its bounded non-payload outcome without moving freshness", async () => {
   const receiptsBefore = (
     await ctx.db.query(`select count(*)::int n from api_receipt`)
   ).rows[0].n;
@@ -336,6 +336,19 @@ test("fetch_error writes nothing durable", async () => {
     await ctx.db.query(`select count(*)::int n from api_receipt`)
   ).rows[0].n;
   assert.equal(receiptsAfter, receiptsBefore);
+  const { rows: errors } = await ctx.db.query(
+    `select endpoint, entity_key, http_status, error_kind
+     from collector_fetch_error where gateway_id = $1`,
+    [gatewayId],
+  );
+  assert.deepEqual(errors, [
+    {
+      endpoint: "player",
+      entity_key: "#20JJJ2CCRU",
+      http_status: null,
+      error_kind: "transport",
+    },
+  ]);
 });
 
 test("malformed message is bad_message (handler routes it to the DLQ path)", async () => {

@@ -8,7 +8,8 @@
  * One transaction per message: a mid-payload failure must never leave a
  * battle without its participants. Freshness advances ONLY on admission
  * (elixir-bot invariant) — a rejected payload doesn't burn the subject's
- * polling window. Fetch errors write nothing durable; the scheduler replans.
+ * polling window. Fetch errors retain only a bounded operational receipt,
+ * never payload data; the scheduler replans.
  */
 
 import { gunzipSync } from "node:zlib";
@@ -487,9 +488,27 @@ export async function processResult(db, rawMessage, deps = {}) {
   }
 
   if (msg.status !== "ok") {
-    // No receipt: receipts are one row per HTTP 200 (§4.3). The scheduler
-    // replans on freshness; gateway health rides heartbeats/metrics.
-    return { outcome: "fetch_error", kind: msg.error?.kind ?? "unknown" };
+    // API receipts remain one row per HTTP 200 (§4.3), but a non-200 must
+    // leave a compact, no-payload operational receipt. Otherwise a planned
+    // board that never admits is indistinguishable from a collector that
+    // never received the work. Freshness still does not move.
+    const kind = msg.error?.kind ?? "unknown";
+    await db.query(
+      `insert into collector_fetch_error
+         (job_id, gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       on conflict (gateway_id, endpoint, entity_key, fetched_at) do nothing`,
+      [
+        Number.isInteger(msg.job_id) ? msg.job_id : null,
+        msg.gateway_id,
+        msg.job.endpoint,
+        msg.job.entity_key,
+        msg.fetched_at,
+        Number.isInteger(msg.http_status) ? msg.http_status : null,
+        kind,
+      ],
+    );
+    return { outcome: "fetch_error", kind };
   }
 
   let t = mark("gateway_ms", t0);

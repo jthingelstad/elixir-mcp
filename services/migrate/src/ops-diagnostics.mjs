@@ -66,6 +66,31 @@ export async function stats(databaseUrl) {
          from api_receipt
          where endpoint = 'player_battlelog' and observed is not null
            and fetched_at > now() - interval '1 hour'`,
+      // A non-200 has no API receipt by definition. Keep its operational
+      // aggregate beside normal receipt counts so an owner can distinguish an
+      // upstream refusal from a collector/result-boundary failure without
+      // payload access or a hand query against production.
+      fetch_errors_24h: `select json_build_object(
+           'total', coalesce(sum((row->>'count')::int), 0)::int,
+           'by_endpoint', coalesce(json_agg(row order by (row->>'count')::int desc,
+                                              row->>'endpoint'), '[]'::json)) n
+         from (
+           select json_build_object(
+             'endpoint', endpoint,
+             'count', sum(error_count)::int,
+             'outcomes', json_agg(json_build_object(
+               'http_status', http_status,
+               'kind', error_kind,
+               'count', error_count) order by error_count desc, http_status, error_kind)) as row
+           from (
+             select endpoint, coalesce(http_status::text, 'none') as http_status,
+                    error_kind, count(*)::int as error_count
+             from collector_fetch_error
+             where recorded_at > now() - interval '24 hours'
+             group by endpoint, http_status, error_kind
+           ) grouped
+           group by endpoint
+         ) by_endpoint`,
     })) {
       counts[key] = (await db.query(sql)).rows[0].n;
     }
