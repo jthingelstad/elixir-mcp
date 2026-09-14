@@ -202,5 +202,55 @@ test("corpus meta reuses its population scan for the unchanged shrinkage prior",
       2,
       "one population/prior scan plus one grouping scan, not a third corpus scan",
     );
+    assert.ok(
+      scans.every((sql) => !sql.includes("array_agg(bp.deck ")),
+      "deck exemplars must not aggregate every full deck JSON before the result limit",
+    );
   }
+});
+
+test("limited deck meta hydrates the latest qualifying exemplar, never an outside-segment one", async () => {
+  const owner = "#YYYYYYYY";
+  const other = "#22222222";
+  await db.query("insert into player (player_tag) values ($1),($2)", [
+    owner,
+    other,
+  ]);
+  for (const [id, tag, ago, label] of [
+    ["exemplar-old", owner, 24, "Old name"],
+    ["exemplar-latest", owner, 1, "Scope latest"],
+    ["exemplar-outsider", other, 0, "Outside segment"],
+  ]) {
+    const at = new Date(Date.now() - ago * 3600_000);
+    await db.query(
+      "insert into battle (battle_id, battle_time, type, type_class) values ($1,$2,'PvP','pvp')",
+      [id, at],
+    );
+    await db.query(
+      "insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_hash, deck) values ($1,$2,$3,0,'win','exemplar-deck',$4::jsonb)",
+      [
+        id,
+        tag,
+        at,
+        JSON.stringify({
+          cards: [{ id: 26000000, name: label, evolutionLevel: 1 }],
+          supportCards: [{ id: 159000000, name: "Tower Princess" }],
+        }),
+      ],
+    );
+  }
+  const result = await makeRegistry().invoke(
+    "battles_meta_decks",
+    { db, account },
+    { segment: { player_tag: owner }, min_battles: 1, limit: 1 },
+  );
+  assert.equal(result.decks.length, 1);
+  assert.equal(result.decided_battles, 2);
+  assert.equal(result.decks[0].cards[0].name, "Scope latest");
+  assert.equal(result.decks[0].cards[0].evolution, 1);
+  assert.equal(result.decks[0].tower_troop.id, 159000000);
+  assert.ok(
+    !("exemplar" in result.decks[0]),
+    "internal participant keys never leak into the response",
+  );
 });

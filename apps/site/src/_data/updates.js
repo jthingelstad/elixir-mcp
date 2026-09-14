@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-14",
+    title: "Deck meta carries less JSON through its aggregation",
+    body: "Deck meta now keeps only a participant key for each deck's latest qualifying observation during its aggregation, then reads the full deck only for the returned rows. It no longer sorts and collects every full deck JSON before applying the result limit. Counts, rates, shrinkage and the latest-observation example are unchanged, and the query budget still bounds slow calls.",
+  },
+  {
+    date: "2026-09-14",
     title: "Slow analytical reads fail clearly, not with a closed connection",
     body: "Deck meta, card meta and clan standings now cancel over-budget queries and return query_timeout with a request id and retry hint, leaving time to record the failure. Their MCP query budget is at most 18 seconds; a narrower from/to window reduces work, while lowering limit only trims returned rows. Corpus meta avoids a redundant scan with the same population and shrinkage math. An unrecorded rival roster now names the exact live retry, without starting an ongoing watch, and clan standings advertises the existing one-call short-window member scan. This is a reliability boundary, not a promise that every 28-day query will finish under load.",
   },

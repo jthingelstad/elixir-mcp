@@ -1787,3 +1787,13 @@ ongoing watch. For #40 standings discovery names the existing one-call short
 window. Trophy/streak expansion remains the earlier #35 Jamie decision; no
 new verdict, score or product direction is introduced. Full verification,
 deployment and read-only acceptance are required before any shipped claim.
+
+**3.2.0 deployed and measured:** full-corpus deck meta still exhausts its
+budget but now returns query_timeout with request ids in 18.4–18.5 seconds;
+clan deck meta succeeds in 10.9s, corpus card meta in 12.1–12.3s, clan card
+meta in 9.5s, standings in 1.2s and the 24-hour scan in 0.24s. No report is
+closed solely on the new error boundary. A second source seam is the deck
+aggregate's array_agg of every full JSON deck before the result limit.
+3.2.1 keeps only the latest qualifying participant key through aggregation,
+then hydrates the returned rows via the participant primary key. Scope,
+latest exemplar, counts and shrinkage are preserved; the query budget stays.

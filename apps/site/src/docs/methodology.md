@@ -81,6 +81,9 @@ The MCP door cancels over-budget work with `query_timeout` rather than
 returning a partial aggregation. Narrow `from`/`to` to reduce the population;
 `min_battles` and `limit` filter the result after aggregation and do not make
 the scanned population smaller. See [Protocol → Errors](/docs/protocol#errors).
+Deck names, forms and tower troops come from each returned deck's latest
+qualifying observation in the same segment and window; only those exemplar
+payloads are read after ranking and limiting the aggregate.
 
 Within-player, leave-deck-out and leave-card-out lift remain unimplemented design
 ideas. They should not be inferred from these pooled fields.

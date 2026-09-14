@@ -1102,7 +1102,8 @@ export const battlesTools = {
                 count(distinct bp.player_tag)::int as players,
                 min(b.battle_time) as first_used,
                 max(b.battle_time) as last_used,
-                (array_agg(bp.deck order by b.battle_time desc))[1] as deck
+                (array_agg(jsonb_build_object('battle_id', bp.battle_id,
+                  'player_tag', bp.player_tag) order by b.battle_time desc))[1] as exemplar
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
          where ${where.join(" and ")}
          group by bp.deck_hash`,
@@ -1118,8 +1119,7 @@ export const battlesTools = {
         .filter((r) => r.battles >= minBattles)
         .map((r) => ({
           deck_hash: r.deck_hash,
-          cards: deckCards(r.deck),
-          ...towerTroop(r.deck),
+          exemplar: r.exemplar,
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -1151,6 +1151,29 @@ export const battlesTools = {
       );
       const limit = Math.min(args.limit ?? 20, 40);
       shaped = shaped.slice(0, limit);
+      // The aggregate needs one latest observation's identity, not every
+      // full deck JSON. Hydrate only the returned rows through the composite
+      // participant primary key, preserving the exact scoped exemplar.
+      const exemplars =
+        shaped.length > 0
+          ? (
+              await ctx.db.query(
+                `select bp.battle_id, bp.player_tag, bp.deck
+         from jsonb_to_recordset($1::jsonb) as e(battle_id text, player_tag text)
+         join battle_participant bp using (battle_id, player_tag)`,
+                [JSON.stringify(shaped.map((r) => r.exemplar))],
+              )
+            ).rows
+          : [];
+      const byExemplar = new Map(
+        exemplars.map((r) => [`${r.battle_id}:${r.player_tag}`, r.deck]),
+      );
+      shaped = shaped.map(({ exemplar, ...row }) => {
+        const deck = byExemplar.get(
+          `${exemplar.battle_id}:${exemplar.player_tag}`,
+        );
+        return { ...row, cards: deckCards(deck), ...towerTroop(deck) };
+      });
       return {
         applied: appliedBlock({
           segment: seg.echo,
