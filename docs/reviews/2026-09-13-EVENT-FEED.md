@@ -1,9 +1,10 @@
 # The event feed, judged by the clans it serves — 2026-09-13
 
-**Status:** Parts I–III ratified by Jamie 2026-09-13 ("Let's go!"). Tier 1
-shipped as contract 1.10.0 (c9f8d0e); the entry synthesizer is committed as
-a prototype behind a read-only ops op (cbd2277); both pushed, deploy pending.
-The analysis below is as written before implementation. Jamie's framing:
+**Status:** Parts I–IV ratified and SHIPPED the same day. 1.10.0 (Tier 1,
+c9f8d0e), 2.0.0 (entries, 453791d) and 3.0.0 (the timeline: `elixir_timeline`,
+sessions, the ledger as the source, `event_feed` retired; 1b4aea3 + 5ab82ac)
+are live at elixir.poapkings.com as of 2026-09-14 00:20Z. The analysis
+below is as written before implementation. Jamie's framing:
 the notification stream exists to tell a consuming agent *"here is something
 you may care about"*; it was ported from elixir-bot, which was tuned for one
 mature clan, and it probably does not work at all for a clan of low-level
