@@ -1747,3 +1747,14 @@ and completed the stack update and external smoke suite. A live, read-only
 by_endpoint: [] }`; the 123 fresh / 139 stale regional split remains an
 unattributed pre-receipt observation. Leave the next daily board wave to
 produce natural evidence; do not manufacture a non-200 result.
+
+**NATURAL RECEIPT ACCEPTANCE (2026-09-14 17:47Z):** the next read-only
+`{stats:true}` receipt attributed 133 upstream HTTP 404s without recording a
+payload or error body: 104 `rankings_pol`, 27 `currentriverrace`, and two
+`player`. No transport, overflow, or breaker outcomes appeared. The aggregate
+was unchanged across the closing reads; the healthy collector fleet, empty
+ledger/DLQ, and quiet alarms rule out a collector or queue incident. The 104
+ranked-board refusals account for most, not all, of the 139 stale regional
+locations. Preserve admission-only freshness and the global budget; Keep the
+Boards inspects the next natural 10:00Z wave rather than manufacturing a
+request or declaring the remaining 35 locations explained.

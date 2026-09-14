@@ -41,3 +41,19 @@
   `fetch_errors_24h` aggregate; this confirms the deployed reader shape but
   does not manufacture an error. The next natural daily board wave is the
   acceptance watch for attributing the still-stale regional locations.
+
+## Natural receipt acceptance — 17:47Z
+
+- The first natural error receipt is now attributable without a payload read:
+  `{stats:true}` held steady at 133 upstream HTTP 404 outcomes — 104
+  `rankings_pol`, 27 `currentriverrace`, and two `player` — with no transport,
+  overflow, breaker, queue, leased-job, dead-job, DLQ, collector-heartbeat, or
+  alarm failure. The 104 ranked-board refusals explain most, but not all, of
+  the 139 stale regional locations; Keep the Boards owns the remaining
+  coverage diagnosis at the next natural 10:00Z wave.
+- The recorder remains healthy: five active collectors had 116-second
+  fetch/admission freshness at the closer read, 969 battles in the prior hour,
+  437/3,600 measured budget use (289 useful), and 97 gaps in 6,886 rolling-day
+  battle-log polls. All three Discord preview agents were running on contract
+  3.1.0 with fresh cursors and no channel problems. No source, collector,
+  restart, replay, or deployment action was warranted.
