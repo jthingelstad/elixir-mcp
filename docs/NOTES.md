@@ -1680,3 +1680,35 @@ Run Elixir MCP must trace the collected jobs' endpoint outcomes at the
 collector/result boundary; non-OK fetches intentionally leave no receipt, so
 the current aggregate cannot distinguish upstream rejection from a
 collector-side result failure.
+
+
+## 2026-09-14 — Close the Loop: discovery, bounded history and reply receipts
+
+Reviewed source e28abf8 and deployed contract 3.0.0. Four unanswered items
+(#35–#38), oldest 23h16m at the 11:47Z acceptance reads, zero one-day
+breaches. Mode discovery failed despite its declaration (request
+cf35c2b8-48b7-4bbe-ab7c-f52e90406d6f); the default changelog exceeded the cap
+(a22c6230-ca13-4656-ae36-d84f6ecb8631). Contract 3.1.0 restores the declared
+mode catalog and adds bounded changelog pages without dropping history.
+Docs and What's New ship with it. Deployment and live acceptance are owed
+until the completion receipt in AGENT-TEAM/notes/2026-09-14-close-the-loop.md.
+
+The operations reader had only status=new, id order, no bound and no response
+read-back. It now counts unanswered replies regardless of status, reads the
+oldest 25 by created time/id, and offers IAM-only feedback_read. Responses can
+compare the immediately read status/response/responded_at before updating;
+the update and account event commit together. This does not change the
+requester's inbox pointer. Checkout lease and committed-tool rules still apply.
+
+**Jamie decision proposed for #35:** approve adding ladder net_trophies and
+a window-ending streak (result and length, draws break it) to the existing
+clans_standings rows, retaining the applied window and recording caveats. The
+24-hour W/L/D window already works (0f827e9e-6fe7-4cd8-8d07-8b32e66e8f1f);
+these two columns are not implemented. #36's named exact-deck workflow already
+exists; it is now discoverable in the tool guide. A general playstyle score
+has no agreed meaning, so no new similarity verdict or privacy rule is added.
+
+W37 synthesis is already complete; the next pass is due September 18 evening
+Chicago time. Preview natural traffic is on 3.0.0 for all three live principals;
+no routine, message or replay was triggered for acceptance. The #33 natural
+all-evidence-failed comparison remains insufficient_sample.

@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-14",
+    title: "Discover mode boards and read every contract release",
+    body: "rankings_players with board mode and location list now names the recorded leaderboard ids, including Merge Tactics; an unknown mode points to that discovery call. The contract changelog fits the response cap by returning up to 20 releases per page, with next_offset to reach the rest and the same since filter throughout. The tool-choice guide now shows the existing short-window clan standings and exact-deck clanmate drill, and makes the race-finished caveat explicit. Live-quota tool names come from the registry, and the timeline guide distinguishes player notables from clan standouts and states the ledger's indefinite retention separately from the 30-day read window.",
+  },
+  {
     date: "2026-09-13",
     title: "The feed is a timeline now",
     body: "elixir_events is elixir_timeline. It answers what happened to the players and clans you track since your read pointer, as items in order: a battle session (a gap of 30 minutes breaks one; single battles never appear), a badge by name, an arena or ranked move, a new best, a card unlocked, a join, a departure, a role change, the boat crossing the line, a week resolving, a member crossing a quiet rung or coming back, and your own account events. Every item is a sentence a person can read with its facts beside it. The per-subject entries stay as the summary of the same window. mark_read moves the pointer to the top; a dry run passes false. The console's Activity page shows the same timeline.",

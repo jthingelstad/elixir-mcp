@@ -279,11 +279,8 @@ and a hint. Do not rely on a cached `tools/list` from another kind of
 connection.
 
 Tools are declared in group order, then by title, so a client that keeps
-server order shows the domain: **Account** (what you track and who you know),
-**Players**, **Battles**, **Cards**, **Clans**, **War**, **Collections**,
-**Live** (the one raw lane), **Feed** (the push lane), **Service** (the fleet
-and the corpus) and **Help** (the documentation, examples, updates, changelog
-and the feedback loop). The group rides each tool's title
+server order shows the domains: {% for group in tools.groups %}**{{ group.group }}**{% if not loop.last %}, {% endif %}{% endfor %}.
+The group rides each tool's title
 (`Players · Player profile`); names never carry it, so regrouping breaks
 nothing. One page per group is under [Tools](/docs/tools).
 
@@ -330,7 +327,11 @@ your kind of connection receives. The server is stateless and never sends
 `notifications/tools/list_changed` even though it declares `listChanged`;
 compare `serverInfo.version` on every `initialize` and re-read `tools/list`
 when it differs. `elixir_changelog({ since: "0.35.0" })` lists what moved,
-newest first, with `tools_added` and `breaking` where relevant.
+newest first, with `tools_added` and `breaking` where relevant. Pages contain
+up to 20 releases. Pass `next_offset` as `offset`, keeping `since` unchanged,
+until `next_offset` is `null`; `total` counts all releases matching `since`.
+Omit `since` to page through the complete history, or read the complete JSON
+resource at `elixir://changelog`.
 
 The contract is semver over the tool surface, not the code: additive is a
 minor, breaking is a major with a deprecation window. Every response carries
@@ -487,8 +488,11 @@ in its hint.
   `seen`, `planned`, `done`, `declined`; returns `response`, `responded_at`,
   `shipped_in`, `related_tools`. Reading it clears
   `meta.feedback_responses_pending`.
-- `elixir_changelog({ since? })`: entries `{ version, date, summary,
-  tools_added?, breaking? }`, newest first.
+- `elixir_changelog({ since?, limit?, offset? })`: entries `{ version, date,
+  summary, tools_added?, breaking? }`, newest first. `limit` is 1 to 20
+  (default 20); `offset` defaults to zero. Follow `next_offset` with the
+  same `since` to reach every entry; `null` means the end. `total` is the
+  number matching the exclusive `since` filter.
 
 ## Machine-readable surfaces
 

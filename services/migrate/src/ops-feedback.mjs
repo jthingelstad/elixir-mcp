@@ -1,20 +1,46 @@
 import pg from "pg";
 
-/** Pending feedback ({feedback_pending: true}): every status='new' item
- *  across all accounts - the loop's standing check (Jamie, 2026-09-05:
- *  "make checking for new feedback part of your regular check"). */
+const FEEDBACK_FIELDS = `f.feedback_id, f.surface, f.category, f.message, f.request_id,
+  f.created_at, f.status, f.response, f.responded_at, f.shipped_in, f.related_tools,
+  (select c.player_tag from claim c where c.account_id = f.account_id and c.is_primary) as from_player`;
+
+/** Unanswered feedback: count the full backlog, return its oldest 25.
+ * A status-only acknowledgment is still unanswered. */
 export async function feedbackPending(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const { rows } = await db.query(
-      `select f.feedback_id, f.surface, f.category, f.message, f.request_id, f.created_at,
-              (select c.player_tag from claim c
-               where c.account_id = f.account_id and c.is_primary) as from_player
-       from feedback f where f.status = 'new'
-       order by f.feedback_id`,
+    const {
+      rows: [counts],
+    } = await db.query(
+      `select count(*)::int as pending, min(created_at) as oldest_created_at,
+        extract(epoch from now() - min(created_at))::int as oldest_age_seconds,
+        count(*) filter (where created_at < now() - interval '1 day')::int as overdue
+       from feedback where response is null or btrim(response) = ''`,
     );
-    return { pending: rows.length, items: rows };
+    const { rows } = await db.query(
+      `select ${FEEDBACK_FIELDS} from feedback f
+       where f.response is null or btrim(f.response) = ''
+       order by f.created_at, f.feedback_id limit 25`,
+    );
+    return { ...counts, items: rows };
+  } finally {
+    await db.end();
+  }
+}
+
+/** IAM-only read-back, without changing the requester's read pointer. */
+export async function feedbackRead(databaseUrl, spec) {
+  if (!/^[1-9]\d*$/.test(String(spec?.feedback_id ?? "")))
+    throw new Error("feedback_read needs a positive feedback_id");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select ${FEEDBACK_FIELDS} from feedback f where f.feedback_id = $1`,
+      [spec.feedback_id],
+    );
+    return { feedback: rows[0] ?? null };
   } finally {
     await db.end();
   }
@@ -44,6 +70,7 @@ export async function feedbackRespond(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
+    await db.query("begin");
     const { rows: updated } = await db.query(
       `update feedback set status = $2,
               response = coalesce($3, response),
@@ -51,6 +78,9 @@ export async function feedbackRespond(databaseUrl, spec) {
               shipped_in = coalesce($4, shipped_in),
               related_tools = coalesce($5, related_tools)
        where feedback_id = $1
+         and ($6::boolean = false or (
+           status = $7 and response is not distinct from $8::text
+           and responded_at is not distinct from $9::timestamptz))
        returning account_id`,
       [
         spec.feedback_id,
@@ -58,6 +88,10 @@ export async function feedbackRespond(databaseUrl, spec) {
         spec.response ? String(spec.response).slice(0, 4000) : null,
         spec.shipped_in ?? null,
         normalizeRelatedTools(spec.related_tools),
+        spec.expected !== undefined,
+        spec.expected?.status ?? null,
+        spec.expected?.response ?? null,
+        spec.expected?.responded_at ?? null,
       ],
     );
     if (updated[0] && spec.response) {
@@ -69,7 +103,11 @@ export async function feedbackRespond(databaseUrl, spec) {
         ],
       );
     }
+    await db.query("commit");
     return { updated: updated.length };
+  } catch (error) {
+    await db.query("rollback");
+    throw error;
   } finally {
     await db.end();
   }

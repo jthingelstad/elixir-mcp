@@ -31,7 +31,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Explorer calls per hour | the website's Explore page | same bucket as above | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits, capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
 | Explorer calls per day | Explore page | same bucket | same | HTTP 429 `{"error":"quota_exceeded","message":"Daily tool-call quota reached (N per day)…"}` |
-| Live fetches per day | `live_fetch`, and `live: true` on `players_profile`, `clans_roster`, `war_current` and `battles_query`; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
+| Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }}; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
 | Player slots | `elixir_track_player`, `POST /api/claims` | live count | 50 (member to partner), +2 with an active collector; override `max_player_recordings` | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
 | Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10, +1 with an active collector | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
 | Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
@@ -86,7 +86,7 @@ if the quota store is unreachable, approved accounts keep working.
 | Raw API payloads | archived to S3 at admission; latest per subject stays hot |
 | Call log rows | indefinitely; `viewer_ip` cleared after 30 days; arguments cleared after 90 days |
 | Credential refusal counts | 30 days |
-| Event feed rows | 30 days |
+| Timeline game-moment ledger | indefinitely; a timeline read covers at most 30 days |
 | Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the console stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
 | Console sessions | 90 days absolute, 30 days sliding; rows purged 30 days after |

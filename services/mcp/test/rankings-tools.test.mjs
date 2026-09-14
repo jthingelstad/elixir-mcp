@@ -305,6 +305,40 @@ test("a board nobody has recorded yet says so, and an unknown location refuses",
   assert.equal(bad.error.code, "not_found");
 });
 
+test("mode board discovery lists recorded ids and unknown modes give an executable hint", async () => {
+  await db.query(`insert into ranking_board (board, location_key, label, location_kind)
+    values ('mode', '170000019', 'Merge Tactics', 'global'),
+           ('mode', '170000020', 'Touchdown', 'global')`);
+  const { body, isError } = await invoke("rankings_players", {
+    board: "mode",
+    location: "list",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.deepEqual(
+    body.boards.map((b) => [b.location, b.name]),
+    [
+      ["170000019", "Merge Tactics"],
+      ["170000020", "Touchdown"],
+    ],
+  );
+  assert.equal(body.applied.location, "list");
+  const missing = await invoke("rankings_players", {
+    board: "mode",
+    location: "999",
+  });
+  assert.equal(missing.body.error.code, "not_found");
+  assert.match(
+    missing.body.error.hint,
+    /rankings_players\(\{ board: "mode", location: "list" \}\)/,
+  );
+  const live = await invoke("rankings_players", {
+    board: "mode",
+    location: "list",
+    live: true,
+  });
+  assert.equal(live.body.error.code, "bad_request");
+});
+
 test("live: true and as_of together are refused rather than guessed between", async () => {
   const { body, isError } = await invoke("rankings_players", {
     live: true,

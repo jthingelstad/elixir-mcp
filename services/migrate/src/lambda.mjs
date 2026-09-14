@@ -43,7 +43,11 @@ import {
   argsCensus,
   previewIntel,
 } from "./ops-analysis.mjs";
-import { feedbackPending, feedbackRespond } from "./ops-feedback.mjs";
+import {
+  feedbackPending,
+  feedbackRead,
+  feedbackRespond,
+} from "./ops-feedback.mjs";
 
 export async function handler(event) {
   if (event?.inspect) {
@@ -100,6 +104,14 @@ export async function handler(event) {
   }
   if (event?.feedback_pending) {
     const result = await feedbackPending(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.feedback_read) {
+    const result = await feedbackRead(
+      process.env.DATABASE_URL,
+      event.feedback_read,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

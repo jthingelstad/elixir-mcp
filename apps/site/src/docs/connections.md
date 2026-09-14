@@ -134,10 +134,10 @@ you, who can call on your behalf, and how the service is running.
 | Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage |
 | Explore | the same read tools in a browser; the one write is nicknames |
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and the only place these change |
-| Your record → Activity | notifications, your calls with `request_id`, and account events |
+| Your record → Activity | your timeline, your calls with `request_id`, and account events |
 | Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
 | Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect |
-| Access → Connections → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread events. An agent connected with a service key rather than OAuth carries its capabilities here, not on Clients |
+| Access → Connections → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread timeline subjects. An agent connected with a service key rather than OAuth carries its capabilities here, not on Clients |
 | Access → Profile | your address, the timezone your date windows use, slot meters, the tier-upgrade request and today's quota |
 | Access → Feedback | what you filed and what the maintainer answered |
 | Service → Status | recording health, budget gauge, capture gaps |

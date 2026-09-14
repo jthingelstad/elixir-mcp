@@ -158,7 +158,12 @@ score, `clanwars` by clan war trophies, 1,000 places by location) are
 recorded daily for global, the United States and Japan — `rankings_clan_ladder`.
 The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the
 rest) are enumerated from the API daily, so a board that rotates in is
-followed without anyone naming it — `board: mode` with the board's id.
+followed without anyone naming it. Call
+`rankings_players({ board: "mode", location: "list" })` for the recorded
+ids, names and enabled state, then read `board: "mode"` with a returned
+`location`. The catalog is a recorded read; omit `live` and `as_of` when
+listing it. A mode board or badge is not evidence that its battles appear
+in the API's battle log; missing recorded battles do not prove absence.
 **What was on** — the events the API listed as running, with no dates — is
 recorded daily as sightings, so `game_events` is the season's calendar built
 from the days each event was seen. `rankings_timeline` reads any of the player
@@ -274,11 +279,12 @@ retry_after_s }` and a note saying so; call again after that and the fresh
 view is there. A subject with no record at all answers `live_pending` with
 the same `retry_after_s`. Nothing waits on a collector inside a call.
 
-Six recorded tools take the flag: `players_profile` for any tag,
-`clans_roster` and `war_current` for **any clan, recorded or not**,
-`battles_query` to poll a player's battle log (the "what did they just
-play" path), and the two board tools. Prefer these; they are the live lane
-with the record's shape.
+{{ tools.liveFlagCount }} recorded tools take the flag:
+{{ tools.liveFlagNames }}. The player tools can read any tag;
+`clans_roster` and `war_current` can read **any clan, recorded or not**;
+the board tools name their board and location. `battles_query` polls a
+player's battle log for the "what did they just play" path. Prefer these;
+they are the live lane with the record's shape.
 
 `live_fetch({ path })` is the raw catch-all: one authenticated GET against
 the Clash Royale API through the live lane, recorded on the way back. It

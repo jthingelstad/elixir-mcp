@@ -7,8 +7,53 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { elixirTools } from "../src/tools/elixir.mjs";
 import { makeRegistry } from "../src/tools.mjs";
+import { CHANGELOG } from "@elixir-mcp/contracts";
+import { renderToolResultText } from "../src/protocol.mjs";
 
 const ctx = { account: {}, db: null };
+
+test("the complete changelog is reachable in bounded, lossless pages", async () => {
+  const registry = makeRegistry();
+  const entries = [];
+  let offset = 0;
+  do {
+    const page = await elixirTools.elixir_changelog.handler(ctx, { offset });
+    const rendered = renderToolResultText(registry, "elixir_changelog", page);
+    assert.equal(rendered.truncated, false, "every page must fit the wire cap");
+    assert.ok(page.entries.length > 0);
+    entries.push(...page.entries);
+    assert.equal(page.total, CHANGELOG.length);
+    offset = page.next_offset;
+  } while (offset !== null);
+  assert.deepEqual(entries, CHANGELOG, "no release disappears or repeats");
+  const recent = await elixirTools.elixir_changelog.handler(ctx, {
+    since: "2.0.0",
+    limit: 1,
+  });
+  assert.equal(recent.entries.length, 1);
+  assert.ok(recent.entries.every((e) => Number(e.version.split(".")[0]) >= 3));
+  const end = await elixirTools.elixir_changelog.handler(ctx, {
+    offset: CHANGELOG.length,
+  });
+  assert.deepEqual(end.entries, []);
+  assert.equal(end.next_offset, null);
+});
+
+test("the limits guide names every live-flag tool from the registry", async () => {
+  const guide = await elixirTools.elixir_docs.handler(ctx, { page: "limits" });
+  const row = guide.markdown
+    .split("\n")
+    .find((line) => line.startsWith("| Live fetches per day"));
+  for (const tool of makeRegistry()
+    .declarations()
+    .filter((d) => d.inputSchema.properties?.live)) {
+    assert.ok(
+      row.includes("`" + tool.name + "`"),
+      `${tool.name} must appear in the live quota row`,
+    );
+  }
+  assert.ok(!guide.markdown.includes("Event feed rows"));
+});
 
 test("the tool-choice guide counts live flags from the current registry", async () => {
   const guide = await elixirTools.elixir_docs.handler(ctx, {

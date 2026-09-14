@@ -462,14 +462,28 @@ export const elixirTools = {
 
   elixir_changelog: {
     description:
-      "What changed in the tool CONTRACT since a version (client tool schemas cache aggressively, so this is how you discover capabilities that shipped mid-session). Call with your last-seen meta.contract_version and get every entry after it, newest first, with tools_added and breaking notes. elixir_updates is the product-level list written for people.",
+      "What changed in the tool CONTRACT since a version (client tool schemas cache aggressively). Entries after since, newest first, with tools_added and breaking notes; omitted since starts at the newest release. Pages default to 20 entries: pass next_offset as offset until it is null to read the complete history. elixir_updates is the product-level list written for people.",
     inputSchema: {
       type: "object",
       properties: {
         since: {
           type: "string",
           description:
-            "Contract version you last saw (any response's meta.contract_version). Omit for the full changelog.",
+            "Contract version you last saw (any response's meta.contract_version). Omit to page through the full changelog.",
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 20,
+          default: 20,
+          description: "Release entries per page.",
+        },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          default: 0,
+          description:
+            "Pass the previous page's next_offset; keep since unchanged.",
         },
       },
       additionalProperties: false,
@@ -484,15 +498,23 @@ export const elixirTools = {
         const [b1, b2, b3] = parse(b);
         return a1 !== b1 ? a1 > b1 : a2 !== b2 ? a2 > b2 : a3 > b3;
       };
-      const entries = args.since
+      const all = args.since
         ? CHANGELOG.filter((e) => after(e.version, args.since))
         : CHANGELOG;
+      const limit = args.limit ?? 20;
+      const offset = args.offset ?? 0;
+      const entries = all.slice(offset, offset + limit);
+      const nextOffset = offset + entries.length;
       return {
         current: CONTRACT_VERSION,
         applied: appliedBlock({
           since: args.since ? String(args.since) : undefined,
+          limit,
+          offset,
         }),
         entries,
+        total: all.length,
+        next_offset: nextOffset < all.length ? nextOffset : null,
         notes: notes(
           "Tool schemas cache client-side: if tools_added lists something you cannot see, the client needs to reconnect (re-read tools/list).",
         ),
@@ -714,10 +736,10 @@ export const elixirTools = {
           items: { type: "string" },
           maxItems: 16,
           description:
-            "Keep only items and entry sections in these sections; the summary, subject, window and notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account.",
+            "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account.",
         },
         verbosity: VERBOSITY(
-          "the timeline items and each entry's summary, subject, window and notables; every entry section is dropped.",
+          "the timeline items and each entry's summary, subject, window and player notables; every entry section, including clan standouts, is dropped.",
         ),
       },
       additionalProperties: false,

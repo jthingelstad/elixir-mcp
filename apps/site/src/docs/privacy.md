@@ -128,8 +128,10 @@ product). Raw API payloads are archived. Operational logs are pruned
 periodically. Connection IP addresses are cleared after 30 days and
 refusal records deleted after 30 days, both by the housekeeping job; the
 arguments of your tool calls are cleared from the call log after 90 days
-and the calls themselves stay; event-feed rows go after 30 days;
-integration usage counters after 90 days. The full table is on
+and the calls themselves stay. The timeline's game-moment ledger is kept
+with recorded game history; a timeline read covers at most 30 days, which
+is a delivery window rather than a deletion policy. Integration usage
+counters go after 90 days. The full table is on
 [Limits](/docs/limits). Your email address is kept for as long as the account
 exists, and goes when it goes. To remove your account, your address,
 and your claims, use the feedback form or email the maintainer;

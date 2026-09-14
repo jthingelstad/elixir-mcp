@@ -50,7 +50,7 @@ const LOCATION_SCHEMA = {
   type: "string",
   default: "global",
   description:
-    "global (default), a numeric CR location id (57000249), or a two-letter country code (US, JP). The service records every location the API lists.",
+    "global (default), a numeric CR location id (57000249), or a two-letter country code (US, JP). With board mode: its leaderboard id, or location 'list' on rankings_players to discover the recorded catalog. The service records every location the API lists.",
 };
 
 const AS_OF_SCHEMA = {
@@ -103,7 +103,9 @@ async function boardRow(db, board, location) {
     throw new ToolFailure(
       "not_found",
       `No ${board} board for location '${raw}'.`,
-      "Use global, a numeric CR location id, or a two-letter country code; rankings_players lists nothing for a location the API does not have.",
+      board === "mode"
+        ? 'Call rankings_players({ board: "mode", location: "list" }) for the recorded leaderboard ids, then pass one as location.'
+        : 'Call rankings_players({ location: "global" }) or pass a numeric CR location id or a two-letter country code.',
     );
   return rows[0];
 }
@@ -202,6 +204,37 @@ export const rankingsTools = {
           "live: true reads the board as it is now; as_of reads it as it was.",
           "Pass one or the other.",
         );
+      if (
+        board === "mode" &&
+        String(args.location).trim().toLowerCase() === "list"
+      ) {
+        if (args.live === true || args.as_of !== undefined)
+          throw new ToolFailure(
+            "bad_request",
+            "Mode discovery reads the recorded catalog, not a board snapshot.",
+            'Call rankings_players({ board: "mode", location: "list" }) without live or as_of.',
+          );
+        const { rows } = await ctx.db.query(
+          `select location_key, label, enabled from ranking_board
+           where board = 'mode' order by location_key`,
+        );
+        return {
+          board,
+          boards: rows.map((r) => ({
+            location: r.location_key,
+            name: r.label,
+            enabled: r.enabled,
+          })),
+          applied: appliedBlock({ board, location: "list" }),
+          notes: notes(
+            "These are the recorded mode-board ids; a board's presence does not establish battle-log coverage for that mode.",
+          ),
+          docs: docsRef("recording", "leaderboards"),
+          meta: await buildMeta(ctx.db, ctx.account, "catalog", [
+            "leaderboards",
+          ]),
+        };
+      }
       const row = await boardRow(ctx.db, board, args.location);
       if (args.live === true && board === "pol_final")
         throw new ToolFailure(

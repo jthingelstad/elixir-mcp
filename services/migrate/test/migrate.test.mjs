@@ -621,6 +621,74 @@ test("feedback_pending returns the attached request id needed for triage", async
   }
 });
 
+test("feedback operations bound oldest-first triage and read back replies without consuming them", async () => {
+  const { feedbackPending, feedbackRead, feedbackRespond } =
+    await import("../src/ops-feedback.mjs");
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  const account = (
+    await db.query(`insert into account (email_hash, status)
+    values ('feedback-roundtrip', 'approved') returning account_id`)
+  ).rows[0];
+  try {
+    const ids = [];
+    for (let i = 0; i < 26; i++) {
+      const row = (
+        await db.query(
+          `insert into feedback (account_id, surface, message, created_at)
+        values ($1, 'mcp', 'bounded triage', now() - make_interval(days => $2)) returning feedback_id`,
+          [account.account_id, i + 1],
+        )
+      ).rows[0];
+      ids.push(row.feedback_id);
+    }
+    const pending = await feedbackPending(SCRATCH_URL);
+    assert.ok(pending.pending >= 26);
+    assert.equal(pending.items.length, 25);
+    assert.equal(
+      pending.items[0].feedback_id,
+      ids.at(-1),
+      "created time wins over id order",
+    );
+    const id = ids.at(-1);
+    const before = await feedbackRead(SCRATCH_URL, { feedback_id: id });
+    assert.equal(before.feedback.status, "new");
+    assert.equal(before.feedback.response, null);
+    const reply = {
+      feedback_id: id,
+      status: "seen",
+      response: "The short window already exists.",
+      expected: before.feedback,
+    };
+    assert.equal((await feedbackRespond(SCRATCH_URL, reply)).updated, 1);
+    const after = await feedbackRead(SCRATCH_URL, { feedback_id: id });
+    assert.equal(after.feedback.response, reply.response);
+    assert.ok(after.feedback.responded_at);
+    assert.equal(
+      (await feedbackRespond(SCRATCH_URL, reply)).updated,
+      0,
+      "stale read cannot replay a response",
+    );
+    const events = await db.query(
+      `select count(*)::int as n from account_event
+      where account_id=$1 and kind='feedback_responded'`,
+      [account.account_id],
+    );
+    assert.equal(events.rows[0].n, 1);
+  } finally {
+    await db.query("delete from feedback where account_id=$1", [
+      account.account_id,
+    ]);
+    await db.query("delete from account_event where account_id=$1", [
+      account.account_id,
+    ]);
+    await db.query("delete from account where account_id=$1", [
+      account.account_id,
+    ]);
+    await db.end();
+  }
+});
+
 // The column itself accepts what the normalizer produces.
 test("normalized related_tools round-trips through the text[] column", async () => {
   const { normalizeRelatedTools } = await import("../src/ops-feedback.mjs");

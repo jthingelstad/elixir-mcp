@@ -25,7 +25,10 @@ conventions that hold everywhere.
 | What decks do I play, and how do they do? | `battles_decks`, then `battles_query({ deck_hash })` to drill |
 | Show me the battles themselves; the workhorse | `battles_query` (filters, cursor, `verbosity: "compact"`) |
 | What day is it in the game? Season, war day, when it rolls | `game_clock` |
-| My clan today: standings, who still has decks | `war_current` (`decks_today` is the nudge list) |
+| My clan today: standings, who still has decks | `war_current` (`decks_today` can guide a nudge only while `race_finished_at` is null) |
+| Every current member's W/L/D over a short window | `clans_standings({ days: 1, min_battles: 1 })`, or explicit `from`/`to`; trophy swing and streaks require a selected member's `battles_performance` |
+| Which clanmates played this exact deck? | `battles_decks` for a `deck_hash`, then `battles_query({ deck_hash })` without `player_tag`, and compare the returned tags with `clans_roster`; this is exact deck evidence, not a playstyle similarity score |
+| Which game-mode leaderboard ids can I read? | `rankings_players({ board: "mode", location: "list" })`, then pass a returned `location` to read its board |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
 | What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked, donations, war days per member per week, in one call) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |

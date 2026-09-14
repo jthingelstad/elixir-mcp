@@ -624,7 +624,15 @@ test("collections: browse + enriched get; private stays owner-only; unknown hone
 });
 
 test("feedback round two: changelog since-filter, ship links, pending hint clears on read", async () => {
-  const log = await call("elixir_changelog", { since: "0.14.0" });
+  const releases = [];
+  let offset = 0;
+  do {
+    const page = await call("elixir_changelog", { since: "0.14.0", offset });
+    assert.equal(page.isError, false);
+    releases.push(...page.body.entries);
+    offset = page.body.next_offset;
+  } while (offset !== null);
+  const log = { isError: false, body: { entries: releases } };
   assert.equal(log.isError, false);
   assert.ok(
     log.body.entries.every(
@@ -767,6 +775,18 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
   });
   assert.equal(byDeck.isError, false, JSON.stringify(byDeck.body));
   assert.equal(byDeck.body.deck_hash, one[0].deck_hash);
+  assert.ok(byDeck.body.battles.length > 0);
+  for (const battle of byDeck.body.battles) {
+    assert.ok(
+      battle.me.player_tag,
+      "exact-deck drill preserves the player's identity (#37)",
+    );
+    assert.equal(
+      battle.me.deck_hash,
+      one[0].deck_hash,
+      "identity stays attached to exact deck evidence",
+    );
+  }
   const ds = byDeck.body.deck_stats;
   assert.ok(ds.battles >= 1 && ds.players >= 1);
   assert.ok(!("win_rate" in ds), "no pooled win rate by design");

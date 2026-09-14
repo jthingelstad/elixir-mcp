@@ -113,6 +113,10 @@ export default function tools() {
     count: all.length,
     liveFlagCount: declarations.filter((d) => d.inputSchema.properties?.live)
       .length,
+    liveFlagNames: declarations
+      .filter((d) => d.inputSchema.properties?.live)
+      .map((d) => "`" + d.name + "`")
+      .join(", "),
     // What an AGENT's tools/list holds: the person-only tools are hidden
     // from it. Generated, because a hand-typed count was 41 while the
     // door served 44.

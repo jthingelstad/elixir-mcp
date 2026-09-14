@@ -29,7 +29,7 @@ after a month gets a month's timeline (capped at 30 days and 200 items).
 | `to` | string | now | an ISO instant, or a date covering that whole local day |
 | `mark_read` | boolean | `true` | move your read pointer to this window's end |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
-| `verbosity` | `full` \| `compact` | `full` | compact keeps the items and each entry's summary and notables, and drops the entry sections |
+| `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
 | `timezone` | IANA zone | the account's | for date-only bounds and the text's times |
 
 Response: `{ window: { from, to }, read_to, timeline: [...], timeline_more,
@@ -96,8 +96,10 @@ standouts keep the aggregate.
 ## Entries
 
 One per subject, summarizing the same window. Every entry opens with
-`summary`, carries `window` and `notables`, and its sections are **always
-present** and `null` when nothing happened.
+`summary` and carries `window`. A player entry carries `notables`; a clan
+entry carries its named standouts under `standouts`. Its sections are
+**always present** and `null` when nothing happened; compact verbosity
+keeps player `notables` and drops clan `standouts` with the other sections.
 
 A player's entry: `battles` (played, record, sessions, by mode, ladder
 trophy net, late captures), `trophies`, `arena`, `ranked`, `collection`,
