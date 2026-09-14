@@ -1,7 +1,7 @@
 /** The account, feed, help and service tools: elixir_my_players ·
  *  elixir_identify · elixir_my_identities · elixir_coverage ·
  *  elixir_feedback · elixir_my_feedback · elixir_changelog · elixir_docs ·
- *  elixir_examples · elixir_updates · elixir_events · elixir_nickname ·
+ *  elixir_examples · elixir_updates · elixir_timeline · elixir_nickname ·
  *  elixir_track_player · elixir_track_clan · elixir_data_insights ·
  *  elixir_collectors. 1.0.0 conventions: `applied`, `notes[]` + `docs`;
  *  the add tools are the track tools (the console's word). */
@@ -21,8 +21,7 @@ import {
   CORPUS_BUILT_AT,
   searchDocs,
 } from "@elixir-mcp/docs";
-import { emitFeedEvent } from "../feed.mjs";
-import { buildEntries, subjectsFor } from "../activity/entries.mjs";
+import { buildTimeline, subjectsFor } from "../activity/entries.mjs";
 import { resolveInstant } from "../time.mjs";
 import { captureCoverage } from "../coverage.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
@@ -44,7 +43,7 @@ import {
 } from "./shared.mjs";
 
 const RECORDING_DOCS = docsRef("recording", "added-means-recorded");
-const FEED_DOCS = docsRef("events");
+const FEED_DOCS = docsRef("timeline");
 
 export const elixirTools = {
   elixir_my_players: {
@@ -697,28 +696,28 @@ export const elixirTools = {
     },
   },
 
-  elixir_events: {
+  elixir_timeline: {
     description:
-      "Your activity feed: one ENTRY per subject you track, since your bookmark. A person's subjects are the players they track and the clans they added; an agent's is the clan it represents, whose members appear inside the clan entry, never as rows. Each entry opens with a summary sentence a person can read, then always-present sections (null when nothing happened): a player's battles, trophies, arena, ranked, collection, badges, clan, war and presence; a clan's activity, roster, war, presence, standouts and donations; plus named notables. Facts with their windows, never advice, and nothing announces the time: schedule from game_clock. Tracked players with nothing in the window are listed under quiet. Omit from to resume from your bookmark (with none, the last 24 hours; capped at 30 days); mark_seen moves the bookmark to the window end, and a second consumer on the same account passes false and keeps its own from. Needs only cr:read.",
+      "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS in order plus one summary ENTRY per subject. A person's subjects are the players they track and the clans they added; an agent's is the clan it represents, whose members appear on the clan's timeline. Items are named moments with an instant: battle sessions (a 30-minute gap breaks a session; single battles never appear), badges by name, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, the boat crossing the line, a week resolving, quiet rungs crossed, returns, and your account events. Each entry opens with a sentence a person can read, then always-present sections. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: last 24 hours; capped at 30 days). mark_read moves the pointer to the window end; a dry run passes false. Needs only cr:read.",
     inputSchema: {
       type: "object",
       properties: {
         ...WINDOW_ARGS,
-        mark_seen: {
+        mark_read: {
           type: "boolean",
           default: true,
           description:
-            "Move your bookmark to this window's end. A second consumer on the same account should pass false and keep its own since.",
+            "Move your read pointer to this window's end. A dry run, or a second consumer on the same account, passes false and keeps its own from.",
         },
         sections: {
           type: "array",
           items: { type: "string" },
           maxItems: 16,
           description:
-            "Keep only these sections in each entry; the summary, subject, window and notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations.",
+            "Keep only items and entry sections in these sections; the summary, subject, window and notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account.",
         },
         verbosity: VERBOSITY(
-          "summary lines, subject, window and notables only; every section is dropped.",
+          "the timeline items and each entry's summary, subject, window and notables; every entry section is dropped.",
         ),
       },
       additionalProperties: false,
@@ -731,7 +730,7 @@ export const elixirTools = {
         `select activity_seen_at from account where account_id = $1`,
         [ctx.account.accountId],
       );
-      const bookmarkMs = acct[0]?.activity_seen_at
+      const pointerMs = acct[0]?.activity_seen_at
         ? acct[0].activity_seen_at.getTime()
         : null;
       let toMs = Date.now();
@@ -757,9 +756,9 @@ export const elixirTools = {
           );
         fromMs = parsed.getTime();
         source = "argument";
-      } else if (bookmarkMs !== null) {
-        fromMs = bookmarkMs;
-        source = "bookmark";
+      } else if (pointerMs !== null) {
+        fromMs = pointerMs;
+        source = "pointer";
       } else {
         fromMs = toMs - DAY_MS;
         source = "default";
@@ -773,7 +772,7 @@ export const elixirTools = {
         throw new ToolFailure(
           "bad_request",
           "from must be before to.",
-          "Pass a from earlier than to, or omit both for the window since your bookmark.",
+          "Pass a from earlier than to, or omit both for the window since your read pointer.",
         );
 
       const PLAYER_SECTIONS = [
@@ -811,21 +810,25 @@ export const elixirTools = {
           ? args.sections.map(String)
           : null;
       const unknown = sections?.find(
-        (k) => !PLAYER_SECTIONS.includes(k) && !CLAN_SECTIONS.includes(k),
+        (k) =>
+          k !== "account" &&
+          !PLAYER_SECTIONS.includes(k) &&
+          !CLAN_SECTIONS.includes(k),
       );
       if (unknown)
         throw new ToolFailure(
           "bad_request",
           `Unknown section '${unknown}'.`,
-          `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}.`,
+          `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}. Plus account.`,
         );
       const compact = args.verbosity === "compact";
 
       const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
-      const feed = await buildEntries(ctx.db, subjects, {
+      const built = await buildTimeline(ctx.db, subjects, {
         fromMs,
         toMs,
         timezone: tz,
+        accountId: ctx.account.accountId,
       });
       const keep = (entry) => {
         if (!compact && !sections) return entry;
@@ -834,9 +837,12 @@ export const elixirTools = {
           Object.entries(entry).filter(([k]) => allowed.has(k)),
         );
       };
-      const entries = feed.entries.map(keep);
+      const entries = built.entries.map(keep);
+      const timeline = sections
+        ? built.timeline.filter((it) => sections.includes(it.section))
+        : built.timeline;
 
-      const marking = args.mark_seen !== false;
+      const marking = args.mark_read !== false;
       if (marking) {
         await ctx.db.query(
           `update account
@@ -850,29 +856,33 @@ export const elixirTools = {
       return {
         applied: appliedBlock({
           window: { from: iso(fromMs), to: iso(toMs), source },
-          mark_seen: marking,
+          mark_read: marking,
           ...(sections ? { sections } : {}),
           verbosity: compact ? "compact" : "full",
         }),
-        window: feed.window,
+        window: built.window,
+        read_to: marking ? iso(toMs) : iso(pointerMs),
+        timeline,
+        timeline_more: built.timeline_more,
         entries,
-        quiet: feed.quiet,
+        quiet: built.quiet,
         subjects: subjects.length,
         next_cursor: iso(toMs),
-        seen_through: marking ? iso(toMs) : iso(bookmarkMs),
         has_more: false,
         notes: notes(
-          entries.length === 0 && feed.quiet.length === 0
+          entries.length === 0 && built.quiet.length === 0
             ? "No subjects: track a player or clan (notify defaults on) and it appears here."
-            : "One entry per subject over the window; sections are facts with their own as_of, null when nothing happened. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
-          feed.quiet.length > 0
+            : "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+          built.quiet.length > 0
             ? "quiet lists tracked players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
             : null,
           capped
             ? "The window was capped at 30 days before to; pass from and to for older history, or use the data tools."
             : null,
-          "Badge and card-level counts come from the recorder's badge and collection observations and may lag a poll; names arrive with the ledger.",
-          "Pass next_cursor as from to continue from here without marking.",
+          built.timeline_more > 0
+            ? `timeline_more: ${built.timeline_more} items beyond the cap were left out; narrow the window or the sections.`
+            : null,
+          "Pass next_cursor as from to continue from here without moving the pointer.",
         ),
         docs: FEED_DOCS,
         meta: responseMeta({
@@ -949,7 +959,7 @@ export const elixirTools = {
 
   elixir_track_player: {
     description:
-      "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your tier's player slots. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_events.",
+      "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your tier's player slots. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_timeline.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1039,11 +1049,12 @@ export const elixirTools = {
         throw new ToolFailure("not_found", "Account not found.");
       }
       if (r.recordingStarted) {
-        await emitFeedEvent(
-          ctx.db,
-          ctx.account.accountId,
-          "recording_started",
-          tag,
+        await ctx.db.query(
+          `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
+          [
+            ctx.account.accountId,
+            JSON.stringify({ player_tag: tag, via: "mcp" }),
+          ],
         );
       }
       return {
@@ -1061,7 +1072,7 @@ export const elixirTools = {
           r.recordingStarted
             ? "Tracked and recording: first battles land within the hour and history builds from here (the API has no past)."
             : "Tracked; this player was already being recorded, so you share the existing record from here on.",
-          "Captures feed your elixir_events while notify is on.",
+          "Captures appear on your elixir_timeline while notify is on.",
         ),
         docs: RECORDING_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -1071,7 +1082,7 @@ export const elixirTools = {
 
   elixir_track_clan: {
     description:
-      "Track a clan on your account: starts recording in one act (tracked means recorded), within your tier's clan slots. scope activity records roster and war; comprehensive additionally records every member's battles and profile, following membership. action remove takes it off your account (recording stops when no account has it); notify_on / notify_off control whether it feeds your elixir_events.",
+      "Track a clan on your account: starts recording in one act (tracked means recorded), within your tier's clan slots. scope activity records roster and war; comprehensive additionally records every member's battles and profile, following membership. action remove takes it off your account (recording stops when no account has it); notify_on / notify_off control whether it feeds your elixir_timeline.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1208,13 +1219,7 @@ export const elixirTools = {
             JSON.stringify({ clan_tag: tag, scope, via: "mcp" }),
           ],
         );
-        await emitFeedEvent(
-          ctx.db,
-          ctx.account.accountId,
-          "recording_started",
-          tag,
-          { scope },
-        );
+        // The account_event row above is the timeline's record of this.
       }
       return {
         clan_tag: tag,

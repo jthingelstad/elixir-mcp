@@ -129,46 +129,49 @@ Every later call from `discord:1234` resolves with no lookup. Always read
 also keeps their battle log polled hourly for the next day, so a second
 question is fresher than the first.
 
-## Consuming the activity feed
+## Consuming the timeline
 
-`elixir_events` returns one entry per subject since your bookmark. For an
-agent the subject is the clan it represents: one entry, with the roster
-moves, war state, presence crossings, standouts and donations inside it,
-and the summary sentence first. The bookmark is **per account**: two
-consumers that both call it with `mark_seen: true` will each move the
-other's window. A headless runtime keeps its own cursor and never marks:
+`elixir_timeline` returns the items that happened since your read pointer,
+in order, plus one entry per subject. For an agent the subject is the clan
+it represents: its members' sessions and moments, joins and departures, the
+war moments and the presence crossings arrive as items, and the entry
+summarizes the window. The pointer is **per account**: two consumers that
+both call it with `mark_read: true` will each move the other's window. A
+headless runtime keeps its own cursor and never marks:
 
 ```js
 // state.from persisted between runs (an ISO instant); omit on the very
 // first run and the window is the last 24 hours.
-const page = await call("elixir_events", {
+const page = await call("elixir_timeline", {
   from: state.from,
-  mark_seen: false,               // never move the account's bookmark
-  sections: ["roster", "war", "presence"],   // optional: trim the wire
+  mark_read: false,               // never move the account's read pointer
+  sections: ["roster", "war", "presence"],   // optional: trim items and entries
 });
-for (const entry of page.entries) handle(entry);   // entry.summary is the sentence; the sections are the facts
-for (const q of page.quiet) note(q);              // tracked players with nothing in the window
+if (page.timeline.length === 0) return;           // nothing to consider
+for (const item of page.timeline) consider(item);  // item.text is the sentence; item.facts the numbers
+for (const entry of page.entries) context(entry);  // the window's shape per subject
 state.from = page.next_cursor;                    // the window end you just read
 ```
 
-The entry shape is on [Events](/docs/events). `meta.events_pending` on
-any response counts subjects of yours the recorder has admitted something
-for since your bookmark, which is only meaningful if something marks.
+The item and entry shapes are on [Timeline](/docs/timeline).
+`meta.timeline_pending` on any response counts subjects of yours the
+recorder has admitted something for since your pointer, which is only
+meaningful if something marks.
 
-**Polling has a price.** A loop that calls `elixir_events` and
+**Polling has a price.** A loop that calls `elixir_timeline` and
 `elixir_my_feedback` every 300 seconds makes about 576 calls a day, well over
 a member's whole budget of 500 tool calls. Two rules keep it cheap: **read
 `elixir_my_feedback` only when `meta.feedback_responses_pending > 0`**, and
-`meta.events_pending` and `meta.feedback_responses_pending` ride **every**
-response, including `elixir_events` itself and `game_clock`, so any call you
+`meta.timeline_pending` and `meta.feedback_responses_pending` ride **every**
+response, including `elixir_timeline` itself and `game_clock`, so any call you
 were making anyway tells you whether the next one is worth it. A routine
 that has nothing else to do can read the feed on a timer, but a few times a
-day is plenty: the entry is a summary of the whole window, so a longer
-window costs the same one call. The feed never announces the time: read
+day is plenty: the timeline covers the whole window, so a longer window
+costs the same one call. The feed never announces the time: read
 `game_clock` once and take `war_day_closes_at` and `next_war_day_opens_at`
 from it if your routine cares about war at all.
 
-A routine that runs once a day reads its clan entry, drills with
+A routine that runs once a day reads its clan's timeline, drills with
 `clans_standings` or `battles_trends` when something moved, and, if it
 schedules itself before a close from `game_clock`, checks
 `war_current.decks_today.untouched` then, unless `race_finished_at` is set.
@@ -191,7 +194,7 @@ rotated key produces silence, not errors. The agent's page shows, per key,
 `last_used_at` and **the current key has never been used**; per source
 address, refusals in the last seven days with the reason (`revoked_key`,
 `principal_suspended`, `wrong_door`, `unknown_key`); and `calls_7d`,
-`last_seen` (address, country, client name) and `unread_events`. Your own
+`last_seen` (address, country, client name) and `timeline_pending`. Your own
 Usage breaks the agents' calls out of your daily budget.
 
 ## Feedback from an agent

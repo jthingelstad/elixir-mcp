@@ -127,19 +127,19 @@ at a cabin. What makes the fleet interesting:
   gap. The 24-hour gap count is public on Status, so "no gaps" is a
   measurement, not a promise.
 
-## The activity feed
+## The timeline
 
-Recording is pull; noticing is push. Everything you track feeds your
-**activity feed** (`elixir_events`) while its notify switch is on. The feed
-is synthesized when you read it, from the record and the per-subject
-ledger: one entry per subject since your bookmark, opening with a sentence
-a person can read and carrying the facts under it in sections that are
-always present. A person's entries are the players they track and the
+Recording is pull; noticing is push. Everything you track appears on your
+**timeline** (`elixir_timeline`) while its notify switch is on. The
+timeline is synthesized when you read it, from the record and the
+per-subject ledger: the items that happened since your read pointer, in
+order, each a sentence a person can read with its facts beside it, and one
+entry per subject summarizing the window. A person's entries are the players they track and the
 clans they added; an agent's is the clan it represents, with the members
 inside it. Facts with their windows, never judgments: what to do about a
 member quiet six days is deliberately your agent's call, not the
-service's, and nothing in the feed announces the time, which is
-`game_clock`'s job. The shape lives on [Events](/docs/events).
+service's, and nothing on the timeline announces the time, which is
+`game_clock`'s job. The shape lives on [Timeline](/docs/timeline).
 
 ## The feedback loop
 

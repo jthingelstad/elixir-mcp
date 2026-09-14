@@ -92,36 +92,33 @@ export async function projectPlayerBadges(
     ],
   );
 
-  const feedEvents = [];
+  // The ledger gets one named row per badge moment; the first observation
+  // writes nothing (a new tracking arrives with a whole shelf, and that is
+  // history, not news). Progress inside a level is recorded, never a row.
   const firstObservation = Number(changed[0]?.prior_count ?? 0) === 0;
   if (!firstObservation) {
-    let legendary = 0;
-    let routine = 0;
     for (const row of changed) {
       const level = row.new_level;
-      if (row.is_new && level === null) legendary += 1;
-      else if (row.is_new && level !== null) routine += 1;
+      let type = null;
+      if (row.is_new && level === null) type = "legendary_badge_earned";
+      else if (row.is_new && level !== null) type = "badge_earned";
       else if (row.prior_level !== null && level > row.prior_level)
-        routine += 1;
-      // Everything else is progress ticking inside a level. Real movement in
-      // the table, but not a thing worth a nod.
+        type = "badge_earned";
+      if (!type) continue;
+      await emitEvent(db, type, {
+        tag: playerTag,
+        windowEnd: fetchedAt,
+        payload: {
+          name: row.name,
+          ...(level !== null ? { level } : {}),
+          ...(row.prior_level !== null && row.prior_level !== undefined
+            ? { prior_level: row.prior_level }
+            : {}),
+        },
+      });
     }
-    if (legendary > 0)
-      feedEvents.push({
-        kind: "player",
-        tag: playerTag,
-        topic: "legendary_badge_earned",
-        count: legendary,
-      });
-    if (routine > 0)
-      feedEvents.push({
-        kind: "player",
-        tag: playerTag,
-        topic: "badge_earned",
-        count: routine,
-      });
   }
-  return { changed: changed.length, feedEvents };
+  return { changed: changed.length };
 }
 
 export async function projectPlayerSnapshot(
@@ -131,7 +128,7 @@ export async function projectPlayerSnapshot(
   const day = fetchedAt.slice(0, 10);
 
   const { rows: prevRows } = await db.query(
-    `select snapshot_date, donations, (lifetime->>'battleCount')::int as battle_count,
+    `select snapshot_date, observed_at, donations, (lifetime->>'battleCount')::int as battle_count,
             arena_id, best_trophies,
             (lifetime->>'wins')::int as wins,
             (lifetime->>'collectionLevel')::int as collection_level,
@@ -232,67 +229,98 @@ export async function projectPlayerSnapshot(
     prev.donations !== (payload.donations ?? null) ||
     prev.wins !== (payload.wins ?? null) ||
     prev.best_trophies !== (payload.bestTrophies ?? null);
+  // The arena catalog: ids are opaque (54000144 is Spirit Square), and the
+  // profile payload is the only place the name travels.
+  if (payload.arena?.id && typeof payload.arena.name === "string") {
+    await db.query(
+      `insert into arena (arena_id, name, observed_at) values ($1, $2, $3)
+       on conflict (arena_id) do update
+         set name = excluded.name, observed_at = excluded.observed_at
+       where arena.name is distinct from excluded.name`,
+      [payload.arena.id, payload.arena.name, fetchedAt],
+    );
+  }
+  if (kind === "daily")
+    await ledgerMilestones(db, {
+      playerTag,
+      prev,
+      payload,
+      fetchedAt,
+      receiptId,
+    });
+
   return {
     day,
     kind,
     hadPrevious: Boolean(prev),
     moved,
-    feedEvents: milestones(playerTag, prev, payload),
   };
 }
 
 /**
- * Snapshot-derived nods. Each one answers "something moved here, go look" and
- * carries no detail beyond that -- the reader has players_profile and
- * players_timeline, which are cheap and current, and a payload that tried to
- * summarise would just be a staler copy of them.
+ * Snapshot-derived moments, written to the ledger with their values so the
+ * timeline can name them (review 2026-09-13 Part IV). Thresholds are the
+ * disclosed rungs: a personal best counts at each 500 band, career wins at
+ * each thousand, collection level at each fifth level; an arena change and a
+ * ranked promotion count as themselves. A season reset dropping the league
+ * is not a demotion worth a row.
  *
  * `prev` absent means this is the player's first snapshot, and everything
  * would read as a milestone. Same flood guard as the badges.
  */
-function milestones(playerTag, prev, payload) {
-  if (!prev) return [];
-  const out = [];
-  const nod = (topic) => out.push({ kind: "player", tag: playerTag, topic });
+const BEST_TROPHIES_BAND = 500;
+const CAREER_WINS_STEP = 1000;
+const COLLECTION_LEVEL_STEP = 5;
+const crossed = (before, after, step) =>
+  typeof before === "number" &&
+  typeof after === "number" &&
+  Math.floor(after / step) > Math.floor(before / step);
+
+async function ledgerMilestones(
+  db,
+  { playerTag, prev, payload, fetchedAt, receiptId },
+) {
+  if (!prev) return;
+  const windowStart = prev.observed_at
+    ? prev.observed_at.toISOString()
+    : fetchedAt;
+  const write = (type, extra) =>
+    emitEvent(db, type, {
+      tag: playerTag,
+      windowStart,
+      windowEnd: fetchedAt,
+      receiptId,
+      payload: extra,
+    });
 
   const arena = payload.arena?.id ?? null;
   if (arena !== null && prev.arena_id !== null && arena !== prev.arena_id)
-    nod("arena_changed");
+    await write("arena_changed", {
+      from: prev.arena_id,
+      to: arena,
+      to_name: payload.arena?.name ?? null,
+    });
 
-  // A peak, not a level: bestTrophies only ever moves up, so any increase is
-  // a new personal best.
+  if (crossed(prev.best_trophies, payload.bestTrophies, BEST_TROPHIES_BAND))
+    await write("best_trophies_band", { best: payload.bestTrophies });
+
+  if (crossed(prev.wins, payload.wins, CAREER_WINS_STEP))
+    await write("career_wins_step", { wins: payload.wins });
+
   if (
-    typeof payload.bestTrophies === "number" &&
-    typeof prev.best_trophies === "number" &&
-    payload.bestTrophies > prev.best_trophies
-  )
-    nod("best_trophies_peak");
-
-  // Career wins tick constantly; only a thousand-crossing is news.
-  const WINS_STEP = 1000;
-  if (typeof payload.wins === "number" && typeof prev.wins === "number") {
-    if (
-      Math.floor(payload.wins / WINS_STEP) > Math.floor(prev.wins / WINS_STEP)
+    crossed(
+      prev.collection_level,
+      payload.collectionLevel,
+      COLLECTION_LEVEL_STEP,
     )
-      nod("career_wins_milestone");
-  }
-
-  if (
-    typeof payload.collectionLevel === "number" &&
-    typeof prev.collection_level === "number" &&
-    payload.collectionLevel > prev.collection_level
   )
-    nod("collection_level_milestone");
+    await write("collection_level_step", { level: payload.collectionLevel });
 
-  // Path of Legends: the league number rises with promotion. A season reset
-  // drops it, which is not a demotion worth a nod -- only the climb is.
   const league = payload.currentPathOfLegendSeasonResult?.leagueNumber ?? null;
   if (
     typeof league === "number" &&
     typeof prev.pol_league === "number" &&
     league > prev.pol_league
   )
-    nod("pol_promotion");
-
-  return out;
+    await write("ranked_promotion", { from: prev.pol_league, to: league });
 }

@@ -4,7 +4,6 @@ import {
   deleteCollection,
 } from "@elixir-mcp/claims";
 import { normalizeTag, roleQuotas } from "@elixir-mcp/contracts";
-import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
 import {
   ensureClanRecording,
   settleClanRecording,
@@ -204,9 +203,6 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
       if (started) {
         await logEvent(db, account.accountId, "recording_started", {
           clan_tag: tag,
-          scope,
-        });
-        await emitFeedEvent(db, account.accountId, "recording_started", tag, {
           scope,
         });
       }

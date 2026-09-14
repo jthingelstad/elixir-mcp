@@ -82,8 +82,12 @@ export const useActivityEvents = (enabled = true) =>
     enabled,
   });
 
-export const useMyEvents = (enabled = true) =>
-  useQuery({ queryKey: keys.feed, queryFn: payload(api.myEvents), enabled });
+export const useMyTimeline = (enabled = true) =>
+  useQuery({
+    queryKey: keys.feed,
+    queryFn: payload(api.myTimeline),
+    enabled,
+  });
 
 export const useSessions = () =>
   useQuery({ queryKey: keys.sessions, queryFn: payload(api.sessions) });
@@ -103,10 +107,10 @@ export const useMyPrincipals = () =>
 /** An agent's own log and identities, keyed under its principal so
  *  invalidating ["me", "principals"] takes the agent list and every
  *  agent's detail with it. */
-export const usePrincipalEvents = (id) =>
+export const usePrincipalTimeline = (id) =>
   useQuery({
     queryKey: keys.principalEvents(id),
-    queryFn: payload(() => api.principalEvents(id)),
+    queryFn: payload(() => api.principalTimeline(id)),
     enabled: Boolean(id),
   });
 

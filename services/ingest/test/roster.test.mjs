@@ -206,15 +206,9 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
   }
 });
 
-test("roster feed payloads carry at least the floor the registry promises", async () => {
-  // The registry tests pin the registry; this pins the EMITTER against it.
-  // From 0.21.1 to 1.9.0 member_role_changed shipped {role} and member_left
-  // shipped no role while the floor promised prev/new/direction and role
-  // (review 2026-09-13, finding 7): a reader trusting the docs could not tell
-  // a promotion from a demotion.
-  const { TOPIC_CONTRACTS } = await import("../../mcp/src/feed.mjs");
+test("the ledger names every roster moment: prev/new role and direction, the departing role and name", async () => {
   const clan = await fixture("clan/roster.json");
-  const fresh = await scratchDb("roster_floor");
+  const fresh = await scratchDb("roster_ledger");
   try {
     await ingestClanRoster(fresh.db, {
       payload: clan,
@@ -231,41 +225,34 @@ test("roster feed payloads carry at least the floor the registry promises", asyn
       ),
       1,
     );
-    const result = await ingestClanRoster(fresh.db, {
+    await ingestClanRoster(fresh.db, {
       payload: next,
       observedAt: "2026-09-03T15:40:34Z",
     });
-    assert.ok(result.feedEvents.length >= 3, "three roster changes emitted");
-    for (const ev of result.feedEvents) {
-      const floor = TOPIC_CONTRACTS[ev.topic]?.payload;
-      assert.ok(floor, `${ev.topic} is a registered topic`);
-      for (const key of floor)
-        assert.ok(
-          Object.hasOwn(ev.payload, key),
-          `${ev.topic} payload carries promised key ${key}`,
-        );
-    }
-    const up = result.feedEvents.find(
-      (e) =>
-        e.topic === "member_role_changed" &&
-        e.payload.player_tag === promoted.tag,
+    const { rows } = await fresh.db.query(
+      `select event_type, payload from clan_event order by event_id`,
+    );
+    const up = rows.find(
+      (r) =>
+        r.event_type === "role_changed" &&
+        r.payload.player_tag === promoted.tag,
     );
     assert.deepEqual(
-      [up.payload.prev_role, up.payload.new_role, up.payload.direction],
+      [up.payload.role_before, up.payload.role_after, up.payload.direction],
       ["member", "elder", "promoted"],
     );
-    const down = result.feedEvents.find(
-      (e) =>
-        e.topic === "member_role_changed" &&
-        e.payload.player_tag === demoted.tag,
+    const down = rows.find(
+      (r) =>
+        r.event_type === "role_changed" && r.payload.player_tag === demoted.tag,
     );
     assert.equal(down.payload.direction, "demoted");
-    const left = result.feedEvents.find((e) => e.topic === "member_left");
+    const left = rows.find((r) => r.event_type === "member_left");
     assert.equal(left.payload.player_tag, gone.tag);
+    assert.equal(left.payload.role_at_departure, "elder");
     assert.equal(
-      left.payload.role,
-      "elder",
-      "the departing role rides the event",
+      left.payload.name,
+      gone.name,
+      "the departing name rides the row",
     );
   } finally {
     await fresh.drop();

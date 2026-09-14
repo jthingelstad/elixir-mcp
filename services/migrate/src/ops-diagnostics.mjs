@@ -446,14 +446,14 @@ export async function probe(databaseUrl) {
                 as rivals_with_3plus_races
        from races`,
     );
-    // Push-lane pulse (shipped 2026-09-05): rows by topic, and how
-    // much sits unread past each account's cursor.
+    // The ledger's last day, by kind: what the timeline has to show.
     const { rows: feed } = await db.query(
-      `select topic, count(*)::int as rows,
-              min(ef.created_at) as first, max(ef.created_at) as last,
-              count(*) filter (where ef.event_id > a.events_seen_through)::int as unread
-       from event_feed ef join account a on a.account_id = ef.account_id
-       group by topic order by topic`,
+      `select event_type, count(*)::int as rows
+         from (select event_type, window_end from player_event
+               union all
+               select event_type, window_end from clan_event) x
+        where window_end > now() - interval '24 hours'
+        group by event_type order by event_type`,
     );
     // Pros-collection capture ramp: recording coverage and 24h battle
     // flow for every member of the 'pros' collection.
@@ -478,7 +478,7 @@ export async function probe(databaseUrl) {
       war_stamps_7d: stamps,
       level_census: { window: "24h", ...levels[0] },
       rival_census: rivals[0],
-      feed_census: feed,
+      ledger_census: feed,
       pros_census: pros[0],
     };
   } finally {

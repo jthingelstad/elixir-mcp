@@ -132,7 +132,7 @@ export const GROUP_ORDER = [
   "Rankings",
   "Collections",
   "Live",
-  "Feed",
+  "Timeline",
   "Service",
   "Help",
 ] as const;
@@ -380,10 +380,10 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     openWorld: true,
   },
 
-  // Feed — the push lane.
-  elixir_events: {
-    group: "Feed",
-    title: "Event feed",
+  // Timeline — what happened to what you track.
+  elixir_timeline: {
+    group: "Timeline",
+    title: "Timeline",
     // Advances the caller's own seen-cursor and nothing else: a bookmark,
     // not account state anyone else can see. Read-only for the same reason
     // it needs only cr:read (feedback #16) - a client that auto-approves

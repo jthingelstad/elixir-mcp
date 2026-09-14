@@ -345,16 +345,21 @@ test("roster diffs emit clan events with evidence; first sight was silent", asyn
       fetchedAt: "2026-09-03T15:10:34Z",
     }),
   );
-  const { rows: feed } = await ctx.db.query(
-    `select topic, subject_tag, payload from event_feed where account_id = $1`,
-    [acct[0].account_id],
+  const { rows: ledger } = await ctx.db.query(
+    `select event_type, payload from clan_event
+      where clan_tag = $1 and event_type = 'member_left'
+        and payload->>'player_tag' = $2`,
+    ["#J2RGCRVG", departed2.tag],
   );
-  assert.equal(feed.length, 1, "one member_left notification");
-  assert.equal(feed[0].topic, "member_left");
-  assert.equal(feed[0].subject_tag, "#J2RGCRVG");
-  assert.equal(feed[0].payload.player_tag, departed2.tag);
+  assert.equal(
+    ledger.length,
+    1,
+    "one member_left on the ledger for the departed member",
+  );
+  assert.equal(ledger[0].payload.player_tag, departed2.tag);
   assert.ok(
-    typeof feed[0].payload.name === "string" && feed[0].payload.name.length > 0,
+    typeof ledger[0].payload.name === "string" &&
+      ledger[0].payload.name.length > 0,
     "member_left carries the last-known name (normalize at the source)",
   );
 });

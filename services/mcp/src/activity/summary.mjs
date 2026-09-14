@@ -1,31 +1,47 @@
 /**
- * The summary line of an activity entry: deterministic, templated English
- * a person can read, every number taken from the entry's own sections.
- * No model call, no judgment, no verb of instruction (review 2026-09-13,
- * §12 and §14). If a sentence here would not be worth reading on the
- * console's Activity page, it is not worth an agent's tokens either.
+ * The words of the timeline: each entry's summary line and each item's
+ * text. Deterministic, templated English a person can read, every number
+ * taken from the facts beside it. No model call, no judgment, no verb of
+ * instruction (review 2026-09-13, §12 and §14). If a sentence here would
+ * not be worth reading on the console's Timeline page, it is not worth an
+ * agent's tokens either.
  */
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "?");
 
-/** "since Thu 09:00" in the reader's zone; a window over a day says the date. */
-function sinceLabel(fromIso, toIso, timeZone = "UTC") {
-  const from = new Date(fromIso);
-  const to = new Date(toIso);
-  const spanH = (to - from) / 3_600_000;
-  const opts =
-    spanH <= 36
-      ? { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }
-      : { month: "short", day: "numeric" };
+function fmt(iso, timeZone, opts) {
+  const d = new Date(iso);
   try {
-    return new Intl.DateTimeFormat("en-US", { timeZone, ...opts }).format(from);
+    return new Intl.DateTimeFormat("en-US", { timeZone, ...opts }).format(d);
   } catch {
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "UTC",
       ...opts,
-    }).format(from);
+    }).format(d);
   }
 }
+
+/** "since Thu 09:00" in the reader's zone; a window over a day says the date. */
+function sinceLabel(fromIso, toIso, timeZone = "UTC") {
+  const spanH = (new Date(toIso) - new Date(fromIso)) / 3_600_000;
+  return fmt(
+    fromIso,
+    timeZone,
+    spanH <= 36
+      ? { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }
+      : { month: "short", day: "numeric" },
+  );
+}
+
+/** "Sat 11:18" for an item's instant. */
+const atLabel = (iso, timeZone) =>
+  fmt(iso, timeZone, {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 
 const who = (e) => {
   const base = e.nickname
@@ -36,20 +52,22 @@ const who = (e) => {
     : base;
 };
 
+const record = (won, lost, drawn) =>
+  [`${won}W`, `${lost}L`, drawn ? `${drawn}D` : null].filter(Boolean).join("-");
+const modes = (byMode) =>
+  Object.entries(byMode ?? {})
+    .sort((x, y) => y[1] - x[1])
+    .map(([m, n]) => `${n} ${m}`)
+    .join(", ");
+
 export function summarizePlayer(e, timeZone = "UTC") {
   const since = sinceLabel(e.window.from, e.window.to, timeZone);
   const parts = [];
   const b = e.battles;
   if (b.played > 0) {
-    const record = [`${b.won}W`, `${b.lost}L`, b.drawn ? `${b.drawn}D` : null]
-      .filter(Boolean)
-      .join("-");
-    const modes = Object.entries(b.by_mode)
-      .sort((x, y) => y[1] - x[1])
-      .map(([m, n]) => `${n} ${m}`)
-      .join(", ");
+    const m = modes(b.by_mode);
     parts.push(
-      `${plural(b.played, "battle")} since ${since} (${record}${modes ? `; ${modes}` : ""})`,
+      `${plural(b.played, "battle")} in ${plural(b.sessions, "session")} since ${since} (${record(b.won, b.lost, b.drawn)}${m ? `; ${m}` : ""})`,
     );
   } else {
     parts.push(`no recorded battles since ${since}`);
@@ -62,16 +80,16 @@ export function summarizePlayer(e, timeZone = "UTC") {
   ) {
     const d = e.trophies.to - e.trophies.from;
     parts.push(
-      `trophies ${e.trophies.from.toLocaleString("en-US")} → ${e.trophies.to.toLocaleString("en-US")} (${d > 0 ? "+" : ""}${d})`,
+      `trophies ${num(e.trophies.from)} → ${num(e.trophies.to)} (${d > 0 ? "+" : ""}${d})`,
     );
   }
   for (const n of e.notables) {
     switch (n.kind) {
       case "best_trophies_band":
-        parts.push(`new best ${n.value.toLocaleString("en-US")} trophies`);
+        parts.push(`new best ${num(n.value)} trophies`);
         break;
       case "arena_promotion":
-        parts.push(`reached a new arena`);
+        parts.push(n.to ? `reached ${n.to}` : `reached a new arena`);
         break;
       case "ranked_promotion":
         parts.push(`promoted to ${n.league}`);
@@ -80,13 +98,15 @@ export function summarizePlayer(e, timeZone = "UTC") {
         parts.push(`collection level ${n.value}`);
         break;
       case "career_wins":
-        parts.push(`${n.value.toLocaleString("en-US")} career wins`);
+        parts.push(`${num(n.value)} career wins`);
         break;
       case "legendary_badge":
-        parts.push(plural(n.count, "one-off badge"));
+        parts.push(`earned ${n.name}`);
         break;
       case "badge_level":
-        parts.push(plural(n.count, "badge level-up"));
+        parts.push(
+          `${plural(n.count, "badge level-up")}${n.names?.length ? ` (${n.names.join(", ")})` : ""}`,
+        );
         break;
       case "clan_joined":
         parts.push(`joined ${n.clan_name ?? "a clan"}`);
@@ -123,36 +143,25 @@ export function summarizeClan(e, timeZone = "UTC") {
   const a = e.activity;
   if (a.battles !== null)
     parts.push(
-      // Players who battled WHILE members over the window can exceed the
-      // roster at its end (a hopping clan saw 147 of 35): say both plainly.
       a.members_active > a.members_total
-        ? `${plural(a.battles, "battle")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
-        : `${plural(a.battles, "battle")} by ${a.members_active} of ${a.members_total} members since ${since}`,
+        ? `${plural(a.battles, "battle")} in ${plural(a.sessions, "session")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
+        : `${plural(a.battles, "battle")} in ${plural(a.sessions, "session")} by ${a.members_active} of ${a.members_total} members since ${since}`,
     );
   else
     parts.push(
       `${a.members_total} members since ${since} (roster and war only)`,
     );
   const r = e.roster;
+  const names = (list, cap) =>
+    `${list.items
+      .slice(0, cap)
+      .map((m) => m.name ?? m.tag)
+      .join(
+        ", ",
+      )}${list.items.length > cap || list.more ? ` +${list.items.length - cap + list.more}` : ""}`;
   const moves = [];
-  if (r.joined.items.length)
-    moves.push(
-      `joined: ${r.joined.items
-        .slice(0, 5)
-        .map((m) => m.name ?? m.tag)
-        .join(
-          ", ",
-        )}${r.joined.items.length > 5 || r.joined.more ? ` +${r.joined.items.length - 5 + r.joined.more}` : ""}`,
-    );
-  if (r.left.items.length)
-    moves.push(
-      `left: ${r.left.items
-        .slice(0, 5)
-        .map((m) => m.name ?? m.tag)
-        .join(
-          ", ",
-        )}${r.left.items.length > 5 || r.left.more ? ` +${r.left.items.length - 5 + r.left.more}` : ""}`,
-    );
+  if (r.joined.items.length) moves.push(`joined: ${names(r.joined, 5)}`);
+  if (r.left.items.length) moves.push(`left: ${names(r.left, 5)}`);
   if (r.role_changes.items.length)
     moves.push(
       `roles: ${r.role_changes.items
@@ -167,18 +176,16 @@ export function summarizeClan(e, timeZone = "UTC") {
     parts.push(`roster ${r.size.from}→${r.size.to}`);
   const w = e.war;
   if (w) {
-    if (w.resolved.length) {
-      for (const x of w.resolved)
-        parts.push(
-          `week ${x.week} finished${x.rank ? ` in place ${x.rank}` : ""}${x.fame !== null ? ` with ${x.fame.toLocaleString("en-US")} fame` : ""}`,
-        );
-    }
+    for (const x of w.resolved)
+      parts.push(
+        `week ${x.week} finished${x.rank ? ` in place ${x.rank}` : ""}${x.fame !== null ? ` with ${num(x.fame)} fame` : ""}`,
+      );
     if (w.day_kind === "war") {
       const d = w.decks;
       const state = w.race_finished_at
         ? "race finished"
         : w.fame !== null
-          ? `${w.fame.toLocaleString("en-US")} fame, place ${w.place_of_five} of 5`
+          ? `${num(w.fame)} fame, place ${w.place_of_five} of 5`
           : "";
       parts.push(
         `war day ${w.war_day}${state ? ` (${state})` : ""}${d ? `: ${d.untouched} untouched, ${d.partial} partial, ${d.finished} finished of ${d.participants}` : ""}`,
@@ -215,14 +222,16 @@ export function summarizeClan(e, timeZone = "UTC") {
       parts.push(
         `new bests: ${s.new_bests.items
           .slice(0, 3)
-          .map((m) => `${m.name ?? m.tag} ${m.best.toLocaleString("en-US")}`)
+          .map((m) => `${m.name ?? m.tag} ${num(m.best)}`)
           .join(", ")}${s.new_bests.more ? ` +${s.new_bests.more}` : ""}`,
       );
     if (s.arena_promotions.items.length)
       parts.push(
         `${plural(s.arena_promotions.items.length + s.arena_promotions.more, "arena promotion")} (${s.arena_promotions.items
           .slice(0, 3)
-          .map((m) => m.name ?? m.tag)
+          .map((m) =>
+            m.arena ? `${m.name ?? m.tag} → ${m.arena}` : (m.name ?? m.tag),
+          )
           .join(", ")})`,
       );
     if (s.ranked_promotions.items.length)
@@ -236,13 +245,75 @@ export function summarizeClan(e, timeZone = "UTC") {
       parts.push(
         `badges: ${s.badges
           .slice(0, 3)
-          .map((m) => `${m.name ?? m.tag} ${m.count}`)
+          .map(
+            (m) =>
+              `${m.name ?? m.tag} ${m.count}${m.names?.length ? ` (${m.names.join(", ")})` : ""}`,
+          )
           .join(", ")}`,
       );
   }
   if (e.donations.leader && e.donations.week_total > 0)
     parts.push(
-      `donations this week ${e.donations.week_total.toLocaleString("en-US")}, led by ${e.donations.leader.name ?? e.donations.leader.tag} (${e.donations.leader.given})`,
+      `donations this week ${num(e.donations.week_total)}, led by ${e.donations.leader.name ?? e.donations.leader.tag} (${e.donations.leader.given})`,
     );
   return `${e.name ?? e.subject_tag}: ${parts.join("; ")}.`;
+}
+
+/** One timeline item as a sentence. */
+export function itemText(it, timeZone = "UTC") {
+  const f = it.facts ?? {};
+  const at = it.at ? atLabel(it.at, timeZone) : "";
+  const subj = it.subject_name ?? it.subject_tag ?? "";
+  const member = f.name ?? f.player_tag ?? "";
+  switch (it.kind) {
+    case "battle_session": {
+      const m = modes(f.by_mode);
+      const net =
+        typeof f.trophy_net === "number" && f.trophy_net !== 0
+          ? `, ${f.trophy_net > 0 ? "+" : ""}${f.trophy_net} trophies`
+          : "";
+      return `${at} ${subj} played a session of ${plural(f.battles, "battle")} (${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net})${f.open ? ", still going" : ""}.`;
+    }
+    case "badge_earned":
+      return `${at} ${member || subj} took ${f.name}${f.level ? ` to level ${f.level}` : ""}.`;
+    case "legendary_badge_earned":
+      return `${at} ${member || subj} earned ${f.name}.`;
+    case "arena_changed":
+      return `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}.`;
+    case "ranked_promotion":
+      return `${at} ${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}.`;
+    case "best_trophies_band":
+      return `${at} ${member || subj} set a new best of ${num(f.best)} trophies.`;
+    case "collection_level_step":
+      return `${at} ${member || subj} reached collection level ${f.level}.`;
+    case "career_wins_step":
+      return `${at} ${member || subj} passed ${num(f.wins)} career wins.`;
+    case "card_unlocked":
+      return `${at} ${member || subj} unlocked ${f.name ?? `card ${f.card_id}`}.`;
+    case "member_joined":
+      return `${at} ${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
+    case "member_left":
+      return `${at} ${f.name ?? f.player_tag} left ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
+    case "member_role_changed":
+      return `${at} ${f.name ?? f.player_tag} ${f.direction === "demoted" ? "was demoted" : "was promoted"} from ${f.role_before} to ${f.role_after} in ${subj}.`;
+    case "race_finished":
+      return `${at} ${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
+    case "week_resolved":
+      return `${at} ${subj} finished week ${(f.section_index ?? 0) + 1}${f.rank ? ` in place ${f.rank}` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}.`;
+    case "clan_joined":
+      return `${at} ${subj} joined ${f.clan_name ?? f.clan_tag}.`;
+    case "clan_left":
+      return `${at} ${subj} left ${f.clan_name ?? f.clan_tag}${f.role && f.role !== "member" ? ` (was ${f.role})` : ""}.`;
+    case "quiet_crossed":
+      return `${at} ${member || subj} passed ${f.rung} recorded-quiet days${f.days_since_poll ? ` (last polled ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
+    case "returned":
+      return `${at} ${member || subj} played again after ${plural(f.after_days, "quiet day")}.`;
+    default:
+      if (it.kind.startsWith("account_")) {
+        const what = it.kind.slice("account_".length).replaceAll("_", " ");
+        const detail = f.player_tag ?? f.clan_tag ?? f.role ?? f.name ?? "";
+        return `${at} your account: ${what}${detail ? ` (${detail})` : ""}.`;
+      }
+      return `${at} ${subj}: ${it.kind.replaceAll("_", " ")}.`;
+  }
 }

@@ -173,11 +173,6 @@ export async function sweepOperational(databaseUrl) {
         `delete from job where status = 'dead' and done_at < now() - interval '30 days'`,
       )
     ).rowCount;
-    out.event_feed = (
-      await db.query(
-        `delete from event_feed where created_at < now() - interval '30 days'`,
-      )
-    ).rowCount;
     // An unclaimed collector bearer is a live credential sitting in
     // plaintext. Past its window it is unclaimable already (#31); this
     // stops it being READABLE too.

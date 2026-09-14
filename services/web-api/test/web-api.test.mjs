@@ -1129,11 +1129,11 @@ test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin s
     }),
   );
   assert.equal(set.statusCode, 200, set.body);
-  const { rows: feed } = await db.query(
-    `select topic from event_feed where account_id = $1 order by event_id desc`,
+  const { rows: logged } = await db.query(
+    `select kind from account_event where account_id = $1 and kind = 'role_changed'`,
     [row.account_id],
   );
-  assert.ok(feed.some((e) => e.topic === "role_changed"));
+  assert.ok(logged.length > 0, "the tier change is on the account's timeline");
 
   me = parse(
     await handler(
@@ -1336,24 +1336,30 @@ test("activity APIs: own request log, read-only notification view, collector det
   assert.ok(Array.isArray(reqs.requests));
 
   const before = await db.query(
-    `select events_seen_through from account where email_hash = $1`,
+    `select activity_seen_at from account where email_hash = $1`,
     [emailHash(JAMIE)],
   );
   const ev = parse(
     await handler(
-      event({ method: "GET", path: "/api/me/events", cookie, body: undefined }),
+      event({
+        method: "GET",
+        path: "/api/me/timeline",
+        cookie,
+        body: undefined,
+      }),
     ),
   );
-  assert.ok(Array.isArray(ev.events));
-  assert.equal(typeof ev.seen_through, "number");
+  assert.ok(Array.isArray(ev.timeline));
+  assert.ok(Array.isArray(ev.entries));
+  assert.ok("read_to" in ev);
   const after = await db.query(
-    `select events_seen_through from account where email_hash = $1`,
+    `select activity_seen_at from account where email_hash = $1`,
     [emailHash(JAMIE)],
   );
   assert.equal(
-    String(before.rows[0].events_seen_through),
-    String(after.rows[0].events_seen_through),
-    "web view never advances the agents' cursor",
+    String(before.rows[0].activity_seen_at),
+    String(after.rows[0].activity_seen_at),
+    "web view never moves the agents' read pointer",
   );
 
   // Collector detail: owner-scoped; someone else's gateway 404s.
@@ -2029,11 +2035,6 @@ test("a refused role change is not reported, logged, or announced as one", async
     [peer.account_id],
   );
   assert.equal(logged.length, 0, "a refusal is not logged as a change");
-  const { rows: announced } = await db.query(
-    `select 1 from event_feed where account_id = $1 and topic = 'role_changed'`,
-    [peer.account_id],
-  );
-  assert.equal(announced.length, 0, "and never announced to the target");
 
   // A malformed account_id is a 404, not a Postgres uuid error as a 500.
   const malformed = await handler(
@@ -2478,7 +2479,7 @@ test("malformed ids are 400s, never uuid or bigint syntax errors", async () => {
   const events = await handler({
     ...event({
       method: "GET",
-      path: "/api/me/principals/events",
+      path: "/api/me/principals/timeline",
       cookie,
       body: undefined,
     }),

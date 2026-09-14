@@ -177,7 +177,7 @@ test(
     fireEvent.click(screen.getByRole("button", { name: "Create agent" }));
     await screen.findByText("Copy this key now.");
     fireEvent.click(await screen.findByText("Open ›"));
-    await screen.findByText("Unread notifications");
+    await screen.findByText("Subjects with news");
     const agentId = window.location.pathname.split("/").at(-1);
     expect(
       (

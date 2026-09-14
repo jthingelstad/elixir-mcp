@@ -119,15 +119,6 @@ export async function ingestClanRoster(
   let joined = 0;
   let departed = 0;
   let roleChanged = 0;
-  // Push lane (Jamie, 2026-09-06: "clan notifications aren't working" -
-  // the only clan topic was the WEEKLY war boundary): roster changes
-  // are the clan happenings people mean. Collected here, emitted by
-  // the pipeline AFTER commit; firstSight stays silent like emit().
-  const feedEvents = [];
-  const feed = (topic, payload) => {
-    if (firstSight) return;
-    feedEvents.push({ kind: "clan", tag: clanTag, topic, payload });
-  };
 
   for (const m of members) {
     const existing = openByTag.get(m.tag);
@@ -148,7 +139,6 @@ export async function ingestClanRoster(
         "member_joined",
         evidence({ player_tag: m.tag, name: m.name, role: m.role }),
       );
-      feed("member_joined", { player_tag: m.tag, name: m.name });
       joined += 1;
     } else if (existing.role !== m.role) {
       await db.query(
@@ -163,18 +153,9 @@ export async function ingestClanRoster(
           name: m.name,
           role_before: existing.role,
           role_after: m.role,
+          direction: roleDirection(existing.role, m.role),
         }),
       );
-      // The floor the registry promises (feed.mjs): prev/new and which way.
-      // Emitted as {role} alone from 0.21.1 to 1.9.0 - a reader could not
-      // tell a promotion from a demotion (review 2026-09-13, finding 7).
-      feed("member_role_changed", {
-        player_tag: m.tag,
-        name: m.name,
-        prev_role: existing.role,
-        new_role: m.role,
-        direction: roleDirection(existing.role, m.role),
-      });
       roleChanged += 1;
     }
   }
@@ -186,27 +167,21 @@ export async function ingestClanRoster(
          where clan_tag = $1 and player_tag = $2 and left_observed_at is null`,
         [clanTag, r.player_tag, at],
       );
-      await emit(
-        "member_left",
-        evidence({
-          player_tag: r.player_tag,
-          role_at_departure: r.role,
-          joined_observed_at: r.joined_observed_at,
-        }),
-      );
       // Stamp the last-known name at the source: the tag alone forces
       // every reader to reconstruct who left (casual pass, 2026-09-06).
       const { rows: leftName } = await db.query(
         `select name from player where player_tag = $1`,
         [r.player_tag],
       );
-      feed("member_left", {
-        player_tag: r.player_tag,
-        name: leftName[0]?.name ?? null,
-        // The departing role: free here, unrecoverable once the membership
-        // closes, and the one key the floor promised that was missing.
-        role: r.role,
-      });
+      await emit(
+        "member_left",
+        evidence({
+          player_tag: r.player_tag,
+          name: leftName[0]?.name ?? null,
+          role_at_departure: r.role,
+          joined_observed_at: r.joined_observed_at,
+        }),
+      );
       departed += 1;
     }
   }
@@ -230,6 +205,5 @@ export async function ingestClanRoster(
     facts: joined + departed + roleChanged + playersChanged,
     activeNow: seenWithin(3600_000),
     seen24h: seenWithin(86_400_000),
-    feedEvents,
   };
 }

@@ -766,6 +766,93 @@ directly, which is cheaper for them and for the service.
 
 ---
 
+# Part IV — The timeline
+
+Jamie, 2026-09-13 evening, after 2.0.0 shipped: *"I think my choice of
+words 'notifications' sent this in an odd direction. A more meaningful word
+is 'timeline'. The items in here are a timeline and the agent should be
+able to see what is in the timeline, dry-run the unread timeline to
+consider things, move its read pointer to the top."* And on battles:
+*"individual battles should not be in it, but 'battle sessions' should: a
+gap of 30 minutes breaks the session; speaking about sessions would be
+natural for players."*
+
+## 16. Two layers, named
+
+- **The timeline** is the stream of things that happened, in order, each
+  with an instant and a subject. It is the ledger (`player_event`,
+  `clan_event`, `account_event`) plus a few items derived at read time that
+  have a moment but no observer (a quiet rung crossed, a return, a battle
+  session).
+- **The entries** are the summary of the unread span of the timeline, per
+  subject, as shipped in 2.0.0.
+
+The read pointer is the account's instant bookmark. *Dry run* is
+`mark_read: false`; *move the pointer to the top* is `mark_read: true`;
+*see what is in it* is the response. The Discord consumer confirmed the
+need the same evening: on 2.0.0 it has to guess whether a window is worth a
+post by hunting for objects inside section lists. With items, the answer
+is "the unread timeline is non-empty".
+
+## 17. Items
+
+`{ at, subject_tag, subject_name, kind, section, text, facts }`, oldest
+first, capped per response with `more`. `section` names the entry section
+the item belongs to, so `sections` filters items and entries together.
+
+| kind | subject | source | facts |
+|---|---|---|---|
+| `battle_session` | player | derived: recorded battles grouped by gaps of 30 minutes or more | started_at, ended_at, battles, won, lost, drawn, by_mode, trophy_net |
+| `badge_earned`, `legendary_badge_earned` | player | ledger, written at ingest | name, level |
+| `arena_changed` | player | ledger | from, to (ids and names from the arena catalog) |
+| `ranked_promotion` | player | ledger | from, to (league names) |
+| `best_trophies_band` | player | ledger | best |
+| `collection_level_step` | player | ledger | level |
+| `career_wins_step` | player | ledger | wins |
+| `card_unlocked` | player | ledger | card_id, name, rarity |
+| `member_joined`, `member_left`, `member_role_changed` | clan | ledger (exists) | tag, name, role / prev_role, new_role |
+| `race_finished` | clan | ledger, written when finish_time first appears | fame, at |
+| `week_resolved` | clan | ledger, written when a week's finished_observed_at is first set | season_id, week, fame, rank, trophy_change |
+| `quiet_crossed`, `returned` | clan member or player | derived at read time | days_quiet, rung / after_days |
+| `feedback_responded`, `recording_started`, `recording_stopped`, `account_tier_changed` | account | `account_event` | as today |
+
+Deliberately not items: individual battles (a session is the unit), card
+level-ups (a count in the collection section), progress inside a badge
+level, and anything a clock could have told the reader.
+
+For a clan, members' progression moments (badges, arenas, promotions,
+bests) ARE items, named, because that is what a highlights routine wants;
+the cap keeps a beginner clan's climb bounded, and the entry's standouts
+still carry the aggregate.
+
+## 18. Sessions
+
+A session is a run of one player's recorded battles where no two
+consecutive battles are more than 30 minutes apart. One item per session,
+placed at its start. A session still open at the window end says so. The
+player entry's `battles` section gains `sessions` (count) and the clan
+entry's `activity` gains `sessions` and `members_with_sessions`.
+
+## 19. The rename
+
+Tool `elixir_timeline` (contract 3.0.0; `elixir_events` removed, no
+window). Arguments `from`, `to`, `timezone`, `mark_read`, `sections`,
+`verbosity`. Response `{ window, read_to, timeline, entries, quiet,
+subjects, next_cursor, has_more, notes, docs, meta }`. `verbosity: compact`
+keeps the timeline and each entry's summary and notables; `full` adds the
+sections. The console page becomes Timeline and renders the same
+response. `meta.events_pending` becomes `meta.timeline_pending`.
+
+## 20. What retires with it
+
+The per-account `event_feed` table, its emitters and coalescing, the
+`TOPIC_CONTRACTS` registry, `events_seen_through`, the 30-day prune, and
+the old console route. The ledger carries every named happening from
+ingest onward; nothing the timeline shows is reconstructed from a table
+that forgets.
+
+---
+
 ## Appendix — method and limits
 
 - Jamie's feed was read with `since: 0, mark_seen: false, limit: 200` and

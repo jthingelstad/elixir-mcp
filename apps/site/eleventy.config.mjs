@@ -264,7 +264,7 @@ export default function (eleventyConfig) {
     "Read the methodology": "/docs/methodology",
     "Set your timezone": "/account/profile",
     "Track a friend's tag": "/account/tracking",
-    "Turn on notifications": "/docs/events",
+    "Turn on notifications": "/docs/timeline",
     "Track your clan": "/account/tracking",
     "Choose a recording scope": "/docs/recording#scope-what-is-actually-polled",
     "Track your clan, comprehensive": "/account/tracking",

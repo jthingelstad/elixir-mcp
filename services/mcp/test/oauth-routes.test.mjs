@@ -288,16 +288,16 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   });
   assert.equal(listedTools.statusCode, 200, listedTools.body);
   const declarations = JSON.parse(listedTools.body).result.tools;
-  // elixir_events is not read-only (it advances the caller's own cursor)
+  // elixir_timeline is not read-only (it advances the caller's own cursor)
   // but needs only cr:read: the bookmark is the reader's, and the scheduled
   // read-only routine is the tool's whole purpose (feedback #16).
   const readTools = declarations.filter(
     ({ annotations, name }) =>
-      annotations.readOnlyHint || name === "elixir_events",
+      annotations.readOnlyHint || name === "elixir_timeline",
   );
   const writeTools = declarations.filter(
     ({ annotations, name }) =>
-      !annotations.readOnlyHint && name !== "elixir_events",
+      !annotations.readOnlyHint && name !== "elixir_timeline",
   );
   assert.ok(readTools.length > 0);
   assert.deepEqual(writeTools.map(({ name }) => name).sort(), [

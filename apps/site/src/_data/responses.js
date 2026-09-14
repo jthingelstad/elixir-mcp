@@ -13,7 +13,7 @@ export default {
       },
     },
     timezone_applied: "America/Chicago",
-    events_pending: 2,
+    timeline_pending: 2,
     request_id: "4c641bc4-0000-4000-8000-000000000001",
   }),
 };

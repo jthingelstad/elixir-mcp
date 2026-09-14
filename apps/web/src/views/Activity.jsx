@@ -1,24 +1,23 @@
 import { LogTable } from "@elixir-mcp/ui";
 import {
   useActivityEvents,
-  useMyEvents,
+  useMyTimeline,
   useMyRequests,
 } from "../lib/queries.js";
 
 /**
- * Activity's three views: notifications, MCP requests, account events.
+ * Activity's three views: the timeline, MCP requests, account events.
  *
- * They are rail sub-pages now, and all three are the SAME table with
- * different columns — see components/LogTable.jsx. Activity lands on
- * Notifications, which is the pipe your connections read from and the
- * thing a reader opening Activity is usually asking about.
+ * They are rail sub-pages, and all three are the SAME table with
+ * different columns — see components/LogTable.jsx. Activity lands on the
+ * Timeline, which is what your connections read (elixir_timeline) and the
+ * thing a reader opening Activity is usually asking about: what happened.
  *
  * Naming here follows the product, not the schema: mcp_call_audit is
- * "MCP requests", event_feed is "notifications" (queued for a connection
- * to pick up, never email), account_event is "account events".
+ * "MCP requests", account_event is "account events".
  */
 const BY_SUB = {
-  notifications: "notifications",
+  timeline: "timeline",
   requests: "requests",
   events: "events",
 };
@@ -36,12 +35,12 @@ const when = (ts) =>
   ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
 
 export function Activity({ sub, navigate }) {
-  const view = BY_SUB[sub] ?? "notifications";
+  const view = BY_SUB[sub] ?? "timeline";
   // Each tab loads only its own read, and a tab already read is served
   // from the cache when you come back to it.
   const requests = useMyRequests(view === "requests").data?.requests ?? null;
   const events = useActivityEvents(view === "events").data?.events ?? null;
-  const feed = useMyEvents(view === "notifications").data ?? null;
+  const timeline = useMyTimeline(view === "timeline").data ?? null;
 
   if (view === "requests") {
     const rows = (requests ?? []).map((r) => [
@@ -125,160 +124,37 @@ export function Activity({ sub, navigate }) {
     );
   }
 
-  const rows = (feed?.events ?? []).map((e) => {
-    const unread = Number(e.event_id) > Number(feed.seen_through ?? 0);
+  const rows = (timeline?.timeline ?? []).map((it) => {
+    // Unread is a state of the row: past the account's read pointer, or
+    // everything when no connection has ever marked it.
+    const unread =
+      !timeline?.read_to || String(it.at) > String(timeline.read_to);
     return [
-      {
-        text: `nt_${e.event_id}`,
-        onClick: () => navigate?.(`/account/activity/n/${e.event_id}`),
-      },
-      when(e.created_at),
-      (e.topic ?? "").replaceAll("_", " "),
-      e.subject_tag ?? "",
-      // Unread is a state of the row, so it gets the dot; read rows are
-      // plain, because "already picked up" is the ordinary case.
-      unread ? { text: "waiting", tone: "accent-bright" } : "picked up",
+      when(it.at),
+      it.subject_name ?? it.subject_tag ?? "your account",
+      it.text,
+      unread ? { text: "unread", tone: "accent-bright" } : "read",
     ];
   });
   return (
     <LogTable
       crumb="Activity"
-      title="Notifications"
-      note="Queued for a connection to pick up on its next call. Turned on per tracked player or clan."
+      title="Timeline"
+      note="What happened to the players and clans you track, last seven days, oldest first. The same items a connection reads with elixir_timeline."
       cols={[
-        ["ID", "left"],
         ["WHEN", "left"],
-        ["WHY", "left"],
-        ["TRACKING", "left"],
+        ["WHO", "left"],
+        ["WHAT", "left"],
         ["STATE", "left"],
       ]}
       rows={rows}
-      monoCols={[0, 1, 3]}
+      monoCols={[0]}
       filters={[
-        { key: "why", label: "Why", col: 2 },
-        { key: "tracking", label: "Tracking", col: 3 },
-        { key: "state", label: "State", col: 4 },
+        { key: "who", label: "Who", col: 1 },
+        { key: "state", label: "State", col: 3 },
       ]}
-      empty="Nothing yet — everything you track feeds this queue while its notify switch is on."
-      footnote="Reading this page never advances a connection's cursor: what is waiting here is waiting for the connection, not for you."
+      empty="Nothing in the last seven days — everything you track appears here while its notify switch is on."
+      footnote="Reading this page never moves a connection's read pointer: unread here means unread by your connections, not by you."
     />
-  );
-}
-
-/**
- * One notification, showing the JSON BODY the connection receives.
- *
- * The console's job here is to make the wire visible: an agent builder
- * debugging "why did my bot not react to that" needs the payload it was
- * actually handed, not our prose about it. Each topic carries its own
- * shape, and the subject key is `clan` or `player` depending on what is
- * tracked — which is exactly the kind of thing a screenshot of a table
- * cannot tell you.
- */
-export function NotificationRecord({ id, navigate }) {
-  const { data: feed } = useMyEvents();
-
-  if (!feed) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
-  const row = feed.events?.find((e) => String(e.event_id) === String(id));
-  if (!row)
-    return (
-      <>
-        <div className="page__crumb">
-          <a onClick={() => navigate("/account/activity")}>‹ Notifications</a>
-        </div>
-        <div className="empty">
-          <div className="empty__title">
-            That notification is not in the feed
-          </div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            The feed holds the last 100. Older ones expire once every connection
-            that wanted them has read them.
-          </p>
-        </div>
-      </>
-    );
-
-  const unread = Number(row.event_id) > Number(feed.seen_through ?? 0);
-  // The body is what elixir_events hands a connection for this row.
-  // The same keys elixir_events returns, so what the console shows IS
-  // the wire, plus the name of the tool that reads it.
-  const body = {
-    event_id: Number(row.event_id),
-    topic: row.topic,
-    ...(row.subject_tag ? { subject_tag: row.subject_tag } : {}),
-    created_at: row.created_at,
-    ...(row.payload ? { payload: row.payload } : {}),
-    read_with: "elixir_events",
-  };
-
-  return (
-    <>
-      <div className="page__crumb">
-        <a onClick={() => navigate("/account/activity")}>‹ Notifications</a>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h1
-            className="mono"
-            style={{ fontSize: "24px", margin: 0, color: "var(--ink)" }}
-          >
-            nt_{row.event_id}
-          </h1>
-          <p style={{ margin: "7px 0 0", color: "var(--ink-body)" }}>
-            {(row.topic ?? "").replaceAll("_", " ")}
-            {row.subject_tag ? ` · ${row.subject_tag}` : ""}
-          </p>
-        </div>
-        <span
-          className={"chip " + (unread ? "chip--info" : "chip--ok")}
-          style={{ marginLeft: "auto" }}
-        >
-          <span className="chip__dot" />
-          {unread ? "waiting" : "picked up"}
-        </span>
-      </div>
-
-      <section className="panel" style={{ marginBottom: "14px" }}>
-        <dl
-          style={{
-            margin: 0,
-            padding: "14px 16px",
-            display: "grid",
-            gridTemplateColumns: "auto 1fr",
-            gap: "11px 18px",
-            fontSize: "13.5px",
-          }}
-        >
-          <dt style={{ color: "var(--ink-faint)" }}>Created</dt>
-          <dd className="mono" style={{ margin: 0, color: "var(--ink-body)" }}>
-            {row.created_at}
-          </dd>
-          <dt style={{ color: "var(--ink-faint)" }}>Topic</dt>
-          <dd className="mono" style={{ margin: 0, color: "var(--ink-body)" }}>
-            {row.topic}
-          </dd>
-          <dt style={{ color: "var(--ink-faint)" }}>Tracking</dt>
-          <dd style={{ margin: 0, color: "var(--ink)" }}>
-            {row.subject_tag ?? "—"}
-          </dd>
-        </dl>
-      </section>
-
-      <section className="code">
-        <div className="code__head">
-          <span className="label">body</span>
-          <span className="footnote">what the connection receives</span>
-        </div>
-        <pre className="code__body">{JSON.stringify(body, null, 2)}</pre>
-      </section>
-    </>
   );
 }

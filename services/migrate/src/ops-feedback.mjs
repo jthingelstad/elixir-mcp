@@ -61,16 +61,12 @@ export async function feedbackRespond(databaseUrl, spec) {
       ],
     );
     if (updated[0] && spec.response) {
-      const { emitFeedEvent } = await import("../../mcp/src/feed.mjs");
-      await emitFeedEvent(
-        db,
-        updated[0].account_id,
-        "feedback_responded",
-        null,
-        {
-          feedback_id: Number(spec.feedback_id),
-          status,
-        },
+      await db.query(
+        `insert into account_event (account_id, kind, detail) values ($1, 'feedback_responded', $2)`,
+        [
+          updated[0].account_id,
+          JSON.stringify({ feedback_id: Number(spec.feedback_id), status }),
+        ],
       );
     }
     return { updated: updated.length };

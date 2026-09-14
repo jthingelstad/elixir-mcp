@@ -333,7 +333,7 @@ export function makeInvoker({
       );
       // The two pending hints ride EVERY response (review 4.1): they used
       // to ride only the tools that built a full envelope, so the consumer
-      // whose one regular call is elixir_events never saw
+      // whose one regular call is elixir_timeline never saw
       // feedback_responses_pending and re-read its ledger on every tick.
       if (body && typeof body === "object" && body.meta) {
         const hints = await pendingHints(db, account);

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-13",
+    title: "The feed is a timeline now",
+    body: "elixir_events is elixir_timeline. It answers what happened to the players and clans you track since your read pointer, as items in order: a battle session (a gap of 30 minutes breaks one; single battles never appear), a badge by name, an arena or ranked move, a new best, a card unlocked, a join, a departure, a role change, the boat crossing the line, a week resolving, a member crossing a quiet rung or coming back, and your own account events. Every item is a sentence a person can read with its facts beside it. The per-subject entries stay as the summary of the same window. mark_read moves the pointer to the top; a dry run passes false. The console's Activity page shows the same timeline.",
+  },
+  {
+    date: "2026-09-13",
     title: "The feed now reads like a person wrote it",
     body: "elixir_events no longer hands an agent a pile of topic rows with counts to drill. It returns one entry per subject since you last looked: a sentence a person can read, then the facts under it, always in the same sections. For the players you track that is their battles and record, trophies and bests, arena and ranked moves, collection and badges, clan moves, war decks, and whether they went quiet or came back. For a clan it is the activity, who joined, left or changed role, the war state and the weeks that resolved, members crossing quiet rungs or returning, the standouts, and the week's donations. Nothing in an entry is advice, and nothing in the feed announces the time: a routine that cares about war reads game_clock and schedules itself. The old topic rows and the daily pulse are gone from the tool.",
   },

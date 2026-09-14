@@ -292,56 +292,20 @@ const count = async (t) =>
   Number((await db.query(`select count(*)::int n from ${t}`)).rows[0].n);
 
 test("each retention window keeps what is inside it and drops what is not", async () => {
-  const acct = (
-    await db.query(
-      `insert into account (email_hash, status) values ('sweep-test', 'approved')
-       returning account_id`,
-    )
-  ).rows[0].account_id;
+  await db.query(
+    `insert into account (email_hash, status) values ('sweep-test', 'approved')`,
+  );
 
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values
        ('keep', (now() - interval '6 days')::date, 1),
        ('drop', (now() - interval '8 days')::date, 1)`,
   );
-  await db.query(
-    `insert into event_feed (account_id, topic, created_at) values
-       ($1, 'battles_recorded', now() - interval '29 days'),
-       ($1, 'battles_recorded', now() - interval '31 days')`,
-    [acct],
-  );
 
   const out = await sweepOperational(DB_URL);
 
   assert.equal(out.rate_limit, 1, "only the 8-day-old rate_limit row");
   assert.equal(await count("rate_limit"), 1);
-  assert.equal(out.event_feed, 1, "only the 31-day-old event");
-  assert.equal(await count("event_feed"), 1);
-});
-
-test("the feed prune does not spare unread notifications", async () => {
-  // Worth pinning as a DECISION rather than leaving as an accident: the feed
-  // is operational, not archival (0030), so an agent that stops polling for a
-  // month loses what it never read. If that is ever wrong, this test is where
-  // the argument happens.
-  const acct = (
-    await db.query(
-      `insert into account (email_hash, status, events_seen_through)
-       values ('sweep-unread', 'approved', 0) returning account_id`,
-    )
-  ).rows[0].account_id;
-  await db.query(
-    `insert into event_feed (account_id, topic, created_at)
-     values ($1, 'member_joined', now() - interval '31 days')`,
-    [acct],
-  );
-  const before = await count("event_feed");
-  await sweepOperational(DB_URL);
-  assert.equal(
-    await count("event_feed"),
-    before - 1,
-    "unread and old is still pruned",
-  );
 });
 
 test("an expired collector bearer is nulled, not merely made unclaimable", async () => {

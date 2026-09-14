@@ -23,9 +23,17 @@ export async function listPrincipals(db, ownerAccountId) {
                 and m.created_at > now() - interval '7 days') as calls_7d,
             (select max(m.created_at) from mcp_call_audit m
               where m.account_id = a.account_id) as last_call_at,
-            (select count(*)::int from event_feed ef
-              where ef.account_id = a.account_id
-                and ef.event_id > a.events_seen_through) as unread_events,
+            (select count(*)::int from (
+               select c.player_tag as tag from claim c
+                where c.account_id = a.account_id and c.notify
+               union
+               select ac2.clan_tag from account_clan ac2
+                where ac2.account_id = a.account_id and ac2.notify) s
+              where exists (
+                select 1 from poll_state ps
+                 where ps.subject_tag = s.tag
+                   and ps.last_admitted_at > coalesce(a.activity_seen_at, 'epoch'::timestamptz)))
+              as timeline_pending,
             coalesce(
               (select json_agg(json_build_object('clan_tag', ac.clan_tag,
                                                  'scope', ac.scope,
@@ -138,7 +146,7 @@ export async function setPrincipalScope(
  *
  * Revoking used to be a dead end: the only way back was delete-and-recreate,
  * which throws away the account_id, the public_id in the agent's MCP URL, and
- * the events_seen_through cursor -- so the replacement either re-reads the
+ * the activity_seen_at read pointer -- so the replacement either re-reads the
  * whole feed or silently skips it. Rotation keeps the principal and swaps the
  * credential, which is what "my key leaked" actually needs.
  *

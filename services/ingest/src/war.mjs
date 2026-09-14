@@ -16,6 +16,7 @@
  * Guard deliberately deferred until observed.
  */
 
+import { emitEvent } from "./events.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { warClock, resolveWarKeys } from "./war-clock.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
@@ -79,14 +80,17 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
 
   const clock = await clanClock(db, tag, payload, observedMs);
   if (clock.seasonId === null) {
-    return { projected: "anchor_only", needsBackfill: true, feedEvents: [] };
+    return { projected: "anchor_only", needsBackfill: true };
   }
 
-  // The feed no longer announces a war day opening: that is a clock fact
-  // (game_clock), not an observation (review 2026-09-13). Clan topics that
-  // ARE observations (the week resolving) are still collected below and
-  // emitted by the pipeline after commit.
-  const feedEvents = [];
+  // A war day opening is a clock fact (game_clock), never a ledger row.
+  // The boat crossing the finish line IS an observation: one row, once.
+  const { rows: priorFinish } = await db.query(
+    `select finish_time from war_week_clan
+      where clan_tag = $1 and participant_clan_tag = $1
+        and season_id = $2 and section_index = $3`,
+    [tag, clock.seasonId, clock.sectionIndex],
+  );
 
   // 2. The week row.
   await db.query(
@@ -149,6 +153,26 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
       ],
     );
     facts += rowCount;
+  }
+  const own = (payload.clans ?? []).find(
+    (c) => c?.tag && normalizeTag(c.tag) === tag,
+  );
+  if (
+    own?.finishTime &&
+    !priorFinish[0]?.finish_time &&
+    Date.parse(fetchedAt) > Date.now() - 24 * 3600_000
+  ) {
+    await emitEvent(db, "race_finished", {
+      tag,
+      windowEnd: fetchedAt,
+      occurredAt: crTimeToIso(own.finishTime),
+      payload: {
+        season_id: clock.seasonId,
+        section_index: clock.sectionIndex,
+        fame: own.fame ?? null,
+        finish_time: crTimeToIso(own.finishTime),
+      },
+    });
   }
 
   // 4. Participation: the payload's per-member "fame" is POINTS here.
@@ -283,7 +307,6 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     members,
     battlers_signaled: deckDeltas.size,
     facts,
-    feedEvents,
   };
 }
 
@@ -308,7 +331,6 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     [tag],
   );
   const items = payload.items ?? [];
-  const feedEvents = [];
   const seasons = new Set(items.map((i) => i.seasonId));
   const maxSection = new Map();
   for (const i of items) {
@@ -343,19 +365,23 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
       [tag, item.seasonId, item.sectionIndex, isColosseum, finished],
     );
     if (newlyFinished) facts += 1;
-    // Push lane: fire on the null->set transition only, recency-guarded
-    // so a history backfill never floods the feed with ancient weeks.
-    // Collected here, emitted by the pipeline AFTER commit — an insert
-    // error inside the txn would abort the whole ingest.
+    // The week resolving is an observation: one ledger row on the
+    // null->set transition, recency-guarded so a history backfill never
+    // writes ancient weeks as news.
     if (newlyFinished && Date.parse(finished) > Date.now() - 7 * 86400_000) {
-      feedEvents.push({
-        kind: "clan",
+      const ours = (item.standings ?? []).find(
+        (st) => st?.clan?.tag && normalizeTag(st.clan.tag) === tag,
+      );
+      await emitEvent(db, "week_resolved", {
         tag,
-        topic: "clan_war_week_finished",
+        windowEnd: finished,
         payload: {
           season_id: item.seasonId,
           section_index: item.sectionIndex,
           is_colosseum: isColosseum,
+          fame: ours?.clan?.fame ?? null,
+          rank: ours?.rank ?? null,
+          trophy_change: ours?.trophyChange ?? null,
         },
       });
     }
@@ -435,7 +461,6 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     weeks,
     seasons: [...seasons].sort((a, b) => a - b),
     facts,
-    feedEvents,
   };
 }
 

@@ -32,7 +32,7 @@ conventions that hold everywhere.
 | What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment` |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
-| What changed since I last looked? | `elixir_events` (a nod, then drill with the data tools) |
+| What happened since I last looked? | `elixir_timeline` (items in order and an entry per subject, then drill with the data tools) |
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
 
 Every recorded-data tool is unlimited within the daily call budget. The

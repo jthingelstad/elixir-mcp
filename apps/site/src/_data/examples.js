@@ -116,11 +116,11 @@ export default [
         reads: [
           "Profiles and daily snapshots for the players you track",
           "Their recorded decks and results",
-          "Your notification feed, which nods when something changes",
+          "Your timeline, which says what happened since you last looked",
         ],
         setup: ["Track a friend's tag", "Turn on notifications"],
         script: {
-          tool: "players_profile · players_timeline · battles_decks · elixir_events",
+          tool: "players_profile · players_timeline · battles_decks · elixir_timeline",
           lines: [
             {
               role: "user",

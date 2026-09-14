@@ -95,7 +95,7 @@ test("metadata distinguishes absent history and unknown sources from zero age", 
     { recording_started: "2026-09-08T00:00:00Z" },
     { freshness_seconds: -1 },
     { freshness_seconds: NaN },
-    { events_pending: "2" },
+    { timeline_pending: "2" },
     { quota: { calls: { used: 1, max: 500, remaining: 499 } } },
     {
       quota: {

@@ -1,4 +1,8 @@
 import {
+  buildTimeline,
+  subjectsFor,
+} from "../../../mcp/src/activity/entries.mjs";
+import {
   listPrincipals,
   renamePrincipal,
   rotateToken,
@@ -169,7 +173,7 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       return result.ok ? json(200, result) : json(404, result);
     },
 
-    "GET /api/me/principals/events": async (db, event) => {
+    "GET /api/me/principals/timeline": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const principalId = event.queryStringParameters?.account_id;
@@ -177,20 +181,23 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       if (!UUID_RE.test(String(principalId)))
         return json(400, { error: "invalid_account_id" });
       const { rows: owned } = await db.query(
-        `select events_seen_through from account
+        `select activity_seen_at, timezone from account
           where account_id = $1 and owned_by_account_id = $2`,
         [principalId, account.accountId],
       );
       if (owned.length === 0) return json(404, { error: "not_found" });
-      const { rows } = await db.query(
-        `select event_id, topic, subject_tag, payload, created_at
-         from event_feed where account_id = $1
-         order by event_id desc limit 100`,
-        [principalId],
-      );
+      const toMs = Date.now();
+      const fromMs = toMs - 7 * 86_400_000;
+      const subjects = await subjectsFor(db, principalId);
+      const built = await buildTimeline(db, subjects, {
+        fromMs,
+        toMs,
+        timezone: owned[0].timezone ?? "UTC",
+        accountId: principalId,
+      });
       return json(200, {
-        events: rows,
-        seen_through: Number(owned[0].events_seen_through ?? 0),
+        ...built,
+        read_to: owned[0].activity_seen_at?.toISOString() ?? null,
       });
     },
 

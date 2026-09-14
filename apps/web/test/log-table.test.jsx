@@ -53,20 +53,26 @@ afterEach(() => {
  *  rows. If a page is added here it must go through LogTable too. */
 const PAGES = [
   [
-    "Activity ▸ Notifications",
-    () => <Activity sub="notifications" navigate={() => {}} />,
+    "Activity ▸ Timeline",
+    () => <Activity sub="timeline" navigate={() => {}} />,
     {
-      "me/events": {
-        events: [
+      "me/timeline": {
+        window: { from: "2026-09-08T06:00:00Z", to: "2026-09-09T06:02:00Z" },
+        read_to: null,
+        timeline: [
           {
-            event_id: "9",
-            topic: "war_week_finished",
+            at: "2026-09-09T06:02:00Z",
             subject_tag: "#C1",
-            payload: {},
-            created_at: "2026-09-09T06:02:00Z",
+            subject_name: "Test Clan",
+            kind: "week_resolved",
+            section: "war",
+            text: "Tue 06:02 Test Clan finished week 1 in place 2 with 9,000 fame.",
+            facts: {},
           },
         ],
-        seen_through: 0,
+        timeline_more: 0,
+        entries: [],
+        quiet: [],
       },
     },
   ],

@@ -31,8 +31,8 @@ export interface ResponseMeta {
   completeness_note?: string;
   /** Maintainer replies to your feedback awaiting elixir_my_feedback. */
   feedback_responses_pending?: number;
-  /** Unread push-lane events awaiting elixir_events. */
-  events_pending?: number;
+  /** Subjects of yours with something admitted since your timeline read pointer. */
+  timeline_pending?: number;
   /**
    * The caller's spend against its budgets, so an agent can price a plan
    * without asking (feedback #17): every tool call costs one daily call;
@@ -97,7 +97,7 @@ const checks: Record<keyof ResponseMeta, (value: unknown) => boolean> = {
   completeness_note: text,
   timezone_applied: text,
   feedback_responses_pending: count,
-  events_pending: count,
+  timeline_pending: count,
   quota: (value) =>
     object(value) &&
     utcTimestamp(value.resets_at) &&

@@ -30,9 +30,9 @@ item gets a response, and the response lands in the filer's event feed.
   like confused agents rather than probing ones, tools nobody calls
   (discoverability) and tools everybody calls (deepening candidates).
   The audit is product signal, not just telemetry.
-- **The push lane.** The activity feed reads well against yesterday's
-  reality (read the owner's `elixir_events` with mark_seen false and
-  compare a clan entry to the record); `events_pending` isn't piling
+- **The push lane.** The timeline reads well against yesterday's reality
+  (read the owner's `elixir_timeline` with mark_read false and compare a
+  clan's items and entry to the record); `timeline_pending` isn't piling
   up unread for active accounts (which would mean the feed isn't
   earning its reads).
 - **Preview feedback.** Include `../elixir-mcp-discord`'s naturally produced

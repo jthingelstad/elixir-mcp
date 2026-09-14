@@ -62,8 +62,9 @@ required fields only.
 **`feedback_responses_pending`** — maintainer replies waiting to be read with
 `elixir_my_feedback`.
 
-**`events_pending`** — unread items in your event feed. A hint to call
-`elixir_events` rather than re-polling the data tools.
+**`timeline_pending`** — subjects of yours with something admitted since
+your timeline read pointer. A hint to call `elixir_timeline` rather than
+re-polling the data tools.
 
 **`quota`** — your spend against both daily budgets, on every response, so a
 plan can be priced before it starts rather than discovered mid-sweep. `calls`

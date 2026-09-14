@@ -115,7 +115,7 @@ export const api = {
   myRequests: () => request("GET", "/api/me/requests"),
   callRecord: (request_id) =>
     request("GET", `/api/me/activity/calls/${encodeURIComponent(request_id)}`),
-  myEvents: () => request("GET", "/api/me/events"),
+  myTimeline: () => request("GET", "/api/me/timeline"),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level
   // navigation (#31).
@@ -131,10 +131,10 @@ export const api = {
     request("POST", "/api/me/principals/status", { account_id, status }),
   renamePrincipal: (account_id, name) =>
     request("POST", "/api/me/principals/rename", { account_id, name }),
-  principalEvents: (account_id) =>
+  principalTimeline: (account_id) =>
     request(
       "GET",
-      `/api/me/principals/events?account_id=${encodeURIComponent(account_id)}`,
+      `/api/me/principals/timeline?account_id=${encodeURIComponent(account_id)}`,
     ),
   principalIdentities: (account_id) =>
     request(

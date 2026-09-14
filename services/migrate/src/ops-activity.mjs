@@ -1,8 +1,8 @@
 import pg from "pg";
-import { buildEntries, subjectsFor } from "../../mcp/src/activity/entries.mjs";
+import { buildTimeline, subjectsFor } from "../../mcp/src/activity/entries.mjs";
 
 /**
- * Read-only preview of the activity feed ({activity_preview: spec}) —
+ * Read-only preview of the timeline ({activity_preview: spec}) —
  * review 2026-09-13 §15: synthesize entries from the live record for a
  * reader BEFORE the 2.0.0 tool shape lands, so Jamie can read them as a
  * person and say whether they are valuable. No writes.
@@ -52,7 +52,12 @@ export async function activityPreview(databaseUrl, spec = {}) {
     if (Array.isArray(spec.subjects)) subjects.push(...spec.subjects);
     if (subjects.length === 0) return { error: "no subjects" };
     const t0 = Date.now();
-    const out = await buildEntries(db, subjects, { fromMs, toMs, timezone });
+    const out = await buildTimeline(db, subjects, {
+      fromMs,
+      toMs,
+      timezone,
+      accountId: reader?.account_id ?? null,
+    });
     return {
       reader,
       timezone,

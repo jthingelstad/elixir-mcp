@@ -310,7 +310,7 @@ test("revoking your own token works", async () => {
  * Creating an agent used to be a one-way door. Revoking was a trap rather
  * than a gap: with no way to issue a replacement key, the only path back was
  * delete-and-recreate, which discards the account_id, the public_id in the
- * agent's own MCP URL, and the events_seen_through cursor.
+ * agent's own MCP URL, and the activity_seen_at read pointer.
  *
  * These are entitlement tests too. Every route below takes an account_id from
  * the caller, so "does ownership ride in the WHERE clause" is the question
@@ -337,7 +337,7 @@ async function bossAgentId() {
 test("rotating a key keeps the principal and replaces the credential", async () => {
   const id = await bossAgentId();
   const before = await db.query(
-    `select public_id, events_seen_through from account where account_id = $1`,
+    `select public_id, activity_seen_at from account where account_id = $1`,
     [id],
   );
   const res = await handler(
@@ -353,9 +353,9 @@ test("rotating a key keeps the principal and replaces the credential", async () 
 
   // The identity survives -- this is the whole point of rotating rather than
   // recreating. A new account_id would change the agent's MCP URL and reset
-  // its notification cursor.
+  // its timeline read pointer.
   const after = await db.query(
-    `select public_id, events_seen_through from account where account_id = $1`,
+    `select public_id, activity_seen_at from account where account_id = $1`,
     [id],
   );
   assert.deepEqual(after.rows[0], before.rows[0]);
@@ -472,36 +472,62 @@ test("suspending refuses a status that is not a status", async () => {
   assert.equal(rows[0].status, "approved");
 });
 
-test("an agent's feed is readable by its owner and nobody else", async () => {
+test("an agent's timeline is readable by its owner and nobody else", async () => {
   const id = await bossAgentId();
-  const { emitFeedEvent } = await import("../../mcp/src/feed.mjs");
-  await emitFeedEvent(db, id, "member_joined", "#20JJJ2CCRU", { name: "Ada" });
+  const { rows: subj } = await db.query(
+    `select clan_tag from account_clan where account_id = $1 limit 1`,
+    [id],
+  );
+  assert.ok(subj[0], "the agent has its clan as a subject");
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [subj[0].clan_tag],
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, payload)
+     values ($1, 'member_joined', 'estimated', now(), now(), $2)`,
+    [
+      subj[0].clan_tag,
+      JSON.stringify({
+        player_tag: "#20JJJ2CCRU",
+        name: "Ada",
+        role: "member",
+      }),
+    ],
+  );
 
   const mine = parse(
     await handler(
-      q("/api/me/principals/events", { account_id: id }, bossCookie),
+      q("/api/me/principals/timeline", { account_id: id }, bossCookie),
     ),
   );
-  assert.equal(mine.events.length, 1);
-  assert.equal(mine.events[0].topic, "member_joined");
+  assert.ok(Array.isArray(mine.timeline));
+  assert.ok(
+    mine.timeline.some(
+      (it) => it.kind === "member_joined" && /Ada/.test(it.text),
+    ),
+    JSON.stringify(mine.timeline),
+  );
 
   const theirs = await handler(
-    q("/api/me/principals/events", { account_id: id }, leaderCookie),
+    q("/api/me/principals/timeline", { account_id: id }, leaderCookie),
   );
   assert.equal(theirs.statusCode, 404);
 });
 
-test("reading an agent's feed never advances its cursor", async () => {
-  // That cursor belongs to the agent's own elixir_events polling. Moving it
-  // from the console would silently eat notifications it has not read.
+test("reading an agent's timeline never moves its read pointer", async () => {
+  // That pointer belongs to the agent's own elixir_timeline polling. Moving
+  // it from the console would silently mark what it has not read.
   const id = await bossAgentId();
   const before = await db.query(
-    `select events_seen_through from account where account_id = $1`,
+    `select activity_seen_at from account where account_id = $1`,
     [id],
   );
-  await handler(q("/api/me/principals/events", { account_id: id }, bossCookie));
+  await handler(
+    q("/api/me/principals/timeline", { account_id: id }, bossCookie),
+  );
   const after = await db.query(
-    `select events_seen_through from account where account_id = $1`,
+    `select activity_seen_at from account where account_id = $1`,
     [id],
   );
   assert.deepEqual(after.rows[0], before.rows[0]);

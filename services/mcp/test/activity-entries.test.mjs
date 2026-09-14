@@ -100,7 +100,7 @@ const SECTIONS_CLAN = [
 
 test("a player entry is a diff of state plus the battles the record learned", async () => {
   const toMs = Date.now();
-  const e = await buildPlayerEntry(ctx.db, {
+  const { entry: e } = await buildPlayerEntry(ctx.db, {
     tag: PROFILE,
     relationship: "primary",
     fromMs: FROM,
@@ -131,7 +131,7 @@ test("a player entry is a diff of state plus the battles the record learned", as
 
 test("battles the record learned in the window are counted; late captures set aside", async () => {
   const toMs = Date.now();
-  const e = await buildPlayerEntry(ctx.db, {
+  const { entry: e } = await buildPlayerEntry(ctx.db, {
     tag: OBSERVER,
     relationship: "friend",
     fromMs: FROM,
@@ -157,11 +157,14 @@ test("battles the record learned in the window are counted; late captures set as
     e.battles.played,
   );
   assert.ok(e.presence.last_battle_at, "presence knows the last battle");
-  assert.match(e.summary, new RegExp(`${e.battles.played} battles since`));
+  assert.match(
+    e.summary,
+    new RegExp(`${e.battles.played} battles in \\d+ sessions since`),
+  );
 
   // A window that opens after the battles were PLAYED but before the record
   // LEARNED them: they count once, as late captures, and are not narrated.
-  const late = await buildPlayerEntry(ctx.db, {
+  const { entry: late } = await buildPlayerEntry(ctx.db, {
     tag: OBSERVER,
     fromMs: toMs - 60_000,
     toMs,
@@ -186,7 +189,7 @@ test("a clan entry names roster moves from the ledger, war state, presence and s
     observedAt: "2026-09-05T10:00:00Z",
   });
   const toMs = Date.now();
-  const e = await buildClanEntry(ctx.db, {
+  const { entry: e } = await buildClanEntry(ctx.db, {
     tag: CLAN,
     scope: "comprehensive",
     fromMs: FROM,
@@ -228,7 +231,7 @@ test("a clan entry names roster moves from the ledger, war state, presence and s
 });
 
 test("an activity-scope clan entry does not claim battle facts it does not record", async () => {
-  const e = await buildClanEntry(ctx.db, {
+  const { entry: e } = await buildClanEntry(ctx.db, {
     tag: CLAN,
     scope: "activity",
     fromMs: FROM,

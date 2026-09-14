@@ -9,7 +9,10 @@ import {
 } from "@elixir-mcp/contracts";
 import { normalizeScope } from "../../../auth/src/index.mjs";
 import { firstAnswer } from "../first-answer.mjs";
-import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
+import {
+  buildTimeline,
+  subjectsFor,
+} from "../../../mcp/src/activity/entries.mjs";
 
 import { json, UUID_RE, ID_RE } from "../http.mjs";
 import { senderRef } from "../notify.mjs";
@@ -100,10 +103,18 @@ export function accountRoutes({
               where a.owned_by_account_id = $1 and a.kind = 'agent'
                 and a.status <> 'disabled') as connections,
            (select count(*)::int from feedback where account_id = $1) as feedback,
-           (select count(*)::int from event_feed ef
-             where ef.account_id = $1
-               and ef.event_id > (select events_seen_through from account
-                                  where account_id = $1)) as events_unseen,
+           (select count(*)::int from (
+              select c.player_tag as tag from claim c
+               where c.account_id = $1 and c.notify
+              union
+              select ac.clan_tag from account_clan ac
+               where ac.account_id = $1 and ac.notify) s
+             where exists (
+               select 1 from poll_state ps
+                where ps.subject_tag = s.tag
+                  and ps.last_admitted_at > coalesce(
+                    (select activity_seen_at from account where account_id = $1),
+                    'epoch'::timestamptz))) as timeline_pending,
            (select count(*)::int from credential_refusal
              where account_id = $1 and day > current_date - 7) as refusals_7d`,
         [account.accountId],
@@ -248,7 +259,9 @@ export function accountRoutes({
       }
       if (!r.ok) return json(404, { error: "not_found" });
       if (r.recordingStarted) {
-        await emitFeedEvent(db, account.accountId, "recording_started", tag);
+        await logEvent(db, account.accountId, "recording_started", {
+          player_tag: tag,
+        });
       }
       return json(200, {
         ok: true,
@@ -606,25 +619,28 @@ export function accountRoutes({
       return json(200, record);
     },
 
-    "GET /api/me/events": async (db, event) => {
-      // Activity tab 3: the notification pipe, read-only. The web view
-      // NEVER advances events_seen_through - that cursor belongs to
-      // the account's agents (elixir_events mark_seen).
+    "GET /api/me/timeline": async (db, event) => {
+      // The Timeline page: the last seven days for this account's subjects,
+      // synthesized exactly as elixir_timeline would. Reading here NEVER
+      // moves the read pointer; that belongs to the account's own agents.
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select event_id, topic, subject_tag, payload, created_at
-         from event_feed where account_id = $1
-         order by event_id desc limit 100`,
+        `select activity_seen_at, timezone from account where account_id = $1`,
         [account.accountId],
       );
-      const { rows: seen } = await db.query(
-        `select events_seen_through from account where account_id = $1`,
-        [account.accountId],
-      );
+      const toMs = Date.now();
+      const fromMs = toMs - 7 * 86_400_000;
+      const subjects = await subjectsFor(db, account.accountId);
+      const built = await buildTimeline(db, subjects, {
+        fromMs,
+        toMs,
+        timezone: rows[0]?.timezone ?? "UTC",
+        accountId: account.accountId,
+      });
       return json(200, {
-        events: rows,
-        seen_through: Number(seen[0]?.events_seen_through ?? 0),
+        ...built,
+        read_to: rows[0]?.activity_seen_at?.toISOString() ?? null,
       });
     },
   };

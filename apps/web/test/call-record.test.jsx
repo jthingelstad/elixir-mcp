@@ -147,7 +147,7 @@ test("a row without a captured body still renders from the log's bounded argumen
       ...RECORD.call,
       captured: false,
       rpc_error_code: -32029,
-      tool: "elixir_events",
+      tool: "elixir_timeline",
     },
     request: null,
     response: null,
@@ -157,7 +157,7 @@ test("a row without a captured body still renders from the log's bounded argumen
     next: null,
   });
   renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
-  await waitFor(() => screen.getByRole("heading", { name: "elixir_events" }));
+  await waitFor(() => screen.getByRole("heading", { name: "elixir_timeline" }));
   expect(screen.getByText(/refused · daily quota/)).toBeTruthy();
   expect(screen.getByText("Not captured for this call.")).toBeTruthy();
   expect(screen.getByText(/Refused before any tool ran/)).toBeTruthy();

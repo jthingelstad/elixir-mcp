@@ -223,7 +223,7 @@ export const RAIL = [
     icon: "activity",
     to: "/account/activity",
     subs: [
-      ["notifications", "Notifications", "/account/activity"],
+      ["timeline", "Timeline", "/account/activity"],
       ["requests", "MCP requests", "/account/activity/requests"],
       ["events", "Account events", "/account/activity/events"],
     ],
@@ -303,20 +303,12 @@ export function railPosition(path) {
   // record.
   if (section === "data" && page === "dashboard") return { key: "explore" };
   if (section === "account") {
-    // /account/activity/n/<id> is a notification record, which belongs
-    // to the Notifications sub-page rather than being one of its own;
     // /account/activity/c/<request_id> is a call record and belongs to
-    // MCP requests the same way.
+    // MCP requests rather than being a sub-page of its own.
     if (page === "activity")
       return {
         key: "activity",
-        sub:
-          rest === "n"
-            ? "notifications"
-            : rest === "c"
-              ? "requests"
-              : (rest ?? "notifications"),
-        ...(rest === "n" ? { doc: "activity:notification" } : {}),
+        sub: rest === "c" ? "requests" : (rest ?? "timeline"),
         ...(rest === "c" ? { doc: "activity:call" } : {}),
       };
     if (page === "connections") return { key: "connections", sub: "clients" };
@@ -406,21 +398,14 @@ export const DOC_LINKS = {
     [
       ["How recording works", "/docs/recording"],
       ["Battle activity", "/docs/activity"],
-      ["Notifications", "/docs/events"],
+      ["Timeline", "/docs/timeline"],
     ],
   ],
-  "activity:notifications": [
-    "Notifications",
+  "activity:timeline": [
+    "Timeline",
     [
-      ["Events & the feed", "/docs/events"],
-      ["elixir_events", "/docs/tools/feed#elixir_events"],
-    ],
-  ],
-  "activity:notification": [
-    "Notifications",
-    [
-      ["Events & the feed", "/docs/events"],
-      ["Response envelope", "/docs/responses#the-fields"],
+      ["The timeline", "/docs/timeline"],
+      ["elixir_timeline", "/docs/tools/timeline#elixir_timeline"],
     ],
   ],
   "activity:requests": [
@@ -1047,7 +1032,7 @@ function Shell() {
    *  go looking. */
   const dots = {
     activity:
-      me?.signals?.events_unseen > 0
+      me?.signals?.timeline_pending > 0
         ? { tone: "unread", title: "Unread notifications" }
         : null,
     connections:

@@ -1,5 +1,3 @@
-import { emitFeedEvent } from "../../../mcp/src/feed.mjs";
-
 import { json, ID_RE, UUID_RE } from "../http.mjs";
 import { senderRef } from "../notify.mjs";
 
@@ -116,15 +114,12 @@ export function feedbackRoutes({
         [body.feedback_id, status, response],
       );
       if (updated[0] && response) {
-        await emitFeedEvent(
-          db,
-          updated[0].account_id,
-          "feedback_responded",
-          null,
-          {
-            feedback_id: Number(body.feedback_id),
-            status,
-          },
+        await db.query(
+          `insert into account_event (account_id, kind, detail) values ($1, 'feedback_responded', $2)`,
+          [
+            updated[0].account_id,
+            JSON.stringify({ feedback_id: Number(body.feedback_id), status }),
+          ],
         );
       }
       return json(200, { ok: true });

@@ -15,6 +15,7 @@
  * Counts ticking toward the next level are recorded, never announced.
  */
 
+import { emitEvent } from "./events.mjs";
 import { displayLevel } from "@elixir-mcp/contracts";
 
 /** Upsert the catalog: items are cards, supportItems tower troops. A
@@ -117,34 +118,41 @@ export async function projectPlayerCards(
        from upserted u left join prior p on p.card_id = u.card_id`,
     [playerTag, JSON.stringify(rows), fetchedAt],
   );
-  const feedEvents = [];
+  // Ledger rows for the collection's moments (review 2026-09-13 Part IV):
+  // a card the player did not have, named; a level that went up, named.
+  // The timeline shows unlocks and keeps level-ups as a count; the first
+  // observation writes nothing.
   const firstObservation = Number(changed[0]?.prior_count ?? 0) === 0;
   if (!firstObservation) {
-    let unlocked = 0;
-    let leveled = 0;
-    for (const row of changed) {
-      if (row.is_new) unlocked += 1;
-      else if (
-        typeof row.new_level === "number" &&
-        typeof row.prior_level === "number" &&
-        row.new_level > row.prior_level
-      )
-        leveled += 1;
+    const moved = changed.filter(
+      (row) =>
+        row.is_new ||
+        (typeof row.new_level === "number" &&
+          typeof row.prior_level === "number" &&
+          row.new_level > row.prior_level),
+    );
+    if (moved.length > 0) {
+      const { rows: named } = await db.query(
+        `select card_id, name, rarity from card where card_id = any($1::int[])`,
+        [moved.map((r) => r.card_id)],
+      );
+      const nameOf = new Map(named.map((r) => [r.card_id, r]));
+      for (const row of moved) {
+        const card = nameOf.get(row.card_id);
+        await emitEvent(db, row.is_new ? "card_unlocked" : "card_leveled", {
+          tag: playerTag,
+          windowEnd: fetchedAt,
+          payload: {
+            card_id: row.card_id,
+            name: card?.name ?? null,
+            rarity: card?.rarity ?? null,
+            ...(row.is_new
+              ? {}
+              : { level: row.new_level, prior_level: row.prior_level }),
+          },
+        });
+      }
     }
-    if (unlocked > 0)
-      feedEvents.push({
-        kind: "player",
-        tag: playerTag,
-        topic: "card_unlocked",
-        count: unlocked,
-      });
-    if (leveled > 0)
-      feedEvents.push({
-        kind: "player",
-        tag: playerTag,
-        topic: "card_leveled",
-        count: leveled,
-      });
   }
-  return { changed: changed.length, feedEvents };
+  return { changed: changed.length };
 }

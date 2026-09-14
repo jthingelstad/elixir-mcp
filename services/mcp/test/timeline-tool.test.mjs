@@ -1,5 +1,5 @@
 /**
- * elixir_events 2.0.0: entries, not topic rows (review 2026-09-13, Part
+ * elixir_timeline 3.0.0: items in order plus entries (review 2026-09-13, Part
  * III). The tool's window, bookmark, trimming and refusal behaviour; the
  * entries themselves are pinned in activity-entries.test.mjs.
  */
@@ -82,7 +82,7 @@ before(async () => {
 after(async () => ctx.drop());
 
 test("a first read covers the last 24 hours: the clan always has an entry, silent players are quiet", async () => {
-  const { body, isError } = await call("elixir_events", { mark_seen: false });
+  const { body, isError } = await call("elixir_timeline", { mark_read: false });
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.applied.window.source, "default");
   const span = Date.parse(body.window.to) - Date.parse(body.window.from);
@@ -95,16 +95,20 @@ test("a first read covers the last 24 hours: the clan always has an entry, silen
   );
   assert.equal(body.quiet.length, 2);
   assert.ok(body.quiet.every((q) => Object.hasOwn(q, "days_since_poll")));
-  assert.equal(body.seen_through, null, "not marked, no bookmark yet");
+  assert.equal(body.read_to, null, "not marked, no pointer yet");
+  assert.ok(Array.isArray(body.timeline), "the timeline rides every read");
   assert.equal(body.next_cursor, body.window.to);
   assert.equal(body.has_more, false);
-  assert.ok(!("events" in body), "the topic rows are gone");
+  assert.ok(
+    !("events" in body) && !("seen_through" in body),
+    "the old shape is gone",
+  );
 });
 
 test("from as a local date opens the window; every entry carries a summary and all its sections", async () => {
-  const { body, isError } = await call("elixir_events", {
+  const { body, isError } = await call("elixir_timeline", {
     from: "2026-09-03",
-    mark_seen: false,
+    mark_read: false,
   });
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.applied.window.source, "argument");
@@ -145,10 +149,10 @@ test("from as a local date opens the window; every entry carries a summary and a
 });
 
 test("sections and verbosity trim the wire; an unknown section is refused", async () => {
-  const trimmed = await call("elixir_events", {
+  const trimmed = await call("elixir_timeline", {
     from: "2026-09-03",
     sections: ["battles", "roster"],
-    mark_seen: false,
+    mark_read: false,
   });
   assert.equal(trimmed.isError, false);
   const p = trimmed.body.entries.find((e) => e.subject_tag === PROFILE);
@@ -157,20 +161,20 @@ test("sections and verbosity trim the wire; an unknown section is refused", asyn
   const c = trimmed.body.entries.find((e) => e.kind === "clan_activity");
   assert.ok(Object.hasOwn(c, "roster") && !Object.hasOwn(c, "war"));
 
-  const compact = await call("elixir_events", {
+  const compact = await call("elixir_timeline", {
     from: "2026-09-03",
     verbosity: "compact",
-    mark_seen: false,
+    mark_read: false,
   });
   const cp = compact.body.entries.find((e) => e.subject_tag === PROFILE);
   assert.ok(!Object.hasOwn(cp, "battles") && Object.hasOwn(cp, "summary"));
 
-  const bad = await call("elixir_events", { sections: ["nudges"] });
+  const bad = await call("elixir_timeline", { sections: ["nudges"] });
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");
 });
 
-test("mark_seen moves the bookmark to the window end; the next read resumes there; events_pending follows it", async () => {
+test("mark_read moves the bookmark to the window end; the next read resumes there; timeline_pending follows it", async () => {
   // A subject with an admission a second ago: the hint counts it while
   // unbookmarked. (A second, not now(): the bookmark is the window end at
   // millisecond precision and the admission stamp has microseconds.)
@@ -183,14 +187,14 @@ test("mark_seen moves the bookmark to the window end; the next read resumes ther
   );
   const before = await call("game_clock", {});
   assert.ok(
-    before.body.meta.events_pending >= 1,
+    before.body.meta.timeline_pending >= 1,
     "never marked: the subject counts",
   );
 
   const to = new Date().toISOString();
-  const read = await call("elixir_events", { from: "2026-09-03", to });
+  const read = await call("elixir_timeline", { from: "2026-09-03", to });
   assert.equal(read.isError, false);
-  assert.equal(read.body.seen_through, read.body.window.to);
+  assert.equal(read.body.read_to, read.body.window.to);
   const { rows } = await ctx.db.query(
     `select activity_seen_at from account where account_id = $1`,
     [owner],
@@ -198,17 +202,21 @@ test("mark_seen moves the bookmark to the window end; the next read resumes ther
   assert.equal(rows[0].activity_seen_at.toISOString(), read.body.window.to);
 
   const after = await call("game_clock", {});
-  assert.equal(after.body.meta.events_pending, 0, "marked past the admission");
+  assert.equal(
+    after.body.meta.timeline_pending,
+    0,
+    "marked past the admission",
+  );
 
-  const resumed = await call("elixir_events", { mark_seen: false });
-  assert.equal(resumed.body.applied.window.source, "bookmark");
+  const resumed = await call("elixir_timeline", { mark_read: false });
+  assert.equal(resumed.body.applied.window.source, "pointer");
   assert.equal(resumed.body.window.from, read.body.window.to);
 });
 
 test("a window longer than 30 days is capped and says so; from after to is refused", async () => {
-  const capped = await call("elixir_events", {
+  const capped = await call("elixir_timeline", {
     from: "2026-01-01",
-    mark_seen: false,
+    mark_read: false,
   });
   assert.equal(capped.isError, false);
   const span =
@@ -216,10 +224,48 @@ test("a window longer than 30 days is capped and says so; from after to is refus
   assert.ok(Math.abs(span - 30 * 86_400_000) < 5_000);
   assert.match(capped.body.notes.join(" "), /capped at 30 days/);
 
-  const bad = await call("elixir_events", {
+  const bad = await call("elixir_timeline", {
     from: "2026-09-10T00:00:00Z",
     to: "2026-09-09T00:00:00Z",
   });
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");
+});
+
+test("the timeline: battle sessions break on a 30-minute gap, items are oldest first with text, sections filter items", async () => {
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-01",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const sessions = body.timeline.filter((it) => it.kind === "battle_session");
+  // The fixture log: two battles on 09-01 21:56/21:59, then 09-02 runs with
+  // gaps of 42+ minutes between 08:08 and 08:50, 09:08 and 10:34, 10:49 and
+  // 11:51, 11:51 and 17:46, 18:33 and 19:20, then one on 09-03: eight
+  // sessions of one player.
+  assert.equal(sessions.length, 8, JSON.stringify(sessions.map((s) => s.at)));
+  assert.ok(sessions.every((s) => s.subject_tag === OBSERVER));
+  assert.ok(
+    sessions.every((s) => /played a session of \d+ battles?/.test(s.text)),
+  );
+  const first = sessions[0];
+  assert.equal(first.facts.battles, 2);
+  assert.equal(first.section, "battles");
+  const ats = body.timeline.map((it) => it.at);
+  assert.deepEqual(ats, [...ats].sort(), "oldest first");
+  assert.ok(
+    body.timeline.every(
+      (it) => typeof it.text === "string" && it.text.length > 0,
+    ),
+  );
+
+  const rosterOnly = await call("elixir_timeline", {
+    from: "2026-09-01",
+    sections: ["roster"],
+    mark_read: false,
+  });
+  assert.ok(rosterOnly.body.timeline.every((it) => it.section === "roster"));
+  assert.ok(
+    !rosterOnly.body.timeline.some((it) => it.kind === "battle_session"),
+  );
 });

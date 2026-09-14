@@ -5,7 +5,6 @@ import {
   setAccountRole,
 } from "@elixir-mcp/auth";
 import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
-import { emitAccountTierChanged } from "../../../mcp/src/feed.mjs";
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
 import { onboardAccount } from "../onboard.mjs";
@@ -299,9 +298,9 @@ export function adminRoutes({
           error: result.refused === "bad_role" ? "bad_request" : "not_entitled",
           message: "That role change is above your grant.",
         });
-      // Only a change that actually committed is logged or announced.
+      // Only a change that actually committed is logged; the account_event
+      // row is what the target's timeline shows.
       await logEvent(db, result.account_id, "role_changed", { role });
-      await emitAccountTierChanged(db, result.account_id, { role });
       return json(200, { ok: true, account_id: result.account_id, role });
     },
   };

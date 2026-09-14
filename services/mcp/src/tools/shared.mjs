@@ -413,9 +413,9 @@ export async function pendingHints(db, account) {
           where account_id = $1 and responded_at is not null
             and response_seen_at is null) as fb_pending,
          -- Subjects of yours the recorder admitted something for since your
-         -- activity bookmark (2.0.0): a count of subjects, so a reader knows
-         -- how many entries a feed read would carry. Null bookmark = never
-         -- marked, so anything ever admitted counts.
+         -- read pointer (3.0.0): a count of subjects, so a reader knows
+         -- whether a timeline read would carry anything. No pointer yet
+         -- means anything ever admitted counts.
          (select count(*)::int from (
             select c.player_tag as tag from claim c
              where c.account_id = $1 and c.notify
@@ -427,12 +427,12 @@ export async function pendingHints(db, account) {
              where ps.subject_tag = s.tag
                and ps.last_admitted_at > coalesce(
                  (select activity_seen_at from account where account_id = $1),
-                 'epoch'::timestamptz))) as events_pending`,
+                 'epoch'::timestamptz))) as timeline_pending`,
       [account.accountId],
     );
     return {
       feedback_responses_pending: row.fb_pending,
-      events_pending: row.events_pending,
+      timeline_pending: row.timeline_pending,
     };
   } catch (err) {
     console.error("pending_hints_failed", err?.message);

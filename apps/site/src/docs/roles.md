@@ -97,7 +97,7 @@ Tracking a player or clan on your account IS the act of recording it —
 there is no separate watch step and no approval queue; your tier's slots
 are the only gate, and capture starts immediately. The one per-subject
 setting is **notify**: whether that player or clan feeds your event pipe
-(`elixir_events`). Remove a subject and its slot frees; a clan's shared
+(`elixir_timeline`). Remove a subject and its slot frees; a clan's shared
 recording stops only when no account tracks it.
 
 ## Why fifty players, at every tier

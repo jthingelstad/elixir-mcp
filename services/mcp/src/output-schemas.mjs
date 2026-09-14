@@ -66,7 +66,7 @@ const META = {
     completeness_note: { type: "string" },
     timezone_applied: { type: "string" },
     feedback_responses_pending: COUNT,
-    events_pending: COUNT,
+    timeline_pending: COUNT,
     quota: { type: "object" },
     request_id: { type: "string" },
     disclaimer: { type: "string" },
@@ -473,7 +473,7 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
-  elixir_events: {
+  elixir_timeline: {
     type: "object",
     properties: {
       applied: { type: "object" },
@@ -482,6 +482,24 @@ export const OUTPUT_SCHEMAS = {
         properties: { from: ISO, to: ISO },
         required: ["from", "to"],
       },
+      read_to: { type: ["string", "null"] },
+      timeline: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            at: ISO,
+            subject_tag: { type: ["string", "null"] },
+            subject_name: { type: ["string", "null"] },
+            kind: { type: "string" },
+            section: { type: "string" },
+            text: { type: "string" },
+            facts: { type: "object" },
+          },
+          required: ["at", "kind", "section", "text", "facts"],
+        },
+      },
+      timeline_more: COUNT,
       entries: {
         type: "array",
         items: {
@@ -503,7 +521,6 @@ export const OUTPUT_SCHEMAS = {
       quiet: { type: "array" },
       subjects: COUNT,
       next_cursor: ISO,
-      seen_through: { type: ["string", "null"] },
       has_more: { type: "boolean" },
       notes: NOTES,
       docs: DOCS,
@@ -512,10 +529,11 @@ export const OUTPUT_SCHEMAS = {
     required: [
       "applied",
       "window",
+      "read_to",
+      "timeline",
       "entries",
       "quiet",
       "next_cursor",
-      "seen_through",
       "has_more",
       "notes",
       "docs",

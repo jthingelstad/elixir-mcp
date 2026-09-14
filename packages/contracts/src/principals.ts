@@ -38,12 +38,12 @@ export const PERSON_ONLY_TOOLS: readonly string[] = [
  *
  * Nicknames are a private naming layer over people you follow; an agent
  * legitimately has one for its clan's members, an integration has nobody.
- * The event feed fans out from added subjects, and an integration adds none —
- * it would return an empty pipe forever, which is worse than absent.
+ * The timeline is built from added subjects, and an integration adds none —
+ * it would return an empty window forever, which is worse than absent.
  */
 export const AGENT_ONLY_TOOLS: readonly string[] = [
   "elixir_nickname",
-  "elixir_events",
+  "elixir_timeline",
 ];
 
 export function toolsHiddenFrom(kind: string | null | undefined): Set<string> {

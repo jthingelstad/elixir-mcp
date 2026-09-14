@@ -56,7 +56,14 @@ test("a collection: first observation is silent, then unlocks and level-ups nod;
     first.changed,
     profile.cards.length + (profile.supportCards?.length ?? 0),
   );
-  assert.deepEqual(first.feedEvents, [], "first sight is history, not news");
+  const ledger = async () =>
+    (
+      await ctx.db.query(
+        `select event_type, payload from player_event where player_tag = $1 order by event_id`,
+        [tag],
+      )
+    ).rows;
+  assert.deepEqual(await ledger(), [], "first sight is history, not news");
   const { rows: stored } = await ctx.db.query(
     `select level, count from player_card where player_tag = $1 and card_id = $2`,
     [tag, profile.cards[0].id],
@@ -79,7 +86,7 @@ test("a collection: first observation is silent, then unlocks and level-ups nod;
     fetchedAt: "2026-09-10T20:00:00Z",
   });
   assert.equal(same.changed, 0);
-  assert.deepEqual(same.feedEvents, []);
+  assert.deepEqual(await ledger(), []);
   assert.deepEqual(await versions(), before, "no row version moved");
 
   // A count tick is recorded, not announced; a level-up and a new card nod.
@@ -98,8 +105,16 @@ test("a collection: first observation is silent, then unlocks and level-ups nod;
     fetchedAt: "2026-09-11T12:00:00Z",
   });
   assert.equal(moved.changed, 3);
-  assert.deepEqual(moved.feedEvents.map((e) => [e.topic, e.count]).sort(), [
-    ["card_leveled", 1],
-    ["card_unlocked", 1],
+  // The ledger names both moments; the timeline shows the unlock and
+  // keeps the level-up as a count.
+  const rows = await ledger();
+  assert.deepEqual(rows.map((r) => r.event_type).sort(), [
+    "card_leveled",
+    "card_unlocked",
   ]);
+  const unlocked = rows.find((r) => r.event_type === "card_unlocked");
+  assert.equal(unlocked.payload.card_id, 26000999);
+  const leveled = rows.find((r) => r.event_type === "card_leveled");
+  assert.equal(leveled.payload.card_id, profile.cards[1].id);
+  assert.equal(leveled.payload.prior_level + 1, leveled.payload.level);
 });

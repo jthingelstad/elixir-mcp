@@ -51,7 +51,7 @@ test("an agent has no personal identity tools", () => {
   assert.ok(!agent.includes("elixir_track_player"));
   assert.ok(!agent.includes("elixir_track_clan"));
   // But it keeps the things a clan agent actually needs.
-  assert.ok(agent.includes("elixir_events"), "its own feed");
+  assert.ok(agent.includes("elixir_timeline"), "its own feed");
   assert.ok(agent.includes("elixir_feedback"), "and its own voice");
   assert.ok(agent.includes("war_current"));
   assert.ok(agent.includes("game_clock"));
@@ -62,7 +62,7 @@ test("an integration has no 'me' at all", () => {
   assert.ok(!integration.includes("elixir_my_players"));
   assert.ok(!integration.includes("elixir_nickname"), "nobody to nickname");
   assert.ok(
-    !integration.includes("elixir_events"),
+    !integration.includes("elixir_timeline"),
     "no subjects, so an empty pipe forever",
   );
   // It is a corpus consumer, and the corpus is all still there.

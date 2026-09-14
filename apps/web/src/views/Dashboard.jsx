@@ -1,4 +1,4 @@
-import { Activity, NotificationRecord } from "./Activity.jsx";
+import { Activity } from "./Activity.jsx";
 import { CallRecord } from "./account/CallRecord.jsx";
 
 import { Overview } from "./account/Overview.jsx";
@@ -24,9 +24,7 @@ export function Dashboard({
 }) {
   if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   if (page === "activity")
-    return itemId === "n" ? (
-      <NotificationRecord id={recordId} navigate={navigate} />
-    ) : itemId === "c" ? (
+    return itemId === "c" ? (
       <CallRecord id={recordId} navigate={navigate} />
     ) : (
       <Activity sub={sub} navigate={navigate} />

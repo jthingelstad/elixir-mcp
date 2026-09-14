@@ -112,11 +112,11 @@ of their battles would predict: a descriptive residual, not a skill rating.
 **Level Curve** — win rate by deck-average level difference across the
 corpus, the baseline Pilot Score subtracts.
 
-**entry** — one row of the activity feed (`elixir_events`): a subject's
-activity since your bookmark, with a summary sentence a person can read and
-always-present sections of facts. A clan's entry carries battles, active
-members, who went quiet or came back, the war state, roster moves, standouts
-and donations.
+**timeline** — `elixir_timeline`: what happened to the players and clans you
+track since your read pointer, as items in order (battle sessions, named
+moments, roster and war moments, presence) plus one summary entry per
+subject. A **session** is a run of one player's battles with no gap of 30
+minutes or more.
 
 ## War and the clock
 
@@ -189,7 +189,7 @@ and `elixir_identify` maps.
 
 **nod** — what an event is: a signal that something happened over here, with
 a count and no analysis, so a routine can skip the tools that would have
-found nothing. See [Events](/docs/events).
+found nothing. See [Timeline](/docs/timeline).
 
 **coalesced** — an event topic that folds every unread row for one subject
 into a single row with a running `count`; discrete topics arrive one per

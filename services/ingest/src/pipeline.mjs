@@ -11,7 +11,6 @@
  * polling window. Fetch errors write nothing durable; the scheduler replans.
  */
 
-import { emitToSubjectWatchers } from "../../mcp/src/feed.mjs";
 import { gunzipSync } from "node:zlib";
 import { polSeasonMonth, seasonIdForMonth } from "./war-clock.mjs";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
@@ -121,17 +120,6 @@ const PROJECTORS = {
          values ($1, $2, $3, $4) on conflict do nothing`,
         [receiptId, entityKey, result.captureAudit.gap, fetchedAt],
       );
-    }
-    if (fresh && result.battlesInserted > 0) {
-      // Push lane: collected here, emitted after commit (a failed
-      // insert inside the txn would abort the whole ingest).
-      result.feedEvents = [
-        {
-          kind: "battles",
-          tag: entityKey,
-          count: result.battlesInserted,
-        },
-      ];
     }
     // Burst signal (0061): the fastest this player recently filled the
     // log, from battle TIMESTAMPS, so an overflowed poll still teaches
@@ -325,12 +313,6 @@ const PROJECTORS = {
         cards.changed +
         deck.changed +
         (snapshot.moved ? 1 : 0),
-      // Collected, never emitted here: the flush runs after commit.
-      feedEvents: [
-        ...badges.feedEvents,
-        ...snapshot.feedEvents,
-        ...cards.feedEvents,
-      ],
     };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
@@ -665,23 +647,6 @@ export async function processResult(db, rawMessage, deps = {}) {
     }
 
     await db.query("commit");
-    // Push-lane flush: only after commit, so an emit failure can never
-    // poison the ingest transaction. Emitters swallow their own errors.
-    for (const ev of projection?.feedEvents ?? []) {
-      // One entry point per subject event; the topic contract decides who
-      // hears it and whether it folds. `battles` predates the registry and
-      // keeps its shorthand.
-      if (ev.kind === "battles") {
-        await emitToSubjectWatchers(db, "battles_recorded", ev.tag, {
-          count: ev.count,
-        });
-      } else {
-        await emitToSubjectWatchers(db, ev.topic, ev.tag, {
-          count: ev.count ?? 1,
-          payload: ev.payload ?? null,
-        });
-      }
-    }
     mark("commit_ms", t);
     timings.total_ms = Date.now() - t0;
     return {

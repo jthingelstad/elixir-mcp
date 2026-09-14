@@ -8,7 +8,7 @@ import {
   keys,
   useInvalidate,
   useMyPrincipals,
-  usePrincipalEvents,
+  usePrincipalTimeline,
   usePrincipalIdentities,
 } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
@@ -20,7 +20,8 @@ export function AgentDetail({ id, navigate }) {
   const missed = principals.isFetched && !agent;
   // Only once the agent is known to be yours: the log and identities
   // of an id that is not never load.
-  const events = usePrincipalEvents(agent ? id : null).data?.events ?? null;
+  const timeline =
+    usePrincipalTimeline(agent ? id : null).data?.timeline ?? null;
   const identities =
     usePrincipalIdentities(agent ? id : null).data?.identities ?? null;
   const [minted, setMinted] = useState(null);
@@ -258,8 +259,11 @@ export function AgentDetail({ id, navigate }) {
               charged to your daily budget, not the agent&rsquo;s
             </span>
           </dd>
-          <dt>Unread notifications</dt>
-          <dd>{agent.unread_events ?? 0}</dd>
+          <dt>Subjects with news</dt>
+          <dd>
+            {agent.timeline_pending ?? 0}{" "}
+            <span className="hint">since its read pointer</span>
+          </dd>
         </dl>
         {agent.refusals_7d?.length > 0 && (
           <div
@@ -522,40 +526,36 @@ export function AgentDetail({ id, navigate }) {
           }}
         >
           <span style={{ fontSize: "14px", fontWeight: 600 }}>
-            Its notifications
+            Its timeline
           </span>
           <span className="footnote">
-            newest first · reading here never marks them seen
+            last seven days, oldest first · reading here never moves its pointer
           </span>
         </div>
-        {events?.length === 0 && (
+        {timeline?.length === 0 && (
           <div className="empty">
             <p className="empty__body" style={{ marginBottom: 0 }}>
-              Nothing yet. This fills while the players and clans it answers for
-              have their notify switch on.
+              Nothing in the last seven days. This fills while the clan it
+              answers for has its notify switch on.
             </p>
           </div>
         )}
-        {events?.length > 0 && (
+        {timeline?.length > 0 && (
           <div className="table__scroll" tabIndex={0}>
             <table className="table">
               <thead>
                 <tr>
                   <th>WHEN</th>
-                  <th>TOPIC</th>
-                  <th>TRACKING</th>
-                  <th>COUNT</th>
+                  <th>WHAT</th>
                 </tr>
               </thead>
               <tbody>
-                {events.map((e) => (
-                  <tr key={e.event_id}>
+                {timeline.map((it, i) => (
+                  <tr key={`${it.at}-${i}`}>
                     <td>
-                      <Fresh ts={e.created_at} />
+                      <Fresh ts={it.at} />
                     </td>
-                    <td className="mono">{e.topic}</td>
-                    <td className="mono">{e.subject_tag ?? "—"}</td>
-                    <td>{e.payload?.count ?? ""}</td>
+                    <td>{it.text}</td>
                   </tr>
                 ))}
               </tbody>

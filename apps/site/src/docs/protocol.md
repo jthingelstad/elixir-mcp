@@ -197,7 +197,7 @@ grant. Refreshing never widens scope.
 
 | Scope | Grants | Tools that need it |
 |---|---|---|
-| `cr:read` | every read tool, `live_fetch`, and `elixir_events` (advancing your cursor is a bookmark, not an account change) | all others |
+| `cr:read` | every read tool, `live_fetch`, and `elixir_timeline` (moving your read pointer is a bookmark, not an account change) | all others |
 | `recordings:write` | track or stop tracking players and clans | `elixir_track_player`, `elixir_track_clan` |
 | `collections:write` | edit collections you own | `collections_edit` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
@@ -212,7 +212,7 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
   "error": { "code": -32003,
     "message": "The access token lacks the capability required by this tool: recordings:write.",
     "data": { "required_scope": "recordings:write", "granted_scope": "cr:read",
-              "hint": "Reconnect this client and keep 'recordings:write' ticked on the consent page (every capability is offered, ticked, unless the client asked for less), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_events, need only cr:read." } } }
+              "hint": "Reconnect this client and keep 'recordings:write' ticked on the consent page (every capability is offered, ticked, unless the client asked for less), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client
@@ -271,7 +271,7 @@ list.
 |---|---|---|---|
 | `person` | `/mcp` | none | {{ tools.count }} |
 | `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `elixir_track_player`, `elixir_track_clan` | {{ tools.agentCount }} |
-| `integration` | `/i/<public_id>/mcp` | the three above plus `elixir_nickname`, `elixir_events` | {{ tools.integrationCount }} |
+| `integration` | `/i/<public_id>/mcp` | the three above plus `elixir_nickname`, `elixir_timeline` | {{ tools.integrationCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
@@ -454,7 +454,7 @@ in its hint.
   destroyed tower is `0` and unreported tower data is `null`.
 - **Cursors.** `battles_query` returns `next_cursor` (`null` means the end).
   Treat it as opaque: pass it back unchanged, never parse or construct one; a
-  forged or stale cursor is `bad_request`. `elixir_events` uses instants:
+  forged or stale cursor is `bad_request`. `elixir_timeline` uses instants:
   `from`/`to`, and `next_cursor` is the window end you just read.
 - **`live: true`** on `players_profile`, `clans_roster`, `war_current`,
   `battles_query` and the board tools asks for a read no older than the
