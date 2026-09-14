@@ -76,6 +76,16 @@ const CLAN_LEDGER_KINDS = [
 ];
 
 const iso = (v) => (v ? new Date(v).toISOString() : null);
+/** Optional per-query timings for the ops preview (perf is a plain object). */
+async function timed(perf, name, fn) {
+  if (!perf) return fn();
+  const t0 = performance.now();
+  try {
+    return await fn();
+  } finally {
+    perf[name] = (perf[name] ?? 0) + Math.round(performance.now() - t0);
+  }
+}
 const crossed = (before, after, step) =>
   typeof before === "number" &&
   typeof after === "number" &&
@@ -206,6 +216,12 @@ async function playerLedger(db, tag, fromMs, toMs) {
   return rows;
 }
 
+/**
+ * Battles the record learned in the window: the ones played within a day
+ * of it come off the player-time index; anything admitted in the window
+ * but played earlier is a late capture, counted by the created_at index
+ * and never narrated.
+ */
 async function playerBattles(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
     `select b.battle_id, b.type, b.battle_time, bp.outcome, bp.crowns,
@@ -213,11 +229,21 @@ async function playerBattles(db, tag, fromMs, toMs) {
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
       where bp.player_tag = $1
+        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
         and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
       order by b.battle_time`,
     [tag],
   );
-  return rows;
+  const { rows: late } = await db.query(
+    `select count(*)::int as n
+       from battle b
+       join battle_participant bp on bp.battle_id = b.battle_id
+      where b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+        and b.battle_time < ${ts(fromMs - DAY_MS)}
+        and bp.player_tag = $1`,
+    [tag],
+  );
+  return { rows, late: late[0]?.n ?? 0 };
 }
 
 async function presenceOf(db, tag, played, fromMs, toMs) {
@@ -321,7 +347,15 @@ function decorate(kind, payload, arenaNames) {
 
 export async function buildPlayerEntry(
   db,
-  { tag, relationship = null, nickname = null, fromMs, toMs, timezone = "UTC" },
+  {
+    tag,
+    relationship = null,
+    nickname = null,
+    fromMs,
+    toMs,
+    timezone = "UTC",
+    perf = null,
+  },
 ) {
   const { rows: who } = await db.query(
     `select p.name, cm.clan_tag, c.name as clan_name, cm.role
@@ -334,10 +368,9 @@ export async function buildPlayerEntry(
   );
   const name = who[0]?.name ?? null;
 
-  const battles = await playerBattles(db, tag, fromMs, toMs);
-  const lateCut = fromMs - DAY_MS;
-  const played = battles.filter((b) => b.battle_time.getTime() >= lateCut);
-  const late = battles.length - played.length;
+  const { rows: played, late } = await timed(perf, "player.battles", () =>
+    playerBattles(db, tag, fromMs, toMs),
+  );
   const byMode = {};
   let won = 0;
   let lost = 0;
@@ -356,8 +389,12 @@ export async function buildPlayerEntry(
     .reduce((s, b) => s + (b.trophy_change ?? 0), 0);
   const sessions = sessionsOf(played, toMs);
 
-  const before = await snapshotAt(db, tag, fromMs);
-  const after = await snapshotAt(db, tag, toMs);
+  const before = await timed(perf, "player.snapshot", () =>
+    snapshotAt(db, tag, fromMs),
+  );
+  const after = await timed(perf, "player.snapshot", () =>
+    snapshotAt(db, tag, toMs),
+  );
   const diff = (key) =>
     before && after && after[key] !== null && before[key] !== null
       ? {
@@ -373,7 +410,9 @@ export async function buildPlayerEntry(
   const collectionLevel = diff("collection_level");
   const wins = diff("wins");
 
-  const ledger = await playerLedger(db, tag, fromMs, toMs);
+  const ledger = await timed(perf, "player.ledger", () =>
+    playerLedger(db, tag, fromMs, toMs),
+  );
   const ofKind = (k) => ledger.filter((r) => r.event_type === k);
   const arenaNames = await arenaNamesFor(db, [
     ...(arena ? [arena.from, arena.to] : []),
@@ -413,7 +452,9 @@ export async function buildPlayerEntry(
   }
   clanChanges.sort((a, b) => a.at.localeCompare(b.at));
 
-  const presence = await presenceOf(db, tag, played, fromMs, toMs);
+  const presence = await timed(perf, "player.presence", () =>
+    presenceOf(db, tag, played, fromMs, toMs),
+  );
   const warBattles = played.filter((b) => MODE_GROUP_BY_TYPE[b.type] === "war");
 
   const notables = [];
@@ -594,7 +635,7 @@ export async function buildPlayerEntry(
 
 export async function buildClanEntry(
   db,
-  { tag, scope = "comprehensive", fromMs, toMs, timezone = "UTC" },
+  { tag, scope = "comprehensive", fromMs, toMs, timezone = "UTC", perf = null },
 ) {
   const { rows: clanRows } = await db.query(
     `select name from clan where clan_tag = $1`,
@@ -612,30 +653,39 @@ export async function buildClanEntry(
         [tag],
       )
     ).rows[0].n;
-  const sizeFrom = await sizeAt(fromMs);
-  const sizeTo = await sizeAt(toMs);
+  const sizeFrom = await timed(perf, "clan.size", () => sizeAt(fromMs));
+  const sizeTo = await timed(perf, "clan.size", () => sizeAt(toMs));
 
   // Activity: battles played while in this clan, learned in the window,
   // with sessions per member computed from the same rows.
-  const { rows: memberBattles } = await db.query(
-    `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change
+  const { rows: memberBattles } = await timed(perf, "clan.member_battles", () =>
+    db.query(
+      `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
       where bp.clan_tag = $1
+        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
         and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
       order by bp.player_tag, b.battle_time`,
-    [tag],
+      [tag],
+    ),
   );
-  const lateCut = fromMs - DAY_MS;
+  const { rows: lateRows } = await timed(perf, "clan.late", () =>
+    db.query(
+      `select count(distinct b.battle_id)::int as n
+         from battle b
+         join battle_participant bp on bp.battle_id = b.battle_id
+        where b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+          and b.battle_time < ${ts(fromMs - DAY_MS)}
+          and bp.clan_tag = $1`,
+      [tag],
+    ),
+  );
+  const lateCount = lateRows[0]?.n ?? 0;
   const distinctBattles = new Set();
-  const lateBattles = new Set();
   const byMode = {};
   const byPlayer = new Map();
   for (const r of memberBattles) {
-    if (r.battle_time.getTime() < lateCut) {
-      lateBattles.add(r.battle_id);
-      continue;
-    }
     if (!distinctBattles.has(r.battle_id)) {
       distinctBattles.add(r.battle_id);
       const g = MODE_GROUP_BY_TYPE[r.type] ?? "other";
@@ -649,13 +699,34 @@ export async function buildClanEntry(
     sessionsTotal += sessionsOf(rows, toMs).length;
 
   // Roster moves and war resolutions from the subject ledger, named.
-  const { rows: ledger } = await db.query(
-    `select event_id, event_type, window_end, occurred_at, payload from clan_event
+  const { rows: ledger } = await timed(perf, "clan.ledger", () =>
+    db.query(
+      `select event_id, event_type, window_end, occurred_at, payload from clan_event
       where clan_tag = $1
         and window_end > ${ts(fromMs)} and window_end <= ${ts(toMs)}
       order by event_id`,
-    [tag],
+      [tag],
+    ),
   );
+  // Rows written before 3.0.0 name the leaver by tag only; the player
+  // table still knows the name.
+  const unnamed = ledger
+    .filter((e) => e.event_type === "member_left" && !e.payload?.name)
+    .map((e) => e.payload?.player_tag)
+    .filter(Boolean);
+  const { rows: namedRows } = unnamed.length
+    ? await db.query(
+        `select player_tag, name from player where player_tag = any($1::text[])`,
+        [unnamed],
+      )
+    : { rows: [] };
+  const nameOf = new Map(namedRows.map((r) => [r.player_tag, r.name]));
+  for (const e of ledger)
+    if (e.event_type === "member_left" && e.payload && !e.payload.name)
+      e.payload = {
+        ...e.payload,
+        name: nameOf.get(e.payload.player_tag) ?? null,
+      };
   const joined = [];
   const left = [];
   const roleChanges = [];
@@ -792,8 +863,9 @@ export async function buildClanEntry(
   }
 
   // Presence: rung crossings inside the window, returns, never recorded.
-  const { rows: members } = await db.query(
-    `select cm.player_tag, p.name, cm.role,
+  const { rows: members } = await timed(perf, "clan.members", () =>
+    db.query(
+      `select cm.player_tag, p.name, cm.role,
             (select max(bp.battle_time) from battle_participant bp
               where bp.player_tag = cm.player_tag and bp.battle_time <= ${ts(toMs)}) as last_battle,
             (select floor(extract(epoch from (${ts(toMs)} - ps.last_admitted_at)) / 86400)::int
@@ -803,7 +875,8 @@ export async function buildClanEntry(
        from clan_membership cm
        join player p on p.player_tag = cm.player_tag
       where cm.clan_tag = $1 and cm.left_observed_at is null`,
-    [tag],
+      [tag],
+    ),
   );
   const quietCrossed = [];
   let neverRecorded = 0;
@@ -831,14 +904,15 @@ export async function buildClanEntry(
       });
   }
   quietCrossed.sort((a, b) => b.days_quiet - a.days_quiet);
-  const { rows: returned } = await db.query(
-    `with inwin as (
+  const { rows: returned } = await timed(perf, "clan.returned", () =>
+    db.query(
+      `with inwin as (
        select bp.player_tag, min(bp.battle_time) as first_in
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
         where bp.clan_tag = $1
+          and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
           and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
-          and bp.battle_time >= ${ts(fromMs)} - interval '1 day'
         group by bp.player_tag)
      select i.player_tag, p.name, i.first_in,
             floor(extract(epoch from (i.first_in - prior.t)) / 86400)::int as after_days
@@ -850,25 +924,29 @@ export async function buildClanEntry(
       where prior.t is not null
         and i.first_in - prior.t >= make_interval(days => $2)
       order by after_days desc`,
-    [tag, RETURN_AFTER_DAYS],
+      [tag, RETURN_AFTER_DAYS],
+    ),
   );
 
   // Standouts, bounded and named.
-  const { rows: most } = await db.query(
-    `select bp.player_tag, p.name, count(distinct bp.battle_id)::int as battles
+  const { rows: most } = await timed(perf, "clan.most", () =>
+    db.query(
+      `select bp.player_tag, p.name, count(distinct bp.battle_id)::int as battles
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
        join player p on p.player_tag = bp.player_tag
       where bp.clan_tag = $1
+        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
         and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
-        and bp.battle_time >= ${ts(fromMs)} - interval '1 day'
       group by bp.player_tag, p.name
       order by battles desc, p.name nulls last limit $2`,
-    [tag, STANDOUT_CAP],
+      [tag, STANDOUT_CAP],
+    ),
   );
   // Member moments from the ledger: named, bounded.
-  const { rows: moments } = await db.query(
-    `select pe.event_id, pe.player_tag, p.name, pe.event_type, pe.window_end, pe.occurred_at, pe.payload
+  const { rows: moments } = await timed(perf, "clan.moments", () =>
+    db.query(
+      `select pe.event_id, pe.player_tag, p.name, pe.event_type, pe.window_end, pe.occurred_at, pe.payload
        from player_event pe
        join clan_membership cm on cm.player_tag = pe.player_tag
         and cm.clan_tag = $1 and cm.left_observed_at is null
@@ -876,7 +954,8 @@ export async function buildClanEntry(
       where pe.event_type = any($2::text[])
         and pe.window_end > ${ts(fromMs)} and pe.window_end <= ${ts(toMs)}
       order by pe.event_id`,
-    [tag, PLAYER_MOMENT_KINDS],
+      [tag, PLAYER_MOMENT_KINDS],
+    ),
   );
   const arenaNames = await arenaNamesFor(
     db,
@@ -920,8 +999,9 @@ export async function buildClanEntry(
     .sort((a, b) => b.count - a.count)
     .slice(0, STANDOUT_CAP);
 
-  const { rows: don } = await db.query(
-    `with m as (select player_tag from clan_membership
+  const { rows: don } = await timed(perf, "clan.donations", () =>
+    db.query(
+      `with m as (select player_tag from clan_membership
                  where clan_tag = $1 and left_observed_at is null),
      latest as (select distinct on (s.player_tag) s.player_tag, s.donations
                   from player_snapshot_daily s join m on m.player_tag = s.player_tag
@@ -934,7 +1014,8 @@ export async function buildClanEntry(
                from latest l join player p on p.player_tag = l.player_tag
               order by l.donations desc nulls last limit 1) as leader
        from latest`,
-    [tag],
+      [tag],
+    ),
   );
 
   const entry = {
@@ -951,7 +1032,7 @@ export async function buildClanEntry(
           members_total: sizeTo,
           sessions: sessionsTotal,
           by_mode: byMode,
-          late_captures: lateBattles.size,
+          late_captures: lateCount,
           basis: "recorded",
         }
       : {
@@ -1112,7 +1193,7 @@ async function accountItems(db, accountId, fromMs, toMs) {
 export async function buildTimeline(
   db,
   subjects,
-  { fromMs, toMs, timezone = "UTC", accountId = null },
+  { fromMs, toMs, timezone = "UTC", accountId = null, perf = null },
 ) {
   const entries = [];
   const quiet = [];
@@ -1126,6 +1207,7 @@ export async function buildTimeline(
         fromMs,
         toMs,
         timezone,
+        perf,
       });
       entries.push(built.entry);
       items.push(...built.items);
@@ -1139,6 +1221,7 @@ export async function buildTimeline(
       fromMs,
       toMs,
       timezone,
+      perf,
     });
     const e = built.entry;
     const said =

@@ -52,17 +52,20 @@ export async function activityPreview(databaseUrl, spec = {}) {
     if (Array.isArray(spec.subjects)) subjects.push(...spec.subjects);
     if (subjects.length === 0) return { error: "no subjects" };
     const t0 = Date.now();
+    const perf = {};
     const out = await buildTimeline(db, subjects, {
       fromMs,
       toMs,
       timezone,
       accountId: reader?.account_id ?? null,
+      perf,
     });
     return {
       reader,
       timezone,
       subjects: subjects.length,
       elapsed_ms: Date.now() - t0,
+      perf_ms: perf,
       ...out,
     };
   } finally {

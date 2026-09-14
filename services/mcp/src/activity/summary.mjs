@@ -294,8 +294,16 @@ export function itemText(it, timeZone = "UTC") {
       return `${at} ${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
     case "member_left":
       return `${at} ${f.name ?? f.player_tag} left ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
-    case "member_role_changed":
-      return `${at} ${f.name ?? f.player_tag} ${f.direction === "demoted" ? "was demoted" : "was promoted"} from ${f.role_before} to ${f.role_after} in ${subj}.`;
+    case "member_role_changed": {
+      // Rows written before 3.0.0 carry no direction; the roles say it.
+      const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
+      const dir =
+        f.direction ??
+        ((rank[f.role_after] ?? 0) < (rank[f.role_before] ?? 0)
+          ? "demoted"
+          : "promoted");
+      return `${at} ${f.name ?? f.player_tag} was ${dir} from ${f.role_before} to ${f.role_after} in ${subj}.`;
+    }
     case "race_finished":
       return `${at} ${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
     case "week_resolved":
