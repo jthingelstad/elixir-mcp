@@ -1985,3 +1985,16 @@ Valkyrie and Wizard - the cards with both forms - so 3 = both forms active
 in that battle. 0092 widens the CHECK to the bit field (0-3);
 `{deck_forms}` is the census; cr-agent-api-docs corrected in the same
 pass. `deck_hash` already treated 3 as its own form.
+
+**Backfill done and censused (06:24Z).** 454,654 participants in 90
+keyset batches (29 min on the micro, sharing it with live ingest);
+156,914 decks, 1,257,224 deck_card rows, 4,126,964 played-card rows; zero
+stubs - every card ever played is already in the catalog. Two residues,
+both explained and both closed: the 852 form-3 rows are ALL `boatBattle`
+defending sides with 12-card lists (boat defenses, ownership-style bit
+field, never a played deck - reference narrowed accordingly, pushed as
+cr-agent-api-docs 2fad6b1); 1,976 hash-without-deck rows are June `trail`
+event battles with `cards: []` hashed to the identity of nothing - 0093
+nulls those hashes and ingest stamps null for an empty list from now on.
+`{deck_census}` after 0093: all zero. `{deck_forms}` stays as the
+on-demand census.

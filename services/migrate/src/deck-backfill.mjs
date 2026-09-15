@@ -236,7 +236,38 @@ export async function deckForms(databaseUrl) {
        where coalesce((c.value->>'evolutionLevel')::int, 0) > 0
        group by 1, 2 order by 1, 2`,
     );
-    return { forms, slots_by_form: slots };
+    // Where 3 comes from: by battle type and by deck length, since a
+    // uniform spread across slots 1-12 says ownership, not played-as.
+    const { rows: three } = await db.query(
+      `select b.type, b.game_mode_name,
+              jsonb_array_length(bp.deck->'cards') as deck_len,
+              count(*)::int as n, count(distinct bp.player_tag)::int as players,
+              count(distinct bp.battle_id)::int as battles
+       from battle_participant bp
+       join battle b on b.battle_id = bp.battle_id
+       cross join lateral jsonb_array_elements(coalesce(bp.deck->'cards', '[]'::jsonb)) as c(value)
+       where coalesce((c.value->>'evolutionLevel')::int, 0) = 3
+       group by 1, 2, 3 order by n desc`,
+    );
+    // The census residue: participants with a deck_hash and no deck row.
+    const { rows: orphans } = await db.query(
+      `select b.type, b.type_class,
+              jsonb_typeof(bp.deck) as deck_type,
+              (bp.deck ? 'cards') as has_cards,
+              jsonb_array_length(coalesce(bp.deck->'cards', '[]'::jsonb)) as cards_len,
+              (bp.deck ? 'rounds') as has_rounds,
+              count(*)::int as n, min(bp.battle_time) as first_seen, max(bp.battle_time) as last_seen
+       from battle_participant bp join battle b on b.battle_id = bp.battle_id
+       where bp.deck_hash is not null
+         and not exists (select 1 from deck d where d.deck_hash = bp.deck_hash)
+       group by 1, 2, 3, 4, 5, 6 order by n desc limit 20`,
+    );
+    return {
+      forms,
+      slots_by_form: slots,
+      form_3_by_type: three,
+      hash_without_deck: orphans,
+    };
   } finally {
     await db.end();
   }

@@ -140,6 +140,20 @@ test("played cards land as rows that agree with the deck JSON, before the catalo
   assert.deepEqual(jobs, [{ lane: "live", status: "queued" }]);
 });
 
+test("an empty cards array is captured but has no deck identity (0093)", async () => {
+  const { canonicalizeBattle } = await import("../src/battles.mjs");
+  const log = await fixture("player_battlelog/with_clanmate_2v2.json");
+  const entry = structuredClone(log[0]);
+  for (const side of ["team", "opponent"])
+    for (const p of entry[side]) p.cards = [];
+  const { participants } = canonicalizeBattle(entry);
+  assert.ok(participants.length >= 2);
+  for (const p of participants) {
+    assert.deepEqual(p.deck.cards, []);
+    assert.equal(p.deck_hash, null);
+  }
+});
+
 test("re-ingest writes nothing to the projections", async () => {
   const name = "player_battlelog/with_boat_and_duel.json";
   const versions = async () =>

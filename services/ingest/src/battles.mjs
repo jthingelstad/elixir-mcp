@@ -59,6 +59,9 @@ function participantDeck(entry) {
   const cards = slimCards(entry.cards);
   if (!cards) return { deck: null, hash: null };
   const deck = { norm: 1, cards };
+  // Some event formats disclose no deck (cards: []); an empty list is
+  // captured as given but is not an identity (0093).
+  if (cards.length === 0) return { deck, hash: null };
   if (Array.isArray(entry.supportCards) && entry.supportCards.length > 0) {
     deck.supportCards = slimCards(entry.supportCards);
   }
