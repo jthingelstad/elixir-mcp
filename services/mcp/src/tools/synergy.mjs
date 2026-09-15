@@ -117,7 +117,7 @@ export const synergyTools = {
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        where.push(`b.type = any($${params.length})`);
+        where.push(`bp.type = any($${params.length})`);
       }
       const merge = args.merge_forms !== false;
       const formBit = { base: 0, evolution: 1, hero: 2 }[
@@ -142,15 +142,13 @@ export const synergyTools = {
         ? `bp.deck_hash in (select a.deck_hash from deck_card a where a.card_id = ${anchorId})`
         : `bp.deck_hash in (select a.deck_hash from deck_card a
                             where a.card_id = ${anchorId} and a.form = ${anchorForm})`;
-      const battleJoin = args.mode
-        ? "join battle b on b.battle_id = bp.battle_id"
-        : "";
+
       const minPair = Math.max(1, Number(args.min_pair_battles ?? 5));
       const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 60);
       const { rows } = await ctx.db.query(
         `with pop as (
            select bp.player_tag, bp.outcome, bp.deck_hash, (${anchorMatch}) as has_anchor
-           from battle_participant bp ${battleJoin}
+           from battle_participant bp
            where ${where.join(" and ")}),
          totals as (
            select count(*)::int as decided,
@@ -190,7 +188,7 @@ export const synergyTools = {
                   count(*) filter (where ${anchorMatch})::int as anchor_decks,
                   count(distinct bp.player_tag) filter (where ${anchorMatch})::int as anchor_players,
                   count(*) filter (where ${anchorMatch} and bp.outcome = 'win')::int as anchor_wins
-           from battle_participant bp ${battleJoin}
+           from battle_participant bp
            where ${where.join(" and ")}`,
           params,
         );

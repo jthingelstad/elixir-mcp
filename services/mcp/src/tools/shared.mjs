@@ -656,28 +656,33 @@ export async function excludedBreakdown(
   params,
   { withPrior = false } = {},
 ) {
+  // type and type_class are on the participant (0095, 0099); battle joins
+  // in only when the caller's scope still names it (a mode filter).
+  const battleJoin = where.some((w) => /\bb\./.test(w))
+    ? "join battle b on b.battle_id = bp.battle_id"
+    : "";
   const {
     rows: [r],
   } = await db.query(
     `select ${
       withPrior
-        ? `count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_decided,
-            count(*) filter (where bp.outcome = 'win' and b.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_wins,`
+        ? `count(*) filter (where bp.outcome in ('win','loss') and bp.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_decided,
+            count(*) filter (where bp.outcome = 'win' and bp.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_wins,`
         : ""
     }
             count(*)::int as considered,
-            count(*) filter (where b.type = any($${params.length + 1}))::int as duels,
-            count(*) filter (where b.type_class = 'boat'
-                               and not (b.type = any($${params.length + 1})))::int as boat,
-            count(*) filter (where bp.outcome = 'draw' and b.type_class = 'pvp'
-                               and not (b.type = any($${params.length + 1})))::int as draws,
+            count(*) filter (where coalesce(bp.type = any($${params.length + 1}), false))::int as duels,
+            count(*) filter (where bp.type_class = 'boat'
+                               and not coalesce(bp.type = any($${params.length + 1}), false))::int as boat,
+            count(*) filter (where bp.outcome = 'draw' and bp.type_class = 'pvp'
+                               and not coalesce(bp.type = any($${params.length + 1}), false))::int as draws,
             count(*) filter (where (bp.outcome is null or bp.outcome = 'unresolved')
-                               and b.type_class = 'pvp'
-                               and not (b.type = any($${params.length + 1})))::int as unresolved,
-            count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp'
-                               and not (b.type = any($${params.length + 1}))
+                               and bp.type_class = 'pvp'
+                               and not coalesce(bp.type = any($${params.length + 1}), false))::int as unresolved,
+            count(*) filter (where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
+                               and not coalesce(bp.type = any($${params.length + 1}), false)
                                and bp.deck_hash is null)::int as no_deck
-     from battle_participant bp join battle b on b.battle_id = bp.battle_id
+     from battle_participant bp ${battleJoin}
      where ${where.join(" and ")}`,
     [...params, DUEL_TYPES],
   );
@@ -709,27 +714,24 @@ export async function corpusPrior(db, { from, to = null, types = null }) {
   // Its own parameter list: Postgres refuses a bound parameter it cannot
   // type, so the segment's params must not ride along unused.
   // One scalar over the window from the participant's own columns
-  // (0095): battle_participant_prior is a covering partial index, so this
-  // is an index-only scan - no join to battle. A mode filter still needs
-  // battle.type, and joins only then.
+  // (0095, 0099): battle_participant_window covers it, so this is an
+  // index-only scan - no join to battle, mode filter or not.
   const params = [from];
   const where = ["bp.battle_time >= $1"];
   if (to) {
     params.push(to);
     where.push(`bp.battle_time < $${params.length}`);
   }
-  let join = "";
   if (types) {
     params.push(types);
-    where.push(`b.type = any($${params.length})`);
-    join = "join battle b on b.battle_id = bp.battle_id";
+    where.push(`bp.type = any($${params.length})`);
   }
   const {
     rows: [r],
   } = await db.query(
     `select count(*)::int as decided,
             count(*) filter (where bp.outcome = 'win')::int as wins
-     from battle_participant bp ${join}
+     from battle_participant bp
      where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
        and bp.deck_hash is not null and ${where.join(" and ")}`,
     params,

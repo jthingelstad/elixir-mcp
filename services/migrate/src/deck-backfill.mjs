@@ -111,8 +111,9 @@ export async function explainMeta(databaseUrl, spec = {}) {
     const scope = `bp.player_tag in (select cm.player_tag from clan_membership cm
                      where cm.clan_tag = $1 and cm.left_observed_at is null)
                    and bp.battle_time >= $2`;
+    const { DUEL_TYPES } = await import("../../mcp/src/tools/shared.mjs");
     await explain(
-      "prior (index-only?)",
+      "prior (window index)",
       `select count(*)::int as decided, count(*) filter (where bp.outcome = 'win')::int as wins
        from battle_participant bp
        where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
@@ -120,42 +121,56 @@ export async function explainMeta(databaseUrl, spec = {}) {
       [from],
     );
     await explain(
-      "excluded breakdown (clan scope)",
+      "excluded breakdown (clan scope, as shared.excludedBreakdown)",
       `select count(*)::int as considered,
-              count(*) filter (where b.type_class = 'boat')::int as boat,
-              count(*) filter (where bp.outcome = 'draw' and b.type_class = 'pvp')::int as draws
+              count(*) filter (where b.type = any($3))::int as duels,
+              count(*) filter (where b.type_class = 'boat' and not (b.type = any($3)))::int as boat,
+              count(*) filter (where bp.outcome = 'draw' and b.type_class = 'pvp' and not (b.type = any($3)))::int as draws,
+              count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp'
+                                 and not (b.type = any($3)) and bp.deck_hash is null)::int as no_deck
        from battle_participant bp join battle b on b.battle_id = bp.battle_id
        where ${scope}`,
-      [clanTag, from],
+      [clanTag, from, DUEL_TYPES],
     );
     await explain(
-      "deck aggregate (clan scope)",
+      "deck aggregate (clan scope, no battle join)",
       `select bp.deck_hash, count(*)::int as battles,
               count(*) filter (where bp.outcome = 'win')::int as wins,
               count(distinct bp.player_tag)::int as players,
-              min(b.battle_time), max(b.battle_time)
-       from battle_participant bp join battle b on b.battle_id = bp.battle_id
+              min(bp.battle_time), max(bp.battle_time)
+       from battle_participant bp
        where ${scope} and bp.deck_hash is not null
-         and bp.outcome in ('win','loss') and b.type_class = 'pvp'
+         and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
        group by bp.deck_hash`,
       [clanTag, from],
     );
     await explain(
-      "card aggregate (clan scope)",
-      `with sides as (
-         select bp.player_tag, bp.outcome, pc.card_id, c.name, pc.form as evolution, pc.slot = 1 as first_card
+      "card aggregate (clan scope, deck-first)",
+      `with pairs as (
+         select bp.deck_hash, bp.player_tag, count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins
          from battle_participant bp
-         join battle b on b.battle_id = bp.battle_id
-         join battle_participant_card pc
-           on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
-          and pc.round = 0 and pc.slot > 0
-         join card c on c.card_id = pc.card_id
          where ${scope} and bp.deck_hash is not null
-           and bp.outcome in ('win','loss') and b.type_class = 'pvp')
-       select card_id, name, evolution, count(*)::int as battles,
-              count(distinct player_tag)::int as players
-       from sides group by 1, 2, 3`,
+           and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
+         group by bp.deck_hash, bp.player_tag)
+       select dc.card_id, c.name, dc.form, sum(p.battles)::int, count(distinct p.player_tag)::int
+       from pairs p join deck_card dc on dc.deck_hash = p.deck_hash join card c on c.card_id = dc.card_id
+       group by 1, 2, 3`,
       [clanTag, from],
+    );
+    await explain(
+      "corpus card aggregate (deck-first, window index)",
+      `with pairs as (
+         select bp.deck_hash, bp.player_tag, count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins
+         from battle_participant bp
+         where bp.battle_time >= $1 and bp.deck_hash is not null
+           and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
+         group by bp.deck_hash, bp.player_tag)
+       select dc.card_id, dc.form, sum(p.battles)::int, count(distinct p.player_tag)::int
+       from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
+       group by 1, 2`,
+      [from],
     );
     return { clan_tag: clanTag, days, explains: out };
   } finally {

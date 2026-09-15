@@ -182,6 +182,9 @@ export function onBehalfOfOf(args) {
  * insert and the pending-hints read go to the untimed client, so
  * db_ms is the TOOL's work and nothing else.
  */
+/** work_mem for one budgeted analytical query (see timedDb). */
+const BUDGET_WORK_MEM = "32MB";
+
 export function timedDb(db, t, budget = null) {
   return new Proxy(db, {
     get(target, prop) {
@@ -197,9 +200,17 @@ export function timedDb(db, t, budget = null) {
             if (remaining < 1) throw budget.failure();
             if (budget.previousTimeout === null) {
               const { rows } = await target.query(
-                "select current_setting('statement_timeout') as timeout",
+                "select current_setting('statement_timeout') as timeout, current_setting('work_mem') as work_mem",
               );
               budget.previousTimeout = rows[0].timeout;
+              budget.previousWorkMem = rows[0].work_mem;
+              // A budgeted analytical call may sort a whole window's
+              // (deck, player) pairs; at the server's 4 MB that spilled to
+              // temp files (explain_meta, 2026-09-15). One such call at a
+              // time per connection; restored with the timeout.
+              await target.query("select set_config('work_mem', $1, false)", [
+                BUDGET_WORK_MEM,
+              ]);
             }
             // Cancel in PostgreSQL, not just the client's promise: abandoned
             // work would keep competing with the next caller after Lambda dies.
@@ -353,6 +364,7 @@ export function makeInvoker({
         ? {
             deadline: performance.now() + queryBudgetMs,
             previousTimeout: null,
+            previousWorkMem: null,
             failure: () =>
               new ToolFailure(
                 "query_timeout",
@@ -369,6 +381,12 @@ export function makeInvoker({
         await db.query("select set_config('statement_timeout', $1, false)", [
           budget.previousTimeout,
         ]);
+        if (budget.previousWorkMem) {
+          await db.query("select set_config('work_mem', $1, false)", [
+            budget.previousWorkMem,
+          ]);
+          budget.previousWorkMem = null;
+        }
         budget.previousTimeout = null;
       }
     };

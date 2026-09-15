@@ -1100,7 +1100,7 @@ export const battlesTools = {
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        scope.push(`b.type = any($${params.length})`);
+        scope.push(`bp.type = any($${params.length})`);
       }
       const where = [
         ...scope,
@@ -1121,11 +1121,8 @@ export const battlesTools = {
           to,
           types: args.mode ? typesForModeGroup(args.mode) : null,
         }));
-      // The participant carries everything this aggregate needs (0095);
-      // battle joins in only for a mode filter's battle.type.
-      const battleJoin = args.mode
-        ? "join battle b on b.battle_id = bp.battle_id"
-        : "";
+      // The participant carries everything this aggregate needs (0095,
+      // 0099: type_class and type); no join to battle.
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 count(*)::int as battles,
@@ -1134,7 +1131,7 @@ export const battlesTools = {
                 count(distinct bp.player_tag)::int as players,
                 min(bp.battle_time) as first_used,
                 max(bp.battle_time) as last_used
-         from battle_participant bp ${battleJoin}
+         from battle_participant bp
          where ${where.join(" and ")}
          group by bp.deck_hash`,
         params,
@@ -1263,7 +1260,7 @@ export const battlesTools = {
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        scope.push(`b.type = any($${params.length})`);
+        scope.push(`bp.type = any($${params.length})`);
       }
       const where = [
         ...scope,
@@ -1289,15 +1286,12 @@ export const battlesTools = {
       // card per deck, not one probe per card per participant. A deck's
       // cards are exactly its round-0, slot > 0 played cards, so the
       // counts are the per-participant counts.
-      const battleJoin = args.mode
-        ? "join battle b on b.battle_id = bp.battle_id"
-        : "";
       const { rows } = await ctx.db.query(
         `with pairs as (
            select bp.deck_hash, bp.player_tag,
                   count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins
-           from battle_participant bp ${battleJoin}
+           from battle_participant bp
            where ${where.join(" and ")}
            group by bp.deck_hash, bp.player_tag),
          totals as (
