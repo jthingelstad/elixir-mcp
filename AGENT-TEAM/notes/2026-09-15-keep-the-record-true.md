@@ -30,3 +30,30 @@ the prior zero deck census and re-read it on the next eligible run rather than
 competing with active invocations. Reviewed source through `0feb314`, including
 contract 3.2.0–3.3.0 and the recent record decisions. No migration, backfill,
 runtime change, deploy, or CR-reference update is due.
+
+## 2026-09-15 22:41Z — Complete loss-bound comparison retains `half`
+
+Preflight remained observation-available and mutation-eligible on clean
+`5b74ccf`. The public status reader was healthy (five collectors, 2-second
+fetch/admission freshness, zero DLQ, 1,068 battles in the prior hour) and the
+private one-day capture census measured 106 gaps in 7,100 polls, distributed
+across subjects rather than a stalled poll state. The read-only deck census was
+all zero for participants without a deck or played rows, collection rows without
+a catalog card, and stub cards (163,728 decks and 4,468,978 played rows).
+
+The fixed 72-hour `{ab_yield}` comparison, starting at
+2026-09-11T22:40:27Z and 2026-09-12T22:40:27Z, now completes. The treated
+arm's capture-gap rate improved from 63/11,493 (0.55%) to 45/14,078 (0.32%),
+while control moved from 207/6,433 (3.22%) to 242/6,823 (3.55%). That satisfies
+the balanced-arm loss signal, but the post-fix window spent 38,644 fetches in
+72 hours (about 537/hour), above the ratified 200/hour guardrail. Keep
+`ELIXIR_LOSS_BOUND=half`; a cadence promotion would spend too much budget.
+
+The calendar and live API continue to agree: the canonical clock and a direct
+current-race read both reported season 136, section 1, training, period 8.
+The war-drift census remains latency-inclusive (129 anchors across 27 clans;
+median +18 minutes), so it is not a claim of game-clock drift. A direct 30-entry
+battle-log sample retained compact UTC timestamps and played evolution values;
+the profile's `collectionLevel` matched its CollectionLevel badge at 2,042.
+No projection defect, migration, backfill, deploy, or CR API-reference update
+was due. Read-only evidence only; no runtime source changed.
