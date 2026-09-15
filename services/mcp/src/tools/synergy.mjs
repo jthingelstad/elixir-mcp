@@ -105,7 +105,7 @@ export const synergyTools = {
       const where = [
         "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
-        "b.type_class = 'pvp'",
+        "bp.type_class = 'pvp'",
       ];
       if (seg.where) where.push(seg.where);
       params.push(win.from);
@@ -139,17 +139,18 @@ export const synergyTools = {
       // deck_card by deck_hash - eight indexed rows per participant, never
       // a JSON explode.
       const anchorMatch = merge
-        ? `exists (select 1 from deck_card a
-                   where a.deck_hash = bp.deck_hash and a.card_id = ${anchorId})`
-        : `exists (select 1 from deck_card a
-                   where a.deck_hash = bp.deck_hash and a.card_id = ${anchorId}
-                     and a.form = ${anchorForm})`;
+        ? `bp.deck_hash in (select a.deck_hash from deck_card a where a.card_id = ${anchorId})`
+        : `bp.deck_hash in (select a.deck_hash from deck_card a
+                            where a.card_id = ${anchorId} and a.form = ${anchorForm})`;
+      const battleJoin = args.mode
+        ? "join battle b on b.battle_id = bp.battle_id"
+        : "";
       const minPair = Math.max(1, Number(args.min_pair_battles ?? 5));
       const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 60);
       const { rows } = await ctx.db.query(
         `with pop as (
            select bp.player_tag, bp.outcome, bp.deck_hash, (${anchorMatch}) as has_anchor
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           from battle_participant bp ${battleJoin}
            where ${where.join(" and ")}),
          totals as (
            select count(*)::int as decided,
@@ -189,7 +190,7 @@ export const synergyTools = {
                   count(*) filter (where ${anchorMatch})::int as anchor_decks,
                   count(distinct bp.player_tag) filter (where ${anchorMatch})::int as anchor_players,
                   count(*) filter (where ${anchorMatch} and bp.outcome = 'win')::int as anchor_wins
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           from battle_participant bp ${battleJoin}
            where ${where.join(" and ")}`,
           params,
         );

@@ -591,7 +591,10 @@ export async function segmentFilter(ctx, args, params) {
   }
   return {
     where: null,
-    timeColumn: "b.battle_time",
+    // The participant carries battle_time (0001) and, since 0095,
+    // type_class: a corpus window scan needs no join to battle unless a
+    // mode filter asks for battle.type.
+    timeColumn: "bp.battle_time",
     label: "corpus",
     echo: { kind: "corpus" },
   };

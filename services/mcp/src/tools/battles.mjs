@@ -1106,7 +1106,7 @@ export const battlesTools = {
         ...scope,
         "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
-        "b.type_class = 'pvp'",
+        "bp.type_class = 'pvp'",
       ];
       const { prior: populationPrior, ...excluded } = await excludedBreakdown(
         ctx.db,
@@ -1121,15 +1121,20 @@ export const battlesTools = {
           to,
           types: args.mode ? typesForModeGroup(args.mode) : null,
         }));
+      // The participant carries everything this aggregate needs (0095);
+      // battle joins in only for a mode filter's battle.type.
+      const battleJoin = args.mode
+        ? "join battle b on b.battle_id = bp.battle_id"
+        : "";
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
                 count(distinct bp.player_tag)::int as players,
-                min(b.battle_time) as first_used,
-                max(b.battle_time) as last_used
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+                min(bp.battle_time) as first_used,
+                max(bp.battle_time) as last_used
+         from battle_participant bp ${battleJoin}
          where ${where.join(" and ")}
          group by bp.deck_hash`,
         params,
@@ -1264,7 +1269,7 @@ export const battlesTools = {
         ...scope,
         "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
-        "b.type_class = 'pvp'",
+        "bp.type_class = 'pvp'",
       ];
       const { prior: populationPrior, ...excluded } = await excludedBreakdown(
         ctx.db,
@@ -1279,29 +1284,38 @@ export const battlesTools = {
           to,
           types: args.mode ? typesForModeGroup(args.mode) : null,
         }));
+      // Deck-first: the window's participants collapse to (deck, player)
+      // pairs, and the identity's cards come from deck_card - one row per
+      // card per deck, not one probe per card per participant. A deck's
+      // cards are exactly its round-0, slot > 0 played cards, so the
+      // counts are the per-participant counts.
+      const battleJoin = args.mode
+        ? "join battle b on b.battle_id = bp.battle_id"
+        : "";
       const { rows } = await ctx.db.query(
-        `with sides as (
-           select bp.player_tag, bp.outcome,
-                  pc.card_id, c.name, pc.form as evolution,
-                  pc.slot = 1 as first_card
-           from battle_participant bp
-           join battle b on b.battle_id = bp.battle_id
-           join battle_participant_card pc
-             on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
-            and pc.round = 0 and pc.slot > 0
-           join card c on c.card_id = pc.card_id
-           where ${where.join(" and ")})
-         select s.card_id, s.name, s.evolution,
-                count(*)::int as battles,
-                count(*) filter (where s.outcome = 'win')::int as wins,
-                count(*) filter (where s.outcome = 'loss')::int as losses,
-                count(distinct s.player_tag)::int as players,
-                (sum(count(*) filter (where s.first_card)) over ())::int
-                  as total_decided,
-                (sum(count(*) filter (where s.first_card and s.outcome = 'win'))
-                  over ())::int as total_wins
-         from sides s
-         group by s.card_id, s.name, s.evolution`,
+        `with pairs as (
+           select bp.deck_hash, bp.player_tag,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins
+           from battle_participant bp ${battleJoin}
+           where ${where.join(" and ")}
+           group by bp.deck_hash, bp.player_tag),
+         totals as (
+           select coalesce(sum(battles), 0)::int as decided,
+                  coalesce(sum(wins), 0)::int as wins
+           from pairs)
+         select dc.card_id, c.name, dc.form as evolution,
+                sum(p.battles)::int as battles,
+                sum(p.wins)::int as wins,
+                sum(p.battles - p.wins)::int as losses,
+                count(distinct p.player_tag)::int as players,
+                t.decided as total_decided,
+                t.wins as total_wins
+         from pairs p
+         join deck_card dc on dc.deck_hash = p.deck_hash
+         join card c on c.card_id = dc.card_id
+         cross join totals t
+         group by dc.card_id, c.name, dc.form, t.decided, t.wins`,
         params,
       );
       const totalDecided = rows[0]?.total_decided ?? 0;

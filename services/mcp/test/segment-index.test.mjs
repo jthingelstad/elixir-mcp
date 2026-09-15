@@ -26,8 +26,11 @@ test("collection segments select the participant-time access path", async () => 
   assert.deepEqual(segment.echo, { kind: "collection", collection: "pros" });
 });
 
-test("the whole corpus keeps the battle-time access path", async () => {
+test("the whole corpus reads the participant's own battle_time: the window index, no join", async () => {
+  // 0098: battle_participant_window covers (battle_time) with deck_hash,
+  // player_tag and outcome for pvp participants with a deck, so a corpus
+  // window scan is index-only; battle is joined only for a mode filter.
   const segment = await segmentFilter({}, {}, []);
-  assert.equal(segment.timeColumn, "b.battle_time");
+  assert.equal(segment.timeColumn, "bp.battle_time");
   assert.equal(segment.where, null);
 });
