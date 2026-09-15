@@ -8,9 +8,17 @@ import pg from "pg";
  * cannot guarantee chronology and stage-2 projections need it. The
  * gateway row 'backfill-elixir-bot' is the provenance: every receipt is
  * attributed and one-click revocable like any gateway.
+ *
+ * The S3 archive rides admission here exactly as it does at the collector
+ * door: since 2026-09-11 a bulk payload keeps no JSON in Postgres, so a
+ * replay that skipped the archive would hold the hash and the receipt of
+ * history whose body existed nowhere (found before the second elixir-bot
+ * backfill, 2026-09-15). Absent bucket = no archive, as everywhere.
  */
 export async function replay(databaseUrl, spec) {
   const { processResult } = await import("../../ingest/src/pipeline.mjs");
+  const { makeArchive } = await import("../../ingest/src/handler.mjs");
+  const deps = { archive: makeArchive(process.env.ARCHIVE_BUCKET) };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
@@ -34,7 +42,11 @@ export async function replay(databaseUrl, spec) {
     const tally = {};
     const perf = {}; // endpoint -> {count, phase sums}
     for (const msg of spec.messages ?? []) {
-      const out = await processResult(db, { ...msg, gateway_id: gatewayId });
+      const out = await processResult(
+        db,
+        { ...msg, gateway_id: gatewayId },
+        deps,
+      );
       tally[out.outcome] = (tally[out.outcome] ?? 0) + 1;
       if (out.timings) {
         const ep = (perf[msg.job.endpoint] ??= { count: 0 });
