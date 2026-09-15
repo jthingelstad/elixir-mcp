@@ -1797,3 +1797,12 @@ aggregate's array_agg of every full JSON deck before the result limit.
 3.2.1 keeps only the latest qualifying participant key through aggregation,
 then hydrates the returned rows via the participant primary key. Scope,
 latest exemplar, counts and shrinkage are preserved; the query budget stays.
+
+**3.2.1 deployed and accepted (2026-09-15 00:00Z):** both reported
+full-corpus deck shapes now succeed on the live service in 9.9–11.6 seconds,
+return five rows over 297,878 decided battles and retain valid latest
+qualifying examples. The reported clan-segment shape succeeds in 9.8 seconds
+over 12,246 decided battles. Full verification passed 925 tests, both
+deployments completed their external smoke suites and validate CI is green.
+Feedback #39–#46 received exact, read-back-verified replies by 00:03:48Z;
+the unanswered queue is empty and no response missed the one-day target.
