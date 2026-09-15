@@ -280,3 +280,84 @@ export async function deckForms(databaseUrl) {
     await db.end();
   }
 }
+
+/** {explain_meta: {clan_tag?, days?}} - EXPLAIN (ANALYZE, BUFFERS) of the
+ *  pieces a clan-scoped battles_meta_decks / battles_meta_cards call runs,
+ *  on the live database, read-only. Written when 3.4.0's readers moved
+ *  onto the card rows and clan meta still took 15-17 s; the plans say
+ *  where, guesses did not. */
+export async function explainMeta(databaseUrl, spec = {}) {
+  const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
+  const days = Math.min(90, Math.max(1, Number(spec.days ?? 28)));
+  const from = new Date(Date.now() - days * 86_400_000).toISOString();
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = 120000");
+    const out = [];
+    const explain = async (name, text, values) => {
+      const started = Date.now();
+      const { rows } = await db.query(
+        `explain (analyze, buffers, format text) ${text}`,
+        values,
+      );
+      out.push({
+        name,
+        ms: Date.now() - started,
+        plan: rows.map((r) => r["QUERY PLAN"]).join("\n"),
+      });
+    };
+    const scope = `bp.player_tag in (select cm.player_tag from clan_membership cm
+                     where cm.clan_tag = $1 and cm.left_observed_at is null)
+                   and bp.battle_time >= $2`;
+    await explain(
+      "prior (index-only?)",
+      `select count(*)::int as decided, count(*) filter (where bp.outcome = 'win')::int as wins
+       from battle_participant bp
+       where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
+         and bp.deck_hash is not null and bp.battle_time >= $1`,
+      [from],
+    );
+    await explain(
+      "excluded breakdown (clan scope)",
+      `select count(*)::int as considered,
+              count(*) filter (where b.type_class = 'boat')::int as boat,
+              count(*) filter (where bp.outcome = 'draw' and b.type_class = 'pvp')::int as draws
+       from battle_participant bp join battle b on b.battle_id = bp.battle_id
+       where ${scope}`,
+      [clanTag, from],
+    );
+    await explain(
+      "deck aggregate (clan scope)",
+      `select bp.deck_hash, count(*)::int as battles,
+              count(*) filter (where bp.outcome = 'win')::int as wins,
+              count(distinct bp.player_tag)::int as players,
+              min(b.battle_time), max(b.battle_time)
+       from battle_participant bp join battle b on b.battle_id = bp.battle_id
+       where ${scope} and bp.deck_hash is not null
+         and bp.outcome in ('win','loss') and b.type_class = 'pvp'
+       group by bp.deck_hash`,
+      [clanTag, from],
+    );
+    await explain(
+      "card aggregate (clan scope)",
+      `with sides as (
+         select bp.player_tag, bp.outcome, pc.card_id, c.name, pc.form as evolution, pc.slot = 1 as first_card
+         from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id
+         join battle_participant_card pc
+           on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
+          and pc.round = 0 and pc.slot > 0
+         join card c on c.card_id = pc.card_id
+         where ${scope} and bp.deck_hash is not null
+           and bp.outcome in ('win','loss') and b.type_class = 'pvp')
+       select card_id, name, evolution, count(*)::int as battles,
+              count(distinct player_tag)::int as players
+       from sides group by 1, 2, 3`,
+      [clanTag, from],
+    );
+    return { clan_tag: clanTag, days, explains: out };
+  } finally {
+    await db.end();
+  }
+}
