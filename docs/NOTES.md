@@ -2013,3 +2013,26 @@ are the API's enums and ingest must never fail on a value the game adds;
 with the table it read. Still parked for Phase B with the reader-test
 rework: `battle_participant.clan_tag → clan` (would need opponent clans
 upserted like players are) and the two deck/card closing FKs.
+
+## 2026-09-15 — Cards as rows, Phase B: the readers (contract 3.4.0)
+
+Jamie: "any reason to not move forward?" - none. Every card reader now
+reads the tables: `battles_meta_cards` and `cards_synergy` join
+`battle_participant_card` / `deck_card` instead of exploding JSON;
+`battles_cards` likewise (opponent side = the first opposing participant
+with a deck, as the JSON path took); `battles_decks`, `battles_meta_decks`
+and `players_summary` render a deck's cards from `deck_card` + catalog
+through one shared `deckIdentities()` - the meta_decks exemplar is gone
+entirely, no `array_agg` of anything; `battles_query` `with_card` /
+`against_card` are index probes and `with_cards` (all present) is new.
+Card filters keep the JSON path's scope (deck cards at round 0, slot > 0:
+no tower troop, no duel rounds) so the old-vs-new pin holds - the ingest
+suite now asserts the table aggregate equals the JSON explode over every
+fixture participant, and the with_card probe equals `@>`. Tests that seed
+participants by hand project them through the backfill SQL
+(`services/mcp/test/deck-rows.mjs`); the "latest exemplar" test became
+"identity from the catalog" because that is the truth now. The `no_deck`
+exclusion is simply `deck_hash is null` since 0093. Nothing in the MCP
+tools explodes deck JSON any more; `battles_query` still SELECTs the
+column to serve `deck`, and `verify.mjs` (web-api) reads it - both are
+Phase C's renderer work before the column can go.

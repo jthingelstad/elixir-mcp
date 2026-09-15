@@ -61,10 +61,20 @@ const EXPLODE = `
   where jsonb_typeof(c.value->'id') = 'number'`;
 
 export async function deckBackfill(databaseUrl, spec) {
-  const batch = Math.min(Math.max(Number(spec?.batch ?? 5000), 100), 20000);
-  const after = spec?.after ?? { battle_id: "", player_tag: "" };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
+  try {
+    return await backfillBatch(db, spec);
+  } finally {
+    await db.end();
+  }
+}
+
+/** One batch on an already-connected client (the Lambda op wraps this;
+ *  tests that seed participants by hand project them through it). */
+export async function backfillBatch(db, spec) {
+  const batch = Math.min(Math.max(Number(spec?.batch ?? 5000), 100), 20000);
+  const after = spec?.after ?? { battle_id: "", player_tag: "" };
   const started = Date.now();
   try {
     await db.query("begin");
@@ -171,8 +181,6 @@ export async function deckBackfill(databaseUrl, spec) {
   } catch (err) {
     await db.query("rollback").catch(() => {});
     throw err;
-  } finally {
-    await db.end();
   }
 }
 

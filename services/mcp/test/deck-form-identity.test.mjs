@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import { deckHash } from "@elixir-mcp/contracts";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
+import { projectDeckRows } from "./deck-rows.mjs";
 
 let scratch;
 let account;
@@ -104,6 +105,7 @@ before(async () => {
     await seed({ id: `df-base-${n}`, evo: 0, day: 2 });
     await seed({ id: `df-evo-${n}`, evo: 1, day: 2 });
   }
+  await projectDeckRows(scratch.db);
 });
 after(async () => scratch.drop());
 

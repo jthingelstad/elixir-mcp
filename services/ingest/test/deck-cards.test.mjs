@@ -253,3 +253,56 @@ test("a collection naming a card the catalog lacks stubs it instead of failing t
     catalog_seen_at: null,
   });
 });
+
+test("the table aggregate equals the JSON-explode aggregate the readers used to run (old vs new pin)", async () => {
+  // battles_meta_cards' old shape: one row per (card, form) over decided
+  // pvp participants, from jsonb_array_elements(deck->'cards'). The new
+  // shape reads battle_participant_card at round 0, slot > 0. Same rows.
+  const oldRows = (
+    await ctx.db.query(
+      `select (c.value->>'id')::int as card_id,
+              coalesce((c.value->>'evolutionLevel')::int, 0) as form,
+              count(*)::int as n,
+              count(*) filter (where c.ordinality = 1)::int as firsts
+       from battle_participant bp
+       cross join lateral jsonb_array_elements(bp.deck->'cards') with ordinality as c(value, ordinality)
+       where bp.deck ? 'cards' and jsonb_array_length(bp.deck->'cards') > 0
+       group by 1, 2 order by 1, 2`,
+    )
+  ).rows;
+  const newRows = (
+    await ctx.db.query(
+      `select pc.card_id, pc.form::int as form, count(*)::int as n,
+              count(*) filter (where pc.slot = 1)::int as firsts
+       from battle_participant bp
+       join battle_participant_card pc
+         on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
+        and pc.round = 0 and pc.slot > 0
+       where bp.deck_hash is not null
+       group by 1, 2 order by 1, 2`,
+    )
+  ).rows;
+  assert.ok(oldRows.length > 30, "enough cards to mean something");
+  assert.deepEqual(newRows, oldRows);
+
+  // And the with_card filter: JSON containment vs the index probe.
+  const anyCard = oldRows[0].card_id;
+  const oldMatch = (
+    await ctx.db.query(
+      `select count(*)::int as n from battle_participant bp
+       where bp.deck->'cards' @> $1::jsonb`,
+      [JSON.stringify([{ id: anyCard }])],
+    )
+  ).rows[0].n;
+  const newMatch = (
+    await ctx.db.query(
+      `select count(*)::int as n from battle_participant bp
+       where exists (select 1 from battle_participant_card c
+                     where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
+                       and c.round = 0 and c.slot > 0 and c.card_id = $1)`,
+      [anyCard],
+    )
+  ).rows[0].n;
+  assert.ok(oldMatch > 0);
+  assert.equal(newMatch, oldMatch);
+});

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-15",
+    title: "Every card played is now a row, and card questions are lookups",
+    body: "Until today the only place a played card lived was the deck's JSON on each battle, so every card question - card meta, synergy, which battles had a card - re-read every deck in the window, and on 2026-09-14 three clans asking at once pushed those reads past the 25-second door. The record now holds a deck table (one row per deck identity), its cards, and what each participant played in each battle with the level they played it at, written in the same transaction as the battle and backfilled for all 454,654 recorded participants. battles_query takes with_cards for several cards at once; card meta, synergy and deck lists read the rows. A card the daily catalog has not seen yet is recorded from the battle and the catalog is fetched at once, so a release day never pauses recording.",
+  },
+  {
+    date: "2026-09-15",
     title: "POAP KINGS history now reaches back to the clan's first war",
     body: "The clan's own recorder kept six months of raw reads the record had never seen. They were replayed through the same admission as a live fetch, with their original fetch times: battles from January, daily snapshots and profiles from March 7, every war week from season 129 (February 16) with its standings and participation, per-day war attendance from March, the game-events calendar from June, and observed membership tenure from March 12 - first_observed_in_clan on clans_roster and clans_participation now says when a member was first seen, not when this record started. elixir_coverage and war_history state the horizon; a week with points but null war days is coverage, not absence.",
   },

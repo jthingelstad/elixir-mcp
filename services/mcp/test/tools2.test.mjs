@@ -9,6 +9,7 @@ import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { emailHash } from "../../auth/src/index.mjs";
 import { makeRegistry } from "../src/tools.mjs";
+import { projectDeckRows } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1008,6 +1009,7 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
       ],
     );
   }
+  await projectDeckRows(db);
   for (const tool of ["battles_meta_decks", "battles_meta_cards"]) {
     const { body, isError } = await call(tool, {
       segment: { player_tag: tag },
@@ -1065,6 +1067,7 @@ test("card meta does not dilute usage with empty card arrays", async () => {
     "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck) values ('meta-empty',$1,now(),0,'win','{\"cards\":[]}')",
     [tag],
   );
+  await projectDeckRows(db);
   const result = await call("battles_meta_cards", {
     segment: { player_tag: tag },
     min_battles: 1,

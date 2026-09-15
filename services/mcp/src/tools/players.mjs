@@ -27,6 +27,7 @@ import {
   appliedBlock,
   notes,
   docsRef,
+  deckIdentities,
 } from "./shared.mjs";
 
 /** Escape LIKE/ILIKE metacharacters so user text matches literally
@@ -86,8 +87,7 @@ export const playersTools = {
       const deck = await ctx.db.query(
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  (array_agg(bp.deck order by bp.battle_time desc))[1] as deck
+                  count(*) filter (where bp.outcome = 'loss')::int as losses
            from battle_participant bp
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
@@ -97,8 +97,7 @@ export const playersTools = {
       const best = await ctx.db.query(
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  (array_agg(bp.deck order by bp.battle_time desc))[1] as deck
+                  count(*) filter (where bp.outcome = 'loss')::int as losses
            from battle_participant bp
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
@@ -119,14 +118,17 @@ export const playersTools = {
       const r = record.rows[0];
       const d = deck.rows[0];
       const b = best.rows[0];
+      const identities = await deckIdentities(ctx.db, [
+        d?.deck_hash,
+        b?.deck_hash,
+      ]);
       const deckShape = (row) =>
         row
           ? {
               deck_hash: row.deck_hash,
-              cards: (row.deck?.cards ?? []).map((c) => ({
-                id: c.id,
-                name: c.name,
-              })),
+              cards: (identities.get(row.deck_hash)?.cards ?? []).map(
+                ({ id, name }) => ({ id, name }),
+              ),
               battles: row.battles,
               win_rate:
                 row.wins + row.losses > 0

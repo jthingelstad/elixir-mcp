@@ -41,6 +41,7 @@ import {
   DUEL_TYPES,
   excludedBreakdown,
   corpusPrior,
+  deckIdentities,
 } from "./shared.mjs";
 import { resolveInstant } from "../time.mjs";
 
@@ -61,26 +62,10 @@ const FORM_ROWS_NOTE =
 const roundsPlayed = (deck) =>
   Array.isArray(deck?.rounds) ? { rounds_played: deck.rounds.length } : {};
 
-/**
- * Deck cards as deck_hash sees them. evolutionLevel is part of deck
- * IDENTITY (packages/contracts/src/deck.ts: "form discriminators are part
- * of identity"; 1 = Evolution, 2 = Hero, never a level), as is the tower
- * troop. Rendering {id, name} alone meant two decks with visually
- * identical cards could carry different deck_hash values with nothing in
- * the payload explaining the split (playtest round, 2026-09-09).
- */
-const deckCards = (deck) =>
-  (deck?.cards ?? []).map((c) => ({
-    id: c.id,
-    name: c.name,
-    ...(c.evolutionLevel > 0 ? { evolution: c.evolutionLevel } : {}),
-  }));
-
-/** The other half of deck identity, absent for battles predating tower troops. */
-const towerTroop = (deck) => {
-  const t = deck?.supportCards?.[0];
-  return t?.id === undefined ? {} : { tower_troop: { id: t.id, name: t.name } };
-};
+// Deck identities render from deck_card via shared deckIdentities (0091):
+// {id, name, evolution?} plus tower_troop - the shape deckCards/towerTroop
+// produced from an exemplar's JSON (playtest round, 2026-09-09: forms are
+// part of identity and must be visible).
 
 const BATTLE_DOCS = docsRef("battles", "what-a-battle-record-holds");
 const DENOMINATOR_DOCS = docsRef("battles", "decided-battles-and-denominators");
@@ -123,6 +108,14 @@ export const battlesTools = {
         with_card: {
           type: "integer",
           description: "Card id present in YOUR deck.",
+        },
+        with_cards: {
+          type: "array",
+          items: { type: "integer" },
+          minItems: 1,
+          maxItems: 8,
+          description:
+            "Card ids ALL present in YOUR deck (any form). Combine with with_card freely; a deck is matched by its played cards, tower troop excluded.",
         },
         against_card: {
           type: "integer",
@@ -254,10 +247,24 @@ export const battlesTools = {
         add("b.game_mode_name ilike ?", `%${String(args.game_mode)}%`);
       if (args.outcome) add("bp.outcome = ?", args.outcome);
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
+      // Card filters read the played-card rows (0091): an index probe per
+      // card, never a JSON containment scan. round 0 and slot > 0 match
+      // what the deck's cards array held (no duel rounds, no tower troop).
       if (args.with_card !== undefined) {
         add(
-          `bp.deck->'cards' @> ?::jsonb`,
-          JSON.stringify([{ id: args.with_card }]),
+          `exists (select 1 from battle_participant_card c
+                   where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
+                     and c.round = 0 and c.slot > 0 and c.card_id = ?)`,
+          Number(args.with_card),
+        );
+      }
+      if (Array.isArray(args.with_cards) && args.with_cards.length > 0) {
+        const ids = [...new Set(args.with_cards.map(Number))];
+        add(
+          `(select count(distinct c.card_id) from battle_participant_card c
+             where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
+               and c.round = 0 and c.slot > 0 and c.card_id = any(?)) = ${ids.length}`,
+          ids,
         );
       }
       let opponent = null;
@@ -279,9 +286,11 @@ export const battlesTools = {
       if (args.against_card !== undefined) {
         add(
           `exists (select 1 from battle_participant o
+                   join battle_participant_card c
+                     on c.battle_id = o.battle_id and c.player_tag = o.player_tag
                    where o.battle_id = bp.battle_id and o.side <> bp.side
-                     and o.deck->'cards' @> ?::jsonb)`,
-          JSON.stringify([{ id: args.against_card }]),
+                     and c.round = 0 and c.slot > 0 and c.card_id = ?)`,
+          Number(args.against_card),
         );
       }
       if (args.cursor !== undefined) {
@@ -866,20 +875,28 @@ export const battlesTools = {
       if (win.to) add("b.battle_time < ?", win.to);
       modeClause(args, add);
 
-      const deckSource = mine
-        ? `bp.deck`
-        : `(select o.deck from battle_participant o
-            where o.battle_id = bp.battle_id and o.side <> bp.side and o.deck is not null
-            limit 1)`;
+      // Cards as rows (0091): mine are this participant's played cards;
+      // the opponent's are one opposing participant's (the first by tag,
+      // as the JSON path took the first with a deck). round 0, slot > 0:
+      // the deck's cards array, no duel rounds, no tower troop.
+      const cardSource = mine
+        ? `join battle_participant_card pc
+             on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag`
+        : `join lateral (select o.player_tag from battle_participant o
+                         where o.battle_id = bp.battle_id and o.side <> bp.side
+                           and o.deck_hash is not null
+                         order by o.player_tag limit 1) opp on true
+           join battle_participant_card pc
+             on pc.battle_id = bp.battle_id and pc.player_tag = opp.player_tag`;
       const { rows } = await ctx.db.query(
-        `select card->>'name' as name, (card->>'id')::bigint as id,
-                coalesce((card->>'evolutionLevel')::int, 0) as evolution,
+        `select c.name, pc.card_id as id, pc.form as evolution,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses
          from battle_participant bp
-         join battle b on b.battle_id = bp.battle_id,
-         lateral jsonb_array_elements(coalesce(${deckSource}->'cards', '[]'::jsonb)) card
-         where ${where.join(" and ")}
+         join battle b on b.battle_id = bp.battle_id
+         ${cardSource}
+         join card c on c.card_id = pc.card_id
+         where ${where.join(" and ")} and pc.round = 0 and pc.slot > 0
          group by 1, 2, 3
          having count(*) >= 3
          order by count(*) desc
@@ -968,14 +985,17 @@ export const battlesTools = {
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
-                count(*) filter (where bp.outcome = 'draw')::int as draws,
-                (array_agg(bp.deck order by b.battle_time desc))[1] as deck
+                count(*) filter (where bp.outcome = 'draw')::int as draws
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
          where ${where.join(" and ")}
          group by bp.deck_hash
          order by count(*) desc
          limit 100`,
         params,
+      );
+      const identities = await deckIdentities(
+        ctx.db,
+        rows.map((r) => r.deck_hash),
       );
       const totalBattles = rows.reduce((n, r) => n + r.battles, 0);
       let shaped = rows;
@@ -1001,8 +1021,7 @@ export const battlesTools = {
         total_battles_in_window: totalBattles,
         decks: shaped.map((r) => ({
           deck_hash: r.deck_hash,
-          cards: deckCards(r.deck),
-          ...towerTroop(r.deck),
+          ...(identities.get(r.deck_hash) ?? { cards: [] }),
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -1101,9 +1120,7 @@ export const battlesTools = {
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
                 count(distinct bp.player_tag)::int as players,
                 min(b.battle_time) as first_used,
-                max(b.battle_time) as last_used,
-                (array_agg(jsonb_build_object('battle_id', bp.battle_id,
-                  'player_tag', bp.player_tag) order by b.battle_time desc))[1] as exemplar
+                max(b.battle_time) as last_used
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
          where ${where.join(" and ")}
          group by bp.deck_hash`,
@@ -1119,7 +1136,6 @@ export const battlesTools = {
         .filter((r) => r.battles >= minBattles)
         .map((r) => ({
           deck_hash: r.deck_hash,
-          exemplar: r.exemplar,
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -1151,29 +1167,16 @@ export const battlesTools = {
       );
       const limit = Math.min(args.limit ?? 20, 40);
       shaped = shaped.slice(0, limit);
-      // The aggregate needs one latest observation's identity, not every
-      // full deck JSON. Hydrate only the returned rows through the composite
-      // participant primary key, preserving the exact scoped exemplar.
-      const exemplars =
-        shaped.length > 0
-          ? (
-              await ctx.db.query(
-                `select bp.battle_id, bp.player_tag, bp.deck
-         from jsonb_to_recordset($1::jsonb) as e(battle_id text, player_tag text)
-         join battle_participant bp using (battle_id, player_tag)`,
-                [JSON.stringify(shaped.map((r) => r.exemplar))],
-              )
-            ).rows
-          : [];
-      const byExemplar = new Map(
-        exemplars.map((r) => [`${r.battle_id}:${r.player_tag}`, r.deck]),
+      // The identity's cards come from deck_card (0091), for the returned
+      // rows only - no exemplar, no participant JSON.
+      const identities = await deckIdentities(
+        ctx.db,
+        shaped.map((r) => r.deck_hash),
       );
-      shaped = shaped.map(({ exemplar, ...row }) => {
-        const deck = byExemplar.get(
-          `${exemplar.battle_id}:${exemplar.player_tag}`,
-        );
-        return { ...row, cards: deckCards(deck), ...towerTroop(deck) };
-      });
+      shaped = shaped.map((row) => ({
+        ...row,
+        ...(identities.get(row.deck_hash) ?? { cards: [] }),
+      }));
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -1251,8 +1254,7 @@ export const battlesTools = {
       }
       const where = [
         ...scope,
-        "bp.deck ? 'cards'",
-        "jsonb_array_length(bp.deck->'cards') > 0",
+        "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
         "b.type_class = 'pvp'",
       ];
@@ -1272,14 +1274,14 @@ export const battlesTools = {
       const { rows } = await ctx.db.query(
         `with sides as (
            select bp.player_tag, bp.outcome,
-                  (c.value->>'id')::bigint as card_id,
-                  c.value->>'name' as name,
-                  coalesce((c.value->>'evolutionLevel')::int, 0) as evolution,
-                  c.ordinality = 1 as first_card
+                  pc.card_id, c.name, pc.form as evolution,
+                  pc.slot = 1 as first_card
            from battle_participant bp
            join battle b on b.battle_id = bp.battle_id
-           cross join lateral jsonb_array_elements(bp.deck->'cards')
-             with ordinality as c(value, ordinality)
+           join battle_participant_card pc
+             on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
+            and pc.round = 0 and pc.slot > 0
+           join card c on c.card_id = pc.card_id
            where ${where.join(" and ")})
          select s.card_id, s.name, s.evolution,
                 count(*)::int as battles,

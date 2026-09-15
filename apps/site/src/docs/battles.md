@@ -129,6 +129,18 @@ On a collection, `maxEvolutionLevel` says which forms exist for the card and
 `evolutionLevel` which the player holds; `players_collection` and
 `cards_catalog` decode them into `forms_available` and `forms_unlocked`.
 
+Cards are recorded **as rows, not only as the deck's JSON**: every card a
+participant played is a fact of its own, so card questions are indexed
+lookups rather than scans of every deck. `battles_query` takes `with_card`
+(one id in your deck), `with_cards` (several ids, all present) and
+`against_card` (one id in an opponent's deck); `battles_cards`,
+`battles_meta_cards` and `cards_synergy` count from the same rows, and a
+deck's cards in `battles_decks` and `battles_meta_decks` are the identity's
+own (ordered by card id, named from the catalog), not one player's copy.
+Card filters match the deck's cards, not the tower troop, and not the
+separate rounds of a duel. An empty `cards` list - some event formats
+disclose no deck - has no `deck_hash`.
+
 Levels are served on the **in-game 1 to 16 scale** everywhere in the recorded
 tools: a level-16 card is maxed whatever its rarity. The API itself counts
 levels relative to rarity (a maxed legendary reads 8 of 8), and

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { makeRegistry } from "../src/tools.mjs";
+import { projectDeckRows } from "./deck-rows.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createHash } from "node:crypto";
 
@@ -209,7 +210,7 @@ test("corpus meta reuses its population scan for the unchanged shrinkage prior",
   }
 });
 
-test("limited deck meta hydrates the latest qualifying exemplar, never an outside-segment one", async () => {
+test("limited deck meta renders the identity from deck_card and the catalog, never from any participant's JSON", async () => {
   const owner = "#YYYYYYYY";
   const other = "#22222222";
   await db.query("insert into player (player_tag) values ($1),($2)", [
@@ -239,6 +240,13 @@ test("limited deck meta hydrates the latest qualifying exemplar, never an outsid
       ],
     );
   }
+  // The catalog names the cards; three participants carried three
+  // different names for the same id and none of them is the answer.
+  await db.query(
+    `insert into card (card_id, name, kind) values (26000000, 'Knight', 'card'), (159000000, 'Tower Princess', 'support')
+     on conflict (card_id) do update set name = excluded.name, catalog_seen_at = now()`,
+  );
+  await projectDeckRows(db);
   const result = await makeRegistry().invoke(
     "battles_meta_decks",
     { db, account },
@@ -246,9 +254,13 @@ test("limited deck meta hydrates the latest qualifying exemplar, never an outsid
   );
   assert.equal(result.decks.length, 1);
   assert.equal(result.decided_battles, 2);
-  assert.equal(result.decks[0].cards[0].name, "Scope latest");
-  assert.equal(result.decks[0].cards[0].evolution, 1);
-  assert.equal(result.decks[0].tower_troop.id, 159000000);
+  assert.deepEqual(result.decks[0].cards, [
+    { id: 26000000, name: "Knight", evolution: 1 },
+  ]);
+  assert.deepEqual(result.decks[0].tower_troop, {
+    id: 159000000,
+    name: "Tower Princess",
+  });
   assert.ok(
     !("exemplar" in result.decks[0]),
     "internal participant keys never leak into the response",

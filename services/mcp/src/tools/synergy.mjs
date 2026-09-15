@@ -103,8 +103,7 @@ export const synergyTools = {
       const seg = await segmentFilter(ctx, args, params);
       const win = resolveWindow(ctx, args, { defaultDays: 28 });
       const where = [
-        "bp.deck ? 'cards'",
-        "jsonb_array_length(bp.deck->'cards') > 0",
+        "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
         "b.type_class = 'pvp'",
       ];
@@ -136,17 +135,20 @@ export const synergyTools = {
         params.push(formBit);
         anchorForm = `$${params.length}`;
       }
+      // Identity is per deck (0091): the anchor test and the pair walk read
+      // deck_card by deck_hash - eight indexed rows per participant, never
+      // a JSON explode.
       const anchorMatch = merge
-        ? `exists (select 1 from jsonb_array_elements(bp.deck->'cards') a
-                   where (a.value->>'id')::bigint = ${anchorId})`
-        : `exists (select 1 from jsonb_array_elements(bp.deck->'cards') a
-                   where (a.value->>'id')::bigint = ${anchorId}
-                     and coalesce((a.value->>'evolutionLevel')::int, 0) = ${anchorForm})`;
+        ? `exists (select 1 from deck_card a
+                   where a.deck_hash = bp.deck_hash and a.card_id = ${anchorId})`
+        : `exists (select 1 from deck_card a
+                   where a.deck_hash = bp.deck_hash and a.card_id = ${anchorId}
+                     and a.form = ${anchorForm})`;
       const minPair = Math.max(1, Number(args.min_pair_battles ?? 5));
       const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 60);
       const { rows } = await ctx.db.query(
         `with pop as (
-           select bp.player_tag, bp.outcome, bp.deck, (${anchorMatch}) as has_anchor
+           select bp.player_tag, bp.outcome, bp.deck_hash, (${anchorMatch}) as has_anchor
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
            where ${where.join(" and ")}),
          totals as (
@@ -156,19 +158,18 @@ export const synergyTools = {
                   count(*) filter (where has_anchor and outcome = 'win')::int as anchor_wins
            from pop),
          baseline as (
-           select (c.value->>'id')::bigint as card_id,
-                  coalesce((c.value->>'evolutionLevel')::int, 0) as form,
-                  count(*)::int as battles
-           from pop cross join lateral jsonb_array_elements(pop.deck->'cards') c
+           select dc.card_id, dc.form, count(*)::int as battles
+           from pop join deck_card dc on dc.deck_hash = pop.deck_hash
            group by 1, 2),
          pairs as (
-           select (c.value->>'id')::bigint as card_id, c.value->>'name' as name,
-                  coalesce((c.value->>'evolutionLevel')::int, 0) as form,
+           select dc.card_id, c.name, dc.form,
                   count(*)::int as co_battles,
                   count(distinct pop.player_tag)::int as players,
                   count(*) filter (where pop.outcome = 'win')::int as wins
-           from pop cross join lateral jsonb_array_elements(pop.deck->'cards') c
-           where pop.has_anchor and (c.value->>'id')::bigint <> ${anchorId}
+           from pop
+           join deck_card dc on dc.deck_hash = pop.deck_hash
+           join card c on c.card_id = dc.card_id
+           where pop.has_anchor and dc.card_id <> ${anchorId}
            group by 1, 2, 3)
          select p.*, bl.battles as baseline_battles,
                 t.decided, t.anchor_decks, t.anchor_players, t.anchor_wins

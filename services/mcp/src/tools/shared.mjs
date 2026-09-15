@@ -673,8 +673,7 @@ export async function excludedBreakdown(
                                and not (b.type = any($${params.length + 1})))::int as unresolved,
             count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp'
                                and not (b.type = any($${params.length + 1}))
-                               and (bp.deck_hash is null or not (bp.deck ? 'cards')
-                                    or jsonb_array_length(bp.deck->'cards') = 0))::int as no_deck
+                               and bp.deck_hash is null)::int as no_deck
      from battle_participant bp join battle b on b.battle_id = bp.battle_id
      where ${where.join(" and ")}`,
     [...params, DUEL_TYPES],
@@ -729,6 +728,48 @@ export async function corpusPrior(db, { from, to = null, types = null }) {
   return r.decided >= META_METHODOLOGY.segment_min_decided
     ? { decided: r.decided, mean: r.wins / r.decided }
     : { decided: r.decided, mean: null };
+}
+
+/**
+ * Deck identities as rows (0091): the cards of each deck_hash, by form,
+ * with the tower troop, from deck_card and deck rather than any
+ * participant's JSON. Rendered the way deckCards always did - {id, name,
+ * evolution?} - so the contract shape is unchanged; order is by card id
+ * (an identity is a set; the old exemplar order was one player's slots).
+ * Returns a Map deck_hash -> { cards, tower_troop? }.
+ */
+export async function deckIdentities(db, hashes) {
+  const wanted = [...new Set(hashes.filter(Boolean))];
+  if (wanted.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select d.deck_hash, dc.card_id, dc.form, c.name,
+            d.tower_troop_id, t.name as tower_name
+     from deck d
+     left join deck_card dc on dc.deck_hash = d.deck_hash
+     left join card c on c.card_id = dc.card_id
+     left join card t on t.card_id = d.tower_troop_id
+     where d.deck_hash = any($1)
+     order by d.deck_hash, dc.card_id, dc.form`,
+    [wanted],
+  );
+  const out = new Map();
+  for (const r of rows) {
+    if (!out.has(r.deck_hash)) {
+      out.set(r.deck_hash, {
+        cards: [],
+        ...(r.tower_troop_id === null
+          ? {}
+          : { tower_troop: { id: r.tower_troop_id, name: r.tower_name } }),
+      });
+    }
+    if (r.card_id !== null)
+      out.get(r.deck_hash).cards.push({
+        id: r.card_id,
+        name: r.name,
+        ...(r.form > 0 ? { evolution: r.form } : {}),
+      });
+  }
+  return out;
 }
 
 // --- tools -----------------------------------------------------------------
