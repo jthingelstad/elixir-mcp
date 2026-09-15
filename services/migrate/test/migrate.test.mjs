@@ -369,6 +369,196 @@ test("replay op: archive messages flow through the real pipeline in order, attri
   await check.end();
 });
 
+test("replay op with skip_projection: a roster lands as receipt and archive only, never as membership", async () => {
+  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
+  const { gzipSync } = await import("node:zlib");
+  const payload = JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures/clan/roster.json"), "utf8"),
+  );
+  const msg = {
+    v: 1,
+    job: { endpoint: "clan", entity_key: "J2RGCRVG", lane: "bulk" },
+    gateway_id: "backfill",
+    fetched_at: "2026-05-20T12:00:00Z",
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+      "base64",
+    ),
+  };
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const check = new pg.Client({ connectionString: SCRATCH_URL });
+  await check.connect();
+  // An earlier test seeds a membership row for this clan; the roster
+  // fixture holds dozens of members, so an unchanged count is the proof.
+  const before = (
+    await check.query(
+      `select count(*)::int n from clan_membership where clan_tag = '#J2RGCRVG'`,
+    )
+  ).rows[0].n;
+  const { handler } = await import("../src/lambda.mjs");
+  const out = await handler({
+    replay: { skip_projection: true, messages: [msg] },
+  });
+  assert.equal(out.tally.admitted, 1);
+  const receipt = await check.query(
+    `select admission from api_receipt where endpoint = 'clan' and entity_key = '#J2RGCRVG'`,
+  );
+  assert.equal(receipt.rows[0]?.admission, "admitted");
+  const members = await check.query(
+    `select count(*)::int n from clan_membership where clan_tag = '#J2RGCRVG'`,
+  );
+  assert.equal(members.rows[0].n, before, "the state machine did not run");
+  await check.end();
+});
+
+test("tenure_history op: closes history before the live horizon, backdates open rows only earlier", async () => {
+  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  await db.query(
+    `insert into clan (clan_tag, name) values ('#YYCQ2P', 'Tenure Test') on conflict do nothing`,
+  );
+  for (const t of ["#2P0Y8", "#8QRL9", "#9GJC0", "#0VUCP"])
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [t],
+    );
+  // The live record's first roster read: a real collector's receipt,
+  // two open rows, one prior closed row.
+  const live = "2026-09-03T18:00:00Z";
+  const {
+    rows: [owner],
+  } = await db.query(
+    `insert into account (email_hash, status, is_owner) values ('tenure-owner', 'approved', true)
+     on conflict (email_hash) do update set status = 'approved' returning account_id`,
+  );
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'tenure-collector', '127.0.0.1', 'active') returning gateway_id`,
+    [owner.account_id],
+  );
+  await db.query(
+    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+     values ('clan', '#YYCQ2P', $1, 'tenure-hash', $2, 'admitted')`,
+    [live, gw.gateway_id],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at, role) values
+       ('#YYCQ2P', '#2P0Y8', $1, null, 'member'),
+       ('#YYCQ2P', '#9GJC0', $1, null, 'elder'),
+       ('#YYCQ2P', '#8QRL9', '2026-04-01T00:00:00Z', '2026-04-10T00:00:00Z', 'member'),
+       -- present at the first live read, left a week later: the stint
+       -- across the horizon is this closed row
+       ('#YYCQ2P', '#0VUCP', $1, '2026-09-10T00:00:00Z', 'member')`,
+    [live],
+  );
+  await db.end();
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const out = await handler({
+    tenure_history: {
+      clan_tag: "#YYCQ2P",
+      intervals: [
+        // open at the end of history: backdates the live row
+        {
+          player_tag: "#2P0Y8",
+          joined_at: "2026-03-11T00:00:00Z",
+          left_at: null,
+          role: "member",
+        },
+        // a first stint that ended before the horizon, then the live stint
+        {
+          player_tag: "#9GJC0",
+          joined_at: "2026-03-11T00:00:00Z",
+          left_at: "2026-06-01T00:00:00Z",
+          role: "member",
+        },
+        {
+          player_tag: "#9GJC0",
+          joined_at: "2026-08-01T00:00:00Z",
+          left_at: null,
+          role: "elder",
+        },
+        // overlaps the row already there
+        {
+          player_tag: "#8QRL9",
+          joined_at: "2026-03-30T00:00:00Z",
+          left_at: "2026-04-05T00:00:00Z",
+          role: "member",
+        },
+        // present at the last historical read, since departed live:
+        // the closed row the first live read created is backdated
+        {
+          player_tag: "#0VUCP",
+          joined_at: "2026-05-01T00:00:00Z",
+          left_at: null,
+          role: "member",
+        },
+        // after the horizon: untouched
+        {
+          player_tag: "#0VUCP",
+          joined_at: "2026-09-04T00:00:00Z",
+          left_at: null,
+          role: "member",
+        },
+      ],
+    },
+  });
+  assert.equal(out.live_since, "2026-09-03T18:00:00.000Z");
+  assert.equal(out.inserted, 1, "the ended first stint");
+  assert.equal(
+    out.backdated,
+    3,
+    "#2P0Y8, the live #9GJC0 stint, departed #0VUCP",
+  );
+  assert.equal(out.overlapping, 1);
+  assert.equal(out.after_horizon, 1);
+  assert.deepEqual(out.no_open_row, []);
+  const check = new pg.Client({ connectionString: SCRATCH_URL });
+  await check.connect();
+  const rows = (
+    await check.query(
+      `select player_tag, joined_observed_at, left_observed_at from clan_membership
+       where clan_tag = '#YYCQ2P' order by player_tag, joined_observed_at`,
+    )
+  ).rows.map((r) => [
+    r.player_tag,
+    r.joined_observed_at.toISOString(),
+    r.left_observed_at?.toISOString() ?? null,
+  ]);
+  assert.deepEqual(rows, [
+    ["#0VUCP", "2026-05-01T00:00:00.000Z", "2026-09-10T00:00:00.000Z"],
+    ["#2P0Y8", "2026-03-11T00:00:00.000Z", null],
+    ["#8QRL9", "2026-04-01T00:00:00.000Z", "2026-04-10T00:00:00.000Z"],
+    ["#9GJC0", "2026-03-11T00:00:00.000Z", "2026-06-01T00:00:00.000Z"],
+    ["#9GJC0", "2026-08-01T00:00:00.000Z", null],
+  ]);
+  // Idempotent: a second run changes nothing.
+  const again = await handler({
+    tenure_history: {
+      clan_tag: "#YYCQ2P",
+      intervals: [
+        {
+          player_tag: "#2P0Y8",
+          joined_at: "2026-03-11T00:00:00Z",
+          left_at: null,
+        },
+        {
+          player_tag: "#9GJC0",
+          joined_at: "2026-03-11T00:00:00Z",
+          left_at: "2026-06-01T00:00:00Z",
+        },
+      ],
+    },
+  });
+  assert.equal(again.backdated, 0);
+  assert.equal(again.unchanged, 1);
+  assert.equal(again.overlapping, 1);
+  await check.end();
+});
+
 test("tables op: every user table's size and churn, the memory settings, no payloads", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   const { handler } = await import("../src/lambda.mjs");

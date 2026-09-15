@@ -31,6 +31,19 @@
  *   --gap <v4 backup .db>    ALSO replay the 2026-05-04..05-14 raw gap
  *                            from v4 member_battle_facts.raw_json (see
  *                            gapMessages below)
+ *   --war-state <v4 .db>     ALSO replay currentriverrace from v4
+ *                            war_current_state.raw_json (the full API
+ *                            payload, filed in a table before 05-15 when
+ *                            the raw log started keeping it); in --tenure
+ *                            mode, clan rosters from clan_daily_metrics
+ *   --live <elixir-v51.db>   ALSO read the bot's LIVE db (mode=ro, WAL,
+ *                            never immutable) up to --live-cutoff, which
+ *                            defaults to the record's own recording start
+ *   --tenure                 roster-history mode (second pass, 2026-09-15):
+ *                            replay every clan payload with skip_projection
+ *                            (receipts + S3, no state machine), walk them in
+ *                            order into membership intervals, and send those
+ *                            to the tenure_history op
  *
  * Resumable: progress (last fetched_at+hash) in .backfill-backups-progress.json.
  */
@@ -39,6 +52,7 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
+import { seasonFromDate } from "../../services/ingest/src/war-clock.mjs";
 
 const ENDPOINTS = {
   player_battlelog: "player_battlelog",
@@ -46,12 +60,14 @@ const ENDPOINTS = {
   currentriverrace: "currentriverrace",
   riverracelog: "riverracelog",
   clan_war_log: "riverracelog", // v4 label for the same CR endpoint
+  events: "events",
+  cards: "cards",
 };
-const PROGRESS_FILE = new URL(
-  "../../.backfill-backups-progress.json",
-  import.meta.url,
-);
-const PERF_FILE = new URL("../../.backfill-backups-perf.json", import.meta.url);
+const TENURE_ENDPOINTS = { clan: "clan" };
+// The bot keyed subject-less endpoints 'global'; the record says GLOBAL.
+const entityKeyFor = (ek) => (ek.toLowerCase() === "global" ? "GLOBAL" : ek);
+// First archived currentriverrace payload: war_current_state stops here.
+const WAR_STATE_UNTIL = "2026-05-15T00:39:00Z";
 const LAMBDA_BUDGET_MS = 300_000; // migrate Lambda timeout
 const GAP_FROM = "20260504T000000.000Z";
 const GAP_TO = "20260515T000000.000Z";
@@ -67,15 +83,40 @@ const limit = Number(opt("--limit", Infinity));
 const localUrl = opt("--local", null);
 const cutoff = opt("--cutoff", "2026-07-15T00:00:00Z");
 const gapDb = opt("--gap", null);
-let batchMax = Number(opt("--batch", 60));
-const sources = argv.filter(
-  (a, i) =>
-    a.endsWith(".db") &&
-    !["--local", "--cutoff", "--limit", "--batch", "--gap"].includes(
-      argv[i - 1],
-    ),
+const warStateDb = opt("--war-state", null);
+const liveDb = opt("--live", null);
+const liveCutoff = opt("--live-cutoff", "2026-09-03T18:00:00Z");
+const tenure = flag("--tenure");
+// --only events,cards: restrict the raw-log endpoints (the --war-state and
+// --gap sources are independent of it). --progress <name> keeps each run's
+// cursor apart; a second pass must not inherit the first pass's horizon.
+const only = opt("--only", null)?.split(",") ?? null;
+const progressName = opt("--progress", tenure ? "tenure" : "backups");
+const PROGRESS_FILE = new URL(
+  `../../.backfill-${progressName}-progress.json`,
+  import.meta.url,
 );
-if (sources.length === 0 && !gapDb) {
+const PERF_FILE = new URL(
+  `../../.backfill-${progressName}-perf.json`,
+  import.meta.url,
+);
+let batchMax = Number(opt("--batch", 60));
+const VALUE_FLAGS = [
+  "--local",
+  "--cutoff",
+  "--limit",
+  "--batch",
+  "--gap",
+  "--war-state",
+  "--live",
+  "--live-cutoff",
+  "--only",
+  "--progress",
+];
+const sources = argv.filter(
+  (a, i) => a.endsWith(".db") && !VALUE_FLAGS.includes(argv[i - 1]),
+);
+if (sources.length === 0 && !gapDb && !warStateDb && !liveDb) {
   console.error("usage: backfill-replay-backups.mjs [flags] <backup.db ...>");
   process.exit(2);
 }
@@ -87,13 +128,18 @@ const handles = new Map();
 function open(file) {
   let h = handles.get(file);
   if (!h) {
-    h = new DatabaseSync(`file:${file}?mode=ro&immutable=1`, {
-      readOnly: true,
-    });
+    // The live db is in WAL under the running bot: plain read-only, so
+    // the WAL is honoured; immutable=1 would read a torn snapshot.
+    const uri =
+      file === liveDb
+        ? `file:${file}?mode=ro`
+        : `file:${file}?mode=ro&immutable=1`;
+    h = new DatabaseSync(uri, { readOnly: true });
     handles.set(file, h);
   }
   return h;
 }
+const sha = (text) => createHash("sha256").update(text).digest("hex");
 function q(file, sql, params = []) {
   return open(file)
     .prepare(sql)
@@ -104,35 +150,122 @@ const isoZ = (s) => (s.endsWith("Z") ? s : `${s}Z`);
 
 // 1. Index: union of every replayable payload across the sources ----------
 const index = new Map(); // key -> {endpoint, entity_key, fetched_at, file, payload_id}
-const epList = Object.keys(ENDPOINTS)
+const EP = tenure
+  ? TENURE_ENDPOINTS
+  : Object.fromEntries(
+      Object.entries(ENDPOINTS).filter(([, v]) => !only || only.includes(v)),
+    );
+const epList = Object.keys(EP)
   .map((e) => `'${e}'`)
   .join(",");
-for (const file of sources) {
+function addToIndex(entry) {
+  const have = index.get(entry.key);
+  if (!have || entry.fetched_at < have.fetched_at) {
+    index.set(entry.key, entry);
+    return !have;
+  }
+  return false;
+}
+for (const file of [...sources, ...(liveDb ? [liveDb] : [])]) {
+  const until = file === liveDb ? liveCutoff : cutoff;
   const rows = q(
     file,
     `select payload_id, endpoint, entity_key, fetched_at, payload_hash
      from raw_api_payloads
-     where endpoint in (${epList}) and fetched_at < '${cutoff}'`,
+     where endpoint in (${epList}) and fetched_at < '${until}'`,
   );
   let added = 0;
   for (const r of rows) {
-    const endpoint = ENDPOINTS[r.endpoint];
+    const endpoint = EP[r.endpoint];
+    const entity_key = entityKeyFor(r.entity_key);
     const fetched_at = isoZ(r.fetched_at);
-    const key = `${endpoint}|${r.entity_key}|${r.payload_hash}`;
-    const have = index.get(key);
-    if (!have || fetched_at < have.fetched_at) {
-      index.set(key, {
-        key,
+    if (
+      addToIndex({
+        key: `${endpoint}|${entity_key}|${r.payload_hash}`,
         endpoint,
-        entity_key: r.entity_key,
+        entity_key,
         fetched_at,
         file,
         payload_id: r.payload_id,
-      });
-      if (!have) added += 1;
-    }
+      })
+    )
+      added += 1;
   }
   console.log(`${file}: ${rows.length} rows, ${added} new to the union`);
+}
+// v4 filed two endpoints' payloads in tables rather than the raw log:
+// war_current_state.raw_json is the currentriverrace body (Mar 7 on,
+// where the raw log only starts 05-15) and clan_daily_metrics.raw_json
+// is one clan roster a day (Mar 11 on). Both carry the read's own time.
+if (warStateDb && !tenure) {
+  const rows = q(
+    warStateDb,
+    `select war_id, observed_at, clan_tag, raw_json from war_current_state
+     where observed_at < '${WAR_STATE_UNTIL}' and raw_json is not null`,
+  );
+  let added = 0;
+  let standby = 0;
+  for (const r of rows) {
+    const entity_key = r.clan_tag.replace(/^#/, "");
+    // The bot polled exactly on the hour, and the season rolls at exactly
+    // 10:00Z on a first Monday - but the race ends ~09:30Z and the API
+    // describes the FINISHED race (old section) until the roll lands. A
+    // read in that stand-by window carries the old section under the new
+    // season: the phantom-season shape (war-clock.mjs). Skip it; the
+    // next hourly read is section 0.
+    const atMs = Date.parse(isoZ(r.observed_at));
+    const { seasonStartMs } = seasonFromDate(atMs);
+    if (atMs - seasonStartMs < 30 * 60_000) {
+      let section = 0;
+      try {
+        section = JSON.parse(r.raw_json)?.sectionIndex ?? 0;
+      } catch {
+        /* admission will refuse it */
+      }
+      if (section !== 0) {
+        standby += 1;
+        continue;
+      }
+    }
+    if (
+      addToIndex({
+        key: `currentriverrace|${entity_key}|${sha(r.raw_json)}`,
+        endpoint: "currentriverrace",
+        entity_key,
+        fetched_at: isoZ(r.observed_at),
+        json: r.raw_json,
+      })
+    )
+      added += 1;
+  }
+  console.log(
+    `${warStateDb} war_current_state: ${rows.length} rows, ${added} new, ${standby} stand-by reads skipped`,
+  );
+}
+if (warStateDb && tenure) {
+  const rows = q(
+    warStateDb,
+    `select metric_date, observed_at, clan_tag, raw_json from clan_daily_metrics
+     where raw_json is not null`,
+  );
+  let added = 0;
+  for (const r of rows) {
+    const entity_key = r.clan_tag.replace(/^#/, "");
+    const fetched_at = isoZ(r.observed_at ?? `${r.metric_date}T00:00:00`);
+    if (
+      addToIndex({
+        key: `clan|${entity_key}|${sha(r.raw_json)}`,
+        endpoint: "clan",
+        entity_key,
+        fetched_at,
+        json: r.raw_json,
+      })
+    )
+      added += 1;
+  }
+  console.log(
+    `${warStateDb} clan_daily_metrics: ${rows.length} rows, ${added} new`,
+  );
 }
 
 // 2. The May 4-14 raw gap (optional): no backup exists between 05-03 and
@@ -142,7 +275,7 @@ for (const file of sources) {
 // stamp fetched_at one hour after the newest battle — the bot did read
 // these logs then; only the raw copies were purged.
 function gapMessages() {
-  if (!gapDb) return [];
+  if (!gapDb || tenure) return [];
   const rows = q(
     gapDb,
     `select m.player_tag, f.battle_time, f.raw_json
@@ -216,6 +349,15 @@ if (dryRun) {
     "first five:",
     pending.slice(0, 5).map(({ json: _json, ...r }) => r),
   );
+  if (tenure) {
+    for (const clanTag of new Set(plan.map((p) => p.entity_key))) {
+      const { reads, intervals } = tenureIntervals(clanTag);
+      const closed = intervals.filter((i) => i.left_at).length;
+      console.log(
+        `tenure ${clanTag}: ${reads} roster reads -> ${intervals.length} intervals (${closed} closed, ${intervals.length - closed} open at end), first read ${plan.find((p) => p.entity_key === clanTag)?.fetched_at}`,
+      );
+    }
+  }
   process.exit(0);
 }
 
@@ -230,19 +372,78 @@ function loadJson(p) {
   return row.payload_json;
 }
 
+// 4. Tenure mode: the membership intervals the rosters show, walked in
+// order. Open when a tag first appears, closed at the first read where
+// it is absent - the record's own observed-tenure semantics, applied to
+// another recorder's reads.
+function tenureIntervals(clanTag) {
+  const open = new Map(); // tag -> {joined_at, role}
+  const intervals = [];
+  let reads = 0;
+  for (const p of plan) {
+    if (p.endpoint !== "clan" || p.entity_key !== clanTag) continue;
+    let payload;
+    try {
+      payload = JSON.parse(loadJson(p));
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(payload.memberList)) continue;
+    reads += 1;
+    const present = new Set();
+    for (const m of payload.memberList) {
+      if (!m?.tag) continue;
+      present.add(m.tag);
+      const o = open.get(m.tag);
+      if (o) o.role = m.role ?? o.role;
+      else open.set(m.tag, { joined_at: p.fetched_at, role: m.role ?? null });
+    }
+    for (const [tag, o] of open) {
+      if (present.has(tag)) continue;
+      intervals.push({ player_tag: tag, ...o, left_at: p.fetched_at });
+      open.delete(tag);
+    }
+  }
+  for (const [tag, o] of open)
+    intervals.push({ player_tag: tag, ...o, left_at: null });
+  return { reads, intervals };
+}
+
 let invoke;
+let tenureOp;
 if (localUrl) {
-  const { replay } = await import("../../services/migrate/src/ops-record.mjs");
-  invoke = async (messages) => replay(localUrl, { messages });
+  const { replay, tenureHistory } =
+    await import("../../services/migrate/src/ops-record.mjs");
+  invoke = async (messages) =>
+    replay(localUrl, { messages, skip_projection: tenure });
+  tenureOp = async (spec) => tenureHistory(localUrl, spec);
 } else {
   const { LambdaClient, InvokeCommand } =
     await import("@aws-sdk/client-lambda");
   const lambda = new LambdaClient({});
+  tenureOp = async (spec) => {
+    const res = await lambda.send(
+      new InvokeCommand({
+        FunctionName: "elixir-mcp-migrate",
+        Payload: Buffer.from(JSON.stringify({ tenure_history: spec })),
+      }),
+    );
+    const body = JSON.parse(Buffer.from(res.Payload).toString());
+    if (res.FunctionError)
+      throw new Error(
+        `tenure_history failed: ${JSON.stringify(body).slice(0, 500)}`,
+      );
+    return body;
+  };
   invoke = async (messages) => {
     const res = await lambda.send(
       new InvokeCommand({
         FunctionName: "elixir-mcp-migrate",
-        Payload: Buffer.from(JSON.stringify({ replay: { messages } })),
+        Payload: Buffer.from(
+          JSON.stringify({
+            replay: { messages, skip_projection: tenure },
+          }),
+        ),
       }),
     );
     const body = JSON.parse(Buffer.from(res.Payload).toString());
@@ -318,3 +519,15 @@ while (i < pending.length && sent < limit) {
   );
 }
 console.log(`done. sent ${sent}, tally ${JSON.stringify(tally)}`);
+
+if (tenure && sent === pending.length) {
+  for (const clanTag of new Set(plan.map((p) => p.entity_key))) {
+    const { reads, intervals } = tenureIntervals(clanTag);
+    if (intervals.length === 0) continue; // a stub entity, nothing observed
+    const out = await tenureOp({ clan_tag: `#${clanTag}`, intervals });
+    console.log(
+      `tenure_history #${clanTag} (${reads} reads, ${intervals.length} intervals):`,
+      JSON.stringify(out),
+    );
+  }
+}

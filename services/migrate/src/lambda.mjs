@@ -16,6 +16,7 @@ import {
 } from "./ops-accounts.mjs";
 import {
   replay,
+  tenureHistory,
   exportPayloads,
   collectionOp,
   playerNames,
@@ -54,6 +55,9 @@ export async function handler(event) {
     const result = await inspect(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
+  }
+  if (event?.tenure_history) {
+    return tenureHistory(process.env.DATABASE_URL, event.tenure_history);
   }
   if (event?.replay) {
     const result = await replay(process.env.DATABASE_URL, event.replay);

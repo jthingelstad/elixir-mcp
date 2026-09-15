@@ -18,7 +18,13 @@ import pg from "pg";
 export async function replay(databaseUrl, spec) {
   const { processResult } = await import("../../ingest/src/pipeline.mjs");
   const { makeArchive } = await import("../../ingest/src/handler.mjs");
-  const deps = { archive: makeArchive(process.env.ARCHIVE_BUCKET) };
+  const deps = {
+    archive: makeArchive(process.env.ARCHIVE_BUCKET),
+    // {replay: {skip_projection: true}}: receipts and S3 only - the
+    // roster-history lane (see processResult). Tenure from those
+    // rosters is reconstructed client-side and lands via tenure_history.
+    skipProjection: spec.skip_projection === true,
+  };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
@@ -238,6 +244,121 @@ export async function playerNames(databaseUrl, spec) {
       filled: rows.length,
       still_unnamed: still[0].n,
     };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * Roster history for one clan ({tenure_history: {clan_tag, intervals}}),
+ * the second half of the 2026-09-15 elixir-bot backfill. The membership
+ * state machine only runs forward, so historical rosters cannot be
+ * projected; instead the client walks them in order and sends the
+ * membership INTERVALS it observed: {player_tag, joined_at, left_at|null,
+ * role}. Observed by another recorder, never asserted: every value is a
+ * roster read's timestamp.
+ *
+ *   - An interval that closed before this record's own first roster read
+ *     becomes a closed row, unless a row for that player in that clan
+ *     already overlaps it.
+ *   - An interval still open at the end of the history is the stint the
+ *     record's first live roster read then picked up: the row that read
+ *     created (joined_observed_at = the horizon), open or since closed,
+ *     is backdated - only earlier, never later - which is what
+ *     first_observed_in_clan reads. No such row (the player left in the
+ *     minutes between the last historical read and the first live one)
+ *     is reported, not guessed.
+ *   - Nothing after the live horizon is touched, and no events are
+ *     emitted: the feed is a nod about now, not a report about March.
+ */
+export async function tenureHistory(databaseUrl, spec) {
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const clanTag = normalizeTag(spec?.clan_tag ?? "");
+  const intervals = Array.isArray(spec?.intervals) ? spec.intervals : [];
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const out = {
+    clan_tag: clanTag,
+    live_since: null,
+    inserted: 0,
+    backdated: 0,
+    unchanged: 0,
+    overlapping: 0,
+    after_horizon: 0,
+    no_open_row: [],
+  };
+  try {
+    // The live horizon is this record's own first roster read of the
+    // clan - a receipt from a real collector, never the backfill gateway
+    // and never a membership row (the rows this op writes would move it).
+    const { rows: horizon } = await db.query(
+      `select min(r.fetched_at) as live_since
+       from api_receipt r join gateway g on g.gateway_id = r.gateway_id
+       where r.endpoint = 'clan' and r.entity_key = $1 and r.admission = 'admitted'
+         and g.name <> 'backfill-elixir-bot'`,
+      [clanTag],
+    );
+    const liveSince = horizon[0]?.live_since;
+    if (!liveSince) throw new Error(`no live roster read for ${clanTag}`);
+    out.live_since = liveSince.toISOString();
+    await db.query("begin");
+    for (const iv of intervals) {
+      const playerTag = normalizeTag(iv.player_tag);
+      const joinedAt = new Date(iv.joined_at);
+      const leftAt = iv.left_at ? new Date(iv.left_at) : null;
+      if (joinedAt >= liveSince || (leftAt && leftAt > liveSince)) {
+        out.after_horizon += 1;
+        continue;
+      }
+      await db.query(
+        `insert into player (player_tag) values ($1) on conflict do nothing`,
+        [playerTag],
+      );
+      if (leftAt) {
+        const { rows: overlap } = await db.query(
+          `select 1 from clan_membership
+           where clan_tag = $1 and player_tag = $2
+             and joined_observed_at <= $4
+             and coalesce(left_observed_at, 'infinity'::timestamptz) >= $3`,
+          [clanTag, playerTag, joinedAt, leftAt],
+        );
+        if (overlap.length) {
+          out.overlapping += 1;
+          continue;
+        }
+        await db.query(
+          `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at, role)
+           values ($1, $2, $3, $4, $5)`,
+          [clanTag, playerTag, joinedAt, leftAt, iv.role ?? null],
+        );
+        out.inserted += 1;
+      } else {
+        const { rowCount } = await db.query(
+          `update clan_membership set joined_observed_at = $3
+           where clan_tag = $1 and player_tag = $2
+             and joined_observed_at = $4 and joined_observed_at > $3`,
+          [clanTag, playerTag, joinedAt, liveSince],
+        );
+        if (rowCount === 1) out.backdated += 1;
+        else {
+          // Already backdated by an earlier run, or no live row at all.
+          const { rows: stint } = await db.query(
+            `select 1 from clan_membership
+             where clan_tag = $1 and player_tag = $2
+               and joined_observed_at <= $3
+               and coalesce(left_observed_at, 'infinity'::timestamptz) >= $4`,
+            [clanTag, playerTag, joinedAt, liveSince],
+          );
+          if (stint.length) out.unchanged += 1;
+          else out.no_open_row.push(playerTag);
+        }
+      }
+    }
+    await db.query("commit");
+    return out;
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
   } finally {
     await db.end();
   }

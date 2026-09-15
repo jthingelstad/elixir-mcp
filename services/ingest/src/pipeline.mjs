@@ -619,7 +619,12 @@ export async function processResult(db, rawMessage, deps = {}) {
     t = mark("store_ms", t);
 
     let projection = null;
-    if (admission.ok) {
+    // deps.skipProjection: receipt and archive only. The roster history
+    // replay (2026-09-15) needs old clan payloads on the record - receipts
+    // under the backfill gateway, bodies in S3 - without running the
+    // membership state machine, which only runs forward: an old roster
+    // diffed against today's open rows is six months of false joins.
+    if (admission.ok && !deps.skipProjection) {
       const projector = PROJECTORS[endpoint];
       projection = await projector(db, {
         entityKey,
@@ -630,6 +635,8 @@ export async function processResult(db, rawMessage, deps = {}) {
         filtered: msg.filtered,
       });
       t = mark("project_ms", t);
+    }
+    if (admission.ok) {
       // What the fetch was worth (0077): the projection's own count of
       // rows it inserted or changed, and the transaction's wall time so
       // far. A point rewards a fetch that returned data, never one that
