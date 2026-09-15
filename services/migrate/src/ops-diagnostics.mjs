@@ -435,15 +435,15 @@ export async function probe(databaseUrl) {
     const { rows: levels } = await db.query(
       `with sides as (
          select bp.battle_id,
-                avg((c.value->>'level')::numeric)
-                  filter (where bp.side = 0) as lvl0,
-                avg((c.value->>'level')::numeric)
-                  filter (where bp.side = 1) as lvl1
+                avg(pc.level::numeric) filter (where bp.side = 0) as lvl0,
+                avg(pc.level::numeric) filter (where bp.side = 1) as lvl1
          from battle b
          join battle_participant bp on bp.battle_id = b.battle_id
-         cross join lateral jsonb_array_elements(bp.deck->'cards') c
+         join battle_participant_card pc
+           on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
+          and pc.round = 0 and pc.slot > 0
          where b.battle_time > now() - interval '24 hours'
-           and bp.deck ? 'cards'
+           and bp.deck_hash is not null
          group by bp.battle_id)
        select count(*)::int as battles_with_both_side_levels,
               (select count(*)::int from battle

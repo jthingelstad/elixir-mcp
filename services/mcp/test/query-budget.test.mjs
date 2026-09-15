@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { makeRegistry } from "../src/tools.mjs";
-import { projectDeckRows } from "./deck-rows.mjs";
+import { seedPlayedDeck, hashFor } from "./deck-rows.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createHash } from "node:crypto";
 
@@ -227,26 +227,26 @@ test("limited deck meta renders the identity from deck_card and the catalog, nev
       "insert into battle (battle_id, battle_time, type, type_class) values ($1,$2,'PvP','pvp')",
       [id, at],
     );
+    // Three participants play the one deck; the label each carried is
+    // not the answer - the catalog names the identity's cards.
+    const cards = [{ id: 26000000, name: label, evolutionLevel: 1 }];
+    const supportCards = [{ id: 159000000, name: "Tower Princess" }];
     await db.query(
-      "insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_hash, deck) values ($1,$2,$3,0,'win','exemplar-deck',$4::jsonb)",
-      [
-        id,
-        tag,
-        at,
-        JSON.stringify({
-          cards: [{ id: 26000000, name: label, evolutionLevel: 1 }],
-          supportCards: [{ id: 159000000, name: "Tower Princess" }],
-        }),
-      ],
+      "insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_hash) values ($1,$2,$3,0,'win',$4)",
+      [id, tag, at, hashFor(cards, supportCards[0].id)],
     );
+    await seedPlayedDeck(db, {
+      battle_id: id,
+      player_tag: tag,
+      battle_time: at,
+      cards,
+      supportCards,
+    });
   }
-  // The catalog names the cards; three participants carried three
-  // different names for the same id and none of them is the answer.
   await db.query(
     `insert into card (card_id, name, kind) values (26000000, 'Knight', 'card'), (159000000, 'Tower Princess', 'support')
      on conflict (card_id) do update set name = excluded.name, catalog_seen_at = now()`,
   );
-  await projectDeckRows(db);
   const result = await makeRegistry().invoke(
     "battles_meta_decks",
     { db, account },

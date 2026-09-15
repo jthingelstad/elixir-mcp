@@ -372,11 +372,13 @@ export async function previewIntel(databaseUrl, spec) {
     const sides = `
       with sides as (
         select bp.battle_id, bp.player_tag, bp.outcome, b.battle_time,
-               avg((c.value->>'level')::numeric) as lvl
+               avg(pc.level::numeric) as lvl
         from battle_participant bp
         join battle b on b.battle_id = bp.battle_id
-        cross join lateral jsonb_array_elements(bp.deck->'cards') c
-        where bp.deck ? 'cards' and b.type_class = 'pvp'
+        join battle_participant_card pc
+          on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
+         and pc.round = 0 and pc.slot > 0
+        where bp.deck_hash is not null and b.type_class = 'pvp'
           and bp.outcome in ('win','loss')
         group by bp.battle_id, bp.player_tag, bp.outcome, b.battle_time),
       duos as (select battle_id from sides group by battle_id having count(*) = 2),

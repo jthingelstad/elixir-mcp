@@ -4,6 +4,7 @@
  * see exactly what was asked for and nothing is charged to a quota.
  */
 import { test, before, after } from "node:test";
+import { seedPlayedDeck, hashFor } from "../../mcp/test/deck-rows.mjs";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
@@ -82,14 +83,15 @@ async function playBattle(tag, ids, at = new Date(), outcome = "win") {
      values ($1, $2, 'pathOfLegend', 'pvp', 'Ranked1v1_NewArena2')`,
     [battleId, at],
   );
+  const cards = ids.map((id) => ({ id, level: 14 }));
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, crowns, deck, outcome, battle_time)
-     values ($1, $2, 0, $5, $3::jsonb, $4, $6),
-            ($1, $7, 1, $8, '{"norm":1,"cards":[]}'::jsonb, $9, $6)`,
+    `insert into battle_participant (battle_id, player_tag, side, crowns, deck_hash, outcome, battle_time)
+     values ($1, $2, 0, $5, $3, $4, $6),
+            ($1, $7, 1, $8, null, $9, $6)`,
     [
       battleId,
       tag,
-      JSON.stringify({ norm: 1, cards: ids.map((id) => ({ id, level: 14 })) }),
+      hashFor(cards),
       outcome,
       outcome === "win" ? 3 : 1,
       at,
@@ -98,6 +100,12 @@ async function playBattle(tag, ids, at = new Date(), outcome = "win") {
       outcome === "win" ? "loss" : "win",
     ],
   );
+  await seedPlayedDeck(db, {
+    battle_id: battleId,
+    player_tag: tag,
+    battle_time: at,
+    cards,
+  });
   return battleId;
 }
 

@@ -71,7 +71,8 @@ async function expireStale(db, accountId, tag) {
  *  single deck and never match. */
 async function battlesSince(db, tag, since, limit = 10) {
   const { rows } = await db.query(
-    `select bp.battle_id, bp.battle_time, bp.deck, bp.outcome, bp.crowns, bp.side,
+    `select bp.battle_id, bp.battle_time, bp.outcome, bp.crowns, bp.side,
+            (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids,
             b.type, b.game_mode_name,
             (select json_build_object('player_tag', o.player_tag, 'name', p.name, 'crowns', o.crowns)
                from battle_participant o join player p on p.player_tag = o.player_tag
@@ -82,11 +83,11 @@ async function battlesSince(db, tag, since, limit = 10) {
       order by bp.battle_time desc limit $3`,
     [tag, since, limit],
   );
-  return rows.map((r) => ({
+  // Card ids come from the deck's identity rows (0091); a duel has no
+  // deck_hash and so no ids, as before.
+  return rows.map(({ card_ids, ...r }) => ({
     ...r,
-    ids: Array.isArray(r.deck?.cards)
-      ? r.deck.cards.map((c) => Number(c.id)).filter(Number.isInteger)
-      : [],
+    ids: (card_ids ?? []).map(Number).filter(Number.isInteger),
   }));
 }
 
@@ -224,23 +225,27 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       `select card_id from card where kind = 'card'`,
     );
     const plain = new Set(plainRows.map((r) => r.card_id));
+    const asDeck = (r) => ({ cards: (r.card_ids ?? []).map((id) => ({ id })) });
     const { rows: last } = await db.query(
-      `select deck from battle_participant
-        where player_tag = $1 and deck is not null
-        order by battle_time desc limit 10`,
+      `select (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids
+         from battle_participant bp
+        where bp.player_tag = $1 and bp.deck_hash is not null
+        order by bp.battle_time desc limit 10`,
       [tag],
     );
     const { rows: month } = await db.query(
-      `select distinct on (deck_hash) deck from battle_participant
-        where player_tag = $1 and deck is not null
-          and battle_time > now() - interval '30 days'`,
+      `select distinct on (bp.deck_hash)
+              (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids
+         from battle_participant bp
+        where bp.player_tag = $1 and bp.deck_hash is not null
+          and bp.battle_time > now() - interval '30 days'`,
       [tag],
     );
     return {
-      recent: last.map((r) => deckIds(r.deck, plain)),
+      recent: last.map((r) => deckIds(asDeck(r), plain)),
       lastMonth: new Set(
         month
-          .map((r) => deckIds(r.deck, plain))
+          .map((r) => deckIds(asDeck(r), plain))
           .filter(Boolean)
           .map(deckKey),
       ),

@@ -982,10 +982,14 @@ test("ab_yield reports both hash arms with the audit's three new columns", async
   }
 });
 
-test("0091 deck backfill: batches rebuild the projections from deck JSON and agree with what ingest writes", async () => {
+// The 0091 backfill rehearsal (batches rebuild the projections from the
+// deck JSON and agree with the dual-write) retired with the JSON column
+// in 0097; the backfill ran once in production on 2026-09-15. What
+// remains testable is the census and the closing-FK gate.
+test("0091 census: ingest leaves no participant without its deck or played rows, and the closing FKs would validate", async () => {
   await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
   const { ingestBattlelog } = await import("../../ingest/src/battles.mjs");
-  const { deckBackfill, deckCensus } = await import("../src/deck-backfill.mjs");
+  const { deckCensus } = await import("../src/deck-backfill.mjs");
   const metaJson = JSON.parse(
     await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
   );
@@ -995,7 +999,6 @@ test("0091 deck backfill: batches rebuild the projections from deck JSON and agr
     for (const name of [
       "player_battlelog/with_boat_and_duel.json",
       "player_battlelog/with_path_of_legend.json",
-      "player_battlelog/with_clanmate_2v2.json",
     ]) {
       await ingestBattlelog(db, {
         observerTag: metaJson[name].entity_key,
@@ -1004,109 +1007,12 @@ test("0091 deck backfill: batches rebuild the projections from deck JSON and agr
         ),
       });
     }
-    // What the dual-write produced is the oracle.
-    const snapshot = async () => ({
-      decks: (await db.query(`select * from deck order by deck_hash`)).rows,
-      deckCards: (
-        await db.query(
-          `select * from deck_card order by deck_hash, card_id, form`,
-        )
-      ).rows,
-      played: (
-        await db.query(
-          `select * from battle_participant_card order by battle_id, player_tag, round, card_id, form`,
-        )
-      ).rows,
-      cards: (
-        await db.query(`select card_id, name, kind from card order by card_id`)
-      ).rows,
-    });
-    const fromIngest = await snapshot();
-    assert.ok(fromIngest.played.length > 100, "fixtures produced played rows");
-    let census = await deckCensus(SCRATCH_URL);
-    assert.equal(census.participants_without_deck, 0);
-    assert.equal(census.participants_without_played_rows, 0);
-
-    // Empty the projections the way production is before the backfill:
-    // participants exist, the tables do not.
-    await db.query(`delete from battle_participant_card`);
-    await db.query(`delete from deck_card`);
-    await db.query(`delete from deck`);
-    await db.query(`delete from card`);
-    await db.query(`delete from job where endpoint = 'cards'`);
-    census = await deckCensus(SCRATCH_URL);
-    assert.ok(
-      census.participants_without_deck > 0,
-      "rehearsal state has orphans",
-    );
-    assert.equal(
-      census.participants_without_played_rows,
-      census.participants_with_deck,
-    );
-
-    // Small batches so the keyset cursor is exercised; rerunning a batch
-    // must be harmless.
-    let after;
-    let rounds = 0;
-    let stubbed = 0;
-    for (;;) {
-      const r = await deckBackfill(SCRATCH_URL, { after, batch: 100 });
-      rounds += 1;
-      stubbed += r.stubbed?.length ?? 0;
-      if (r.done) break;
-      if (rounds === 2) await deckBackfill(SCRATCH_URL, { after, batch: 100 }); // rerun
-      after = r.next_after;
-      assert.ok(rounds < 100, "terminates");
-    }
-    assert.ok(rounds > 1, "more than one batch");
-    assert.ok(stubbed > 20, "backfill stubbed the unknown cards");
-    const { rows: jobs } = await db.query(
-      `select lane from job where endpoint = 'cards' and entity_key = 'GLOBAL' and status = 'queued'`,
-    );
-    assert.deepEqual(jobs, [{ lane: "live" }], "one live catalog fetch queued");
-
-    const fromBackfill = await snapshot();
-    assert.deepEqual(fromBackfill.deckCards, fromIngest.deckCards);
-    assert.deepEqual(fromBackfill.played, fromIngest.played);
-    assert.deepEqual(
-      fromBackfill.decks.map(({ first_seen_at, last_seen_at, ...d }) => ({
-        ...d,
-        first_seen_at: first_seen_at.toISOString(),
-        last_seen_at: last_seen_at.toISOString(),
-      })),
-      fromIngest.decks.map(({ first_seen_at, last_seen_at, ...d }) => ({
-        ...d,
-        first_seen_at: first_seen_at.toISOString(),
-        last_seen_at: last_seen_at.toISOString(),
-      })),
-    );
-    assert.deepEqual(fromBackfill.cards, fromIngest.cards);
-    census = await deckCensus(SCRATCH_URL);
+    const census = await deckCensus(SCRATCH_URL);
+    assert.ok(census.participants_with_deck > 20);
     assert.equal(census.participants_without_deck, 0);
     assert.equal(census.participants_without_played_rows, 0);
     assert.equal(census.collection_rows_without_card, 0);
-    assert.equal(census.stub_cards, fromBackfill.cards.length);
-
-    // 0092: the form discriminator is the API's bit field; 3 (both forms
-    // active) is a value the record has seen and must accept.
-    const anyDeck = fromBackfill.decks[0].deck_hash;
-    await db.query(
-      `insert into deck_card (deck_hash, card_id, form) values ($1, 26000000, 3)`,
-      [anyDeck],
-    );
-    await assert.rejects(
-      db.query(
-        `insert into deck_card (deck_hash, card_id, form) values ($1, 26000000, 4)`,
-        [anyDeck],
-      ),
-      /form_check/,
-    );
-    await db.query(
-      `delete from deck_card where deck_hash = $1 and card_id = 26000000 and form = 3`,
-      [anyDeck],
-    );
-
-    // The gate for the closing FKs holds: they would validate now.
+    assert.ok(census.stub_cards > 0, "no catalog loaded: everything is a stub");
     await db.query(
       `alter table battle_participant add constraint rehearsal_deck_fk
        foreign key (deck_hash) references deck`,
@@ -1115,6 +1021,10 @@ test("0091 deck backfill: batches rebuild the projections from deck JSON and agr
       `alter table player_card add constraint rehearsal_card_fk
        foreign key (card_id) references card`,
     );
+    await db.query(
+      `alter table battle_participant drop constraint rehearsal_deck_fk`,
+    );
+    await db.query(`alter table player_card drop constraint rehearsal_card_fk`);
   } finally {
     await db.end();
   }

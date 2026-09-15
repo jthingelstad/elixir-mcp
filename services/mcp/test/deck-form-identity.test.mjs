@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { deckHash } from "@elixir-mcp/contracts";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
-import { projectDeckRows } from "./deck-rows.mjs";
+import { seedPlayedDeck } from "./deck-rows.mjs";
 
 let scratch;
 let account;
@@ -66,16 +66,18 @@ async function seed({ id, evo, day }) {
   );
   await scratch.db.query(
     `insert into battle_participant
-       (battle_id,player_tag,side,outcome,battle_time,crowns,deck,deck_hash)
-     values ($1,$2,0,'win',$3::timestamptz,3,$4::jsonb,$5)`,
-    [
-      id,
-      TAG,
-      at,
-      JSON.stringify({ norm: 1, cards: cards(evo), supportCards: [TOWER] }),
-      hashFor(evo),
-    ],
+       (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash)
+     values ($1,$2,0,'win',$3::timestamptz,3,$4)`,
+    [id, TAG, at, hashFor(evo)],
   );
+  const hash = await seedPlayedDeck(scratch.db, {
+    battle_id: id,
+    player_tag: TAG,
+    battle_time: at,
+    cards: cards(evo),
+    supportCards: [TOWER],
+  });
+  assert.equal(hash, hashFor(evo), "the helper and the test agree on identity");
 }
 
 before(async () => {
@@ -105,7 +107,6 @@ before(async () => {
     await seed({ id: `df-base-${n}`, evo: 0, day: 2 });
     await seed({ id: `df-evo-${n}`, evo: 1, day: 2 });
   }
-  await projectDeckRows(scratch.db);
 });
 after(async () => scratch.drop());
 

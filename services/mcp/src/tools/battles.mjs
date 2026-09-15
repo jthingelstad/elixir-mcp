@@ -42,6 +42,7 @@ import {
   excludedBreakdown,
   corpusPrior,
   deckIdentities,
+  renderDecks,
 } from "./shared.mjs";
 import { resolveInstant } from "../time.mjs";
 
@@ -329,7 +330,7 @@ export const battlesTools = {
       const { rows } = await ctx.db.query(
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
                 b.arena, b.league_number,
-                bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck, bp.deck_hash,
+                bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.tower_hp, bp.outcome
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
@@ -346,11 +347,11 @@ export const battlesTools = {
         const { rows: rest } = await ctx.db.query(
           tag
             ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.deck, o.tower_hp, p.name
+                  o.tower_hp, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            where o.battle_id = any($1) and o.player_tag <> $2`
             : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.deck, o.tower_hp, p.name
+                  o.tower_hp, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            join unnest($1::text[], $2::int[]) me(battle_id, side)
              on me.battle_id = o.battle_id
@@ -364,6 +365,13 @@ export const battlesTools = {
         }, new Map());
       }
 
+      // Decks render from the card rows (0091) for the page's battles;
+      // compact needs only rounds_played, which the same rows carry.
+      const decks = await renderDecks(
+        ctx.db,
+        rows.map((r) => r.battle_id),
+      );
+      const deckOf = (o) => decks.get(`${o.battle_id}|${o.player_tag}`) ?? null;
       const battles = rows.map((r) => {
         const rest = others.get(r.battle_id) ?? [];
         const shape = (o) => ({
@@ -375,10 +383,10 @@ export const battlesTools = {
           crowns: o.crowns,
           deck_hash: o.deck_hash,
           clan_tag: o.clan_tag,
-          ...roundsPlayed(o.deck),
+          ...roundsPlayed(deckOf(o)),
           ...(compact
             ? {}
-            : { deck: o.deck, tower_hp: normalizeTowerHp(o.tower_hp) }),
+            : { deck: deckOf(o), tower_hp: normalizeTowerHp(o.tower_hp) }),
         });
         return {
           battle_id: r.battle_id,
@@ -395,11 +403,11 @@ export const battlesTools = {
             trophy_change: r.trophy_change,
             starting_trophies: r.starting_trophies,
             deck_hash: r.deck_hash,
-            ...roundsPlayed(r.deck),
+            ...roundsPlayed(deckOf(r)),
             ...(compact
               ? {}
               : {
-                  deck: r.deck,
+                  deck: deckOf(r),
                   elixir_leaked:
                     r.elixir_leaked === null ? null : Number(r.elixir_leaked),
                   tower_hp: normalizeTowerHp(r.tower_hp),

@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { ingestBattlelog } from "../src/battles.mjs";
+import { ingestBattlelog, canonicalizeBattle } from "../src/battles.mjs";
 import { projectCardCatalog, projectPlayerCards } from "../src/cards.mjs";
 import { participantCardRows } from "../src/deck-cards.mjs";
 import { fixture, fixtureMeta, scratchDb, seedReceipt } from "./helpers.mjs";
@@ -17,28 +17,33 @@ before(async () => {
 
 after(async () => ctx.drop());
 
-/** The JSON-derived card list for every participant, keyed by
- *  battle|tag, to compare against the rows. */
-async function jsonCards(db) {
-  const { rows } = await db.query(
-    `select battle_id, player_tag, deck, deck_hash from battle_participant`,
-  );
+const LOGS = [
+  "player_battlelog/with_boat_and_duel.json",
+  "player_battlelog/with_clanmate_2v2.json",
+];
+
+/** What the fixtures say each participant played, keyed by battle|tag:
+ *  the payload's own cards array through the same canonicalization
+ *  ingest uses, independent of anything stored. */
+async function fixtureCards() {
   const out = new Map();
-  for (const r of rows)
-    out.set(`${r.battle_id}|${r.player_tag}`, {
-      deck_hash: r.deck_hash,
-      cards: participantCardRows(r.deck),
-    });
+  for (const name of LOGS) {
+    for (const entry of await fixture(name)) {
+      const { battle, participants } = canonicalizeBattle(entry);
+      for (const p of participants)
+        out.set(`${battle.battle_id}|${p.player_tag}`, {
+          deck_hash: p.deck_hash,
+          cards: participantCardRows(p.deck),
+        });
+    }
+  }
   return out;
 }
 
 test("played cards land as rows that agree with the deck JSON, before the catalog knows the cards", async () => {
   // 0091 is a stub-only world here: the catalog fixture is NOT loaded,
   // so every card in every battle is unknown - ingest must not pause.
-  for (const name of [
-    "player_battlelog/with_boat_and_duel.json",
-    "player_battlelog/with_clanmate_2v2.json",
-  ]) {
+  for (const name of LOGS) {
     const result = await ingestBattlelog(ctx.db, {
       observerTag: meta[name].entity_key,
       receiptId,
@@ -47,7 +52,7 @@ test("played cards land as rows that agree with the deck JSON, before the catalo
     assert.ok(result.battlesInserted > 0);
   }
 
-  const expected = await jsonCards(ctx.db);
+  const expected = await fixtureCards();
   const { rows: played } = await ctx.db.query(
     `select battle_id, player_tag, round, card_id, form, slot, level, star_level
      from battle_participant_card order by battle_id, player_tag, round, slot`,
@@ -254,22 +259,32 @@ test("a collection naming a card the catalog lacks stubs it instead of failing t
   });
 });
 
-test("the table aggregate equals the JSON-explode aggregate the readers used to run (old vs new pin)", async () => {
-  // battles_meta_cards' old shape: one row per (card, form) over decided
-  // pvp participants, from jsonb_array_elements(deck->'cards'). The new
-  // shape reads battle_participant_card at round 0, slot > 0. Same rows.
-  const oldRows = (
-    await ctx.db.query(
-      `select (c.value->>'id')::int as card_id,
-              coalesce((c.value->>'evolutionLevel')::int, 0) as form,
-              count(*)::int as n,
-              count(*) filter (where c.ordinality = 1)::int as firsts
-       from battle_participant bp
-       cross join lateral jsonb_array_elements(bp.deck->'cards') with ordinality as c(value, ordinality)
-       where bp.deck ? 'cards' and jsonb_array_length(bp.deck->'cards') > 0
-       group by 1, 2 order by 1, 2`,
-    )
-  ).rows;
+test("the table aggregate equals the payload aggregate the readers used to run (old vs new pin)", async () => {
+  // battles_meta_cards' old shape: one row per (card, form) over
+  // participants with a deck, from the payload's cards array (round 0,
+  // deck cards only). The new shape reads battle_participant_card at
+  // round 0, slot > 0. Same rows.
+  const expected = await fixtureCards();
+  const agg = new Map();
+  for (const { deck_hash, cards } of expected.values()) {
+    if (!deck_hash) continue;
+    for (const c of cards) {
+      if (c.round !== 0 || c.slot === 0) continue;
+      const k = `${c.card_id}|${c.form}`;
+      const a = agg.get(k) ?? {
+        card_id: c.card_id,
+        form: c.form,
+        n: 0,
+        firsts: 0,
+      };
+      a.n += 1;
+      if (c.slot === 1) a.firsts += 1;
+      agg.set(k, a);
+    }
+  }
+  const oldRows = [...agg.values()].sort(
+    (a, b) => a.card_id - b.card_id || a.form - b.form,
+  );
   const newRows = (
     await ctx.db.query(
       `select pc.card_id, pc.form::int as form, count(*)::int as n,
@@ -285,15 +300,11 @@ test("the table aggregate equals the JSON-explode aggregate the readers used to 
   assert.ok(oldRows.length > 30, "enough cards to mean something");
   assert.deepEqual(newRows, oldRows);
 
-  // And the with_card filter: JSON containment vs the index probe.
+  // And the with_card filter: payload membership vs the index probe.
   const anyCard = oldRows[0].card_id;
-  const oldMatch = (
-    await ctx.db.query(
-      `select count(*)::int as n from battle_participant bp
-       where bp.deck->'cards' @> $1::jsonb`,
-      [JSON.stringify([{ id: anyCard }])],
-    )
-  ).rows[0].n;
+  const oldMatch = [...expected.values()].filter(({ cards }) =>
+    cards.some((c) => c.round === 0 && c.slot > 0 && c.card_id === anyCard),
+  ).length;
   const newMatch = (
     await ctx.db.query(
       `select count(*)::int as n from battle_participant bp

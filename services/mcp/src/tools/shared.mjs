@@ -778,6 +778,53 @@ export async function deckIdentities(db, hashes) {
   return out;
 }
 
+/**
+ * The decks played in a set of battles, rendered from the card rows
+ * (0091) in the shape battles_query has always served for `deck`:
+ * {cards:[{id, name, level, evolutionLevel?, starLevel?}], supportCards?}
+ * for a single deck, {rounds:[{cards}]} for a duel. Names come from the
+ * catalog. Returns a Map "battle_id|player_tag" -> deck; a participant
+ * with no card rows is absent (null deck).
+ */
+export async function renderDecks(db, battleIds) {
+  const ids = [...new Set(battleIds)];
+  if (ids.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select pc.battle_id, pc.player_tag, pc.round, pc.slot, pc.card_id, pc.form,
+            pc.level, pc.star_level, c.name
+     from battle_participant_card pc
+     join card c on c.card_id = pc.card_id
+     where pc.battle_id = any($1)
+     order by pc.battle_id, pc.player_tag, pc.round, pc.slot`,
+    [ids],
+  );
+  const out = new Map();
+  const card = (r) => ({
+    id: r.card_id,
+    name: r.name,
+    level: r.level,
+    ...(r.form > 0 ? { evolutionLevel: r.form } : {}),
+    ...(r.star_level !== null ? { starLevel: r.star_level } : {}),
+  });
+  for (const r of rows) {
+    const key = `${r.battle_id}|${r.player_tag}`;
+    let deck = out.get(key);
+    if (!deck) {
+      deck = r.round > 0 ? { rounds: [] } : { cards: [] };
+      out.set(key, deck);
+    }
+    if (r.round > 0) {
+      while (deck.rounds.length < r.round) deck.rounds.push({ cards: [] });
+      deck.rounds[r.round - 1].cards.push(card(r));
+    } else if (r.slot === 0) {
+      (deck.supportCards ??= []).push(card(r));
+    } else {
+      deck.cards.push(card(r));
+    }
+  }
+  return out;
+}
+
 // --- tools -----------------------------------------------------------------
 
 /** Added = recorded, shared honestly: the clan's recording exists while

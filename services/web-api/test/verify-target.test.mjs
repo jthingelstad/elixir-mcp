@@ -10,6 +10,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { verifyRoutes, DECK_SIZE } from "../src/routes/verify.mjs";
 import { deckKey } from "../src/routes/verify-draw.mjs";
+import { seedPlayedDeck, hashFor } from "../../mcp/test/deck-rows.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -59,15 +60,19 @@ async function battle(tag, ids, at) {
      values ($1, $2, 'PvP', 'pvp')`,
     [id, at],
   );
-  const deck = JSON.stringify({
-    norm: 1,
-    cards: ids.map((c) => ({ id: c, level: 14 })),
-  });
+  // The verify routes read a deck's ids from its identity rows (0091).
+  const cards = ids.map((c) => ({ id: c, level: 14 }));
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, deck, deck_hash, battle_time)
-     values ($1, $2, 0, $3::jsonb, $4, $5), ($1, $6, 1, '{"norm":1,"cards":[]}'::jsonb, 'x', $5)`,
-    [id, tag, deck, deckKey(ids), at, OPP],
+    `insert into battle_participant (battle_id, player_tag, side, deck_hash, battle_time)
+     values ($1, $2, 0, $3, $4), ($1, $5, 1, null, $4)`,
+    [id, tag, hashFor(cards), at, OPP],
   );
+  await seedPlayedDeck(db, {
+    battle_id: id,
+    player_tag: tag,
+    battle_time: at,
+    cards,
+  });
 }
 
 before(async () => {

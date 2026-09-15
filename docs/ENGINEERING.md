@@ -58,18 +58,24 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   seconds - and only live-lane payloads carry it (a lane rule, never an
   endpoint exemption). Every product-facing datum has a projection: the
   card catalog is `card`, a player's collection is `player_card` (0076).
-- **Cards played are rows, not JSON (0091).** `battle_participant.deck`
-  is the API's cards array kept as capture; the record a tool reads is
-  `deck` (one row per `deck_hash`, the contract's identity),
-  `deck_card` (its cards by form) and `battle_participant_card` (what
-  each participant played, with levels). Ingest writes all three in the
-  battle's transaction, so they cannot disagree with the JSON; the
-  migrate op `{deck_backfill}` rebuilds them, `{deck_census}` proves it.
+- **Cards played are rows, not JSON (0091, column gone in 0097).** The
+  record a tool reads is `deck` (one row per `deck_hash`, the contract's
+  identity), `deck_card` (its cards by form) and
+  `battle_participant_card` (what each participant played, with levels);
+  the byte-true capture is the payload archive in S3. Ingest writes all
+  three in the battle's transaction; `{deck_census}` proves nothing is
+  missing. Tests that seed a battle by hand write the rows through
+  `services/mcp/test/deck-rows.mjs` (`hashFor` + `seedPlayedDeck`).
   A card seen in a battle before the daily catalog poll gets a stub
   `card` row (`catalog_seen_at` null) and queues a live catalog fetch -
   ingest never waits on catalog integrity (Jamie, 2026-09-15). New
-  card-shaped questions go through these tables; nothing new explodes
-  `deck` JSON.
+  card-shaped questions go through these tables. The card rows are
+  reached by primary-key prefix `(battle_id, player_tag)` from a
+  participant, and corpus-wide "which battles used card X" walks
+  `deck_card (card_id) -> deck_hash -> battle_participant (deck_hash,
+  battle_time)`; do not add a battle_id-carrying secondary index on the
+  card rows again (0096: three of them were 1.68 GB against 88 MB of
+  shared buffers, and the plans never used them).
   On 2026-09-11 the catalog had a by-name carve-out in the sweep and the
   collection had none, and `players_collection` answered `cards: []` for
   most players most of the day.

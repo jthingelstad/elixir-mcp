@@ -155,9 +155,8 @@ export function canonicalizeBattle(entry) {
         crowns: p.crowns ?? null,
         trophy_change: p.trophyChange ?? null,
         starting_trophies: p.startingTrophies ?? null,
-        deck,
+        deck, // not a column since 0097: the card rows are cut from it (deck-cards.mjs)
         deck_hash: hash,
-        support_cards: null, // folded into deck.supportCards
         elixir_leaked: p.elixirLeaked ?? null,
         tower_hp: towerHp(p),
         outcome: outcomeFor(p, entries, otherEntries, entry, isTeamSide),
@@ -212,10 +211,8 @@ const PARTICIPANT_COLS = [
   "crowns",
   "trophy_change",
   "starting_trophies",
-  "deck",
   "deck_hash",
   "deck_avg_level",
-  "support_cards",
   "elixir_leaked",
   "tower_hp",
   "outcome",
@@ -232,7 +229,7 @@ const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter(
   (c) => !PARTICIPANT_KEY.includes(c),
 );
 
-const JSONB_COLS = new Set(["modifiers", "deck", "support_cards", "tower_hp"]);
+const JSONB_COLS = new Set(["modifiers", "tower_hp"]);
 
 function paramValues(cols, row) {
   return cols.map((c) => {

@@ -2036,3 +2036,35 @@ exclusion is simply `deck_hash is null` since 0093. Nothing in the MCP
 tools explodes deck JSON any more; `battles_query` still SELECTs the
 column to serve `deck`, and `verify.mjs` (web-api) reads it - both are
 Phase C's renderer work before the column can go.
+
+## 2026-09-15 — Cards as rows, Phase C: the JSON leaves (0095–0097)
+
+Live acceptance of 3.4.0 said the readers were right but not faster
+(clan deck meta 15 s, clan card meta 17 s). `{explain_meta}` (new migrate
+op, EXPLAIN ANALYZE BUFFERS on the live database) showed why: not the
+plans - index scans over a few thousand rows - but I/O. 88 MB of shared
+buffers and ~1 GB of RAM against a 4.5 GB database, of which 612 MB was
+the participant heap with every deck JSON inline (TOAST unused), and
+1.68 GB was three indexes on the card rows each repeating the 64-char
+battle_id 4.2M times. 3.6 of 3.8 s of a clan deck aggregate was disk.
+
+Shipped: 0095 denormalizes `type_class` onto the participant (like
+battle_time and clan_tag) with a covering partial index so the shrinkage
+prior is an index-only scan; 0096 drops the two unused card-row indexes
+(every reader probes the pk prefix) and adds the deck_hash-led participant
+index the contract's deck_hash-alone mode never had; 0097 drops
+`battle_participant.deck` and `support_cards` - `battles_query` renders
+`deck` from the rows (`renderDecks`), the verify routes read ids from the
+identity, the level-curve and probe ops read levels from the rows, and the
+backfill/forms ops retired with the column. `{rewrite_table}` runs the
+VACUUM FULL that returns the space, deliberately. Tests seed rows through
+`deck-rows.mjs` (`hashFor`, `seedPlayedDeck`); the 0011 replay test and
+the backfill rehearsal retired with what they read.
+
+Still open for Jamie: the closing FKs (`battle_participant.deck_hash →
+deck`, `player_card.card_id → card`, and `battle_participant.clan_tag →
+clan` with opponent-clan upserts) - every hand-seeded test now writes the
+deck before the participant, so they can land as one migration once a
+day of natural ingest keeps `{deck_census}` at zero; and whether a
+t4g.micro is the right size for a 4.5 GB working set (a t4g.small doubles
+the cache for ~$12/month more) - a cost call, not an engineering one.
