@@ -78,7 +78,7 @@ belongs to, so `sections` filters items and entries together.
 |---|---|---|
 | `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `open` while it may still be going. Single battles never appear. |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge, by name |
-| `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog |
+| `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor (`opponent` with tag, name and starting trophies, `crowns`, `crowns_against`, `trophy_change`, `trophies_after`, `arena_floor`) and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
 | `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name |
 | `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band |
 | `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a multiple of 5; career wins at a multiple of 1,000 |
@@ -100,6 +100,18 @@ the moment. An arena move is polled for as soon as the player's own
 battles vouch for it (see [Recording](/docs/recording/), the profile
 arena request), so it arrives within the battle log's cadence rather
 than the profile's.
+
+Trophy Road arenas have floors: reaching the floor puts a player in the
+arena, and a loss never takes them below it again (a loss on the floor is
+reported by the game with no trophy change; a loss just above it is
+clamped). The last floor, 14,000, is where Trophy Road ends: a player
+there stays there whatever they lose, and the seasonal road beyond it
+resets each season. The promotion is therefore the win whose result first reaches
+the floor, whoever it was against - near a gate that is usually someone
+already standing on it, because matchmaking pairs a climber with the
+players sitting on the floor above, but it need not be. The floor is read
+from the record (the lowest trophies any snapshot has shown in that arena,
+or this player's own gated loss), never assumed.
 
 ## Entries
 

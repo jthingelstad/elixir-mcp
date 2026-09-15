@@ -278,8 +278,24 @@ export function itemText(it, timeZone = "UTC") {
       return `${at} ${member || subj} took ${f.name}${f.level ? ` to level ${f.level}` : ""}.`;
     case "legendary_badge_earned":
       return `${at} ${member || subj} earned ${f.name}.`;
-    case "arena_changed":
-      return `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}.`;
+    case "arena_changed": {
+      const moved = `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}`;
+      // The win that carried them over the floor, when the record holds it
+      // (promoted_by is set at ingest; absent means a capture gap or a
+      // profile that overtook the log, never a guess).
+      const p = f.promoted_by;
+      if (!p) return `${moved}.`;
+      const opp = p.opponent?.name ?? p.opponent?.player_tag ?? "an opponent";
+      const oppTrophies =
+        typeof p.opponent?.starting_trophies === "number"
+          ? ` (${num(p.opponent.starting_trophies)})`
+          : "";
+      const change =
+        typeof p.trophy_change === "number"
+          ? `${p.trophy_change > 0 ? "+" : ""}${p.trophy_change}`
+          : "?";
+      return `${moved}, on a ${p.crowns ?? "?"}-${p.crowns_against ?? "?"} win over ${opp}${oppTrophies}, ${change} to ${num(p.trophies_after)}.`;
+    }
     case "ranked_promotion":
       return `${at} ${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}.`;
     case "best_trophies_band":

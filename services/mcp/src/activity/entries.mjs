@@ -971,6 +971,15 @@ export async function buildClanEntry(
   newBests.sort((x, y) => y.best - x.best);
   const arenaPromotions = pick("arena_changed", (p) => ({
     arena: p.to_name ?? arenaNames.get(p.to) ?? null,
+    ...(p.promoted_by
+      ? {
+          over:
+            p.promoted_by.opponent?.name ??
+            p.promoted_by.opponent?.player_tag ??
+            null,
+          score: `${p.promoted_by.crowns}-${p.promoted_by.crowns_against}`,
+        }
+      : {}),
   }));
   const rankedPromotions = pick("ranked_promotion", (p) => ({
     league: leagueName(p.to),

@@ -40,7 +40,7 @@ function message({ endpoint, entityKey, payload, fetchedAt }) {
 
 /** A ladder battle from the observer's own log, at a time, in an arena,
  *  with both sides' starting trophies. */
-function ladder({ at, arena, mine, theirs, opponent }) {
+function ladder({ at, arena, mine, theirs, opponent, name, result }) {
   const entry = structuredClone(ladderEntry);
   entry.battleTime = at;
   entry.arena = { ...arena, rawName: `Arena_${arena.id}` };
@@ -48,7 +48,19 @@ function ladder({ at, arena, mine, theirs, opponent }) {
   entry.team[0].name = "promo";
   entry.team[0].startingTrophies = mine;
   entry.opponent[0].tag = opponent;
+  entry.opponent[0].name = name ?? "opp";
   entry.opponent[0].startingTrophies = theirs;
+  // result: [myCrowns, theirCrowns, myChange]; the fixture's own is a
+  // -3 loss. A gated loss on the floor carries no trophyChange at all.
+  if (result) {
+    const [crowns, against, change] = result;
+    entry.team[0].crowns = crowns;
+    entry.opponent[0].crowns = against;
+    if (change === null) delete entry.team[0].trophyChange;
+    else entry.team[0].trophyChange = change;
+    entry.opponent[0].trophyChange = change === null ? -change : -change;
+    if (change === null) delete entry.opponent[0].trophyChange;
+  }
   return entry;
 }
 
@@ -74,7 +86,7 @@ async function pollState() {
 
 async function events(type) {
   const { rows } = await ctx.db.query(
-    `select event_type, window_start, window_end, payload from player_event
+    `select event_type, timing, occurred_at, window_start, window_end, payload from player_event
      where player_tag = $1 and event_type = $2 order by event_id`,
     [ME, type],
   );
@@ -154,6 +166,7 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           mine: 6000,
           theirs: 6015,
           opponent: "#0PP0000Q",
+          result: [0, 3, null],
         }),
         ladder({
           at: logAt("064632"),
@@ -161,6 +174,8 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           mine: 5970,
           theirs: 5976,
           opponent: "#0PP0000L",
+          name: "Jotaro",
+          result: [3, 0, 30],
         }),
         ladder({
           at: logAt("063902"),
@@ -168,6 +183,7 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           mine: 5940,
           theirs: 5940,
           opponent: "#0PP00000",
+          result: [2, 1, 30],
         }),
       ],
       fetchedAt: at("07:00:00"),
@@ -200,6 +216,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
           mine: 6000,
           theirs: 6000,
           opponent: "#0PP0000R",
+          result: [3, 1, 30],
         }),
         ladder({
           at: logAt("065220"),
@@ -207,6 +224,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
           mine: 6000,
           theirs: 6015,
           opponent: "#0PP0000Q",
+          result: [0, 3, null],
         }),
       ],
       fetchedAt: at("08:20:32"),
@@ -244,6 +262,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
           mine: 6000,
           theirs: 6000,
           opponent: "#0PP0000R",
+          result: [3, 1, 30],
         }),
       ],
       fetchedAt: at("08:40:00"),
@@ -278,13 +297,73 @@ test("the first trusted battle in the new arena asks for the profile once; the p
   );
   const moved = await events("arena_changed");
   assert.equal(moved.length, 1);
+  // The moment names the battle whose win reached the floor: the 06:46
+  // Kitchen-labelled win over a Kitchen opponent (5,970 +30 = 6,000), NOT
+  // the later win over a Royal Crypt opponent. The floor came from the
+  // player's own gated loss at 06:52 (6,000, no trophy change); the only
+  // Royal Crypt snapshot (this poll, 6,030) would have put it too high.
   assert.deepEqual(moved[0].payload, {
     from: KITCHEN.id,
     to: CRYPT.id,
     to_name: CRYPT.name,
+    promoted_by: {
+      battle_id: moved[0].payload.promoted_by.battle_id,
+      battle_time: at("06:46:32.000"),
+      opponent: {
+        player_tag: "#0PP0000L",
+        name: "Jotaro",
+        starting_trophies: 5976,
+      },
+      crowns: 3,
+      crowns_against: 0,
+      trophy_change: 30,
+      trophies_after: 6000,
+      arena_floor: 6000,
+    },
   });
+  assert.equal(moved[0].timing, "exact");
+  assert.equal(moved[0].occurred_at.toISOString(), at("06:46:32.000"));
   assert.equal(moved[0].window_start.toISOString(), at("06:07:49.000"));
   assert.equal(moved[0].window_end.toISOString(), at("08:45:10.000"));
+});
+
+test("an arena move with no reachable floor or no crossing win in the window carries no battle and stays estimated", async () => {
+  // A second player whose profile moves arena with no recorded battles in
+  // between: nothing to name, and the moment says only what it knows.
+  const OTHER = "#PR0Y0Q2Q";
+  await ctx.db.query(
+    `insert into player (player_tag, name) values ($1, 'other')`,
+    [OTHER],
+  );
+  const profileFor = (arena, trophies, fetchedAt) => {
+    const p = profile({ arena, trophies });
+    p.tag = OTHER;
+    p.name = "other";
+    return message({
+      endpoint: "player",
+      entityKey: OTHER,
+      payload: p,
+      fetchedAt,
+    });
+  };
+  await processResult(ctx.db, profileFor(KITCHEN, 5900, at("03:00:00")));
+  const r = await processResult(
+    ctx.db,
+    profileFor(CRYPT, 6012, at("05:00:00")),
+  );
+  assert.equal(r.outcome, "admitted");
+  const { rows } = await ctx.db.query(
+    `select timing, occurred_at, payload from player_event where player_tag = $1 and event_type = 'arena_changed'`,
+    [OTHER],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].timing, "estimated");
+  assert.equal(rows[0].occurred_at, null);
+  assert.deepEqual(rows[0].payload, {
+    from: KITCHEN.id,
+    to: CRYPT.id,
+    to_name: CRYPT.name,
+  });
 });
 
 test("a later poll the same day does not re-emit the moment, and a fall in the weekly counter resets once", async () => {

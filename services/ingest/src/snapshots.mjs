@@ -296,6 +296,96 @@ const crossed = (before, after, step) =>
   typeof after === "number" &&
   Math.floor(after / step) > Math.floor(before / step);
 
+/**
+ * The battle that carried a player into their new arena (Jamie,
+ * 2026-09-15: "you can identify and speak to the specific battle that DID
+ * result in someone leveling up").
+ *
+ * Trophy Road arenas have floors: reach the floor and you are in, and a
+ * loss can never take you below it again (a loss at the floor is reported
+ * with no trophyChange at all; a loss just above it is clamped to the
+ * floor). So the promotion is the WIN whose result first reaches the
+ * floor - checked on six crossings of 6,000 on 2026-09-15, one of them
+ * (x.x.hari.x.x, 5,970 +30 against a 5,976 opponent still in the old
+ * arena) confirmed by a profile read fourteen minutes later showing the
+ * new arena at exactly 6,000. The opponent's own arena is not the
+ * condition, though near a gate it is usually the next one: matchmaking
+ * pairs a climber with the players sitting on the floor above.
+ *
+ * The floor comes from the record: the lowest trophies any snapshot has
+ * shown in that arena (gated players sit on it), and, cheaper still, any
+ * loss in this player's own window that was reported with no trophy
+ * change while the battle named the new arena - that player stood on the
+ * floor. No floor, or no win that reaches it (a capture gap, a log the
+ * profile overtook), and the moment carries no battle: absence over a
+ * guess.
+ */
+async function promotionBattle(
+  db,
+  { playerTag, since, until, arenaId, arenaName },
+) {
+  const { rows: battles } = await db.query(
+    `select b.battle_id, b.battle_time, b.arena,
+            me.outcome, me.crowns, me.trophy_change, me.starting_trophies,
+            opp.player_tag as opponent_tag, p.name as opponent_name,
+            opp.crowns as opponent_crowns,
+            opp.starting_trophies as opponent_starting_trophies
+       from battle_participant me
+       join battle b on b.battle_id = me.battle_id
+       join battle_participant opp
+         on opp.battle_id = me.battle_id and opp.player_tag <> me.player_tag
+       left join player p on p.player_tag = opp.player_tag
+      where me.player_tag = $1 and me.type = 'PvP'
+        and me.battle_time > $2::timestamptz and me.battle_time <= $3::timestamptz
+      order by me.battle_time, opp.player_tag`,
+    [playerTag, since, until],
+  );
+  if (battles.length === 0) return null;
+  const {
+    rows: [{ floor: snapshotFloor }],
+  } = await db.query(
+    `select min(trophies)::int as floor from player_snapshot_daily
+      where arena_id = $1 and trophies is not null`,
+    [arenaId],
+  );
+  const candidates = [snapshotFloor];
+  for (const b of battles)
+    if (
+      arenaName &&
+      b.arena === arenaName &&
+      b.outcome === "loss" &&
+      b.trophy_change === null &&
+      typeof b.starting_trophies === "number"
+    )
+      candidates.push(b.starting_trophies);
+  const floors = candidates.filter((f) => typeof f === "number");
+  if (floors.length === 0) return null;
+  const floor = Math.min(...floors);
+  const win = battles.find(
+    (b) =>
+      b.outcome === "win" &&
+      typeof b.starting_trophies === "number" &&
+      typeof b.trophy_change === "number" &&
+      b.starting_trophies < floor &&
+      b.starting_trophies + b.trophy_change >= floor,
+  );
+  if (!win) return null;
+  return {
+    battle_id: win.battle_id,
+    battle_time: win.battle_time.toISOString(),
+    opponent: {
+      player_tag: win.opponent_tag,
+      name: win.opponent_name ?? null,
+      starting_trophies: win.opponent_starting_trophies ?? null,
+    },
+    crowns: win.crowns,
+    crowns_against: win.opponent_crowns,
+    trophy_change: win.trophy_change,
+    trophies_after: win.starting_trophies + win.trophy_change,
+    arena_floor: floor,
+  };
+}
+
 async function ledgerMilestones(
   db,
   { playerTag, prev, payload, fetchedAt, receiptId },
@@ -314,12 +404,28 @@ async function ledgerMilestones(
     });
 
   const arena = payload.arena?.id ?? null;
-  if (arena !== null && prev.arena_id !== null && arena !== prev.arena_id)
-    await write("arena_changed", {
-      from: prev.arena_id,
-      to: arena,
-      to_name: payload.arena?.name ?? null,
+  if (arena !== null && prev.arena_id !== null && arena !== prev.arena_id) {
+    const promotion = await promotionBattle(db, {
+      playerTag,
+      since: windowStart,
+      until: fetchedAt,
+      arenaId: arena,
+      arenaName: payload.arena?.name ?? null,
     });
+    await emitEvent(db, "arena_changed", {
+      tag: playerTag,
+      windowStart,
+      windowEnd: fetchedAt,
+      receiptId,
+      occurredAt: promotion?.battle_time ?? null,
+      payload: {
+        from: prev.arena_id,
+        to: arena,
+        to_name: payload.arena?.name ?? null,
+        ...(promotion ? { promoted_by: promotion } : {}),
+      },
+    });
+  }
 
   if (crossed(prev.best_trophies, payload.bestTrophies, BEST_TROPHIES_BAND))
     await write("best_trophies_band", { best: payload.bestTrophies });

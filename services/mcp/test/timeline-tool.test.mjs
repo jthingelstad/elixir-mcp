@@ -9,6 +9,7 @@ import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestBattlelog } from "../../ingest/src/battles.mjs";
 import { projectPlayerSnapshot } from "../../ingest/src/snapshots.mjs";
+import { emitEvent } from "../../ingest/src/events.mjs";
 import { fixture, scratchDb, seedReceipt } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
@@ -267,5 +268,58 @@ test("the timeline: battle sessions break on a 30-minute gap, items are oldest f
   assert.ok(rosterOnly.body.timeline.every((it) => it.section === "roster"));
   assert.ok(
     !rosterOnly.body.timeline.some((it) => it.kind === "battle_session"),
+  );
+});
+
+test("an arena move names the win that carried the player over the floor, at that battle's instant", async () => {
+  // Written by ingest when the record holds the crossing (0102); the
+  // timeline reads it as the item's instant and says who it was against.
+  await emitEvent(ctx.db, "arena_changed", {
+    tag: OBSERVER,
+    windowStart: "2026-09-02T06:07:49Z",
+    windowEnd: "2026-09-02T08:45:10Z",
+    occurredAt: "2026-09-02T06:46:32Z",
+    payload: {
+      from: 54000013,
+      to: 54000014,
+      to_name: "Royal Crypt",
+      promoted_by: {
+        battle_id: "x",
+        battle_time: "2026-09-02T06:46:32.000Z",
+        opponent: {
+          player_tag: "#VRL0QQVCP",
+          name: "Jotaro",
+          starting_trophies: 5976,
+        },
+        crowns: 3,
+        crowns_against: 0,
+        trophy_change: 30,
+        trophies_after: 6000,
+        arena_floor: 6000,
+      },
+    },
+  });
+  await ctx.db.query(
+    `insert into arena (arena_id, name, observed_at) values (54000013, 'Executioner''s Kitchen', now())
+     on conflict do nothing`,
+  );
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-02",
+    to: "2026-09-03",
+    sections: ["trophies"],
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const moved = body.timeline.find((it) => it.kind === "arena_changed");
+  assert.ok(moved, JSON.stringify(body.timeline));
+  assert.equal(
+    moved.at,
+    "2026-09-02T06:46:32.000Z",
+    "the battle, not the poll",
+  );
+  assert.equal(moved.facts.promoted_by.opponent.name, "Jotaro");
+  assert.equal(
+    moved.text,
+    "Wed 01:46 AHMOメŞΛDØW moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
   );
 });

@@ -43,14 +43,18 @@ export async function emitEvent(
       `unknown event type: ${type} (known: ${Object.keys(EVENT_TYPES).join(", ")})`,
     );
   const { table, tagColumn } = TABLE_BY_STREAM[contract.stream];
+  // A type is estimated when its emitter normally only knows the window;
+  // an emitter that found the instant (the battle that carried a player
+  // over an arena's floor) says so by passing it, and the row is exact.
+  const timing = occurredAt ? "exact" : contract.timing;
   await db.query(
     `insert into ${table} (${tagColumn}, event_type, timing, occurred_at, window_start, window_end, payload, receipt_id)
      values ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       tag,
       type,
-      contract.timing,
-      contract.timing === "exact" ? (occurredAt ?? windowEnd) : null,
+      timing,
+      timing === "exact" ? (occurredAt ?? windowEnd) : null,
       windowStart ?? windowEnd,
       windowEnd,
       JSON.stringify(payload),

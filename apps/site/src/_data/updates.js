@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-15",
+    title: "An arena move names the battle that did it",
+    body: "Trophy Road arenas have floors: reach the floor and you are in, and a loss never takes you below it again - the game reports a loss on the floor with no trophy change at all, and the last floor, 14,000, is where Trophy Road ends. So the promotion is one identifiable battle: the win whose result first reached the floor. arena_changed on the timeline now carries facts.promoted_by - the opponent (tag, name, starting trophies), the crowns, the trophy change and the trophies it landed on - and the item's instant is that battle's, not the poll's: 'moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000'. The floor is read from the record (the lowest trophies any snapshot has shown in that arena, or the player's own gated loss), and when the record does not hold the crossing the moment carries no battle rather than a guess. The opponent's own arena is not the condition: on 2026-09-15 a member was promoted by beating an opponent still in the old arena, confirmed by a profile read fourteen minutes later.",
+  },
+  {
+    date: "2026-09-15",
     title:
       "Arena moves reach the timeline within the hour, and a moment is written once",
     body: "A clan member reached Royal Crypt at 06:52Z on 2026-09-15 and the clan's timeline said so at 14:27Z, when the eight-hour profile poll came round; the battle log, read many times in between, had carried the new arena on every entry. A battle's arena is the higher side's, so a player just under a gate sees the next arena on their own log whenever they meet someone standing on it - the log cannot be the fact, but it can be the trigger. When a Trophy Road battle the player entered with at least their opponent's trophies names an arena the latest snapshot does not carry, the profile is polled at the next planning tick, roster gate or not, and the profile remains the authority. Separately, every profile-derived moment was diffed against the previous DAY's snapshot while the day's row was rewritten on each poll, so a later poll the same day re-emitted it (a promotion to Master 2 appeared at 07:22Z and again at 16:22Z on 2026-09-14). Moments now diff against the latest observation and are written once; the Monday donation reset likewise.",

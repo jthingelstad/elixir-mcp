@@ -2150,3 +2150,35 @@ promotion emitted nothing at all until the next day. Moments and
 before this poll, any day); `prev` (prior day) still answers the
 day-level `moved`. Regression: `ingest/test/profile-refresh.test.mjs`,
 failing against the old projector on both counts. Contract 3.4.2.
+
+## 2026-09-15 — The battle that did it (0102, contract 3.5.0)
+
+Jamie, on the arena finding: the higher-arena label on a climber's own
+battles is the game's promotion mechanic showing - "you can identify and
+speak to the specific battle that DID result in someone leveling up" -
+and the floor rule: once in an arena you never drop below its floor
+(14,000 ends Trophy Road; the seasonal road beyond resets).
+
+**Checked on six crossings of 6,000 (live logs, 2026-09-15).** The
+promotion is the WIN whose result first reaches the floor. Losses on the
+floor come back with no `trophyChange` at all (seven cases); losses just
+above are clamped (-3, -7, -17, -19). Five crossings were against an
+opponent standing on 6,000; the sixth (x.x.hari.x.x, 5,970 +30 over a
+5,976 Executioner's Kitchen opponent at 06:46Z) was not, and elixir-bot's
+profile read at 07:00:26Z showed Royal Crypt at exactly 6,000 - before any
+win over a Royal Crypt player. So the opponent's arena is not the
+condition; the floor is. A higher-arena WIN that does not reach the floor
+promotes nobody (three cases), and the label is simply the higher side's.
+
+**Shipped.** `promotionBattle` (ingest/snapshots.mjs): at arena_changed,
+the player's Trophy Road battles in the window; the floor is
+min(lowest snapshot trophies ever seen in that arena [0102 index], this
+player's own gated loss in the window); the first win with start < floor
+and start + change >= floor is `payload.promoted_by` and the event's
+`occurred_at` (emitEvent: an emitter that passes occurredAt makes an
+estimated type exact). No floor or no such win: no battle, timing
+estimated. Timeline text: "moved to Royal Crypt from Executioner's
+Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000"; clan standouts
+carry `over` and `score`. The test pins the hari shape: the floor from the
+06:52 gated loss picks the 06:46 win, where the only Royal Crypt snapshot
+(6,030) alone would have picked the wrong battle.
