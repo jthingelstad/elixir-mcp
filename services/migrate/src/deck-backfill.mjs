@@ -177,3 +177,108 @@ export async function explainMeta(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** {terminate_backends: {like?: "%battle_participant%", older_than_s?: 120}}
+ *  Terminate THIS user's own backends whose current query matches and has
+ *  run longer than the threshold - the orphan a killed migrate Lambda
+ *  leaves behind, still holding its locks (2026-09-15 07:00 CDT: 0099's
+ *  unbatched backfill outlived the 300 s ceiling and every connection
+ *  queued behind its ACCESS EXCLUSIVE lock until the pool was gone).
+ *  pg_terminate_backend on one's own backends needs no superuser. */
+export async function terminateBackends(databaseUrl, spec = {}) {
+  const like = String(spec.like ?? "%battle_participant%");
+  const olderThan = Math.max(30, Number(spec.older_than_s ?? 120));
+  let lastErr = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const db = new pg.Client({ connectionString: databaseUrl });
+    try {
+      await db.connect();
+      const { rows } = await db.query(
+        `select pid, state, now() - query_start as running, left(query, 80) as query,
+                pg_terminate_backend(pid) as terminated
+         from pg_stat_activity
+         where usename = current_user and pid <> pg_backend_pid()
+           and query ilike $1
+           and query_start < now() - make_interval(secs => $2)`,
+        [like, olderThan],
+      );
+      return { attempt, terminated: rows };
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 5000));
+    } finally {
+      await db.end().catch(() => {});
+    }
+  }
+  throw lastErr;
+}
+
+/** {backends: true} - read-only: what this user's connections are doing. */
+export async function listBackends(databaseUrl) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const db = new pg.Client({ connectionString: databaseUrl });
+    try {
+      await db.connect();
+      const { rows } = await db.query(
+        `select pid, usename, application_name, state, wait_event_type, wait_event,
+                to_char(now() - coalesce(query_start, backend_start), 'HH24:MI:SS') as age,
+                left(regexp_replace(query, '\\s+', ' ', 'g'), 100) as query
+         from pg_stat_activity
+         where datname = current_database() and pid <> pg_backend_pid()
+         order by query_start nulls last`,
+      );
+      const {
+        rows: [limits],
+      } = await db.query(
+        `select current_setting('max_connections')::int as max_connections,
+                (select count(*)::int from pg_stat_activity) as connections`,
+      );
+      return { attempt, ...limits, backends: rows };
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 5000));
+    } finally {
+      await db.end().catch(() => {});
+    }
+  }
+  throw lastErr;
+}
+
+/** {type_backfill: {batch?: 10000}} - fill battle_participant.type (0099)
+ *  from battle in keyset batches by primary key, each its own short
+ *  transaction; rerunnable; returns done when no null remains. */
+export async function typeBackfill(databaseUrl, spec = {}) {
+  const batch = Math.min(Math.max(Number(spec?.batch ?? 10000), 100), 50000);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const started = Date.now();
+  try {
+    const { rowCount } = await db.query(
+      `with todo as (
+         select bp.battle_id, bp.player_tag
+         from battle_participant bp
+         where bp.type is null
+         order by bp.battle_id, bp.player_tag
+         limit $1)
+       update battle_participant bp
+          set type = b.type
+         from todo join battle b on b.battle_id = todo.battle_id
+        where bp.battle_id = todo.battle_id and bp.player_tag = todo.player_tag`,
+      [batch],
+    );
+    const {
+      rows: [{ remaining }],
+    } = await db.query(
+      `select count(*)::int as remaining from battle_participant where type is null`,
+    );
+    return {
+      updated: rowCount,
+      remaining,
+      done: remaining === 0,
+      ms: Date.now() - started,
+    };
+  } finally {
+    await db.end();
+  }
+}

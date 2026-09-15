@@ -45,6 +45,17 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
 - **Expand and contract.** Additive first: nullable columns, new tables, indexes
   `CONCURRENTLY`. Drops and renames land only once no deployed code reads the
   old shape. A migration that breaks running code cannot ship with it.
+- **A migration never rewrites a large table.** The migrate Lambda has
+  300 s and a migration is one transaction; `ALTER TABLE` takes an ACCESS
+  EXCLUSIVE lock that the transaction holds to its end. 0099 as first
+  written (add column + 468k-row UPDATE + two index builds) outlived the
+  Lambda, and its orphaned backend kept the lock until every connection
+  was queued behind it - the door was down ~35 minutes (docs/NOTES.md,
+  2026-09-15). The shape is: the migration adds the nullable column
+  (instant, no default that rewrites); a keyset-batched migrate op fills
+  it in short transactions (`{type_backfill}`, `{deck_backfill}` were
+  this); index builds follow in their own migration once filled. If a
+  migration needs more than a few seconds of lock, it is an op.
 - **The fingerprint test** asserts that a from-scratch create and the full
   migration ladder produce the same schema — the drift between "what a new
   install gets" and "what production accumulated" has bitten this family

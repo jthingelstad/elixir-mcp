@@ -4,7 +4,14 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { deckCensus, explainMeta, rewriteTable } from "./deck-backfill.mjs";
+import {
+  deckCensus,
+  explainMeta,
+  rewriteTable,
+  terminateBackends,
+  listBackends,
+  typeBackfill,
+} from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
 import { activityPreview } from "./ops-activity.mjs";
 
@@ -206,6 +213,27 @@ export async function handler(event) {
     const result = await captureAudit(
       process.env.DATABASE_URL,
       event.capture_audit,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.type_backfill) {
+    const result = await typeBackfill(
+      process.env.DATABASE_URL,
+      event.type_backfill === true ? {} : event.type_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.backends) {
+    const result = await listBackends(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.terminate_backends) {
+    const result = await terminateBackends(
+      process.env.DATABASE_URL,
+      event.terminate_backends === true ? {} : event.terminate_backends,
     );
     console.log(JSON.stringify(result));
     return result;

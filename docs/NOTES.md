@@ -2068,3 +2068,34 @@ deck before the participant, so they can land as one migration once a
 day of natural ingest keeps `{deck_census}` at zero; and whether a
 t4g.micro is the right size for a 4.5 GB working set (a t4g.small doubles
 the cache for ~$12/month more) - a cost call, not an engineering one.
+
+## 2026-09-15 — INCIDENT: 0099's unbatched backfill took the door down (~35 min)
+
+**What happened (times CDT).** 06:51 deploy ran 0099 as first written:
+`alter table battle_participant add column type` + `update … from battle`
+over 468k rows + two index rebuilds, one transaction. The migrate Lambda
+hit its 300 s ceiling at 06:56 and was killed; PostgreSQL kept executing
+the statement in the orphaned backend, which held the ACCESS EXCLUSIVE
+lock the ALTER had taken. Every Lambda connection queued behind it until
+all 79 slots were gone ("remaining connection slots are reserved");
+`/api/status` 404 and the MCP door 503 (`db_connect_failed`) from ~07:00.
+`elixir-mcp-web-api-errors` and `-scheduler-errors` alarmed. Recovered
+~07:20 when the orphan finished and rolled back on its own (the client was
+gone, so the transaction could not commit); `{backends}` then showed 10
+connections. The reboot Jamie approved could not be issued from the
+session (tool policy), and was not needed in the end.
+
+**Root cause.** Mine: 0091's backfill was batched precisely to keep any
+one transaction short; 0099 was not. The rule is now in ENGINEERING.md:
+a migration never rewrites a large table; the migration adds the column
+(instant), a keyset-batched migrate op fills it, and index builds follow
+in their own migration once the column is filled.
+
+**Fixed forward.** 0099 is the column only; `{type_backfill}` fills it in
+10k-row batches (each ~25 s, its own transaction); 0100 rebuilds the two
+covering indexes afterwards. New migrate ops from the incident stay:
+`{backends}` (read-only pg_stat_activity for this user) and
+`{terminate_backends}` (this user's own long-running backends -
+pg_terminate_backend needs no superuser for one's own). The database is
+not reachable from outside its VPC (PubliclyAccessible false); every live
+diagnostic goes through the migrate Lambda, which is why those ops exist.
