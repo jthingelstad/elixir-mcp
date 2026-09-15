@@ -2099,3 +2099,11 @@ covering indexes afterwards. New migrate ops from the incident stay:
 pg_terminate_backend needs no superuser for one's own). The database is
 not reachable from outside its VPC (PubliclyAccessible false); every live
 diagnostic goes through the migrate Lambda, which is why those ops exist.
+
+**Arc closed (07:55 CDT), measured through the POAP KINGS preview
+credential, warm:** clan deck meta 15.3 s → 1.7 s; clan card meta 17.3 s
+→ 2.5 s; corpus deck meta 11.9 s → 4.7 s; corpus card meta query_timeout
+→ 13.5 s; synergy (Mega Knight, corpus) 12.0 s → 9.5 s; battles_query
+with_cards 1.6 s. Participant heap 612 MB → 141 MB; card-row indexes
+1.68 GB → 0.5 GB. The corpus-wide calls remain the slow class and the
+class Jamie considers mostly invalid questions; they now finish.
