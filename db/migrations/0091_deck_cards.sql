@@ -22,7 +22,7 @@
 -- yet, ingest dual-writes from this deploy, and the migrate op
 -- {deck_backfill} fills history in batches. The two constraints that
 -- close the loop - battle_participant.deck_hash -> deck and
--- player_card.card_id -> card - land in 0092 once {deck_census} reports
+-- player_card.card_id -> card - land in a later migration once {deck_census} reports
 -- zero orphans and the readers (and their tests, which seed participants
 -- by hand today) have moved onto these tables. The jsonb columns
 -- contract away after that (Phase C).

@@ -1087,7 +1087,26 @@ test("0091 deck backfill: batches rebuild the projections from deck JSON and agr
     assert.equal(census.collection_rows_without_card, 0);
     assert.equal(census.stub_cards, fromBackfill.cards.length);
 
-    // The gate for 0092 holds: the constraints it adds would validate now.
+    // 0092: the form discriminator is the API's bit field; 3 (both forms
+    // active) is a value the record has seen and must accept.
+    const anyDeck = fromBackfill.decks[0].deck_hash;
+    await db.query(
+      `insert into deck_card (deck_hash, card_id, form) values ($1, 26000000, 3)`,
+      [anyDeck],
+    );
+    await assert.rejects(
+      db.query(
+        `insert into deck_card (deck_hash, card_id, form) values ($1, 26000000, 4)`,
+        [anyDeck],
+      ),
+      /form_check/,
+    );
+    await db.query(
+      `delete from deck_card where deck_hash = $1 and card_id = 26000000 and form = 3`,
+      [anyDeck],
+    );
+
+    // The gate for the closing FKs holds: they would validate now.
     await db.query(
       `alter table battle_participant add constraint rehearsal_deck_fk
        foreign key (deck_hash) references deck`,

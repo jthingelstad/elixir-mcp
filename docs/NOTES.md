@@ -1954,8 +1954,8 @@ agents hold hashes), demoted from a loose string to a FK target.
 **Shipped (Phase A, expand):** 0091 adds `deck`, `deck_card`,
 `battle_participant_card` (slot 0 = tower troop; duel rounds are separate
 decks) and `card.catalog_seen_at`. The two closing FKs
-(`battle_participant.deck_hash → deck`, `player_card.card_id → card`) are
-0092's: adding them now broke 26 reader tests that seed participants by raw
+(`battle_participant.deck_hash → deck`, `player_card.card_id → card`) come
+later: adding them now broke 26 reader tests that seed participants by raw
 SQL, and those tests move onto the projections in Phase B regardless (the
 backfill rehearsal proves both would validate today). Ingest writes the three
 projections in the battle's transaction (re-ingest writes nothing - pinned
@@ -1972,7 +1972,16 @@ pauses on the FK. Collections take the same path.
 **Next.** Phase B: `battles_meta_cards`, `cards_synergy`, `battles_meta_decks`
 exemplars, `battles_cards`, `battles_levels` and the `battles_query` card
 filter read the tables (each pinned by old-vs-new count diff), `with_cards`
-(plural) on `battles_query`, then 0092 adds and validates both FKs once
+(plural) on `battles_query`, then a later migration adds and validates both FKs once
 `{deck_census}` is zero. Phase C: drop `deck`/`support_cards` jsonb and
 `player_current_deck.cards`. Separate small fix still open: scoped meta's
 whole-corpus prior scan (`corpusPrior`).
+
+**Backfill finding (0092).** The first production batch rejected
+`evolutionLevel: 3` on a played card. The reference (players.md, April
+survey of 15,442 battles) said 3 never appears on a battle array; the
+record holds 852 played-card rows with it across Knight, Musketeer,
+Valkyrie and Wizard - the cards with both forms - so 3 = both forms active
+in that battle. 0092 widens the CHECK to the bit field (0-3);
+`{deck_forms}` is the census; cr-agent-api-docs corrected in the same
+pass. `deck_hash` already treated 3 as its own form.
