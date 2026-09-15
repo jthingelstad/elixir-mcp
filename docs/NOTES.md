@@ -1806,3 +1806,67 @@ over 12,246 decided battles. Full verification passed 925 tests, both
 deployments completed their external smoke suites and validate CI is green.
 Feedback #39–#46 received exact, read-back-verified replies by 00:03:48Z;
 the unanswered queue is empty and no response missed the one-day target.
+
+## 2026-09-15 — Second elixir-bot backfill: the pre-v5.1 backups, Mar 7 → Jul 14
+
+**Jamie's ask:** find whatever elixir-bot still holds that the record
+never saw, and load it. **What the exploration found:** the 2026-09-04
+import read the live `elixir-v51.db`, a 60-day buffer, so it reached
+back only to ~July 8. The named cold archive
+`elixir-v5-archive-2026H2.db` does not exist; the real archive is the
+UNION of the bot's rolling backups in `~/elixir-backups/` (each nightly
+froze the short-retention `raw_api_payloads` window on its own date),
+reaching the bot's first poll on 2026-03-07. No backup exists between
+05-03 and 05-31, so raw payloads for May 4–14 are gone — but v4
+`member_battle_facts.raw_json` kept each battle's API entry, and those
+regroup into log-shaped payloads (newest first, ≤25 per array,
+`fetched_at` one hour after the newest battle: the bot read those logs
+then; only the raw copies were purged).
+
+**Shipped (`dfab4a0`, `4f357c0`, both deployed):**
+`infra/scripts/backfill-replay-backups.mjs` unions the decompressed
+backups read-only (`node:sqlite`, `immutable=1` — the sqlite3 CLI's
+`-json` mode spent ~1 s escaping a 200 KB battlelog), dedupes by
+content, relabels the v4 `clan_war_log` endpoint to `riverracelog`,
+orders by fetch time, batches adaptively under the Lambda's 300 s, and
+resumes from a progress file. Two pipeline gaps found on the way:
+(1) `{replay}` never passed the S3 archive dependency, and since 09-11 a
+bulk payload keeps no JSON in Postgres, so a replay would have held the
+hash and receipt of history whose body existed nowhere — it now archives
+at admission like the collector door; (2) the first import's
+`backfill-elixir-bot` gateway row had been revoked (terminal), so every
+message came back `gateway_refused` — `replay()` now looks up a live
+row only and mints a successor, each import separately attributed and
+separately revocable. **Jamie: revoke the new `backfill-elixir-bot` row
+in the Admin gateways panel**, as after the first import.
+
+**Rehearsed** on a scratch Postgres through the real pipeline (Mar 7 →
+Apr 15, 5,452 payloads): S129 w1 → S131 w0 with correct colosseum
+flags and standings, no phantom seasons, no feed events, no high-water
+moves — the observation-time guards on identity, badges, snapshots and
+the mark all held. RDS snapshot
+`elixir-mcp-pre-archive-backfill-2026-09-15` taken first.
+
+**Live run (03:1x–03:5xZ):** 22,962 payloads sent — 22,889 admitted,
+71 duplicate (a client restart resent one batch), 2 rejected (test
+stubs `{"tag":"#ABC"}` / `{"name":"Jamie"}` that leaked into the bot's
+raw table on 2026-05-28 — admission was right). Lambda time ~39 min;
+the S3 put was ~35% of it. Corpus before → after: battles 149,549 →
+194,027 (first 2026-05-07 → 2026-01-03); daily snapshots 8,892 →
+13,570; war weeks 304 → 321, POAP KINGS `history_starts_at` S132 w3 →
+**S129 w1 (2026-02-16)**, every week's rank and fame matching the
+bot's `war_weeks`; Jamie's own record 262 → 897 appearances, first
+2026-03-03, snapshots from 2026-03-07.
+
+**Honest limits, not fixed here:** war battles before 2026-05-15 carry
+no `season_id`/`war_day` — stamping runs only off a `currentriverrace`
+poll within 14 days, and those begin 05-15 in the archive; weeks
+S129–S131 have points, decks and boat attacks from the riverracelog
+but `war_days_battled: null`. A calendar-driven stamp op could fill
+them. Player snapshots for May 4–14 are absent (only battles
+survived); the weekly timeline shows the hole. `clan` payloads
+(May 15 → Jul 7) were deliberately NOT replayed — the membership state
+machine runs forward — so the bot's `clan_memberships` since
+2026-02-04 still reach the record only through a purpose-built tenure
+import, Jamie's call. The pre-v5.1 backups remain only on the local
+disk; the replayable endpoints are now durably in the S3 archive.
