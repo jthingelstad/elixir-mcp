@@ -214,27 +214,29 @@ export async function deckForms(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const { rows } = await db.query(
+    const { rows: forms } = await db.query(
       `select coalesce((c.value->>'evolutionLevel')::int, 0) as form,
               count(*)::int as n,
               count(distinct (c.value->>'id')::int)::int as cards,
               (array_agg(distinct c.value->>'name'))[1:8] as sample_names,
               min(bp.battle_time) as first_seen,
               max(bp.battle_time) as last_seen,
-              count(distinct bp.player_tag)::int as players,
-              (select array_agg(s order by s) from (
-                 select distinct c2.ord::int as s
-                 from battle_participant bp2
-                 cross join lateral jsonb_array_elements(coalesce(bp2.deck->'cards', '[]'::jsonb))
-                   with ordinality as c2(value, ord)
-                 where coalesce((c2.value->>'evolutionLevel')::int, 0) = coalesce((c.value->>'evolutionLevel')::int, 0)
-                   and coalesce((c.value->>'evolutionLevel')::int, 0) = 3) x) as slots_when_3
+              count(distinct bp.player_tag)::int as players
        from battle_participant bp
        cross join lateral jsonb_array_elements(
          coalesce(bp.deck->'cards', '[]'::jsonb) || coalesce(bp.deck->'supportCards', '[]'::jsonb)) as c(value)
        group by 1 order by 1`,
     );
-    return { forms: rows };
+    const { rows: slots } = await db.query(
+      `select coalesce((c.value->>'evolutionLevel')::int, 0) as form,
+              c.ord::int as slot, count(*)::int as n
+       from battle_participant bp
+       cross join lateral jsonb_array_elements(coalesce(bp.deck->'cards', '[]'::jsonb))
+         with ordinality as c(value, ord)
+       where coalesce((c.value->>'evolutionLevel')::int, 0) > 0
+       group by 1, 2 order by 1, 2`,
+    );
+    return { forms, slots_by_form: slots };
   } finally {
     await db.end();
   }
