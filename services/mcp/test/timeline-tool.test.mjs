@@ -323,3 +323,96 @@ test("an arena move names the win that carried the player over the floor, at tha
     "Wed 01:46 AHMOメŞΛDØW moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
   );
 });
+
+test("ranked, best-band and career-wins moments name their battle the same way", async () => {
+  const battle = (extra) => ({
+    battle_id: "y",
+    battle_time: "2026-09-02T04:34:50.000Z",
+    type: "pathOfLegend",
+    opponent: {
+      player_tag: "#UYCL80G0",
+      name: "XTRAXTOR",
+      starting_trophies: null,
+    },
+    crowns: 1,
+    crowns_against: 0,
+    trophy_change: 30,
+    ...extra,
+  });
+  await emitEvent(ctx.db, "ranked_promotion", {
+    tag: OBSERVER,
+    windowStart: "2026-09-02T01:00:00Z",
+    windowEnd: "2026-09-02T05:07:46Z",
+    occurredAt: "2026-09-02T04:34:50Z",
+    payload: { from: 1, to: 2, promoted_by: battle({}) },
+  });
+  await emitEvent(ctx.db, "best_trophies_band", {
+    tag: OBSERVER,
+    windowStart: "2026-09-02T01:00:00Z",
+    windowEnd: "2026-09-02T05:07:46Z",
+    occurredAt: "2026-09-02T04:40:00Z",
+    payload: {
+      best: 6087,
+      band: 6000,
+      crossed_by: battle({
+        battle_time: "2026-09-02T04:40:00.000Z",
+        type: "PvP",
+        opponent: {
+          player_tag: "#VRL0QQVCP",
+          name: "Jotaro",
+          starting_trophies: 5976,
+        },
+        crowns: 3,
+        trophies_after: 6000,
+      }),
+    },
+  });
+  await emitEvent(ctx.db, "career_wins_step", {
+    tag: OBSERVER,
+    windowStart: "2026-09-02T01:00:00Z",
+    windowEnd: "2026-09-02T05:07:46Z",
+    occurredAt: "2026-09-02T04:45:00Z",
+    payload: {
+      wins: 11001,
+      step: 11000,
+      crossed_by: battle({
+        battle_time: "2026-09-02T04:45:00.000Z",
+        type: "clanMate2v2",
+        opponent: null,
+        opponents: [
+          { player_tag: "#A", name: "Ann" },
+          { player_tag: "#B", name: null },
+        ],
+        crowns: 2,
+        crowns_against: 1,
+        trophy_change: null,
+      }),
+    },
+  });
+  // The plain shape, still: a moment the record could not pin.
+  await emitEvent(ctx.db, "career_wins_step", {
+    tag: OBSERVER,
+    windowStart: "2026-09-02T05:07:46Z",
+    windowEnd: "2026-09-02T09:00:00Z",
+    payload: { wins: 12003, step: 12000 },
+  });
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-02",
+    to: "2026-09-03",
+    sections: ["ranked", "trophies", "battles"],
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const text = (kind) =>
+    body.timeline.filter((it) => it.kind === kind).map((it) => it.text);
+  assert.deepEqual(text("ranked_promotion"), [
+    "Tue 23:34 AHMOメŞΛDØW was promoted to Master 2, on a 1-0 win over XTRAXTOR, +30.",
+  ]);
+  assert.deepEqual(text("best_trophies_band"), [
+    "Tue 23:40 AHMOメŞΛDØW set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
+  ]);
+  assert.deepEqual(text("career_wins_step"), [
+    "Tue 23:45 AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #B.",
+    "Wed 04:00 AHMOメŞΛDØW passed 12,003 career wins.",
+  ]);
+});

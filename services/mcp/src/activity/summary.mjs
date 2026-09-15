@@ -259,6 +259,24 @@ export function summarizeClan(e, timeZone = "UTC") {
   return `${e.name ?? e.subject_tag}: ${parts.join("; ")}.`;
 }
 
+/** ", on a 3-0 win over Jotaro (5,976), +30 to 6,000" - the battle a
+ *  moment names (promoted_by / crossed_by), or nothing when the record did
+ *  not hold the crossing. A 2v2 names the pair. */
+function onBattle(b) {
+  if (!b) return "";
+  const who = b.opponent
+    ? `${b.opponent.name ?? b.opponent.player_tag}${typeof b.opponent.starting_trophies === "number" ? ` (${num(b.opponent.starting_trophies)})` : ""}`
+    : b.opponents?.length
+      ? b.opponents.map((o) => o.name ?? o.player_tag).join(" and ")
+      : "an opponent";
+  const score = `${b.crowns ?? "?"}-${b.crowns_against ?? "?"}`;
+  const change =
+    typeof b.trophy_change === "number"
+      ? `, ${b.trophy_change > 0 ? "+" : ""}${b.trophy_change}${typeof b.trophies_after === "number" ? ` to ${num(b.trophies_after)}` : ""}`
+      : "";
+  return `, on a ${score} win over ${who}${change}`;
+}
+
 /** One timeline item as a sentence. */
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
@@ -278,32 +296,16 @@ export function itemText(it, timeZone = "UTC") {
       return `${at} ${member || subj} took ${f.name}${f.level ? ` to level ${f.level}` : ""}.`;
     case "legendary_badge_earned":
       return `${at} ${member || subj} earned ${f.name}.`;
-    case "arena_changed": {
-      const moved = `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}`;
-      // The win that carried them over the floor, when the record holds it
-      // (promoted_by is set at ingest; absent means a capture gap or a
-      // profile that overtook the log, never a guess).
-      const p = f.promoted_by;
-      if (!p) return `${moved}.`;
-      const opp = p.opponent?.name ?? p.opponent?.player_tag ?? "an opponent";
-      const oppTrophies =
-        typeof p.opponent?.starting_trophies === "number"
-          ? ` (${num(p.opponent.starting_trophies)})`
-          : "";
-      const change =
-        typeof p.trophy_change === "number"
-          ? `${p.trophy_change > 0 ? "+" : ""}${p.trophy_change}`
-          : "?";
-      return `${moved}, on a ${p.crowns ?? "?"}-${p.crowns_against ?? "?"} win over ${opp}${oppTrophies}, ${change} to ${num(p.trophies_after)}.`;
-    }
+    case "arena_changed":
+      return `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}${onBattle(f.promoted_by)}.`;
     case "ranked_promotion":
-      return `${at} ${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}.`;
+      return `${at} ${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}${onBattle(f.promoted_by)}.`;
     case "best_trophies_band":
-      return `${at} ${member || subj} set a new best of ${num(f.best)} trophies.`;
+      return `${at} ${member || subj} set a new best of ${num(f.best)} trophies${f.crossed_by ? `, crossing ${num(f.band)}${onBattle(f.crossed_by)}` : ""}.`;
     case "collection_level_step":
       return `${at} ${member || subj} reached collection level ${f.level}.`;
     case "career_wins_step":
-      return `${at} ${member || subj} passed ${num(f.wins)} career wins.`;
+      return `${at} ${member || subj} passed ${num(f.wins)} career wins${f.crossed_by ? `, the ${num(f.step)}th${onBattle(f.crossed_by)}` : ""}.`;
     case "card_unlocked":
       return `${at} ${member || subj} unlocked ${f.name ?? `card ${f.card_id}`}.`;
     case "member_joined":

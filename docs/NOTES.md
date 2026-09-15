@@ -2182,3 +2182,15 @@ Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000"; clan standouts
 carry `over` and `score`. The test pins the hari shape: the floor from the
 06:52 gated loss picks the 06:46 win, where the only Royal Crypt snapshot
 (6,030) alone would have picked the wrong battle.
+
+**Same day, the other three (contract 3.6.0).** Jamie: "facts being
+attached to a timeline event is a huge win for the LLM to tell an actual
+story, not just that a fact occurred, but why and what happened." One
+window read, four selectors (ingest/snapshots.mjs): arena and best band
+share `firstWinReaching(floor)`; ranked is the last battle stamped with
+the league below and it must be a win (TDuck 2026-09-15: the 04:34Z
+promoting win stamped 1, every later battle stamped 2 - rating is not on
+the battle, the stamp is); career wins is the Nth win only when the
+window's wins reconcile exactly with the lifetime counter. `describeBattle`
+is the one shape. Not done, deliberately: badges and card unlocks have no
+battle behind them in the record.

@@ -78,10 +78,18 @@ belongs to, so `sections` filters items and entries together.
 |---|---|---|
 | `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `open` while it may still be going. Single battles never appear. |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge, by name |
-| `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor (`opponent` with tag, name and starting trophies, `crowns`, `crowns_against`, `trophy_change`, `trophies_after`, `arena_floor`) and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
-| `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name |
-| `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band |
-| `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a multiple of 5; career wins at a multiple of 1,000 |
+| `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
+
+A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
+`battle_id`, `battle_time`, `type`, `opponent` (`player_tag`, `name`,
+`starting_trophies`) for a 1v1 or `opponents` for a team battle, `crowns`,
+`crowns_against`, `trophy_change`, and `trophies_after` when the battle
+carried trophies (ranked battles carry none). The arena moment adds
+`arena_floor`. The item's text says it: "moved to Royal Crypt from
+Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
+| `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
+| `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band; `facts.band` is the band, `facts.crossed_by` the Trophy Road win whose result first reached it, `at` at that battle |
+| `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a multiple of 5; career wins at a multiple of 1,000. `career_wins_step` carries `facts.step` and, when every win between the two snapshots is on the record (the window's wins reconcile with the lifetime counter), `facts.crossed_by` is the 1,000th win itself, `at` at that battle |
 | `card_unlocked` | player, or a clan's member | a card the player did not have, by name (level-ups are a count in the entry, never items) |
 | `clan_joined`, `clan_left` | player | the player moved clans |
 | `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick |

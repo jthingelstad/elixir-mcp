@@ -983,6 +983,15 @@ export async function buildClanEntry(
   }));
   const rankedPromotions = pick("ranked_promotion", (p) => ({
     league: leagueName(p.to),
+    ...(p.promoted_by
+      ? {
+          over:
+            p.promoted_by.opponent?.name ??
+            p.promoted_by.opponent?.player_tag ??
+            null,
+          score: `${p.promoted_by.crowns}-${p.promoted_by.crowns_against}`,
+        }
+      : {}),
   }));
   const collectionSteps = pick("collection_level_step", (p) => ({
     level: p.level,

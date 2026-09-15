@@ -19,6 +19,7 @@ import { fixture, scratchDb } from "./helpers.mjs";
 let ctx;
 let gatewayId;
 let ladderEntry;
+let rankedEntry;
 let profileFixture;
 
 const ME = "#PR0Y0Q2L";
@@ -64,7 +65,7 @@ function ladder({ at, arena, mine, theirs, opponent, name, result }) {
   return entry;
 }
 
-function profile({ arena, trophies, donations, bestTrophies }) {
+function profile({ arena, trophies, donations, bestTrophies, wins, league }) {
   const p = structuredClone(profileFixture);
   p.tag = ME;
   p.name = "promo";
@@ -72,7 +73,32 @@ function profile({ arena, trophies, donations, bestTrophies }) {
   p.trophies = trophies;
   p.bestTrophies = bestTrophies ?? trophies;
   p.donations = donations ?? p.donations;
+  if (wins !== undefined) p.wins = wins;
+  if (league !== undefined)
+    p.currentPathOfLegendSeasonResult = {
+      leagueNumber: league,
+      trophies: 0,
+      rank: null,
+    };
   return p;
+}
+
+/** A Path of Legends battle from the observer's own log: no trophies on
+ *  the entry, the league it was played in stamped on it. */
+function ranked({ at, league, tag, opponent, name, result }) {
+  const entry = structuredClone(rankedEntry);
+  entry.battleTime = at;
+  entry.leagueNumber = league;
+  entry.team[0].tag = tag;
+  entry.team[0].name = "ranker";
+  entry.opponent[0].tag = opponent;
+  entry.opponent[0].name = name ?? "opp";
+  const [crowns, against, change] = result;
+  entry.team[0].crowns = crowns;
+  entry.opponent[0].crowns = against;
+  if (change === null) delete entry.team[0].trophyChange;
+  else entry.team[0].trophyChange = change;
+  return entry;
 }
 
 async function pollState() {
@@ -115,9 +141,9 @@ before(async () => {
     [account.account_id],
   );
   gatewayId = gw.gateway_id;
-  ladderEntry = (
-    await fixture("player_battlelog/with_path_of_legend.json")
-  ).find((b) => b.type === "PvP");
+  const log = await fixture("player_battlelog/with_path_of_legend.json");
+  ladderEntry = log.find((b) => b.type === "PvP");
+  rankedEntry = log.find((b) => b.type === "pathOfLegend");
   profileFixture = await fixture("player/profile.json");
   // The planner only sees a player somebody records.
   await ctx.db.query(
@@ -143,7 +169,12 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
     message({
       endpoint: "player",
       entityKey: ME,
-      payload: profile({ arena: KITCHEN, trophies: 5854, donations: 40 }),
+      payload: profile({
+        arena: KITCHEN,
+        trophies: 5854,
+        donations: 40,
+        wins: 10998,
+      }),
       fetchedAt: at("06:07:49"),
     }),
   );
@@ -280,7 +311,12 @@ test("the first trusted battle in the new arena asks for the profile once; the p
     message({
       endpoint: "player",
       entityKey: ME,
-      payload: profile({ arena: CRYPT, trophies: 6030, donations: 52 }),
+      payload: profile({
+        arena: CRYPT,
+        trophies: 6030,
+        donations: 52,
+        wins: 11001,
+      }),
       fetchedAt: at("08:45:10"),
     }),
   );
@@ -309,6 +345,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
     promoted_by: {
       battle_id: moved[0].payload.promoted_by.battle_id,
       battle_time: at("06:46:32.000"),
+      type: "PvP",
       opponent: {
         player_tag: "#0PP0000L",
         name: "Jotaro",
@@ -325,6 +362,104 @@ test("the first trusted battle in the new arena asks for the profile once; the p
   assert.equal(moved[0].occurred_at.toISOString(), at("06:46:32.000"));
   assert.equal(moved[0].window_start.toISOString(), at("06:07:49.000"));
   assert.equal(moved[0].window_end.toISOString(), at("08:45:10.000"));
+
+  // The same win crossed the 6,000 best-trophies band (5,854 -> 6,030).
+  const best = await events("best_trophies_band");
+  assert.equal(best.length, 1);
+  assert.equal(best[0].payload.best, 6030);
+  assert.equal(best[0].payload.band, 6000);
+  assert.equal(best[0].payload.crossed_by.battle_time, at("06:46:32.000"));
+  assert.equal(best[0].payload.crossed_by.opponent.name, "Jotaro");
+  assert.equal(best[0].timing, "exact");
+
+  // Career wins 10,998 -> 11,001: three wins in the window (06:39, 06:46,
+  // 08:11) reconcile with the counter, so the 11,000th is the second.
+  const wins = await events("career_wins_step");
+  assert.equal(wins.length, 1);
+  assert.equal(wins[0].payload.step, 11000);
+  assert.equal(wins[0].payload.crossed_by.battle_time, at("06:46:32.000"));
+  assert.equal(wins[0].occurred_at.toISOString(), at("06:46:32.000"));
+});
+
+test("a ranked promotion names the last win stamped with the old league; a loss there names nothing", async () => {
+  const RANKER = "#PR0Y0Q2R";
+  await ctx.db.query(
+    `insert into player (player_tag, name) values ($1, 'ranker')`,
+    [RANKER],
+  );
+  const profileFor = (league, fetchedAt) => {
+    const p = profile({ arena: CRYPT, trophies: 6500, league });
+    p.tag = RANKER;
+    p.name = "ranker";
+    return message({
+      endpoint: "player",
+      entityKey: RANKER,
+      payload: p,
+      fetchedAt,
+    });
+  };
+  await processResult(ctx.db, profileFor(1, at("01:00:00")));
+  // TDuck's shape: wins and losses in league 1, the promoting win at 04:34
+  // stamped 1, the battles after it stamped 2.
+  const pol = (hhmmss, league, opponent, result, name) =>
+    ranked({ at: logAt(hhmmss), league, tag: RANKER, opponent, name, result });
+  const log = [
+    pol("050501", 2, "#0PP0000L", [0, 1, null]),
+    pol("043450", 1, "#0PP0000U", [1, 0, 30], "XTRAXTOR"),
+    pol("043137", 1, "#0PP0000R", [0, 1, null]),
+    pol("042240", 1, "#0PP00000", [3, 0, 30]),
+  ];
+  const admitted = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: RANKER,
+      payload: log,
+      fetchedAt: at("05:06:00"),
+    }),
+  );
+  assert.equal(admitted.outcome, "admitted", JSON.stringify(admitted.errors));
+  await processResult(ctx.db, profileFor(2, at("05:07:46")));
+  const { rows } = await ctx.db.query(
+    `select timing, occurred_at, payload from player_event
+      where player_tag = $1 and event_type = 'ranked_promotion'`,
+    [RANKER],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].timing, "exact");
+  assert.equal(rows[0].occurred_at.toISOString(), at("04:34:50.000"));
+  assert.equal(rows[0].payload.from, 1);
+  assert.equal(rows[0].payload.to, 2);
+  assert.equal(rows[0].payload.promoted_by.opponent.name, "XTRAXTOR");
+  assert.equal(rows[0].payload.promoted_by.crowns, 1);
+  assert.equal(rows[0].payload.promoted_by.trophy_change, 30);
+  assert.equal(
+    rows[0].payload.promoted_by.trophies_after,
+    undefined,
+    "ranked carries no trophies",
+  );
+
+  // League 2 -> 3 with the last league-2 battle a loss: the crossing is
+  // not in the record, and the moment says so by carrying no battle.
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: RANKER,
+      payload: [pol("060000", 2, "#0PP0000L", [0, 2, null]), ...log],
+      fetchedAt: at("06:01:00"),
+    }),
+  );
+  await processResult(ctx.db, profileFor(3, at("07:00:00")));
+  const { rows: again } = await ctx.db.query(
+    `select timing, occurred_at, payload from player_event
+      where player_tag = $1 and event_type = 'ranked_promotion' order by event_id`,
+    [RANKER],
+  );
+  assert.equal(again.length, 2);
+  assert.equal(again[1].timing, "estimated");
+  assert.equal(again[1].occurred_at, null);
+  assert.deepEqual(again[1].payload, { from: 2, to: 3 });
 });
 
 test("an arena move with no reachable floor or no crossing win in the window carries no battle and stays estimated", async () => {

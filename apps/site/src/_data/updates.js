@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-15",
+    title:
+      "Ranked promotions, new bests and career-win marks name their battle too",
+    body: "The arena move got its battle this morning; the other three threshold moments now carry theirs, one shape everywhere (opponent, crowns, trophy change, and the instant as the item's at). A ranked battle is stamped with the league it started in, so the promotion is the last win played in the league below - 'promoted to Master 2, on a 1-0 win over XTRAXTOR, +30'. A new best names the Trophy Road win whose result first reached the 500 band - 'set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000'. A career-wins mark names the 1,000th win itself, but only when every win between the two snapshots is on the record: the window's wins must reconcile with the lifetime counter, or the moment carries no battle. The rule for all four is the same: absence over a guess.",
+  },
+  {
+    date: "2026-09-15",
     title: "An arena move names the battle that did it",
     body: "Trophy Road arenas have floors: reach the floor and you are in, and a loss never takes you below it again - the game reports a loss on the floor with no trophy change at all, and the last floor, 14,000, is where Trophy Road ends. So the promotion is one identifiable battle: the win whose result first reached the floor. arena_changed on the timeline now carries facts.promoted_by - the opponent (tag, name, starting trophies), the crowns, the trophy change and the trophies it landed on - and the item's instant is that battle's, not the poll's: 'moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000'. The floor is read from the record (the lowest trophies any snapshot has shown in that arena, or the player's own gated loss), and when the record does not hold the crossing the moment carries no battle rather than a guess. The opponent's own arena is not the condition: on 2026-09-15 a member was promoted by beating an opponent still in the old arena, confirmed by a profile read fourteen minutes later.",
   },
