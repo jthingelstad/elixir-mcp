@@ -28,3 +28,4 @@ packages/design/.test-*/
 # Playwright
 test-results/
 playwright-report/
+.backfill-*.json
