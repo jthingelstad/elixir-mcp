@@ -763,7 +763,7 @@ export const rankingsTools = {
 
   game_events: {
     description:
-      "What was ON: the in-game events (modes, challenges, side modes) the API listed as running, recorded daily since 2026-09-11 with the days each was seen. The API shows only today's and gives no dates, so this is the season's calendar built from sightings - the thing that explains a spike of some mode in a battle log. Default window: the current season so far.",
+      "What was ON: the in-game events (modes, challenges, side modes) the API listed as running, recorded from daily sightings (sparser before 2026-09-11) with the days each was seen. The API shows only today's and gives no dates, so this is the season's calendar built from sightings - the thing that explains a spike of some mode in a battle log. Default window: the current season so far.",
     inputSchema: {
       type: "object",
       properties: {
@@ -800,8 +800,11 @@ export const rankingsTools = {
          limit $3`,
         [from.toISOString().slice(0, 10), to.toISOString().slice(0, 10), limit],
       );
+      // The horizon is a fact of the table, not a date in the code: the
+      // daily sightings began 2026-09-11, and the elixir-bot backfill
+      // (2026-09-15) placed earlier, sparser reads before them.
       const { rows: running } = await ctx.db.query(
-        `select max(day)::text as latest_day from game_event_day`,
+        `select max(day)::text as latest_day, min(day)::text as first_day from game_event_day`,
       );
       return {
         applied: appliedBlock({
@@ -815,6 +818,7 @@ export const rankingsTools = {
           },
           limit,
         }),
+        first_sighting_day: running[0]?.first_day ?? null,
         latest_sighting_day: running[0]?.latest_day ?? null,
         events: rows.map((r) => ({
           event_tag: r.event_tag,
@@ -827,7 +831,7 @@ export const rankingsTools = {
         })),
         notes: notes(
           "days_seen is the UTC days /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
-          "Sightings began 2026-09-11; nothing before that date is known.",
+          `Sightings began ${running[0]?.first_day ?? "when recording did"}; nothing before that date is known, and days without a read are unknown, not empty.`,
           "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match.",
         ),
         docs: docsRef("recording", "leaderboards"),

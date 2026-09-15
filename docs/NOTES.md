@@ -1870,3 +1870,67 @@ machine runs forward — so the bot's `clan_memberships` since
 2026-02-04 still reach the record only through a purpose-built tenure
 import, Jamie's call. The pre-v5.1 backups remain only on the local
 disk; the replayable endpoints are now durably in the S3 archive.
+
+## 2026-09-15 — Backfill pass two: war state from March, roster tenure, events and cards
+
+Jamie: "Is there more we could import that makes sense?" Three things
+did; the rest was judged and left (awards, decisions, memories,
+dossiers are judgment and belong to the bot and Elixir Clan; May 4–14
+player snapshots would be fabricated from derived rows; the v5
+event-sourcing store is derived from raw that is now all in;
+`clan_daily_metrics` has no writer and no reader, so nothing was
+written to it).
+
+**1. War state Mar 7 → May 14 (LIVE).** v4 filed the full
+`currentriverrace` body in `war_current_state.raw_json` before the raw
+log kept it (05-15). 458 distinct reads replayed through the same
+lane; S130–S131 member weeks now carry `war_days_battled` and war
+battles their stamps (King Thing S130 w4: `[1,2,3,4]`, was null). ONE
+read skipped by rule: the bot polled exactly on the hour, and its
+2026-04-06 10:00:00Z read sat in the stand-by window (race finished
+~09:30Z, season rolls 10:00Z) carrying section 4 under season 131 -
+the rehearsal minted a phantom `(131, 4)` from it, the same shape
+0021 purged. The script drops any first-Monday read within 30 min of
+the season start whose section is not 0. Live collectors jitter;
+the bot's clockwork cadence is what made this reproducible.
+`(131, 0)` is first observed Apr 9 because v4 polled the race only on
+war days - honest, not a gap.
+
+**2. Roster tenure (LIVE, `558c01d`).** Every member's
+`first_observed_in_clan` had been 2026-09-03. The observations
+existed - v4 `clan_daily_metrics.raw_json` (one roster a day from
+Mar 12), archive raw `clan` (May 15 → Jul 14), the bot's live db
+(Jul 15 → Sep 3, which the first import also skipped) - but the
+membership state machine only runs forward, so old rosters cannot
+project. Built instead: `{replay: {skip_projection: true}}` lands them
+as receipts + S3 only (`deps.skipProjection` in processResult); the
+client walks them in order into the membership intervals they show;
+`{tenure_history}` writes closed stints that ended before the record's
+own first live roster read (horizon = earliest admitted `clan` receipt
+from a non-backfill gateway, never a membership row - the first
+draft used min(joined_observed_at) and the test caught that a re-run
+would then refuse everything) and backdates the row the first live
+read created, open or since closed, only earlier. No events. Live
+result: 9,835 reads, 154 intervals → 105 closed stints inserted, 49
+rows backdated, 0 overlapping/after-horizon/unresolved. Reconciled
+against the bot's own table: 40 of 49 current members agree within a
+day; the four founders read Mar 12 (the bot's first roster read)
+where the bot asserts Feb 4 - "first observed" is the honest one; the
+bot's ten extra rows are same-day join/leave stints a once-a-day read
+cannot see. **Observed, never asserted** still holds: every value is
+another recorder's read time, under a revocable gateway.
+
+**3. Events + cards (LIVE).** 18 game-events sightings (Jun 13 →) and
+8 card-catalog snapshots through the existing projectors.
+`game_events` said "Sightings began 2026-09-11" from a string in the
+code; 3.3.0 adds `first_sighting_day` and derives the note from the
+table.
+
+**Also:** the script reads the bot's live db (mode=ro under WAL, never
+immutable), keeps a cursor per pass (`--progress`), restricts
+endpoints (`--only`). Pass A ran against the already-deployed replay
+op; pass B needed the deploy. Perf: ~22 payloads/s for rosters (small
+bodies), the S3 put dominating.
+
+**Jamie:** revoke the active `backfill-elixir-bot` gateway row in
+Admin; deploy 3.3.0 (the game_events note) when convenient.

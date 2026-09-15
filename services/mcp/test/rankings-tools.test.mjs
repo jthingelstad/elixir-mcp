@@ -479,6 +479,11 @@ test("game_events: what was on, by the days it was seen", async () => {
   assert.deepEqual(merge.days_seen, ["2026-09-11", "2026-09-12"]);
   assert.deepEqual(chaos.days_seen, ["2026-09-11"]);
   assert.equal(body.latest_sighting_day, "2026-09-12");
+  assert.equal(body.first_sighting_day, "2026-09-11");
+  assert.ok(
+    body.notes.some((n) => n.startsWith("Sightings began 2026-09-11")),
+    "the horizon note reads the table",
+  );
   assert.equal(merge.running_on_latest_day, true);
   assert.equal(chaos.running_on_latest_day, false);
 });
