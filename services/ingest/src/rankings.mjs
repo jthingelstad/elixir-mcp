@@ -470,24 +470,16 @@ export async function projectEvents(db, { payload, fetchedAt }) {
   };
 }
 
-/** Global tournaments (0069): rare, small, kept whole. */
-export async function projectTournaments(db, { payload, fetchedAt }) {
-  const observedAt = new Date(fetchedAt);
+/** Global tournaments (0069): the payload is archived, nothing projects
+ *  it since 0094 (game_tournament was written and never read). The
+ *  receipt still counts the observation. */
+export async function projectTournaments(_db, { payload }) {
   const items = (payload?.items ?? []).filter(
     (t) => typeof t?.tag === "string",
-  );
-  if (items.length === 0) return { projected: "tournaments", tournaments: 0 };
-  await db.query(
-    `insert into game_tournament (tournament_tag, payload, first_seen_at, last_seen_at)
-     select t.tag, t.payload::jsonb, $3, $3
-     from unnest($1::text[], $2::text[]) as t(tag, payload)
-     on conflict (tournament_tag) do update set
-       payload = excluded.payload, last_seen_at = greatest(game_tournament.last_seen_at, excluded.last_seen_at)`,
-    [items.map((t) => t.tag), items.map((t) => JSON.stringify(t)), observedAt],
   );
   return {
     projected: "tournaments",
     tournaments: items.length,
-    facts: items.length,
+    facts: 0,
   };
 }

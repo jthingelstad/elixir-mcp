@@ -22,7 +22,6 @@ import { ingestClanRoster } from "./roster.mjs";
 import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
-import { projectCurrentDeck } from "./deck.mjs";
 import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
 import {
   projectRankingBoard,
@@ -296,13 +295,6 @@ const PROJECTORS = {
       payload,
       fetchedAt,
     });
-    // The active deck (0080): one row per player, written when it moves.
-    const deck = await projectCurrentDeck(db, {
-      playerTag: entityKey,
-      payload,
-      fetchedAt,
-      receiptId,
-    });
     return {
       projected: "player",
       clanTag,
@@ -312,7 +304,6 @@ const PROJECTORS = {
         identityMoved +
         badges.changed +
         cards.changed +
-        deck.changed +
         (snapshot.moved ? 1 : 0),
     };
   },

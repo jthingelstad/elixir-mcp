@@ -1998,3 +1998,18 @@ event battles with `cards: []` hashed to the identity of nothing - 0093
 nulls those hashes and ingest stamps null for an empty list from now on.
 `{deck_census}` after 0093: all zero. `{deck_forms}` stays as the
 on-demand census.
+
+## 2026-09-15 — Schema hygiene (0094)
+
+From the same audit, the small batch (Jamie: "let's also do these small
+ones"; drop both write-only tables). Five tables gone - `battle_observation`
+(unwritten since 09-12; its FK was what kept `api_receipt` unprunable),
+`clan_daily_metrics` and `gateway_lease` (never used), `player_current_deck`
+and `game_tournament` (written every poll, never read; payloads stay in the
+archive). Two internal enums constrained: `mcp_call_audit.principal_kind`
+and `.surface`. Left open on purpose: `clan_membership.role` and `battle.type`
+are the API's enums and ingest must never fail on a value the game adds;
+`account_event.kind` grows with the product. The 0012 replay test retired
+with the table it read. Still parked for Phase B with the reader-test
+rework: `battle_participant.clan_tag → clan` (would need opponent clans
+upserted like players are) and the two deck/card closing FKs.

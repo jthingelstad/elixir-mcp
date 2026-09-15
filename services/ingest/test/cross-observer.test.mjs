@@ -69,7 +69,7 @@ test("real cross-observer logs dedupe to one battle seen by both observers", asy
   assert.equal(participants[0].side1, 2);
 
   // Both observers sit in the battle as participants; the per-observer
-  // provenance row (battle_observation) is no longer written (2026-09-12).
+  // provenance row (battle_observation) went on 2026-09-12 and the table in 0094.
   const { rows: observers } = await ctx.db.query(
     `select player_tag from battle_participant
      where battle_id = $1 and player_tag = any($2) order by player_tag`,
@@ -80,11 +80,6 @@ test("real cross-observer logs dedupe to one battle seen by both observers", asy
     [obsA, obsB].sort(),
     "both observers are participants of the one battle",
   );
-  const { rows: obs } = await ctx.db.query(
-    `select count(*)::int n from battle_observation where battle_id = $1`,
-    [battleId],
-  );
-  assert.equal(obs[0].n, 0, "no observation rows are written");
 
   // Outcomes are per-participant facts and must be consistent regardless of
   // which perspective landed first: teammates share a fate in 2v2.
