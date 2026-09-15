@@ -416,3 +416,18 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     "Wed 04:00 AHMOメŞΛDØW passed 12,003 career wins.",
   ]);
 });
+
+test("days is sugar on the timeline too: an explicit window, not the pointer", async () => {
+  const { body, isError } = await call("elixir_timeline", {
+    days: 2,
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.applied.window.source, "argument");
+  assert.ok(
+    Math.abs(
+      Date.parse(body.applied.window.from) - (Date.now() - 2 * 86_400_000),
+    ) < 60_000,
+    body.applied.window.from,
+  );
+});

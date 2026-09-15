@@ -40,6 +40,7 @@ import {
   VERBOSITY,
   WINDOW_ARGS,
   zoneFor,
+  withWindowSugar,
 } from "./shared.mjs";
 
 const RECORDING_DOCS = docsRef("recording", "added-means-recorded");
@@ -744,7 +745,8 @@ export const elixirTools = {
       },
       additionalProperties: false,
     },
-    async handler(ctx, args) {
+    async handler(ctx, rawArgs) {
+      const args = withWindowSugar(rawArgs);
       const tz = zoneFor(ctx, args) ?? "UTC";
       const DAY_MS = 86_400_000;
       const CAP_MS = 30 * DAY_MS;

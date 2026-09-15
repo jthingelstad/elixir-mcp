@@ -154,6 +154,50 @@ test("battles_performance: window totals reconcile and before_after splits", asy
   );
 });
 
+test("days/weeks are sugar on EVERY windowed tool, as the instructions promise", async () => {
+  // 2026-09-15: a routine sent days: 1 to battles_performance right after
+  // clans_standings({days: 1}) had worked, and lost three calls to
+  // bad_request. The instructions say "days/weeks are sugar"; now it is
+  // true for each tool that takes a window, including the ones that read
+  // from/to by hand (elixir_timeline, rankings_timeline, game_events) and
+  // the date-only one (players_timeline).
+  const dayAgo = Date.now() - 86_400_000;
+  const near = (iso) => Math.abs(Date.parse(iso) - dayAgo) < 60_000;
+
+  const perf = await call("battles_performance", { days: 1 });
+  assert.equal(perf.isError, false, JSON.stringify(perf.body));
+  assert.equal(perf.body.applied.window.source, "argument");
+  assert.ok(near(perf.body.applied.window.from), perf.body.applied.window.from);
+
+  const weeks = await call("battles_query", { weeks: 2, limit: 1 });
+  assert.equal(weeks.isError, false, JSON.stringify(weeks.body));
+  assert.ok(
+    Math.abs(
+      Date.parse(weeks.body.applied.window.from) -
+        (Date.now() - 14 * 86_400_000),
+    ) < 60_000,
+  );
+
+  // from/to given win over the sugar; both together are not a conflict.
+  const both = await call("battles_performance", {
+    days: 30,
+    from: "2026-09-01",
+  });
+  assert.equal(both.isError, false);
+  assert.match(both.body.applied.window.from, /^2026-09-01T/);
+
+  const events = await call("game_events", { days: 3 });
+  assert.equal(events.isError, false, JSON.stringify(events.body));
+
+  const tl = await call("players_timeline", { days: 2 });
+  assert.equal(tl.isError, false, JSON.stringify(tl.body));
+  assert.equal(
+    tl.body.applied.window.from,
+    new Date(dayAgo).toISOString().slice(0, 10),
+    "two days of snapshots: yesterday and today",
+  );
+});
+
 test("battles_cards: mine and opponent perspectives, duels excluded", async () => {
   const mine = await call("battles_cards", { perspective: "mine" });
   assert.equal(mine.isError, false);

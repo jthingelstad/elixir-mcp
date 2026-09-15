@@ -51,13 +51,13 @@ export const clansTools = {
       type: "object",
       properties: {
         clan_tag: CLAN_TAG_SCHEMA,
+        ...WINDOW_ARGS,
         days: {
           type: "integer",
           minimum: 1,
           maximum: 90,
           description: "Last N days (default 30); or use from/to.",
         },
-        ...WINDOW_ARGS,
         min_battles: {
           type: "integer",
           minimum: 1,

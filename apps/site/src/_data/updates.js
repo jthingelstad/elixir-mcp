@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-15",
+    title: "days and weeks work on every windowed tool",
+    body: "The connection instructions have said 'days/weeks are sugar' since 1.0.0, and five tools honoured it while the rest refused with bad_request - an agent that had just used clans_standings({days: 1}) sent days: 1 to battles_performance and lost three calls learning the difference. Every tool that takes a window now accepts days and weeks as sugar for from, ending now: the battles family, opponents, synergy, the timeline, rankings_timeline, game_events, and players_timeline (there as N days of snapshots, today included). from/to given still win. Additive; contract 3.7.0.",
+  },
+  {
+    date: "2026-09-15",
     title:
       "Ranked promotions, new bests and career-win marks name their battle too",
     body: "The arena move got its battle this morning; the other three threshold moments now carry theirs, one shape everywhere (opponent, crowns, trophy change, and the instant as the item's at). A ranked battle is stamped with the league it started in, so the promotion is the last win played in the league below - 'promoted to Master 2, on a 1-0 win over XTRAXTOR, +30'. A new best names the Trophy Road win whose result first reached the 500 band - 'set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000'. A career-wins mark names the 1,000th win itself, but only when every win between the two snapshots is on the record: the window's wins must reconcile with the lifetime counter, or the moment carries no battle. The rule for all four is the same: absence over a guess.",

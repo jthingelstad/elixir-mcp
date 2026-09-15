@@ -2194,3 +2194,21 @@ the battle, the stamp is); career wins is the Nth win only when the
 window's wins reconcile exactly with the lifetime counter. `describeBattle`
 is the one shape. Not done, deliberately: badges and card unlocks have no
 battle behind them in the record.
+
+## 2026-09-15 — days/weeks on every windowed tool (contract 3.7.0)
+
+Surfaced by the POAP KINGS preview's notable-movers run at 17:31Z: three
+`battles_performance({player_tag, days: 1})` calls refused as
+`bad_request` ("arguments has no property 'days'") right after
+`clans_standings({days: 1})` had worked; the agent recovered with `from`.
+The instructions promised "days/weeks are sugar" for every windowed tool;
+`resolveWindow` implemented it for every caller; `WINDOW_ARGS` never
+declared it, so `additionalProperties: false` refused it on twelve tools.
+`days`/`weeks` now live in `WINDOW_ARGS`; the three tools that read
+from/to by hand (elixir_timeline, rankings_timeline, game_events) go
+through `withWindowSugar`; players_timeline takes them as N snapshot days
+today included. Tools with their own sugar (clans_standings, battles_trends)
+declare it after the spread so their defaults' descriptions stand. The
+lesson for the guide: a convention the instructions state is a contract
+the schema has to keep, on every tool, or the first agent to generalise
+from one success pays for it.

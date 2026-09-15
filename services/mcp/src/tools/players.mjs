@@ -28,6 +28,7 @@ import {
   notes,
   docsRef,
   deckIdentities,
+  withWindowSugar,
 } from "./shared.mjs";
 
 /** Escape LIKE/ILIKE metacharacters so user text matches literally
@@ -294,22 +295,41 @@ export const playersTools = {
         },
         from: { type: "string", description: WINDOW_DATE_ONLY_DESC },
         to: { type: "string", description: WINDOW_DATE_ONLY_DESC },
+        days: {
+          type: "integer",
+          minimum: 1,
+          description:
+            "Last N days of snapshots, today included: sugar for from. Or use from/to.",
+        },
+        weeks: {
+          type: "integer",
+          minimum: 1,
+          description:
+            "Last N weeks of snapshots, today included: sugar for from. Or use from/to.",
+        },
         timezone: TIMEZONE_SCHEMA,
         granularity: { type: "string", enum: ["day", "week"], default: "day" },
       },
       additionalProperties: false,
     },
-    async handler(ctx, args) {
+    async handler(ctx, rawArgs) {
       const tag = (
         await subject(
           ctx.db,
           ctx.account,
-          args.player_tag,
+          rawArgs.player_tag,
           "summary",
-          args.on_behalf_of,
+          rawArgs.on_behalf_of,
         )
       ).tag;
-      const tz = zoneFor(ctx, args);
+      const tz = zoneFor(ctx, rawArgs);
+      // The window sugar, as a date: snapshot days are UTC dates, and N
+      // days back from today is the day N-1 days ago, today included.
+      const args = withWindowSugar(rawArgs);
+      if (args.from !== rawArgs.from)
+        args.from = new Date(Date.parse(args.from) + 86_400_000)
+          .toISOString()
+          .slice(0, 10);
       for (const d of ["from", "to"]) {
         if (
           args[d] !== undefined &&

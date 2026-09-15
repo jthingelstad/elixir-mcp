@@ -30,6 +30,7 @@ import {
   liveRead,
   liveStatus,
   livePendingNote,
+  withWindowSugar,
 } from "./shared.mjs";
 
 const BOARD_SCHEMA = {
@@ -611,7 +612,8 @@ export const rankingsTools = {
       },
       additionalProperties: false,
     },
-    async handler(ctx, args) {
+    async handler(ctx, rawArgs) {
+      const args = withWindowSugar(rawArgs);
       const board = args.board ?? "pol";
       requireEnum(board, ["pol", "mode"], "board");
       const row = await boardRow(ctx.db, board, args.location);
@@ -772,7 +774,8 @@ export const rankingsTools = {
       },
       additionalProperties: false,
     },
-    async handler(ctx, args) {
+    async handler(ctx, rawArgs) {
+      const args = withWindowSugar(rawArgs);
       const tz = zoneFor(ctx, args);
       const to =
         args.to !== undefined

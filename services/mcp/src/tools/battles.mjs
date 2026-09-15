@@ -1394,13 +1394,13 @@ export const battlesTools = {
       type: "object",
       properties: {
         segment: SEGMENT_SCHEMA,
+        ...WINDOW_ARGS,
         weeks: {
           type: "integer",
           minimum: 1,
           maximum: 52,
           description: "How many ISO weeks back (default 12); or use from/to.",
         },
-        ...WINDOW_ARGS,
         mode: MODE_SCHEMA,
       },
       additionalProperties: false,

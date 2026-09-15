@@ -130,8 +130,37 @@ export const TIMEZONE_SCHEMA = {
 export const WINDOW_ARGS = {
   from: { type: "string", description: WINDOW_FROM_DESC },
   to: { type: "string", description: WINDOW_TO_DESC },
+  // The sugar the server instructions promise on every windowed tool.
+  // Until 2026-09-15 five tools declared it and the rest refused it with
+  // bad_request - the notable-movers routine, fresh from a successful
+  // clans_standings({days: 1}), sent days: 1 to battles_performance for
+  // three members and lost three calls learning the difference.
+  days: {
+    type: "integer",
+    minimum: 1,
+    description: "Last N days, ending now: sugar for from. Or use from/to.",
+  },
+  weeks: {
+    type: "integer",
+    minimum: 1,
+    description: "Last N weeks, ending now: sugar for from. Or use from/to.",
+  },
   timezone: TIMEZONE_SCHEMA,
 };
+
+/** For a tool that reads from/to by hand rather than through
+ *  resolveWindow: the same sugar, as a from it can read. from/to given
+ *  win; days/weeks only fill an absent from. */
+export function withWindowSugar(args = {}) {
+  if (args.from !== undefined || args.to !== undefined) return args;
+  if (args.days === undefined && args.weeks === undefined) return args;
+  const days =
+    args.days !== undefined ? Number(args.days) : Number(args.weeks) * 7;
+  return {
+    ...args,
+    from: new Date(Date.now() - days * 86_400_000).toISOString(),
+  };
+}
 
 /** The six mode groups, described once (docs: battles#mode-groups). */
 export const MODE_SCHEMA = {
