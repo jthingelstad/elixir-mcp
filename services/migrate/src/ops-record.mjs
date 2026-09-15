@@ -22,10 +22,17 @@ export async function replay(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    // gateway.name has no unique constraint: check-then-insert.
+    // gateway.name has no unique constraint: check-then-insert. A revoked
+    // row is terminal (the lifecycle is forward-only) and processResult
+    // refuses it, so each import that follows a revocation gets its own
+    // row - separately attributed, separately revocable. Found on the
+    // second backfill (2026-09-15): the first import's row had been
+    // revoked and every message came back gateway_refused.
     let gw = (
       await db.query(
-        `select gateway_id from gateway where name = 'backfill-elixir-bot' limit 1`,
+        `select gateway_id from gateway
+         where name = 'backfill-elixir-bot' and status <> 'revoked'
+         order by enrolled_at desc limit 1`,
       )
     ).rows[0];
     if (!gw) {
