@@ -21,6 +21,7 @@
 
 import { createHash } from "node:crypto";
 import { normalizeTag, deckHash, displayLevel } from "@elixir-mcp/contracts";
+import { projectDecks, projectPlayedCards } from "./deck-cards.mjs";
 import { canonicalBattleTime } from "./battle-time.mjs";
 
 function slimCards(cards) {
@@ -375,6 +376,9 @@ export async function ingestBattlelog(
     );
 
     const partRows = [...parts.keys()].sort().map((k) => parts.get(k));
+    // Deck identities first: battle_participant.deck_hash references
+    // deck (0091). Catalog stubs for unknown cards land inside.
+    await projectDecks(db, partRows);
     const { rows: partsWritten } = await db.query(
       insertManySql(
         "battle_participant",
@@ -397,6 +401,13 @@ export async function ingestBattlelog(
       affected.add(
         `${r.player_tag}|${parts.get(`${r.battle_id}|${r.player_tag}`).battle_time.slice(0, 10)}`,
       );
+    // What each written participant played, as rows (0091) - only for
+    // rows that were inserted or changed, so a resubmission writes nothing.
+    await projectPlayedCards(
+      db,
+      partRows,
+      new Set(partsWritten.map((r) => `${r.battle_id}|${r.player_tag}`)),
+    );
 
     // battle_observation is no longer written (2026-09-12): the receipt
     // carries what this poll saw and dropped (0074) and what it added

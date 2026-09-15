@@ -1934,3 +1934,45 @@ bodies), the S3 put dominating.
 
 **Jamie:** revoke the active `backfill-elixir-bot` gateway row in
 Admin; deploy 3.3.0 (the game_events note) when convenient.
+
+## 2026-09-15 — Cards played become rows (0091, Phase A)
+
+**Decision (Jamie).** A schema audit found the material misalignment: cards
+had no rows. `battle_participant.deck` (the API's cards array as jsonb) and
+`deck_hash` (ours - sha256 over sorted card:form pairs plus tower troop,
+inherited from elixir-bot's SQLite schema where set membership over
+relations was not available) were the only place a played card lived, so
+every card question re-exploded JSON with no index to help. That is the
+mechanism behind the 2026-09-14 22:00Z burst (17 invocations killed at the
+25 s ceiling; POAP KINGS' spotlight asked its OWN clan's deck meta) and why
+"how many battles did a player use Witch in" or "which battles had these
+three cards" were scans or not askable. Jamie: "we need to be able to
+traverse cards all over the place"; undo the JSON-as-record. The hash
+stays as the natural key of a real `deck` table (it is on the contract;
+agents hold hashes), demoted from a loose string to a FK target.
+
+**Shipped (Phase A, expand):** 0091 adds `deck`, `deck_card`,
+`battle_participant_card` (slot 0 = tower troop; duel rounds are separate
+decks) and `card.catalog_seen_at`. The two closing FKs
+(`battle_participant.deck_hash → deck`, `player_card.card_id → card`) are
+0092's: adding them now broke 26 reader tests that seed participants by raw
+SQL, and those tests move onto the projections in Phase B regardless (the
+backfill rehearsal proves both would validate today). Ingest writes the three
+projections in the battle's transaction (re-ingest writes nothing - pinned
+by xmin). Migrate ops `{deck_backfill:{after,batch}}` (keyset, idempotent,
+one SQL explode per batch) and `{deck_census}`.
+
+**Catalog integrity vs ingest (Jamie).** A card seen in a battle before the
+daily /cards poll is stubbed (id, name, kind from the payload;
+`catalog_seen_at` null) and a live-lane `cards/GLOBAL` job is queued so the
+stub heals within minutes; the catalog projector confirms it. "Loading
+battles is more important than eventual catalog integrity" - ingest never
+pauses on the FK. Collections take the same path.
+
+**Next.** Phase B: `battles_meta_cards`, `cards_synergy`, `battles_meta_decks`
+exemplars, `battles_cards`, `battles_levels` and the `battles_query` card
+filter read the tables (each pinned by old-vs-new count diff), `with_cards`
+(plural) on `battles_query`, then 0092 adds and validates both FKs once
+`{deck_census}` is zero. Phase C: drop `deck`/`support_cards` jsonb and
+`player_current_deck.cards`. Separate small fix still open: scoped meta's
+whole-corpus prior scan (`corpusPrior`).

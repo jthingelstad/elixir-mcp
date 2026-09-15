@@ -4,6 +4,7 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { deckBackfill, deckCensus } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
 import { activityPreview } from "./ops-activity.mjs";
 
@@ -206,6 +207,19 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.capture_audit,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.deck_backfill) {
+    const result = await deckBackfill(
+      process.env.DATABASE_URL,
+      event.deck_backfill === true ? {} : event.deck_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.deck_census) {
+    const result = await deckCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

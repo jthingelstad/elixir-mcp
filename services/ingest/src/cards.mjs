@@ -16,11 +16,15 @@
  */
 
 import { emitEvent } from "./events.mjs";
+import { ensureCards } from "./deck-cards.mjs";
 import { displayLevel } from "@elixir-mcp/contracts";
 
 /** Upsert the catalog: items are cards, supportItems tower troops. A
  *  card never leaves the table; a row is touched only when a field
- *  moved. Returns how many rows were inserted or changed. */
+ *  moved - or when it is a stub a battle wrote ahead of the catalog
+ *  (0091), which ANY catalog fetch confirms by stamping catalog_seen_at,
+ *  whatever its timestamp: a stub has no catalog facts to protect.
+ *  Returns how many rows were inserted or changed. */
 export async function projectCardCatalog(db, { payload, fetchedAt }) {
   const rows = [];
   for (const [kind, list] of [
@@ -46,8 +50,8 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
   if (rows.length === 0) return { changed: 0 };
   rows.sort((a, b) => a.card_id - b.card_id);
   const { rowCount } = await db.query(
-    `insert into card (card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level, icon_urls, first_seen_at, observed_at)
-     select r.card_id, r.name, r.kind, r.rarity, r.elixir_cost, r.max_level, r.max_evolution_level, r.icon_urls, $2, $2
+    `insert into card (card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level, icon_urls, first_seen_at, observed_at, catalog_seen_at)
+     select r.card_id, r.name, r.kind, r.rarity, r.elixir_cost, r.max_level, r.max_evolution_level, r.icon_urls, $2, $2, $2
      from jsonb_to_recordset($1::jsonb)
        as r(card_id int, name text, kind text, rarity text, elixir_cost int,
             max_level int, max_evolution_level int, icon_urls jsonb)
@@ -55,13 +59,15 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
        name = excluded.name, kind = excluded.kind, rarity = excluded.rarity,
        elixir_cost = excluded.elixir_cost, max_level = excluded.max_level,
        max_evolution_level = excluded.max_evolution_level,
-       icon_urls = excluded.icon_urls, observed_at = excluded.observed_at
-     where card.observed_at < excluded.observed_at
-       and (card.name, card.kind, card.rarity, card.elixir_cost, card.max_level,
-            card.max_evolution_level, card.icon_urls)
-           is distinct from
-           (excluded.name, excluded.kind, excluded.rarity, excluded.elixir_cost,
-            excluded.max_level, excluded.max_evolution_level, excluded.icon_urls)`,
+       icon_urls = excluded.icon_urls, observed_at = excluded.observed_at,
+       catalog_seen_at = excluded.catalog_seen_at
+     where card.catalog_seen_at is null
+        or (card.observed_at < excluded.observed_at
+            and (card.name, card.kind, card.rarity, card.elixir_cost, card.max_level,
+                 card.max_evolution_level, card.icon_urls)
+                is distinct from
+                (excluded.name, excluded.kind, excluded.rarity, excluded.elixir_cost,
+                 excluded.max_level, excluded.max_evolution_level, excluded.icon_urls))`,
     [JSON.stringify(rows), fetchedAt],
   );
   return { changed: rowCount };
@@ -74,9 +80,14 @@ export async function projectPlayerCards(
   { playerTag, payload, fetchedAt },
 ) {
   const rows = [];
-  for (const list of [payload?.cards, payload?.supportCards]) {
+  const seen = [];
+  for (const [kind, list] of [
+    ["card", payload?.cards],
+    ["support", payload?.supportCards],
+  ]) {
     for (const c of Array.isArray(list) ? list : []) {
       if (!Number.isInteger(c?.id)) continue;
+      seen.push({ card_id: c.id, name: c.name, kind });
       rows.push({
         card_id: c.id,
         level:
@@ -93,6 +104,9 @@ export async function projectPlayerCards(
   }
   if (rows.length === 0) return { changed: 0, feedEvents: [] };
   rows.sort((a, b) => a.card_id - b.card_id);
+  // player_card.card_id references card (0091): a collection can name a
+  // card the daily catalog has not seen yet; stub it rather than wait.
+  await ensureCards(db, seen, fetchedAt);
   const { rows: changed } = await db.query(
     `with prior as (
        select card_id, level from player_card where player_tag = $1
