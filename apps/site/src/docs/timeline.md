@@ -93,6 +93,14 @@ belongs to, so `sections` filters items and entries together.
 Members' moments on a clan's timeline are capped per response; the entry's
 standouts keep the aggregate.
 
+A profile-derived moment (arena, ranked league, best band, collection
+level, badges, cards) is written once, by the first profile poll that
+sees it; later polls the same day rewrite the day's snapshot and never
+the moment. An arena move is polled for as soon as the player's own
+battles vouch for it (see [Recording](/docs/recording/), the profile
+arena request), so it arrives within the battle log's cadence rather
+than the profile's.
+
 ## Entries
 
 One per subject, summarizing the same window. Every entry opens with

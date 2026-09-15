@@ -174,6 +174,23 @@ export function lossBoundMinutes(row, now = new Date()) {
   return Math.max(15, ((LOSS_SAFETY * LOG_CAPACITY) / burst) * 60);
 }
 
+/** Whether ingest asked for this profile and no admission has served it
+ *  yet (0101). The in-flight window applies as it does to a floor. */
+export function refreshRequested(row, now = new Date()) {
+  if (row.endpoint !== "player" || !row.refresh_requested_at) return false;
+  const asked = new Date(row.refresh_requested_at).getTime();
+  const admitted = row.last_admitted_at
+    ? new Date(row.last_admitted_at).getTime()
+    : 0;
+  const planned = row.last_planned_at
+    ? new Date(row.last_planned_at).getTime()
+    : 0;
+  return (
+    asked > admitted &&
+    now.getTime() - planned >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE
+  );
+}
+
 /** Whether a reader asked about this subject within READ_TTL_HOURS. */
 export function readCapApplies(row, now = new Date()) {
   if (!row.last_read_at) return false;
@@ -460,6 +477,7 @@ async function selectEligible(db, now, arm) {
     with state as (
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
              ps.yield_bph, ps.hint, ps.burst_bph, ps.burst_at, ps.last_read_at,
+             ps.refresh_requested_at,
              -- Activity is only ever recorded on the battlelog row (ingest
              -- writes yield_bph there and nowhere else), so a profile row
              -- has to borrow it. Without this the 'player' cadence saw NULL
@@ -532,7 +550,7 @@ async function selectEligible(db, now, arm) {
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
-           yield_bph, hint, burst_bph, burst_at, last_read_at,
+           yield_bph, hint, burst_bph, burst_at, last_read_at, refresh_requested_at,
            -- The 2026-09-08 borrow computed this in the CTE and never
            -- re-selected it here, so yieldCadenceMinutes saw undefined,
            -- fell back to the profile row's own NULL yield_bph, and every
@@ -555,10 +573,15 @@ async function selectEligible(db, now, arm) {
   for (const r of rows) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
+    // Ingest asked for this profile (0101): the player's own battles carry
+    // an arena the snapshot does not. Direct evidence of activity, so the
+    // roster gate does not apply, and it ranks with the floors: one fetch,
+    // owed now. Served once an admission passes the stamp.
+    const requested = refreshRequested(r, now);
     // A fresh roster can suppress an unchanged profile. Battle logs remain
     // eligible on their own cadence: lastSeen is not a safe negative signal
     // for capture completeness.
-    if (rosterGated(r, now)) {
+    if (!requested && rosterGated(r, now)) {
       gated += 1;
       continue;
     }
@@ -597,6 +620,7 @@ async function selectEligible(db, now, arm) {
       plannedMs < windowStartMs;
     const starved =
       forcedPreReset ||
+      requested ||
       (cadence.floor !== undefined &&
         nowMs - admittedMs >= cadence.floor * MINUTE &&
         nowMs - plannedMs >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE);
@@ -606,6 +630,7 @@ async function selectEligible(db, now, arm) {
       subject_tag: r.subject_tag,
       endpoint: r.endpoint,
       starved,
+      requested,
       bounded:
         due && !dueUnbounded && !starved && lossBoundMinutes(row, now) !== null,
       readCapped: due && !dueUnbounded && !starved && readCapApplies(row, now),
@@ -668,7 +693,14 @@ export async function planTick(
 
   const bulkBudget = Math.floor(tokens * (1 - liveReserve));
   if (bulkBudget <= 0)
-    return { jobs: [], tokens, bulkBudget, bounded: 0, readCapped: 0 };
+    return {
+      jobs: [],
+      tokens,
+      bulkBudget,
+      bounded: 0,
+      readCapped: 0,
+      requested: 0,
+    };
 
   const eligible = await selectEligible(db, now, arm);
   const selected = eligible.slice(0, bulkBudget);
@@ -695,6 +727,7 @@ export async function planTick(
     bulkBudget,
     bounded: selected.filter((j) => j.bounded).length,
     readCapped: selected.filter((j) => j.readCapped).length,
+    requested: selected.filter((j) => j.requested).length,
     gated: eligible.gated ?? 0,
   };
 }

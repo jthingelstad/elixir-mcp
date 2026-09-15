@@ -379,6 +379,82 @@ test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", a
   );
 });
 
+test("a requested profile refresh (0101) is owed now: past the roster gate, ahead of the cadence, once", async () => {
+  await freshenCards(NOW);
+  await db.query(
+    `insert into clan (clan_tag) values ('#G8Q2LPY') on conflict do nothing`,
+  );
+  await addPlayer("#G8U2L9", { clan: "#G8Q2LPY" });
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
+     values ('clan', '#G8Q2LPY', $1, 'comprehensive')`,
+    [accountId],
+  );
+  // The profile was polled two hours ago (nowhere near eight), and the
+  // tracked roster, fresher than that poll, says the player was last seen
+  // before it: the gate would hold this row. Then ingest saw their own
+  // battles name an arena the snapshot lacks, twenty minutes ago.
+  await setState("#G8U2L9", "player_battlelog", {
+    yieldBph: 5,
+    admitted: min(5),
+    planned: min(5),
+  });
+  await setState("#G8U2L9", "player", {
+    admitted: min(120),
+    planned: min(120),
+  });
+  await setState("#G8Q2LPY", "clan", { admitted: min(10), planned: min(10) });
+  await db.query(
+    `update player set game_last_seen_at = $2 where player_tag = $1`,
+    ["#G8U2L9", min(300)],
+  );
+  await setTokens(100);
+  const quiet = await planTick(db, NOW);
+  assert.deepEqual(
+    quiet.jobs.filter((j) => j.entity_key === "#G8U2L9"),
+    [],
+    "without a request the profile waits: gated, and not due",
+  );
+  assert.equal(quiet.requested, 0);
+
+  await db.query(
+    `update poll_state set refresh_requested_at = $2
+     where subject_tag = $1 and endpoint = 'player'`,
+    ["#G8U2L9", min(20)],
+  );
+  await setState("#G8U2L9", "player", {
+    admitted: min(120),
+    planned: min(120),
+  });
+  await setTokens(100);
+  const asked = await planTick(db, NOW);
+  assert.deepEqual(
+    asked.jobs.filter((j) => j.entity_key === "#G8U2L9").map((j) => j.endpoint),
+    ["player"],
+    "the request is a floor: gate and cadence step aside",
+  );
+  assert.equal(asked.requested, 1);
+  assert.equal(asked.gated, 0, "a requested row is not counted as gated");
+
+  // In flight: planned just now, not re-enqueued.
+  await setTokens(100);
+  const inFlight = await planTick(db, NOW);
+  assert.deepEqual(
+    inFlight.jobs.filter((j) => j.entity_key === "#G8U2L9"),
+    [],
+  );
+
+  // Served: an admission after the stamp ends it, with nothing to clear.
+  await setState("#G8U2L9", "player", { admitted: min(1), planned: min(1) });
+  await setTokens(100);
+  const served = await planTick(db, NOW);
+  assert.deepEqual(
+    served.jobs.filter((j) => j.entity_key === "#G8U2L9"),
+    [],
+  );
+  assert.equal(served.requested, 0);
+});
+
 test("the roster gate saves idle profiles but never suppresses a battle log", async () => {
   await freshenCards(NOW);
   await db.query(

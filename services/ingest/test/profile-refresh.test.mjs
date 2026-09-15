@@ -1,0 +1,338 @@
+/**
+ * 0101: the battle stream asks for a profile the snapshot cannot vouch
+ * for, and a moment is written once.
+ *
+ * The shape is x.x.hari.x.x's morning of 2026-09-15: a 06:07Z profile in
+ * Executioner's Kitchen, the crossing at 06:46Z, a first Royal Crypt battle
+ * as the LOWER side at 06:52Z (which vouches for nothing: the arena on a
+ * battle is the higher side's), a trusted Royal Crypt battle at 08:11Z,
+ * and the profile that finally said so at 14:27Z. Reproduced against the
+ * real pipeline on a scratch database.
+ */
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
+import { processResult } from "../src/pipeline.mjs";
+import { refreshRequested } from "../../scheduler/src/plan.mjs";
+import { fixture, scratchDb } from "./helpers.mjs";
+
+let ctx;
+let gatewayId;
+let ladderEntry;
+let profileFixture;
+
+const ME = "#PR0Y0Q2L";
+const KITCHEN = { id: 54000013, name: "Executioner's Kitchen" };
+const CRYPT = { id: 54000014, name: "Royal Crypt" };
+
+function message({ endpoint, entityKey, payload, fetchedAt }) {
+  return {
+    v: 1,
+    job: { endpoint, entity_key: entityKey, lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: fetchedAt,
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+      "base64",
+    ),
+  };
+}
+
+/** A ladder battle from the observer's own log, at a time, in an arena,
+ *  with both sides' starting trophies. */
+function ladder({ at, arena, mine, theirs, opponent }) {
+  const entry = structuredClone(ladderEntry);
+  entry.battleTime = at;
+  entry.arena = { ...arena, rawName: `Arena_${arena.id}` };
+  entry.team[0].tag = ME;
+  entry.team[0].name = "promo";
+  entry.team[0].startingTrophies = mine;
+  entry.opponent[0].tag = opponent;
+  entry.opponent[0].startingTrophies = theirs;
+  return entry;
+}
+
+function profile({ arena, trophies, donations, bestTrophies }) {
+  const p = structuredClone(profileFixture);
+  p.tag = ME;
+  p.name = "promo";
+  p.arena = { ...arena, rawName: `Arena_${arena.id}` };
+  p.trophies = trophies;
+  p.bestTrophies = bestTrophies ?? trophies;
+  p.donations = donations ?? p.donations;
+  return p;
+}
+
+async function pollState() {
+  const { rows } = await ctx.db.query(
+    `select last_admitted_at, last_planned_at, refresh_requested_at, endpoint
+     from poll_state where subject_tag = $1 and endpoint = 'player'`,
+    [ME],
+  );
+  return rows[0];
+}
+
+async function events(type) {
+  const { rows } = await ctx.db.query(
+    `select event_type, window_start, window_end, payload from player_event
+     where player_tag = $1 and event_type = $2 order by event_id`,
+    [ME, type],
+  );
+  return rows;
+}
+
+// Fresh enough for the activity signals: the guard is 24h from now, and
+// the scenario has to be a real morning with real gaps between polls.
+const day = new Date(Date.now() - 12 * 3600_000).toISOString().slice(0, 10);
+const at = (hhmmss) => `${day}T${hhmmss}Z`;
+const logAt = (hhmmss) => `${day.replaceAll("-", "")}T${hhmmss}.000Z`;
+
+before(async () => {
+  ctx = await scratchDb("profile_refresh");
+  const {
+    rows: [account],
+  } = await ctx.db.query(
+    `insert into account (email_hash, status, is_owner, role) values ('refresh-owner', 'approved', true, 'owner')
+     returning account_id`,
+  );
+  const {
+    rows: [gw],
+  } = await ctx.db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'refresh-gw', '127.0.0.1', 'active') returning gateway_id`,
+    [account.account_id],
+  );
+  gatewayId = gw.gateway_id;
+  ladderEntry = (
+    await fixture("player_battlelog/with_path_of_legend.json")
+  ).find((b) => b.type === "PvP");
+  profileFixture = await fixture("player/profile.json");
+  // The planner only sees a player somebody records.
+  await ctx.db.query(
+    `insert into player (player_tag, name) values ($1, 'promo')`,
+    [ME],
+  );
+  await ctx.db.query(
+    `insert into recording (subject_type, subject_tag, status, scope, requested_by)
+     values ('player', $1, 'active', 'comprehensive', $2)`,
+    [ME, account.account_id],
+  );
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player'), ($1, 'player_battlelog')`,
+    [ME],
+  );
+});
+
+after(async () => ctx.drop());
+
+test("a profile in the old arena, then a log whose only new-arena battle was as the lower side: nothing asked", async () => {
+  const first = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: ME,
+      payload: profile({ arena: KITCHEN, trophies: 5854, donations: 40 }),
+      fetchedAt: at("06:07:49"),
+    }),
+  );
+  assert.equal(first.outcome, "admitted", JSON.stringify(first.errors));
+  assert.equal(
+    (await events("arena_changed")).length,
+    0,
+    "first sight emits nothing",
+  );
+
+  const morning = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: logAt("065220"),
+          arena: CRYPT,
+          mine: 6000,
+          theirs: 6015,
+          opponent: "#0PP0000Q",
+        }),
+        ladder({
+          at: logAt("064632"),
+          arena: KITCHEN,
+          mine: 5970,
+          theirs: 5976,
+          opponent: "#0PP0000L",
+        }),
+        ladder({
+          at: logAt("063902"),
+          arena: KITCHEN,
+          mine: 5940,
+          theirs: 5940,
+          opponent: "#0PP00000",
+        }),
+      ],
+      fetchedAt: at("07:00:00"),
+    }),
+  );
+  assert.equal(morning.outcome, "admitted", JSON.stringify(morning.errors));
+  assert.deepEqual(
+    morning.projection.arenaEvidence,
+    { arena: KITCHEN.name, battle_time: at("06:39:02") },
+    "the newest battle the observer entered with at least the opponent's trophies",
+  );
+  assert.equal(morning.projection.profileRefreshRequested, false);
+  assert.equal(
+    (await pollState()).refresh_requested_at,
+    null,
+    "a Royal Crypt battle as the lower side is the opponent's arena, not ours",
+  );
+});
+
+test("the first trusted battle in the new arena asks for the profile once; the planner owes it; admission serves it", async () => {
+  const trusted = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: logAt("081125"),
+          arena: CRYPT,
+          mine: 6000,
+          theirs: 6000,
+          opponent: "#0PP0000R",
+        }),
+        ladder({
+          at: logAt("065220"),
+          arena: CRYPT,
+          mine: 6000,
+          theirs: 6015,
+          opponent: "#0PP0000Q",
+        }),
+      ],
+      fetchedAt: at("08:20:32"),
+    }),
+  );
+  assert.equal(trusted.outcome, "admitted");
+  assert.deepEqual(trusted.projection.arenaEvidence, {
+    arena: CRYPT.name,
+    battle_time: at("08:11:25"),
+  });
+  assert.equal(trusted.projection.profileRefreshRequested, true);
+  let state = await pollState();
+  assert.equal(state.refresh_requested_at.toISOString(), at("08:20:32.000"));
+
+  // The planner's view: the profile was admitted two hours ago, nowhere
+  // near its eight-hour cadence, and it is owed now.
+  assert.equal(
+    refreshRequested(
+      { ...state, endpoint: "player" },
+      new Date(at("08:21:00")),
+    ),
+    true,
+  );
+
+  // The same log again: nothing inserted, nothing vouched for, stamp kept.
+  const again = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: logAt("081125"),
+          arena: CRYPT,
+          mine: 6000,
+          theirs: 6000,
+          opponent: "#0PP0000R",
+        }),
+      ],
+      fetchedAt: at("08:40:00"),
+    }),
+  );
+  assert.equal(again.projection.arenaEvidence, null);
+  assert.equal(again.projection.profileRefreshRequested, undefined);
+  state = await pollState();
+  assert.equal(state.refresh_requested_at.toISOString(), at("08:20:32.000"));
+
+  // The profile arrives and names the arena: one moment, and the request
+  // is served by the admission itself.
+  const served = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: ME,
+      payload: profile({ arena: CRYPT, trophies: 6030, donations: 52 }),
+      fetchedAt: at("08:45:10"),
+    }),
+  );
+  assert.equal(served.outcome, "admitted");
+  state = await pollState();
+  assert.equal(state.last_admitted_at.toISOString(), at("08:45:10.000"));
+  assert.equal(
+    refreshRequested(
+      { ...state, endpoint: "player" },
+      new Date(at("09:00:00")),
+    ),
+    false,
+    "an admission past the stamp is the answer",
+  );
+  const moved = await events("arena_changed");
+  assert.equal(moved.length, 1);
+  assert.deepEqual(moved[0].payload, {
+    from: KITCHEN.id,
+    to: CRYPT.id,
+    to_name: CRYPT.name,
+  });
+  assert.equal(moved[0].window_start.toISOString(), at("06:07:49.000"));
+  assert.equal(moved[0].window_end.toISOString(), at("08:45:10.000"));
+});
+
+test("a later poll the same day does not re-emit the moment, and a fall in the weekly counter resets once", async () => {
+  const later = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: ME,
+      payload: profile({ arena: CRYPT, trophies: 6087, donations: 60 }),
+      fetchedAt: at("14:27:48"),
+    }),
+  );
+  assert.equal(later.outcome, "admitted");
+  assert.equal(
+    (await events("arena_changed")).length,
+    1,
+    "the day row was rewritten; the moment was not",
+  );
+  assert.equal(
+    (await pollState()).refresh_requested_at.toISOString(),
+    at("08:20:32.000"),
+  );
+
+  // Monday-shaped: the counter falls, once, and the next poll that day
+  // compares against the post-reset row, not yesterday's.
+  const nextDay = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  for (const [hhmmss, donations] of [
+    ["01:10:00", 4],
+    ["09:10:00", 9],
+  ]) {
+    const r = await processResult(
+      ctx.db,
+      message({
+        endpoint: "player",
+        entityKey: ME,
+        payload: profile({ arena: CRYPT, trophies: 6087, donations }),
+        fetchedAt: `${nextDay}T${hhmmss}Z`,
+      }),
+    );
+    assert.equal(r.outcome, "admitted");
+  }
+  const resets = await events("donation_reset");
+  assert.equal(resets.length, 1);
+  assert.deepEqual(resets[0].payload, {
+    donations_before: 60,
+    donations_after: 4,
+  });
+  assert.equal(resets[0].window_start.toISOString(), at("14:27:48.000"));
+});

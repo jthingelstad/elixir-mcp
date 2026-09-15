@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-15",
+    title:
+      "Arena moves reach the timeline within the hour, and a moment is written once",
+    body: "A clan member reached Royal Crypt at 06:52Z on 2026-09-15 and the clan's timeline said so at 14:27Z, when the eight-hour profile poll came round; the battle log, read many times in between, had carried the new arena on every entry. A battle's arena is the higher side's, so a player just under a gate sees the next arena on their own log whenever they meet someone standing on it - the log cannot be the fact, but it can be the trigger. When a Trophy Road battle the player entered with at least their opponent's trophies names an arena the latest snapshot does not carry, the profile is polled at the next planning tick, roster gate or not, and the profile remains the authority. Separately, every profile-derived moment was diffed against the previous DAY's snapshot while the day's row was rewritten on each poll, so a later poll the same day re-emitted it (a promotion to Master 2 appeared at 07:22Z and again at 16:22Z on 2026-09-14). Moments now diff against the latest observation and are written once; the Monday donation reset likewise.",
+  },
+  {
+    date: "2026-09-15",
     title: "Every card played is now a row, and card questions are lookups",
     body: "Until today the only place a played card lived was the deck's JSON on each battle, so every card question - card meta, synergy, which battles had a card - re-read every deck in the window, and on 2026-09-14 three clans asking at once pushed those reads past the 25-second door. The record now holds a deck table (one row per deck identity), its cards, and what each participant played in each battle with the level they played it at, written in the same transaction as the battle and backfilled for all 454,654 recorded participants. battles_query takes with_cards for several cards at once; card meta, synergy and deck lists read the rows. A card the daily catalog has not seen yet is recorded from the battle and the catalog is fetched at once, so a release day never pauses recording.",
   },

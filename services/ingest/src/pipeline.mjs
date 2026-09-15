@@ -91,6 +91,40 @@ export async function stampBurst(db, playerTag, asOf) {
   );
 }
 
+/**
+ * Ask for a profile the battle stream says is stale (0101). The observer's
+ * own battles named an arena (see observerArena in battles.mjs for what
+ * "own" costs) that the latest snapshot does not carry, and the snapshot
+ * predates the battle: the profile has moved and the eight-hour cadence
+ * would sit on it. The planner reads refresh_requested_at as a floor for
+ * that one row. One outstanding request at a time - a stamp already past
+ * the last admission stands until it is served - and the arena name is
+ * compared through the catalog the profile poll itself maintains, so an
+ * arena the catalog has never seen cannot ask for anything.
+ */
+async function requestProfileRefresh(
+  db,
+  playerTag,
+  { arena, battle_time: battleTime },
+  fetchedAt,
+) {
+  const { rowCount } = await db.query(
+    `update poll_state ps set refresh_requested_at = $4::timestamptz
+     from (select s.arena_id, s.observed_at
+             from player_snapshot_daily s
+            where s.player_tag = $1 and s.observed_at is not null
+            order by s.observed_at desc limit 1) snap
+     left join arena a on a.arena_id = snap.arena_id
+     where ps.subject_tag = $1 and ps.endpoint = 'player'
+       and snap.observed_at < $3::timestamptz
+       and a.name is not null and a.name <> $2
+       and (ps.refresh_requested_at is null
+            or ps.refresh_requested_at <= coalesce(ps.last_admitted_at, 'epoch'))`,
+    [normalizeTag(playerTag), arena, battleTime, fetchedAt],
+  );
+  return rowCount > 0;
+}
+
 const PROJECTORS = {
   async player_battlelog(
     db,
@@ -125,6 +159,15 @@ const PROJECTORS = {
     // log, from battle TIMESTAMPS, so an overflowed poll still teaches
     // the true rate. Same replay guard as the yield signal below.
     if (fresh) await stampBurst(db, entityKey, fetchedAt);
+    // The observer's battles named an arena (0101): if the snapshot does
+    // not know it yet, the profile is owed a read now, not in eight hours.
+    if (fresh && result.arenaEvidence)
+      result.profileRefreshRequested = await requestProfileRefresh(
+        db,
+        entityKey,
+        result.arenaEvidence,
+        fetchedAt,
+      );
     // Yield signal (0017): battles-per-hour EWMA, the one activity
     // number the yield scheduler ranks by. Hours are measured from the
     // last admission; replayed history is excluded (backfill guard).

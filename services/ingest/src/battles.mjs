@@ -277,6 +277,37 @@ function insertManySql(table, cols, conflictTarget, enrichCols, rowCount) {
  * Ingest one admitted battlelog payload for one observer.
  * Idempotent; at-least-once safe. Caller owns the transaction.
  */
+/**
+ * The observer's own arena, as far as this delivery can vouch for it (0101).
+ *
+ * A ladder battle's `arena` is the HIGHER side's arena, not the observer's:
+ * a player thirty trophies under a gate meets people standing on it and
+ * their own log names the next arena for those battles (checked live on
+ * 2026-09-15 against three sub-6,000 players whose logs said Royal Crypt).
+ * So only a battle the observer entered with at least the opponent's
+ * trophies says where the OBSERVER stood. The newest such battle among
+ * the ones this delivery INSERTED is the evidence; a resubmitted log inserts
+ * nothing and vouches for nothing. Trophy Road only: no other type carries
+ * a trophy arena.
+ */
+function observerArena(observer, writtenBattles, parts) {
+  let newest = null;
+  for (const b of writtenBattles) {
+    if (b.type !== "PvP" || !b.arena) continue;
+    const mine = parts.get(`${b.battle_id}|${observer}`);
+    if (!mine || typeof mine.starting_trophies !== "number") continue;
+    const others = [...parts.values()].filter(
+      (p) => p.battle_id === b.battle_id && p.player_tag !== observer,
+    );
+    if (others.length !== 1) continue;
+    const theirs = others[0].starting_trophies;
+    if (typeof theirs !== "number" || mine.starting_trophies < theirs) continue;
+    if (newest === null || b.battle_time > newest.battle_time)
+      newest = { arena: b.arena, battle_time: b.battle_time };
+  }
+  return newest;
+}
+
 export async function ingestBattlelog(
   db,
   {
@@ -362,6 +393,7 @@ export async function ingestBattlelog(
 
   let battlesInserted = 0;
   let oldestWasNew = false;
+  let arenaEvidence = null;
   if (battles.size > 0) {
     // Deterministic lock order: concurrent observers of the SAME battles
     // (concurrency 4) otherwise acquire row locks in payload order and
@@ -385,6 +417,16 @@ export async function ingestBattlelog(
     oldestWasNew = rows.some(
       (r) => r.inserted && r.battle_id === oldest.battle_id,
     );
+    const changedBattles = new Set(rows.map((r) => r.battle_id));
+
+    const insertedBattles = new Set(
+      rows.filter((r) => r.inserted).map((r) => r.battle_id),
+    );
+    arenaEvidence = observerArena(
+      observer,
+      battleRows.filter((b) => insertedBattles.has(b.battle_id)),
+      parts,
+    );
 
     const partRows = [...parts.keys()].sort().map((k) => parts.get(k));
     // Deck identities first: battle_participant.deck_hash references
@@ -404,7 +446,6 @@ export async function ingestBattlelog(
     // battle or participant row was actually written needs recomputing.
     // Before this, every poll rebuilt every pair in the payload - 469k
     // rows deleted to keep 96k.
-    const changedBattles = new Set(rows.map((r) => r.battle_id));
     for (const p of partRows)
       if (changedBattles.has(p.battle_id))
         affected.add(`${p.player_tag}|${p.battle_time.slice(0, 10)}`);
@@ -465,6 +506,7 @@ export async function ingestBattlelog(
       hadPriorCoverage && seen > 0
         ? { audited: true, gap }
         : { audited: false, gap: false },
+    arenaEvidence,
     affectedPairs: [...affected].map((k) => {
       const [playerTag, day] = k.split("|");
       return { playerTag, day };

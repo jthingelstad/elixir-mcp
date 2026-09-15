@@ -40,6 +40,7 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
             { Name: "PlannedJobs", Unit: "Count" },
             { Name: "LossBoundedJobs", Unit: "Count" },
             { Name: "ReadCappedJobs", Unit: "Count" },
+            { Name: "RequestedProfileJobs", Unit: "Count" },
           ],
         },
       ],
@@ -50,6 +51,7 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
     PlannedJobs: plan.planned ?? 0,
     LossBoundedJobs: plan.bounded ?? 0,
     ReadCappedJobs: plan.read_capped ?? 0,
+    RequestedProfileJobs: plan.requested ?? 0,
   });
 }
 

@@ -205,6 +205,7 @@ test("empty battlelog is a clean no-op", async () => {
     battlesInserted: 0,
     facts: 0,
     captureAudit: { audited: false, gap: false },
+    arenaEvidence: null,
     affectedPairs: [],
   });
 });

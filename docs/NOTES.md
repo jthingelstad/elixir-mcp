@@ -2107,3 +2107,46 @@ credential, warm:** clan deck meta 15.3 s → 1.7 s; clan card meta 17.3 s
 with_cards 1.6 s. Participant heap 612 MB → 141 MB; card-row indexes
 1.68 GB → 0.5 GB. The corpus-wide calls remain the slow class and the
 class Jamie considers mostly invalid questions; they now finish.
+
+## 2026-09-15 — Arena moves within the hour (0101), and a moment written once
+
+**What Jamie saw.** x.x.hari.x.x reached Royal Crypt at 06:52Z (the
+crossing win at 06:46Z, 5,970 → 6,000); elixir-bot narrated it at 08:40Z;
+the Elixir timeline carried `arena_changed` at 14:27Z, the next profile
+poll after the 06:07Z one. Asked at 11:46Z, the POAP KINGS preview bot
+truthfully found nothing and then told Jamie it had filed feedback - it
+had not (four reads, no `elixir_feedback` call; that half is
+elixir-mcp-discord's). Every profile-derived moment inherits the
+eight-hour profile cadence (2026-09-09, cost).
+
+**The battle log cannot be the fact.** Checked live against three
+players at 5,969-5,999 facing opponents standing on 6,000: their OWN
+logs named Royal Crypt for those battles, and 6,000 is a gate (one
+opponent sat at exactly 6,000 through eleven losses), so they were not
+in Royal Crypt. A battle's `arena` is the higher side's, stamped at
+battle time (hari's own 06:46 battle still reads Executioner's Kitchen).
+Emitting from it would fire a false promotion for nearly everyone in
+their last ~30 trophies before a gate.
+
+**It can be the trigger.** `observerArena` (ingest/battles.mjs): among a
+delivery's INSERTED Trophy Road battles, the newest the observer entered
+with at least the opponent's trophies names the observer's arena. If the
+latest snapshot (via the arena catalog) disagrees and predates the
+battle, `poll_state.refresh_requested_at` is stamped (0101,
+`requestProfileRefresh`); the planner treats an unserved stamp as a
+floor for that row - past the roster gate, ahead of the cadence, subject
+to the in-flight window - and the next admission serves it. One
+outstanding request per player. Cost: one profile fetch per real
+promotion. For hari: the trusted battle was 08:11Z, so ~08:25Z instead
+of 14:27Z. `RequestedProfileJobs` is on the tick EMF.
+
+**The duplicates.** Reading the timeline for the evidence showed the
+same moment twice (Aaqib Javed → Master 2 at 07:22Z and 16:22Z; five
+more pairs, all same-UTC-day). `projectPlayerSnapshot` diffed moments
+against the newest PRIOR day's row while today's row is rewritten on
+every poll, so every later poll re-emitted. A same-day first sight plus
+promotion emitted nothing at all until the next day. Moments and
+`donation_reset` now diff against `latest` (newest observation strictly
+before this poll, any day); `prev` (prior day) still answers the
+day-level `moved`. Regression: `ingest/test/profile-refresh.test.mjs`,
+failing against the old projector on both counts. Contract 3.4.2.

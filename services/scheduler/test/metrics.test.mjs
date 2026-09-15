@@ -28,6 +28,7 @@ test("ledgerEmf carries the alarm's namespace, metric names, and no dimensions",
       "PlannedJobs",
       "LossBoundedJobs",
       "ReadCappedJobs",
+      "RequestedProfileJobs",
     ],
   );
   assert.equal(emf.OldestQueuedAgeSeconds, 1800);
@@ -50,15 +51,22 @@ test("ledgerEmf coalesces missing fields to zero", () => {
   assert.equal(emf.PlannedJobs, 0);
   assert.equal(emf.LossBoundedJobs, 0);
   assert.equal(emf.ReadCappedJobs, 0);
+  assert.equal(emf.RequestedProfileJobs, 0);
 });
 
 test("ledgerEmf carries the planner counters when the tick supplies them", () => {
   const emf = JSON.parse(
-    ledgerEmf(SAMPLE, 1, { planned: 12, bounded: 3, read_capped: 1 }),
+    ledgerEmf(SAMPLE, 1, {
+      planned: 12,
+      bounded: 3,
+      read_capped: 1,
+      requested: 2,
+    }),
   );
   assert.equal(emf.PlannedJobs, 12);
   assert.equal(emf.LossBoundedJobs, 3);
   assert.equal(emf.ReadCappedJobs, 1);
+  assert.equal(emf.RequestedProfileJobs, 2);
 });
 
 test("emitLedgerMetrics writes one newline-terminated line and returns synchronously", () => {

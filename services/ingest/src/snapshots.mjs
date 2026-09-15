@@ -7,10 +7,14 @@
  * snapshot is "state at capture", and the pre-reset peak lives in the
  * prior day's row plus the season_roll row.
  *
- * Diff events come from comparing against the PREVIOUS snapshot (the DB is
- * the baseline, same as roster tenure): v0 emits donation_reset only —
- * donations are monotonic within a week, so a decrease is the reset.
- * First sight emits nothing.
+ * Diff events come from comparing against the LATEST snapshot observation
+ * (the DB is the baseline, same as roster tenure): donation_reset when
+ * the weekly counter falls, and the ledger milestones below. First sight
+ * emits nothing. The baseline is the newest row by observed_at, today's
+ * included: until 2026-09-15 it was the newest PRIOR day's row, and since
+ * today's row is rewritten on every poll, every later poll that day
+ * re-diffed against yesterday and re-emitted the same moment (Aaqib Javed
+ * "promoted to Master 2" at 07:22Z and again at 16:22Z on 2026-09-14).
  */
 
 import { inPreResetWindow } from "@elixir-mcp/contracts";
@@ -127,18 +131,33 @@ export async function projectPlayerSnapshot(
 ) {
   const day = fetchedAt.slice(0, 10);
 
-  const { rows: prevRows } = await db.query(
-    `select snapshot_date, observed_at, donations, (lifetime->>'battleCount')::int as battle_count,
+  // Two baselines. `prev` is the newest row from an EARLIER day: the
+  // day-level questions (did a counter move since yesterday's snapshot,
+  // 0077) are asked of it. `latest` is the newest observation of any day,
+  // today's rewritten row included, and strictly before this poll: the
+  // moments are diffed against it, so a moment is written once, by the
+  // first poll that sees it, and never again by the polls that follow it
+  // the same day.
+  const SNAPSHOT_BASELINE = `select snapshot_date, observed_at, donations, (lifetime->>'battleCount')::int as battle_count,
             arena_id, best_trophies,
             (lifetime->>'wins')::int as wins,
             (lifetime->>'collectionLevel')::int as collection_level,
             (pol->'current'->>'leagueNumber')::int as pol_league
-     from player_snapshot_daily
+     from player_snapshot_daily`;
+  const { rows: prevRows } = await db.query(
+    `${SNAPSHOT_BASELINE}
      where player_tag = $1 and (snapshot_date, snapshot_kind) < ($2::date, $3)
      order by snapshot_date desc, snapshot_kind desc limit 1`,
     [playerTag, day, kind],
   );
   const prev = prevRows[0];
+  const { rows: latestRows } = await db.query(
+    `${SNAPSHOT_BASELINE}
+     where player_tag = $1 and observed_at is not null and observed_at < $2::timestamptz
+     order by observed_at desc limit 1`,
+    [playerTag, fetchedAt],
+  );
+  const latest = latestRows[0];
 
   const lifetime = {
     battleCount: payload.battleCount,
@@ -203,18 +222,18 @@ export async function projectPlayerSnapshot(
   }
 
   if (
-    prev &&
+    latest &&
     typeof payload.donations === "number" &&
-    typeof prev.donations === "number" &&
-    payload.donations < prev.donations
+    typeof latest.donations === "number" &&
+    payload.donations < latest.donations
   ) {
     await emitEvent(db, "donation_reset", {
       tag: playerTag,
       receiptId,
-      windowStart: `${prev.snapshot_date.toISOString().slice(0, 10)}T00:00:00Z`,
+      windowStart: latest.observed_at.toISOString(),
       windowEnd: fetchedAt,
       payload: {
-        donations_before: prev.donations,
+        donations_before: latest.donations,
         donations_after: payload.donations,
       },
     });
@@ -243,7 +262,7 @@ export async function projectPlayerSnapshot(
   if (kind === "daily")
     await ledgerMilestones(db, {
       playerTag,
-      prev,
+      prev: latest,
       payload,
       fetchedAt,
       receiptId,
@@ -265,8 +284,9 @@ export async function projectPlayerSnapshot(
  * ranked promotion count as themselves. A season reset dropping the league
  * is not a demotion worth a row.
  *
- * `prev` absent means this is the player's first snapshot, and everything
- * would read as a milestone. Same flood guard as the badges.
+ * `prev` is the latest observation before this poll (any day); absent means
+ * this is the player's first snapshot, and everything would read as a
+ * milestone. Same flood guard as the badges.
  */
 const BEST_TROPHIES_BAND = 500;
 const CAREER_WINS_STEP = 1000;
