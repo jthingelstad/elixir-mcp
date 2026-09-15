@@ -705,23 +705,29 @@ export async function excludedBreakdown(
 export async function corpusPrior(db, { from, to = null, types = null }) {
   // Its own parameter list: Postgres refuses a bound parameter it cannot
   // type, so the segment's params must not ride along unused.
+  // One scalar over the window from the participant's own columns
+  // (0095): battle_participant_prior is a covering partial index, so this
+  // is an index-only scan - no join to battle. A mode filter still needs
+  // battle.type, and joins only then.
   const params = [from];
-  const where = ["b.battle_time >= $1"];
+  const where = ["bp.battle_time >= $1"];
   if (to) {
     params.push(to);
-    where.push(`b.battle_time < $${params.length}`);
+    where.push(`bp.battle_time < $${params.length}`);
   }
+  let join = "";
   if (types) {
     params.push(types);
     where.push(`b.type = any($${params.length})`);
+    join = "join battle b on b.battle_id = bp.battle_id";
   }
   const {
     rows: [r],
   } = await db.query(
     `select count(*)::int as decided,
             count(*) filter (where bp.outcome = 'win')::int as wins
-     from battle_participant bp join battle b on b.battle_id = bp.battle_id
-     where bp.outcome in ('win','loss') and b.type_class = 'pvp'
+     from battle_participant bp ${join}
+     where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
        and bp.deck_hash is not null and ${where.join(" and ")}`,
     params,
   );

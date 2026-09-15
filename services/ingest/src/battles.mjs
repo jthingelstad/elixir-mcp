@@ -144,6 +144,7 @@ export function canonicalizeBattle(entry) {
         player_tag: normalizeTag(p.tag),
         name: p.name ?? null, // for the player upsert only, never a participant column
         side,
+        type_class: typeClass, // denormalized like battle_time (0095)
         deck_avg_level: cardLevels.length
           ? Number(
               (
@@ -207,6 +208,7 @@ const PARTICIPANT_COLS = [
   "player_tag",
   "battle_time",
   "side",
+  "type_class",
   "crowns",
   "trophy_change",
   "starting_trophies",
@@ -219,7 +221,13 @@ const PARTICIPANT_COLS = [
   "outcome",
   "clan_tag",
 ];
-const PARTICIPANT_KEY = ["battle_id", "player_tag", "battle_time", "side"];
+const PARTICIPANT_KEY = [
+  "battle_id",
+  "player_tag",
+  "battle_time",
+  "side",
+  "type_class",
+];
 const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter(
   (c) => !PARTICIPANT_KEY.includes(c),
 );
