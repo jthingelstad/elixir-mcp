@@ -45,6 +45,7 @@ import {
   explainParticipation,
   inspect,
   sessions,
+  vacuum,
 } from "./ops-diagnostics.mjs";
 import {
   abYield,
@@ -103,6 +104,11 @@ export async function handler(event) {
   }
   if (event?.probe) {
     const result = await probe(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.vacuum) {
+    const result = await vacuum(process.env.DATABASE_URL, event.vacuum);
     console.log(JSON.stringify(result));
     return result;
   }

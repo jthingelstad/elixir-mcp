@@ -654,3 +654,46 @@ export async function explainParticipation(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** Tables the vacuum op may name. A closed list: the op takes a table
+ *  name into SQL, and it is the only maintenance op that writes. */
+const VACUUMABLE = new Set([
+  "battle",
+  "battle_participant",
+  "battle_participant_card",
+  "player_snapshot_daily",
+]);
+
+/**
+ * VACUUM (ANALYZE) one named table ({vacuum: {table}}), so its
+ * visibility map is rebuilt and the planner can take an index-only scan
+ * again. Added 2026-09-16 when battle_participant had relallvisible = 0
+ * after the 0091-0100 backfills and every Elixir Clan page paid 7 s of
+ * heap I/O for it (0103 has the story). VACUUM cannot run inside a
+ * migration's transaction, hence an op. Reports the map before and
+ * after; touches no row.
+ */
+export async function vacuum(databaseUrl, spec = {}) {
+  const table = String(spec.table ?? "");
+  if (!VACUUMABLE.has(table)) {
+    return { error: "unknown_table", allowed: [...VACUUMABLE] };
+  }
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const map = async () =>
+      (
+        await db.query(
+          `select relpages, relallvisible, reltuples::bigint as reltuples
+             from pg_class where relname = $1`,
+          [table],
+        )
+      ).rows[0];
+    const before = await map();
+    const started = Date.now();
+    await db.query(`vacuum (analyze) ${table}`);
+    return { table, ms: Date.now() - started, before, after: await map() };
+  } finally {
+    await db.end();
+  }
+}
