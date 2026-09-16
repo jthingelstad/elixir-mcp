@@ -618,18 +618,36 @@ export async function explainParticipation(databaseUrl, spec = {}) {
       ),
     );
     const from = new Date(monday.getTime() - (weeks - 1) * 7 * 86400_000);
-    for (const q of participationQueries({
+    const queries = participationQueries({
       clanTag,
       tags,
       from,
       rankedTypes: typesForModeGroup("ranked"),
-    }))
-      await explain(q.name, q.text, q.values);
+    });
+    for (const q of queries) await explain(q.name, q.text, q.values);
+    // Why the planner may decline the covering index (2026-09-16, Clan
+    // pages at 8 s): the fraction of participant pages the visibility
+    // map calls all-visible, which is what prices an index-only scan,
+    // and the same first read with the bitmap and sequential paths
+    // closed so the index-only plan's real time is on record beside it.
+    const { rows: vis } = await db.query(
+      `select relname, relpages, relallvisible, reltuples::bigint as reltuples
+         from pg_class where relname in ('battle_participant', 'battle')`,
+    );
+    const forced = queries[0];
+    await db.query("set enable_bitmapscan = off");
+    await db.query("set enable_seqscan = off");
+    await explain(
+      `${forced.name} (index paths only)`,
+      forced.text,
+      forced.values,
+    );
     return {
       clan_tag: clanTag,
       weeks,
       members: tags.length,
       from,
+      visibility: vis,
       queries: out,
     };
   } finally {
