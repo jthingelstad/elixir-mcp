@@ -121,7 +121,11 @@ test("shapeDays: battles always drawn; zero only where a log read covers the day
     {
       computed_at: new Date("2026-09-13T05:30:00Z"),
       window_days: 10,
-      days: { "2026-09-09": 4, "2026-09-05": 1, "2026-09-12": 2 },
+      days: {
+        "2026-09-09": [4, 3, 1],
+        "2026-09-05": 1,
+        "2026-09-12": [2, 0, 0],
+      },
       not_recorded_days: ["2026-09-12"],
     },
     ["2026-09-09", "2026-09-13"],
@@ -134,7 +138,12 @@ test("shapeDays: battles always drawn; zero only where a log read covers the day
   assert.deepEqual(
     by["2026-09-05"],
     { day: "2026-09-05", battles: 1, status: "recorded" },
-    "a battle is drawn however it arrived",
+    "a battle is drawn however it arrived; a bare count carries no tallies",
+  );
+  assert.deepEqual(
+    by["2026-09-09"],
+    { day: "2026-09-09", battles: 4, wins: 3, losses: 1, status: "recorded" },
+    "a rebuilt day carries its wins and losses",
   );
   assert.equal(by["2026-09-06"].status, "not_recorded", "nothing, unwatched");
   assert.equal(
@@ -157,6 +166,8 @@ test("shapeDays: battles always drawn; zero only where a log read covers the day
   assert.deepEqual(by["2026-09-12"], {
     day: "2026-09-12",
     battles: 2,
+    wins: 0,
+    losses: 0,
     status: "recorded",
     partial: true,
   });

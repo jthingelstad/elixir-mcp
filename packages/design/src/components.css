@@ -3243,17 +3243,67 @@ input[aria-invalid="true"] {
   background: var(--panel-raised);
   cursor: pointer;
 }
+/* Volume: four steps of the accent, scaled to the player's busiest day.
+   The alpha is also what a hued cell borrows (below). */
 .activity__cell--l1 {
+  --cell-alpha: 35%;
   background: rgba(139, 92, 246, 0.35);
 }
 .activity__cell--l2 {
+  --cell-alpha: 58%;
   background: rgba(139, 92, 246, 0.58);
 }
 .activity__cell--l3 {
+  --cell-alpha: 80%;
   background: rgba(139, 92, 246, 0.8);
 }
 .activity__cell--l4 {
+  --cell-alpha: 100%;
   background: var(--accent-bright);
+}
+/* Result: the hue is the day's win share, losses red through to wins
+   blue in tenths (--w0 .. --w10), and the shade stays the volume step.
+   A day with no decided battle has no --hue class and keeps the accent. */
+.activity__cell--hue {
+  background: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--win) var(--cell-share), var(--loss))
+      var(--cell-alpha),
+    transparent
+  );
+}
+.activity__cell--w0 {
+  --cell-share: 0%;
+}
+.activity__cell--w1 {
+  --cell-share: 10%;
+}
+.activity__cell--w2 {
+  --cell-share: 20%;
+}
+.activity__cell--w3 {
+  --cell-share: 30%;
+}
+.activity__cell--w4 {
+  --cell-share: 40%;
+}
+.activity__cell--w5 {
+  --cell-share: 50%;
+}
+.activity__cell--w6 {
+  --cell-share: 60%;
+}
+.activity__cell--w7 {
+  --cell-share: 70%;
+}
+.activity__cell--w8 {
+  --cell-share: 80%;
+}
+.activity__cell--w9 {
+  --cell-share: 90%;
+}
+.activity__cell--w10 {
+  --cell-share: 100%;
 }
 .activity__cell--none {
   background: repeating-linear-gradient(

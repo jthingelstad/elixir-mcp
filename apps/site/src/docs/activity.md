@@ -16,19 +16,25 @@ The first thing on **Console ▸ Overview** is your battle activity, with a
 chip per tracked player to switch between them; each player's own record
 under **Tracking** carries the same graphic beside its capture details.
 It has two parts: a year of days, one cell per UTC day
-coloured by how many battles were recorded, and a rhythm tile, twenty-four
-hours by seven weekdays, showing when that player plays. Both are drawn
+coloured by how the day went and shaded by how much was played, and a
+rhythm tile, twenty-four hours by seven weekdays, showing when that
+player plays. Both are drawn
 from the battles already in the record; nothing is read from the game to
 draw them.
 
 ## What is drawn
 
 **The year.** One cell per UTC calendar day for the last 365 days, weeks
-in columns and Monday at the top, newest on the right. The colour is one
-hue in four steps, scaled to that player's own busiest day, so a player
-who plays five battles on a good evening reads as clearly as one who
-plays fifty. Tap or focus a cell and the day's count is written under the
-graphic; the list beneath it holds the last two weeks as a table.
+in columns and Monday at the top, newest on the right. A cell carries two
+things. Its hue is the day's win share: all losses is red, all wins is
+blue, and an even day sits between. Its shade is the volume, four steps
+scaled to that player's own busiest day, so a player who plays five
+battles on a good evening reads as clearly as one who plays fifty. Draws
+and battles without a resolved result count toward the volume and toward
+neither side of the share; a day with no decided battle at all keeps the
+neutral purple. Tap or focus a cell and the day's count and record are
+written under the graphic; the list beneath it holds the last two weeks
+as a table.
 
 **The rhythm.** Every recorded battle in the window lands in one of 168
 cells, its weekday and hour. The tile is rotated into your device's clock

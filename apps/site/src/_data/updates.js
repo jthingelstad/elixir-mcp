@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-15",
+    title: "The activity year shows how each day went, not only how much",
+    body: "Each cell of the battle-activity year on Console now carries two things: its hue is the day's win share, from red (all losses) through purple (even) to blue (all wins), and its shade is still the volume, four steps scaled to the player's busiest day. Tap a day and the caption says the record - '6 battles · 4 wins, 1 loss, 1 draw' - and the two-week list gains a won/lost column. Draws and unresolved results count toward volume and toward neither side; a day with nothing decided keeps the neutral purple. The nightly histogram now stores wins and losses per day alongside the count, so a day the job has not rebuilt yet is drawn as before until the next run.",
+  },
+  {
+    date: "2026-09-15",
     title: "One top bar for the family: Elixir, with Console, Clan and Drop",
     body: "The bar now reads Elixir, and its right-hand side carries the family's three products as buttons: Console (this record's own pages), Clan (clan.poapkings.com) and Drop (drop.poapkings.com, which opens in a new window and says so). The one you are inside is green; the others are gold, the way over. The same bar, with the same tabs, is drawn on the documentation pages, in the console and in Elixir Clan, so moving between them never changes the shape of the page. The service is still Elixir MCP; the wordmark names the family it belongs to.",
   },

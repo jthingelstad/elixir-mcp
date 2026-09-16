@@ -35,18 +35,19 @@ const OPP = "#P0P0P0P8";
 
 let db, accountId, gatewayId;
 
-async function battle(id, at, tag = PLAYER) {
+async function battle(id, at, tag = PLAYER, outcome = "win") {
   await db.query(
     `insert into battle (battle_id, battle_time, type, type_class)
      values ($1, $2, 'PvP', 'pvp') on conflict do nothing`,
     [id, at],
   );
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, battle_time)
-     values ($1, $2, 0, $3), ($1, $4, 1, $3) on conflict do nothing`,
-    [id, tag, at, OPP],
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome)
+     values ($1, $2, 0, $3, $5), ($1, $4, 1, $3, $6) on conflict do nothing`,
+    [id, tag, at, OPP, outcome, flip(outcome)],
   );
 }
+const flip = (o) => (o === "win" ? "loss" : o === "loss" ? "win" : o);
 
 async function snapshot(date, observedAt, battleCount) {
   await db.query(
@@ -98,8 +99,10 @@ before(async () => {
   // C: Monday 10:00Z, 104 days old (outside 28 d, inside the year).
   // E: inside the incomplete snapshot interval below. Z: outside the year.
   await battle("a", "2026-09-08T14:30:00Z");
+  await battle("a2", "2026-09-08T15:00:00Z", PLAYER, "loss");
+  await battle("a3", "2026-09-08T15:30:00Z", PLAYER, "draw");
   await battle("b", "2026-08-16T12:00:00Z");
-  await battle("c", "2026-06-01T10:00:00Z");
+  await battle("c", "2026-06-01T10:00:00Z", PLAYER, "loss");
   await battle("e", "2026-09-06T20:00:00Z");
   await battle("z", "2025-01-01T10:00:00Z");
   // The counter moved by 3 between these snapshots and one battle (E) was
@@ -158,17 +161,19 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
   assert.ok(Math.abs(row.rhythm[10] - 2 ** (-104.083 / 28)) < 1e-3, "C fades");
   // Sunday 20h = 6*24 + 20.
   assert.ok(row.rhythm[164] > 0.8, "E recent");
-  assert.equal(row.rhythm_battles, 4, "Z is outside the year");
+  assert.equal(row.rhythm_battles, 6, "Z is outside the year");
   assert.equal(
     row.battles_28d,
-    2,
-    "A and E inside 28 d; B is on the edge, out",
+    4,
+    "A, A2, A3 and E inside 28 d; B is on the edge, out",
   );
+  // [battles, wins, losses]: the draw on 09-08 is in the count and in
+  // neither tally.
   assert.deepEqual(row.days, {
-    "2026-09-08": 1,
-    "2026-08-16": 1,
-    "2026-06-01": 1,
-    "2026-09-06": 1,
+    "2026-09-08": [3, 1, 1],
+    "2026-08-16": [1, 1, 0],
+    "2026-06-01": [1, 0, 1],
+    "2026-09-06": [1, 1, 0],
   });
   assert.deepEqual(row.not_recorded_days, [
     "2026-09-05",
@@ -178,7 +183,7 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
   ]);
   assert.equal(utcDay(row.recorded_from), "2026-09-03");
   assert.equal(row.first_battle_at.toISOString(), "2026-06-01T10:00:00.000Z");
-  assert.equal(row.last_battle_at.toISOString(), "2026-09-08T14:30:00.000Z");
+  assert.equal(row.last_battle_at.toISOString(), "2026-09-08T15:30:00.000Z");
   const weight = row.rhythm.reduce((n, w) => n + w, 0);
   assert.ok(Math.abs(Number(row.rhythm_weight) - weight) < 1e-2);
 

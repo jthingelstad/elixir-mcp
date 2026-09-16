@@ -95,6 +95,9 @@
     #4ade80
   ); /* the product you are in */
   --ok-on: #052e16; /* text on a green surface */
+
+  --win: #2d85f3; /* a day of wins (Jamie's blue), activity graphic */
+  --loss: #ef4444; /* a day of losses */
   --warn-fill: rgba(252, 211, 77, 0.1);
   --warn-edge: rgba(252, 211, 77, 0.45);
   --bad-fill: rgba(251, 113, 133, 0.12);

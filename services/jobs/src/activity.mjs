@@ -83,12 +83,16 @@ async function rhythmRows(db, tags, now) {
   return rows;
 }
 
-/** One row per (player, UTC day) with at least one battle. */
+/** One row per (player, UTC day) with at least one battle: the count,
+ *  and how many of them were won and lost. Draws and unresolved results
+ *  are in the count and in neither tally. */
 async function dayRows(db, tags, now) {
   const { rows } = await db.query(
     `select bp.player_tag,
             to_char(bp.battle_time at time zone 'UTC', 'YYYY-MM-DD') as day,
-            count(*)::int as n
+            count(*)::int as n,
+            count(*) filter (where bp.outcome = 'win')::int as wins,
+            count(*) filter (where bp.outcome = 'loss')::int as losses
        from battle_participant bp
       where bp.player_tag = any($1::text[])
         and bp.battle_time > $2::timestamptz - make_interval(days => $3)
@@ -200,7 +204,9 @@ export async function activityHistogram(
     const days = new Map();
     for (const r of await dayRows(db, tags, at)) {
       if (!days.has(r.player_tag)) days.set(r.player_tag, {});
-      days.get(r.player_tag)[r.day] = r.n;
+      // [battles, wins, losses]: the graphic colours a day by its win
+      // share and shades it by its volume (2026-09-15).
+      days.get(r.player_tag)[r.day] = [r.n, r.wins, r.losses];
     }
     const marks = new Map();
     const mark = (tag, day) => {

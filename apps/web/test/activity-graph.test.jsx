@@ -10,6 +10,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import {
   ActivityGraph,
   level,
+  shareBin,
   weeks,
   localRhythm,
 } from "../src/components/ActivityGraph.jsx";
@@ -32,9 +33,18 @@ function fixture() {
     // Log reads cover July onward; a stray May appearance; one marked
     // September day that still holds battles (partial).
     const covered = day >= "2026-07-08" && day !== "2026-09-06";
+    // Tallies: the busy day 4-1 with a draw, the partial day all draws
+    // (no share), the May appearance a bare count (a row not yet rebuilt).
+    const tallies =
+      day === "2026-09-08"
+        ? { wins: 4, losses: 1 }
+        : day === "2026-09-12"
+          ? { wins: 0, losses: 0 }
+          : {};
     days.push({
       day,
       battles,
+      ...tallies,
       status: battles > 0 || covered ? "recorded" : "not_recorded",
       ...(day === "2026-09-12" ? { partial: true } : {}),
     });
@@ -54,6 +64,13 @@ function fixture() {
 }
 
 test("level scales to the player's own busiest day", () => {
+  // The win share in tenths; undecided days (all draws, or a row the
+  // nightly job has not rebuilt with tallies) have none.
+  expect(shareBin({ wins: 4, losses: 1 })).toBe(8);
+  expect(shareBin({ wins: 1, losses: 2 })).toBe(3);
+  expect(shareBin({ wins: 0, losses: 3 })).toBe(0);
+  expect(shareBin({ wins: 0, losses: 0 })).toBe(null);
+  expect(shareBin({ battles: 3 })).toBe(null);
   expect(level(0, 10)).toBe(0);
   expect(level(1, 10)).toBe(1);
   expect(level(5, 10)).toBe(2);
@@ -90,9 +107,11 @@ test("coverage follows the log reads, not recorded is its own cell, a quiet reco
   });
   expect(notRecorded.className).toContain("activity__cell--none");
   const busy = screen.getByRole("button", {
-    name: /^Tue 8 Sep 2026: 6 battles$/,
+    name: /^Tue 8 Sep 2026: 6 battles · 4 wins, 1 loss, 1 draw$/,
   });
   expect(busy.className).toContain("activity__cell--l4");
+  // 4 of 5 decided: the 80% hue bin.
+  expect(busy.className).toContain("activity__cell--hue activity__cell--w8");
   const quiet = screen.getByRole("button", {
     name: /^Thu 10 Sep 2026: 0 battles$/,
   });
@@ -108,20 +127,28 @@ test("coverage follows the log reads, not recorded is its own cell, a quiet reco
     name: /^Thu 14 May 2026: 3 battles$/,
   });
   expect(stray.className).toContain("activity__cell--l2");
+  // A bare count (no tallies yet) keeps the accent ramp.
+  expect(stray.className).not.toContain("activity__cell--hue");
   expect(
     screen.getByRole("button", { name: /^Fri 15 May 2026: not recorded$/ })
       .className,
   ).toContain("activity__cell--none");
-  expect(
-    screen.getByRole("button", {
-      name: /^Sat 12 Sep 2026: 2 battles, log rolled past some$/,
-    }),
-  ).toBeTruthy();
+  // All draws: volume, but no share, so no hue - and no "0 wins, 0 losses"
+  // is not what it says; it says what happened.
+  const partial = screen.getByRole("button", {
+    name: /^Sat 12 Sep 2026: 2 battles · 0 wins, 0 losses, 2 draws, log rolled past some$/,
+  });
+  expect(partial.className).not.toContain("activity__cell--hue");
   expect(screen.getByText(/log read since 2026-07-08/)).toBeTruthy();
   fireEvent.click(busy);
-  expect(screen.getByText("Tue 8 Sep 2026: 6 battles").className).toBe(
-    "activity__caption",
-  );
+  expect(
+    screen.getByText("Tue 8 Sep 2026: 6 battles · 4 wins, 1 loss, 1 draw")
+      .className,
+  ).toBe("activity__caption");
+  // The legend runs losses to wins, then fewer to more.
+  expect(screen.getByText("losses")).toBeTruthy();
+  expect(screen.getByText("wins")).toBeTruthy();
+  expect(screen.getByText("fewer")).toBeTruthy();
   // The legend swatch and the list both name it.
   expect(screen.getAllByText("not recorded").length).toBeGreaterThan(0);
   // The rhythm: 168 cells, the Tuesday-14:00 one at the peak, every

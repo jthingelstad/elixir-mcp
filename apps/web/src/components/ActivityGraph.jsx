@@ -12,9 +12,13 @@ import { useEffect, useRef, useState } from "react";
  * them however they arrived; the hatched "not recorded" cell is a day
  * with nothing recorded that no log read covers - unknown, never zero.
  *
- * Colour is one sequential hue (the accent, four steps) on the console's
- * dark surface; identity is never colour alone - every cell carries its
- * value in an accessible name, and the list under the graphic is the
+ * Colour carries two things (Jamie, 2026-09-15): the HUE is the day's
+ * win share, losses red through to wins blue, and the SHADE is the
+ * volume, four steps scaled to the player's own busiest day. A day whose
+ * battles all ended in draws or unresolved (or a row the nightly job has
+ * not rebuilt since tallies were added) has no share to show and keeps
+ * the accent ramp. Identity is never colour alone - every cell carries
+ * its value in an accessible name, and the list under the graphic is the
  * table view.
  */
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -57,6 +61,14 @@ export function level(count, max) {
   if (r <= 0.5) return 2;
   if (r <= 0.75) return 3;
   return 4;
+}
+
+/** 0..10: the day's win share in tenths, or null when no battle that day
+ *  was decided (draws and unresolved count for volume, not for share). */
+export function shareBin(d) {
+  const decided = (d.wins ?? 0) + (d.losses ?? 0);
+  if (d.wins === undefined || decided === 0) return null;
+  return Math.round((d.wins / decided) * 10);
 }
 
 /** The year as week columns (Monday first), padded at the start so the
@@ -145,10 +157,29 @@ export function ActivityGraph({ data, offsetHours = null }) {
   const recent = days.slice(-14).reverse();
 
   const count = (n) => `${n} ${n === 1 ? "battle" : "battles"}`;
+  /** "7 wins, 5 losses" and, only when there were any, "1 draw". */
+  const record = (d) => {
+    if (d.wins === undefined || d.battles === 0) return "";
+    const draws = d.battles - d.wins - d.losses;
+    const parts = [
+      `${d.wins} ${d.wins === 1 ? "win" : "wins"}`,
+      `${d.losses} ${d.losses === 1 ? "loss" : "losses"}`,
+    ];
+    if (draws > 0) parts.push(`${draws} ${draws === 1 ? "draw" : "draws"}`);
+    return ` · ${parts.join(", ")}`;
+  };
   const cellName = (d) =>
     d.status === "not_recorded"
       ? `${dayLabel(d.day)}: not recorded`
-      : `${dayLabel(d.day)}: ${count(d.battles)}${d.partial ? ", log rolled past some" : ""}`;
+      : `${dayLabel(d.day)}: ${count(d.battles)}${record(d)}${d.partial ? ", log rolled past some" : ""}`;
+  const cellClass = (d) => {
+    if (d.status === "not_recorded") return "activity__cell--none";
+    const lvl = `activity__cell--l${level(d.battles, max)}`;
+    const bin = shareBin(d);
+    return bin === null
+      ? lvl
+      : `${lvl} activity__cell--hue activity__cell--w${bin}`;
+  };
 
   return (
     <div className="activity">
@@ -177,9 +208,7 @@ export function ActivityGraph({ data, offsetHours = null }) {
                     type="button"
                     className={
                       "activity__cell " +
-                      (d.status === "not_recorded"
-                        ? "activity__cell--none"
-                        : `activity__cell--l${level(d.battles, max)}`) +
+                      cellClass(d) +
                       (picked === d.day ? " activity__cell--on" : "")
                     }
                     aria-label={cellName(d)}
@@ -205,11 +234,23 @@ export function ActivityGraph({ data, offsetHours = null }) {
           : `${withBattles} days with battles · ${coveredDays - withBattles} quiet days covered · ${notRecorded} not recorded · tap a day`}
       </div>
       <div className="activity__legend">
-        <span>Less</span>
-        {[0, 1, 2, 3, 4].map((l) => (
-          <span key={l} className={`activity__cell activity__cell--l${l}`} />
+        <span>losses</span>
+        {[0, 2, 5, 8, 10].map((w) => (
+          <span
+            key={w}
+            className={`activity__cell activity__cell--l4 activity__cell--hue activity__cell--w${w}`}
+          />
         ))}
-        <span>More</span>
+        <span>wins</span>
+        <span className="activity__legend-gap" />
+        <span>fewer</span>
+        {[1, 2, 3, 4].map((l) => (
+          <span
+            key={l}
+            className={`activity__cell activity__cell--l${l} activity__cell--hue activity__cell--w5`}
+          />
+        ))}
+        <span>more</span>
         <span className="activity__legend-gap" />
         <span className="activity__cell activity__cell--none" />
         <span>not recorded</span>
@@ -280,6 +321,7 @@ export function ActivityGraph({ data, offsetHours = null }) {
             <tr>
               <th>UTC day</th>
               <th>Battles</th>
+              <th>Won / lost</th>
             </tr>
           </thead>
           <tbody>
@@ -288,6 +330,11 @@ export function ActivityGraph({ data, offsetHours = null }) {
                 <td className="mono">{d.day}</td>
                 <td>
                   {d.status === "not_recorded" ? "not recorded" : d.battles}
+                </td>
+                <td className="mono">
+                  {d.wins !== undefined && d.battles > 0
+                    ? `${d.wins} / ${d.losses}`
+                    : ""}
                 </td>
               </tr>
             ))}

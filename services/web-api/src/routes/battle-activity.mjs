@@ -58,11 +58,16 @@ export function shapeDays(
   const out = [];
   for (let i = windowDays - 1; i >= 0; i -= 1) {
     const day = utcDay(end - i * DAY_MS);
-    const battles = counts[day] ?? 0;
+    // A day is [battles, wins, losses] since 2026-09-15; a row the nightly
+    // job has not rebuilt yet still holds the bare count, with no result
+    // tallies to give.
+    const v = counts[day];
+    const [battles, wins, losses] = Array.isArray(v) ? v : [v ?? 0];
     const watched = covered.has(day) && !marked.has(day);
     out.push({
       day,
       battles,
+      ...(battles > 0 && wins !== undefined ? { wins, losses } : {}),
       status: battles > 0 || watched ? "recorded" : "not_recorded",
       ...(battles > 0 && marked.has(day) ? { partial: true } : {}),
     });
