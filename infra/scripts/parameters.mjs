@@ -46,6 +46,9 @@ export const PRESERVED_PARAMETERS = [
   // Operational switch: a deploy must never silently turn the version
   // gate back off, or on.
   "CollectorMinEnforce",
+  // The relay's transport: flipped to ses by hand once the poapkings.com
+  // identity has verified; a deploy must never flip it back to jmap.
+  "EmailTransport",
 ];
 
 /**

@@ -45,6 +45,16 @@ Parameters:
     Default: "0"
     AllowedValues: ["0", "1"]
     Description: Refuse lease and submit to a collector below min_client_version. Config is never refused, since it is the channel a stale client updates through. Flip only when every collector reports a version at or above the minimum.
+  EmailTransport:
+    Type: String
+    Default: jmap
+    AllowedValues: [jmap, ses]
+    Description: >-
+      How the relay sends mail from elixir@poapkings.com. jmap is the
+      Fastmail account; ses is the poapkings.com identity below, usable
+      once its DKIM CNAMEs have verified at Namecheap and the account is
+      out of the SES sandbox (2026-09-16). PRESERVED: a deploy never
+      flips it back.
   DbSnapshotIdentifier:
     Type: String
     Default: ""
@@ -460,6 +470,60 @@ Resources:
                     sqs:GetQueueUrl,
                   ]
                 Resource: !GetAtt EmailQueue.Arn
+              # Send as elixir@poapkings.com and nothing else: the identity
+              # and the configuration set are the only resources, and the
+              # From address is pinned by condition.
+              - Effect: Allow
+                Action: [ses:SendEmail, ses:SendRawEmail]
+                Resource:
+                  - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/poapkings.com
+                  - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/elixir-mcp
+                Condition:
+                  StringEquals:
+                    ses:FromAddress: elixir@poapkings.com
+
+  # ----------------------------------------------------------------- email
+  # Sending as elixir@poapkings.com through SES (2026-09-16; Fastmail is a
+  # mailbox, not a sender, and RECEIVING stays there - nothing here touches
+  # the apex MX). Easy DKIM signs with SES-managed keys: the three CNAMEs
+  # in Outputs go to Namecheap by hand. bounce.poapkings.com is the custom
+  # MAIL FROM so SPF aligns with the From domain (Gmail/Yahoo bulk rules);
+  # it needs the MX and TXT in Outputs. Bounces and complaints go to the
+  # alarm topic, so they reach the ops queue like everything else; open
+  # and click are NOT in the event list, which is what keeps the mail
+  # pixel-free and the links unwrapped. Forwarding bounce notifications to
+  # the From mailbox is off for the same reason: the queue is the record.
+  SenderConfigurationSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties:
+      Name: elixir-mcp
+      SendingOptions: { SendingEnabled: true }
+      ReputationOptions: { ReputationMetricsEnabled: true }
+      SuppressionOptions: { SuppressedReasons: [BOUNCE, COMPLAINT] }
+
+  SenderEvents:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref SenderConfigurationSet
+      EventDestination:
+        Name: ops-alerts
+        Enabled: true
+        MatchingEventTypes:
+          [BOUNCE, COMPLAINT, REJECT, RENDERING_FAILURE, DELIVERY_DELAY]
+        SnsDestination: { TopicARN: !Ref AlarmTopic }
+
+  SenderIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: poapkings.com
+      DkimAttributes: { SigningEnabled: true }
+      DkimSigningAttributes: { NextSigningKeyLength: RSA_2048_BIT }
+      MailFromAttributes:
+        MailFromDomain: bounce.poapkings.com
+        BehaviorOnMxFailure: USE_DEFAULT_VALUE
+      ConfigurationSetAttributes:
+        ConfigurationSetName: !Ref SenderConfigurationSet
+      FeedbackAttributes: { EmailForwardingEnabled: false }
 
   # --------------------------------------------------------------- lambdas
   WebApiLogGroup:
@@ -618,6 +682,8 @@ Resources:
         Variables:
           JMAP_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:jmap_token}}"
           FROM_EMAIL: elixir@poapkings.com
+          EMAIL_TRANSPORT: !Ref EmailTransport
+          SES_CONFIGURATION_SET: !Ref SenderConfigurationSet
           TINYLYTICS_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:tinylytics_api_token}}"
           TINYLYTICS_SITE_ID: "3762"
           BUTTONDOWN_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:buttondown_api_token}}"
@@ -1336,6 +1402,44 @@ Resources:
       # Routing of record is the sysadmin projects-ops-alerts queue; that
       # subscription is managed in the projects-sysadmin repo. No email.
 
+  # A topic policy REPLACES the default one, so the account-owner
+  # statement SNS would have written is restated first; the second lets
+  # SES publish sending events from this stack's configuration set.
+  AlarmTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref AlarmTopic]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: owner
+            Effect: Allow
+            Principal: { AWS: "*" }
+            Action:
+              [
+                SNS:Publish,
+                SNS:Subscribe,
+                SNS:Receive,
+                SNS:GetTopicAttributes,
+                SNS:SetTopicAttributes,
+                SNS:ListSubscriptionsByTopic,
+                SNS:AddPermission,
+                SNS:RemovePermission,
+                SNS:DeleteTopic,
+              ]
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals: { AWS:SourceOwner: !Ref AWS::AccountId }
+          - Sid: ses-events
+            Effect: Allow
+            Principal: { Service: ses.amazonaws.com }
+            Action: SNS:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals: { aws:SourceAccount: !Ref AWS::AccountId }
+              ArnLike:
+                aws:SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/elixir-mcp
+
   DlqAlarmEmail:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -1591,3 +1695,15 @@ Outputs:
   AlarmTopicArn:
     Value: !Ref AlarmTopic
     Description: Subscribe from projects-sysadmin to projects-ops-alerts
+  # The DNS for sending as elixir@poapkings.com, all at Namecheap by hand.
+  SenderDkimCname1:
+    Value: !Sub "${SenderIdentity.DkimDNSTokenName1} CNAME ${SenderIdentity.DkimDNSTokenValue1}"
+  SenderDkimCname2:
+    Value: !Sub "${SenderIdentity.DkimDNSTokenName2} CNAME ${SenderIdentity.DkimDNSTokenValue2}"
+  SenderDkimCname3:
+    Value: !Sub "${SenderIdentity.DkimDNSTokenName3} CNAME ${SenderIdentity.DkimDNSTokenValue3}"
+  SenderMailFromMx:
+    Value: !Sub "bounce.poapkings.com MX 10 feedback-smtp.${AWS::Region}.amazonses.com"
+  SenderMailFromSpf:
+    Value: 'bounce.poapkings.com TXT "v=spf1 include:amazonses.com ~all"'
+    Description: SPF for the MAIL FROM subdomain. The apex SPF, if any, also needs include:amazonses.com

@@ -3,6 +3,7 @@
 
 import { createHash } from "node:crypto";
 import { makeJmapSender } from "./jmap.mjs";
+import { makeSesSender } from "./ses.mjs";
 import { makeHandler } from "./handler.mjs";
 
 /** Server-side Tinylytics events (Jamie, 2026-09-05): the VPC Lambdas
@@ -101,11 +102,21 @@ export function makeButtondownEnroller({
   };
 }
 
+/** The transport is the stack's EmailTransport parameter: jmap (the
+ *  Fastmail account) until the poapkings.com SES identity has verified
+ *  and the account is out of the sandbox, ses after. Same send() shape. */
+export function chooseSender(env) {
+  const fromEmail = env.FROM_EMAIL ?? "elixir@poapkings.com";
+  return env.EMAIL_TRANSPORT === "ses"
+    ? makeSesSender({
+        fromEmail,
+        configurationSet: env.SES_CONFIGURATION_SET ?? "elixir-mcp",
+      })
+    : makeJmapSender({ token: env.JMAP_TOKEN, fromEmail });
+}
+
 export const handler = makeHandler({
-  send: makeJmapSender({
-    token: process.env.JMAP_TOKEN,
-    fromEmail: process.env.FROM_EMAIL ?? "elixir@poapkings.com",
-  }),
+  send: chooseSender(process.env),
   track: makeTinylyticsTracker({
     token: process.env.TINYLYTICS_API_TOKEN,
     siteId: process.env.TINYLYTICS_SITE_ID,

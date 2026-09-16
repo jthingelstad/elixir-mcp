@@ -1,13 +1,14 @@
 {
   "name": "@elixir-mcp/email-relay",
   "version": "0.1.0",
-  "description": "The non-VPC email sender (DESIGN §7): consumes the email queue and speaks Fastmail JMAP from elixir@poapkings.com. Transport is swappable behind the queue.",
+  "description": "The non-VPC email sender (DESIGN \u00a77): consumes the email queue and sends from elixir@poapkings.com over SES (or Fastmail JMAP until the identity verified). Transport is swappable behind the queue.",
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
-    "@elixir-mcp/contracts": "0.1.0"
+    "@elixir-mcp/contracts": "0.1.0",
+    "@aws-sdk/client-sesv2": "^3.1126.0"
   }
 }

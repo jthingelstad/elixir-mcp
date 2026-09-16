@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { makeJmapSender } from "../src/jmap.mjs";
 import { renderEmail } from "../src/templates.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { makeButtondownEnroller } from "../src/index.mjs";
+import { makeButtondownEnroller, chooseSender } from "../src/index.mjs";
+import { makeSesSender } from "../src/ses.mjs";
 
 function fakeJmapServer() {
   const calls = [];
@@ -380,4 +381,48 @@ test("owner_notify is best-effort: a transport failure or a bad message never de
   );
   assert.equal(sent.length, 1);
   assert.equal(sent[0].subject, "Elixir MCP: new feedback");
+});
+
+test("SES sender: one SendEmail through the configuration set, text always, html beside it", async () => {
+  const sent = [];
+  const client = {
+    send: async (cmd) => {
+      sent.push(cmd.input);
+      return { MessageId: "m-1" };
+    },
+  };
+  const send = makeSesSender({
+    fromEmail: "elixir@poapkings.com",
+    configurationSet: "elixir-mcp",
+    client,
+  });
+  const out = await send({
+    to: "someone@example.com",
+    subject: "Your code",
+    text: "123456",
+    html: "<p>123456</p>",
+  });
+  assert.deepEqual(out, { sent: true, message_id: "m-1" });
+  assert.equal(sent.length, 1);
+  const input = sent[0];
+  assert.equal(input.FromEmailAddress, "Elixir <elixir@poapkings.com>");
+  assert.deepEqual(input.Destination, { ToAddresses: ["someone@example.com"] });
+  assert.equal(input.ConfigurationSetName, "elixir-mcp");
+  assert.equal(input.Content.Simple.Body.Text.Data, "123456");
+  assert.equal(input.Content.Simple.Body.Html.Data, "<p>123456</p>");
+  // Text only: no Html part at all, not an empty one.
+  await send({ to: "a@b.c", subject: "s", text: "t" });
+  assert.equal(sent[1].Content.Simple.Body.Html, undefined);
+});
+
+test("the transport follows EMAIL_TRANSPORT: jmap unless it says ses", () => {
+  const ses = chooseSender({
+    EMAIL_TRANSPORT: "ses",
+    SES_CONFIGURATION_SET: "x",
+  });
+  const jmap = chooseSender({ JMAP_TOKEN: "t" });
+  const unset = chooseSender({});
+  assert.equal(typeof ses, "function");
+  assert.equal(typeof jmap, "function");
+  assert.equal(typeof unset, "function");
 });

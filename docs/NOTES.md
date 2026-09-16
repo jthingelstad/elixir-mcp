@@ -2239,3 +2239,53 @@ the minimal contract edit changes one path. Decision case `reading-map-stale`
 pins current changelog/source evidence over a saved summary. The next comparable
 scheduled run must resolve every mapped page without fallback; until then the
 instruction-quality result is `insufficient_sample`.
+
+## 2026-09-16 — Sending as elixir@poapkings.com over SES (receiving stays at Fastmail)
+
+Jamie: "I'd like to add more email features and I think we should not do
+them with Fastmail. It isn't for that." Fastmail is a mailbox; app mail
+through a personal account's JMAP shares its rate limits and reputation.
+Sending moves to SES; RECEIVING stays at Fastmail, and nothing here touches
+the apex MX.
+
+The account was in the SES sandbox (200/day, 1/s, verified recipients
+only) and three old domain identities (thingelstad.com, rwbookclub.com,
+wikiapiary.com) had never verified - DKIM NOT_STARTED. No Route53: DNS for
+poapkings.com is at Namecheap, so every record below is Jamie-manual.
+
+Shipped in the stack: `SenderIdentity` (poapkings.com, Easy DKIM 2048,
+custom MAIL FROM `bounce.poapkings.com`), `SenderConfigurationSet`
+(`elixir-mcp`, reputation metrics, suppression on bounce+complaint),
+`SenderEvents` (BOUNCE, COMPLAINT, REJECT, RENDERING_FAILURE,
+DELIVERY_DELAY -> `elixir-mcp-alarms` -> the ops queue; OPEN and CLICK
+deliberately absent, which is what keeps mail pixel-free and links
+unwrapped), an `AlarmTopicPolicy` letting ses.amazonaws.com publish (a
+topic policy replaces the default, so the owner statement is restated),
+`ses:SendEmail` on the relay role pinned to that identity, configuration
+set and `ses:FromAddress = elixir@poapkings.com`, and the relay's
+`ses.mjs` transport behind the PRESERVED `EmailTransport` parameter
+(default `jmap`). Production access requested via `put-account-details`
+(transactional: sign-in codes and opted-in reports).
+
+**Jamie-manual, in order:**
+
+1. Namecheap DNS for poapkings.com - the exact records are the stack
+   Outputs `SenderDkimCname1..3`, `SenderMailFromMx`, `SenderMailFromSpf`
+   (`aws cloudformation describe-stacks --stack-name elixir-mcp --query
+   "Stacks[0].Outputs"`). If the apex already has an SPF TXT, add
+   `include:amazonses.com` to it. Add `_dmarc.poapkings.com TXT
+   "v=DMARC1; p=none; rua=mailto:jamie@thingelstad.com"` if there is none.
+2. Wait for the identity to show verified (`aws sesv2 get-email-identity
+   --email-identity poapkings.com`: `VerifiedForSendingStatus` true,
+   `MailFromAttributes.MailFromDomainStatus` SUCCESS) and for the
+   production-access reply (`aws sesv2 get-account`:
+   `ProductionAccessEnabled` true, usually within a day).
+3. Flip the transport: `AWS_PROFILE=jamie node infra/scripts/deploy.mjs
+   --skip-web --param=EmailTransport=ses`, then send yourself a sign-in
+   code and read it. Once it holds, the `jmap_token` key in the app secret
+   can be retired.
+
+Not done, by decision: anything sent to many members (a weekly clan digest)
+needs `List-Unsubscribe` + one-click (RFC 8058) before it goes out under
+Gmail/Yahoo bulk-sender rules; that lands with the first such feature, not
+before.
