@@ -268,6 +268,37 @@ test(
 );
 
 test(
+  "every static stylesheet and script URL carries its content hash",
+  { skip },
+  () => {
+    // /assets/* is served under no Cache-Control, so a browser keeps its
+    // copy for as long as it likes and the deploy's edge invalidation
+    // never reaches it. A changed file must be a changed URL. The app
+    // shell is Vite's and hashed in the filename; this is the Eleventy half.
+    const pages = htmlPages().filter((p) => p !== "app.html");
+    for (const page of pages) {
+      const html = read(page);
+      for (const m of html.matchAll(
+        /(?:href|src)="(\/assets\/[^"]+\.(?:css|js))(\?v=[0-9a-f]{8})?"/g,
+      )) {
+        assert.ok(m[2], `${page} links ${m[1]} without a content hash`);
+      }
+    }
+    // And the hash is the file's: the same bytes, the same URL, on every page.
+    const versions = new Set(
+      pages.map(
+        (p) => read(p).match(/\/assets\/site\.css\?v=([0-9a-f]{8})/)?.[1],
+      ),
+    );
+    assert.equal(
+      versions.size,
+      1,
+      "site.css is versioned differently across pages",
+    );
+  },
+);
+
+test(
   "the static bar is the kit's bar: wordmark, tabs, product buttons",
   { skip },
   async () => {

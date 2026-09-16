@@ -20,6 +20,7 @@
 import path from "node:path";
 import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const require = createRequire(import.meta.url);
@@ -57,6 +58,29 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
   // The share image every page's og:image and twitter:image name.
   eleventyConfig.addPassthroughCopy("src/assets/og.png");
+
+  /** A static asset URL with its content hash on it. The bucket serves
+   *  /assets/* under no Cache-Control, so browsers cache them
+   *  heuristically and a deploy's edge invalidation never reaches them:
+   *  the 2026-09-15 top bar arrived as unstyled links for anyone who had
+   *  the old site.css. The app half is hashed by Vite already; this is
+   *  the same idea for the Eleventy half. Hashed once per build. */
+  const assetHashes = new Map();
+  eleventyConfig.addFilter("asset", (url) => {
+    if (!assetHashes.has(url)) {
+      const name = url.replace(/^\/assets\//, "");
+      const file =
+        name === "site.css"
+          ? path.join(designDir, "dist/styles.css")
+          : path.join(process.cwd(), "src/assets", name);
+      const hash = createHash("md5")
+        .update(readFileSync(file))
+        .digest("hex")
+        .slice(0, 8);
+      assetHashes.set(url, `${url}?v=${hash}`);
+    }
+    return assetHashes.get(url);
+  });
 
   /** The site's canonical URL for a page: no /index.html, and no
    *  trailing slash. That is the spelling the previous sitemap

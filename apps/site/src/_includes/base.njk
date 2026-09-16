@@ -31,7 +31,7 @@
     />
     {#- Autodiscovery: a feed nobody can find is a feed nobody reads. -#}
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="/feed.xml" />
-    <link rel="stylesheet" href="/assets/site.css" />
+    <link rel="stylesheet" href="{{ "/assets/site.css" | asset }}" />
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="{{ site.url }}/feed.xml" />
   </head>
   <body>
@@ -131,7 +131,7 @@
         that belongs to the app. Same privacy posture: anonymous only. -#}
     {#- The narrow menu. External file, never inline: the CSP forbids
         inline script and a test pins that. -#}
-    <script defer src="/assets/chrome-menu.js"></script>
+    <script defer src="{{ "/assets/chrome-menu.js" | asset }}"></script>
     <script defer src="https://tinylytics.app/embed/{{ site.tinylyticsId }}/min.js?hits&countries&events"></script>
   </body>
 </html>
