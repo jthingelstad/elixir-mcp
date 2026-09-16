@@ -82,12 +82,12 @@ check(
   /battles/.test(corpus) && /[0-9],[0-9]{3}/.test(corpus),
 );
 // Home leads with the exchange rather than a counter, and the tabs
-// collapse behind one button on a phone — with Console never in it.
+// collapse behind one button on a phone — with the product buttons never in it.
 check("home leads with the transcript", /data-transcript/.test(home));
 check(
-  "the narrow menu is on the bar, and Console is not in it",
+  "the narrow menu is on the bar, and the product buttons are not in it",
   /chrome__menu/.test(home) &&
-    !/chrome__console/.test(
+    !/chrome__product/.test(
       home.slice(home.indexOf('id="chrome-sheet"')) || "x",
     ),
 );

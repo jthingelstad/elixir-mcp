@@ -1,9 +1,16 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
+import { FAMILY_PRODUCTS, type FamilyProduct } from "./family.ts";
 import { Icon } from "./Icon.tsx";
 
 export interface ChromeTab {
   label: string;
   href: string;
+}
+
+/** A product button. The kit's FAMILY_PRODUCTS is the default set; an
+ *  app overrides its own entry to route in-app instead of reloading. */
+export interface ChromeProduct extends FamilyProduct {
+  onClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
 }
 
 /**
@@ -21,22 +28,30 @@ export interface ChromeTab {
  * and the Eleventy one the same bar. `menu` adds the narrow-width
  * button and the sheet the tabs collapse into; Escape closes it,
  * because a sheet you can only dismiss by finding the same small
- * button again is a trap on a phone. `action` is the one thing that
- * never goes inside the menu at any width: the way into the product.
+ * button again is a trap on a phone. The product buttons are the one
+ * thing that never goes inside the menu at any width: they are the way
+ * into (and between) the products.
+ *
+ * `current` names the product this bar is drawn inside. That button turns
+ * green and glows — "you are here" — and stays a link to the product's
+ * home. The rest are gold, the way over. Drop opens in a new window and
+ * says so with a glyph: the game is a separate thing from the record.
  */
 export function Chrome({
   wordmark,
   home = "/",
   onHome,
   tabs,
-  action,
+  products = FAMILY_PRODUCTS,
+  current,
   menu = false,
 }: {
   wordmark: string;
   home?: string;
   onHome?: () => void;
   tabs: ChromeTab[];
-  action?: ReactNode;
+  products?: ReadonlyArray<ChromeProduct>;
+  current?: ChromeProduct["key"];
   menu?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -75,7 +90,26 @@ export function Chrome({
           ))}
         </nav>
 
-        {action}
+        <div className="chrome__products">
+          {products.map((p) => (
+            <a
+              className="chrome__product"
+              key={p.key}
+              href={p.href}
+              onClick={p.onClick}
+              aria-current={p.key === current ? "page" : undefined}
+              aria-label={
+                p.external ? `${p.label} (opens in a new window)` : undefined
+              }
+              target={p.external ? "_blank" : undefined}
+              rel={p.external ? "noopener" : undefined}
+            >
+              <Icon name={p.icon} size={17} />
+              <span className="chrome__product-label">{p.label}</span>
+              {p.external && <Icon name="external-link" size={13} />}
+            </a>
+          ))}
+        </div>
 
         {menu && (
           <button

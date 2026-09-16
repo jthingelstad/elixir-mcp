@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-15",
+    title: "One top bar for the family: Elixir, with Console, Clan and Drop",
+    body: "The bar now reads Elixir, and its right-hand side carries the family's three products as buttons: Console (this record's own pages), Clan (clan.poapkings.com) and Drop (drop.poapkings.com, which opens in a new window and says so). The one you are inside is green; the others are gold, the way over. The same bar, with the same tabs, is drawn on the documentation pages, in the console and in Elixir Clan, so moving between them never changes the shape of the page. The service is still Elixir MCP; the wordmark names the family it belongs to.",
+  },
+  {
+    date: "2026-09-15",
     title: "A long feedback history arrives in pages without losing replies",
     body: "Two natural agent reads of elixir_my_feedback crossed the 48,000-character delivery cap: twenty full reports plus maintainer responses can be much larger than twenty ordinary rows. Worse, the read marked every response seen before the protocol replaced the body with result_too_large, so the agent could lose its pending signal without seeing the reply. The tool now returns bounded, lossless pages with total and next_offset; pass next_offset as offset until null. A page may be shorter than limit when the text is large, and only replies actually delivered on that page are marked seen. Additive; contract 3.8.0.",
   },

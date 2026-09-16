@@ -268,6 +268,56 @@ test(
 );
 
 test(
+  "the static bar is the kit's bar: wordmark, tabs, product buttons",
+  { skip },
+  async () => {
+    // base.njk hand-mirrors packages/ui/src/family.ts because Nunjucks
+    // cannot import TypeScript. This is the pin: the built home page
+    // carries the same wordmark, the same tabs in the same order, and the
+    // same product buttons with the same hrefs, or the two bars have
+    // drifted into two bars.
+    const { FAMILY_PRODUCTS, FAMILY_TABS, FAMILY_WORDMARK } = await import(
+      path.join(repoRoot, "packages/ui/src/family.ts")
+    );
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(read("index.html")).window;
+
+    assert.equal(
+      document.querySelector(".wordmark").textContent.trim(),
+      FAMILY_WORDMARK,
+    );
+    const tabs = [...document.querySelectorAll(".chrome__nav a")].map((a) => [
+      a.textContent.trim(),
+      a.getAttribute("href"),
+    ]);
+    assert.deepEqual(
+      tabs,
+      FAMILY_TABS.map((t) => [...t]),
+    );
+
+    const products = [...document.querySelectorAll(".chrome__product")];
+    assert.deepEqual(
+      products.map(
+        (a) => a.querySelector(".chrome__product-label").textContent,
+      ),
+      FAMILY_PRODUCTS.map((p) => p.label),
+    );
+    for (const [i, p] of FAMILY_PRODUCTS.entries()) {
+      // The console's own button is a bare path on this host.
+      const href = p.key === "console" ? "/account/overview" : p.href;
+      assert.equal(products[i].getAttribute("href"), href, `${p.label} href`);
+      assert.equal(
+        products[i].getAttribute("target"),
+        p.external ? "_blank" : null,
+        `${p.label} target`,
+      );
+      // A document is inside no product: nothing is current here.
+      assert.equal(products[i].getAttribute("aria-current"), null);
+    }
+  },
+);
+
+test(
   "llms.txt indexes the docs and the whole tool surface",
   { skip },
   async () => {
@@ -468,6 +518,10 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
           "fonts.googleapis.com",
           "fonts.gstatic.com",
           "elixir.poapkings.com",
+          // The family's product buttons in the top bar: plain links,
+          // not scripts, so the CSP is untouched.
+          "clan.poapkings.com",
+          "drop.poapkings.com",
           "www.supercell.com",
         ].includes(origin),
         `${page} references an unexpected origin: ${origin}`,
@@ -593,13 +647,13 @@ test(
 );
 
 test(
-  "the narrow menu opens, closes, and never swallows Console",
+  "the narrow menu opens, closes, and never swallows the product buttons",
   { skip },
   async () => {
     // The static half's menu is hand-written JavaScript, so it gets the
     // same exercise the app's React one does. Two properties: the seven tabs
-    // collapse behind one button, and the CONSOLE BUTTON IS NOT IN THERE —
-    // it is the way into the product, and a menu is the wrong place for it.
+    // collapse behind one button, and the PRODUCT BUTTONS ARE NOT IN THERE —
+    // they are the way into the products, and a menu is the wrong place.
     const { JSDOM } = await import("jsdom");
     const dom = new JSDOM(read("index.html"), { runScripts: "outside-only" });
     const { window } = dom;
@@ -616,7 +670,10 @@ test(
     // Present with JavaScript off too: a crawler and a reader without it
     // both still find every destination.
     assert.equal(sheet.querySelectorAll("a").length, 7);
-    assert.ok(!/Console/.test(sheet.textContent), "Console is inside the menu");
+    assert.ok(
+      !/Console|Clan|Drop/.test(sheet.textContent),
+      "a product button is inside the menu",
+    );
 
     button.dispatchEvent(new window.Event("click", { bubbles: true }));
     assert.equal(sheet.dataset.open, "true");

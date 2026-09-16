@@ -1,4 +1,12 @@
-export { Chrome, type ChromeTab } from "./Chrome.tsx";
+export { Chrome, type ChromeProduct, type ChromeTab } from "./Chrome.tsx";
+export {
+  FAMILY_ORIGIN,
+  FAMILY_PRODUCTS,
+  FAMILY_TABS,
+  FAMILY_WORDMARK,
+  familyTabs,
+  type FamilyProduct,
+} from "./family.ts";
 export { Disclaimer } from "./Disclaimer.tsx";
 export { ErrorBoundary } from "./ErrorBoundary.tsx";
 export { Fresh } from "./Fresh.tsx";

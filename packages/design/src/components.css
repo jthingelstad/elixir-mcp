@@ -146,10 +146,10 @@ table {
 
 /* The narrow menu.
  *
- * Below the breakpoint the six tabs cannot share a row with the wordmark
- * and the Console button, so they collapse into a sheet behind one
- * button on the RIGHT. The Console button never goes in there: it is the
- * way into the product and stays on the bar at every width.
+ * Below the breakpoint the tabs cannot share a row with the wordmark
+ * and the product buttons, so they collapse into a sheet behind one
+ * button on the RIGHT. The product buttons never go in there: they are
+ * the way into the products and stay on the bar at every width.
  *
  * Which width is showing is decided HERE, in one media query, rather
  * than in each build's own JavaScript — that is what keeps the Eleventy
@@ -205,7 +205,7 @@ table {
     display: flex;
     order: 3; /* rightmost, after the Console button */
   }
-  .chrome__console {
+  .chrome__products {
     order: 2;
     margin-left: auto;
   }
@@ -245,17 +245,55 @@ table {
   }
 }
 
-.chrome__console {
+/* Phone: three buttons and a menu do not fit with their words on, so the
+   words go and the glyphs stay. Each button still has its name for a
+   screen reader through the label span. */
+@media (max-width: 560px) {
+  .chrome__product {
+    padding: 10px 12px;
+  }
+  .chrome__product-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* The product buttons: Console, Clan, Drop, on the right of every bar in
+   the family. Gold is the way over; the one you are inside (aria-current)
+   is green and glows. */
+.chrome__products {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
+}
+.chrome__product {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   background: var(--gold-grad);
   color: var(--gold-on);
   font-weight: 700;
   font-size: 14px;
-  padding: 10px 17px;
+  padding: 10px 15px;
   border-radius: var(--r-control);
+  white-space: nowrap;
+}
+.chrome__product[aria-current] {
+  background: var(--ok-grad);
+  color: var(--ok-on);
+  box-shadow:
+    0 0 0 1px var(--ok-edge),
+    0 0 16px var(--ok-edge);
+}
+/* The new-window glyph sits a little lighter than the label. */
+.chrome__product > svg:last-child:not(:first-child) {
+  opacity: 0.7;
 }
 
 /* ==================================================================

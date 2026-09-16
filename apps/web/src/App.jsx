@@ -2,9 +2,12 @@ import {
   Chrome as ChromeBar,
   Disclaimer,
   ErrorBoundary,
+  FAMILY_PRODUCTS,
+  FAMILY_WORDMARK,
   Icon,
   Rail as RailList,
   RailIdentity,
+  familyTabs,
 } from "@elixir-mcp/ui";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -71,18 +74,10 @@ export const STATIC_LINKS = {
   support: "/support",
 };
 
-/** The top bar. Identical in both builds by construction: it names only
- *  pages that exist on both sides of the split and carries no session.
- *  The design's Examples and Family tabs arrive with those pages. */
-const CHROME_TABS = [
-  ["Home", "/"],
-  ["Data", "/data"],
-  ["Examples", "/examples/play"],
-  ["Updates", "/updates"],
-  ["Docs", "/docs"],
-  ["Family", "/family"],
-  ["Support", "/support"],
-];
+/** The top bar's tabs: the kit's family list, on this host as bare paths.
+ *  Identical in both builds by construction: every one is a document
+ *  apps/site builds, and a test pins them to STATIC_LINKS. */
+const CHROME_TABS = familyTabs();
 
 /**
  * Sections and their pages — the app's route table.
@@ -657,31 +652,35 @@ function useNarrow() {
   return narrow;
 }
 
-/** The top bar: the kit's Chrome with the console's tabs and the gold
- *  way in. The Console button is a place, not a state: signed out it
- *  lands on the sign-in wall, which is the honest answer. Never inside
- *  the menu, at any width: burying it behind a button costs a tap on
- *  the one thing most people came for. */
+/** The top bar: the kit's Chrome with the family's tabs and product
+ *  buttons; we are the Console, so that one is green and routes in-app.
+ *  The Console button is a place, not a state: signed out it lands on
+ *  the sign-in wall, which is the honest answer. Never inside the menu,
+ *  at any width: burying it behind a button costs a tap on the one
+ *  thing most people came for. */
+const PRODUCTS = FAMILY_PRODUCTS.map((p) =>
+  p.key === "console" ? { ...p, href: "/account/overview" } : p,
+);
 function Chrome({ navigate }) {
-  return (
-    <ChromeBar
-      wordmark={SITE}
-      home={STATIC_LINKS.home}
-      tabs={CHROME_TABS.map(([label, href]) => ({ label, href }))}
-      menu
-      action={
-        <a
-          className="chrome__console"
-          href="/account/overview"
-          onClick={(e) => {
+  const products = PRODUCTS.map((p) =>
+    p.key === "console"
+      ? {
+          ...p,
+          onClick: (e) => {
             e.preventDefault();
             navigate("/account/overview");
-          }}
-        >
-          <Icon name="gauge" size={17} />
-          Console
-        </a>
-      }
+          },
+        }
+      : p,
+  );
+  return (
+    <ChromeBar
+      wordmark={FAMILY_WORDMARK}
+      home={STATIC_LINKS.home}
+      tabs={CHROME_TABS}
+      products={products}
+      current="console"
+      menu
     />
   );
 }

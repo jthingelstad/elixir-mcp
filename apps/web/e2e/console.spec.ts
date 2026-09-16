@@ -32,7 +32,9 @@ test.describe("signed out", () => {
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),
     ).toBeVisible();
-    await expect(page.locator(".chrome__console")).toHaveText(/Console/);
+    await expect(page.locator(".chrome__product[aria-current]")).toHaveText(
+      /Console/,
+    );
     await expect(page.locator(".rail")).toHaveCount(0);
     await accessible(page, "sign-in wall");
   });

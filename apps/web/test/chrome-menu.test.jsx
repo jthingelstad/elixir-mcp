@@ -2,9 +2,9 @@
  * The top bar's narrow menu.
  *
  * Two properties, and the second is the one a redesign quietly loses:
- * the six tabs collapse behind one button, and the CONSOLE BUTTON NEVER
- * GOES IN THERE. It is the way into the product, so burying it behind a
- * menu costs a tap on the thing most people came for.
+ * the tabs collapse behind one button, and the PRODUCT BUTTONS NEVER GO
+ * IN THERE. They are the way into the products, so burying them behind
+ * a menu costs a tap on the thing most people came for.
  *
  * Both halves render the same markup at every width and let one media
  * query decide which is showing — so this asserts the markup exists and
@@ -52,17 +52,25 @@ test("the menu button opens a sheet with every tab in it", async () => {
   expect(sheet.dataset.open).toBe("true");
 });
 
-test("the Console button is never inside the menu", async () => {
+test("the product buttons are never inside the menu", async () => {
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Menu" }));
   const sheet = document.getElementById("chrome-sheet");
-  expect(sheet.textContent).not.toMatch(/Console/);
-  // And it is still on the bar, beside the button that opened the sheet.
+  expect(sheet.textContent).not.toMatch(/Console|Clan|Drop/);
+  // And they are still on the bar, beside the button that opened the sheet.
   const bar = document.querySelector(".chrome__inner");
-  expect(bar.querySelector(".chrome__console")).toBeTruthy();
+  const products = [...bar.querySelectorAll(".chrome__product")];
+  expect(products.map((a) => a.textContent)).toEqual([
+    "Console",
+    "Clan",
+    "Drop",
+  ]);
+  // We are the console, so that one is lit; Drop is the game, in a new window.
+  expect(products[0].getAttribute("aria-current")).toBe("page");
+  expect(products[2].getAttribute("target")).toBe("_blank");
 });
 
-test("the menu button sits after the Console button, on the right", async () => {
+test("the menu button sits after the product buttons, on the right", async () => {
   render(<App />);
   const bar = await waitFor(() => {
     const el = document.querySelector(".chrome__inner");
@@ -71,7 +79,7 @@ test("the menu button sits after the Console button, on the right", async () => 
   });
   const kids = [...bar.children];
   expect(kids.indexOf(bar.querySelector(".chrome__menu"))).toBeGreaterThan(
-    kids.indexOf(bar.querySelector(".chrome__console")),
+    kids.indexOf(bar.querySelector(".chrome__products")),
   );
 });
 
