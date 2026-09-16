@@ -629,6 +629,74 @@ test("feedback loop closes: file, maintainer responds, requester sees it", async
   assert.ok(after2.responded_at);
 });
 
+test("feedback pages fit the wire cap and acknowledge only delivered replies", async () => {
+  const { rows: inserted } = await db.query(
+    `insert into feedback
+       (account_id, surface, category, message, status, response, responded_at)
+     select $1, 'mcp', 'feature', repeat('m', 4000), 'done', repeat('r', 4000), now()
+     from generate_series(1, 12)
+     returning feedback_id`,
+    [account.accountId],
+  );
+  const insertedIds = inserted.map((row) => row.feedback_id);
+
+  try {
+    const page = await call("elixir_my_feedback", {
+      status: "done",
+      limit: 50,
+    });
+    assert.equal(page.isError, false, JSON.stringify(page.body));
+    assert.ok(JSON.stringify(page.body).length < 48_000, "page fits MCP cap");
+    assert.ok(page.body.feedback.length > 0);
+    assert.ok(
+      page.body.feedback.length < insertedIds.length,
+      "oversized requested page is split",
+    );
+    assert.ok(page.body.total >= insertedIds.length);
+    assert.ok(page.body.next_offset > 0);
+    assert.ok(
+      page.body.meta.feedback_responses_pending >=
+        insertedIds.length - page.body.feedback.length,
+      "undelivered replies keep the pending hint raised",
+    );
+
+    const delivered = new Set(
+      page.body.feedback.map((row) => String(row.feedback_id)),
+    );
+    const { rows: seen } = await db.query(
+      `select feedback_id, response_seen_at from feedback
+       where feedback_id = any($1::bigint[]) order by feedback_id desc`,
+      [insertedIds],
+    );
+    for (const row of seen) {
+      assert.equal(
+        row.response_seen_at !== null,
+        delivered.has(String(row.feedback_id)),
+        "only a reply present in the delivered page is acknowledged",
+      );
+    }
+
+    const next = await call("elixir_my_feedback", {
+      status: "done",
+      limit: 50,
+      offset: page.body.next_offset,
+    });
+    assert.equal(next.isError, false, JSON.stringify(next.body));
+    assert.ok(JSON.stringify(next.body).length < 48_000, "next page fits cap");
+    assert.ok(
+      next.body.feedback.every(
+        (row) => !delivered.has(String(row.feedback_id)),
+      ),
+      "pages do not overlap",
+    );
+  } finally {
+    await db.query(
+      `delete from feedback where feedback_id = any($1::bigint[])`,
+      [insertedIds],
+    );
+  }
+});
+
 test("collections: browse + enriched get; private stays owner-only; unknown honest", async () => {
   const {
     rows: [owner],

@@ -126,6 +126,25 @@
       ]
     },
     {
+      "id": "reading-map-stale",
+      "situation": "Close the Loop's reading map names a product page removed by a ratified contract rename. The current changelog and site source name its replacement, and the saved run summary still points at the old page.",
+      "expected": {
+        "owner": "loop",
+        "action": "refresh-reading-map-source",
+        "mutation": "lease-required",
+        "evidence": [
+          "current-changelog",
+          "current-source-exists",
+          "old-source-absent"
+        ]
+      },
+      "forbidden_actions": [
+        "skip-required-reading",
+        "restore-deleted-product-page",
+        "trust-saved-summary-over-current-source"
+      ]
+    },
+    {
       "id": "natural-evidence-missing",
       "situation": "An ergonomic tool fix passed tests and deployed. No comparable natural client call has occurred before the observation deadline.",
       "expected": {

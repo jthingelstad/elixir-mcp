@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-15",
+    title: "A long feedback history arrives in pages without losing replies",
+    body: "Two natural agent reads of elixir_my_feedback crossed the 48,000-character delivery cap: twenty full reports plus maintainer responses can be much larger than twenty ordinary rows. Worse, the read marked every response seen before the protocol replaced the body with result_too_large, so the agent could lose its pending signal without seeing the reply. The tool now returns bounded, lossless pages with total and next_offset; pass next_offset as offset until null. A page may be shorter than limit when the text is large, and only replies actually delivered on that page are marked seen. Additive; contract 3.8.0.",
+  },
+  {
+    date: "2026-09-15",
     title: "days and weeks work on every windowed tool",
     body: "The connection instructions have said 'days/weeks are sugar' since 1.0.0, and five tools honoured it while the rest refused with bad_request - an agent that had just used clans_standings({days: 1}) sent days: 1 to battles_performance and lost three calls learning the difference. Every tool that takes a window now accepts days and weeks as sugar for from, ending now: the battles family, opponents, synergy, the timeline, rankings_timeline, game_events, and players_timeline (there as N days of snapshots, today included). from/to given still win. Additive; contract 3.7.0.",
   },

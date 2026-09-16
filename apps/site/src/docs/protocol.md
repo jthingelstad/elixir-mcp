@@ -495,10 +495,13 @@ in its hint.
   carries one, and passing it attaches that exact request, its arguments and
   its answer to the report, so the maintainer sees what you saw. `context`
   stays free text for naming a tool or a question. Never metered.
-- `elixir_my_feedback({ limit?, status?, since? })`: `status` one of `new`,
-  `seen`, `planned`, `done`, `declined`; returns `response`, `responded_at`,
-  `shipped_in`, `related_tools`. Reading it clears
-  `meta.feedback_responses_pending`.
+- `elixir_my_feedback({ limit?, offset?, status?, since? })`: `status` one of
+  `new`, `seen`, `planned`, `done`, `declined`; returns `response`,
+  `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by delivered
+  size as well as `limit`, so follow `next_offset` with the same filters until
+  it is `null`; `total` counts the filtered ledger. Only replies delivered on
+  that page are marked seen, and `meta.feedback_responses_pending` stays raised
+  while another response remains unread.
 - `elixir_changelog({ since?, limit?, offset? })`: entries `{ version, date,
   summary, tools_added?, breaking? }`, newest first. `limit` is 1 to 20
   (default 20); `offset` defaults to zero. Follow `next_offset` with the

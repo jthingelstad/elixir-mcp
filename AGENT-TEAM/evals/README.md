@@ -1,9 +1,10 @@
 # Scheduled-owner decision pilot
 
-These eleven cases test operating decisions, not product answer quality. They
+These twelve cases test operating decisions, not product answer quality. They
 cover current public/private access, checkout contention, deployment handoff,
 healthy no-ops, untrusted feedback, retries, contract changes, natural acceptance,
-production play and shared-reference ownership. No case authorizes a real action.
+production play, shared-reference ownership and stale reading maps. No case
+authorizes a real action.
 
 1. Export `node AGENT-TEAM/scripts/decision-eval.mjs situations` for a reviewer
    that has the current operating instructions but has not read the rubric.

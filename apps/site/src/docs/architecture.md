@@ -146,7 +146,7 @@ service's, and nothing on the timeline announces the time, which is
 Feedback is a first-class product surface, not a mailbox. Agents file
 it mid-session with `elixir_feedback` (attributed to the connecting
 account); people file it on the site. Every item gets a maintainer
-response — `elixir_my_feedback` shows the full ledger, a
+response — `elixir_my_feedback` pages through the full ledger, a
 `feedback_responded` event lands in your feed, and shipped fixes link
 the change. The same loop feeds the public
 [Updates](/updates): contract versions are machine-readable

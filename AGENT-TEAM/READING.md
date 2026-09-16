@@ -16,7 +16,7 @@ The source of product behavior is `apps/site/src/docs/`, not this map. Read:
 | All MCP owners | `roles.md`, `connections.md`; changes in `packages/contracts/src/changelog.ts` since the reviewed version |
 | Run Elixir MCP | `recording.md`, `operators.md`, `limits.md`; `docs/RELEASING-COLLECTOR.md` for collector changes; preview `../elixir-mcp-discord/AGENTS.md` for preview evidence |
 | Keep the Record True | `recording.md`, `clocks.md`, `methodology.md`, `responses.md`; affected tool declarations and standalone CR reference |
-| Close the Loop | `choosing-a-tool.md`, `events.md`, `protocol.md`; pages/declarations named by the observed feedback, including `agents.md` for the preview |
+| Close the Loop | `choosing-a-tool.md`, `timeline.md`, `protocol.md`; pages/declarations named by the observed feedback, including `agents.md` for the preview |
 | Guard the Door | `roles.md`, `agents.md`, `integrations.md`, `connections.md`, `privacy.md`, `limits.md`; changed auth declarations and refusal tests |
 | REST integration finding | `integrations.md`, `packages/contracts/integration-api.openapi.json` |
 

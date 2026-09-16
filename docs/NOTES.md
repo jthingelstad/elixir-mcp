@@ -2212,3 +2212,30 @@ declare it after the spread so their defaults' descriptions stand. The
 lesson for the guide: a convention the instructions state is a contract
 the schema has to keep, on every tool, or the first agent to generalise
 from one success pays for it.
+
+## 2026-09-15 — Feedback pages acknowledge only what arrived (contract 3.8.0)
+
+The Close the Loop one-day audit found two natural `elixir_my_feedback`
+results over the 48,000-character MCP cap (largest 99,805 characters). The
+tool's default twenty rows can each carry both a 4,000-character report and a
+4,000-character maintainer response. More importantly, its account-wide
+`response_seen_at` update ran inside the handler before the protocol replaced
+the oversized body with `result_too_large`: a caller could lose
+`feedback_responses_pending` without receiving the replies, and an ordinary
+limited read also acknowledged older rows it did not return.
+
+`elixir_my_feedback` now pages by both count and delivered size. It returns
+`total` and `next_offset`; callers pass that offset with the same filters until
+null. Only feedback ids present in the bounded page have their response marked
+seen, so the pending hint remains truthful across partial reads. The focused
+scratch regression starts with twelve maximum-size reports and replies, proves
+the old body exceeds the cap, then proves each page fits and only its delivered
+ids are acknowledged.
+
+The same run corrected Close the Loop's reading map from deleted `events.md`
+to the contract-3.0.0 source `timeline.md`. The exact failure was a required
+read that could not exist; the cause was the map missing the ratified rename;
+the minimal contract edit changes one path. Decision case `reading-map-stale`
+pins current changelog/source evidence over a saved summary. The next comparable
+scheduled run must resolve every mapped page without fallback; until then the
+instruction-quality result is `insufficient_sample`.
