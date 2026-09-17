@@ -28,6 +28,52 @@ One thing learned here held for any caller and went to
 season key is the month, and the clan-war integer is the seasons-list
 position minus 8. Section 1.1 rests on it.
 
+## Outcome and corrections (2026-09-17, evening)
+
+Phases A-E of the plan (steps 1-15) shipped and deployed the same day as
+migrations 0104-0125 and contracts 3.10.0 and 3.11.0; the five "Schema
+review, Phase A-E" entries in `docs/NOTES.md` carry the decisions and the
+before/after numbers, and are the record of what landed. Phase F (steps
+16-17) waits for a week of `idx_scan` evidence. The body below is left as
+written on the 17th morning; what execution corrected in it:
+
+- **2.3 `card_pair_season` is struck.** The 16,371 pairs were the output;
+  the input is (deck, player) rows times 28 pairs times three form
+  variants, ~25M rows on the micro, and the first nightly hit the Lambda's
+  ceiling on it (0122). `cards_synergy` walks the decks that contain the
+  anchor over the rollup's baseline and totals instead: exact distinct
+  pilots, 9.5 s to 3.9 s. Appendix C's synergy row reads as the "before".
+- **1.3's `war_week.season_id -> season` key is withdrawn.** The war
+  tables' key is the API's own and the season number is derived; a key
+  would refuse a riverracelog admission when the derivation disagreed,
+  where the settled rule is an alarm and never a rejection. The alarm
+  (`SeasonWarIdMismatch`) is the guard.
+- **1.4's "no participant references the card_count-0 deck" was wrong**
+  on live: one did. 0117 nulls that hash first (0093's rule).
+- **1.2 gains a caveat.** The API types practice river-race battles
+  (past the four scoring decks, and on training days) exactly like
+  scoring ones, with no distinguishing field
+  (`cr-agent-api-docs/clans.md`). A day's war-battle count from the log
+  is a ceiling on scoring battles; `decksUsedToday` (max 4) is the
+  scoring count. `war_period` attributes every war-typed battle to its
+  day correctly; what it cannot do, and the stamps could not either, is
+  say which of a member's twelve battles on one day were the four that
+  scored.
+- **1.5's enum count**: 10 player kinds and 4 clan kinds; "14 values"
+  was both tables together.
+- **1.7's `finalized`** was fetched and never rendered, so step 11 was
+  not a contract change.
+- **2.1's grain** gained an `'all'` mode-group bucket and a form `-1`
+  card row, because distinct players do not sum across modes or forms;
+  the DDL below predates that.
+- **2.4**: `battles_trends` stays raw; its `trophy_battles` is not in the
+  daily rollup and a column for one field is a 240k-row backfill for six
+  calls a week.
+- **1.8**: the event ledgers' arena keys wait for step 17's Training Camp
+  seed; a rival's `recorded` on `bracket_observed` is as of the read, and
+  a member's name comes from `player`, both by design (the tag is the
+  identity; the label is current everywhere else too).
+
 ## The one-paragraph verdict
 
 The canonical tables are sound: every denormalized copy on the participant
