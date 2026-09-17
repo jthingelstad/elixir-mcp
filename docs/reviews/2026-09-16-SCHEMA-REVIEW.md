@@ -77,8 +77,10 @@ Path of Legends finals are addressed by it and the player's PoL result
 objects carry no season id at all. The clan-war `seasonId` (136 now)
 appears only in `riverracelog`, never in the live race, and equals the
 seasons-list position minus 8, checked at six points against our own war
-history (`2025-03` = 118 through `2026-09` = 136). The in-game Pass number
-(87) is not in the API anywhere; Merge Tactics counts its own
+history (`2025-03` = 118 through `2026-09` = 136). The in-game Pass
+season is not in the API at all, neither its number (87) nor the name
+players actually use ("Minion Academy", September 2026), so the record
+cannot name it and does not try; Merge Tactics counts its own
 (`AutoChess_2026_Season_11`, not monthly). So the record's integer is a
 derived name. The table below anchors on the month the API uses and
 derives the war number from it, verifying against each new river race log
@@ -112,7 +114,6 @@ create table season (
   season_month     text primary key                    -- the API's own name (YYYY-MM): seasons list, leagueStatistics, PoL finals, progress keys
                    check (season_month ~ '^[0-9]{4}-[0-9]{2}$'),
   war_season_id    integer not null unique,            -- riverracelog seasonId: one per month from the anchor, verified per log entry
-  pass_season      integer,                            -- in-game Pass "Season N": the one number not in the API; calendar-derived (2019-07 = 1), display only
   starts_at        timestamptz not null,               -- first Monday 10:00:00Z
   ends_at          timestamptz not null,               -- next season's starts_at (exclusive)
   sections         smallint not null check (sections in (4, 5)),
@@ -123,7 +124,7 @@ create table season (
   exclude using gist (tstzrange(starts_at, ends_at) with &&)
 );
 comment on table season is
-  'One row per Clash Royale season, keyed by the month the API names it. war_season_id is the riverrace seasonId, a derived label confirmed by the next war log entry; pass_season is display only. Bounds are the calendar: first Monday 10:00Z to first Monday 10:00Z.';
+  'One row per Clash Royale season, keyed by the month the API names it. war_season_id is the riverrace seasonId, a derived label confirmed by the next war log entry. The Pass season (number and name) is not in the API and is not modelled. Bounds are the calendar: first Monday 10:00Z to first Monday 10:00Z.';
 
 -- A mode's own season key, taken verbatim from Player.progress and never
 -- derived: Merge Tactics counts its own, 2v2 League and the seasonal
@@ -177,9 +178,10 @@ to `war_season_id` is a cosmetic contraction for later.
 (minor bump, additive):
 
 1. **Default = current season to date**, from `season.starts_at`.
-   `applied.window` gains `season: {month, war, pass, starts_at,
-   ends_at}` (one object, every surface's own number, so an agent can say
-   "S136" to a clan and "Season 87" to a Pass player) and
+   `applied.window` gains `season: {month, war, starts_at, ends_at}`
+   (one object, both names the API speaks, so an agent can say "S136"
+   to a clan and "the September season" to a player; the Pass name is
+   the agent's to know, not the record's) and
    `source: "season"`. `rankings_timeline` and `game_events`
    already default this way (`rankings.mjs:628,787`); the meta tools join
    them.
