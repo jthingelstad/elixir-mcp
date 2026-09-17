@@ -71,7 +71,12 @@ export function makeHandler({ send, track = null, enroll = null }) {
             }
           }
         }
-      } catch {
+      } catch (err) {
+        // The message goes back for a retry; the reason must be on the
+        // record, or a broken transport is ten invocations of nothing
+        // (2026-09-17, first SES send). Name and message only: never the
+        // recipient, never a body.
+        console.error("send_retry", err?.name ?? "Error", err?.message);
         outcome = "retry";
       }
       if (outcome !== "sent")
