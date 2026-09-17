@@ -696,6 +696,29 @@ export async function seriesCensusSelf(databaseUrl, spec = {}) {
        from checked`,
       [since],
     );
+    // The misses explained: the members the record placed in that clan
+    // that day (open membership over the day) and where their row for
+    // the day sits - under another clan's tag means they moved clans
+    // within the day and the day's last observation won.
+    for (const m of clan.misses ?? []) {
+      const { rows } = await db.query(
+        `select cm.player_tag, s.clan_tag as row_clan_tag, s.roster_observed_at
+           from clan_membership cm
+           left join player_snapshot_daily s
+             on s.player_tag = cm.player_tag and s.snapshot_date = $2::date and s.snapshot_kind = 'daily'
+          where cm.clan_tag = $1
+            and cm.joined_observed_at < ($2::date + 1)::timestamp at time zone 'UTC' + interval '10 hours'
+            and (cm.left_observed_at is null
+                 or cm.left_observed_at >= $2::date::timestamp at time zone 'UTC' + interval '10 hours')
+          order by cm.player_tag limit 5`,
+        [m.clan_tag, m.day],
+      );
+      m.members_that_day = rows.map((r) => ({
+        player_tag: r.player_tag,
+        row_clan_tag: r.row_clan_tag,
+        roster_observed_at: r.roster_observed_at,
+      }));
+    }
     const {
       rows: [player],
     } = await db.query(
