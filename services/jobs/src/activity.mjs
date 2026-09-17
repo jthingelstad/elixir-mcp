@@ -104,11 +104,12 @@ async function gapDayRows(db, tags, now) {
 async function incompleteIntervalRows(db, tags, now) {
   const { rows } = await db.query(
     `with s as (
-       select player_tag, observed_at,
-              lag(observed_at) over w as observed_from,
+       select player_tag, profile_observed_at as observed_at,
+              lag(profile_observed_at) over w as observed_from,
               battle_count - lag(battle_count) over w as expected
          from player_snapshot_daily
         where snapshot_kind = 'daily' and player_tag = any($1::text[])
+          and profile_observed_at is not null
         window w as (partition by player_tag order by snapshot_date)
      )
      select s.player_tag, s.observed_from, s.observed_at as observed_to,

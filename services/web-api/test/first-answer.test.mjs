@@ -97,7 +97,7 @@ test("first-answer follows actual capture and distinguishes authorization from n
   data = JSON.parse((await read()).body);
   assert.equal(data.player.profile_observed_at, null);
   await db.query(
-    "insert into player_snapshot_daily (player_tag, snapshot_date, trophies, observed_at) values ('#2PP0V90Y', current_date, 9000, now())",
+    "insert into player_snapshot_daily (player_tag, snapshot_date, trophies, observed_at, profile_observed_at) values ('#2PP0V90Y', current_date, 9000, now(), now())",
   );
   // Identities first (0108): a participant's deck_hash references deck.
   await db.query(

@@ -235,14 +235,14 @@ export async function seriesStatus(databaseUrl, spec = {}) {
                  'sections', count(distinct (season_id, section_index)))
           from war_period_log) as war_period_log,
          (select json_build_object('rows', count(*),
-                 'roster_only', count(*) filter (where clan_tag is not null and profile_observed_at is null),
-                 'profile_only', count(*) filter (where clan_tag is null and profile_observed_at is not null),
-                 'both', count(*) filter (where clan_tag is not null and profile_observed_at is not null),
+                 'roster_only', count(*) filter (where roster_observed_at is not null and profile_observed_at is null),
+                 'profile_only', count(*) filter (where roster_observed_at is null and profile_observed_at is not null),
+                 'both', count(*) filter (where roster_observed_at is not null and profile_observed_at is not null),
                  'players', count(distinct player_tag),
                  'clans', count(distinct clan_tag),
                  'first_day', min(snapshot_date)::text, 'last_day', max(snapshot_date)::text,
                  'today_rows', count(*) filter (where snapshot_date = game_day(now())),
-                 'today_roster_written', count(*) filter (where snapshot_date = game_day(now()) and clan_tag is not null))
+                 'today_roster_written', count(*) filter (where snapshot_date = game_day(now()) and roster_observed_at is not null))
           from player_snapshot_daily) as player_snapshot_daily,
          (select json_build_object('war_week_clan_with_score', count(*) filter (where clan_score is not null),
                  'war_week_clan_rows', count(*)) from war_week_clan) as war_week_clan,

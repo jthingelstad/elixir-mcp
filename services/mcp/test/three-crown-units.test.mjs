@@ -223,9 +223,9 @@ test("a perfect ratio over two days does not read as a captured week", async () 
   ]) {
     await scratch.db.query(
       `insert into player_snapshot_daily
-         (player_tag,snapshot_date,snapshot_kind,observed_at,battle_count)
+         (player_tag,snapshot_date,snapshot_kind,observed_at,profile_observed_at,battle_count)
        values ($1, (now()-($2||' days')::interval)::date, 'daily',
-               now()-($2||' days')::interval, $3)`,
+               now()-($2||' days')::interval, now()-($2||' days')::interval, $3)`,
       [tag, days, battles],
     );
     void n;

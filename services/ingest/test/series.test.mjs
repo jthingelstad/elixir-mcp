@@ -709,3 +709,106 @@ test("a battle log writes the battle's own facts (0131) for new battles", async 
   assert.ok(boats === 0 || c.boat_sides > 0, "boat battles keep their side");
   assert.ok(c.with_towers >= 0);
 });
+
+test("verification item 1: a roster older than the day's last profile poll still lands the clan and rank, never the trophies", async () => {
+  const P = "#2PP0V9LP";
+  await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
+  // The backfill's shape: the profile row exists from 14:00Z; the
+  // roster observation being replayed is from earlier the same game
+  // day (10:21Z; a 02:21Z roster is the day before on the 10:00Z grid).
+  const profileAt = "2026-09-16T14:00:00Z";
+  await projectPlayerSnapshot(ctx.db, {
+    playerTag: P,
+    payload: {
+      tag: P,
+      name: "Late Roster",
+      trophies: 7100,
+      wins: 10,
+      battleCount: 20,
+    },
+    fetchedAt: profileAt,
+  });
+  const rosterAt = "2026-09-16T10:21:00Z";
+  const r = await projectClanSeries(ctx.db, {
+    payload: roster({ at: rosterAt, members: [{ tag: P, trophies: 7000 }] }),
+    observedAt: rosterAt,
+  });
+  assert.equal(
+    r.membersMoved,
+    1,
+    "the roster's own columns are new to the row",
+  );
+  let row = await ctx.db.query(
+    `select trophies, clan_tag, clan_rank, observed_at, roster_observed_at, profile_observed_at, game_last_seen_at
+     from player_snapshot_daily where player_tag = $1 and snapshot_date = '2026-09-16' and snapshot_kind = 'daily'`,
+    [P],
+  );
+  row = row.rows[0];
+  assert.equal(row.trophies, 7100, "the profile's fresher trophies stand");
+  assert.equal(row.clan_tag, CLAN);
+  assert.equal(row.clan_rank, 1);
+  assert.equal(
+    row.observed_at.toISOString(),
+    iso(profileAt),
+    "never regresses",
+  );
+  assert.equal(row.roster_observed_at.toISOString(), iso(rosterAt));
+  assert.equal(row.profile_observed_at.toISOString(), iso(profileAt));
+  // The same old roster again: nothing.
+  const again = await projectClanSeries(ctx.db, {
+    payload: roster({ at: rosterAt, members: [{ tag: P, trophies: 7000 }] }),
+    observedAt: rosterAt,
+  });
+  assert.equal(again.membersMoved, 0);
+  // An even older roster with a different rank: nothing (its stamp is
+  // older than the roster's own).
+  const older = await projectClanSeries(ctx.db, {
+    payload: roster({
+      at: "2026-09-16T10:05:00Z",
+      members: [{ tag: B }, { tag: P }],
+    }),
+    observedAt: "2026-09-16T10:05:00Z",
+  });
+  const {
+    rows: [kept],
+  } = await ctx.db.query(
+    `select clan_rank from player_snapshot_daily where player_tag = $1 and snapshot_date = '2026-09-16' and snapshot_kind = 'daily'`,
+    [P],
+  );
+  assert.equal(kept.clan_rank, 1);
+  assert.ok(older.membersMoved <= 1, "only B's new row");
+});
+
+test("verification item 4: the progress buckets name their side-mode arenas in the catalog", async () => {
+  const P = "#2PP0V9RP";
+  await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
+  await projectPlayerProgress(ctx.db, {
+    playerTag: P,
+    payload: {
+      progress: {
+        AutoChess_2026_Season_11: {
+          arena: {
+            id: 168000180,
+            name: "Bronze I",
+            rawName: "AutoChessArena1_2026_Season_11",
+          },
+          trophies: 5,
+          bestTrophies: 5,
+        },
+        "2v2League_202609": {
+          arena: { id: 168000193, name: "Casual" },
+          trophies: 0,
+          bestTrophies: 0,
+        },
+      },
+    },
+    observedAt: "2026-09-16T12:00:00Z",
+  });
+  const { rows } = await ctx.db.query(
+    `select arena_id, name from arena where arena_id in (168000180, 168000193) order by 1`,
+  );
+  assert.deepEqual(rows, [
+    { arena_id: 168000180, name: "Bronze I" },
+    { arena_id: 168000193, name: "Casual" },
+  ]);
+});

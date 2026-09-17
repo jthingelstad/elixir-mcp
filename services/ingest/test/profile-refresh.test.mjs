@@ -550,3 +550,112 @@ test("a later poll the same day does not re-emit the moment, and a fall in the w
   });
   assert.equal(resets[0].window_start.toISOString(), at("14:27:48.000"));
 });
+
+test("verification item 2: the roster that sees the arena move emits arena_changed at its own cadence; the profile after it emits nothing more and owes no refresh", async () => {
+  // The state at the end of the tests above: the profile's latest arena
+  // is Royal Crypt. The member's own log first carries a win reaching
+  // the next arena's floor, then a roster places them in that arena
+  // before any profile poll does.
+  const nextDay = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const NEXT = { id: 54000015, name: "Silent Sanctuary" };
+  await ctx.db.query(
+    `update poll_state set refresh_requested_at = null where subject_tag = $1 and endpoint = 'player'`,
+    [ME],
+  );
+  const before = (await events("arena_changed")).length;
+  const log = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: `${nextDay.replaceAll("-", "")}T093000.000Z`,
+          arena: NEXT,
+          mine: 6470,
+          theirs: 6500,
+          opponent: "#0PP0000V",
+          result: [3, 0, 30],
+        }),
+      ],
+      fetchedAt: `${nextDay}T09:35:00Z`,
+    }),
+  );
+  assert.equal(log.outcome, "admitted");
+  const { projectClanSeries } = await import("../src/series.mjs");
+  const receiptId = await (async () => {
+    const { rows } = await ctx.db.query(
+      `select receipt_id from api_receipt order by receipt_id desc limit 1`,
+    );
+    return rows[0].receipt_id;
+  })();
+  const r = await projectClanSeries(ctx.db, {
+    payload: {
+      tag: "#2PP0V9YY",
+      name: "Refresh Clan",
+      memberList: [
+        {
+          tag: ME,
+          name: "promo",
+          role: "member",
+          trophies: 6500,
+          arena: { ...NEXT, rawName: "Arena_15" },
+          clanRank: 1,
+          previousClanRank: 1,
+          donations: 9,
+          donationsReceived: 0,
+          lastSeen: `${nextDay.replaceAll("-", "")}T093000.000Z`,
+        },
+      ],
+    },
+    observedAt: `${nextDay}T09:40:00Z`,
+    receiptId,
+  });
+  assert.equal(r.arenaMoments, 1);
+  const moments = await events("arena_changed");
+  assert.equal(moments.length, before + 1, "the roster wrote the moment");
+  const moment = moments[moments.length - 1];
+  assert.equal(moment.payload.to, NEXT.id);
+  assert.equal(moment.payload.to_name, NEXT.name);
+  assert.equal(moment.payload.from, CRYPT.id);
+  assert.equal(
+    moment.payload.promoted_by?.trophies_after,
+    6500,
+    "the crossing battle from the record, as the profile path names it",
+  );
+  // A later battle in the new arena owes no profile poll: the record
+  // already holds the arena.
+  const later = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: `${nextDay.replaceAll("-", "")}T095000.000Z`,
+          arena: NEXT,
+          mine: 6500,
+          theirs: 6500,
+          opponent: "#0PP0000U",
+          result: [3, 0, 30],
+        }),
+      ],
+      fetchedAt: `${nextDay}T10:00:00Z`,
+    }),
+  );
+  assert.equal(later.projection.profileRefreshRequested, false);
+  // The profile catching up: no second moment.
+  const prof = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: ME,
+      payload: profile({ arena: NEXT, trophies: 6530, donations: 9 }),
+      fetchedAt: `${nextDay}T12:00:00Z`,
+    }),
+  );
+  assert.equal(prof.outcome, "admitted");
+  assert.equal((await events("arena_changed")).length, before + 1);
+});

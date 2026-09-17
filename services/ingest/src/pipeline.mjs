@@ -102,7 +102,11 @@ export async function stampBurst(db, playerTag, asOf) {
  * that one row. One outstanding request at a time - a stamp already past
  * the last admission stands until it is served - and the arena name is
  * compared through the catalog the profile poll itself maintains, so an
- * arena the catalog has never seen cannot ask for anything.
+ * arena the catalog has never seen cannot ask for anything. The baseline
+ * is the newest row of EITHER writer: since 2026-09-17 the roster writes
+ * the member's arena at its own cadence and emits the arena_changed
+ * moment itself (series.mjs), so a roster-fresh arena means the record
+ * already knows and no profile poll is owed for it.
  */
 async function requestProfileRefresh(
   db,

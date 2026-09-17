@@ -276,14 +276,14 @@ function sessionFacts({ crossed: _c, newly: _n, ...rest }) {
 
 async function snapshotAt(db, tag, atMs) {
   const { rows } = await db.query(
-    `select observed_at, trophies, best_trophies, arena_id,
+    `select profile_observed_at as observed_at, trophies, best_trophies, arena_id,
             collection_level, wins, battle_count,
             donations,
             pol_league as league
        from player_snapshot_daily
-      where player_tag = $1 and observed_at is not null
-        and observed_at <= ${ts(atMs)}
-      order by observed_at desc limit 1`,
+      where player_tag = $1 and profile_observed_at is not null
+        and profile_observed_at <= ${ts(atMs)}
+      order by profile_observed_at desc limit 1`,
     [tag],
   );
   return rows[0] ?? null;

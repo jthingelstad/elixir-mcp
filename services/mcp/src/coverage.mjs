@@ -5,18 +5,20 @@
  */
 export async function captureCoverage(db, playerTag) {
   const { rows: latestRows } = await db.query(
-    `select max(observed_at) as latest_observed_at
+    `select max(profile_observed_at) as latest_observed_at
      from player_snapshot_daily
      where player_tag = $1 and snapshot_kind = 'daily'`,
     [playerTag],
   );
   const { rows } = await db.query(
     `with snapshots as (
-       select observed_at as observed_to,
-              lag(observed_at) over w as observed_from,
+       -- Profile observations only: battle_count is the profile's, and a
+       -- roster-written row (2026-09-17) carries neither it nor its stamp.
+       select profile_observed_at as observed_to,
+              lag(profile_observed_at) over w as observed_from,
               battle_count - lag(battle_count) over w as expected_battles
        from player_snapshot_daily
-       where player_tag = $1 and snapshot_kind = 'daily'
+       where player_tag = $1 and snapshot_kind = 'daily' and profile_observed_at is not null
        window w as (order by snapshot_date)
      )
      select observed_from, observed_to, expected_battles,

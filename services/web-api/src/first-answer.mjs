@@ -16,7 +16,7 @@ export async function firstAnswer(db, accountId) {
               (select status from recording
                where subject_type = 'player' and subject_tag = c.player_tag
                order by (status = 'active') desc limit 1) as recording_status,
-              (select max(observed_at) from player_snapshot_daily
+              (select max(profile_observed_at) from player_snapshot_daily
                where player_tag = c.player_tag) as profile_observed_at,
               (select last_admitted_at from poll_state where subject_tag = c.player_tag
                and endpoint = 'player_battlelog') as battlelog_observed_at,

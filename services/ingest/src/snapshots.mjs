@@ -171,6 +171,19 @@ export async function projectPlayerSnapshot(
     [playerTag, fetchedAt],
   );
   const latest = latestRows[0];
+  // The arena is a SHARED column and the roster writes it at its own
+  // cadence, emitting arena_changed itself (series.mjs): the arena
+  // baseline is the newest observation of either writer, so a move the
+  // roster already wrote is never written twice.
+  if (latest) {
+    const { rows: arenaRows } = await db.query(
+      `select arena_id from player_snapshot_daily
+       where player_tag = $1 and observed_at < $2::timestamptz
+       order by observed_at desc limit 1`,
+      [playerTag, fetchedAt],
+    );
+    if (arenaRows[0]) latest.arena_id = arenaRows[0].arena_id;
+  }
 
   // The typed columns (0123); the objects the contract serves are
   // rendered from them (snapshot-columns.mjs).
@@ -649,6 +662,45 @@ async function nthWinBattle(db, { playerTag, battles, prevWins, wins, step }) {
   return nth ? describeBattle(db, playerTag, nth) : null;
 }
 
+/**
+ * The arena moment, from whichever writer saw the move first: the profile
+ * (ledgerMilestones) or, since 2026-09-17, the roster (series.mjs), which
+ * reads the member's arena up to 96 times a day where the profile reads
+ * it every eight hours. `battles` is the window's battle list when the
+ * caller already read it; otherwise it is read here.
+ */
+export async function arenaChangedMoment(
+  db,
+  { playerTag, from, to, toName, windowStart, windowEnd, receiptId, battles },
+) {
+  const list =
+    battles ??
+    (await windowBattles(db, {
+      playerTag,
+      since: windowStart,
+      until: windowEnd,
+    }));
+  const promotion = await promotionBattle(db, {
+    playerTag,
+    battles: list,
+    arenaId: to,
+    arenaName: toName,
+  });
+  await emitEvent(db, "arena_changed", {
+    tag: playerTag,
+    windowStart,
+    windowEnd,
+    receiptId,
+    occurredAt: promotion?.battle_time ?? null,
+    payload: {
+      from,
+      to,
+      to_name: toName,
+      ...(promotion ? { promoted_by: promotion } : {}),
+    },
+  });
+}
+
 async function ledgerMilestones(
   db,
   { playerTag, prev, payload, fetchedAt, receiptId },
@@ -685,20 +737,17 @@ async function ledgerMilestones(
     });
 
   const arena = payload.arena?.id ?? null;
-  if (arena !== null && prev.arena_id !== null && arena !== prev.arena_id) {
-    const promotion = await promotionBattle(db, {
+  if (arena !== null && prev.arena_id !== null && arena !== prev.arena_id)
+    await arenaChangedMoment(db, {
       playerTag,
+      from: prev.arena_id,
+      to: arena,
+      toName: payload.arena?.name ?? null,
+      windowStart,
+      windowEnd: fetchedAt,
+      receiptId,
       battles: await inWindow(),
-      arenaId: arena,
-      arenaName: payload.arena?.name ?? null,
     });
-    await pinned(
-      "arena_changed",
-      { from: prev.arena_id, to: arena, to_name: payload.arena?.name ?? null },
-      promotion,
-      "promoted_by",
-    );
-  }
 
   if (crossed(prev.best_trophies, payload.bestTrophies, BEST_TROPHIES_BAND)) {
     const band =

@@ -24,19 +24,23 @@
  * window; the progress series has no weekly counter and gets
  * season_roll only.
  *
- * Two writers on the snapshot row. The roster's columns are trophies,
- * donations, donations_received, arena_id, clan_tag, clan_rank,
- * previous_clan_rank and game_last_seen_at, dated by observed_at; the
- * profile's are everything else, dated by profile_observed_at
- * (snapshots.mjs). Each guards on its own columns and its own stamp, so
- * neither can regress the other and a replayed old payload from either
- * side writes nothing.
+ * Two writers on the snapshot row, three stamps. The roster's own
+ * columns are clan_tag, clan_rank, previous_clan_rank and
+ * game_last_seen_at, dated by roster_observed_at (0133); the profile's
+ * own are the lifetime block and the rest, dated by profile_observed_at
+ * (snapshots.mjs); trophies, donations, donations_received and arena_id
+ * are shared and belong to whichever observation is the row's newest
+ * (observed_at, the greatest of either). Each writer guards on its own
+ * columns and its own stamp, so neither can regress the other, a
+ * roster older than the day's last profile poll still lands the clan
+ * and rank, and a replayed old payload from either side writes nothing.
  */
 
 import { gameDay, inPreResetWindow, normalizeTag } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "./war-clock.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
 import { ensureSeason, parseProgressKey } from "./season.mjs";
+import { arenaChangedMoment } from "./snapshots.mjs";
 
 const byTag = (a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0);
 const int = (v) => (Number.isInteger(v) ? v : null);
@@ -151,47 +155,100 @@ export async function projectClanSeries(
       gameLastSeen: m.lastSeen ? crTimeToIso(m.lastSeen) : null,
     }))
     .sort(byTag);
+  // The arena catalog: the roster is a second source of arena names
+  // (the profile was the only one before 2026-09-17).
+  const arenaNames = new Map();
+  for (const m of payload.memberList ?? [])
+    if (int(m.arena?.id) && typeof m.arena?.name === "string")
+      arenaNames.set(m.arena.id, m.arena.name);
+  if (arenaNames.size > 0)
+    await db.query(
+      `insert into arena (arena_id, name, observed_at)
+       select t.id, t.name, $3::timestamptz from unnest($1::int[], $2::text[]) as t(id, name)
+       on conflict (arena_id) do update
+         set name = excluded.name, observed_at = excluded.observed_at
+       where arena.name is distinct from excluded.name`,
+      [[...arenaNames.keys()], [...arenaNames.values()], observedAt],
+    );
+
   let membersMoved = 0;
+  let arenaMoments = 0;
   if (members.length > 0) {
+    // The members' latest observation of either writer before this
+    // poll: the arena baseline. A member whose arena moved gets the
+    // arena_changed moment from here, at the roster's cadence, with the
+    // crossing battle when the record holds it (snapshots.mjs); a
+    // member with no prior row is first sight and gets nothing. Live
+    // only: the backfill and the import write rows, never moments.
+    const priorArena = new Map();
+    if (kind === "daily" && source === "api" && receiptId !== null) {
+      const { rows: prior } = await db.query(
+        `select distinct on (player_tag) player_tag, arena_id, observed_at
+         from player_snapshot_daily
+         where player_tag = any($1::text[]) and observed_at < $2::timestamptz
+         order by player_tag, observed_at desc`,
+        [members.map((m) => m.tag), observedAt],
+      );
+      for (const r of prior) priorArena.set(r.player_tag, r);
+    }
     await db.query(
       `insert into player (player_tag, name)
        select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
        on conflict do nothing`,
       [members.map((m) => m.tag), members.map((m) => m.name)],
     );
+    // Three stamps, one row. The roster's own four columns are dated by
+    // roster_observed_at (0133) and guarded on it; the columns it shares
+    // with the profile (trophies, donations, donations_received,
+    // arena_id) take this observation only when it is the row's newest
+    // (observed_at); observed_at is the greatest of either writer. So a
+    // roster older than the day's last profile poll still lands the
+    // clan and rank the profile never writes, and never regresses a
+    // fresher trophy count.
     const { rowCount } = await db.query(
       `insert into player_snapshot_daily
-         (player_tag, snapshot_date, snapshot_kind, observed_at, source,
+         (player_tag, snapshot_date, snapshot_kind, observed_at, roster_observed_at, source,
           trophies, donations, donations_received, arena_id,
           clan_tag, clan_rank, previous_clan_rank, game_last_seen_at)
-       select t.tag, $1::date, $2, $3::timestamptz, $4,
+       select t.tag, $1::date, $2, $3::timestamptz, $3::timestamptz, $4,
               t.trophies, t.donations, t.received, t.arena,
               $5, t.rank, t.prev_rank, t.seen::timestamptz
        from unnest($6::text[], $7::int[], $8::int[], $9::int[], $10::int[],
                    $11::int[], $12::int[], $13::text[])
          as t(tag, trophies, donations, received, arena, rank, prev_rank, seen)
        on conflict (player_tag, snapshot_date, snapshot_kind) do update set
-         observed_at = excluded.observed_at, source = excluded.source,
-         trophies = excluded.trophies, donations = excluded.donations,
-         donations_received = excluded.donations_received, arena_id = excluded.arena_id,
-         clan_tag = excluded.clan_tag, clan_rank = excluded.clan_rank,
-         previous_clan_rank = excluded.previous_clan_rank,
+         observed_at = greatest(excluded.observed_at, player_snapshot_daily.observed_at),
+         roster_observed_at = greatest(excluded.roster_observed_at, player_snapshot_daily.roster_observed_at),
+         source = excluded.source,
+         trophies = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                         then excluded.trophies else player_snapshot_daily.trophies end,
+         donations = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                          then excluded.donations else player_snapshot_daily.donations end,
+         donations_received = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                                   then excluded.donations_received else player_snapshot_daily.donations_received end,
+         arena_id = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                         then excluded.arena_id else player_snapshot_daily.arena_id end,
+         clan_tag = case when excluded.roster_observed_at >= coalesce(player_snapshot_daily.roster_observed_at, '-infinity')
+                         then excluded.clan_tag else player_snapshot_daily.clan_tag end,
+         clan_rank = case when excluded.roster_observed_at >= coalesce(player_snapshot_daily.roster_observed_at, '-infinity')
+                          then excluded.clan_rank else player_snapshot_daily.clan_rank end,
+         previous_clan_rank = case when excluded.roster_observed_at >= coalesce(player_snapshot_daily.roster_observed_at, '-infinity')
+                                   then excluded.previous_clan_rank else player_snapshot_daily.previous_clan_rank end,
          game_last_seen_at = greatest(excluded.game_last_seen_at,
                                       player_snapshot_daily.game_last_seen_at)
-       where (player_snapshot_daily.observed_at is null
-              or excluded.observed_at >= player_snapshot_daily.observed_at)
-         and ((player_snapshot_daily.trophies, player_snapshot_daily.donations,
-               player_snapshot_daily.donations_received, player_snapshot_daily.arena_id,
-               player_snapshot_daily.clan_tag, player_snapshot_daily.clan_rank,
-               player_snapshot_daily.previous_clan_rank)
-              is distinct from
-              (excluded.trophies, excluded.donations, excluded.donations_received,
-               excluded.arena_id, excluded.clan_tag, excluded.clan_rank,
-               excluded.previous_clan_rank)
-           or (excluded.game_last_seen_at is not null
-               and (player_snapshot_daily.game_last_seen_at is null
-                    or excluded.game_last_seen_at
-                       >= player_snapshot_daily.game_last_seen_at + interval '1 hour')))`,
+       where (excluded.roster_observed_at >= coalesce(player_snapshot_daily.roster_observed_at, '-infinity')
+              and ((player_snapshot_daily.clan_tag, player_snapshot_daily.clan_rank,
+                    player_snapshot_daily.previous_clan_rank)
+                   is distinct from (excluded.clan_tag, excluded.clan_rank, excluded.previous_clan_rank)
+                or (excluded.game_last_seen_at is not null
+                    and (player_snapshot_daily.game_last_seen_at is null
+                         or excluded.game_last_seen_at
+                            >= player_snapshot_daily.game_last_seen_at + interval '1 hour'))))
+          or (excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+              and (player_snapshot_daily.trophies, player_snapshot_daily.donations,
+                   player_snapshot_daily.donations_received, player_snapshot_daily.arena_id)
+                  is distinct from
+                  (excluded.trophies, excluded.donations, excluded.donations_received, excluded.arena_id))`,
       [
         day,
         kind,
@@ -210,23 +267,27 @@ export async function projectClanSeries(
     );
     membersMoved = rowCount;
     facts += rowCount;
+    for (const m of members) {
+      const prior = priorArena.get(m.tag);
+      if (
+        !prior ||
+        prior.arena_id === null ||
+        m.arenaId === null ||
+        m.arenaId === prior.arena_id
+      )
+        continue;
+      await arenaChangedMoment(db, {
+        playerTag: m.tag,
+        from: prior.arena_id,
+        to: m.arenaId,
+        toName: arenaNames.get(m.arenaId) ?? null,
+        windowStart: prior.observed_at.toISOString(),
+        windowEnd: observedAt,
+        receiptId,
+      });
+      arenaMoments += 1;
+    }
   }
-
-  // The arena catalog: the roster is a second source of arena names
-  // (the profile was the only one before 2026-09-17).
-  const arenas = new Map();
-  for (const m of payload.memberList ?? [])
-    if (int(m.arena?.id) && typeof m.arena?.name === "string")
-      arenas.set(m.arena.id, m.arena.name);
-  if (arenas.size > 0)
-    await db.query(
-      `insert into arena (arena_id, name, observed_at)
-       select t.id, t.name, $3::timestamptz from unnest($1::int[], $2::text[]) as t(id, name)
-       on conflict (arena_id) do update
-         set name = excluded.name, observed_at = excluded.observed_at
-       where arena.name is distinct from excluded.name`,
-      [[...arenas.keys()], [...arenas.values()], observedAt],
-    );
 
   const extras = {};
   if (kind === "daily")
@@ -246,6 +307,7 @@ export async function projectClanSeries(
     kind,
     clanRow,
     membersMoved,
+    arenaMoments,
     members: members.length,
     ...(Object.keys(extras).length ? { extras } : {}),
     facts,
@@ -303,6 +365,21 @@ export async function projectPlayerProgress(
         observedAt,
       ],
     );
+    // The side-mode arenas (168000xxx) are named only here: the catalog
+    // takes them the way it takes the roster's (verification item 4).
+    const arenas = new Map();
+    for (const bucket of Object.values(progress))
+      if (int(bucket?.arena?.id) && typeof bucket.arena?.name === "string")
+        arenas.set(bucket.arena.id, bucket.arena.name);
+    if (arenas.size > 0)
+      await db.query(
+        `insert into arena (arena_id, name, observed_at)
+         select t.id, t.name, $3::timestamptz from unnest($1::int[], $2::text[]) as t(id, name)
+         on conflict (arena_id) do update
+           set name = excluded.name, observed_at = excluded.observed_at
+         where arena.name is distinct from excluded.name`,
+        [[...arenas.keys()], [...arenas.values()], observedAt],
+      );
     const { rowCount } = await db.query(
       `insert into player_progress_daily
          (player_tag, progress_key, day, snapshot_kind, observed_at, trophies, best_trophies, arena_id)

@@ -106,11 +106,18 @@ test("fresh profile cannot freshen battle answers; unknown inputs stay unknown",
 test("coverage uses matching observation intervals and updates when late battles arrive", async () => {
   const tag = "#P0G";
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
+  // Two profile observations bracket the interval; the roster-only row
+  // between them (no battle_count, no profile stamp) is not a bracket
+  // (verification item 3, 2026-09-17).
+  await scratch.db.query(
+    `insert into clan (clan_tag) values ('#J2RGCRVG') on conflict do nothing`,
+  );
   await scratch.db.query(
     `insert into player_snapshot_daily
-    (player_tag,snapshot_date,snapshot_kind,battle_count,observed_at) values
-    ($1,current_date-3,'daily',100,now()-interval '3 days'),
-    ($1,current_date,'daily',130,now())`,
+    (player_tag,snapshot_date,snapshot_kind,battle_count,observed_at,profile_observed_at,clan_tag,roster_observed_at) values
+    ($1,current_date-3,'daily',100,now()-interval '3 days',now()-interval '3 days',null,null),
+    ($1,current_date-1,'daily',null,now()-interval '1 day',null,'#J2RGCRVG',now()-interval '1 day'),
+    ($1,current_date,'daily',130,now(),now(),null,null)`,
     [tag],
   );
   const seed = async (start, end) => {
@@ -182,9 +189,9 @@ test("unknown snapshot times and incompatible lifetime counters do not assert co
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
   await scratch.db.query(
     `insert into player_snapshot_daily
-    (player_tag,snapshot_date,snapshot_kind,battle_count,observed_at) values
-    ($1,current_date-2,'daily',100,null),
-    ($1,current_date-1,'daily',110,now()-interval '1 day')`,
+    (player_tag,snapshot_date,snapshot_kind,battle_count,observed_at,profile_observed_at) values
+    ($1,current_date-2,'daily',100,null,null),
+    ($1,current_date-1,'daily',110,now()-interval '1 day',now()-interval '1 day')`,
     [tag],
   );
   const unknown = await call("elixir_coverage", { player_tag: tag });
@@ -192,8 +199,8 @@ test("unknown snapshot times and incompatible lifetime counters do not assert co
   assert.equal(unknown.completeness_last_7_days.average_ratio, null);
   await scratch.db.query(
     `insert into player_snapshot_daily
-    (player_tag,snapshot_date,snapshot_kind,battle_count,observed_at)
-    values ($1,current_date,'daily',90,now())`,
+    (player_tag,snapshot_date,snapshot_kind,battle_count,observed_at,profile_observed_at)
+    values ($1,current_date,'daily',90,now(),now())`,
     [tag],
   );
   const reset = await call("elixir_coverage", { player_tag: tag });
