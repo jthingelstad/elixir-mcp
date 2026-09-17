@@ -4,7 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
-import { snapshotDayCensus, snapshotRekey } from "../src/ops-series.mjs";
+import {
+  snapshotDayCensus,
+  snapshotRekey,
+  seriesStatus,
+} from "../src/ops-series.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -208,4 +212,13 @@ test("snapshot_day_census reports movers and collisions per kind; snapshot_rekey
   const idle = await snapshotRekey(SCRATCH_URL, { batch: 500 });
   assert.equal(idle.moved, 0);
   assert.equal(idle.done, true);
+});
+
+test("series_status reads the series tables and the receipts' worth", async () => {
+  const status = await seriesStatus(SCRATCH_URL, { hours: 24 });
+  assert.equal(status.hours, 24);
+  assert.equal(Number(status.player_snapshot_daily.rows), 7);
+  assert.equal(Number(status.player_snapshot_daily.profile_only), 0);
+  assert.equal(Number(status.clan_snapshot_daily.rows), 0);
+  assert.deepEqual(status.receipts, []);
 });

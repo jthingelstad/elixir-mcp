@@ -200,3 +200,74 @@ export async function snapshotRekey(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/**
+ * {series_status: {hours?: 1}} - read-only: the series tables' row
+ * counts and day spans, the snapshot table split by writer (roster-only,
+ * profile-only, both), and what the last N hours of admitted clan and
+ * player receipts were worth (new_facts) now that a roster poll counts
+ * the members that moved. The Phase 1 NOTES numbers and Phase 2's
+ * before/after.
+ */
+export async function seriesStatus(databaseUrl, spec = {}) {
+  const hours = Math.min(Math.max(Number(spec.hours ?? 1), 1), 168);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set transaction_read_only = on");
+    const {
+      rows: [tables],
+    } = await db.query(
+      `select
+         (select json_build_object('rows', count(*), 'clans', count(distinct clan_tag),
+                 'first_day', min(day)::text, 'last_day', max(day)::text,
+                 'kinds', (select json_object_agg(snapshot_kind, n) from
+                           (select snapshot_kind, count(*)::int n from clan_snapshot_daily group by 1) k))
+          from clan_snapshot_daily) as clan_snapshot_daily,
+         (select json_build_object('rows', count(*), 'players', count(distinct player_tag),
+                 'keys', count(distinct progress_key), 'first_day', min(day)::text, 'last_day', max(day)::text)
+          from player_progress_daily) as player_progress_daily,
+         (select json_build_object('rows', count(*), 'players', count(distinct player_tag),
+                 'seasons', (select json_object_agg(season_month, n) from
+                             (select season_month, count(*)::int n from player_pol_season group by 1) k))
+          from player_pol_season) as player_pol_season,
+         (select json_build_object('rows', count(*), 'clans', count(distinct clan_tag),
+                 'sections', count(distinct (season_id, section_index)))
+          from war_period_log) as war_period_log,
+         (select json_build_object('rows', count(*),
+                 'roster_only', count(*) filter (where clan_tag is not null and profile_observed_at is null),
+                 'profile_only', count(*) filter (where clan_tag is null and profile_observed_at is not null),
+                 'both', count(*) filter (where clan_tag is not null and profile_observed_at is not null),
+                 'players', count(distinct player_tag),
+                 'clans', count(distinct clan_tag),
+                 'first_day', min(snapshot_date)::text, 'last_day', max(snapshot_date)::text,
+                 'today_rows', count(*) filter (where snapshot_date = game_day(now())),
+                 'today_roster_written', count(*) filter (where snapshot_date = game_day(now()) and clan_tag is not null))
+          from player_snapshot_daily) as player_snapshot_daily,
+         (select json_build_object('war_week_clan_with_score', count(*) filter (where clan_score is not null),
+                 'war_week_clan_rows', count(*)) from war_week_clan) as war_week_clan,
+         (select json_build_object('with_repairs', count(*) filter (where repair_points is not null),
+                 'rows', count(*)) from war_participation) as war_participation,
+         (select json_build_object('type', count(type), 'location', count(location_id), 'rows', count(*)) from clan) as clan_state,
+         (select json_build_object('frozen', count(war_day_wins), 'rows', count(*)) from player) as player_state,
+         (select json_build_object('keys', count(*), 'empty_key', count(*) filter (where progress_key = '')) from mode_season) as mode_season`,
+    );
+    const { rows: receipts } = await db.query(
+      `select endpoint, count(*)::int as receipts,
+              count(*) filter (where new_facts > 0)::int as with_facts,
+              coalesce(sum(new_facts), 0)::int as facts,
+              max(new_facts)::int as max_facts,
+              round(avg(new_facts), 2)::float as avg_facts,
+              round(avg(ingest_ms))::int as avg_ingest_ms,
+              max(ingest_ms)::int as max_ingest_ms
+       from api_receipt
+       where admission = 'admitted' and fetched_at >= now() - make_interval(hours => $1)
+         and endpoint in ('clan', 'player', 'currentriverrace', 'riverracelog')
+       group by endpoint order by endpoint`,
+      [hours],
+    );
+    return { hours, ...tables, receipts };
+  } finally {
+    await db.end();
+  }
+}

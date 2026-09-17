@@ -61,7 +61,11 @@ import {
   feedbackRead,
   feedbackRespond,
 } from "./ops-feedback.mjs";
-import { snapshotDayCensus, snapshotRekey } from "./ops-series.mjs";
+import {
+  snapshotDayCensus,
+  snapshotRekey,
+  seriesStatus,
+} from "./ops-series.mjs";
 
 export async function handler(event) {
   if (event?.inspect) {
@@ -332,6 +336,14 @@ export async function handler(event) {
   }
   if (event?.snapshot_day_census) {
     const result = await snapshotDayCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.series_status) {
+    const result = await seriesStatus(
+      process.env.DATABASE_URL,
+      event.series_status === true ? {} : event.series_status,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
