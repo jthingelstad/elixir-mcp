@@ -2326,3 +2326,13 @@ as an observation on 09-13, nothing in the consumer compensates for it
 yet; it lands when a consumer asks with a use. The consumer side (wake/carry
 kinds, the editor brief, clock-armed war-deck and rival-scout, VOICE as the
 carry-release interval) is elixir-mcp-discord's, same day.
+
+**Flipped 2026-09-17 04:4xZ.** DKIM verified at 23:40 local after ~5 h
+(MAIL FROM had cleared in one); production access granted the same
+evening (50,000/day, 14/s). `EmailTransport=ses` deployed. Two things the
+first send taught: SES authorizes `SendEmail` against the ADDRESS identity
+(`identity/elixir@poapkings.com`) even when only the domain is verified,
+so the role now names both; and the relay's retry path swallowed the
+reason, which turned an AccessDenied into ten silent invocations - it
+logs `send_retry <name> <message>` now. The retried sign-in messages all
+delivered once the role was fixed; nothing dead-lettered.
