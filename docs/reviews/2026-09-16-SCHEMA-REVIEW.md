@@ -47,7 +47,7 @@ grain that the game itself resets.
 
 ## Tier 1: do next (correctness and domain fit)
 
-### 1.1 The season and the balance change become rows
+### 1.1 The season becomes a row; balance changes are not modelled
 
 **Finding.** No `season` table exists. `seasonFromDate()` counts months
 from a hard-coded anchor (`SEASON_ANCHOR = {id: 135, startMs:
@@ -56,10 +56,13 @@ returns `season_started_at`/`season_ends_at` by arithmetic. Every season
 fact in the database (`battle.season_id`, `war_week.season_id`,
 `ranking_snapshot.season_id`, `ranking_presence.season_id`) is an integer
 that only code can turn into a date range, and nothing can validate it.
-There is no balance-change table at all; the API offers none
-(`cr-agent-api-docs`: a repo-wide search for balance/patch/version finds
-only the level-cap note), so the only patch signal the record could carry
-is one we feed it.
+There is no balance-change data in the API (`cr-agent-api-docs`: a
+repo-wide search for balance/patch/version finds only the level-cap note),
+and **Elixir MCP will not model balance changes** (Jamie, 2026-09-17):
+nothing hand-fed or scraped enters the data layer. The season is the
+grouping that honours them. Supercell ships balance changes on the season
+roll, so a season-bounded window is a balance-bounded window, and a
+mid-season hotfix is simply invisible to the record, as it is to the API.
 
 **Which key is the season's.** Probed live 2026-09-17 (recorded in
 `cr-agent-api-docs/locations.md`, "Season namespaces"). The API names a
@@ -143,48 +146,12 @@ create table mode_season (
 -- seasonId matches; a mismatch is an alarm, never a silent relabel.
 ```
 
-```sql
--- 01xx_balance_change.sql
-create table balance_change (
-  patch_id     text primary key,                       -- e.g. '2026-09-01', or the announced version
-  effective_at timestamptz not null,
-  season_month text not null references season,
-  kind         text not null check (kind in ('season_patch', 'hotfix', 'release')),
-  title        text,
-  source_url   text,
-  notes        text
-);
-create index balance_change_effective on balance_change (effective_at);
-
-create table balance_change_card (
-  patch_id   text not null references balance_change on delete cascade,
-  card_id    integer not null references card,
-  form       smallint not null default 0 check (form between 0 and 3),
-  change     text not null check (change in ('buff', 'nerf', 'rework', 'release', 'evolution', 'hero')),
-  summary    text,
-  primary key (patch_id, card_id, form)
-);
-
--- What the API can tell us on its own: a catalog delta. The cards projector
--- already knows when a card row changed ("newer-and-distinct", cards.mjs:52-72);
--- it appends here instead of losing the prior value.
-create table card_catalog_change (
-  card_id      integer not null references card,
-  observed_at  timestamptz not null,
-  field        text not null check (field in ('new_card', 'elixir_cost', 'max_level', 'max_evolution_level', 'rarity', 'name')),
-  before       text,
-  after        text,
-  primary key (card_id, observed_at, field)
-);
-```
 
 The `season` row is the calendar the code already computes, made
-queryable and joinable. `balance_change` has no API source and must be fed
-by hand (Supercell's monthly notes land on the season roll, with occasional
-mid-season hotfixes); `card_catalog_change` is the automatic proxy the API
-does give us (new card ids, elixir-cost and level-cap moves, new evolution
-bits), and the cards projector already detects each of these and throws
-the old value away.
+queryable and joinable. Nothing else about a patch is stored. (The one
+patch-shaped fact the API does emit, a catalog delta such as a new card id
+or an elixir-cost change, is a losslessness question about the `card`
+table, not a balance model; it sits in Tier 3, 3.7.)
 
 **Where the season key lives.** The brief asks for a season key on the
 battle or participant. Recommendation: **do not add one.** A battle's
@@ -225,12 +192,11 @@ likewise keep their integer and gain the same reference; renaming their
    given, as today.
 3. **When the resolved window crosses a boundary**, whatever set it, the
    response says so in a structured field and a note. `applied.window`
-   gains `crosses: [{kind: "season", at, from_season, to_season},
-   {kind: "balance_change", at, patch_id, cards: n}]` (empty array when
-   clean), and `notes` gains one sentence: *"Window spans S135 and S136;
-   the 2026-09-07 balance change moved 11 cards, so card values before and
-   after are not one population. Pass season:'current' or split with
-   from/to."* Nothing is refused: an agent asking across a boundary may
+   gains `crosses: [{kind: "season", at, from_season, to_season}]`
+   (empty array when clean), and `notes` gains one sentence: *"Window
+   spans S135 and S136; balance changes land on the season roll, so card
+   values before and after are not one population. Pass season:'current'
+   or split with from/to."* Nothing is refused: an agent asking across a boundary may
    mean it. The `crosses` field is what lets a consumer refuse for itself.
 4. **When the current season is thin**, say it rather than widen it. On
    day 1 of a season the default window holds one day. The existing
@@ -248,11 +214,10 @@ and then decay. A rolling window is never season-clean; a season window is
 clean by construction and exactly what the game itself reports (Path of
 Legends boards, league stats, war logs are all per season).
 
-**Cost.** `season` is under 20 rows; `balance_change*` grows by tens of
-rows a month; `card_catalog_change` by the handful of changes the catalog
-sees. Contract: minor (additive argument and fields). Ingest: the cards
-projector gains an insert on change; the scheduler gains a once-per-season
-upsert. Risk: low; the only behaviour change is the default window, which
+**Cost.** `season` is under 20 rows and `mode_season` a few dozen.
+Contract: minor (additive argument and fields). Ingest: the profile
+projector upserts `mode_season` from `progress` keys; the scheduler gains a
+once-per-season upsert. Risk: low; the only behaviour change is the default window, which
 is the point.
 
 ### 1.2 War keys on battles: validate them against the season, and repair the import
@@ -677,6 +642,18 @@ null` is ~1 MB. The six `order by snapshot_date desc, snapshot_kind desc
 limit 1` lateral reads on `player_snapshot_daily` use the pkey and are
 fine.
 
+### 3.7 Catalog history (optional, not a balance model)
+
+The cards projector overwrites a `card` row when the catalog moves
+(`cards.mjs:52-72`, "newer-and-distinct"), so the prior `elixir_cost`,
+`max_level` or `max_evolution_level` is lost, and a new card's arrival is
+only `first_seen_at`. That is the one patch-shaped fact the API emits by
+itself. If it is ever wanted, an append-only
+`card_catalog_change (card_id, observed_at, field, before, after)` written
+by the same projector keeps it, with no hand feeding. It is not a balance
+model and must not be presented as one; no tool needs it today, so it is
+here only so the losslessness gap is on record.
+
 ---
 
 ## Sequenced plan
@@ -687,7 +664,7 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 | #   | Change                                                                                                      | Kind                                         | Contract |
 | --- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------- |
 | 1   | `season` (keyed `season_month`, `war_season_id` derived and log-verified) + `mode_season`; seed 2026-02..2026-10; scheduler upserts on rollover | instant (create table)  | none     |
-| 2   | `balance_change`, `balance_change_card`, `card_catalog_change`; cards projector appends changes             | instant                                      | none     |
+| 2   | (withdrawn: balance changes are not modelled, Jamie 2026-09-17; the catalog-history item is 3.7, optional) | -                                            | -        |
 | 3   | Meta tools: default window = current season; `season` argument; `applied.window.season` and `crosses`; the boundary note | code                              | **minor** (3.10) |
 | 4   | `battle.season_id` FK to `season (war_season_id)` `not valid`; `check` on `war_day`/`section_index`          | instant                                      | none     |
 | 5   | op `{rekey_war_battles}`: null the 3,230 contradicting stamps; stamper re-stamps all unstamped war battles from `season` + anchor | op, 9.5k rows            | none     |
