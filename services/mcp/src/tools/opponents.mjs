@@ -62,8 +62,8 @@ export const opponentsTools = {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      if (win.from) add("b.battle_time >= ?", win.from);
-      if (win.to) add("b.battle_time < ?", win.to);
+      if (win.from) add("bp.battle_time >= ?", win.from);
+      if (win.to) add("bp.battle_time < ?", win.to);
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       requireEnum(args.sort, ["battles", "last_seen", "wins"], "sort");

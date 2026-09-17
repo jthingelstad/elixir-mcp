@@ -4,7 +4,7 @@ import { gameClock } from "../../../ingest/src/game-clock.mjs";
  *  war_current for a clan nobody records. */
 
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
-import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
+import { periodAt, observedStart } from "../war-period.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
 import {
   buildMeta,
@@ -248,36 +248,38 @@ export const warTools = {
         "currentriverrace",
       ]);
       // Grounded time (feedback #8: an agent asserted "the week just
-      // finished" from schema alone): the current period anchor gives
-      // fields a temporal claim can CITE instead of infer.
-      const { rows: anchorRows } = await ctx.db.query(
-        `select period_index, first_observed_at from war_period_anchor
-         where clan_tag = $1 order by first_observed_at desc limit 1`,
-        [clanTag],
-      );
+      // finished" from schema alone): the period from the calendar
+      // (war_period, the policy grid) gives fields a temporal claim can
+      // CITE; the clan's own first sighting of it rides beside, when it
+      // has one, as the observation. A stale or missing anchor no
+      // longer blanks the day (0105; this session).
+      const nowMs = Date.now();
+      const p = await periodAt(ctx.db, nowMs);
+      const anchor = await observedStart(ctx.db, clanTag, p);
       let period = null;
       let nextWarDayOpensAt = null;
-      if (anchorRows[0]) {
-        const anchor = anchorRows[0].first_observed_at;
-        // ONE derivation, shared with the clan_pulse feeder.
-        const p = anchoredPeriod(anchorRows[0].period_index, anchor.getTime());
-        const info = p.info;
+      if (p) {
         period = {
           period_index: p.periodIndex,
-          kind: info.kind,
-          ...(info.warDay ? { war_day: info.warDay } : {}),
-          day_in_week: info.dayInSection,
-          started_observed_at: anchor.toISOString(),
+          kind: p.kind,
+          ...(p.warDay ? { war_day: p.warDay } : {}),
+          day_in_week: p.dayInSection,
+          started_observed_at: anchor ? anchor.toISOString() : null,
           source_observed_at: meta.source_polls.currentriverrace.observed_at,
           freshness_seconds:
             meta.source_polls.currentriverrace.freshness_seconds,
-          nominal_period_elapsed: !p.openNow,
+          // The calendar's period is open by construction at now; the
+          // field stays for readers that check it.
+          nominal_period_elapsed: false,
           period_start_nominal: new Date(p.startMs).toISOString(),
           period_end_nominal: new Date(p.endMs).toISOString(),
           week_end_nominal: new Date(p.weekEndMs).toISOString(),
           // How far this clan's observed start sat from the policy hour,
           // INCLUDING our polling latency: an upper bound on the drift.
-          observed_offset_minutes: p.observedOffsetMinutes,
+          // Null when the recorder has not seen this period open.
+          observed_offset_minutes: anchor
+            ? Math.round((anchor.getTime() - p.startMs) / 60_000)
+            : null,
           next_war_day_opens_at: p.nextWarDayOpensMs
             ? new Date(p.nextWarDayOpensMs).toISOString()
             : null,
@@ -475,11 +477,7 @@ export const warTools = {
         ...(decksToday
           ? {}
           : {
-              decks_today_reason: !period
-                ? "period_unknown"
-                : period.war_day
-                  ? "war_day_over"
-                  : "training_day",
+              decks_today_reason: !period ? "period_unknown" : "training_day",
             }),
         ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
         notes: notes(
@@ -492,19 +490,11 @@ export const warTools = {
             : null,
           overCapNote,
           raceFinishedNote,
-          "Days follow the 10:00 UTC policy reset for every clan: cite the *_nominal instants; started_observed_at is when the recorder first saw the period, observed_offset_minutes its distance from the policy hour including polling latency.",
+          "Days follow the 10:00 UTC policy reset for every clan and the period is the calendar's: cite the *_nominal instants; started_observed_at is when the recorder first saw this period open (null when it has not), observed_offset_minutes its distance from the policy hour including polling latency.",
           "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
         ),
         docs: CLOCK_DOCS,
-        meta: {
-          ...meta,
-          ...(period?.nominal_period_elapsed
-            ? {
-                completeness_note:
-                  "The latest observed period has passed its nominal end. A new period is not asserted until observed; check period.source_observed_at and game_clock for the policy clock.",
-              }
-            : {}),
-        },
+        meta,
       };
     },
   },

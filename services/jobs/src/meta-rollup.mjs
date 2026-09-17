@@ -219,16 +219,61 @@ export async function metaRollupNightly(
   }
 }
 
+/** One EMF line for the war-calendar guard (ElixirMCP/Record
+ *  WarBattleUnresolved): a war-typed battle in the last seven days that
+ *  falls in no war_period row. The calendar is generated with each
+ *  season by the scheduler's tick, so a non-zero count means that upsert
+ *  failed and the war readers are blind to those battles; the alarm in
+ *  infra/template.yaml fires at 1. The scheduler's metrics.mjs shape:
+ *  stdout, one JSON object, no network. */
+export function warUnresolvedEmf(count, now = Date.now()) {
+  return JSON.stringify({
+    _aws: {
+      Timestamp: now,
+      CloudWatchMetrics: [
+        {
+          Namespace: "ElixirMCP/Record",
+          Dimensions: [[]],
+          Metrics: [{ Name: "WarBattleUnresolved", Unit: "Count" }],
+        },
+      ],
+    },
+    WarBattleUnresolved: count,
+  });
+}
+
+/** The count behind the guard: the diagnostics probe's UNRESOLVED
+ *  bucket, over seven days of war-typed rows through the time index. */
+export async function warBattlesUnresolved(db) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `select count(*)::int as n
+     from battle b
+     where (b.type like 'riverRace%' or b.type = 'boatBattle')
+       and b.battle_time > now() - interval '7 days'
+       and not exists (select 1 from war_period p
+                       where b.battle_time >= p.starts_at and b.battle_time < p.ends_at)`,
+  );
+  return r.n;
+}
+
 /** The counters for the running season, from battles created since
- *  the cursor. Nothing until the first nightly rebuild has run. */
+ *  the cursor. Nothing until the first nightly rebuild has run. The
+ *  war-calendar guard rides this hourly run: one count, one EMF line. */
 export async function metaRollupHourly(
   databaseUrl,
-  { nowMs = Date.now() } = {},
+  {
+    nowMs = Date.now(),
+    emitMetrics = (line) => process.stdout.write(line),
+  } = {},
 ) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   const t0 = Date.now();
   try {
+    const unresolved = await warBattlesUnresolved(db);
+    emitMetrics(`${warUnresolvedEmf(unresolved)}\n`);
     const { rows } = await db.query(
       `select s.season_month, s.starts_at, s.ends_at, st.counters_through
        from season s join meta_season_state st on st.season_month = s.season_month
@@ -237,13 +282,19 @@ export async function metaRollupHourly(
     );
     const season = rows[0];
     if (!season)
-      return { season_month: null, battles: 0, reason: "no_rollup_yet" };
+      return {
+        season_month: null,
+        battles: 0,
+        reason: "no_rollup_yet",
+        war_unresolved: unresolved,
+      };
     const upto = new Date(nowMs - INCREMENT_LAG_MS);
     if (upto <= season.counters_through)
       return {
         season_month: season.season_month,
         battles: 0,
         reason: "cursor_ahead",
+        war_unresolved: unresolved,
       };
     await db.query("begin");
     try {
@@ -274,6 +325,7 @@ export async function metaRollupHourly(
       return {
         season_month: season.season_month,
         battles: rowCount,
+        war_unresolved: unresolved,
         ms: Date.now() - t0,
       };
     } catch (err) {

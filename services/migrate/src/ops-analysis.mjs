@@ -161,6 +161,7 @@ export async function auditCensus(databaseUrl, spec) {
               count(distinct account_id)::int as accounts,
               count(*) filter (where error_code is not null)::int as errors,
               round(avg(duration_ms))::int as avg_ms,
+              round(avg(db_ms))::int as avg_db_ms,
               round(percentile_cont(0.95) within group (order by duration_ms))::int as p95_ms,
               max(duration_ms)::int as max_ms,
               round(avg(result_bytes))::int as avg_bytes,

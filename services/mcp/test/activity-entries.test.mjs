@@ -270,3 +270,44 @@ test("the feed: subjects from claims and clans; silent players go to quiet, not 
   );
   assert.ok(later.quiet.every((q) => Object.hasOwn(q, "days_since_poll")));
 });
+
+test("the clan entry's war day is the calendar's at the window's end, whatever the anchor says", async () => {
+  // war_period, not war_period_anchor, answers "which day is it" (this
+  // session): a training day and a war day, pinned at fixed instants
+  // so both branches run whatever day the suite runs on. S136 opened
+  // 2026-09-07 10:00Z: period 1 is a training day, period 4 is war day 2.
+  await ctx.db.query("delete from war_period_anchor where clan_tag = $1", [
+    CLAN,
+  ]);
+  const at = (iso) => Date.parse(iso);
+  const training = await buildClanEntry(ctx.db, {
+    tag: CLAN,
+    scope: "comprehensive",
+    fromMs: at("2026-09-08T00:00:00Z"),
+    toMs: at("2026-09-08T12:00:00Z"),
+  });
+  assert.equal(training.entry.war.day_kind, "training");
+  assert.equal(training.entry.war.war_day, null);
+  assert.equal(training.entry.war.decks, null);
+  const war = await buildClanEntry(ctx.db, {
+    tag: CLAN,
+    scope: "comprehensive",
+    fromMs: at("2026-09-11T00:00:00Z"),
+    toMs: at("2026-09-11T12:00:00Z"),
+  });
+  assert.equal(war.entry.war.day_kind, "war");
+  assert.equal(war.entry.war.war_day, 2);
+  // A stale anchor for another period changes nothing.
+  await ctx.db.query(
+    `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
+     values ($1, 30, '2026-09-01T09:40:00Z') on conflict do nothing`,
+    [CLAN],
+  );
+  const again = await buildClanEntry(ctx.db, {
+    tag: CLAN,
+    scope: "comprehensive",
+    fromMs: at("2026-09-11T00:00:00Z"),
+    toMs: at("2026-09-11T12:00:00Z"),
+  });
+  assert.equal(again.entry.war.war_day, 2);
+});

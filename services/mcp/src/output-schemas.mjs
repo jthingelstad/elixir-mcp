@@ -27,6 +27,17 @@ const RATE = {
   description: "0..1, three decimals; null when the denominator is zero.",
 };
 const COUNT = { type: "integer" };
+const NULLABLE_INT = { type: ["integer", "null"] };
+/** A Path of Legends season result as the API carries it; null when the
+ *  player has none. */
+const POL_RESULT = {
+  type: ["object", "null"],
+  properties: {
+    leagueNumber: NULLABLE_INT,
+    trophies: NULLABLE_INT,
+    rank: NULLABLE_INT,
+  },
+};
 
 const WINDOW_ECHO = {
   type: "object",
@@ -233,11 +244,61 @@ export const OUTPUT_SCHEMAS = {
         properties: {
           date: DATE,
           trophies: { type: ["integer", "null"] },
-          path_of_legend: { type: ["object", "null"] },
-          league_statistics: { type: ["object", "null"] },
+          // The three objects render from typed columns (0123): every
+          // key is present, null where the API's own object omitted it
+          // (a pre-3.0.0 profile lacks starPoints; a player who never
+          // ranked has no current result).
+          path_of_legend: {
+            type: "object",
+            properties: {
+              current: POL_RESULT,
+              best: POL_RESULT,
+            },
+            required: ["current", "best"],
+          },
+          league_statistics: {
+            type: ["object", "null"],
+            properties: {
+              currentSeason: {
+                type: ["object", "null"],
+                properties: {
+                  trophies: NULLABLE_INT,
+                  bestTrophies: NULLABLE_INT,
+                },
+              },
+              previousSeason: {
+                type: ["object", "null"],
+                properties: {
+                  id: { type: ["string", "null"] },
+                  rank: NULLABLE_INT,
+                  trophies: NULLABLE_INT,
+                  bestTrophies: NULLABLE_INT,
+                },
+              },
+              bestSeason: {
+                type: ["object", "null"],
+                properties: {
+                  id: { type: ["string", "null"] },
+                  trophies: NULLABLE_INT,
+                  rank: NULLABLE_INT,
+                },
+              },
+            },
+          },
           donations_this_week: { type: ["integer", "null"] },
           donations_received_this_week: { type: ["integer", "null"] },
-          lifetime: { type: ["object", "null"] },
+          lifetime: {
+            type: ["object", "null"],
+            properties: {
+              battleCount: NULLABLE_INT,
+              wins: NULLABLE_INT,
+              losses: NULLABLE_INT,
+              threeCrownWins: NULLABLE_INT,
+              starPoints: NULLABLE_INT,
+              expPoints: NULLABLE_INT,
+              collectionLevel: NULLABLE_INT,
+            },
+          },
         },
         required: ["date"],
       },

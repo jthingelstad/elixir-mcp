@@ -1589,6 +1589,25 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # A war-typed battle in the last seven days outside every war_period
+  # row (the diagnostics probe's UNRESOLVED bucket, emitted hourly by the
+  # meta rollup job): the scheduler's season upsert failed and the war
+  # readers are blind to those battles. Fires at one.
+  WarUnresolvedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-war-battle-unresolved
+      AlarmDescription: A recent war battle falls in no war_period row; the season and period calendar has a gap (check the scheduler tick and the season table)
+      Namespace: ElixirMCP/Record
+      MetricName: WarBattleUnresolved
+      Statistic: Maximum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
   SchedulerErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

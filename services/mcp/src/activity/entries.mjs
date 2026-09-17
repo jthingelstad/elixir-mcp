@@ -25,7 +25,7 @@
  */
 
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
-import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
+import { periodAt } from "../war-period.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
 import {
   hydratePlayerEvents,
@@ -907,12 +907,8 @@ export async function buildClanEntry(
     [tag],
   );
   if (wk[0]) {
-    const { rows: anchorRows } = await db.query(
-      `select period_index, first_observed_at from war_period_anchor
-        where clan_tag = $1 and first_observed_at <= ${ts(toMs)}
-        order by first_observed_at desc limit 1`,
-      [tag],
-    );
+    // The period at the window's end, from the calendar (war_period).
+    const p = await periodAt(db, toMs);
     const { rows: ours } = await db.query(
       `select fame, rank, trophy_change, finish_time from war_week_clan
         where clan_tag = $1 and participant_clan_tag = $1
@@ -937,15 +933,10 @@ export async function buildClanEntry(
       decks: null,
       resolved,
     };
-    if (anchorRows[0]) {
-      const p = anchoredPeriod(
-        anchorRows[0].period_index,
-        anchorRows[0].first_observed_at.getTime(),
-        toMs,
-      );
-      war.day_kind = p.info.kind;
-      war.war_day = p.info.warDay ?? null;
-      if (p.openNow && p.info.warDay) {
+    if (p) {
+      war.day_kind = p.kind;
+      war.war_day = p.warDay ?? null;
+      if (p.warDay) {
         const { rows: decks } = await db.query(
           `with base as (
              select wp.player_tag from war_participation wp
@@ -976,7 +967,7 @@ export async function buildClanEntry(
             tag,
             wk[0].season_id,
             wk[0].section_index,
-            p.info.warDay,
+            p.warDay,
             WAR_BATTLE_TYPES,
           ],
         );

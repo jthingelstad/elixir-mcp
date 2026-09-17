@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-17",
+    title: "The war day comes from the calendar, not from the last poll",
+    body: "war_current and the clan timeline said which river race day it was from the clan's last observed period, so a clan whose polls lagged, or that the recorder had only just started following, could read a stale day or none at all. The record now holds every policy day as a row, and the day is looked up by the clock: always current, for every clan, with the clan's own first sighting of that day reported beside it when the recorder has one. Windowed battle reads also take their bounds from the participant row the indexes are built on, which is the same answer sooner. Contract 3.11.1.",
+  },
+  {
+    date: "2026-09-17",
     title: "The corpus meta answers in milliseconds, from season rollups",
     body: "A corpus-wide card or deck meta read scanned every recorded battle on every call - 8 to 13 seconds warm, and nine timeouts a week. The record now keeps one rollup per season and mode (deck, card by form, card pair, and the totals every rate is a share of), rebuilt nightly from the raw rows and topped up hourly with the battles recorded since. battles_meta_decks, battles_meta_cards and cards_synergy read it whenever the window is exactly one season, which is their default; the response carries players_as_of and a note, because distinct-player counts are as of the last rebuild and the counters trail by up to an hour. A clan, player or collection read, and any explicit window, still scan the raw rows exactly as before and only take the corpus prior from the rollup. Contract 3.11.0.",
   },

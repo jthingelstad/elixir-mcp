@@ -10,6 +10,7 @@ import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
+import { periodAt } from "../src/war-period.mjs";
 
 /** The (player, UTC day) pairs of hand-seeded battles, as ingest would
  *  hand them to the rollup. */
@@ -279,14 +280,18 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   assert.equal(cmp.body.players.length, 2);
 });
 
-test("war_current exposes the poll age separately from the first period sighting", async () => {
+test("war_current: the period is the calendar's; the anchor only says when this clan first saw it", async () => {
   await db.query("begin");
   try {
+    const now = await periodAt(db, Date.now());
+    assert.ok(now, "the calendar covers today (0104 seed + scheduler)");
+    // A stale anchor for some old period blanks nothing: the day is the
+    // calendar's and the sighting is null.
     await db.query("delete from war_period_anchor where clan_tag=$1", [CLAN]);
     await db.query(
       `insert into war_period_anchor (clan_tag,period_index,first_observed_at)
-      values ($1,0,now()-interval '2 days')`,
-      [CLAN],
+      values ($1,$2,now()-interval '9 days')`,
+      [CLAN, (now.periodIndex + 20) % 35],
     );
     await db.query(
       `insert into poll_state (subject_tag,endpoint,last_admitted_at)
@@ -296,29 +301,113 @@ test("war_current exposes the poll age separately from the first period sighting
     );
     const stale = await call(invoke, "war_current", { clan_tag: CLAN });
     assert.equal(stale.isError, false, JSON.stringify(stale.body));
-    assert.equal(stale.body.period.period_index, 0);
-    assert.ok(stale.body.period.freshness_seconds >= 10800);
-    assert.equal(stale.body.period.nominal_period_elapsed, true);
-    assert.match(stale.body.meta.completeness_note, /nominal end/);
-    assert.notEqual(
-      stale.body.period.source_observed_at,
+    assert.equal(stale.body.period.period_index, now.periodIndex);
+    assert.equal(stale.body.period.kind, now.kind);
+    assert.equal(
       stale.body.period.started_observed_at,
+      null,
+      "not seen open by this clan",
     );
+    assert.equal(stale.body.period.observed_offset_minutes, null);
+    assert.ok(
+      stale.body.period.freshness_seconds >= 10800,
+      "the poll age is its own field",
+    );
+    assert.equal(stale.body.period.nominal_period_elapsed, false);
+    assert.equal(
+      stale.body.period.period_start_nominal,
+      new Date(now.startMs).toISOString(),
+    );
+    assert.equal(stale.body.meta.completeness_note, undefined);
+    // A sighting of THIS period rides beside the calendar's bounds.
+    const seenAt = new Date(now.startMs + 7 * 60_000);
     await db.query(
-      `update war_period_anchor set period_index=1,first_observed_at=now() where clan_tag=$1`,
-      [CLAN],
+      `update war_period_anchor set period_index=$2, first_observed_at=$3 where clan_tag=$1`,
+      [CLAN, now.periodIndex, seenAt],
     );
     await db.query(
       `update poll_state set last_admitted_at=now() where subject_tag=$1 and endpoint='currentriverrace'`,
       [CLAN],
     );
     const fresh = await call(invoke, "war_current", { clan_tag: CLAN });
-    assert.equal(fresh.body.period.period_index, 1);
-    assert.equal(fresh.body.period.nominal_period_elapsed, false);
+    assert.equal(fresh.body.period.period_index, now.periodIndex);
+    assert.equal(fresh.body.period.started_observed_at, seenAt.toISOString());
+    assert.equal(fresh.body.period.observed_offset_minutes, 7);
     assert.equal(fresh.body.period.freshness_seconds, 0);
   } finally {
     await db.query("rollback");
   }
+});
+
+test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
+  // The day is the calendar's (war_period), not an anchor's: on a
+  // training day the tool answers decks_today null with its reason and
+  // this test asserts that; on a war day it asserts the bucket
+  // arithmetic. The clan timeline's test covers both at fixed instants.
+  const today = await periodAt(db, Date.now());
+  if (!today.warDay) {
+    const { body } = await call(invoke, "war_current", {});
+    assert.equal(body.decks_today, null);
+    assert.equal(body.decks_today_reason, "training_day");
+    return;
+  }
+  const wk = (
+    await db.query(
+      `select season_id, section_index from war_week where clan_tag = $1
+       order by season_id desc, section_index desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0];
+  const members = (
+    await db.query(
+      `select wp.player_tag from war_participation wp
+       where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+         and exists (select 1 from clan_membership cm
+                     where cm.clan_tag = $1 and cm.player_tag = wp.player_tag
+                       and cm.left_observed_at is null)
+       order by wp.player_tag limit 2`,
+      [CLAN, wk.season_id, wk.section_index],
+    )
+  ).rows.map((r) => r.player_tag);
+  assert.equal(members.length, 2, "two current members in the race roster");
+  const [partialTag, finishedTag] = members;
+  await db.query(
+    `insert into war_attendance_day
+       (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+     values ($1, $2, $3, $6, $4, 2), ($1, $2, $3, $6, $5, 4)
+     on conflict do nothing`,
+    [
+      CLAN,
+      wk.season_id,
+      wk.section_index,
+      partialTag,
+      finishedTag,
+      today.warDay,
+    ],
+  );
+
+  const { body, isError } = await call(invoke, "war_current", {});
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.period.war_day, today.warDay);
+  const dt = body.decks_today;
+  assert.ok(dt, "live war day carries decks_today");
+  assert.equal(dt.war_day, today.warDay);
+  const partial = dt.partial.find((m) => m.player_tag === partialTag);
+  assert.ok(partial && partial.decks_used === 2, "2 decks -> partial");
+  assert.ok(
+    dt.finished.some((m) => m.player_tag === finishedTag),
+    "4 decks -> finished",
+  );
+  assert.ok(
+    dt.untouched.every((m) => m.decks_used === 0),
+    "untouched means zero observed decks",
+  );
+  assert.equal(
+    dt.counts.untouched + dt.counts.partial + dt.counts.finished,
+    dt.counts.participants,
+    "buckets partition the day's roster",
+  );
+  assert.match(body.notes.join(" "), /observed so far/);
 });
 
 test("the registry declares 53 tools, every one classified and annotated", () => {
@@ -648,120 +737,30 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
   assert.match(miss.body.notes.join(" "), /No recorded player matches/);
 });
 
-test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
-  // Anchor a war-day period as freshly observed: periodInfo(4) -> war day 2.
-  // NOTE: now() is a convenient anchor but NOT the production shape -
-  // the reset drifts early, so real anchors sit minutes BEFORE a 10:00Z
-  // boundary. That case is pinned in the next test; this one covers the
-  // bucket arithmetic, and the stale-anchor guard below.
+test("war_current: a period first seen just BEFORE the reset is reported as an observation beside the policy bounds", async () => {
+  // Feedback #9 (2026-09-06): the reset drifts EARLY, so the recorder
+  // first saw a period open minutes before its 10:00Z boundary. The
+  // boundary is the policy hour from the calendar whatever was
+  // observed; the observation is reported beside it, and an early
+  // sighting still names THIS period (an hour of early drift allowed).
+  const today = await periodAt(db, Date.now());
+  const observedAt = new Date(today.startMs - 3 * 60_000);
   await db.query(
     `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
-     values ($1, 4, now())
+     values ($1, $2, $3)
      on conflict (clan_tag, period_index)
        do update set first_observed_at = excluded.first_observed_at`,
-    [CLAN],
+    [CLAN, today.periodIndex, observedAt],
   );
-  const wk = (
-    await db.query(
-      `select season_id, section_index from war_week where clan_tag = $1
-       order by season_id desc, section_index desc limit 1`,
-      [CLAN],
-    )
-  ).rows[0];
-  const members = (
-    await db.query(
-      `select wp.player_tag from war_participation wp
-       where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
-         and exists (select 1 from clan_membership cm
-                     where cm.clan_tag = $1 and cm.player_tag = wp.player_tag
-                       and cm.left_observed_at is null)
-       order by wp.player_tag limit 2`,
-      [CLAN, wk.season_id, wk.section_index],
-    )
-  ).rows.map((r) => r.player_tag);
-  assert.equal(members.length, 2, "two current members in the race roster");
-  const [partialTag, finishedTag] = members;
-  await db.query(
-    `insert into war_attendance_day
-       (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-     values ($1, $2, $3, 2, $4, 2), ($1, $2, $3, 2, $5, 4)
-     on conflict do nothing`,
-    [CLAN, wk.season_id, wk.section_index, partialTag, finishedTag],
-  );
-
-  const { body, isError } = await call(invoke, "war_current", {});
-  assert.equal(isError, false, JSON.stringify(body));
-  assert.equal(body.period.war_day, 2);
-  const dt = body.decks_today;
-  assert.ok(dt, "live war day carries decks_today");
-  assert.equal(dt.war_day, 2);
-  const partial = dt.partial.find((m) => m.player_tag === partialTag);
-  assert.ok(partial && partial.decks_used === 2, "2 decks -> partial");
-  assert.ok(
-    dt.finished.some((m) => m.player_tag === finishedTag),
-    "4 decks -> finished",
-  );
-  assert.ok(
-    dt.untouched.every((m) => m.decks_used === 0),
-    "untouched means zero observed decks",
-  );
-  assert.equal(
-    dt.counts.untouched + dt.counts.partial + dt.counts.finished,
-    dt.counts.participants,
-    "buckets partition the day's roster",
-  );
-  assert.match(body.notes.join(" "), /observed so far/);
-
-  // A stale anchor (nominal end passed) must not present an old day as
-  // today. decks_today goes null rather than absent: the key stays on the
-  // wire and says WHY, so "nobody owes attacks" is distinguishable from
-  // "this field broke".
-  await db.query(
-    `update war_period_anchor set first_observed_at = now() - interval '3 days'
-     where clan_tag = $1 and period_index = 4`,
-    [CLAN],
-  );
-  const stale = await call(invoke, "war_current", {});
-  assert.equal(stale.body.decks_today, null, "stale day reports no nudge list");
-  assert.equal(stale.body.decks_today_reason, "war_day_over");
-  assert.equal(stale.body.day_kind, "war", "it was still a war day");
-});
-
-test("war_current: a period first seen just BEFORE the reset ends a day later", async () => {
-  // Feedback #9 (2026-09-06, the clan-management routine). The reset
-  // runs at ~10:00Z and drifts EARLY, so the recorder first saw war day
-  // 4 open at 09:57:37Z. "The next 10:00Z after the anchor" was then
-  // 10:00Z the same morning - 2.4 minutes after the period started and
-  // ~24h before it actually ends. By read time it was 10.5 hours in the
-  // PAST, and because decks_today is gated on that boundary the whole
-  // block silently disappeared on a live war day.
-  //
-  // The old test anchored at now(), where "next 10:00Z" is always
-  // future, so it never saw this. Anchor the production shape instead:
-  // three minutes before the most recent 10:00Z boundary.
-  const now = new Date();
-  const boundary = new Date(now);
-  boundary.setUTCHours(10, 0, 0, 0);
-  if (boundary > now) boundary.setUTCDate(boundary.getUTCDate() - 1);
-  const observedAt = new Date(boundary.getTime() - 3 * 60_000);
-
-  await db.query(
-    `insert into war_period_anchor (clan_tag, period_index, first_observed_at)
-     values ($1, 4, $2)
-     on conflict (clan_tag, period_index)
-       do update set first_observed_at = excluded.first_observed_at`,
-    [CLAN, observedAt],
-  );
-
   const { body, isError } = await call(invoke, "war_current", {});
   assert.equal(isError, false, JSON.stringify(body));
   const period = body.period;
   assert.equal(period.started_observed_at, observedAt.toISOString());
   assert.equal(
-    period.period_end_nominal,
-    new Date(boundary.getTime() + 86400_000).toISOString(),
-    "the period ends at the NEXT reset, not the one it opened at",
+    period.period_start_nominal,
+    new Date(today.startMs).toISOString(),
   );
+  assert.equal(period.period_end_nominal, new Date(today.endMs).toISOString());
   assert.ok(
     Date.parse(period.period_end_nominal) > Date.now(),
     "a live period's nominal end is in the future",
@@ -771,38 +770,17 @@ test("war_current: a period first seen just BEFORE the reset ends a day later", 
       Date.parse(period.period_end_nominal),
     "the week cannot end before the period inside it",
   );
-  // The second half of the report: the boundary gates decks_today, so a
-  // wrong boundary took the nudge list with it.
-  assert.ok(
-    body.decks_today,
-    "a live war day still names who is untouched/partial/finished",
-  );
-  assert.equal(body.decks_today.war_day, period.war_day);
-
-  // Policy grid (2026-09-07): the boundary is the policy hour, and the
-  // observation is reported beside it rather than used as the boundary.
-  assert.equal(
-    period.period_start_nominal,
-    boundary.toISOString(),
-    "the period starts at the policy hour, whatever we observed",
-  );
   assert.equal(
     period.observed_offset_minutes,
     -3,
-    "the observed start is reported as a signed distance from policy",
+    "the drift, signed, in minutes",
   );
-  assert.match(body.notes.join(" "), /policy reset for every clan/);
-  assert.match(body.notes.join(" "), /observed so far/);
-  // The uncapped count is machinery for the over-cap check, not a field
-  // consumers should see on every member.
-  for (const bucket of ["untouched", "partial", "finished"]) {
-    for (const m of body.decks_today[bucket]) {
-      assert.deepEqual(
-        Object.keys(m).sort(),
-        ["decks_used", "name", "player_tag"],
-        `${bucket} members carry only the capped display value`,
-      );
-    }
+  if (today.warDay) {
+    assert.ok(
+      body.decks_today,
+      "a live war day still names who is untouched/partial/finished",
+    );
+    assert.equal(body.decks_today.war_day, period.war_day);
   }
 });
 
@@ -1072,62 +1050,38 @@ test("war_history only documents war_days_battled when it can actually return it
  * clan leader read it as "the entire clan no-showed" and was saved only by
  * having called game_clock in the same batch (playtest round, 2026-09-09).
  */
-test("war_current says what kind of day it is at the top level", async () => {
-  await db.query("begin");
-  try {
-    await db.query("delete from war_period_anchor where clan_tag=$1", [CLAN]);
-    // period_index 2: the third and last training day of the section.
-    await db.query(
-      `insert into war_period_anchor (clan_tag,period_index,first_observed_at)
-       values ($1,2,now())`,
-      [CLAN],
-    );
-    const training = (await call(invoke, "war_current", { clan_tag: CLAN }))
-      .body;
-
-    assert.equal(training.day_kind, "training", "beside season_id, not buried");
-    assert.equal(training.war_day, null);
+test("war_current says what kind of day it is at the top level, from the calendar", async () => {
+  const today = await periodAt(db, Date.now());
+  const body = (await call(invoke, "war_current", { clan_tag: CLAN })).body;
+  assert.equal(body.day_kind, today.kind, "beside season_id, not buried");
+  assert.equal(body.war_day, today.warDay ?? null);
+  assert.equal(body.period.period_index, today.periodIndex);
+  if (today.warDay) {
+    assert.equal(body.next_war_day_opens_at, null, "war is already open");
+    assert.ok(body.decks_today, "the nudge list the description promises");
+    assert.equal(body.decks_today.war_day, today.warDay);
+    assert.equal(body.decks_today_reason, undefined);
+  } else {
     assert.equal(
-      training.decks_today,
+      body.decks_today,
       null,
       "null is an answer; the key must be present",
     );
-    assert.equal(training.decks_today_reason, "training_day");
+    assert.equal(body.decks_today_reason, "training_day");
     // And it says when the nagging actually becomes possible.
     assert.match(
-      training.next_war_day_opens_at,
+      body.next_war_day_opens_at,
       /^\d{4}-\d{2}-\d{2}T10:00:00\.000Z$/,
       "war opens on the 10:00Z policy hour",
     );
     assert.ok(
-      Date.parse(training.next_war_day_opens_at) >
-        Date.parse(training.period.period_start_nominal),
-      "the next war day is after the current period started",
+      Date.parse(body.next_war_day_opens_at) >
+        Date.parse(body.period.period_start_nominal),
     );
-    // The zeroed roster that caused the misread is still there - it is the
-    // day_kind beside it that makes it legible.
-    assert.ok(training.participants.length > 10);
-
-    // period_index 3: war day 1.
-    await db.query(
-      `update war_period_anchor set period_index=3,first_observed_at=now()
-       where clan_tag=$1`,
-      [CLAN],
-    );
-    const war = (await call(invoke, "war_current", { clan_tag: CLAN })).body;
-    assert.equal(war.day_kind, "war");
-    assert.equal(war.war_day, 1, "1-based");
-    assert.equal(war.next_war_day_opens_at, null, "war is already open");
-    assert.ok(war.decks_today, "the nudge list the description promises");
-    assert.equal(war.decks_today.war_day, 1);
-    assert.equal(
-      war.decks_today_reason,
-      undefined,
-      "no reason is needed when the list is there",
-    );
-  } finally {
-    await db.query("rollback");
   }
+  // The zeroed roster that caused the misread is still there - it is the
+  // day_kind beside it that makes it legible.
+  assert.ok(body.participants.length > 10);
 });
 
 /**

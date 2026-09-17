@@ -237,7 +237,7 @@ export const battlesTools = {
         where.push(clause.replace("?", `$${params.length}`));
       };
       const { from, to } = win;
-      if (from) add("b.battle_time >= ?", from);
+      if (from) add("bp.battle_time >= ?", from);
       requireEnum(args.outcome, ["win", "loss", "draw"], "outcome");
       if (args.with_card !== undefined) {
         const cardId = Number(args.with_card);
@@ -253,7 +253,7 @@ export const battlesTools = {
           );
         }
       }
-      if (to) add("b.battle_time < ?", to);
+      if (to) add("bp.battle_time < ?", to);
       modeClause(args, add);
       if (args.game_mode_id !== undefined)
         add("b.game_mode_id = ?", args.game_mode_id);
@@ -595,8 +595,8 @@ export const battlesTools = {
           params.push(value);
           where.push(clause.replace("?", `$${params.length}`));
         };
-        if (from) add("b.battle_time >= ?", from);
-        if (to) add("b.battle_time < ?", to);
+        if (from) add("bp.battle_time >= ?", from);
+        if (to) add("bp.battle_time < ?", to);
         modeClause(args, add);
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
         requireOrderedWindow(from, to);
@@ -891,8 +891,8 @@ export const battlesTools = {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      if (win.from) add("b.battle_time >= ?", win.from);
-      if (win.to) add("b.battle_time < ?", win.to);
+      if (win.from) add("bp.battle_time >= ?", win.from);
+      if (win.to) add("bp.battle_time < ?", win.to);
       modeClause(args, add);
 
       // Cards as rows (0091): mine are this participant's played cards;
@@ -996,8 +996,8 @@ export const battlesTools = {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      if (win.from) add("b.battle_time >= ?", win.from);
-      if (win.to) add("b.battle_time < ?", win.to);
+      if (win.from) add("bp.battle_time >= ?", win.from);
+      if (win.to) add("bp.battle_time < ?", win.to);
       modeClause(args, add);
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
@@ -1841,11 +1841,11 @@ export const battlesTools = {
         ];
         if (from) {
           params.push(from);
-          where.push(`b.battle_time >= $${params.length}`);
+          where.push(`bp.battle_time >= $${params.length}`);
         }
         if (to) {
           params.push(to);
-          where.push(`b.battle_time < $${params.length}`);
+          where.push(`bp.battle_time < $${params.length}`);
         }
         const { rows: perf } = await ctx.db.query(
           `select count(*)::int battles,

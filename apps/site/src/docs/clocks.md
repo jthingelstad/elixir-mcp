@@ -92,20 +92,24 @@ wants to act three hours before a war day closes reads the clock once and sets
 its own timer.
 
 Because the recorder follows the policy grid, `war_current` gives you both the
-grid and what it actually saw:
+grid and what it actually saw. The period itself is the calendar's - the
+record holds every policy day as a row, so which day it is never depends on
+a clan's last poll:
 
 - `period_start_nominal`, `period_end_nominal` and `week_end_nominal` are the
   policy instants. **Cite these** when you say when a day ends.
-- `started_observed_at` is when the recorder first saw this period open;
-  `observed_offset_minutes` is its distance from the policy hour, **including
-  polling latency**, so it is an upper bound on the clan's real drift.
+- `started_observed_at` is when the recorder first saw this period open,
+  `null` when it has not seen it yet; `observed_offset_minutes` is that
+  sighting's distance from the policy hour, **including polling latency**,
+  so it is an upper bound on the clan's real drift.
 - Battles in the drift gap, played after the clan's real reset but before
   10:00 UTC, land on the **previous** policy day. The first sign is a member
   counted with five decks: `decks_today.over_cap` lists members observed
   with more than four decks in a policy day rather than rounding them away.
-- `nominal_period_elapsed` says the observed period's window has ended; a
-  new period is not asserted until it is observed. Check
-  `period.source_observed_at` and `game_clock` before calling a day over.
+- `nominal_period_elapsed` is always `false` now that the period comes
+  from the calendar (a day that has ended is simply not the current one);
+  it stays on the wire for readers that check it. `period.source_observed_at`
+  says how fresh the race itself is.
 
 ## Windows and timezones
 

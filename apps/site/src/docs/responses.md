@@ -187,10 +187,10 @@ Performance summaries aggregate the full requested time window. An explicit
 2,000-battle ceiling.
 
 `war_current.period.source_observed_at` is the latest successful current-race
-poll, while `started_observed_at` is the first sighting of that period.
-`nominal_period_elapsed` signals that the observed period's policy window has
-ended. This does not assert the next period was captured: use `game_clock` for
-the policy clock and the source observation for what the recorder knows.
+poll, while `started_observed_at` is the first sighting of that period (`null`
+until the recorder has one). The period is the calendar's, so
+`nominal_period_elapsed` is always `false`; use the source observation for
+what the recorder knows about the race and `game_clock` for the policy clock.
 
 An MCP result over 48,000 characters of compact JSON is a structured
 `result_too_large` error ("Result exceeds 48000 characters."), not a cut-off

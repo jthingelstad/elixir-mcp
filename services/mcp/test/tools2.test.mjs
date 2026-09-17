@@ -1712,6 +1712,85 @@ test("dailySql sums equal the raw rows over any instant window, edge days includ
   assert.deepEqual(dailyLadder, rawLadder);
 });
 
+test("players_profile renders a snapshot with every typed column null and passes its output schema", async () => {
+  // A pre-3.0.0 row: trophies and donations only, nothing the API's
+  // objects carried. The three objects render as null / {null, null}
+  // and the registry's response validation (which throws under the
+  // test runner on a mismatch) accepts them.
+  const tag = "#2YYYY";
+  await db.query(`insert into player (player_tag, name) values ($1, 'Bare')`, [
+    tag,
+  ]);
+  await db.query(
+    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, trophies, observed_at)
+     values ($1, current_date, 'daily', 4200, now())`,
+    [tag],
+  );
+  const { body, isError } = await call("players_profile", { player_tag: tag });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.deepEqual(body.snapshot.path_of_legend, { current: null, best: null });
+  assert.equal(body.snapshot.league_statistics, null);
+  assert.equal(body.snapshot.lifetime, null);
+  assert.equal(body.snapshot.trophies, 4200);
+  // And a partial one: a current result with no rank, one lifetime key.
+  await db.query(
+    `update player_snapshot_daily set pol_league = 3, pol_trophies = 120, battle_count = 9
+     where player_tag = $1`,
+    [tag],
+  );
+  const partial = await call("players_profile", { player_tag: tag });
+  assert.equal(partial.isError, false, JSON.stringify(partial.body));
+  assert.deepEqual(partial.body.snapshot.path_of_legend, {
+    current: { leagueNumber: 3, trophies: 120, rank: null },
+    best: null,
+  });
+  assert.equal(partial.body.snapshot.lifetime.battleCount, 9);
+  assert.equal(partial.body.snapshot.lifetime.starPoints, null);
+});
+
+test("a window on bp.battle_time answers what a window on b.battle_time answered (review 3.3)", async () => {
+  // The participant's copy of battle_time is what every covering index
+  // is on; the window predicates moved onto it. Equal by construction
+  // because the two copies never differ, and pinned here both ways.
+  // Earlier tests seeded participants by hand with their own now();
+  // ingest copies the battle's instant (0 drift rows live), so the test
+  // restores the invariant once before pinning against it.
+  await db.query(
+    `update battle_participant bp set battle_time = b.battle_time
+     from battle b where b.battle_id = bp.battle_id
+       and bp.battle_time is distinct from b.battle_time`,
+  );
+  const {
+    rows: [drift],
+  } = await db.query(
+    `select count(*)::int as n from battle_participant bp join battle b on b.battle_id = bp.battle_id
+     where bp.battle_time is distinct from b.battle_time`,
+  );
+  assert.equal(drift.n, 0, "the copies agree on every row");
+  const from = "2026-08-25T00:00:00Z";
+  const to = "2026-09-02T12:00:00Z";
+  const q = await call("battles_query", {
+    from,
+    to,
+    include_total: true,
+    verbosity: "compact",
+    limit: 5,
+  });
+  assert.equal(q.isError, false, JSON.stringify(q.body));
+  const {
+    rows: [old],
+  } = await db.query(
+    `select count(*)::int as n from battle_participant bp join battle b on b.battle_id = bp.battle_id
+     where bp.player_tag = $1 and b.battle_time >= $2 and b.battle_time < $3`,
+    [OBSERVER, from, to],
+  );
+  assert.ok(old.n > 0, "the window holds fixture battles");
+  assert.equal(q.body.total_count, old.n, "the old predicate's count");
+  const perf = await call("battles_performance", { from, to });
+  assert.equal(perf.isError, false, JSON.stringify(perf.body));
+  assert.equal(perf.body.window.battles, old.n);
+});
+
 test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {
   const decks = await call("battles_decks", {});
   const anchorId = decks.body.decks[0].cards[0].id;
