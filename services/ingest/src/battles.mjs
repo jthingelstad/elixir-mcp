@@ -188,6 +188,32 @@ export function canonicalizeBattle(entry) {
       game_mode_name: entry.gameMode?.name ?? null,
       arena: entry.arena?.name ?? null,
       league_number: entry.leagueNumber ?? null,
+      // The battle's own facts the log carries (0131, time-series review
+      // 2.4): nullable, enriched like the rest; older rows are filled from
+      // the battlelog receipts by the Phase 2 op.
+      arena_id: Number.isInteger(entry.arena?.id) ? entry.arena.id : null,
+      event_tag: typeof entry.eventTag === "string" ? entry.eventTag : null,
+      tournament_tag:
+        typeof entry.tournamentTag === "string" ? entry.tournamentTag : null,
+      deck_selection:
+        typeof entry.deckSelection === "string" ? entry.deckSelection : null,
+      is_ladder_tournament:
+        typeof entry.isLadderTournament === "boolean"
+          ? entry.isLadderTournament
+          : null,
+      is_hosted_match:
+        typeof entry.isHostedMatch === "boolean" ? entry.isHostedMatch : null,
+      boat_battle_side:
+        typeof entry.boatBattleSide === "string" ? entry.boatBattleSide : null,
+      new_towers_destroyed: Number.isInteger(entry.newTowersDestroyed)
+        ? entry.newTowersDestroyed
+        : null,
+      prev_towers_destroyed: Number.isInteger(entry.prevTowersDestroyed)
+        ? entry.prevTowersDestroyed
+        : null,
+      remaining_towers: Number.isInteger(entry.remainingTowers)
+        ? entry.remainingTowers
+        : null,
     },
     participants,
   };
@@ -203,6 +229,16 @@ const BATTLE_COLS = [
   "game_mode_name",
   "arena",
   "league_number",
+  "arena_id",
+  "event_tag",
+  "tournament_tag",
+  "deck_selection",
+  "is_ladder_tournament",
+  "is_hosted_match",
+  "boat_battle_side",
+  "new_towers_destroyed",
+  "prev_towers_destroyed",
+  "remaining_towers",
 ];
 const BATTLE_KEY = ["battle_id", "battle_time", "type", "type_class"];
 const BATTLE_ENRICH = BATTLE_COLS.filter((c) => !BATTLE_KEY.includes(c));

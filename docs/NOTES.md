@@ -2792,3 +2792,159 @@ in serverInfo.version.
    climb over the week, the per-key incremental shape is the fix.
 
 Nothing new for cr-agent-api-docs.
+
+## 2026-09-17 — Time-series review, Phase 1: the tables, the live writers, the day, the manifest (0126-0132)
+
+Phase 1 of the execution brief (commit `7d80a81`) for
+`docs/reviews/2026-09-18-TIME-SERIES.md`. Jamie's decisions of
+2026-09-17 (the game day; day grain, last observation wins; history
+import as validation; poapkings.com last; the metric set; multi-clan by
+construction; and after the review: the snapshot re-key first, every
+member of every polled clan gets a roster-written row, the zero-bucket
+rule, the manifest with the out-of-band census filing to feedback) are
+applied and not reopened. Polling cadences are untouched. Six steps,
+each its own commit, four deploys (12:5xZ-14:4xZ Chicago; 18:5xZ-19:4xZ
+UTC); RDS snapshot `elixir-mcp-pre-snapshot-rekey-2026-09-17` (18:58Z)
+before the re-key.
+
+**Shipped.** `bab4bf0` 0126 `game_day(timestamptz)`, immutable UTC
+arithmetic, pinned against every seeded `war_period` row (a period's
+first and last second share a game day; a period starts at 10:00Z of
+its own day) and its JS twin `gameDay()` in contracts. `84e0dfe` +
+`b116f98` the re-key: `{snapshot_day_census}` (read-only) and
+`{snapshot_rekey}` (keyset per player, ~500 a batch, short
+transactions, delete-and-reinsert under `game_day(observed_at)`, the
+later observation winning a collision), and the snapshot projector
+keyed on the game day for the daily row and both kinds. `22430bc`
+0127-0131: the roster columns on `player_snapshot_daily` (`clan_tag`,
+`clan_rank`, `previous_clan_rank`, `game_last_seen_at`,
+`profile_observed_at`, `source`) with the partial clan-day index, the
+lifetime columns (`total_donations`, the challenge and tournament
+counters, `king_tower_level`), the frozen counters on `player`,
+`type`/`location_id`/`description` on `clan`; `clan_snapshot_daily`;
+`player_progress_daily`; `player_pol_season`; `war_period_log`;
+`clan_score`/`repair_points` on `war_week_clan` and `repair_points` on
+`war_participation`; the ten nullable `battle` columns;
+`series_backfill_state`; `feedback.surface` widened by `recorder`.
+`b4622ef` the writers: `services/ingest/src/series.mjs` is the series
+half the live path and the backfill both call (`projectClanSeries`: the
+clan row and every member's roster columns in one tag-ordered unnest
+upsert guarded on the roster's columns and `observed_at`, the hour rule
+for a poll that moved only `lastSeen`, `pre_reset` and `season_roll`
+inside their windows, the clan's state change-only, the roster feeding
+the arena catalog; `projectPlayerProgress`: the buckets, the `""` key
+admitted as `AutoChess`, the zero-bucket rule, `season_roll` only); the
+profile upsert with the new columns, its guard on the profile's columns
+and `profile_observed_at`, the shared columns taken only when the
+observation is the row's newest, `observed_at` never regressing; the
+frozen counters when they differ; `player_pol_season` fill-once under
+the latest rolled season; the race projector's rivals (`clan_score` on
+the period-points stamp, `repair_points` MAX, `badge_id` on the clan
+row), the participants' `repair_points`, `war_period_log` fill-once
+scoped to the poll's section; the log's `clan_score`, `repair_points`
+and war day 4's `decks_used_today`. Every writer returns facts; a
+roster receipt now counts the members that moved. `8015df6` +
+`abb6b1e` the manifest (`services/ingest/src/payload-keys.mjs`, one
+entry per field per endpoint with `to` / `derived` / `dropped`, the
+reasons for `expLevel`, the clan-chest trio, `state` and
+`currentWinLoseStreak` written there; the fixture test) and the
+nightly `{shape_census}` (jobs Lambda, 05:05Z, twenty archived objects
+per endpoint from the last day, `payload_shape_seen` 0132 as its
+seven-day memory, findings filed once into `feedback` under the owner
+account as `data_quality` / `recorder`, `ElixirMCP/Record
+PayloadShapeFindings`); the rule in ENGINEERING.md under Ingest
+invariants; the recorder-item line in `AGENT-TEAM/close-the-loop.md`.
+`8892a0d` `{series_status}`, read-only. Docs: `clocks.md` says the
+game day, `recording.md` says what a roster poll records, two What's-new
+entries; the `players_timeline` note reads "Snapshot days are game
+days". No contract change (3.11.1 stands; the readers are Phase 4).
+
+**Measured live, read-only.** The day census before the re-key (18:55Z):
+15,882 rows, 1,734 players; daily 14,886 (2,973 with no `observed_at`,
+993 moving, 10,920 staying, 669 collisions), pre_reset 996 (22
+unkeyable, 36 moving, 0 collisions); movers observed 00:00-09:59Z, most
+at 07-09Z; every one of the 2,995 unkeyable rows (2026-07-14 →
+09-05, pre-0038 and never re-stamped) had an admitted profile receipt
+on its UTC day, 370 of them then moving. The op (19:08:04-19:08:08Z,
+four invocations, 1.9 s of op time): 1,734 players, 2,995 stamped from
+receipts, 1,396 rows moved, 460 inserted on an empty key, 936 replacing
+the day's earlier row, 0 dropped otherwise; after: 14,946 rows, 0
+moving, 0 unkeyable, pre_reset first day 03-16 → 03-15. Through the
+door, `players_timeline` for King Thing over ten days answers the same
+trophies with Monday 09-14 carrying the post-reset 7 donations and the
+414 peak on Sunday 09-13; `players_profile` and `clans_roster` answer
+the same shape and numbers as before the writers' deploy (12,531
+trophies, the lifetime block; 46 members, every trophy filled). The
+first hand run of `{shape_census}` (19:35Z) read 175 objects across
+fifteen endpoints and filed exactly one item, #49: `rankings_clanwars
+items[].clanScore` had no disposition, because the entry named
+`clanWarTrophies`, a field the board never sends (the war board's score
+is spelt `clanScore`; `cr-agent-api-docs/locations.md` said so and the
+projector read it first). Corrected in `abb6b1e`; the second run (152
+objects) filed nothing; #49 closed as done with the commit.
+__HOUR_MARK__
+
+**Decisions taken inside the phase.** (1) Pre-0038 snapshot rows with no
+`observed_at` are stamped from the receipts before they move: the last
+admitted profile fetch of the tag on that UTC day is what the pre-0038
+last-wins rule kept, so the stamp is the row's own history, not a
+guess; a row with no such receipt stays (none live). (2) A collision's
+winner is always the mover (a poll before 10:00Z on UTC day D+1 is
+later than anything on UTC day D), so the census reports collisions
+and dropped rows, not "which would win". (3) The profile's shared
+columns (trophies, donations, donations_received, arena_id) take a
+profile observation only when it is the row's newest; the lifetime
+block is the profile's own and lands whenever the profile observation
+is newer than the last profile write. Both snapshot baselines (`prev`
+for `moved`, `latest` for the moments) are the latest PROFILE
+observation, or a roster-only row with no wins would mask a career-wins
+crossing. 0127 stamps every existing row's `profile_observed_at` from
+`observed_at` (every row so far was the profile's). (4) Readers that
+render the profile object (`players_profile`, the integration API,
+`battles_compare`, `players_collection`) select the latest profile
+observation, so a roster-only row never renders as a profile; readers
+of trophies and donations alone (`clans_roster`, collections, search)
+take the latest row, which for a recorded member is the same row and
+for an unrecorded member is now filled rather than null. (5) The
+identical-repeat rule applies within a day to the daily row's stamp
+too: a season_roll poll carrying the same payload as the day's earlier
+poll pins its kind row and leaves the daily row's `observed_at` alone
+(the projectors test was re-pinned). (6) `war_participation.repair_points`
+is written beside the rivals' (the same upsert, one column), though the
+brief listed only the rivals' columns. (7) The log's `clanScore` fills
+a null and never overwrites the live race's (the log stamp is not an
+observation of the race). (8) `periodLogs` entries for earlier sections
+name the current bracket's clans, so the section scoping is a
+correctness rule, not only a double-count guard (pushed to
+`cr-agent-api-docs`, `328d713`). (9) `{series_status}` was added as a
+read-only op because nothing reported a roster receipt's `new_facts`;
+it is Phase 2's before/after.
+
+**Pushed to cr-agent-api-docs.** `328d713`: `periodLogs` entries for
+earlier sections name the current race's clans (observed 2026-08-31
+and live 2026-09-17: a section-1 war-day-1 payload carried periods 3-6,
+all listing the same five clans as `clans[]`).
+
+**Left out, and why.** The Tier 2 items the review keeps out of the
+phases (duel rounds, `used`, `global_rank`, achievements, the badge and
+location catalogs, `arena.rawName`) are named in the manifest as
+dropped with those reasons. `war_period_log` holds nothing yet: the
+running section's first closed day lands after 10:00Z on 09-18, and
+earlier sections' entries are other brackets' days by (8). The
+`battle` columns are written for every battle admitted from `c1f0000`
+on (`battles.mjs` maps the ten in the same enrich upsert; a fixture log
+lands `arena_id`, `deck_selection`, the two flags, the boat side and
+the tower counts) and are null for every earlier row until Phase 2b
+fills them from the battlelog receipts; `battles_query` does not carry
+them yet (the contract-shaped half waits for 2b). The war board's
+manifest error is the one thing the census found; the boards without a
+fixture are written from Appendix D and the nightly run is their check.
+
+**Phase 2 next (review Part 5): the backfill from the archive.**
+`{series_backfill}` by lane (clan, then player), receipt-ordered,
+keyset-resumable on `series_backfill_state`, driven to completion by a
+local loop with the migrate Lambda held; then the battle columns' fill
+from the battlelog receipts (with `battles.mjs` writing them live);
+then a read-only census proving every admitted roster receipt since
+2026-03-12 has its day rows. RDS snapshot first. Needs Jamie's go;
+nothing manual.

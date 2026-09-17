@@ -667,3 +667,45 @@ test("the race poll keeps the rivals' clanScore, repairPoints and badge, and the
     "the log's closing clanScore fills a null",
   );
 });
+
+test("a battle log writes the battle's own facts (0131) for new battles", async () => {
+  const message = ({ endpoint, entityKey, payload, fetchedAt }) => ({
+    v: 1,
+    job: { endpoint, entity_key: entityKey, lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: fetchedAt,
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+      "base64",
+    ),
+  });
+  const log = await fixture("player_battlelog/with_boat_and_duel.json");
+  const tag = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
+  const r = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: tag,
+      payload: log,
+      fetchedAt: "2026-09-02T08:00:49Z",
+    }),
+  );
+  assert.equal(r.outcome, "admitted");
+  const {
+    rows: [c],
+  } = await ctx.db.query(
+    `select count(*)::int as n, count(arena_id)::int as with_arena,
+            count(deck_selection)::int as with_selection,
+            count(is_ladder_tournament)::int as with_ladder_flag,
+            count(boat_battle_side)::int as boat_sides,
+            count(remaining_towers)::int as with_towers
+     from battle`,
+  );
+  assert.ok(c.n > 0);
+  const boats = log.filter((b) => typeof b.boatBattleSide === "string").length;
+  assert.ok(c.with_arena > 0, "arena.id lands");
+  assert.equal(c.with_selection, c.n, "every battle names its deck selection");
+  assert.equal(c.with_ladder_flag, c.n);
+  assert.ok(boats === 0 || c.boat_sides > 0, "boat battles keep their side");
+  assert.ok(c.with_towers >= 0);
+});
