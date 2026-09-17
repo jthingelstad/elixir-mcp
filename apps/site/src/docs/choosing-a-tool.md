@@ -79,9 +79,11 @@ never named.
   collection }`; omit the whole object for everything recorded.
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. `days` and
-  `weeks` are sugar. Every windowed response echoes `applied.window` with a
-  `source` of `argument`, `default`, `unbounded` or `fixed`; see
-  [Windows and timezones](/docs/clocks#windows-and-timezones).
+  `weeks` are sugar; `season` on the meta tools bounds one season. Every
+  windowed response echoes `applied.window` with a `source` of `argument`,
+  `default`, `unbounded`, `season` or `fixed`; see
+  [Windows and timezones](/docs/clocks#windows-and-timezones) and
+  [Seasons](/docs/clocks#seasons).
 - **`verbosity: "compact"` is the one size control.** It drops the bulk and
   keeps identities and counts; a result over the delivery cap answers
   `result_too_large` naming the arguments that narrow it.

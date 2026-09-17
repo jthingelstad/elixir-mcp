@@ -36,10 +36,35 @@ const WINDOW_ECHO = {
     to: { type: ["string", "null"] },
     source: {
       type: "string",
-      enum: ["argument", "default", "unbounded", "fixed"],
+      enum: ["argument", "default", "unbounded", "fixed", "season"],
     },
     timezone: { type: "string" },
     days: COUNT,
+    // The season-grained tools (3.10.0): which season the window starts
+    // in, every roll inside it, and the season's age at the window's end.
+    season: {
+      type: ["object", "null"],
+      properties: {
+        month: { type: "string" },
+        war: COUNT,
+        starts_at: { type: "string" },
+        ends_at: { type: "string" },
+      },
+    },
+    crosses: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["season"] },
+          at: { type: "string" },
+          from_season: { type: ["object", "null"] },
+          to_season: { type: "object" },
+        },
+        required: ["kind", "at", "to_season"],
+      },
+    },
+    season_age_days: COUNT,
   },
   required: ["source"],
 };

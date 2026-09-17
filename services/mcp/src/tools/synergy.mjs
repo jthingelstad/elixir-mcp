@@ -15,7 +15,8 @@ import {
   SEGMENT_SCHEMA,
   SEGMENT_DOCS,
   requireEnum,
-  resolveWindow,
+  resolveSeasonWindow,
+  SEASON_ARG_SCHEMA,
   segmentFilter,
   appliedBlock,
   notes,
@@ -60,7 +61,7 @@ async function resolveCard(db, { card_id, card }) {
 export const synergyTools = {
   cards_synergy: {
     description:
-      "What a card is played WITH, for a segment (the corpus by default) and window (default 28 days): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; forms merge for the anchor by default while partners stay split by form.",
+      "What a card is played WITH, for a segment (the corpus by default) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; forms merge for the anchor by default while partners stay split by form.",
     inputSchema: {
       type: "object",
       properties: {
@@ -75,6 +76,7 @@ export const synergyTools = {
         },
         segment: SEGMENT_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
         merge_forms: {
           type: "boolean",
@@ -101,7 +103,7 @@ export const synergyTools = {
       const anchor = await resolveCard(ctx.db, args);
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const win = resolveWindow(ctx, args, { defaultDays: 28 });
+      const win = await resolveSeasonWindow(ctx, args);
       const where = [
         "bp.deck_hash is not null",
         "bp.outcome in ('win','loss')",
@@ -253,6 +255,7 @@ export const synergyTools = {
           "co_occurrence_rate = decks with anchor AND partner / decks with anchor; baseline_usage = the partner's share of all decided decks in the segment; lift = co_occurrence_rate / baseline_usage.",
           "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
           "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",
+          win.seasonNotes,
         ),
         docs: SEGMENT_DOCS,
         meta: responseMeta({

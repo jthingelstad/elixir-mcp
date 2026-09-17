@@ -11,6 +11,8 @@ import { emailHash } from "../../auth/src/index.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+import { seasonFromDate, monthKey } from "../../ingest/src/war-clock.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -47,6 +49,9 @@ before(async () => {
   });
   db = new pg.Client({ connectionString: URL });
   await db.connect();
+  // What the scheduler does every tick (0104): the running season is a
+  // row whatever day this runs on.
+  await ensureSeasonsAround(db);
 
   const {
     rows: [acct],
@@ -1433,6 +1438,109 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   );
   const none = await call("badges_holders", { badge: "NoSuchBadgeAtAll" });
   assert.equal(none.body.error.code, "not_found");
+});
+
+test("meta tools default to the current season, take a season, and say what a window crosses (3.10.0)", async () => {
+  const now = Date.now();
+  const currentMonth = monthKey(seasonFromDate(now).seasonStartMs);
+  for (const tool of [
+    "battles_meta_decks",
+    "battles_meta_cards",
+    "cards_synergy",
+  ]) {
+    const args =
+      tool === "cards_synergy"
+        ? { card: "Knight", min_pair_battles: 1 }
+        : { min_battles: 1 };
+    const dflt = await call(tool, args);
+    assert.equal(dflt.isError, false, JSON.stringify(dflt.body));
+    const w = dflt.body.applied.window;
+    assert.equal(w.source, "season", tool);
+    assert.equal(w.season.month, currentMonth, tool);
+    assert.equal(typeof w.season.war, "number");
+    assert.equal(w.from, w.season.starts_at, "from is the season's start");
+    assert.equal(w.to, null, "to date");
+    assert.deepEqual(w.crosses, [], "a season window is clean by construction");
+    assert.ok(Number.isInteger(w.season_age_days) && w.season_age_days >= 0);
+    if (w.season_age_days < 7)
+      assert.ok(
+        dflt.body.notes.some((n) => /settled comparison/.test(n)),
+        "a thin season says so",
+      );
+    // The fixture battles are S135 (Aug 20 .. Sep 3): the month, the war
+    // number and 'previous' (when it is) all name the same bounds.
+    const byMonth = await call(tool, { ...args, season: "2026-08" });
+    assert.equal(byMonth.isError, false, JSON.stringify(byMonth.body));
+    assert.equal(byMonth.body.applied.window.from, "2026-08-03T10:00:00.000Z");
+    assert.equal(byMonth.body.applied.window.to, "2026-09-07T10:00:00.000Z");
+    assert.equal(byMonth.body.applied.window.source, "season");
+    assert.deepEqual(byMonth.body.applied.window.season, {
+      month: "2026-08",
+      war: 135,
+      starts_at: "2026-08-03T10:00:00.000Z",
+      ends_at: "2026-09-07T10:00:00.000Z",
+    });
+    assert.equal(byMonth.body.applied.window.season_age_days, 35);
+    const byWar = await call(tool, { ...args, season: 135 });
+    assert.deepEqual(byWar.body.applied.window, byMonth.body.applied.window);
+    const rows =
+      byMonth.body.decks ?? byMonth.body.cards ?? byMonth.body.partners;
+    assert.ok(rows.length > 0, `${tool}: S135 holds the fixture battles`);
+    const unknown = await call(tool, { ...args, season: "2019-01" });
+    assert.equal(unknown.isError, true);
+    assert.equal(unknown.body.error.code, "not_found");
+    // Explicit bounds win over season, and a window across the roll says so.
+    const across = await call(tool, {
+      ...args,
+      season: "2026-08",
+      from: "2026-08-20T00:00:00Z",
+      to: "2026-09-10T00:00:00Z",
+    });
+    assert.equal(across.isError, false, JSON.stringify(across.body));
+    const aw = across.body.applied.window;
+    assert.equal(aw.source, "argument");
+    assert.equal(aw.season.month, "2026-08", "the season the window starts in");
+    assert.deepEqual(aw.crosses, [
+      {
+        kind: "season",
+        at: "2026-09-07T10:00:00.000Z",
+        from_season: { month: "2026-08", war: 135 },
+        to_season: { month: "2026-09", war: 136 },
+      },
+    ]);
+    assert.ok(
+      across.body.notes.some((n) =>
+        /spans S135 \(2026-08\) and S136 \(2026-09\)/.test(n),
+      ),
+      JSON.stringify(across.body.notes),
+    );
+    const clean = await call(tool, {
+      ...args,
+      from: "2026-08-20T00:00:00Z",
+      to: "2026-09-05T00:00:00Z",
+    });
+    assert.deepEqual(clean.body.applied.window.crosses, []);
+    assert.ok(!clean.body.notes.some((n) => /spans S/.test(n)));
+  }
+  // battles_trends keeps its 12-week default and crosses by design; season
+  // bounds it, every week names its season, the roll is marked.
+  const trends = await call("battles_trends", { season: "2026-08" });
+  assert.equal(trends.isError, false, JSON.stringify(trends.body));
+  assert.equal(trends.body.applied.window.source, "season");
+  assert.ok(trends.body.weeks.length > 0);
+  assert.ok(
+    trends.body.weeks.every((w) => w.season_month === "2026-08"),
+    JSON.stringify(trends.body.weeks),
+  );
+  const spanning = await call("battles_trends", {
+    from: "2026-08-20T00:00:00Z",
+    to: "2026-09-10T00:00:00Z",
+  });
+  assert.equal(spanning.body.applied.window.source, "argument");
+  assert.equal(spanning.body.applied.window.crosses.length, 1);
+  const twelve = await call("battles_trends", {});
+  assert.equal(twelve.body.applied.window.source, "default");
+  assert.ok(Array.isArray(twelve.body.applied.window.crosses));
 });
 
 test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {

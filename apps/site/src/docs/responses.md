@@ -95,8 +95,10 @@ tool is for, since contract 1.0.0:
 **`applied`** — the one echo block: what the tool actually used. `window`
 (`from`, `to`, `source`, `timezone`) on every windowed tool, plus `limit`,
 `sort`, `mode`, `min_battles`, `segment` and `verbosity` where they apply.
-`window.source` is `argument`, `default`, `unbounded` or `fixed`; read it
-before you say "your last 30 days". It replaces the old `filters_applied`,
+`window.source` is `argument`, `default`, `unbounded`, `season` or `fixed`;
+read it before you say "your last 30 days". The season-grained tools add
+`window.season`, `window.crosses` and `window.season_age_days`
+([Seasons](/docs/clocks#seasons)). It replaces the old `filters_applied`,
 `window_from`, `window_to`, `window_days` and `limit_applied` keys.
 
 **`notes`** — `notes[]`, one-sentence caveats to repeat when quoting the

@@ -114,20 +114,66 @@ Every windowed tool takes the same bounds and echoes what it used:
 - Every windowed response echoes `applied.window` with `from`, `to`,
   `timezone` and a `source`: `argument` when you gave bounds, `default` when
   the tool's default applied, `unbounded` when nothing bounded the window,
-  and `fixed` on the one tool whose window is not an argument. An agent
-  quoting "your last 30 days" reads `source` before it says so.
+  `season` when a season's bounds applied (below), and `fixed` on the one
+  tool whose window is not an argument. An agent quoting "your last 30
+  days" reads `source` before it says so.
 
 The defaults differ by tool, and each says which applied:
 
 | Tool | Window when you give none |
 |---|---|
 | `players_summary` | fixed 30 days (`source: "fixed"`); not an argument |
-| `battles_meta_decks`, `battles_meta_cards`, `cards_synergy` | 28 days |
+| `battles_meta_decks`, `battles_meta_cards`, `cards_synergy` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
 | `clans_pilot_scores` | 90 days |
 | `clans_participation` | 5 ISO weeks, the current one included |
 | `battles_trends` | 12 weeks |
 | `battles_performance`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
+
+## Seasons
+
+A season is a row in the record: first Monday of the month 10:00 UTC to
+the next first Monday 10:00 UTC, named the way the API names it, by the
+month it starts in (`2026-09`), and carrying the river race season number
+the war surfaces speak (`136`). The record derives that number from the
+month and confirms it against every war log entry it admits; the two have
+never disagreed, and if they ever do the record alarms rather than
+relabelling anything. The in-game Pass season (its number and its name) is
+not in the API and is not in the record; an agent that knows it may say
+it, the record never will.
+
+**Balance changes are not modelled**, deliberately: nothing hand-fed or
+scraped enters the data layer. Supercell ships balance changes on the
+season roll, so **a season is the window that honours them**: card and
+deck numbers inside one season are one population, and numbers that span a
+roll are not. That is why the meta tools (`battles_meta_decks`,
+`battles_meta_cards`, `cards_synergy`) default to **the current season to
+date** rather than a rolling number of days, which on most days of the
+month mixes two seasons without saying so.
+
+- **`season`** on those three tools and on `battles_trends` bounds the
+  window to one season: `"current"` (the default on the meta tools; to
+  date), `"previous"`, the month (`"2026-08"`) or the war number (`135`).
+  `from`/`to`/`days`/`weeks` given still win.
+- **`applied.window.season`** names the season the window starts in
+  (`month`, `war`, `starts_at`, `ends_at`), whatever set the window;
+  `null` when it starts before the record's calendar.
+- **`applied.window.crosses`** lists every season roll inside the window
+  (`kind`, `at`, `from_season`, `to_season`); an empty array means the
+  window is season-clean. Nothing is refused: an agent asking across a
+  roll may mean it, and a note says so in a sentence so the caveat travels
+  with the numbers. `crosses` is what lets a consumer refuse for itself.
+- **`applied.window.season_age_days`** is how old that season is at the
+  window's end. On the first days of a season the default window is thin
+  and the record says so rather than widening it: `insufficient_sample`
+  fires as it always did, and a note names `season: "previous"` as the
+  settled comparison.
+- `battles_trends` keeps its twelve-week default and crosses rolls by
+  design; every week row carries `season_month`, the season its Tuesday
+  to Sunday fall in, so a chart can draw the line where `crosses` puts it.
+
+`game_clock` carries the same two names (`season_id`, `season_month`) and
+the season's bounds for now.
 
 `group_by: "week"` on `battles_performance` and every row of
 `battles_trends` use **ISO weeks**, Monday to Sunday. A war week, by

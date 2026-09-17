@@ -76,7 +76,8 @@ Deck meta defaults to a five-observation minimum; card meta defaults to ten.
 Callers can change those filters. Returned `methodology` describes the observation
 unit, eligible outcomes and prior.
 
-The default 28-day meta window can be expensive under simultaneous load.
+The default meta window is the current season to date ([Seasons](/docs/clocks#seasons)),
+which can be expensive under simultaneous load late in a season.
 The MCP door cancels over-budget work with `query_timeout` rather than
 returning a partial aggregation. Narrow `from`/`to` to reduce the population;
 `min_battles` and `limit` filter the result after aggregation and do not make

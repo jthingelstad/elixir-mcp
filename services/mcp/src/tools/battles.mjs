@@ -28,6 +28,8 @@ import {
   subject,
   buildMeta,
   resolveWindow,
+  resolveSeasonWindow,
+  SEASON_ARG_SCHEMA,
   requireOrderedWindow,
   appliedBlock,
   notes,
@@ -1061,12 +1063,13 @@ export const battlesTools = {
 
   battles_meta_decks: {
     description:
-      "Observed deck meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window 28 days. No tier lists: what the recorded data shows, with sample sizes.",
+      "Observed deck meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
     inputSchema: {
       type: "object",
       properties: {
         segment: SEGMENT_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
         min_battles: {
           type: "integer",
@@ -1086,7 +1089,7 @@ export const battlesTools = {
     async handler(ctx, args) {
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const win = resolveWindow(ctx, args, { defaultDays: 28 });
+      const win = await resolveSeasonWindow(ctx, args);
       const scope = []; // segment + window + mode: the population considered
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
@@ -1209,7 +1212,7 @@ export const battlesTools = {
             }),
         excluded,
         decks: shaped,
-        notes: notes(SEGMENT_NOTES),
+        notes: notes(SEGMENT_NOTES, win.seasonNotes),
         docs: SEGMENT_DOCS,
         meta: responseMeta({
           as_of: new Date().toISOString(),
@@ -1221,12 +1224,13 @@ export const battlesTools = {
 
   battles_meta_cards: {
     description:
-      "Observed card meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window 28 days. What the recorded data shows, with sample sizes; never a tier list.",
+      "Observed card meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
     inputSchema: {
       type: "object",
       properties: {
         segment: SEGMENT_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
         min_battles: {
           type: "integer",
@@ -1246,7 +1250,7 @@ export const battlesTools = {
     async handler(ctx, args) {
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const win = resolveWindow(ctx, args, { defaultDays: 28 });
+      const win = await resolveSeasonWindow(ctx, args);
       const scope = [];
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
@@ -1375,6 +1379,7 @@ export const battlesTools = {
         cards: shaped,
         notes: notes(
           SEGMENT_NOTES,
+          win.seasonNotes,
           FORM_ROWS_NOTE,
           "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments.",
         ),
@@ -1389,7 +1394,7 @@ export const battlesTools = {
 
   battles_trends: {
     description:
-      "Weekly time series for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies. Default 12 weeks; weeks or from/to set the window. Single-player weekly detail also lives in battles_performance group_by 'week'.",
+      "Weekly time series for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1401,6 +1406,7 @@ export const battlesTools = {
           maximum: 52,
           description: "How many ISO weeks back (default 12); or use from/to.",
         },
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
       },
       additionalProperties: false,
@@ -1410,7 +1416,9 @@ export const battlesTools = {
       const seg = await segmentFilter(ctx, args, params);
       const where = ["bp.outcome is not null"];
       if (seg.where) where.push(seg.where);
-      const win = resolveWindow(ctx, args, { defaultDays: 12 * 7 });
+      const win = await resolveSeasonWindow(ctx, args, {
+        defaultDays: 12 * 7,
+      });
       // Weeks are aligned: the window's start snaps to its ISO Monday so
       // the first row is a whole week.
       params.push(win.from);
@@ -1427,18 +1435,24 @@ export const battlesTools = {
         where.push(`b.type = any($${params.length})`);
       }
       const { rows } = await ctx.db.query(
-        `select to_char(date_trunc('week', b.battle_time), 'IYYY-"W"IW') as iso_week,
-                date_trunc('week', b.battle_time)::date::text as week_of,
-                count(*)::int as battles,
-                count(*) filter (where bp.outcome = 'win')::int as wins,
-                count(*) filter (where bp.outcome = 'loss')::int as losses,
-                count(distinct bp.player_tag)::int as players,
-                count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
-                coalesce(sum(bp.trophy_change), 0)::int as net_trophies
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
-         where ${where.join(" and ")}
-         group by date_trunc('week', b.battle_time)
-         order by date_trunc('week', b.battle_time)`,
+        `select w.*,
+                (select s.season_month from season s
+                  where s.starts_at <= w.week_start + interval '1 day'
+                    and s.ends_at > w.week_start + interval '1 day') as season_month
+         from (
+           select date_trunc('week', b.battle_time) as week_start,
+                  to_char(date_trunc('week', b.battle_time), 'IYYY-"W"IW') as iso_week,
+                  date_trunc('week', b.battle_time)::date::text as week_of,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  count(distinct bp.player_tag)::int as players,
+                  count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
+                  coalesce(sum(bp.trophy_change), 0)::int as net_trophies
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           where ${where.join(" and ")}
+           group by date_trunc('week', b.battle_time)) w
+         order by w.week_start`,
         params,
       );
       return {
@@ -1461,9 +1475,12 @@ export const battlesTools = {
               : null,
           trophy_battles: r.trophy_battles,
           net_trophies: r.net_trophies,
+          season_month: r.season_month,
         })),
         notes: notes(
           "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+          "season_month is the season the week's Tuesday to Sunday fall in; a season rolls on Monday at 10:00 UTC, so a roll week's first hours belong to the season before (applied.window.crosses says where).",
+          win.seasonNotes,
           "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was.",
         ),
         docs: docsRef("recording", "completeness"),

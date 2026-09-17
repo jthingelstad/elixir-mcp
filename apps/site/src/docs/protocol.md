@@ -389,7 +389,7 @@ shortened if Lambda has less time remaining. It covers the whole aggregation,
 not a fresh allowance for each query. PostgreSQL cancels the work before the
 25-second Lambda ceiling so the tool can return `query_timeout`, a retry hint
 and `meta.request_id`, and audit the failed call. This is not a latency promise:
-a full 28-day corpus read can still exhaust the budget under load. Smaller
+a full-season corpus read can still exhaust the budget under load. Smaller
 `limit` values trim output, not the population scanned; narrow `from`/`to` to
 reduce work.
 
@@ -446,9 +446,10 @@ in its hint.
   (`battle_time_local` is ISO 8601 with its offset). Default: the account's
   timezone. An unknown zone is `bad_request`.
 - **`applied`** is the one echo block on every response: `window` (`from`,
-  `to`, `source` of `argument` | `default` | `unbounded` | `fixed`,
-  `timezone`), `limit`, `sort`, `mode`, `min_battles`, `segment`,
-  `verbosity`, as used. There are no `filters_applied`, `window_*` or
+  `to`, `source` of `argument` | `default` | `unbounded` | `season` |
+  `fixed`, `timezone`, and on the season-grained tools `season`,
+  `crosses` and `season_age_days`), `limit`, `sort`, `mode`,
+  `min_battles`, `segment`, `verbosity`, as used. There are no `filters_applied`, `window_*` or
   `limit_applied` keys.
 - **`verbosity: full | compact`** is the one size control, on
   `battles_query`, `war_current`, `clans_roster`, `battles_levels`,

@@ -24,6 +24,11 @@ import { responseMeta, roleQuotas, MODE_GROUPS } from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 import { resolveInstant } from "../time.mjs";
+import {
+  seasonAt,
+  seasonByKey,
+  seasonCrossings,
+} from "../../../ingest/src/season.mjs";
 
 /** The live lane spends real CR budget: tight per-account daily cap,
  *  defaulted by role (contracts roles.ts), beaten by the per-account
@@ -295,6 +300,110 @@ export function resolveWindow(
       to: to ? to.toISOString() : null,
       source,
       ...(tz ? { timezone: tz } : {}),
+    },
+  };
+}
+
+/** The `season` argument on the meta tools and battles_trends (3.10.0). */
+export const SEASON_ARG_SCHEMA = {
+  type: ["string", "integer"],
+  description:
+    "Bound the window to one season: 'current' (to date), 'previous', the month the API names it by (2026-08), or the river race season number (135). from/to/days/weeks given win over it.",
+};
+
+const DAY_MS = 86_400_000;
+const seasonLabel = (s) => `S${s.war} (${s.month})`;
+
+/**
+ * The window for a season-grained read (review 2026-09-16, 1.1). The
+ * default is the current season to date, from the `season` row - never
+ * a rolling number of days, which is how a 28-day meta window came to
+ * mix two seasons 14/86 without saying so. `season` selects another;
+ * explicit bounds still win. Whatever set it, `applied.window` says
+ * which season the window starts in, every season boundary it crosses
+ * (`crosses`, empty when clean) and how old that season is at the
+ * window's end (`season_age_days`); the notes say the same in a
+ * sentence. Nothing is refused: an agent asking across a roll may mean
+ * it, and `crosses` is what lets a consumer refuse for itself.
+ */
+export async function resolveSeasonWindow(
+  ctx,
+  args = {},
+  { defaultDays = null } = {},
+) {
+  const explicit = ["from", "to", "days", "weeks"].some(
+    (k) => args[k] !== undefined,
+  );
+  const nowMs = Date.now();
+  let win;
+  let row = null;
+  if (!explicit && (args.season !== undefined || defaultDays === null)) {
+    row = await seasonByKey(ctx.db, args.season ?? "current", nowMs);
+    if (!row)
+      throw new ToolFailure(
+        "not_found",
+        `No season '${args.season ?? "current"}' in the record.`,
+        "season takes 'current', 'previous', the month the API names it by (2026-08) or the river race season number (135); or pass from/to.",
+      );
+    const tz = zoneFor(ctx, args);
+    const from = row.starts_at;
+    const to = row.ends_at.getTime() > nowMs ? null : row.ends_at;
+    win = {
+      from,
+      to,
+      timezone: tz,
+      source: "season",
+      echo: {
+        from: from.toISOString(),
+        to: to ? to.toISOString() : null,
+        source: "season",
+        ...(tz ? { timezone: tz } : {}),
+      },
+    };
+  } else {
+    win = resolveWindow(ctx, args, { defaultDays });
+  }
+  const fromMs = win.from.getTime();
+  const endMs = win.to ? win.to.getTime() : nowMs;
+  const start = row ?? (await seasonAt(ctx.db, fromMs));
+  const crosses = await seasonCrossings(ctx.db, fromMs, endMs);
+  const season = start
+    ? {
+        month: start.season_month,
+        war: start.war_season_id,
+        starts_at: start.starts_at.toISOString(),
+        ends_at: start.ends_at.toISOString(),
+      }
+    : null;
+  const seasonAgeDays = start
+    ? Math.floor(
+        (Math.min(endMs, start.ends_at.getTime()) - start.starts_at.getTime()) /
+          DAY_MS,
+      )
+    : null;
+  const spanned = crosses.length
+    ? [crosses[0].from_season, ...crosses.map((c) => c.to_season)]
+        .filter(Boolean)
+        .map(seasonLabel)
+    : [];
+  const seasonNotes = notes(
+    crosses.length
+      ? `Window spans ${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}; balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.`
+      : null,
+    win.source === "season" && win.to === null && seasonAgeDays < 7
+      ? `The current season is ${seasonAgeDays} day${seasonAgeDays === 1 ? "" : "s"} old, so this window is thin; season:'previous' is the settled comparison.`
+      : null,
+  );
+  return {
+    ...win,
+    season: start,
+    crosses,
+    seasonNotes,
+    echo: {
+      ...win.echo,
+      season,
+      crosses,
+      ...(seasonAgeDays === null ? {} : { season_age_days: seasonAgeDays }),
     },
   };
 }
