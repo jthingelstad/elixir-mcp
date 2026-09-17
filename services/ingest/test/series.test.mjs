@@ -52,7 +52,11 @@ function roster({ at, members }) {
       lastSeen: m.lastSeen ?? at.replace(/[-:]/g, "").replace("Z", ".000Z"),
       expLevel: 0,
       trophies: m.trophies ?? 6000,
-      arena: { id: 54000050, name: "Legendary Arena", rawName: "Arena_L" },
+      arena: m.arena ?? {
+        id: 54000050,
+        name: "Legendary Arena",
+        rawName: "Arena_L",
+      },
       clanRank: i + 1,
       previousClanRank: i + 1,
       donations: m.donations ?? 10,
@@ -811,4 +815,64 @@ test("verification item 4: the progress buckets name their side-mode arenas in t
     { arena_id: 168000180, name: "Bronze I" },
     { arena_id: 168000193, name: "Casual" },
   ]);
+});
+
+test("correction 1: a replayed roster writes the row and never the arena moment; a fresh one writes both", async () => {
+  const P = "#2PP0V9VP";
+  await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
+  const events = async () =>
+    (
+      await ctx.db.query(
+        `select count(*)::int as n from player_event where player_tag = $1 and event_type = 'arena_changed'`,
+        [P],
+      )
+    ).rows[0].n;
+  const receiptId = await (async () => {
+    const { rows } = await ctx.db.query(
+      `select receipt_id from api_receipt order by receipt_id desc limit 1`,
+    );
+    return rows[0].receipt_id;
+  })();
+  const at = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+  // A week ago, two rosters a day apart: the second moves the arena.
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const member = (arenaId) => ({
+    tag: P,
+    trophies: 6000,
+    arena: { id: arenaId, name: `Arena ${arenaId}` },
+  });
+  const old1 = await projectClanSeries(ctx.db, {
+    payload: roster({ at: at(weekAgo), members: [member(54000050)] }),
+    observedAt: at(weekAgo),
+    receiptId,
+  });
+  assert.equal(old1.membersMoved, 1);
+  const old2 = await projectClanSeries(ctx.db, {
+    payload: roster({
+      at: at(weekAgo + 86_400_000),
+      members: [member(54000051)],
+    }),
+    observedAt: at(weekAgo + 86_400_000),
+    receiptId,
+  });
+  assert.equal(old2.membersMoved, 1, "the row is written");
+  assert.equal(old2.arenaMoments, 0, "a replay never writes a moment");
+  assert.equal(await events(), 0);
+  const {
+    rows: [row],
+  } = await ctx.db.query(
+    `select arena_id from player_snapshot_daily where player_tag = $1 order by snapshot_date desc limit 1`,
+    [P],
+  );
+  assert.equal(row.arena_id, 54000051);
+  // Now, fresh: the same shape of move writes the row and the moment.
+  const now = Date.now() - 60_000;
+  const fresh = await projectClanSeries(ctx.db, {
+    payload: roster({ at: at(now), members: [member(54000052)] }),
+    observedAt: at(now),
+    receiptId,
+  });
+  assert.equal(fresh.membersMoved, 1);
+  assert.equal(fresh.arenaMoments, 1);
+  assert.equal(await events(), 1);
 });

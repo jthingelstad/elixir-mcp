@@ -178,10 +178,16 @@ export async function projectClanSeries(
     // poll: the arena baseline. A member whose arena moved gets the
     // arena_changed moment from here, at the roster's cadence, with the
     // crossing battle when the record holds it (snapshots.mjs); a
-    // member with no prior row is first sight and gets nothing. Live
-    // only: the backfill and the import write rows, never moments.
+    // member with no prior row is first sight and gets nothing. Fresh
+    // observations only, the pipeline's own rule for yield, burst and
+    // the refresh request (within 24 hours of now): a replay writes
+    // rows and never moments (the 09-15 roster replay skipped
+    // projection for that reason), and the Part 5 backfill passes the
+    // receipt id as the row's provenance, so the receipt is not the
+    // gate.
     const priorArena = new Map();
-    if (kind === "daily" && source === "api" && receiptId !== null) {
+    const fresh = Date.parse(observedAt) > Date.now() - 24 * 3600_000;
+    if (kind === "daily" && source === "api" && fresh) {
       const { rows: prior } = await db.query(
         `select distinct on (player_tag) player_tag, arena_id, observed_at
          from player_snapshot_daily
