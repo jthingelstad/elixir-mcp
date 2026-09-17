@@ -34,7 +34,8 @@ The canonical tables are sound: every denormalized copy on the participant
 agrees with its source (0 drift rows across 509k), every card row resolves
 to the catalog, and the pending closing foreign keys would validate today
 with zero orphans. The model's real gap is **time**. The game runs on a
-calendar (seasons, balance patches, war weeks) and the schema holds none of
+calendar (seasons, and the balance patches that ride them, war weeks) and
+the schema holds none of
 it as rows: the season is a constant in `war-clock.mjs` (and the API's own
 season key, the month, appears nowhere in the schema), 95% of battles
 carry no season, the 5% that do include 3,230 stamps that contradict their
