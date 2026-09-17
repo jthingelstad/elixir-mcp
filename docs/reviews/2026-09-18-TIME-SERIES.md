@@ -34,31 +34,39 @@ to the adaptive-polling work on the play-time histogram (NOTES
 2026-09-13, "Adaptive polling, step one"), and the cadence decision
 belongs there.
 
-**Decisions that need Jamie.** Everything else follows the six decisions
-of 2026-09-17 and needs a go per phase, not a judgment.
+**The decisions.** Three were taken by Jamie on 2026-09-17 after the
+first draft; one is open. Everything else follows the six decisions of
+2026-09-17 and needs a go per phase, not a judgment.
 
-1. **Re-key `player_snapshot_daily` to the game day** (3.2). Recommended:
-   move it, in Phase 1, before anything else writes to it. It is ~16k
-   rows, ten readers that need no change, and with the roster now writing
-   the same row a second day definition is not even possible. The
-   alternative is to leave it on the UTC calendar day and accept that the
-   season-roll row shares the Monday with fourteen hours of the new
-   season. A read-only census op reports exactly which rows would move
+1. **`player_snapshot_daily` moves to the game day** (3.2). Decided:
+   move it, in Phase 1, before anything else writes to it. Jamie: "we get
+   everything on a consistent game day; that will make navigating data
+   much easier through the whole corpus." ~16k rows, ten readers that
+   need no change; a read-only census op reports exactly which rows move
    before the op runs.
-2. **Which players get a roster-written row** (4.2). Recommended: members
-   of clans with an active clan recording, either scope: ~725 players,
-   ~68 MB a year. The alternative is every member of every polled clan
-   (24,800 rows a day, ~2.3 GB a year on a 20 GB volume); their rosters
-   stay in the archive and are backfillable later by the same op.
-3. **The progress zero-bucket rule** (4.3). Recommended: a side-mode
-   bucket reading `trophies 0, bestTrophies 0` writes no row, because
-   "never played this mode this season" is the fact and a daily row of
-   zeros is not a series; ~140 MB a year instead of ~410 MB. The
-   alternative is a row per bucket per day.
-4. **Adopt the standing rule** (2.7) into `docs/ENGINEERING.md` as
-   written: a key manifest per projector, a fixture test, and an
-   `UnknownPayloadKeys` metric with an alarm. The principle is Jamie's;
-   the mechanism is proposed here and is his to accept or reshape.
+2. **Every member of every polled clan gets a roster-written row** (4.2).
+   Decided. Jamie: "our whole goal with Elixir is to build a
+   comprehensive record of Clash Royale, and we already have that data."
+   ~24,800 rows a day, ~2.3 GB a year, the second-largest growth in the
+   database after the battle participants; the backfill writes the rows
+   for every clan the archive holds a roster for.
+3. **The progress zero-bucket rule** (4.3). Decided: a side-mode bucket
+   reading `trophies 0, bestTrophies 0` writes no row. Jamie: "no record
+   for no activity." ~140 MB a year instead of ~410 MB.
+4. **Open: the standing rule as an invariant** (2.7). Today a field the
+   API adds is noticed by the next review (`kingTowerLevel` appeared on
+   2026-09-02 and was found here), and a field deliberately dropped has
+   its reason in a NOTES entry or nowhere. The proposal is three
+   mechanical parts: each projector keeps a list of every field its
+   endpoint sends and what happens to it (stored where, derived from
+   what, or dropped and why); a test fails on a fixture field the list
+   does not name; ingest counts fields it sees that the list does not
+   name and emits a metric with an alarm, so a new field lands in the ops
+   queue the day it appears. The question for Jamie is whether this
+   becomes a permanent invariant in `docs/ENGINEERING.md` that every
+   projector must honour, or whether the one-time census in Part 2 is
+   enough. Recommended: the invariant, because the census goes stale the
+   first time the API moves.
 
 Applied without asking, because they follow from the six decisions: the
 `game_day()` function; one row per subject per game day with `pre_reset`
@@ -487,10 +495,10 @@ count and the rows that would move a day. The column keeps its name
 (`snapshot_date`), its meaning changes, and the `players_timeline`
 note changes from "Snapshot days are UTC dates" to the game day.
 
-**Recommendation: move it** (Phase 1, before the roster starts writing
-the row). Evidence: ten readers that need no change, one kind row that
-becomes correct, ~16k rows, and a validation op that says exactly what
-moves before it does. Decision 1 in "Read this first".
+**Decided (Jamie, 2026-09-17): move it**, in Phase 1, before the roster
+starts writing the row. Evidence: ten readers that need no change, one
+kind row that becomes correct, ~16k rows, and a validation op that says
+exactly what moves before it does.
 
 ### 3.3 `player_daily_battle_rollup` stays on the UTC calendar day, stated
 
@@ -618,17 +626,18 @@ bitmap scan, ~240 buffers, Appendix A) and the member series scoped by
 clan. The existing primary key `(player_tag, snapshot_date, kind)`
 answers the member's own line (180 days = 180 tuples, 190 buffers).
 
-**Who gets a row** (decision 2 in "Read this first"). Decision 5 says
-every member of a tracked clan; the question is whether the roster
-writes rows for incidental clans too. The 18 recorded clans are ~725
-members, 265k rows and **68 MB a year** at the 258 bytes/row measured
-with the profile columns mostly null; every polled clan is 24,775 open
-memberships, 9.0M rows and **2.3 GB a year** on a 20 GB volume holding
-4.1 GB today. Recommendation: rows for clans with an active clan
-recording, either scope, decided by one indexed lookup on `recording`
-per poll and stated as such on the projector; the incidental clans'
-rosters stay in the archive and are backfillable into the same rows by
-the same op the day anyone wants them.
+**Who gets a row: every member of every polled clan** (Jamie,
+2026-09-17: the goal is a comprehensive record, and the data is already
+in hand). No branch on tracking in the projector, which is also decision
+6's shape. The numbers: 24,775 open memberships across 6,652 polled
+clans today, ~24,800 rows a day, 9.0M rows and **2.3 GB a year** at the
+258 bytes/row measured with the profile columns mostly null, on a 20 GB
+gp3 volume holding 4.1 GB today and auto-scaling to 100. The 18
+recorded clans' ~725 members are 68 MB of that. The growth is the
+second-largest in the database after `battle_participant` (~900 MB a
+year) and tracks the number of clans the recorder follows, so the
+Phase 1 NOTES entry records the table's size and a month later the
+first measured rate.
 
 **Write churn.** The day row is rewritten by each poll that moves any
 roster column. For an active tracked clan `lastSeen` moves on most polls
@@ -674,12 +683,12 @@ times the snapshot table's own growth. Three of the four buckets read
 `trophies 0, bestTrophies 0` for a player who has not played that mode
 this season (all three probed profiles, for Merge Tactics and 2v2), and
 the seasonal Trophy Road bucket reads a constant 14,000 until a player
-climbs it (`cr-agent-api-docs` 8339a89). Proposed rule: **a bucket with
-`trophies = 0 and bestTrophies = 0` writes no row** (no play in the mode
-is not a series; the absence is the fact, and `mode_season` still records
-that the key exists), and a bucket whose values equal the previous
-game-day row's still writes today's row (one row per subject per day,
-decision 2). Estimated ~1,800 rows a day, 660k a year, **140 MB**.
+climbs it (`cr-agent-api-docs` 8339a89). Decided (Jamie, 2026-09-17, "no record for no
+activity"): **a bucket with `trophies = 0 and bestTrophies = 0` writes
+no row** (the absence is the fact, and `mode_season` still records that
+the key exists), and a bucket whose values equal the previous game-day
+row's still writes today's row (one row per subject per day, decision
+2). Estimated ~1,800 rows a day, 660k a year, **140 MB**.
 
 ### 4.4 The state and ledger additions from the census
 
@@ -732,17 +741,17 @@ micro; Phase 2b, after the series backfill.
 | ----------------------------------------- | -------------------- | ---------------------------------------------- | ---------------------------------- |
 | `clan_snapshot_daily`, 18 recorded clans  | 173                  | 18                                             | 1.1 MB                             |
 | same, every polled clan                   | 173                  | ~6,650                                         | 420 MB                             |
-| `player_snapshot_daily` roster-written rows, recorded clans | 258     | ~725 (the ~235 with a recorded profile already have a row) | **68 MB**             |
-| same, every polled clan                   | 258                  | ~24,800                                        | 2.3 GB                             |
+| `player_snapshot_daily` roster-written rows, every polled clan (decided) | 258 | ~24,800 (the ~1,350 with a recorded profile already have a row) | **2.3 GB** |
+| same, the 18 recorded clans' members alone | 258 | ~725 | 68 MB |
 | `player_progress_daily`, zero-bucket rule | 209                  | ~1,800                                         | 140 MB (410 MB without the rule)   |
 | snapshot + player + clan columns          | ~24 extra bytes/row  | ~1,350 snapshots                               | 12 MB                              |
 | `player_pol_season`                       | ~90                  | ~1,700 a month                                 | 2 MB                               |
 | `war_period_log`                          | ~120                 | 18 clans × 5 rivals × 4 war days a week        | 2 MB                               |
 | `battle` columns                          | ~20 extra bytes/row  | ~1,800 battles                                 | 13 MB (+5 MB once for the backfill)|
 
-Recommended set: **~240 MB a year** on a 20 GB gp3 volume (auto-scales
-to 100) with 4.13 GB used, against `battle_participant` growing ~900 MB
-a year today. Retention is never, like every game-data table.
+The decided set: **~2.5 GB a year**, 2.3 GB of it the roster rows, on a
+20 GB gp3 volume (auto-scales to 100) with 4.13 GB used, against
+`battle_participant` growing ~900 MB a year today. Retention is never, like every game-data table.
 
 ### 4.6 Cost per poll
 
@@ -814,9 +823,9 @@ dominating): **~50 min a lane, ~1.7 h in ~25 invocations of 240 s**. The
 elixir-bot profile replay for the 51-day hole (Part 6) runs first so the
 player lane sees those receipts too.
 
-The clan rows land for every clan the archive holds a roster for, which
-is every clan ever polled (6,652); the member rows follow the rule chosen
-in 4.2. For POAP KINGS the result is 189 game days from 2026-03-12 with
+The clan rows and the members' roster columns land for every clan the
+archive holds a roster for, which is every clan ever polled (6,652;
+decision 2). For POAP KINGS the result is 189 game days from 2026-03-12 with
 one absent day, the elixir-bot rows never touched.
 
 ---
@@ -1074,7 +1083,7 @@ tools fingerprint, so it is a patch bump with a changelog line.
 | Series backfill                    | ~1.7 h of migrate Lambda in 240 s slices; ~74k S3 GETs (~$0.03)                                            | reserved concurrency 1 blocks deploys while it runs: drive to completion first; cursor resumable; observed_at guard makes reruns idempotent                    |
 | elixir-bot import                  | 5,488 payload replay (~8 min) + a few hundred series rows + ≤2,371 rollup keys                             | the census runs on staging before commit; `source` column names every imported row forever; bot untouched                                                     |
 | Contract                           | two minors (players_timeline + clans_timeline/clans_members_timeline; clans_roster block), one patch       | additive only; docs sections added before pointers                                                                                                            |
-| Storage                            | ~230 MB a year recommended set (4.5)                                                                       | 20 GB volume, 4.1 GB used, auto-scales to 100                                                                                                                 |
+| Storage                            | ~2.5 GB a year, 2.3 GB of it the roster rows on `player_snapshot_daily` (4.5) | 20 GB volume, 4.1 GB used, auto-scales to 100; the rate is measured a month after Phase 1 and recorded in NOTES |
 | Unknown-key alarm                  | a key walk per admission; one EMF metric; one alarm                                                        | a noisy first day if the manifest is incomplete: the manifest is written from Appendix D, so the first alarm is a real addition                                |
 
 ---
@@ -1086,7 +1095,7 @@ manual or decision content, nothing else is blocked.
 
 | Phase | Change                                                                                                                                                                                                                                                                                                                                                                                                            | Kind                                                              | Contract                                    | Needs from Jamie                                                                                                                                                                                                                                                                                                                       |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `game_day()`; the `{snapshot_day_census}` then `{snapshot_rekey}` op moving `player_snapshot_daily` to the game day; the roster columns, `profile_observed_at`, `source` and the clan-day index on `player_snapshot_daily`; `clan_snapshot_daily`, `player_progress_daily`; the state and lifetime columns, `player_pol_season`, `war_period_log`, the `battle` columns, `series_backfill_state`; the projectors split into a series half and writing live (roster, profile, race); `mode_season` admits `""`; the key manifest + `UnknownPayloadKeys` metric and alarm; ENGINEERING rule 2.7; the `expLevel` / clan-chest / `state` / streak reasons written on the projectors | 5 instant migrations + one ~30 s op + code                        | none (tables only; `battles_query` columns wait for 2b) | **Go**, and decisions 1 to 4 of "Read this first"; an RDS snapshot before the re-key op (Jamie runs `deploy` with `AWS_PROFILE=jamie`) |
+| 1     | `game_day()`; the `{snapshot_day_census}` then `{snapshot_rekey}` op moving `player_snapshot_daily` to the game day; the roster columns, `profile_observed_at`, `source` and the clan-day index on `player_snapshot_daily`; `clan_snapshot_daily`, `player_progress_daily`; the state and lifetime columns, `player_pol_season`, `war_period_log`, the `battle` columns, `series_backfill_state`; the projectors split into a series half and writing live (roster, profile, race); `mode_season` admits `""`; the key manifest + `UnknownPayloadKeys` metric and alarm; ENGINEERING rule 2.7; the `expLevel` / clan-chest / `state` / streak reasons written on the projectors | 5 instant migrations + one ~30 s op + code                        | none (tables only; `battles_query` columns wait for 2b) | **Go**, and decision 4 of "Read this first" (1 to 3 are taken); an RDS snapshot before the re-key op (Jamie runs `deploy` with `AWS_PROFILE=jamie`) |
 | 2     | `{series_backfill}` clan lane then player lane, driven to completion by the local loop; then the `battle` columns' fill from the battlelog receipts (2b); `{deck_census}`-style `{series_census_self}` proving every admitted roster receipt since 2026-03-12 has its day row                                                                                                                                       | two batched ops, ~1.7 h + ~1.5 h, no deploy in between            | none                                        | **Go**; a window when no deploy is needed (the migrate Lambda is held); nothing manual                                                                                                                                                                                                                                                  |
 | 3     | `elixir-bot-series-export.mjs` (read-only); `{replay}` of the bot's 5,488 profile payloads 07-15 → 09-03 under the backfill gateway; `{series_import}` into staging; `{series_census}`; commit of the non-overlapping rows and the rollup keys; the census numbers in NOTES; revoke the gateway row                                                                                                                | one replay (~8 min) + one op + one read-only census               | none                                        | **Go**; the bot stays untouched (decision 3); **revoke** the new `backfill-elixir-bot` gateway row in Admin afterwards, as on 09-15                                                                                                                                                                                                     |
 | 4     | Docs sections (`clocks#the-game-day`, `recording#daily-series`); `players_timeline` extended; `clans_timeline` and `clans_members_timeline` with output schemas; `clans_roster` lifetime block; `rankings_timeline` description; changelog, What's-new, tools reference regenerated                                                                                                                                | code                                                              | **minor** ×2, patch ×1, folded into one minor bump (3.12.0) | **Go**; a read of the tool names (`clans_members_timeline` or a better noun)                                                                                                                                                                                                                                                            |
