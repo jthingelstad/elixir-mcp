@@ -428,36 +428,52 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
         tally.done = true;
         break;
       }
+      // The batch's objects first, concurrently (S3 is not the
+      // database: a serial GET per receipt was most of the clan lane's
+      // 57 ms a receipt on 2026-09-17), eight in flight, before the
+      // transaction opens.
+      const wanted = [];
+      const fresh = new Set();
+      for (const r of receipts) {
+        if (parsed.has(r.payload_hash) || fresh.has(r.payload_hash)) continue;
+        fresh.add(r.payload_hash);
+        wanted.push(r);
+      }
+      for (let i = 0; i < wanted.length; i += 8) {
+        await Promise.all(
+          wanted.slice(i, i + 8).map(async (r) => {
+            const keys = await listKeys(endpoint, r.entity_key);
+            const key = keys.get(r.payload_hash.slice(0, 16));
+            if (!key) {
+              parsed.set(r.payload_hash, null);
+              return;
+            }
+            try {
+              parsed.set(
+                r.payload_hash,
+                JSON.parse(gunzipSync(await getObject(key)).toString("utf8")),
+              );
+              tally.objects_read += 1;
+            } catch {
+              tally.unreadable += 1;
+              parsed.set(r.payload_hash, null);
+            }
+          }),
+        );
+      }
       let attempt = 0;
       for (;;) {
         await db.query("begin");
         try {
           let rows = 0;
           for (const r of receipts) {
-            let payload = parsed.get(r.payload_hash);
-            if (payload === undefined) {
-              const keys = await listKeys(endpoint, r.entity_key);
-              const key = keys.get(r.payload_hash.slice(0, 16));
-              if (!key) {
-                tally.missing_objects += 1;
-                parsed.set(r.payload_hash, null);
-                continue;
-              }
-              try {
-                payload = JSON.parse(
-                  gunzipSync(await getObject(key)).toString("utf8"),
-                );
-                tally.objects_read += 1;
-              } catch {
-                tally.unreadable += 1;
-                parsed.set(r.payload_hash, null);
-                continue;
-              }
-              parsed.set(r.payload_hash, payload);
-            } else if (payload === null) {
-              tally.missing_objects += 1;
+            const payload = parsed.get(r.payload_hash);
+            if (payload === null || payload === undefined) {
+              if (attempt === 0) tally.missing_objects += 1;
               continue;
-            } else tally.cache_hits += 1;
+            }
+            if (attempt === 0 && !fresh.has(r.payload_hash))
+              tally.cache_hits += 1;
             const observedAt = r.fetched_at.toISOString();
             if (lane === "clan") {
               const out = await projectClanSeries(db, {
@@ -657,14 +673,18 @@ export async function seriesCensusSelf(databaseUrl, spec = {}) {
                 exists (select 1 from clan_snapshot_daily c
                          where c.clan_tag = d.clan_tag and c.day = d.day and c.snapshot_kind = 'daily') as has_clan_row,
                 exists (select 1 from player_snapshot_daily s
-                         where s.clan_tag = d.clan_tag and s.snapshot_date = d.day) as has_member_rows
+                         where s.clan_tag = d.clan_tag and s.snapshot_date = d.day) as has_member_rows,
+                (select c.members from clan_snapshot_daily c
+                  where c.clan_tag = d.clan_tag and c.day = d.day and c.snapshot_kind = 'daily') as members
          from days d)
        select count(*)::int as clan_days,
               count(distinct clan_tag)::int as clans,
               count(*) filter (where not has_clan_row)::int as missing_clan_row,
-              count(*) filter (where not has_member_rows)::int as missing_member_rows,
-              (select json_agg(json_build_object('clan_tag', clan_tag, 'day', day::text))
-                 from (select clan_tag, day from checked where not has_clan_row or not has_member_rows
+              count(*) filter (where not has_member_rows and coalesce(members, 0) > 0)::int as missing_member_rows,
+              count(*) filter (where not has_member_rows and members = 0)::int as empty_clan_days,
+              (select json_agg(json_build_object('clan_tag', clan_tag, 'day', day::text, 'members', members))
+                 from (select clan_tag, day, members from checked
+                       where not has_clan_row or (not has_member_rows and coalesce(members, 0) > 0)
                        order by day, clan_tag limit 20) m) as misses
        from checked`,
       [since],

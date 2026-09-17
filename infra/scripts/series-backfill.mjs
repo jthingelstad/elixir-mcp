@@ -42,6 +42,7 @@ const totals = {
   missing: 0,
   unreadable: 0,
   unresolved: 0,
+  deadlocks: 0,
 };
 for (;;) {
   const res = await lambda.send(
