@@ -472,11 +472,15 @@ Resources:
                 Resource: !GetAtt EmailQueue.Arn
               # Send as elixir@poapkings.com and nothing else: the identity
               # and the configuration set are the only resources, and the
-              # From address is pinned by condition.
+              # From address is pinned by condition. SES authorizes a send
+              # against the ADDRESS identity ARN even when only the domain
+              # is verified (first send, 2026-09-17: AccessDenied on
+              # identity/elixir@poapkings.com), so both spellings are here.
               - Effect: Allow
                 Action: [ses:SendEmail, ses:SendRawEmail]
                 Resource:
                   - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/poapkings.com
+                  - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/elixir@poapkings.com
                   - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/elixir-mcp
                 Condition:
                   StringEquals:
