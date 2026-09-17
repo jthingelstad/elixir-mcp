@@ -13,6 +13,9 @@ import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
 import { rebuildSeason } from "../../jobs/src/meta-rollup.mjs";
+import { dailySql } from "../src/daily-sql.mjs";
+import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
+import { typesForModeGroup } from "@elixir-mcp/contracts";
 import { seasonFromDate, monthKey } from "../../ingest/src/war-clock.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1642,6 +1645,71 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   });
   assert.equal(seg.body.prior_basis, corpus.body.prior_basis);
   assert.equal(seg.body.prior_win_rate, corpus.body.prior_win_rate);
+});
+
+test("dailySql sums equal the raw rows over any instant window, edge days included", async () => {
+  // Earlier tests seeded participants by hand, some with a type that
+  // disagrees with their battle's; ingest copies the battle's (0 drift
+  // rows live) and keeps the rollup for every day, so the test restores
+  // both invariants once for the whole table before comparing.
+  await db.query(
+    `update battle_participant bp set type = b.type, type_class = b.type_class
+     from battle b where b.battle_id = bp.battle_id
+       and (bp.type, bp.type_class) is distinct from (b.type, b.type_class)`,
+  );
+  const { rows: pairs } = await db.query(
+    `select distinct player_tag, to_char(battle_time, 'YYYY-MM-DD') as day from battle_participant`,
+  );
+  await refreshDailyRollups(
+    db,
+    pairs.map((r) => ({ playerTag: r.player_tag, day: r.day })),
+  );
+  const { rows: tags } = await db.query(
+    `select distinct player_tag from battle_participant order by 1 limit 12`,
+  );
+  const players = tags.map((r) => r.player_tag);
+  const windows = [
+    ["2026-08-20T00:00:00Z", null],
+    ["2026-08-20T14:30:00Z", "2026-09-03T09:15:00Z"],
+    ["2026-09-02T06:00:00Z", "2026-09-02T18:00:00Z"], // one day, both edges
+    ["2026-08-31T23:00:00Z", "2026-09-01T01:00:00Z"], // a midnight
+    ["2026-07-01T00:00:00Z", "2026-09-05T00:00:00Z"],
+  ];
+  for (const [from, to] of windows) {
+    const { rows: daily } = await db.query(
+      `select player_tag, sum(battles)::int as battles, sum(wins)::int as wins,
+              sum(losses)::int as losses, sum(draws)::int as draws,
+              sum(trophy_delta)::int as trophy_delta
+       from ${dailySql({ players: "$1", from: "$2", to: "$3" })} d
+       group by player_tag order by player_tag`,
+      [players, from, to],
+    );
+    const { rows: raw } = await db.query(
+      `select player_tag, count(*)::int as battles,
+              count(*) filter (where outcome = 'win')::int as wins,
+              count(*) filter (where outcome = 'loss')::int as losses,
+              count(*) filter (where outcome = 'draw')::int as draws,
+              coalesce(sum(trophy_change), 0)::int as trophy_delta
+       from battle_participant
+       where player_tag = any($1) and battle_time >= $2
+         and ($3::timestamptz is null or battle_time < $3)
+       group by player_tag order by player_tag`,
+      [players, from, to],
+    );
+    assert.deepEqual(daily, raw, `${from} .. ${to}`);
+  }
+  // A mode filter, both spellings.
+  const { rows: dailyLadder } = await db.query(
+    `select coalesce(sum(battles), 0)::int as battles
+     from ${dailySql({ players: "$1", from: "$2", to: "null", modeGroup: "$3", types: "$4" })} d`,
+    [players, "2026-08-20T14:30:00Z", "ladder", typesForModeGroup("ladder")],
+  );
+  const { rows: rawLadder } = await db.query(
+    `select count(*)::int as battles from battle_participant
+     where player_tag = any($1) and battle_time >= $2 and type = any($3)`,
+    [players, "2026-08-20T14:30:00Z", typesForModeGroup("ladder")],
+  );
+  assert.deepEqual(dailyLadder, rawLadder);
 });
 
 test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {

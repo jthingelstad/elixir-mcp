@@ -57,10 +57,20 @@ export function dailySql({
            coalesce(sum(bp.trophy_change), 0)::int
     from battle_participant bp
     where bp.player_tag = any(${players})
-      and bp.battle_time >= ${from}
-      and (${to}::timestamptz is null or bp.battle_time < ${to})
-      and (bp.battle_time::date = (${from})::date
-           or (${to}::timestamptz is not null and bp.battle_time::date = (${to})::date))
+      and (
+        -- The day the window starts in: a range the (player, time)
+        -- index walks, never a cast the planner filters after the fact
+        -- (live 2026-09-17: 12,961 rows read for 408 kept, 3.4 s of I/O).
+        (bp.battle_time >= ${from}
+         and bp.battle_time < (${from})::date + 1
+         and (${to}::timestamptz is null or bp.battle_time < ${to}))
+        or
+        -- The day it ends in, when that is a different day.
+        (${to}::timestamptz is not null
+         and (${to})::date <> (${from})::date
+         and bp.battle_time >= (${to})::date
+         and bp.battle_time < ${to})
+      )
       ${modeRaw}
     group by bp.player_tag, bp.battle_time::date, ${MODE_GROUP_CASE}
   )`;
