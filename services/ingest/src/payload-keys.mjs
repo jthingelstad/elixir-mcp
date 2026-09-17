@@ -592,7 +592,17 @@ export const PAYLOAD_KEYS = {
     "items[].name": to("clan_ranking_entry.name"),
     "items[].rank": to("clan_ranking_entry.rank"),
     "items[].previousRank": to("clan_ranking_entry.previous_rank"),
-    "items[].clanWarTrophies": to("clan_ranking_entry.score"),
+    // The war board's score is spelt clanScore too and means war
+    // trophies (cr-agent-api-docs/locations.md); the census's first run
+    // (2026-09-17) caught this entry naming a field the board never
+    // sends.
+    "items[].clanScore": to(
+      "clan_ranking_entry.score (war trophies on this board)",
+    ),
+    "items[].clanWarTrophies": to(
+      "clan_ranking_entry.score (the projector's fallback spelling; never observed)",
+      opt,
+    ),
     "items[].members": to("clan_ranking_entry.members"),
     "items[].badgeId": to("clan_ranking_entry.badge_id"),
     "items[].location.id": to("clan_ranking_entry.location_id"),
