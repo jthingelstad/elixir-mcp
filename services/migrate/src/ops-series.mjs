@@ -521,6 +521,12 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
           tally.receipts += receipts.length;
           tally.rows_written += rows;
           tally.next_after = Number(last);
+          // The parsed cache is for refetches of the same content, which
+          // sit near each other in receipt order; unbounded it held every
+          // battle log of a 240 s run and the battle lane's first
+          // invocation died at the Lambda's 1 GB (2026-09-17 23:18Z).
+          // Oldest first, three hundred kept.
+          while (parsed.size > 300) parsed.delete(parsed.keys().next().value);
           if (receipts.length < batch) {
             await db.query(
               `update series_backfill_state set finished_at = coalesce(finished_at, now()), updated_at = now()
