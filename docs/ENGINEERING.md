@@ -230,6 +230,31 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   filter. Points reward `new_facts > 0` only. Every projector returns
   `facts`; a new one must.
 
+## Mail is transactional until a kind says otherwise
+
+Every email kind in `packages/contracts` (`EMAIL_KIND_CLASS`) is classified
+**transactional** or **bulk**, and the classification is the whole mail
+policy (settled 2026-09-17 with the move to SES):
+
+- A **transactional** message is one a person asked for (a sign-in code) or
+  the direct consequence of their own or the operator's action. It carries
+  **no `List-Unsubscribe`**: nobody can opt out of a code they just
+  requested, Gmail's and Yahoo's bulk-sender rules exempt transactional mail,
+  and the header on it would be a false signal. The body says "if you did
+  not request this, ignore it" instead. Every kind today is transactional.
+- A **bulk** message goes to many people on a schedule (a digest). It MUST
+  carry `unsubscribe.url` (https). The relay adds `List-Unsubscribe` and
+  `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058) from it;
+  the validator refuses the message without it, and refuses a transactional
+  kind that carries one.
+
+Adding a kind without classifying it fails to typecheck, so the decision
+is made where the kind is born and cannot be forgotten. The unsubscribe
+endpoint itself does not exist yet; it lands with the first bulk kind,
+which cannot ship without it. Open and click tracking are never enabled
+(the SES configuration set's event list has neither), so nothing is added
+to a body and no link is rewritten.
+
 ## Where the patterns live
 
 - **CR API truth:** `cr-agent-api-docs` — a standalone repo, deliberately NOT

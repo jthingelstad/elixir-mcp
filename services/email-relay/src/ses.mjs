@@ -26,7 +26,10 @@ export function makeSesSender({
     return sdk;
   }
 
-  return async function send({ to, subject, text, html = null }) {
+  /** `headers` are extra RFC 5322 headers (the one-click unsubscribe pair
+   *  on a bulk kind); empty for transactional mail, which is every kind
+   *  today. */
+  return async function send({ to, subject, text, html = null, headers = [] }) {
     const { client: ses, SendEmailCommand } = await api();
     const out = await ses.send(
       new SendEmailCommand({
@@ -35,6 +38,14 @@ export function makeSesSender({
         ConfigurationSetName: configurationSet,
         Content: {
           Simple: {
+            ...(headers.length
+              ? {
+                  Headers: headers.map((h) => ({
+                    Name: h.name,
+                    Value: h.value,
+                  })),
+                }
+              : {}),
             Subject: { Data: subject, Charset: "UTF-8" },
             Body: {
               Text: { Data: text, Charset: "UTF-8" },

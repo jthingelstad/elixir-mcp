@@ -413,6 +413,18 @@ test("SES sender: one SendEmail through the configuration set, text always, html
   // Text only: no Html part at all, not an empty one.
   await send({ to: "a@b.c", subject: "s", text: "t" });
   assert.equal(sent[1].Content.Simple.Body.Html, undefined);
+  // No headers asked for: none sent (a transactional kind). Asked for: the
+  // pair goes on the message as SES headers.
+  assert.equal(sent[1].Content.Simple.Headers, undefined);
+  await send({
+    to: "a@b.c",
+    subject: "s",
+    text: "t",
+    headers: [{ name: "List-Unsubscribe", value: "<https://x/u>" }],
+  });
+  assert.deepEqual(sent[2].Content.Simple.Headers, [
+    { Name: "List-Unsubscribe", Value: "<https://x/u>" },
+  ]);
 });
 
 test("the transport follows EMAIL_TRANSPORT: jmap unless it says ses", () => {

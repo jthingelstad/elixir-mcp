@@ -109,9 +109,49 @@ export interface EmailMessage {
    *  mail and enroll nothing (issue #27) - authenticating is not consent
    *  to marketing, and the relay has no database to ask. */
   newsletter?: boolean;
+  /** bulk kinds only: where one click unsubscribes this recipient. The
+   *  relay turns it into List-Unsubscribe + List-Unsubscribe-Post (RFC
+   *  8058). Refused on a transactional kind, required on a bulk one. */
+  unsubscribe?: { url: string };
 }
 
-const EMAIL_KINDS = new Set(["login", "welcome", "owner_notify"]);
+/**
+ * Every kind is classified, and the classification is the mail policy
+ * (2026-09-17, closing the List-Unsubscribe question):
+ *
+ * - transactional: a person asked for this exact message (a sign-in code)
+ *   or it is the consequence of their own action or the operator's. It
+ *   carries NO List-Unsubscribe: nobody can opt out of a code they just
+ *   requested, Gmail's and Yahoo's bulk-sender rules exempt it, and the
+ *   header on it would be a false signal. Its body says "if you did not
+ *   request this, ignore it" instead.
+ * - bulk: sent to many people on a schedule (a digest). MUST carry
+ *   `unsubscribe.url`; the relay adds the one-click headers and the
+ *   validator refuses the message without them.
+ *
+ * Adding a kind to EmailMessage["kind"] without a row here fails to
+ * typecheck, so the decision is made where the kind is born.
+ */
+export const EMAIL_KIND_CLASS: Record<
+  EmailMessage["kind"],
+  "transactional" | "bulk"
+> = {
+  login: "transactional",
+  welcome: "transactional",
+  owner_notify: "transactional",
+};
+
+/** The RFC 8058 headers for a validated message: two for a bulk kind,
+ *  none for a transactional one. */
+export function unsubscribeHeaders(
+  msg: EmailMessage,
+): { name: string; value: string }[] {
+  if (EMAIL_KIND_CLASS[msg.kind] !== "bulk" || !msg.unsubscribe) return [];
+  return [
+    { name: "List-Unsubscribe", value: `<${msg.unsubscribe.url}>` },
+    { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
+  ];
+}
 
 export const OWNER_NOTIFY_KINDS = [
   "access_request",
@@ -131,9 +171,21 @@ export function validateEmailMessage(
   if (typeof m !== "object" || m === null)
     return { ok: false, errors: [":not-an-object"] };
   if (m.v !== 1) errors.push("v:unsupported");
-  if (!EMAIL_KINDS.has(m.kind as string)) errors.push("kind:invalid");
+  const kindClass = EMAIL_KIND_CLASS[m.kind];
+  if (!kindClass) errors.push("kind:invalid");
   if (typeof m.to !== "string" || !m.to.includes("@"))
     errors.push("to:invalid");
+  // The mail policy, enforced where the mail is validated: a bulk kind
+  // without a one-click unsubscribe never leaves; a transactional kind
+  // carrying one is a mislabelled message, refused rather than sent with
+  // a header that lies.
+  const unsubUrl = m.unsubscribe?.url;
+  if (kindClass === "bulk") {
+    if (typeof unsubUrl !== "string" || !/^https:\/\//.test(unsubUrl))
+      errors.push("unsubscribe:missing");
+  } else if (kindClass && m.unsubscribe !== undefined) {
+    errors.push("unsubscribe:transactional");
+  }
   if (m.kind === "login" && typeof m.code !== "string")
     errors.push("code:missing");
   if (

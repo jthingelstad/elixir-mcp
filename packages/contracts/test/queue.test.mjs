@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   validateEmailMessage,
+  EMAIL_KIND_CLASS,
+  unsubscribeHeaders,
   validateResultMessage,
   crBattleTime,
   OWNER_NOTIFY_KINDS,
@@ -56,4 +58,54 @@ test("a result may carry the collector's observed/filtered counts; the filter sp
     "20260911T123456.000Z",
   );
   assert.ok("20260911T123457.000Z" > crBattleTime("2026-09-11T12:34:56Z"));
+});
+
+test("mail policy: every kind is classified; bulk needs one-click unsubscribe, transactional refuses it", () => {
+  for (const kind of Object.keys(EMAIL_KIND_CLASS))
+    assert.equal(
+      EMAIL_KIND_CLASS[kind],
+      "transactional",
+      `${kind} is transactional today`,
+    );
+  const login = { v: 1, kind: "login", to: "a@b.c", code: "123456" };
+  assert.equal(validateEmailMessage(login).ok, true);
+  assert.deepEqual(
+    unsubscribeHeaders(login),
+    [],
+    "a sign-in code carries no unsubscribe",
+  );
+  const mislabelled = { ...login, unsubscribe: { url: "https://x/u" } };
+  const r = validateEmailMessage(mislabelled);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.includes("unsubscribe:transactional"));
+  // A bulk kind, were one added: the headers the relay would send.
+  const digest = {
+    v: 1,
+    kind: "digest",
+    to: "a@b.c",
+    unsubscribe: { url: "https://x/u?t=1" },
+  };
+  const saved = EMAIL_KIND_CLASS.digest;
+  EMAIL_KIND_CLASS.digest = "bulk";
+  try {
+    assert.equal(validateEmailMessage(digest).ok, true);
+    assert.deepEqual(unsubscribeHeaders(digest), [
+      { name: "List-Unsubscribe", value: "<https://x/u?t=1>" },
+      { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
+    ]);
+    const bare = validateEmailMessage({ ...digest, unsubscribe: undefined });
+    assert.equal(bare.ok, false);
+    assert.ok(bare.errors.includes("unsubscribe:missing"));
+    const http = validateEmailMessage({
+      ...digest,
+      unsubscribe: { url: "http://x/u" },
+    });
+    assert.ok(
+      !http.ok && http.errors.includes("unsubscribe:missing"),
+      "https only",
+    );
+  } finally {
+    if (saved === undefined) delete EMAIL_KIND_CLASS.digest;
+    else EMAIL_KIND_CLASS.digest = saved;
+  }
 });

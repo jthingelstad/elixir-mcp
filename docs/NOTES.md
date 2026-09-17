@@ -2285,10 +2285,15 @@ set and `ses:FromAddress = elixir@poapkings.com`, and the relay's
    code and read it. Once it holds, the `jmap_token` key in the app secret
    can be retired.
 
-Not done, by decision: anything sent to many members (a weekly clan digest)
+~~Not done, by decision: anything sent to many members (a weekly clan digest)
 needs `List-Unsubscribe` + one-click (RFC 8058) before it goes out under
 Gmail/Yahoo bulk-sender rules; that lands with the first such feature, not
-before.
+before.~~ **Closed 2026-09-17** (Jamie: "you really cannot unsubscribe from
+a login email; close this so it is solved"). Login and notification mail is
+transactional and carries no unsubscribe by design; every kind is now
+classified in `EMAIL_KIND_CLASS` and the validator enforces the rule both
+ways, so a future bulk kind cannot ship without one-click unsubscribe.
+`docs/ENGINEERING.md`, "Mail is transactional until a kind says otherwise".
 
 ## 2026-09-16 — The timeline as the trigger for a clan bot (contract 3.9.0)
 
