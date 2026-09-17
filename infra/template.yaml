@@ -805,6 +805,49 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ActivityHistogramRule.Arn
 
+  # The season meta rollups (0121): nightly, the running season rebuilt
+  # from the raw rows (the only writer of distinct players and card
+  # pairs) and any ended season filled in; hourly at :45, the counters
+  # incremented from battles created since the cursor. 04:40Z sits in
+  # the quiet hours before the histogram and after the UTC day closes;
+  # the two nightly jobs never overlap (reserved concurrency 1 queues,
+  # but the rollup is ~1 min a season on the micro).
+  MetaRollupNightlyRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-meta-rollup-nightly
+      ScheduleExpression: cron(40 4 * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: meta-rollup-nightly
+          Input: '{"meta_rollup_nightly": true}'
+
+  MetaRollupNightlyPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt MetaRollupNightlyRule.Arn
+
+  MetaRollupHourlyRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-meta-rollup-hourly
+      ScheduleExpression: cron(45 * * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: meta-rollup-hourly
+          Input: '{"meta_rollup_hourly": true}'
+
+  MetaRollupHourlyPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt MetaRollupHourlyRule.Arn
+
   # ------------------------------------------------------------ front doors
   SiteApi:
     Type: AWS::ApiGatewayV2::Api

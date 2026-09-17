@@ -46,6 +46,13 @@ import {
   deckIdentities,
   renderDecks,
 } from "./shared.mjs";
+import {
+  seasonRollup,
+  seasonPrior,
+  rollupDecks,
+  rollupCards,
+  rawScanMemory,
+} from "../meta-season.mjs";
 import { resolveInstant } from "../time.mjs";
 
 /** tower_hp as served: a one-tower princess array is padded to fixed
@@ -1111,40 +1118,56 @@ export const battlesTools = {
         "bp.outcome in ('win','loss')",
         "bp.type_class = 'pvp'",
       ];
-      const { prior: populationPrior, ...excluded } = await excludedBreakdown(
-        ctx.db,
-        scope,
-        params,
-        { withPrior: !seg.where },
-      );
-      const prior =
-        populationPrior ??
-        (await corpusPrior(ctx.db, {
-          from,
-          to,
-          types: args.mode ? typesForModeGroup(args.mode) : null,
-        }));
-      // The participant carries everything this aggregate needs (0095,
-      // 0099: type_class and type); no join to battle.
-      const { rows } = await ctx.db.query(
-        `select bp.deck_hash,
-                count(*)::int as battles,
-                count(*) filter (where bp.outcome = 'win')::int as wins,
-                count(*) filter (where bp.outcome = 'loss')::int as losses,
-                count(distinct bp.player_tag)::int as players,
-                min(bp.battle_time) as first_used,
-                max(bp.battle_time) as last_used
-         from battle_participant bp
-         where ${where.join(" and ")}
-         group by bp.deck_hash`,
-        params,
-      );
-      const totalDecided = rows.reduce((n, r) => n + r.battles, 0);
-      const totalWins = rows.reduce((n, r) => n + r.wins, 0);
+      const minBattles = args.min_battles ?? 5;
+      // A corpus read over one season comes from the rollup (0121); a
+      // segment or an explicit window scans the raw rows as before.
+      const roll = await seasonRollup(ctx.db, { win, seg, mode: args.mode });
+      let rows;
+      let excluded;
+      let prior;
+      let totalDecided;
+      let totalWins;
+      if (roll) {
+        ({ excluded, prior } = roll);
+        rows = await rollupDecks(ctx.db, roll, { minBattles });
+        totalDecided = prior.decided;
+        totalWins = Math.round((prior.mean ?? 0) * prior.decided);
+      } else {
+        await rawScanMemory(ctx.db);
+        const { prior: populationPrior, ...breakdown } =
+          await excludedBreakdown(ctx.db, scope, params, {
+            withPrior: !seg.where,
+          });
+        excluded = breakdown;
+        prior =
+          populationPrior ??
+          (await seasonPrior(ctx.db, { win, mode: args.mode })) ??
+          (await corpusPrior(ctx.db, {
+            from,
+            to,
+            types: args.mode ? typesForModeGroup(args.mode) : null,
+          }));
+        // The participant carries everything this aggregate needs (0095,
+        // 0099: type_class and type); no join to battle.
+        ({ rows } = await ctx.db.query(
+          `select bp.deck_hash,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  count(distinct bp.player_tag)::int as players,
+                  min(bp.battle_time) as first_used,
+                  max(bp.battle_time) as last_used
+           from battle_participant bp
+           where ${where.join(" and ")}
+           group by bp.deck_hash`,
+          params,
+        ));
+        totalDecided = rows.reduce((n, r) => n + r.battles, 0);
+        totalWins = rows.reduce((n, r) => n + r.wins, 0);
+      }
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
       const priorMean = prior.mean ?? 0.5;
       const sufficient = totalDecided >= META_METHODOLOGY.segment_min_decided;
-      const minBattles = args.min_battles ?? 5;
       let shaped = rows
         .filter((r) => r.battles >= minBattles)
         .map((r) => ({
@@ -1175,7 +1198,7 @@ export const battlesTools = {
           ? (z.shrunk_win_rate ?? z.win_rate) -
             (a.shrunk_win_rate ?? a.win_rate)
           : sort === "players"
-            ? z.players - a.players
+            ? (z.players ?? 0) - (a.players ?? 0)
             : z.battles - a.battles,
       );
       const limit = Math.min(args.limit ?? 20, 40);
@@ -1211,8 +1234,9 @@ export const battlesTools = {
               insufficient_sample_floor: META_METHODOLOGY.segment_min_decided,
             }),
         excluded,
+        ...(roll ? { players_as_of: roll.players_as_of } : {}),
         decks: shaped,
-        notes: notes(SEGMENT_NOTES, win.seasonNotes),
+        notes: notes(SEGMENT_NOTES, win.seasonNotes, roll?.note),
         docs: SEGMENT_DOCS,
         meta: responseMeta({
           as_of: new Date().toISOString(),
@@ -1272,26 +1296,40 @@ export const battlesTools = {
         "bp.outcome in ('win','loss')",
         "bp.type_class = 'pvp'",
       ];
-      const { prior: populationPrior, ...excluded } = await excludedBreakdown(
-        ctx.db,
-        scope,
-        params,
-        { withPrior: !seg.where },
-      );
-      const prior =
-        populationPrior ??
-        (await corpusPrior(ctx.db, {
-          from,
-          to,
-          types: args.mode ? typesForModeGroup(args.mode) : null,
-        }));
-      // Deck-first: the window's participants collapse to (deck, player)
-      // pairs, and the identity's cards come from deck_card - one row per
-      // card per deck, not one probe per card per participant. A deck's
-      // cards are exactly its round-0, slot > 0 played cards, so the
-      // counts are the per-participant counts.
-      const { rows } = await ctx.db.query(
-        `with pairs as (
+      const minBattles = args.min_battles ?? 10;
+      const roll = await seasonRollup(ctx.db, { win, seg, mode: args.mode });
+      let rows;
+      let excluded;
+      let prior;
+      let totalDecided;
+      let totalWins;
+      if (roll) {
+        ({ excluded, prior } = roll);
+        rows = await rollupCards(ctx.db, roll, { minBattles });
+        totalDecided = prior.decided;
+        totalWins = Math.round((prior.mean ?? 0) * prior.decided);
+      } else {
+        await rawScanMemory(ctx.db);
+        const { prior: populationPrior, ...breakdown } =
+          await excludedBreakdown(ctx.db, scope, params, {
+            withPrior: !seg.where,
+          });
+        excluded = breakdown;
+        prior =
+          populationPrior ??
+          (await seasonPrior(ctx.db, { win, mode: args.mode })) ??
+          (await corpusPrior(ctx.db, {
+            from,
+            to,
+            types: args.mode ? typesForModeGroup(args.mode) : null,
+          }));
+        // Deck-first: the window's participants collapse to (deck, player)
+        // pairs, and the identity's cards come from deck_card - one row per
+        // card per deck, not one probe per card per participant. A deck's
+        // cards are exactly its round-0, slot > 0 played cards, so the
+        // counts are the per-participant counts.
+        ({ rows } = await ctx.db.query(
+          `with pairs as (
            select bp.deck_hash, bp.player_tag,
                   count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins
@@ -1314,14 +1352,14 @@ export const battlesTools = {
          join card c on c.card_id = dc.card_id
          cross join totals t
          group by dc.card_id, c.name, dc.form, t.decided, t.wins`,
-        params,
-      );
-      const totalDecided = rows[0]?.total_decided ?? 0;
-      const mean =
-        totalDecided > 0 ? (rows[0]?.total_wins ?? 0) / totalDecided : 0.5;
+          params,
+        ));
+        totalDecided = rows[0]?.total_decided ?? 0;
+        totalWins = rows[0]?.total_wins ?? 0;
+      }
+      const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
       const priorMean = prior.mean ?? 0.5;
       const sufficient = totalDecided >= META_METHODOLOGY.segment_min_decided;
-      const minBattles = args.min_battles ?? 10;
       let shaped = rows
         .filter((r) => r.battles >= minBattles)
         .map((r) => ({
@@ -1376,10 +1414,12 @@ export const battlesTools = {
               insufficient_sample_floor: META_METHODOLOGY.segment_min_decided,
             }),
         excluded,
+        ...(roll ? { players_as_of: roll.players_as_of } : {}),
         cards: shaped,
         notes: notes(
           SEGMENT_NOTES,
           win.seasonNotes,
+          roll?.note,
           FORM_ROWS_NOTE,
           "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments.",
         ),

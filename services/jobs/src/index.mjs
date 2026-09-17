@@ -6,10 +6,12 @@
  *
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
- *  {activity_histogram: true}. */
+ *  {activity_histogram: true} · {meta_rollup_nightly: true} ·
+ *  {meta_rollup_hourly: true}. */
 
 import pg from "pg";
 import { activityHistogram } from "./activity.mjs";
+import { metaRollupNightly, metaRollupHourly } from "./meta-rollup.mjs";
 
 /** Hourly Postgres sweep ({sweep_payloads: true}, EventBridge :15):
  *  superseded payload rows (not the latest per endpoint+entity) leave
@@ -211,6 +213,16 @@ export async function sweepOperational(databaseUrl) {
 }
 
 export async function handler(event) {
+  if (event?.meta_rollup_nightly) {
+    const result = await metaRollupNightly(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ meta_rollup_nightly: result }));
+    return result;
+  }
+  if (event?.meta_rollup_hourly) {
+    const result = await metaRollupHourly(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ meta_rollup_hourly: result }));
+    return result;
+  }
   if (event?.activity_histogram) {
     const result = await activityHistogram(process.env.DATABASE_URL);
     console.log(JSON.stringify({ activity_histogram: result }));

@@ -22,6 +22,7 @@ import {
   notes,
   META_METHODOLOGY,
 } from "./shared.mjs";
+import { seasonRollup, rollupSynergy, rawScanMemory } from "../meta-season.mjs";
 import { catalogItems } from "./cards.mjs";
 
 /** Resolve a card by id or by EXACT name (case-insensitive) against the
@@ -147,8 +148,31 @@ export const synergyTools = {
 
       const minPair = Math.max(1, Number(args.min_pair_battles ?? 5));
       const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 60);
-      const { rows } = await ctx.db.query(
-        `with pop as (
+      // A corpus read over one season comes from the rollup (0121): the
+      // anchor's row (form -1 = any form) and its pairs; a segment or an
+      // explicit window walks the raw rows as before.
+      const roll = await seasonRollup(ctx.db, { win, seg, mode: args.mode });
+      let rows;
+      let totals;
+      if (roll) {
+        const r = await rollupSynergy(ctx.db, roll, {
+          anchorId: anchor.id,
+          anchorForm: merge ? -1 : formBit,
+          minPair,
+          limit,
+        });
+        totals = {
+          decided: roll.prior.decided,
+          anchor_decks: r.anchor.battles,
+          anchor_players: r.anchor.players,
+          anchor_wins: r.anchor.wins,
+        };
+        rows = r.partners;
+      } else {
+        await rawScanMemory(ctx.db);
+        rows = (
+          await ctx.db.query(
+            `with pop as (
            select bp.player_tag, bp.outcome, bp.deck_hash, (${anchorMatch}) as has_anchor
            from battle_participant bp
            where ${where.join(" and ")}),
@@ -180,21 +204,22 @@ export const synergyTools = {
          where p.co_battles >= ${minPair}
          order by p.co_battles desc, p.players desc
          limit ${limit}`,
-        params,
-      );
-      const t = rows[0] ?? {};
-      let totals = t;
-      if (!rows[0]) {
-        const { rows: tr } = await ctx.db.query(
-          `select count(*)::int as decided,
-                  count(*) filter (where ${anchorMatch})::int as anchor_decks,
-                  count(distinct bp.player_tag) filter (where ${anchorMatch})::int as anchor_players,
-                  count(*) filter (where ${anchorMatch} and bp.outcome = 'win')::int as anchor_wins
-           from battle_participant bp
-           where ${where.join(" and ")}`,
-          params,
-        );
-        totals = tr[0];
+            params,
+          )
+        ).rows;
+        totals = rows[0] ?? {};
+        if (!rows[0]) {
+          const { rows: tr } = await ctx.db.query(
+            `select count(*)::int as decided,
+                    count(*) filter (where ${anchorMatch})::int as anchor_decks,
+                    count(distinct bp.player_tag) filter (where ${anchorMatch})::int as anchor_players,
+                    count(*) filter (where ${anchorMatch} and bp.outcome = 'win')::int as anchor_wins
+             from battle_participant bp
+             where ${where.join(" and ")}`,
+            params,
+          );
+          totals = tr[0];
+        }
       }
       const decided = totals.decided ?? 0;
       const anchorDecks = totals.anchor_decks ?? 0;
@@ -224,6 +249,7 @@ export const synergyTools = {
           limit,
         }),
         decided_battles: decided,
+        ...(roll ? { players_as_of: roll.players_as_of } : {}),
         ...(anchorDecks < META_METHODOLOGY.segment_min_decided
           ? {
               insufficient_sample: true,
@@ -256,6 +282,7 @@ export const synergyTools = {
           "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
           "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",
           win.seasonNotes,
+          roll?.note,
         ),
         docs: SEGMENT_DOCS,
         meta: responseMeta({

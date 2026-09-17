@@ -12,6 +12,7 @@ import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+import { rebuildSeason } from "../../jobs/src/meta-rollup.mjs";
 import { seasonFromDate, monthKey } from "../../ingest/src/war-clock.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1544,6 +1545,106 @@ test("meta tools default to the current season, take a season, and say what a wi
   const twelve = await call("battles_trends", {});
   assert.equal(twelve.body.applied.window.source, "default");
   assert.ok(Array.isArray(twelve.body.applied.window.crosses));
+});
+
+test("the season rollup answers exactly what the raw scan answers (0121)", async () => {
+  const {
+    rows: [season],
+  } = await db.query(`select * from season where season_month = '2026-08'`);
+  const rebuilt = await rebuildSeason(db, season, { final: true });
+  assert.ok(
+    rebuilt.decks > 0 && rebuilt.cards > 0 && rebuilt.pairs > 0,
+    JSON.stringify(rebuilt),
+  );
+  const bounds = {
+    from: "2026-08-03T10:00:00Z",
+    to: "2026-09-07T10:00:00Z",
+  };
+  const strip = (body) => {
+    const rest = { ...body };
+    for (const k of ["applied", "notes", "meta", "players_as_of"])
+      delete rest[k];
+    return rest;
+  };
+  const byKey = (rows, key) => Object.fromEntries(rows.map((r) => [key(r), r]));
+  for (const [tool, args, key] of [
+    ["battles_meta_decks", { min_battles: 1, limit: 40 }, (r) => r.deck_hash],
+    [
+      "battles_meta_cards",
+      { min_battles: 1, limit: 130 },
+      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+    ],
+    [
+      "cards_synergy",
+      { card: "Knight", min_pair_battles: 1, limit: 60 },
+      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+    ],
+  ]) {
+    const raw = await call(tool, { ...args, ...bounds });
+    const rolled = await call(tool, { ...args, season: "2026-08" });
+    assert.equal(raw.isError, false, JSON.stringify(raw.body));
+    assert.equal(rolled.isError, false, JSON.stringify(rolled.body));
+    assert.equal(
+      raw.body.players_as_of,
+      undefined,
+      "raw path carries no as-of",
+    );
+    assert.equal(
+      typeof rolled.body.players_as_of,
+      "string",
+      `${tool}: rollup path says as-of`,
+    );
+    assert.ok(rolled.body.notes.some((n) => /final rollup/.test(n)));
+    const listKey =
+      tool === "cards_synergy"
+        ? "partners"
+        : tool === "battles_meta_decks"
+          ? "decks"
+          : "cards";
+    const a = strip(raw.body);
+    const b = strip(rolled.body);
+    const listA = byKey(a[listKey], key);
+    const listB = byKey(b[listKey], key);
+    delete a[listKey];
+    delete b[listKey];
+    assert.deepEqual(b, a, `${tool}: scalars, excluded, prior, anchor`);
+    assert.deepEqual(
+      Object.keys(listB).sort(),
+      Object.keys(listA).sort(),
+      `${tool}: the same rows`,
+    );
+    for (const k of Object.keys(listA))
+      assert.deepEqual(listB[k], listA[k], `${tool}: row ${k}`);
+  }
+  // A mode read has its own rows (players never sum across modes).
+  const rawMode = await call("battles_meta_cards", {
+    ...bounds,
+    mode: "ladder",
+    min_battles: 1,
+  });
+  const rolledMode = await call("battles_meta_cards", {
+    season: "2026-08",
+    mode: "ladder",
+    min_battles: 1,
+  });
+  assert.deepEqual(strip(rolledMode.body).cards, strip(rawMode.body).cards);
+  assert.deepEqual(
+    strip(rolledMode.body).excluded,
+    strip(rawMode.body).excluded,
+  );
+  // A segment read stays raw but takes its prior from the totals.
+  const seg = await call("battles_meta_decks", {
+    segment: { collection: "test-pros" },
+    season: "2026-08",
+    min_battles: 1,
+  });
+  assert.equal(seg.body.players_as_of, undefined);
+  const corpus = await call("battles_meta_decks", {
+    season: "2026-08",
+    min_battles: 1,
+  });
+  assert.equal(seg.body.prior_basis, corpus.body.prior_basis);
+  assert.equal(seg.body.prior_win_rate, corpus.body.prior_win_rate);
 });
 
 test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {

@@ -68,6 +68,21 @@ Calculations use unrounded aggregates. Rates and scores are then independently
 rounded to three decimals. Recalculating a shrunk rate or score from displayed
 rates can differ in the final decimal place.
 
+**Where a season read comes from.** A corpus-wide read whose window is
+exactly one season (the default, or `season`) is answered from the season's
+rollup rather than a scan of every battle: the same population, counted
+by a nightly job that rebuilds the running season from the raw rows and
+files an ended season once as final, with an hourly pass adding the
+counters (battles, wins, losses) for battles recorded since. Two things
+follow, and the response says both in `players_as_of` and a note:
+distinct-player counts are as of the last nightly rebuild, so a deck or
+card first seen since then carries `players: null` until tonight; and the
+counters can trail the record by up to an hour. A segment read (a clan, a
+player, a collection) and any explicit `from`/`to` window scan the raw
+rows as before, exact to the instant, and take only the corpus prior from
+the rollup. The two paths answer the same numbers over the same window;
+a test holds them equal.
+
 This shrinkage moderates extremes; it does **not** guarantee rank order. With a
 prior of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
 about 63.3%. Neither estimate adjusts for player skill, opposition or deck loyalty.

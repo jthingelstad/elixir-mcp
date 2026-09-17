@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-17",
+    title: "The corpus meta answers in milliseconds, from season rollups",
+    body: "A corpus-wide card or deck meta read scanned every recorded battle on every call - 8 to 13 seconds warm, and nine timeouts a week. The record now keeps one rollup per season and mode (deck, card by form, card pair, and the totals every rate is a share of), rebuilt nightly from the raw rows and topped up hourly with the battles recorded since. battles_meta_decks, battles_meta_cards and cards_synergy read it whenever the window is exactly one season, which is their default; the response carries players_as_of and a note, because distinct-player counts are as of the last rebuild and the counters trail by up to an hour. A clan, player or collection read, and any explicit window, still scan the raw rows exactly as before and only take the corpus prior from the rollup. Contract 3.11.0.",
+  },
+  {
+    date: "2026-09-17",
     title: "Every recorded war battle now counts toward its war day",
     body: "A war battle's week and day used to be stamped onto the record at ingest, and only when the clan's next race poll happened to follow the battle inside a fortnight, so three quarters of the war battles the record held carried no day at all and were invisible to attendance in war_current, war_days in war_history and the per-day columns of clans_participation; a March-to-July import had brought its own labels, and 3,230 of those contradicted the battle's own time. The war calendar is now rows in the record, one per policy day of every season on the 10:00 UTC grid every clan shares, and a war battle is filed by where its time falls on it for the clan the player was in. Nothing is stamped, nothing depends on which poll came first, and history recorded long after the fact counts the same as history recorded live. No tool changes shape; the numbers those fields carry are corrected.",
   },
