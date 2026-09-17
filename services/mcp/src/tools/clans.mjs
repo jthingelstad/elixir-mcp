@@ -10,7 +10,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { isoWeekLabel, isoWeekStart } from "../time.mjs";
 import { MEMBERS_SQL, participationQueries } from "../participation-sql.mjs";
-import { dailySql } from "../daily-sql.mjs";
+import { standingsQuery } from "../standings-sql.mjs";
 import { formatLocal } from "../time.mjs";
 import {
   ToolFailure,
@@ -84,70 +84,13 @@ export const clansTools = {
       // equal decided outcomes ending at the member's latest battle,
       // from the members' own raw rows (the 2026-09-16 timeline request
       // §2: a consumer called battles_performance per member for this).
-      const members = `(select cm.player_tag from clan_membership cm
-                        where cm.clan_tag = $1 and cm.left_observed_at is null)`;
-      const params = [clanTag, win.from, win.to ?? null];
-      const rawClauses = [];
-      let types = null;
-      let modeGroup = null;
-      if (args.mode) {
-        params.push(typesForModeGroup(args.mode));
-        types = `$${params.length}`;
-        rawClauses.push(`and bp.type = any(${types})`);
-        params.push(args.mode);
-        modeGroup = `$${params.length}`;
-      }
-      const daily = dailySql({
-        players: `array(${members})`,
-        from: "$2",
-        to: "$3",
-        modeGroup,
-        types,
+      const query = standingsQuery({
+        clanTag,
+        from: win.from,
+        to: win.to ?? null,
+        mode: args.mode ?? null,
       });
-      const { rows } = await ctx.db.query(
-        `with d as ${daily},
-         s as (
-           select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time
-           from battle_participant bp
-           where bp.player_tag in ${members}
-             and bp.battle_time >= $2
-             and ($3::timestamptz is null or bp.battle_time < $3)
-             ${rawClauses.join(" ")}
-         ),
-         decided as (
-           select player_tag, outcome,
-                  row_number() over (partition by player_tag order by battle_time desc, battle_id desc) as drn
-           from s where outcome in ('win', 'loss')
-         ),
-         streak as (
-           select d.player_tag, l.latest as streak_kind,
-                  (coalesce(min(d.drn) filter (where d.outcome <> l.latest), max(d.drn) + 1) - 1)::int as streak_len
-           from decided d
-           join (select player_tag, outcome as latest from decided where drn = 1) l
-             on l.player_tag = d.player_tag
-           group by d.player_tag, l.latest
-         ),
-         sums as (
-           select player_tag,
-                  sum(battles)::int as battles, sum(wins)::int as wins,
-                  sum(losses)::int as losses, sum(draws)::int as draws,
-                  sum(trophy_delta) filter (where mode_group = 'ladder')::int as trophy_net
-           from d group by player_tag
-         )
-         select cm.player_tag, p.name, p.years_played,
-                coalesce(su.battles, 0)::int as battles,
-                coalesce(su.wins, 0)::int as wins,
-                coalesce(su.losses, 0)::int as losses,
-                coalesce(su.draws, 0)::int as draws,
-                coalesce(su.trophy_net, 0)::int as trophy_net,
-                st.streak_kind, st.streak_len
-         from clan_membership cm
-         join player p on p.player_tag = cm.player_tag
-         left join sums su on su.player_tag = cm.player_tag
-         left join streak st on st.player_tag = cm.player_tag
-         where cm.clan_tag = $1 and cm.left_observed_at is null`,
-        params,
-      );
+      const { rows } = await ctx.db.query(query.text, query.values);
       const withRate = rows.map((r) => ({
         player_tag: r.player_tag,
         name: r.name,

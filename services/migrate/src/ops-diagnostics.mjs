@@ -779,3 +779,35 @@ export async function enumCensus(databaseUrl) {
     await db.end();
   }
 }
+
+/** {explain_standings: {clan_tag?, days?, mode?}} - EXPLAIN ANALYZE of
+ *  the one query behind clans_standings, as the tool builds it. */
+export async function explainStandings(databaseUrl, spec = {}) {
+  const { standingsQuery } = await import("../../mcp/src/standings-sql.mjs");
+  const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
+  const days = Math.min(90, Math.max(1, Number(spec.days ?? 30)));
+  const q = standingsQuery({
+    clanTag,
+    from: new Date(Date.now() - days * 86_400_000),
+    to: null,
+    mode: spec.mode ?? null,
+  });
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = 120000");
+    const started = Date.now();
+    const { rows } = await db.query(
+      `explain (analyze, buffers, format text) ${q.text}`,
+      q.values,
+    );
+    return {
+      clan_tag: clanTag,
+      days,
+      ms: Date.now() - started,
+      plan: rows.map((r) => r["QUERY PLAN"]).join("\n"),
+    };
+  } finally {
+    await db.end();
+  }
+}

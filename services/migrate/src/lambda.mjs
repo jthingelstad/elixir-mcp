@@ -44,6 +44,7 @@ import {
   captureAudit,
   probe,
   explainParticipation,
+  explainStandings,
   inspect,
   sessions,
   vacuum,
@@ -110,6 +111,14 @@ export async function handler(event) {
   }
   if (event?.vacuum) {
     const result = await vacuum(process.env.DATABASE_URL, event.vacuum);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.explain_standings) {
+    const result = await explainStandings(
+      process.env.DATABASE_URL,
+      event.explain_standings === true ? {} : event.explain_standings,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
