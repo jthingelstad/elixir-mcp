@@ -2500,3 +2500,81 @@ to reach back to 2022-10 for the finals); the `pre_reset` rename and
 the real season-roll snapshot; the dead columns and `finalized`
 leaving `clans_participation` (contract minor). Needs Jamie's go;
 nothing manual.
+
+## 2026-09-17 — Schema review, Phase C: keys, NOT NULLs, our enums, the small corrections (0107-0120)
+
+Steps 7-11 of the sequenced plan, two deploys (`4651599` at 13:1xZ,
+`a197d30` + `0228887` at 13:4xZ-13:5xZ). No contract change: the one
+field the plan flagged (`finalized` on `clans_participation`) was
+fetched into a map and never rendered, so its column simply went.
+
+**Shipped.** 0107 seeds the season calendar back to 2022-10 (war 89)
+with its periods (49 seasons, 1,491 periods live), so the finals'
+`season_month` can reference `season`. 0108 adds the closing keys NOT
+VALID (participant -> deck, player_card -> card, the three war tables
+-> war_week) and documents the two declined ones on their columns.
+0109 keys `ranking_snapshot` and `ranking_presence` on `season_month`
+(FK, NOT NULL, its own index); 0120 drops the text ordinals and rekeys
+presence. The tools still answer `season_id` beside `season_month`,
+derived from the month (`monthForSeasonId` is the inverse of
+`seasonIdForMonth`). 0110 splits `poll_state.hint` (ours: active /
+idle / asleep, now CHECKed) from `period_type` (the API's periodType,
+open). 0111 renames the weekly pre-donation-reset snapshot to
+`pre_reset` (996 rows) and reserves `season_roll` for the row taken in
+the hour before the season rolls: `inSeasonRollWindow` in war-clock.mjs
+is one function for the scheduler's forced polls and the projector's
+extra row, the same shape as the weekly window in contracts. 0112 drops
+`battle.modifiers`, `war_attendance_day.finalized` and the three
+retired rollup columns. Then, from `{enum_census}` (new read-only op:
+distinct values of every column a CHECK was wanted on, plus the orphan
+count under every NOT VALID key): 0113 validates participant -> deck
+alone in its transaction (577k rows, 10 s in the Lambda, SHARE UPDATE
+EXCLUSIVE only); 0114 the five small keys; 0115/0116/0117 NOT NULL on
+`battle_participant.battle_time` and `type` by check-NOT-VALID ->
+validate -> set-not-null (no scan under the exclusive lock), the
+`type_class` default gone, `deck.card_count > 0`; 0118/0119 CHECKs on
+`player_event.event_type`, `clan_event.event_type`,
+`player_daily_battle_rollup.mode_group` and `poll_state.hint`, NOT
+VALID then validated. The API's enums stay open by decision.
+
+**Decisions taken inside the phase.** (1) `war_week.season_id ->
+season (war_season_id)` is NOT added, though the review listed it: the
+war tables' key is the API's own, the season row's number is derived
+and verified against the log, and a foreign key would turn a mismatch
+into a refused riverracelog admission - the API's fact rejected because
+our derivation disagreed - where the settled rule is an alarm and never
+a relabel (the pipeline test that doctors a log entry to season 234
+proved it: the FK failed the insert before the alarm could fire). (2)
+Every multi-step lock shape is three migrations, never one: an ALTER's
+lock lives to the end of its transaction, so a NOT VALID add and its
+VALIDATE in one file would hold ACCESS EXCLUSIVE for the whole scan.
+(3) Hand-seeded tests write the deck before the participant
+(`seedDeck` in `deck-rows.mjs`) and name `type`/`type_class`, as ingest
+always did; the 0057 fixture test retired with its columns.
+
+**Fixed forward.** The first C2 migrate failed on 0117: the review said
+no participant referenced the card_count-0 deck, and the validated 0113
+key found one that did. 0113-0116 had applied in their own
+transactions and the stack did not flip (the old code runs on the
+0116 schema); 0117 was rewritten to null that participant's hash
+(0093's rule) before the delete, and the second run applied 0117-0120
+in 3.8 s. Nothing was down.
+
+**Measured live, read-only.** `{enum_census}` before the CHECKs: 10
+player event kinds and 4 clan kinds, all in the code's set (the
+review's "14 values" was both tables together); hint {idle 424, active
+331, asleep 57}; period_type {warDay 16, training 5, colosseum 4};
+every orphan count 0; 0 null battle_time / type. After: `card_count`
+{8: 177,143; 12: 540; 4: 29}, the 0 gone; `snapshot_kind` {daily
+14,852; pre_reset 996}; every orphan still 0; migrate Lambda 10.0 s
+and 3.8 s for the two runs; one backend after; all alarms OK.
+`rankings_players` pol_final season 2025-03 answers `season_id "118",
+season_month "2025-03"` from the month key alone.
+
+**Phase D next (steps 12-14).** `card_meta_season`, `deck_meta_season`,
+`card_pair_season` and their jobs (hourly counters, nightly distinct
+players and past-season fill, in services/jobs; `{meta_rollup}` only
+as a repair); the meta tools and `corpusPrior` read them (`players_as_of`
+added: minor); `player_daily_battle_rollup` wired into
+`clans_standings`, `battles_trends`, `players_summary` and first-answer.
+Needs Jamie's go; nothing manual.
