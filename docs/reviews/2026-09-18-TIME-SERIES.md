@@ -7,14 +7,75 @@ on 2026-09-17 (the game day, day grain, history import as validation,
 poapkings.com onto Elixir, the metric set, multi-clan by construction) are
 applied throughout and not reopened.
 
+Revised the same evening after Jamie's read: the member series is no
+longer its own table but the player's own snapshot row written by the
+roster (the roster is a partial profile read of fifty players), the
+polling-rate question is left to the adaptive-polling work, and the
+decisions that need Jamie are collected up front. Parts 1 to 8 and the
+appendices are the evidence; **"Read this first"** is the part to read.
+
+## Read this first: the principle, and the four decisions
+
+**The principle.** A pull feeds every subject it describes, not only the
+one it was made for. The recorder already does this in places (a battle
+log names opponents and their clans and lands them on `player`; a roster
+stamps `player.game_last_seen_at`; a board seeds player and clan rows).
+It does not do it where it matters most: a roster poll is a partial
+profile read of up to fifty players, made up to 96 times a day, and the
+players' trophies, donations, arena and last-seen in it are thrown away
+while the same players' profiles are polled separately for the same
+numbers. This review makes the roster write the players' own daily
+snapshot rows, the race poll write the rivals' clan rows, and the war log
+write the attendance day the live poll missed, and it proposes the
+standing rule (2.7) that makes every dropped field a recorded decision.
+What it does **not** propose is a change to how often anything is
+polled: the roster carrying the profile's fast-moving fields is an input
+to the adaptive-polling work on the play-time histogram (NOTES
+2026-09-13, "Adaptive polling, step one"), and the cadence decision
+belongs there.
+
+**Decisions that need Jamie.** Everything else follows the six decisions
+of 2026-09-17 and needs a go per phase, not a judgment.
+
+1. **Re-key `player_snapshot_daily` to the game day** (3.2). Recommended:
+   move it, in Phase 1, before anything else writes to it. It is ~16k
+   rows, ten readers that need no change, and with the roster now writing
+   the same row a second day definition is not even possible. The
+   alternative is to leave it on the UTC calendar day and accept that the
+   season-roll row shares the Monday with fourteen hours of the new
+   season. A read-only census op reports exactly which rows would move
+   before the op runs.
+2. **Which players get a roster-written row** (4.2). Recommended: members
+   of clans with an active clan recording, either scope: ~725 players,
+   ~68 MB a year. The alternative is every member of every polled clan
+   (24,800 rows a day, ~2.3 GB a year on a 20 GB volume); their rosters
+   stay in the archive and are backfillable later by the same op.
+3. **The progress zero-bucket rule** (4.3). Recommended: a side-mode
+   bucket reading `trophies 0, bestTrophies 0` writes no row, because
+   "never played this mode this season" is the fact and a daily row of
+   zeros is not a series; ~140 MB a year instead of ~410 MB. The
+   alternative is a row per bucket per day.
+4. **Adopt the standing rule** (2.7) into `docs/ENGINEERING.md` as
+   written: a key manifest per projector, a fixture test, and an
+   `UnknownPayloadKeys` metric with an alarm. The principle is Jamie's;
+   the mechanism is proposed here and is his to accept or reshape.
+
+Applied without asking, because they follow from the six decisions: the
+`game_day()` function; one row per subject per game day with `pre_reset`
+and `season_roll` kinds; the elixir-bot import through the projector
+function from a documented intermediate, with a `source` column and a
+census before commit; the archive as the source of the backfill; the
+receipt-ordered backfill op; the readers' shape; the phase order.
+
 ## How this was done
 
 - **Schema:** the 125-migration ladder applied to a fresh scratch database
   (`createdb elixir_ts_scratch` + `cli.mjs migrate`, "0 already applied,
   125 ran"), read back with `pg_dump --schema-only`. Every candidate DDL
   below was executed in that database (Appendix A), then a synthetic year
-  was generated to measure bytes per row and the reader plans. The scratch
-  database was dropped after this document was written.
+  was generated to measure bytes per row and the reader plans; the build
+  was repeated for the revised shape. The scratch database was dropped
+  after this document was written.
 - **Live, read-only:** the migrate Lambda's `{tables}`, `{stats}` and
   `{audit_census:{days:7}}` at 17:1xZ; `elixir_data_insights` and
   `game_clock` through the MCP door; the archive bucket listed by prefix
@@ -54,11 +115,12 @@ Everything dropped is recoverable: the archive holds every distinct
 payload since the first recorded day (POAP KINGS rosters daily from
 2026-03-12, 10,781 objects; profiles from 2026-03-07), so the series can
 be built from the archive, not from the migration, and the elixir-bot
-import is the check, not the source. The design is three small tables on
-one day key, the game day, written by the two projectors that already
-hold the payload, backfilled by a receipt-ordered op, and read by one new
-clan tool and two extended ones. A year for the 18 recorded clans is
-under 100 MB. The larger finding is the principle behind it: 41 fields
+import is the check, not the source. The design is one day key, the game
+day; the roster writing the players' own snapshot rows (eight columns on
+`player_snapshot_daily`); one clan table and one progress table; all
+written by the two projectors that already hold the payload, backfilled
+by a receipt-ordered op, and read by two new clan tools and one extended
+one. A year for the 18 recorded clans is under 100 MB. The larger finding is the principle behind it: 41 fields
 across the admitted endpoints are dropped with no recorded reason, and
 nothing would notice a 42nd; the standing rule in 2.7 makes omission a
 recorded decision and addition an alarm.
@@ -279,8 +341,8 @@ changes), and every one is in the plan.
 | `location.name`, `.isCountry`, `.countryCode`                                                  | D      | `ranking_board` already carries label and `country_code` per location key; a `location` catalog (262 rows from `/locations`) is the honest home, Tier 3 |
 | `clanChestStatus`, `clanChestLevel`, `clanChestMaxLevel`, `memberList[].clanChestPoints`       | R (to write) | clan chests no longer exist in-game (`cr-agent-api-docs/clans.md`)                                                |
 | `memberList[].expLevel`                                                                        | R (to write) | reads `0` for every member since the 2026 retirement                                                              |
-| `memberList[].trophies`, `.donations`, `.donationsReceived`, `.clanRank`, `.previousClanRank`, `.arena.id` | **X, series** | `clan_member_snapshot_daily` (4.2). Arena here moves at the 15-minute roster cadence; the profile's inherits the 8-hour poll (NOTES 2026-09-15, "Arena moves within the hour") |
-| `memberList[].lastSeen` per poll                                                               | **X, series** | the presence series the record never keeps: `clan_member_snapshot_daily.last_seen_at`, the day's last value (4.2) |
+| `memberList[].trophies`, `.donations`, `.donationsReceived`, `.clanRank`, `.previousClanRank`, `.arena.id` | **X, series** | the player's own `player_snapshot_daily` row, written by the roster (4.2). Arena here moves at the 15-minute roster cadence; the profile's inherits the 8-hour poll (NOTES 2026-09-15, "Arena moves within the hour") |
+| `memberList[].lastSeen` per poll                                                               | **X, series** | the presence series the record never keeps: `player_snapshot_daily.game_last_seen_at`, the day's last value (4.2) |
 | `memberList[].arena.name`, `.rawName`                                                          | D / X  | `arena` catalog; the roster is a second source of arena names and should feed it (today only the profile does)        |
 
 ### 2.3 `/clans/{tag}/currentriverrace` and `/riverracelog` (`war.mjs`)
@@ -333,8 +395,8 @@ changes), and every one is in the plan.
 
 41 fields or field groups are dropped with no recorded reason: 14 on
 the profile, 12 on the roster, 8 on the race and log, 7 on the battle
-log. Nine are series (the two tables of Part 4 and the snapshot columns),
-eleven are state, the rest ledger facts. Five more are dropped for a good
+log. Nine are series (the roster's columns on the snapshot, the clan
+table, the progress table), eleven are state, the rest ledger facts. Five more are dropped for a good
 reason that is not written anywhere a reader of the projector would find
 it (`expLevel` twice, the clan chest trio, `state`, `currentWinLoseStreak`).
 
@@ -399,15 +461,16 @@ and `jobs/activity.mjs` (windows ordered by day), `participation-sql.mjs`
 days), and `shared.mjs` (`min(snapshot_date)` as an epoch). Ten call
 sites, all of which work unchanged on any monotone day key.
 
-**Two definitions cost this:** a member's `trophies` on 2026-09-17 from
-the roster series (game day) and from the profile snapshot (UTC day) would
-be two different windows with the same label, and the Monday pre-reset
-row would sit in the UTC Monday while the game-day series files the same
-observation under Sunday. The `season_roll` row (the hour before Monday
-10:00Z) is the sharpest case: under the calendar day it shares the roll
-Monday with fourteen hours of the new season; under the game day it is
-the last row of the old season and the first game-day row is the first
-of the new one.
+**Two definitions are not available any more.** The roster now writes
+the same row the profile does (4.2), so a member's trophies from a
+roster poll at 12:00Z and from a profile poll at 16:00Z must land in the
+same day row: whatever day key the table has is the day key of both
+sources. The question is only which one. Under the UTC calendar day the
+Monday pre-reset row sits in Monday while the game files that hour under
+Sunday, and the `season_roll` row (the hour before Monday 10:00Z) shares
+the roll Monday with fourteen hours of the new season; under the game
+day it is the last row of the old season and the first game-day row is
+the first of the new one.
 
 **Moving costs this:** 15,877 rows re-keyed by `game_day(observed_at)`
 (a UTC day whose last poll was before 10:00Z maps to the previous game
@@ -424,11 +487,10 @@ count and the rows that would move a day. The column keeps its name
 (`snapshot_date`), its meaning changes, and the `players_timeline`
 note changes from "Snapshot days are UTC dates" to the game day.
 
-**Recommendation: move it** (Phase 1, before the new tables land, so the
-record never has two day definitions in production). Evidence: ten
-readers that need no change, one kind row that becomes correct, ~16k
-rows, and a validation op that says exactly what moves before it does.
-Jamie decides.
+**Recommendation: move it** (Phase 1, before the roster starts writing
+the row). Evidence: ten readers that need no change, one kind row that
+becomes correct, ~16k rows, and a validation op that says exactly what
+moves before it does. Decision 1 in "Read this first".
 
 ### 3.3 `player_daily_battle_rollup` stays on the UTC calendar day, stated
 
@@ -444,7 +506,7 @@ in. The elixir-bot rollup import (Part 6) maps onto it as it is.
 Decision 2: `daily`, plus `pre_reset` for the row from the hour before
 the Monday 00:10Z donation reset (`inPreResetWindow`, contracts) and
 `season_roll` for the hour before `season.ends_at`
-(`inSeasonRollWindow`). The roster series gets both: `donations`,
+(`inSeasonRollWindow`). The roster's writes get both: `donations`,
 `donations_received` and `donationsPerWeek` reset weekly; member
 `trophies` and `clanScore` change at the season roll (the seasonal
 Trophy Road resets above its threshold). The progress series gets
@@ -467,8 +529,8 @@ excluded.observed_at >= t.observed_at and (t.cols) is distinct from
 (excluded.cols)`; checked in the scratch that a repeated identical poll
 writes zero rows. `source` marks imported rows (Part 6). `receipt_id`
 on the clan row is provenance for the backfill (one row per day, so one
-bigint a day); the member rows carry none (47 copies of it per day would
-be the widest column).
+bigint a day); the player rows carry none (a receipt per member per day
+would be the widest column on the table).
 
 ### 4.1 `clan_snapshot_daily`, written by the roster projector
 
@@ -502,68 +564,82 @@ Recommendation: **every admitted roster**, because the row costs nothing
 beyond the poll and the branch would be the first thing in the projector
 keyed on who is tracking.
 
-### 4.2 `clan_member_snapshot_daily`, written by the roster projector
+### 4.2 The roster writes the player's own snapshot row
+
+A clan member is a player, and a roster poll is a partial profile read
+of fifty of them. The member series is therefore not a table of its own:
+it is `player_snapshot_daily`, written by two projectors. The profile
+projector writes the whole row as today. The roster projector writes the
+subset the roster carries, into the same row, and leaves every other
+column alone.
 
 ```sql
-create table clan_member_snapshot_daily (
-  clan_tag           text not null references clan,
-  day                date not null,
-  player_tag         text not null references player,
-  snapshot_kind      text not null default 'daily'
-                     check (snapshot_kind in ('daily', 'pre_reset', 'season_roll')),
-  observed_at        timestamptz not null,
-  source             text not null default 'api' check (source in ('api', 'elixir-bot')),
-  trophies           integer,
-  donations          integer,
-  donations_received integer,
-  clan_rank          smallint,
-  previous_clan_rank smallint,
-  arena_id           integer,
-  last_seen_at       timestamptz,
-  primary key (clan_tag, day, player_tag, snapshot_kind)
-);
-create index clan_member_snapshot_daily_player on clan_member_snapshot_daily (player_tag, day);
+alter table player_snapshot_daily
+  add column clan_tag            text references clan,   -- the clan the roster came from that day
+  add column clan_rank           smallint,
+  add column previous_clan_rank  smallint,
+  add column game_last_seen_at   timestamptz,            -- the game's lastSeen as of the winning observation
+  add column profile_observed_at timestamptz,            -- when the profile-only columns were last observed
+  add column source              text not null default 'api' check (source in ('api', 'elixir-bot'));
+create index player_snapshot_daily_clan_day
+  on player_snapshot_daily (clan_tag, snapshot_date) where clan_tag is not null;
 ```
 
-Two indexes, each with one reader. The primary key is
-`(clan_tag, day, player_tag, kind)` so a roster poll's 50 rows are one
-contiguous run (the write), and the clan timeline's per-day aggregate
-(`sum(trophies)`, `avg(trophies)`, `count(*)` for 160 days) is 160 range
-probes of 47 tuples (Appendix A: 750 buffers for the whole series,
-index-only after the first read). The secondary `(player_tag, day)` is
-the member's own line across days (180 days = 180 tuples, 187 buffers)
-and the seam `players_timeline` uses when a metric is answered from the
-roster rather than the profile. `role` is deliberately absent: it is
-state on `clan_membership` and its changes are `role_changed` events, so
-"role on day D" is a ledger read, not a column copied 50 times a day.
-`arena_id` has no foreign key until step 17 seeds Training Camp (the same
-deferral as the event columns). `last_seen_at` is the game's `lastSeen` as
-of the winning observation: the day's last value is what it means to say
-"was in the game on day D", and it is what the roster gate already
-consumes live.
+The roster's columns are `trophies`, `donations`, `donations_received`,
+`arena_id` (already on the row) plus `clan_tag`, `clan_rank`,
+`previous_clan_rank` and `game_last_seen_at`. The profile's columns are
+everything else. `observed_at` is the newest observation of either
+source and dates the roster's columns; `profile_observed_at` dates the
+profile's, and is null on a day the roster wrote and no profile poll
+did. That second timestamp is the one real cost of two writers on one
+row: without it, a 15-minute roster write would make an 8-hour-old
+Path of Legends rating look fresh. Each writer's upsert guards on its own
+columns and its own timestamp (the roster's guard is `observed_at`, the
+profile's is `profile_observed_at`, and the profile write also advances
+`observed_at`), so neither can regress the other and a replayed old
+payload from either side writes nothing. Checked in the scratch
+(Appendix A): a roster write after a same-day profile write moves
+trophies and keeps `wins` and `profile_observed_at` untouched.
 
-**Who gets a row.** Decision 5 says every member of a tracked clan. The
-projector should not branch on tracking (decision 6); the question is
-whether it writes rows for incidental clans too. The numbers: the 18
-recorded clans are ~725 members, 265k rows and **61 MB a year** at the
-232 bytes/row measured (heap 98 + index 124 per row); every polled clan
-is 24,775 open memberships, 9.0M rows and **2.1 GB a year** on a 20 GB
-volume holding 4.1 GB today. Recommendation: **rows for clans with an
-active clan recording, either scope**, decided by one indexed lookup on
-`recording` per poll and stated as such on the projector; the incidental
-clans' rosters stay in the archive and are backfillable into the same
-table by the same op the day anyone wants them. Jamie decides.
+What this buys beyond one table fewer: every member of a recorded clan
+has a daily row whether or not their profile is recorded (decision 5),
+with the roster's arena at the 15-minute cadence rather than the
+profile's 8-hour one, and the presence series (`game_last_seen_at`,
+the day's last value, which is what "was in the game on day D" means)
+in the same row as everything else about the player that day. `role` is
+deliberately not copied: it is state on `clan_membership` and its
+changes are `role_changed` events. `arena_id` keeps its deferred foreign
+key (step 17).
+
+One new index, `(clan_tag, snapshot_date)`, partial on the rows that
+have a clan: it is the clan timeline's per-day aggregate over the
+members (`sum(trophies)`, `avg(trophies)`, `count(*)` for 160 days: one
+bitmap scan, ~240 buffers, Appendix A) and the member series scoped by
+clan. The existing primary key `(player_tag, snapshot_date, kind)`
+answers the member's own line (180 days = 180 tuples, 190 buffers).
+
+**Who gets a row** (decision 2 in "Read this first"). Decision 5 says
+every member of a tracked clan; the question is whether the roster
+writes rows for incidental clans too. The 18 recorded clans are ~725
+members, 265k rows and **68 MB a year** at the 258 bytes/row measured
+with the profile columns mostly null; every polled clan is 24,775 open
+memberships, 9.0M rows and **2.3 GB a year** on a 20 GB volume holding
+4.1 GB today. Recommendation: rows for clans with an active clan
+recording, either scope, decided by one indexed lookup on `recording`
+per poll and stated as such on the projector; the incidental clans'
+rosters stay in the archive and are backfillable into the same rows by
+the same op the day anyone wants them.
 
 **Write churn.** The day row is rewritten by each poll that moves any
-column. For an active tracked clan `lastSeen` moves on most polls for
-most members, so the row would take a new tuple version up to 96 times a
-day: ~4,500 updates a day per clan, all HOT (no indexed column changes),
-the same class as `player_snapshot_daily`'s 36,703 updates on 12,764
-inserts today. Proposed rule: a poll that moves **only** `last_seen_at`
-writes when the new value is an hour or more past the stored one, the
-rule `player.last_seen_at` already follows; anything else moving writes
-at once. That keeps the presence series to the hour inside a day (the
-day's final value is exact to the hour) and cuts the churn about four
+roster column. For an active tracked clan `lastSeen` moves on most polls
+for most members, so the row would take a new tuple version up to 96
+times a day: ~4,500 updates a day per clan on top of the table's 36,703
+updates on 12,764 inserts today, all HOT (no indexed column changes, and
+the new index is on `clan_tag`, which does not move). Proposed rule: a
+poll that moves **only** `game_last_seen_at` writes when the new value
+is an hour or more past the stored one, the rule `player.last_seen_at`
+already follows; anything else moving writes at once. That keeps the
+presence series to the hour inside a day and cuts the churn about four
 times.
 
 ### 4.3 `player_progress_daily`, written by the profile projector
@@ -611,10 +687,10 @@ All executed in the scratch; all instant (nullable columns, new tables).
 
 ```sql
 alter table clan add column type text, add column location_id integer, add column description text;
-alter table player_snapshot_daily
+alter table player_snapshot_daily                        -- beside the roster columns of 4.2
   add column total_donations integer, add column challenge_cards_won integer,
   add column challenge_max_wins integer, add column tournament_cards_won integer,
-  add column tournament_battle_count integer;            -- plus king_tower_level integer
+  add column tournament_battle_count integer, add column king_tower_level smallint;
 alter table player add column war_day_wins integer, add column clan_cards_collected integer,
   add column legacy_trophy_road_high_score integer;
 
@@ -656,15 +732,15 @@ micro; Phase 2b, after the series backfill.
 | ----------------------------------------- | -------------------- | ---------------------------------------------- | ---------------------------------- |
 | `clan_snapshot_daily`, 18 recorded clans  | 173                  | 18                                             | 1.1 MB                             |
 | same, every polled clan                   | 173                  | ~6,650                                         | 420 MB                             |
-| `clan_member_snapshot_daily`, recorded    | 232                  | ~725                                           | **61 MB**                          |
-| same, every polled clan                   | 232                  | ~24,800                                        | 2.1 GB                             |
+| `player_snapshot_daily` roster-written rows, recorded clans | 258     | ~725 (the ~235 with a recorded profile already have a row) | **68 MB**             |
+| same, every polled clan                   | 258                  | ~24,800                                        | 2.3 GB                             |
 | `player_progress_daily`, zero-bucket rule | 209                  | ~1,800                                         | 140 MB (410 MB without the rule)   |
 | snapshot + player + clan columns          | ~24 extra bytes/row  | ~1,350 snapshots                               | 12 MB                              |
 | `player_pol_season`                       | ~90                  | ~1,700 a month                                 | 2 MB                               |
 | `war_period_log`                          | ~120                 | 18 clans × 5 rivals × 4 war days a week        | 2 MB                               |
 | `battle` columns                          | ~20 extra bytes/row  | ~1,800 battles                                 | 13 MB (+5 MB once for the backfill)|
 
-Recommended set: **~230 MB a year** on a 20 GB gp3 volume (auto-scales
+Recommended set: **~240 MB a year** on a 20 GB gp3 volume (auto-scales
 to 100) with 4.13 GB used, against `battle_participant` growing ~900 MB
 a year today. Retention is never, like every game-data table.
 
@@ -672,10 +748,10 @@ a year today. Retention is never, like every game-data table.
 
 Roster poll (`ingestClanRoster`) today: 3 statements plus a loop of 1–2
 statements per changed member. Adds: one upsert on
-`clan_snapshot_daily` (1 row) and one multi-row upsert on
-`clan_member_snapshot_daily` (`unnest`, tag-ordered as the `player`
-upsert is, so the lock order is the one the repo uses), in the same
-transaction, plus the two kind rows inside their windows. Rows written
+`clan_snapshot_daily` (1 row) and one multi-row upsert of the roster
+columns on `player_snapshot_daily` (`unnest`, tag-ordered as the
+`player` upsert is, so the lock order is the one the repo uses), in the
+same transaction, plus the two kind rows inside their windows. Rows written
 per poll: at most 1 + members that moved (0 when nothing did). Profile
 poll: one multi-row upsert of ≤4 rows on `player_progress_daily`, five
 more parameters on the snapshot upsert, one guarded update on `player`
@@ -710,12 +786,15 @@ in the migrate Lambda:
    objects, listed once). GET, gunzip, parse; cache the parsed payload by
    hash for the run so a refetch costs no GET.
 4. Call the series half of the projector only (`projectClanSeries`,
-   `projectPlayerProgress` + the snapshot's new columns): never the
-   membership machine, never events, never `poll_state`. The projectors
-   are split so that the live path and the backfill call the same
-   function with `observedAt = receipt.fetched_at`, `receiptId` the
-   receipt. The observed_at guard makes the order irrelevant to the
-   result; the receipt order makes it monotone anyway.
+   which writes the clan row and the roster columns of the members'
+   snapshot rows; `projectPlayerProgress` and the snapshot's new profile
+   columns on the player lane): never the membership machine, never
+   events, never `poll_state`. The projectors are split so that the live
+   path and the backfill call the same function with
+   `observedAt = receipt.fetched_at`, `receiptId` the receipt. The
+   per-source guards of 4.2 make the order irrelevant to the result and
+   keep a roster replay from touching profile columns; the receipt order
+   makes it monotone anyway.
 5. Commit per batch, advance the cursor, stop when `budget_s` is spent
    or the lane is done (`finished_at`), return
    `{done, receipts_done, rows_written, next_after}`.
@@ -804,9 +883,10 @@ Monday 00:10Z), and the Sunday `daily` row's donations are left **null**
 (the post-reset value is unrecoverable: absence over a guess); on every
 other day the MAX equals the last value on a counter that only climbs
 inside a day, so `daily` takes it. `last_seen_api` maps to
-`last_seen_at` as is. `best_trophies` and `exp_level` in the bot's row
-are profile fields with no home in the roster series and are not
-imported (the profile archive has them).
+`game_last_seen_at` as is. `best_trophies` and `exp_level` in the bot's
+row are profile columns the roster write never touches; the import
+leaves them and `profile_observed_at` null (the profile archive has
+them).
 
 ### 6.3 `player_daily_battle_rollups` → `player_daily_battle_rollup`
 
@@ -889,13 +969,16 @@ last-of-day rule, the roster-vs-profile answer to "trophies on day D").
   `king_tower_level`, `pol_league`, `pol_trophies`, `pol_rank`,
   `season_trophies`, `season_best_trophies`, `total_donations`,
   `challenge_cards_won`, `challenge_max_wins`, `tournament_cards_won`,
-  `tournament_battle_count`, `arena_id`, `last_seen_at`.
-- For a member of a recorded clan, `trophies`, `donations`,
-  `donations_received`, `arena_id` and `last_seen_at` are answered from
-  `clan_member_snapshot_daily` when it has the day and from the profile
-  snapshot otherwise; `applied.sources` names the table per metric and a
-  note says which days came from which. This is the arena-latency fix at
-  read time and the presence series in one place.
+  `tournament_battle_count`, `arena_id`, `clan_tag`, `clan_rank`,
+  `previous_clan_rank`, `game_last_seen_at`.
+- Every metric comes from the one row. A day the roster wrote and no
+  profile poll did carries the roster's columns and nulls elsewhere; each
+  point carries `profile_observed_at` (null on such a day) so a consumer
+  can tell a roster-only day from a stale profile, and a note says so
+  once. `clan_tag`, `clan_rank`, `previous_clan_rank` and
+  `game_last_seen_at` join the metric set. This is the arena-latency fix
+  at read time and the presence series in the same series as everything
+  else.
 - `progress_key` (optional, one of `mode_season` or `'all'`) adds
   `progress[]`: `{key, mode, season_month, day, trophies,
   best_trophies, arena_id}` from `player_progress_daily`.
@@ -910,23 +993,26 @@ last-of-day rule, the roster-vs-profile answer to "trophies on day D").
 Defaults `clan_tag` to the recorded clan (`entitledClan()`). Metrics
 (all by default): `clan_score`, `clan_war_trophies`, `members`,
 `donations_per_week`, `required_trophies`, and the roster aggregates
-computed at read from the member rows of the same day: `total_member_trophies`,
-`avg_member_trophies`, `members_seen` (how many member rows the day has,
-so a partial day reads as partial). `granularity: day | week` as
+computed at read from the snapshot rows carrying the clan's tag that
+day: `total_member_trophies`, `avg_member_trophies`, `members_seen` (how
+many member rows the day has, so a partial day reads as partial). `granularity: day | week` as
 `players_timeline`; `kind` as above; `verbosity: compact` keeps `day` and
 the five clan metrics. Response: `clan_tag`, `applied`,
 `series_available_from`, `series[]`, `notes` (the game day; `source:
 elixir-bot` days named when any are in the window; the 07-03 kind of
 hole named), `docs`, `meta`. Plan and cost: Appendix A, one index range
-plus 160 lateral probes, ~750 buffers cold.
+on the clan table plus one bitmap scan on the snapshot's clan-day index,
+~240 buffers cold.
 
 ### 7.3 `clans_members_timeline` (new, group Clans, minor)
 
-The member series on the same shape, scoped by clan: `clan_tag`
-(default the recorded clan), `player_tags` (optional subset; every current
-and former member in the window otherwise), `metrics` from the member
-set (`trophies`, `donations`, `donations_received`, `clan_rank`,
-`previous_clan_rank`, `arena_id`, `last_seen_at`), window, `kind`,
+The member series on the same shape, scoped by clan, read from
+`player_snapshot_daily` by `clan_tag`: `clan_tag` (default the recorded
+clan), `player_tags` (optional subset; every player the roster placed in
+the clan in the window otherwise), `metrics` from the roster set
+(`trophies`, `donations`, `donations_received`, `clan_rank`,
+`previous_clan_rank`, `arena_id`, `game_last_seen_at`) and, for members
+whose profile is recorded, any profile metric of 7.1, window, `kind`,
 `granularity`; `limit` on members with a `maximum`; `verbosity: compact`
 returns per member the first and last point and the delta only. Names
 from `player` at read (the label is current everywhere else). Response
@@ -964,17 +1050,16 @@ tools fingerprint, so it is a patch bump with a changelog line.
 - **Averages the trends page draws** (`averageWins`, `averageYearsPlayed`,
   `averageCollectionLevel`, the 12k+/14k+/6-years+/1000+ counts) are
   profile-derived per day and are not in the clan series by decision 5
-  (no card- or badge-level snapshots; these are lifetime counters). They
-  are computable at the site from `clans_members_timeline` joined to the
-  roster's lifetime block, or by one more read-time aggregate on
-  `clans_timeline` over `player_snapshot_daily` for the day's members
-  (`avg(wins)`, `avg(collection_level)`, the counts). The second is one
-  lateral more on the same plan and the honest place. They are metrics
+  (no card- or badge-level snapshots; these are lifetime counters). With
+  the roster and the profile on one row they are the same aggregate
+  `clans_timeline` already runs, over the profile columns of the day's
+  member rows (`avg(wins)`, `avg(collection_level)`, the counts; null on
+  a member with no recorded profile, which the day's `members_seen`
+  against the count of non-null values exposes). They are metrics
   (`avg_member_wins`, `avg_member_collection_level`,
   `members_12000_plus`, `members_14000_plus`, `members_6_years_plus`,
   `members_collection_1000_plus`), selectable in `metrics` and off by
-  default because each costs a probe on the snapshot table per day; never
-  an `include_*` flag, which the conventions ban.
+  default; never an `include_*` flag, which the conventions ban.
 
 ---
 
@@ -983,7 +1068,7 @@ tools fingerprint, so it is a patch bump with a changelog line.
 | Item                               | Cost                                                                                                       | Risk and its guard                                                                                                                                            |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Migrations 0126–0130 (Part 4 DDL)  | instant: new tables, nullable columns, one function                                                        | none; expand only                                                                                                                                             |
-| Roster projector writes            | +2 statements per poll, ≤51 rows; ~4,500 HOT updates a day per active tracked clan (1,100 with the hour rule) | churn on a new table, same class as the snapshot table; autovacuum settings already cover the participant table's far larger churn                             |
+| Roster projector writes            | +2 statements per poll, ≤51 rows; ~4,500 HOT updates a day per active tracked clan (1,100 with the hour rule) | churn on `player_snapshot_daily`, four times its current rate for a tracked clan's members; HOT, no index moves; autovacuum already covers the participant table's far larger churn |
 | Profile projector writes           | +3 statements, ≤4 rows                                                                                     | the `""` key needs `mode_season` to accept it (one row); `parseProgressKey` change is a one-line test                                                         |
 | `player_snapshot_daily` re-key     | one batched op, ~16k rows, ~30 s; a census first                                                           | rows dropped on collision are the rule's own semantics; count reported before; RDS snapshot first as on 2026-09-15                                             |
 | Series backfill                    | ~1.7 h of migrate Lambda in 240 s slices; ~74k S3 GETs (~$0.03)                                            | reserved concurrency 1 blocks deploys while it runs: drive to completion first; cursor resumable; observed_at guard makes reruns idempotent                    |
@@ -1001,7 +1086,7 @@ manual or decision content, nothing else is blocked.
 
 | Phase | Change                                                                                                                                                                                                                                                                                                                                                                                                            | Kind                                                              | Contract                                    | Needs from Jamie                                                                                                                                                                                                                                                                                                                       |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `game_day()`; `clan_snapshot_daily`, `clan_member_snapshot_daily`, `player_progress_daily`; the state and lifetime columns, `player_pol_season`, `war_period_log`, the `battle` columns, `series_backfill_state`; the projectors split into a series half and writing live (roster, profile, race); `mode_season` admits `""`; the `{snapshot_day_census}` then `{snapshot_rekey}` op moving `player_snapshot_daily` to the game day; the key manifest + `UnknownPayloadKeys` metric and alarm; ENGINEERING rule 2.7; the `expLevel` / clan-chest / `state` / streak reasons written on the projectors | 5 instant migrations + one ~30 s op + code                        | none (tables only; `battles_query` columns wait for 2b) | **Go**; the 3.2 decision (move, recommended, or keep two day definitions); the 4.2 decision (member rows for recorded clans, recommended, or every polled clan); an RDS snapshot before the re-key op (Jamie runs `deploy` with `AWS_PROFILE=jamie`) |
+| 1     | `game_day()`; the `{snapshot_day_census}` then `{snapshot_rekey}` op moving `player_snapshot_daily` to the game day; the roster columns, `profile_observed_at`, `source` and the clan-day index on `player_snapshot_daily`; `clan_snapshot_daily`, `player_progress_daily`; the state and lifetime columns, `player_pol_season`, `war_period_log`, the `battle` columns, `series_backfill_state`; the projectors split into a series half and writing live (roster, profile, race); `mode_season` admits `""`; the key manifest + `UnknownPayloadKeys` metric and alarm; ENGINEERING rule 2.7; the `expLevel` / clan-chest / `state` / streak reasons written on the projectors | 5 instant migrations + one ~30 s op + code                        | none (tables only; `battles_query` columns wait for 2b) | **Go**, and decisions 1 to 4 of "Read this first"; an RDS snapshot before the re-key op (Jamie runs `deploy` with `AWS_PROFILE=jamie`) |
 | 2     | `{series_backfill}` clan lane then player lane, driven to completion by the local loop; then the `battle` columns' fill from the battlelog receipts (2b); `{deck_census}`-style `{series_census_self}` proving every admitted roster receipt since 2026-03-12 has its day row                                                                                                                                       | two batched ops, ~1.7 h + ~1.5 h, no deploy in between            | none                                        | **Go**; a window when no deploy is needed (the migrate Lambda is held); nothing manual                                                                                                                                                                                                                                                  |
 | 3     | `elixir-bot-series-export.mjs` (read-only); `{replay}` of the bot's 5,488 profile payloads 07-15 → 09-03 under the backfill gateway; `{series_import}` into staging; `{series_census}`; commit of the non-overlapping rows and the rollup keys; the census numbers in NOTES; revoke the gateway row                                                                                                                | one replay (~8 min) + one op + one read-only census               | none                                        | **Go**; the bot stays untouched (decision 3); **revoke** the new `backfill-elixir-bot` gateway row in Admin afterwards, as on 09-15                                                                                                                                                                                                     |
 | 4     | Docs sections (`clocks#the-game-day`, `recording#daily-series`); `players_timeline` extended; `clans_timeline` and `clans_members_timeline` with output schemas; `clans_roster` lifetime block; `rankings_timeline` description; changelog, What's-new, tools reference regenerated                                                                                                                                | code                                                              | **minor** ×2, patch ×1, folded into one minor bump (3.12.0) | **Go**; a read of the tool names (`clans_members_timeline` or a better noun)                                                                                                                                                                                                                                                            |
@@ -1023,10 +1108,13 @@ rival columns (2.3).
    is a consequence of this rule not having existed; without it the next
    field the API adds (as `kingTowerLevel` did on 2026-09-02) waits for
    the next review.
-2. **The roster series** (4.1, 4.2): the recorder's most frequent poll
-   keeps seven clan fields and seven member fields it parses today,
-   including the arena at the 15-minute cadence and the presence series;
-   backfillable to 2026-03-12 for POAP KINGS from the archive.
+2. **The roster writes what it already knows** (4.1, 4.2): the
+   recorder's most frequent poll keeps seven clan fields on a clan row
+   and seven player fields on the players' own snapshot rows, including
+   the arena at the 15-minute cadence and the presence series;
+   backfillable to 2026-03-12 for POAP KINGS from the archive. The same
+   principle, applied to the race poll and the war log, fills the rivals'
+   rows and the missed attendance day (2.3).
 3. **One day definition** (3.1, 3.2): `game_day()` and
    `player_snapshot_daily` re-keyed onto it before the new tables land,
    so a season roll, a war day and a series row never straddle.
@@ -1043,31 +1131,35 @@ rival columns (2.3).
 
 ## Appendix A: scratch measurements (2026-09-17)
 
-Database `elixir_ts_scratch`, 125 migrations then `/tmp/ts/ddl.sql`
-(the DDL in Part 4 verbatim): `DDL-OK`. Synthetic fill: 18 clans × 47
-members × 365 game days of member rows, 18 × 365 clan rows, 1,734 players
-× 3 keys × 365 days of progress rows; `vacuum analyze`.
+Two builds of `elixir_ts_scratch`, 125 migrations each, then the
+candidate DDL of Part 4 (`DDL-OK` both times: the first build carried a
+separate member table, the second the revised shape with the roster
+columns on `player_snapshot_daily`). Synthetic fills, then
+`vacuum analyze`:
 
-| Table                        | Rows      | Heap   | Indexes | Total  | Bytes/row |
-| ---------------------------- | --------- | ------ | ------- | ------ | --------- |
-| `clan_member_snapshot_daily` | 308,790   | 30 MB  | 38 MB   | 68 MB  | 232       |
-| `clan_snapshot_daily`        | 6,570     | 704 kB | 368 kB  | 1.1 MB | 173       |
-| `player_progress_daily`      | 1,898,730 | 183 MB | 196 MB  | 379 MB | 209       |
+| Table                                              | Rows      | Heap   | Indexes | Total  | Bytes/row |
+| -------------------------------------------------- | --------- | ------ | ------- | ------ | --------- |
+| `player_snapshot_daily`, 725 members × 365 game days, 235 of them with the profile columns filled | 264,625 | 38 MB | 27 MB | 65 MB | 258 |
+| `clan_snapshot_daily`, 18 × 365                    | 6,570     | 704 kB | 368 kB  | 1.1 MB | 173       |
+| `player_progress_daily`, 1,734 × 3 keys × 365     | 1,898,730 | 183 MB | 196 MB  | 379 MB | 209       |
 
-Write guard, the projector's upsert for one member on a fresh day key,
-four polls in sequence: first poll of the day → 1 row written; the
+Write guards, the roster's partial upsert for one player on a fresh day
+key, five polls in sequence: first poll of the day → 1 row written; the
 identical payload fifteen minutes later → 0; trophies moved → 1; an
-older observation replayed out of order → 0, and the row still holds the
-later poll's values.
+older observation replayed out of order → 0; then a same-day profile
+write (`wins`, `profile_observed_at`) followed by a roster poll with
+trophies moved → 1, and the row reads trophies 6,060, wins 12,345,
+`observed_at` 19:30Z, `profile_observed_at` 19:00Z: the roster moved its
+columns and left the profile's alone.
 
 Plans (`explain (analyze, buffers)`, cold cache):
 
 - `clans_timeline` shape, 160 days with the three roster aggregates per
-  day: index scan on `clan_snapshot_daily_pkey` (160 rows, 5 buffers)
-  with a lateral bitmap scan on `clan_member_snapshot_daily_pkey` per
-  day (47 rows × 160), 750 buffers total.
-- member series, one player, 180 days: bitmap scan on
-  `clan_member_snapshot_daily_player`, 180 rows, 187 buffers.
+  day: bitmap scan on `player_snapshot_daily_clan_day` (7,520 rows),
+  236 buffers, plus the 160-row range on `clan_snapshot_daily_pkey`
+  (5 buffers).
+- member series, one player, 180 days: index scan on
+  `player_snapshot_daily_pkey`, 180 rows, 190 buffers.
 - progress series, one player, all keys, 180 days: index scan on
   `player_progress_daily_pkey`, 540 rows, 170 buffers.
 
