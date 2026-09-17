@@ -2578,3 +2578,86 @@ as a repair); the meta tools and `corpusPrior` read them (`players_as_of`
 added: minor); `player_daily_battle_rollup` wired into
 `clans_standings`, `battles_trends`, `players_summary` and first-answer.
 Needs Jamie's go; nothing manual.
+
+## 2026-09-17 — Schema review, Phase D: the season rollups and the daily rollup's readers (0121-0122, contract 3.11.0)
+
+Steps 12-14 of the sequenced plan; five deploys (`6ff33ad`, `9274ddc`,
+`90835e1`, the standings-sql refactor, the edge-day fix), one of them
+a fix-forward recorded below.
+
+**Shipped.** 0121: `meta_season_state` (the hourly cursor, the nightly
+`rebuilt_at`, `final`), `meta_season_totals` (exactly what
+`excludedBreakdown` and `corpusPrior` count, per season and mode group
+plus 'all'), `deck_meta_season`, `card_meta_season` (form -1 = any
+form, for a merged-form anchor). `services/jobs/src/meta-rollup.mjs`:
+the nightly run (04:40Z) rebuilds the running season from the raw rows
+in one transaction - the only writer of distinct players and of
+`final` - then fills any ended season with battles but no final rollup,
+oldest first, within a 300 s budget (the jobs Lambda is 900 s now);
+the hourly run (:45) adds the counters from battles created since the
+season's cursor, five minutes behind now(), and never touches
+`players`. `battles_meta_decks`, `battles_meta_cards` and
+`cards_synergy` read the rollup for a corpus-wide read over exactly
+one season (their default) and carry `players_as_of` and a note; a
+segment read or an explicit window scans the raw rows as before with
+the corpus prior from the totals and `work_mem` raised to 32 MB on the
+call's connection. Contract 3.11.0. The tools2 test pins the rollup
+path equal to the raw path field for field.
+
+Step 14: `services/mcp/src/daily-sql.mjs` is one CTE text over
+`player_daily_battle_rollup` - whole days inside an instant window
+from the rollup, the edge days from the raw rows, both in one shape -
+exact by construction and pinned against the raw rows over five
+windows and a mode filter. `clans_standings` (now `standings-sql.mjs`,
+with `{explain_standings}`), `players_summary`'s 30-day record and the
+first answer's counters read it. `battles_trends` stays raw by
+decision: its `trophy_battles` counts battles carrying a trophy
+change, which the rollup does not hold, and a column for one field is
+a 240k-row backfill.
+
+**Fixed forward, twice.** (1) The first nightly rebuild on live wrote
+the deck and card rollups and then spent 2.5 minutes in the pair
+aggregation until the 300 s ceiling: the INPUT is (deck, player) rows x
+28 pairs x three form variants, ~25M rows on the micro, not the 16k
+distinct pairs the review counted as output. The orphaned backend was
+terminated with `{terminate_backends}` and the transaction rolled back
+(177k dead rows, autovacuum's); 0122 drops `card_pair_season`, never
+filled, and `cards_synergy` walks only the decks that CONTAIN the
+anchor (deck_card by card id, then the deck-time index) over the
+rollup's baseline and totals - exact distinct pilots per pair over a
+fraction of the population. (2) `{explain_standings}` on the first
+daily-sql deploy showed the raw edge-day half reading the whole window
+through the index and filtering `battle_time::date = from::date`
+afterwards (12,961 rows, 5,702 disk reads for 408 kept, 3.4 s of I/O);
+the edge day is now a range on `battle_time`. The pattern that caught
+both: the op that EXPLAINs the exact text the tool serves.
+
+**Measured live, read-only.** Corpus card meta (S136 to date, 378k
+decided): 14.3 s -> 310 ms (db 84 ms). Corpus deck meta 4.7 s -> 1.9 s
+cold right after the rebuild. `cards_synergy` Mega Knight (28k anchor
+decks, 7.4% usage): 9.5 s -> 3.9 s on the anchor walk. Rollup vs raw at
+the same instant: identical fields (decided 378,350; Barbarian Barrel
+95,978 battles / 19,659 players either way). `clans_standings` 30 days:
+5.9 s -> 4.6 s on the first wiring -> 0.77 s once the edge day was a
+range (the remainder cold rollup pages); the same window answered the
+same numbers before and after for every member whose log had not
+moved in the two minutes between. Nightly rebuild on live: the running
+season 137 s then 121 s; S135 (a full month) 111 s; 2025-12..2026-07
+0.3-61 s each; nine seasons final. The hourly run reports
+`cursor_ahead` correctly inside five minutes of a rebuild.
+
+**Open, for the next nights.** Tonight is the first scheduled nightly
+and the first :45 hourly runs; `pending_after` was 0 after the second
+manual run, so the nightly should touch the running season only.
+`deck_meta_season` is rewritten nightly (177k rows deleted and
+reinserted for the running season), which autovacuum's 20% trigger
+covers daily; watch `{tables}` for dead rows if the table grows.
+
+**Phase E next (step 15, section 1.8).** JSON columns to typed columns
+and rows, table by table: `player_snapshot_daily.lifetime` / `pol` /
+`league_stats` and the two event payloads (fills inside the migration,
+thousands of rows), `card.icon_urls`, `player_activity.rhythm` /
+`not_recorded_days` (`days` retires: it is the daily rollup),
+`oauth_client.redirect_uris`; `battle_participant.tower_hp` by a
+keyset-batched op (509k rows, the 0099 shape) with the column drop a
+deploy later. Needs Jamie's go; nothing manual.
