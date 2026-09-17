@@ -165,12 +165,12 @@ keyset-batched backfill (the 0099 shape, ~30 minutes on the micro), 2-4 MB
 of heap, and a permanent write per row for no read that the range cannot
 serve. Where a season *grain* is needed (the Tier 2 rollups) it is computed
 at rollup time from the same function, keyed by `season_month`. The
-exception is `battle.season_id`, which already exists for war attribution
-and keeps the war integer because that is what the war log speaks; it
-gains a foreign key to `season (war_season_id)`; see 1.2. The war tables
+same reasoning retires the war stamps on `battle` (1.2). The war tables
 (`war_week`, `war_participation`, `war_attendance_day`, `war_week_clan`)
-likewise keep their integer and gain the same reference; renaming their
-`season_id` to `war_season_id` is a cosmetic contraction for later.
+keep their integer key because that is the API's own key for that surface
+(`riverracelog` speaks `(seasonId, sectionIndex)` and never the month) and
+gain a reference to `season (war_season_id)`; renaming their `season_id`
+to `war_season_id` is a cosmetic contraction for later.
 
 **The tools: default window and the boundary rule.** Today
 `battles_meta_cards`, `battles_meta_decks` and `cards_synergy` default to
@@ -221,53 +221,115 @@ projector upserts `mode_season` from `progress` keys; the scheduler gains a
 once-per-season upsert. Risk: low; the only behaviour change is the default window, which
 is the point.
 
-### 1.2 War keys on battles: validate them against the season, and repair the import
+### 1.2 War battles: derive the week and day from a master calendar, retire the stamps
 
-**Finding.** `battle.season_id`, `section_index`, `war_day` are stamped by
-`stampWarKeys` only for `riverRace%`/`boatBattle` types, only for battles
-within 14 days, only when the *clan's* `currentriverrace` poll follows the
-battle, and only once (`war.mjs:511-546`). Result: 208,452 battles have no
-season (fine for non-war types), but of the 13,113 war-type battles,
-10,000 (76%) are unstamped (`riverRacePvP` 7,227 of 9,927 unstamped,
-`riverRaceDuel` 1,293 of 2,160, `boatBattle` 1,773 of 1,972). `war_current`
+**Finding.** The API stamps nothing on a war battle: a battlelog entry has
+a `type` and a `battleTime`. Ingest tries to add what the API does not
+give. `stampWarKeys` writes `season_id`, `section_index` and `war_day`
+onto the `battle` row, only for battles inside 14 days, only when the
+clan's next `currentriverrace` poll follows the battle, and only once
+(`war.mjs:511-546`, coalesce-fill). Result on the clone: of 13,113
+war-type battles, 10,000 (76%) carry no key (`riverRacePvP` 7,227 of
+9,927, `riverRaceDuel` 1,293 of 2,160, `boatBattle` 1,773 of 1,972), and
+3,230 stamped ones contradict their own `battle_time` (3,228 of them from
+the 2026-09-15 elixir-bot import, which brought its own keys: 1,234 POAP
+KINGS battles in August 2026 stamped S132, a May season). Nothing can heal
+them: the stamper revisits `season_id IS NULL` only. `war_current`
 attendance (`war.mjs:327-348`), `war_history` member weeks and
-`clans_participation` all join `battle` on `(season_id, section_index,
-war_day)`, so three quarters of the war battles the record holds are
-invisible to the war readers.
+`clans_participation` all join `battle` on those columns, so three
+quarters of the war battles the record holds are invisible to the war
+readers, and some of the rest are filed under the wrong week.
 
-**Fix.**
+**What the game's clock actually is, from the API across clans.** Probed
+2026-09-17 on six clans in five countries (recorded in
+`cr-agent-api-docs/clans.md`):
+
+- The week key `(seasonId, sectionIndex)` and the live `periodIndex` are
+  identical for every clan at the same instant (all six logs agree on
+  `135.0`..`136.0`; three live races read `sectionIndex 1, periodIndex 10,
+  warDay` at 12:00Z). The war calendar is global.
+- The close *instant* is per race, drawn at the season roll and stable to
+  the second within it: `09:34Z` for POAP KINGS in S135, `09:44Z`,
+  `09:48Z`, `09:54Z`, `09:55Z`, `09:57Z` for the other five, all inside
+  the `09:30Z`-`10:00Z` band before the 10:00Z policy hour, and all
+  re-drawn at S136 (`09:38Z`, `09:39Z`, `09:44Z`, `09:46Z`, `09:47Z`,
+  `09:47Z`). Our own `war_period_anchor` rows for POAP KINGS show the
+  daily `periodIndex` flip first observed at 09:37Z, 09:40Z, 09:47Z on
+  consecutive days, consistent with the clan's slot rather than the hour.
+- The code already decided this (`war-clock.mjs:256-263`, Jamie
+  2026-09-07): a multi-clan service follows the **policy grid**, 10:00Z,
+  for every clan, so "war day 3" means one comparable window; a clan's own
+  slot is an observation, not a clock. This review does not reopen that.
+
+So a war battle's week and day are a pure function of `battle_time` on a
+global grid, with one bounded caveat: a battle a clan plays between its
+own slot and 10:00Z belongs to the new period in the game and to the old
+period on the grid. That band is at most 30 minutes of each war day, it
+runs in one direction (the grid is late, never early, because every
+observed slot precedes the hour), and the record can say exactly which
+battles sit in it because the clan's slot is in its own log.
+
+**Fix.** A master `war_period` calendar, one row per period of every
+season, seeded from `season` and the grid; readers resolve a battle by
+range, and the three stamp columns on `battle` retire.
 
 ```sql
--- 01xx_battle_war_keys_fk.sql  (instant: NOT VALID takes no scan lock)
-alter table battle
-  add constraint battle_season_fk foreign key (season_id) references season (war_season_id) not valid;
--- later, its own migration once the repair op has run:
-alter table battle validate constraint battle_season_fk;
+-- 01xx_war_period.sql  (instant; ~35 rows a season)
+create table war_period (
+  war_season_id  integer not null references season (war_season_id),
+  period_index   integer not null,                     -- season-monotonic, as currentriverrace reports it
+  section_index  smallint not null,                    -- period_index / 7
+  day_in_section smallint not null,                    -- period_index % 7
+  kind           text not null check (kind in ('training', 'war', 'colosseum')),
+  war_day        smallint check (war_day between 1 and 4),
+  starts_at      timestamptz not null,                 -- policy grid: 10:00Z
+  ends_at        timestamptz not null,
+  primary key (war_season_id, period_index),
+  unique (starts_at),
+  check (section_index = period_index / 7),
+  check (day_in_section = period_index % 7),
+  check ((kind = 'training') = (war_day is null)),
+  exclude using gist (tstzrange(starts_at, ends_at) with &&)
+);
+comment on table war_period is
+  'The policy grid, one row per river race period: days roll at 10:00Z, three training days then four war days per section, the last section of a season is colosseum. Global; a clan''s own close slot lives in war_week_clan.finish_time and riverracelog, not here.';
+
+-- A clan's observed slot, from its own log: the API's createdDate for each
+-- week it closed. Already implied by war_week.finished_observed_at (an
+-- observation with polling latency); this is the API's own stamp.
+alter table war_week add column closed_at timestamptz;   -- riverracelog[].createdDate, exact
 ```
 
-plus a **migrate op**, not a migration (it touches 9.5k rows, small, but
-the shape should be the batched one on principle):
+A war reader then joins `battle_participant bp` (which carries `clan_tag`
+and `battle_time`) to `war_period p on bp.battle_time >= p.starts_at and
+bp.battle_time < p.ends_at`, and to the clan's `war_week` on
+`(bp.clan_tag, p.war_season_id, p.section_index)`. Every war battle
+resolves, including the 76% and the imported rows, with no stamp, no
+14-day window and no dependence on which poll came first. The
+`battle_unstamped_war` partial index and `stampWarKeys` retire with the
+columns; `war_period_anchor` stays as the per-clan observation that would
+reveal a grid change. Where the slot band matters (attendance on the last
+war day, "decks used today" near the close), the reader can flag battles
+with `battle_time` between `war_week.closed_at`'s time of day and 10:00Z
+as `slot_band: true` rather than guess; that is a tool refinement, not a
+schema one.
 
-```sql
--- {rekey_war_battles}: null every stamp that disagrees with the season the
--- battle_time falls in, then re-stamp from the calendar for any war battle
--- whose (clan, season, section) week row exists.
-update battle b set season_id = null, section_index = null, war_day = null
-from season s
-where b.season_id is not null
-  and s.war_season_id = b.season_id
-  and (b.battle_time < s.starts_at or b.battle_time >= s.ends_at);
-```
+**Not overfitted to one clan, by construction.** Nothing in the table is
+observed from POAP KINGS: the grid is the policy the code already applies
+to every clan, the season bounds come from `season`, and the only per-clan
+fact (`closed_at`) is each clan's own API stamp. The six-clan probe is the
+evidence that the keys are global and that the per-clan part is the close
+instant alone.
 
-and the stamper itself should resolve from `battle_time` against `season`
-plus the clan's `war_period_anchor`, for *all* unstamped war battles of a
-recorded clan, not the last 14 days. The war readers gain the 10,000
-battles they cannot see. Add `check (war_day between 1 and 4)` and `check
-(section_index between 0 and 4)` while the column is small.
-
-**Cost.** One-off op over 9.5k rows; no index change. Risk: the re-stamp
-must respect the 09:34-10:00Z stand-by window (0048) by taking the
-boundary from `season.starts_at`, which is 10:00Z, never from a poll time.
+**Cost.** `war_period` is ~35 rows a season, seeded ahead by the scheduler
+with the season. `war_week.closed_at` is one nullable column, filled by
+the riverracelog projector from now on and by one small op for the 343
+existing weeks whose `finished_observed_at` is a polling-latency bound on
+it. Dropping `battle.season_id`, `section_index`, `war_day` is
+expand-and-contract: readers move first, the columns go in the contract
+phase. Risk: the readers' war attribution changes for the 10,000 battles
+that were invisible, which is the point, and for the imported 3,230, which
+were wrong.
 
 ### 1.3 Foreign keys: three to add now, two to decline with numbers
 
@@ -281,7 +343,7 @@ under `SHARE UPDATE EXCLUSIVE`, no rewrite):**
 | `war_participation (clan_tag, season_id, section_index) -> war_week` | 0 | 36,159 |
 | `war_attendance_day (clan_tag, season_id, section_index) -> war_week` | 0 | 9,204 |
 | `war_week_clan (clan_tag, season_id, section_index) -> war_week` | 0 | 1,715 |
-| `war_week.season_id -> season (war_season_id)`, `war_participation.season_id` likewise, `ranking_presence`/`ranking_snapshot` after 1.5 | 0 | small |
+| `war_week.season_id -> season (war_season_id)`, `war_participation.season_id` likewise, `war_week (season_id, section_index) -> war_period`, `ranking_presence`/`ranking_snapshot` after 1.5 | 0 | small |
 
 ```sql
 alter table battle_participant
@@ -667,9 +729,9 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 | 1   | `season` (keyed `season_month`, `war_season_id` derived and log-verified) + `mode_season`; seed 2026-02..2026-10; scheduler upserts on rollover | instant (create table)  | none     |
 | 2   | (withdrawn: balance changes are not modelled, Jamie 2026-09-17; the catalog-history item is 3.7, optional) | -                                            | -        |
 | 3   | Meta tools: default window = current season; `season` argument; `applied.window.season` and `crosses`; the boundary note | code                              | **minor** (3.10) |
-| 4   | `battle.season_id` FK to `season (war_season_id)` `not valid`; `check` on `war_day`/`section_index`          | instant                                      | none     |
-| 5   | op `{rekey_war_battles}`: null the 3,230 contradicting stamps; stamper re-stamps all unstamped war battles from `season` + anchor | op, 9.5k rows            | none     |
-| 6   | `validate constraint` on 4                                                                                   | scan, SHARE UPDATE EXCLUSIVE                 | none     |
+| 4   | `war_period` calendar + seed; `war_week.closed_at` + op filling 343 rows from `riverracelog` stamps         | instant + tiny op                            | none     |
+| 5   | War readers (`war_current`, `war_history`, `clans_participation`, timeline) resolve battles by `war_period` range + `bp.clan_tag`; `stampWarKeys` stops writing | code | none (same fields; attribution corrected) |
+| 6   | Drop `battle.season_id`, `section_index`, `war_day` and `battle_unstamped_war` once no reader names them      | instant                                      | none     |
 | 7   | Closing FKs `not valid`: participant->deck, player_card->card, three war tables->war_week                    | instant                                      | none     |
 | 8   | `validate` the five; NOT NULL on `battle_participant.battle_time`/`type` via check-then-set; drop the `type_class` default; delete the empty deck + `card_count > 0` | scans, no rewrite | none |
 | 9   | CHECKs on `player_event.event_type`, `clan_event.event_type`, `rollup.mode_group`; `poll_state.period_type` split; `ranking_snapshot.season_id` -> `season_month` FK (add, fill 1,266 rows, swap) | instant + tiny fill | none |
@@ -683,8 +745,8 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 | 17  | `arena` seed + FK; `api_receipt.job_id` FK `on delete set null`; `poll_state.subject_tag` -> `subject_key`; comments on the two declined FKs | instant | none |
 
 Items 1-3 are the season model and can ship together as one contract bump.
-Items 4-6 must be in that order across two deploys (the FK cannot validate
-until the op has run). Item 12 is the only one that needs an op with real
+Items 4-6 must be in that order across two deploys (the columns cannot go
+until the readers have moved). Item 12 is the only one that needs an op with real
 run time, and it is read-only against the canonical tables.
 
 ---
@@ -714,7 +776,7 @@ anti-join count:
 | `claim_challenge.proof_battle_id -> battle`                   | 0       | add                                   |
 | `recording.subject_tag`, `collection_member.subject_tag`      | 0       | polymorphic (player or clan)          |
 | `poll_state.subject_tag`                                      | 356     | board keys, not tags                  |
-| `battle.season_id -> (no table; war integer, see 1.1)`         | 3,230 contradict `battle_time` | 1.1, 1.2       |
+| `battle.season_id -> (no table; a stamp the API never gave)`   | 3,230 contradict `battle_time`; 76% of war battles unstamped | 1.2, retire |
 
 ## Appendix B: enum census (clone)
 
