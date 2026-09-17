@@ -2349,3 +2349,83 @@ governs every address. Second header: SPF aligned via
 `p=reject`, score 0.0. The `jamie@thingelstad.com` address identity from
 the same session is harmless and left alone. Rule: never create address
 identities under a domain the stack owns.
+
+## 2026-09-17 — Schema review, Phase A: the season is a row (0104, contract 3.10.0)
+
+Steps 1 and 3 of the sequenced plan in
+`docs/reviews/2026-09-16-SCHEMA-REVIEW.md`; every decision there is
+Jamie's of 2026-09-17 and is applied here, not reopened.
+
+**Shipped (`81f8172`, `55cc994`, deployed 12:3xZ; 0104 ran in the
+migrate Lambda as "applied 103, ran 1").** `season` keyed on
+`season_month` (YYYY-MM, the API's own name) with `war_season_id`
+derived from the month, first-Monday 10:00Z bounds under a gist
+no-overlap, `sections`/`colosseum_section`, and `war_id_verified_at`;
+`mode_season` for the `Player.progress` keys verbatim. Seeded 2026-02
+.. 2026-10 by SQL arithmetic, pinned row-for-row against
+`war-clock.mjs` by the test. `services/ingest/src/season.mjs` is the
+one place the calendar becomes rows: the scheduler tick keeps the
+running and next season present (two idempotent inserts a minute, so
+the row exists before the roll); the profile projector fills any month
+a progress key names and upserts `mode_season` (day-grained
+`last_seen_at`, so a poll writes nothing; new keys count as facts); the
+riverracelog projector checks each entry's `seasonId` against the row
+its `createdDate` falls in, stamps `war_id_verified_at` once on a
+match, and on a mismatch emits one `ElixirMCP/Record
+SeasonWarIdMismatch` count (EMF on stdout, injectable through
+`deps.emitMetrics`) behind the new `elixir-mcp-season-war-id-mismatch`
+alarm - nothing relabels, and the war rows still key on the API's own
+number. The fixture log verifies S132-S134 against its own stamps.
+
+Contract 3.10.0: `battles_meta_decks`, `battles_meta_cards`,
+`cards_synergy` default to the current season to date
+(`applied.window.source: "season"`); a `season` argument on those and
+on `battles_trends` takes `'current'`, `'previous'`, the month or the
+war number, and explicit bounds still win (the review's rule; the echo
+tells the truth either way). `applied.window` carries `season` (the
+season the window starts in), `crosses[]` and `season_age_days` on
+every window those tools resolve; the crossing note and the thin-season
+note ride `notes[]`. `battles_trends` keeps its twelve weeks and labels
+each row with the season its Tuesday-to-Sunday fall in (a roll is
+Monday 10:00Z, so the roll week's first hours belong to the season
+before; `crosses` says where). `resolveSeasonWindow` in `shared.mjs`
+is the one resolver. Docs: a Seasons section on Time and clocks.
+
+**Measured live, read-only, warm.** Before: POAP KINGS deck meta with no
+window answered `source: "default"` from 2026-08-20 - 11,633 decided
+observations of which the S135 side was the first eighteen days -
+with no season in the response. After: `source: "season"`, from
+2026-09-07T10:00Z, `season {2026-09, 136}`, `crosses: []`,
+`season_age_days: 10`, 4,399 decided. The same window as an argument
+(`from: 2026-08-20`) now echoes `season: 2026-08` and one crossing at
+2026-09-07T10:00Z with the note. `{explain_meta}` at a ten-day
+window (the current season's age) vs 28 days: corpus card aggregate
+7.9 s vs 8.9 s, prior 0.7 s vs 0.5 s, the clan-scoped reads 17-105 ms
+either way - the season bound saves ~11%, as the review said it would
+(1.1: "the work is the group-by and the join, not the range"); Phase D's
+rollups are the fix for that class. `{deck_census}` all zero; live
+`season` 9 rows, `mode_season` 3 rows within the first minute;
+`elixir-mcp-season-war-id-mismatch` OK. tools.json publishes the
+`season` argument on all four tools; the connector used in this
+session still held the 3.9.0 tools/list, which is exactly the
+`serverInfo.version` cache-bust case and why the argument was accepted
+through the unit tests rather than that client.
+
+**Decisions taken inside the phase.** (1) `war_id_verified_at` is the
+one observation on `season`, as the review specified; the alarm rides
+a metric, not a column, so a mismatch never mutates the calendar. (2)
+The tools do not fall back to arithmetic when a row is missing: the
+scheduler's tick is the guarantee (its own missing-invocations alarm
+covers the failure), and a missing key is `not_found` with the four
+spellings in the hint. (3) `mode_season.last_seen_at` is day-grained
+on purpose (write amplification rule, ENGINEERING.md: ingest
+invariants). (4) `game_clock` is unchanged: it already speaks both
+names and the bounds. Nothing new for `cr-agent-api-docs`: the season
+namespaces and the close-slot band were pushed there on 09-17 before
+this phase (53b3d34, 416fe20, 34cc9a4).
+
+**Phase B next (steps 4-6).** `war_period` + seed, `war_week.closed_at`
+from the riverracelog projector, the war readers resolving by range
+and `bp.clan_tag`, then the three stamp columns and `stampWarKeys`
+retire once no reader names them - two deploys, in that order. Needs
+Jamie's go; nothing manual.
