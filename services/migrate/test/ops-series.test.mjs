@@ -73,16 +73,49 @@ test("snapshot_day_census reports movers and collisions per kind; snapshot_rekey
   // and replaces it.
   await snap("#2PP0V9RR", "2026-09-12", "daily", "2026-09-12T09:00:00Z", 7000);
   await snap("#2PP0V9RR", "2026-09-11", "daily", "2026-09-11T23:30:00Z", 7001);
-  // A pre-0038 row without observed_at cannot be re-keyed and stays.
+  // A pre-0038 row without observed_at: stamped from the day's last
+  // admitted profile receipt (08:00Z, so it moves); one with no receipt
+  // stays where it is.
   await snap("#2PP0V9UU", "2026-09-01", "daily", null, 8000);
+  await snap("#2PP0V9UU", "2026-08-30", "daily", null, 7990);
+  const {
+    rows: [account],
+  } = await db.query(
+    `insert into account (email_hash, status, is_owner, role) values ('series-owner', 'approved', true, 'owner')
+     returning account_id`,
+  );
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'series-gw', '127.0.0.1', 'active') returning gateway_id`,
+    [account.account_id],
+  );
+  for (const [at, admission] of [
+    ["2026-09-01T03:00:00Z", "admitted"],
+    ["2026-09-01T08:00:00Z", "admitted"],
+    ["2026-09-01T09:30:00Z", "rejected"],
+  ])
+    await db.query(
+      `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+       values ('player', '#2PP0V9UU', $1, 'h', $2, $3)`,
+      [at, gw.gateway_id, admission],
+    );
 
   const census = await snapshotDayCensus(SCRATCH_URL);
-  assert.equal(census.rows, 8);
+  assert.equal(census.rows, 9);
   assert.equal(census.players, 4);
   assert.equal(census.players_moving, 3);
+  assert.deepEqual(census.unkeyable_rows, {
+    unkeyable: 2,
+    stampable: 1,
+    stampable_moving: 1,
+    first_day: "2026-08-30",
+    last_day: "2026-09-01",
+  });
   const daily = census.by_kind.find((k) => k.snapshot_kind === "daily");
-  assert.equal(daily.rows, 7);
-  assert.equal(daily.unkeyable, 1);
+  assert.equal(daily.rows, 8);
+  assert.equal(daily.unkeyable, 2);
   assert.equal(
     daily.moving,
     3,
@@ -132,14 +165,15 @@ test("snapshot_day_census reports movers and collisions per kind; snapshot_rekey
       .slice(0, 2)
       .map((r) => [
         r.players,
+        r.stamped_from_receipts,
         r.moved,
         r.inserted,
         r.replaced_older_row,
         r.dropped,
       ]),
     [
-      [2, 3, 2, 1, 0], // #2PP0V9PP's mover replaces the 09-09 row; #2PP0V9QQ's two inserted
-      [2, 1, 0, 1, 0], // #2PP0V9RR's mover replaces the 09-11 row
+      [2, 0, 3, 2, 1, 0], // #2PP0V9PP's mover replaces the 09-09 row; #2PP0V9QQ's two inserted
+      [2, 1, 2, 1, 1, 0], // #2PP0V9RR's mover replaces the 09-11 row; #2PP0V9UU stamped, moved
     ],
   );
 
@@ -156,12 +190,21 @@ test("snapshot_day_census reports movers and collisions per kind; snapshot_rekey
       ["#2PP0V9QQ", "2026-09-09", "daily", 6000],
       ["#2PP0V9QQ", "2026-09-09", "pre_reset", 6001],
       ["#2PP0V9RR", "2026-09-11", "daily", 7000],
-      ["#2PP0V9UU", "2026-09-01", "daily", 8000],
+      ["#2PP0V9UU", "2026-08-30", "daily", 7990],
+      ["#2PP0V9UU", "2026-08-31", "daily", 8000],
     ],
+  );
+  const stampedRow = rows.find((r) => r.trophies === 8000);
+  assert.equal(
+    stampedRow.observed_at.toISOString(),
+    "2026-09-01T08:00:00.000Z",
+    "the last ADMITTED receipt of the UTC day, not the rejected one",
   );
   // Every keyed row now sits on its game day; a second pass is a no-op.
   const again = await snapshotDayCensus(SCRATCH_URL);
   assert.equal(again.players_moving, 0);
+  assert.equal(again.unkeyable_rows.unkeyable, 1);
+  assert.equal(again.unkeyable_rows.stampable, 0);
   const idle = await snapshotRekey(SCRATCH_URL, { batch: 500 });
   assert.equal(idle.moved, 0);
   assert.equal(idle.done, true);

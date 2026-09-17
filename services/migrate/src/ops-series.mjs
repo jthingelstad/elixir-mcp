@@ -16,14 +16,24 @@
  *     are deleted and reinserted under game_day(observed_at); where two
  *     land on one key the later observed_at wins and the earlier is
  *     dropped, which is the rule's own semantics (that poll would never
- *     have been kept). Rows with no observed_at cannot be re-keyed and
- *     stay where they are (reported). The caller passes `after` back
- *     until `done`. RDS snapshot first, as on 2026-09-15.
+ *     have been kept). A row with no observed_at (written before 0038
+ *     and never re-stamped: 2,995 live on 2026-09-17) is first stamped
+ *     from the receipts - the last admitted profile fetch of that tag
+ *     on that UTC day, which is the poll the pre-0038 last-wins rule
+ *     kept - and moves like the rest; one with no such receipt stays
+ *     where it is (reported). The caller passes `after` back until
+ *     `done`. RDS snapshot first, as on 2026-09-15.
  */
 
 import pg from "pg";
 
 const MOVES = `observed_at is not null and game_day(observed_at) <> snapshot_date`;
+/** The last admitted profile fetch of the row's tag on the row's UTC day:
+ *  what wrote a pre-0038 row, by that era's rule. */
+const RECEIPT_STAMP = `(select max(r.fetched_at) from api_receipt r
+   where r.entity_key = s.player_tag and r.endpoint = 'player' and r.admission = 'admitted'
+     and r.fetched_at >= s.snapshot_date::timestamp at time zone 'UTC'
+     and r.fetched_at < (s.snapshot_date + 1)::timestamp at time zone 'UTC')`;
 
 export async function snapshotDayCensus(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -67,7 +77,24 @@ export async function snapshotDayCensus(databaseUrl) {
               count(distinct player_tag) filter (where ${MOVES})::int as players_moving
        from player_snapshot_daily`,
     );
-    return { ...totals, by_kind: byKind, moving_by_utc_hour: hours };
+    // The unkeyable rows, and how many of them the receipts can stamp
+    // (and of those, how many then move).
+    const {
+      rows: [unkeyable],
+    } = await db.query(
+      `select count(*)::int as unkeyable,
+              count(stamp)::int as stampable,
+              count(stamp) filter (where game_day(stamp) <> snapshot_date)::int as stampable_moving,
+              min(snapshot_date)::text as first_day, max(snapshot_date)::text as last_day
+       from (select s.snapshot_date, ${RECEIPT_STAMP} as stamp
+             from player_snapshot_daily s where s.observed_at is null) u`,
+    );
+    return {
+      ...totals,
+      by_kind: byKind,
+      moving_by_utc_hour: hours,
+      unkeyable_rows: unkeyable,
+    };
   } finally {
     await db.end();
   }
@@ -112,6 +139,13 @@ export async function snapshotRekey(databaseUrl, spec = {}) {
       }
       const tags = players.map((p) => p.player_tag);
       const last = tags[tags.length - 1];
+      // Pre-0038 rows first: stamp what the receipts know.
+      const { rowCount: stamped } = await db.query(
+        `update player_snapshot_daily s set observed_at = ${RECEIPT_STAMP}
+         where s.player_tag = any($1::text[]) and s.observed_at is null
+           and ${RECEIPT_STAMP} is not null`,
+        [tags],
+      );
       // The rows that move, held aside for the transaction; then gone
       // from the table; then back under the game day, the later
       // observation winning among themselves and over any row already
@@ -149,6 +183,7 @@ export async function snapshotRekey(databaseUrl, spec = {}) {
       const r = outcome[0];
       return {
         players: tags.length,
+        stamped_from_receipts: stamped,
         moved: deleted,
         inserted: r.inserted,
         replaced_older_row: r.replaced,
