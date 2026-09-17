@@ -715,7 +715,7 @@ test("an expired OAuth access token is refused with 401 and attributed to its fa
   const accountId = acct[0].account_id;
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
-     values ('expired-client', 'Stale Client', '[]'::jsonb, now() + interval '1 day')`,
+     values ('expired-client', 'Stale Client', '{}', now() + interval '1 day')`,
   );
   const minted = await mintTokens(db, {
     clientId: "expired-client",

@@ -17,7 +17,7 @@
  *  troops are not a face), in catalog order. */
 export async function gatewayCardCatalog(db) {
   const { rows } = await db.query(
-    `select c.name, c.icon_urls->>'medium' as icon, c.rarity, c.elixir_cost,
+    `select c.name, c.icon_medium as icon, c.rarity, c.elixir_cost,
             (g.gateway_id is not null) as taken
      from card c
      left join gateway g on g.card_name = c.name and g.status <> 'revoked'
@@ -39,7 +39,7 @@ export async function gatewayCardCatalog(db) {
  *  operators can pass this check together and only one can win. */
 export async function resolveGatewayCard(db, name) {
   const { rows } = await db.query(
-    `select c.name, c.icon_urls->>'medium' as icon,
+    `select c.name, c.icon_medium as icon,
             (select g.gateway_id from gateway g
              where g.card_name = c.name and g.status <> 'revoked' limit 1) as holder
      from card c where c.kind = 'card' and lower(c.name) = lower($1)`,
@@ -64,7 +64,7 @@ export async function ensureGatewayCards(db) {
   for (const g of bare) {
     // Re-read the free set per collector: each assignment shrinks it.
     const { rows: free } = await db.query(
-      `select c.name, c.icon_urls->>'medium' as icon from card c
+      `select c.name, c.icon_medium as icon from card c
        where c.kind = 'card'
          and not exists (select 1 from gateway g
                          where g.card_name = c.name and g.status <> 'revoked')

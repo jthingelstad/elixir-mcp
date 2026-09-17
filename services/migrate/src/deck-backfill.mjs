@@ -282,3 +282,73 @@ export async function typeBackfill(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** {tower_hp_backfill: {after?: [battle_id, player_tag], batch?: 10000}}
+ *  - fill the three tower columns (0123) from tower_hp, one keyset batch
+ *  per call in its own short transaction (the 0099 shape). Returns the
+ *  last key filled; the caller passes it back as `after` until `done`.
+ *  {tower_hp_backfill: {census: true}} counts instead: rows with JSON,
+ *  rows with columns, and the princess-array shapes the JSON holds. */
+export async function towerHpBackfill(databaseUrl, spec = {}) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const started = Date.now();
+  try {
+    if (spec.census) {
+      const {
+        rows: [r],
+      } = await db.query(
+        `select count(*) filter (where tower_hp is not null)::int as with_json,
+                count(*) filter (where king_tower_hp is not null or princess_tower_hp_1 is not null)::int as with_columns,
+                count(*) filter (where tower_hp is not null and king_tower_hp is null
+                                   and princess_tower_hp_1 is null)::int as json_without_columns,
+                count(*) filter (where jsonb_typeof(tower_hp->'princess') = 'array'
+                                   and jsonb_array_length(tower_hp->'princess') = 0)::int as princess_empty,
+                count(*) filter (where jsonb_typeof(tower_hp->'princess') = 'array'
+                                   and jsonb_array_length(tower_hp->'princess') = 1)::int as princess_one,
+                count(*) filter (where jsonb_typeof(tower_hp->'princess') = 'array'
+                                   and jsonb_array_length(tower_hp->'princess') > 2)::int as princess_many,
+                count(*) filter (where tower_hp is not null and tower_hp ? 'king' = false)::int as no_king,
+                count(*) filter (where tower_hp is not null and tower_hp ? 'princess' = false)::int as no_princess
+         from battle_participant`,
+      );
+      return { ...r, ms: Date.now() - started };
+    }
+    const batch = Math.min(Math.max(Number(spec.batch ?? 10000), 100), 50000);
+    const after = Array.isArray(spec.after) ? spec.after : ["", ""];
+    const { rows } = await db.query(
+      `with todo as (
+         select bp.battle_id, bp.player_tag
+         from battle_participant bp
+         where (bp.battle_id, bp.player_tag) > ($1, $2)
+         order by bp.battle_id, bp.player_tag
+         limit $3),
+       done as (
+         update battle_participant bp
+            set king_tower_hp = (bp.tower_hp->>'king')::smallint,
+                princess_tower_hp_1 = case when jsonb_typeof(bp.tower_hp->'princess') = 'array'
+                                           then coalesce((bp.tower_hp->'princess'->>0)::smallint, 0) end,
+                princess_tower_hp_2 = case when jsonb_typeof(bp.tower_hp->'princess') = 'array'
+                                           then coalesce((bp.tower_hp->'princess'->>1)::smallint, 0) end
+           from todo
+          where bp.battle_id = todo.battle_id and bp.player_tag = todo.player_tag
+            and bp.tower_hp is not null
+          returning 1)
+       select (select count(*)::int from todo) as scanned,
+              (select count(*)::int from done) as filled,
+              (select max(battle_id) from todo) as last_battle_id,
+              (select player_tag from todo order by battle_id desc, player_tag desc limit 1) as last_player_tag`,
+      [after[0], after[1], batch],
+    );
+    const r = rows[0];
+    return {
+      scanned: r.scanned,
+      filled: r.filled,
+      after: r.scanned > 0 ? [r.last_battle_id, r.last_player_tag] : after,
+      done: r.scanned < batch,
+      ms: Date.now() - started,
+    };
+  } finally {
+    await db.end();
+  }
+}

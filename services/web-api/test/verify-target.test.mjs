@@ -34,14 +34,9 @@ async function seedCards(tag, n = 24) {
   );
   for (let i = 1; i <= n; i += 1) {
     await db.query(
-      `insert into card (card_id, name, kind, elixir_cost, icon_urls)
-       values ($1, $2, 'card', $3, $4::jsonb) on conflict (card_id) do nothing`,
-      [
-        26000000 + i,
-        `Card ${i}`,
-        (i % 6) + 1,
-        JSON.stringify({ medium: `https://x/${i}.png` }),
-      ],
+      `insert into card (card_id, name, kind, elixir_cost, icon_medium)
+       values ($1, $2, 'card', $3, $4) on conflict (card_id) do nothing`,
+      [26000000 + i, `Card ${i}`, (i % 6) + 1, `https://x/${i}.png`],
     );
     await db.query(
       `insert into player_card (player_tag, card_id, level, first_seen_at, observed_at)

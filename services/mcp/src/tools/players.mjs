@@ -31,6 +31,7 @@ import {
   withWindowSugar,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
+import { iconUrlsOf } from "./cards.mjs";
 
 /** Escape LIKE/ILIKE metacharacters so user text matches literally
  *  (Postgres' default escape character is the backslash). */
@@ -392,13 +393,11 @@ export const playersTools = {
           ? `select distinct on (date_trunc('week', snapshot_date))
                snapshot_date, to_char(snapshot_date, 'IYYY-"W"IW') as iso_week,
                trophies, donations,
-               (lifetime->>'battleCount')::int as battle_count,
-               (lifetime->>'collectionLevel')::int as collection_level
+               battle_count, collection_level
              from player_snapshot_daily where ${where.join(" and ")}
              order by date_trunc('week', snapshot_date), snapshot_date desc`
           : `select snapshot_date, trophies, donations,
-                (lifetime->>'battleCount')::int as battle_count,
-                (lifetime->>'collectionLevel')::int as collection_level
+                battle_count, collection_level
              from player_snapshot_daily where ${where.join(" and ")}
              order by snapshot_date`,
         params,
@@ -469,7 +468,8 @@ export const playersTools = {
       // static facts; levels are already on the 1-16 scale.
       const { rows } = await ctx.db.query(
         `select pc.card_id, pc.level, pc.count, pc.evolution_level, pc.star_level, pc.observed_at,
-                c.name, c.kind, c.rarity, c.elixir_cost, c.max_level, c.max_evolution_level, c.icon_urls
+                c.name, c.kind, c.rarity, c.elixir_cost, c.max_level, c.max_evolution_level,
+               c.icon_medium, c.icon_evolution_medium, c.icon_hero_medium
          from player_card pc
          left join card c on c.card_id = pc.card_id
          where pc.player_tag = $1
@@ -484,7 +484,7 @@ export const playersTools = {
         );
       }
       const { rows: lvl } = await ctx.db.query(
-        `select (lifetime->>'collectionLevel')::int as collection_level
+        `select collection_level
          from player_snapshot_daily where player_tag = $1
          order by snapshot_date desc, snapshot_kind desc limit 1`,
         [tag],
@@ -511,7 +511,7 @@ export const playersTools = {
             : {}),
           ...(r.rarity ? { rarity: r.rarity } : {}),
           ...(r.elixir_cost !== null ? { elixirCost: r.elixir_cost } : {}),
-          ...(r.icon_urls ? { iconUrls: r.icon_urls } : {}),
+          ...(iconUrlsOf(r) ? { iconUrls: iconUrlsOf(r) } : {}),
           forms_available: cardForms(r.max_evolution_level),
           forms_unlocked: cardForms(r.evolution_level),
         };

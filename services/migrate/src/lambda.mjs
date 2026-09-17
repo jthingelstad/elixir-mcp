@@ -11,6 +11,7 @@ import {
   terminateBackends,
   listBackends,
   typeBackfill,
+  towerHpBackfill,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
 import { activityPreview } from "./ops-activity.mjs";
@@ -229,6 +230,14 @@ export async function handler(event) {
     const result = await captureAudit(
       process.env.DATABASE_URL,
       event.capture_audit,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.tower_hp_backfill) {
+    const result = await towerHpBackfill(
+      process.env.DATABASE_URL,
+      event.tower_hp_backfill === true ? {} : event.tower_hp_backfill,
     );
     console.log(JSON.stringify(result));
     return result;

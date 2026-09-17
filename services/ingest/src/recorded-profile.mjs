@@ -1,3 +1,5 @@
+import { snapshotObjects } from "./snapshot-columns.mjs";
+
 /** Shared recorded profile facts; no transport, identity or live-fetch policy. */
 export async function readRecordedProfile(db, tag) {
   const { rows } = await db.query(
@@ -5,9 +7,17 @@ export async function readRecordedProfile(db, tag) {
             p.last_known_clan_tag, cl.name as clan_name,
                 cl.badge_id as clan_badge_id, p.last_known_clan_role,
                 p.years_played, p.account_age_days,
-                s.snapshot_date, s.snapshot_kind, s.trophies, s.pol, s.league_stats,
-                s.donations, s.donations_received, s.lifetime, s.created_at as snapshot_at,
+                s.snapshot_date, s.snapshot_kind, s.trophies,
+                s.donations, s.donations_received, s.created_at as snapshot_at,
                 s.arena_id, s.best_trophies, s.favorite_card_id,
+                s.battle_count, s.wins, s.losses, s.three_crown_wins, s.star_points,
+                s.exp_points, s.collection_level,
+                s.pol_league, s.pol_trophies, s.pol_rank,
+                s.pol_best_league, s.pol_best_trophies, s.pol_best_rank,
+                s.season_trophies, s.season_best_trophies,
+                s.prev_season_month, s.prev_season_rank, s.prev_season_trophies,
+                s.prev_season_best_trophies,
+                s.best_season_month, s.best_season_trophies, s.best_season_rank,
                 (select coalesce(jsonb_agg(jsonb_build_object(
                     'name', b.name, 'level', b.level, 'max_level', b.max_level,
                     'progress', b.progress, 'target', b.target)
@@ -22,5 +32,15 @@ export async function readRecordedProfile(db, tag) {
          where p.player_tag = $1`,
     [tag],
   );
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  // The contract's objects from the typed columns (0123): the shapes
+  // players_profile has always served, now rendered rather than stored.
+  const objects = snapshotObjects(row.snapshot_date ? row : null);
+  return {
+    ...row,
+    pol: objects.pol,
+    league_stats: objects.league_stats,
+    lifetime: objects.lifetime,
+  };
 }

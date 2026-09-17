@@ -14,8 +14,7 @@ export async function captureCoverage(db, playerTag) {
     `with snapshots as (
        select observed_at as observed_to,
               lag(observed_at) over w as observed_from,
-              (lifetime->>'battleCount')::int -
-                lag((lifetime->>'battleCount')::int) over w as expected_battles
+              battle_count - lag(battle_count) over w as expected_battles
        from player_snapshot_daily
        where player_tag = $1 and snapshot_kind = 'daily'
        window w as (order by snapshot_date)

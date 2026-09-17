@@ -711,7 +711,7 @@ test("connections: list shows OAuth families; revoke disconnects; others' famili
   );
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
-     values ('cid-test', 'Claude', '[]', now() + interval '30 days')`,
+     values ('cid-test', 'Claude', '{}', now() + interval '30 days')`,
   );
   const { rows: fam } = await db.query(
     `insert into oauth_family (client_id, account_id, absolute_expires_at)
@@ -2373,7 +2373,7 @@ test("connections report their own usage, origin, and refused credentials", asyn
   const accountId = acct[0].account_id;
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
-     values ('cid-usage', 'Claude Desktop', '[]', now() + interval '30 days')
+     values ('cid-usage', 'Claude Desktop', '{}', now() + interval '30 days')
      on conflict (client_id) do nothing`,
   );
   const { rows: fam } = await db.query(
@@ -2711,7 +2711,7 @@ test("connection capabilities can be edited afterwards, including on an owned ag
   const owner = acct[0].account_id;
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
-     values ('cid-scope', 'Scope Client', '[]', now() + interval '30 days')
+     values ('cid-scope', 'Scope Client', '{}', now() + interval '30 days')
      on conflict do nothing`,
   );
   // The person's own door.
@@ -2849,18 +2849,18 @@ test("an operator picks their collector's card; a card is one live collector's",
   // first fleet read below deals those a face; the picks here come from
   // what that leaves free.
   await db.query(
-    `insert into card (card_id, name, kind, rarity, elixir_cost, icon_urls) values
-       (26000000, 'Knight', 'card', 'common', 3, '{"medium":"https://cdn/knight.png"}'),
-       (26000001, 'Archers', 'card', 'common', 3, '{"medium":"https://cdn/archers.png"}'),
-       (26000002, 'Goblins', 'card', 'common', 2, '{"medium":"https://cdn/goblins.png"}'),
-       (26000003, 'Giant', 'card', 'rare', 5, '{"medium":"https://cdn/giant.png"}'),
-       (26000004, 'P.E.K.K.A', 'card', 'epic', 7, '{"medium":"https://cdn/pekka.png"}'),
-       (26000005, 'Minions', 'card', 'common', 3, '{"medium":"https://cdn/minions.png"}'),
-       (26000006, 'Balloon', 'card', 'epic', 5, '{"medium":"https://cdn/balloon.png"}'),
-       (26000007, 'Witch', 'card', 'epic', 5, '{"medium":"https://cdn/witch.png"}'),
-       (26000008, 'Barbarians', 'card', 'common', 5, '{"medium":"https://cdn/barbs.png"}'),
-       (26000009, 'Golem', 'card', 'epic', 8, '{"medium":"https://cdn/golem.png"}'),
-       (26000063, 'Mega Knight', 'card', 'legendary', 7, '{"medium":"https://cdn/mk.png"}'),
+    `insert into card (card_id, name, kind, rarity, elixir_cost, icon_medium) values
+       (26000000, 'Knight', 'card', 'common', 3, 'https://cdn/knight.png'),
+       (26000001, 'Archers', 'card', 'common', 3, 'https://cdn/archers.png'),
+       (26000002, 'Goblins', 'card', 'common', 2, 'https://cdn/goblins.png'),
+       (26000003, 'Giant', 'card', 'rare', 5, 'https://cdn/giant.png'),
+       (26000004, 'P.E.K.K.A', 'card', 'epic', 7, 'https://cdn/pekka.png'),
+       (26000005, 'Minions', 'card', 'common', 3, 'https://cdn/minions.png'),
+       (26000006, 'Balloon', 'card', 'epic', 5, 'https://cdn/balloon.png'),
+       (26000007, 'Witch', 'card', 'epic', 5, 'https://cdn/witch.png'),
+       (26000008, 'Barbarians', 'card', 'common', 5, 'https://cdn/barbs.png'),
+       (26000009, 'Golem', 'card', 'epic', 8, 'https://cdn/golem.png'),
+       (26000063, 'Mega Knight', 'card', 'legendary', 7, 'https://cdn/mk.png'),
        (159000000, 'Tower Princess', 'support', 'common', null, '{}')
      on conflict (card_id) do nothing`,
   );

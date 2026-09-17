@@ -526,3 +526,60 @@ test("the profile message projects the player as a game entity (§7.2)", async (
     "unchanged badges are not rewritten",
   );
 });
+
+test("the snapshot's typed columns render the objects the JSON held (0123)", async () => {
+  const { snapshotObjects } = await import("../src/snapshot-columns.mjs");
+  const { rows } = await ctx.db.query(`select * from player_snapshot_daily`);
+  assert.ok(rows.length > 0);
+  // The JSON dropped keys whose payload value was undefined; the columns
+  // hold null there. Compare with absent keys read as null.
+  const fill = (obj, keys) =>
+    obj === null || obj === undefined
+      ? null
+      : Object.fromEntries(keys.map((k) => [k, obj[k] ?? null]));
+  const LIFETIME = [
+    "battleCount",
+    "wins",
+    "losses",
+    "threeCrownWins",
+    "starPoints",
+    "expPoints",
+    "collectionLevel",
+  ];
+  const POL = ["leagueNumber", "trophies", "rank"];
+  for (const row of rows) {
+    const o = snapshotObjects(row);
+    assert.deepEqual(
+      o.lifetime,
+      fill(row.lifetime, LIFETIME),
+      `${row.player_tag} lifetime`,
+    );
+    assert.deepEqual(
+      { current: fill(o.pol.current, POL), best: fill(o.pol.best, POL) },
+      { current: fill(row.pol?.current, POL), best: fill(row.pol?.best, POL) },
+      `${row.player_tag} pol`,
+    );
+    const ls =
+      row.league_stats && typeof row.league_stats === "object"
+        ? row.league_stats
+        : null;
+    const norm = (x) =>
+      x === null
+        ? null
+        : {
+            currentSeason: fill(x.currentSeason, ["trophies", "bestTrophies"]),
+            previousSeason: fill(x.previousSeason, [
+              "id",
+              "rank",
+              "trophies",
+              "bestTrophies",
+            ]),
+            bestSeason: fill(x.bestSeason, ["id", "trophies", "rank"]),
+          };
+    assert.deepEqual(
+      norm(o.league_stats),
+      norm(ls),
+      `${row.player_tag} league_stats`,
+    );
+  }
+});

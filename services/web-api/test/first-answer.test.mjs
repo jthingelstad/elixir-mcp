@@ -130,7 +130,7 @@ test("first-answer follows actual capture and distinguishes authorization from n
     pairs.map((r) => ({ playerTag: r.player_tag, day: r.day })),
   );
   await db.query(
-    "insert into oauth_client (client_id, client_name, redirect_uris, expires_at) values ('first-answer', 'Test', '[]', now() + interval '1 day')",
+    "insert into oauth_client (client_id, client_name, redirect_uris, expires_at) values ('first-answer', 'Test', '{}', now() + interval '1 day')",
   );
   await db.query(
     "insert into oauth_family (client_id, account_id, absolute_expires_at) values ('first-answer', $1, now() + interval '1 day'), ('first-answer', $1, now() - interval '1 day'), ('first-answer', $2, now() + interval '1 day')",

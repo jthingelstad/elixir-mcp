@@ -271,11 +271,9 @@ function sessionFacts({ crossed: _c, newly: _n, ...rest }) {
 async function snapshotAt(db, tag, atMs) {
   const { rows } = await db.query(
     `select observed_at, trophies, best_trophies, arena_id,
-            (lifetime->>'collectionLevel')::int as collection_level,
-            (lifetime->>'wins')::int as wins,
-            (lifetime->>'battleCount')::int as battle_count,
+            collection_level, wins, battle_count,
             donations,
-            (pol->'current'->>'leagueNumber')::int as league
+            pol_league as league
        from player_snapshot_daily
       where player_tag = $1 and observed_at is not null
         and observed_at <= ${ts(atMs)}

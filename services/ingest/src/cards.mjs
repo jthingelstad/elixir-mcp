@@ -44,30 +44,40 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
           ? c.maxEvolutionLevel
           : null,
         icon_urls: c.iconUrls ?? null,
+        icon_medium: c.iconUrls?.medium ?? null,
+        icon_evolution_medium: c.iconUrls?.evolutionMedium ?? null,
+        icon_hero_medium: c.iconUrls?.heroMedium ?? null,
       });
     }
   }
   if (rows.length === 0) return { changed: 0 };
   rows.sort((a, b) => a.card_id - b.card_id);
   const { rowCount } = await db.query(
-    `insert into card (card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level, icon_urls, first_seen_at, observed_at, catalog_seen_at)
-     select r.card_id, r.name, r.kind, r.rarity, r.elixir_cost, r.max_level, r.max_evolution_level, r.icon_urls, $2, $2, $2
+    `insert into card (card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level, icon_urls,
+                       icon_medium, icon_evolution_medium, icon_hero_medium, first_seen_at, observed_at, catalog_seen_at)
+     select r.card_id, r.name, r.kind, r.rarity, r.elixir_cost, r.max_level, r.max_evolution_level, r.icon_urls,
+            r.icon_medium, r.icon_evolution_medium, r.icon_hero_medium, $2, $2, $2
      from jsonb_to_recordset($1::jsonb)
        as r(card_id int, name text, kind text, rarity text, elixir_cost int,
-            max_level int, max_evolution_level int, icon_urls jsonb)
+            max_level int, max_evolution_level int, icon_urls jsonb,
+            icon_medium text, icon_evolution_medium text, icon_hero_medium text)
      on conflict (card_id) do update set
        name = excluded.name, kind = excluded.kind, rarity = excluded.rarity,
        elixir_cost = excluded.elixir_cost, max_level = excluded.max_level,
        max_evolution_level = excluded.max_evolution_level,
        icon_urls = excluded.icon_urls, observed_at = excluded.observed_at,
+       icon_medium = excluded.icon_medium,
+       icon_evolution_medium = excluded.icon_evolution_medium,
+       icon_hero_medium = excluded.icon_hero_medium,
        catalog_seen_at = excluded.catalog_seen_at
      where card.catalog_seen_at is null
         or (card.observed_at < excluded.observed_at
             and (card.name, card.kind, card.rarity, card.elixir_cost, card.max_level,
-                 card.max_evolution_level, card.icon_urls)
+                 card.max_evolution_level, card.icon_medium, card.icon_evolution_medium, card.icon_hero_medium)
                 is distinct from
                 (excluded.name, excluded.kind, excluded.rarity, excluded.elixir_cost,
-                 excluded.max_level, excluded.max_evolution_level, excluded.icon_urls))`,
+                 excluded.max_level, excluded.max_evolution_level,
+                 excluded.icon_medium, excluded.icon_evolution_medium, excluded.icon_hero_medium))`,
     [JSON.stringify(rows), fetchedAt],
   );
   return { changed: rowCount };

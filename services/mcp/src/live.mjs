@@ -31,7 +31,7 @@ export function makeLive({ enqueue, retryAfterS = 15 }) {
   ) {
     const maxAge = MAX_AGE_S[endpoint] ?? DEFAULT_MAX_AGE_S;
     const { rows: fresh } = await db.query(
-      `select r.admission, r.admission_errors, r.fetched_at, p.payload_json
+      `select r.admission, r.admission_error_list as admission_errors, r.fetched_at, p.payload_json
        from api_receipt r
        left join api_payload p on p.endpoint = r.endpoint
          and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash

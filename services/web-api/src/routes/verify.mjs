@@ -32,7 +32,7 @@ const POLL_EVERY_S = 15;
  *  not become a way to make the fleet read a stranger every 15 s. */
 export const STARTS_PER_HOUR = 5;
 
-const TARGET_SQL = `select c.card_id, c.name, c.icon_urls->>'medium' as icon
+const TARGET_SQL = `select c.card_id, c.name, c.icon_medium as icon
                     from card c where c.card_id = any($1::int[])`;
 
 async function cardsById(db, ids) {

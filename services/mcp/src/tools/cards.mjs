@@ -43,9 +43,20 @@ const compactCard = (c) => ({
  *  table, never the payload cache), oldest id first. Shared by
  *  cards_catalog, cards_synergy's name resolution and the collector
  *  card avatars. */
+/** The API's iconUrls object from the three columns (0123): the keys
+ *  it carried, none it did not. */
+export function iconUrlsOf(r) {
+  const out = {};
+  if (r.icon_medium) out.medium = r.icon_medium;
+  if (r.icon_evolution_medium) out.evolutionMedium = r.icon_evolution_medium;
+  if (r.icon_hero_medium) out.heroMedium = r.icon_hero_medium;
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 export async function catalogItems(db) {
   const { rows } = await db.query(
-    `select card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level, icon_urls, observed_at
+    `select card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level,
+            icon_medium, icon_evolution_medium, icon_hero_medium, observed_at
      from card order by card_id`,
   );
   return rows.map((r) => ({
@@ -59,7 +70,7 @@ export async function catalogItems(db) {
         ? { maxEvolutionLevel: r.max_evolution_level }
         : {}),
       ...(r.elixir_cost !== null ? { elixirCost: r.elixir_cost } : {}),
-      ...(r.icon_urls ? { iconUrls: r.icon_urls } : {}),
+      ...(iconUrlsOf(r) ? { iconUrls: iconUrlsOf(r) } : {}),
       ...(r.rarity ? { rarity: r.rarity } : {}),
     },
   }));

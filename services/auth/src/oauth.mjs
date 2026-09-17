@@ -216,7 +216,7 @@ export async function registerClient(db, { clientName, redirectUris }) {
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
      values ($1, $2, $3, now() + make_interval(secs => $4))`,
-    [clientId, clientName, JSON.stringify(redirectUris), CLIENT_TTL_SECONDS],
+    [clientId, clientName, redirectUris, CLIENT_TTL_SECONDS],
   );
   return { clientId, clientName, redirectUris };
 }

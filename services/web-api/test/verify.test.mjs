@@ -46,13 +46,9 @@ async function seedCollection(tag, n = 20) {
   );
   for (let i = 1; i <= n; i += 1) {
     await db.query(
-      `insert into card (card_id, name, kind, icon_urls) values ($1, $2, 'card', $3::jsonb)
+      `insert into card (card_id, name, kind, icon_medium) values ($1, $2, 'card', $3)
        on conflict (card_id) do nothing`,
-      [
-        26000000 + i,
-        `Card ${i}`,
-        JSON.stringify({ medium: `https://x/${i}.png` }),
-      ],
+      [26000000 + i, `Card ${i}`, `https://x/${i}.png`],
     );
     await db.query(
       `insert into player_card (player_tag, card_id, level, first_seen_at, observed_at)

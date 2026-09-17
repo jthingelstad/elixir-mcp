@@ -101,13 +101,35 @@ export function battleActivityRoutes({ resolveAccount }) {
       );
       if (claims.length === 0) return json(404, { error: "not_yours" });
       const { rows } = await db.query(
-        `select player_tag, computed_at, window_days, half_life_days, rhythm,
-                rhythm_weight, rhythm_battles, days, not_recorded_days,
+        `select player_tag, computed_at, window_days, half_life_days,
+                rhythm_buckets as rhythm, rhythm_weight, rhythm_battles,
+                not_recorded as not_recorded_days,
                 recorded_from, first_battle_at, last_battle_at, battles_28d
            from player_activity where player_tag = $1`,
         [tag],
       );
       const row = rows[0] ?? null;
+      // The year's daily counts are the daily rollup summed over mode
+      // (0123: player_activity.days retired - it was a nightly copy of
+      // this), so today reads live rather than as of last night.
+      if (row) {
+        const { rows: daily } = await db.query(
+          `select to_char(day, 'YYYY-MM-DD') as day,
+                  sum(battles_captured)::int as battles,
+                  sum(wins)::int as wins, sum(losses)::int as losses
+             from player_daily_battle_rollup
+            where player_tag = $1
+              and day > ($2::timestamptz - make_interval(days => $3))::date
+            group by day`,
+          [tag, row.computed_at, row.window_days],
+        );
+        row.days = Object.fromEntries(
+          daily.map((d) => [d.day, [d.battles, d.wins, d.losses]]),
+        );
+        row.not_recorded_days = (row.not_recorded_days ?? []).map((d) =>
+          d instanceof Date ? utcDay(d) : String(d).slice(0, 10),
+        );
+      }
       // The record of watching: every admitted battle-log read for this
       // player in the window, by UTC day. Import-era receipts carry the
       // export's own fetch time, so replayed history is covered by the

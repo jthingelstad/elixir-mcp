@@ -21,6 +21,8 @@
 
 import { inPreResetWindow } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "./war-clock.mjs";
+import { ensureSeason } from "./season.mjs";
+import { snapshotColumns } from "./snapshot-columns.mjs";
 import { payloadHash } from "./hash.mjs";
 import { emitEvent } from "./events.mjs";
 
@@ -144,11 +146,8 @@ export async function projectPlayerSnapshot(
   // moments are diffed against it, so a moment is written once, by the
   // first poll that sees it, and never again by the polls that follow it
   // the same day.
-  const SNAPSHOT_BASELINE = `select snapshot_date, observed_at, donations, (lifetime->>'battleCount')::int as battle_count,
-            arena_id, best_trophies,
-            (lifetime->>'wins')::int as wins,
-            (lifetime->>'collectionLevel')::int as collection_level,
-            (pol->'current'->>'leagueNumber')::int as pol_league
+  const SNAPSHOT_BASELINE = `select snapshot_date, observed_at, donations, battle_count,
+            arena_id, best_trophies, wins, collection_level, pol_league
      from player_snapshot_daily`;
   const { rows: prevRows } = await db.query(
     `${SNAPSHOT_BASELINE}
@@ -175,12 +174,30 @@ export async function projectPlayerSnapshot(
     collectionLevel: payload.collectionLevel,
   };
 
+  // The typed columns (0123) and, until the drop, the JSON they replace.
+  const cols = snapshotColumns(payload);
+  // The season names are the API's months; a month the calendar lacks
+  // gets its row (pure arithmetic, 0104), anything else is not a season.
+  const monthOrNull = (id) =>
+    typeof id === "string" && /^\d{4}-\d{2}$/.test(id) ? id : null;
+  const prevMonth = monthOrNull(cols.prev_season_month);
+  const bestMonth = monthOrNull(cols.best_season_month);
+  for (const m of new Set([prevMonth, bestMonth]))
+    if (m) await ensureSeason(db, m);
   await db.query(
     `insert into player_snapshot_daily
        (player_tag, snapshot_date, snapshot_kind, trophies, pol, league_stats,
         donations, donations_received, lifetime, collection_hash, observed_at,
-        arena_id, best_trophies, favorite_card_id)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        arena_id, best_trophies, favorite_card_id,
+        battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level,
+        pol_league, pol_trophies, pol_rank, pol_best_league, pol_best_trophies, pol_best_rank,
+        season_trophies, season_best_trophies,
+        prev_season_month, prev_season_rank, prev_season_trophies, prev_season_best_trophies,
+        best_season_month, best_season_trophies, best_season_rank)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+             $15, $16, $17, $18, $19, $20, $21,
+             $22, $23, $24, $25, $26, $27,
+             $28, $29, $30, $31, $32, $33, $34, $35, $36)
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
        trophies = excluded.trophies, pol = excluded.pol,
        league_stats = excluded.league_stats, donations = excluded.donations,
@@ -190,6 +207,18 @@ export async function projectPlayerSnapshot(
        arena_id = excluded.arena_id,
        best_trophies = excluded.best_trophies,
        favorite_card_id = excluded.favorite_card_id,
+       battle_count = excluded.battle_count, wins = excluded.wins, losses = excluded.losses,
+       three_crown_wins = excluded.three_crown_wins, star_points = excluded.star_points,
+       exp_points = excluded.exp_points, collection_level = excluded.collection_level,
+       pol_league = excluded.pol_league, pol_trophies = excluded.pol_trophies, pol_rank = excluded.pol_rank,
+       pol_best_league = excluded.pol_best_league, pol_best_trophies = excluded.pol_best_trophies,
+       pol_best_rank = excluded.pol_best_rank,
+       season_trophies = excluded.season_trophies, season_best_trophies = excluded.season_best_trophies,
+       prev_season_month = excluded.prev_season_month, prev_season_rank = excluded.prev_season_rank,
+       prev_season_trophies = excluded.prev_season_trophies,
+       prev_season_best_trophies = excluded.prev_season_best_trophies,
+       best_season_month = excluded.best_season_month, best_season_trophies = excluded.best_season_trophies,
+       best_season_rank = excluded.best_season_rank,
        created_at = now()
      where player_snapshot_daily.observed_at is null
         or excluded.observed_at >= player_snapshot_daily.observed_at`,
@@ -212,6 +241,28 @@ export async function projectPlayerSnapshot(
       payload.arena?.id ?? null,
       payload.bestTrophies ?? null,
       payload.currentFavouriteCard?.id ?? null,
+      cols.battle_count,
+      cols.wins,
+      cols.losses,
+      cols.three_crown_wins,
+      cols.star_points,
+      cols.exp_points,
+      cols.collection_level,
+      cols.pol_league,
+      cols.pol_trophies,
+      cols.pol_rank,
+      cols.pol_best_league,
+      cols.pol_best_trophies,
+      cols.pol_best_rank,
+      cols.season_trophies,
+      cols.season_best_trophies,
+      prevMonth,
+      cols.prev_season_rank,
+      cols.prev_season_trophies,
+      cols.prev_season_best_trophies,
+      bestMonth,
+      cols.best_season_trophies,
+      cols.best_season_rank,
     ],
   );
 

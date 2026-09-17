@@ -96,11 +96,21 @@ before(async () => {
     `insert into player_activity
        (player_tag, computed_at, window_days, half_life_days, rhythm, rhythm_weight,
         rhythm_battles, days, not_recorded_days, recorded_from, first_battle_at,
-        last_battle_at, battles_28d)
+        last_battle_at, battles_28d, rhythm_buckets, not_recorded)
      values ($1, '2026-09-13T05:30:00Z', 365, 28, $2::jsonb, 2.5, 3,
-             '{"2026-09-08": 3, "2026-05-14": 4, "2026-09-11": 2}'::jsonb, '["2026-09-11"]'::jsonb,
-             '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3)`,
-    [TAG, JSON.stringify(new Array(168).fill(0))],
+             '{}'::jsonb, '[]'::jsonb,
+             '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3,
+             $3::real[], '{2026-09-11}'::date[])`,
+    [TAG, JSON.stringify(new Array(168).fill(0)), new Array(168).fill(0)],
+  );
+  // The year's counts are the daily rollup (0123), not a column.
+  await db.query(
+    `insert into player_daily_battle_rollup (player_tag, day, mode_group, game_mode_id, wins, losses, draws, battles_captured)
+     values ($1, '2026-09-08', 'ladder', 0, 2, 1, 0, 3),
+            ($1, '2026-05-14', 'ladder', 0, 4, 0, 0, 4),
+            ($1, '2026-09-11', 'ladder', 0, 1, 0, 0, 1),
+            ($1, '2026-09-11', 'ranked', 0, 0, 1, 0, 1)`,
+    [TAG],
   );
 });
 after(async () => {
@@ -186,7 +196,7 @@ test("GET: your own player's year, oldest first, coverage from the log reads", a
   assert.equal(by["2026-05-13"].status, "not_recorded", "nothing, no read");
   assert.deepEqual(
     by["2026-05-14"],
-    { day: "2026-05-14", battles: 4, status: "recorded" },
+    { day: "2026-05-14", battles: 4, wins: 4, losses: 0, status: "recorded" },
     "an imported appearance is drawn",
   );
   assert.equal(by["2026-06-01"].status, "not_recorded", "no read covers June");
@@ -201,12 +211,21 @@ test("GET: your own player's year, oldest first, coverage from the log reads", a
   assert.deepEqual(by["2026-09-08"], {
     day: "2026-09-08",
     battles: 3,
+    wins: 2,
+    losses: 1,
     status: "recorded",
   });
   assert.equal(by["2026-09-09"].status, "not_recorded", "between reads");
   assert.deepEqual(
     by["2026-09-11"],
-    { day: "2026-09-11", battles: 2, status: "recorded", partial: true },
+    {
+      day: "2026-09-11",
+      battles: 2,
+      wins: 1,
+      losses: 1,
+      status: "recorded",
+      partial: true,
+    },
     "a marked day with battles is partial",
   );
   assert.equal(by["2026-09-12"].status, "recorded");

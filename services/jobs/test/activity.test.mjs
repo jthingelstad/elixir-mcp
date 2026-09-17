@@ -52,9 +52,9 @@ const flip = (o) => (o === "win" ? "loss" : o === "loss" ? "win" : o);
 async function snapshot(date, observedAt, battleCount) {
   await db.query(
     `insert into player_snapshot_daily
-       (player_tag, snapshot_date, snapshot_kind, observed_at, lifetime)
-     values ($1, $2, 'daily', $3, $4::jsonb)`,
-    [PLAYER, date, observedAt, JSON.stringify({ battleCount })],
+       (player_tag, snapshot_date, snapshot_kind, observed_at, battle_count)
+     values ($1, $2, 'daily', $3, $4)`,
+    [PLAYER, date, observedAt, battleCount],
   );
 }
 

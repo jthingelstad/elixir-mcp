@@ -88,6 +88,21 @@ function towerHp(entry) {
   return Object.keys(out).length > 0 ? out : null;
 }
 
+/** The three tower columns (0123): 0 = destroyed (the API omits a
+ *  destroyed tower from the array), null = not carried. */
+function towerColumns(entry) {
+  const p = Array.isArray(entry.princessTowersHitPoints)
+    ? entry.princessTowersHitPoints
+    : null;
+  return {
+    king_tower_hp: Number.isInteger(entry.kingTowerHitPoints)
+      ? entry.kingTowerHitPoints
+      : null,
+    princess_tower_hp_1: p ? (Number.isInteger(p[0]) ? p[0] : 0) : null,
+    princess_tower_hp_2: p ? (Number.isInteger(p[1]) ? p[1] : 0) : null,
+  };
+}
+
 function sideCrowns(entries) {
   const values = entries
     .map((e) => e.crowns)
@@ -160,6 +175,7 @@ export function canonicalizeBattle(entry) {
         deck_hash: hash,
         elixir_leaked: p.elixirLeaked ?? null,
         tower_hp: towerHp(p),
+        ...towerColumns(p),
         outcome: outcomeFor(p, entries, otherEntries, entry, isTeamSide),
         clan_tag: p.clan?.tag ? normalizeTag(p.clan.tag) : null,
       });
@@ -215,6 +231,9 @@ const PARTICIPANT_COLS = [
   "deck_avg_level",
   "elixir_leaked",
   "tower_hp",
+  "king_tower_hp",
+  "princess_tower_hp_1",
+  "princess_tower_hp_2",
   "outcome",
   "clan_tag",
 ];

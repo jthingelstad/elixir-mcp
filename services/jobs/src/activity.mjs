@@ -125,8 +125,7 @@ async function incompleteIntervalRows(db, tags, now) {
     `with s as (
        select player_tag, observed_at,
               lag(observed_at) over w as observed_from,
-              (lifetime->>'battleCount')::int
-                - lag((lifetime->>'battleCount')::int) over w as expected
+              battle_count - lag(battle_count) over w as expected
          from player_snapshot_daily
         where snapshot_kind = 'daily' and player_tag = any($1::text[])
         window w as (partition by player_tag order by snapshot_date)
@@ -232,13 +231,19 @@ export async function activityHistogram(
         .sort();
       if (r) out.with_battles += 1;
       out.not_recorded_days += notRecorded.length;
+      // The typed columns (0123) and, until the drop, the JSON: the
+      // rhythm as real[168], the not-recorded days as date[]. `days` is
+      // written only because its column still exists; the route reads
+      // the daily rollup.
+      const buckets = r?.buckets ?? new Array(BUCKETS).fill(0);
       await db.query(
         `insert into player_activity
            (player_tag, computed_at, window_days, half_life_days, rhythm,
             rhythm_weight, rhythm_battles, days, not_recorded_days,
-            recorded_from, first_battle_at, last_battle_at, battles_28d)
+            recorded_from, first_battle_at, last_battle_at, battles_28d,
+            rhythm_buckets, not_recorded)
          values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8::jsonb, $9::jsonb,
-                 $10, $11, $12, $13)
+                 $10, $11, $12, $13, $14::real[], $15::date[])
          on conflict (player_tag) do update set
            computed_at = excluded.computed_at,
            window_days = excluded.window_days,
@@ -251,13 +256,15 @@ export async function activityHistogram(
            recorded_from = excluded.recorded_from,
            first_battle_at = excluded.first_battle_at,
            last_battle_at = excluded.last_battle_at,
-           battles_28d = excluded.battles_28d`,
+           battles_28d = excluded.battles_28d,
+           rhythm_buckets = excluded.rhythm_buckets,
+           not_recorded = excluded.not_recorded`,
         [
           p.player_tag,
           at,
           WINDOW_DAYS,
           HALF_LIFE_DAYS,
-          JSON.stringify(r?.buckets ?? new Array(BUCKETS).fill(0)),
+          JSON.stringify(buckets),
           Number((r?.weight ?? 0).toFixed(4)),
           r?.battles ?? 0,
           JSON.stringify(d),
@@ -266,6 +273,8 @@ export async function activityHistogram(
           r?.first ?? null,
           r?.last ?? null,
           r?.battles28 ?? 0,
+          buckets,
+          notRecorded,
         ],
       );
     }

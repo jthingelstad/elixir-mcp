@@ -126,7 +126,7 @@ test(
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
     await scratch.db.query(
-      "insert into oauth_client (client_id,client_name,redirect_uris,expires_at) values ('journey-client','Test client','[]',now()+interval '1 day')",
+      "insert into oauth_client (client_id,client_name,redirect_uris,expires_at) values ('journey-client','Test client','{}',now()+interval '1 day')",
     );
     await scratch.db.query(
       "insert into oauth_family (client_id,account_id,absolute_expires_at) values ('journey-client',$1,now()+interval '1 day')",
@@ -274,7 +274,7 @@ test(
 test("a connection's capabilities can be widened and narrowed in place", async () => {
   await scratch.db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
-       values ('ui-scope', 'Claude', '[]', now() + interval '30 days')
+       values ('ui-scope', 'Claude', '{}', now() + interval '30 days')
        on conflict do nothing`,
   );
   await scratch.db.query(
