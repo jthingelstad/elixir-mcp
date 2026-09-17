@@ -13,6 +13,71 @@ import { emitEvent } from "../../ingest/src/events.mjs";
 import { fixture, scratchDb, seedReceipt } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import {
+  hydratePlayerEvents,
+  hydrateClanEvents,
+  PLAYER_EVENT_COLUMNS,
+  CLAN_EVENT_COLUMNS,
+} from "../src/event-payloads.mjs";
+
+/** A crossing battle as ROWS (0124: an event names its battle by id and
+ *  the timeline describes it from the record): the observer on side 0
+ *  and each opponent on side 1. */
+async function seedCrossing(
+  db,
+  {
+    battle_id,
+    at,
+    type = "PvP",
+    observer,
+    starting_trophies = null,
+    crowns,
+    crowns_against,
+    trophy_change,
+    opponents,
+  },
+) {
+  const tc = type === "clanMate2v2" ? "pvp" : "pvp";
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, $3, $4)
+     on conflict do nothing`,
+    [battle_id, at, type, tc],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, type, type_class, crowns, trophy_change, starting_trophies, outcome)
+     values ($1, $2, $3, 0, $4, $5, $6, $7, $8, 'win') on conflict do nothing`,
+    [
+      battle_id,
+      observer,
+      at,
+      type,
+      tc,
+      crowns,
+      trophy_change,
+      starting_trophies,
+    ],
+  );
+  for (const o of opponents) {
+    await db.query(
+      `insert into player (player_tag, name) values ($1, $2)
+       on conflict (player_tag) do update set name = coalesce(excluded.name, player.name)`,
+      [o.player_tag, o.name ?? null],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, type, type_class, crowns, starting_trophies, outcome)
+       values ($1, $2, $3, 1, $4, $5, $6, $7, 'loss') on conflict do nothing`,
+      [
+        battle_id,
+        o.player_tag,
+        at,
+        type,
+        tc,
+        crowns_against,
+        o.starting_trophies ?? null,
+      ],
+    );
+  }
+}
 
 const CLAN = "#J2RGCRVG";
 const OBSERVER = "#UVQ8RJYG9";
@@ -274,6 +339,18 @@ test("the timeline: battle sessions break on a 30-minute gap, items are oldest f
 test("an arena move names the win that carried the player over the floor, at that battle's instant", async () => {
   // Written by ingest when the record holds the crossing (0102); the
   // timeline reads it as the item's instant and says who it was against.
+  await seedCrossing(ctx.db, {
+    battle_id: "x",
+    at: "2026-09-02T06:46:32.000Z",
+    observer: OBSERVER,
+    starting_trophies: 5970,
+    crowns: 3,
+    crowns_against: 0,
+    trophy_change: 30,
+    opponents: [
+      { player_tag: "#VRL0QQVCP", name: "Jotaro", starting_trophies: 5976 },
+    ],
+  });
   await emitEvent(ctx.db, "arena_changed", {
     tag: OBSERVER,
     windowStart: "2026-09-02T06:07:49Z",
@@ -286,6 +363,7 @@ test("an arena move names the win that carried the player over the floor, at tha
       promoted_by: {
         battle_id: "x",
         battle_time: "2026-09-02T06:46:32.000Z",
+        type: "PvP",
         opponent: {
           player_tag: "#VRL0QQVCP",
           name: "Jotaro",
@@ -325,8 +403,43 @@ test("an arena move names the win that carried the player over the floor, at tha
 });
 
 test("ranked, best-band and career-wins moments name their battle the same way", async () => {
+  await seedCrossing(ctx.db, {
+    battle_id: "y1",
+    at: "2026-09-02T04:34:50.000Z",
+    type: "pathOfLegend",
+    observer: OBSERVER,
+    crowns: 1,
+    crowns_against: 0,
+    trophy_change: 30,
+    opponents: [{ player_tag: "#UYCL80G0", name: "XTRAXTOR" }],
+  });
+  await seedCrossing(ctx.db, {
+    battle_id: "y2",
+    at: "2026-09-02T04:40:00.000Z",
+    observer: OBSERVER,
+    starting_trophies: 5970,
+    crowns: 3,
+    crowns_against: 0,
+    trophy_change: 30,
+    opponents: [
+      { player_tag: "#VRL0QQVCP", name: "Jotaro", starting_trophies: 5976 },
+    ],
+  });
+  await seedCrossing(ctx.db, {
+    battle_id: "y3",
+    at: "2026-09-02T04:45:00.000Z",
+    type: "clanMate2v2",
+    observer: OBSERVER,
+    crowns: 2,
+    crowns_against: 1,
+    trophy_change: null,
+    opponents: [
+      { player_tag: "#2UUUU", name: "Ann" },
+      { player_tag: "#2VVVV", name: null },
+    ],
+  });
   const battle = (extra) => ({
-    battle_id: "y",
+    battle_id: "y1",
     battle_time: "2026-09-02T04:34:50.000Z",
     type: "pathOfLegend",
     opponent: {
@@ -355,6 +468,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
       best: 6087,
       band: 6000,
       crossed_by: battle({
+        battle_id: "y2",
         battle_time: "2026-09-02T04:40:00.000Z",
         type: "PvP",
         opponent: {
@@ -376,12 +490,13 @@ test("ranked, best-band and career-wins moments name their battle the same way",
       wins: 11001,
       step: 11000,
       crossed_by: battle({
+        battle_id: "y3",
         battle_time: "2026-09-02T04:45:00.000Z",
         type: "clanMate2v2",
         opponent: null,
         opponents: [
-          { player_tag: "#A", name: "Ann" },
-          { player_tag: "#B", name: null },
+          { player_tag: "#2UUUU", name: "Ann" },
+          { player_tag: "#2VVVV", name: null },
         ],
         crowns: 2,
         crowns_against: 1,
@@ -412,7 +527,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     "Tue 23:40 AHMOメŞΛDØW set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
   ]);
   assert.deepEqual(text("career_wins_step"), [
-    "Tue 23:45 AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #B.",
+    "Tue 23:45 AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
     "Wed 04:00 AHMOメŞΛDØW passed 12,003 career wins.",
   ]);
 });
@@ -549,6 +664,10 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
     { name: "Played2Years", level: 2, prior_level: 1, max_level: 2 },
     "03",
   );
+  await ctx.db.query(
+    `insert into card (card_id, name, kind, rarity) values (26000029, 'Lava Hound', 'card', 'legendary')
+     on conflict (card_id) do nothing`,
+  );
   await write(
     "card_unlocked",
     { name: "Lava Hound", rarity: "legendary", card_id: 26000029 },
@@ -585,4 +704,41 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
     (b) => b.tag === member.player_tag,
   );
   assert.equal(counted.count, 3);
+});
+
+test("the event ledgers' typed columns render the payloads the JSON held (0124)", async () => {
+  const { rows: pe } = await ctx.db.query(
+    `select ${PLAYER_EVENT_COLUMNS}, payload as stored from player_event order by event_id`,
+  );
+  await hydratePlayerEvents(ctx.db, pe);
+  assert.ok(pe.length > 0, "the fixtures emitted player events");
+  const seen = new Set();
+  for (const r of pe) {
+    seen.add(r.event_type);
+    assert.deepEqual(
+      r.payload,
+      r.stored,
+      `player_event ${r.event_id} ${r.event_type}`,
+    );
+  }
+  const { rows: ce } = await ctx.db.query(
+    `select ${CLAN_EVENT_COLUMNS}, payload as stored from clan_event order by event_id`,
+  );
+  await hydrateClanEvents(ctx.db, ce);
+  const rivalsSorted = (p) =>
+    p && Array.isArray(p.rivals)
+      ? {
+          ...p,
+          rivals: [...p.rivals].sort((a, b) => a.tag.localeCompare(b.tag)),
+        }
+      : p;
+  for (const r of ce) {
+    seen.add(r.event_type);
+    assert.deepEqual(
+      rivalsSorted(r.payload),
+      rivalsSorted(r.stored),
+      `clan_event ${r.event_id} ${r.event_type}`,
+    );
+  }
+  assert.ok(seen.size >= 4, `kinds covered: ${[...seen].join(", ")}`);
 });

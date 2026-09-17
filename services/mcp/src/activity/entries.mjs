@@ -27,6 +27,12 @@
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
+import {
+  hydratePlayerEvents,
+  hydrateClanEvents,
+  PLAYER_EVENT_COLUMNS,
+  CLAN_EVENT_COLUMNS,
+} from "../event-payloads.mjs";
 import { collectionLevelStep } from "../../../ingest/src/snapshots.mjs";
 import { summarizePlayer, summarizeClan, itemText } from "./summary.mjs";
 
@@ -285,13 +291,13 @@ async function snapshotAt(db, tag, atMs) {
 
 async function playerLedger(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
-    `select event_id, event_type, window_end, occurred_at, payload
+    `select ${PLAYER_EVENT_COLUMNS}
        from player_event
       where player_tag = $1 and window_end > ${ts(fromMs)} and window_end <= ${ts(toMs)}
       order by event_id`,
     [tag],
   );
-  return rows;
+  return hydratePlayerEvents(db, rows);
 }
 
 /**
@@ -812,15 +818,16 @@ export async function buildClanEntry(
         standoutSessions.push({ player_tag: playerTag, ...sess });
 
   // Roster moves and war resolutions from the subject ledger, named.
-  const { rows: ledger } = await timed(perf, "clan.ledger", () =>
+  const { rows: ledgerRows } = await timed(perf, "clan.ledger", () =>
     db.query(
-      `select event_id, event_type, window_end, occurred_at, payload from clan_event
+      `select ${CLAN_EVENT_COLUMNS} from clan_event
       where clan_tag = $1
         and window_end > ${ts(fromMs)} and window_end <= ${ts(toMs)}
       order by event_id`,
       [tag],
     ),
   );
+  const ledger = await hydrateClanEvents(db, ledgerRows);
   // Rows written before 3.0.0 name the leaver by tag only; the player
   // table still knows the name.
   const unnamed = ledger
@@ -1081,9 +1088,9 @@ export async function buildClanEntry(
     ),
   );
   // Member moments from the ledger: named, bounded.
-  const { rows: moments } = await timed(perf, "clan.moments", () =>
+  const { rows: momentRows } = await timed(perf, "clan.moments", () =>
     db.query(
-      `select pe.event_id, pe.player_tag, p.name, pe.event_type, pe.window_end, pe.occurred_at, pe.payload
+      `select ${PLAYER_EVENT_COLUMNS.replaceAll(/(^|, )/g, "$1pe.")}, p.name
        from player_event pe
        join clan_membership cm on cm.player_tag = pe.player_tag
         and cm.clan_tag = $1 and cm.left_observed_at is null
@@ -1094,6 +1101,7 @@ export async function buildClanEntry(
       [tag, PLAYER_MOMENT_KINDS],
     ),
   );
+  const moments = await hydratePlayerEvents(db, momentRows);
   const arenaNames = await arenaNamesFor(
     db,
     moments

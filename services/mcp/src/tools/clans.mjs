@@ -11,6 +11,7 @@ import {
 import { isoWeekLabel, isoWeekStart } from "../time.mjs";
 import { MEMBERS_SQL, participationQueries } from "../participation-sql.mjs";
 import { standingsQuery } from "../standings-sql.mjs";
+import { hydrateClanEvents, CLAN_EVENT_COLUMNS } from "../event-payloads.mjs";
 import { formatLocal } from "../time.mjs";
 import {
   ToolFailure,
@@ -387,10 +388,11 @@ export const clansTools = {
         [clanTag, ctx.account.accountId],
       );
       const events = await ctx.db.query(
-        `select event_type, timing, window_end, payload from clan_event
+        `select ${CLAN_EVENT_COLUMNS} from clan_event
          where clan_tag = $1 order by event_id desc limit 20`,
         [clanTag],
       );
+      await hydrateClanEvents(ctx.db, events.rows);
       const tz = ctx.account.timezone;
       return {
         clan_tag: clanTag,

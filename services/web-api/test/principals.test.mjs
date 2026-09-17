@@ -483,9 +483,14 @@ test("an agent's timeline is readable by its owner and nobody else", async () =>
     `insert into clan (clan_tag) values ($1) on conflict do nothing`,
     [subj[0].clan_tag],
   );
+  // The ledger names the member by key (0124); the name is the player's.
   await db.query(
-    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, payload)
-     values ($1, 'member_joined', 'estimated', now(), now(), $2)`,
+    `insert into player (player_tag, name) values ('#20JJJ2CCRU', 'Ada')
+     on conflict (player_tag) do update set name = 'Ada'`,
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, payload, player_tag, role_after)
+     values ($1, 'member_joined', 'estimated', now(), now(), $2, '#20JJJ2CCRU', 'member')`,
     [
       subj[0].clan_tag,
       JSON.stringify({
