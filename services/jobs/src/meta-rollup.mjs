@@ -8,7 +8,9 @@
  *    backfill of past seasons is the job's first few nights, not an
  *    operator's invocation), each as ONE transaction over the raw rows.
  *    This is the only writer of `players` (a distinct count never
- *    sums), of the card pairs, and of `final`. Bounded by a wall-clock
+ *    sums) and of `final`. There is no pair rollup (0122): the pair
+ *    aggregation was 25M rows on the micro; cards_synergy walks the
+ *    anchor's decks instead. Bounded by a wall-clock
  *    budget; what it does not reach tonight it reaches tomorrow.
  *  - metaRollupHourly: the counters (battles, wins, losses, the totals)
  *    for the running season, incremented from the battles created since
@@ -37,8 +39,9 @@ const MODE_GROUP_CASE = `case bp.type ${Object.entries(MODE_GROUP_BY_TYPE)
 /** How far behind now() the hourly increment reads, so an ingest
  *  transaction open at the read is not passed over. */
 export const INCREMENT_LAG_MS = 5 * 60_000;
-/** The nightly run stops starting new seasons after this. */
-const NIGHTLY_BUDGET_MS = 200_000;
+/** The nightly run stops STARTING past seasons after this; the Lambda
+ *  has 900 s, so one full-month season begun at the budget still fits. */
+const NIGHTLY_BUDGET_MS = 300_000;
 
 /** The aggregate statements, shared by the rebuild (into empty rows)
  *  and the increment (added onto existing ones). `pop` must exist. */
@@ -112,17 +115,6 @@ function aggregateSql(month, { withPlayers }) {
        battles = card_meta_season.battles + excluded.battles,
        wins = card_meta_season.wins + excluded.wins,
        losses = card_meta_season.losses + excluded.losses`,
-    pairs: `insert into card_pair_season
-       (season_month, mode_group, card_a, form_a, card_b, form_b, co_battles, wins, players)
-     select '${month}', dp.mode_group, a.card_id, fa.form, b.card_id, fb.form,
-            sum(dp.battles)::int, sum(dp.wins)::int, count(distinct dp.player_tag)::int
-     from dp
-     join deck_card a on a.deck_hash = dp.deck_hash
-     join deck_card b on b.deck_hash = dp.deck_hash and b.card_id > a.card_id
-     cross join lateral (values (a.form::smallint), (-1::smallint)) fa(form)
-     cross join lateral (values (b.form::smallint), (-1::smallint)) fb(form)
-     where not (fa.form = -1 and fb.form = -1)
-     group by dp.mode_group, a.card_id, fa.form, b.card_id, fb.form`,
   };
 }
 
@@ -150,7 +142,6 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
       "meta_season_totals",
       "deck_meta_season",
       "card_meta_season",
-      "card_pair_season",
     ])
       await db.query(`delete from ${table} where season_month = $1`, [month]);
     const sql = aggregateSql(month, { withPlayers: true });
@@ -159,13 +150,11 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
     await db.query(sql.decks);
     await db.query(sql.deckPlayers);
     await db.query(sql.cards);
-    await db.query(sql.pairs);
     const {
       rows: [counts],
     } = await db.query(
       `select (select count(*)::int from deck_meta_season where season_month = $1) as decks,
               (select count(*)::int from card_meta_season where season_month = $1) as cards,
-              (select count(*)::int from card_pair_season where season_month = $1) as pairs,
               (select decided from meta_season_totals where season_month = $1 and mode_group = 'all') as decided`,
       [month],
     );

@@ -1552,10 +1552,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     rows: [season],
   } = await db.query(`select * from season where season_month = '2026-08'`);
   const rebuilt = await rebuildSeason(db, season, { final: true });
-  assert.ok(
-    rebuilt.decks > 0 && rebuilt.cards > 0 && rebuilt.pairs > 0,
-    JSON.stringify(rebuilt),
-  );
+  assert.ok(rebuilt.decks > 0 && rebuilt.cards > 0, JSON.stringify(rebuilt));
   const bounds = {
     from: "2026-08-03T10:00:00Z",
     to: "2026-09-07T10:00:00Z",

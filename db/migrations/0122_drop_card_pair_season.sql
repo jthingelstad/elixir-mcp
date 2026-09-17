@@ -1,0 +1,11 @@
+-- 0122: card_pair_season leaves, never filled. The first nightly rebuild
+-- on live (2026-09-17 13:5xZ) ran the pair aggregation for 2.5 minutes
+-- past the deck and card rollups and hit the Lambda's ceiling: the input
+-- is (deck, player) rows x 28 pairs x three form variants, ~25M rows to
+-- group on a db.t4g.micro, not the 16k distinct pairs the review counted
+-- as the output. The orphaned backend was terminated and the transaction
+-- rolled back; nothing was written. cards_synergy takes its baseline and
+-- totals from card_meta_season / meta_season_totals and walks only the
+-- decks that contain the anchor for the pairs (an index probe, exact
+-- distinct players), which is the part of the old scan that was cheap.
+drop table card_pair_season;

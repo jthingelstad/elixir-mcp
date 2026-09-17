@@ -160,6 +160,8 @@ export const synergyTools = {
           anchorForm: merge ? -1 : formBit,
           minPair,
           limit,
+          season: win.season,
+          types: args.mode ? typesForModeGroup(args.mode) : null,
         });
         totals = {
           decided: roll.prior.decided,

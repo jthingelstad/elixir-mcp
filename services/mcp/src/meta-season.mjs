@@ -109,12 +109,17 @@ export async function rollupCards(db, roll, { minBattles }) {
   return rows;
 }
 
-/** The anchor's own row (form -1 = any form) and its partners by form,
- *  with each partner's baseline usage from card_meta_season. */
+/** cards_synergy over a season: the anchor's own row (form -1 = any
+ *  form) and every partner's baseline from card_meta_season, the decided
+ *  total from the totals; the pairs from the raw rows of the decks that
+ *  CONTAIN the anchor only - deck_card by card id, then the participants
+ *  by (deck_hash, battle_time) - so the distinct pilots per pair are
+ *  exact and the scan is a fraction of the population (0122: a pair
+ *  rollup was 25M rows to group on the micro and never landed). */
 export async function rollupSynergy(
   db,
   roll,
-  { anchorId, anchorForm, minPair, limit },
+  { anchorId, anchorForm, minPair, limit, season, types },
 ) {
   const {
     rows: [anchor],
@@ -123,26 +128,50 @@ export async function rollupSynergy(
      where season_month = $1 and mode_group = $2 and card_id = $3 and form = $4`,
     [roll.month, roll.modeGroup, anchorId, anchorForm],
   );
+  const params = [
+    season.starts_at,
+    season.ends_at,
+    anchorId,
+    roll.month,
+    roll.modeGroup,
+    minPair,
+    limit,
+  ];
+  const formClause =
+    anchorForm >= 0 ? `and a.form = $${params.push(anchorForm)}` : "";
+  const typeClause = types ? `and bp.type = any($${params.push(types)})` : "";
   const { rows: partners } = await db.query(
-    `select p.card_id, c.name, p.form, p.co_battles, p.wins, p.players,
+    `with anchored as (
+       select a.deck_hash from deck_card a
+       where a.card_id = $3 ${formClause}),
+     dp as (
+       select bp.deck_hash, bp.player_tag,
+              count(*)::int as battles,
+              count(*) filter (where bp.outcome = 'win')::int as wins
+       from anchored ad
+       join battle_participant bp on bp.deck_hash = ad.deck_hash
+       where bp.battle_time >= $1 and bp.battle_time < $2
+         and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause}
+       group by bp.deck_hash, bp.player_tag),
+     pairs as (
+       select dc.card_id, dc.form,
+              sum(dp.battles)::int as co_battles,
+              sum(dp.wins)::int as wins,
+              count(distinct dp.player_tag)::int as players
+       from dp join deck_card dc on dc.deck_hash = dp.deck_hash
+       where dc.card_id <> $3
+       group by dc.card_id, dc.form)
+     select p.card_id, c.name, p.form, p.co_battles, p.wins, p.players,
             bl.battles as baseline_battles
-     from (
-       select case when card_a = $3 then card_b else card_a end as card_id,
-              case when card_a = $3 then form_b else form_a end as form,
-              co_battles, wins, players
-       from card_pair_season
-       where season_month = $1 and mode_group = $2
-         and ((card_a = $3 and form_a = $4 and form_b >= 0)
-           or (card_b = $3 and form_b = $4 and form_a >= 0))
-     ) p
+     from pairs p
      join card c on c.card_id = p.card_id
      join card_meta_season bl
-       on bl.season_month = $1 and bl.mode_group = $2
+       on bl.season_month = $4 and bl.mode_group = $5
       and bl.card_id = p.card_id and bl.form = p.form
-     where p.co_battles >= $5
+     where p.co_battles >= $6
      order by p.co_battles desc, p.players desc
-     limit $6`,
-    [roll.month, roll.modeGroup, anchorId, anchorForm, minPair, limit],
+     limit $7`,
+    params,
   );
   return {
     anchor: anchor ?? { battles: 0, wins: 0, players: 0 },

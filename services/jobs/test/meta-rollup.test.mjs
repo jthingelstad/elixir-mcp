@@ -177,28 +177,6 @@ test("nightly: the running season is rebuilt with distinct players; an ended sea
     { form: -1, battles: 4, players: 2 },
     { form: 0, battles: 4, players: 2 },
   ]);
-  const { rows: pairs } = await db.query(
-    `select card_a, form_a, card_b, form_b, co_battles, players from card_pair_season
-     where season_month = $1 and mode_group = 'all' order by card_a, form_a, card_b, form_b`,
-    [current.season_month],
-  );
-  // Knight+Archers three ways (-1/0, 0/-1, 0/0), Archers+Giant likewise.
-  assert.equal(pairs.length, 6);
-  assert.deepEqual(
-    pairs.filter(
-      (p) => p.card_a === 26000000 && p.form_a === 0 && p.form_b === 0,
-    ),
-    [
-      {
-        card_a: 26000000,
-        form_a: 0,
-        card_b: 26000001,
-        form_b: 0,
-        co_battles: 3,
-        players: 2,
-      },
-    ],
-  );
   const { rows: state } = await db.query(
     `select season_month, final, rebuilt_at is not null as rebuilt from meta_season_state order by 1`,
   );

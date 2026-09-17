@@ -745,7 +745,10 @@ Resources:
       Architectures: [arm64]
       Handler: index.handler
       MemorySize: 1024
-      Timeout: 300
+      # 900 since 0121: a full-month season rollup is minutes on the
+      # micro, and the nightly job may fill one past season after the
+      # running one. Reserved concurrency 1 keeps runs from overlapping.
+      Timeout: 900
       ReservedConcurrentExecutions: 1
       Role: !GetAtt JobsRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref JobsCodeKey }
