@@ -3039,3 +3039,59 @@ it (~3 GB a year, not a blocker); Phase 2 timing stands;
 `elixir_data_insights.players_with_snapshot` now counts roster-written
 players and Phase 4 renames or filters it. Nothing new for
 `cr-agent-api-docs`.
+
+## 2026-09-17 — The operations dashboard, the pace and series metrics, and the Elixir application tags
+
+Jamie, after the time-series review: a CloudWatch dashboard for
+Elixir, and "an Elixir tag and an Application = Elixir so we can group
+all the things that are part of this solution together". He created the
+myApplications application `Elixir` (AppRegistry, beside Thingy and
+POAP2RSS; the `awsApplication` cost allocation tag was already active),
+and this session shipped the rest in one deploy (`479a5ef`, stack
+UPDATE_COMPLETE 21:0xZ).
+
+**Shipped.** `Dashboard` in `infra/template.yaml`
+(`AWS::CloudWatch::Dashboard` `elixir-mcp`, 17 widgets, generated JSON
+under `!Sub`; `services/jobs/test/dashboard.test.mjs` parses the body
+and checks every substituted name is a stack resource or parameter and
+that the alarm strip names every alarm): the 17 alarms; the recorder's
+pace (fetches this hour against the budget's ceiling, the bucket's
+tokens); the ledger; the fleet; admission at the collector door; the
+MCP door's calls, latency and errors; the MCP Lambda; the slowest tools
+as a Logs Insights table; the site door and web-api concurrency; the
+micro's CPU and burst credits, memory and connections, disk; the batch
+Lambdas against their timeouts; record integrity; the daily series;
+mail; cost and the archive. Every threshold drawn is an alarm's own.
+The lines it needed that did not exist, all undimensioned so the metric
+count grows by nineteen (prorated, cents): six pace and fleet numbers on
+the scheduler's ledger EMF (`ledgerStats` reads fetches and errors in
+the last hour, the budget's rate and tokens, collectors heard in five
+minutes and draining); one `ElixirMCP/Ingest` line per collector
+submission written by the door in `web-api/src/index.mjs`
+(`ingest-emf.mjs`: Admitted, Rejected, Duplicate, NewFacts, IngestMs;
+the endpoint rides as a field, and the replay lane emits nothing); one
+`ElixirMCP/Series` line a night from the jobs Lambda after the shape
+census (`series-metrics.mjs`, also `{series_metrics: true}` by hand:
+rows on the game day by writer, the three tables' size). Tags:
+`deploy.mjs` passes `awsApplication` (the application's tag value,
+built from the account id and the application id), `Application=Elixir`
+and `Component=elixir-mcp` on create and update; the stack was also
+associated with the application as a CFN_STACK resource. AGENTS.md
+names both.
+
+**Measured live, read-only.** After the deploy every taggable resource
+carries the three tags (checked on the MCP Lambda and the database);
+the application lists the stack; the dashboard renders 17 widgets. The
+next tick emitted the new ledger names (FetchesHour 629 at 21:17Z
+against CeilingHour 3600); the door's first submissions emitted the
+Ingest names within the minute; the series line run by hand read game
+day 2026-09-17 with 9,348 snapshot rows (8,956 roster-written, 893
+profile-written), 214 clan rows, 405 progress rows, the snapshot table
+at 24.9 MB. No alarm through the deploy.
+
+**Left to the other repos.** Elixir Drop and Elixir Clan take the same
+three tags in their own deploy paths (Drop through CI with the parameter
+discipline); until then their existing `application` tag stands and the
+Elixir application shows this stack alone. The dashboard does not draw
+CloudFront by decision (the static site's failures show up nowhere
+anyone acts).
