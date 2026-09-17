@@ -266,7 +266,20 @@ export async function seriesStatus(databaseUrl, spec = {}) {
        group by endpoint order by endpoint`,
       [hours],
     );
-    return { hours, ...tables, receipts };
+    // The arena moments of the last day and how many carry their
+    // battle (Phase 2 correction 2: the log pins a roster-written one).
+    const {
+      rows: [arena],
+    } = await db.query(
+      `select count(*)::int as rows,
+              count(battle_id)::int as with_battle,
+              count(*) filter (where timing = 'exact')::int as exact,
+              count(*) filter (where receipt_id in
+                (select receipt_id from api_receipt where endpoint = 'clan'))::int as from_roster
+       from player_event
+       where event_type = 'arena_changed' and window_end > now() - interval '1 day'`,
+    );
+    return { hours, ...tables, arena_moments_24h: arena, receipts };
   } finally {
     await db.end();
   }

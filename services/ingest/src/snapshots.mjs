@@ -701,6 +701,59 @@ export async function arenaChangedMoment(
   });
 }
 
+/**
+ * The battle log catching up with a roster-written moment (Phase 2
+ * correction 2). A tracked clan's roster reads every fifteen minutes
+ * and an active player's log every fifteen to sixty, so the roster
+ * usually sees the arena before the log delivers the promoting battle,
+ * and the moment is written estimated with no battle. When a delivery
+ * produces arena evidence (pipeline.mjs), this player's most recent
+ * arena_changed within 24 hours that carries no battle and whose `to`
+ * names the evidence's arena gets the same promotion lookup over the
+ * moment's window to the delivery's fetched_at; when it names a battle,
+ * the row's battle columns and occurred_at are filled and the timing
+ * becomes exact, once. Absence over a guess: no battle, no change.
+ * Returns the event id pinned, or null.
+ */
+export async function pinArenaMoment(db, { playerTag, arenaName, fetchedAt }) {
+  const { rows } = await db.query(
+    `select e.event_id, e.arena_to, e.window_start
+       from player_event e
+       join arena a on a.arena_id = e.arena_to
+      where e.player_tag = $1 and e.event_type = 'arena_changed'
+        and e.battle_id is null and a.name = $2
+        and e.window_end > $3::timestamptz - interval '24 hours'
+      order by e.event_id desc limit 1`,
+    [playerTag, arenaName, fetchedAt],
+  );
+  const moment = rows[0];
+  if (!moment) return null;
+  const battles = await windowBattles(db, {
+    playerTag,
+    since: moment.window_start.toISOString(),
+    until: fetchedAt,
+  });
+  const promotion = await promotionBattle(db, {
+    playerTag,
+    battles,
+    arenaId: moment.arena_to,
+    arenaName,
+  });
+  if (!promotion) return null;
+  const { rowCount } = await db.query(
+    `update player_event
+        set battle_id = $2, floor = $3, occurred_at = $4::timestamptz, timing = 'exact'
+      where event_id = $1 and battle_id is null`,
+    [
+      moment.event_id,
+      promotion.battle_id,
+      promotion.arena_floor ?? null,
+      promotion.battle_time,
+    ],
+  );
+  return rowCount > 0 ? moment.event_id : null;
+}
+
 async function ledgerMilestones(
   db,
   { playerTag, prev, payload, fetchedAt, receiptId },

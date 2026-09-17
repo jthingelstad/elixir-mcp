@@ -659,3 +659,109 @@ test("verification item 2: the roster that sees the arena move emits arena_chang
   assert.equal(prof.outcome, "admitted");
   assert.equal((await events("arena_changed")).length, before + 1);
 });
+
+test("correction 2: the log catching up with a roster-written moment pins it once; a second delivery changes nothing", async () => {
+  // The reverse of the test above: the roster sees the next arena
+  // first (09:40), the log delivers the 09:30 crossing win at 09:55.
+  const nextDay = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const AFTER = { id: 54000016, name: "Dragon Spa" };
+  const { projectClanSeries } = await import("../src/series.mjs");
+  const { rows: rc } = await ctx.db.query(
+    `select receipt_id from api_receipt order by receipt_id desc limit 1`,
+  );
+  const before = (await events("arena_changed")).length;
+  // The roster's window starts at the member's latest observation, the
+  // 12:00Z profile poll of the test above; use a later game-day roster.
+  const dayAfter = new Date(Date.parse(`${nextDay}T00:00:00Z`) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const r = await projectClanSeries(ctx.db, {
+    payload: {
+      tag: "#2PP0V9YY",
+      name: "Refresh Clan",
+      memberList: [
+        {
+          tag: ME,
+          name: "promo",
+          role: "member",
+          trophies: 7000,
+          arena: { ...AFTER, rawName: "Arena_16" },
+          clanRank: 1,
+          previousClanRank: 1,
+          donations: 9,
+          donationsReceived: 0,
+          lastSeen: `${dayAfter.replaceAll("-", "")}T093500.000Z`,
+        },
+      ],
+    },
+    observedAt: `${dayAfter}T09:40:00Z`,
+    receiptId: rc[0].receipt_id,
+  });
+  assert.equal(r.arenaMoments, 1);
+  let moments = await events("arena_changed");
+  assert.equal(moments.length, before + 1);
+  let moment = moments[moments.length - 1];
+  assert.equal(moment.timing, "estimated");
+  assert.equal(moment.payload.promoted_by, undefined, "no battle in hand yet");
+  assert.equal(moment.battle_id, null);
+
+  const log = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: `${dayAfter.replaceAll("-", "")}T093000.000Z`,
+          arena: AFTER,
+          mine: 6970,
+          theirs: 6970,
+          opponent: "#0PP0000J",
+          result: [3, 0, 30],
+        }),
+      ],
+      fetchedAt: `${dayAfter}T09:55:00Z`,
+    }),
+  );
+  assert.equal(log.outcome, "admitted", JSON.stringify(log.errors));
+  assert.equal(log.projection.arenaEvidence?.arena, AFTER.name);
+  assert.equal(log.projection.arenaMomentPinned, moment.event_id);
+  moments = await events("arena_changed");
+  assert.equal(moments.length, before + 1, "pinned, not re-emitted");
+  moment = moments[moments.length - 1];
+  assert.equal(moment.timing, "exact");
+  assert.equal(moment.occurred_at.toISOString(), `${dayAfter}T09:30:00.000Z`);
+  assert.equal(moment.payload.promoted_by?.trophies_after, 7000);
+  assert.equal(moment.payload.promoted_by?.arena_floor, 7000);
+
+  // A second delivery of the same log: duplicate battles, no evidence,
+  // nothing changes.
+  const again = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player_battlelog",
+      entityKey: ME,
+      payload: [
+        ladder({
+          at: `${dayAfter.replaceAll("-", "")}T093000.000Z`,
+          arena: AFTER,
+          mine: 6970,
+          theirs: 6970,
+          opponent: "#0PP0000J",
+          result: [3, 0, 30],
+        }),
+      ],
+      fetchedAt: `${dayAfter}T10:25:00Z`,
+    }),
+  );
+  assert.equal(again.outcome, "admitted");
+  assert.equal(again.projection.arenaMomentPinned ?? null, null);
+  const after = await events("arena_changed");
+  assert.equal(after.length, before + 1);
+  assert.equal(
+    after[after.length - 1].occurred_at.toISOString(),
+    `${dayAfter}T09:30:00.000Z`,
+  );
+});

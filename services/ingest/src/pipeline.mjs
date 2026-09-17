@@ -19,7 +19,11 @@ import { payloadHash } from "./hash.mjs";
 import { admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
-import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
+import {
+  projectPlayerBadges,
+  projectPlayerSnapshot,
+  pinArenaMoment,
+} from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
 import { projectRiverRace, projectRiverRaceLog } from "./war.mjs";
@@ -167,13 +171,22 @@ const PROJECTORS = {
     if (fresh) await stampBurst(db, entityKey, fetchedAt);
     // The observer's battles named an arena (0101): if the snapshot does
     // not know it yet, the profile is owed a read now, not in eight hours.
-    if (fresh && result.arenaEvidence)
+    if (fresh && result.arenaEvidence) {
       result.profileRefreshRequested = await requestProfileRefresh(
         db,
         entityKey,
         result.arenaEvidence,
         fetchedAt,
       );
+      // The roster usually sees the arena before the log delivers the
+      // promoting battle: an estimated arena_changed for this arena
+      // gains its battle now, once (snapshots.mjs).
+      result.arenaMomentPinned = await pinArenaMoment(db, {
+        playerTag: entityKey,
+        arenaName: result.arenaEvidence.arena,
+        fetchedAt,
+      });
+    }
     // Yield signal (0017): battles-per-hour EWMA, the one activity
     // number the yield scheduler ranks by. Hours are measured from the
     // last admission; replayed history is excluded (backfill guard).
