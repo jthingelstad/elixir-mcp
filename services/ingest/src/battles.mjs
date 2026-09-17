@@ -79,15 +79,6 @@ function participantDeck(entry) {
   return { deck, hash };
 }
 
-function towerHp(entry) {
-  const out = {};
-  if (entry.kingTowerHitPoints !== undefined)
-    out.king = entry.kingTowerHitPoints;
-  if (entry.princessTowersHitPoints !== undefined)
-    out.princess = entry.princessTowersHitPoints;
-  return Object.keys(out).length > 0 ? out : null;
-}
-
 /** The three tower columns (0123): 0 = destroyed (the API omits a
  *  destroyed tower from the array), null = not carried. */
 function towerColumns(entry) {
@@ -174,7 +165,6 @@ export function canonicalizeBattle(entry) {
         deck, // not a column since 0097: the card rows are cut from it (deck-cards.mjs)
         deck_hash: hash,
         elixir_leaked: p.elixirLeaked ?? null,
-        tower_hp: towerHp(p),
         ...towerColumns(p),
         outcome: outcomeFor(p, entries, otherEntries, entry, isTeamSide),
         clan_tag: p.clan?.tag ? normalizeTag(p.clan.tag) : null,
@@ -230,7 +220,6 @@ const PARTICIPANT_COLS = [
   "deck_hash",
   "deck_avg_level",
   "elixir_leaked",
-  "tower_hp",
   "king_tower_hp",
   "princess_tower_hp_1",
   "princess_tower_hp_2",
@@ -249,7 +238,7 @@ const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter(
   (c) => !PARTICIPANT_KEY.includes(c),
 );
 
-const JSONB_COLS = new Set(["tower_hp"]);
+const JSONB_COLS = new Set();
 
 function paramValues(cols, row) {
   return cols.map((c) => {

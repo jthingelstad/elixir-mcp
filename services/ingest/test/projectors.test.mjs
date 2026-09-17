@@ -1,5 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { playerEvents, clanEvents } from "./event-rows.mjs";
+
 import { gzipSync } from "node:zlib";
 import { processResult } from "../src/pipeline.mjs";
 import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
@@ -56,14 +58,14 @@ test("profile message writes the daily snapshot; day is UTC", async () => {
   );
   assert.equal(result.outcome, "admitted");
   const { rows } = await ctx.db.query(
-    `select trophies, donations, lifetime, collection_hash from player_snapshot_daily
+    `select trophies, donations, battle_count, collection_hash from player_snapshot_daily
      where player_tag = $1 and snapshot_date = '2026-09-01' and snapshot_kind = 'daily'`,
     [tag],
   );
   assert.equal(rows.length, 1);
   assert.equal(rows[0].trophies, profile.trophies);
   assert.equal(rows[0].donations, profile.donations);
-  assert.equal(rows[0].lifetime.battleCount, profile.battleCount);
+  assert.equal(rows[0].battle_count, profile.battleCount);
   assert.ok(
     rows[0].collection_hash,
     "collection hash recorded (stored-on-change basis)",
@@ -218,10 +220,7 @@ test("donation decrease across snapshots emits donation_reset with evidence", as
       fetchedAt: "2026-09-02T08:00:00Z",
     }),
   );
-  const { rows } = await ctx.db.query(
-    `select event_type, timing, payload from player_event where player_tag = $1`,
-    [tag],
-  );
+  const rows = await playerEvents(ctx.db, "player_tag = $1", [tag]);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].event_type, "donation_reset");
   assert.equal(rows[0].timing, "estimated");
@@ -302,9 +301,7 @@ test("roster diffs emit clan events with evidence; first sight was silent", asyn
       fetchedAt: "2026-09-03T14:55:34Z",
     }),
   );
-  const { rows } = await ctx.db.query(
-    `select event_type, timing, window_start, window_end, payload from clan_event order by event_id`,
-  );
+  const rows = await clanEvents(ctx.db);
   assert.deepEqual(rows.map((r) => r.event_type).sort(), [
     "member_left",
     "role_changed",
@@ -345,10 +342,9 @@ test("roster diffs emit clan events with evidence; first sight was silent", asyn
       fetchedAt: "2026-09-03T15:10:34Z",
     }),
   );
-  const { rows: ledger } = await ctx.db.query(
-    `select event_type, payload from clan_event
-      where clan_tag = $1 and event_type = 'member_left'
-        and payload->>'player_tag' = $2`,
+  const ledger = await clanEvents(
+    ctx.db,
+    "clan_tag = $1 and event_type = 'member_left' and player_tag = $2",
     ["#J2RGCRVG", departed2.tag],
   );
   assert.equal(
@@ -525,61 +521,4 @@ test("the profile message projects the player as a game entity (§7.2)", async (
     before.rows[0].at,
     "unchanged badges are not rewritten",
   );
-});
-
-test("the snapshot's typed columns render the objects the JSON held (0123)", async () => {
-  const { snapshotObjects } = await import("../src/snapshot-columns.mjs");
-  const { rows } = await ctx.db.query(`select * from player_snapshot_daily`);
-  assert.ok(rows.length > 0);
-  // The JSON dropped keys whose payload value was undefined; the columns
-  // hold null there. Compare with absent keys read as null.
-  const fill = (obj, keys) =>
-    obj === null || obj === undefined
-      ? null
-      : Object.fromEntries(keys.map((k) => [k, obj[k] ?? null]));
-  const LIFETIME = [
-    "battleCount",
-    "wins",
-    "losses",
-    "threeCrownWins",
-    "starPoints",
-    "expPoints",
-    "collectionLevel",
-  ];
-  const POL = ["leagueNumber", "trophies", "rank"];
-  for (const row of rows) {
-    const o = snapshotObjects(row);
-    assert.deepEqual(
-      o.lifetime,
-      fill(row.lifetime, LIFETIME),
-      `${row.player_tag} lifetime`,
-    );
-    assert.deepEqual(
-      { current: fill(o.pol.current, POL), best: fill(o.pol.best, POL) },
-      { current: fill(row.pol?.current, POL), best: fill(row.pol?.best, POL) },
-      `${row.player_tag} pol`,
-    );
-    const ls =
-      row.league_stats && typeof row.league_stats === "object"
-        ? row.league_stats
-        : null;
-    const norm = (x) =>
-      x === null
-        ? null
-        : {
-            currentSeason: fill(x.currentSeason, ["trophies", "bestTrophies"]),
-            previousSeason: fill(x.previousSeason, [
-              "id",
-              "rank",
-              "trophies",
-              "bestTrophies",
-            ]),
-            bestSeason: fill(x.bestSeason, ["id", "trophies", "rank"]),
-          };
-    assert.deepEqual(
-      norm(o.league_stats),
-      norm(ls),
-      `${row.player_tag} league_stats`,
-    );
-  }
 });

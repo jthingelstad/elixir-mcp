@@ -55,23 +55,13 @@ import {
 } from "../meta-season.mjs";
 import { resolveInstant } from "../time.mjs";
 
-/** tower_hp as served: a one-tower princess array is padded to fixed
- *  length 2 with 0 for the destroyed tower (feedback #22: the API omits a
+/** tower_hp as served, from the three columns (0123): king when
+ *  carried, princess as the fixed pair - a one-tower array was padded
+ *  with 0 for the destroyed tower (feedback #22: the API omits a
  *  destroyed tower on head-to-head rows and writes 0 on duel rows, so
  *  array length was not a tower count). Position carries no meaning. */
-function normalizeTowerHp(t) {
-  if (!t || typeof t !== "object") return t ?? null;
-  if (Array.isArray(t.princess) && t.princess.length === 1)
-    return { ...t, princess: [t.princess[0], 0] };
-  return t;
-}
-
-/** tower_hp from the three columns (0123), the served shape: king when
- *  carried, princess as the fixed pair. A row the backfill has not
- *  reached yet still renders from its JSON. */
 function towerHpOf(r) {
-  const columns = r.king_tower_hp !== null || r.princess_tower_hp_1 !== null;
-  if (!columns) return normalizeTowerHp(r.tower_hp);
+  if (r.king_tower_hp === null && r.princess_tower_hp_1 === null) return null;
   return {
     ...(r.king_tower_hp !== null ? { king: r.king_tower_hp } : {}),
     ...(r.princess_tower_hp_1 !== null
@@ -354,7 +344,7 @@ export const battlesTools = {
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
                 b.arena, b.league_number,
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
-                bp.elixir_leaked, bp.tower_hp, bp.king_tower_hp, bp.princess_tower_hp_1,
+                bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
                 bp.princess_tower_hp_2, bp.outcome
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
@@ -371,11 +361,11 @@ export const battlesTools = {
         const { rows: rest } = await ctx.db.query(
           tag
             ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.tower_hp, o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, p.name
+                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            where o.battle_id = any($1) and o.player_tag <> $2`
             : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.tower_hp, o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, p.name
+                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            join unnest($1::text[], $2::int[]) me(battle_id, side)
              on me.battle_id = o.battle_id

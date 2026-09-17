@@ -53,17 +53,17 @@ export async function emitEvent(
   // an emitter that found the instant (the battle that carried a player
   // over an arena's floor) says so by passing it, and the row is exact.
   const timing = occurredAt ? "exact" : contract.timing;
-  // The typed columns (0124) beside the JSON they replace, until the
-  // drop; one mapping (event-columns.mjs) for both this and the fill.
+  // The typed columns (0124); one mapping (event-columns.mjs) for the
+  // writer and the fill, its inverse in mcp/event-payloads.mjs.
   const columns =
     contract.stream === "player"
       ? playerEventColumns(type, payload)
       : clanEventColumns(type, payload);
   const names = Object.keys(columns);
   await db.query(
-    `insert into ${table} (${tagColumn}, event_type, timing, occurred_at, window_start, window_end, payload, receipt_id,
+    `insert into ${table} (${tagColumn}, event_type, timing, occurred_at, window_start, window_end, receipt_id,
        ${names.join(", ")})
-     values ($1, $2, $3, $4, $5, $6, $7, $8, ${names.map((_, i) => `$${9 + i}`).join(", ")})`,
+     values ($1, $2, $3, $4, $5, $6, $7, ${names.map((_, i) => `$${8 + i}`).join(", ")})`,
     [
       tag,
       type,
@@ -71,7 +71,6 @@ export async function emitEvent(
       timing === "exact" ? (occurredAt ?? windowEnd) : null,
       windowStart ?? windowEnd,
       windowEnd,
-      JSON.stringify(payload),
       receiptId,
       ...names.map((n) => columns[n]),
     ],

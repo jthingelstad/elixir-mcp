@@ -102,8 +102,8 @@ export function battleActivityRoutes({ resolveAccount }) {
       if (claims.length === 0) return json(404, { error: "not_yours" });
       const { rows } = await db.query(
         `select player_tag, computed_at, window_days, half_life_days,
-                rhythm_buckets as rhythm, rhythm_weight, rhythm_battles,
-                not_recorded as not_recorded_days,
+                rhythm, rhythm_weight, rhythm_battles,
+                array(select to_char(d, 'YYYY-MM-DD') from unnest(not_recorded_days) as d) as not_recorded_days,
                 recorded_from, first_battle_at, last_battle_at, battles_28d
            from player_activity where player_tag = $1`,
         [tag],
@@ -125,9 +125,6 @@ export function battleActivityRoutes({ resolveAccount }) {
         );
         row.days = Object.fromEntries(
           daily.map((d) => [d.day, [d.battles, d.wins, d.losses]]),
-        );
-        row.not_recorded_days = (row.not_recorded_days ?? []).map((d) =>
-          d instanceof Date ? utcDay(d) : String(d).slice(0, 10),
         );
       }
       // The record of watching: every admitted battle-log read for this

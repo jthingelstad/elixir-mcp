@@ -489,16 +489,9 @@ test("an agent's timeline is readable by its owner and nobody else", async () =>
      on conflict (player_tag) do update set name = 'Ada'`,
   );
   await db.query(
-    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, payload, player_tag, role_after)
-     values ($1, 'member_joined', 'estimated', now(), now(), $2, '#20JJJ2CCRU', 'member')`,
-    [
-      subj[0].clan_tag,
-      JSON.stringify({
-        player_tag: "#20JJJ2CCRU",
-        name: "Ada",
-        role: "member",
-      }),
-    ],
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, player_tag, role_after)
+     values ($1, 'member_joined', 'estimated', now(), now(), '#20JJJ2CCRU', 'member')`,
+    [subj[0].clan_tag],
   );
 
   const mine = parse(

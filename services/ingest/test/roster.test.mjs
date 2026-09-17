@@ -1,5 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { clanEvents } from "./event-rows.mjs";
+
 import { ingestClanRoster } from "../src/roster.mjs";
 import { fixture, scratchDb } from "./helpers.mjs";
 
@@ -229,9 +231,7 @@ test("the ledger names every roster moment: prev/new role and direction, the dep
       payload: next,
       observedAt: "2026-09-03T15:40:34Z",
     });
-    const { rows } = await fresh.db.query(
-      `select event_type, payload from clan_event order by event_id`,
-    );
+    const rows = await clanEvents(fresh.db);
     const up = rows.find(
       (r) =>
         r.event_type === "role_changed" &&

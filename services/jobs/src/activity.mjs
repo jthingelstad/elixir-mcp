@@ -1,8 +1,9 @@
 /** Nightly battle-activity histogram per recorded player (0084).
  *
  *  Step one of adaptive polling (NOTES 2026-09-12): the record holds every
- *  battle timestamp, so a per-player 24x7 rhythm and a year of daily
- *  counts are a nightly rebuild, not a learner. Two readers: the console's
+ *  battle timestamp, so a per-player 24x7 rhythm is a nightly rebuild,
+ *  not a learner; the year of daily counts the row used to copy is the
+ *  daily rollup (0125), read live by the graphic's route. Two readers: the console's
  *  activity graphic on each tracked player (today), and the battlelog
  *  scheduler's poll placement (after a week of histograms has been read
  *  against the capture audit - the scheduler does NOT read this yet).
@@ -83,26 +84,6 @@ async function rhythmRows(db, tags, now) {
   return rows;
 }
 
-/** One row per (player, UTC day) with at least one battle: the count,
- *  and how many of them were won and lost. Draws and unresolved results
- *  are in the count and in neither tally. */
-async function dayRows(db, tags, now) {
-  const { rows } = await db.query(
-    `select bp.player_tag,
-            to_char(bp.battle_time at time zone 'UTC', 'YYYY-MM-DD') as day,
-            count(*)::int as n,
-            count(*) filter (where bp.outcome = 'win')::int as wins,
-            count(*) filter (where bp.outcome = 'loss')::int as losses
-       from battle_participant bp
-      where bp.player_tag = any($1::text[])
-        and bp.battle_time > $2::timestamptz - make_interval(days => $3)
-        and bp.battle_time <= $2::timestamptz
-      group by 1, 2`,
-    [tags, now, WINDOW_DAYS],
-  );
-  return rows;
-}
-
 /** The UTC day of every capture-audit gap inside the window. */
 async function gapDayRows(db, tags, now) {
   const { rows } = await db.query(
@@ -152,7 +133,9 @@ async function incompleteIntervalRows(db, tags, now) {
 
 async function previousMarks(db, tags) {
   const { rows } = await db.query(
-    `select player_tag, not_recorded_days from player_activity
+    `select player_tag,
+            array(select to_char(d, 'YYYY-MM-DD') from unnest(not_recorded_days) as d) as not_recorded_days
+       from player_activity
       where player_tag = any($1::text[])`,
     [tags],
   );
@@ -200,13 +183,6 @@ export async function activityHistogram(
       if (!p.first || r.first_at < p.first) p.first = r.first_at;
       if (!p.last || r.last_at > p.last) p.last = r.last_at;
     }
-    const days = new Map();
-    for (const r of await dayRows(db, tags, at)) {
-      if (!days.has(r.player_tag)) days.set(r.player_tag, {});
-      // [battles, wins, losses]: the graphic colours a day by its win
-      // share and shades it by its volume (2026-09-15).
-      days.get(r.player_tag)[r.day] = [r.n, r.wins, r.losses];
-    }
     const marks = new Map();
     const mark = (tag, day) => {
       if (!marks.has(tag)) marks.set(tag, new Set());
@@ -222,7 +198,6 @@ export async function activityHistogram(
 
     for (const p of players) {
       const r = rhythm.get(p.player_tag);
-      const d = days.get(p.player_tag) ?? {};
       // Never before recording began: those days are the reader's, from
       // recorded_from, and a mark there would double-count the rule.
       const from = p.recorded_from ? utcDay(p.recorded_from) : null;
@@ -231,19 +206,17 @@ export async function activityHistogram(
         .sort();
       if (r) out.with_battles += 1;
       out.not_recorded_days += notRecorded.length;
-      // The typed columns (0123) and, until the drop, the JSON: the
-      // rhythm as real[168], the not-recorded days as date[]. `days` is
-      // written only because its column still exists; the route reads
-      // the daily rollup.
+      // Typed (0123/0125): the rhythm as real[168], the not-recorded
+      // days as date[]. The year's daily counts are the daily rollup,
+      // which the graphic's route reads directly.
       const buckets = r?.buckets ?? new Array(BUCKETS).fill(0);
       await db.query(
         `insert into player_activity
            (player_tag, computed_at, window_days, half_life_days, rhythm,
-            rhythm_weight, rhythm_battles, days, not_recorded_days,
-            recorded_from, first_battle_at, last_battle_at, battles_28d,
-            rhythm_buckets, not_recorded)
-         values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8::jsonb, $9::jsonb,
-                 $10, $11, $12, $13, $14::real[], $15::date[])
+            rhythm_weight, rhythm_battles, not_recorded_days,
+            recorded_from, first_battle_at, last_battle_at, battles_28d)
+         values ($1, $2, $3, $4, $5::real[], $6, $7, $8::date[],
+                 $9, $10, $11, $12)
          on conflict (player_tag) do update set
            computed_at = excluded.computed_at,
            window_days = excluded.window_days,
@@ -251,30 +224,24 @@ export async function activityHistogram(
            rhythm = excluded.rhythm,
            rhythm_weight = excluded.rhythm_weight,
            rhythm_battles = excluded.rhythm_battles,
-           days = excluded.days,
            not_recorded_days = excluded.not_recorded_days,
            recorded_from = excluded.recorded_from,
            first_battle_at = excluded.first_battle_at,
            last_battle_at = excluded.last_battle_at,
-           battles_28d = excluded.battles_28d,
-           rhythm_buckets = excluded.rhythm_buckets,
-           not_recorded = excluded.not_recorded`,
+           battles_28d = excluded.battles_28d`,
         [
           p.player_tag,
           at,
           WINDOW_DAYS,
           HALF_LIFE_DAYS,
-          JSON.stringify(buckets),
+          buckets,
           Number((r?.weight ?? 0).toFixed(4)),
           r?.battles ?? 0,
-          JSON.stringify(d),
-          JSON.stringify(notRecorded),
+          notRecorded,
           p.recorded_from,
           r?.first ?? null,
           r?.last ?? null,
           r?.battles28 ?? 0,
-          buckets,
-          notRecorded,
         ],
       );
     }

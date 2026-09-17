@@ -167,15 +167,9 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
     4,
     "A, A2, A3 and E inside 28 d; B is on the edge, out",
   );
-  // [battles, wins, losses]: the draw on 09-08 is in the count and in
-  // neither tally.
-  assert.deepEqual(row.days, {
-    "2026-09-08": [3, 1, 1],
-    "2026-08-16": [1, 1, 0],
-    "2026-06-01": [1, 0, 1],
-    "2026-09-06": [1, 1, 0],
-  });
-  assert.deepEqual(row.not_recorded_days, [
+  // The year's daily counts are the daily rollup since 0125, read by
+  // the route; the row carries the marks as dates.
+  assert.deepEqual(row.not_recorded_days.map(utcDay), [
     "2026-09-05",
     "2026-09-06",
     "2026-09-07",
@@ -194,7 +188,7 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
   ).rows[0];
   assert.ok(quiet, "a recorded player with no battles still gets a row");
   assert.equal(quiet.rhythm_battles, 0);
-  assert.deepEqual(quiet.days, {});
+  assert.deepEqual(quiet.not_recorded_days, []);
   assert.equal(Number(quiet.rhythm_weight), 0);
 });
 
@@ -225,7 +219,7 @@ test("marks never precede recording; older marks carry forward across rebuilds",
       PLAYER,
     ])
   ).rows[0];
-  assert.deepEqual(row.not_recorded_days, [
+  assert.deepEqual(row.not_recorded_days.map(utcDay), [
     "2026-09-05",
     "2026-09-06",
     "2026-09-07",

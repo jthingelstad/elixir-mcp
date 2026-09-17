@@ -13,10 +13,12 @@
 
 const ROLE_RANK = { member: 0, elder: 1, coLeader: 2, leader: 3 };
 
+/** As ingest/roster.mjs spells it: promoted / demoted / unknown. */
 function roleDirection(before, after) {
   const a = ROLE_RANK[before] ?? -1;
   const b = ROLE_RANK[after] ?? -1;
-  return b > a ? "promotion" : b < a ? "demotion" : "unchanged";
+  if (a < 0 || b < 0 || a === b) return "unknown";
+  return b > a ? "promoted" : "demoted";
 }
 
 const pick = (obj) =>

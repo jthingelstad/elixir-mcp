@@ -95,13 +95,12 @@ before(async () => {
   await db.query(
     `insert into player_activity
        (player_tag, computed_at, window_days, half_life_days, rhythm, rhythm_weight,
-        rhythm_battles, days, not_recorded_days, recorded_from, first_battle_at,
-        last_battle_at, battles_28d, rhythm_buckets, not_recorded)
-     values ($1, '2026-09-13T05:30:00Z', 365, 28, $2::jsonb, 2.5, 3,
-             '{}'::jsonb, '[]'::jsonb,
-             '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3,
-             $3::real[], '{2026-09-11}'::date[])`,
-    [TAG, JSON.stringify(new Array(168).fill(0)), new Array(168).fill(0)],
+        rhythm_battles, not_recorded_days, recorded_from, first_battle_at,
+        last_battle_at, battles_28d)
+     values ($1, '2026-09-13T05:30:00Z', 365, 28, $2::real[], 2.5, 3,
+             '{2026-09-11}'::date[],
+             '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3)`,
+    [TAG, new Array(168).fill(0)],
   );
   // The year's counts are the daily rollup (0123), not a column.
   await db.query(

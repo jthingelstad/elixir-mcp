@@ -46,7 +46,6 @@ import {
   probe,
   explainParticipation,
   explainStandings,
-  eventPayloadCensus,
   inspect,
   sessions,
   vacuum,
@@ -113,14 +112,6 @@ export async function handler(event) {
   }
   if (event?.vacuum) {
     const result = await vacuum(process.env.DATABASE_URL, event.vacuum);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.event_payload_census) {
-    const result = await eventPayloadCensus(
-      process.env.DATABASE_URL,
-      event.event_payload_census === true ? {} : event.event_payload_census,
-    );
     console.log(JSON.stringify(result));
     return result;
   }

@@ -1,5 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { playerEvents } from "./event-rows.mjs";
+
 import { projectCardCatalog, projectPlayerCards } from "../src/cards.mjs";
 import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 
@@ -57,12 +59,10 @@ test("a collection: first observation is silent, then unlocks and level-ups nod;
     profile.cards.length + (profile.supportCards?.length ?? 0),
   );
   const ledger = async () =>
-    (
-      await ctx.db.query(
-        `select event_type, payload from player_event where player_tag = $1 order by event_id`,
-        [tag],
-      )
-    ).rows;
+    (await playerEvents(ctx.db, "player_tag = $1", [tag])).map((r) => ({
+      event_type: r.event_type,
+      payload: r.payload,
+    }));
   assert.deepEqual(await ledger(), [], "first sight is history, not news");
   const { rows: stored } = await ctx.db.query(
     `select level, count from player_card where player_tag = $1 and card_id = $2`,

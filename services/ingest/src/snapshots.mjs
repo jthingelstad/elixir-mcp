@@ -164,17 +164,8 @@ export async function projectPlayerSnapshot(
   );
   const latest = latestRows[0];
 
-  const lifetime = {
-    battleCount: payload.battleCount,
-    wins: payload.wins,
-    losses: payload.losses,
-    threeCrownWins: payload.threeCrownWins,
-    starPoints: payload.starPoints,
-    expPoints: payload.expPoints,
-    collectionLevel: payload.collectionLevel,
-  };
-
-  // The typed columns (0123) and, until the drop, the JSON they replace.
+  // The typed columns (0123); the objects the contract serves are
+  // rendered from them (snapshot-columns.mjs).
   const cols = snapshotColumns(payload);
   // The season names are the API's months; a month the calendar lacks
   // gets its row (pure arithmetic, 0104), anything else is not a season.
@@ -186,23 +177,22 @@ export async function projectPlayerSnapshot(
     if (m) await ensureSeason(db, m);
   await db.query(
     `insert into player_snapshot_daily
-       (player_tag, snapshot_date, snapshot_kind, trophies, pol, league_stats,
-        donations, donations_received, lifetime, collection_hash, observed_at,
+       (player_tag, snapshot_date, snapshot_kind, trophies,
+        donations, donations_received, collection_hash, observed_at,
         arena_id, best_trophies, favorite_card_id,
         battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level,
         pol_league, pol_trophies, pol_rank, pol_best_league, pol_best_trophies, pol_best_rank,
         season_trophies, season_best_trophies,
         prev_season_month, prev_season_rank, prev_season_trophies, prev_season_best_trophies,
         best_season_month, best_season_trophies, best_season_rank)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-             $15, $16, $17, $18, $19, $20, $21,
-             $22, $23, $24, $25, $26, $27,
-             $28, $29, $30, $31, $32, $33, $34, $35, $36)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+             $12, $13, $14, $15, $16, $17, $18,
+             $19, $20, $21, $22, $23, $24,
+             $25, $26, $27, $28, $29, $30, $31, $32, $33)
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
-       trophies = excluded.trophies, pol = excluded.pol,
-       league_stats = excluded.league_stats, donations = excluded.donations,
+       trophies = excluded.trophies, donations = excluded.donations,
        donations_received = excluded.donations_received,
-       lifetime = excluded.lifetime, collection_hash = excluded.collection_hash,
+       collection_hash = excluded.collection_hash,
        observed_at = excluded.observed_at,
        arena_id = excluded.arena_id,
        best_trophies = excluded.best_trophies,
@@ -227,14 +217,8 @@ export async function projectPlayerSnapshot(
       day,
       kind,
       payload.trophies ?? null,
-      JSON.stringify({
-        current: payload.currentPathOfLegendSeasonResult ?? null,
-        best: payload.bestPathOfLegendSeasonResult ?? null,
-      }),
-      JSON.stringify(payload.leagueStatistics ?? null),
       payload.donations ?? null,
       payload.donationsReceived ?? null,
-      JSON.stringify(lifetime),
       Array.isArray(payload.cards) ? payloadHash(payload.cards) : null,
       fetchedAt,
       // Ids only; names and icons resolve from the catalog at read time.

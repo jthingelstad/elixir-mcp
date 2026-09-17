@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { clanEvents } from "./event-rows.mjs";
 import { projectRiverRace } from "../src/war.mjs";
 import { ingestBattlelog } from "../src/battles.mjs";
 import { fixture, scratchDb, seedReceipt } from "./helpers.mjs";
@@ -38,8 +39,9 @@ test("genesis: no logged season -> the calendar names it, projection proceeds", 
   assert.deepEqual(weeks.rows, [{ season_id: 135, section_index: 3 }]);
   // A recent first sight of the week is the bracket being observed: one
   // ledger row naming the four rivals; not for a payload a day old.
-  const { rows: bracket } = await ctx.db.query(
-    `select payload from clan_event where clan_tag = $1 and event_type = 'bracket_observed'`,
+  const bracket = await clanEvents(
+    ctx.db,
+    "clan_tag = $1 and event_type = 'bracket_observed'",
     [CLAN],
   );
   assert.equal(bracket.length, 0, "an old fetchedAt writes no bracket row");
@@ -582,8 +584,9 @@ test("bracket_observed: the first sight of a new week names its rivals, once", a
   const nowMs = Date.parse("2026-08-30T08:00:00Z");
   await projectRiverRace(ctx.db, { payload, fetchedAt, nowMs });
   await projectRiverRace(ctx.db, { payload, fetchedAt, nowMs });
-  const { rows } = await ctx.db.query(
-    `select payload from clan_event where clan_tag = $1 and event_type = 'bracket_observed'`,
+  const rows = await clanEvents(
+    ctx.db,
+    "clan_tag = $1 and event_type = 'bracket_observed'",
     [OTHER],
   );
   assert.equal(rows.length, 1, "one row for the week, not one per poll");
@@ -594,6 +597,6 @@ test("bracket_observed: the first sight of a new week names its rivals, once", a
   );
   assert.ok(
     p.rivals.every((r) => r.name),
-    "rivals are named from the payload",
+    "rivals are named from the war_week_clan rows",
   );
 });

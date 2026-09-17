@@ -11,6 +11,7 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { playerEvents } from "./event-rows.mjs";
 import { gzipSync } from "node:zlib";
 import { processResult } from "../src/pipeline.mjs";
 import { refreshRequested } from "../../scheduler/src/plan.mjs";
@@ -111,12 +112,10 @@ async function pollState() {
 }
 
 async function events(type) {
-  const { rows } = await ctx.db.query(
-    `select event_type, timing, occurred_at, window_start, window_end, payload from player_event
-     where player_tag = $1 and event_type = $2 order by event_id`,
-    [ME, type],
-  );
-  return rows;
+  return playerEvents(ctx.db, "player_tag = $1 and event_type = $2", [
+    ME,
+    type,
+  ]);
 }
 
 // Fresh enough for the activity signals: the guard is 24h from now, and
@@ -420,9 +419,9 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
   );
   assert.equal(admitted.outcome, "admitted", JSON.stringify(admitted.errors));
   await processResult(ctx.db, profileFor(2, at("05:07:46")));
-  const { rows } = await ctx.db.query(
-    `select timing, occurred_at, payload from player_event
-      where player_tag = $1 and event_type = 'ranked_promotion'`,
+  const rows = await playerEvents(
+    ctx.db,
+    "player_tag = $1 and event_type = 'ranked_promotion'",
     [RANKER],
   );
   assert.equal(rows.length, 1);
@@ -451,9 +450,9 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
     }),
   );
   await processResult(ctx.db, profileFor(3, at("07:00:00")));
-  const { rows: again } = await ctx.db.query(
-    `select timing, occurred_at, payload from player_event
-      where player_tag = $1 and event_type = 'ranked_promotion' order by event_id`,
+  const again = await playerEvents(
+    ctx.db,
+    "player_tag = $1 and event_type = 'ranked_promotion'",
     [RANKER],
   );
   assert.equal(again.length, 2);
@@ -487,8 +486,9 @@ test("an arena move with no reachable floor or no crossing win in the window car
     profileFor(CRYPT, 6012, at("05:00:00")),
   );
   assert.equal(r.outcome, "admitted");
-  const { rows } = await ctx.db.query(
-    `select timing, occurred_at, payload from player_event where player_tag = $1 and event_type = 'arena_changed'`,
+  const rows = await playerEvents(
+    ctx.db,
+    "player_tag = $1 and event_type = 'arena_changed'",
     [OTHER],
   );
   assert.equal(rows.length, 1);

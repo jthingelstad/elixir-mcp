@@ -13,12 +13,6 @@ import { emitEvent } from "../../ingest/src/events.mjs";
 import { fixture, scratchDb, seedReceipt } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
-import {
-  hydratePlayerEvents,
-  hydrateClanEvents,
-  PLAYER_EVENT_COLUMNS,
-  CLAN_EVENT_COLUMNS,
-} from "../src/event-payloads.mjs";
 
 /** A crossing battle as ROWS (0124: an event names its battle by id and
  *  the timeline describes it from the record): the observer on side 0
@@ -704,41 +698,4 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
     (b) => b.tag === member.player_tag,
   );
   assert.equal(counted.count, 3);
-});
-
-test("the event ledgers' typed columns render the payloads the JSON held (0124)", async () => {
-  const { rows: pe } = await ctx.db.query(
-    `select ${PLAYER_EVENT_COLUMNS}, payload as stored from player_event order by event_id`,
-  );
-  await hydratePlayerEvents(ctx.db, pe);
-  assert.ok(pe.length > 0, "the fixtures emitted player events");
-  const seen = new Set();
-  for (const r of pe) {
-    seen.add(r.event_type);
-    assert.deepEqual(
-      r.payload,
-      r.stored,
-      `player_event ${r.event_id} ${r.event_type}`,
-    );
-  }
-  const { rows: ce } = await ctx.db.query(
-    `select ${CLAN_EVENT_COLUMNS}, payload as stored from clan_event order by event_id`,
-  );
-  await hydrateClanEvents(ctx.db, ce);
-  const rivalsSorted = (p) =>
-    p && Array.isArray(p.rivals)
-      ? {
-          ...p,
-          rivals: [...p.rivals].sort((a, b) => a.tag.localeCompare(b.tag)),
-        }
-      : p;
-  for (const r of ce) {
-    seen.add(r.event_type);
-    assert.deepEqual(
-      rivalsSorted(r.payload),
-      rivalsSorted(r.stored),
-      `clan_event ${r.event_id} ${r.event_type}`,
-    );
-  }
-  assert.ok(seen.size >= 4, `kinds covered: ${[...seen].join(", ")}`);
 });
