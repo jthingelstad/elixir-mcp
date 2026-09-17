@@ -486,7 +486,7 @@ export const playersTools = {
       }
       const { rows: lvl } = await ctx.db.query(
         `select collection_level
-         from player_snapshot_daily where player_tag = $1
+         from player_snapshot_daily where player_tag = $1 and profile_observed_at is not null
          order by snapshot_date desc, snapshot_kind desc limit 1`,
         [tag],
       );

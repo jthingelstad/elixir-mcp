@@ -24,6 +24,7 @@ import { refreshDailyRollups } from "./rollups.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
 import { projectRiverRace, projectRiverRaceLog } from "./war.mjs";
 import { projectModeSeasons, seasonMismatchEmf } from "./season.mjs";
+import { projectClanSeries, projectPlayerProgress } from "./series.mjs";
 import {
   projectRankingBoard,
   projectClanBoard,
@@ -202,6 +203,17 @@ const PROJECTORS = {
       windowStart,
       receiptId,
     });
+    // The series half (2026-09-17): the clan's day row and the roster
+    // columns of every member's own snapshot row. Same function the
+    // archive backfill calls; a roster poll that moved fifty members'
+    // trophies is worth fifty facts.
+    const series = await projectClanSeries(db, {
+      payload,
+      observedAt: fetchedAt,
+      receiptId,
+    });
+    result.series = series;
+    result.facts += series.facts;
     // The clan cadence's two inputs (2026-09-11), stamped on the clan's
     // own poll_state row the way the battlelog stamps yield_bph: hint is
     // liveliness now (active: three or more members in the game this
@@ -339,19 +351,27 @@ const PROJECTORS = {
       payload,
       fetchedAt,
     });
-    // The side-mode season keys the profile carries (0104), verbatim.
+    // The side-mode season keys the profile carries (0104), verbatim,
+    // and the buckets' values as a series (0129).
     const modes = await projectModeSeasons(db, { payload, fetchedAt });
+    const progress = await projectPlayerProgress(db, {
+      playerTag: entityKey,
+      payload,
+      observedAt: fetchedAt,
+    });
     return {
       projected: "player",
       clanTag,
       snapshot,
       cardsChanged: cards.changed,
+      progress,
       facts:
         identityMoved +
         badges.changed +
         cards.changed +
         modes.changed +
-        (snapshot.moved ? 1 : 0),
+        snapshot.facts +
+        progress.facts,
     };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {

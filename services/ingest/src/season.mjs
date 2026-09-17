@@ -243,11 +243,15 @@ export function seasonMismatchEmf(mismatch, now = Date.now()) {
  * form (`2v2League_202609`, `seasonal-trophy-road-202609`) carries the
  * season the record keys on; a mode that counts its own
  * (`AutoChess_2026_Season_11`) keeps its key verbatim and no month. The
- * empty key the payload carries is not a season.
+ * empty key is a real key since 2026-09-17: it is the Merge Tactics
+ * pre-season arena (`AutoChessArena1_2025_Oct`, cr-agent-api-docs
+ * 8339a89), mode AutoChess, no month. Only a non-string is nothing.
  */
 export function parseProgressKey(key) {
-  const raw = String(key ?? "");
-  if (!raw) return null;
+  if (typeof key !== "string") return null;
+  const raw = key;
+  if (raw === "")
+    return { progress_key: "", mode: "AutoChess", season_month: null };
   const month = /^(.+?)[-_](\d{4})(\d{2})$/.exec(raw);
   if (month && Number(month[3]) >= 1 && Number(month[3]) <= 12)
     return {

@@ -34,6 +34,11 @@ comment on column player_snapshot_daily.profile_observed_at is
   'When the profile-only columns were last observed; null on a day the roster wrote and no profile poll did. observed_at is the newest observation of either writer.';
 comment on column player_snapshot_daily.source is
   'api: written from an admitted payload (live or archive backfill). elixir-bot: imported from the bot''s own series through the projector (review Part 6).';
+-- Every row so far was the profile's (the roster wrote nothing before
+-- this migration), so its profile stamp is its stamp: 14.9k rows, in
+-- this transaction, the 0123 shape for a small table.
+update player_snapshot_daily set profile_observed_at = observed_at
+ where profile_observed_at is null and observed_at is not null;
 -- The clan timeline's per-day aggregate over the members and the member
 -- series scoped by clan; partial so the profile-only rows cost nothing.
 create index player_snapshot_daily_clan_day

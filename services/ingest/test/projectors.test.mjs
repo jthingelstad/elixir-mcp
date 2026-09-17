@@ -386,7 +386,8 @@ test("the two watchers pin their extra rows: pre_reset before Monday 00:10Z, sea
   // 10:00Z, and nine hours past the donation reset - season_roll only,
   // and under the game day (0126) it is still game day 09-06: the last
   // rows of the old season sit beside that day's daily and pre_reset
-  // rows, and the daily row is now that later observation.
+  // rows. The daily row keeps its 23:30Z stamp: the payload is the same
+  // one, and a poll whose values did not move writes nothing.
   await processResult(
     ctx.db,
     message({
@@ -404,7 +405,7 @@ test("the two watchers pin their extra rows: pre_reset before Monday 00:10Z, sea
   assert.deepEqual(
     roll.map((r) => [r.snapshot_kind, r.observed_at.toISOString()]),
     [
-      ["daily", "2026-09-07T09:30:00.000Z"],
+      ["daily", "2026-09-06T23:30:00.000Z"],
       ["pre_reset", "2026-09-06T23:30:00.000Z"],
       ["season_roll", "2026-09-07T09:30:00.000Z"],
     ],

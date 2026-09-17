@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-17",
+    title: "A roster poll records what it carries",
+    body: "A clan's roster is read up to 96 times a day and, until today, the record kept four identity columns of it and threw the rest away while polling the same players' profiles separately for the same numbers. Every polled clan now has a daily row of its own (clan score, war trophies, member count, required trophies, weekly donations), and every member on every polled roster has a daily row in the same series a recorded profile writes: trophies, donations, clan rank, arena at the roster's cadence, and the game's own last-seen as a series rather than a single latest value. The profile keeps its half of the same row, with its lifetime block (now including total donations, challenge and tournament counters and the king tower level), the progress buckets per season as their own series, the previous season's final Path of Legends standing kept once, and the frozen Clan Wars 1 counters on the player. The race poll keeps the rivals' clan score, repairs and badge and the race's day-by-day results; the war log fills the last war day's attendance. No tool changes shape yet; players_timeline already returns the roster-written days, and the readers over the new series follow with the next contract bump.",
+  },
+  {
+    date: "2026-09-17",
     title: "Daily snapshots are keyed by the game day",
     body: "A player's daily snapshot was filed under the UTC calendar date it was taken on, while war days, the season roll and every clan's policy day run on the 10:00 UTC grid: the snapshot taken in the hour before a season rolls (Monday 09:00 UTC) sat on the new season's Monday, and a snapshot at 03:00 UTC was a different day from the war day it was played in. Every snapshot row now sits on its game day, the date whose 10:00 UTC start it follows; where a day's early-morning poll and the previous day's late one landed on the same game day, the later observation is the row, which is the rule the table always had. players_timeline points, players_summary.trophies_as_of and clans_participation's donation columns read the same way with the corrected days; no tool changes shape.",
   },

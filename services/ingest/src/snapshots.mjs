@@ -143,27 +143,31 @@ export async function projectPlayerSnapshot(
 ) {
   const day = gameDay(fetchedAt);
 
-  // Two baselines. `prev` is the newest row from an EARLIER day: the
-  // day-level questions (did a counter move since yesterday's snapshot,
-  // 0077) are asked of it. `latest` is the newest observation of any day,
+  // Two baselines, both PROFILE observations (rows the profile wrote:
+  // profile_observed_at set; since 2026-09-17 the roster writes rows too,
+  // and a roster-only row carries no wins or league to diff against).
+  // `prev` is the newest such row from an EARLIER day: the day-level
+  // questions (did a counter move since yesterday's snapshot, 0077) are
+  // asked of it. `latest` is the newest profile observation of any day,
   // today's rewritten row included, and strictly before this poll: the
   // moments are diffed against it, so a moment is written once, by the
   // first poll that sees it, and never again by the polls that follow it
   // the same day.
-  const SNAPSHOT_BASELINE = `select snapshot_date, observed_at, donations, battle_count,
+  const SNAPSHOT_BASELINE = `select snapshot_date, profile_observed_at as observed_at, donations, battle_count,
             arena_id, best_trophies, wins, collection_level, pol_league
      from player_snapshot_daily`;
   const { rows: prevRows } = await db.query(
     `${SNAPSHOT_BASELINE}
-     where player_tag = $1 and (snapshot_date, snapshot_kind) < ($2::date, $3)
+     where player_tag = $1 and profile_observed_at is not null
+       and (snapshot_date, snapshot_kind) < ($2::date, $3)
      order by snapshot_date desc, snapshot_kind desc limit 1`,
     [playerTag, day, kind],
   );
   const prev = prevRows[0];
   const { rows: latestRows } = await db.query(
     `${SNAPSHOT_BASELINE}
-     where player_tag = $1 and observed_at is not null and observed_at < $2::timestamptz
-     order by observed_at desc limit 1`,
+     where player_tag = $1 and profile_observed_at < $2::timestamptz
+     order by profile_observed_at desc limit 1`,
     [playerTag, fetchedAt],
   );
   const latest = latestRows[0];
@@ -179,26 +183,42 @@ export async function projectPlayerSnapshot(
   const bestMonth = monthOrNull(cols.best_season_month);
   for (const m of new Set([prevMonth, bestMonth]))
     if (m) await ensureSeason(db, m);
-  await db.query(
+  // The profile's write. The columns it shares with the roster
+  // (trophies, donations, donations_received, arena_id) take this
+  // observation only when it is the row's newest; everything else is
+  // the profile's own and guarded on profile_observed_at, so a delayed
+  // profile poll behind a fresher roster keeps its lifetime block and
+  // leaves the roster's numbers alone. observed_at never regresses.
+  const { rowCount: written } = await db.query(
     `insert into player_snapshot_daily
        (player_tag, snapshot_date, snapshot_kind, trophies,
-        donations, donations_received, collection_hash, observed_at,
+        donations, donations_received, collection_hash, observed_at, profile_observed_at,
         arena_id, best_trophies, favorite_card_id,
         battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level,
         pol_league, pol_trophies, pol_rank, pol_best_league, pol_best_trophies, pol_best_rank,
         season_trophies, season_best_trophies,
         prev_season_month, prev_season_rank, prev_season_trophies, prev_season_best_trophies,
-        best_season_month, best_season_trophies, best_season_rank)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        best_season_month, best_season_trophies, best_season_rank,
+        total_donations, challenge_cards_won, challenge_max_wins,
+        tournament_cards_won, tournament_battle_count, king_tower_level, source)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9, $10, $11,
              $12, $13, $14, $15, $16, $17, $18,
              $19, $20, $21, $22, $23, $24,
-             $25, $26, $27, $28, $29, $30, $31, $32, $33)
+             $25, $26, $27, $28, $29, $30, $31, $32, $33,
+             $34, $35, $36, $37, $38, $39, 'api')
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
-       trophies = excluded.trophies, donations = excluded.donations,
-       donations_received = excluded.donations_received,
+       trophies = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                       then excluded.trophies else player_snapshot_daily.trophies end,
+       donations = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                        then excluded.donations else player_snapshot_daily.donations end,
+       donations_received = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                                 then excluded.donations_received else player_snapshot_daily.donations_received end,
+       arena_id = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+                       then excluded.arena_id else player_snapshot_daily.arena_id end,
        collection_hash = excluded.collection_hash,
-       observed_at = excluded.observed_at,
-       arena_id = excluded.arena_id,
+       observed_at = greatest(excluded.observed_at, player_snapshot_daily.observed_at),
+       profile_observed_at = excluded.profile_observed_at,
+       source = excluded.source,
        best_trophies = excluded.best_trophies,
        favorite_card_id = excluded.favorite_card_id,
        battle_count = excluded.battle_count, wins = excluded.wins, losses = excluded.losses,
@@ -213,9 +233,48 @@ export async function projectPlayerSnapshot(
        prev_season_best_trophies = excluded.prev_season_best_trophies,
        best_season_month = excluded.best_season_month, best_season_trophies = excluded.best_season_trophies,
        best_season_rank = excluded.best_season_rank,
+       total_donations = excluded.total_donations,
+       challenge_cards_won = excluded.challenge_cards_won, challenge_max_wins = excluded.challenge_max_wins,
+       tournament_cards_won = excluded.tournament_cards_won,
+       tournament_battle_count = excluded.tournament_battle_count,
+       king_tower_level = excluded.king_tower_level,
        created_at = now()
-     where player_snapshot_daily.observed_at is null
-        or excluded.observed_at >= player_snapshot_daily.observed_at`,
+     where (player_snapshot_daily.profile_observed_at is null
+            or excluded.profile_observed_at >= player_snapshot_daily.profile_observed_at)
+       and ((player_snapshot_daily.collection_hash, player_snapshot_daily.best_trophies,
+             player_snapshot_daily.favorite_card_id, player_snapshot_daily.battle_count,
+             player_snapshot_daily.wins, player_snapshot_daily.losses,
+             player_snapshot_daily.three_crown_wins, player_snapshot_daily.star_points,
+             player_snapshot_daily.exp_points, player_snapshot_daily.collection_level,
+             player_snapshot_daily.pol_league, player_snapshot_daily.pol_trophies,
+             player_snapshot_daily.pol_rank, player_snapshot_daily.pol_best_league,
+             player_snapshot_daily.pol_best_trophies, player_snapshot_daily.pol_best_rank,
+             player_snapshot_daily.season_trophies, player_snapshot_daily.season_best_trophies,
+             player_snapshot_daily.prev_season_month, player_snapshot_daily.prev_season_rank,
+             player_snapshot_daily.prev_season_trophies, player_snapshot_daily.prev_season_best_trophies,
+             player_snapshot_daily.best_season_month, player_snapshot_daily.best_season_trophies,
+             player_snapshot_daily.best_season_rank, player_snapshot_daily.total_donations,
+             player_snapshot_daily.challenge_cards_won, player_snapshot_daily.challenge_max_wins,
+             player_snapshot_daily.tournament_cards_won, player_snapshot_daily.tournament_battle_count,
+             player_snapshot_daily.king_tower_level)
+            is distinct from
+            (excluded.collection_hash, excluded.best_trophies, excluded.favorite_card_id,
+             excluded.battle_count, excluded.wins, excluded.losses, excluded.three_crown_wins,
+             excluded.star_points, excluded.exp_points, excluded.collection_level,
+             excluded.pol_league, excluded.pol_trophies, excluded.pol_rank,
+             excluded.pol_best_league, excluded.pol_best_trophies, excluded.pol_best_rank,
+             excluded.season_trophies, excluded.season_best_trophies,
+             excluded.prev_season_month, excluded.prev_season_rank,
+             excluded.prev_season_trophies, excluded.prev_season_best_trophies,
+             excluded.best_season_month, excluded.best_season_trophies, excluded.best_season_rank,
+             excluded.total_donations, excluded.challenge_cards_won, excluded.challenge_max_wins,
+             excluded.tournament_cards_won, excluded.tournament_battle_count,
+             excluded.king_tower_level)
+         or (excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+             and (player_snapshot_daily.trophies, player_snapshot_daily.donations,
+                  player_snapshot_daily.donations_received, player_snapshot_daily.arena_id)
+                 is distinct from
+                 (excluded.trophies, excluded.donations, excluded.donations_received, excluded.arena_id)))`,
     [
       playerTag,
       day,
@@ -251,6 +310,13 @@ export async function projectPlayerSnapshot(
       bestMonth,
       cols.best_season_trophies,
       cols.best_season_rank,
+      // The lifetime block's remainder (review 1.3): the class wins is in.
+      intOrNull(payload.totalDonations),
+      intOrNull(payload.challengeCardsWon),
+      intOrNull(payload.challengeMaxWins),
+      intOrNull(payload.tournamentCardsWon),
+      intOrNull(payload.tournamentBattleCount),
+      intOrNull(payload.kingTowerLevel),
     ],
   );
 
@@ -320,12 +386,79 @@ export async function projectPlayerSnapshot(
       receiptId,
     });
 
+  // State on the player, written when it differs (review 2.1): the
+  // frozen Clan Wars 1 counters and the retired road's high score are
+  // not a series. Once per player in practice.
+  let frozen = 0;
+  if (kind === "daily") {
+    const { rowCount } = await db.query(
+      `update player set war_day_wins = coalesce($2, war_day_wins),
+              clan_cards_collected = coalesce($3, clan_cards_collected),
+              legacy_trophy_road_high_score = coalesce($4, legacy_trophy_road_high_score)
+       where player_tag = $1
+         and (war_day_wins is distinct from coalesce($2, war_day_wins)
+              or clan_cards_collected is distinct from coalesce($3, clan_cards_collected)
+              or legacy_trophy_road_high_score is distinct from coalesce($4, legacy_trophy_road_high_score))`,
+      [
+        playerTag,
+        intOrNull(payload.warDayWins),
+        intOrNull(payload.clanCardsCollected),
+        intOrNull(payload.legacyTrophyRoadHighScore),
+      ],
+    );
+    frozen = rowCount;
+  }
+  const polSeason =
+    kind === "daily"
+      ? await projectPolSeason(db, { playerTag, payload, fetchedAt })
+      : 0;
+
   return {
     day,
     kind,
     hadPrevious: Boolean(prev),
     moved,
+    written,
+    frozen,
+    polSeason,
+    facts: written + frozen + polSeason,
   };
+}
+
+const intOrNull = (v) => (Number.isInteger(v) ? v : null);
+
+/**
+ * lastPathOfLegendSeasonResult is the previous season's final standing,
+ * carried on every profile poll of the following month (review 2.1).
+ * Fill-once on player_pol_season under the season whose ends_at is the
+ * latest at or before the poll: the one that has rolled. A profile with
+ * no last result (a new account) writes nothing; the API's null rank
+ * (not globally ranked) is kept as null.
+ */
+async function projectPolSeason(db, { playerTag, payload, fetchedAt }) {
+  const last = payload.lastPathOfLegendSeasonResult;
+  if (!last || typeof last !== "object") return 0;
+  if (
+    !Number.isInteger(last.leagueNumber) &&
+    !Number.isInteger(last.trophies) &&
+    !Number.isInteger(last.rank)
+  )
+    return 0;
+  const { rowCount } = await db.query(
+    `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
+     select $1, s.season_month, $2, $3, $4, $5::timestamptz
+     from season s where s.ends_at <= $5::timestamptz
+     order by s.ends_at desc limit 1
+     on conflict (player_tag, season_month) do nothing`,
+    [
+      playerTag,
+      intOrNull(last.leagueNumber),
+      intOrNull(last.trophies),
+      intOrNull(last.rank),
+      fetchedAt,
+    ],
+  );
+  return rowCount;
 }
 
 /**

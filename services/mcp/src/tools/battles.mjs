@@ -1830,6 +1830,7 @@ export const battlesTools = {
            from player p
            left join lateral (
              select * from player_snapshot_daily where player_tag = p.player_tag
+               and profile_observed_at is not null
              order by snapshot_date desc, snapshot_kind desc limit 1
            ) s on true where p.player_tag = $1`,
           [tag],

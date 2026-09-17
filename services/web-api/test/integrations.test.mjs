@@ -226,7 +226,7 @@ test("refresh retries share the job, stay principal-bound, and require an admitt
     "insert into player(player_tag,name) values('#UL2V9QRG0','Example')",
   );
   await db.query(
-    "insert into player_snapshot_daily(player_tag,snapshot_date) values('#UL2V9QRG0',current_date)",
+    "insert into player_snapshot_daily(player_tag,snapshot_date,observed_at,profile_observed_at) values('#UL2V9QRG0',current_date,now(),now())",
   );
   await db.query(
     "insert into api_receipt(endpoint,entity_key,payload_hash,gateway_id,admission,job_id,fetched_at) values('player','#UL2V9QRG0','test',$1,'admitted',$2,'2026-09-08T10:00:00Z')",

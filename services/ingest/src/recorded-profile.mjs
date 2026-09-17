@@ -26,7 +26,10 @@ export async function readRecordedProfile(db, tag) {
          from player p
          left join clan cl on cl.clan_tag = p.last_known_clan_tag
          left join lateral (
+           -- The latest PROFILE observation: since 2026-09-17 the roster
+           -- writes rows too, and a roster-only row has no lifetime block.
            select * from player_snapshot_daily where player_tag = p.player_tag
+             and profile_observed_at is not null
            order by snapshot_date desc, snapshot_kind desc limit 1
          ) s on true
          where p.player_tag = $1`,

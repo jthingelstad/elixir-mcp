@@ -361,7 +361,12 @@ test("progress keys split the way the API spells them", () => {
     mode: "AutoChess",
     season_month: null,
   });
-  assert.equal(parseProgressKey(""), null);
+  assert.deepEqual(parseProgressKey(""), {
+    progress_key: "",
+    mode: "AutoChess",
+    season_month: null,
+  });
+  assert.equal(parseProgressKey(undefined), null);
   assert.deepEqual(parseProgressKey("Something_New"), {
     progress_key: "Something_New",
     mode: "Something_New",
@@ -375,12 +380,17 @@ test("the profile's progress keys become mode_season rows, written once a day", 
     payload: profile,
     fetchedAt: "2026-09-17T06:00:00Z",
   });
-  assert.equal(first.keys, 4, "the empty key is not a season");
-  assert.equal(first.changed, 4);
+  assert.equal(
+    first.keys,
+    5,
+    "the empty key is a key (the Merge Tactics pre-season arena)",
+  );
+  assert.equal(first.changed, 5);
   const { rows } = await ctx.db.query(
     `select progress_key, mode, season_month from mode_season order by progress_key`,
   );
   assert.deepEqual(rows, [
+    { progress_key: "", mode: "AutoChess", season_month: null },
     {
       progress_key: "2v2League_202609",
       mode: "2v2League",

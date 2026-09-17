@@ -100,6 +100,19 @@ also read for roster and membership tracking — a few times a day, following
 the clan's own liveliness — without a slot and without polling the other
 members.
 
+**A roster poll records what it carries** (since 2026-09-17). Every clan the
+recorder reads gets one row per game day of its own numbers (clan score, war
+trophies, member count, required trophies, weekly donations), and every member
+on that roster gets a row in the same daily series a recorded player's profile
+writes — trophies, donations, clan rank, arena and the game's own last-seen —
+whether or not their profile is recorded. The two writers share the row: a
+member with a recorded profile has the profile's lifetime counters on it too,
+and each half is dated by its own observation. The profile's progress buckets
+(the seasonal Trophy Road, 2v2 League, Merge Tactics) are kept as a series of
+their own; a bucket the player has not touched this season writes nothing. The
+readers over these series arrive with the next contract bump; today
+`players_timeline` already returns the roster-written days.
+
 ## Relationships, primary, nicknames
 
 Each player you track is your `primary` (exactly one: the first you track,

@@ -153,22 +153,31 @@ export async function projectRiverRace(
   }
 
   // 3. Standings across the race's clans (fame here is the boat's own).
+  // The rivals' clanScore rides the same observation stamp as
+  // period_points (latest wins), repairPoints MAX-merges like every war
+  // counter, and badgeId lands on the rival's clan row (2026-09-17,
+  // time-series review 2.3).
   let facts = anchorInsert.length;
   for (const c of payload.clans ?? []) {
     const { rowCount } = await db.query(
       `insert into war_week_clan
          (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
-          fame, period_points, period_points_observed_at, finish_time)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          fame, period_points, period_points_observed_at, finish_time, clan_score, repair_points)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        on conflict (clan_tag, season_id, section_index, participant_clan_tag) do update set
          fame = greatest(war_week_clan.fame, excluded.fame),
          period_points = case
            when excluded.period_points_observed_at >= coalesce(
              war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
            then excluded.period_points else war_week_clan.period_points end,
+         clan_score = case
+           when excluded.period_points_observed_at >= coalesce(
+             war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
+           then coalesce(excluded.clan_score, war_week_clan.clan_score) else war_week_clan.clan_score end,
          period_points_observed_at = greatest(
            war_week_clan.period_points_observed_at,
            excluded.period_points_observed_at),
+         repair_points = greatest(war_week_clan.repair_points, excluded.repair_points),
          participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
          finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)
        -- Touch the row only when a counter or a name actually moves: the
@@ -178,7 +187,11 @@ export async function projectRiverRace(
        where war_week_clan.fame < excluded.fame
           or (excluded.period_points_observed_at >= coalesce(
                 war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
-              and war_week_clan.period_points is distinct from excluded.period_points)
+              and (war_week_clan.period_points is distinct from excluded.period_points
+                   or (excluded.clan_score is not null
+                       and war_week_clan.clan_score is distinct from excluded.clan_score)))
+          or war_week_clan.repair_points is distinct from
+             greatest(war_week_clan.repair_points, excluded.repair_points)
           or (war_week_clan.participant_name is null and excluded.participant_name is not null)
           or (war_week_clan.finish_time is null and excluded.finish_time is not null)`,
       [
@@ -191,10 +204,20 @@ export async function projectRiverRace(
         c.periodPoints ?? null,
         fetchedAt,
         c.finishTime ? crTimeToIso(c.finishTime) : null,
+        Number.isInteger(c.clanScore) ? c.clanScore : null,
+        Number.isInteger(c.repairPoints) ? c.repairPoints : null,
       ],
     );
     facts += rowCount;
   }
+  facts += await projectRivalBadges(db, payload.clans ?? []);
+  facts += await projectPeriodLogs(db, {
+    tag,
+    seasonId: clock.seasonId,
+    sectionIndex: clock.sectionIndex,
+    periodLogs: payload.periodLogs,
+    fetchedAt,
+  });
   const own = (payload.clans ?? []).find(
     (c) => c?.tag && normalizeTag(c.tag) === tag,
   );
@@ -248,6 +271,7 @@ export async function projectRiverRace(
       points: p.fame ?? 0,
       decksUsed: p.decksUsed ?? 0,
       boatAttacks: p.boatAttacks ?? 0,
+      repairPoints: Number.isInteger(p.repairPoints) ? p.repairPoints : null,
       decksUsedToday: p.decksUsedToday ?? 0,
     });
     const delta = (p.decksUsed ?? 0) - (prevDecks.get(playerTag) ?? 0);
@@ -265,16 +289,19 @@ export async function projectRiverRace(
     );
     const { rowCount: partMoved } = await db.query(
       `insert into war_participation
-         (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
-       select $1, $2, $3, t.tag, t.points, t.decks, t.boats
-       from unnest($4::text[], $5::int[], $6::int[], $7::int[]) as t(tag, points, decks, boats)
+         (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks, repair_points)
+       select $1, $2, $3, t.tag, t.points, t.decks, t.boats, t.repairs
+       from unnest($4::text[], $5::int[], $6::int[], $7::int[], $8::int[]) as t(tag, points, decks, boats, repairs)
        on conflict (clan_tag, season_id, section_index, player_tag) do update set
          points = greatest(war_participation.points, excluded.points),
          decks_used = greatest(war_participation.decks_used, excluded.decks_used),
-         boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)
+         boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks),
+         repair_points = greatest(war_participation.repair_points, excluded.repair_points)
        where war_participation.points < excluded.points
           or war_participation.decks_used < excluded.decks_used
-          or war_participation.boat_attacks < excluded.boat_attacks`,
+          or war_participation.boat_attacks < excluded.boat_attacks
+          or war_participation.repair_points is distinct from
+             greatest(war_participation.repair_points, excluded.repair_points)`,
       [
         tag,
         clock.seasonId,
@@ -283,6 +310,7 @@ export async function projectRiverRace(
         participants.map((p) => p.points),
         participants.map((p) => p.decksUsed),
         participants.map((p) => p.boatAttacks),
+        participants.map((p) => p.repairPoints),
       ],
     );
     facts += partMoved;
@@ -349,6 +377,102 @@ export async function projectRiverRace(
     battlers_signaled: deckDeltas.size,
     facts,
   };
+}
+
+/** The rivals' badges onto their clan rows: the row exists for a
+ *  recorded rival and is created for one the record has only met in a
+ *  bracket (the roster projector does the same for an incidental clan).
+ *  Change-only. */
+async function projectRivalBadges(db, clans) {
+  const rows = clans
+    .filter((c) => c?.tag)
+    .map((c) => ({
+      tag: normalizeTag(c.tag),
+      name: c.name ?? null,
+      badge: Number.isInteger(c.badgeId) ? c.badgeId : null,
+    }))
+    .sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+  if (rows.length === 0) return 0;
+  const { rowCount } = await db.query(
+    `insert into clan (clan_tag, name, badge_id)
+     select t.tag, t.name, t.badge from unnest($1::text[], $2::text[], $3::int[]) as t(tag, name, badge)
+     on conflict (clan_tag) do update set badge_id = excluded.badge_id
+     where excluded.badge_id is not null and clan.badge_id is distinct from excluded.badge_id`,
+    [rows.map((r) => r.tag), rows.map((r) => r.name), rows.map((r) => r.badge)],
+  );
+  return rowCount;
+}
+
+/**
+ * periodLogs[]: the race's closed war days per clan, present on every
+ * race poll (time-series review 2.3). The array spans the whole season
+ * and every entry names the CURRENT bracket's clans
+ * (cr-agent-api-docs/models/river-race.md), so only the entries of the
+ * section this poll is in are this bracket's days: fill-once, scoped by
+ * period_index / 7 = section_index. An older poll cannot rewrite a day.
+ */
+async function projectPeriodLogs(
+  db,
+  { tag, seasonId, sectionIndex, periodLogs, fetchedAt },
+) {
+  if (!Array.isArray(periodLogs) || periodLogs.length === 0) return 0;
+  const rows = [];
+  for (const log of periodLogs) {
+    if (!Number.isInteger(log?.periodIndex)) continue;
+    if (Math.floor(log.periodIndex / 7) !== sectionIndex) continue;
+    for (const item of log.items ?? []) {
+      if (!item?.clan?.tag) continue;
+      rows.push({
+        period: log.periodIndex,
+        clan: normalizeTag(item.clan.tag),
+        pointsEarned: item.pointsEarned ?? null,
+        start: item.progressStartOfDay ?? null,
+        end: item.progressEndOfDay ?? null,
+        earned: item.progressEarned ?? null,
+        rank: item.endOfDayRank ?? null,
+        defenses: item.numOfDefensesRemaining ?? null,
+        fromDefenses: item.progressEarnedFromDefenses ?? null,
+      });
+    }
+  }
+  if (rows.length === 0) return 0;
+  rows.sort((a, b) =>
+    a.period !== b.period
+      ? a.period - b.period
+      : a.clan < b.clan
+        ? -1
+        : a.clan > b.clan
+          ? 1
+          : 0,
+  );
+  const { rowCount } = await db.query(
+    `insert into war_period_log
+       (clan_tag, season_id, section_index, period_index, participant_clan_tag,
+        points_earned, progress_start, progress_end, progress_earned,
+        end_of_day_rank, defenses_remaining, progress_from_defenses, observed_at)
+     select $1, $2, $3, t.period, t.clan, t.points, t.start, t.stop, t.earned,
+            t.rank, t.defenses, t.from_defenses, $4::timestamptz
+     from unnest($5::int[], $6::text[], $7::int[], $8::int[], $9::int[], $10::int[],
+                 $11::int[], $12::int[], $13::int[])
+       as t(period, clan, points, start, stop, earned, rank, defenses, from_defenses)
+     on conflict do nothing`,
+    [
+      tag,
+      seasonId,
+      sectionIndex,
+      fetchedAt,
+      rows.map((r) => r.period),
+      rows.map((r) => r.clan),
+      rows.map((r) => r.pointsEarned),
+      rows.map((r) => r.start),
+      rows.map((r) => r.end),
+      rows.map((r) => r.earned),
+      rows.map((r) => r.rank),
+      rows.map((r) => r.defenses),
+      rows.map((r) => r.fromDefenses),
+    ],
+  );
+  return rowCount;
 }
 
 /**
@@ -453,23 +577,31 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
 
     for (const standing of item.standings ?? []) {
       const participantTag = normalizeTag(standing.clan.tag);
+      // The log's clanScore and repairPoints are the week's closing
+      // values: they fill a null and never overwrite the live poll's
+      // (the log stamp is not an observation of the race).
       const { rowCount: standingMoved } = await db.query(
         `insert into war_week_clan
            (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
-            fame, finish_time, rank, trophy_change)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            fame, finish_time, rank, trophy_change, clan_score, repair_points)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          on conflict (clan_tag, season_id, section_index, participant_clan_tag) do update set
            fame = greatest(war_week_clan.fame, excluded.fame),
            participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
            finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time),
            rank = coalesce(excluded.rank, war_week_clan.rank),
-           trophy_change = coalesce(excluded.trophy_change, war_week_clan.trophy_change)
+           trophy_change = coalesce(excluded.trophy_change, war_week_clan.trophy_change),
+           clan_score = coalesce(war_week_clan.clan_score, excluded.clan_score),
+           repair_points = greatest(war_week_clan.repair_points, excluded.repair_points)
          where war_week_clan.fame < excluded.fame
             or (war_week_clan.participant_name is null and excluded.participant_name is not null)
             or (war_week_clan.finish_time is null and excluded.finish_time is not null)
             or (excluded.rank is not null and war_week_clan.rank is distinct from excluded.rank)
             or (excluded.trophy_change is not null
-                and war_week_clan.trophy_change is distinct from excluded.trophy_change)`,
+                and war_week_clan.trophy_change is distinct from excluded.trophy_change)
+            or (war_week_clan.clan_score is null and excluded.clan_score is not null)
+            or war_week_clan.repair_points is distinct from
+               greatest(war_week_clan.repair_points, excluded.repair_points)`,
         [
           tag,
           item.seasonId,
@@ -482,6 +614,12 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
             : null,
           standing.rank ?? null,
           standing.trophyChange ?? null,
+          Number.isInteger(standing.clan.clanScore)
+            ? standing.clan.clanScore
+            : null,
+          Number.isInteger(standing.clan.repairPoints)
+            ? standing.clan.repairPoints
+            : null,
         ],
       );
       facts += standingMoved;
@@ -496,15 +634,18 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
           );
           const { rowCount: memberMoved } = await db.query(
             `insert into war_participation
-               (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
-             values ($1, $2, $3, $4, $5, $6, $7)
+               (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks, repair_points)
+             values ($1, $2, $3, $4, $5, $6, $7, $8)
              on conflict (clan_tag, season_id, section_index, player_tag) do update set
                points = greatest(war_participation.points, excluded.points),
                decks_used = greatest(war_participation.decks_used, excluded.decks_used),
-               boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks)
+               boat_attacks = greatest(war_participation.boat_attacks, excluded.boat_attacks),
+               repair_points = greatest(war_participation.repair_points, excluded.repair_points)
              where war_participation.points < excluded.points
                 or war_participation.decks_used < excluded.decks_used
-                or war_participation.boat_attacks < excluded.boat_attacks`,
+                or war_participation.boat_attacks < excluded.boat_attacks
+                or war_participation.repair_points is distinct from
+                   greatest(war_participation.repair_points, excluded.repair_points)`,
             [
               tag,
               item.seasonId,
@@ -513,12 +654,40 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
               p.fame ?? 0,
               p.decksUsed ?? 0,
               p.boatAttacks ?? 0,
+              Number.isInteger(p.repairPoints) ? p.repairPoints : null,
             ],
           );
           facts += memberMoved;
+          // decksUsedToday in a closed log is the LAST war day's count
+          // (2.3): the attendance row for war day 4 the live poll missed
+          // (a clan polled every two hours on a day it did not play,
+          // or a week recorded from the log alone). MAX-merged like the
+          // live path; a live row that already holds it moves nothing.
+          if (Number.isInteger(p.decksUsedToday) && p.decksUsedToday > 0) {
+            const { rowCount: dayMoved } = await db.query(
+              `insert into war_attendance_day
+                 (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+               values ($1, $2, $3, 4, $4, $5)
+               on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
+                 decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today)
+               where war_attendance_day.decks_used_today < excluded.decks_used_today`,
+              [
+                tag,
+                item.seasonId,
+                item.sectionIndex,
+                playerTag,
+                p.decksUsedToday,
+              ],
+            );
+            facts += dayMoved;
+          }
         }
       }
     }
+    facts += await projectRivalBadges(
+      db,
+      (item.standings ?? []).map((st) => st?.clan).filter(Boolean),
+    );
   }
   return {
     projected: "riverracelog",

@@ -1073,8 +1073,8 @@ test("players_profile answers the player as a game entity, not just a name (§7.
   await db.query(
     `insert into player_snapshot_daily
        (player_tag, snapshot_date, snapshot_kind, trophies, arena_id, best_trophies,
-        favorite_card_id, observed_at)
-     values ($1, current_date, 'daily', 8000, 54000144, 9001, 26000000, now())
+        favorite_card_id, observed_at, profile_observed_at)
+     values ($1, current_date, 'daily', 8000, 54000144, 9001, 26000000, now(), now())
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
        arena_id = 54000144, best_trophies = 9001, favorite_card_id = 26000000`,
     [tag],
@@ -1722,8 +1722,8 @@ test("players_profile renders a snapshot with every typed column null and passes
     tag,
   ]);
   await db.query(
-    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, trophies, observed_at)
-     values ($1, current_date, 'daily', 4200, now())`,
+    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, trophies, observed_at, profile_observed_at)
+     values ($1, current_date, 'daily', 4200, now(), now())`,
     [tag],
   );
   const { body, isError } = await call("players_profile", { player_tag: tag });
