@@ -111,23 +111,19 @@ is `coalesce`-filled (`war.mjs:536-543`). These rows join `war_week` and
 create table season (
   season_month     text primary key                    -- the API's own name (YYYY-MM): seasons list, leagueStatistics, PoL finals, progress keys
                    check (season_month ~ '^[0-9]{4}-[0-9]{2}$'),
-  war_season_id    integer not null unique,            -- riverracelog seasonId: seasons-list position - 8, verified per log entry
-  list_position    integer unique,                     -- 1-based position in /locations/global/seasons (null until the season completes)
-  pass_season      integer,                            -- in-game Pass "Season N": calendar-derived (2019-07 = 1), display only, not in the API
+  war_season_id    integer not null unique,            -- riverracelog seasonId: one per month from the anchor, verified per log entry
+  pass_season      integer,                            -- in-game Pass "Season N": the one number not in the API; calendar-derived (2019-07 = 1), display only
   starts_at        timestamptz not null,               -- first Monday 10:00:00Z
   ends_at          timestamptz not null,               -- next season's starts_at (exclusive)
   sections         smallint not null check (sections in (4, 5)),
   colosseum_section smallint not null,
-  source           text not null default 'calendar'
-                   check (source in ('calendar', 'observed')),
-  observed_race_close_at timestamptz,                  -- the ~09:34Z race close, when we saw it
   war_id_verified_at timestamptz,                      -- when a riverracelog entry confirmed war_season_id
   check (ends_at > starts_at),
   check (colosseum_section = sections - 1),
   exclude using gist (tstzrange(starts_at, ends_at) with &&)
 );
 comment on table season is
-  'One row per Clash Royale season, keyed by the month the API names it. war_season_id is the riverrace seasonId, a derived label (list position - 8) confirmed by the next war log entry; pass_season is display only. Bounds are calendar-derived (first Monday 10:00Z) unless source = observed.';
+  'One row per Clash Royale season, keyed by the month the API names it. war_season_id is the riverrace seasonId, a derived label confirmed by the next war log entry; pass_season is display only. Bounds are the calendar: first Monday 10:00Z to first Monday 10:00Z.';
 
 -- A mode's own season key, taken verbatim from Player.progress and never
 -- derived: Merge Tactics counts its own, 2v2 League and the seasonal
@@ -141,10 +137,11 @@ create table mode_season (
 );
 
 -- seed: 2026-02 .. 2026-10 from seasonFromDate (war 129..137); the
--- scheduler upserts the next season on each rollover, stamps
--- observed_race_close_at when currentriverrace goes 404 (clans.md:333-346),
--- and the riverracelog projector sets war_id_verified_at when a log entry's
--- seasonId matches; a mismatch is an alarm, never a silent relabel.
+-- scheduler upserts the next season on each rollover, and the riverracelog
+-- projector sets war_id_verified_at when a log entry's seasonId matches;
+-- a mismatch is an alarm, never a silent relabel. No column here is
+-- observed: the bounds are the calendar the API confirms (the 10:00Z
+-- countdown), and the per-race close instant lives on war_week (1.2).
 ```
 
 
@@ -323,9 +320,9 @@ instant alone.
 
 **Cost.** `war_period` is ~35 rows a season, seeded ahead by the scheduler
 with the season. `war_week.closed_at` is one nullable column, filled by
-the riverracelog projector from now on and by one small op for the 343
-existing weeks whose `finished_observed_at` is a polling-latency bound on
-it. Dropping `battle.season_id`, `section_index`, `war_day` is
+the riverracelog projector from now on; the API's log holds ten weeks, so
+recent history fills on the next poll and older weeks keep
+`finished_observed_at` as their polling-latency bound. Dropping `battle.season_id`, `section_index`, `war_day` is
 expand-and-contract: readers move first, the columns go in the contract
 phase. Risk: the readers' war attribution changes for the 10,000 battles
 that were invisible, which is the point, and for the imported 3,230, which
@@ -526,9 +523,13 @@ same table's totals, so the clan-scoped meta loses its 875 ms corpus scan
 too (clan card meta 2.5 s -> ~1.6 s, the remainder being the member rows,
 which stay raw and are cheap through the covering index).
 
-**Refresh shape.** A migrate op `{meta_rollup:{season_month}}` for the
-nightly recompute and backfill; the hourly increment in `services/jobs`
-next to `activity_histogram`. Ingest is untouched: no write amplification
+**Refresh shape.** Both live in `services/jobs` beside
+`activity_histogram`: the hourly increment, and a nightly run that
+recomputes the current season and, on the same pass, builds any season
+that has rows but no `final` rollup yet, so the backfill of past seasons
+is the first few nights of the job rather than an operator's invocation.
+A `{meta_rollup}` migrate op exists only as the manual re-run for a
+repair. Ingest is untouched: no write amplification
 on the battle transaction (an increment per played card would be 16
 upserts per battle).
 
@@ -729,7 +730,7 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 | 1   | `season` (keyed `season_month`, `war_season_id` derived and log-verified) + `mode_season`; seed 2026-02..2026-10; scheduler upserts on rollover | instant (create table)  | none     |
 | 2   | (withdrawn: balance changes are not modelled, Jamie 2026-09-17; the catalog-history item is 3.7, optional) | -                                            | -        |
 | 3   | Meta tools: default window = current season; `season` argument; `applied.window.season` and `crosses`; the boundary note | code                              | **minor** (3.10) |
-| 4   | `war_period` calendar + seed; `war_week.closed_at` + op filling 343 rows from `riverracelog` stamps         | instant + tiny op                            | none     |
+| 4   | `war_period` calendar + seed; `war_week.closed_at`, filled by the riverracelog projector for the weeks the API still serves (its log holds ten); older weeks stay null | instant | none |
 | 5   | War readers (`war_current`, `war_history`, `clans_participation`, timeline) resolve battles by `war_period` range + `bp.clan_tag`; `stampWarKeys` stops writing | code | none (same fields; attribution corrected) |
 | 6   | Drop `battle.season_id`, `section_index`, `war_day` and `battle_unstamped_war` once no reader names them      | instant                                      | none     |
 | 7   | Closing FKs `not valid`: participant->deck, player_card->card, three war tables->war_week                    | instant                                      | none     |
@@ -737,7 +738,7 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 | 9   | CHECKs on `player_event.event_type`, `clan_event.event_type`, `rollup.mode_group`; `poll_state.period_type` split; `ranking_snapshot.season_id` -> `season_month` FK (add, fill 1,266 rows, swap) | instant + tiny fill | none |
 | 10  | `snapshot_kind`: `season_roll` -> `pre_reset` (996 rows); widen check; real season-roll snapshot in the hour before `season.ends_at` | instant + 996-row update | none (internal) |
 | 11  | Drop `battle.modifiers`, `war_attendance_day.finalized`, the three rollup completeness columns; `clans_participation` stops returning `finalized` | instant | **minor** (field removed from a response: treat as minor with a changelog line, since it was never true) |
-| 12  | `card_meta_season`, `deck_meta_season`, `card_pair_season` + op `{meta_rollup}` (nightly + backfill per season) + hourly counters in jobs | instant create; backfill op is per-season scans (~11 s each on the micro, 4 seasons) | none |
+| 12  | `card_meta_season`, `deck_meta_season`, `card_pair_season`; nightly job recomputes the current season and fills missing past seasons itself; hourly counters in jobs | instant create; the first nights do ~11 s per past season on the micro | none |
 | 13  | Meta tools read 12; `corpusPrior` reads its totals; `set local work_mem` in the meantime                     | code                                         | none (same fields, faster; `players_as_of` added: minor) |
 | 14  | Wire `player_daily_battle_rollup` into `clans_standings`, `battles_trends`, `players_summary`, `first-answer`  | code                                         | none     |
 | 15  | Snapshot columns (`battle_count`, `collection_level`, `wins`, `pol_league_number`) + batched fill of 14.7k rows | instant + op                              | none     |
