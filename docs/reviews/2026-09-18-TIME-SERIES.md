@@ -26,16 +26,16 @@ players' trophies, donations, arena and last-seen in it are thrown away
 while the same players' profiles are polled separately for the same
 numbers. This review makes the roster write the players' own daily
 snapshot rows, the race poll write the rivals' clan rows, and the war log
-write the attendance day the live poll missed, and it proposes the
-standing rule (2.7) that makes every dropped field a recorded decision.
-What it does **not** propose is a change to how often anything is
+write the attendance day the live poll missed, and it adopts the
+standing rule (2.7) that makes every dropped field a recorded decision
+and every added one a work item. What it does **not** propose is a change to how often anything is
 polled: the roster carrying the profile's fast-moving fields is an input
 to the adaptive-polling work on the play-time histogram (NOTES
 2026-09-13, "Adaptive polling, step one"), and the cadence decision
 belongs there.
 
-**The decisions.** Three were taken by Jamie on 2026-09-17 after the
-first draft; one is open. Everything else follows the six decisions of
+**The decisions.** All four were taken by Jamie on 2026-09-17 after the
+first draft. Everything else follows the six decisions of
 2026-09-17 and needs a go per phase, not a judgment.
 
 1. **`player_snapshot_daily` moves to the game day** (3.2). Decided:
@@ -53,20 +53,19 @@ first draft; one is open. Everything else follows the six decisions of
 3. **The progress zero-bucket rule** (4.3). Decided: a side-mode bucket
    reading `trophies 0, bestTrophies 0` writes no row. Jamie: "no record
    for no activity." ~140 MB a year instead of ~410 MB.
-4. **Open: the standing rule as an invariant** (2.7). Today a field the
-   API adds is noticed by the next review (`kingTowerLevel` appeared on
-   2026-09-02 and was found here), and a field deliberately dropped has
-   its reason in a NOTES entry or nowhere. The proposal is three
-   mechanical parts: each projector keeps a list of every field its
-   endpoint sends and what happens to it (stored where, derived from
-   what, or dropped and why); a test fails on a fixture field the list
-   does not name; ingest counts fields it sees that the list does not
-   name and emits a metric with an alarm, so a new field lands in the ops
-   queue the day it appears. The question for Jamie is whether this
-   becomes a permanent invariant in `docs/ENGINEERING.md` that every
-   projector must honour, or whether the one-time census in Part 2 is
-   enough. Recommended: the invariant, because the census goes stale the
-   first time the API moves.
+4. **The shape of the data is monitored, out of band** (2.7). Decided
+   (Jamie, 2026-09-17): "the CR API will evolve over time so this is
+   important", with two shaping conditions. It runs out of band from
+   ingestion to limit expense: a nightly job in the jobs Lambda samples
+   the day's archived payloads per endpoint and compares their field
+   sets to a per-projector manifest, so the ingest path does no extra
+   work. And the event is filed into Elixir's own feedback queue, where
+   Close the Loop already reads, rather than mailed: alarms in this
+   system are queue-only by rule (AGENTS.md, no email subscriptions),
+   and a field the API added is product work (project it, bump the
+   contract, update the docs and `cr-agent-api-docs`), not an incident.
+   `kingTowerLevel` is the worked example: it would have been filed on
+   2026-09-03 and augmented into the profile that week.
 
 Applied without asking, because they follow from the six decisions: the
 `game_day()` function; one row per subject per game day with `pre_reset`
@@ -408,29 +407,40 @@ table, the progress table), eleven are state, the rest ledger facts. Five more a
 reason that is not written anywhere a reader of the projector would find
 it (`expLevel` twice, the clan chest trio, `state`, `currentWinLoseStreak`).
 
-### 2.7 The standing rule (proposed text for `docs/ENGINEERING.md`, "Ingest invariants")
+### 2.7 The standing rule (text for `docs/ENGINEERING.md`, "Ingest invariants"; decided 2026-09-17)
 
-> **A payload field is projected or its omission is recorded.** Every
-> endpoint's projector carries a key manifest
-> (`services/ingest/src/payload-keys.mjs`): for each key the API sends,
-> at the top level and inside each array's elements, either the table
-> and column it lands in, or `derived: <from>`, or `dropped: <reason>`.
-> A test walks every fixture payload and fails on a key the manifest does
-> not name, and fails on a manifest entry with no disposition. Admission
-> (`admission.mjs`) counts the keys of each admitted payload that the
-> manifest does not name and emits them on the receipt's EMF line as
-> `ElixirMCP/Record UnknownPayloadKeys` with an `endpoint` dimension; the
-> alarm `elixir-mcp-unknown-payload-keys` fires at 1 and routes to
-> `elixir-mcp-alarms`. A field the API adds is therefore noticed the day
-> it appears, by name, and the manifest entry that silences the alarm is
-> the recorded decision. Nothing hand-fed: the manifest describes what the
-> API sends and the archive already holds.
+> **The shape of every admitted payload is known, and a change is a work
+> item.** Every endpoint's projector carries a field manifest
+> (`services/ingest/src/payload-keys.mjs`): for each field the API sends,
+> at the top level and inside each array's elements, either the table and
+> column it lands in, or `derived: <from>`, or `dropped: <reason>`. A
+> test walks every fixture payload and fails on a field the manifest does
+> not name, and on a manifest entry with no disposition. Ingest itself
+> does nothing more: the check is out of band. The nightly shape census
+> (`{shape_census}` in the jobs Lambda, after the payload sweep) reads a
+> sample of the day's archived objects per endpoint (twenty, the newest
+> first), and reports two things per endpoint: fields present in the
+> sample and absent from the manifest (the API added something), and
+> manifest fields absent from every sampled payload for seven days (the
+> API retired something, as `expLevel` was). Each finding is filed once
+> into `feedback` under the owner account with `category: data_quality`,
+> `surface: recorder` and a context of `{endpoint, path, first_seen,
+> sample_type, seen_in}`, deduplicated on `(endpoint, path)` while an item
+> is open; Close the Loop reads the queue on its schedule and turns the
+> item into the change (the manifest entry and projection, the contract
+> bump, the docs, the `cr-agent-api-docs` entry). The same run emits
+> `ElixirMCP/Record PayloadShapeFindings` so the count is on the
+> dashboard; nothing mails anyone. Collectors stay dumb: they gzip bytes
+> and never parse, so shape is the hub's to know.
 
-Cost: the key walk is one pass over the payload's top level and the first
-element of each array (a roster is 50 members × 12 keys; a battlelog 30 ×
-2 sides × 13), microseconds beside the gunzip. The EMF line rides the
-same stdout the receipt timings already use. The manifest is the census
-above, written as data; the test is the census run on every commit.
+Cost: twenty S3 GETs per endpoint per night (about 160 objects, ~2 MB,
+well under a second of Lambda time), one manifest walk per object, and
+nothing at all on the ingest path. The `surface` check on `feedback`
+widens by one value (`recorder`), a one-line migration. The manifest is
+the census above, written as data; the test is that census run on every
+commit. A field that appears on a live-lane payload between samples is
+caught the next night, which is the right latency for an API that ships
+changes with game updates, not by the minute.
 
 ---
 
@@ -1084,7 +1094,7 @@ tools fingerprint, so it is a patch bump with a changelog line.
 | elixir-bot import                  | 5,488 payload replay (~8 min) + a few hundred series rows + ≤2,371 rollup keys                             | the census runs on staging before commit; `source` column names every imported row forever; bot untouched                                                     |
 | Contract                           | two minors (players_timeline + clans_timeline/clans_members_timeline; clans_roster block), one patch       | additive only; docs sections added before pointers                                                                                                            |
 | Storage                            | ~2.5 GB a year, 2.3 GB of it the roster rows on `player_snapshot_daily` (4.5) | 20 GB volume, 4.1 GB used, auto-scales to 100; the rate is measured a month after Phase 1 and recorded in NOTES |
-| Unknown-key alarm                  | a key walk per admission; one EMF metric; one alarm                                                        | a noisy first day if the manifest is incomplete: the manifest is written from Appendix D, so the first alarm is a real addition                                |
+| Nightly shape census               | ~160 S3 GETs and a manifest walk a night in the jobs Lambda; one feedback row per new finding; one metric | nothing on the ingest path; a noisy first night if the manifest is incomplete, which is why it is written from Appendix D; findings dedupe on (endpoint, path) while open |
 
 ---
 
@@ -1095,7 +1105,7 @@ manual or decision content, nothing else is blocked.
 
 | Phase | Change                                                                                                                                                                                                                                                                                                                                                                                                            | Kind                                                              | Contract                                    | Needs from Jamie                                                                                                                                                                                                                                                                                                                       |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `game_day()`; the `{snapshot_day_census}` then `{snapshot_rekey}` op moving `player_snapshot_daily` to the game day; the roster columns, `profile_observed_at`, `source` and the clan-day index on `player_snapshot_daily`; `clan_snapshot_daily`, `player_progress_daily`; the state and lifetime columns, `player_pol_season`, `war_period_log`, the `battle` columns, `series_backfill_state`; the projectors split into a series half and writing live (roster, profile, race); `mode_season` admits `""`; the key manifest + `UnknownPayloadKeys` metric and alarm; ENGINEERING rule 2.7; the `expLevel` / clan-chest / `state` / streak reasons written on the projectors | 5 instant migrations + one ~30 s op + code                        | none (tables only; `battles_query` columns wait for 2b) | **Go**, and decision 4 of "Read this first" (1 to 3 are taken); an RDS snapshot before the re-key op (Jamie runs `deploy` with `AWS_PROFILE=jamie`) |
+| 1     | `game_day()`; the `{snapshot_day_census}` then `{snapshot_rekey}` op moving `player_snapshot_daily` to the game day; the roster columns, `profile_observed_at`, `source` and the clan-day index on `player_snapshot_daily`; `clan_snapshot_daily`, `player_progress_daily`; the state and lifetime columns, `player_pol_season`, `war_period_log`, the `battle` columns, `series_backfill_state`; the projectors split into a series half and writing live (roster, profile, race); `mode_season` admits `""`; the field manifest, its fixture test, the nightly `{shape_census}` job filing to `feedback` (surface `recorder`) and the `PayloadShapeFindings` metric; ENGINEERING rule 2.7; the `expLevel` / clan-chest / `state` / streak reasons written on the projectors | 5 instant migrations + one ~30 s op + code                        | none (tables only; `battles_query` columns wait for 2b) | **Go** (decisions 1 to 4 of "Read this first" are taken); an RDS snapshot before the re-key op (Jamie runs `deploy` with `AWS_PROFILE=jamie`) |
 | 2     | `{series_backfill}` clan lane then player lane, driven to completion by the local loop; then the `battle` columns' fill from the battlelog receipts (2b); `{deck_census}`-style `{series_census_self}` proving every admitted roster receipt since 2026-03-12 has its day row                                                                                                                                       | two batched ops, ~1.7 h + ~1.5 h, no deploy in between            | none                                        | **Go**; a window when no deploy is needed (the migrate Lambda is held); nothing manual                                                                                                                                                                                                                                                  |
 | 3     | `elixir-bot-series-export.mjs` (read-only); `{replay}` of the bot's 5,488 profile payloads 07-15 → 09-03 under the backfill gateway; `{series_import}` into staging; `{series_census}`; commit of the non-overlapping rows and the rollup keys; the census numbers in NOTES; revoke the gateway row                                                                                                                | one replay (~8 min) + one op + one read-only census               | none                                        | **Go**; the bot stays untouched (decision 3); **revoke** the new `backfill-elixir-bot` gateway row in Admin afterwards, as on 09-15                                                                                                                                                                                                     |
 | 4     | Docs sections (`clocks#the-game-day`, `recording#daily-series`); `players_timeline` extended; `clans_timeline` and `clans_members_timeline` with output schemas; `clans_roster` lifetime block; `rankings_timeline` description; changelog, What's-new, tools reference regenerated                                                                                                                                | code                                                              | **minor** ×2, patch ×1, folded into one minor bump (3.12.0) | **Go**; a read of the tool names (`clans_members_timeline` or a better noun)                                                                                                                                                                                                                                                            |
@@ -1111,9 +1121,10 @@ rival columns (2.3).
 
 ## Tier 1, most important first
 
-1. **Make omission a recorded decision and addition an alarm** (2.7):
-   the key manifest per projector, the fixture test, the
-   `UnknownPayloadKeys` metric and alarm. Everything else in this review
+1. **Make omission a recorded decision and a shape change a work item**
+   (2.7): the field manifest per projector, the fixture test, the nightly
+   out-of-band shape census filing into the feedback queue Close the Loop
+   already reads. Everything else in this review
    is a consequence of this rule not having existed; without it the next
    field the API adds (as `kingTowerLevel` did on 2026-09-02) waits for
    the next review.
