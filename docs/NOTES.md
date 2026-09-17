@@ -2289,3 +2289,40 @@ Not done, by decision: anything sent to many members (a weekly clan digest)
 needs `List-Unsubscribe` + one-click (RFC 8058) before it goes out under
 Gmail/Yahoo bulk-sender rules; that lands with the first such feature, not
 before.
+
+## 2026-09-16 — The timeline as the trigger for a clan bot (contract 3.9.0)
+
+Jamie, on the elixir-mcp-discord redesign ("make the record the trigger, not
+the calendar"): yes to every recommendation in
+`docs/reviews/2026-09-16-TIMELINE-FOR-PROACTIVE.md`. The consumer's ledger
+(65 routine turns, three instances, 09-09..09-16) showed 29% of turns
+producing nothing because a wall clock asked on a day the record had
+nothing, and a movers routine spending 9.9 calls a turn rebuilding a
+member's streak, trophy swing and W-L from `battles_performance` — numbers
+`buildClanEntry` already computed per member in `sessionsOf` and threw away.
+
+Shipped, all read-time or additive: `session_standout` items on a clan's
+timeline (a member's session crossing a disclosed rung — 5/10/20 wins in a
+row, ±150/300/500 ladder net, 20/40 battles — at the crossing battle,
+once per rung, judged over a fetch that reaches a day back on `battle_time`
+so a session straddling windows is seen whole; `standouts.sessions` +
+`session_rungs` on the entry); `bracket_observed` on the record's first
+sight of a new war week's rows (the rivals with `recorded`; the *time* the
+week starts stays the clock's — this is the observation, named as one, and
+does not reopen the 09-13 "no war_day_open" line); `kinds` on
+`elixir_timeline`; `clans_standings` gains `trophy_net` and
+`current_streak` (a window function over the subquery it already had, so
+the description's "streaks still need battles_performance" caveat is gone);
+badge and card items carry the badge/card under `facts.badge`/`facts.card`
+and the member under `facts.name` — a clan timeline read "Lava Hound
+unlocked Lava Hound" (the payload's `name` shadowed the member's in the
+spread); `badge_earned` is an item only at a final level or a multiple of
+five (rows carry `max_level` from now; the entry counts every level-up);
+`collection_level_step` widens with the level (5 / 50 / 100 at 100 and
+1,000) because a maxed account wrote a milestone a day.
+
+**Not built, by decision:** `war_day_resolved` (§4 of the request) — listed
+as an observation on 09-13, nothing in the consumer compensates for it
+yet; it lands when a consumer asks with a use. The consumer side (wake/carry
+kinds, the editor brief, clock-armed war-deck and rival-scout, VOICE as the
+carry-release interval) is elixir-mcp-discord's, same day.

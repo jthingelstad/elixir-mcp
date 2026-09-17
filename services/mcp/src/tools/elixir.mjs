@@ -21,7 +21,11 @@ import {
   CORPUS_BUILT_AT,
   searchDocs,
 } from "@elixir-mcp/docs";
-import { buildTimeline, subjectsFor } from "../activity/entries.mjs";
+import {
+  buildTimeline,
+  subjectsFor,
+  ITEM_KINDS,
+} from "../activity/entries.mjs";
 import { resolveInstant } from "../time.mjs";
 import { captureCoverage } from "../coverage.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
@@ -786,6 +790,13 @@ export const elixirTools = {
           description:
             "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account.",
         },
+        kinds: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: 32,
+          description:
+            "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+        },
         verbosity: VERBOSITY(
           "the timeline items and each entry's summary, subject, window and player notables; every entry section, including clan standouts, is dropped.",
         ),
@@ -892,6 +903,19 @@ export const elixirTools = {
           `Unknown section '${unknown}'.`,
           `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}. Plus account.`,
         );
+      const kinds =
+        Array.isArray(args.kinds) && args.kinds.length > 0
+          ? args.kinds.map(String)
+          : null;
+      const unknownKind = kinds?.find(
+        (k) => !ITEM_KINDS.includes(k) && !k.startsWith("account_"),
+      );
+      if (unknownKind)
+        throw new ToolFailure(
+          "bad_request",
+          `Unknown kind '${unknownKind}'.`,
+          `Kinds: ${ITEM_KINDS.join(", ")}, or an account_* kind.`,
+        );
       const compact = args.verbosity === "compact";
 
       const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
@@ -909,9 +933,11 @@ export const elixirTools = {
         );
       };
       const entries = built.entries.map(keep);
-      const timeline = sections
-        ? built.timeline.filter((it) => sections.includes(it.section))
-        : built.timeline;
+      const timeline = built.timeline.filter(
+        (it) =>
+          (!sections || sections.includes(it.section)) &&
+          (!kinds || kinds.includes(it.kind)),
+      );
 
       const marking = args.mark_read !== false;
       if (marking) {
@@ -929,6 +955,7 @@ export const elixirTools = {
           window: { from: iso(fromMs), to: iso(toMs), source },
           mark_read: marking,
           ...(sections ? { sections } : {}),
+          ...(kinds ? { kinds } : {}),
           verbosity: compact ? "compact" : "full",
         }),
         window: built.window,

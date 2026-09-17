@@ -26,6 +26,7 @@
 
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
+import { collectionLevelStep } from "../../../ingest/src/snapshots.mjs";
 import { summarizePlayer, summarizeClan, itemText } from "./summary.mjs";
 
 const DAY_MS = 86_400_000;
@@ -33,11 +34,25 @@ const MIN_MS = 60_000;
 /** Disclosed rungs and rules (§13.8): data, not code. */
 const QUIET_RUNGS_DAYS = [5, 10, 20];
 const BEST_TROPHIES_BAND = 500;
-const COLLECTION_LEVEL_STEP = 5;
 const CAREER_WINS_STEP = 1000;
 const RETURN_AFTER_DAYS = 7;
 /** A session breaks on a gap of thirty minutes or more (Jamie, 2026-09-13). */
 const SESSION_GAP_MS = 30 * MIN_MS;
+/**
+ * A session is a STANDOUT when it crosses a disclosed rung — wins in a
+ * row, ladder trophies net, battles in one sitting — and the crossing
+ * battle was learned in this window, so a member's session is surfaced
+ * on a clan's timeline once per rung and never re-reported (consumer
+ * request, docs/reviews/2026-09-16-TIMELINE-FOR-PROACTIVE.md §1: a bot
+ * spent ten calls a day rebuilding these three numbers from
+ * battles_performance). Absolute trophy bands on purpose: a win is worth
+ * about the same at every ladder floor, so the rungs are arena-invariant.
+ */
+const SESSION_RUNGS = {
+  won_in_a_row: [5, 10, 20],
+  trophy_net: [150, 300, 500],
+  battles: [20, 40],
+};
 const LIST_CAP = 20;
 const STANDOUT_CAP = 5;
 const TIMELINE_CAP = 200;
@@ -71,9 +86,43 @@ const CLAN_LEDGER_KINDS = [
   "member_joined",
   "member_left",
   "role_changed",
+  "bracket_observed",
   "race_finished",
   "week_resolved",
 ];
+
+/** Every item kind the timeline can carry, for the tool's `kinds` filter. */
+export const ITEM_KINDS = [
+  "battle_session",
+  "session_standout",
+  ...PLAYER_MOMENT_KINDS,
+  "clan_joined",
+  "clan_left",
+  "member_joined",
+  "member_left",
+  "member_role_changed",
+  "bracket_observed",
+  "race_finished",
+  "week_resolved",
+  "quiet_crossed",
+  "returned",
+];
+
+/**
+ * badge_earned rows are lossless in the ledger (every level-up); the
+ * timeline surfaces one as an ITEM only at a rung — the badge's final
+ * level, or a multiple of five — and the entry counts the rest. A
+ * 47-member clan produced 14 mastery level-ups in one day, all texture
+ * (the 2026-09-16 request, §5). Rows written before 3.9.0 carry no
+ * max_level; for them only the multiple-of-five rung applies.
+ */
+function badgeItemWorthy(payload) {
+  const level = payload?.level;
+  if (typeof level !== "number") return true; // a one-off badge is always a moment
+  if (typeof payload.max_level === "number" && level >= payload.max_level)
+    return true;
+  return level % 5 === 0;
+}
 
 const iso = (v) => (v ? new Date(v).toISOString() : null);
 /** Optional per-query timings for the ops preview (perf is a plain object). */
@@ -141,7 +190,7 @@ export async function subjectsFor(db, accountId) {
  * battles are SESSION_GAP_MS or more apart. Individual battles are never
  * items; a session is the unit a player would speak of.
  */
-function sessionsOf(battles, toMs) {
+function sessionsOf(battles, toMs, { learned = () => true } = {}) {
   const sorted = [...battles].sort(
     (a, b) => a.battle_time.getTime() - b.battle_time.getTime(),
   );
@@ -159,17 +208,39 @@ function sessionsOf(battles, toMs) {
         drawn: 0,
         by_mode: {},
         trophy_net: 0,
+        run: 0,
+        won_in_a_row: 0,
+        // Rungs crossed so far, and which of those crossings this window
+        // learned (the battle that crossed it, for the item's instant).
+        crossed: [],
+        newly: [],
       };
       sessions.push(cur);
     }
     cur.endMs = t;
     cur.battles += 1;
-    if (b.outcome === "win") cur.won += 1;
-    else if (b.outcome === "loss") cur.lost += 1;
-    else cur.drawn += 1;
+    if (b.outcome === "win") {
+      cur.won += 1;
+      cur.run += 1;
+      if (cur.run > cur.won_in_a_row) cur.won_in_a_row = cur.run;
+    } else {
+      if (b.outcome === "loss") cur.lost += 1;
+      else cur.drawn += 1;
+      cur.run = 0;
+    }
     const g = MODE_GROUP_BY_TYPE[b.type] ?? "other";
     cur.by_mode[g] = (cur.by_mode[g] ?? 0) + 1;
     if (g === "ladder") cur.trophy_net += b.trophy_change ?? 0;
+    for (const [key, rungs] of Object.entries(SESSION_RUNGS)) {
+      const value = key === "trophy_net" ? Math.abs(cur.trophy_net) : cur[key];
+      for (const rung of rungs) {
+        const label = `${key}>=${rung}`;
+        if (value >= rung && !cur.crossed.includes(label)) {
+          cur.crossed.push(label);
+          if (learned(b)) cur.newly.push({ label, at: t });
+        }
+      }
+    }
   }
   return sessions.map((s) => ({
     started_at: iso(s.startMs),
@@ -180,8 +251,16 @@ function sessionsOf(battles, toMs) {
     drawn: s.drawn,
     by_mode: s.by_mode,
     trophy_net: s.trophy_net,
+    won_in_a_row: s.won_in_a_row,
     open: toMs - s.endMs < SESSION_GAP_MS,
+    crossed: s.crossed,
+    newly: s.newly,
   }));
+}
+
+/** The wire shape of a session: the bookkeeping fields stay here. */
+function sessionFacts({ crossed: _c, newly: _n, ...rest }) {
+  return rest;
 }
 
 /* ------------------------------------------------------------------ */
@@ -330,6 +409,17 @@ function sectionOfKind(kind) {
 }
 
 function decorate(kind, payload, arenaNames) {
+  // The badge's or card's own name under its own key, so it never shadows
+  // the member's `name` on a clan timeline ("Lava Hound unlocked Lava
+  // Hound", 2026-09-16).
+  if (kind === "badge_earned" || kind === "legendary_badge_earned") {
+    const { name, ...rest } = payload;
+    return { badge: name, ...rest };
+  }
+  if (kind === "card_unlocked") {
+    const { name, ...rest } = payload;
+    return { card: name, ...rest };
+  }
   if (kind === "arena_changed")
     return {
       ...payload,
@@ -470,7 +560,11 @@ export async function buildPlayerEntry(
     notables.push({ kind: "ranked_promotion", league: leagueName(league.to) });
   if (
     collectionLevel?.changed &&
-    crossed(collectionLevel.from, collectionLevel.to, COLLECTION_LEVEL_STEP)
+    crossed(
+      collectionLevel.from,
+      collectionLevel.to,
+      collectionLevelStep(collectionLevel.to),
+    )
   )
     notables.push({ kind: "collection_level", value: collectionLevel.to });
   if (wins?.changed && crossed(wins.from, wins.to, CAREER_WINS_STEP))
@@ -586,10 +680,12 @@ export async function buildPlayerEntry(
       at: s.started_at,
       kind: "battle_session",
       section: "battles",
-      facts: s,
+      facts: sessionFacts(s),
     });
   for (const r of ledger) {
     if (!PLAYER_MOMENT_KINDS.includes(r.event_type)) continue;
+    if (r.event_type === "badge_earned" && !badgeItemWorthy(r.payload))
+      continue;
     items.push({
       ...subject,
       at: iso(r.occurred_at ?? r.window_end),
@@ -657,19 +753,24 @@ export async function buildClanEntry(
   const sizeTo = await timed(perf, "clan.size", () => sizeAt(toMs));
 
   // Activity: battles played while in this clan, learned in the window,
-  // with sessions per member computed from the same rows.
-  const { rows: memberBattles } = await timed(perf, "clan.member_battles", () =>
+  // with sessions per member computed from the same rows. The fetch reaches
+  // a day back on battle_time regardless of when a row was learned so a
+  // session that straddles windows is judged whole; `learned` marks the
+  // rows this window admitted, and the activity counts use only those.
+  const { rows: allBattles } = await timed(perf, "clan.member_battles", () =>
     db.query(
-      `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change
+      `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change,
+              (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}) as learned
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
       where bp.clan_tag = $1
         and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
-        and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+        and b.created_at <= ${ts(toMs)}
       order by bp.player_tag, b.battle_time`,
       [tag],
     ),
   );
+  const memberBattles = allBattles.filter((r) => r.learned);
   const { rows: lateRows } = await timed(perf, "clan.late", () =>
     db.query(
       `select count(distinct b.battle_id)::int as n
@@ -697,6 +798,19 @@ export async function buildClanEntry(
   let sessionsTotal = 0;
   for (const rows of byPlayer.values())
     sessionsTotal += sessionsOf(rows, toMs).length;
+  // Session standouts: every member's sessions over the wider fetch, kept
+  // when a rung was crossed by a battle this window learned. Named below,
+  // once the roster query has the names.
+  const byPlayerAll = new Map();
+  for (const r of allBattles) {
+    if (!byPlayerAll.has(r.player_tag)) byPlayerAll.set(r.player_tag, []);
+    byPlayerAll.get(r.player_tag).push(r);
+  }
+  const standoutSessions = [];
+  for (const [playerTag, rows] of byPlayerAll)
+    for (const sess of sessionsOf(rows, toMs, { learned: (b) => b.learned }))
+      if (sess.newly.length)
+        standoutSessions.push({ player_tag: playerTag, ...sess });
 
   // Roster moves and war resolutions from the subject ledger, named.
   const { rows: ledger } = await timed(perf, "clan.ledger", () =>
@@ -904,6 +1018,26 @@ export async function buildClanEntry(
       });
   }
   quietCrossed.sort((a, b) => b.days_quiet - a.days_quiet);
+  const memberName = new Map(members.map((m) => [m.player_tag, m.name]));
+  // Strongest crossing first: the highest rung index, then trophies moved.
+  const strength = (sess) =>
+    Math.max(
+      ...sess.crossed.map((label) => {
+        const [key, rung] = label.split(">=");
+        return SESSION_RUNGS[key].indexOf(Number(rung));
+      }),
+    );
+  standoutSessions.sort(
+    (a, b) =>
+      strength(b) - strength(a) ||
+      Math.abs(b.trophy_net) - Math.abs(a.trophy_net),
+  );
+  const sessionStandouts = standoutSessions.map((sess) => ({
+    tag: sess.player_tag,
+    name: memberName.get(sess.player_tag) ?? null,
+    ...sessionFacts(sess),
+    crossed: sess.crossed,
+  }));
   const { rows: returned } = await timed(perf, "clan.returned", () =>
     db.query(
       `with inwin as (
@@ -1104,6 +1238,8 @@ export async function buildClanEntry(
           ranked_promotions: capList(rankedPromotions, STANDOUT_CAP),
           collection_levels: capList(collectionSteps, STANDOUT_CAP),
           badges,
+          sessions: capList(sessionStandouts, STANDOUT_CAP),
+          session_rungs: SESSION_RUNGS,
         }
       : null,
     donations: {
@@ -1122,7 +1258,9 @@ export async function buildClanEntry(
   for (const e of ledger) {
     if (!CLAN_LEDGER_KINDS.includes(e.event_type)) continue;
     const warKind =
-      e.event_type === "race_finished" || e.event_type === "week_resolved";
+      e.event_type === "race_finished" ||
+      e.event_type === "week_resolved" ||
+      e.event_type === "bracket_observed";
     items.push({
       ...subject,
       at: iso(e.occurred_at ?? e.window_end),
@@ -1132,18 +1270,38 @@ export async function buildClanEntry(
       facts: e.payload,
     });
   }
-  const memberItems = moments.map((m) => ({
-    ...subject,
-    at: iso(m.occurred_at ?? m.window_end),
-    kind: m.event_type,
-    section: "standouts",
-    facts: {
-      player_tag: m.player_tag,
-      name: m.name,
-      ...decorate(m.event_type, m.payload, arenaNames),
-    },
-  }));
+  const memberItems = moments
+    .filter(
+      (m) => m.event_type !== "badge_earned" || badgeItemWorthy(m.payload),
+    )
+    .map((m) => ({
+      ...subject,
+      at: iso(m.occurred_at ?? m.window_end),
+      kind: m.event_type,
+      section: "standouts",
+      facts: {
+        player_tag: m.player_tag,
+        name: m.name,
+        ...decorate(m.event_type, m.payload, arenaNames),
+      },
+    }));
   items.push(...memberItems.slice(0, MEMBER_MOMENTS_CAP));
+  // A standout session is an item at the instant of the first rung this
+  // window learned; the cap keeps a busy clan to its five strongest.
+  for (const sess of standoutSessions.slice(0, STANDOUT_CAP))
+    items.push({
+      ...subject,
+      at: iso(sess.newly[0].at),
+      kind: "session_standout",
+      section: "standouts",
+      facts: {
+        player_tag: sess.player_tag,
+        name: memberName.get(sess.player_tag) ?? null,
+        ...sessionFacts(sess),
+        crossed: sess.crossed,
+        newly: sess.newly.map((n) => n.label),
+      },
+    });
   if (comprehensive) {
     for (const q of quietCrossed)
       items.push({

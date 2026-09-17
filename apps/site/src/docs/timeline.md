@@ -29,6 +29,7 @@ after a month gets a month's timeline (capped at 30 days and 200 items).
 | `to` | string | now | an ISO instant, or a date covering that whole local day |
 | `mark_read` | boolean | `true` | move your read pointer to this window's end |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
+| `kinds` | string[] | all | keep only items of these kinds (the table below, or `account_*`); entries are untouched. A consumer that wakes on a few kinds reads only those |
 | `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
 | `timezone` | IANA zone | the account's | for date-only bounds and the text's times |
 
@@ -76,8 +77,9 @@ belongs to, so `sections` filters items and entries together.
 
 | kind | subject | what it is |
 |---|---|---|
-| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `open` while it may still be going. Single battles never appear. |
-| `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge, by name |
+| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. Single battles never appear. |
+| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
+| `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge, `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
 
 A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
@@ -89,10 +91,11 @@ carried trophies (ranked battles carry none). The arena moment adds
 Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 | `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
 | `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band; `facts.band` is the band, `facts.crossed_by` the Trophy Road win whose result first reached it, `at` at that battle |
-| `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a multiple of 5; career wins at a multiple of 1,000. `career_wins_step` carries `facts.step` and, when every win between the two snapshots is on the record (the window's wins reconcile with the lifetime counter), `facts.crossed_by` is the 1,000th win itself, `at` at that battle |
-| `card_unlocked` | player, or a clan's member | a card the player did not have, by name (level-ups are a count in the entry, never items) |
+| `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a step that widens with the level (every 5 below 100, every 50 to 1,000, every 100 above; `facts.step` says which); career wins at a multiple of 1,000. `career_wins_step` carries `facts.step` and, when every win between the two snapshots is on the record (the window's wins reconcile with the lifetime counter), `facts.crossed_by` is the 1,000th win itself, `at` at that battle |
+| `card_unlocked` | player, or a clan's member | a card the player did not have: `facts.card` is the card, `facts.name` the member on a clan's timeline (level-ups are a count in the entry, never items) |
 | `clan_joined`, `clan_left` | player | the player moved clans |
 | `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick |
+| `bracket_observed` | clan | the record's first sight of a new war week: `season_id`, `section_index`, `is_colosseum`, and `rivals[]` - the other four clans with `tag`, `name` and `recorded` (whether the hub records that clan, so a scout knows what it can drill). The week's start *time* is not here; `game_clock` has it |
 | `race_finished` | clan | the boat crossed the finish line, with fame |
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
@@ -141,7 +144,8 @@ end), `war` (season and week, the day at the window end, fame and place,
 `race_finished_at`, `decks` on a war day with `as_of`, weeks `resolved`),
 `presence` (quiet rung crossings, returns, never recorded), `standouts`
 (most battles, new bests, arena and ranked promotions, collection levels,
-badges, each bounded and named), `donations`.
+badges, standout sessions with their rungs, each bounded and named),
+`donations`.
 
 Tracked players with nothing in the window get no entry; they are listed
 under `quiet` with `days_quiet` and `days_since_poll`. A clan always gets an
@@ -154,7 +158,9 @@ entry: a clan's silence is the clan's activity.
   `next_war_day_opens_at`, `next_training_starts_at` and `week_ends_at` so a
   routine that cares schedules itself.
 - **It never gives advice.** "Passed 10 recorded-quiet days" is a fact with a
-  disclosed rung; whether that means anything is the reader's call.
+  disclosed rung; whether that means anything is the reader's call. The same
+  goes for a standout session: `crossed` names the rung, the reader decides
+  whether five wins in a row is news in this clan.
 - **It never assumes what the reader is for.** The same items serve a
   clan-management routine, a highlights bot, a recruiter watching churn, a
   war-only agent, and a person reading the console. Each reads the sections
@@ -164,9 +170,10 @@ entry: a clan's silence is the clan's activity.
 
 1. Read `game_clock` once; if you care about war, schedule yourself from
    `war_day_closes_at`.
-2. Call `elixir_timeline` from your saved `from` with `mark_read: false`.
-   If `timeline` is empty, there is nothing to consider. Otherwise read the
-   items, then the entries for the shape of the window.
+2. Call `elixir_timeline` from your saved `from` with `mark_read: false`,
+   and `kinds` naming what you wake on. If `timeline` is empty, there is
+   nothing to consider. Otherwise read the items, then the entries for the
+   shape of the window.
 3. Drill with the data tools for anything worth more: `clans_roster`,
    `war_current`, `clans_participation`, `players_summary`.
 4. Save `next_cursor`; move the pointer with `mark_read` only if this

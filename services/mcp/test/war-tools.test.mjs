@@ -432,10 +432,10 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
       [id, i],
     );
     await db.query(
-      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome)
-       values ($1, $2, now() - make_interval(hours => $3), 0, $4)
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change)
+       values ($1, $2, now() - make_interval(hours => $3), 0, $4, $5)
        on conflict do nothing`,
-      [id, tag, i, outcome],
+      [id, tag, i, outcome, outcome === "win" ? 30 : -30],
     );
   };
   // Member A: 3-0. Member B: 1-2.
@@ -455,6 +455,22 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
   assert.equal(body.members[0].rank, 1);
   assert.equal(body.members[0].win_rate, 1);
   assert.equal(body.members[1].win_rate, 0.333);
+  // 3.9.0: ladder trophy net and the streak ending at the latest battle,
+  // in the same call (the per-member battles_performance loop retired).
+  assert.equal(body.members[0].trophy_net, 90);
+  assert.deepEqual(body.members[0].current_streak, { kind: "win", length: 3 });
+  assert.equal(body.members[1].trophy_net, -30);
+  assert.deepEqual(
+    body.members[1].current_streak,
+    { kind: "win", length: 1 },
+    "the latest battle was a win; the two losses before it end the run",
+  );
+  assert.ok(
+    body.below_floor.every(
+      (m) => m.current_streak === null && m.trophy_net === 0,
+    ),
+    "no decided battle, no streak",
+  );
   assert.ok(
     Math.abs(body.median_win_rate - 0.6665) < 0.001,
     `median of the two ranked rates, got ${body.median_win_rate}`,

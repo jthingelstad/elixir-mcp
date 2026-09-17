@@ -36,6 +36,13 @@ test("genesis: no logged season -> the calendar names it, projection proceeds", 
     [CLAN],
   );
   assert.deepEqual(weeks.rows, [{ season_id: 135, section_index: 3 }]);
+  // A recent first sight of the week is the bracket being observed: one
+  // ledger row naming the four rivals; not for a payload a day old.
+  const { rows: bracket } = await ctx.db.query(
+    `select payload from clan_event where clan_tag = $1 and event_type = 'bracket_observed'`,
+    [CLAN],
+  );
+  assert.equal(bracket.length, 0, "an old fetchedAt writes no bracket row");
 });
 
 test("with logged history: week, standings, POINTS participation, attendance", async () => {
@@ -552,5 +559,36 @@ test("season rollover: a stale same-index anchor refreshes to the new observatio
     after[0].first_observed_at.toISOString(),
     new Date(fresh).toISOString(),
     "replay is history, not a new period",
+  );
+});
+
+test("bracket_observed: the first sight of a new week names its rivals, once", async () => {
+  // Another clan meets the same week for the first time, with the
+  // projector's clock set to the fixture's day so the sighting is news.
+  const war = await fixture("currentriverrace/war_day.json");
+  const OTHER = "#2PP0V8Y9";
+  const swap = (c) => (c.tag === war.clan.tag ? { ...c, tag: OTHER } : c);
+  const payload = {
+    ...war,
+    clan: { ...war.clan, tag: OTHER },
+    clans: war.clans.map(swap),
+  };
+  const fetchedAt = "2026-08-30T07:41:00Z";
+  const nowMs = Date.parse("2026-08-30T08:00:00Z");
+  await projectRiverRace(ctx.db, { payload, fetchedAt, nowMs });
+  await projectRiverRace(ctx.db, { payload, fetchedAt, nowMs });
+  const { rows } = await ctx.db.query(
+    `select payload from clan_event where clan_tag = $1 and event_type = 'bracket_observed'`,
+    [OTHER],
+  );
+  assert.equal(rows.length, 1, "one row for the week, not one per poll");
+  const p = rows[0].payload;
+  assert.equal(p.rivals.length, 4);
+  assert.ok(
+    p.rivals.every((r) => r.tag !== CLAN && typeof r.recorded === "boolean"),
+  );
+  assert.ok(
+    p.rivals.every((r) => r.name),
+    "rivals are named from the payload",
   );
 });

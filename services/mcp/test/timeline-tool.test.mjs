@@ -431,3 +431,158 @@ test("days is sugar on the timeline too: an explicit window, not the pointer", a
     body.applied.window.from,
   );
 });
+
+test("3.9.0: a member's session is a clan standout once per rung, named, at the crossing battle; kinds filters items", async () => {
+  // A clan member wins six in a row in one sitting (ladder, +30 each):
+  // five of them learned by the first window, the sixth by the next.
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag, p.name from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag limit 1`,
+    [CLAN],
+  );
+  const member = mem[0];
+  const base = Date.parse("2026-09-06T12:00:00Z");
+  const mk = async (i, createdAt) => {
+    const at = new Date(base + i * 4 * 60_000).toISOString();
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, created_at)
+       values ($1, $2, 'PvP', 'pvp', $3)`,
+      [`so-${i}`, at, createdAt],
+    );
+    await ctx.db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, clan_tag)
+       values ($1, $2, $3, 0, 'win', 30, $4)`,
+      [`so-${i}`, member.player_tag, at, CLAN],
+    );
+  };
+  for (let i = 0; i < 5; i++) await mk(i, "2026-09-06T12:30:00Z");
+  await mk(5, "2026-09-06T12:40:00Z");
+
+  const first = await call("elixir_timeline", {
+    from: "2026-09-06T12:20:00Z",
+    to: "2026-09-06T12:35:00Z",
+    kinds: ["session_standout"],
+    mark_read: false,
+  });
+  assert.equal(first.isError, false, JSON.stringify(first.body));
+  assert.deepEqual(first.body.applied.kinds, ["session_standout"]);
+  assert.equal(
+    first.body.timeline.length,
+    1,
+    JSON.stringify(first.body.timeline),
+  );
+  const item = first.body.timeline[0];
+  assert.equal(
+    item.subject_tag,
+    CLAN,
+    "a member's session on the clan's timeline",
+  );
+  assert.equal(item.section, "standouts");
+  assert.equal(item.facts.name, member.name, "the member is named");
+  assert.equal(item.facts.won, 5);
+  assert.equal(item.facts.won_in_a_row, 5);
+  assert.equal(item.facts.trophy_net, 150);
+  assert.deepEqual(item.facts.newly, ["won_in_a_row>=5", "trophy_net>=150"]);
+  assert.equal(
+    item.at,
+    new Date(base + 4 * 4 * 60_000).toISOString(),
+    "the crossing battle's instant",
+  );
+  assert.match(
+    item.text,
+    /played 5 battles in one sitting \(5W-0L; 5 ladder, \+150 trophies, 5 wins in a row\), still going\.$/,
+  );
+  const clanEntry = first.body.entries.find((e) => e.kind === "clan_activity");
+  assert.equal(clanEntry.standouts.sessions.items.length, 1);
+  assert.deepEqual(clanEntry.standouts.session_rungs.won_in_a_row, [5, 10, 20]);
+
+  // The next window learns the sixth win: no new rung, so no item — a
+  // session is never re-reported.
+  const next = await call("elixir_timeline", {
+    from: "2026-09-06T12:35:00Z",
+    to: "2026-09-06T12:45:00Z",
+    kinds: ["session_standout"],
+    mark_read: false,
+  });
+  assert.equal(
+    next.body.timeline.length,
+    0,
+    JSON.stringify(next.body.timeline),
+  );
+
+  const bad = await call("elixir_timeline", {
+    kinds: ["nope"],
+    mark_read: false,
+  });
+  assert.equal(bad.isError, true);
+  assert.equal(bad.body.error.code, "bad_request");
+});
+
+test("3.9.0: a badge or card moment keeps the member's name; the badge's is under badge/card; badge items only at a rung", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag, p.name from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag desc limit 1`,
+    [CLAN],
+  );
+  const member = mem[0];
+  const write = (type, payload, minute) =>
+    emitEvent(ctx.db, type, {
+      tag: member.player_tag,
+      windowStart: `2026-09-08T10:${minute}:00Z`,
+      windowEnd: `2026-09-08T10:${minute}:30Z`,
+      payload,
+    });
+  await write(
+    "badge_earned",
+    { name: "MasteryHog", level: 4, prior_level: 3, max_level: 10 },
+    "01",
+  );
+  await write(
+    "badge_earned",
+    { name: "MasteryHog", level: 5, prior_level: 4, max_level: 10 },
+    "02",
+  );
+  await write(
+    "badge_earned",
+    { name: "Played2Years", level: 2, prior_level: 1, max_level: 2 },
+    "03",
+  );
+  await write(
+    "card_unlocked",
+    { name: "Lava Hound", rarity: "legendary", card_id: 26000029 },
+    "04",
+  );
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-08T10:00:00Z",
+    to: "2026-09-08T11:00:00Z",
+    kinds: ["badge_earned", "card_unlocked"],
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const badges = body.timeline.filter((it) => it.kind === "badge_earned");
+  assert.deepEqual(
+    badges.map((b) => [b.facts.badge, b.facts.level]),
+    [
+      ["MasteryHog", 5],
+      ["Played2Years", 2],
+    ],
+    "level 4 is texture; level 5 and a final level are moments",
+  );
+  assert.ok(badges.every((b) => b.facts.name === member.name));
+  assert.equal(
+    badges[0].text,
+    `Tue 05:02 ${member.name} took MasteryHog to level 5.`,
+  );
+  const card = body.timeline.find((it) => it.kind === "card_unlocked");
+  assert.equal(card.facts.card, "Lava Hound");
+  assert.equal(card.facts.name, member.name);
+  assert.equal(card.text, `Tue 05:04 ${member.name} unlocked Lava Hound.`);
+  // The entry still counts every level-up.
+  const clanEntry = body.entries.find((e) => e.kind === "clan_activity");
+  const counted = clanEntry.standouts.badges.find(
+    (b) => b.tag === member.player_tag,
+  );
+  assert.equal(counted.count, 3);
+});

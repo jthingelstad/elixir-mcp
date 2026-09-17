@@ -75,9 +75,9 @@ export async function projectPlayerBadges(
            or player_badge.progress is distinct from excluded.progress
            or player_badge.target is distinct from excluded.target
            or player_badge.max_level is distinct from excluded.max_level)
-       returning name, level
+       returning name, level, max_level
      )
-     select u.name, u.level as new_level, p.level as prior_level,
+     select u.name, u.level as new_level, u.max_level, p.level as prior_level,
             (p.name is null) as is_new,
             (select count(*) from prior) as prior_count
        from upserted u left join prior p on p.name = u.name`,
@@ -115,6 +115,9 @@ export async function projectPlayerBadges(
         payload: {
           name: row.name,
           ...(level !== null ? { level } : {}),
+          ...(row.max_level !== null && row.max_level !== undefined
+            ? { max_level: row.max_level }
+            : {}),
           ...(row.prior_level !== null && row.prior_level !== undefined
             ? { prior_level: row.prior_level }
             : {}),
@@ -290,11 +293,18 @@ export async function projectPlayerSnapshot(
  */
 const BEST_TROPHIES_BAND = 500;
 const CAREER_WINS_STEP = 1000;
-const COLLECTION_LEVEL_STEP = 5;
 const crossed = (before, after, step) =>
   typeof before === "number" &&
   typeof after === "number" &&
   Math.floor(after / step) > Math.floor(before / step);
+/**
+ * Collection level steps widen with the level: every 5 below 100, every
+ * 50 to 1,000, every 100 above. A maxed account gains five levels in a
+ * day and was writing a "milestone" daily (2026-09-16); a beginner's
+ * first hundred are the ones worth a nod one by one.
+ */
+export const collectionLevelStep = (level) =>
+  level < 100 ? 5 : level < 1000 ? 50 : 100;
 
 /**
  * The battle that DID it (Jamie, 2026-09-15: "you can identify and speak
@@ -543,13 +553,17 @@ async function ledgerMilestones(
   }
 
   if (
+    typeof payload.collectionLevel === "number" &&
     crossed(
       prev.collection_level,
       payload.collectionLevel,
-      COLLECTION_LEVEL_STEP,
+      collectionLevelStep(payload.collectionLevel),
     )
   )
-    await write("collection_level_step", { level: payload.collectionLevel });
+    await write("collection_level_step", {
+      level: payload.collectionLevel,
+      step: collectionLevelStep(payload.collectionLevel),
+    });
 
   const league = payload.currentPathOfLegendSeasonResult?.leagueNumber ?? null;
   if (

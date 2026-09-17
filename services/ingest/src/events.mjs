@@ -12,6 +12,10 @@ const EVENT_TYPES = {
   member_joined: { stream: "clan", timing: "estimated" },
   member_left: { stream: "clan", timing: "estimated" },
   role_changed: { stream: "clan", timing: "estimated" },
+  // The five clans of a new war week, on the record's first sight of them:
+  // the bracket is an observation the reader cannot compute; the week's
+  // start TIME stays the clock's (game_clock), never a row.
+  bracket_observed: { stream: "clan", timing: "estimated" },
   race_finished: { stream: "clan", timing: "exact" },
   week_resolved: { stream: "clan", timing: "estimated" },
   // player (the timeline's named moments, review 2026-09-13 Part IV)

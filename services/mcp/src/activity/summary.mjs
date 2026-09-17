@@ -241,6 +241,16 @@ export function summarizeClan(e, timeZone = "UTC") {
           .map((m) => `${m.name ?? m.tag} → ${m.league}`)
           .join(", ")}`,
       );
+    if (s.sessions?.items.length)
+      parts.push(
+        `standout sessions: ${s.sessions.items
+          .slice(0, 3)
+          .map(
+            (m) =>
+              `${m.name ?? m.tag} ${m.won}W-${m.lost}L${m.trophy_net ? ` ${m.trophy_net > 0 ? "+" : ""}${m.trophy_net}` : ""}${m.won_in_a_row >= 5 ? ` (${m.won_in_a_row} in a row)` : ""}`,
+          )
+          .join(", ")}`,
+      );
     if (s.badges.length)
       parts.push(
         `badges: ${s.badges
@@ -292,10 +302,20 @@ export function itemText(it, timeZone = "UTC") {
           : "";
       return `${at} ${subj} played a session of ${plural(f.battles, "battle")} (${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net})${f.open ? ", still going" : ""}.`;
     }
+    case "session_standout": {
+      const m = modes(f.by_mode);
+      const net =
+        typeof f.trophy_net === "number" && f.trophy_net !== 0
+          ? `, ${f.trophy_net > 0 ? "+" : ""}${f.trophy_net} trophies`
+          : "";
+      const run =
+        f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";
+      return `${at} ${member || subj} played ${plural(f.battles, "battle")} in one sitting (${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${run})${f.open ? ", still going" : ""}.`;
+    }
     case "badge_earned":
-      return `${at} ${member || subj} took ${f.name}${f.level ? ` to level ${f.level}` : ""}.`;
+      return `${at} ${member || subj} took ${f.badge ?? f.name}${f.level ? ` to level ${f.level}` : ""}.`;
     case "legendary_badge_earned":
-      return `${at} ${member || subj} earned ${f.name}.`;
+      return `${at} ${member || subj} earned ${f.badge ?? f.name}.`;
     case "arena_changed":
       return `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}${onBattle(f.promoted_by)}.`;
     case "ranked_promotion":
@@ -307,7 +327,7 @@ export function itemText(it, timeZone = "UTC") {
     case "career_wins_step":
       return `${at} ${member || subj} passed ${num(f.wins)} career wins${f.crossed_by ? `, the ${num(f.step)}th${onBattle(f.crossed_by)}` : ""}.`;
     case "card_unlocked":
-      return `${at} ${member || subj} unlocked ${f.name ?? `card ${f.card_id}`}.`;
+      return `${at} ${member || subj} unlocked ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
     case "member_joined":
       return `${at} ${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
     case "member_left":
@@ -321,6 +341,10 @@ export function itemText(it, timeZone = "UTC") {
           ? "demoted"
           : "promoted");
       return `${at} ${f.name ?? f.player_tag} was ${dir} from ${f.role_before} to ${f.role_after} in ${subj}.`;
+    }
+    case "bracket_observed": {
+      const rivals = (f.rivals ?? []).map((r) => r.name ?? r.tag).join(", ");
+      return `${at} ${subj}'s week ${(f.section_index ?? 0) + 1}${f.is_colosseum ? " (Colosseum)" : ""} bracket: ${rivals || "no rivals recorded"}.`;
     }
     case "race_finished":
       return `${at} ${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;

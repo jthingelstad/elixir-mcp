@@ -9,6 +9,12 @@
  */
 export default [
   {
+    date: "2026-09-16",
+    title:
+      "The timeline can drive a clan bot: session standouts, the week's bracket, a kinds filter",
+    body: "A Discord bot on the timeline was still firing on a wall clock for most of what it posted, and spent ten tool calls a day rebuilding a member's win streak and trophy swing from battles_performance. Now a member's session that crosses a disclosed rung (5, 10 or 20 wins in a row; 150, 300 or 500 ladder trophies net; 20 or 40 battles in one sitting) is a session_standout item on the clan's timeline, at the battle that crossed it, once per rung and never repeated; the clan entry lists its five strongest under standouts.sessions. The record's first sight of a new war week is a bracket_observed item naming the four rivals and whether each is recorded - the week's start time stays the clock's. kinds keeps only the item kinds you wake on. Badge and card moments name the member again (facts.name; the badge or card is facts.badge / facts.card), badge items appear only at a final level or a multiple of five, and collection-level steps widen as a collection grows, so a maxed account no longer writes a milestone a day. clans_standings answers trophy_net and current_streak per member in the same call. Contract 3.9.0.",
+  },
+  {
     date: "2026-09-15",
     title: "The activity year shows how each day went, not only how much",
     body: "Each cell of the battle-activity year on Console now carries two things: its hue is the day's win share, from red (all losses) through purple (even) to blue (all wins), and its shade is still the volume, four steps scaled to the player's busiest day. Tap a day and the caption says the record - '6 battles · 4 wins, 1 loss, 1 draw' - and the two-week list gains a won/lost column. Draws and unresolved results count toward volume and toward neither side; a day with nothing decided keeps the neutral purple. The nightly histogram now stores wins and losses per day alongside the count, so a day the job has not rebuilt yet is drawn as before until the next run.",

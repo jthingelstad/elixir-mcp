@@ -47,7 +47,12 @@ async function clanClock(db, clanTag, payload, nowMs) {
   });
 }
 
-export async function projectRiverRace(db, { payload, fetchedAt }) {
+/** `nowMs` is the recency guards' clock (bracket_observed, race_finished):
+ *  injectable so a test can replay a dated fixture as news. */
+export async function projectRiverRace(
+  db,
+  { payload, fetchedAt, nowMs = Date.now() },
+) {
   const tag = normalizeTag(payload.clan.tag);
   const observedMs = Date.parse(fetchedAt);
   // The observing clan must exist before any war row references it. The
@@ -92,7 +97,13 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
     [tag, clock.seasonId, clock.sectionIndex],
   );
 
-  // 2. The week row.
+  // 2. The week row. Its first appearance is the bracket being observed:
+  // one ledger row naming the rivals, recency-guarded like race_finished
+  // so an archive replay never writes old brackets as news.
+  const { rows: priorWeek } = await db.query(
+    `select 1 from war_week where clan_tag = $1 and season_id = $2 and section_index = $3`,
+    [tag, clock.seasonId, clock.sectionIndex],
+  );
   await db.query(
     `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at)
      values ($1, $2, $3, $4, $5)
@@ -110,6 +121,35 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
       fetchedAt,
     ],
   );
+
+  if (priorWeek.length === 0 && observedMs > nowMs - 24 * 3600_000) {
+    const rivalTags = (payload.clans ?? [])
+      .map((c) => (c?.tag ? normalizeTag(c.tag) : null))
+      .filter((t) => t && t !== tag);
+    const { rows: recorded } = rivalTags.length
+      ? await db.query(
+          `select distinct clan_tag from clan_membership where clan_tag = any($1::text[])`,
+          [rivalTags],
+        )
+      : { rows: [] };
+    const recordedSet = new Set(recorded.map((r) => r.clan_tag));
+    await emitEvent(db, "bracket_observed", {
+      tag,
+      windowEnd: fetchedAt,
+      payload: {
+        season_id: clock.seasonId,
+        section_index: clock.sectionIndex,
+        is_colosseum: clock.kind === "colosseum",
+        rivals: (payload.clans ?? [])
+          .filter((c) => c?.tag && normalizeTag(c.tag) !== tag)
+          .map((c) => ({
+            tag: normalizeTag(c.tag),
+            name: c.name ?? null,
+            recorded: recordedSet.has(normalizeTag(c.tag)),
+          })),
+      },
+    });
+  }
 
   // 3. Standings across the race's clans (fame here is the boat's own).
   let facts = anchorInsert.length;
@@ -160,7 +200,7 @@ export async function projectRiverRace(db, { payload, fetchedAt }) {
   if (
     own?.finishTime &&
     !priorFinish[0]?.finish_time &&
-    Date.parse(fetchedAt) > Date.now() - 24 * 3600_000
+    observedMs > nowMs - 24 * 3600_000
   ) {
     await emitEvent(db, "race_finished", {
       tag,

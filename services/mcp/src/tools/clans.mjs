@@ -46,7 +46,7 @@ const CLAN_TAG_SCHEMA = {
 export const clansTools = {
   clans_standings: {
     description:
-      "Clan-relative performance, yours by default: every open member's recorded W/L/D and win rate in ONE call over a window (default 30 days). For a 24-hour member scan use days: 1, min_battles: 1; from/to also supports shorter windows. Ranked with the clan median; members below min_battles are listed below the floor. Trophy swing and streaks still need a selected member's battles_performance.",
+      "Clan-relative performance, yours by default: every open member's recorded W/L/D, win rate, ladder trophy net and current streak in ONE call over a window (default 30 days). For a 24-hour member scan use days: 1, min_battles: 1; from/to also supports shorter windows. Ranked with the clan median; members below min_battles are listed below the floor. Per-battle detail for one member is battles_performance.",
     inputSchema: {
       type: "object",
       properties: {
@@ -89,24 +89,47 @@ export const clansTools = {
       // One grouped pass instead of a per-member lateral scan (audit
       // census: 2.5s avg). The subquery keeps roster rows for members
       // with zero matching battles.
+      // One grouped pass; the streak is the run of equal decided outcomes
+      // ending at the member's latest battle, counted with a window
+      // function over the same subquery (the 2026-09-16 timeline request
+      // §2: a consumer called battles_performance per member for this).
       const { rows } = await ctx.db.query(
-        `select cm.player_tag, p.name, p.years_played,
-                count(s.battle_id)::int as battles,
-                count(*) filter (where s.outcome = 'win')::int as wins,
-                count(*) filter (where s.outcome = 'loss')::int as losses,
-                count(*) filter (where s.outcome = 'draw')::int as draws
-         from clan_membership cm
-         join player p on p.player_tag = cm.player_tag
-         left join (
-           select bp.player_tag, bp.battle_id, bp.outcome
+        `with s as (
+           select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time,
+                  case when b.type = any($${params.length + 1}) then bp.trophy_change else 0 end as ladder_change
            from battle_participant bp
            join battle b on b.battle_id = bp.battle_id
            where bp.battle_time >= $2
              ${clauses.join(" ")}
-         ) s on s.player_tag = cm.player_tag
+         ),
+         decided as (
+           select player_tag, outcome,
+                  row_number() over (partition by player_tag order by battle_time desc, battle_id desc) as drn
+           from s where outcome in ('win', 'loss')
+         ),
+         streak as (
+           select d.player_tag, l.latest as streak_kind,
+                  (coalesce(min(d.drn) filter (where d.outcome <> l.latest), max(d.drn) + 1) - 1)::int as streak_len
+           from decided d
+           join (select player_tag, outcome as latest from decided where drn = 1) l
+             on l.player_tag = d.player_tag
+           group by d.player_tag, l.latest
+         )
+         select cm.player_tag, p.name, p.years_played,
+                count(s.battle_id)::int as battles,
+                count(*) filter (where s.outcome = 'win')::int as wins,
+                count(*) filter (where s.outcome = 'loss')::int as losses,
+                count(*) filter (where s.outcome = 'draw')::int as draws,
+                coalesce(sum(s.ladder_change), 0)::int as trophy_net,
+                max(st.streak_kind) as streak_kind,
+                max(st.streak_len) as streak_len
+         from clan_membership cm
+         join player p on p.player_tag = cm.player_tag
+         left join s on s.player_tag = cm.player_tag
+         left join streak st on st.player_tag = cm.player_tag
          where cm.clan_tag = $1 and cm.left_observed_at is null
          group by cm.player_tag, p.name, p.years_played`,
-        params,
+        [...params, typesForModeGroup("ladder")],
       );
       const withRate = rows.map((r) => ({
         player_tag: r.player_tag,
@@ -120,6 +143,10 @@ export const clansTools = {
           r.wins + r.losses > 0
             ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
             : null,
+        trophy_net: r.trophy_net,
+        current_streak: r.streak_kind
+          ? { kind: r.streak_kind, length: r.streak_len }
+          : null,
       }));
       const ranked = withRate
         .filter((m) => m.wins + m.losses >= minBattles)
@@ -154,6 +181,7 @@ export const clansTools = {
         notes: notes(
           "Covers RECORDED battles only, and capture starts differ per member (elixir_coverage per tag).",
           "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
+          "trophy_net sums trophy_change on ladder battles in the window; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
         ),
         docs: docsRef("recording", "completeness"),
         meta: responseMeta({
