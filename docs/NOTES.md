@@ -3095,3 +3095,45 @@ discipline); until then their existing `application` tag stands and the
 Elixir application shows this stack alone. The dashboard does not draw
 CloudFront by decision (the static site's failures show up nowhere
 anyone acts).
+
+## 2026-09-17 — Time-series Phase 1, two corrections to the arena moment
+
+The review session's re-check of the four verification fixes
+(`997c09e`) upheld the departure on the arena moment (the roster
+emits it) and found two things in it. Both shipped (`0641b34`,
+`77ab065`), one deploy at 21:2xZ, before the backfill's clan lane wrote
+anything.
+
+1. **A replay never writes a moment.** `series.mjs` gated the roster's
+   `arena_changed` on kind, source and a receipt id; the Part 5
+   backfill passes the receipt id as the row's provenance, so a
+   six-month roster replay would have written thousands of moments
+   dated in the past, against the rule that replays write rows and
+   never moments (the 09-15 roster replay skipped projection for that
+   reason; the war events carry recency guards). The gate is now the
+   freshness rule the pipeline already uses for yield, burst and the
+   refresh request: the observation is within 24 hours of now. Test:
+   the same roster shape a week old writes the row and no moment;
+   fresh, it writes both.
+2. **The log pins a roster-written moment, once.** A tracked clan's
+   roster reads every fifteen minutes and an active player's log every
+   fifteen to sixty, so the roster usually sees the arena before the
+   log delivers the promoting battle and the moment stays estimated
+   with no battle, where the 8-hour profile path nearly always had it
+   in hand. When a battlelog delivery produces arena evidence (the
+   refresh request's own computation), `pinArenaMoment` finds the
+   player's most recent `arena_changed` within 24 hours that carries no
+   battle and whose `arena_to` names the evidence's arena, runs the
+   same promotion lookup over the moment's window to the delivery's
+   `fetched_at`, and when it names a battle fills `battle_id`, `floor`
+   and `occurred_at` and sets the timing exact, once. Absence over a
+   guess: no battle, no change. Test: the reverse of the verification
+   test - roster at 09:40, the log at 09:55 carrying the 09:30 crossing
+   win; the moment gains `promoted_by` and `occurred_at` 09:30; a second
+   delivery changes nothing.
+
+**Measured live, read-only.** `{series_status}` now reports the last
+day's arena moments. At the deploy (21:26Z): 1 `arena_changed` row in
+the last day, 0 with a battle, 0 from the roster. The after reading is
+in the Phase 2 entry below; arena moves are rare enough per day that
+the share will read properly over a week, not an hour.

@@ -354,7 +354,12 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
     );
   const budgetMs =
     Math.min(Math.max(Number(spec.budget_s ?? 240), 5), 280) * 1000;
-  const batch = Math.min(Math.max(Number(spec.batch ?? 200), 1), 2000);
+  // Fifty receipts a transaction, not two hundred: the first live run
+  // (2026-09-17 21:4xZ) deadlocked against a collector submission on
+  // the player rows both upsert, and a batch that holds fifty clans'
+  // members for a second overlaps live ingest far less than one that
+  // holds two hundred for twelve. A deadlock is the batch's to retry.
+  const batch = Math.min(Math.max(Number(spec.batch ?? 50), 1), 2000);
   const bucket = process.env.ARCHIVE_BUCKET;
   let getObject = deps.getObject;
   let listKeys = deps.listKeys;
@@ -390,6 +395,7 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
     missing_objects: 0,
     unreadable: 0,
     unresolved_season: 0,
+    deadlock_retries: 0,
     done: false,
   };
   const parsed = new Map(); // hash -> payload, this run
@@ -422,94 +428,108 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
         tally.done = true;
         break;
       }
-      await db.query("begin");
-      try {
-        let rows = 0;
-        for (const r of receipts) {
-          let payload = parsed.get(r.payload_hash);
-          if (payload === undefined) {
-            const keys = await listKeys(endpoint, r.entity_key);
-            const key = keys.get(r.payload_hash.slice(0, 16));
-            if (!key) {
+      let attempt = 0;
+      for (;;) {
+        await db.query("begin");
+        try {
+          let rows = 0;
+          for (const r of receipts) {
+            let payload = parsed.get(r.payload_hash);
+            if (payload === undefined) {
+              const keys = await listKeys(endpoint, r.entity_key);
+              const key = keys.get(r.payload_hash.slice(0, 16));
+              if (!key) {
+                tally.missing_objects += 1;
+                parsed.set(r.payload_hash, null);
+                continue;
+              }
+              try {
+                payload = JSON.parse(
+                  gunzipSync(await getObject(key)).toString("utf8"),
+                );
+                tally.objects_read += 1;
+              } catch {
+                tally.unreadable += 1;
+                parsed.set(r.payload_hash, null);
+                continue;
+              }
+              parsed.set(r.payload_hash, payload);
+            } else if (payload === null) {
               tally.missing_objects += 1;
-              parsed.set(r.payload_hash, null);
               continue;
+            } else tally.cache_hits += 1;
+            const observedAt = r.fetched_at.toISOString();
+            if (lane === "clan") {
+              const out = await projectClanSeries(db, {
+                payload,
+                observedAt,
+                receiptId: r.receipt_id,
+              });
+              rows += out.facts;
+            } else if (lane === "player") {
+              const out = await projectProfileSeries(db, {
+                playerTag: r.entity_key,
+                payload,
+                observedAt,
+              });
+              rows += out.facts;
+            } else if (lane === "race") {
+              const week = await raceSeasonFor(db, {
+                payload,
+                fetchedAt: observedAt,
+              });
+              if (!week || !payload?.clan?.tag) {
+                tally.unresolved_season += 1;
+                continue;
+              }
+              const out = await projectRaceSeries(db, {
+                payload,
+                fetchedAt: observedAt,
+                ...week,
+              });
+              rows += out.facts;
+            } else {
+              rows += await fillBattleFacts(db, canonicalizeBattle, payload);
             }
-            try {
-              payload = JSON.parse(
-                gunzipSync(await getObject(key)).toString("utf8"),
-              );
-              tally.objects_read += 1;
-            } catch {
-              tally.unreadable += 1;
-              parsed.set(r.payload_hash, null);
-              continue;
-            }
-            parsed.set(r.payload_hash, payload);
-          } else if (payload === null) {
-            tally.missing_objects += 1;
-            continue;
-          } else tally.cache_hits += 1;
-          const observedAt = r.fetched_at.toISOString();
-          if (lane === "clan") {
-            const out = await projectClanSeries(db, {
-              payload,
-              observedAt,
-              receiptId: r.receipt_id,
-            });
-            rows += out.facts;
-          } else if (lane === "player") {
-            const out = await projectProfileSeries(db, {
-              playerTag: r.entity_key,
-              payload,
-              observedAt,
-            });
-            rows += out.facts;
-          } else if (lane === "race") {
-            const week = await raceSeasonFor(db, {
-              payload,
-              fetchedAt: observedAt,
-            });
-            if (!week || !payload?.clan?.tag) {
-              tally.unresolved_season += 1;
-              continue;
-            }
-            const out = await projectRaceSeries(db, {
-              payload,
-              fetchedAt: observedAt,
-              ...week,
-            });
-            rows += out.facts;
-          } else {
-            rows += await fillBattleFacts(db, canonicalizeBattle, payload);
           }
-        }
-        const last = receipts[receipts.length - 1].receipt_id;
-        await db.query(
-          `update series_backfill_state
+          const last = receipts[receipts.length - 1].receipt_id;
+          await db.query(
+            `update series_backfill_state
               set after_receipt_id = $2, receipts_done = receipts_done + $3,
                   rows_written = rows_written + $4, updated_at = now()
             where lane = $1`,
-          [lane, last, receipts.length, rows],
-        );
-        await db.query("commit");
-        tally.batches += 1;
-        tally.receipts += receipts.length;
-        tally.rows_written += rows;
-        tally.next_after = Number(last);
-        if (receipts.length < batch) {
-          await db.query(
-            `update series_backfill_state set finished_at = coalesce(finished_at, now()), updated_at = now()
-             where lane = $1`,
-            [lane],
+            [lane, last, receipts.length, rows],
           );
-          tally.done = true;
+          await db.query("commit");
+          tally.batches += 1;
+          tally.receipts += receipts.length;
+          tally.rows_written += rows;
+          tally.next_after = Number(last);
+          if (receipts.length < batch) {
+            await db.query(
+              `update series_backfill_state set finished_at = coalesce(finished_at, now()), updated_at = now()
+             where lane = $1`,
+              [lane],
+            );
+            tally.done = true;
+            break;
+          }
           break;
+        } catch (err) {
+          await db.query("rollback").catch(() => {});
+          // Postgres chose this transaction as the deadlock victim: the
+          // batch is whole or nothing, so replay it after a beat (the
+          // parsed payloads are cached; the guards make the replay exact).
+          if (err?.code === "40P01" && attempt < 3) {
+            attempt += 1;
+            tally.deadlock_retries += 1;
+            await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+            continue;
+          }
+          throw err;
         }
-      } catch (err) {
-        await db.query("rollback").catch(() => {});
-        throw err;
       }
+      if (tally.done) break;
     }
     const {
       rows: [state],

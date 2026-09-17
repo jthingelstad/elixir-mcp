@@ -29,7 +29,7 @@ if (!["clan", "player", "race", "battle"].includes(lane)) {
   process.exit(2);
 }
 const budget = Number(flag("budget", 240));
-const batch = Number(flag("batch", 200));
+const batch = Number(flag("batch", 50));
 const lambda = new LambdaClient({});
 
 const started = Date.now();
@@ -67,10 +67,11 @@ for (;;) {
   totals.missing += body.missing_objects;
   totals.unreadable += body.unreadable;
   totals.unresolved += body.unresolved_season ?? 0;
+  totals.deadlocks += body.deadlock_retries ?? 0;
   console.log(
     `${new Date().toISOString()} ${lane} #${totals.invocations} receipts ${body.receipts} rows ${body.rows_written} ` +
       `objects ${body.objects_read} hits ${body.cache_hits} missing ${body.missing_objects} unreadable ${body.unreadable} ` +
-      `unresolved ${body.unresolved_season ?? 0} remaining ${body.remaining} ${body.ms} ms` +
+      `unresolved ${body.unresolved_season ?? 0} deadlocks ${body.deadlock_retries ?? 0} remaining ${body.remaining} ${body.ms} ms` +
       (body.done ? " DONE" : ""),
   );
   if (body.done) break;
@@ -78,5 +79,5 @@ for (;;) {
 console.log(
   `${lane}: ${totals.invocations} invocations, ${totals.receipts} receipts, ${totals.rows} rows, ` +
     `${totals.objects} objects read, ${totals.hits} cache hits, ${totals.missing} missing, ` +
-    `${totals.unreadable} unreadable, ${totals.unresolved} unresolved, ${Math.round((Date.now() - started) / 1000)} s wall`,
+    `${totals.unreadable} unreadable, ${totals.unresolved} unresolved, ${totals.deadlocks} deadlock retries, ${Math.round((Date.now() - started) / 1000)} s wall`,
 );
