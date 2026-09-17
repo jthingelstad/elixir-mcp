@@ -364,7 +364,7 @@ test("roster diffs emit clan events with evidence; first sight was silent", asyn
   );
 });
 
-test("pre-reset window pins an extra season_roll snapshot", async () => {
+test("the two watchers pin their extra rows: pre_reset before Monday 00:10Z, season_roll before the roll", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
   const tag = meta["player/profile.json"].entity_key;
   // Sunday 23:30Z: inside the final hour before the Monday 00:10Z reset.
@@ -384,6 +384,26 @@ test("pre-reset window pins an extra season_roll snapshot", async () => {
   );
   assert.deepEqual(
     rows.map((r) => r.snapshot_kind),
+    ["daily", "pre_reset"],
+  );
+  // Monday Sep 7 09:30Z: inside the hour before S135 rolls to S136 at
+  // 10:00Z, and nine hours past the donation reset - season_roll only.
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: "2026-09-07T09:30:00Z",
+    }),
+  );
+  const { rows: roll } = await ctx.db.query(
+    `select snapshot_kind from player_snapshot_daily
+     where player_tag = $1 and snapshot_date = '2026-09-07' order by snapshot_kind`,
+    [tag],
+  );
+  assert.deepEqual(
+    roll.map((r) => r.snapshot_kind),
     ["daily", "season_roll"],
   );
 });

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { makeRegistry } from "../src/tools.mjs";
-import { seedPlayedDeck, hashFor } from "./deck-rows.mjs";
+import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createHash } from "node:crypto";
 
@@ -231,6 +231,7 @@ test("limited deck meta renders the identity from deck_card and the catalog, nev
     // not the answer - the catalog names the identity's cards.
     const cards = [{ id: 26000000, name: label, evolutionLevel: 1 }];
     const supportCards = [{ id: 159000000, name: "Tower Princess" }];
+    await seedDeck(db, { battle_time: at, cards, supportCards });
     await db.query(
       "insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_hash) values ($1,$2,$3,0,'win',$4)",
       [id, tag, at, hashFor(cards, supportCards[0].id)],

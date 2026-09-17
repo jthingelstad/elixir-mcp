@@ -13,6 +13,7 @@ import { resolveInstant } from "../time.mjs";
 import {
   seasonFromDate,
   seasonIdForMonth,
+  monthForSeasonId,
 } from "../../../ingest/src/war-clock.mjs";
 import {
   ToolFailure,
@@ -78,8 +79,8 @@ const FLOOR_NOTE =
  *  is taken as one already. */
 function seasonArg(value) {
   const raw = String(value).trim();
-  if (/^\d{4}-\d{2}$/.test(raw)) return String(seasonIdForMonth(raw));
-  if (/^\d+$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}$/.test(raw)) return raw;
+  if (/^\d+$/.test(raw)) return monthForSeasonId(raw);
   throw new ToolFailure(
     "bad_request",
     `Could not read season='${raw}'.`,
@@ -124,12 +125,12 @@ async function snapshotFor(ctx, args, row) {
       );
   }
   const { rows } = await ctx.db.query(
-    `select snapshot_id, season_id, season_month, observed_at, last_confirmed_at, entries, truncated
+    `select snapshot_id, season_month, observed_at, last_confirmed_at, entries, truncated
      from ranking_snapshot
      where board = $1 and location_key = $2
        and ($3::timestamptz is null or observed_at <= $3)
-       and ($4::text is null or season_id = $4)
-     order by season_id::int desc, observed_at desc limit 1`,
+       and ($4::text is null or season_month = $4)
+     order by season_month desc, observed_at desc limit 1`,
     [
       row.board,
       row.location_key,
@@ -163,9 +164,10 @@ function snapshotBlock(snapshot, row) {
     // "Still this at" - an identical later fetch bumps this instead of
     // writing a twin; the two together are the interval the board held.
     unchanged_until: snapshot.last_confirmed_at.toISOString(),
-    season_id: snapshot.season_id,
-    // The API's own name for a final's season (0070); null on live boards.
-    season_month: snapshot.season_month ?? null,
+    // The season the board stood in, both spellings: the API's month is
+    // the key (0109); the ordinal is the game clock's name for it.
+    season_id: String(seasonIdForMonth(snapshot.season_month)),
+    season_month: snapshot.season_month,
     entries: snapshot.entries,
     truncated: snapshot.truncated,
     cadence_minutes: row.every_minutes,
@@ -252,8 +254,8 @@ export const rankingsTools = {
         board,
         location: row.location_key,
         season:
-          snapshot?.season_id && board === "pol_final"
-            ? Number(snapshot.season_id)
+          snapshot && board === "pol_final"
+            ? seasonIdForMonth(snapshot.season_month)
             : undefined,
         as_of: asOf ? asOf.toISOString() : undefined,
         limit,

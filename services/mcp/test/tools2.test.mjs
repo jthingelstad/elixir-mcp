@@ -9,7 +9,7 @@ import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { emailHash } from "../../auth/src/index.mjs";
 import { makeRegistry } from "../src/tools.mjs";
-import { seedPlayedDeck, hashFor } from "./deck-rows.mjs";
+import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
 import { seasonFromDate, monthKey } from "../../ingest/src/war-clock.mjs";
@@ -1115,6 +1115,9 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
       [id],
     );
     const cards = [{ id: 26000000, name: "Knight", level: 14 }];
+    // The deck before the participant, as ingest writes them (0108 FK),
+    // and the card rows after it.
+    await seedDeck(db, { cards });
     await db.query(
       "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash) values ($1,$2,now(),0,$3,$4)",
       [id, tag, outcome, hashFor(cards)],

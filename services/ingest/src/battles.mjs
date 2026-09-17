@@ -182,7 +182,6 @@ export function canonicalizeBattle(entry) {
       game_mode_name: entry.gameMode?.name ?? null,
       arena: entry.arena?.name ?? null,
       league_number: entry.leagueNumber ?? null,
-      modifiers: null,
     },
     participants,
   };
@@ -198,7 +197,6 @@ const BATTLE_COLS = [
   "game_mode_name",
   "arena",
   "league_number",
-  "modifiers",
 ];
 const BATTLE_KEY = ["battle_id", "battle_time", "type", "type_class"];
 const BATTLE_ENRICH = BATTLE_COLS.filter((c) => !BATTLE_KEY.includes(c));
@@ -232,7 +230,7 @@ const PARTICIPANT_ENRICH = PARTICIPANT_COLS.filter(
   (c) => !PARTICIPANT_KEY.includes(c),
 );
 
-const JSONB_COLS = new Set(["modifiers", "tower_hp"]);
+const JSONB_COLS = new Set(["tower_hp"]);
 
 function paramValues(cols, row) {
   return cols.map((c) => {

@@ -582,7 +582,6 @@ export const clansTools = {
         if (!daysByKey.has(k)) daysByKey.set(k, new Map());
         daysByKey.get(k).set(r.war_day, {
           decks_used_today: r.decks_used_today,
-          finalized: r.finalized,
         });
       }
       const battledByKey = new Map();

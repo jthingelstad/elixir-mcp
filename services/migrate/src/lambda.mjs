@@ -40,6 +40,7 @@ import {
   tables,
   ledger,
   warDrift,
+  enumCensus,
   captureAudit,
   probe,
   explainParticipation,
@@ -257,6 +258,11 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.explain_meta === true ? {} : event.explain_meta,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.enum_census) {
+    const result = await enumCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

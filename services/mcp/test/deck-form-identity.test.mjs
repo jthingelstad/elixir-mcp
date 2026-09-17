@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { deckHash } from "@elixir-mcp/contracts";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
-import { seedPlayedDeck } from "./deck-rows.mjs";
+import { seedPlayedDeck, seedDeck } from "./deck-rows.mjs";
 
 let scratch;
 let account;
@@ -64,6 +64,12 @@ async function seed({ id, evo, day }) {
      values ($1,$2::timestamptz,'PvP','pvp','Ladder')`,
     [id, at],
   );
+  // The deck before the participant (0108), the card rows after it.
+  await seedDeck(scratch.db, {
+    battle_time: at,
+    cards: cards(evo),
+    supportCards: [TOWER],
+  });
   await scratch.db.query(
     `insert into battle_participant
        (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash)

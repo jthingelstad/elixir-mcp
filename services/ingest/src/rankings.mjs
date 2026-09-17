@@ -29,7 +29,7 @@
 import { createHash } from "node:crypto";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
-import { seasonFromDate, nextSeasonStartMs } from "./war-clock.mjs";
+import { seasonFromDate, nextSeasonStartMs, monthKey } from "./war-clock.mjs";
 
 /** How long after the roll a presence keeps recording. Long enough that
  *  the first day of the new season — when the board is empty and nobody
@@ -114,6 +114,10 @@ export async function projectRankingBoard(
     board === "pol_final" ? "global" : String(entityKey ?? "").toLowerCase();
   const season =
     seasonId ?? String(seasonFromDate(observedAt.getTime()).seasonId);
+  // The season's key is the API's month (0109); the ordinal rides along
+  // until 0115 drops it.
+  const month =
+    seasonMonth ?? monthKey(seasonFromDate(observedAt.getTime()).seasonStartMs);
 
   // Identity accretion, as before: every ranked tag lands a player row
   // so the player tools can address it at once. Presence has a foreign
@@ -150,12 +154,12 @@ export async function projectRankingBoard(
   const { rows: last } = await db.query(
     board === "pol_final"
       ? `select snapshot_id, content_hash from ranking_snapshot
-         where board = $1 and location_key = $2 and season_id = $3
+         where board = $1 and location_key = $2 and season_month = $3
          order by observed_at desc limit 1`
       : `select snapshot_id, content_hash from ranking_snapshot
          where board = $1 and location_key = $2
          order by observed_at desc limit 1`,
-    board === "pol_final" ? [board, locationKey, season] : [board, locationKey],
+    board === "pol_final" ? [board, locationKey, month] : [board, locationKey],
   );
 
   let snapshotId = null;
@@ -182,7 +186,7 @@ export async function projectRankingBoard(
         entries.length,
         truncated,
         receiptId ?? null,
-        seasonMonth,
+        month,
       ],
     );
     snapshotId = rows[0].snapshot_id;
@@ -213,8 +217,8 @@ export async function projectRankingBoard(
     );
     const { rows: fresh } = await db.query(
       `insert into ranking_presence
-         (player_tag, board, location_key, season_id, first_seen_at, last_seen_at, first_rank, best_rank, sticky_until)
-       select t.tag, $1, $2, $3, $4, $4, t.rank, t.rank, $5
+         (player_tag, board, location_key, season_id, season_month, first_seen_at, last_seen_at, first_rank, best_rank, sticky_until)
+       select t.tag, $1, $2, $3, $8, $4, $4, t.rank, t.rank, $5
        from unnest($6::text[], $7::int[]) as t(tag, rank)
        on conflict (player_tag, board, location_key, season_id) do update set
          last_seen_at = excluded.last_seen_at,
@@ -229,6 +233,7 @@ export async function projectRankingBoard(
         stickyUntil,
         top.map((e) => e.tag),
         top.map((e) => e.rank),
+        month,
       ],
     );
     for (const r of fresh) {
@@ -359,8 +364,8 @@ export async function projectClanBoard(
     };
   const { rows } = await db.query(
     `insert into ranking_snapshot
-       (board, location_key, season_id, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
-     values ($1, $2, $3, $4, $4, $5, $6, $7, $8) returning snapshot_id`,
+       (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
+     values ($1, $2, $3, $9, $4, $4, $5, $6, $7, $8) returning snapshot_id`,
     [
       board,
       locationKey,
@@ -370,6 +375,7 @@ export async function projectClanBoard(
       entries.length,
       truncated,
       receiptId ?? null,
+      monthKey(seasonFromDate(observedAt.getTime()).seasonStartMs),
     ],
   );
   await db.query(

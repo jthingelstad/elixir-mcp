@@ -29,7 +29,11 @@
  */
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
-import { settledPolMonths } from "../../ingest/src/war-clock.mjs";
+import {
+  settledPolMonths,
+  inSeasonRollWindow,
+  seasonRollWindowStartMs,
+} from "../../ingest/src/war-clock.mjs";
 import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
 
 const MINUTE = 60_000;
@@ -252,7 +256,7 @@ export function yieldCadenceMinutes(row, now = new Date()) {
       : cadence;
   }
   if (row.endpoint === "currentriverrace") {
-    return row.hint === "training" ? 120 : 30;
+    return row.period_type === "training" ? 120 : 30;
   }
   if (row.endpoint === "clan") {
     const live = row.hint ?? "active";
@@ -477,7 +481,7 @@ async function selectEligible(db, now, arm) {
     `
     with state as (
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
-             ps.yield_bph, ps.hint, ps.burst_bph, ps.burst_at, ps.last_read_at,
+             ps.yield_bph, ps.hint, ps.period_type, ps.burst_bph, ps.burst_at, ps.last_read_at,
              ps.refresh_requested_at,
              -- Activity is only ever recorded on the battlelog row (ingest
              -- writes yield_bph there and nowhere else), so a profile row
@@ -551,7 +555,7 @@ async function selectEligible(db, now, arm) {
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
-           yield_bph, hint, burst_bph, burst_at, last_read_at, refresh_requested_at,
+           yield_bph, hint, period_type, burst_bph, burst_at, last_read_at, refresh_requested_at,
            -- The 2026-09-08 borrow computed this in the CTE and never
            -- re-selected it here, so yieldCadenceMinutes saw undefined,
            -- fell back to the profile row's own NULL yield_bph, and every
@@ -563,11 +567,17 @@ async function selectEligible(db, now, arm) {
   );
 
   const nowMs = now.getTime();
-  // Season-roll watcher (§5.3, V1): in the hour before the Monday-00:10Z
-  // donation reset, profile polls are forced for every recorded player not
-  // yet captured inside the window — the counter is irrecoverable after.
-  const preReset = inPreResetWindow(now);
-  const windowStartMs = preReset ? preResetWindowStart(now).getTime() : 0;
+  // The two watchers (§5.3): in the hour before the Monday-00:10Z
+  // donation reset, and in the hour before the season rolls (first
+  // Monday 10:00Z; 0111), profile polls are forced for every recorded
+  // player not yet captured inside the window — the counter and the
+  // season's league standing are irrecoverable after.
+  const preReset = inPreResetWindow(now) || inSeasonRollWindow(now.getTime());
+  const windowStartMs = inPreResetWindow(now)
+    ? preResetWindowStart(now).getTime()
+    : inSeasonRollWindow(now.getTime())
+      ? seasonRollWindowStartMs(now.getTime())
+      : 0;
 
   const eligible = [];
   let gated = 0;

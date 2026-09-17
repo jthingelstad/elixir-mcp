@@ -33,7 +33,12 @@ test("0104's seed is the calendar war-clock.mjs computes, row for row", async ()
     `select season_month, war_season_id, starts_at, ends_at, sections, colosseum_section
      from season order by season_month`,
   );
-  assert.equal(rows.length, 9, "2026-02 .. 2026-10");
+  assert.equal(rows.length, 49, "2022-10 .. 2026-10 (0104 + 0107)");
+  // The ranked ladder's first season (0107) as game_clock counts it.
+  assert.deepEqual(
+    [rows[0].season_month, rows[0].war_season_id],
+    ["2022-10", 89],
+  );
   for (const row of rows) {
     const calendar = seasonCalendar(row.season_month);
     assert.deepEqual(
@@ -67,11 +72,7 @@ test("0105's period seed is warPeriods() row for row, and ensureSeason writes bo
     `select war_season_id, period_index, section_index, day_in_section, kind, war_day, starts_at, ends_at
      from war_period order by war_season_id, period_index`,
   );
-  assert.equal(
-    rows.length,
-    6 * 28 + 3 * 35,
-    "2026-02..10: six four-week, three five-week",
-  );
+  assert.equal(rows.length, 1491, "every seeded season's days (0105 + 0107)");
   const { rows: seasons } = await ctx.db.query(
     `select season_month from season order by 1`,
   );
@@ -163,7 +164,7 @@ test("seasonByKey: current, previous, the month, the war number; nothing else", 
   assert.equal((await seasonByKey(ctx.db, 133, now)).season_month, "2026-06");
   assert.equal((await seasonByKey(ctx.db, "133", now)).season_month, "2026-06");
   assert.equal(await seasonByKey(ctx.db, "2019-01", now), null);
-  assert.equal(await seasonByKey(ctx.db, 99, now), null);
+  assert.equal(await seasonByKey(ctx.db, 50, now), null);
   assert.equal(await seasonByKey(ctx.db, "Minion Academy", now), null);
   // The roll instant itself belongs to the new season (10:00Z inclusive).
   const roll = Date.UTC(2026, 8, 7, 10);

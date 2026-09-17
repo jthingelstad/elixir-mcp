@@ -4,7 +4,11 @@
  * see exactly what was asked for and nothing is charged to a quota.
  */
 import { test, before, after } from "node:test";
-import { seedPlayedDeck, hashFor } from "../../mcp/test/deck-rows.mjs";
+import {
+  seedPlayedDeck,
+  seedDeck,
+  hashFor,
+} from "../../mcp/test/deck-rows.mjs";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
@@ -84,6 +88,7 @@ async function playBattle(tag, ids, at = new Date(), outcome = "win") {
     [battleId, at],
   );
   const cards = ids.map((id) => ({ id, level: 14 }));
+  await seedDeck(db, { battle_time: at, cards });
   await db.query(
     `insert into battle_participant (battle_id, player_tag, side, crowns, deck_hash, outcome, battle_time)
      values ($1, $2, 0, $5, $3, $4, $6),

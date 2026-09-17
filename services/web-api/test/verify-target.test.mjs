@@ -10,7 +10,11 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { verifyRoutes, DECK_SIZE } from "../src/routes/verify.mjs";
 import { deckKey } from "../src/routes/verify-draw.mjs";
-import { seedPlayedDeck, hashFor } from "../../mcp/test/deck-rows.mjs";
+import {
+  seedPlayedDeck,
+  seedDeck,
+  hashFor,
+} from "../../mcp/test/deck-rows.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -62,6 +66,7 @@ async function battle(tag, ids, at) {
   );
   // The verify routes read a deck's ids from its identity rows (0091).
   const cards = ids.map((c) => ({ id: c, level: 14 }));
+  await seedDeck(db, { battle_time: at, cards });
   await db.query(
     `insert into battle_participant (battle_id, player_tag, side, deck_hash, battle_time)
      values ($1, $2, 0, $3, $4), ($1, $5, 1, null, $4)`,

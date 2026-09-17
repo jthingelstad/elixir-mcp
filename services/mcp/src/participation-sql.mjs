@@ -99,7 +99,7 @@ export function participationQueries({
     {
       name: "war_attendance",
       text: `select ad.player_tag, ad.season_id, ad.section_index, ad.war_day,
-                    ad.decks_used_today, ad.finalized
+                    ad.decks_used_today
              from war_attendance_day ad
              where ad.clan_tag = $1 and ad.player_tag = any($2)
                and (ad.season_id, ad.section_index) in (

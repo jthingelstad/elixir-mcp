@@ -186,6 +186,27 @@ export function seasonIdForMonth(month) {
   return seasonFromDate(Date.UTC(y, m - 1, 15)).seasonId;
 }
 
+/** The API month for a season ordinal: the inverse of seasonIdForMonth. */
+export function monthForSeasonId(seasonId) {
+  const n = Number(seasonId);
+  if (!Number.isInteger(n)) return null;
+  return monthKey(Date.UTC(2026, 7 + (n - SEASON_ANCHOR.id), 15));
+}
+
+/** The hour before the season rolls (first Monday 10:00Z): the one
+ *  observation that captures leagueStatistics.currentSeason and the
+ *  last Path of Legends standing before they reset. The scheduler
+ *  forces profile polls inside it and the snapshot projector writes the
+ *  season_roll row; one function so the two cannot disagree (the weekly
+ *  pre_reset window in @elixir-mcp/contracts is the same shape). */
+const SEASON_ROLL_WINDOW_MS = 3600_000;
+export function inSeasonRollWindow(atMs) {
+  return nextSeasonStartMs(atMs) - atMs <= SEASON_ROLL_WINDOW_MS;
+}
+export function seasonRollWindowStartMs(atMs) {
+  return nextSeasonStartMs(atMs) - SEASON_ROLL_WINDOW_MS;
+}
+
 /** Every API month whose final is settled at atMs: from the ranked
  *  ladder's first season through the one that rolled most recently. */
 export function settledPolMonths(atMs) {

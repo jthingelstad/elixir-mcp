@@ -355,12 +355,14 @@ const PROJECTORS = {
     };
   },
   async currentriverrace(db, { entityKey, payload, fetchedAt }) {
-    // Cadence hint (0017): the payload names the period type; war days
-    // poll tight, training days relax — no inference required.
+    // Cadence hint (0017, its own column since 0110): the payload names
+    // the period type; war days poll tight, training days relax — no
+    // inference required, and no check on the API's enum.
     if (payload.periodType) {
       await db.query(
-        `update poll_state set hint = $2
-         where subject_tag = $1 and endpoint = 'currentriverrace'`,
+        `update poll_state set period_type = $2
+         where subject_tag = $1 and endpoint = 'currentriverrace'
+           and period_type is distinct from $2`,
         [entityKey, payload.periodType],
       );
     }

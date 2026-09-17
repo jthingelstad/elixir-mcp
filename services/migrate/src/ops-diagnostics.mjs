@@ -701,3 +701,81 @@ export async function vacuum(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/**
+ * {enum_census: true} - the distinct values of every column the schema
+ * review (2026-09-16, 1.5) wants a CHECK on, plus the orphan counts the
+ * NOT VALID foreign keys of 0108/0109 will be validated against. Read
+ * only. The checks are written from THIS, on the next deploy, so a value
+ * history holds that the code no longer emits is a decision on record
+ * rather than a failed migration.
+ */
+export async function enumCensus(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const values = async (table, column) => {
+      const { rows } = await db.query(
+        `select ${column}::text as value, count(*)::int as n
+         from ${table} group by 1 order by 2 desc, 1`,
+      );
+      return rows;
+    };
+    const orphans = async (sql) => {
+      const { rows } = await db.query(sql);
+      return rows[0].n;
+    };
+    return {
+      player_event_type: await values("player_event", "event_type"),
+      clan_event_type: await values("clan_event", "event_type"),
+      rollup_mode_group: await values(
+        "player_daily_battle_rollup",
+        "mode_group",
+      ),
+      poll_state_hint: await values("poll_state", "hint"),
+      poll_state_period_type: await values("poll_state", "period_type"),
+      snapshot_kind: await values("player_snapshot_daily", "snapshot_kind"),
+      participant_type_class: await values("battle_participant", "type_class"),
+      deck_card_count: await values("deck", "card_count"),
+      orphans: {
+        participant_deck: await orphans(
+          `select count(*)::int as n from battle_participant bp
+           where bp.deck_hash is not null
+             and not exists (select 1 from deck d where d.deck_hash = bp.deck_hash)`,
+        ),
+        player_card_card: await orphans(
+          `select count(*)::int as n from player_card pc
+           where not exists (select 1 from card c where c.card_id = pc.card_id)`,
+        ),
+        war_participation_week: await orphans(
+          `select count(*)::int as n from war_participation wp
+           where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (wp.clan_tag, wp.season_id, wp.section_index))`,
+        ),
+        war_attendance_day_week: await orphans(
+          `select count(*)::int as n from war_attendance_day ad
+           where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (ad.clan_tag, ad.season_id, ad.section_index))`,
+        ),
+        war_week_clan_week: await orphans(
+          `select count(*)::int as n from war_week_clan wc
+           where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (wc.clan_tag, wc.season_id, wc.section_index))`,
+        ),
+        ranking_snapshot_season: await orphans(
+          `select count(*)::int as n from ranking_snapshot r
+           where not exists (select 1 from season s where s.season_month = r.season_month)`,
+        ),
+        ranking_presence_season: await orphans(
+          `select count(*)::int as n from ranking_presence r
+           where not exists (select 1 from season s where s.season_month = r.season_month)`,
+        ),
+        participant_null_battle_time: await orphans(
+          `select count(*)::int as n from battle_participant where battle_time is null`,
+        ),
+        participant_null_type: await orphans(
+          `select count(*)::int as n from battle_participant where type is null`,
+        ),
+      },
+    };
+  } finally {
+    await db.end();
+  }
+}

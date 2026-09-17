@@ -1,11 +1,13 @@
 /**
  * Player snapshot projector — DESIGN §4.5.
  *
- * One row per recorded player per UTC day ('daily'); the season-roll
- * watcher forces a second row ('season_roll') in the hour before roll —
- * same function, different kind. Later polls in a day overwrite: a
- * snapshot is "state at capture", and the pre-reset peak lives in the
- * prior day's row plus the season_roll row.
+ * One row per recorded player per UTC day ('daily'); the watchers force
+ * a second row in the hour before the weekly donation reset
+ * ('pre_reset') and in the hour before the season rolls ('season_roll',
+ * 0111: the last leagueStatistics.currentSeason and Path of Legends
+ * standing before they reset) — same function, different kind. Later
+ * polls in a day overwrite: a snapshot is "state at capture", and the
+ * pre-reset peak lives in the prior day's row plus the extra row.
  *
  * Diff events come from comparing against the LATEST snapshot observation
  * (the DB is the baseline, same as roster tenure): donation_reset when
@@ -18,6 +20,7 @@
  */
 
 import { inPreResetWindow } from "@elixir-mcp/contracts";
+import { inSeasonRollWindow } from "./war-clock.mjs";
 import { payloadHash } from "./hash.mjs";
 import { emitEvent } from "./events.mjs";
 
@@ -212,16 +215,23 @@ export async function projectPlayerSnapshot(
     ],
   );
 
-  // In the pre-reset hour, also pin a season_roll row: the daily row will
-  // be overwritten by post-reset polls the same UTC day; this one won't.
-  if (kind === "daily" && inPreResetWindow(new Date(fetchedAt))) {
-    await projectPlayerSnapshot(db, {
-      playerTag,
-      payload,
-      fetchedAt,
-      receiptId,
-      kind: "season_roll",
-    });
+  // In a watcher's hour, also pin the extra row: the daily row will be
+  // overwritten by later polls the same UTC day; this one won't.
+  if (kind === "daily") {
+    const at = Date.parse(fetchedAt);
+    for (const [extra, inside] of [
+      ["pre_reset", inPreResetWindow(new Date(at))],
+      ["season_roll", inSeasonRollWindow(at)],
+    ]) {
+      if (!inside) continue;
+      await projectPlayerSnapshot(db, {
+        playerTag,
+        payload,
+        fetchedAt,
+        receiptId,
+        kind: extra,
+      });
+    }
   }
 
   if (

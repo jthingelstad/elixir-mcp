@@ -27,16 +27,14 @@ export function hashFor(cards, towerTroopId) {
  *   rounds:       [[cards], ...] for a duel instead of cards (no identity)
  * Returns the deck_hash (null for a duel).
  */
-export async function seedPlayedDeck(
+/** The identity half alone: catalog stubs, the deck row and its cards.
+ *  A test that inserts a participant by hand with a deck_hash writes
+ *  this FIRST, as ingest does (0108: the participant references the
+ *  deck), then the participant, then seedPlayedDeck for the card rows
+ *  (which reference the participant). Returns the deck_hash. */
+export async function seedDeck(
   db,
-  {
-    battle_id,
-    player_tag,
-    battle_time = null,
-    cards = [],
-    supportCards = [],
-    rounds = null,
-  },
+  { battle_time = null, cards = [], supportCards = [], rounds = null },
 ) {
   const stubs = new Map();
   for (const c of cards)
@@ -68,6 +66,26 @@ export async function seedPlayedDeck(
         [hash, c.id, c.evolutionLevel ?? 0],
       );
   }
+  return hash;
+}
+
+export async function seedPlayedDeck(
+  db,
+  {
+    battle_id,
+    player_tag,
+    battle_time = null,
+    cards = [],
+    supportCards = [],
+    rounds = null,
+  },
+) {
+  const hash = await seedDeck(db, {
+    battle_time,
+    cards,
+    supportCards,
+    rounds,
+  });
   const rows = rounds
     ? rounds.flatMap((r, i) =>
         r.map((c, slot) => ({ ...c, round: i + 1, slot: slot + 1 })),

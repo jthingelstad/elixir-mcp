@@ -98,6 +98,10 @@ test("first-answer follows actual capture and distinguishes authorization from n
   await db.query(
     "insert into player_snapshot_daily (player_tag, snapshot_date, trophies, observed_at) values ('#2PP0V90Y', current_date, 9000, now())",
   );
+  // Identities first (0108): a participant's deck_hash references deck.
+  await db.query(
+    "insert into deck (deck_hash, card_count, first_seen_at, last_seen_at) values ('a', 8, now(), now()), ('b', 8, now(), now()) on conflict do nothing",
+  );
   for (const [id, tag, days, deck] of [
     ["recent", "#2PP0V90Y", 1, "a"],
     ["second", "#2PP0V90Y", 2, "b"],

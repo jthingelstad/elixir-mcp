@@ -803,9 +803,12 @@ test("yield cadence: harvest-target battlelog, stretched profiles, hinted war da
     "a directly tracked player's profile has an eight-hour nominal cap",
   );
   // The payload names war days.
-  assert.equal(c({ endpoint: "currentriverrace", hint: "training" }), 120);
-  assert.equal(c({ endpoint: "currentriverrace", hint: "warDay" }), 30);
-  assert.equal(c({ endpoint: "currentriverrace", hint: null }), 30);
+  assert.equal(
+    c({ endpoint: "currentriverrace", period_type: "training" }),
+    120,
+  );
+  assert.equal(c({ endpoint: "currentriverrace", period_type: "warDay" }), 30);
+  assert.equal(c({ endpoint: "currentriverrace", period_type: null }), 30);
 });
 
 test("a direct claim carries the eight-hour profile cap into planning", async () => {
