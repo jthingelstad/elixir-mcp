@@ -36,11 +36,16 @@ recording began. The two are kept apart because history is never deleted when
 a recording stops. The fields are defined on
 [Reading a response](/docs/responses#the-fields).
 
-Daily snapshots are keyed by **UTC date**: `players_timeline` returns one
-point per snapshot day and only from `snapshots_available_from`, and
-`players_summary.trophies_as_of` is a date, not an instant, because it names
-the snapshot the trophy count came from. Snapshot-series tools take
-`YYYY-MM-DD` bounds only; an instant is refused.
+Daily snapshots are keyed by the **game day**, the [policy day](#the-policy-day)
+below: a day runs from 10:00 UTC to 10:00 UTC and is named for the date it
+starts on, so a snapshot taken at 09:00 UTC on the 18th belongs to the 17th,
+the same day as the war day and the season roll it sits inside. (Before
+2026-09-17 the key was the UTC calendar date; every row was moved onto the
+game day then.) `players_timeline` returns one point per snapshot day and
+only from `snapshots_available_from`, and `players_summary.trophies_as_of`
+is a date, not an instant, because it names the snapshot the trophy count
+came from. Snapshot-series tools take `YYYY-MM-DD` bounds only; an instant
+is refused.
 
 Events carry `created_at`, the moment the recorder noticed the change, which
 is "observed between two polls": a member who left at 09:05 and was noticed

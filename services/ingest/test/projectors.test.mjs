@@ -44,7 +44,7 @@ before(async () => {
 
 after(async () => ctx.drop());
 
-test("profile message writes the daily snapshot; day is UTC", async () => {
+test("profile message writes the daily snapshot; day is the game day", async () => {
   const profile = await fixture("player/profile.json");
   const tag = meta["player/profile.json"].entity_key;
   const result = await processResult(
@@ -383,7 +383,10 @@ test("the two watchers pin their extra rows: pre_reset before Monday 00:10Z, sea
     ["daily", "pre_reset"],
   );
   // Monday Sep 7 09:30Z: inside the hour before S135 rolls to S136 at
-  // 10:00Z, and nine hours past the donation reset - season_roll only.
+  // 10:00Z, and nine hours past the donation reset - season_roll only,
+  // and under the game day (0126) it is still game day 09-06: the last
+  // rows of the old season sit beside that day's daily and pre_reset
+  // rows, and the daily row is now that later observation.
   await processResult(
     ctx.db,
     message({
@@ -394,13 +397,26 @@ test("the two watchers pin their extra rows: pre_reset before Monday 00:10Z, sea
     }),
   );
   const { rows: roll } = await ctx.db.query(
-    `select snapshot_kind from player_snapshot_daily
-     where player_tag = $1 and snapshot_date = '2026-09-07' order by snapshot_kind`,
+    `select snapshot_kind, observed_at from player_snapshot_daily
+     where player_tag = $1 and snapshot_date = '2026-09-06' order by snapshot_kind`,
     [tag],
   );
   assert.deepEqual(
-    roll.map((r) => r.snapshot_kind),
-    ["daily", "season_roll"],
+    roll.map((r) => [r.snapshot_kind, r.observed_at.toISOString()]),
+    [
+      ["daily", "2026-09-07T09:30:00.000Z"],
+      ["pre_reset", "2026-09-06T23:30:00.000Z"],
+      ["season_roll", "2026-09-07T09:30:00.000Z"],
+    ],
+  );
+  const { rows: monday } = await ctx.db.query(
+    `select 1 from player_snapshot_daily where player_tag = $1 and snapshot_date = '2026-09-07'`,
+    [tag],
+  );
+  assert.equal(
+    monday.length,
+    0,
+    "nothing lands on the roll Monday before 10:00Z",
   );
 });
 

@@ -330,8 +330,9 @@ export const playersTools = {
         )
       ).tag;
       const tz = zoneFor(ctx, rawArgs);
-      // The window sugar, as a date: snapshot days are UTC dates, and N
-      // days back from today is the day N-1 days ago, today included.
+      // The window sugar, as a date: snapshot days are game days (the
+      // 10:00Z grid, 0126), and N days back from today is the day N-1
+      // days ago, today included.
       const args = withWindowSugar(rawArgs);
       if (args.from !== rawArgs.from)
         args.from = new Date(Date.parse(args.from) + 86_400_000)
@@ -430,7 +431,7 @@ export const playersTools = {
           metrics.includes("donations")
             ? "donations is the weekly counter as of each snapshot; it resets Mondays around 00:10 UTC."
             : null,
-          "Snapshot days are UTC dates; the series exists only from snapshots_available_from.",
+          "Snapshot days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; the series exists only from snapshots_available_from.",
         ),
         docs: docsRef("recording", "completeness"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"], {

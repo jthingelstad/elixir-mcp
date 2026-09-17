@@ -36,3 +36,17 @@ export function inPreResetWindow(now: Date): boolean {
 export function preResetWindowStart(now: Date): Date {
   return new Date(nextDonationResetMs(now) - WINDOW_MINUTES * 60_000);
 }
+
+/**
+ * The game day (time-series review 3.1; Jamie, 2026-09-17): the date
+ * whose 10:00Z start an instant falls after, which is the river race
+ * and season grid. The SQL twin is game_day() (0126); the two are
+ * pinned equal by the ingest tests. UTC arithmetic only, so DST cannot
+ * move it. Returns YYYY-MM-DD.
+ */
+const GAME_DAY_RESET_MS = 10 * 3600_000;
+export function gameDay(at: Date | number | string): string {
+  const ms = typeof at === "number" ? at : new Date(at).getTime();
+  if (!Number.isFinite(ms)) throw new Error(`gameDay: not an instant: ${at}`);
+  return new Date(ms - GAME_DAY_RESET_MS).toISOString().slice(0, 10);
+}

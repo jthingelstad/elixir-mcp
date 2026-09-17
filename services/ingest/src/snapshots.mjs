@@ -1,13 +1,17 @@
 /**
  * Player snapshot projector — DESIGN §4.5.
  *
- * One row per recorded player per UTC day ('daily'); the watchers force
- * a second row in the hour before the weekly donation reset
- * ('pre_reset') and in the hour before the season rolls ('season_roll',
- * 0111: the last leagueStatistics.currentSeason and Path of Legends
- * standing before they reset) — same function, different kind. Later
- * polls in a day overwrite: a snapshot is "state at capture", and the
- * pre-reset peak lives in the prior day's row plus the extra row.
+ * One row per recorded player per GAME day ('daily'; the day whose
+ * 10:00Z start the observation falls after, gameDay() in contracts and
+ * game_day() in SQL, 0126 - the table moved off the UTC calendar day on
+ * 2026-09-17, time-series review 3.2); the watchers force a second row
+ * in the hour before the weekly donation reset ('pre_reset') and in the
+ * hour before the season rolls ('season_roll', 0111: the last
+ * leagueStatistics.currentSeason and Path of Legends standing before
+ * they reset, and under the game day the last row of the old season) —
+ * same function, different kind. Later polls in a day overwrite: a
+ * snapshot is "state at capture", and the pre-reset peak lives in the
+ * prior day's row plus the extra row.
  *
  * Diff events come from comparing against the LATEST snapshot observation
  * (the DB is the baseline, same as roster tenure): donation_reset when
@@ -19,7 +23,7 @@
  * "promoted to Master 2" at 07:22Z and again at 16:22Z on 2026-09-14).
  */
 
-import { inPreResetWindow } from "@elixir-mcp/contracts";
+import { gameDay, inPreResetWindow } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "./war-clock.mjs";
 import { ensureSeason } from "./season.mjs";
 import { snapshotColumns } from "./snapshot-columns.mjs";
@@ -137,7 +141,7 @@ export async function projectPlayerSnapshot(
   db,
   { playerTag, payload, fetchedAt, receiptId = null, kind = "daily" },
 ) {
-  const day = fetchedAt.slice(0, 10);
+  const day = gameDay(fetchedAt);
 
   // Two baselines. `prev` is the newest row from an EARLIER day: the
   // day-level questions (did a counter move since yesterday's snapshot,
@@ -251,7 +255,7 @@ export async function projectPlayerSnapshot(
   );
 
   // In a watcher's hour, also pin the extra row: the daily row will be
-  // overwritten by later polls the same UTC day; this one won't.
+  // overwritten by later polls the same game day; this one won't.
   if (kind === "daily") {
     const at = Date.parse(fetchedAt);
     for (const [extra, inside] of [

@@ -61,6 +61,7 @@ import {
   feedbackRead,
   feedbackRespond,
 } from "./ops-feedback.mjs";
+import { snapshotDayCensus, snapshotRekey } from "./ops-series.mjs";
 
 export async function handler(event) {
   if (event?.inspect) {
@@ -325,6 +326,19 @@ export async function handler(event) {
     const result = await exportPayloads(
       process.env.DATABASE_URL,
       event.export_payloads,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.snapshot_day_census) {
+    const result = await snapshotDayCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.snapshot_rekey) {
+    const result = await snapshotRekey(
+      process.env.DATABASE_URL,
+      event.snapshot_rekey === true ? {} : event.snapshot_rekey,
     );
     console.log(JSON.stringify(result));
     return result;

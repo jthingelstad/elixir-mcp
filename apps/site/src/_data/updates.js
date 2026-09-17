@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-17",
+    title: "Daily snapshots are keyed by the game day",
+    body: "A player's daily snapshot was filed under the UTC calendar date it was taken on, while war days, the season roll and every clan's policy day run on the 10:00 UTC grid: the snapshot taken in the hour before a season rolls (Monday 09:00 UTC) sat on the new season's Monday, and a snapshot at 03:00 UTC was a different day from the war day it was played in. Every snapshot row now sits on its game day, the date whose 10:00 UTC start it follows; where a day's early-morning poll and the previous day's late one landed on the same game day, the later observation is the row, which is the rule the table always had. players_timeline points, players_summary.trophies_as_of and clans_participation's donation columns read the same way with the corrected days; no tool changes shape.",
+  },
+  {
+    date: "2026-09-17",
     title: "The war day comes from the calendar, not from the last poll",
     body: "war_current and the clan timeline said which river race day it was from the clan's last observed period, so a clan whose polls lagged, or that the recorder had only just started following, could read a stale day or none at all. The record now holds every policy day as a row, and the day is looked up by the clock: always current, for every clan, with the clan's own first sighting of that day reported beside it when the recorder has one. Windowed battle reads also take their bounds from the participant row the indexes are built on, which is the same answer sooner. Contract 3.11.1.",
   },
