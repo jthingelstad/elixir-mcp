@@ -2661,3 +2661,79 @@ thousands of rows), `card.icon_urls`, `player_activity.rhythm` /
 `oauth_client.redirect_uris`; `battle_participant.tower_hp` by a
 keyset-batched op (509k rows, the 0099 shape) with the column drop a
 deploy later. Needs Jamie's go; nothing manual.
+
+## 2026-09-17 — Schema review, Phase E: fixed-shape JSON becomes columns (0123-0125)
+
+Step 15 of the sequenced plan, section 1.8 ("do it right"), three
+deploys: expand (`07d8a2e`), the event ledgers (`706c1a9`), the drop
+(`75995c0`). No contract change: every object a tool served is
+rendered from columns in the shape it always had.
+
+**Shipped.** 0123: `player_snapshot_daily.lifetime` / `pol` /
+`league_stats` as 22 typed columns, the previous and best season
+referencing `season` (`snapshot-columns.mjs` takes the payload apart
+and puts the contract's objects back; the one visible difference is a
+key the API omitted now present as null); `card.icon_urls` as three
+URL columns rendered back as `iconUrls`; `player_activity.rhythm` as
+real[168] and `not_recorded_days` as date[], `days` retired because it
+was a nightly copy of the daily rollup, which the graphic's route now
+reads live (the nightly job no longer scans a year of participant rows
+per player for it); `oauth_client.redirect_uris` text[] in place;
+`api_receipt.admission_errors` text[] via a new column renamed at the
+drop, never an in-place type change over 160k rows;
+`battle_participant`'s three tower columns filled by
+`{tower_hp_backfill}`, 580,692 rows in 59 keyset batches of 10k at
+~20 s each (20 minutes on the micro beside live ingest), its census
+proving the shape lossless first (every row carries both king and
+princess, no princess array ever empty or longer than two - a one-tower
+array pads to [x, 0], which is what the tool already served). 0124:
+`player_event` and `clan_event` payloads as typed columns with card and
+battle as foreign keys (so "Lava Hound unlocked Lava Hound" is
+structurally impossible), the crossing battle by id, the arena floor
+kept as a column, the arena keys deferred to step 17 (the catalog
+lacks Training Camp); `ingest/event-columns.mjs` is the one mapping
+for the writer and the SQL fill, `mcp/event-payloads.mjs` its inverse
+at read time - card name and rarity from the catalog, the crossing
+described from its rows as `describeBattle` wrote it, a member's name
+from the player row, a week's colosseum flag and rivals from the war
+tables (rivals' `recorded` is as of now). 0125 dropped the eleven JSON
+columns; instant.
+
+**Measured live, read-only.** `{event_payload_census}` (a read-only op
+that lived for one deploy) rendered every live event from the columns
+and compared it with the stored JSON: 14,278 player events identical
+except two pre-3.6.0 `arena_changed` crossings that gained `type`;
+12,631 clan events identical except 2,594 pre-3.0.0 `member_left` rows
+that gained the member's name and every `role_changed` row that gained
+`direction` (older rows never carried it; newer ones spelt it as
+roster.mjs does, promoted / demoted, which the renderer now matches).
+Richer or equal, never poorer, so the drop went. After it:
+`battle_participant` 575,497 rows at 941 MB with 0 dead rows (the
+backfill's tuples autovacuumed), the ledgers 8-9 MB, `{deck_census}`
+all zero, the players_profile objects and a battle's `tower_hp`
+identical in shape, the timeline rendering every kind from the columns,
+no alarm.
+
+**Two things learned.** (1) The migrate Lambda's reserved concurrency
+is one: a deploy's migrate invoke returned 429 while the backfill loop
+held it, and simply waited its turn - drive backfills to completion
+before deploying, or expect that. (2) `to_char(unnest(date[]))` at the
+SQL edge rather than pg's `date` parsing in JS: node-postgres reads a
+`date` as local midnight, which is the previous calendar day in a
+positive-offset zone; every reader of `not_recorded_days` takes day
+strings from SQL.
+
+**Not done, by decision.** The arena foreign keys on the event columns
+(step 17 seeds Training Camp first). `feedback.context`,
+`account_event.detail`, `magic_login.context` / `started_from`,
+`mcp_call_audit.args` and `api_payload.payload_json` stay JSON as the
+review decided.
+
+**Phase F next (steps 16-17), after a week of `idx_scan` evidence
+(from 2026-09-24):** the participant index diet
+(`battle_participant_player`, `battle_participant_window` once the
+rollups have taken the corpus reads) and the `clan_membership` partial
+index, by `pg_stat_user_indexes`; the arena seed + FKs (snapshots and
+now the event columns), `api_receipt.job_id` FK `on delete set null`,
+`poll_state.subject_tag` -> `subject_key`. Needs Jamie's go and the
+week; nothing manual.
