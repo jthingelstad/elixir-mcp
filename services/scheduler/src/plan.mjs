@@ -30,6 +30,7 @@
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
 import { settledPolMonths } from "../../ingest/src/war-clock.mjs";
+import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
 
 const MINUTE = 60_000;
 
@@ -690,6 +691,10 @@ export async function planTick(
 ) {
   const { tokens, liveReserve } = await settleBudget(db, now);
   await seedPollState(db, now);
+  // The season rollover (0104): the running season and the next one are
+  // rows before the roll, so the tools' default window never finds a
+  // gap. Two idempotent inserts a tick.
+  await ensureSeasonsAround(db, now.getTime());
 
   const bulkBudget = Math.floor(tokens * (1 - liveReserve));
   if (bulkBudget <= 0)

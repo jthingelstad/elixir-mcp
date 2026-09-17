@@ -154,6 +154,26 @@ test("new subject seeds both player endpoints plus the followed clan", async () 
   assert.ok(jobs.every((j) => j.lane === "bulk"));
 });
 
+test("every tick keeps the running and the next season as rows (0104)", async () => {
+  // Ticked past the seed: a tick in 2027 writes what the seed lacks and
+  // the next tick writes nothing.
+  const later = new Date("2027-02-10T12:00:00Z");
+  await setTokens(0);
+  await planTick(db, later);
+  const { rows } = await db.query(
+    `select season_month, war_season_id from season where season_month >= '2027-02' order by 1`,
+  );
+  assert.deepEqual(rows, [
+    { season_month: "2027-02", war_season_id: 141 },
+    { season_month: "2027-03", war_season_id: 142 },
+  ]);
+  await planTick(db, later);
+  const { rows: again } = await db.query(
+    `select count(*)::int as n from season where season_month >= '2027-02'`,
+  );
+  assert.equal(again[0].n, 2);
+});
+
 test("budget caps selection and starved subjects strictly dominate busy ones", async () => {
   await freshenCards(NOW);
   await addPlayer("#YYYYYYYY");

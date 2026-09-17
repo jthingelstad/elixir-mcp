@@ -23,6 +23,7 @@ import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
 import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
+import { projectModeSeasons, seasonMismatchEmf } from "./season.mjs";
 import {
   projectRankingBoard,
   projectClanBoard,
@@ -338,6 +339,8 @@ const PROJECTORS = {
       payload,
       fetchedAt,
     });
+    // The side-mode season keys the profile carries (0104), verbatim.
+    const modes = await projectModeSeasons(db, { payload, fetchedAt });
     return {
       projected: "player",
       clanTag,
@@ -347,6 +350,7 @@ const PROJECTORS = {
         identityMoved +
         badges.changed +
         cards.changed +
+        modes.changed +
         (snapshot.moved ? 1 : 0),
     };
   },
@@ -381,8 +385,16 @@ const PROJECTORS = {
       phase_stamp_ms: Date.now() - t1,
     };
   },
-  async riverracelog(db, { entityKey, payload }) {
-    return projectRiverRaceLog(db, { clanTag: entityKey, payload });
+  async riverracelog(db, { entityKey, payload, emitMetrics }) {
+    const log = await projectRiverRaceLog(db, { clanTag: entityKey, payload });
+    // The season row's derived war number against the API's own (0104):
+    // a mismatch is one EMF count for the alarm and the receipt's
+    // projection carries it; nothing is relabelled.
+    for (const m of log.season_mismatches ?? []) {
+      console.error("season_war_id_mismatch", JSON.stringify(m));
+      emitMetrics?.(`${seasonMismatchEmf(m)}\n`);
+    }
+    return log;
   },
   async rankings_players(db, { entityKey, receiptId, payload, fetchedAt }) {
     return projectRankingBoard(db, {
@@ -667,6 +679,9 @@ export async function processResult(db, rawMessage, deps = {}) {
         fetchedAt: msg.fetched_at,
         observed: msg.observed,
         filtered: msg.filtered,
+        // EMF on stdout, the scheduler's pattern: injectable, never
+        // awaited on a network, default the process's own stdout.
+        emitMetrics: deps.emitMetrics ?? ((line) => process.stdout.write(line)),
       });
       t = mark("project_ms", t);
     }

@@ -1524,6 +1524,25 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # The season row's derived war number disagreed with a riverracelog
+  # entry (0104; services/ingest/src/season.mjs): the calendar the record
+  # files everything under is wrong for that month. Nothing relabels
+  # itself; a human reads the season table and the log entry.
+  SeasonMismatchAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-season-war-id-mismatch
+      AlarmDescription: A river race log entry carried a seasonId the season calendar does not derive; check the season table against the log
+      Namespace: ElixirMCP/Record
+      MetricName: SeasonWarIdMismatch
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
   SchedulerErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

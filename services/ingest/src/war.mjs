@@ -20,6 +20,7 @@ import { emitEvent } from "./events.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { warClock, resolveWarKeys } from "./war-clock.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
+import { verifyWarSeason } from "./season.mjs";
 
 async function latestLoggedWeek(db, clanTag) {
   const { rows } = await db.query(
@@ -383,11 +384,29 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
 
   let weeks = 0;
   let facts = 0;
+  const seasonMismatches = [];
+  const seasonsVerified = new Set();
   for (const item of items) {
     const finished = crTimeToIso(item.createdDate);
     const isColosseum =
       item.seasonId !== newestSeason &&
       item.sectionIndex === maxSection.get(item.seasonId);
+    // The season row's derived war number against the entry's own
+    // (0104): the close instant sits inside the season that raced, so
+    // the row it falls in must carry this seasonId. Once per season per
+    // log; a mismatch is reported to the pipeline, never relabelled.
+    if (
+      Number.isInteger(item.seasonId) &&
+      !seasonsVerified.has(item.seasonId)
+    ) {
+      seasonsVerified.add(item.seasonId);
+      const check = await verifyWarSeason(db, {
+        warSeasonId: item.seasonId,
+        closedAt: finished,
+      });
+      if (check.status === "mismatch")
+        seasonMismatches.push({ ...check, clan_tag: tag });
+    }
     const { rows: prior } = await db.query(
       `select finished_observed_at from war_week
        where clan_tag = $1 and season_id = $2 and section_index = $3`,
@@ -501,6 +520,7 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     weeks,
     seasons: [...seasons].sort((a, b) => a - b),
     facts,
+    ...(seasonMismatches.length ? { season_mismatches: seasonMismatches } : {}),
   };
 }
 
