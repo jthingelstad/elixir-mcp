@@ -23,8 +23,10 @@ Assessment only; nothing here has been applied.
 - **Candidate DDL** was executed in the scratch database to prove it parses
   and applies; nothing was run against the clone or production.
 
-Nothing learned here about the game or its API was new to
-`cr-agent-api-docs`; no push to it is owed by this review.
+One thing learned here held for any caller and went to
+`cr-agent-api-docs` (commit 53b3d34, "Season namespaces"): the API's
+season key is the month, and the clan-war integer is the seasons-list
+position minus 8. Section 1.1 rests on it.
 
 ## The one-paragraph verdict
 
@@ -33,7 +35,8 @@ agrees with its source (0 drift rows across 509k), every card row resolves
 to the catalog, and the pending closing foreign keys would validate today
 with zero orphans. The model's real gap is **time**. The game runs on a
 calendar (seasons, balance patches, war weeks) and the schema holds none of
-it as rows: the season is a constant in `war-clock.mjs`, 95% of battles
+it as rows: the season is a constant in `war-clock.mjs` (and the API's own
+season key, the month, appears nowhere in the schema), 95% of battles
 carry no season, the 5% that do include 3,230 stamps that contradict their
 own `battle_time`, and the meta tools default to a rolling 28 days that
 today mixes two seasons 14/86 without saying so. Fixing that is Tier 1 and
@@ -57,6 +60,25 @@ There is no balance-change table at all; the API offers none
 (`cr-agent-api-docs`: a repo-wide search for balance/patch/version finds
 only the level-cap note), so the only patch signal the record could carry
 is one we feed it.
+
+**Which key is the season's.** Probed live 2026-09-17 (recorded in
+`cr-agent-api-docs/locations.md`, "Season namespaces"). The API names a
+season by the month it starts in, `YYYY-MM`, and every other number is a
+derived label for that same monthly season: `/locations/global/seasons`
+lists `{id: "2026-08"}` rows; `leagueStatistics` names previous and best
+seasons by it; a player's `progress` keys and arena raw names embed it per
+mode (`seasonal-trophy-road-202609`, `2v2League_202609`,
+`SeasonalArenas_202609_Arena1`); badges carry it (`SeasonalBadge_202509`);
+Path of Legends finals are addressed by it and the player's PoL result
+objects carry no season id at all. The clan-war `seasonId` (136 now)
+appears only in `riverracelog`, never in the live race, and equals the
+seasons-list position minus 8, checked at six points against our own war
+history (`2025-03` = 118 through `2026-09` = 136). The in-game Pass number
+(87) is not in the API anywhere; Merge Tactics counts its own
+(`AutoChess_2026_Season_11`, not monthly). So the record's integer is a
+derived name. The table below anchors on the month the API uses and
+derives the war number from it, verifying against each new river race log
+entry; the tools still speak every surface's own number.
 
 **Evidence, clone.**
 
@@ -83,9 +105,11 @@ is `coalesce`-filled (`war.mjs:536-543`). These rows join `war_week` and
 ```sql
 -- 01xx_season.sql
 create table season (
-  season_id        integer primary key,               -- the war-season number the record files under
-  season_month     text not null unique                -- the API's own name (YYYY-MM): league seasons, PoL finals
+  season_month     text primary key                    -- the API's own name (YYYY-MM): seasons list, leagueStatistics, PoL finals, progress keys
                    check (season_month ~ '^[0-9]{4}-[0-9]{2}$'),
+  war_season_id    integer not null unique,            -- riverracelog seasonId: seasons-list position - 8, verified per log entry
+  list_position    integer unique,                     -- 1-based position in /locations/global/seasons (null until the season completes)
+  pass_season      integer,                            -- in-game Pass "Season N": calendar-derived (2019-07 = 1), display only, not in the API
   starts_at        timestamptz not null,               -- first Monday 10:00:00Z
   ends_at          timestamptz not null,               -- next season's starts_at (exclusive)
   sections         smallint not null check (sections in (4, 5)),
@@ -93,16 +117,30 @@ create table season (
   source           text not null default 'calendar'
                    check (source in ('calendar', 'observed')),
   observed_race_close_at timestamptz,                  -- the ~09:34Z race close, when we saw it
+  war_id_verified_at timestamptz,                      -- when a riverracelog entry confirmed war_season_id
   check (ends_at > starts_at),
   check (colosseum_section = sections - 1),
   exclude using gist (tstzrange(starts_at, ends_at) with &&)
 );
 comment on table season is
-  'One row per Clash Royale season. season_id is the riverrace seasonId namespace; season_month the /locations/global/seasons name. Bounds are calendar-derived (first Monday 10:00Z) unless source = observed.';
+  'One row per Clash Royale season, keyed by the month the API names it. war_season_id is the riverrace seasonId, a derived label (list position - 8) confirmed by the next war log entry; pass_season is display only. Bounds are calendar-derived (first Monday 10:00Z) unless source = observed.';
 
--- seed: S129 (2026-02-02) .. S137 (2026-10-05), from seasonFromDate; the
--- scheduler upserts the next season on each rollover and stamps
--- observed_race_close_at when currentriverrace goes 404 (clans.md:333-346).
+-- A mode's own season key, taken verbatim from Player.progress and never
+-- derived: Merge Tactics counts its own, 2v2 League and the seasonal
+-- Trophy Road use the month. first/last seen are the observation.
+create table mode_season (
+  progress_key   text primary key,                     -- e.g. 'AutoChess_2026_Season_11', '2v2League_202609'
+  mode           text not null,                        -- the key with its season part removed
+  season_month   text references season,               -- set when the key carries YYYYMM; null for Merge Tactics
+  first_seen_at  timestamptz not null,
+  last_seen_at   timestamptz not null
+);
+
+-- seed: 2026-02 .. 2026-10 from seasonFromDate (war 129..137); the
+-- scheduler upserts the next season on each rollover, stamps
+-- observed_race_close_at when currentriverrace goes 404 (clans.md:333-346),
+-- and the riverracelog projector sets war_id_verified_at when a log entry's
+-- seasonId matches; a mismatch is an alarm, never a silent relabel.
 ```
 
 ```sql
@@ -110,7 +148,7 @@ comment on table season is
 create table balance_change (
   patch_id     text primary key,                       -- e.g. '2026-09-01', or the announced version
   effective_at timestamptz not null,
-  season_id    integer not null references season,
+  season_month text not null references season,
   kind         text not null check (kind in ('season_patch', 'hotfix', 'release')),
   title        text,
   source_url   text,
@@ -158,8 +196,13 @@ today. A stored `season_id smallint` on 562k participants would cost a
 keyset-batched backfill (the 0099 shape, ~30 minutes on the micro), 2-4 MB
 of heap, and a permanent write per row for no read that the range cannot
 serve. Where a season *grain* is needed (the Tier 2 rollups) it is computed
-at rollup time from the same function. The exception is
-`battle.season_id`, which already exists for war attribution; see 1.2.
+at rollup time from the same function, keyed by `season_month`. The
+exception is `battle.season_id`, which already exists for war attribution
+and keeps the war integer because that is what the war log speaks; it
+gains a foreign key to `season (war_season_id)`; see 1.2. The war tables
+(`war_week`, `war_participation`, `war_attendance_day`, `war_week_clan`)
+likewise keep their integer and gain the same reference; renaming their
+`season_id` to `war_season_id` is a cosmetic contraction for later.
 
 **The tools: default window and the boundary rule.** Today
 `battles_meta_cards`, `battles_meta_decks` and `cards_synergy` default to
@@ -169,17 +212,20 @@ at rollup time from the same function. The exception is
 (minor bump, additive):
 
 1. **Default = current season to date**, from `season.starts_at`.
-   `applied.window` gains `season: {season_id, season_month, starts_at,
-   ends_at}` and `source: "season"`. `rankings_timeline` and `game_events`
+   `applied.window` gains `season: {month, war, pass, starts_at,
+   ends_at}` (one object, every surface's own number, so an agent can say
+   "S136" to a clan and "Season 87" to a Pass player) and
+   `source: "season"`. `rankings_timeline` and `game_events`
    already default this way (`rankings.mjs:628,787`); the meta tools join
    them.
 2. **A `season` argument** on the three meta tools and `battles_trends`:
-   `"current"` (default), `"previous"`, an integer id, or `YYYY-MM`. It
-   sets `from`/`to` from the row; `from`/`to`/`days`/`weeks` still win when
+   `"current"` (default), `"previous"`, `YYYY-MM`, or an integer taken
+   as the war number (the only integer the API speaks). It sets
+   `from`/`to` from the row; `from`/`to`/`days`/`weeks` still win when
    given, as today.
 3. **When the resolved window crosses a boundary**, whatever set it, the
    response says so in a structured field and a note. `applied.window`
-   gains `crosses: [{kind: "season", at, from_season_id, to_season_id},
+   gains `crosses: [{kind: "season", at, from_season, to_season},
    {kind: "balance_change", at, patch_id, cards: n}]` (empty array when
    clean), and `notes` gains one sentence: *"Window spans S135 and S136;
    the 2026-09-07 balance change moved 11 cards, so card values before and
@@ -194,7 +240,7 @@ at rollup time from the same function. The exception is
    to 28 days, which is how the boundary got crossed in the first place.
 5. **`battles_trends`** groups by ISO week and already crosses seasons by
    design; it gets `crosses` (so a consumer can draw the line) and, per
-   week row, `season_id`.
+   week row, `season_month`.
 
 The default-window decision in numbers: on 2026-09-17 the 28-day window is
 14% S135 rows. On 2026-10-05 (S137 roll) it would be 100% S136 for one day
@@ -228,7 +274,7 @@ invisible to the war readers.
 ```sql
 -- 01xx_battle_war_keys_fk.sql  (instant: NOT VALID takes no scan lock)
 alter table battle
-  add constraint battle_season_fk foreign key (season_id) references season not valid;
+  add constraint battle_season_fk foreign key (season_id) references season (war_season_id) not valid;
 -- later, its own migration once the repair op has run:
 alter table battle validate constraint battle_season_fk;
 ```
@@ -243,7 +289,7 @@ the shape should be the batched one on principle):
 update battle b set season_id = null, section_index = null, war_day = null
 from season s
 where b.season_id is not null
-  and s.season_id = b.season_id
+  and s.war_season_id = b.season_id
   and (b.battle_time < s.starts_at or b.battle_time >= s.ends_at);
 ```
 
@@ -269,7 +315,7 @@ under `SHARE UPDATE EXCLUSIVE`, no rewrite):**
 | `war_participation (clan_tag, season_id, section_index) -> war_week` | 0 | 36,159 |
 | `war_attendance_day (clan_tag, season_id, section_index) -> war_week` | 0 | 9,204 |
 | `war_week_clan (clan_tag, season_id, section_index) -> war_week` | 0 | 1,715 |
-| `war_week.season_id -> season`, `war_participation.season_id -> season`, `ranking_presence`/`ranking_snapshot` after 1.6 | 0 | small |
+| `war_week.season_id -> season (war_season_id)`, `war_participation.season_id` likewise, `ranking_presence`/`ranking_snapshot` after 1.5 | 0 | small |
 
 ```sql
 alter table battle_participant
@@ -354,8 +400,11 @@ an allowlist, `entries.mjs:75-110`, so an unknown kind is already invisible
 and should fail at write instead). For `poll_state.hint`, split:
 `hint` keeps ours with a check; a new nullable `period_type text` takes the
 API's value with no check (API enum). `ranking_snapshot.season_id` becomes
-`integer references season` (1,266 rows, instant rewrite is acceptable at
-this size but do it as add-column + fill + swap to keep the rule).
+`season_month text references season` (the finals already carry it since
+0070; the pol/clans/mode boards take the month their `observed_at` falls
+in), 1,266 rows, done as add-column + fill + swap to keep the rule; the
+`season_id::int` ordering in `rankings.mjs:132` becomes an ordinary text
+order because `YYYY-MM` sorts.
 
 ### 1.6 A snapshot kind that says "season" and means "Monday"
 
@@ -419,7 +468,7 @@ clone:
 
 ### 2.1 `card_meta_season`: per season, per mode group, per card form
 
-**Grain.** `(season_id, mode_group, card_id, form)` with
+**Grain.** `(season_month, mode_group, card_id, form)` with
 `battles, wins, losses, players, refreshed_at, through_battle_time`.
 `mode_group` is the contract's six-way group (`modes.ts`), which is what
 the tools filter by (`mode` argument), not the 12 raw types. Measured on
@@ -449,7 +498,7 @@ same table's totals, so the clan-scoped meta loses its 875 ms corpus scan
 too (clan card meta 2.5 s -> ~1.6 s, the remainder being the member rows,
 which stay raw and are cheap through the covering index).
 
-**Refresh shape.** A migrate op `{meta_rollup:{season_id}}` for the
+**Refresh shape.** A migrate op `{meta_rollup:{season_month}}` for the
 nightly recompute and backfill; the hourly increment in `services/jobs`
 next to `activity_histogram`. Ingest is untouched: no write amplification
 on the battle transaction (an increment per played card would be 16
@@ -457,7 +506,7 @@ upserts per battle).
 
 ```sql
 create table card_meta_season (
-  season_id   integer not null references season,
+  season_month text not null references season,
   mode_group  text not null check (mode_group in ('ladder','ranked','war','casual','challenge','tournament')),
   card_id     integer not null references card,
   form        smallint not null default 0 check (form between 0 and 3),
@@ -468,13 +517,13 @@ create table card_meta_season (
   players_as_of timestamptz,
   through_battle_time timestamptz not null,  -- the hourly cursor
   final       boolean not null default false,
-  primary key (season_id, mode_group, card_id, form)
+  primary key (season_month, mode_group, card_id, form)
 );
 ```
 
 ### 2.2 `deck_meta_season`: per season, per mode group, per deck
 
-**Grain.** `(season_id, mode_group, deck_hash)` with `battles, wins,
+**Grain.** `(season_month, mode_group, deck_hash)` with `battles, wins,
 losses, players, first_used, last_used`. Clone: 121,813 distinct
 `(season, type, deck_hash)` since 08-03 at raw-type grain, so ~80-100k
 rows per season at mode-group grain, ~12 MB heap + ~8 MB index per season.
@@ -482,14 +531,14 @@ Same refresh split as 2.1 (counters hourly, `players` nightly). `deck`
 itself stays identity-only (`first_seen_at`/`last_seen_at` already there).
 
 **What it fixes.** Corpus deck meta 4.7 s -> a filtered index read
-(`where season_id = $1 and mode_group = $2 order by battles desc limit
-$3`, needs `(season_id, mode_group, battles desc)`), and the 6 timeouts.
+(`where season_month = $1 and mode_group = $2 order by battles desc limit
+$3`, needs `(season_month, mode_group, battles desc)`), and the 6 timeouts.
 `battles_query` `deck_stats` (an unbounded `count(distinct player_tag)` per
 deck, `battles.mjs:427-437`) reads its per-season rows instead.
 
 ### 2.3 `card_pair_season`: synergy without the anchor subquery
 
-**Grain.** `(season_id, mode_group, card_a, form_a, card_b, form_b)` for
+**Grain.** `(season_month, mode_group, card_a, form_a, card_b, form_b)` for
 `card_a < card_b`, with `co_battles, wins, players`. Clone: 16,371
 distinct pairs in S136's decks, so ~20k rows per season per mode group.
 Nightly recompute only (the pair explosion is 28 rows per deck; an hourly
@@ -516,7 +565,7 @@ Either:
 
 Recommendation: wire it, because 2.1-2.3 give the corpus its rollups and
 this one is the per-player equivalent the war and standings readers want,
-and add `season_id` to nothing: a day maps to a season through `season`.
+and add a season key to nothing: a day maps to a season through `season`.
 
 ### 2.5 Not needed as new tables
 
@@ -637,15 +686,15 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 
 | #   | Change                                                                                                      | Kind                                         | Contract |
 | --- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------- |
-| 1   | `season` table + seed S129..S137; scheduler upserts on rollover                                              | instant (create table)                       | none     |
+| 1   | `season` (keyed `season_month`, `war_season_id` derived and log-verified) + `mode_season`; seed 2026-02..2026-10; scheduler upserts on rollover | instant (create table)  | none     |
 | 2   | `balance_change`, `balance_change_card`, `card_catalog_change`; cards projector appends changes             | instant                                      | none     |
 | 3   | Meta tools: default window = current season; `season` argument; `applied.window.season` and `crosses`; the boundary note | code                              | **minor** (3.10) |
-| 4   | `battle.season_id` FK `not valid`; `check` on `war_day`/`section_index`                                      | instant                                      | none     |
+| 4   | `battle.season_id` FK to `season (war_season_id)` `not valid`; `check` on `war_day`/`section_index`          | instant                                      | none     |
 | 5   | op `{rekey_war_battles}`: null the 3,230 contradicting stamps; stamper re-stamps all unstamped war battles from `season` + anchor | op, 9.5k rows            | none     |
 | 6   | `validate constraint` on 4                                                                                   | scan, SHARE UPDATE EXCLUSIVE                 | none     |
 | 7   | Closing FKs `not valid`: participant->deck, player_card->card, three war tables->war_week                    | instant                                      | none     |
 | 8   | `validate` the five; NOT NULL on `battle_participant.battle_time`/`type` via check-then-set; drop the `type_class` default; delete the empty deck + `card_count > 0` | scans, no rewrite | none |
-| 9   | CHECKs on `player_event.event_type`, `clan_event.event_type`, `rollup.mode_group`; `poll_state.period_type` split; `ranking_snapshot.season_id` -> integer FK (add, fill 1,266 rows, swap) | instant + tiny fill | none |
+| 9   | CHECKs on `player_event.event_type`, `clan_event.event_type`, `rollup.mode_group`; `poll_state.period_type` split; `ranking_snapshot.season_id` -> `season_month` FK (add, fill 1,266 rows, swap) | instant + tiny fill | none |
 | 10  | `snapshot_kind`: `season_roll` -> `pre_reset` (996 rows); widen check; real season-roll snapshot in the hour before `season.ends_at` | instant + 996-row update | none (internal) |
 | 11  | Drop `battle.modifiers`, `war_attendance_day.finalized`, the three rollup completeness columns; `clans_participation` stops returning `finalized` | instant | **minor** (field removed from a response: treat as minor with a changelog line, since it was never true) |
 | 12  | `card_meta_season`, `deck_meta_season`, `card_pair_season` + op `{meta_rollup}` (nightly + backfill per season) + hourly counters in jobs | instant create; backfill op is per-season scans (~11 s each on the micro, 4 seasons) | none |
@@ -687,7 +736,7 @@ anti-join count:
 | `claim_challenge.proof_battle_id -> battle`                   | 0       | add                                   |
 | `recording.subject_tag`, `collection_member.subject_tag`      | 0       | polymorphic (player or clan)          |
 | `poll_state.subject_tag`                                      | 356     | board keys, not tags                  |
-| `battle.season_id -> (no table)`                              | 3,230 contradict `battle_time` | 1.1, 1.2       |
+| `battle.season_id -> (no table; war integer, see 1.1)`         | 3,230 contradict `battle_time` | 1.1, 1.2       |
 
 ## Appendix B: enum census (clone)
 
