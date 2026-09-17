@@ -41,6 +41,14 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
             { Name: "LossBoundedJobs", Unit: "Count" },
             { Name: "ReadCappedJobs", Unit: "Count" },
             { Name: "RequestedProfileJobs", Unit: "Count" },
+            // The recorder's pace and the fleet (2026-09-17), for the
+            // elixir-mcp dashboard: no alarm reads these.
+            { Name: "FetchesHour", Unit: "Count" },
+            { Name: "FetchErrorsHour", Unit: "Count" },
+            { Name: "CeilingHour", Unit: "Count" },
+            { Name: "Tokens", Unit: "Count" },
+            { Name: "CollectorsActive", Unit: "Count" },
+            { Name: "CollectorsDraining", Unit: "Count" },
           ],
         },
       ],
@@ -52,6 +60,12 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
     LossBoundedJobs: plan.bounded ?? 0,
     ReadCappedJobs: plan.read_capped ?? 0,
     RequestedProfileJobs: plan.requested ?? 0,
+    FetchesHour: stats.fetches_hour ?? 0,
+    FetchErrorsHour: stats.fetch_errors_hour ?? 0,
+    CeilingHour: stats.ceiling_hour ?? 0,
+    Tokens: stats.tokens ?? 0,
+    CollectorsActive: stats.collectors_active ?? 0,
+    CollectorsDraining: stats.collectors_draining ?? 0,
   });
 }
 

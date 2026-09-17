@@ -1793,6 +1793,1126 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # The operations dashboard (2026-09-17): one page read top to bottom as
+  # "is it up, is it recording, is it answering, is the database fine,
+  # what is it costing". Every threshold drawn is an alarm's own; a
+  # widget is never a second alarm. Beyond AWS's metrics it reads the
+  # EMF lines the services already write on stdout: ElixirMCP/Ledger
+  # (the scheduler tick, with the pace and fleet numbers added the same
+  # day), ElixirMCP/Ingest (the collector door), ElixirMCP/Tools (the
+  # MCP door), ElixirMCP/Record (the jobs Lambda) and ElixirMCP/Series
+  # (the nightly series line). The body is generated JSON under !Sub;
+  # services/jobs/test/dashboard.test.mjs parses it and checks that
+  # every name it substitutes is a resource or parameter of this stack.
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: elixir-mcp
+      DashboardBody: !Sub |
+        {
+          "start": "-PT24H",
+          "periodOverride": "auto",
+          "widgets": [
+            {
+              "type": "alarm",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 4,
+              "properties": {
+                "title": "Elixir MCP alarms (17; the ops queue gets every state change)",
+                "alarms": [
+                  "${DlqAlarmEmail.Arn}",
+                  "${JobsErrorsAlarm.Arn}",
+                  "${MigrateDurationAlarm.Arn}",
+                  "${LedgerOldestJobAlarm.Arn}",
+                  "${LedgerDeadJobsAlarm.Arn}",
+                  "${SeasonMismatchAlarm.Arn}",
+                  "${WarUnresolvedAlarm.Arn}",
+                  "${SchedulerErrorsAlarm.Arn}",
+                  "${SchedulerMissingAlarm.Arn}",
+                  "${McpErrorsAlarm.Arn}",
+                  "${WebApiErrorsAlarm.Arn}",
+                  "${McpLatencyAlarm.Arn}",
+                  "${ToolLatencyP95Alarm.Arn}",
+                  "${DbCpuAlarm.Arn}",
+                  "${DbStorageAlarm.Arn}",
+                  "${DbConnectionsAlarm.Arn}",
+                  "${EstimatedChargesAlarm.Arn}"
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 4,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Ledger",
+                    "FetchesHour",
+                    {
+                      "stat": "Maximum",
+                      "label": "fetches, last hour"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "CeilingHour",
+                    {
+                      "stat": "Maximum",
+                      "label": "ceiling per hour",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "FetchErrorsHour",
+                    {
+                      "stat": "Maximum",
+                      "label": "fetch errors, last hour"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "Tokens",
+                    {
+                      "stat": "Minimum",
+                      "label": "bucket tokens",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Recorder pace: fetches this hour against the budget's ceiling",
+                "period": 60,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 4,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Ledger",
+                    "PlannedJobs",
+                    {
+                      "stat": "Sum",
+                      "label": "planned"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "QueuedJobs",
+                    {
+                      "stat": "Maximum",
+                      "label": "queued"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "DeadJobs",
+                    {
+                      "stat": "Maximum",
+                      "label": "dead (alarm at 1)",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "OldestQueuedAgeSeconds",
+                    {
+                      "stat": "Maximum",
+                      "label": "oldest queued, s (alarm at 1800)",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Job ledger: planned per tick, queued, oldest queued age, dead",
+                "period": 60,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 1800,
+                      "label": "oldest queued alarm",
+                      "yAxis": "right"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 10,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Ledger",
+                    "CollectorsActive",
+                    {
+                      "stat": "Minimum",
+                      "label": "active, heard in 5 min"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "CollectorsDraining",
+                    {
+                      "stat": "Maximum",
+                      "label": "draining",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "RequestedProfileJobs",
+                    {
+                      "stat": "Sum",
+                      "label": "arena refresh requests",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "LossBoundedJobs",
+                    {
+                      "stat": "Sum",
+                      "label": "loss bounded",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ledger",
+                    "ReadCappedJobs",
+                    {
+                      "stat": "Sum",
+                      "label": "reader capped",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Collector fleet: heard in the last 5 minutes, draining",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 10,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Ingest",
+                    "Admitted",
+                    {
+                      "stat": "Sum",
+                      "label": "admitted"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ingest",
+                    "Rejected",
+                    {
+                      "stat": "Sum",
+                      "label": "rejected",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ingest",
+                    "Duplicate",
+                    {
+                      "stat": "Sum",
+                      "label": "duplicate"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ingest",
+                    "NewFacts",
+                    {
+                      "stat": "Sum",
+                      "label": "new facts",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Ingest",
+                    "IngestMs",
+                    {
+                      "stat": "p95",
+                      "label": "ingest p95 ms",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Admission at the collector door, per 5 minutes",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 16,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Tools",
+                    "DurationMs",
+                    {
+                      "stat": "SampleCount",
+                      "label": "calls"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Tools",
+                    "Errors",
+                    {
+                      "stat": "Sum",
+                      "label": "errors",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Tools",
+                    "DurationMs",
+                    {
+                      "stat": "p50",
+                      "label": "p50 ms",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Tools",
+                    "DurationMs",
+                    {
+                      "stat": "p95",
+                      "label": "p95 ms (alarm at 10000)",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Tools",
+                    "DbMs",
+                    {
+                      "stat": "p95",
+                      "label": "db p95 ms",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "MCP door: calls, latency and errors",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 10000,
+                      "label": "tool p95 alarm",
+                      "yAxis": "right"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 16,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Errors",
+                    "FunctionName",
+                    "${McpFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "errors",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Throttles",
+                    "FunctionName",
+                    "${McpFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "throttles"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "ConcurrentExecutions",
+                    "FunctionName",
+                    "${McpFunction}",
+                    {
+                      "stat": "Maximum",
+                      "label": "concurrent"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Duration",
+                    "FunctionName",
+                    "${McpFunction}",
+                    {
+                      "stat": "p95",
+                      "label": "duration p95 ms (alarm at 8000)",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "MCP Lambda: duration, errors, throttles, concurrency (reserved 20)",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 20,
+                      "label": "reserved concurrency"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "log",
+              "x": 0,
+              "y": 22,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '${McpLogGroup}' | fields Tool, DurationMs | filter ispresent(Tool) | stats pct(DurationMs, 95) as p95_ms, count() as calls by Tool | sort p95_ms desc | limit 10",
+                "region": "${AWS::Region}",
+                "title": "Slowest tools in the dashboard's window (p95 ms, calls)",
+                "view": "table"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 22,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/ApiGateway",
+                    "Count",
+                    "ApiId",
+                    "${SiteApi}",
+                    {
+                      "stat": "Sum",
+                      "label": "requests"
+                    }
+                  ],
+                  [
+                    "AWS/ApiGateway",
+                    "4xx",
+                    "ApiId",
+                    "${SiteApi}",
+                    {
+                      "stat": "Sum",
+                      "label": "4xx"
+                    }
+                  ],
+                  [
+                    "AWS/ApiGateway",
+                    "5xx",
+                    "ApiId",
+                    "${SiteApi}",
+                    {
+                      "stat": "Sum",
+                      "label": "5xx",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "ConcurrentExecutions",
+                    "FunctionName",
+                    "${WebApiFunction}",
+                    {
+                      "stat": "Maximum",
+                      "label": "web-api concurrent"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Throttles",
+                    "FunctionName",
+                    "${WebApiFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "web-api throttles"
+                    }
+                  ],
+                  [
+                    "AWS/ApiGateway",
+                    "IntegrationLatency",
+                    "ApiId",
+                    "${SiteApi}",
+                    {
+                      "stat": "p95",
+                      "label": "latency p95 ms",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Site and collector door: requests, errors, latency; web-api concurrency (reserved 20)",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 20,
+                      "label": "reserved concurrency"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 28,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/RDS",
+                    "CPUUtilization",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "cpu %"
+                    }
+                  ],
+                  [
+                    "AWS/RDS",
+                    "CPUCreditBalance",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "cpu credit balance",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "The micro: CPU (alarm at 85) and the burst credits that predict the afternoon",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 85,
+                      "label": "cpu alarm"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 28,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/RDS",
+                    "FreeableMemory",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "freeable memory, bytes"
+                    }
+                  ],
+                  [
+                    "AWS/RDS",
+                    "SwapUsage",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "swap, bytes"
+                    }
+                  ],
+                  [
+                    "AWS/RDS",
+                    "DatabaseConnections",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Maximum",
+                      "label": "connections",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "The micro: memory, swap and connections (alarm at 60 of 79)",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 60,
+                      "label": "connections alarm",
+                      "yAxis": "right"
+                    },
+                    {
+                      "value": 79,
+                      "label": "max_connections",
+                      "yAxis": "right"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 34,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/RDS",
+                    "FreeStorageSpace",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Minimum",
+                      "label": "free storage, bytes"
+                    }
+                  ],
+                  [
+                    "AWS/RDS",
+                    "ReadIOPS",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "read iops",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "AWS/RDS",
+                    "WriteIOPS",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "write iops",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "AWS/RDS",
+                    "DiskQueueDepth",
+                    "DBInstanceIdentifier",
+                    "${Database}",
+                    {
+                      "stat": "Average",
+                      "label": "queue depth",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "The micro: free storage (alarm at 2 GB, auto-scales to 100 GB) and disk activity",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 2147483648,
+                      "label": "storage alarm"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 34,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/Lambda",
+                    "Duration",
+                    "FunctionName",
+                    "${JobsFunction}",
+                    {
+                      "stat": "Maximum",
+                      "label": "jobs duration max ms"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Duration",
+                    "FunctionName",
+                    "${MigrateFunction}",
+                    {
+                      "stat": "Maximum",
+                      "label": "migrate duration max ms"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Errors",
+                    "FunctionName",
+                    "${JobsFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "jobs errors",
+                      "color": "#d62728",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Errors",
+                    "FunctionName",
+                    "${MigrateFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "migrate errors",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Errors",
+                    "FunctionName",
+                    "${SchedulerFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "scheduler errors",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "AWS/Lambda",
+                    "Invocations",
+                    "FunctionName",
+                    "${SchedulerFunction}",
+                    {
+                      "stat": "Sum",
+                      "label": "scheduler ticks per 5 min",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Batch Lambdas: jobs (900 s), migrate (300 s), scheduler ticks and errors",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": 900000,
+                      "label": "jobs timeout"
+                    },
+                    {
+                      "value": 300000,
+                      "label": "migrate timeout"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 40,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Record",
+                    "SeasonWarIdMismatch",
+                    {
+                      "stat": "Sum",
+                      "label": "season war id mismatch (alarm)"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Record",
+                    "WarBattleUnresolved",
+                    {
+                      "stat": "Maximum",
+                      "label": "war battles outside the calendar (alarm)"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Record",
+                    "PayloadShapeFindings",
+                    {
+                      "stat": "Maximum",
+                      "label": "payload shape findings (nightly, filed to feedback)"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Record integrity: every line should sit at zero",
+                "period": 3600,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  }
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 40,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Series",
+                    "SnapshotRowsToday",
+                    {
+                      "stat": "Maximum",
+                      "label": "snapshot rows"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Series",
+                    "RosterRowsToday",
+                    {
+                      "stat": "Maximum",
+                      "label": "written by the roster"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Series",
+                    "ProfileRowsToday",
+                    {
+                      "stat": "Maximum",
+                      "label": "written by the profile"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Series",
+                    "ClanRowsToday",
+                    {
+                      "stat": "Maximum",
+                      "label": "clan rows"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Series",
+                    "ProgressRowsToday",
+                    {
+                      "stat": "Maximum",
+                      "label": "progress rows"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Series",
+                    "SnapshotTableMB",
+                    {
+                      "stat": "Maximum",
+                      "label": "snapshot table MB",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Series",
+                    "ProgressTableMB",
+                    {
+                      "stat": "Maximum",
+                      "label": "progress table MB",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Daily series: rows on the game day by writer (nightly), and the tables' size",
+                "period": 86400,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 46,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/SQS",
+                    "ApproximateNumberOfMessagesVisible",
+                    "QueueName",
+                    "${EmailQueue.QueueName}",
+                    {
+                      "stat": "Maximum",
+                      "label": "queued"
+                    }
+                  ],
+                  [
+                    "AWS/SQS",
+                    "ApproximateNumberOfMessagesVisible",
+                    "QueueName",
+                    "${EmailDlq.QueueName}",
+                    {
+                      "stat": "Maximum",
+                      "label": "dead letters",
+                      "color": "#d62728"
+                    }
+                  ],
+                  [
+                    "AWS/SQS",
+                    "ApproximateAgeOfOldestMessage",
+                    "QueueName",
+                    "${EmailQueue.QueueName}",
+                    {
+                      "stat": "Maximum",
+                      "label": "oldest, s",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Mail: the relay queue and its dead letters (alarm at 1)",
+                "period": 300,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 46,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "AWS/Billing",
+                    "EstimatedCharges",
+                    "Currency",
+                    "USD",
+                    {
+                      "stat": "Maximum",
+                      "label": "estimated charges, USD",
+                      "region": "us-east-1"
+                    }
+                  ],
+                  [
+                    "AWS/S3",
+                    "BucketSizeBytes",
+                    "BucketName",
+                    "${ArchiveBucket}",
+                    "StorageType",
+                    "StandardStorage",
+                    {
+                      "stat": "Average",
+                      "label": "archive bytes",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "AWS/S3",
+                    "NumberOfObjects",
+                    "BucketName",
+                    "${ArchiveBucket}",
+                    "StorageType",
+                    "AllStorageTypes",
+                    {
+                      "stat": "Average",
+                      "label": "archive objects",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Cost: month to date (alarm at the stack's MonthlyCostAlarmUsd) and the archive",
+                "period": 86400,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
+                },
+                "annotations": {
+                  "horizontal": [
+                    {
+                      "value": ${MonthlyCostAlarmUsd},
+                      "label": "cost alarm"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+
 Outputs:
   DatabaseEndpoint:
     Value: !GetAtt Database.Endpoint.Address

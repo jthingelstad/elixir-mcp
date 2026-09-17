@@ -158,5 +158,24 @@ export async function ledgerStats(db) {
          filter (where status = 'queued'))::int, 0) as oldest_queued_s
      from job`,
   );
-  return rows[0];
+  // The recorder's pace and the fleet, for the dashboard (2026-09-17):
+  // fetches admitted in the last hour against the budget's hourly
+  // ceiling, the bucket's tokens now, collectors heard in the last five
+  // minutes, collectors draining, fetch errors in the hour. The backfill
+  // gateway's receipts are history landing, not pace, and are excluded
+  // as the probe excludes them. Each is an index range or a tiny table.
+  const { rows: pace } = await db.query(
+    `select
+       (select count(*)::int from api_receipt r join gateway g on g.gateway_id = r.gateway_id
+         where r.fetched_at > now() - interval '1 hour'
+           and g.name <> 'backfill-elixir-bot') as fetches_hour,
+       (select count(*)::int from collector_fetch_error
+         where fetched_at > now() - interval '1 hour') as fetch_errors_hour,
+       (select round(rate_per_sec * 3600)::int from budget_state) as ceiling_hour,
+       (select tokens::float from budget_state) as tokens,
+       (select count(*)::int from gateway
+         where status = 'active' and last_heartbeat_at > now() - interval '5 minutes') as collectors_active,
+       (select count(*)::int from gateway where status = 'draining') as collectors_draining`,
+  );
+  return { ...rows[0], ...pace[0] };
 }

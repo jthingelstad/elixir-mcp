@@ -42,6 +42,22 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
 const REGION = process.env.AWS_REGION ?? "us-east-1";
 const STACK = "elixir-mcp";
+// The stack's tags, propagated by CloudFormation to every taggable
+// resource (2026-09-17). awsApplication puts them into the myApplications
+// application "Elixir" (created by Jamie in the console; the id is the
+// application's, not a secret), beside Elixir Drop and Elixir Clan, which
+// tag themselves the same way in their own repos; Application is the
+// plain family tag, Component tells the three apart. UpdateStack keeps
+// existing tags when Tags is omitted, so this is not the parameter trap.
+const ELIXIR_APPLICATION_ID = "06wp90h48v7ugspg5pol25cmp3";
+const stackTags = (accountId) => [
+  {
+    Key: "awsApplication",
+    Value: `arn:aws:resource-groups:${REGION}:${accountId}:group/Elixir/${ELIXIR_APPLICATION_ID}`,
+  },
+  { Key: "Application", Value: "Elixir" },
+  { Key: "Component", Value: "elixir-mcp" },
+];
 
 const args = process.argv.slice(2);
 const isCreate = args.includes("--create");
@@ -152,6 +168,7 @@ if (isCreate) {
       TemplateURL: templateUrl,
       Parameters: buildParameters(required, {}),
       Capabilities: ["CAPABILITY_NAMED_IAM"],
+      Tags: stackTags(accountId),
     }),
   );
   await waitUntilStackCreateComplete(
@@ -178,6 +195,7 @@ if (isCreate) {
           existingKeys,
         ),
         Capabilities: ["CAPABILITY_NAMED_IAM"],
+        Tags: stackTags(accountId),
       }),
     );
     await waitUntilStackUpdateComplete(

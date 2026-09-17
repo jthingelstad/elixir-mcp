@@ -29,7 +29,28 @@ test("ledgerEmf carries the alarm's namespace, metric names, and no dimensions",
       "LossBoundedJobs",
       "ReadCappedJobs",
       "RequestedProfileJobs",
+      "FetchesHour",
+      "FetchErrorsHour",
+      "CeilingHour",
+      "Tokens",
+      "CollectorsActive",
+      "CollectorsDraining",
     ],
+  );
+  assert.equal(emf.FetchesHour, 0, "pace fields default to 0 when absent");
+  assert.equal(
+    JSON.parse(
+      ledgerEmf(
+        {
+          ...SAMPLE,
+          fetches_hour: 212,
+          ceiling_hour: 3600,
+          collectors_active: 3,
+        },
+        1725600000000,
+      ),
+    ).FetchesHour,
+    212,
   );
   assert.equal(emf.OldestQueuedAgeSeconds, 1800);
   assert.equal(emf.DeadJobs, 1);
