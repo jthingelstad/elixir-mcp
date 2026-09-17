@@ -2803,8 +2803,8 @@ construction; and after the review: the snapshot re-key first, every
 member of every polled clan gets a roster-written row, the zero-bucket
 rule, the manifest with the out-of-band census filing to feedback) are
 applied and not reopened. Polling cadences are untouched. Six steps,
-each its own commit, four deploys (12:5xZ-14:4xZ Chicago; 18:5xZ-19:4xZ
-UTC); RDS snapshot `elixir-mcp-pre-snapshot-rekey-2026-09-17` (18:58Z)
+each its own commit, six deploys between 18:5xZ and 19:4xZ (the
+migrate Lambda ran 0126, then 0127-0131, then 0132); RDS snapshot `elixir-mcp-pre-snapshot-rekey-2026-09-17` (18:58Z)
 before the re-key.
 
 **Shipped.** `bab4bf0` 0126 `game_day(timestamptz)`, immutable UTC
@@ -2882,7 +2882,28 @@ items[].clanScore` had no disposition, because the entry named
 is spelt `clanScore`; `cr-agent-api-docs/locations.md` said so and the
 projector read it first). Corrected in `abb6b1e`; the second run (152
 objects) filed nothing; #49 closed as done with the commit.
-__HOUR_MARK__
+An hour after the writers went live (`{series_status}` and `{tables}` at
+20:25Z; the deploy flipped at 19:22Z): `clan_snapshot_daily` 125 rows
+for 125 clans, all `daily`, 36 of them rewritten by a later poll;
+`player_snapshot_daily` 14,946 → 19,662 rows (4,703 roster-only rows
+for members with no recorded profile, 14,571 profile-only, 388 both;
+5,584 rows on today's game day, 5,091 of them roster-written; 6,369
+players and 125 clans with a row; 1,153 updates in the hour, 694 of
+them HOT, 917 dead tuples; 25.8 MB); `player_progress_daily` 236 rows
+for 113 players over 4 keys (the zero-bucket rule: two buckets a
+profile on average, not four); `player_pol_season` 113 rows, all
+2026-08 (the season that rolled 09-07); `mode_season` 7 keys, the `""`
+key among them; `clan.type` / `location_id` filled on 125 clans; the
+frozen counters on 113 players; `war_week_clan.clan_score` on 80 rows,
+`war_participation.repair_points` on 1,956; `war_period_log` 0 (below).
+The hour's admitted receipts: clan 155 receipts, 154 with facts, 8,208
+facts (avg 53, max 105: a first poll of the day is every member's new
+row), avg ingest 164 ms / max 292 (the 24-hour view, dominated by the
+23 pre-deploy hours: avg 16 facts, 143 ms); player 105 receipts, all
+with facts, avg 11.8 (was 9.3), 198 ms (was 175); currentriverrace 32
+receipts, avg 184 ms (was 365). Database 4.15 → 4.17 GB. No alarm; one
+battlelog `deadlock detected` at 20:07Z against eight in the ten hours
+before the deploy (seven at 10:12Z), so not new; the collector resubmits.
 
 **Decisions taken inside the phase.** (1) Pre-0038 snapshot rows with no
 `observed_at` are stamped from the receipts before they move: the last
@@ -2931,7 +2952,7 @@ location catalogs, `arena.rawName`) are named in the manifest as
 dropped with those reasons. `war_period_log` holds nothing yet: the
 running section's first closed day lands after 10:00Z on 09-18, and
 earlier sections' entries are other brackets' days by (8). The
-`battle` columns are written for every battle admitted from `c1f0000`
+`battle` columns are written for every battle admitted from `c904524`
 on (`battles.mjs` maps the ten in the same enrich upsert; a fixture log
 lands `arena_id`, `deck_selection`, the two flags, the boat side and
 the tower counts) and are null for every earlier row until Phase 2b
