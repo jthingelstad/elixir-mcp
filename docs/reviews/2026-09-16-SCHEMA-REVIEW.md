@@ -464,6 +464,55 @@ If modifiers are wanted later they belong on `battle_participant` (or a
 
 ---
 
+### 1.8 JSON columns become columns and rows (Jamie, 2026-09-17: "do it right")
+
+Every JSON column in the schema was censused for what writes it and what
+reads it. Two are correct as JSON by policy and stay: `api_payload.payload_json`
+(the raw payload cache, tools never read it) and `mcp_call_audit.args`
+(captured call arguments, diagnostics). Three are free-form diagnostics
+and stay: `api_receipt.admission_errors` (becomes `text[]`),
+`feedback.context`, `account_event.detail`, `magic_login.context`/`started_from`.
+Everything else has a fixed shape and a reader, and becomes typed columns
+or child rows:
+
+| Column                                          | Shape today                                                                          | Becomes                                                                                                                                                                                                                                                                              | Rows      |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| `player_snapshot_daily.lifetime`                | `{battleCount, wins, losses, threeCrownWins, starPoints, expPoints, collectionLevel}` | seven integer columns                                                                                                                                                                                                                                                                | 14,665    |
+| `player_snapshot_daily.pol`                     | `{current: {leagueNumber, trophies, rank}, best: {...}}`                              | six integer columns `pol_league`, `pol_trophies`, `pol_rank`, `pol_best_league`, `pol_best_trophies`, `pol_best_rank`                                                                                                                                                                | 14,665    |
+| `player_snapshot_daily.league_stats`            | `{currentSeason: {trophies, bestTrophies}, previousSeason: {id, rank, trophies, bestTrophies}, bestSeason: {id, trophies, rank}}`; a JSON scalar `null` on 6,150 rows | `season_trophies`, `season_best_trophies`, `prev_season_month references season`, `prev_season_rank`, `prev_season_trophies`, `prev_season_best_trophies`, `best_season_month references season`, `best_season_trophies`, `best_season_rank` | 14,665    |
+| `battle_participant.tower_hp`                   | `{king: int, princess: [int, int]}`, destroyed towers omitted                        | `king_tower_hp smallint`, `princess_tower_hp_1 smallint`, `princess_tower_hp_2 smallint` (0 = destroyed; the API gives no left/right, so slot order is the array's)                                                                                                                  | 509,252   |
+| `card.icon_urls`                                | `{medium, evolutionMedium?, heroMedium?}`                                             | three text columns; presence of the evolution and hero URLs already encodes the `max_evolution_level` bits (`cr-agent-api-docs/cards.md`)                                                                                                                                             | 128       |
+| `player_event.payload`                          | one of 10 fixed shapes, keys censused in Appendix D                                   | typed nullable columns on the row: `card_id references card`, `badge_name`, `level`, `prior_level`, `max_level`, `arena_from references arena`, `arena_to references arena`, `league_from`, `league_to`, `value_before`, `value_after`, `step`, `battle_id references battle` (the promoting or crossing battle, today nested as `promoted_by`/`crossed_by`) | 13,962    |
+| `clan_event.payload`                            | one of 6 fixed shapes                                                                | `player_tag references player`, `role_before`, `role_after`, `roster_size_before`, `roster_size_after`, `war_season_id`, `section_index`, `fame`, `rank`, `trophy_change`; `bracket_observed`'s five rivals are already rows in `war_week_clan` and drop from the payload             | 11,962    |
+| `player_activity.rhythm`                        | 168 floats                                                                           | `real[168]`, a typed array, not JSON                                                                                                                                                                                                                                                  | 830       |
+| `player_activity.days`                          | `{"YYYY-MM-DD": [battles, wins, losses]}`                                            | **nothing**: it is `player_daily_battle_rollup` summed over mode, the table with no reader (2.4); `battle-activity.mjs` reads the rollup                                                                                                                                              | 830       |
+| `player_activity.not_recorded_days`             | sorted array of dates                                                                | `player_not_recorded_day (player_tag, day)` rows, or `date[]`                                                                                                                                                                                                                        | 830       |
+| `oauth_client.redirect_uris`                    | JSON array of strings                                                                | `text[]`                                                                                                                                                                                                                                                                             | small     |
+
+What it buys beyond "right": the event ledger's card, battle and arena
+become foreign keys instead of copied names (a `card_leveled` row then
+cannot name a card the catalog lacks, and the timeline's "Lava Hound
+unlocked Lava Hound" class of bug, contract 3.9.0, becomes structurally
+impossible); the snapshot's previous and best season become references to
+`season`; and `league_stats`'s scalar-null trap (`jsonb_typeof` guards in
+every walker) disappears.
+
+**Shape of the change.** Expand-and-contract, per table: add the nullable
+columns (instant); the projector writes both for one deploy; a batched op
+fills history; readers move; the JSON column drops. The only table where
+the fill is real work is `battle_participant` (509k rows, the 0099 shape:
+10k-row batches, ~30 minutes on the micro, no lock held across batches);
+`player_snapshot_daily` and the two event tables fill in seconds and can
+do so inside the migration. `players_profile` and the timeline render
+their objects from the columns; the contract is unchanged.
+
+**Cost.** Participant heap grows ~6 bytes a row and loses the jsonb
+(net smaller: the JSON keys are repeated 509k times today). Event tables
+gain ~12 sparse nullable columns each; PostgreSQL stores a null in the
+bitmap, so a row carries only its kind's values. Risk: low; every shape
+above was read from the writer that produces it, and the census in
+Appendix D is the key list.
+
 ## Tier 2: do soon (rollups and aggregates, grain decided)
 
 The live call mix (7 days to 09-17): `battles_meta_cards` 80 calls, avg
@@ -624,27 +673,11 @@ and add a season key to nothing: a day maps to a season through `season`.
 
 ## Tier 3: consider (normalization with a read behind it)
 
-### 3.1 JSON that six readers parse: `player_snapshot_daily.lifetime` and `pol`
+### 3.1 and 3.2: folded into 1.8
 
-`lifetime->>'battleCount'`, `->>'collectionLevel'`, `->>'wins'` and
-`pol->'current'->>'leagueNumber'` are extracted in `battles_compare`,
-`players_timeline` (inside `distinct on`), `players_collection`,
-`entries.mjs` and `coverage.mjs` (inside a `lag() over`). Add four integer
-columns (`battle_count`, `collection_level`, `wins`, `pol_league_number`),
-nullable, filled by the projector from now on and by a small batched op for
-the 14,665 rows. Keep `lifetime`/`pol`/`league_stats` as the verbatim
-profile fragments `players_profile` returns whole. Note `league_stats` is a
-JSON `null` (scalar) on 6,150 rows and an object on 8,515: `jsonb_typeof`
-guards are required wherever it is walked.
-
-### 3.2 JSON that is fine where it is
-
-`battle_participant.tower_hp` (`{king, princess[]}`, returned whole by
-`battles_query` only); `card.icon_urls` (passthrough);
-`player_event.payload`/`clan_event.payload` (evidence objects read by the
-timeline in JS, shape varies per kind, correctly JSON);
-`player_activity.rhythm`/`days` (a computed cache with one reader).
-`api_receipt.admission_errors` (diagnostics).
+The JSON items moved to Tier 1 (1.8) on Jamie's read: every one has a
+fixed shape the code already knows, so columns are the right size of
+change, not a cleanup.
 
 ### 3.3 The participant's copied columns: the set is right, one more is not needed
 
@@ -741,7 +774,7 @@ holds its lock for milliseconds; nothing here rewrites a large table.
 | 12  | `card_meta_season`, `deck_meta_season`, `card_pair_season`; nightly job recomputes the current season and fills missing past seasons itself; hourly counters in jobs | instant create; the first nights do ~11 s per past season on the micro | none |
 | 13  | Meta tools read 12; `corpusPrior` reads its totals; `set local work_mem` in the meantime                     | code                                         | none (same fields, faster; `players_as_of` added: minor) |
 | 14  | Wire `player_daily_battle_rollup` into `clans_standings`, `battles_trends`, `players_summary`, `first-answer`  | code                                         | none     |
-| 15  | Snapshot columns (`battle_count`, `collection_level`, `wins`, `pol_league_number`) + batched fill of 14.7k rows | instant + op                              | none     |
+| 15  | 1.8: JSON to columns and rows, table by table (snapshot, events, card, activity in the migration; participant `tower_hp` by batched op)  | instant + one batched op                     | none     |
 | 16  | Index diet on `battle_participant` after a week of `idx_scan` evidence; `clan_membership` partial index       | `drop index concurrently` / `create index concurrently` | none |
 | 17  | `arena` seed + FK; `api_receipt.job_id` FK `on delete set null`; `poll_state.subject_tag` -> `subject_key`; comments on the two declined FKs | instant | none |
 
@@ -802,3 +835,26 @@ estimated. `deck.card_count`: 8 -> 165,809; 12 -> 527 (boat-defence lists);
 | clan deck aggregate (POAP KINGS)                                  | live        | 28 ms   | index-only via the player cover index                  |
 | clan card aggregate                                               | live        | 1.3 s   | deck_card pk probes, 1,877 reads                       |
 | excluded breakdown (clan)                                         | live        | 2.2 s   | the `battle` join, 5,129 reads; 0100 made it participant-only |
+
+## Appendix D: event payload key census (clone)
+
+`player_event.payload` keys by kind: `arena_changed` {from, to, to_name,
+promoted_by?}; `badge_earned` {name, level, prior_level?};
+`best_trophies_band` {best, band?, crossed_by?}; `card_leveled` {card_id,
+name, rarity, level, prior_level}; `card_unlocked` {card_id, name, rarity};
+`career_wins_step` {wins, step?, crossed_by?}; `collection_level_step`
+{level}; `donation_reset` {donations_before, donations_after};
+`legendary_badge_earned` {name}; `ranked_promotion` {from, to,
+promoted_by?}. `promoted_by`/`crossed_by` nest {battle_id, battle_time,
+type, opponent, crowns, crowns_against, trophy_change, trophies_after,
+arena_floor}, all of which the battle row already holds.
+
+`clan_event.payload` keys by kind: `member_joined` {player_tag, name,
+role, roster_size_before, roster_size_after}; `member_left` {player_tag,
+name?, role_at_departure, joined_observed_at, roster_size_before,
+roster_size_after}; `role_changed` {player_tag, name, role_before,
+role_after, direction?, roster_size_before, roster_size_after};
+`week_resolved` {season_id, section_index, is_colosseum, fame, rank,
+trophy_change}; `bracket_observed` and `race_finished` (added 3.9.0, not
+yet on the clone) carry {season_id, section_index, rivals[]} and
+{season_id, section_index, fame, finish_time}.
