@@ -2969,3 +2969,73 @@ from the battlelog receipts (with `battles.mjs` writing them live);
 then a read-only census proving every admitted roster receipt since
 2026-03-12 has its day rows. RDS snapshot first. Needs Jamie's go;
 nothing manual.
+
+## 2026-09-17 — Time-series Phase 1, verified: four fixes before the clan lane (0133)
+
+The review session read Phase 1 back against its own design
+(read-only, fresh scratch build, the tests) and returned "Phase 2 may
+start with these adjustments", four of them to land before the backfill's
+clan lane. All four shipped in `997c09e`, deployed 20:5xZ (0133 ran in
+the migrate Lambda); no contract change.
+
+1. **The roster's own columns were blocked behind a later profile
+   stamp.** The roster upsert guarded every column on `observed_at`,
+   which the profile also advances, so a roster observation older than
+   the day's last profile poll wrote nothing, including `clan_tag`,
+   `clan_rank`, `previous_clan_rank` and `game_last_seen_at`, which the
+   profile never writes - fifteen minutes live, systematic in the
+   backfill (the profile rows already exist; POAP KINGS' March-July
+   rosters are one a day). 0133 adds `roster_observed_at`, filled from
+   `observed_at` on the rows the roster had written; the roster's own
+   four columns are guarded on it, the shared four on `observed_at`,
+   `observed_at` stays the greatest of either. `{series_status}` splits
+   rows on it.
+2. **The arena moment.** The review asked for the 0101 refresh's
+   baseline to move to `profile_observed_at`. The test showed that does
+   not hold: `arena_id` is a shared column, so a roster-fresh arena
+   overwrites the profile row's too, and the profile's `arena_changed`
+   moment would never fire for a polled clan's member (its baseline
+   already equals the payload) - not "back on the 8-hour cadence" but
+   lost. Decided: the roster emits the moment itself (the review's own
+   "better shape", pulled forward from Phase 4). `projectClanSeries`
+   reads each member's newest observation of either writer before the
+   poll and, for a member whose arena moved, calls `arenaChangedMoment`
+   (shared with the profile path: the crossing battle from the record
+   when it holds one, the window from that observation to this poll);
+   live rosters only, never the backfill or the import. The profile's
+   arena baseline is either writer's newest row, so a move the roster
+   wrote is never written twice; the refresh request keeps its original
+   meaning (a roster-fresh arena means the record already knows, and no
+   profile poll is owed for it). The pinned test: a member's log
+   crosses 6,500, the roster places them in the new arena at 09:40Z,
+   the moment carries `promoted_by.trophies_after 6500`, a later battle
+   owes no refresh, the profile at 12:00Z emits nothing more.
+3. **Four readers paired profile fields with the wrong stamp.**
+   `coverage.mjs` and `jobs/activity.mjs` bracket `battle_count` deltas
+   on `profile_observed_at` over profile rows only (a roster-only row is
+   not a bracket); `activity/entries.mjs snapshotAt` and
+   `first-answer.mjs` read `profile_observed_at`. The clan donations
+   query in entries stays: donations are shared and the roster's value
+   is fresher. Hand-seeded profile rows across the suites now carry
+   `profile_observed_at`.
+4. **The manifest claimed `progress.*.arena.name` landed and it did
+   not.** `projectPlayerProgress` names the 168000xxx side-mode arenas
+   in the catalog with the roster's upsert shape.
+
+**Measured live, read-only, five minutes after the deploy (`{series_status}`
+20:59Z).** `player_snapshot_daily` 22,349 rows (7,382 roster-only,
+14,498 profile-only, 469 both; 9,045 players, 188 clans); clan receipts
+in the hour 160, avg 55 facts, avg ingest 164 ms / max 457 (the prior
+arena read and the moments cost nothing measurable); player 105
+receipts, 183 ms; no ingest error in the five minutes, no alarm.
+
+**Carried into the Phase 2 plan, from the same verification.** A `race`
+lane for the backfill (`war_period_log` can only recover earlier
+sections from the 4,784 archived race payloads: the race projector needs
+a series half - rivals and period logs, no events, no anchor - and
+`series_backfill_state.lane` needs `'race'` added); the storage rate
+reads nearer 380 bytes a row than 258 until a week's autovacuum settles
+it (~3 GB a year, not a blocker); Phase 2 timing stands;
+`elixir_data_insights.players_with_snapshot` now counts roster-written
+players and Phase 4 renames or filters it. Nothing new for
+`cr-agent-api-docs`.
