@@ -851,6 +851,29 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt MetaRollupHourlyRule.Arn
 
+  # The nightly payload shape census (time-series review 2.7, 0132):
+  # twenty archived objects per endpoint from the last day against the
+  # field manifest; findings filed into feedback (surface recorder), the
+  # PayloadShapeFindings metric emitted. 05:05Z: after the 04:40Z rollup,
+  # before the 05:30Z histogram, the UTC day closed.
+  ShapeCensusRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-shape-census
+      ScheduleExpression: cron(5 5 * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: shape-census
+          Input: '{"shape_census": true}'
+
+  ShapeCensusPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ShapeCensusRule.Arn
+
   # ------------------------------------------------------------ front doors
   SiteApi:
     Type: AWS::ApiGatewayV2::Api

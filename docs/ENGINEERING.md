@@ -224,6 +224,30 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   mint; a second ask while it is open is the same ask) and the record
   answers now with `live_status.pending`. Nothing polls Postgres inside an
   MCP call (`services/mcp/src/live.mjs`).
+- **The shape of every admitted payload is known, and a change is a work
+  item** (time-series review 2.7; Jamie, 2026-09-17). Every endpoint's
+  projector carries a field manifest (`services/ingest/src/payload-keys.mjs`):
+  for each field the API sends, at the top level and inside each array's
+  elements, either the table and column it lands in, or `derived: <from>`,
+  or `dropped: <reason>`. A test walks every fixture payload and fails on a
+  field the manifest does not name, and on a manifest entry with no
+  disposition. Ingest itself does nothing more: the check is out of band.
+  The nightly shape census (`{shape_census}` in the jobs Lambda, 05:05Z,
+  after the payload sweep) reads a sample of the day's archived objects per
+  endpoint (twenty, the newest first), and reports two things per
+  endpoint: fields present in the sample and absent from the manifest (the
+  API added something), and manifest fields absent from every sampled
+  payload for seven days (the API retired something, as `expLevel` was;
+  `payload_shape_seen`, 0132, is its memory). Each finding is filed once
+  into `feedback` under the owner account with `category: data_quality`,
+  `surface: recorder` and a context of `{endpoint, path, first_seen,
+  sample_type, seen_in}`, deduplicated on `(endpoint, path)` while an item
+  is open; Close the Loop reads the queue on its schedule and turns the
+  item into the change (the manifest entry and projection, the contract
+  bump, the docs, the `cr-agent-api-docs` entry). The same run emits
+  `ElixirMCP/Record PayloadShapeFindings` so the count is on the
+  dashboard; nothing mails anyone. Collectors stay dumb: they gzip bytes
+  and never parse, so shape is the hub's to know.
 - **A receipt says what the fetch was worth** (0077): `new_facts` is the
   projection's own count of rows inserted or changed, `ingest_ms` the
   transaction's wall time, `api_bytes` what the collector read before any

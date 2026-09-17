@@ -24,6 +24,18 @@ item gets a response, and the response lands in the filer's event feed.
   uncertain response requires a read-back before retrying; never replay it
   blindly. While another actor holds the lease, prepare the response without
   sending it and record the blocked write and its age.
+- **Recorder items.** A feedback item with `surface: recorder` was filed
+  by the nightly payload shape census (jobs Lambda `{shape_census}`,
+  ENGINEERING.md "Ingest invariants"), not by a person: its context names
+  an endpoint and a field path the API now sends that the manifest
+  (`services/ingest/src/payload-keys.mjs`) has no disposition for, or a
+  manifest field absent from every sampled payload for seven days. It is
+  product work, never an incident, and it becomes a change: the manifest
+  entry and the projection (a column, a row, or a written reason), the
+  contract bump if a tool's shape moves, the site docs, and the
+  `cr-agent-api-docs` entry for what the API did. `done` names the commit;
+  while the item is open the census will not file the same (endpoint,
+  path) again.
 - **Agent friction signal.** `mcp_call_audit` over the last day(s):
   error codes by tool (a spike in `bad_request` on one tool is a schema
   ergonomics bug), truncation rates, refused entitlements that look
