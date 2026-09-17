@@ -1,3 +1,5 @@
+import { dailySql } from "../../mcp/src/daily-sql.mjs";
+
 // Readiness is derived from the record, never a second onboarding state to
 // reconcile. Keep this separate from the HTTP/auth routing layer.
 export async function firstAnswer(db, accountId) {
@@ -23,13 +25,18 @@ export async function firstAnswer(db, accountId) {
               b.*
        from claim c join player p on p.player_tag = c.player_tag
        cross join lateral (
-         select count(*)::int as battles_30d,
-                count(*) filter (where battle_time >= now() - interval '7 days')::int as battles_7d,
-                count(*) filter (where battle_time < now() - interval '7 days'
-                  and battle_time >= now() - interval '14 days')::int as battles_previous_7d,
-                count(distinct deck_hash) filter (where battle_time >= now() - interval '7 days')::int as distinct_decks_7d
-         from battle_participant where player_tag = c.player_tag
-           and battle_time >= now() - interval '30 days' and battle_time <= now()
+         -- The counters from the daily rollup for whole days and the
+         -- raw rows for each window's edge day (daily-sql.mjs); the
+         -- distinct decks stay raw, the rollup does not carry them.
+         select (select coalesce(sum(battles), 0)::int
+                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '30 days')", to: "null" })} d) as battles_30d,
+                (select coalesce(sum(battles), 0)::int
+                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '7 days')", to: "null" })} d) as battles_7d,
+                (select coalesce(sum(battles), 0)::int
+                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '14 days')", to: "(now() - interval '7 days')" })} d) as battles_previous_7d,
+                (select count(distinct deck_hash)::int from battle_participant
+                  where player_tag = c.player_tag
+                    and battle_time >= now() - interval '7 days' and battle_time <= now()) as distinct_decks_7d
        ) b
      where c.account_id = $1 and c.is_primary`,
     [accountId],

@@ -10,6 +10,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { isoWeekLabel, isoWeekStart } from "../time.mjs";
 import { MEMBERS_SQL, participationQueries } from "../participation-sql.mjs";
+import { dailySql } from "../daily-sql.mjs";
 import { formatLocal } from "../time.mjs";
 import {
   ToolFailure,
@@ -76,31 +77,42 @@ export const clansTools = {
       if (!Number.isInteger(minBattles) || minBattles < 1 || minBattles > 200)
         throw new ToolFailure("bad_request", "min_battles must be 1-200.");
       requireEnum(args.mode, MODE_GROUPS, "mode");
-      const params = [clanTag, win.from];
-      const clauses = [];
-      if (win.to) {
-        params.push(win.to);
-        clauses.push(`and bp.battle_time < $${params.length}`);
-      }
+      // The counts come from the daily rollup for the whole days inside
+      // the window and the raw rows for its edge days (daily-sql.mjs,
+      // plan step 14); until then the subquery scanned the CORPUS's
+      // window and kept ~50 members of it. The streak is the run of
+      // equal decided outcomes ending at the member's latest battle,
+      // from the members' own raw rows (the 2026-09-16 timeline request
+      // §2: a consumer called battles_performance per member for this).
+      const members = `(select cm.player_tag from clan_membership cm
+                        where cm.clan_tag = $1 and cm.left_observed_at is null)`;
+      const params = [clanTag, win.from, win.to ?? null];
+      const rawClauses = [];
+      let types = null;
+      let modeGroup = null;
       if (args.mode) {
         params.push(typesForModeGroup(args.mode));
-        clauses.push(`and b.type = any($${params.length})`);
+        types = `$${params.length}`;
+        rawClauses.push(`and bp.type = any(${types})`);
+        params.push(args.mode);
+        modeGroup = `$${params.length}`;
       }
-      // One grouped pass instead of a per-member lateral scan (audit
-      // census: 2.5s avg). The subquery keeps roster rows for members
-      // with zero matching battles.
-      // One grouped pass; the streak is the run of equal decided outcomes
-      // ending at the member's latest battle, counted with a window
-      // function over the same subquery (the 2026-09-16 timeline request
-      // §2: a consumer called battles_performance per member for this).
+      const daily = dailySql({
+        players: `array(${members})`,
+        from: "$2",
+        to: "$3",
+        modeGroup,
+        types,
+      });
       const { rows } = await ctx.db.query(
-        `with s as (
-           select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time,
-                  case when b.type = any($${params.length + 1}) then bp.trophy_change else 0 end as ladder_change
+        `with d as ${daily},
+         s as (
+           select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time
            from battle_participant bp
-           join battle b on b.battle_id = bp.battle_id
-           where bp.battle_time >= $2
-             ${clauses.join(" ")}
+           where bp.player_tag in ${members}
+             and bp.battle_time >= $2
+             and ($3::timestamptz is null or bp.battle_time < $3)
+             ${rawClauses.join(" ")}
          ),
          decided as (
            select player_tag, outcome,
@@ -114,22 +126,27 @@ export const clansTools = {
            join (select player_tag, outcome as latest from decided where drn = 1) l
              on l.player_tag = d.player_tag
            group by d.player_tag, l.latest
+         ),
+         sums as (
+           select player_tag,
+                  sum(battles)::int as battles, sum(wins)::int as wins,
+                  sum(losses)::int as losses, sum(draws)::int as draws,
+                  sum(trophy_delta) filter (where mode_group = 'ladder')::int as trophy_net
+           from d group by player_tag
          )
          select cm.player_tag, p.name, p.years_played,
-                count(s.battle_id)::int as battles,
-                count(*) filter (where s.outcome = 'win')::int as wins,
-                count(*) filter (where s.outcome = 'loss')::int as losses,
-                count(*) filter (where s.outcome = 'draw')::int as draws,
-                coalesce(sum(s.ladder_change), 0)::int as trophy_net,
-                max(st.streak_kind) as streak_kind,
-                max(st.streak_len) as streak_len
+                coalesce(su.battles, 0)::int as battles,
+                coalesce(su.wins, 0)::int as wins,
+                coalesce(su.losses, 0)::int as losses,
+                coalesce(su.draws, 0)::int as draws,
+                coalesce(su.trophy_net, 0)::int as trophy_net,
+                st.streak_kind, st.streak_len
          from clan_membership cm
          join player p on p.player_tag = cm.player_tag
-         left join s on s.player_tag = cm.player_tag
+         left join sums su on su.player_tag = cm.player_tag
          left join streak st on st.player_tag = cm.player_tag
-         where cm.clan_tag = $1 and cm.left_observed_at is null
-         group by cm.player_tag, p.name, p.years_played`,
-        [...params, typesForModeGroup("ladder")],
+         where cm.clan_tag = $1 and cm.left_observed_at is null`,
+        params,
       );
       const withRate = rows.map((r) => ({
         player_tag: r.player_tag,

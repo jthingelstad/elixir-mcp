@@ -30,6 +30,7 @@ import {
   deckIdentities,
   withWindowSugar,
 } from "./shared.mjs";
+import { dailySql } from "../daily-sql.mjs";
 
 /** Escape LIKE/ILIKE metacharacters so user text matches literally
  *  (Postgres' default escape character is the backslash). */
@@ -74,16 +75,21 @@ export const playersTools = {
            where p.player_tag = $1`,
         [tag, ctx.account.accountId],
       );
+      // The 30-day record from the daily rollup for the whole days and
+      // the raw rows for the edge day (daily-sql.mjs, plan step 14);
+      // first_recorded is one index probe.
+      const since = new Date(Date.now() - 30 * 86_400_000);
       const record = await ctx.db.query(
-        `select count(*)::int as battles,
-                  count(*) filter (where outcome = 'win')::int as wins,
-                  count(*) filter (where outcome = 'loss')::int as losses,
-                  count(*) filter (where outcome = 'draw')::int as draws,
-                  coalesce(sum(trophy_change), 0)::int as net_trophies,
-                  min(battle_time) as first_recorded
-           from battle_participant
-           where player_tag = $1 and battle_time > now() - interval '30 days'`,
-        [tag],
+        `with d as ${dailySql({ players: "array[$1]", from: "$2", to: "null" })}
+         select coalesce(sum(d.battles), 0)::int as battles,
+                coalesce(sum(d.wins), 0)::int as wins,
+                coalesce(sum(d.losses), 0)::int as losses,
+                coalesce(sum(d.draws), 0)::int as draws,
+                coalesce(sum(d.trophy_delta), 0)::int as net_trophies,
+                (select min(battle_time) from battle_participant
+                  where player_tag = $1 and battle_time >= $2) as first_recorded
+         from d`,
+        [tag, since],
       );
       const deck = await ctx.db.query(
         `select bp.deck_hash, count(*)::int as battles,

@@ -9,6 +9,18 @@ import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
+
+/** The (player, UTC day) pairs of hand-seeded battles, as ingest would
+ *  hand them to the rollup. */
+async function rollupPairs(db, like) {
+  const { rows } = await db.query(
+    `select distinct bp.player_tag, to_char(bp.battle_time at time zone 'UTC', 'YYYY-MM-DD') as day
+     from battle_participant bp where bp.battle_id like $1`,
+    [like],
+  );
+  return rows.map((r) => ({ playerTag: r.player_tag, day: r.day }));
+}
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -454,6 +466,9 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
   await mkBattle("st-b-0", members[1], "win", 1);
   await mkBattle("st-b-1", members[1], "loss", 2);
   await mkBattle("st-b-2", members[1], "loss", 3);
+  // The daily rollup ingest maintains for every written participant
+  // (clans_standings reads it for the whole days of its window).
+  await refreshDailyRollups(db, await rollupPairs(db, "st-%"));
 
   const { body, isError } = await call(invoke, "clans_standings", {
     days: 7,

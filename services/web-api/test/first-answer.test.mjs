@@ -1,4 +1,5 @@
 import { test, before, after } from "node:test";
+import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
@@ -118,6 +119,16 @@ test("first-answer follows actual capture and distinguishes authorization from n
       [id, tag, days, deck],
     );
   }
+  // The daily rollup ingest maintains for every written participant;
+  // the first answer's counters read it for whole days.
+  const { rows: pairs } = await db.query(
+    `select distinct player_tag, to_char(battle_time, 'YYYY-MM-DD') as day
+     from battle_participant where battle_id in ('recent', 'second', 'previous', 'old', 'foreign')`,
+  );
+  await refreshDailyRollups(
+    db,
+    pairs.map((r) => ({ playerTag: r.player_tag, day: r.day })),
+  );
   await db.query(
     "insert into oauth_client (client_id, client_name, redirect_uris, expires_at) values ('first-answer', 'Test', '[]', now() + interval '1 day')",
   );
@@ -175,6 +186,12 @@ test("first-answer follows actual capture and distinguishes authorization from n
   );
   await db.query(
     "delete from battle_participant where player_tag = '#2PP0V90Y' and battle_id <> 'old'",
+  );
+  // Battles are the truth and the rollup is derived: whatever removes
+  // rows refreshes their days (here, the test).
+  await refreshDailyRollups(
+    db,
+    pairs.map((r) => ({ playerTag: r.player_tag, day: r.day })),
   );
   data = JSON.parse((await read()).body);
   assert.equal(data.player.profile_available, false);
