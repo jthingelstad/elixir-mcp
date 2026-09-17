@@ -72,8 +72,8 @@ async function seed({ id, evo, day }) {
   });
   await scratch.db.query(
     `insert into battle_participant
-       (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash)
-     values ($1,$2,0,'win',$3::timestamptz,3,$4)`,
+       (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class)
+     values ($1,$2,0,'win',$3::timestamptz,3,$4,'PvP','pvp')`,
     [id, TAG, at, hashFor(evo)],
   );
   const hash = await seedPlayedDeck(scratch.db, {

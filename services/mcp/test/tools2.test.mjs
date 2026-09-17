@@ -580,9 +580,9 @@ test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS 
      on conflict do nothing`,
   );
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome)
-     values ('khaos-1', $1, now() - interval '2 days', 0, 'win'),
-            ('khaos-2', $1, now() - interval '1 day', 0, 'loss')
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class)
+     values ('khaos-1', $1, now() - interval '2 days', 0, 'win', 'PvP', 'pvp'),
+            ('khaos-2', $1, now() - interval '1 day', 0, 'loss', 'PvP', 'pvp')
      on conflict do nothing`,
     [OBSERVER],
   );
@@ -1119,7 +1119,7 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
     // and the card rows after it.
     await seedDeck(db, { cards });
     await db.query(
-      "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash) values ($1,$2,now(),0,$3,$4)",
+      "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,type,type_class) values ($1,$2,now(),0,$3,$4,'PvP','pvp')",
       [id, tag, outcome, hashFor(cards)],
     );
     await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
@@ -1179,7 +1179,7 @@ test("card meta does not dilute usage with empty card arrays", async () => {
   );
   // An empty cards list has no identity (0093): no deck_hash, no rows.
   await db.query(
-    "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash) values ('meta-empty',$1,now(),0,'win',null)",
+    "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,type,type_class) values ('meta-empty',$1,now(),0,'win',null,'PvP','pvp')",
     [tag],
   );
   const result = await call("battles_meta_cards", {

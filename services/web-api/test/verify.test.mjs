@@ -90,9 +90,9 @@ async function playBattle(tag, ids, at = new Date(), outcome = "win") {
   const cards = ids.map((id) => ({ id, level: 14 }));
   await seedDeck(db, { battle_time: at, cards });
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, crowns, deck_hash, outcome, battle_time)
-     values ($1, $2, 0, $5, $3, $4, $6),
-            ($1, $7, 1, $8, null, $9, $6)`,
+    `insert into battle_participant (battle_id, player_tag, side, crowns, deck_hash, outcome, battle_time, type, type_class)
+     values ($1, $2, 0, $5, $3, $4, $6, 'pathOfLegend', 'pvp'),
+            ($1, $7, 1, $8, null, $9, $6, 'pathOfLegend', 'pvp')`,
     [
       battleId,
       tag,

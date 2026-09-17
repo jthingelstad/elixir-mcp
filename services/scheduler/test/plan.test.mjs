@@ -4,10 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import {
-  settledPolMonths,
-  seasonIdForMonth,
-} from "../../ingest/src/war-clock.mjs";
+import { settledPolMonths } from "../../ingest/src/war-clock.mjs";
 import {
   planTick,
   CADENCE,
@@ -119,10 +116,10 @@ beforeEach(async () => {
   await db.query("delete from ranking_snapshot where board = 'pol_final'");
   const settled = settledPolMonths(NOW.getTime());
   await db.query(
-    `insert into ranking_snapshot (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries)
-     select 'pol_final', 'global', s, m, now(), now(), 'held-' || m, 9999
-     from unnest($1::text[], $2::text[]) as t(m, s)`,
-    [settled, settled.map((m) => String(seasonIdForMonth(m)))],
+    `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
+     select 'pol_final', 'global', m, now(), now(), 'held-' || m, 9999
+     from unnest($1::text[]) as t(m)`,
+    [settled],
   );
 });
 
@@ -660,9 +657,9 @@ test("a season's final board is fetched once: due while we do not hold it, never
 
   // Once the snapshot exists the row is no longer eligible, however stale.
   await db.query(
-    `insert into ranking_snapshot (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries)
-     values ('pol_final', 'global', $1, $2, now(), now(), 'held', 9999)`,
-    [String(seasonIdForMonth(ended)), ended],
+    `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
+     values ('pol_final', 'global', $1, now(), now(), 'held', 9999)`,
+    [ended],
   );
   await setState(ended, "rankings_pol_season", {
     admitted: min(10_000),

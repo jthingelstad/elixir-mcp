@@ -35,8 +35,8 @@ async function battle({ id, type, typeClass, outcome, crowns, day = 2 }) {
     [id, type, typeClass, at],
   );
   await scratch.db.query(
-    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,crowns)
-     values ($1,$2,0,$3,$5::timestamptz,$4)`,
+    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,crowns,type,type_class)
+     values ($1,$2,0,$3,$5::timestamptz,$4,'PvP','pvp')`,
     [id, TAG, outcome, crowns, at],
   );
 }
@@ -242,8 +242,8 @@ test("a perfect ratio over two days does not read as a captured week", async () 
       [id, offset],
     );
     await scratch.db.query(
-      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time)
-       select battle_id,$1,0,'win',battle_time from battle where battle_id=$2`,
+      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,type,type_class)
+       select battle_id,$1,0,'win',battle_time,type,type_class from battle where battle_id=$2`,
       [tag, id],
     );
   };

@@ -148,7 +148,8 @@ test("stampBurst: max battles in any 6h window over 14 days, as a per-hour rate"
       [id, t],
     );
     await ctx.db.query(
-      `insert into battle_participant (battle_id, player_tag, side, battle_time) values ($1, $2, 0, $3)`,
+      `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class)
+       values ($1, $2, 0, $3, 'PvP', 'pvp')`,
       [id, tag, t],
     );
   }
@@ -885,12 +886,10 @@ test("a season's final is filed under the game clock's season, with the API's mo
     "the same final, confirmed not twinned",
   );
   const { rows } = await ctx.db.query(
-    `select season_id, season_month, entries from ranking_snapshot
+    `select season_month, entries from ranking_snapshot
      where board = 'pol_final' and season_month = '2026-08'`,
   );
-  assert.deepEqual(rows, [
-    { season_id: "135", season_month: "2026-08", entries: 1 },
-  ]);
+  assert.deepEqual(rows, [{ season_month: "2026-08", entries: 1 }]);
   // The Pass's own "Season 87" is no season the API knows.
   const r3 = await processResult(
     ctx.db,

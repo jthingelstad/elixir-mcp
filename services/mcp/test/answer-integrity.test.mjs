@@ -35,9 +35,9 @@ before(async () => {
     select 'integrity-'||n,'2026-09-01'::timestamptz+n*interval '1 minute','PvP','pvp','Ladder'
     from generate_series(1,3000) n`);
   await scratch.db.query(
-    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time)
+    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,type,type_class)
     select 'integrity-'||n,$1,0,case when n<=1000 then 'loss' else 'win' end,
-      '2026-09-01'::timestamptz+n*interval '1 minute'
+      '2026-09-01'::timestamptz+n*interval '1 minute','PvP','pvp'
     from generate_series(1,3000) n`,
     [TAG],
   );
@@ -121,8 +121,8 @@ test("coverage uses matching observation intervals and updates when late battles
       [start, end],
     );
     await scratch.db.query(
-      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time)
-      select battle_id,$1,0,'win',battle_time from battle where battle_id like 'coverage-%'
+      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,type,type_class)
+      select battle_id,$1,0,'win',battle_time,type,type_class from battle where battle_id like 'coverage-%'
       on conflict do nothing`,
       [tag],
     );

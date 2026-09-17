@@ -233,7 +233,7 @@ test("limited deck meta renders the identity from deck_card and the catalog, nev
     const supportCards = [{ id: 159000000, name: "Tower Princess" }];
     await seedDeck(db, { battle_time: at, cards, supportCards });
     await db.query(
-      "insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_hash) values ($1,$2,$3,0,'win',$4)",
+      "insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_hash, type, type_class) values ($1,$2,$3,0,'win',$4,'PvP','pvp')",
       [id, tag, at, hashFor(cards, supportCards[0].id)],
     );
     await seedPlayedDeck(db, {

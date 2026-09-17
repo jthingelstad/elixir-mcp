@@ -95,15 +95,7 @@ function contentHash(entries) {
  */
 export async function projectRankingBoard(
   db,
-  {
-    board,
-    entityKey,
-    receiptId,
-    payload,
-    fetchedAt,
-    seasonId = null,
-    seasonMonth = null,
-  },
+  { board, entityKey, receiptId, payload, fetchedAt, seasonMonth = null },
 ) {
   const entries = entriesOf(payload);
   const observedAt = new Date(fetchedAt);
@@ -112,10 +104,8 @@ export async function projectRankingBoard(
   // from the entity key (the API's month) and passes both spellings.
   const locationKey =
     board === "pol_final" ? "global" : String(entityKey ?? "").toLowerCase();
-  const season =
-    seasonId ?? String(seasonFromDate(observedAt.getTime()).seasonId);
-  // The season's key is the API's month (0109); the ordinal rides along
-  // until 0115 drops it.
+  // The season's key is the API's month (0109); the ordinal the game
+  // clock counts is derived from it wherever a reader wants it.
   const month =
     seasonMonth ?? monthKey(seasonFromDate(observedAt.getTime()).seasonStartMs);
 
@@ -174,19 +164,18 @@ export async function projectRankingBoard(
   } else if (entries.length > 0) {
     const { rows } = await db.query(
       `insert into ranking_snapshot
-         (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
-       values ($1, $2, $3, $9, $4, $4, $5, $6, $7, $8)
+         (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
+       values ($1, $2, $3, $4, $4, $5, $6, $7, $8)
        returning snapshot_id`,
       [
         board,
         locationKey,
-        season,
+        month,
         observedAt,
         hash,
         entries.length,
         truncated,
         receiptId ?? null,
-        month,
       ],
     );
     snapshotId = rows[0].snapshot_id;
@@ -217,10 +206,10 @@ export async function projectRankingBoard(
     );
     const { rows: fresh } = await db.query(
       `insert into ranking_presence
-         (player_tag, board, location_key, season_id, season_month, first_seen_at, last_seen_at, first_rank, best_rank, sticky_until)
-       select t.tag, $1, $2, $3, $8, $4, $4, t.rank, t.rank, $5
+         (player_tag, board, location_key, season_month, first_seen_at, last_seen_at, first_rank, best_rank, sticky_until)
+       select t.tag, $1, $2, $3, $4, $4, t.rank, t.rank, $5
        from unnest($6::text[], $7::int[]) as t(tag, rank)
-       on conflict (player_tag, board, location_key, season_id) do update set
+       on conflict (player_tag, board, location_key, season_month) do update set
          last_seen_at = excluded.last_seen_at,
          best_rank = least(ranking_presence.best_rank, excluded.best_rank),
          sticky_until = greatest(ranking_presence.sticky_until, excluded.sticky_until)
@@ -228,12 +217,11 @@ export async function projectRankingBoard(
       [
         board,
         locationKey,
-        season,
+        month,
         observedAt,
         stickyUntil,
         top.map((e) => e.tag),
         top.map((e) => e.rank),
-        month,
       ],
     );
     for (const r of fresh) {
@@ -364,18 +352,17 @@ export async function projectClanBoard(
     };
   const { rows } = await db.query(
     `insert into ranking_snapshot
-       (board, location_key, season_id, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
-     values ($1, $2, $3, $9, $4, $4, $5, $6, $7, $8) returning snapshot_id`,
+       (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
+     values ($1, $2, $3, $4, $4, $5, $6, $7, $8) returning snapshot_id`,
     [
       board,
       locationKey,
-      String(seasonFromDate(observedAt.getTime()).seasonId),
+      monthKey(seasonFromDate(observedAt.getTime()).seasonStartMs),
       observedAt,
       hash,
       entries.length,
       truncated,
       receiptId ?? null,
-      monthKey(seasonFromDate(observedAt.getTime()).seasonStartMs),
     ],
   );
   await db.query(

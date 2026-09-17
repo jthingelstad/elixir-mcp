@@ -13,7 +13,7 @@
  */
 
 import { gunzipSync } from "node:zlib";
-import { polSeasonMonth, seasonIdForMonth } from "./war-clock.mjs";
+import { polSeasonMonth } from "./war-clock.mjs";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
 import { admit } from "./admission.mjs";
@@ -423,7 +423,6 @@ const PROJECTORS = {
       receiptId,
       payload,
       fetchedAt,
-      seasonId: String(seasonIdForMonth(seasonMonth)),
       seasonMonth,
     });
   },

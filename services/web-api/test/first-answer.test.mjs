@@ -114,7 +114,7 @@ test("first-answer follows actual capture and distinguishes authorization from n
       [id, days],
     );
     await db.query(
-      "insert into battle_participant (battle_id, player_tag, side, battle_time, deck_hash) values ($1, $2, 0, now() - $3 * interval '1 day', $4)",
+      "insert into battle_participant (battle_id, player_tag, side, battle_time, deck_hash, type, type_class) values ($1, $2, 0, now() - $3 * interval '1 day', $4, 'PvP', 'pvp')",
       [id, tag, days, deck],
     );
   }

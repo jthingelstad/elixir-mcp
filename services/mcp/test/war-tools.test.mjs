@@ -442,8 +442,8 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
       [id, i],
     );
     await db.query(
-      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change)
-       values ($1, $2, now() - make_interval(hours => $3), 0, $4, $5)
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, type, type_class)
+       values ($1, $2, now() - make_interval(hours => $3), 0, $4, $5, 'PvP', 'pvp')
        on conflict do nothing`,
       [id, tag, i, outcome, outcome === "win" ? 30 : -30],
     );
@@ -556,9 +556,9 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
         [otag(j, i)],
       );
       await db.query(
-        `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_avg_level)
-         values ($1, $2, now() - make_interval(hours => $3), 0, $4, 14.0),
-                ($1, $5, now() - make_interval(hours => $3), 1, $6, 14.0)
+        `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_avg_level, type, type_class)
+         values ($1, $2, now() - make_interval(hours => $3), 0, $4, 14.0, 'PvP', 'pvp'),
+                ($1, $5, now() - make_interval(hours => $3), 1, $6, 14.0, 'PvP', 'pvp')
          on conflict do nothing`,
         [
           id,
@@ -990,7 +990,7 @@ test("Pilot population excludes partial multiplayer and same-side observations",
     );
     for (const [i, side] of sides.entries()) {
       await db.query(
-        "insert into battle_participant (battle_id,player_tag,side,outcome,deck_avg_level) values ($1,$2,$3,$4,$5)",
+        "insert into battle_participant (battle_id,player_tag,side,outcome,deck_avg_level,battle_time,type,type_class) values ($1,$2,$3,$4,$5,now(),'PvP','pvp')",
         [id, tags[i], side, i ? "loss" : "win", i === 2 ? null : 14],
       );
     }

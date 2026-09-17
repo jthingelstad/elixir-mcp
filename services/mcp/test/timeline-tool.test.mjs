@@ -451,8 +451,8 @@ test("3.9.0: a member's session is a clan standout once per rung, named, at the 
       [`so-${i}`, at, createdAt],
     );
     await ctx.db.query(
-      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, clan_tag)
-       values ($1, $2, $3, 0, 'win', 30, $4)`,
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, clan_tag, type, type_class)
+       values ($1, $2, $3, 0, 'win', 30, $4, 'PvP', 'pvp')`,
       [`so-${i}`, member.player_tag, at, CLAN],
     );
   };

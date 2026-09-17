@@ -42,8 +42,8 @@ async function battle(id, at, tag = PLAYER, outcome = "win") {
     [id, at],
   );
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome)
-     values ($1, $2, 0, $3, $5), ($1, $4, 1, $3, $6) on conflict do nothing`,
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class)
+     values ($1, $2, 0, $3, $5, 'PvP', 'pvp'), ($1, $4, 1, $3, $6, 'PvP', 'pvp') on conflict do nothing`,
     [id, tag, at, OPP, outcome, flip(outcome)],
   );
 }
