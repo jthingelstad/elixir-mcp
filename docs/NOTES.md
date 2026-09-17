@@ -2737,3 +2737,53 @@ index, by `pg_stat_user_indexes`; the arena seed + FKs (snapshots and
 now the event columns), `api_receipt.job_id` FK `on delete set null`,
 `poll_state.subject_tag` -> `subject_key`. Needs Jamie's go and the
 week; nothing manual.
+
+## 2026-09-17 — Schema review follow-up: five code-only items after Phases A-E (contract 3.11.1)
+
+One deploy (`b9c2a7b`), no migration, no field added or removed; the
+patch bump because the output-schema change moves the tools fingerprint
+in serverInfo.version.
+
+1. **Output schemas allow the nulls 0123 introduced.** players_profile's
+   schema declares snapshot.path_of_legend ({current, best}, each a
+   nullable {leagueNumber, trophies, rank}), league_statistics (nullable
+   currentSeason / previousSeason / bestSeason) and lifetime (seven
+   nullable integers). No other output schema serves a snapshot object.
+   A test renders a row with every typed column null, then a partial
+   one, through the registry's validation.
+2. **Window predicates on the participant.** battles_query, battles_cards,
+   battles_decks, battles_compare, both paths of battles_performance and
+   battles_opponents now filter bp.battle_time, the column every
+   covering index is on; a test pins the count against the old
+   b.battle_time predicate over the fixture corpus after restoring the
+   0-drift invariant the hand seeds broke. Baseline (24 h to 16:1xZ,
+   before the deploy): battles_performance avg_db_ms 612 (25 calls),
+   battles_query 695 (14), battles_decks 218 (3), battles_cards 120 (2),
+   battles_opponents 128 (1). audit_census now reports avg_db_ms; the
+   after is tomorrow's same read.
+3. **war_period_anchor is diagnostics.** war_current and the clan
+   timeline take the open period from war_period by time range
+   (mcp/war-period.mjs) and read the anchor only for started_observed_at
+   / observed_offset_minutes, only when it names that period (an hour
+   of early drift allowed). A stale or missing anchor no longer blanks
+   the day; nominal_period_elapsed is always false; decks_today_reason
+   is period_unknown or training_day (war_day_over cannot occur); the
+   elapsed-period completeness note is gone; anchoredPeriod retired from
+   war-clock.mjs. Live: period_index 10, war day 1, started_observed_at
+   10:22:51Z beside period_start_nominal 10:00Z, offset 23 min - the
+   same numbers as before, from the calendar. The war_current tests
+   follow the calendar's day (both branches are pinned through the clan
+   entry at fixed instants).
+4. **WarBattleUnresolved.** The hourly meta rollup counts war-typed
+   battles in the last seven days outside every war_period row (the
+   probe's UNRESOLVED bucket; ~3 s in the run) and emits
+   ElixirMCP/Record WarBattleUnresolved; elixir-mcp-war-battle-unresolved
+   fires at 1, routed to elixir-mcp-alarms. First run: 0.
+5. **Watch item for Phase F.** deck_meta_season at 16:0xZ: 374,572 live
+   rows (the running season's 'all' + per-mode rows plus nine final
+   seasons), 2,244 dead, 149.5 MB, 729,980 inserted / 177,737 deleted
+   since 0121; last autovacuum 14:01Z. The nightly rewrite deletes and
+   reinserts the running season's ~178k rows; if dead rows or size
+   climb over the week, the per-key incremental shape is the fix.
+
+Nothing new for cr-agent-api-docs.
