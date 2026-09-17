@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import {
   seasonCalendar,
+  warPeriods,
   ensureSeason,
   ensureSeasonsAround,
   seasonAt,
@@ -61,6 +62,59 @@ test("0104's seed is the calendar war-clock.mjs computes, row for row", async ()
   assert.equal(s134.sections, 4);
 });
 
+test("0105's period seed is warPeriods() row for row, and ensureSeason writes both", async () => {
+  const { rows } = await ctx.db.query(
+    `select war_season_id, period_index, section_index, day_in_section, kind, war_day, starts_at, ends_at
+     from war_period order by war_season_id, period_index`,
+  );
+  assert.equal(
+    rows.length,
+    6 * 28 + 3 * 35,
+    "2026-02..10: six four-week, three five-week",
+  );
+  const { rows: seasons } = await ctx.db.query(
+    `select season_month from season order by 1`,
+  );
+  const expected = seasons.flatMap((s) =>
+    warPeriods(seasonCalendar(s.season_month)),
+  );
+  assert.equal(rows.length, expected.length);
+  for (let i = 0; i < rows.length; i += 1) {
+    assert.deepEqual(
+      {
+        ...rows[i],
+        starts_at: rows[i].starts_at.toISOString(),
+        ends_at: rows[i].ends_at.toISOString(),
+      },
+      {
+        ...expected[i],
+        starts_at: expected[i].starts_at.toISOString(),
+        ends_at: expected[i].ends_at.toISOString(),
+      },
+      `period ${i}`,
+    );
+  }
+  // S135's last section is colosseum on its war days, training on its
+  // practice days; day rows are 24 hours on the grid, DST or not.
+  const s135 = rows.filter((r) => r.war_season_id === 135);
+  assert.equal(s135.length, 35);
+  assert.deepEqual(
+    s135.slice(28).map((r) => r.kind),
+    [
+      "training",
+      "training",
+      "training",
+      "colosseum",
+      "colosseum",
+      "colosseum",
+      "colosseum",
+    ],
+  );
+  assert.equal(s135[34].ends_at.toISOString(), "2026-09-07T10:00:00.000Z");
+  const s130 = rows.filter((r) => r.war_season_id === 130); // spans the March DST change
+  assert.equal(s130.at(-1).ends_at.toISOString(), "2026-04-06T10:00:00.000Z");
+});
+
 test("ensureSeasonsAround writes the running and next season, idempotently", async () => {
   const at = Date.UTC(2027, 2, 20); // 2027-03-20: no seeded row
   const current = await ensureSeasonsAround(ctx.db, at);
@@ -72,6 +126,13 @@ test("ensureSeasonsAround writes the running and next season, idempotently", asy
     { season_month: "2027-03", war_season_id: 142 },
     { season_month: "2027-04", war_season_id: 143 },
   ]);
+  const { rows: periods } = await ctx.db.query(
+    `select war_season_id, count(*)::int as n, min(starts_at) as s, max(ends_at) as e
+     from war_period where war_season_id in (142, 143) group by 1 order by 1`,
+  );
+  assert.equal(periods.length, 2, "the periods came with the season");
+  assert.equal(periods[0].s.toISOString(), "2027-03-01T10:00:00.000Z");
+  assert.equal(periods[0].e.toISOString(), periods[1].s.toISOString());
   await ensureSeasonsAround(ctx.db, at);
   const { rows: again } = await ctx.db.query(
     `select count(*)::int as n from season where season_month >= '2027-03'`,
@@ -166,6 +227,21 @@ test("the real riverracelog verifies three seasons and stamps each once", async 
       ["2026-05", 132, "2026-06-01T09:45:05.000Z"],
       ["2026-06", 133, "2026-07-06T09:37:03.000Z"],
       ["2026-07", 134, "2026-08-03T09:30:05.000Z"],
+    ],
+  );
+  // closed_at (0105) is the entry's own createdDate, exact, per week.
+  const { rows: closed } = await ctx.db.query(
+    `select season_id, section_index, closed_at from war_week
+     where clan_tag = $1 and season_id = 134 order by section_index`,
+    [CLAN],
+  );
+  assert.deepEqual(
+    closed.map((r) => [r.section_index, r.closed_at.toISOString()]),
+    [
+      [0, "2026-07-13T09:30:06.000Z"],
+      [1, "2026-07-20T09:30:05.000Z"],
+      [2, "2026-07-27T09:30:05.000Z"],
+      [3, "2026-08-03T09:30:05.000Z"],
     ],
   );
   // Verified once: a later log with the same seasons moves nothing.

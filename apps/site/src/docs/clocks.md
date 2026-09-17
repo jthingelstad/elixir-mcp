@@ -67,6 +67,17 @@ The vocabulary, from smallest to largest:
 | season | first Monday of the month to first Monday of the next, resetting at 10:00 UTC; the weeks are the Mondays between |
 | Colosseum | always the season's final section, scored differently in the game; its practice days still report as training |
 
+The record holds that grid as rows, one per policy day of every season,
+and **a war battle is filed by where its `battle_time` falls on it**, for
+the clan the player was in when it was played. The API stamps nothing on a
+war battle beyond its type and time, so the record stamps nothing either:
+attendance in `war_current`, `war_days` in `war_history` and the per-day
+columns of `clans_participation` all count every recorded war battle
+this way, however long after the fact it was recorded. The one thing that
+is a clan's own is the instant its race actually closed, which sits inside
+the half hour before 10:00 UTC and differs per race; a battle played in
+that gap belongs to the new day in the game and to the old day on the grid.
+
 `game_clock` answers all of this for nobody in particular (pass `at` to learn
 what day a recorded battle fell on) and is the right first call when a
 question begins "today" or "this week". `war_current` is what a specific clan

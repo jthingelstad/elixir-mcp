@@ -413,12 +413,16 @@ export async function probe(databaseUrl) {
        full join harvests v using (h)
        order by h`,
     );
-    // War-stamp census: unstamped war battles can silently starve every
-    // reader that joins on war keys (attendance union, week focus).
+    // War calendar census (0105): the week's war battles by the day
+    // their battle_time falls on; UNRESOLVED means a war battle outside
+    // every war_period row, which the seed and the scheduler make
+    // impossible and which would starve the war readers if it happened.
     const { rows: stamps } = await db.query(
-      `select coalesce(b.season_id::text, 'UNSTAMPED') as season,
-              b.section_index, b.war_day, count(*)::int as battles
+      `select coalesce(p.war_season_id::text, 'UNRESOLVED') as season,
+              p.section_index, p.war_day, count(*)::int as battles
        from battle b
+       left join war_period p
+         on b.battle_time >= p.starts_at and b.battle_time < p.ends_at
        where (b.type like 'riverRace%' or b.type = 'boatBattle')
          and b.battle_time > now() - interval '7 days'
        group by 1, 2, 3 order by 1, 2, 3`,
@@ -500,7 +504,7 @@ export async function probe(databaseUrl) {
     );
     return {
       hours: rows,
-      war_stamps_7d: stamps,
+      war_calendar_7d: stamps,
       level_census: { window: "24h", ...levels[0] },
       rival_census: rivals[0],
       ledger_census: feed,

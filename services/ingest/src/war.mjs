@@ -18,7 +18,7 @@
 
 import { emitEvent } from "./events.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { warClock, resolveWarKeys } from "./war-clock.mjs";
+import { warClock } from "./war-clock.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
 import { verifyWarSeason } from "./season.mjs";
 
@@ -413,14 +413,19 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
       [tag, item.seasonId, item.sectionIndex],
     );
     const newlyFinished = !prior[0]?.finished_observed_at;
+    // closed_at (0105) is the API's own stamp for the race close, exact;
+    // finished_observed_at stays as the polling-latency bound it always
+    // was. Fill-once, like the rest of the row.
     await db.query(
-      `insert into war_week (clan_tag, season_id, section_index, is_colosseum, finished_observed_at)
-       values ($1, $2, $3, $4, $5)
+      `insert into war_week (clan_tag, season_id, section_index, is_colosseum, finished_observed_at, closed_at)
+       values ($1, $2, $3, $4, $5, $5)
        on conflict (clan_tag, season_id, section_index) do update set
          is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
-         finished_observed_at = coalesce(war_week.finished_observed_at, excluded.finished_observed_at)
+         finished_observed_at = coalesce(war_week.finished_observed_at, excluded.finished_observed_at),
+         closed_at = coalesce(war_week.closed_at, excluded.closed_at)
        where (not war_week.is_colosseum and excluded.is_colosseum)
-          or (war_week.finished_observed_at is null and excluded.finished_observed_at is not null)`,
+          or (war_week.finished_observed_at is null and excluded.finished_observed_at is not null)
+          or (war_week.closed_at is null and excluded.closed_at is not null)`,
       [tag, item.seasonId, item.sectionIndex, isColosseum, finished],
     );
     if (newlyFinished) facts += 1;
@@ -522,46 +527,4 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
     facts,
     ...(seasonMismatches.length ? { season_mismatches: seasonMismatches } : {}),
   };
-}
-
-/**
- * Stamp war keys onto freshly ingested war battles for an observer's clan,
- * from each battle's OWN time against the clan clock. COALESCE-fill only.
- */
-export async function stampWarKeys(db, { clanTag, payload, nowMs }) {
-  const tag = normalizeTag(clanTag);
-  const clock = await clanClock(db, tag, payload, nowMs);
-  if (clock.seasonId === null) return { stamped: 0 };
-  const { rows } = await db.query(
-    `select b.battle_id, b.battle_time from battle b
-     join battle_participant bp on bp.battle_id = b.battle_id
-     where (b.type like 'riverRace%' or b.type = 'boatBattle')
-       and b.season_id is null
-       and bp.clan_tag = $1
-       and b.battle_time > $2::timestamptz - interval '14 days'`,
-    [tag, new Date(nowMs ?? Date.now())],
-  );
-  // The 14-day bound is semantic, not just fast: the live clock can only
-  // resolve recent periods (cross-section = honest nulls, §4.4), so
-  // older unstamped battles — e.g. archive imports beyond the log's
-  // reach — can never stamp here and would be re-probed forever. It is
-  // measured from the CALLER's clock, the same one the clan clock reads:
-  // measured from the database's now() it drifted away from the fixture
-  // clock in the tests, and the war-key suite went red on 2026-09-13,
-  // exactly fourteen days after the fixture's battles, with no code change.
-  let stamped = 0;
-  for (const b of rows) {
-    const keys = resolveWarKeys(b.battle_time.getTime(), clock);
-    if (keys.sectionIndex === null) continue;
-    await db.query(
-      `update battle set
-         season_id = coalesce(season_id, $2),
-         section_index = coalesce(section_index, $3),
-         war_day = coalesce(war_day, $4)
-       where battle_id = $1`,
-      [b.battle_id, keys.seasonId, keys.sectionIndex, keys.warDay],
-    );
-    stamped += 1;
-  }
-  return { stamped };
 }

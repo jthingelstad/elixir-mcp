@@ -26,6 +26,7 @@
 
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
+import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
 import { collectionLevelStep } from "../../../ingest/src/snapshots.mjs";
 import { summarizePlayer, summarizeClan, itemText } from "./summary.mjs";
 
@@ -951,11 +952,9 @@ export async function buildClanEntry(
              select player_tag, decks_used_today from war_attendance_day
               where clan_tag = $1 and season_id = $2 and section_index = $3 and war_day = $4),
            fought as (
-             select bp.player_tag, count(distinct b.battle_id)::int as n
-               from battle b join battle_participant bp on bp.battle_id = b.battle_id
-              where bp.clan_tag = $1 and b.season_id = $2 and b.section_index = $3
-                and b.war_day = $4
-              group by bp.player_tag),
+             select wb.player_tag, count(distinct wb.battle_id)::int as n
+               from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", warDay: "$4", types: "$5" })}) wb
+              group by wb.player_tag),
            merged as (
              select base.player_tag,
                     least(greatest(coalesce(att.decks_used_today, 0),
@@ -968,7 +967,13 @@ export async function buildClanEntry(
                   count(*) filter (where d = 4)::int as finished,
                   count(*)::int as participants
              from merged`,
-          [tag, wk[0].season_id, wk[0].section_index, p.info.warDay],
+          [
+            tag,
+            wk[0].season_id,
+            wk[0].section_index,
+            p.info.warDay,
+            WAR_BATTLE_TYPES,
+          ],
         );
         if (decks[0].participants > 0)
           war.decks = { as_of: iso(toMs), ...decks[0] };

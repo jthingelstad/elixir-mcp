@@ -5,6 +5,7 @@ import { gameClock } from "../../../ingest/src/game-clock.mjs";
 
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import { anchoredPeriod } from "../../../ingest/src/war-clock.mjs";
+import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
 import {
   buildMeta,
   ToolFailure,
@@ -330,10 +331,8 @@ export const warTools = {
              from war_attendance_day
              where clan_tag = $1 and season_id = $2 and section_index = $3),
            fought as (
-             select distinct b.war_day, bp.player_tag
-             from battle b join battle_participant bp on bp.battle_id = b.battle_id
-             where bp.clan_tag = $1 and b.season_id = $2 and b.section_index = $3
-               and b.war_day is not null),
+             select distinct wb.war_day, wb.player_tag
+             from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", types: "$4" })}) wb),
            merged as (
              select war_day, player_tag, bool_or(battled) as battled from (
                select war_day, player_tag, battled from att
@@ -345,7 +344,7 @@ export const warTools = {
                   count(*)::int as participants
            from merged
            group by war_day order by war_day`,
-        [clanTag, wk.season_id, wk.section_index],
+        [clanTag, wk.season_id, wk.section_index, WAR_BATTLE_TYPES],
       );
       // Our own boat's finish, if it has one this week: standings carry
       // finish_time per participant, and ours is the one that decides
@@ -375,11 +374,9 @@ export const warTools = {
              select player_tag, decks_used_today from war_attendance_day
              where clan_tag = $1 and season_id = $2 and section_index = $3 and war_day = $4),
            fought as (
-             select bp.player_tag, count(distinct b.battle_id)::int as n
-             from battle b join battle_participant bp on bp.battle_id = b.battle_id
-             where bp.clan_tag = $1 and b.season_id = $2 and b.section_index = $3
-               and b.war_day = $4
-             group by bp.player_tag)
+             select wb.player_tag, count(distinct wb.battle_id)::int as n
+             from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", warDay: "$4", types: "$5" })}) wb
+             group by wb.player_tag)
            select base.player_tag, base.name,
                   least(greatest(coalesce(att.decks_used_today, 0),
                                  coalesce(fought.n, 0)), 4)::int as decks_used,
@@ -389,7 +386,13 @@ export const warTools = {
            left join att on att.player_tag = base.player_tag
            left join fought on fought.player_tag = base.player_tag
            order by decks_used, base.name nulls last`,
-          [clanTag, wk.season_id, wk.section_index, period.war_day],
+          [
+            clanTag,
+            wk.season_id,
+            wk.section_index,
+            period.war_day,
+            WAR_BATTLE_TYPES,
+          ],
         );
         const pick = (lo, hi) =>
           dayRows
@@ -593,8 +596,22 @@ export const warTools = {
       let memberWeeks = null;
       if (focus || hasSeason) {
         // war_days_battled unions TWO observation sources — decksUsedToday
-        // polls AND the member's own recorded war battles. Null when the
-        // week has NO coverage from either source.
+        // polls AND the member's own recorded war battles, the latter
+        // resolved by the calendar (0105). Null when the week has NO
+        // coverage from either source.
+        const weekBattles = warBattlesSql({
+          clan: "wp.clan_tag",
+          season: "wp.season_id",
+          section: "wp.section_index",
+          types: "$6",
+        });
+        const daysBattled = `select ad.war_day from war_attendance_day ad
+                               where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
+                                 and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
+                                 and ad.decks_used_today > 0
+                               union
+                               select wb.war_day from (${weekBattles}) wb
+                               where wb.player_tag = wp.player_tag`;
         const { rows } = await ctx.db.query(
           `select wp.player_tag, p.name, wp.season_id, wp.section_index,
                   wp.points, wp.decks_used, wp.boat_attacks,
@@ -602,35 +619,10 @@ export const warTools = {
                                     where cov.clan_tag = wp.clan_tag
                                       and cov.season_id = wp.season_id
                                       and cov.section_index = wp.section_index)
-                         or exists (select 1 from battle_participant bpc
-                                    join battle bc on bc.battle_id = bpc.battle_id
-                                    where bpc.clan_tag = wp.clan_tag
-                                      and bc.season_id = wp.season_id
-                                      and bc.section_index = wp.section_index
-                                      and bc.war_day is not null)
-                       then (select count(distinct d.war_day)::int from (
-                               select ad.war_day from war_attendance_day ad
-                               where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
-                                 and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
-                                 and ad.decks_used_today > 0
-                               union
-                               select b.war_day from battle_participant bp2
-                               join battle b on b.battle_id = bp2.battle_id
-                               where bp2.player_tag = wp.player_tag and bp2.clan_tag = wp.clan_tag
-                                 and b.season_id = wp.season_id and b.section_index = wp.section_index
-                                 and b.war_day is not null) d)
+                         or exists (select 1 from (${weekBattles}) wbc)
+                       then (select count(distinct d.war_day)::int from (${daysBattled}) d)
                        end as war_days_battled,
-                  (select array_agg(distinct d.war_day order by d.war_day) from (
-                               select ad.war_day from war_attendance_day ad
-                               where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
-                                 and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
-                                 and ad.decks_used_today > 0
-                               union
-                               select b.war_day from battle_participant bp2
-                               join battle b on b.battle_id = bp2.battle_id
-                               where bp2.player_tag = wp.player_tag and bp2.clan_tag = wp.clan_tag
-                                 and b.season_id = wp.season_id and b.section_index = wp.section_index
-                                 and b.war_day is not null) d) as war_days
+                  (select array_agg(distinct d.war_day order by d.war_day) from (${daysBattled}) d) as war_days
            from war_participation wp
            left join player p on p.player_tag = wp.player_tag
            where wp.clan_tag = $1
@@ -642,7 +634,14 @@ export const warTools = {
            order by wp.season_id desc, wp.section_index desc, wp.points desc,
                     p.name nulls last
            ${hasSeason ? "" : "limit 40"}`,
-          [clanTag, focus, seasons, exactSeason, exactSection],
+          [
+            clanTag,
+            focus,
+            seasons,
+            exactSeason,
+            exactSection,
+            WAR_BATTLE_TYPES,
+          ],
         );
         // war_days: the day indices battled, so "played 3 of 4" can become
         // "missed day 2" (feedback item 30, 2026-09-10). Null when unknown.

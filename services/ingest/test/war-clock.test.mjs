@@ -4,7 +4,6 @@ import {
   periodInfo,
   inferSeasonId,
   warClock,
-  resolveWarKeys,
   nominalPeriodStartMs,
   nominalPeriodBoundsMs,
   seasonFromDate,
@@ -113,39 +112,6 @@ test("clock rejects a periodIndex outside its sectionIndex", async () => {
       { nowMs: Date.now() },
     ),
   );
-});
-
-test("war keys come from the battle time, walking whole war-dates back", async () => {
-  const war = await fixture("currentriverrace/war_day.json"); // p27, warDay 4
-  const anchor = Date.parse("2026-08-30T09:40:00Z");
-  const clock = warClock(war, {
-    nowMs: Date.parse("2026-08-30T12:00:00Z"),
-    anchorMs: anchor,
-    logged: { seasonId: 135, sectionIndex: 3 },
-  });
-
-  // In the current period.
-  assert.deepEqual(resolveWarKeys(Date.parse("2026-08-30T11:00:00Z"), clock), {
-    seasonId: 135,
-    sectionIndex: 3,
-    warDay: 4,
-  });
-  // 30h before the anchor -> two war-dates back -> warDay 2.
-  assert.deepEqual(resolveWarKeys(anchor - 30 * 3600_000, clock), {
-    seasonId: 135,
-    sectionIndex: 3,
-    warDay: 2,
-  });
-  // 3.5 days back lands on a training day -> section keys, no war day.
-  const training = resolveWarKeys(anchor - 3.5 * 86400_000, clock);
-  assert.equal(training.sectionIndex, 3);
-  assert.equal(training.warDay, null);
-  // A week back crosses into the previous section -> honest nulls.
-  assert.deepEqual(resolveWarKeys(anchor - 7 * 86400_000, clock), {
-    seasonId: null,
-    sectionIndex: null,
-    warDay: null,
-  });
 });
 
 test("season calendar: stateless derivation matches the riverracelog record", () => {

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-17",
+    title: "Every recorded war battle now counts toward its war day",
+    body: "A war battle's week and day used to be stamped onto the record at ingest, and only when the clan's next race poll happened to follow the battle inside a fortnight, so three quarters of the war battles the record held carried no day at all and were invisible to attendance in war_current, war_days in war_history and the per-day columns of clans_participation; a March-to-July import had brought its own labels, and 3,230 of those contradicted the battle's own time. The war calendar is now rows in the record, one per policy day of every season on the 10:00 UTC grid every clan shares, and a war battle is filed by where its time falls on it for the clan the player was in. Nothing is stamped, nothing depends on which poll came first, and history recorded long after the fact counts the same as history recorded live. No tool changes shape; the numbers those fields carry are corrected.",
+  },
+  {
+    date: "2026-09-17",
     title: "The meta reads by season, and says when a window crosses one",
     body: "The card, deck and synergy meta tools answered a rolling 28 days, which on 17 September was 14% last season and 86% this one with nothing in the response saying so; balance changes land on the season roll, so those are two populations. The record now holds each season as a row, first Monday 10:00 UTC to first Monday 10:00 UTC under the month the API names it by, with the river race season number derived from the month and confirmed against every war log entry it admits. battles_meta_decks, battles_meta_cards and cards_synergy default to the current season to date and take season: 'current', 'previous', '2026-08' or 135; battles_trends takes it too. Every such response says which season the window starts in, lists each season roll it crosses (empty when clean) and how old the season is, and a thin new season points at 'previous' rather than quietly widening. What is deliberately not there: balance changes themselves, and the in-game Pass season, neither of which the API exposes. Contract 3.10.0.",
   },

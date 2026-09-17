@@ -377,15 +377,25 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
       [CLAN, wk.season_id, wk.section_index],
     )
   ).rows[0].player_tag;
-  await db.query(
-    `insert into battle (battle_id, battle_time, type, type_class, season_id, section_index, war_day)
-     values ('r3-war-battle', now(), 'riverRacePvP', 'pvp', $1, $2, 1)`,
+  // Nothing is stamped (0105): the battle's day is where its time falls
+  // on the calendar, so it is placed an hour into the week's war day 1.
+  const {
+    rows: [day1Period],
+  } = await db.query(
+    `select starts_at from war_period
+     where war_season_id = $1 and section_index = $2 and war_day = 1`,
     [wk.season_id, wk.section_index],
   );
+  const at = new Date(day1Period.starts_at.getTime() + 3600_000);
   await db.query(
-    `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag)
-     values ('r3-war-battle', $1, now(), 0, $2)`,
-    [member, CLAN],
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('r3-war-battle', $1, 'riverRacePvP', 'pvp')`,
+    [at],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag, type, type_class)
+     values ('r3-war-battle', $1, $2, 0, $3, 'riverRacePvP', 'pvp')`,
+    [member, at, CLAN],
   );
 
   const war = await call(invoke, "war_current", {});

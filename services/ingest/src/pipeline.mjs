@@ -22,7 +22,7 @@ import { ingestClanRoster } from "./roster.mjs";
 import { projectPlayerBadges, projectPlayerSnapshot } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
-import { projectRiverRace, projectRiverRaceLog, stampWarKeys } from "./war.mjs";
+import { projectRiverRace, projectRiverRaceLog } from "./war.mjs";
 import { projectModeSeasons, seasonMismatchEmf } from "./season.mjs";
 import {
   projectRankingBoard,
@@ -365,24 +365,18 @@ const PROJECTORS = {
       );
     }
     // Split timing: the census showed this projector at seconds and the
-    // first fix (0015) missed — attribute before optimizing again.
+    // first fix (0015) missed — attribute before optimizing again. The
+    // war-key stamper that followed it retired with 0105: a battle's
+    // week and day are its battle_time on the war_period grid.
     const t0 = Date.now();
     const race = await projectRiverRace(db, {
       clanTag: entityKey,
       payload,
       fetchedAt,
     });
-    const t1 = Date.now();
-    const stamps = await stampWarKeys(db, {
-      clanTag: entityKey,
-      payload,
-      nowMs: Date.parse(fetchedAt),
-    });
     return {
       ...race,
-      warKeysStamped: stamps.stamped,
-      phase_race_ms: t1 - t0,
-      phase_stamp_ms: Date.now() - t1,
+      phase_race_ms: Date.now() - t0,
     };
   },
   async riverracelog(db, { entityKey, payload, emitMetrics }) {

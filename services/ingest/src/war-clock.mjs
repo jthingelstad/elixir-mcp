@@ -14,7 +14,8 @@
  *  - period boundaries drift: the observed anchor (when a period was
  *    first seen open) beats the nominal ~10:00 UTC reset hour, and a
  *    stale anchor falls back rather than going negative;
- *  - battles get war keys from their OWN battle_time, never poll time.
+ *  - a war battle's week and day are its OWN battle_time on the
+ *    war_period grid (0105); nothing is stamped from poll time.
  */
 
 const TRAINING_DAYS = 3;
@@ -319,32 +320,6 @@ export function warClock(
     // still say 'training'); the %7 grid decides war-day numbering.
     kind: periodType === "colosseum" ? "colosseum" : info.kind,
     warDay: info.warDay,
-  };
-}
-
-/**
- * War keys for a battle from ITS OWN time: walk whole war-dates back from
- * the observed period start. Battles before the current section's start
- * get null keys (cross-season attribution is not guessed).
- */
-export function resolveWarKeys(battleTimeMs, clock) {
-  const daysBack =
-    battleTimeMs >= clock.periodStartMs
-      ? 0
-      : Math.ceil((clock.periodStartMs - battleTimeMs) / DAY_MS);
-  const battlePeriodIndex = clock.periodIndex - daysBack;
-  if (battlePeriodIndex < 0)
-    return { seasonId: null, sectionIndex: null, warDay: null };
-  const info = periodInfo(battlePeriodIndex);
-  if (info.sectionIndex !== clock.sectionIndex) {
-    // Earlier section (or season): attribution needs the war log, not
-    // arithmetic across reset drift. Honest null.
-    return { seasonId: null, sectionIndex: null, warDay: null };
-  }
-  return {
-    seasonId: clock.seasonId ?? null,
-    sectionIndex: info.sectionIndex,
-    warDay: info.warDay, // null on training days — training battles carry no war day
   };
 }
 

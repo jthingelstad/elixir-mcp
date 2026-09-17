@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { projectRiverRace, stampWarKeys } from "../src/war.mjs";
+import { projectRiverRace } from "../src/war.mjs";
 import { ingestBattlelog } from "../src/battles.mjs";
 import { fixture, scratchDb, seedReceipt } from "./helpers.mjs";
 
@@ -185,7 +185,7 @@ test("period points follow the newest observation across a day reset", async () 
   );
 });
 
-test("war keys stamp onto ingested war battles from their own time", async () => {
+test("war battles resolve to their week and day by battle_time on the calendar (0105)", async () => {
   const receiptId = await seedReceipt(ctx.db);
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
   await ingestBattlelog(ctx.db, {
@@ -193,26 +193,30 @@ test("war keys stamp onto ingested war battles from their own time", async () =>
     receiptId,
     payload: log,
   });
-  // Tie the observer's battles to the clan via their participant clan_tag
-  // (real logs carry it; assert some war battles exist for the clan).
-  const { rows: pre } = await ctx.db.query(
-    `select count(*)::int n from battle b join battle_participant bp on bp.battle_id = b.battle_id
-     where b.type like 'riverRace%' and bp.clan_tag = $1 and b.season_id is null`,
-    [CLAN],
+  // Nothing is stamped: every war battle in the log resolves by range,
+  // war days to a war day and training-day battles to none.
+  const { rows } = await ctx.db.query(
+    `select b.type, p.war_season_id, p.section_index, p.war_day, p.kind,
+            count(*)::int as battles
+     from battle b
+     left join war_period p on b.battle_time >= p.starts_at and b.battle_time < p.ends_at
+     where b.type like 'riverRace%' or b.type = 'boatBattle'
+     group by 1, 2, 3, 4, 5 order by 2, 3, 4, 1`,
   );
-  if (pre[0].n === 0) return; // fixture log may not carry clan-tagged war battles
-  const war = await fixture("currentriverrace/war_day.json");
-  const { stamped } = await stampWarKeys(ctx.db, {
-    clanTag: CLAN,
-    payload: war,
-    nowMs: Date.parse("2026-08-30T09:00:00Z"),
-  });
-  assert.ok(stamped > 0, "keys stamped");
-  const { rows: post } = await ctx.db.query(
-    `select distinct season_id, section_index from battle
-     where type like 'riverRace%' and season_id is not null`,
+  assert.ok(rows.length > 0, "the fixture holds war battles");
+  assert.ok(
+    rows.every((r) => r.war_season_id !== null),
+    "every war battle falls in a period",
   );
-  assert.ok(post.every((r) => r.season_id === 135 && r.section_index === 3));
+  assert.ok(
+    rows.every(
+      (r) => r.war_season_id === 135 && [2, 3, 4].includes(r.section_index),
+    ),
+    JSON.stringify(rows),
+  );
+  assert.ok(
+    rows.every((r) => (r.war_day === null) === (r.kind === "training")),
+  );
 });
 
 test("colosseum week flags and rolls the season when the section walks back", async () => {
@@ -423,28 +427,29 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
   assert.equal(part[0].decks_used, 16, "day-4 decks merged");
 });
 
-test("boat battles stamp war keys too (round-3: the like-pattern missed them)", async () => {
+test("a boat battle resolves like any war battle: its day is its time", async () => {
   await ctx.db.query(
     `insert into battle (battle_id, battle_time, type, type_class)
      values ('r3-boat', '2026-08-30T08:00:00Z', 'boatBattle', 'boat')
      on conflict do nothing`,
   );
   await ctx.db.query(
-    `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag)
-     values ('r3-boat', '#2YG98VVQ', '2026-08-30T08:00:00Z', 0, $1)
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag, type, type_class)
+     values ('r3-boat', '#2YG98VVQ', '2026-08-30T08:00:00Z', 0, $1, 'boatBattle', 'boat')
      on conflict do nothing`,
     [CLAN],
   );
-  const war = await fixture("currentriverrace/war_day.json");
-  await stampWarKeys(ctx.db, {
-    clanTag: CLAN,
-    payload: war,
-    nowMs: Date.parse("2026-08-30T09:00:00Z"),
-  });
+  // 08:00Z on Sunday Aug 30 is before the 10:00Z roll: war day 3 of
+  // section 3, not day 4 (period 26, not 27).
   const { rows } = await ctx.db.query(
-    `select season_id, section_index from battle where battle_id = 'r3-boat'`,
+    `select p.war_season_id, p.section_index, p.war_day, p.period_index
+     from battle_participant bp
+     join war_period p on bp.battle_time >= p.starts_at and bp.battle_time < p.ends_at
+     where bp.battle_id = 'r3-boat'`,
   );
-  assert.equal(rows[0].season_id, 135, "boat battle stamped");
+  assert.deepEqual(rows, [
+    { war_season_id: 135, section_index: 3, war_day: 3, period_index: 26 },
+  ]);
 });
 
 test("riverrace deck deltas raise battlelog yield (raise-only, replay-guarded)", async () => {

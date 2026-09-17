@@ -18,7 +18,12 @@
  *    speaks). Nothing here guesses: an unknown key is null.
  */
 
-import { monthKey, seasonFromDate, seasonIdForMonth } from "./war-clock.mjs";
+import {
+  monthKey,
+  periodInfo,
+  seasonFromDate,
+  seasonIdForMonth,
+} from "./war-clock.mjs";
 
 const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
@@ -46,11 +51,36 @@ export function seasonCalendar(month) {
   };
 }
 
-/** Write the calendar row for a month if it is missing. Pure calendar,
- *  so two writers (scheduler, projector) can never disagree. */
+/** The periods of a season on the policy grid (0105): one row a day,
+ *  three training then four war days a section, the last section
+ *  colosseum. Pure, so the SQL seed and this agree by test. */
+export function warPeriods(calendar) {
+  const out = [];
+  for (let i = 0; i < calendar.sections * 7; i += 1) {
+    const info = periodInfo(i);
+    out.push({
+      war_season_id: calendar.war_season_id,
+      period_index: i,
+      section_index: info.sectionIndex,
+      day_in_section: info.dayInSection,
+      kind:
+        info.kind === "war" && info.sectionIndex === calendar.colosseum_section
+          ? "colosseum"
+          : info.kind,
+      war_day: info.warDay,
+      starts_at: new Date(calendar.starts_at.getTime() + i * DAY_MS),
+      ends_at: new Date(calendar.starts_at.getTime() + (i + 1) * DAY_MS),
+    });
+  }
+  return out;
+}
+
+/** Write the calendar rows for a month if they are missing: the season
+ *  and its periods. Pure calendar, so two writers (scheduler,
+ *  projector) can never disagree. */
 export async function ensureSeason(db, month) {
   const row = seasonCalendar(month);
-  await db.query(
+  const { rowCount } = await db.query(
     `insert into season (season_month, war_season_id, starts_at, ends_at, sections, colosseum_section)
      values ($1, $2, $3, $4, $5, $6)
      on conflict (season_month) do nothing`,
@@ -63,6 +93,27 @@ export async function ensureSeason(db, month) {
       row.colosseum_section,
     ],
   );
+  if (rowCount > 0) {
+    const periods = warPeriods(row);
+    await db.query(
+      `insert into war_period
+         (war_season_id, period_index, section_index, day_in_section, kind, war_day, starts_at, ends_at)
+       select $1, i, sec, day, kind, war_day, s, e
+       from unnest($2::int[], $3::int[], $4::int[], $5::text[], $6::int[], $7::timestamptz[], $8::timestamptz[])
+         as p(i, sec, day, kind, war_day, s, e)
+       on conflict do nothing`,
+      [
+        row.war_season_id,
+        periods.map((p) => p.period_index),
+        periods.map((p) => p.section_index),
+        periods.map((p) => p.day_in_section),
+        periods.map((p) => p.kind),
+        periods.map((p) => p.war_day),
+        periods.map((p) => p.starts_at),
+        periods.map((p) => p.ends_at),
+      ],
+    );
+  }
   return row;
 }
 
