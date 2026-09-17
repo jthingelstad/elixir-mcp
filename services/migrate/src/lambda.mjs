@@ -65,6 +65,8 @@ import {
   snapshotDayCensus,
   snapshotRekey,
   seriesStatus,
+  seriesBackfill,
+  seriesCensusSelf,
 } from "./ops-series.mjs";
 
 export async function handler(event) {
@@ -336,6 +338,22 @@ export async function handler(event) {
   }
   if (event?.snapshot_day_census) {
     const result = await snapshotDayCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.series_backfill) {
+    const result = await seriesBackfill(
+      process.env.DATABASE_URL,
+      event.series_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.series_census_self) {
+    const result = await seriesCensusSelf(
+      process.env.DATABASE_URL,
+      event.series_census_self === true ? {} : event.series_census_self,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

@@ -40,7 +40,12 @@ import { gameDay, inPreResetWindow, normalizeTag } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "./war-clock.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
 import { ensureSeason, parseProgressKey } from "./season.mjs";
-import { arenaChangedMoment } from "./snapshots.mjs";
+import {
+  arenaChangedMoment,
+  upsertProfileSnapshot,
+  projectFrozenCounters,
+  projectPolSeason,
+} from "./snapshots.mjs";
 
 const byTag = (a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0);
 const int = (v) => (Number.isInteger(v) ? v : null);
@@ -423,4 +428,44 @@ export async function projectPlayerProgress(
       facts += r.facts;
     }
   return { day, kind, keys: buckets.length, rows, facts };
+}
+
+/**
+ * The series half of the profile projector, for the backfill (review
+ * Part 5): the snapshot row and its kinds, the progress buckets, the
+ * frozen counters, the previous season's final. No baselines, no
+ * moments, no badges, no collection (those the live poll wrote at the
+ * time). The snapshot upsert's guard on profile_observed_at is what
+ * makes a day's LAST receipt win and every earlier one write nothing
+ * against an existing row. Returns facts.
+ */
+export async function projectProfileSeries(
+  db,
+  { playerTag, payload, observedAt },
+) {
+  let facts = await upsertProfileSnapshot(db, {
+    playerTag,
+    payload,
+    fetchedAt: observedAt,
+  });
+  for (const kind of extraKinds(observedAt, { weekly: true }))
+    facts += await upsertProfileSnapshot(db, {
+      playerTag,
+      payload,
+      fetchedAt: observedAt,
+      kind,
+    });
+  const progress = await projectPlayerProgress(db, {
+    playerTag,
+    payload,
+    observedAt,
+  });
+  facts += progress.facts;
+  facts += await projectFrozenCounters(db, { playerTag, payload });
+  facts += await projectPolSeason(db, {
+    playerTag,
+    payload,
+    fetchedAt: observedAt,
+  });
+  return { day: gameDay(observedAt), facts };
 }

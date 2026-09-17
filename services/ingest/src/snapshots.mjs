@@ -137,54 +137,17 @@ export async function projectPlayerBadges(
   return { changed: changed.length };
 }
 
-export async function projectPlayerSnapshot(
+/**
+ * The profile's write on the snapshot row, one kind (the series half;
+ * Phase 2 splits it out so the archive backfill writes exactly what the
+ * live path writes, with no baselines and no moments). Returns the
+ * rows written (0 or 1).
+ */
+export async function upsertProfileSnapshot(
   db,
-  { playerTag, payload, fetchedAt, receiptId = null, kind = "daily" },
+  { playerTag, payload, fetchedAt, kind = "daily" },
 ) {
   const day = gameDay(fetchedAt);
-
-  // Two baselines, both PROFILE observations (rows the profile wrote:
-  // profile_observed_at set; since 2026-09-17 the roster writes rows too,
-  // and a roster-only row carries no wins or league to diff against).
-  // `prev` is the newest such row from an EARLIER day: the day-level
-  // questions (did a counter move since yesterday's snapshot, 0077) are
-  // asked of it. `latest` is the newest profile observation of any day,
-  // today's rewritten row included, and strictly before this poll: the
-  // moments are diffed against it, so a moment is written once, by the
-  // first poll that sees it, and never again by the polls that follow it
-  // the same day.
-  const SNAPSHOT_BASELINE = `select snapshot_date, profile_observed_at as observed_at, donations, battle_count,
-            arena_id, best_trophies, wins, collection_level, pol_league
-     from player_snapshot_daily`;
-  const { rows: prevRows } = await db.query(
-    `${SNAPSHOT_BASELINE}
-     where player_tag = $1 and profile_observed_at is not null
-       and (snapshot_date, snapshot_kind) < ($2::date, $3)
-     order by snapshot_date desc, snapshot_kind desc limit 1`,
-    [playerTag, day, kind],
-  );
-  const prev = prevRows[0];
-  const { rows: latestRows } = await db.query(
-    `${SNAPSHOT_BASELINE}
-     where player_tag = $1 and profile_observed_at < $2::timestamptz
-     order by profile_observed_at desc limit 1`,
-    [playerTag, fetchedAt],
-  );
-  const latest = latestRows[0];
-  // The arena is a SHARED column and the roster writes it at its own
-  // cadence, emitting arena_changed itself (series.mjs): the arena
-  // baseline is the newest observation of either writer, so a move the
-  // roster already wrote is never written twice.
-  if (latest) {
-    const { rows: arenaRows } = await db.query(
-      `select arena_id from player_snapshot_daily
-       where player_tag = $1 and observed_at < $2::timestamptz
-       order by observed_at desc limit 1`,
-      [playerTag, fetchedAt],
-    );
-    if (arenaRows[0]) latest.arena_id = arenaRows[0].arena_id;
-  }
-
   // The typed columns (0123); the objects the contract serves are
   // rendered from them (snapshot-columns.mjs).
   const cols = snapshotColumns(payload);
@@ -332,7 +295,63 @@ export async function projectPlayerSnapshot(
       intOrNull(payload.kingTowerLevel),
     ],
   );
+  return written;
+}
 
+export async function projectPlayerSnapshot(
+  db,
+  { playerTag, payload, fetchedAt, receiptId = null, kind = "daily" },
+) {
+  const day = gameDay(fetchedAt);
+
+  // Two baselines, both PROFILE observations (rows the profile wrote:
+  // profile_observed_at set; since 2026-09-17 the roster writes rows too,
+  // and a roster-only row carries no wins or league to diff against).
+  // `prev` is the newest such row from an EARLIER day: the day-level
+  // questions (did a counter move since yesterday's snapshot, 0077) are
+  // asked of it. `latest` is the newest profile observation of any day,
+  // today's rewritten row included, and strictly before this poll: the
+  // moments are diffed against it, so a moment is written once, by the
+  // first poll that sees it, and never again by the polls that follow it
+  // the same day.
+  const SNAPSHOT_BASELINE = `select snapshot_date, profile_observed_at as observed_at, donations, battle_count,
+            arena_id, best_trophies, wins, collection_level, pol_league
+     from player_snapshot_daily`;
+  const { rows: prevRows } = await db.query(
+    `${SNAPSHOT_BASELINE}
+     where player_tag = $1 and profile_observed_at is not null
+       and (snapshot_date, snapshot_kind) < ($2::date, $3)
+     order by snapshot_date desc, snapshot_kind desc limit 1`,
+    [playerTag, day, kind],
+  );
+  const prev = prevRows[0];
+  const { rows: latestRows } = await db.query(
+    `${SNAPSHOT_BASELINE}
+     where player_tag = $1 and profile_observed_at < $2::timestamptz
+     order by profile_observed_at desc limit 1`,
+    [playerTag, fetchedAt],
+  );
+  const latest = latestRows[0];
+  // The arena is a SHARED column and the roster writes it at its own
+  // cadence, emitting arena_changed itself (series.mjs): the arena
+  // baseline is the newest observation of either writer, so a move the
+  // roster already wrote is never written twice.
+  if (latest) {
+    const { rows: arenaRows } = await db.query(
+      `select arena_id from player_snapshot_daily
+       where player_tag = $1 and observed_at < $2::timestamptz
+       order by observed_at desc limit 1`,
+      [playerTag, fetchedAt],
+    );
+    if (arenaRows[0]) latest.arena_id = arenaRows[0].arena_id;
+  }
+
+  const written = await upsertProfileSnapshot(db, {
+    playerTag,
+    payload,
+    fetchedAt,
+    kind,
+  });
   // In a watcher's hour, also pin the extra row: the daily row will be
   // overwritten by later polls the same game day; this one won't.
   if (kind === "daily") {
@@ -399,28 +418,10 @@ export async function projectPlayerSnapshot(
       receiptId,
     });
 
-  // State on the player, written when it differs (review 2.1): the
-  // frozen Clan Wars 1 counters and the retired road's high score are
-  // not a series. Once per player in practice.
-  let frozen = 0;
-  if (kind === "daily") {
-    const { rowCount } = await db.query(
-      `update player set war_day_wins = coalesce($2, war_day_wins),
-              clan_cards_collected = coalesce($3, clan_cards_collected),
-              legacy_trophy_road_high_score = coalesce($4, legacy_trophy_road_high_score)
-       where player_tag = $1
-         and (war_day_wins is distinct from coalesce($2, war_day_wins)
-              or clan_cards_collected is distinct from coalesce($3, clan_cards_collected)
-              or legacy_trophy_road_high_score is distinct from coalesce($4, legacy_trophy_road_high_score))`,
-      [
-        playerTag,
-        intOrNull(payload.warDayWins),
-        intOrNull(payload.clanCardsCollected),
-        intOrNull(payload.legacyTrophyRoadHighScore),
-      ],
-    );
-    frozen = rowCount;
-  }
+  const frozen =
+    kind === "daily"
+      ? await projectFrozenCounters(db, { playerTag, payload })
+      : 0;
   const polSeason =
     kind === "daily"
       ? await projectPolSeason(db, { playerTag, payload, fetchedAt })
@@ -441,6 +442,30 @@ export async function projectPlayerSnapshot(
 const intOrNull = (v) => (Number.isInteger(v) ? v : null);
 
 /**
+ * State on the player, written when it differs (review 2.1): the frozen
+ * Clan Wars 1 counters and the retired road's high score are not a
+ * series. Once per player in practice. Returns rows written.
+ */
+export async function projectFrozenCounters(db, { playerTag, payload }) {
+  const { rowCount } = await db.query(
+    `update player set war_day_wins = coalesce($2, war_day_wins),
+            clan_cards_collected = coalesce($3, clan_cards_collected),
+            legacy_trophy_road_high_score = coalesce($4, legacy_trophy_road_high_score)
+     where player_tag = $1
+       and (war_day_wins is distinct from coalesce($2, war_day_wins)
+            or clan_cards_collected is distinct from coalesce($3, clan_cards_collected)
+            or legacy_trophy_road_high_score is distinct from coalesce($4, legacy_trophy_road_high_score))`,
+    [
+      playerTag,
+      intOrNull(payload.warDayWins),
+      intOrNull(payload.clanCardsCollected),
+      intOrNull(payload.legacyTrophyRoadHighScore),
+    ],
+  );
+  return rowCount;
+}
+
+/**
  * lastPathOfLegendSeasonResult is the previous season's final standing,
  * carried on every profile poll of the following month (review 2.1).
  * Fill-once on player_pol_season under the season whose ends_at is the
@@ -448,7 +473,7 @@ const intOrNull = (v) => (Number.isInteger(v) ? v : null);
  * no last result (a new account) writes nothing; the API's null rank
  * (not globally ranked) is kept as null.
  */
-async function projectPolSeason(db, { playerTag, payload, fetchedAt }) {
+export async function projectPolSeason(db, { playerTag, payload, fetchedAt }) {
   const last = payload.lastPathOfLegendSeasonResult;
   if (!last || typeof last !== "object") return 0;
   if (

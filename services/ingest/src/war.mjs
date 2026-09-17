@@ -158,58 +158,13 @@ export async function projectRiverRace(
   // counter, and badgeId lands on the rival's clan row (2026-09-17,
   // time-series review 2.3).
   let facts = anchorInsert.length;
-  for (const c of payload.clans ?? []) {
-    const { rowCount } = await db.query(
-      `insert into war_week_clan
-         (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
-          fame, period_points, period_points_observed_at, finish_time, clan_score, repair_points)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       on conflict (clan_tag, season_id, section_index, participant_clan_tag) do update set
-         fame = greatest(war_week_clan.fame, excluded.fame),
-         period_points = case
-           when excluded.period_points_observed_at >= coalesce(
-             war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
-           then excluded.period_points else war_week_clan.period_points end,
-         clan_score = case
-           when excluded.period_points_observed_at >= coalesce(
-             war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
-           then coalesce(excluded.clan_score, war_week_clan.clan_score) else war_week_clan.clan_score end,
-         period_points_observed_at = greatest(
-           war_week_clan.period_points_observed_at,
-           excluded.period_points_observed_at),
-         repair_points = greatest(war_week_clan.repair_points, excluded.repair_points),
-         participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
-         finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)
-       -- Touch the row only when a counter or a name actually moves: the
-       -- same race is observed dozens of times a day, and an unchanged
-       -- MAX-merge still writes a tuple version (2026-09-11: 5,190
-       -- updates on 310 rows).
-       where war_week_clan.fame < excluded.fame
-          or (excluded.period_points_observed_at >= coalesce(
-                war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
-              and (war_week_clan.period_points is distinct from excluded.period_points
-                   or (excluded.clan_score is not null
-                       and war_week_clan.clan_score is distinct from excluded.clan_score)))
-          or war_week_clan.repair_points is distinct from
-             greatest(war_week_clan.repair_points, excluded.repair_points)
-          or (war_week_clan.participant_name is null and excluded.participant_name is not null)
-          or (war_week_clan.finish_time is null and excluded.finish_time is not null)`,
-      [
-        tag,
-        clock.seasonId,
-        clock.sectionIndex,
-        normalizeTag(c.tag),
-        c.name ?? null,
-        c.fame ?? 0,
-        c.periodPoints ?? null,
-        fetchedAt,
-        c.finishTime ? crTimeToIso(c.finishTime) : null,
-        Number.isInteger(c.clanScore) ? c.clanScore : null,
-        Number.isInteger(c.repairPoints) ? c.repairPoints : null,
-      ],
-    );
-    facts += rowCount;
-  }
+  facts += await upsertRaceStandings(db, {
+    tag,
+    seasonId: clock.seasonId,
+    sectionIndex: clock.sectionIndex,
+    clans: payload.clans ?? [],
+    fetchedAt,
+  });
   facts += await projectRivalBadges(db, payload.clans ?? []);
   facts += await projectPeriodLogs(db, {
     tag,
@@ -379,6 +334,68 @@ export async function projectRiverRace(
   };
 }
 
+/** The standings across the race's clans from one race payload: the
+ *  same statement for the live poll and the backfill's race lane. */
+async function upsertRaceStandings(
+  db,
+  { tag, seasonId, sectionIndex, clans, fetchedAt },
+) {
+  let facts = 0;
+  for (const c of clans) {
+    const { rowCount } = await db.query(
+      `insert into war_week_clan
+         (clan_tag, season_id, section_index, participant_clan_tag, participant_name,
+          fame, period_points, period_points_observed_at, finish_time, clan_score, repair_points)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       on conflict (clan_tag, season_id, section_index, participant_clan_tag) do update set
+         fame = greatest(war_week_clan.fame, excluded.fame),
+         period_points = case
+           when excluded.period_points_observed_at >= coalesce(
+             war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
+           then excluded.period_points else war_week_clan.period_points end,
+         clan_score = case
+           when excluded.period_points_observed_at >= coalesce(
+             war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
+           then coalesce(excluded.clan_score, war_week_clan.clan_score) else war_week_clan.clan_score end,
+         period_points_observed_at = greatest(
+           war_week_clan.period_points_observed_at,
+           excluded.period_points_observed_at),
+         repair_points = greatest(war_week_clan.repair_points, excluded.repair_points),
+         participant_name = coalesce(excluded.participant_name, war_week_clan.participant_name),
+         finish_time = coalesce(war_week_clan.finish_time, excluded.finish_time)
+       -- Touch the row only when a counter or a name actually moves: the
+       -- same race is observed dozens of times a day, and an unchanged
+       -- MAX-merge still writes a tuple version (2026-09-11: 5,190
+       -- updates on 310 rows).
+       where war_week_clan.fame < excluded.fame
+          or (excluded.period_points_observed_at >= coalesce(
+                war_week_clan.period_points_observed_at, '-infinity'::timestamptz)
+              and (war_week_clan.period_points is distinct from excluded.period_points
+                   or (excluded.clan_score is not null
+                       and war_week_clan.clan_score is distinct from excluded.clan_score)))
+          or war_week_clan.repair_points is distinct from
+             greatest(war_week_clan.repair_points, excluded.repair_points)
+          or (war_week_clan.participant_name is null and excluded.participant_name is not null)
+          or (war_week_clan.finish_time is null and excluded.finish_time is not null)`,
+      [
+        tag,
+        seasonId,
+        sectionIndex,
+        normalizeTag(c.tag),
+        c.name ?? null,
+        c.fame ?? 0,
+        c.periodPoints ?? null,
+        fetchedAt,
+        c.finishTime ? crTimeToIso(c.finishTime) : null,
+        Number.isInteger(c.clanScore) ? c.clanScore : null,
+        Number.isInteger(c.repairPoints) ? c.repairPoints : null,
+      ],
+    );
+    facts += rowCount;
+  }
+  return facts;
+}
+
 /** The rivals' badges onto their clan rows: the row exists for a
  *  recorded rival and is created for one the record has only met in a
  *  bracket (the roster projector does the same for an incidental clan).
@@ -473,6 +490,89 @@ async function projectPeriodLogs(
     ],
   );
   return rowCount;
+}
+
+/**
+ * The season and section a race payload belongs to, from the calendar
+ * alone (the backfill's race lane, review Part 5 as carried in by the
+ * Phase 1 verification): the season row whose bounds contain the fetch,
+ * and its section by the 10:00Z grid. In the stand-by window after a
+ * roll the API still describes the OLD race (cr-agent-api-docs/clans.md),
+ * so a payload whose sectionIndex is past the calendar's is the season
+ * before. A payload whose section is behind the calendar's names no
+ * race the calendar knows; null, and the lane counts it.
+ */
+export async function raceSeasonFor(db, { payload, fetchedAt }) {
+  if (!Number.isInteger(payload?.sectionIndex)) return null;
+  const { rows } = await db.query(
+    `select s.war_season_id, s.starts_at, s.sections,
+            p.war_season_id as prev_season_id, p.sections as prev_sections
+       from season s
+       left join season p on p.ends_at = s.starts_at
+      where s.starts_at <= $1::timestamptz and s.ends_at > $1::timestamptz`,
+    [fetchedAt],
+  );
+  const s = rows[0];
+  if (!s) return null;
+  const calendarSection = Math.floor(
+    (Date.parse(fetchedAt) - s.starts_at.getTime()) / (7 * 86_400_000),
+  );
+  if (payload.sectionIndex === calendarSection)
+    return { seasonId: s.war_season_id, sectionIndex: payload.sectionIndex };
+  if (payload.sectionIndex > calendarSection && s.prev_season_id !== null)
+    return { seasonId: s.prev_season_id, sectionIndex: payload.sectionIndex };
+  return null;
+}
+
+/**
+ * The series half of the race projector, for the backfill: the week
+ * row if absent, the rivals' columns, the badges and the period logs.
+ * Never an event, never an anchor, never participation or attendance
+ * (those the live projector wrote at the time, MAX-merged). Returns
+ * facts.
+ */
+export async function projectRaceSeries(
+  db,
+  { payload, fetchedAt, seasonId, sectionIndex },
+) {
+  const tag = normalizeTag(payload.clan.tag);
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [tag],
+  );
+  await db.query(
+    `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at)
+     values ($1, $2, $3, $4, $5)
+     on conflict (clan_tag, season_id, section_index) do update set
+       is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
+       started_observed_at = least(war_week.started_observed_at, excluded.started_observed_at)
+     where (not war_week.is_colosseum and excluded.is_colosseum)
+        or war_week.started_observed_at is null
+        or war_week.started_observed_at > excluded.started_observed_at`,
+    [
+      tag,
+      seasonId,
+      sectionIndex,
+      payload.periodType === "colosseum",
+      fetchedAt,
+    ],
+  );
+  let facts = await upsertRaceStandings(db, {
+    tag,
+    seasonId,
+    sectionIndex,
+    clans: payload.clans ?? [],
+    fetchedAt,
+  });
+  facts += await projectRivalBadges(db, payload.clans ?? []);
+  facts += await projectPeriodLogs(db, {
+    tag,
+    seasonId,
+    sectionIndex,
+    periodLogs: payload.periodLogs,
+    fetchedAt,
+  });
+  return { projected: "race_series", seasonId, sectionIndex, facts };
 }
 
 /**

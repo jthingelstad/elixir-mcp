@@ -284,3 +284,402 @@ export async function seriesStatus(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/**
+ * {series_backfill: {lane: 'clan'|'player'|'race'|'battle', budget_s?: 240, batch?: 200}}
+ *
+ * The backfill from the archive (time-series review Part 5). Receipts,
+ * not objects, are the walk: an archived object exists once per
+ * distinct content, the receipts are one per admitted fetch, and
+ * walking them in receipt_id order reproduces what the live projector
+ * would have done. Per batch, in one short transaction: the next
+ * `batch` admitted receipts of the lane's endpoint after the cursor,
+ * each one's archived object (the key resolved from one ListObjectsV2
+ * per entity on first sight, cached for the container's life; the
+ * parsed payload cached by hash for the run), and the projector's
+ * SERIES half only with observedAt = the receipt's fetched_at:
+ * projectClanSeries (clan row + members' roster columns),
+ * projectProfileSeries (the snapshot's profile columns and kinds, the
+ * progress buckets, the frozen counters, the PoL final),
+ * projectRaceSeries (the rivals' columns and the period logs, the
+ * season from the calendar), and the battle lane's fill of the ten
+ * battle columns (0131) from each log's entries. Never the membership
+ * machine, never events, never anchors, never poll_state. The guards
+ * make the order irrelevant to the result; the receipt order makes it
+ * monotone anyway. Commit per batch, advance the cursor
+ * (series_backfill_state), stop when the budget is spent or the lane
+ * is done. Rerunnable; a local loop (infra/scripts/series-backfill.mjs)
+ * drives it to completion with the migrate Lambda held.
+ */
+const LANE_ENDPOINT = {
+  clan: "clan",
+  player: "player",
+  race: "currentriverrace",
+  battle: "player_battlelog",
+};
+// endpoint/entity -> Map(hash16 -> key); lives as long as the container.
+const keyMaps = new Map();
+
+async function objectKeysFor(s3, bucket, endpoint, entityKey) {
+  const id = `${endpoint}/${entityKey}`;
+  if (keyMaps.has(id)) return keyMaps.get(id);
+  const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
+  const prefix = `payloads/endpoint=${endpoint}/entity=${entityKey.replace(/^#/, "")}/`;
+  const map = new Map();
+  let token;
+  do {
+    const page = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of page.Contents ?? []) {
+      const m = /-([0-9a-f]{16})\.json\.gz$/.exec(o.Key);
+      if (m && !map.has(m[1])) map.set(m[1], o.Key);
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  keyMaps.set(id, map);
+  return map;
+}
+
+export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
+  const lane = String(spec.lane ?? "");
+  const endpoint = LANE_ENDPOINT[lane];
+  if (!endpoint)
+    throw new Error(
+      `series_backfill: lane must be one of ${Object.keys(LANE_ENDPOINT).join(", ")}`,
+    );
+  const budgetMs =
+    Math.min(Math.max(Number(spec.budget_s ?? 240), 5), 280) * 1000;
+  const batch = Math.min(Math.max(Number(spec.batch ?? 200), 1), 2000);
+  const bucket = process.env.ARCHIVE_BUCKET;
+  let getObject = deps.getObject;
+  let listKeys = deps.listKeys;
+  if (!getObject || !listKeys) {
+    if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
+    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({});
+    getObject ??= async (key) => {
+      const res = await s3.send(
+        new GetObjectCommand({ Bucket: bucket, Key: key }),
+      );
+      return Buffer.from(await res.Body.transformToByteArray());
+    };
+    listKeys ??= (ep, entity) => objectKeysFor(s3, bucket, ep, entity);
+  }
+  const { projectClanSeries, projectProfileSeries } =
+    await import("../../ingest/src/series.mjs");
+  const { projectRaceSeries, raceSeasonFor } =
+    await import("../../ingest/src/war.mjs");
+  const { canonicalizeBattle } = await import("../../ingest/src/battles.mjs");
+  const { gunzipSync } = await import("node:zlib");
+
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const started = Date.now();
+  const tally = {
+    lane,
+    batches: 0,
+    receipts: 0,
+    rows_written: 0,
+    objects_read: 0,
+    cache_hits: 0,
+    missing_objects: 0,
+    unreadable: 0,
+    unresolved_season: 0,
+    done: false,
+  };
+  const parsed = new Map(); // hash -> payload, this run
+  try {
+    await db.query(
+      `insert into series_backfill_state (lane, started_at) values ($1, now())
+       on conflict (lane) do update set started_at = coalesce(series_backfill_state.started_at, now())`,
+      [lane],
+    );
+    while (Date.now() - started < budgetMs) {
+      const {
+        rows: [state],
+      } = await db.query(
+        `select after_receipt_id, finished_at from series_backfill_state where lane = $1`,
+        [lane],
+      );
+      const { rows: receipts } = await db.query(
+        `select receipt_id, entity_key, fetched_at, payload_hash
+         from api_receipt
+         where endpoint = $1 and admission = 'admitted' and receipt_id > $2
+         order by receipt_id limit $3`,
+        [endpoint, state.after_receipt_id, batch],
+      );
+      if (receipts.length === 0) {
+        await db.query(
+          `update series_backfill_state set finished_at = coalesce(finished_at, now()), updated_at = now()
+           where lane = $1`,
+          [lane],
+        );
+        tally.done = true;
+        break;
+      }
+      await db.query("begin");
+      try {
+        let rows = 0;
+        for (const r of receipts) {
+          let payload = parsed.get(r.payload_hash);
+          if (payload === undefined) {
+            const keys = await listKeys(endpoint, r.entity_key);
+            const key = keys.get(r.payload_hash.slice(0, 16));
+            if (!key) {
+              tally.missing_objects += 1;
+              parsed.set(r.payload_hash, null);
+              continue;
+            }
+            try {
+              payload = JSON.parse(
+                gunzipSync(await getObject(key)).toString("utf8"),
+              );
+              tally.objects_read += 1;
+            } catch {
+              tally.unreadable += 1;
+              parsed.set(r.payload_hash, null);
+              continue;
+            }
+            parsed.set(r.payload_hash, payload);
+          } else if (payload === null) {
+            tally.missing_objects += 1;
+            continue;
+          } else tally.cache_hits += 1;
+          const observedAt = r.fetched_at.toISOString();
+          if (lane === "clan") {
+            const out = await projectClanSeries(db, {
+              payload,
+              observedAt,
+              receiptId: r.receipt_id,
+            });
+            rows += out.facts;
+          } else if (lane === "player") {
+            const out = await projectProfileSeries(db, {
+              playerTag: r.entity_key,
+              payload,
+              observedAt,
+            });
+            rows += out.facts;
+          } else if (lane === "race") {
+            const week = await raceSeasonFor(db, {
+              payload,
+              fetchedAt: observedAt,
+            });
+            if (!week || !payload?.clan?.tag) {
+              tally.unresolved_season += 1;
+              continue;
+            }
+            const out = await projectRaceSeries(db, {
+              payload,
+              fetchedAt: observedAt,
+              ...week,
+            });
+            rows += out.facts;
+          } else {
+            rows += await fillBattleFacts(db, canonicalizeBattle, payload);
+          }
+        }
+        const last = receipts[receipts.length - 1].receipt_id;
+        await db.query(
+          `update series_backfill_state
+              set after_receipt_id = $2, receipts_done = receipts_done + $3,
+                  rows_written = rows_written + $4, updated_at = now()
+            where lane = $1`,
+          [lane, last, receipts.length, rows],
+        );
+        await db.query("commit");
+        tally.batches += 1;
+        tally.receipts += receipts.length;
+        tally.rows_written += rows;
+        tally.next_after = Number(last);
+        if (receipts.length < batch) {
+          await db.query(
+            `update series_backfill_state set finished_at = coalesce(finished_at, now()), updated_at = now()
+             where lane = $1`,
+            [lane],
+          );
+          tally.done = true;
+          break;
+        }
+      } catch (err) {
+        await db.query("rollback").catch(() => {});
+        throw err;
+      }
+    }
+    const {
+      rows: [state],
+    } = await db.query(
+      `select after_receipt_id, receipts_done, rows_written, started_at, finished_at
+       from series_backfill_state where lane = $1`,
+      [lane],
+    );
+    const {
+      rows: [{ remaining }],
+    } = await db.query(
+      `select count(*)::int as remaining from api_receipt
+       where endpoint = $1 and admission = 'admitted' and receipt_id > $2`,
+      [endpoint, state.after_receipt_id],
+    );
+    return {
+      ...tally,
+      remaining,
+      state: {
+        ...state,
+        after_receipt_id: Number(state.after_receipt_id),
+        receipts_done: Number(state.receipts_done),
+        rows_written: Number(state.rows_written),
+      },
+      ms: Date.now() - started,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/** The battle lane: the ten battle columns (0131) from a log's entries,
+ *  filled where null, one statement per receipt. The battle_id is the
+ *  canonical one ingest computed, so a battle absent from the record
+ *  (never inserted: the payload was rejected or the entry unparseable)
+ *  matches nothing and is not invented. */
+async function fillBattleFacts(db, canonicalizeBattle, payload) {
+  if (!Array.isArray(payload)) return 0;
+  const byId = new Map();
+  for (const entry of payload) {
+    let b;
+    try {
+      b = canonicalizeBattle(entry).battle;
+    } catch {
+      continue;
+    }
+    if (b?.battle_id) byId.set(b.battle_id, b);
+  }
+  if (byId.size === 0) return 0;
+  const rows = [...byId.values()];
+  const col = (c) => rows.map((b) => b[c] ?? null);
+  const { rowCount } = await db.query(
+    `update battle b set
+       arena_id = coalesce(b.arena_id, t.arena_id),
+       event_tag = coalesce(b.event_tag, t.event_tag),
+       tournament_tag = coalesce(b.tournament_tag, t.tournament_tag),
+       deck_selection = coalesce(b.deck_selection, t.deck_selection),
+       is_ladder_tournament = coalesce(b.is_ladder_tournament, t.is_ladder_tournament),
+       is_hosted_match = coalesce(b.is_hosted_match, t.is_hosted_match),
+       boat_battle_side = coalesce(b.boat_battle_side, t.boat_battle_side),
+       new_towers_destroyed = coalesce(b.new_towers_destroyed, t.new_towers_destroyed),
+       prev_towers_destroyed = coalesce(b.prev_towers_destroyed, t.prev_towers_destroyed),
+       remaining_towers = coalesce(b.remaining_towers, t.remaining_towers)
+     from unnest($1::text[], $2::int[], $3::text[], $4::text[], $5::text[], $6::boolean[],
+                 $7::boolean[], $8::text[], $9::smallint[], $10::smallint[], $11::smallint[])
+       as t(battle_id, arena_id, event_tag, tournament_tag, deck_selection, is_ladder_tournament,
+            is_hosted_match, boat_battle_side, new_towers_destroyed, prev_towers_destroyed, remaining_towers)
+     where b.battle_id = t.battle_id
+       and (b.arena_id, b.event_tag, b.tournament_tag, b.deck_selection, b.is_ladder_tournament,
+            b.is_hosted_match, b.boat_battle_side, b.new_towers_destroyed, b.prev_towers_destroyed,
+            b.remaining_towers)
+           is distinct from
+           (coalesce(b.arena_id, t.arena_id), coalesce(b.event_tag, t.event_tag),
+            coalesce(b.tournament_tag, t.tournament_tag), coalesce(b.deck_selection, t.deck_selection),
+            coalesce(b.is_ladder_tournament, t.is_ladder_tournament),
+            coalesce(b.is_hosted_match, t.is_hosted_match), coalesce(b.boat_battle_side, t.boat_battle_side),
+            coalesce(b.new_towers_destroyed, t.new_towers_destroyed),
+            coalesce(b.prev_towers_destroyed, t.prev_towers_destroyed),
+            coalesce(b.remaining_towers, t.remaining_towers))`,
+    [
+      col("battle_id"),
+      col("arena_id"),
+      col("event_tag"),
+      col("tournament_tag"),
+      col("deck_selection"),
+      col("is_ladder_tournament"),
+      col("is_hosted_match"),
+      col("boat_battle_side"),
+      col("new_towers_destroyed"),
+      col("prev_towers_destroyed"),
+      col("remaining_towers"),
+    ],
+  );
+  return rowCount;
+}
+
+/**
+ * {series_census_self: {since?: '2026-03-12'}} - read-only: every
+ * admitted clan receipt since the date has its day rows. Per (clan,
+ * game day) with an admitted roster receipt: the clan row exists and
+ * the day has member rows carrying the clan's tag. Reports the pairs,
+ * the misses (first twenty named), and the same for the player lane
+ * (every admitted profile receipt's day has a profile-written row) and
+ * the battle lane (battles whose ten columns are all null).
+ */
+export async function seriesCensusSelf(databaseUrl, spec = {}) {
+  const since = /^\d{4}-\d{2}-\d{2}$/.test(String(spec.since ?? ""))
+    ? spec.since
+    : "2026-03-12";
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set transaction_read_only = on");
+    await db.query("set statement_timeout = 250000");
+    const {
+      rows: [clan],
+    } = await db.query(
+      `with days as (
+         select distinct r.entity_key as clan_tag, game_day(r.fetched_at) as day
+         from api_receipt r
+         where r.endpoint = 'clan' and r.admission = 'admitted'
+           and r.fetched_at >= ($1::date)::timestamp at time zone 'UTC'),
+       checked as (
+         select d.clan_tag, d.day,
+                exists (select 1 from clan_snapshot_daily c
+                         where c.clan_tag = d.clan_tag and c.day = d.day and c.snapshot_kind = 'daily') as has_clan_row,
+                exists (select 1 from player_snapshot_daily s
+                         where s.clan_tag = d.clan_tag and s.snapshot_date = d.day) as has_member_rows
+         from days d)
+       select count(*)::int as clan_days,
+              count(distinct clan_tag)::int as clans,
+              count(*) filter (where not has_clan_row)::int as missing_clan_row,
+              count(*) filter (where not has_member_rows)::int as missing_member_rows,
+              (select json_agg(json_build_object('clan_tag', clan_tag, 'day', day::text))
+                 from (select clan_tag, day from checked where not has_clan_row or not has_member_rows
+                       order by day, clan_tag limit 20) m) as misses
+       from checked`,
+      [since],
+    );
+    const {
+      rows: [player],
+    } = await db.query(
+      `with days as (
+         select distinct r.entity_key as player_tag, game_day(r.fetched_at) as day
+         from api_receipt r
+         where r.endpoint = 'player' and r.admission = 'admitted'
+           and r.fetched_at >= ($1::date)::timestamp at time zone 'UTC')
+       select count(*)::int as player_days,
+              count(distinct player_tag)::int as players,
+              count(*) filter (where not exists
+                (select 1 from player_snapshot_daily s
+                  where s.player_tag = d.player_tag and s.snapshot_date = d.day
+                    and s.snapshot_kind = 'daily' and s.profile_observed_at is not null))::int as missing_profile_row
+       from days d`,
+      [since],
+    );
+    const {
+      rows: [battle],
+    } = await db.query(
+      `select count(*)::int as battles,
+              count(*) filter (where arena_id is null and deck_selection is null
+                                 and is_ladder_tournament is null)::int as without_facts
+       from battle`,
+    );
+    const { rows: lanes } = await db.query(
+      `select lane, after_receipt_id, receipts_done, rows_written, started_at, finished_at
+       from series_backfill_state order by lane`,
+    );
+    return { since, clan, player, battle, lanes };
+  } finally {
+    await db.end();
+  }
+}
