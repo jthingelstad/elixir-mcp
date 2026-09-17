@@ -2336,3 +2336,16 @@ so the role now names both; and the relay's retry path swallowed the
 reason, which turned an AccessDenied into ten silent invocations - it
 logs `send_retry <name> <message>` now. The retried sign-in messages all
 delivered once the role was fixed; nothing dead-lettered.
+
+**Verified in the inbox 2026-09-17 (two headers from Jamie).** The first
+send passed DMARC on DKIM alone: `Return-Path` was `@amazonses.com`, not
+`bounce.poapkings.com`. Cause: an `elixir@poapkings.com` ADDRESS identity
+created in the SES console on 09-16 (sandbox testing). An address identity
+overrides the domain identity's settings - no MAIL FROM, no default
+configuration set, bounce-forwarding ON - and it is also why IAM saw
+`identity/elixir@poapkings.com`. Deleted; the stack's domain identity now
+governs every address. Second header: SPF aligned via
+`bounce.poapkings.com`, DKIM `d=poapkings.com`, `dmarc=pass` under
+`p=reject`, score 0.0. The `jamie@thingelstad.com` address identity from
+the same session is harmless and left alone. Rule: never create address
+identities under a domain the stack owns.
