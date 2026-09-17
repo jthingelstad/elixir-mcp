@@ -423,3 +423,50 @@ test("the profile's progress keys become mode_season rows, written once a day", 
   );
   assert.equal(moved[0].last_seen_at.toISOString(), "2026-09-19T06:00:00.000Z");
 });
+
+test("game_day() (0126) is the war_period partition, for every seeded row", async () => {
+  // The game day is the policy day: an instant's game_day() is the date
+  // of the period row containing it, and a period never straddles two.
+  const {
+    rows: [pinned],
+  } = await ctx.db.query(
+    `select game_day('2026-09-17T09:59:59Z')::text as before_reset,
+            game_day('2026-09-17T10:00:00Z')::text as at_reset,
+            game_day('2026-09-18T04:59:00Z')::text as next_morning,
+            game_day('2026-03-08T09:00:00Z')::text as dst_sunday`,
+  );
+  assert.deepEqual(pinned, {
+    before_reset: "2026-09-16",
+    at_reset: "2026-09-17",
+    next_morning: "2026-09-17",
+    dst_sunday: "2026-03-07",
+  });
+  const {
+    rows: [{ periods, straddling, mismatched }],
+  } = await ctx.db.query(
+    `select count(*)::int as periods,
+            count(*) filter (where game_day(starts_at) <> game_day(ends_at - interval '1 second'))::int as straddling,
+            count(*) filter (where game_day(starts_at) <> (starts_at at time zone 'UTC')::date)::int as mismatched
+     from war_period`,
+  );
+  assert.ok(
+    periods >= 1491,
+    "every seeded period, plus any a test above added",
+  );
+  assert.equal(
+    straddling,
+    0,
+    "a period's first and last second share a game day",
+  );
+  assert.equal(mismatched, 0, "a period starts at 10:00Z of its own game day");
+  const {
+    rows: [fn],
+  } = await ctx.db.query(
+    `select provolatile, proparallel, proisstrict from pg_proc where proname = 'game_day'`,
+  );
+  assert.deepEqual(fn, {
+    provolatile: "i",
+    proparallel: "s",
+    proisstrict: true,
+  });
+});
