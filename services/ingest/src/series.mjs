@@ -67,7 +67,14 @@ function extraKinds(observedAt, { weekly }) {
  */
 export async function projectClanSeries(
   db,
-  { payload, observedAt, receiptId = null, source = "api", kind = "daily" },
+  {
+    payload,
+    observedAt,
+    receiptId = null,
+    source = "api",
+    kind = "daily",
+    moments = true,
+  },
 ) {
   const clanTag = normalizeTag(payload.tag);
   const day = gameDay(observedAt);
@@ -190,9 +197,14 @@ export async function projectClanSeries(
     // projection for that reason), and the Part 5 backfill passes the
     // receipt id as the row's provenance, so the receipt is not the
     // gate.
+    // `moments: false` is the backfill's: a replay writes rows and never
+    // moments, and the freshness rule alone did not say so for the
+    // last day's receipts (the clan lane on 2026-09-17 walked them and
+    // wrote a moment per poll for every member who had moved that day,
+    // because the prior observation it saw was yesterday's row).
     const priorArena = new Map();
     const fresh = Date.parse(observedAt) > Date.now() - 24 * 3600_000;
-    if (kind === "daily" && source === "api" && fresh) {
+    if (moments && kind === "daily" && source === "api" && fresh) {
       const { rows: prior } = await db.query(
         `select distinct on (player_tag) player_tag, arena_id, observed_at
          from player_snapshot_daily
@@ -287,6 +299,16 @@ export async function projectClanSeries(
         m.arenaId === prior.arena_id
       )
         continue;
+      // Once per crossing, whichever writer or delivery sees it: a moment
+      // into this arena already on the ledger since the prior observation
+      // is the same move.
+      const { rows: already } = await db.query(
+        `select 1 from player_event
+          where player_tag = $1 and event_type = 'arena_changed' and arena_to = $2
+            and window_end >= $3::timestamptz limit 1`,
+        [m.tag, m.arenaId, prior.observed_at],
+      );
+      if (already.length) continue;
       await arenaChangedMoment(db, {
         playerTag: m.tag,
         from: prior.arena_id,

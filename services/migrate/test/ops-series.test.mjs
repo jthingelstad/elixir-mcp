@@ -8,6 +8,7 @@ import {
   snapshotDayCensus,
   snapshotRekey,
   seriesStatus,
+  arenaMomentDedupe,
 } from "../src/ops-series.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -221,4 +222,32 @@ test("series_status reads the series tables and the receipts' worth", async () =
   assert.equal(Number(status.player_snapshot_daily.profile_only), 0);
   assert.equal(Number(status.clan_snapshot_daily.rows), 0);
   assert.deepEqual(status.receipts, []);
+});
+
+test("arena_moment_dedupe keeps the earliest moment per crossing and reports first", async () => {
+  await db.query(
+    `insert into player (player_tag) values ('#2PP0V9JJ') on conflict do nothing`,
+  );
+  for (const i of [1, 2, 3])
+    await db.query(
+      `insert into player_event (player_tag, event_type, timing, window_start, window_end, arena_from, arena_to)
+       values ('#2PP0V9JJ', 'arena_changed', 'estimated', now() - interval '2 hours', now() - make_interval(mins => $1), 54000050, 54000051)`,
+      [60 - i],
+    );
+  await db.query(
+    `insert into player_event (player_tag, event_type, timing, window_start, window_end, arena_from, arena_to)
+     values ('#2PP0V9JJ', 'arena_changed', 'estimated', now() - interval '1 hour', now(), 54000051, 54000052)`,
+  );
+  const dry = await arenaMomentDedupe(SCRATCH_URL, {});
+  assert.equal(dry.dry_run, true);
+  assert.equal(dry.duplicates, 2);
+  assert.equal(dry.deleted, 0);
+  const wet = await arenaMomentDedupe(SCRATCH_URL, { dry_run: false });
+  assert.equal(wet.deleted, 2);
+  assert.deepEqual(wet.after, { rows: 2, crossings: 2 });
+  const { rows } = await db.query(
+    `select arena_to, window_end from player_event where player_tag = '#2PP0V9JJ' order by event_id`,
+  );
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].arena_to, 54000051);
 });

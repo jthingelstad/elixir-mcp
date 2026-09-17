@@ -876,3 +876,51 @@ test("correction 1: a replayed roster writes the row and never the arena moment;
   assert.equal(fresh.arenaMoments, 1);
   assert.equal(await events(), 1);
 });
+
+test("the arena moment is once per crossing: a re-walk of the same day's rosters writes no second one, and the backfill writes none", async () => {
+  const P = "#2PP0V9GG";
+  await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
+  const receiptId = (
+    await ctx.db.query(
+      `select receipt_id from api_receipt order by receipt_id desc limit 1`,
+    )
+  ).rows[0].receipt_id;
+  const at = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const t0 = Date.now() - 6 * 3600_000;
+  const member = (arenaId) => ({
+    tag: P,
+    trophies: 6000,
+    arena: { id: arenaId, name: `Arena ${arenaId}` },
+  });
+  await projectClanSeries(ctx.db, {
+    payload: roster({ at: at(t0), members: [member(54000050)] }),
+    observedAt: at(t0),
+    receiptId,
+  });
+  // The move, seen live at t0 + 1h; then the same day's rosters walked
+  // again (a replay of the last day: fresh by the 24-hour rule).
+  const live = await projectClanSeries(ctx.db, {
+    payload: roster({ at: at(t0 + 3600_000), members: [member(54000051)] }),
+    observedAt: at(t0 + 3600_000),
+    receiptId,
+  });
+  assert.equal(live.arenaMoments, 1);
+  const replay = await projectClanSeries(ctx.db, {
+    payload: roster({ at: at(t0 + 5400_000), members: [member(54000051)] }),
+    observedAt: at(t0 + 5400_000),
+    receiptId,
+  });
+  assert.equal(replay.arenaMoments, 0, "the crossing is already on the ledger");
+  const backfill = await projectClanSeries(ctx.db, {
+    payload: roster({ at: at(t0 + 7200_000), members: [member(54000052)] }),
+    observedAt: at(t0 + 7200_000),
+    receiptId,
+    moments: false,
+  });
+  assert.equal(backfill.arenaMoments, 0, "the backfill never emits");
+  const { rows } = await ctx.db.query(
+    `select count(*)::int as n from player_event where player_tag = $1 and event_type = 'arena_changed'`,
+    [P],
+  );
+  assert.equal(rows[0].n, 1);
+});

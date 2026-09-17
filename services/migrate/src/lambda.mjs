@@ -67,6 +67,7 @@ import {
   seriesStatus,
   seriesBackfill,
   seriesCensusSelf,
+  arenaMomentDedupe,
 } from "./ops-series.mjs";
 
 export async function handler(event) {
@@ -345,6 +346,14 @@ export async function handler(event) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
       event.series_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.arena_moment_dedupe) {
+    const result = await arenaMomentDedupe(
+      process.env.DATABASE_URL,
+      event.arena_moment_dedupe === true ? {} : event.arena_moment_dedupe,
     );
     console.log(JSON.stringify(result));
     return result;

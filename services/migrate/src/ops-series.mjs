@@ -480,6 +480,7 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
                 payload,
                 observedAt,
                 receiptId: r.receipt_id,
+                moments: false,
               });
               rows += out.facts;
             } else if (lane === "player") {
@@ -725,6 +726,53 @@ export async function seriesCensusSelf(databaseUrl, spec = {}) {
        from series_backfill_state order by lane`,
     );
     return { since, clan, player, battle, lanes };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * {arena_moment_dedupe: {days?: 1, dry_run?: true}} - the repair for the
+ * clan lane's duplicated arena moments (2026-09-17): among arena_changed
+ * rows whose window ended in the last N days, one per (player, from,
+ * to) survives - the earliest, which is the live one when a live one
+ * was written - and the rest go. Dry run by default reports what would
+ * go.
+ */
+export async function arenaMomentDedupe(databaseUrl, spec = {}) {
+  const days = Math.min(Math.max(Number(spec.days ?? 1), 1), 30);
+  const dryRun = spec.dry_run !== false;
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select event_id from (
+         select event_id,
+                row_number() over (partition by player_tag, arena_from, arena_to order by event_id) as n
+         from player_event
+         where event_type = 'arena_changed'
+           and window_end > now() - make_interval(days => $1)) d
+       where n > 1 order by event_id`,
+      [days],
+    );
+    const ids = rows.map((r) => r.event_id);
+    let deleted = 0;
+    if (!dryRun && ids.length) {
+      const { rowCount } = await db.query(
+        `delete from player_event where event_id = any($1::bigint[])`,
+        [ids],
+      );
+      deleted = rowCount;
+    }
+    const {
+      rows: [after],
+    } = await db.query(
+      `select count(*)::int as rows, count(distinct (player_tag, arena_from, arena_to))::int as crossings
+       from player_event where event_type = 'arena_changed'
+         and window_end > now() - make_interval(days => $1)`,
+      [days],
+    );
+    return { days, dry_run: dryRun, duplicates: ids.length, deleted, after };
   } finally {
     await db.end();
   }
