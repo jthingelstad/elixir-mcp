@@ -235,20 +235,31 @@ function aggregateSql(month, { withPlayers, withBands = true }) {
   };
 }
 
-/** Run the aggregate statements in order over an existing `pop`. */
+/** Run the aggregate statements in order over an existing `pop`. Returns
+ *  each statement's milliseconds, so the nightly's log line says where a
+ *  season's rebuild spends its budget (the first 3.16.0 rebuild on the
+ *  live corpus took 603 s against 3.15.1's 93 s, and a total says
+ *  nothing about which of the new statements did it). */
 async function runAggregates(db, sql) {
-  await db.query(sql.totals, [DUEL_TYPES]);
-  await db.query(sql.decided);
-  await db.query(sql.decks);
-  await db.query(sql.deckPlayers);
-  await db.query(sql.cards);
-  if (sql.totalPlayers) await db.query(sql.totalPlayers);
+  const phases = {};
+  const timed = async (name, text, params) => {
+    const t = Date.now();
+    await db.query(text, params);
+    phases[name] = Date.now() - t;
+  };
+  await timed("totals", sql.totals, [DUEL_TYPES]);
+  await timed("decided", sql.decided);
+  await timed("decks", sql.decks);
+  await timed("deck_players", sql.deckPlayers);
+  await timed("cards", sql.cards);
+  if (sql.totalPlayers) await timed("total_players", sql.totalPlayers);
   if (sql.withBands) {
-    await db.query(sql.bandTotals);
-    await db.query(sql.bandDecks);
-    await db.query(sql.bandDeckPlayers);
-    await db.query(sql.bandCards);
+    await timed("band_totals", sql.bandTotals);
+    await timed("band_decks", sql.bandDecks);
+    await timed("band_deck_players", sql.bandDeckPlayers);
+    await timed("band_cards", sql.bandCards);
   }
+  return phases;
 }
 
 /** One season, rebuilt from the raw rows in one transaction. */
@@ -263,11 +274,13 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
     const {
       rows: [{ cursor }],
     } = await db.query("select now() as cursor");
+    const tPop = Date.now();
     await db.query(
       popSql(`from battle_participant bp
        where bp.battle_time >= $1 and bp.battle_time < $2`),
       [season.starts_at, season.ends_at],
     );
+    const phases = { pop: Date.now() - tPop };
     for (const table of [
       "meta_season_totals",
       "deck_meta_season",
@@ -278,7 +291,7 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
     ])
       await db.query(`delete from ${table} where season_month = $1`, [month]);
     const sql = aggregateSql(month, { withPlayers: true });
-    await runAggregates(db, sql);
+    Object.assign(phases, await runAggregates(db, sql));
     const {
       rows: [counts],
     } = await db.query(
@@ -298,7 +311,13 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
       [month, cursor, final],
     );
     await db.query("commit");
-    return { season_month: month, final, ms: Date.now() - t0, ...counts };
+    return {
+      season_month: month,
+      final,
+      ms: Date.now() - t0,
+      phases,
+      ...counts,
+    };
   } catch (err) {
     await db.query("rollback").catch(() => {});
     throw err;

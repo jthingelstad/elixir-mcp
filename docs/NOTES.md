@@ -4367,3 +4367,189 @@ sums.
 **Phase 4 needs:** product calls 3 (series tools accept an instant
 floored to the game day: yes) and 6 (`game_days_seen` beside `days_seen`:
 yes), both answered. Nothing manual.
+
+## 2026-09-19 — Interface review, Phase 4: one grammar, one vocabulary, the docs corpus (contract 3.17.0)
+
+Phase 4 of `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (review
+Part 2 and 3.2), with items 8 and 9 added by Jamie; product calls 3 (the
+series tools accept an instant, floored to the game day) and 6
+(`game_days_seen` beside `days_seen`) answered yes 2026-09-18. One minor,
+3.16.0 → 3.17.0; no migration. Commits `28d0989`, `3cbe2bd`, `244c9f4`;
+deployed 19:38Z (exit 0, smoke green) and the code again at 19:58Z for
+the rollup fix below. All nine items shipped.
+
+**Shipped.** (1) One `seasonFieldsForSpan(db, fromMs, endMs, {start,
+flavor})` in `tools/shared.mjs` behind three callers: `resolveSeasonWindow`
+(now with `seasonDefault: false`, which keeps the player battle tools'
+unbounded default and `clans_standings`' 30 days while taking `season`),
+`seasonFieldsForInstants` (the tools that build their own window:
+`battles_levels`, `clans_pilot_scores`, `clans_participation`,
+`rankings_timeline`, `game_events`, `elixir_timeline`) and
+`seasonFieldsForDays` (the series). `applied.window` carries `season`
+(null on an unbounded window), `crosses` and `season_age_days` on every
+tool with a window argument; an unbounded span is anchored at the
+record's first season so it crosses every roll on record and not the
+record's beginning. The crossing note fires only when `crosses` is
+non-empty and says the thing in the tool's own terms: balance changes
+(the meta and battle tools), the trophy and ranked resets (series,
+standings, boards, pilot), a plain "read either side as its own season"
+(participation, events, the timeline). `resolveWindow` is internal now;
+its unused `dateOnly` branch is gone. (2) `season: SEASON_ARG_SCHEMA` on
+`battles_query`, `_performance`, `_decks`, `_cards`, `_opponents`,
+`_compare` and `clans_standings`; explicit bounds still win. (3)
+`dayWindow` (daily-series.mjs) accepts an instant, floors it to
+`gameDay()` and echoes the instant under `applied.window.floored` with a
+note naming the day it became; `days: N` is N game days on the 10:00Z
+grid (it was the UTC date, one day off between 00:00Z and 10:00Z);
+`WINDOW_DATE_ONLY_DESC` says so. (4) `players_timeline` points carry `day`
+beside `date`; `rankings_timeline` points carry `day` (the snapshot's
+game day); `battles_levels.monthly_trend` marks the window's clipped
+months `partial: true` with `covers` via `markPartialMonths`
+(controls.mjs, the weekly shape) and a note; `clans_participation` echoes
+`source: "default"` when `weeks` defaulted and its full-verbosity notes
+say `war_points` is the period points figure; `game_events.game_days_seen`
+is the same sightings on the game day grid, derived at read time from the
+events receipts' `fetched_at` (game_event_day keeps only the UTC day; a
+UTC day with no receipt on record, the bot backfill's, keeps its day);
+`running_on_latest_day` is a fact of the table, not of the window asked
+(a window ending before the latest sighting said false); a date-only `to`
+no longer reaches one day past itself (the exclusive next-midnight
+instant was sliced as an inclusive date); `clans_roster.lifetime` carries
+`profile_observed_at` beside `as_of` (retires at 4.0.0). (5) The four
+descriptions; `rankings_players` says `rating` is the profile's
+`pol_trophies`, settled by one `npm run cr` pair on the global board's #1
+and #3 (`eloRating` 2711 / 2694 = `currentPathOfLegendSeasonResult.trophies`
+2711 / 2694, `rank` 1 / 3 both sides; the profile's own `trophies` 10,714
+/ 14,000 unrelated), written to `cr-agent-api-docs` `locations.md` and
+pinned in its observed-claims validator (`72a49e8`, pushed). (6) Docs:
+`choosing-a-tool` names all 55 tools, the fourth sequence ("how have I
+moved": `players_timeline` → `battles_performance group_by week` →
+`battles_levels`), "read `comparable` before ranking"; the glossary's
+thirteen new entries (game day, series, stamp, source, kind — the five,
+progress bucket, the four trophy kinds, `league_number`/`pol_league`,
+control, comparable, floor, manifest; `applied` updated); `methodology`
+drops the exemplar-payload sentence (identity renders from `deck_card`)
+and says the ladder-only mean; `responses` corrects the `timezone_applied`
+boundary and describes `read_to: null`; `activity` says the year graphic
+is on UTC calendar days and why; `timeline` gains the per-kind `facts`
+table and `agents` a paragraph on it; `clocks` gains the series row and
+the season on every window; `quickstart`, `about` (the family names Elixir
+Clan), `verify` (Clan is the first consumer, `claim_status` on
+`elixir_my_players`), `connections`, `limits` (the query budget and the
+read deadline rows), `architecture` (SES, the controls) re-read against
+3.17.0 and stamped `reviewed:` in front matter, which `doc.njk` renders
+beside Updated. (7) The instructions' live-lane paragraph is one sentence;
+`season`, the season echo and `crosses` are said once. (8)
+`clans_pilot_scores` and `battles_levels.monthly_trend`
+`mean_starting_trophies` over ladder battles only (`filter (where p.type =
+'PvP')`), null with none; note and methodology say so. (9)
+`players_summary.top_deck` / `best_deck` carry `mean_level_gap` (the
+battles_decks lateral), so the comparability note names real gaps. Also:
+the docs search excerpt runs to the hit window's last hit
+(`packages/docs/src/index.mjs`, `28d0989`): a fixed 300-character tail cut
+"Pilot Score" to "P" once the methodology paragraph grew.
+
+**Measured live, read-only, 19:38Z–19:40Z, on POAP KINGS unless said.**
+`battles_decks({days: 60})`: `season` S134 (2026-07), `crosses` two rolls
+(08-03, 09-07), `season_age_days: 28`, the note "Window spans S134
+(2026-07), S135 (2026-08) and S136 (2026-09)" (the brief said one
+crossing; sixty days back from 09-18 is two). `battles_decks({days: 3})`
+and every 7-day read: `crosses: []`, no note. `battles_query({})`:
+`source: unbounded`, `season: null`, every roll on record.
+`battles_performance({season: "previous"})`: `source: season`, S135
+08-03 → 09-07, `crosses: []`, 121 battles. `players_timeline({from:
+"2026-09-15T12:30:00Z", to: "2026-09-18T04:00:00Z"})`: from 2026-09-15,
+to 2026-09-17, `floored` carrying both instants, the note "to
+2026-09-18T04:00:00Z was an instant … to is game day 2026-09-17", `day`
+= `date` on every point. `rankings_timeline({days: 3})`: `day` on every
+point (the 10:07Z snapshots on their own day), season echo.
+`game_events({from: "2026-09-10", to: "2026-09-12", timezone: "UTC"})`:
+`days_seen` [09-11, 09-12] against `game_days_seen` [09-10, 09-11] (the
+04:42Z reads), and three days of 21:42Z reads where the two agree;
+`running_on_latest_day: true` on a window ending 09-12 while the latest
+sighting is 09-17. `clans_participation({verbosity: "compact"})`:
+`source: default`, season S135, one crossing; the war_points note absent
+at compact. `clans_pilot_scores({days: 30})`: `mean_starting_trophies`
+null on the eleven all-ranked members (Vijay, Chanco's peers) and 12,534
+on the leader, where the pooled mean had blended league ratings in;
+season echo with the 09-07 crossing. `battles_levels({player_tag, days:
+60})`: 2026-07 and 2026-09 `partial: true` with `covers`, August whole,
+the note naming both. `players_summary()`: `top_deck.mean_level_gap
+0.57`, `best_deck 1.71`, the note "(mean level gap +0.57) … (gap +1.71)".
+`clans_roster({clan_tag: "#GJ09RJP8"})`: `lifetime.profile_observed_at`
+= `as_of`. `clans_standings({days: 7, min_battles: 200})`: season S136,
+`crosses: []`. Contract 3.17.0 on every envelope; `season` in every battle
+tool's known-argument list.
+
+**The first nightly on the 3.16.0 shape did not finish.** Invoked by hand
+at 19:40Z to take the Phase 3 reading (the scheduled 04:40Z run today was
+3.15.1 code, 93 s): `Status: timeout` at 900 s, rolled back (the rebuild
+is one transaction), and `aws lambda invoke` retried the synchronous call
+once, so a second 900 s run followed and died at 20:10Z. Cause:
+`popSql`'s level gap was a LATERAL aggregate over a once-referenced
+`sides` CTE; the planner inlines a CTE referenced once, so every
+participant row re-grouped the whole season's rows. `244c9f4`
+materializes `rows`, `sides` and the opposing side's level and
+hash-joins on `(battle_id, side)`; the rollup tests pin the same gaps.
+Deployed 19:58Z; invoked once more at 20:10Z with `AWS_MAX_ATTEMPTS=1`
+(the CLI retry is the thing to switch off when invoking the jobs Lambda
+by hand); that call was refused (`ReservedFunctionConcurrentInvocationLimitExceeded`,
+the function's reserved concurrency of 1) because the first CLI's THIRD
+attempt (`3a917f01`) was already running, on the fixed code: it finished
+in **603 s** (2026-09 rebuilt: 199,011 decks, 1,830 cards, 447,118
+decided, `pending_after: 0`, committed 20:10:13Z). 603 s against 93 s
+before the band tables and the gap sums, on day 11 of a 28-day season,
+is the next thing to measure, not to guess at: `rebuildSeason` now
+returns `phases` (pop, totals, decided, decks, deck_players, cards,
+total_players, band_totals, band_decks, band_deck_players, band_cards,
+ms each) and the nightly log line carries them, so tomorrow's 04:40Z run
+says which statement owns the time. If the running season's rebuild
+scales with its rows, month-end lands near the 900 s ceiling; the
+candidates are the four band statements over `dec` (three group-bys and
+the `deck_card` join, each a second pass) and the `count(distinct
+player_tag)` sorts. During the 20:10–20:20Z rebuild the three Discord
+agents' `elixir_timeline` polls read 10–22 s (1–3 s otherwise), which is
+the shared micro under the rebuild plus the empty-path cost Phase 5
+opens with. **The Phase 3 reading, now taken (20:21Z):**
+`battles_meta_decks({trophy_band: "11000_13000", mode: "ladder"})` from
+`deck_meta_season_band` in **1,220 ms** (881 ms in the tool, 707 ms in
+the database; the raw fallback at 19:40Z was 3,354 ms), no fallback
+note, the rollup note "counters through 2026-09-18T20:10:13.912Z",
+the same rows and gaps as the raw path (86/58/28 at -1.10, 71/34/37 at
+-0.23), `players_in_window: 913`; `battles_meta_cards({mode: "ladder"})`
+219 ms, `mean_level_gap` filled on every corpus row (Arrows +0.04,
+Fireball +0.10), `players_in_window: 3,181`.
+
+**Decisions taken inside the phase.** (a) `season: null` on an unbounded
+window, with every roll on record in `crosses`, rather than the record's
+first season as a fake start. (b) The crossing note's tail is per tool
+family (`flavor`), never one sentence about balance changes on a tool
+that counts donations. (c) `game_days_seen` is derived from receipts at
+read time rather than a new column on `game_event_day`: the UTC-day row
+is the table's key and a reading-side derivation costs one indexed scan
+of `api_receipt` per call. (d) `players_summary`'s fixed window carries
+no season fields: it has no window argument; if Phase 6 wants it, it is
+one `seasonFieldsForInstants` call. (e) `running_on_latest_day` moved
+from the window's days to the table's (found by the new test, not the
+review). (f) `mean_starting_trophies` went ladder-only on
+`battles_levels.monthly_trend` too, not only the clan tool the item
+named: the same word on two tools. (g) The docs search fix is a search
+fix, not a docs rewording.
+
+**Consumers.** `elixir-mcp-discord` `951ddc9`: `war-deck-check.md` drops
+"or the war-day anchor looks stale"; the two remaining SKIP conditions
+stay; the three instance copies synced; no restart (prompts hot-load, and
+no front-matter field changed). `elixir-bot` `d67e704a`: `mcp_stats.py`
+reads `series`, `day` (with `date` fallback), passes `metrics:
+["trophies", "best_trophies"]` so the trend block's `best_trophies` is on
+the row instead of `n/a`; gates green; restarted via `scripts/admin.sh
+restart` at 19:54Z (pid 19196, card catalog sync complete).
+
+**Observation, not this phase's.** `clans_participation.war_weeks` lists
+a `(134, 4)` row with `started_observed_at` 2026-08-31 beside `(135, 4)`
+with the same instant; a war_week row keyed to the wrong season from the
+Phase 2 race re-walk or an earlier scope bug. Not touched here.
+
+**Phase 5 needs:** product call 4 (a named reader pointer on
+`elixir_timeline`: Jamie's answer is yes, with the empty-path cost fixed
+first, so the fix is item one of the phase). Nothing manual.
