@@ -16,6 +16,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.15.0",
+    date: "2026-09-19",
+    summary:
+      "The record reaches the wire (docs/reviews/2026-09-19-INTERFACE-REVIEW.md Part 1.3, Phase 2): every collected column an agent would ask about is served on the tool that owns the question, no migration. battles_query rows carry mode_group (the contract's fold of type) and, at full verbosity, context {event_tag, tournament_tag, ladder_tournament, hosted, deck_selection} and on a boatBattle row boat {side, towers_before, towers_after, remaining}; compact carries deck_selection at the top level. Additive.",
+  },
+  {
     version: "3.14.0",
     date: "2026-09-19",
     summary:

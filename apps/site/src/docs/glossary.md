@@ -167,6 +167,12 @@ Dagger Duchess, ...); part of deck identity.
 **maxLevel vs maxLevelRarityScale** — the in-game 1 to 16 cap every recorded
 tool uses, and the API's per-rarity cap that only `live_fetch` payloads show.
 
+**deck_selection** — how the deck a battle was played with was chosen:
+`collection` is the player's own deck; `draft`, `draftCompetitive`, `pick`,
+`predefined`, `warDeckPick` and the like are decks chosen on the spot, which
+have a `deck_hash` but no identity the player will play again. On
+`battles_query` rows (inside `context` at full verbosity).
+
 ## Principals and the service
 
 **door** — an MCP endpoint: `/mcp` for a person, `/a/<public_id>/mcp` for an

@@ -17,7 +17,7 @@ import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 
 /** The mode group a battle type folds into; the API's own odd values
  *  ('unknown', 'casual1v1', 'None') are 'other'. */
-function modeGroupOf(type) {
+export function modeGroupOf(type) {
   return MODE_GROUP_BY_TYPE[type] ?? "other";
 }
 

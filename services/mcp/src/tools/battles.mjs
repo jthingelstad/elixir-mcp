@@ -12,6 +12,7 @@ import {
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { formatLocal } from "../time.mjs";
+import { modeGroupOf } from "../controls.mjs";
 import {
   requireEnum,
   ToolFailure,
@@ -357,8 +358,11 @@ export const battlesTools = {
       }
 
       const { rows } = await ctx.db.query(
-        `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
+        `select b.cursor, b.battle_id, b.battle_time, b.type, b.type_class, b.game_mode_id, b.game_mode_name,
                 b.arena, b.arena_id, b.league_number,
+                b.event_tag, b.tournament_tag, b.deck_selection, b.is_ladder_tournament,
+                b.is_hosted_match, b.boat_battle_side, b.new_towers_destroyed,
+                b.prev_towers_destroyed, b.remaining_towers,
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
                 bp.princess_tower_hp_2, bp.outcome
@@ -450,6 +454,36 @@ export const battlesTools = {
           arena: r.arena,
           arena_id: r.arena_id,
           league_number: r.league_number,
+          // The contract's fold of type (modes.ts), so no consumer keeps
+          // its own copy of the table (3.15.0).
+          mode_group: modeGroupOf(r.type),
+          // The battle's own facts (0131): which event or tournament, and
+          // whether the deck was drafted or the player's own. Compact
+          // keeps deck_selection alone, the one that changes what a deck
+          // row means.
+          ...(compact
+            ? { deck_selection: r.deck_selection }
+            : {
+                context: {
+                  event_tag: r.event_tag,
+                  tournament_tag: r.tournament_tag,
+                  ladder_tournament: r.is_ladder_tournament,
+                  hosted: r.is_hosted_match,
+                  deck_selection: r.deck_selection,
+                },
+              }),
+          // A boat battle's own story: which side attacked and the towers
+          // before, after and left standing.
+          ...(r.type_class === "boat" && !compact
+            ? {
+                boat: {
+                  side: r.boat_battle_side,
+                  towers_before: r.prev_towers_destroyed,
+                  towers_after: r.new_towers_destroyed,
+                  remaining: r.remaining_towers,
+                },
+              }
+            : {}),
           me: {
             ...(tag ? {} : { player_tag: r.player_tag }),
             outcome: r.outcome,

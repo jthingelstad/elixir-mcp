@@ -470,6 +470,38 @@ export const OUTPUT_SCHEMAS = {
             arena: { type: ["string", "null"] },
             arena_id: { type: ["integer", "null"] },
             league_number: { type: ["integer", "null"] },
+            mode_group: {
+              type: "string",
+              description:
+                "The contract's fold of type: ladder, ranked, war, casual, challenge, tournament, or other.",
+            },
+            deck_selection: {
+              type: ["string", "null"],
+              description:
+                "Compact only (full carries it inside context): collection for the player's own deck, draft and the like for a chosen-on-the-spot one.",
+            },
+            context: {
+              type: "object",
+              description: "Full verbosity: the battle's own facts (0131).",
+              properties: {
+                event_tag: { type: ["string", "null"] },
+                tournament_tag: { type: ["string", "null"] },
+                ladder_tournament: { type: ["boolean", "null"] },
+                hosted: { type: ["boolean", "null"] },
+                deck_selection: { type: ["string", "null"] },
+              },
+            },
+            boat: {
+              type: "object",
+              description:
+                "Full verbosity, boat battles only: the attacking side and the towers before, after and remaining.",
+              properties: {
+                side: { type: ["string", "null"] },
+                towers_before: { type: ["integer", "null"] },
+                towers_after: { type: ["integer", "null"] },
+                remaining: { type: ["integer", "null"] },
+              },
+            },
             me: { type: "object" },
             teammates: { type: "array", items: PARTICIPANT },
             opponents: { type: "array", items: PARTICIPANT },

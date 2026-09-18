@@ -35,6 +35,10 @@ answers from the perspective of the tag you asked about:
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
 | `arena`, `arena_id` | `arena` the arena's name and `arena_id` its id (the higher side's arena, stamped at battle time); `arena_id` is `null` on a row the id never reached |
 | `league_number` | the Path of Legends league when the battle was ranked; `null` otherwise |
+| `mode_group` | the contract's fold of `type` (`ladder`, `ranked`, `war`, `casual`, `challenge`, `tournament`, or `other` for a type the fold does not know), the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
+| `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
+| `deck_selection` | `collection` for the player's own deck; `draft`, `draftCompetitive`, `pick`, `predefined`, `warDeckPick` and the like for a deck chosen on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
+| `boat` | full verbosity, `boatBattle` rows only: `side` (`attacker` or `defender`), `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing) |
 | `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir_leaked`, `elixir_leaked_differential`, `tower_hp` |
 | `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir_leaked`, `tower_hp` |
 | `name_known` | `false` when no observation ever carried a name for that tag; `players_names` resolves the ones the corpus knows |
