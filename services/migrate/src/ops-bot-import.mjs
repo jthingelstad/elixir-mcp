@@ -274,6 +274,34 @@ export async function seriesCensus(databaseUrl, spec = {}) {
          on r.player_tag = b.player_tag and r.day = b.day and r.mode_group = b.mode_group
         and r.game_mode_id = b.game_mode_id`,
     );
+    // The double-count check (Phase 3 verification): a bot key the
+    // record lacked may be the record's own battles under another mode
+    // group (the bot has no `challenge`; its challenge battles fold onto
+    // casual) or under game mode 0 where the record holds the real id.
+    // Such a key, once committed, is summed twice by daily-sql.
+    const {
+      rows: [rollupDup],
+    } = await db.query(
+      `with added as (
+         select b.* from staging.bot_rollup b
+         join player_daily_battle_rollup r
+           on r.player_tag = b.player_tag and r.day = b.day and r.mode_group = b.mode_group
+          and r.game_mode_id = b.game_mode_id),
+       dup as (
+         select a.player_tag, a.day::text as day, a.mode_group, a.game_mode_id,
+                (select json_agg(json_build_object('mode_group', o.mode_group, 'game_mode_id', o.game_mode_id,
+                                                   'battles', o.battles_captured))
+                   from player_daily_battle_rollup o
+                  where o.player_tag = a.player_tag and o.day = a.day
+                    and (o.mode_group, o.game_mode_id) <> (a.mode_group, a.game_mode_id)
+                    and (o.game_mode_id = a.game_mode_id
+                         or (a.game_mode_id = 0 and o.game_mode_id <> 0))) as others
+         from added a)
+       select count(*)::int as bot_keys_in_record,
+              count(*) filter (where others is not null)::int as with_sibling_key,
+              (select json_agg(d) from (select * from dup where others is not null limit 20) d) as sample
+       from dup`,
+    );
     return {
       clan_tag: clanTag,
       from,
@@ -282,7 +310,7 @@ export async function seriesCensus(databaseUrl, spec = {}) {
       clan,
       members,
       sundays,
-      rollup,
+      rollup: { ...rollup, ...rollupDup },
     };
   } finally {
     await db.end();
@@ -291,13 +319,16 @@ export async function seriesCensus(databaseUrl, spec = {}) {
 
 async function commit(db, started) {
   const { projectClanSeries } = await import("../../ingest/src/series.mjs");
+  const { crTimeToIso } = await import("../../ingest/src/battle-time.mjs");
   const out = {
     days: 0,
     clan_rows: 0,
     member_rows: 0,
     pre_reset_rows: 0,
     members_skipped_overlap: 0,
+    roster_columns_filled: 0,
     rollup_keys_added: 0,
+    rollup_duplicates_removed: 0,
   };
   const { rows: days } = await db.query(
     `select day::text as day, fetched_at, sunday, has_clan_row,
@@ -356,6 +387,42 @@ async function commit(db, started) {
       // null (absence over a guess) and the pre_reset row carries them.
       const newMembers = members.filter((m) => !m.has_daily);
       out.members_skipped_overlap += members.length - newMembers.length;
+      // The rows the profile wrote and the roster never did (Phase 3
+      // verification, item 3): the roster's OWN columns only - clan_tag,
+      // clan_rank, game_last_seen_at, roster_observed_at - where the
+      // roster stamp is null; never a shared column, so the bot's
+      // approximated instant cannot replace a real observation; source
+      // stays the row's origin (the NOTES entry names the columns').
+      const { rows: rosterless } = await db.query(
+        `select b.player_tag, b.clan_rank, b.last_seen
+           from staging.bot_member_day b
+           join player_snapshot_daily s
+             on s.player_tag = b.player_tag and s.snapshot_date = b.day and s.snapshot_kind = 'daily'
+          where b.day = $1::date and s.roster_observed_at is null
+          order by b.player_tag`,
+        [d.day],
+      );
+      if (rosterless.length) {
+        const { rowCount } = await db.query(
+          `update player_snapshot_daily s
+              set clan_tag = $1, clan_rank = t.rank, game_last_seen_at = t.seen::timestamptz,
+                  roster_observed_at = $3::timestamptz
+             from unnest($4::text[], $5::int[], $6::text[]) as t(tag, rank, seen)
+            where s.player_tag = t.tag and s.snapshot_date = $2::date and s.snapshot_kind = 'daily'
+              and s.roster_observed_at is null`,
+          [
+            CLAN,
+            d.day,
+            observedAt,
+            rosterless.map((m) => m.player_tag),
+            rosterless.map((m) => m.clan_rank),
+            rosterless.map((m) =>
+              m.last_seen ? crTimeToIso(m.last_seen) : null,
+            ),
+          ],
+        );
+        out.roster_columns_filled += rowCount;
+      }
       const writeClanRow = d.has_clan_row && !recorderHasClanRow;
       if (writeClanRow || newMembers.length) {
         const r = await projectClanSeries(db, {
@@ -416,9 +483,32 @@ async function commit(db, started) {
         trophy_delta, battles_captured)
      select player_tag, day, mode_group, game_mode_id, wins, losses, draws, crowns_for, crowns_against,
             trophy_delta, battles_captured
-     from staging.bot_rollup
+     from staging.bot_rollup b
+     -- Never a key the record already holds under another mode group or
+     -- under the real game mode where the bot folded to 0: the bot has
+     -- no challenge group, so its challenge battles arrive as casual and
+     -- would be summed twice (Phase 3 verification).
+     where not exists (select 1 from player_daily_battle_rollup o
+                        where o.player_tag = b.player_tag and o.day = b.day
+                          and (o.mode_group, o.game_mode_id) <> (b.mode_group, b.game_mode_id)
+                          and (o.game_mode_id = b.game_mode_id
+                               or (b.game_mode_id = 0 and o.game_mode_id <> 0)))
      on conflict (player_tag, day, mode_group, game_mode_id) do nothing`,
   );
   out.rollup_keys_added = rowCount;
+  // And take back any bot key that is the record's own battles under
+  // another mode group or game mode 0 (the double-count check).
+  const { rowCount: removed } = await db.query(
+    `delete from player_daily_battle_rollup r
+      using staging.bot_rollup b
+      where r.player_tag = b.player_tag and r.day = b.day and r.mode_group = b.mode_group
+        and r.game_mode_id = b.game_mode_id
+        and exists (select 1 from player_daily_battle_rollup o
+                     where o.player_tag = r.player_tag and o.day = r.day
+                       and (o.mode_group, o.game_mode_id) <> (r.mode_group, r.game_mode_id)
+                       and (o.game_mode_id = r.game_mode_id
+                            or (r.game_mode_id = 0 and o.game_mode_id <> 0)))`,
+  );
+  out.rollup_duplicates_removed = removed;
   return { ...out, ms: Date.now() - started };
 }

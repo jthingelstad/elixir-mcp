@@ -230,18 +230,52 @@ test("stage, census, commit: only what the record lacks lands, with source elixi
       trophy_delta: 0,
       battles_captured: 1,
     },
+    // The bot has no challenge group: its challenge battles come folded
+    // onto casual, and the record holds the same battles under challenge.
+    {
+      player_tag: A,
+      day: "2026-03-13",
+      mode_group: "casual",
+      game_mode_id: 72000010,
+      wins: 1,
+      losses: 1,
+      draws: 0,
+      crowns_for: 3,
+      crowns_against: 3,
+      trophy_delta: 0,
+      battles_captured: 2,
+    },
   ];
   await db.query(
     `insert into player_daily_battle_rollup (player_tag, day, mode_group, game_mode_id, wins, losses, draws, battles_captured)
-     values ($1, '2026-03-14', 'casual', 0, 1, 0, 0, 1)`,
+     values ($1, '2026-03-14', 'casual', 0, 1, 0, 0, 1),
+            ($1, '2026-03-13', 'challenge', 72000010, 1, 1, 0, 2)`,
     [A],
   );
 
+  // D: a profile-written row on 03-13 the roster never touched; the bot
+  // names D in that day's roster. Only the roster's own columns land.
+  const D = "#2PP0V9JP";
+  await db.query(`insert into player (player_tag) values ($1)`, [D]);
+  await db.query(
+    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, observed_at, profile_observed_at, trophies, wins)
+     values ($1, '2026-03-13', 'daily', '2026-03-13T15:00:00Z', '2026-03-13T15:00:00Z', 5500, 42)`,
+    [D],
+  );
+  entries[0].payload.memberList.push({
+    tag: D,
+    trophies: 5400,
+    donations: 9,
+    donationsReceived: 0,
+    clanRank: 3,
+    lastSeen: "20260313T210000.000Z",
+  });
+  entries[0].payload.members = 3;
   const staged = await seriesImport(DB_URL, { stage: { entries, rollups } });
   assert.deepEqual(staged.staged, {
     clan_days: 3,
-    member_rows: 6,
-    rollups: 2,
+    member_rows: 7,
+    rollups: 3,
     days: 3,
   });
 
@@ -263,6 +297,7 @@ test("stage, census, commit: only what the record lacks lands, with source elixi
   assert.equal(census.clan.clan_score_disagree, 0);
   assert.equal(census.members.only_bot, 3, "A and B on 03-13, C on 03-15");
   assert.equal(census.members.both, 3);
+  assert.equal(census.members.profile_row_without_roster, 1, "D on 03-13");
   assert.equal(census.members.metrics.trophies_equal, 2);
   assert.equal(
     census.members.metrics.trophies_residual,
@@ -279,22 +314,66 @@ test("stage, census, commit: only what the record lacks lands, with source elixi
   );
   assert.equal(census.sundays.recorder_window_missed, 1, "C");
   assert.deepEqual(census.rollup, {
-    bot_keys: 2,
-    absent: 1,
+    bot_keys: 3,
+    absent: 2,
     present_equal: 1,
     present_different: 0,
     bot_more_battles: 0,
     recorder_more_battles: 0,
-    absent_battles: 3,
+    absent_battles: 5,
+    bot_keys_in_record: 1,
+    with_sibling_key: 0,
+    sample: null,
   });
 
   const committed = await seriesImport(DB_URL, { commit: true });
   assert.equal(committed.days, 3);
   assert.equal(committed.clan_rows, 1, "03-13 only");
   assert.equal(committed.member_rows, 3, "A and B on 03-13, C on 03-15");
-  assert.equal(committed.members_skipped_overlap, 3);
+  assert.equal(committed.members_skipped_overlap, 4);
   assert.equal(committed.pre_reset_rows, 1, "C's Sunday MAX");
-  assert.equal(committed.rollup_keys_added, 1);
+  assert.equal(
+    committed.rollup_keys_added,
+    1,
+    "the ladder key; the folded challenge key is the record's own battles and never lands",
+  );
+  assert.equal(committed.rollup_duplicates_removed, 0);
+  assert.equal(committed.roster_columns_filled, 1, "D's roster columns");
+  const {
+    rows: [rk],
+  } = await db.query(
+    `select count(*)::int as n from player_daily_battle_rollup where player_tag = $1 and day = '2026-03-13'`,
+    [A],
+  );
+  assert.equal(
+    rk.n,
+    2,
+    "ladder (added) and challenge (the record's); no casual twin",
+  );
+  const {
+    rows: [dRow],
+  } = await db.query(
+    `select trophies, wins, clan_tag, clan_rank, game_last_seen_at, roster_observed_at, source
+       from player_snapshot_daily where player_tag = $1 and snapshot_date = '2026-03-13' and snapshot_kind = 'daily'`,
+    [D],
+  );
+  assert.equal(
+    dRow.trophies,
+    5500,
+    "the profile's trophies stand: never a shared column",
+  );
+  assert.equal(dRow.wins, 42);
+  assert.equal(dRow.clan_tag, CLAN);
+  assert.equal(dRow.clan_rank, 3);
+  assert.equal(
+    dRow.game_last_seen_at.toISOString(),
+    "2026-03-13T21:00:00.000Z",
+  );
+  assert.equal(
+    dRow.roster_observed_at.toISOString(),
+    "2026-03-14T04:50:00.000Z",
+  );
+  assert.equal(dRow.source, "api", "the row's origin stays");
 
   const { rows: clanRows } = await db.query(
     `select day::text as day, source, clan_score from clan_snapshot_daily where clan_tag = $1 and snapshot_kind = 'daily' order by day`,
