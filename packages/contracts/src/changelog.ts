@@ -16,6 +16,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.14.0",
+    date: "2026-09-19",
+    summary:
+      "The fourteen verified defects of the interface review (docs/reviews/2026-09-19-INTERFACE-REVIEW.md), Phase 1. war_history with season_id and section_index answers the whole week's roster (up to 60 member_weeks) in one pass instead of timing out the Lambda; it is under the analytical query budget, and every read-only tool now races the Lambda's own deadline, so a call that would have died as a bare HTTP 500 answers query_timeout with meta.request_id and an audit row. Additive.",
+  },
+  {
     version: "3.13.0",
     date: "2026-09-18",
     summary:

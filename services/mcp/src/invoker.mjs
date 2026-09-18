@@ -9,6 +9,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { responseMeta } from "@elixir-mcp/contracts";
+import { TOOL_GROUPS } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
 import { pendingHints } from "./tools/shared.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./protocol.mjs";
@@ -185,6 +186,17 @@ export function onBehalfOfOf(args) {
 /** work_mem for one budgeted analytical query (see timedDb). */
 const BUDGET_WORK_MEM = "32MB";
 
+/** The tools whose reads earn the analytical budget: corpus-wide
+ *  aggregations and the two clan reads whose 14-day p95 exceeded 5 s
+ *  (war_history's exact-week roster path timed out the Lambda,
+ *  review 2026-09-19 defect 1). */
+const BUDGETED_TOOLS = new Set([
+  "battles_meta_decks",
+  "battles_meta_cards",
+  "clans_standings",
+  "war_history",
+]);
+
 export function timedDb(db, t, budget = null) {
   return new Proxy(db, {
     get(target, prop) {
@@ -203,14 +215,18 @@ export function timedDb(db, t, budget = null) {
                 "select current_setting('statement_timeout') as timeout, current_setting('work_mem') as work_mem",
               );
               budget.previousTimeout = rows[0].timeout;
-              budget.previousWorkMem = rows[0].work_mem;
               // A budgeted analytical call may sort a whole window's
               // (deck, player) pairs; at the server's 4 MB that spilled to
               // temp files (explain_meta, 2026-09-15). One such call at a
-              // time per connection; restored with the timeout.
-              await target.query("select set_config('work_mem', $1, false)", [
-                BUDGET_WORK_MEM,
-              ]);
+              // time per connection; restored with the timeout. A tool
+              // under the Lambda deadline alone keeps the server's
+              // work_mem.
+              if (budget.workMem) {
+                budget.previousWorkMem = rows[0].work_mem;
+                await target.query("select set_config('work_mem', $1, false)", [
+                  BUDGET_WORK_MEM,
+                ]);
+              }
             }
             // Cancel in PostgreSQL, not just the client's promise: abandoned
             // work would keep competing with the next caller after Lambda dies.
@@ -321,6 +337,11 @@ export function makeInvoker({
   emitMetrics = null,
   /** MCP's heavy reads leave time for a structured reply, capture and audit. */
   queryBudgetMs = null,
+  /** Lambda's remaining time less the reply margin: every read-only tool
+   *  races this and answers query_timeout instead of dying as a bare
+   *  HTTP 500 with no request id and no audit row (review 2026-09-19,
+   *  Part 7.1). null = no deadline (tests, the web explorer). */
+  deadlineMs = null,
 }) {
   const principalKind = account.kind ?? "person";
   return async function invokeTool(name, args, { finalizeMeta = null } = {}) {
@@ -355,14 +376,33 @@ export function makeInvoker({
     // the try/catch; everything that records it runs in the finally, so
     // capture and audit are behind the answer, never in front of it.
     let outcome;
-    // These are read-only aggregations, never a partly applied account write.
+    // These are read-only aggregations, never a partly applied account write:
+    // the analytical budget (statement_timeout + work_mem) is theirs, and
+    // the Lambda deadline covers every other read-only tool. A write is
+    // never cancelled: nothing here races it, so a retry after a
+    // query_timeout cannot double-apply it.
+    const analytical = BUDGETED_TOOLS.has(name);
+    const readOnly = TOOL_GROUPS[name]?.readOnly ?? true;
+    const budgetMs = analytical
+      ? queryBudgetMs === null
+        ? deadlineMs
+        : deadlineMs === null
+          ? queryBudgetMs
+          : Math.min(queryBudgetMs, deadlineMs)
+      : readOnly
+        ? deadlineMs
+        : null;
     const budget =
-      queryBudgetMs !== null &&
-      ["battles_meta_decks", "battles_meta_cards", "clans_standings"].includes(
-        name,
-      )
+      budgetMs !== null
         ? {
-            deadline: performance.now() + queryBudgetMs,
+            deadline: performance.now() + budgetMs,
+            // The audit row says which guard fired: the tool's own
+            // analytical budget, or the Lambda's deadline.
+            auditCode:
+              analytical && (deadlineMs === null || queryBudgetMs <= deadlineMs)
+                ? "query_timeout"
+                : "timeout",
+            workMem: analytical,
             previousTimeout: null,
             previousWorkMem: null,
             failure: () =>
@@ -390,17 +430,48 @@ export function makeInvoker({
         budget.previousTimeout = null;
       }
     };
+    // The race: the tool against its deadline. A tool that is past it
+    // (a live-lane wait, a slow query the statement_timeout has not yet
+    // cancelled) is abandoned here and answered; its next database call
+    // throws on the same deadline, so the abandoned promise settles
+    // quickly and quietly.
+    let deadlineTimer = null;
+    const raced = budget
+      ? Promise.race([
+          registry
+            .invoke(
+              name,
+              {
+                db: timedDb(db, timings, budget),
+                account,
+                live: live ? timedLive(live, timings) : null,
+                notifyOwner,
+              },
+              args,
+            )
+            .catch((err) => {
+              if (performance.now() >= budget.deadline) throw budget.failure();
+              throw err;
+            }),
+          new Promise((_, reject) => {
+            deadlineTimer = setTimeout(
+              () => reject(budget.failure()),
+              Math.max(1, Math.ceil(budget.deadline - performance.now())),
+            );
+          }),
+        ])
+      : registry.invoke(
+          name,
+          {
+            db: timedDb(db, timings, budget),
+            account,
+            live: live ? timedLive(live, timings) : null,
+            notifyOwner,
+          },
+          args,
+        );
     try {
-      const body = await registry.invoke(
-        name,
-        {
-          db: timedDb(db, timings, budget),
-          account,
-          live: live ? timedLive(live, timings) : null,
-          notifyOwner,
-        },
-        args,
-      );
+      const body = await raced;
       await restoreTimeout();
       // The two pending hints ride EVERY response (review 4.1): they used
       // to ride only the tools that built a full envelope, so the consumer
@@ -436,7 +507,10 @@ export function makeInvoker({
             }),
           },
           isError: true,
-          errorCode: err.code,
+          errorCode:
+            err.code === "query_timeout" && budget
+              ? budget.auditCode
+              : err.code,
         };
       } else {
         // Opaque to the caller, never opaque to the operator: the audit row
@@ -467,6 +541,10 @@ export function makeInvoker({
         };
       }
     } finally {
+      if (deadlineTimer) clearTimeout(deadlineTimer);
+      // The abandoned side of the race, if any, must not surface as an
+      // unhandled rejection after the answer has gone out.
+      raced.catch(() => {});
       await restoreTimeout().catch((err) =>
         console.error("query_timeout_restore_failed", name, err?.message),
       );

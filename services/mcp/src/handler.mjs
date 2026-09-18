@@ -451,6 +451,13 @@ export function makeHandler({
               (context?.getRemainingTimeInMillis?.() ?? 25_000) - 6_500,
             ),
           ),
+          // Every read-only tool answers before Lambda kills the sandbox:
+          // the remaining time less what a structured reply, capture and
+          // audit need (review 2026-09-19, Part 7.1).
+          deadlineMs: Math.max(
+            1,
+            (context?.getRemainingTimeInMillis?.() ?? 25_000) - 1_500,
+          ),
         }),
       });
       return {

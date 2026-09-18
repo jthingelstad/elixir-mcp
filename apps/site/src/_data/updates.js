@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-19",
+    title: "Fourteen statements the code contradicted, fixed",
+    body: "A review of the interface after the record redesign found fourteen places where a description, a note or a docs sentence said one thing and the wire did another, and this release fixes every one without changing a name. A closed war week's whole roster (war_history with season_id and section_index) used to time out for a full clan and reach the client as a bare HTTP 500; it now answers in one pass, and every read is raced against the server's own deadline so a slow call answers query_timeout with a request id instead of dying silently. Contract 3.14.0.",
+  },
+  {
     date: "2026-09-18",
     title: "Every aggregate ships the control next to the number",
     body: "An agent reading this service reached six wrong conclusions from correct data in one session, and each time the payload had withheld the fact that made its number interpretable: it moved a war-only deck to Trophy Road because its 79% beat a ladder deck's 42% (war matchmaking had handed it opponents 1.6 levels down), called a falling monthly pilot score a decline across an arena change, built a coaching note on absolute leaked elixir, read net trophies as symmetric for a player standing on a trophy floor where losses cost nothing, and anchored a weekly trend on a bucket the window had clipped. battles_decks and battles_cards now carry each row's battles by mode group and its mean level gap against the opposing side, and say in a note when the rows are not comparable. battles_levels monthly points carry the arena, the mean starting trophies and the gap they were scored in, warn when the population moved between two points, and take arena_id to hold it fixed. battles_performance names the trophy floor a player stood on and marks partial weekly buckets with the span they hold. battles_query carries the opponent's leaked elixir and the differential beside yours, with the caveat that neither measures skill. A server failure is now the error code internal rather than bad_request, an oversized page says which limit would have fit, and battles_opponents answers windowed calls again. Contract 3.13.0.",

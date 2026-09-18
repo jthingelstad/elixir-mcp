@@ -136,6 +136,100 @@ test("the analytical budget never interrupts an account mutation", async () => {
   assert.ok(statements.every((sql) => !sql.includes("statement_timeout")));
 });
 
+test("the Lambda deadline answers a slow read tool with query_timeout and audits it as timeout", async () => {
+  const invoke = makeInvoker({
+    db,
+    account,
+    deadlineMs: 150,
+    registry: {
+      invoke: async (_name, ctx) => {
+        await ctx.db.query("select pg_sleep(1)");
+        return { ok: true };
+      },
+    },
+  });
+  const start = Date.now();
+  // Not an analytical tool: before 3.14.0 nothing cancelled it and the
+  // client saw a bare HTTP 500 (review 2026-09-19, defect 1).
+  const result = await invoke("war_current", {});
+  assert.equal(result.isError, true);
+  assert.equal(result.body.error.code, "query_timeout");
+  assert.ok(result.body.meta.request_id);
+  assert.ok(Date.now() - start < 900, "cancelled in PostgreSQL, not abandoned");
+  const { rows } = await db.query(
+    "select request_id, error_code from mcp_call_audit order by created_at desc limit 1",
+  );
+  assert.equal(rows[0].error_code, "timeout");
+  assert.equal(rows[0].request_id, result.body.meta.request_id);
+  assert.equal(
+    (await db.query("show statement_timeout")).rows[0].statement_timeout,
+    "0",
+  );
+  assert.equal((await db.query("select 1 as n")).rows[0].n, 1);
+});
+
+test("the deadline covers work outside the database, such as a live-lane wait", async () => {
+  const invoke = makeInvoker({
+    db,
+    account,
+    deadlineMs: 100,
+    registry: {
+      invoke: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        return { ok: true };
+      },
+    },
+  });
+  const start = Date.now();
+  const result = await invoke("clans_roster", { live: true });
+  assert.equal(result.body.error.code, "query_timeout");
+  assert.ok(Date.now() - start < 500);
+  const { rows } = await db.query(
+    "select error_code from mcp_call_audit order by created_at desc limit 1",
+  );
+  assert.equal(rows[0].error_code, "timeout");
+});
+
+test("the deadline never races an account write", async () => {
+  const invoke = makeInvoker({
+    db,
+    account,
+    deadlineMs: 50,
+    registry: {
+      invoke: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return { ok: true };
+      },
+    },
+  });
+  const result = await invoke("elixir_nickname", {});
+  assert.equal(result.isError, false);
+});
+
+test("an analytical tool under both guards audits the one that fired", async () => {
+  const invoke = makeInvoker({
+    db,
+    account,
+    queryBudgetMs: 5000,
+    deadlineMs: 120,
+    registry: {
+      invoke: async (_name, ctx) => {
+        await ctx.db.query("select pg_sleep(1)");
+        return { ok: true };
+      },
+    },
+  });
+  const result = await invoke("war_history", {
+    season_id: 1,
+    section_index: 0,
+  });
+  assert.equal(result.body.error.code, "query_timeout");
+  const { rows } = await db.query(
+    "select error_code from mcp_call_audit order by created_at desc limit 1",
+  );
+  assert.equal(rows[0].error_code, "timeout");
+});
+
 test("the real MCP handler shortens the budget to leave Lambda reply time", async () => {
   const key = "svt_query_budget_fixture";
   await db.query(

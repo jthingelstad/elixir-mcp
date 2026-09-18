@@ -255,6 +255,79 @@ test("war_history: ranks per week and one member focus with attendance", async (
   );
 });
 
+test("war_history exact week: a 50-participant roster answers in one pass, attendance from both sources (defect 1, 2026-09-19)", async () => {
+  // Season 132 section 3 is the fixture's oldest week and no other test
+  // touches it. Fifty synthetic participants: the first ten battled on
+  // day 2 by a decksUsedToday poll, the next ten by a recorded war battle
+  // on day 3, one did both, the rest have no observed day.
+  const season = 132;
+  const section = 3;
+  // Tags are CR tags: the alphabet is 0289PYLQGRJCUV.
+  const alphabet = "0289PYLQGR";
+  const tags = Array.from(
+    { length: 50 },
+    (_, i) => `#YV${alphabet[Math.floor(i / 10)]}${alphabet[i % 10]}Y`,
+  );
+  assert.equal(new Set(tags).size, 50);
+  for (const tag of tags) {
+    await db.query(
+      "insert into player (player_tag, name) values ($1, $2) on conflict do nothing",
+      [tag, `Fifty ${tag.slice(-2)}`],
+    );
+    await db.query(
+      `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used)
+       values ($1, $2, $3, $4, $5, 4) on conflict do nothing`,
+      [CLAN, season, section, tag, 100000 + tags.indexOf(tag)],
+    );
+  }
+  for (const tag of tags.slice(0, 10))
+    await db.query(
+      `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+       values ($1, $2, $3, 2, $4, 4)`,
+      [CLAN, season, section, tag],
+    );
+  const {
+    rows: [day3],
+  } = await db.query(
+    `select starts_at from war_period where war_season_id = $1 and section_index = $2 and war_day = 3`,
+    [season, section],
+  );
+  const at = new Date(day3.starts_at.getTime() + 3600_000);
+  for (const tag of [...tags.slice(10, 20), tags[0]]) {
+    const id = `fifty-${tag.slice(1)}`;
+    await db.query(
+      "insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, 'riverRacePvP', 'pvp')",
+      [id, at],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag, type, type_class)
+       values ($1, $2, $3, 0, $4, 'riverRacePvP', 'pvp')`,
+      [id, tag, at, CLAN],
+    );
+  }
+  const started = Date.now();
+  const { body, isError } = await call(invoke, "war_history", {
+    season_id: season,
+    section_index: section,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.ok(Date.now() - started < 5000, "well inside the query budget");
+  const mine = body.member_weeks.filter((w) => tags.includes(w.player_tag));
+  assert.equal(mine.length, 50, "every participant, not the old 40-row cap");
+  assert.ok(body.member_weeks.length <= 60, "the exact-week cap is 60");
+  const byTag = new Map(mine.map((w) => [w.player_tag, w]));
+  assert.deepEqual(byTag.get(tags[0]).war_days, [2, 3], "poll AND battle");
+  assert.equal(byTag.get(tags[0]).war_days_battled, 2);
+  assert.deepEqual(byTag.get(tags[5]).war_days, [2], "poll only");
+  assert.deepEqual(byTag.get(tags[15]).war_days, [3], "battle only");
+  assert.equal(byTag.get(tags[40]).war_days_battled, 0, "covered week, no day");
+  assert.deepEqual(byTag.get(tags[40]).war_days, []);
+  assert.ok(
+    mine.every((w) => w.war_days_battled !== null),
+    "a covered week is never null",
+  );
+});
+
 test("battles_compare: two clanmates side by side", async () => {
   const roster = await fixture("clan/roster.json");
   const { body, isError } = await call(invoke, "battles_compare", {

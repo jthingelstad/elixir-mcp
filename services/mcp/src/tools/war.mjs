@@ -610,42 +610,67 @@ export const warTools = {
         // war_days_battled unions TWO observation sources — decksUsedToday
         // polls AND the member's own recorded war battles, the latter
         // resolved by the calendar (0105). Null when the week has NO
-        // coverage from either source.
+        // coverage from either source. One pass: the week's battles are
+        // scanned once per week and grouped by player, then joined to the
+        // participants; two correlated subqueries per row ran the week
+        // scan twice per participant and a 46-member exact week timed
+        // out the Lambda (review 2026-09-19, defect 1).
         const weekBattles = warBattlesSql({
-          clan: "wp.clan_tag",
-          season: "wp.season_id",
-          section: "wp.section_index",
+          clan: "$1",
+          season: "k.season_id",
+          section: "k.section_index",
           types: "$6",
         });
-        const daysBattled = `select ad.war_day from war_attendance_day ad
-                               where ad.clan_tag = wp.clan_tag and ad.season_id = wp.season_id
-                                 and ad.section_index = wp.section_index and ad.player_tag = wp.player_tag
-                                 and ad.decks_used_today > 0
-                               union
-                               select wb.war_day from (${weekBattles}) wb
-                               where wb.player_tag = wp.player_tag`;
         const { rows } = await ctx.db.query(
-          `select wp.player_tag, p.name, wp.season_id, wp.section_index,
+          `with wp as (
+             select wp.player_tag, wp.season_id, wp.section_index,
+                    wp.points, wp.decks_used, wp.boat_attacks
+             from war_participation wp
+             where wp.clan_tag = $1
+               and ($2::text is null or wp.player_tag = $2)
+               and (($4::integer is not null
+                     and wp.season_id = $4 and wp.section_index = $5)
+                    or ($4::integer is null and wp.season_id > coalesce(
+                      (select max(season_id) from war_week where clan_tag = $1), 0) - $3))),
+           k as (select distinct season_id, section_index from wp),
+           att as (
+             select ad.season_id, ad.section_index, ad.player_tag, ad.war_day::int as war_day,
+                    ad.decks_used_today > 0 as battled
+             from war_attendance_day ad
+             join k on k.season_id = ad.season_id and k.section_index = ad.section_index
+             where ad.clan_tag = $1),
+           fought as (
+             select k.season_id, k.section_index, wb.player_tag, wb.war_day::int as war_day
+             from k cross join lateral (${weekBattles}) wb),
+           covered as (
+             select season_id, section_index from att
+             union
+             select season_id, section_index from fought),
+           days as (
+             select season_id, section_index, player_tag, war_day from att where battled
+             union
+             select season_id, section_index, player_tag, war_day from fought),
+           per_player as (
+             select season_id, section_index, player_tag,
+                    count(distinct war_day)::int as war_days_battled,
+                    array_agg(distinct war_day order by war_day) as war_days
+             from days
+             group by season_id, section_index, player_tag)
+           select wp.player_tag, p.name, wp.season_id, wp.section_index,
                   wp.points, wp.decks_used, wp.boat_attacks,
-                  case when exists (select 1 from war_attendance_day cov
-                                    where cov.clan_tag = wp.clan_tag
-                                      and cov.season_id = wp.season_id
-                                      and cov.section_index = wp.section_index)
-                         or exists (select 1 from (${weekBattles}) wbc)
-                       then (select count(distinct d.war_day)::int from (${daysBattled}) d)
-                       end as war_days_battled,
-                  (select array_agg(distinct d.war_day order by d.war_day) from (${daysBattled}) d) as war_days
-           from war_participation wp
+                  case when cov.season_id is not null
+                       then coalesce(pp.war_days_battled, 0) end as war_days_battled,
+                  case when cov.season_id is not null
+                       then coalesce(pp.war_days, '{}'::int[]) end as war_days
+           from wp
            left join player p on p.player_tag = wp.player_tag
-           where wp.clan_tag = $1
-             and ($2::text is null or wp.player_tag = $2)
-             and (($4::integer is not null
-                   and wp.season_id = $4 and wp.section_index = $5)
-                  or ($4::integer is null and wp.season_id > coalesce(
-                    (select max(season_id) from war_week where clan_tag = $1), 0) - $3))
+           left join per_player pp on pp.season_id = wp.season_id
+             and pp.section_index = wp.section_index and pp.player_tag = wp.player_tag
+           left join covered cov on cov.season_id = wp.season_id
+             and cov.section_index = wp.section_index
            order by wp.season_id desc, wp.section_index desc, wp.points desc,
                     p.name nulls last
-           ${hasSeason ? "" : "limit 40"}`,
+           limit ${hasSeason ? 60 : 40}`,
           [
             clanTag,
             focus,
