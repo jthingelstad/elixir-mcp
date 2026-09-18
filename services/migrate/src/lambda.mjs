@@ -61,6 +61,7 @@ import {
   feedbackRead,
   feedbackRespond,
 } from "./ops-feedback.mjs";
+import { seriesImport, seriesCensus } from "./ops-bot-import.mjs";
 import {
   snapshotDayCensus,
   snapshotRekey,
@@ -347,6 +348,22 @@ export async function handler(event) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
       event.series_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.series_import) {
+    const result = await seriesImport(
+      process.env.DATABASE_URL,
+      event.series_import,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.series_census) {
+    const result = await seriesCensus(
+      process.env.DATABASE_URL,
+      event.series_census === true ? {} : event.series_census,
     );
     console.log(JSON.stringify(result));
     return result;

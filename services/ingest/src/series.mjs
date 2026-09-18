@@ -74,6 +74,10 @@ export async function projectClanSeries(
     source = "api",
     kind = "daily",
     moments = true,
+    // false when the day's clan row is the recorder's own and only the
+    // members named in the payload are to be written (the elixir-bot
+    // import's non-overlap rule, review 6.1).
+    clanRow: writeClanRow = true,
   },
 ) {
   const clanTag = normalizeTag(payload.tag);
@@ -107,8 +111,10 @@ export async function projectClanSeries(
   );
   facts += clanState;
 
-  const { rowCount: clanRow } = await db.query(
-    `insert into clan_snapshot_daily
+  let clanRow = 0;
+  if (writeClanRow)
+    ({ rowCount: clanRow } = await db.query(
+      `insert into clan_snapshot_daily
        (clan_tag, day, snapshot_kind, observed_at, receipt_id, source,
         clan_score, clan_war_trophies, members, required_trophies, donations_per_week,
         type, location_id)
@@ -129,22 +135,22 @@ export async function projectClanSeries(
            (excluded.clan_score, excluded.clan_war_trophies, excluded.members,
             excluded.required_trophies, excluded.donations_per_week, excluded.type,
             excluded.location_id)`,
-    [
-      clanTag,
-      day,
-      kind,
-      observedAt,
-      receiptId,
-      source,
-      int(payload.clanScore),
-      int(payload.clanWarTrophies),
-      int(payload.members) ?? payload.memberList?.length ?? null,
-      int(payload.requiredTrophies),
-      int(payload.donationsPerWeek),
-      type,
-      locationId,
-    ],
-  );
+      [
+        clanTag,
+        day,
+        kind,
+        observedAt,
+        receiptId,
+        source,
+        int(payload.clanScore),
+        int(payload.clanWarTrophies),
+        int(payload.members) ?? payload.memberList?.length ?? null,
+        int(payload.requiredTrophies),
+        int(payload.donationsPerWeek),
+        type,
+        locationId,
+      ],
+    ));
   facts += clanRow;
 
   // The members' own rows: one unnest upsert in tag order (the lock
@@ -331,6 +337,8 @@ export async function projectClanSeries(
         receiptId,
         source,
         kind: extra,
+        moments,
+        clanRow: writeClanRow,
       });
       facts += extras[extra].facts;
     }
