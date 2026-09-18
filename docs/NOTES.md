@@ -3996,3 +3996,119 @@ Nothing pushed to `cr-agent-api-docs` (no API finding).
 
 **Phase 2 needs:** product call 2 only ("serve the collected record":
 recommend all of it). Nothing manual.
+
+## 2026-09-18 — Weekly email designed: five report kinds, cadence set (`docs/EMAIL.md`)
+
+**Decision (Jamie, in session; design only, nothing built):** the first
+product email is five weekly bulk kinds — `tracking_report` (Wed),
+`arena_week` (Tue), `clan_report` (Mon), `top_100` (Thu),
+`collector_activity` (Sun), all at 14:00Z, one Elixir mail per person per
+day at most. The four game reports share the game week (Mon 10:00Z →
+Mon 10:00Z) whichever day they send. Every kind is a switch on the account
+page, **all default ON** (the 0051 beta stance), each issue one-click
+unsubscribable. **Four are structured reports with no LLM**: elixir-bot's
+recap and Arena Dispatch narrate with a model and that per-user cost is
+why they are replaced, not carried (bring-your-own-key considered, not
+near-term). **Top 100 is the one LLM email**, content first, one issue for
+all, no approval gate — the beta users' feedback is the review; its
+multi-pass generation design comes separately. Buttondown stays as
+Jamie's announcement channel and carries none of the five. One Clan Report
+per tracked clan (no clan families yet). Arena skips a week with zero
+battles. Not treated as a marketing change on the SES filing.
+
+**Foundation before any kind:** the one-click unsubscribe endpoint (the
+validator refuses bulk mail without it), `account_email_pref`, the
+`email_issue` / `email_send` ledger with write-after-enqueue, a
+`packages/mail` renderer fed by the tool readers, jobs Lambda gains the
+email queue, five cron rules, `/docs/email`. Details in `docs/EMAIL.md`.
+
+## 2026-09-19 — Interface review, Phase 2: the record reaches the wire (contract 3.15.0)
+
+Phase 2 of `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (review
+Part 1.3), product call 2 answered yes to all of it (Jamie, 2026-09-18):
+every collected column an agent would ask about is served on the tool that
+owns the question, no migration. One minor, 3.14.0 → 3.15.0. Four commits
+`c60529b`, `8781034`, `fc27689`, `4f3a870`; deployed 15:58Z (exit 0, smoke
+green, migrations 134/0, `tools.json` at 3.15.0). Nothing left out.
+
+**Shipped.** (1, 8) `battles_query` rows carry `mode_group` (the
+contract's fold of `type`, `modeGroupOf` exported from `controls.mjs`) and
+at full verbosity `context {event_tag, tournament_tag, ladder_tournament,
+hosted, deck_selection}` and, on a `boatBattle` row, `boat {side,
+towers_before, towers_after, remaining}`; compact carries `deck_selection`
+at the top level (the one fact that changes what a deck row means). (2)
+`war_history` with `season_id` + `section_index` carries `days[]` from
+`war_period_log` (`warDaysLog`: one query, the war day from the policy
+grid, the name from the week's standings) and `standings[]` for the exact
+week; `war_current` carries `days_closed[]` in the same shape at full
+verbosity. (3) `clan_score` and `repair_points` on `war_current.standings[]`
+and the exact week's `standings[]`; `repair_points` per participant and
+per member week; `our_clan_score`/`our_repair_points` on `weeks[]`;
+`war_rivals` rows carry the latest observed `clan_score`. (4)
+`players_profile.snapshot.path_of_legend.seasons[]`, the last twelve finals
+from `player_pol_season`, newest first (`readRecordedProfile` aggregates
+them in the same query). (5) `war_day_wins`, `clan_cards_collected`,
+`legacy_trophy_road_high_score` on `players_profile.attributes` and
+`clans_roster.lifetime`. (6) `clans_roster` header `type`, `location_id`,
+`description` at both verbosities; `clans_timeline` metrics enum gains
+`type` and `location_id` as attributes asked for, never default (so
+compact's "five clan metrics" stays five). (7) `weeks[].closed_at` beside
+`finished`; `war_current.period.api_period_type` from `poll_state`. Docs:
+`battles.md` (the row's new objects; the war section's `closed_at`,
+`standings`, `days`, `days_closed`, `api_period_type`, and a "Clan score
+and repair points" paragraph), `recording.md` (the clan header, the
+counters, the PoL finals), glossary `clan_score`, `repair_points`,
+`deck_selection`; What's-new. Tests: `record-to-wire.test.mjs` (real
+fixtures through `processResult`: the boat log, the event/draft log, the
+profile), the war suite's new race-log test (`projectRaceSeries` on the
+war-day fixture), the output schemas validated on every call.
+
+**Live acceptance, read-only, 15:59Z.** `battles_query({mode: "war",
+limit: 6})` for King Thing: every row `mode_group: "war"`, `context` with
+`deck_selection: "collection"` on `riverRacePvP` and `"warDeckPick"` on
+the duel. `battles_query({player_tag: "#V8Q8PUL0U", game_mode: "boat",
+limit: 2})`: `boat {side: "attacker", towers_before: 0, towers_after: 3,
+remaining: 0}` on the 09-10 attack. `war_history({season_id: 136,
+section_index: 0, player_tag})`: `standings` five clans with `clan_score`
+1160/1167/1163/1163/1159, `closed_at` `2026-09-14T09:38:05Z`, `days`
+THREE entries (war days 1-3; POAP KINGS 3,000 progress a day to the
+10,000 line on day 3, defenses 15/14/13). `war_current()`: `days_closed`
+one entry (day 1), `clan_score` 1180/1177/1156/1156/1152, `repair_points`
+per participant, `period.api_period_type: "warDay"` beside `kind: "war"`.
+`players_profile({player_tag: "#VGC22YGP"})` (MONICA): `seasons` seven
+finals 2026-02 → 2026-08 (league 1,1,1,1,1,2,3; rank null throughout),
+`legacy_trophy_road_high_score` 5303. `clans_roster({verbosity:
+"compact"})`: `type: "inviteOnly"`, `location_id: 57000006`, the
+description text.
+
+**Finding for Keep the Record True (ingest, not this phase's to touch):
+the last war day of every week is never kept in `war_period_log`.**
+`projectPeriodLogs` (`ingest/src/war.mjs`) keeps only `periodLogs`
+entries whose `period_index / 7` equals the poll's own section, but a
+day's log appears only after the day closes, and day 4 closes as the
+section rolls, so its entry is first seen in the NEXT section's polls and
+skipped by the scope rule. The brief expected four days on S136 W0 and
+the record holds three; the war-day fixture (period 27) carries logs for
+periods 3-6 and 10-13 of earlier sections, which is exactly what the rule
+drops. The fix is the rule's: accept any entry whose section has a
+`war_week` row for the clan (fill-once already guards rewrites), and one
+`{series_backfill: {lane: "race", reset: true}}` re-walk fills the missing
+day-4 rows from the archive. Filed here, not applied.
+
+**Decisions taken inside the phase.** (a) `type`/`location_id` on
+`clans_timeline` are attributes to ask for, not defaults, so compact and
+the default metric set do not change shape. (b) `days_closed` is full
+verbosity only on `war_current` (the compact reader is the nudge list).
+(c) `war_rivals.clan_score` is the latest non-null observation across any
+recorded race, since the rival's own poll is not recorded. (d)
+`path_of_legend.seasons[]` is capped at twelve and rides `players_profile`
+rather than a new tool; the roll-hour standing stays on
+`players_timeline({kind: "season_roll"})`.
+
+**Consumers.** `clan.poapkings.com` `92b9b06`: scout reads `mode_group`
+first, its type fold as fallback; CI validate + deploy. No other consumer
+change required.
+
+**Phase 3 needs:** product calls 1 (trophy band on the meta tools) and 5
+(the agent door's segment default; recommend keep the rule + `segment:
+"mine"`). Nothing manual.
