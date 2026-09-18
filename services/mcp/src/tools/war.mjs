@@ -586,6 +586,17 @@ export const warTools = {
         );
       const exactSeason = hasSeason ? Number(args.season_id) : null;
       const exactSection = hasSection ? Number(args.section_index) : null;
+      // The recording horizon is the oldest week the record holds for the
+      // clan, whatever window was asked for: the window's own oldest row
+      // used to be reported as the horizon, so seasons:1 named the current
+      // season as the beginning of history (review 2026-09-19, defect 3).
+      const {
+        rows: [horizon],
+      } = await ctx.db.query(
+        `select season_id, section_index from war_week
+         where clan_tag = $1 order by season_id, section_index limit 1`,
+        [clanTag],
+      );
       const { rows: weeks } = await ctx.db.query(
         `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at,
                 own.fame as our_fame, own.rank as our_rank, own.trophy_change,
@@ -716,11 +727,11 @@ export const warTools = {
             : {}),
           trophy_change: w.trophy_change,
         })),
-        ...(!hasSeason && weeks.length > 0
+        ...(!hasSeason && horizon
           ? {
               history_starts_at: {
-                season_id: weeks[weeks.length - 1].season_id,
-                section_index: weeks[weeks.length - 1].section_index,
+                season_id: horizon.season_id,
+                section_index: horizon.section_index,
               },
             }
           : {}),

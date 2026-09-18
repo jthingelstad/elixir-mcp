@@ -918,6 +918,16 @@ test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 +
 test("war_history: finished_early flags 10000-fame regular weeks; horizon named", async () => {
   const { body } = await call(invoke, "war_history", { seasons: 12 });
   assert.ok(body.history_starts_at, "recording horizon is explicit");
+  // The horizon is the record's oldest week for the clan, not the
+  // requested window's oldest row (defect 3, 2026-09-19): the fixture
+  // holds seasons 132-134 and seasons:1 still names 132.
+  assert.deepEqual(body.history_starts_at, {
+    season_id: 132,
+    section_index: 3,
+  });
+  const one = (await call(invoke, "war_history", { seasons: 1 })).body;
+  assert.ok(one.weeks.every((w) => w.season_id === 134));
+  assert.deepEqual(one.history_starts_at, body.history_starts_at);
   const flagged = body.weeks.filter((w) => w.finished_early);
   const tenK = body.weeks.filter(
     (w) => w.our_fame === 10000 && !w.is_colosseum,

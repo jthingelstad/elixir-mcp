@@ -19,7 +19,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "3.14.0",
     date: "2026-09-19",
     summary:
-      "The fourteen verified defects of the interface review (docs/reviews/2026-09-19-INTERFACE-REVIEW.md), Phase 1. war_history with season_id and section_index answers the whole week's roster (up to 60 member_weeks) in one pass instead of timing out the Lambda; it is under the analytical query budget, and every read-only tool now races the Lambda's own deadline, so a call that would have died as a bare HTTP 500 answers query_timeout with meta.request_id and an audit row. war_current.next_war_day_opens_at (top level and in period) is the next war day to open after the current period on war days too, equal to game_clock's at the same instant; it was null on every war day. Additive.",
+      "The fourteen verified defects of the interface review (docs/reviews/2026-09-19-INTERFACE-REVIEW.md), Phase 1. war_history with season_id and section_index answers the whole week's roster (up to 60 member_weeks) in one pass instead of timing out the Lambda; it is under the analytical query budget, and every read-only tool now races the Lambda's own deadline, so a call that would have died as a bare HTTP 500 answers query_timeout with meta.request_id and an audit row. war_current.next_war_day_opens_at (top level and in period) is the next war day to open after the current period on war days too, equal to game_clock's at the same instant; it was null on every war day. war_history.history_starts_at is the oldest war week the record holds for the clan whatever window was asked for (it was the window's own oldest row). Additive.",
   },
   {
     version: "3.13.0",
