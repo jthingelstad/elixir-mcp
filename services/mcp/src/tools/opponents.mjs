@@ -62,8 +62,13 @@ export const opponentsTools = {
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
-      if (win.from) add("bp.battle_time >= ?", win.from);
-      if (win.to) add("bp.battle_time < ?", win.to);
+      // The participant's own battle_time (3.11.1: every window predicate
+      // reads it). The alias here is `me`, not `bp`: 3.11.1 wrote `bp.`
+      // and every WINDOWED call failed with a SQL error for a day
+      // (feedback #56, 2026-09-18) while the unbounded read still
+      // answered; the test now exercises a window.
+      if (win.from) add("me.battle_time >= ?", win.from);
+      if (win.to) add("me.battle_time < ?", win.to);
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
       requireEnum(args.sort, ["battles", "last_seen", "wins"], "sort");

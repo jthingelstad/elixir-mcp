@@ -1325,11 +1325,28 @@ test("battles_opponents groups by opponent: repeats, names, modes", async () => 
   }
   assert.ok(repeats.body.opponents.every((o) => o.name_known));
   assert.equal(repeats.body.matching_opponents, repeats.body.opponents.length);
+  // A WINDOWED read (feedback #56): 3.11.1 wrote the predicate on an
+  // alias the query did not have, so every days/from/to call failed
+  // with a SQL error the door reported as bad_request, and the inverted
+  // window below passed for the wrong reason.
+  const windowed = await call("battles_opponents", {
+    from: "2026-08-01",
+    to: "2026-09-10",
+    min_battles: 2,
+  });
+  assert.equal(windowed.isError, false, JSON.stringify(windowed.body));
+  assert.equal(windowed.body.opponents.length, repeats.body.opponents.length);
+  assert.equal(windowed.body.applied.window.source, "argument");
   const inverted = await call("battles_opponents", {
     from: "2026-09-05",
     to: "2026-09-01",
   });
   assert.equal(inverted.isError, true);
+  assert.equal(inverted.body.error.code, "bad_request");
+  assert.notEqual(
+    inverted.body.error.message,
+    "Tool battles_opponents failed unexpectedly.",
+  );
 });
 
 test("players_names resolves tags in bulk and lists the misses", async () => {
