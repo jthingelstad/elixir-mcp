@@ -222,6 +222,14 @@ does not control for opposition, mode, deck or spending. Missing tenure remains
 unknown. A rising score or percentile is a reason to investigate, not proof of
 improvement or spending independence.
 
+`clans_pilot_scores` (3.16.0) carries, per member, the population they were
+scored in: `mean_starting_trophies` and `modal_arena` over the window's
+scored battles, and `current_arena` from the latest snapshot. When a
+member's modal arena differs from their current one the first note names
+them: the score adjusts for card levels, not for the population an arena
+change moved them into, the same guard `battles_levels` puts on a monthly
+trend.
+
 ## Rival intelligence and coverage
 
 `war_rivals` aggregates recorded river-race observations: races seen, fame,

@@ -224,7 +224,15 @@ export const clansTools = {
                   round(avg((p.outcome = 'win')::int)::numeric, 3) as actual_win_rate,
                   round(avg(c.wr)::numeric, 3) as expected_from_levels,
                   round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score,
-                  round((0.5 / sqrt(greatest(count(p.*), 1)))::numeric, 3) as standard_error
+                  round((0.5 / sqrt(greatest(count(p.*), 1)))::numeric, 3) as standard_error,
+                  -- The population the member was scored in (3.16.0): the
+                  -- battles_levels trend guard lifted to a member row.
+                  round(avg(p.starting_trophies))::int as mean_starting_trophies,
+                  mode() within group (order by p.arena_id) as modal_arena_id,
+                  mode() within group (order by p.arena) as modal_arena,
+                  (select s.arena_id from player_snapshot_daily s
+                    where s.player_tag = cm.player_tag and s.arena_id is not null
+                    order by s.snapshot_date desc, s.snapshot_kind desc limit 1) as current_arena_id
            from clan_membership cm
            join player pl on pl.player_tag = cm.player_tag
            join lv_pairs p on p.player_tag = cm.player_tag
@@ -235,6 +243,16 @@ export const clansTools = {
            order by (avg((p.outcome = 'win')::int) - avg(c.wr)) desc`,
           [clanTag],
         );
+        const arenaIds = [
+          ...new Set(rows.map((r) => r.current_arena_id).filter(Boolean)),
+        ];
+        const { rows: arenaNames } = arenaIds.length
+          ? await ctx.db.query(
+              "select arena_id, name from arena where arena_id = any($1)",
+              [arenaIds],
+            )
+          : { rows: [] };
+        const arenaName = new Map(arenaNames.map((a) => [a.arena_id, a.name]));
         // Aggregate volume context only: identical counts do not identify
         // the observations or rates in a fitted curve.
         const { rows: basisRows } = await ctx.db.query(
@@ -273,11 +291,46 @@ export const clansTools = {
             expected_from_levels: Number(r.expected_from_levels),
             pilot_score: Number(r.pilot_score),
             standard_error: Number(r.standard_error),
+            mean_starting_trophies:
+              r.mean_starting_trophies === null
+                ? null
+                : Number(r.mean_starting_trophies),
+            modal_arena:
+              r.modal_arena_id === null && r.modal_arena === null
+                ? null
+                : { id: r.modal_arena_id, name: r.modal_arena },
+            current_arena:
+              r.current_arena_id === null
+                ? null
+                : {
+                    id: r.current_arena_id,
+                    name: arenaName.get(r.current_arena_id) ?? null,
+                  },
           })),
           methodology: PILOT_METHODOLOGY,
           notes: notes(
+            (() => {
+              const moved = rows.filter(
+                (r) =>
+                  r.modal_arena_id !== null &&
+                  r.current_arena_id !== null &&
+                  r.modal_arena_id !== r.current_arena_id,
+              );
+              return moved.length > 0
+                ? `${moved.length === 1 ? "One member was" : `${moved.length} members were`} scored mostly in an arena other than their current one (${moved
+                    .slice(0, 3)
+                    .map(
+                      (r) =>
+                        `${r.name ?? r.player_tag}: ${r.modal_arena} → ${arenaName.get(r.current_arena_id) ?? r.current_arena_id}`,
+                    )
+                    .join(
+                      "; ",
+                    )}${moved.length > 3 ? "; …" : ""}): the score adjusts for card levels, not for the population an arena change moved them into, so read mean_starting_trophies and modal_arena before calling a score a trend.`
+                : null;
+            })(),
             PILOT_NOTES,
             "basis counts describe the curve's volume only; unchanged counts do not identify an unchanged curve.",
+            "mean_starting_trophies and modal_arena say which population each member was scored in; current_arena is the latest snapshot's.",
           ),
           docs: PILOT_DOCS,
           meta: responseMeta({ as_of: asOf.toISOString() }),

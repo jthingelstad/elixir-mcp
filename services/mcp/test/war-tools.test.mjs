@@ -800,6 +800,45 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
     body.members.every((m) => typeof m.pilot_score === "number" && m.n >= 30),
   );
   assert.match(body.notes.join(" "), /descriptive in-sample residual/);
+  // The population each member was scored in (3.16.0): the seeded
+  // battles carry no trophies or arena, so both read null, and the
+  // arena-move note stays quiet; then one member is scored in the Pit
+  // while their current arena is the Tavern, and the note names them.
+  assert.ok(body.members.every((m) => "mean_starting_trophies" in m));
+  assert.ok(body.members.every((m) => m.modal_arena === null));
+  assert.ok(!body.notes.some((n) => /scored mostly in an arena/.test(n)));
+  await db.query(
+    "insert into arena (arena_id, name) values (54000142, 'Ultimate Clash Pit'), (54000143, 'Little Prince''s Tavern') on conflict do nothing",
+  );
+  await db.query(
+    `update battle set arena = 'Ultimate Clash Pit', arena_id = 54000142 where battle_id like 'cps-0-%'`,
+  );
+  await db.query(
+    `update battle_participant set starting_trophies = 12500 where battle_id like 'cps-0-%' and player_tag = $1`,
+    [members[0]],
+  );
+  await db.query(
+    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, trophies, arena_id, observed_at)
+     values ($1, current_date, 'daily', 13100, 54000143, now())
+     on conflict (player_tag, snapshot_date, snapshot_kind) do update set arena_id = 54000143`,
+    [members[0]],
+  );
+  const moved = (await call(invoke, "clans_pilot_scores", { days: 30 })).body;
+  const m0 = moved.members.find((m) => m.player_tag === members[0]);
+  assert.equal(m0.mean_starting_trophies, 12500);
+  assert.deepEqual(m0.modal_arena, {
+    id: 54000142,
+    name: "Ultimate Clash Pit",
+  });
+  assert.deepEqual(m0.current_arena, {
+    id: 54000143,
+    name: "Little Prince's Tavern",
+  });
+  assert.match(
+    moved.notes[0],
+    /scored mostly in an arena other than their current one/,
+  );
+  assert.match(moved.notes[0], /Ultimate Clash Pit → Little Prince's Tavern/);
 });
 
 test("clans_pilot_scores: basis says what the curve was fit on", async () => {
