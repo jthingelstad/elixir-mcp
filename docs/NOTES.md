@@ -3868,3 +3868,131 @@ window grammar, a named reader pointer on `elixir_timeline`, the agent
 door's segment default, `game_events` on the game day, the 4.0.0 batch
 and its window). Six phases in the brief, one per session, Jamie gates
 each. Nothing applied by the review.
+
+## 2026-09-19 — Interface review, Phase 1: the fourteen defects (contract 3.14.0)
+
+Phase 1 of `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md`: every
+statement the code contradicted, fixed; nothing else moved. One minor,
+3.13.0 → 3.14.0, carrying the patch-class description changes. Fifteen
+commits `2006774`..`6d07d19` plus `9b15543`, `0d190bd` (the census
+follow-up), one per item; deployed 15:16Z (exit 0, smoke green,
+migrations 134/0, `tools.json` at 3.14.0), the migrate bundle again at
+15:22Z and 15:25Z (`--skip-web`).
+
+**Shipped, in the brief's order.** (1) `war_history` with `season_id` +
+`section_index` answers the whole week's roster (cap 60) in ONE pass: a
+CTE scans the week's battles once (`warBattlesSql` per week, grouped by
+player) and joins the participants; the two correlated subqueries per
+row ran the scan twice per participant. `war_history` joins the
+analytical budget set, and the invoker now races EVERY read-only tool
+against Lambda's remaining time less 1,500 ms (`deadlineMs`, wired in
+`handler.mjs`): on the deadline the caller gets `query_timeout` with
+`meta.request_id`, the audit row says `error_code: 'timeout'` (the
+analytical budget's own firing stays `query_timeout`), the query is
+cancelled in PostgreSQL by the same `statement_timeout` mechanism, and
+the abandoned promise is caught. Writes are never raced (a cancelled
+write retried is a double write). (2) `war-period.mjs` computes
+`nextWarDayOpensMs` on war days too (tomorrow on days 1-3, after the
+next training block on day 4), the rule `game-clock.mjs` speaks; a test
+pins the two equal across a training day, war days 1, 2, 4 and a
+colosseum day 4. (3) `history_starts_at` reads the clan's oldest
+`war_week` regardless of window. (4) `battles_query` rows carry
+`arena_id` beside `arena`; `battles.md` says which is the name. (5) The
+instructions name all five `source` values; the test iterates the
+output schema's enum. (6) `clans_standings` ranked members carry
+`percentile`. (7) `players_profile.snapshot.lifetime` carries both
+spellings (`snapshotObjects` renders both; schema allows both; the
+camelCase set goes at 4.0.0). (8) `ToolFailure` gains `data`, rendered
+into the error body; `live_pending` carries `error.retry_after_s`;
+`protocol.md` says so. (9) The `members_seen` note says leavers' rows
+keep the tag, so the count can exceed `members`; `recording.md` has the
+paragraph. (10) `{lifetime_zero_census}` and `{lifetime_zero_repair}`
+(below). (11/13) `meta.completeness_note` fires: `coverage.mjs`
+`recentCompleteness` reads the two newest profile rows and the battles
+between them in one query; `buildMeta` sets the note on a player subject
+whose window ends inside the last seven days (`windowTo` passed by the
+windowed player tools) when the ratio is under 0.9, or unknown with a
+tail over 48 hours; `coverage.test.mjs` pins the three branches and the
+old-window silence. (12/14) `rankings_timeline` says "since the
+afternoon of 2026-09-11". (13/12) Six descriptions trimmed under 600
+(longest now 597, `war_current`); the conventions test asserts 600, not
+1,000; what moved is on the page each tool's pointer names
+(`recording#daily-series` gained the roster's `lifetime` keys).
+(14/11) `average_ratio` documented as the string it is until 4.0.0, in
+`responses.md` and the output schema.
+
+**Measured live, read-only, before (3.13.0) and after (3.14.0).**
+`war_history({season_id: 136, section_index: 0})` for POAP KINGS: the
+review's timeout is real (CloudWatch `REPORT … Duration: 25000.00 ms …
+Status: timeout` at 14:27:43Z, request `5a31b8f9`, the only timeout in
+the three hours around it), but the same call warm at 15:14Z answered in
+921 ms with 48 `member_weeks` (`f133a923`); on 3.14.0 the first call
+(cold, 15:16:49Z, `100decb7`) took 1,473 ms and returned the identical
+48 rows (the race roster has 48 participants, not the 55 the brief
+guessed). The deadline path was not provoked live; the four invoker
+tests pin it. `war_current` at 15:17Z (war day 2): `next_war_day_opens_at`
+`2026-09-19T10:00:00Z` at top level and in `period`, equal to
+`game_clock`'s (was `null`, `ed9e48b3`). `war_history({seasons: 1})`:
+`history_starts_at` `{129, 1}` (was `{136, 0}`). `battles_query({limit:
+1})`: `arena: "Ultimate Clash Pit", arena_id: 54000142`.
+`clans_standings({days: 7})`: 38 ranked, `percentile` 1 → 0.026.
+`players_profile()`: `lifetime.battle_count` = `battleCount` = 1942.
+`clans_timeline({days: 3, metrics: [members, members_seen]})`: 09-16 and
+09-17 read 46 vs 47 and the note says why. `retry_after_s`: the one
+unrecorded bracket rival (`#G2P0PPGQ`, "De stichting") turned out to
+hold a stale clan row from 09-08, so the live ask answered from the
+record with `live_status.retry_after_s: 15` rather than refusing; the
+refusal shape (`error.retry_after_s: 15`) is pinned by two unit tests,
+not observed live. `completeness_note`: no member checked carried it
+(King Thing, Aaqib Javed at 1,006 battles in 30 days, Vijay: newest
+interval ratio 1 each) and that is the rule working; the census names
+no gapped player, so the note's firing is pinned by `coverage.test.mjs`
+only. `tools.json` live: 55 tools, longest description 597.
+
+**The `collection_level` zeros (defect 10) were not what the review or
+the brief assumed.** `{lifetime_zero_census}` (read-only, 88 s): 1,499
+rows with `collection_level = 0` and a profile stamp (2026-07: 47,
+2026-08: 1,442, 2026-09: 10; every one `source: api`), every one with a
+receipt and an archived payload, and every payload carries
+`collectionLevel: 0` EXPLICITLY: none keyless, so the repair rule as
+written (null where the key is absent) would have nulled nothing. The
+census was extended to count explicit zeros by the gateway that admitted
+the receipt (`9b15543`): `backfill-elixir-bot` 1,489, `jamie-mac` 9,
+`jamie-mac-2` 1. The bot's replayed profile rows (Phase 3, 2026-09-18)
+serialise a level the bot never tracked as 0; the game reports no such
+value for an account at 1,754. Decision taken inside the phase:
+`{lifetime_zero_repair: {zero_from_gateway: "backfill-elixir-bot"}}`
+nulls an explicit 0 only when its receipt came through the named
+gateway; run dry (`would_null: 1489`) then wet at 15:25Z: `nulled:
+1489`, 83 s, short transactions per batch of 200. Census after: 10 zero
+rows, all 2026-09, all through real collectors, left as the game said.
+`players_timeline({weeks: 6, granularity: week, metrics:
+[collection_level]})` for King Thing: August rows `null`, 09-06 onward
+1754/1756/1758. Caveat: the archive still holds the 0s, so a
+`{series_backfill: {lane: "player", reset: true}}` re-walk would write
+them back; the repair is one op to rerun after any such re-walk. The
+review's open question is answered: neither the 0123 fill nor an
+absent key; the replay's payloads carried 0.
+
+**Decisions taken inside the phase.** (a) The general deadline covers
+read-only tools only (annotation `readOnly` from `TOOL_GROUPS`); a write
+is never cancelled, so the existing "never interrupts an account
+mutation" test stands. (b) The audit code for the deadline is `timeout`
+and for the analytical budget `query_timeout`, so `audit_census` can
+tell which guard fired; the wire code is `query_timeout` for both. (c)
+`percentile` is rounded to three decimals like `win_rate`. (d) The
+completeness note reads only the NEWEST profile interval (the brief's
+"one indexed read"), so a gap two intervals back is `elixir_coverage`'s
+to show; an unbounded window counts as ending now. (e) The
+`zero_from_gateway` repair mode is opt-in and named per call; the
+default repair stays the brief's keyless rule.
+
+**Consumers.** `clan.poapkings.com` `3b7b9fc`: scout reads
+`error.retry_after_s` first, the hint's English as fallback; recruit
+already read the field (it now exists). Verify green, pushed; CI's
+deploy workflow replaces the Lambda. `elixir-bot`'s `mcp_stats.py:160`
+derives the same `percentile` the server now serves; left as is.
+Nothing pushed to `cr-agent-api-docs` (no API finding).
+
+**Phase 2 needs:** product call 2 only ("serve the collected record":
+recommend all of it). Nothing manual.
