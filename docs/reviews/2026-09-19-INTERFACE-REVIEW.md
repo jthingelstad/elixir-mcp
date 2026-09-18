@@ -780,6 +780,7 @@ logs once; discord DMs on every version; Clan and Drop read none):
 | `war_current.nominal_period_elapsed` | — | remove |
 | `war_current.next_war_day_opens_at` | fill on war days (defect 2: a null becoming a value is additive) | — |
 | `elixir_feedback` / `elixir_my_feedback` | — | consider `feedback_send` / `feedback_mine` (the `<domain>_<verb>_<noun>` rule for writes already says `elixir_send_feedback`) |
+| `segment` omitted on the six segment tools (= the corpus) | add `"mine"` and `"corpus"`; a note when omitted; `population` on a corpus read (Jamie, 2026-09-18: the corpus is an explicit choice, never a default) | `segment` required; a call without it refuses |
 
 ---
 
@@ -986,13 +987,18 @@ top of the plan):
    oldest named pointer). Trade-off: a small table and one more argument
    against three agents polling an empty feed 700 times a day. Recommend it,
    with the empty-path cost (Part 7.6) fixed first.
-5. **The agent door's segment default.** Keep the ratified 1.0.0 rule (the
-   segment tools default to the corpus on every door) or default to the
-   agent's clan on an agent connection. Trade-off: the corpus default is the
-   convention and the instructions say it; the clan default is what every
-   agent-side memory template works around. Recommend keeping the rule and
-   adding `segment: "mine"` sugar plus the `players: 1` note, so the wrong
-   default is caught by the response.
+5. **The segment tools' population.** DECIDED by Jamie, 2026-09-18, after
+   this review was written: the review over-read the universal-reads rule.
+   That rule (0.19) is about access, any account can read anything the
+   record holds; it was never a statement that the whole corpus is a
+   population, and the corpus is far too big to be one (309,000 players
+   observed, 268,000 battles: the neighbourhood of eighteen clans). The
+   rule is now: any population can be read, every population is stated,
+   none is forced. Phase 3 adds `segment: "mine"` and `segment: "corpus"`,
+   an omitted-segment note and a `population` block on corpus reads, and
+   rewrites the instructions and glossary; 4.0.0 makes `segment` required
+   on the six segment tools (kept in the batch). The `players: 1` note
+   stays as a separate control.
 6. **`game_events` on the game day.** Move `days_seen` to game days (the two
    daily reads at 04:42Z and 21:42Z both fall in one game day) or keep UTC
    as the literal sighting. Recommend game day, with `game_days_seen` beside

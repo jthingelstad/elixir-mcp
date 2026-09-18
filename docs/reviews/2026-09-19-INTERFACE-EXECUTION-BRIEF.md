@@ -56,11 +56,22 @@ in a sentence. Phase 1 depends on none of them.
    OLDEST named pointer. Trade-off: one small table and one argument against
    three agents polling an empty feed roughly 700 times a day and never
    seeing a true hint.
-5. **The agent door's segment default** (Phase 3). Recommend: keep the 1.0.0
-   rule (segment tools default to the corpus on every door) and add
-   `segment: "mine"` sugar for the caller's clan plus a note when every
-   returned row has `players: 1`. Alternative: default to the agent's clan
-   on an agent connection (a semantic change; batched for the major).
+5. **The segment tools' population** (Phase 3, then Phase 6). DECIDED by
+   Jamie, 2026-09-18: the universal-reads rule of 0.19 means any account can
+   read anything the record holds; it never meant the whole corpus is a
+   population. The record is 309,000 players observed and 268,000 battles,
+   the matchmaking neighbourhood of eighteen clans, and a number over all
+   of it describes nobody. The rule is now: any population can be read,
+   every population is stated, none is forced. The corpus is one explicit
+   choice among the others, never the default. Phase 3 ships the additive
+   half: `segment: "mine"` (the caller's clan) and `segment: "corpus"`
+   (explicit), a note that fires only when `segment` was omitted (which
+   population answered, and the two spellings), a `population` block on a
+   corpus read (recorded clans and players it was drawn from), and the
+   instructions and glossary rewritten to say a population is named, not
+   that the tools default to the corpus. Phase 6 makes `segment` required
+   on the six segment tools (kept in the batch, Jamie: the argument census
+   shows when omitted calls fall to zero and the window can close).
 6. **`game_events` on the game day** (Phase 4). Recommend: `game_days_seen`
    beside `days_seen`, the latter retired at the major. Alternative: keep
    UTC as the literal sighting day and say so in the glossary.
@@ -316,7 +327,27 @@ Items:
 8. `clans_timeline`: `members_with_profile`; `war_rivals`: `colosseum_races`;
    `rankings_timeline`: the zero-series note; `rankings_clans`: the field
    size counted over.
-9. `segment: "mine"` sugar on the six segment tools (product call 5).
+9. The population is stated (product call 5, decided): on the six segment
+   tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`,
+   `cards_synergy`, `badges_rarity`, `badges_holders`) `segment` also
+   accepts the strings `"mine"` (the caller's clan: the agent's clan on an
+   agent door, the primary player's clan on a person door, `no_subject`
+   when there is none) and `"corpus"` (explicit); `applied.segment` echoes
+   `{kind: "corpus"}` or the clan as today. When `segment` was omitted, one
+   note says the answer is the whole recorded corpus and names `"mine"` and
+   `"corpus"`; it fires on that condition only. A corpus read carries
+   `population {recorded_clans, recorded_players, players_in_window}` from
+   `elixir_data_insights`'s counts and the window's distinct players, so
+   the number says whose neighbourhood it describes. The `initialize`
+   instructions (`protocol.mjs`), `choosing-a-tool.md` "Conventions on one
+   screen" and the glossary's `corpus` and `segment` entries say "name a
+   population" instead of "default to the whole corpus"; `docs/ENGINEERING.md`
+   "Tool conventions" (Defaults by family) is corrected the same way.
+   Test: the conventions test asserts every segment tool's `segment`
+   schema accepts the two strings and the object. Acceptance: live
+   `battles_meta_decks({ segment: "mine", mode: "ladder" })` answers for
+   POAP KINGS; `battles_meta_decks({ mode: "ladder" })` carries the
+   omitted-segment note and `population`.
 
 Docs: `battles.md` "The control next to the number" gains the new carriers;
 `methodology.md` the meta rows' controls and the band; `recording.md`
@@ -461,8 +492,14 @@ goes; `group_by: "mode"` goes (`"game_mode"` stays); `clans_standings.trophy_net
 → `net_trophies`; `pol_league` and `league_number` → one name;
 `clans_participation.weeks[].complete` → `partial`; `elixir_coverage.average_ratio`
 numeric and `incomplete_days` removed; `war_current.nominal_period_elapsed`
-removed; `game_events.days_seen` removed if call 6 was yes; consider
-`elixir_feedback` → `elixir_send_feedback` under the write-tool naming rule.
+removed; `game_events.days_seen` removed if call 6 was yes; `segment`
+becomes REQUIRED on the six segment tools (product call 5, decided
+2026-09-18: a call without it refuses `bad_request` with a hint naming
+`"mine"`, `"corpus"` and the object; the Phase 3 omitted-segment note is
+the teaching bridge, and `{args_census}` on those tools shows when calls
+without `segment` have fallen to zero, the signal the window can close);
+consider `elixir_feedback` → `elixir_send_feedback` under the write-tool
+naming rule.
 Update the `CHANGELOG` `breaking` entry, the docs pages, the output schemas,
 the tools reference; bump `elixir-bot`'s `PINNED_CONTRACT` to "4"
 (`elixir_mcp.py:40`) in the same week and restart it; discord's version DM is
