@@ -420,6 +420,18 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
   });
   assert.equal(members.isError, false, JSON.stringify(members.body));
   assert.equal(members.body.applied.window.to, "2026-09-05");
+  // The Path of Legends league is league_number (4.0.0): pol_league is
+  // refused as a metric, and the point carries the battle row's name.
+  const league = await call("players_timeline", {
+    metrics: ["league_number", "pol_trophies"],
+    from: "2026-09-01",
+    to: "2026-09-06",
+  });
+  assert.equal(league.isError, false, JSON.stringify(league.body));
+  assert.ok(league.body.series.every((p) => "league_number" in p && !("pol_league" in p)));
+  const old = await call("players_timeline", { metrics: ["pol_league"] });
+  assert.equal(old.isError, true);
+  assert.equal(old.body.error.code, "bad_request");
   // Garbage is still refused.
   const bad = await call("players_timeline", { from: "yesterday" });
   assert.equal(bad.isError, true);

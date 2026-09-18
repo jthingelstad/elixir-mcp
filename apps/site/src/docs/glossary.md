@@ -210,10 +210,10 @@ battle's swing; `net_trophies` is the recorded ladder sum over a window on
 `battles_performance` and `clans_standings` (one spelling since 4.0.0); a
 timeline session's `trophy_net` is the same sum over that session.
 
-**league_number, pol_league** — the same Path of Legends league under two
-names: `league_number` on a battle row (the league the battle started in),
-`pol_league` on a series point and the profile (1 is unranked); one name
-at the next major.
+**league_number** — the Path of Legends league (1 is unranked): on a
+battle row the league the battle started in, on a series point the
+player's standing that day (4.0.0; `pol_league` before). The profile's
+`path_of_legend` object keeps the API's own `leagueNumber`.
 
 **tenure, YearsPlayed** — how long an account has existed, read from the
 `YearsPlayed` badge; unknown when the badge is absent, which is usually an

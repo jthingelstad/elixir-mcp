@@ -34,7 +34,7 @@ export const PLAYER_METRICS = [
   "exp_points",
   "collection_level",
   "king_tower_level",
-  "pol_league",
+  "league_number",
   "pol_trophies",
   "pol_rank",
   "season_trophies",
@@ -50,6 +50,19 @@ export const PLAYER_METRICS = [
   "previous_clan_rank",
   "game_last_seen_at",
 ];
+
+/** The one metric whose column keeps an older name: the Path of Legends
+ *  league is league_number on the wire everywhere (the battle row's name,
+ *  4.0.0; pol_league on the series before) and pol_league in the table. */
+const METRIC_COLUMN = { league_number: "pol_league" };
+
+/** The select list for every metric, aliased to the name the tool speaks;
+ *  `prefix` qualifies the column (e.g. "s."). */
+export function metricSelect(prefix = "") {
+  return PLAYER_METRICS.map((m) =>
+    METRIC_COLUMN[m] ? `${prefix}${METRIC_COLUMN[m]} as ${m}` : `${prefix}${m}`,
+  ).join(", ");
+}
 
 export const KINDS = ["daily", "pre_reset", "season_roll"];
 

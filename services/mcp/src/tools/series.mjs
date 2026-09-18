@@ -7,6 +7,7 @@
 import { normalizeTag } from "@elixir-mcp/contracts";
 import {
   PLAYER_METRICS,
+  metricSelect,
   KINDS,
   KIND_SCHEMA,
   GRANULARITY_SCHEMA,
@@ -319,7 +320,7 @@ export const seriesTools = {
       const weekly = args.granularity === "week";
       const cols = `s.player_tag, s.snapshot_date, ${STAMP_COLUMNS.split(", ")
         .map((c) => `s.${c}`)
-        .join(", ")}, ${PLAYER_METRICS.map((m) => `s.${m}`).join(", ")}`;
+        .join(", ")}, ${metricSelect("s.")}`;
       const { rows } = chosen.length
         ? await ctx.db.query(
             weekly

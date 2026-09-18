@@ -11,6 +11,7 @@ import {
 } from "@elixir-mcp/contracts";
 import {
   PLAYER_METRICS,
+  metricSelect,
   KINDS,
   KIND_SCHEMA,
   GRANULARITY_SCHEMA,
@@ -390,7 +391,7 @@ export const playersTools = {
           items: { type: "string", enum: PLAYER_METRICS },
           default: ["trophies"],
           description:
-            "Which series to return; default trophies. Roster columns (written every roster poll of the member's clan): trophies, donations, donations_received, arena_id, clan_tag, clan_rank, previous_clan_rank, game_last_seen_at. Lifetime (the profile poll of a recorded player): best_trophies, battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level, king_tower_level, total_donations, challenge_cards_won, challenge_max_wins, tournament_cards_won, tournament_battle_count. Path of Legends: pol_league, pol_trophies, pol_rank. Seasonal Trophy Road: season_trophies, season_best_trophies.",
+            "Which series to return; default trophies. Roster columns (written every roster poll of the member's clan): trophies, donations, donations_received, arena_id, clan_tag, clan_rank, previous_clan_rank, game_last_seen_at. Lifetime (the profile poll of a recorded player): best_trophies, battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level, king_tower_level, total_donations, challenge_cards_won, challenge_max_wins, tournament_cards_won, tournament_battle_count. Path of Legends: league_number (the league, 1 = unranked; the name the battle row uses), pol_trophies, pol_rank. Seasonal Trophy Road: season_trophies, season_best_trophies.",
         },
         ...DAY_WINDOW_ARGS,
         timezone: TIMEZONE_SCHEMA,
@@ -445,7 +446,7 @@ export const playersTools = {
       );
       const snapshotsFrom = epoch[0]?.first ?? null;
       const weekly = rawArgs.granularity === "week";
-      const cols = `snapshot_date, ${STAMP_COLUMNS}, ${PLAYER_METRICS.join(", ")}`;
+      const cols = `snapshot_date, ${STAMP_COLUMNS}, ${metricSelect()}`;
       const { rows } = await ctx.db.query(
         weekly
           ? `select distinct on (date_trunc('week', snapshot_date))
