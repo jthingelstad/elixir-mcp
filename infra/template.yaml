@@ -410,6 +410,14 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/payloads/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              # The call captures, READ only (3.18.0): the refusal and
+              # controls censuses read request and response bodies the
+              # MCP door wrote; nothing here writes a capture.
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub
+                  - ${Arn}/calls/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
