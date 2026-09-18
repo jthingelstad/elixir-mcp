@@ -177,10 +177,16 @@ export async function seriesCensus(databaseUrl, spec = {}) {
     // in the hours between them (the bot's day ends ~05Z, the recorder's
     // at 10Z). "disagree": the recorder's observation is at or before the
     // bot's and the values still differ.
+    // "residual": the two observations are more than five minutes apart
+    // (either way), so a difference is what moved between them (the
+    // bot's day ends ~05Z, the recorder's at 10Z; before May the two
+    // read the same tick). "disagree": the same tick and the values
+    // still differ.
+    const apart = (a, b) => `abs(extract(epoch from ${a} - ${b})) > 300`;
     const metric = (col, botCol = col) => `
       count(*) filter (where r.${col} is not distinct from b.${botCol})::int as "${col}_equal",
-      count(*) filter (where r.${col} is distinct from b.${botCol} and r.observed_at > b.fetched_at)::int as "${col}_residual",
-      count(*) filter (where r.${col} is distinct from b.${botCol} and r.observed_at <= b.fetched_at)::int as "${col}_disagree"`;
+      count(*) filter (where r.${col} is distinct from b.${botCol} and ${apart("r.observed_at", "b.fetched_at")})::int as "${col}_residual",
+      count(*) filter (where r.${col} is distinct from b.${botCol} and not ${apart("r.observed_at", "b.fetched_at")})::int as "${col}_disagree"`;
     const {
       rows: [clan],
     } = await db.query(
@@ -211,17 +217,17 @@ export async function seriesCensus(databaseUrl, spec = {}) {
                 where s.clan_tag is distinct from $1) as both_under_another_clan,
               (select json_build_object(
                  'trophies_equal', count(*) filter (where r.trophies is not distinct from b.trophies),
-                 'trophies_residual', count(*) filter (where r.trophies is distinct from b.trophies and r.roster_observed_at > b.fetched_at),
-                 'trophies_disagree', count(*) filter (where r.trophies is distinct from b.trophies and r.roster_observed_at <= b.fetched_at),
+                 'trophies_residual', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
+                 'trophies_disagree', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
                  'donations_equal', count(*) filter (where not b.sunday and r.donations is not distinct from b.donations),
-                 'donations_residual', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and r.roster_observed_at > b.fetched_at),
-                 'donations_disagree', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and r.roster_observed_at <= b.fetched_at),
+                 'donations_residual', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
+                 'donations_disagree', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
                  'donations_received_equal', count(*) filter (where not b.sunday and r.donations_received is not distinct from b.donations_received),
-                 'donations_received_residual', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and r.roster_observed_at > b.fetched_at),
-                 'donations_received_disagree', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and r.roster_observed_at <= b.fetched_at),
+                 'donations_received_residual', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
+                 'donations_received_disagree', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
                  'clan_rank_equal', count(*) filter (where r.clan_rank is not distinct from b.clan_rank),
-                 'clan_rank_residual', count(*) filter (where r.clan_rank is distinct from b.clan_rank and r.roster_observed_at > b.fetched_at),
-                 'clan_rank_disagree', count(*) filter (where r.clan_rank is distinct from b.clan_rank and r.roster_observed_at <= b.fetched_at),
+                 'clan_rank_residual', count(*) filter (where r.clan_rank is distinct from b.clan_rank and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
+                 'clan_rank_disagree', count(*) filter (where r.clan_rank is distinct from b.clan_rank and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
                  'delta_hours', json_build_object(
                     'under_minus_1', count(*) filter (where extract(epoch from r.roster_observed_at - b.fetched_at) / 3600 < -1),
                     'minus_1_to_0', count(*) filter (where extract(epoch from r.roster_observed_at - b.fetched_at) / 3600 between -1 and 0),
@@ -240,6 +246,8 @@ export async function seriesCensus(databaseUrl, spec = {}) {
               count(*) filter (where p.player_tag is not null)::int as with_recorder_pre_reset,
               count(*) filter (where p.player_tag is not null and p.donations is not distinct from b.donations)::int as pre_reset_equal,
               count(*) filter (where p.player_tag is not null and p.donations is distinct from b.donations)::int as pre_reset_differs,
+              count(*) filter (where p.player_tag is not null and b.donations > p.donations)::int as pre_reset_bot_higher,
+              count(*) filter (where p.player_tag is not null and b.donations < p.donations)::int as pre_reset_bot_lower,
               count(*) filter (where p.player_tag is null)::int as recorder_window_missed
        from b
        left join player_snapshot_daily p
@@ -254,7 +262,10 @@ export async function seriesCensus(databaseUrl, spec = {}) {
               count(*) filter (where r.player_tag is not null and (r.wins, r.losses, r.draws, r.battles_captured)
                                  = (b.wins, b.losses, b.draws, b.battles_captured))::int as present_equal,
               count(*) filter (where r.player_tag is not null and (r.wins, r.losses, r.draws, r.battles_captured)
-                                 <> (b.wins, b.losses, b.draws, b.battles_captured))::int as present_different
+                                 <> (b.wins, b.losses, b.draws, b.battles_captured))::int as present_different,
+              count(*) filter (where r.player_tag is not null and b.battles_captured > r.battles_captured)::int as bot_more_battles,
+              count(*) filter (where r.player_tag is not null and b.battles_captured < r.battles_captured)::int as recorder_more_battles,
+              coalesce(sum(b.battles_captured) filter (where r.player_tag is null), 0)::int as absent_battles
        from staging.bot_rollup b
        left join player_daily_battle_rollup r
          on r.player_tag = b.player_tag and r.day = b.day and r.mode_group = b.mode_group

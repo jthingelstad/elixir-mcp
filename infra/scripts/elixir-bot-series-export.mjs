@@ -133,24 +133,47 @@ const MODE_GROUP = {
   other: "casual",
   special_event: "casual",
 };
-const rollups = q(
+// Four bot groups fold into casual, so two bot rows can share a mapped
+// key (friendly and other on the same game mode): summed per key.
+const rollupByKey = new Map();
+let rollupFolded = 0;
+for (const r of q(
   `select player_tag, battle_date, mode_group, game_mode_id, battles, wins, losses, draws,
           crowns_for, crowns_against, trophy_change_total
    from player_daily_battle_rollups where battle_date <= '${ROLLUP_CUTOFF}'
    order by battle_date, player_tag, mode_group, game_mode_id`,
-).map((r) => ({
-  player_tag: r.player_tag,
-  day: r.battle_date,
-  mode_group: MODE_GROUP[r.mode_group] ?? "casual",
-  game_mode_id: r.game_mode_id ?? 0,
-  wins: r.wins,
-  losses: r.losses,
-  draws: r.draws,
-  crowns_for: r.crowns_for,
-  crowns_against: r.crowns_against,
-  trophy_delta: r.trophy_change_total,
-  battles_captured: r.battles,
-}));
+)) {
+  const row = {
+    player_tag: r.player_tag,
+    day: r.battle_date,
+    mode_group: MODE_GROUP[r.mode_group] ?? "casual",
+    game_mode_id: r.game_mode_id ?? 0,
+    wins: r.wins,
+    losses: r.losses,
+    draws: r.draws,
+    crowns_for: r.crowns_for,
+    crowns_against: r.crowns_against,
+    trophy_delta: r.trophy_change_total,
+    battles_captured: r.battles,
+  };
+  const key = `${row.player_tag}|${row.day}|${row.mode_group}|${row.game_mode_id}`;
+  const have = rollupByKey.get(key);
+  if (!have) rollupByKey.set(key, row);
+  else {
+    rollupFolded += 1;
+    for (const k of [
+      "wins",
+      "losses",
+      "draws",
+      "crowns_for",
+      "crowns_against",
+      "trophy_delta",
+      "battles_captured",
+    ])
+      have[k] += row[k];
+  }
+}
+const rollups = [...rollupByKey.values()];
 
 const census = {
   days: entries.length,
@@ -163,6 +186,7 @@ const census = {
   sundays: entries.filter((e) => e.sunday).length,
   observed_at_outside_game_day: mismatched,
   rollup_rows: rollups.length,
+  rollup_rows_folded: rollupFolded,
   rollup_players: new Set(rollups.map((r) => r.player_tag)).size,
   rollup_battles: rollups.reduce((s, r) => s + r.battles_captured, 0),
 };
