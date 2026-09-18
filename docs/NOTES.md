@@ -4953,3 +4953,31 @@ path (a CloudFront function line and a SPA section; later). No card
 record page yet, so deck lists are text. The inline-style ratchet stayed
 under its ceiling with the Email panel's inline styles; retire them into
 the stylesheet with the next console pass.
+
+## 2026-09-18 (late) — The key is in; the first Top 100 issue generated, accepted, and sent
+
+Jamie approved the two infra steps and I ran them: `secret-add-keys.mjs`
+put `anthropic_api_key` in the app secret (name only ever printed), the
+stack redeployed with `AnthropicKeyInSecret=true`. The editor's first
+attempt hit a 400 (`maxItems` is not allowed on a strict tool's array;
+dropped). Then the whole pipeline ran on the real 2026-09-18 brief:
+writer (155 brief paths read through `brief_value`), lint on the draft
+(10 findings: one bare tag, nine numbers the writer computed itself), the
+editor pass, lint clean, accepted, 226 s, `claude-opus-5`. Subject:
+"RamboOo peaked at rank 1 and now sits 64th". The issue is the mail's
+HTML at `/api/public/top100/2026-09-18` and went to Jamie as the sixth
+test send.
+
+**One defect, fixed the same hour:** the model's JSON wrote the heart in
+"Hypno ❤️ Hans" as a broken escape (`"u2764\ns`). `repairNames` puts any
+brief name with non-ASCII back on acceptance (ASCII tokens, a short
+non-greedy gap), the writer is told to print characters, not escapes,
+and the number lint no longer trips on dates. The stored issue was
+re-accepted with the repair.
+
+**Small things seen, not fixed:** the JSON variant of the public issue
+page is defeated by the edge cache (cache key ignores Accept) - a query
+parameter or a separate path when a consumer needs it; "evolution slot 1"
+is the writer's phrase for an Evo form, a prompt note for the next issue;
+the SQS retries of the keyless attempt re-ran the editor twice more
+after the direct invoke (idempotent, three model runs billed).
