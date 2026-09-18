@@ -3834,3 +3834,37 @@ reports no race, cites both instants, and points at `clans_roster` for the
 member count; still `not_recorded`, message and hint only. Live acceptance:
 the door answers exactly that for `#GJ09RJP8`. All four responded `done`;
 `{feedback_pending}` reads 0.
+
+## 2026-09-19 — Interface review after the record redesign (recommendations)
+
+`docs/reviews/2026-09-19-INTERFACE-REVIEW.md` (written 2026-09-18 evening
+against contract 3.13.0, commit `d0da6ed`, from
+`docs/reviews/2026-09-18-INTERFACE-REVIEW-BRIEF.md`) and its execution
+plan `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` exist beside
+the schema pair (09-16) and the time-series pair (09-18). The question:
+after cards became rows, the profile and roster JSON became columns, the
+daily series arrived on the game day and 3.13.0 ratified "the control next
+to the number", does the interface still present one record, or a 1.0.0
+surface with annexes. **Fourteen verified defects**, each with the
+file:line or the live request id that proves it (the `war_history`
+exact-week roster path times out the Lambda and reaches the client as a
+bare HTTP 500; `next_war_day_opens_at` means two things on `war_current`
+and `game_clock`; `history_starts_at` is the window's edge, not the
+horizon; `arena` is a name where the docs say id; the instructions name
+three `source` values of five; `percentile` is stated and not served; the
+lifetime block is camelCase on one tool and snake_case on two;
+`retry_after_s` lives only in the English hint; the `members_seen` note
+reads wrong on the days it matters; `collection_level: 0` where the docs
+promise `null`; `average_ratio` is a string; six descriptions over 600;
+`completeness_note` promised everywhere and set by nothing;
+`rankings_timeline` says one snapshot on a day that holds sixteen). **The
+census**: 131 served / 33 unserved of 165 manifest targets;
+`player_pol_season` and `war_period_log` are collected and never read.
+**Eight journeys** scored 2 to 4.5: `war_history`'s exact week times out,
+"the meta at my level" has no answer. **The control matrix** (Part 4):
+3.13.0's principle stops at the five tools it shipped on. **Seven product
+calls** (trophy band on the meta tools, serve the collected record, one
+window grammar, a named reader pointer on `elixir_timeline`, the agent
+door's segment default, `game_events` on the game day, the 4.0.0 batch
+and its window). Six phases in the brief, one per session, Jamie gates
+each. Nothing applied by the review.
