@@ -161,9 +161,10 @@ export async function accountRoleOp(databaseUrl, spec) {
                 a.role, a.is_owner,
                 (select string_agg(t.name, ',') from service_token t
                  where t.account_id = a.account_id and t.revoked_at is null) as services,
-                (select count(*)::int from recording r
-                 where r.requested_by = a.account_id and r.subject_type = 'player'
-                   and r.status = 'active') as players_recording
+                (select count(*)::int from claim c
+                 where c.account_id = a.account_id) as players_tracked,
+                (select count(*)::int from account_clan ac
+                 where ac.account_id = a.account_id) as clans_tracked
          from account a order by a.created_at`,
       );
       return { accounts: rows, gateways };

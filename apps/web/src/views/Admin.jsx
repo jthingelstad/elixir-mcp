@@ -161,7 +161,7 @@ function AdminAccounts({ navigate }) {
         text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
         tone: a.pending_role_request ? "warn" : undefined,
       },
-      `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
+      `${a.players_tracked ?? 0} players · ${a.clans_tracked ?? 0} clans`,
       a.children ? String(a.children) : "—",
     ]);
 
@@ -285,7 +285,7 @@ function AdminAccountDetail({ id, navigate }) {
     ["Created", day(a.created_at)],
     [
       "Tracking",
-      `${a.players_recording ?? 0} players · ${a.clans_recording ?? 0} clans`,
+      `${a.players_tracked ?? 0} players · ${a.clans_tracked ?? 0} clans`,
     ],
     ["Runs a collector", a.operator ? "yes" : "no"],
     [

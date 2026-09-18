@@ -28,8 +28,8 @@ const PERSON = {
   kind: "person",
   owned_by_account_id: null,
   children: 2,
-  players_recording: 3,
-  clans_recording: 1,
+  players_tracked: 3,
+  clans_tracked: 1,
 };
 const AGENT = {
   account_id: "acct-2",
@@ -42,8 +42,8 @@ const AGENT = {
   principal_name: "elixir-mcp-discord",
   owned_by_account_id: "acct-1",
   children: 0,
-  players_recording: 0,
-  clans_recording: 0,
+  players_tracked: 0,
+  clans_tracked: 0,
 };
 const INTEGRATION = {
   ...AGENT,

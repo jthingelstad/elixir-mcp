@@ -249,12 +249,16 @@ export function adminRoutes({
                   order by st.created_at limit 1) as principal_name,
                 a.created_at, a.max_player_recordings, a.mcp_daily_quota,
                 a.live_daily_quota,
-                (select count(*)::int from recording r
-                 where r.requested_by = a.account_id and r.subject_type = 'player'
-                   and r.status = 'active') as players_recording,
-                (select count(*)::int from recording r
-                 where r.requested_by = a.account_id and r.subject_type = 'clan'
-                   and r.status = 'active') as clans_recording,
+                -- What the account TRACKS: its claims and its clans. Not
+                -- the recordings it originated - a recording is one row
+                -- per subject shared by everyone who wants it, so an
+                -- account whose player somebody already recorded
+                -- originates nothing and used to read "0 players" here
+                -- while its claim sat in place.
+                (select count(*)::int from claim c
+                 where c.account_id = a.account_id) as players_tracked,
+                (select count(*)::int from account_clan ac
+                 where ac.account_id = a.account_id) as clans_tracked,
                 exists (select 1 from gateway g
                         where g.owner_account_id = a.account_id
                           and g.status = 'active') as operator,
