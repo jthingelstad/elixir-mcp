@@ -353,9 +353,8 @@ test("clans_roster carries the lifetime block, tenure and badge count per member
   assert.equal(me.lifetime.wins, profile.wins + 5);
   assert.equal(me.lifetime.king_tower_level, profile.kingTowerLevel);
   assert.equal(me.lifetime.total_donations, profile.totalDonations);
-  assert.equal(me.lifetime.as_of, "2026-09-06T23:35:00.000Z");
-  // 3.17.0: the same instant under the stamp's one name.
-  assert.equal(me.lifetime.profile_observed_at, me.lifetime.as_of);
+  assert.equal(me.lifetime.profile_observed_at, "2026-09-06T23:35:00.000Z");
+  assert.ok(!("as_of" in me.lifetime), "4.0.0: the stamp's one name");
   assert.ok(me.badge_count > 0);
   assert.equal(typeof me.years_played, "number");
   const other = body.members.find((m) => m.player_tag !== ME);

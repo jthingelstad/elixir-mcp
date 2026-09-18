@@ -558,9 +558,8 @@ export const clansTools = {
           // member whose profile is not recorded.
           lifetime: m.profile_observed_at
             ? {
-                as_of: m.profile_observed_at.toISOString(),
                 // The stamp under the name every series point uses
-                // (3.17.0, one vocabulary); as_of retires at 4.0.0.
+                // (3.17.0; the as_of twin retired at 4.0.0).
                 profile_observed_at: m.profile_observed_at.toISOString(),
                 best_trophies: m.best_trophies,
                 battle_count: m.battle_count,

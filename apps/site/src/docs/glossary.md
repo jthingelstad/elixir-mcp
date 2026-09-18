@@ -175,8 +175,8 @@ days and floors an instant to its day, saying so under
 
 **stamp** — the instant that produced a value: `observed_at` (a point's
 newest observation of either writer), `profile_observed_at` (the profile
-poll that wrote the lifetime block; `clans_roster.lifetime` carries it too,
-beside the older `as_of`), `roster_observed_at` (the roster poll that wrote
+poll that wrote the lifetime block; `clans_roster.lifetime` carries it
+too), `roster_observed_at` (the roster poll that wrote
 the clan columns), and on war and roster events `started_observed_at`,
 `finished_observed_at`, `joined_observed_at`. Null means that writer never
 touched the row.

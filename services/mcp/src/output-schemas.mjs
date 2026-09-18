@@ -1284,9 +1284,8 @@ export const OUTPUT_SCHEMAS = {
             lifetime: {
               type: ["object", "null"],
               description:
-                "As of the latest profile poll; null for a member whose profile is not recorded. profile_observed_at is that poll's stamp under the name every series point uses (3.17.0); as_of is the same instant and retires at 4.0.0.",
+                "As of the latest profile poll (profile_observed_at, the stamp every series point uses); null for a member whose profile is not recorded.",
               properties: {
-                as_of: ISO,
                 profile_observed_at: ISO,
                 best_trophies: NULLABLE_INT,
                 battle_count: NULLABLE_INT,

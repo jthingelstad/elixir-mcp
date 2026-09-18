@@ -262,7 +262,7 @@ elsewhere, with `profile_observed_at` null to say so.
 last roster poll carried them (`null` before 2026-09-17), at both
 verbosities: the first three things a joiner asks. At full verbosity it
 carries each member's latest profile row as
-`lifetime` (`as_of`, `best_trophies`, `battle_count`, `wins`, `losses`,
+`lifetime` (`profile_observed_at`, `best_trophies`, `battle_count`, `wins`, `losses`,
 `three_crown_wins`, `collection_level`, `king_tower_level`,
 `total_donations`), `null` for a member whose profile is not recorded, plus
 the three frozen career counters the profile carries on the player rather
