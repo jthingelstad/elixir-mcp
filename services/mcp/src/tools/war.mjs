@@ -210,14 +210,18 @@ export const warTools = {
                   max(w.fame) as fame,
                   max(w.participant_name) as name,
                   bool_or(w.clan_tag = $1) as shared_with_you,
+                  bool_or(wk.is_colosseum) as is_colosseum,
                   (w.season_id, w.section_index) = (select season_id, section_index from latest)
                     as in_progress
            from war_week_clan w
+           join war_week wk on wk.clan_tag = w.clan_tag and wk.season_id = w.season_id
+             and wk.section_index = w.section_index
            where w.participant_clan_tag = any($2)
            group by w.participant_clan_tag, w.season_id, w.section_index)
          select participant_clan_tag as clan_tag,
                 max(name) as name,
                 count(*)::int as races_observed,
+                count(*) filter (where is_colosseum)::int as colosseum_races,
                 count(*) filter (where shared_with_you)::int as races_shared_with_you,
                 min(season_id)::int as first_season,
                 max(season_id)::int as last_season,
@@ -246,6 +250,9 @@ export const warTools = {
         notes: notes(
           "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
           "Fame statistics cover finished races only; current_race_fame is the week in progress.",
+          rows.some((r) => r.colosseum_races > 0)
+            ? "colosseum_races counts the Colosseum weeks among races_observed: a Colosseum week is a period-point contest with no finish line, so its fame pools badly with a regular week's; read the fame statistics beside that count."
+            : null,
           "clan_score is the game's own strength number for the clan as last observed in any recorded race (null before 2026-09-17, when the race poll began keeping it).",
           "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
         ),

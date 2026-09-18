@@ -732,8 +732,16 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
     assert.ok(r.races_observed >= 1);
     assert.ok(r.races_shared_with_you <= r.races_observed);
     assert.ok(typeof r.clan_tag === "string");
+    // 3.16.0: the Colosseum weeks among the races observed.
+    assert.ok(Number.isInteger(r.colosseum_races));
+    assert.ok(r.colosseum_races <= r.races_observed);
   }
   assert.match(body.notes.join(" "), /counts once/);
+  assert.equal(
+    body.rivals.some((r) => r.colosseum_races > 0),
+    body.notes.some((n) => /colosseum_races counts/.test(n)),
+    "the Colosseum note fires only when a rival raced one",
+  );
 
   // Specific rival lookup works; junk tags refuse.
   const one = await call(invoke, "war_rivals", {

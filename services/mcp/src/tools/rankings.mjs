@@ -10,6 +10,7 @@
 
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../time.mjs";
+import { zeroSeriesNote } from "../controls.mjs";
 import {
   seasonFromDate,
   seasonIdForMonth,
@@ -439,6 +440,10 @@ export const rankingsTools = {
         applied,
         ...(live ? { live_status: liveStatus(live) } : {}),
         snapshot: snapshotBlock(snapshot, row),
+        // The field the counts were taken over (3.16.0): the placed
+        // players in this snapshot, so a rated_players of 12 reads as 12
+        // of that many, not of the game.
+        field_size: snapshot.entries,
         clans_total: rows[0]?.clans_total ?? 0,
         players_without_clan: unclanned[0]?.n ?? 0,
         clans: rows.map((r, i) => ({
@@ -452,7 +457,7 @@ export const rankingsTools = {
         })),
         notes: notes(
           livePendingNote(live),
-          "Counted over every placed player in the snapshot; rated_players rises through a season as more of a clan's players cross the floor, so compare clans within one snapshot, not counts across dates.",
+          `Counted over every placed player in the snapshot (field_size: ${snapshot.entries}); rated_players rises through a season as more of a clan's players cross the floor, so compare clans within one snapshot, not counts across dates.`,
           "Ties in rated_players are ordered by best_rank, the rank of the clan's best-placed player.",
           FLOOR_NOTE,
         ),
@@ -751,6 +756,7 @@ export const rankingsTools = {
         applied,
         points,
         notes: notes(
+          subject === "player" ? null : zeroSeriesNote(points, "rated_players"),
           "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held.",
           subject === "player"
             ? "on_board false means the player was below the rating floor at that snapshot; rank and rating are then null, not zero. Per-battle rank and rating for a recorded player are on their battles (globalRank, startingTrophies, trophyChange)."

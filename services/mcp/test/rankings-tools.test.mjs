@@ -260,6 +260,9 @@ test("rankings_clans: counted over the whole board, ties to the best-placed play
   assert.equal(body.clans_total, 3);
   assert.equal(body.players_without_clan, 1);
   assert.ok(body.notes.some((n) => n.includes("best_rank")));
+  // The field the counts were taken over (3.16.0).
+  assert.equal(body.field_size, 8);
+  assert.ok(body.notes.some((n) => /field_size: 8/.test(n)));
 });
 
 test("rankings_clans: as_of sees the earlier tie broken the other way", async () => {
@@ -466,6 +469,17 @@ test("rankings_timeline: the board's own curve - floor, summit, field", async ()
       [8, 1850, "a-one"],
     ],
   );
+  assert.ok(!body.notes.some((n) => /nobody was rated/.test(n)));
+  // A clan with no rated player at any point: the zero-series note fires
+  // (3.16.0), so a flat 0 is not read as a flat field.
+  const { body: none } = await invoke("rankings_timeline", {
+    clan_tag: "#2LLLL",
+    location: "US",
+    from: "2026-09-11",
+    to: "2026-09-11",
+  });
+  assert.ok(none.points.every((p) => p.rated_players === 0));
+  assert.match(none.notes[0], /rated_players is 0 at every point/);
 });
 
 test("game_events: what was on, by the days it was seen", async () => {

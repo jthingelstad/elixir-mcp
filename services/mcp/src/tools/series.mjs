@@ -58,6 +58,7 @@ const CLAN_AGGREGATES = [
   "total_member_trophies",
   "avg_member_trophies",
   "members_seen",
+  "members_with_profile",
 ];
 const CLAN_PROFILE_AGGREGATES = [
   "avg_member_wins",
@@ -79,6 +80,7 @@ const AGGREGATE_SQL = `
   select sum(s.trophies)::int as total_member_trophies,
          round(avg(s.trophies))::int as avg_member_trophies,
          count(*) filter (where s.roster_observed_at is not null)::int as members_seen,
+         count(*) filter (where s.profile_observed_at is not null)::int as members_with_profile,
          round(avg(s.wins))::int as avg_member_wins,
          round(avg(s.collection_level))::int as avg_member_collection_level,
          count(*) filter (where s.trophies >= 12000)::int as members_12000_plus,
@@ -105,7 +107,7 @@ function parseTags(list, argName, max) {
 export const seriesTools = {
   clans_timeline: {
     description:
-      "A clan's daily series, yours by default, one point per game day from the roster: clan_score, clan_war_trophies, members, donations_per_week, required_trophies, and the aggregates over that day's member rows (total_member_trophies, avg_member_trophies, members_seen); the profile-derived aggregates (avg_member_wins, avg_member_collection_level, the 12000+/14000+/6-years+/collection-1000+ counts) are metrics to ask for. kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week. verbosity compact keeps day and the five clan metrics.",
+      "A clan's daily series, yours by default, one point per game day from the roster: clan_score, clan_war_trophies, members, donations_per_week, required_trophies, and the aggregates over that day's member rows (total_member_trophies, avg_member_trophies, members_seen, members_with_profile); the profile-derived aggregates (avg_member_wins, avg_member_collection_level, the 12000+/14000+/6-years+/collection-1000+ counts) are metrics to ask for. kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week. verbosity compact keeps day and the five clan metrics.",
     inputSchema: {
       type: "object",
       properties: {
@@ -213,7 +215,7 @@ export const seriesTools = {
             ? "members_seen counts the member rows the roster wrote that day, including members who left during the day (their row keeps the clan's tag until the next roster places them elsewhere), so it can read above members; a day it reads below members is a partial day (the roster was polled, but not every member's row is on the game day's grid yet)."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m))
-            ? "The profile-derived aggregates average over members with a recorded profile that day; members_seen against the count of non-null values says how many that is. members_6_years_plus reads the player's current years_played, not the day's."
+            ? "The profile-derived aggregates average over members with a recorded profile that day; members_with_profile is that denominator. members_6_years_plus reads the player's current years_played, not the day's."
             : null,
           botSourceNote(points),
           ...seasonFields.seasonNotes,

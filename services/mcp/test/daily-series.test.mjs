@@ -204,6 +204,7 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
       "total_member_trophies",
       "avg_member_trophies",
       "members_seen",
+      "members_with_profile",
       "avg_member_wins",
       "members_14000_plus",
     ],
@@ -223,6 +224,11 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
     d1.members_seen,
     roster.memberList.length,
     "every member row the roster wrote",
+  );
+  // 3.16.0: the denominator of the profile-derived aggregates.
+  assert.equal(d1.members_with_profile, 1, "one recorded profile that day");
+  assert.ok(
+    body.notes.some((n) => /members_with_profile is that denominator/.test(n)),
   );
   assert.equal(
     d1.total_member_trophies,

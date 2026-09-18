@@ -280,7 +280,9 @@ the last twelve, newest first, keyed by `season_month`; the archive holds
 every recorded player's final since March 2026 and the series tools carry
 the standing at the roll hour (`players_timeline({ kind: "season_roll" })`).
 
-`clans_timeline`'s `members_seen` counts the member rows the roster wrote on
+`clans_timeline`'s `members_with_profile` (3.16.0) counts the member rows a
+profile poll wrote that day: the denominator of the profile-derived
+aggregates. `members_seen` counts the member rows the roster wrote on
 that day, whatever the clan's `members` said. It reads above `members` on a
 day a member left: their row keeps the clan's tag until the next roster places
 them elsewhere, so the day counts both the leaver and whoever the count
