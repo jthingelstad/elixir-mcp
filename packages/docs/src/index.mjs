@@ -59,15 +59,19 @@ export function searchDocs(query, limit = 5) {
     if (wordsHit === 0) continue;
     const all = hitsPerWord.flat().sort((a, b) => a - b);
     // The densest 320-character window over all hits.
-    let best = { at: all[0], count: 0 };
+    let best = { at: all[0], end: all[0], count: 0 };
     for (let i = 0; i < all.length; i++) {
       let j = i;
       while (j + 1 < all.length && all[j + 1] - all[i] <= 320) j += 1;
-      if (j - i + 1 > best.count) best = { at: all[i], count: j - i + 1 };
+      if (j - i + 1 > best.count)
+        best = { at: all[i], end: all[j], count: j - i + 1 };
     }
+    // The cut runs from before the window's first hit to after its
+    // last, so every hit the window was chosen for is inside it (a fixed
+    // tail once cut "Pilot Score" to "P" when the paragraph grew).
     const start = Math.max(0, best.at - 100);
     const excerpt = hay
-      .slice(start, best.at + 300)
+      .slice(start, Math.max(best.at + 300, best.end + 120))
       .replace(/\s+/g, " ")
       .trim();
     scored.push({
