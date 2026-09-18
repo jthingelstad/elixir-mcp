@@ -421,6 +421,23 @@ test("battles_levels: monthly_trend carries its population and the guard fires o
   // player.n counts the scored player's battles once: the 406 ladder
   // battles score (the war bin is under the curve floor).
   assert.equal(res.player.n, 406);
+  // 3.17.0 (Phase 4 item 4): the window's edge months say they are
+  // clipped, in the weekly series' shape; a whole month inside says
+  // nothing. July and August sit whole inside a 90-day window ending
+  // now; a 40-day one starts inside August and clips it.
+  assert.ok(!("partial" in jul), JSON.stringify(jul));
+  assert.ok(!("partial" in aug), JSON.stringify(aug));
+  const sixty = await call("battles_levels", { player_tag: F, days: 60 });
+  const first = sixty.player.monthly_trend[0];
+  assert.equal(first.partial, true, JSON.stringify(sixty.player));
+  assert.equal(first.covers.from, sixty.applied.window.from);
+  assert.match(first.covers.to, /-01T00:00:00\.000Z$/);
+  assert.ok(
+    sixty.notes.some((l) =>
+      new RegExp(`monthly_trend's ${first.month} is partial`).test(l),
+    ),
+  );
+  assert.ok("season" in sixty.applied.window, "the window says its season");
 
   // arena_id holds the pool fixed: one month left, no guard.
   const pit = await call("battles_levels", {
@@ -572,4 +589,13 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
   assert.equal(res.best_deck.dominant_mode.mode, "war");
   assert.equal(res.top_deck.dominant_mode.mode, "ladder");
   assert.ok(res.notes.some((l) => /NOT comparable across rows/.test(l)));
+  // 3.17.0 (Phase 4 item 9): each deck carries the level gap it fought
+  // at, so the note names real gaps (mean level +0.7 vs +1.62 here)
+  // instead of "unknown".
+  assert.equal(typeof res.top_deck.mean_level_gap, "number");
+  assert.equal(typeof res.best_deck.mean_level_gap, "number");
+  assert.ok(Math.abs(res.top_deck.mean_level_gap - 0.7) < 0.05);
+  const clash = res.notes.find((l) => /NOT comparable across rows/.test(l));
+  assert.ok(!/unknown/.test(clash), clash);
+  assert.match(clash, /mean level gap \+0\.70.*gap \+1\.62/);
 });

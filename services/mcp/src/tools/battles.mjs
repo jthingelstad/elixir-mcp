@@ -27,7 +27,7 @@ import {
   SEGMENT_DOCS,
   subject,
   buildMeta,
-  resolveWindow,
+  seasonFieldsForInstants,
   resolveSeasonWindow,
   SEASON_ARG_SCHEMA,
   requireOrderedWindow,
@@ -119,6 +119,7 @@ import {
   trophyFloor,
   trophyFloorNote,
   markPartialWeeks,
+  markPartialMonths,
   partialWeeksNote,
   singlePlayerNote,
 } from "../controls.mjs";
@@ -147,6 +148,7 @@ export const battlesTools = {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
         game_mode_id: {
           type: "integer",
@@ -245,7 +247,9 @@ export const battlesTools = {
           entityKey: tag,
         });
       }
-      const win = resolveWindow(ctx, args);
+      const win = await resolveSeasonWindow(ctx, args, {
+        seasonDefault: false,
+      });
       const tz = win.timezone;
       const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 50);
       const compact = args.verbosity === "compact";
@@ -621,6 +625,7 @@ export const battlesTools = {
             : null,
         notes: notes(
           livePendingNote(live),
+          win.seasonNotes,
           caveats,
           deckStats &&
             "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
@@ -656,6 +661,7 @@ export const battlesTools = {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         last_n_battles: {
           type: "integer",
           minimum: 1,
@@ -673,7 +679,7 @@ export const battlesTools = {
           type: "string",
           enum: ["week", "mode"],
           description:
-            "week: weekly series (ISO weeks). mode: per named game mode, event modes included. Overrides before_after and compare_*.",
+            "week: weekly series (ISO weeks). mode: the named game mode (not the mode group; event modes included). Overrides before_after and compare_*.",
         },
         before_after: {
           type: "string",
@@ -693,7 +699,9 @@ export const battlesTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const win = resolveWindow(ctx, args);
+      const win = await resolveSeasonWindow(ctx, args, {
+        seasonDefault: false,
+      });
       const tz = win.timezone;
 
       const segment = async ({ from, to, lastN }) => {
@@ -962,6 +970,7 @@ export const battlesTools = {
         ...(floor ? { trophy_floor: floor } : {}),
         notes: notes(
           trophyFloorNote(floor),
+          win.seasonNotes,
           caveats,
           grouped
             ? null
@@ -994,6 +1003,7 @@ export const battlesTools = {
           default: "mine",
         },
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
       },
       additionalProperties: false,
@@ -1008,7 +1018,9 @@ export const battlesTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const win = resolveWindow(ctx, args);
+      const win = await resolveSeasonWindow(ctx, args, {
+        seasonDefault: false,
+      });
       const mine = args.perspective !== "opponent";
       const where = ["bp.player_tag = $1", `bp.outcome in ('win','loss')`];
       const params = [tag];
@@ -1103,6 +1115,7 @@ export const battlesTools = {
         })),
         notes: notes(
           guard,
+          win.seasonNotes,
           mine
             ? "win_rate is YOUR record when this card is in your deck."
             : "win_rate is YOUR record when this card appears in the OPPONENT deck; low means nemesis.",
@@ -1127,6 +1140,7 @@ export const battlesTools = {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
         sort: {
           type: "string",
@@ -1153,7 +1167,9 @@ export const battlesTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const win = resolveWindow(ctx, args);
+      const win = await resolveSeasonWindow(ctx, args, {
+        seasonDefault: false,
+      });
       const where = ["bp.player_tag = $1", "bp.deck_hash is not null"];
       const params = [tag];
       const add = (clause, value) => {
@@ -1276,6 +1292,7 @@ export const battlesTools = {
         decks,
         notes: notes(
           guard,
+          win.seasonNotes,
           win.source === "unbounded"
             ? "No window was given, so this is the whole recorded history for the player; pass from/to for a period."
             : null,
@@ -2162,7 +2179,9 @@ export const battlesTools = {
                   round(avg(c.wr)::numeric, 3) as expected_from_levels,
                   round(avg(p.gap)::numeric, 2) as mean_gap,
                   round(avg(p.opponent_level)::numeric, 2) as opponent_mean_level,
-                  round(avg(p.starting_trophies))::int as mean_starting_trophies,
+                  -- Ladder only (3.17.0): a Path of Legends battle's
+                  -- starting_trophies is its league rating, another scale.
+                  round(avg(p.starting_trophies) filter (where p.type = 'PvP'))::int as mean_starting_trophies,
                   mode() within group (order by p.arena) as modal_arena
            from pairs p
            join curve c on c.bin = width_bucket(p.gap, ${EDGES})
@@ -2261,8 +2280,16 @@ export const battlesTools = {
                   standard_error: Number(s.standard_error),
                   experience,
                   ...(cohort ? { cohort } : {}),
-                  monthly_trend: trend.map((t) => ({
+                  monthly_trend: markPartialMonths(
+                    trend,
+                    {
+                      from: new Date(asOf.getTime() - days * 86400_000),
+                      to: asOf,
+                    },
+                    asOf,
+                  ).rows.map((t) => ({
                     month: t.month,
+                    ...(t.partial ? { partial: true, covers: t.covers } : {}),
                     n: t.n,
                     pilot_score: Number(t.pilot_score),
                     actual_win_rate: Number(t.actual_win_rate),
@@ -2318,13 +2345,21 @@ export const battlesTools = {
                 : "the same arena"
             }, mean starting trophies ${a.mean_starting_trophies?.toLocaleString("en-US") ?? "unknown"} to ${b.mean_starting_trophies?.toLocaleString("en-US") ?? "unknown"}; pilot_score adjusts for card levels and not for the opponents' skill, so the step can be the pool rather than the play - hold arena_id fixed to compare.`;
         }
+        const winFrom = new Date(asOf.getTime() - days * 86400_000);
+        const seasonFields = await seasonFieldsForInstants(
+          ctx.db,
+          winFrom,
+          asOf,
+          { flavor: "ladder" },
+        );
         return {
           applied: appliedBlock({
             window: {
-              from: new Date(asOf.getTime() - days * 86400_000).toISOString(),
+              from: winFrom.toISOString(),
               to: asOf.toISOString(),
               source: args.days !== undefined ? "argument" : "default",
               days,
+              ...seasonFields.echo,
             },
             trophy_band: args.trophy_band,
             arena_id: args.arena_id,
@@ -2336,6 +2371,15 @@ export const battlesTools = {
           methodology: PILOT_METHODOLOGY,
           notes: notes(
             populationNote,
+            seasonFields.seasonNotes,
+            points.some((p) => p.partial)
+              ? `monthly_trend's ${points
+                  .filter((p) => p.partial)
+                  .map((p) => p.month)
+                  .join(
+                    " and ",
+                  )} ${points.filter((p) => p.partial).length === 1 ? "is" : "are"} partial: the window clips ${points.filter((p) => p.partial).length === 1 ? "it" : "them"} (covers says the span), so read n before weighing ${points.filter((p) => p.partial).length === 1 ? "it" : "them"} against a whole month.`
+              : null,
             PILOT_NOTES,
             player && !player.experience.tenure_known
               ? "YearsPlayed badge absent, so tenure is unknown (usually an account under one year, with rare veteran exceptions) and no cohort is claimed."
@@ -2365,6 +2409,7 @@ export const battlesTools = {
           description: "Two to four player tags.",
         },
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
       },
       required: ["player_tags"],
       additionalProperties: false,
@@ -2378,7 +2423,9 @@ export const battlesTools = {
       }
       if (tags.length < 2)
         throw new ToolFailure("bad_request", "battles_compare needs 2-4 tags.");
-      const win = resolveWindow(ctx, args);
+      const win = await resolveSeasonWindow(ctx, args, {
+        seasonDefault: false,
+      });
       const { from, to } = win;
       const players = [];
       for (const tag of tags) {
@@ -2420,6 +2467,7 @@ export const battlesTools = {
         applied: appliedBlock({ window: win.echo, player_tags: tags }),
         players,
         notes: notes(
+          win.seasonNotes,
           "window covers RECORDED battles only, and recording start dates differ per player; net_trophies sums recorded trophy changes, not the full ladder delta.",
         ),
         docs: docsRef("recording", "completeness"),

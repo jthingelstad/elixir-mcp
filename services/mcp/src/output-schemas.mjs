@@ -282,6 +282,11 @@ export const OUTPUT_SCHEMAS = {
             type: ["object", "null"],
             properties: { mode: { type: "string" }, share: RATE },
           },
+          mean_level_gap: {
+            type: ["number", "null"],
+            description:
+              "Mean of the player's deck-average level minus the opposing side's over the deck's battles (3.17.0); the figure the comparability note compares between the two decks.",
+          },
         },
       },
       best_deck: { type: ["object", "null"] },
@@ -770,9 +775,10 @@ export const OUTPUT_SCHEMAS = {
             lifetime: {
               type: ["object", "null"],
               description:
-                "As of the latest profile poll; null for a member whose profile is not recorded.",
+                "As of the latest profile poll; null for a member whose profile is not recorded. profile_observed_at is that poll's stamp under the name every series point uses (3.17.0); as_of is the same instant and retires at 4.0.0.",
               properties: {
                 as_of: ISO,
+                profile_observed_at: ISO,
                 best_trophies: NULLABLE_INT,
                 battle_count: NULLABLE_INT,
                 wins: NULLABLE_INT,

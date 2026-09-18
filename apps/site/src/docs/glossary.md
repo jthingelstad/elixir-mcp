@@ -1,12 +1,12 @@
 ---
 slug: glossary
 title: "Glossary"
-description: "The words Elixir MCP uses, each in a sentence or two: recorded and tracked, claims and relationships, scope and segment, decided battles and head-to-head, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields that carry caveats."
+description: "The words Elixir MCP uses, each in a sentence or two: recorded and tracked, claims and relationships, scope and segment, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
 section: record
 order: 20
 navTitle: "Glossary"
 icon: book-a
-lede: "Forty-odd words the service uses precisely, so a search for one of them finds the page that uses it."
+lede: "Sixty-odd words the service uses precisely, so a search for one of them finds the page that uses it."
 ---
 
 # Glossary
@@ -161,6 +161,60 @@ standings, per member on participation. Never fame, never points.
 "ranked"`, with `league_number`); Trophy Road is the trophy ladder
 (`mode: "ladder"`).
 
+**game day** — the day every daily series and the war grid are keyed by:
+the date whose 10:00 UTC start an instant falls after, pure UTC arithmetic,
+so a season roll and a war day never straddle a row. `day` on a point is a
+game day; the year graphic on a player's page is on UTC calendar days
+instead. See [The game day](/docs/clocks#the-game-day).
+
+**series** — a day-grained history read as points: `players_timeline`,
+`clans_timeline` and `clans_members_timeline`, one point per game day, the
+last observation of the day winning. A series takes `from`/`to` as game
+days and floors an instant to its day, saying so under
+`applied.window.floored`.
+
+**stamp** — the instant that produced a value: `observed_at` (a point's
+newest observation of either writer), `profile_observed_at` (the profile
+poll that wrote the lifetime block; `clans_roster.lifetime` carries it too,
+beside the older `as_of`), `roster_observed_at` (the roster poll that wrote
+the clan columns), and on war and roster events `started_observed_at`,
+`finished_observed_at`, `joined_observed_at`. Null means that writer never
+touched the row.
+
+**source** — where a value came from, said locally each time: on a series
+point, `api` (a recorded payload) or `elixir-bot` (the import from POAP
+KINGS' earlier bot); on `applied.window`, `argument`, `default`,
+`unbounded`, `season`, `fixed` or, on `elixir_timeline`, `pointer`; on
+`trophy_floor`, how the floor was learned; on a `players_search` match, what
+matched.
+
+**kind** — a local enum, five of them: a series point's snapshot kind
+(`daily`, `pre_reset`, `season_roll`); a timeline item's kind
+(`battle_session`, `ranked_promotion` and the rest, on
+[Timeline](/docs/timeline)); a war period's kind (`war`, `training`,
+`colosseum`); a badge's kind (`one_off`, `tiered`); an entry's kind
+(`player_activity`, `clan_activity`). `crosses[].kind` is always `season`.
+
+**progress bucket** — one of the profile's side ladders (the seasonal
+Trophy Road, 2v2 League, Merge Tactics), each with its own trophies, best
+trophies and arena, keyed by the game's own `progress` key and read with
+`players_timeline({ progress_key })`. A bucket at zero is not a row.
+
+**the four trophy kinds** — `trophies` is Trophy Road, the number on the
+profile; `season_trophies` is the seasonal Trophy Road (resets on the roll;
+`best_trophies` and `season_best_trophies` are their peaks); `pol_trophies`
+is the Path of Legends standing, the number `rankings_players` and
+`rankings_timeline` call `rating` (the same figure, verified equal on the
+live API); `progress[].trophies` is a side mode's. `trophy_change` is one
+battle's swing; `net_trophies` (`battles_performance`) and `trophy_net`
+(`clans_standings`, sessions) are two spellings of the same recorded ladder
+sum, one name at the next major.
+
+**league_number, pol_league** — the same Path of Legends league under two
+names: `league_number` on a battle row (the league the battle started in),
+`pol_league` on a series point and the profile (1 is unranked); one name
+at the next major.
+
 **tenure, YearsPlayed** — how long an account has existed, read from the
 `YearsPlayed` badge; unknown when the badge is absent, which is usually an
 account under a year old.
@@ -224,8 +278,37 @@ one changed.
 ## Responses
 
 **applied** — the one echo block on a response: the window (`from`, `to`,
-`timezone`, `source`), `limit`, `sort`, `mode`, `segment`, `verbosity`, as
+`timezone`, `source`, the `season` it starts in, `crosses`,
+`season_age_days`), `limit`, `sort`, `mode`, `segment`, `verbosity`, as
 the tool actually used them. Read it before quoting a bound.
+
+**control** — the field beside a number that says what population produced
+it: a row's `modes` (battles per mode group) and `dominant_mode`,
+`mean_level_gap` and `level_gap_battles`, `trophy_floor`, `partial` with
+`covers` on a clipped week or month, `population` on a corpus read,
+`comparable` on a ranked list. One module computes them for every tool,
+and a note fires only when a control detects a confound. See
+[Methodology](/docs/methodology).
+
+**comparable** — `false` on a ranked list (`clans_standings`,
+`battles_decks`, the meta tools) when two rows were played in different
+modes (each at least 60% in its own) or against level gaps half a level
+apart, with the note naming the pair; rank within one mode and similar
+gaps, or pass `mode`.
+
+**floor** — the Trophy Road floor a player stood on in a window: a loss ON
+the floor costs nothing (`trophy_change` null), so `net_trophies` counts
+wins in full and those losses at zero. `trophy_floor` names the floor, the
+arena and the losses it absorbed; `floored: true` is the tell. The rating
+floor on a Path of Legends board (`floor_rating`) is a different floor: the
+last placed player's rating.
+
+**manifest** — the recorder's declaration of what every key of every API
+payload becomes: the table and column it lands in, a derived value, or a
+documented drop. A nightly census samples the day's archived payloads
+against it and files a key the API added or retired as a work item, so a
+field the tools serve can be traced to the key it came from and a field
+the API sends cannot go unnoticed.
 
 **notes** — `notes[]`, one-sentence caveats a response asks you to repeat
 with its numbers.

@@ -847,6 +847,32 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
     /scored mostly in a Trophy Road arena other than their current one/,
   );
   assert.match(moved.notes[0], /Ultimate Clash Pit → Little Prince's Tavern/);
+
+  // 3.17.0 (Phase 4 item 8): mean_starting_trophies is over LADDER
+  // battles only. Turn ten of the member's battles into Path of Legends
+  // ones at a league rating of 1,500: the mean stays 12,500, not the
+  // pooled 10,300, and the note says which population it describes.
+  await db.query(
+    `update battle_participant set type = 'pathOfLegend', starting_trophies = 1500
+      where player_tag = $1 and battle_id in
+        (select battle_id from battle_participant where player_tag = $1 and battle_id like 'cps-0-%' order by battle_id limit 10)`,
+    [members[0]],
+  );
+  await db.query(
+    `update battle set type = 'pathOfLegend'
+      where battle_id in (select battle_id from battle_participant where player_tag = $1 and type = 'pathOfLegend')`,
+    [members[0]],
+  );
+  const mixed = (await call(invoke, "clans_pilot_scores", { days: 30 })).body;
+  const m0b = mixed.members.find((m) => m.player_tag === members[0]);
+  assert.equal(m0b.mean_starting_trophies, 12500);
+  assert.match(
+    mixed.notes.join(" "),
+    /mean_starting_trophies is over the member's LADDER battles only/,
+  );
+  // Every window says its season (item 1).
+  assert.ok("season" in mixed.applied.window);
+  assert.ok(Array.isArray(mixed.applied.window.crosses));
 });
 
 test("clans_pilot_scores: basis says what the curve was fit on", async () => {
@@ -1560,6 +1586,22 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     assert.ok(!("war_points" in member));
     assert.equal(member.war_decks.length, compact.war_weeks.length);
   }
+  // 3.17.0 (Phase 4 item 4): weeks given is source argument, defaulted
+  // is source default; the window says its season; the full shape says
+  // war_points is the period points figure, compact (which drops it)
+  // does not.
+  assert.equal(compact.applied.window.source, "argument");
+  assert.ok(!compact.notes.some((n) => /war_points per war week/.test(n)));
+  const defaulted = (await call(invoke, "clans_participation", {})).body;
+  assert.equal(defaulted.applied.weeks, 5);
+  assert.equal(defaulted.applied.window.source, "default");
+  assert.ok("season" in defaulted.applied.window);
+  assert.ok(Array.isArray(defaulted.applied.window.crosses));
+  assert.ok(
+    defaulted.notes.some((n) =>
+      /war_points per war week is the member's period points/.test(n),
+    ),
+  );
   // The naming test: no field name, note or docs pointer is a judgment.
   // (The game's own role values, "elder" among them, are facts.)
   const keys = new Set();

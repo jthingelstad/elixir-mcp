@@ -154,18 +154,25 @@ Every windowed tool takes the same bounds and echoes what it used:
   the asker's. `meta.timezone_applied` names the zone that applied.
 - `days` and `weeks` are sugar: `days: 7` is `from` seven days before now
   with no `to`. `seasons` on `war_history` counts seasons back the same way.
+- `season` bounds one season on every windowed tool (below).
 - Every windowed response echoes `applied.window` with `from`, `to`,
   `timezone` and a `source`: `argument` when you gave bounds, `default` when
   the tool's default applied, `unbounded` when nothing bounded the window,
   `season` when a season's bounds applied (below), and `fixed` on the one
   tool whose window is not an argument. An agent quoting "your last 30
-  days" reads `source` before it says so.
+  days" reads `source` before it says so. Beside them ride the `season`
+  the window starts in, `crosses` (every season roll inside it) and
+  `season_age_days`, on every windowed tool (3.17.0).
 
 The defaults differ by tool, and each says which applied:
 
 | Tool | Window when you give none |
 |---|---|
 | `players_summary` | fixed 30 days (`source: "fixed"`); not an argument |
+| `players_timeline`, `clans_timeline`, `clans_members_timeline` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
+| `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
+| `battles_levels` | 90 days |
+| `rankings_timeline`, `game_events` | the current season so far |
 | `battles_meta_decks`, `battles_meta_cards`, `cards_synergy` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
 | `clans_pilot_scores` | 90 days |
@@ -194,18 +201,27 @@ roll are not. That is why the meta tools (`battles_meta_decks`,
 date** rather than a rolling number of days, which on most days of the
 month mixes two seasons without saying so.
 
-- **`season`** on those three tools and on `battles_trends` bounds the
-  window to one season: `"current"` (the default on the meta tools; to
-  date), `"previous"`, the month (`"2026-08"`) or the war number (`135`).
-  `from`/`to`/`days`/`weeks` given still win.
+- **`season`** on the three meta tools, `battles_trends`, the player battle
+  tools (`battles_query`, `battles_performance`, `battles_decks`,
+  `battles_cards`, `battles_opponents`, `battles_compare`) and
+  `clans_standings` bounds the window to one season: `"current"` (the
+  default on the meta tools; to date), `"previous"`, the month
+  (`"2026-08"`) or the war number (`135`). `from`/`to`/`days`/`weeks` given
+  still win, and the battle tools' own default (unbounded, or 30 days on
+  the standings) is unchanged when `season` is omitted.
 - **`applied.window.season`** names the season the window starts in
-  (`month`, `war`, `starts_at`, `ends_at`), whatever set the window;
-  `null` when it starts before the record's calendar.
+  (`month`, `war`, `starts_at`, `ends_at`), whatever set the window, on
+  every windowed tool; `null` when it starts before the record's calendar
+  or when the window is unbounded.
 - **`applied.window.crosses`** lists every season roll inside the window
   (`kind`, `at`, `from_season`, `to_season`); an empty array means the
-  window is season-clean. Nothing is refused: an agent asking across a
-  roll may mean it, and a note says so in a sentence so the caveat travels
-  with the numbers. `crosses` is what lets a consumer refuse for itself.
+  window is season-clean, and an unbounded window crosses every roll on
+  record. Nothing is refused: an agent asking across a roll may mean it,
+  and a note fires only when `crosses` is non-empty, in the tool's own
+  terms (balance changes on the meta and battle tools; the trophy and
+  ranked resets on the series, standings and board tools), so the caveat
+  travels with the numbers. `crosses` is what lets a consumer refuse for
+  itself.
 - **`applied.window.season_age_days`** is how old that season is at the
   window's end. On the first days of a season the default window is thin
   and the record says so rather than widening it: `insufficient_sample`

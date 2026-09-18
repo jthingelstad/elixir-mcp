@@ -62,10 +62,18 @@ floor is laundering that admission. (Until 3.14.0 the field was promised and
 never set.)
 
 **`timezone_applied`** — the display timezone used for local labels, when one
-is configured on the account. Stored timestamps and the envelope remain UTC.
-Only tools that build the full envelope emit it (the player, battle and war
-subject tools); `live_fetch`, feedback and changelog answers carry the three
-required fields only.
+applied: the account's, or the call's own `timezone` argument. Stored
+timestamps and the envelope remain UTC. Every windowed tool that resolves a
+date-only bound or a local label emits it (the battle tools, the meta tools,
+`clans_standings`, `clans_participation`, `battles_trends`, the daily series,
+`elixir_timeline`); it is absent when no zone applied, and `live_fetch`,
+feedback and changelog answers carry the three required fields only.
+
+**`read_to`** (on `elixir_timeline`, beside the envelope) — your read pointer
+after the call: the window's end when the call moved it, the pointer as it
+stood with `mark_read: false`, and `null` when the account has no pointer
+yet (nothing has been marked read); a null `read_to` with `mark_read: false`
+is the dry run on a fresh account, not an error.
 
 **`feedback_responses_pending`** — maintainer replies waiting to be read with
 `elixir_my_feedback`.

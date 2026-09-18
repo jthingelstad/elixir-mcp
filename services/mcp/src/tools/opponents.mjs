@@ -12,7 +12,8 @@ import {
   WINDOW_ARGS,
   subject,
   buildMeta,
-  resolveWindow,
+  resolveSeasonWindow,
+  SEASON_ARG_SCHEMA,
   appliedBlock,
   notes,
   docsRef,
@@ -28,6 +29,7 @@ export const opponentsTools = {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
         min_battles: {
           type: "integer",
@@ -55,7 +57,9 @@ export const opponentsTools = {
           args.on_behalf_of,
         )
       ).tag;
-      const win = resolveWindow(ctx, args);
+      const win = await resolveSeasonWindow(ctx, args, {
+        seasonDefault: false,
+      });
       const where = ["me.player_tag = $1", "o.side <> me.side"];
       const params = [tag];
       const add = (clause, value) => {
@@ -138,6 +142,7 @@ export const opponentsTools = {
           clan_tag_last_seen: r.clan_tag,
         })),
         notes: notes(
+          win.seasonNotes,
           "Head-to-head rows only: 2v2 teammates never appear, and a duel counts once however many rounds it held.",
           "name_known false means no observation ever carried a name for that tag; players_names resolves the ones the corpus knows, players_profile({ live: true }) fetches one.",
         ),

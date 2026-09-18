@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "One grammar, one vocabulary",
+    body: "The same words now mean the same things on every tool. Every window says which season it starts in and every season roll it crosses, so a sixty-day read across the roll is named as one before an agent averages it; 'this season' is one argument (season) on the battle tools and the standings as it was on the meta tools. The daily series take an instant and floor it to its game day instead of refusing it, and say which day it became. Every point has one shape: day on every series and board point, partial and covers on a clipped month as on a clipped week, the profile's stamp under one name on the roster, and the event calendar on the game day grid beside the UTC one. The glossary now defines the words the responses use (game day, series, stamp, source, kind, control, comparable, floor, the four trophy kinds), choosing-a-tool names every tool, and six pages were re-read against the wire. Contract 3.17.0.",
+  },
+  {
+    date: "2026-09-19",
     title: "The control next to every number, and a population is named",
     body: "3.13.0 put the mode split, the level gap, the trophy floor and the clipped-week mark beside the five tools that had misled an agent; this release carries the same controls to every other tool that serves a rate, a trend, a rank or a sum. players_summary says which modes a month was played in and whether the player stood on a floor; clans_standings says which mode each member's record comes from and whether members are comparable at all; battles_trends marks clipped weeks and imported ones; the corpus meta tools carry each row's modes and level gap and take a trophy band, so the meta at your level is one argument; clans_participation says whether a member's log is recorded at all before it says zero; the pilot scores carry the arena and trophies they were scored in. And on the six segment tools the population is named, never assumed: segment 'mine' is your clan, segment 'corpus' is the whole recorded corpus, an omitted segment says which answered, and a corpus read says how many recorded clans and players it was drawn from. Contract 3.16.0.",
   },

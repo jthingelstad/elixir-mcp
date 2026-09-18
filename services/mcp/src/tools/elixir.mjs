@@ -45,6 +45,7 @@ import {
   WINDOW_ARGS,
   zoneFor,
   withWindowSugar,
+  seasonFieldsForInstants,
 } from "./shared.mjs";
 
 const RECORDING_DOCS = docsRef("recording", "added-means-recorded");
@@ -950,9 +951,17 @@ export const elixirTools = {
         );
       }
       const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
+      const seasonFields = await seasonFieldsForInstants(ctx.db, fromMs, toMs, {
+        flavor: "plain",
+      });
       return {
         applied: appliedBlock({
-          window: { from: iso(fromMs), to: iso(toMs), source },
+          window: {
+            from: iso(fromMs),
+            to: iso(toMs),
+            source,
+            ...seasonFields.echo,
+          },
           mark_read: marking,
           ...(sections ? { sections } : {}),
           ...(kinds ? { kinds } : {}),
@@ -968,6 +977,7 @@ export const elixirTools = {
         next_cursor: iso(toMs),
         has_more: false,
         notes: notes(
+          seasonFields.seasonNotes,
           entries.length === 0 && built.quiet.length === 0
             ? "No subjects: track a player or clan (notify defaults on) and it appears here."
             : "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",

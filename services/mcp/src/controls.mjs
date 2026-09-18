@@ -364,6 +364,34 @@ export function markPartialWeeks(rows, { from, to }, now = new Date()) {
   return { rows: out, partial };
 }
 
+/**
+ * The same mark for monthly buckets (3.17.0, one point vocabulary):
+ * `rows` carry `month` (YYYY-MM, UTC); the window's edge months are
+ * clipped and say so with `partial` and `covers`, the shape the weekly
+ * series uses.
+ */
+export function markPartialMonths(rows, { from, to }, now = new Date()) {
+  const end = to ?? now;
+  const partial = [];
+  const out = rows.map((r) => {
+    const start = new Date(`${r.month}-01T00:00:00Z`);
+    const stop = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1),
+    );
+    const coversFrom = from && from > start ? from : start;
+    const coversTo = end < stop ? end : stop;
+    const clipped = coversFrom > start || coversTo < stop;
+    if (!clipped) return r;
+    partial.push(r.month);
+    return {
+      ...r,
+      partial: true,
+      covers: { from: coversFrom.toISOString(), to: coversTo.toISOString() },
+    };
+  });
+  return { rows: out, partial };
+}
+
 export function partialWeeksNote(partial) {
   if (partial.length === 0) return null;
   return `${partial.length === 1 ? "Bucket" : "Buckets"} ${partial.join(", ")} ${partial.length === 1 ? "is" : "are"} partial: the window clips ${partial.length === 1 ? "it" : "them"} (covers says the span each row holds), so compare ${partial.length === 1 ? "it" : "them"} by win_rate, never by battles, or snap from/to to Mondays.`;

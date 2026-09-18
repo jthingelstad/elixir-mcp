@@ -42,9 +42,16 @@ and says which offset it used. Recent weeks count for more than old ones
 (see below), so a player whose evenings moved is read from where they play
 now.
 
-Days are UTC because the record is (the game's own day and war reset are
-UTC too). The rhythm is shown in your clock because "when do they play" is
-a question about a person.
+Days in the year graphic are UTC calendar days (midnight to midnight), not
+the 10:00 UTC game days the series tools and the war grid use. The graphic
+is rebuilt nightly from the battle rows by their UTC date, which is the day a
+person reads off a calendar; the game day exists to line battles up with the
+season and war clock, and a graphic of "did they play on the 12th" is not a
+war question. A late-night session (after 10:00 UTC, before midnight) is one
+cell here and one game day in `players_timeline`; a session between midnight
+and 10:00 UTC is the next cell here and still the previous game day there.
+The rhythm is shown in your clock because "when do they play" is a question
+about a person.
 
 ## Not recorded is not zero
 

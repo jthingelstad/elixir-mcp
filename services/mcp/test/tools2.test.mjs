@@ -11,7 +11,7 @@ import { emailHash } from "../../auth/src/index.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
-import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+import { ensureSeasonsAround, ensureSeason } from "../../ingest/src/season.mjs";
 import { rebuildSeason } from "../../jobs/src/meta-rollup.mjs";
 import { dailySql } from "../src/daily-sql.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
@@ -2176,4 +2176,63 @@ test("elixir_feedback notifies the owner through the door's notify hook; owner-o
   const still = await flaky("elixir_feedback", { message: "still filed" });
   assert.equal(still.isError, false);
   assert.ok(still.body.feedback_id);
+});
+
+test("3.17.0: every instant-windowed tool says its season, crossings fire only when crossed, and season bounds the player battle tools", async () => {
+  // The record's seasons back to July, so a 60-day window crosses two
+  // rolls (Aug 3 and Sep 7 at 10:00Z) and a 3-day one crosses none.
+  await ensureSeason(db, "2026-07");
+  await ensureSeason(db, "2026-08");
+  const sixty = await call("battles_decks", { days: 60 });
+  assert.equal(sixty.isError, false, JSON.stringify(sixty.body));
+  const w = sixty.body.applied.window;
+  assert.ok(w.season, "the window starts in a named season");
+  assert.ok(Array.isArray(w.crosses));
+  assert.ok(w.crosses.length >= 1, JSON.stringify(w));
+  assert.ok(w.crosses.every((c) => c.kind === "season" && c.from_season));
+  assert.ok(sixty.body.notes.some((n) => /^Window spans S/.test(n)));
+  assert.equal(typeof w.season_age_days, "number");
+
+  const clean = await call("battles_decks", { days: 3 });
+  assert.deepEqual(clean.body.applied.window.crosses, []);
+  assert.ok(!clean.body.notes.some((n) => /^Window spans/.test(n)));
+
+  // Unbounded: no season to start in, every roll on record crossed.
+  const all = await call("battles_query", {});
+  assert.equal(all.body.applied.window.source, "unbounded");
+  assert.equal(all.body.applied.window.season, null);
+  assert.ok(
+    all.body.applied.window.crosses.length >= 2,
+    JSON.stringify(all.body.applied.window),
+  );
+
+  // Every instant-windowed tool carries the keys, whatever the window.
+  for (const [name, args] of [
+    ["battles_query", { days: 5 }],
+    ["battles_performance", { days: 5 }],
+    ["battles_cards", { days: 5 }],
+    ["battles_decks", { days: 5 }],
+    ["battles_opponents", { days: 5 }],
+    ["battles_compare", { player_tags: [OBSERVER, "#2PP0V90Y"], days: 5 }],
+    ["battles_levels", { days: 7 }],
+    ["game_events", { days: 5 }],
+    ["elixir_timeline", { mark_read: false }],
+  ]) {
+    const { body, isError } = await call(name, args);
+    assert.equal(isError, false, `${name}: ${JSON.stringify(body)}`);
+    assert.ok("season" in body.applied.window, `${name} carries season`);
+    assert.ok(Array.isArray(body.applied.window.crosses), `${name} crosses`);
+  }
+
+  // season: one argument everywhere (item 2): the previous season's bounds.
+  const prev = await call("battles_performance", { season: "previous" });
+  assert.equal(prev.isError, false, JSON.stringify(prev.body));
+  assert.equal(prev.body.applied.window.source, "season");
+  assert.equal(prev.body.applied.window.season.month, "2026-08");
+  assert.deepEqual(prev.body.applied.window.crosses, []);
+  const byMonth = await call("battles_query", { season: "2026-08", limit: 5 });
+  assert.equal(byMonth.body.applied.window.from, prev.body.applied.window.from);
+  // Explicit bounds still win over season.
+  const both = await call("battles_query", { season: "previous", days: 2 });
+  assert.equal(both.body.applied.window.source, "argument");
 });

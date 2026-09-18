@@ -126,7 +126,7 @@ export const WINDOW_TO_DESC =
   "End of the window, exclusive: an ISO instant as given; YYYY-MM-DD covers that WHOLE local day. Omit for up to now.";
 /** Snapshot-series tools take whole days only, never instants. */
 export const WINDOW_DATE_ONLY_DESC =
-  "YYYY-MM-DD, inclusive. Built from daily snapshots, so only whole days are meaningful; an instant is not accepted.";
+  "YYYY-MM-DD (a game day, the 10:00Z grid), inclusive. Built from daily snapshots, so only whole days are meaningful; an instant is floored to its game day and the response says so.";
 
 export const TIMEZONE_SCHEMA = {
   type: "string",
@@ -390,29 +390,13 @@ export function zoneFor(ctx, args = {}) {
  * it says it (review 2.2.1: battles_decks returned all-time with no
  * bounds echoed).
  */
-export function resolveWindow(
-  ctx,
-  args = {},
-  { defaultDays = null, dateOnly = false } = {},
-) {
+function resolveWindow(ctx, args = {}, { defaultDays = null } = {}) {
   const tz = zoneFor(ctx, args);
   const now = new Date();
   let from = null;
   let to = null;
   let source = "unbounded";
   if (args.from !== undefined || args.to !== undefined) {
-    if (dateOnly) {
-      for (const k of ["from", "to"])
-        if (
-          args[k] !== undefined &&
-          !/^\d{4}-\d{2}-\d{2}$/.test(String(args[k]))
-        )
-          throw new ToolFailure(
-            "bad_request",
-            `${k} must be YYYY-MM-DD for this tool.`,
-            WINDOW_DATE_ONLY_DESC,
-          );
-    }
     from = args.from !== undefined ? resolveInstant(tz, args.from) : null;
     to =
       args.to !== undefined
@@ -457,7 +441,8 @@ export function resolveWindow(
   };
 }
 
-/** The `season` argument on the meta tools and battles_trends (3.10.0). */
+/** The `season` argument (3.10.0 on the meta tools and battles_trends;
+ *  3.17.0 on the player battle tools and clans_standings). */
 export const SEASON_ARG_SCHEMA = {
   type: ["string", "integer"],
   description:
@@ -467,22 +452,106 @@ export const SEASON_ARG_SCHEMA = {
 const DAY_MS = 86_400_000;
 const seasonLabel = (s) => `S${s.war} (${s.month})`;
 
+/** What a season roll does to the numbers in this tool: the crossing
+ *  note says it in the tool's own terms (3.17.0). */
+const CROSSING_TAIL = {
+  balance:
+    "balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+  series:
+    "the seasonal trophies and the Path of Legends standing reset on the roll, so points on either side of it are not one series.",
+  ladder:
+    "the ladder's seasonal trophies reset on the roll, so trophy-bound numbers before and after are not one series.",
+  plain:
+    "the season rolls on the first Monday at 10:00Z and applied.window.crosses says where, so read either side as its own season.",
+};
+
 /**
- * The window for a season-grained read (review 2026-09-16, 1.1). The
- * default is the current season to date, from the `season` row - never
- * a rolling number of days, which is how a 28-day meta window came to
- * mix two seasons 14/86 without saying so. `season` selects another;
- * explicit bounds still win. Whatever set it, `applied.window` says
- * which season the window starts in, every season boundary it crosses
- * (`crosses`, empty when clean) and how old that season is at the
- * window's end (`season_age_days`); the notes say the same in a
- * sentence. Nothing is refused: an agent asking across a roll may mean
- * it, and `crosses` is what lets a consumer refuse for itself.
+ * The season fields for an instant span [fromMs, endMs) (3.17.0, one
+ * helper behind every windowed tool): the season the span starts in
+ * (`start` when the caller already holds the row; null for an unbounded
+ * span, which starts before any season), every roll inside it
+ * (`crosses`, empty when clean), the season's age at the span's end,
+ * and the crossing note, which fires only when `crosses` is non-empty.
+ * An unbounded span (`fromMs` null) crosses every roll on record.
+ */
+async function seasonFieldsForSpan(
+  db,
+  fromMs,
+  endMs,
+  { start, flavor = "balance" } = {},
+) {
+  const startRow =
+    start !== undefined
+      ? start
+      : fromMs === null
+        ? null
+        : await seasonAt(db, fromMs);
+  // An unbounded span crosses every roll on record: it starts where the
+  // record's seasons do, and the first row is where they begin, not a
+  // boundary the span crossed.
+  const spanFromMs =
+    fromMs ??
+    (
+      await db.query(`select min(starts_at) as first from season`)
+    ).rows[0]?.first?.getTime() ??
+    endMs;
+  const crosses = await seasonCrossings(db, spanFromMs, endMs);
+  const season = startRow
+    ? {
+        month: startRow.season_month,
+        war: startRow.war_season_id,
+        starts_at: startRow.starts_at.toISOString(),
+        ends_at: startRow.ends_at.toISOString(),
+      }
+    : null;
+  const seasonAgeDays = startRow
+    ? Math.floor(
+        (Math.min(endMs, startRow.ends_at.getTime()) -
+          startRow.starts_at.getTime()) /
+          DAY_MS,
+      )
+    : null;
+  const spanned = crosses.length
+    ? [crosses[0].from_season, ...crosses.map((c) => c.to_season)]
+        .filter(Boolean)
+        .map(seasonLabel)
+    : [];
+  return {
+    start: startRow,
+    seasonAgeDays,
+    crosses,
+    echo: {
+      season,
+      crosses,
+      ...(seasonAgeDays === null ? {} : { season_age_days: seasonAgeDays }),
+    },
+    seasonNotes: notes(
+      crosses.length
+        ? `Window spans ${spanned.length > 1 ? `${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}` : spanned[0]}; ${CROSSING_TAIL[flavor] ?? CROSSING_TAIL.balance}`
+        : null,
+    ),
+  };
+}
+
+/**
+ * The window for a season-aware read. Two defaults: the meta tools
+ * (`seasonDefault: true`, review 2026-09-16, 1.1) default to the current
+ * season to date from the `season` row - never a rolling number of days,
+ * which is how a 28-day meta window came to mix two seasons 14/86
+ * without saying so; the player battle tools (3.17.0, `seasonDefault:
+ * false`) keep their unbounded or `defaultDays` default and take
+ * `season` as one more way to bound. Explicit bounds always win.
+ * Whatever set it, `applied.window` says which season the window starts
+ * in, every season boundary it crosses (`crosses`, empty when clean)
+ * and how old that season is at the window's end (`season_age_days`);
+ * the notes say the same in a sentence. Nothing is refused: an agent
+ * asking across a roll may mean it, and `crosses` is what lets a
+ * consumer refuse for itself.
  */
 export async function resolveSeasonWindow(
   ctx,
   args = {},
-  { defaultDays = null } = {},
+  { defaultDays = null, seasonDefault = true, flavor = "balance" } = {},
 ) {
   const explicit = ["from", "to", "days", "weeks"].some(
     (k) => args[k] !== undefined,
@@ -490,7 +559,10 @@ export async function resolveSeasonWindow(
   const nowMs = Date.now();
   let win;
   let row = null;
-  if (!explicit && (args.season !== undefined || defaultDays === null)) {
+  if (
+    !explicit &&
+    (args.season !== undefined || (seasonDefault && defaultDays === null))
+  ) {
     row = await seasonByKey(ctx.db, args.season ?? "current", nowMs);
     if (!row)
       throw new ToolFailure(
@@ -516,49 +588,46 @@ export async function resolveSeasonWindow(
   } else {
     win = resolveWindow(ctx, args, { defaultDays });
   }
-  const fromMs = win.from.getTime();
+  const fromMs = win.from ? win.from.getTime() : null;
   const endMs = win.to ? win.to.getTime() : nowMs;
-  const start = row ?? (await seasonAt(ctx.db, fromMs));
-  const crosses = await seasonCrossings(ctx.db, fromMs, endMs);
-  const season = start
-    ? {
-        month: start.season_month,
-        war: start.war_season_id,
-        starts_at: start.starts_at.toISOString(),
-        ends_at: start.ends_at.toISOString(),
-      }
-    : null;
-  const seasonAgeDays = start
-    ? Math.floor(
-        (Math.min(endMs, start.ends_at.getTime()) - start.starts_at.getTime()) /
-          DAY_MS,
-      )
-    : null;
-  const spanned = crosses.length
-    ? [crosses[0].from_season, ...crosses.map((c) => c.to_season)]
-        .filter(Boolean)
-        .map(seasonLabel)
-    : [];
+  const fields = await seasonFieldsForSpan(ctx.db, fromMs, endMs, {
+    ...(row ? { start: row } : {}),
+    flavor,
+  });
+  const seasonAgeDays = fields.seasonAgeDays;
   const seasonNotes = notes(
-    crosses.length
-      ? `Window spans ${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}; balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.`
-      : null,
+    fields.seasonNotes,
     win.source === "season" && win.to === null && seasonAgeDays < 7
       ? `The current season is ${seasonAgeDays} day${seasonAgeDays === 1 ? "" : "s"} old, so this window is thin; season:'previous' is the settled comparison.`
       : null,
   );
   return {
     ...win,
-    season: start,
-    crosses,
+    season: fields.start,
+    crosses: fields.crosses,
     seasonNotes,
-    echo: {
-      ...win.echo,
-      season,
-      crosses,
-      ...(seasonAgeDays === null ? {} : { season_age_days: seasonAgeDays }),
-    },
+    echo: { ...win.echo, ...fields.echo },
   };
+}
+
+/**
+ * The season fields for an instant pair a tool resolved itself
+ * (battles_levels, clans_pilot_scores, rankings_timeline,
+ * elixir_timeline build their windows from `days` or a pointer): the
+ * same echo and note resolveSeasonWindow carries (3.17.0).
+ */
+export async function seasonFieldsForInstants(
+  db,
+  from,
+  to,
+  { flavor = "series" } = {},
+) {
+  const fromMs = from ? new Date(from).getTime() : null;
+  const endMs = to ? Math.min(new Date(to).getTime(), Date.now()) : Date.now();
+  const { echo, seasonNotes } = await seasonFieldsForSpan(db, fromMs, endMs, {
+    flavor,
+  });
+  return { echo, seasonNotes };
 }
 
 /**
@@ -574,39 +643,10 @@ export async function seasonFieldsForDays(db, fromDay, toDay) {
   const endMs = toDay
     ? Math.min(Date.parse(`${toDay}T10:00:00Z`) + DAY_MS, nowMs)
     : nowMs;
-  const start = await seasonAt(db, fromMs);
-  const crosses = await seasonCrossings(db, fromMs, endMs);
-  const season = start
-    ? {
-        month: start.season_month,
-        war: start.war_season_id,
-        starts_at: start.starts_at.toISOString(),
-        ends_at: start.ends_at.toISOString(),
-      }
-    : null;
-  const seasonAgeDays = start
-    ? Math.floor(
-        (Math.min(endMs, start.ends_at.getTime()) - start.starts_at.getTime()) /
-          DAY_MS,
-      )
-    : null;
-  const spanned = crosses.length
-    ? [crosses[0].from_season, ...crosses.map((c) => c.to_season)]
-        .filter(Boolean)
-        .map(seasonLabel)
-    : [];
-  return {
-    echo: {
-      season,
-      crosses,
-      ...(seasonAgeDays === null ? {} : { season_age_days: seasonAgeDays }),
-    },
-    seasonNotes: notes(
-      crosses.length
-        ? `Window spans ${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}; the seasonal trophies and the Path of Legends standing reset on the roll, so points on either side of it are not one series.`
-        : null,
-    ),
-  };
+  const { echo, seasonNotes } = await seasonFieldsForSpan(db, fromMs, endMs, {
+    flavor: "series",
+  });
+  return { echo, seasonNotes };
 }
 
 /** The one echo block. Undefined values are dropped so a tool spreads

@@ -153,7 +153,13 @@ for (const entry of page.entries) context(entry);  // the window's shape per sub
 state.from = page.next_cursor;                    // the window end you just read
 ```
 
-The item and entry shapes are on [Timeline](/docs/timeline).
+The item and entry shapes are on [Timeline](/docs/timeline), with the
+`facts` keys each `kind` carries (a `battle_session` has `battles`, `won`,
+`lost`, `by_mode` and `trophy_net`; a `session_standout` adds `crossed` and
+`newly`; a `ranked_promotion` has `from`, `to` and their names and, when the
+record holds it, the promoting battle under `promoted_by`; a clan's
+`member_left` has the departing member's `player_tag`, `name` and
+`role_at_departure`). Branch on `kind` and `facts`; `text` is for the person.
 `meta.timeline_pending` on any response counts subjects of yours the
 recorder has admitted something for since your pointer, which is only
 meaningful if something marks.

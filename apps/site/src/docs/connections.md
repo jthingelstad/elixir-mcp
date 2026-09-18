@@ -8,6 +8,7 @@ navTitle: "Connections"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
 console: ["Manage your clients", "/account/connections", "Console ▸ Connections"]
+reviewed: "2026-09-19 against contract 3.17.0"
 ---
 
 # Users, agents and integrations

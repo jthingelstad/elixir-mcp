@@ -353,6 +353,8 @@ test("clans_roster carries the lifetime block, tenure and badge count per member
   assert.equal(me.lifetime.king_tower_level, profile.kingTowerLevel);
   assert.equal(me.lifetime.total_donations, profile.totalDonations);
   assert.equal(me.lifetime.as_of, "2026-09-06T23:35:00.000Z");
+  // 3.17.0: the same instant under the stamp's one name.
+  assert.equal(me.lifetime.profile_observed_at, me.lifetime.as_of);
   assert.ok(me.badge_count > 0);
   assert.equal(typeof me.years_played, "number");
   const other = body.members.find((m) => m.player_tag !== ME);
@@ -363,4 +365,62 @@ test("clans_roster carries the lifetime block, tenure and badge count per member
     "number",
     "the roster's trophies are there for every member",
   );
+});
+
+test("one window grammar (3.17.0, call 3): an instant on a series tool is floored to its game day, echoed and said, never refused; days is N game days", async () => {
+  // 2026-09-06T04:00Z is before the 10:00Z grid start: game day 09-05.
+  const { body, isError } = await call("players_timeline", {
+    from: "2026-09-01T12:30:00Z",
+    to: "2026-09-06T04:00:00Z",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.applied.window.from, "2026-09-01");
+  assert.equal(body.applied.window.to, "2026-09-05");
+  assert.deepEqual(body.applied.window.floored, {
+    from: "2026-09-01T12:30:00Z",
+    to: "2026-09-06T04:00:00Z",
+  });
+  assert.ok(
+    body.notes.some((n) =>
+      /to 2026-09-06T04:00:00Z was an instant.*to is game day 2026-09-05/.test(
+        n,
+      ),
+    ),
+    JSON.stringify(body.notes),
+  );
+  assert.ok(
+    body.series.every((p) => p.day === p.date),
+    "day rides beside date",
+  );
+  // A date-only window says nothing about flooring.
+  const plain = await call("players_timeline", {
+    from: "2026-09-01",
+    to: "2026-09-06",
+  });
+  assert.equal(plain.body.applied.window.floored, undefined);
+  assert.ok(!plain.body.notes.some((n) => /was an instant/.test(n)));
+  // The clan series take the same grammar.
+  const clan = await call("clans_timeline", {
+    from: "2026-09-01T00:00:00Z",
+    to: "2026-09-06",
+  });
+  assert.equal(clan.isError, false, JSON.stringify(clan.body));
+  assert.equal(
+    clan.body.applied.window.from,
+    "2026-08-31",
+    "midnight UTC is still the previous game day",
+  );
+  assert.deepEqual(clan.body.applied.window.floored, {
+    from: "2026-09-01T00:00:00Z",
+  });
+  const members = await call("clans_members_timeline", {
+    to: "2026-09-06T09:59:59Z",
+    days: 3,
+  });
+  assert.equal(members.isError, false, JSON.stringify(members.body));
+  assert.equal(members.body.applied.window.to, "2026-09-05");
+  // Garbage is still refused.
+  const bad = await call("players_timeline", { from: "yesterday" });
+  assert.equal(bad.isError, true);
+  assert.equal(bad.body.error.code, "bad_request");
 });

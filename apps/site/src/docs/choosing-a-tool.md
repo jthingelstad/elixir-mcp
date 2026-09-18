@@ -1,7 +1,7 @@
 ---
 slug: choosing-a-tool
 title: "Choosing a tool"
-description: "Which tool answers which shape of question, the three call sequences most answers follow (how am I doing, scout a bracket, name to tag to drill), and the conventions every tool shares on one screen: defaults, windows, verbosity, notes and docs, live reads and the timezone argument."
+description: "Which tool answers which shape of question, the four call sequences most answers follow (how am I doing, scout a bracket, name to tag to drill, how have I moved), and the conventions every tool shares on one screen: defaults, windows, verbosity, notes and docs, live reads and the timezone argument."
 section: using
 order: 9
 navTitle: "Choosing a tool"
@@ -38,13 +38,32 @@ conventions that hold everywhere.
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
 | What happened since I last looked? | `elixir_timeline` (items in order and an entry per subject, then drill with the data tools) |
+| How have I moved: trophies, rank, a lifetime counter, day by day? | `players_timeline` (one point per game day; `metrics` picks the series) |
+| Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`) |
+| Who do I keep meeting, and how does it go? | `battles_opponents` |
+| Two to four players side by side | `battles_compare` |
+| Am I winning because of levels or in spite of them? | `battles_levels` (the Level Curve and a Pilot Score with a monthly trend); `clans_pilot_scores` for every member in one call |
+| How is a population trending week by week? | `battles_trends` with a `segment` |
+| What is this card played with? | `cards_synergy`; `cards_catalog` resolves ids and names |
+| The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
+| Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
+| The clan leaderboards, which clans hold a board, how a board moved | `rankings_clan_ladder`, `rankings_clans`, `rankings_timeline` |
+| What was on in the game: events, challenges, side modes, by day | `game_events` |
+| Curated lists: pros, creators, clan families, your own | `collections_browse`, `collections_get`, `collections_edit` |
+| Track someone, say who they are to you, resolve a human to a player | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname`, `elixir_identify`, `elixir_my_identities` |
+| Something is missing or took too many calls | `elixir_feedback`; `elixir_my_feedback` says what happened to it |
+| What the service holds and who fetches it | `elixir_data_insights`, `elixir_collectors` |
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
+
+Read `comparable` before ranking: where a response carries it (`clans_standings`,
+`battles_decks`, the meta tools), `false` means two rows were played in
+different modes or against different level gaps, and the note names them.
 
 Every recorded-data tool is unlimited within the daily call budget. The
 tools that spend the live lane are `live_fetch` and the {{ tools.liveFlagCount }} with a `live`
 flag; everything else reads the record.
 
-## Three sequences
+## Four sequences
 
 **How am I doing.** `players_summary` for the headline (trophies, the fixed
 last 30 days, the most-played deck), then `battles_performance` with a window
@@ -70,6 +89,16 @@ the other direction, `players_names` resolves up to 100 tags without the
 live lane, and `players_profile({ live: true })` fetches one the corpus has
 never named.
 
+**How have I moved.** `players_timeline` for the series itself (trophies by
+default; `metrics` picks Path of Legends, a lifetime counter or the clan
+rank; one point per game day with `day`, `kind` and the stamps that wrote
+it), then `battles_performance({ group_by: "week" })` for the win rate and
+mode split behind each stretch of it (clipped weeks say `partial`), then
+`battles_levels` for whether the move tracks card levels or play: the
+monthly trend carries the population each month was scored in. Read
+`applied.window.crosses` on every one: a season roll resets the seasonal
+trophies and the ranked standing, so the two sides of it are not one series.
+
 ## Conventions on one screen
 
 - **Omit `player_tag` to mean the caller**: a person's primary player, or
@@ -86,10 +115,15 @@ never named.
   note, and carries `population` (the recorded clans and players it was
   drawn from, and the distinct players in the window).
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
-  account's timezone; a date-only `to` covers that whole day. `days` and
-  `weeks` are sugar; `season` on the meta tools bounds one season. Every
-  windowed response echoes `applied.window` with a `source` of `argument`,
-  `default`, `unbounded`, `season` or `fixed`; see
+  account's timezone; a date-only `to` covers that whole day. The daily
+  series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)
+  run on game days and floor an instant to its day, saying so. `days` and
+  `weeks` are sugar; `season` (`current`, `previous`, `2026-08` or `135`)
+  bounds one season on every windowed tool, and is the meta tools' default.
+  Every windowed response echoes `applied.window` with a `source` of
+  `argument`, `default`, `unbounded`, `season` or `fixed`, the `season` it
+  starts in and `crosses`, every season roll inside it (a note fires when
+  there is one); see
   [Windows and timezones](/docs/clocks#windows-and-timezones) and
   [Seasons](/docs/clocks#seasons).
 - **`verbosity: "compact"` is the one size control.** It drops the bulk and

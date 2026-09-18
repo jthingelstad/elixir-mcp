@@ -13,6 +13,7 @@
  * row), `source` (`api` or `elixir-bot`) and `kind`.
  */
 
+import { gameDay } from "@elixir-mcp/contracts";
 import {
   ToolFailure,
   WINDOW_DATE_ONLY_DESC,
@@ -74,36 +75,40 @@ export const DAY_WINDOW_ARGS = {
     type: "integer",
     minimum: 1,
     description:
-      "Last N days of the series, today included: sugar for from. Or use from/to.",
+      "Last N game days of the series, today included: sugar for from. Or use from/to.",
   },
   weeks: {
     type: "integer",
     minimum: 1,
     description:
-      "Last N weeks of the series, today included: sugar for from. Or use from/to.",
+      "Last N weeks (7N game days) of the series, today included: sugar for from. Or use from/to.",
   },
 };
 
-/** The date-only window every daily series takes: from/to as YYYY-MM-DD
- *  (game days), days/weeks as sugar for from (N days back from today is
- *  the day N-1 days ago, today included). */
+/** The window every daily series takes: from/to as YYYY-MM-DD (game
+ *  days), days/weeks as sugar for from (N days back from today is the
+ *  game day N-1 days ago, today included). An instant is accepted and
+ *  floored to its game day (3.17.0, one window grammar, call 3): the
+ *  echo carries the instant given under `floored` and a note says which
+ *  day it became, never a refusal. */
 export function dayWindow(rawArgs) {
   const args = withWindowSugar(rawArgs);
   if (args.from !== rawArgs.from)
-    args.from = new Date(Date.parse(args.from) + 86_400_000)
-      .toISOString()
-      .slice(0, 10);
+    args.from = gameDay(Date.parse(args.from) + 86_400_000);
+  const floored = {};
   for (const d of ["from", "to"]) {
-    if (
-      args[d] !== undefined &&
-      (!/^\d{4}-\d{2}-\d{2}$/.test(String(args[d])) ||
-        Number.isNaN(Date.parse(args[d])))
-    )
+    if (args[d] === undefined) continue;
+    const given = String(args[d]);
+    const ms = Date.parse(given);
+    if (Number.isNaN(ms))
       throw new ToolFailure(
         "bad_request",
-        `Unparseable ${d}: ${args[d]}`,
+        `Unparseable ${d}: ${given}`,
         WINDOW_DATE_ONLY_DESC,
       );
+    if (/^\d{4}-\d{2}-\d{2}$/.test(given)) continue;
+    args[d] = gameDay(ms);
+    floored[d] = given;
   }
   if (args.from && args.to && args.from > args.to)
     throw new ToolFailure(
@@ -111,10 +116,21 @@ export function dayWindow(rawArgs) {
       "from is after to — the window is inverted.",
       "Swap the bounds; from must be the earlier date.",
     );
+  const flooredKeys = Object.keys(floored);
   return {
     from: args.from ?? null,
     to: args.to ?? null,
     source: args.from || args.to ? "argument" : "unbounded",
+    echoExtra: flooredKeys.length ? { floored } : {},
+    floorNote: flooredKeys.length
+      ? `${flooredKeys
+          .map((d) => `${d} ${floored[d]} was an instant`)
+          .join(
+            " and ",
+          )}; the series is daily on the game day grid (10:00Z), so ${flooredKeys
+          .map((d) => `${d} is game day ${args[d]}`)
+          .join(" and ")}.`
+      : null,
   };
 }
 

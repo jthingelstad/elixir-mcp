@@ -198,6 +198,7 @@ export const seriesTools = {
             to: win.to,
             source: win.source,
             ...(tz ? { timezone: tz } : {}),
+            ...win.echoExtra,
             ...seasonFields.echo,
           },
           granularity: weekly ? "week" : "day",
@@ -208,6 +209,7 @@ export const seriesTools = {
         series_available_from: availableFrom,
         series: points,
         notes: notes(
+          win.floorNote,
           availableFrom && win.from && win.from < availableFrom
             ? `Requested from ${win.from}, but the clan's series begins ${availableFrom}.`
             : null,
@@ -259,7 +261,7 @@ export const seriesTools = {
           maximum: 50,
           default: 50,
           description:
-            "Most members to return (by tag order); pass player_tags to choose.",
+            "Most members to return, in tag order (the first N by tag, not the most active); a clan with more than N members with points sets truncated. Pass player_tags to choose whom, or raise limit to 50 for a whole clan.",
         },
         verbosity: VERBOSITY(
           "per member the first and last point and the delta of each numeric metric, no series.",
@@ -359,6 +361,7 @@ export const seriesTools = {
             to: win.to,
             source: win.source,
             ...(tz ? { timezone: tz } : {}),
+            ...win.echoExtra,
             ...seasonFields.echo,
           },
           granularity: weekly ? "week" : "day",
@@ -395,6 +398,7 @@ export const seriesTools = {
           };
         }),
         notes: notes(
+          win.floorNote,
           truncated
             ? `More than ${limit} members had points in the window; the first ${limit} by tag are here - pass player_tags to choose, or raise limit (max 50).`
             : null,

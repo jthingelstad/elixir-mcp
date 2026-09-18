@@ -119,8 +119,8 @@ Each player you track is your `primary` (exactly one: the first you track,
 or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
 someone you are `watching` (the default). The primary is what "omit
 `player_tag`" means on your connection. Claims are taken at your word
-(`claim_status: unverified`); several accounts may track the same player and
-share the recording.
+(`claim_status: unverified`) until [Verify](/docs/verify) proves one;
+several accounts may track the same player and share the recording.
 
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account and your agents see;

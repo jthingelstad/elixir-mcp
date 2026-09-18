@@ -21,7 +21,9 @@ import {
   VERBOSITY,
   entitledClan,
   buildMeta,
-  resolveWindow,
+  resolveSeasonWindow,
+  SEASON_ARG_SCHEMA,
+  seasonFieldsForInstants,
   requireEnum,
   appliedBlock,
   notes,
@@ -60,6 +62,7 @@ export const clansTools = {
       properties: {
         clan_tag: CLAN_TAG_SCHEMA,
         ...WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         days: {
           type: "integer",
           minimum: 1,
@@ -79,7 +82,11 @@ export const clansTools = {
     },
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
-      const win = resolveWindow(ctx, args, { defaultDays: 30 });
+      const win = await resolveSeasonWindow(ctx, args, {
+        defaultDays: 30,
+        seasonDefault: false,
+        flavor: "ladder",
+      });
       const minBattles = Number(args.min_battles ?? 10);
       if (!Number.isInteger(minBattles) || minBattles < 1 || minBattles > 200)
         throw new ToolFailure("bad_request", "min_battles must be 1-200.");
@@ -173,6 +180,7 @@ export const clansTools = {
         below_floor: unranked,
         notes: notes(
           clash,
+          win.seasonNotes,
           coverageBasisNote(coverage.basis),
           "Covers RECORDED battles only, and capture starts differ per member (recorded_since per member; elixir_coverage per tag).",
           "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
@@ -227,7 +235,11 @@ export const clansTools = {
                   round((0.5 / sqrt(greatest(count(p.*), 1)))::numeric, 3) as standard_error,
                   -- The population the member was scored in (3.16.0): the
                   -- battles_levels trend guard lifted to a member row.
-                  round(avg(p.starting_trophies))::int as mean_starting_trophies,
+                  -- Ladder battles only (3.17.0): a Path of Legends
+                  -- battle's starting_trophies is its league rating, a
+                  -- different scale, and pooling the two made the mean say
+                  -- nothing about either population.
+                  round(avg(p.starting_trophies) filter (where p.type = 'PvP'))::int as mean_starting_trophies,
                   mode() within group (order by p.arena_id) as modal_arena_id,
                   mode() within group (order by p.arena) as modal_arena,
                   -- The Trophy Road arena the member's LADDER battles were
@@ -269,15 +281,23 @@ export const clansTools = {
         );
         await ctx.db.query("commit");
         const asOf = new Date();
+        const winFrom = new Date(asOf.getTime() - days * 86400_000);
+        const seasonFields = await seasonFieldsForInstants(
+          ctx.db,
+          winFrom,
+          asOf,
+          { flavor: "ladder" },
+        );
         return {
           clan_tag: clanTag,
           applied: appliedBlock({
             clan_tag: clanTag,
             window: {
-              from: new Date(asOf.getTime() - days * 86400_000).toISOString(),
+              from: winFrom.toISOString(),
               to: asOf.toISOString(),
               source: args.days !== undefined ? "argument" : "default",
               days,
+              ...seasonFields.echo,
             },
           }),
           scored_members: rows.length,
@@ -333,9 +353,10 @@ export const clansTools = {
                     )}${moved.length > 3 ? "; …" : ""}): the score adjusts for card levels, not for the population an arena change moved them into, so read mean_starting_trophies and modal_arena before calling a score a trend.`
                 : null;
             })(),
+            seasonFields.seasonNotes,
             PILOT_NOTES,
             "basis counts describe the curve's volume only; unchanged counts do not identify an unchanged curve.",
-            "mean_starting_trophies and modal_arena say which population each member was scored in (a Path of Legends battle's arena is its league); current_arena is the latest snapshot's Trophy Road arena, compared against the member's ladder battles only.",
+            "mean_starting_trophies is over the member's LADDER battles only (a Path of Legends battle's starting trophies is its league rating, a different scale), null for a member with none; modal_arena is over every scored battle (a Path of Legends battle's arena is its league); current_arena is the latest snapshot's Trophy Road arena, compared against the member's ladder battles only.",
           ),
           docs: PILOT_DOCS,
           meta: responseMeta({ as_of: asOf.toISOString() }),
@@ -537,6 +558,9 @@ export const clansTools = {
           lifetime: m.profile_observed_at
             ? {
                 as_of: m.profile_observed_at.toISOString(),
+                // The stamp under the name every series point uses
+                // (3.17.0, one vocabulary); as_of retires at 4.0.0.
+                profile_observed_at: m.profile_observed_at.toISOString(),
                 best_trophies: m.best_trophies,
                 battle_count: m.battle_count,
                 wins: m.wins,
@@ -636,6 +660,9 @@ export const clansTools = {
           complete: end <= now,
         });
       }
+      const seasonFields = await seasonFieldsForInstants(ctx.db, from, null, {
+        flavor: "plain",
+      });
       const members = await ctx.db.query(MEMBERS_SQL, [clanTag]);
       const tags = members.rows.map((m) => m.player_tag);
       // Whether the members' logs are recorded at all (3.16.0): for an
@@ -801,7 +828,8 @@ export const clansTools = {
           window: {
             from: from.toISOString(),
             to: null,
-            source: "argument",
+            source: args.weeks !== undefined ? "argument" : "default",
+            ...seasonFields.echo,
           },
         }),
         recording_active_since:
@@ -819,7 +847,11 @@ export const clansTools = {
         member_count: out.length,
         members: out,
         notes: notes(
+          seasonFields.seasonNotes,
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
+          compact
+            ? null
+            : "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",
           "donations is the game's weekly counter as of the last daily snapshot in that ISO week (it resets Mondays); null means no snapshot fell in the week.",
           "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",

@@ -111,7 +111,7 @@ navActive: docs
           {%- else %}
           <span style="display: flex; align-items: center; gap: 7px">{% icon "wrench", 14 %}Generated from the registry</span>
           {%- endif %}
-          <span>Updated {{ page.inputPath | updated }}</span>
+          <span>Updated {{ page.inputPath | updated }}{% if reviewed %} · Reviewed {{ reviewed }}{% endif %}</span>
         </div>
       </nav>
       {%- endif %}

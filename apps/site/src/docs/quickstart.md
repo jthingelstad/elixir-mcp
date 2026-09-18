@@ -7,6 +7,7 @@ order: 1
 navTitle: "Quickstart"
 icon: rocket
 lede: "Connect your MCP client, tell Elixir what to record, and ask it about Clash Royale history. Five minutes, no key to paste."
+reviewed: "2026-09-19 against contract 3.17.0"
 ---
 
 # Connect a client

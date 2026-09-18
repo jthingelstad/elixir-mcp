@@ -134,8 +134,13 @@ export const playersTools = {
                              from battle_participant x
                             where x.player_tag = $1 and x.deck_hash = bp.deck_hash
                               and x.battle_time > now() - interval '30 days'
-                            group by x.type) t) as by_type
+                            group by x.type) t) as by_type,
+                  round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
            from battle_participant bp
+         left join lateral (
+           select avg(o.deck_avg_level) as lvl from battle_participant o
+           where o.battle_id = bp.battle_id and o.side <> bp.side
+             and bp.deck_avg_level is not null) lv on true
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
            group by bp.deck_hash order by count(*) desc limit 2`,
@@ -153,8 +158,13 @@ export const playersTools = {
                              from battle_participant x
                             where x.player_tag = $1 and x.deck_hash = bp.deck_hash
                               and x.battle_time > now() - interval '30 days'
-                            group by x.type) t) as by_type
+                            group by x.type) t) as by_type,
+                  round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
            from battle_participant bp
+         left join lateral (
+           select avg(o.deck_avg_level) as lvl from battle_participant o
+           where o.battle_id = bp.battle_id and o.side <> bp.side
+             and bp.deck_avg_level is not null) lv on true
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
            group by bp.deck_hash
@@ -192,6 +202,11 @@ export const playersTools = {
               ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
               : null,
           ...(modes ? { modes, dominant_mode: dominantMode(modes) } : {}),
+          // The level gap the deck fought at (3.17.0): what
+          // comparabilityNote needs to name a real gap between the two
+          // decks, as battles_decks carries per row.
+          mean_level_gap:
+            row.mean_level_gap === null ? null : Number(row.mean_level_gap),
         };
       };
       const windowModes = modeSplit(modeRows.rows);
@@ -365,7 +380,8 @@ export const playersTools = {
           type: "array",
           items: { type: "string", enum: PLAYER_METRICS },
           default: ["trophies"],
-          description: "Which series to return.",
+          description:
+            "Which series to return; default trophies. Roster columns (written every roster poll of the member's clan): trophies, donations, donations_received, arena_id, clan_tag, clan_rank, previous_clan_rank, game_last_seen_at. Lifetime (the profile poll of a recorded player): best_trophies, battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level, king_tower_level, total_donations, challenge_cards_won, challenge_max_wins, tournament_cards_won, tournament_battle_count. Path of Legends: pol_league, pol_trophies, pol_rank. Seasonal Trophy Road: season_trophies, season_best_trophies.",
         },
         ...DAY_WINDOW_ARGS,
         timezone: TIMEZONE_SCHEMA,
@@ -435,6 +451,7 @@ export const playersTools = {
         weekly ? rows.sort((a, z) => a.snapshot_date - z.snapshot_date) : rows
       ).map((r) => ({
         date: r.snapshot_date.toISOString().slice(0, 10),
+        day: r.snapshot_date.toISOString().slice(0, 10),
         ...(weekly ? { iso_week: r.iso_week } : {}),
         ...pointStamps(r),
         ...Object.fromEntries(metrics.map((m) => [m, metricValue(r, m)])),
@@ -495,6 +512,7 @@ export const playersTools = {
             to: win.to,
             source: win.source,
             ...(tz ? { timezone: tz } : {}),
+            ...win.echoExtra,
             ...seasonFields.echo,
           },
           granularity: weekly ? "week" : "day",
@@ -508,6 +526,7 @@ export const playersTools = {
         series: points,
         ...(progress ? { progress } : {}),
         notes: notes(
+          win.floorNote,
           snapshotsFrom && win.from && win.from < snapshotsFrom
             ? `Requested from ${win.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`
             : null,

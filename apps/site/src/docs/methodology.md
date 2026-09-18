@@ -128,9 +128,9 @@ The MCP door cancels over-budget work with `query_timeout` rather than
 returning a partial aggregation. Narrow `from`/`to` to reduce the population;
 `min_battles` and `limit` filter the result after aggregation and do not make
 the scanned population smaller. See [Protocol → Errors](/docs/protocol#errors).
-Deck names, forms and tower troops come from each returned deck's latest
-qualifying observation in the same segment and window; only those exemplar
-payloads are read after ranking and limiting the aggregate.
+Deck names, forms and tower troops are rendered from the deck's recorded
+identity (its card rows and the catalog) after ranking and limiting the
+aggregate; no battle payload is re-read.
 
 Within-player, leave-deck-out and leave-card-out lift remain unimplemented design
 ideas. They should not be inferred from these pooled fields.
@@ -183,7 +183,9 @@ so a player who climbs into a stronger population posts a falling
 `pilot_score` with no change in how they play, and a monthly trend that
 crosses an arena boundary reads as a decline when it is a move. Every
 monthly point therefore carries the population it was scored in:
-`mean_starting_trophies`, `modal_arena {id, name}`, `mean_gap`,
+`mean_starting_trophies` (over the month's **ladder** battles only, since a
+Path of Legends battle's starting trophies is its league rating on another
+scale; null for a month with none), `modal_arena {id, name}`, `mean_gap`,
 `opponent_mean_level`, `actual_win_rate` and `expected_from_levels`. When the
 modal arena changes between two points, or the mean starting trophies move by
 200 or more, the response leads with a note naming the change; pass
@@ -223,8 +225,11 @@ unknown. A rising score or percentile is a reason to investigate, not proof of
 improvement or spending independence.
 
 `clans_pilot_scores` (3.16.0) carries each member's Pilot Score beside the
-population it was scored in: `mean_starting_trophies` and `modal_arena` over
-the window's scored battles, and `current_arena` from the latest snapshot. When a
+population it was scored in: `mean_starting_trophies` over the member's
+ladder battles only (3.17.0; a Path of Legends starting figure is a league
+rating and pooling the two described neither population; null for a member
+with no ladder battle in the window), `modal_arena` over every scored battle,
+and `current_arena` from the latest snapshot. When a
 member's modal arena differs from their current one the first note names
 them: the score adjusts for card levels, not for the population an arena
 change moved them into, the same guard `battles_levels` puts on a monthly

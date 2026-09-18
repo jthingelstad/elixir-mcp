@@ -141,6 +141,26 @@ before(async () => {
       { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
     ],
   });
+  // A third sighting before 10:00Z with its receipt on record: UTC day
+  // 2026-09-13, game day 2026-09-12 (3.17.0, game_days_seen).
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'rk-gw', '127.0.0.1', 'active') returning gateway_id`,
+    [owner.account_id],
+  );
+  await db.query(
+    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+     values ('events', 'GLOBAL', '2026-09-13T04:00:00Z', 'h-events-3', $1, 'admitted')`,
+    [gw.gateway_id],
+  );
+  await projectEvents(db, {
+    fetchedAt: "2026-09-13T04:00:00Z",
+    payload: [
+      { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
+    ],
+  });
   await projectRankingBoard(db, {
     board: "pol_final",
     entityKey: "135",
@@ -492,7 +512,7 @@ test("game_events: what was on, by the days it was seen", async () => {
   const chaos = body.events.find((e) => e.title === "C.H.A.O.S");
   assert.deepEqual(merge.days_seen, ["2026-09-11", "2026-09-12"]);
   assert.deepEqual(chaos.days_seen, ["2026-09-11"]);
-  assert.equal(body.latest_sighting_day, "2026-09-12");
+  assert.equal(body.latest_sighting_day, "2026-09-13");
   assert.equal(body.first_sighting_day, "2026-09-11");
   assert.ok(
     body.notes.some((n) => n.startsWith("Sightings began 2026-09-11")),
@@ -500,4 +520,40 @@ test("game_events: what was on, by the days it was seen", async () => {
   );
   assert.equal(merge.running_on_latest_day, true);
   assert.equal(chaos.running_on_latest_day, false);
+});
+
+test("game_events: game_days_seen puts the same sightings on the game day grid, and the window says its season (3.17.0, call 6)", async () => {
+  const { body, isError } = await invoke("game_events", {
+    from: "2026-09-11",
+    to: "2026-09-13",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const merge = body.events.find((e) => e.title === "Merge Tactics");
+  // Three UTC days; the 04:00Z read on the 13th is game day the 12th,
+  // and the two reads without a receipt keep their UTC day.
+  assert.deepEqual(merge.days_seen, ["2026-09-11", "2026-09-12", "2026-09-13"]);
+  assert.deepEqual(merge.game_days_seen, ["2026-09-11", "2026-09-12"]);
+  assert.equal(merge.running_on_latest_day, true);
+  assert.ok("season" in body.applied.window);
+  assert.ok(Array.isArray(body.applied.window.crosses));
+  assert.ok(body.notes.some((n) => /game_days_seen/.test(n)));
+});
+
+test("rankings_timeline: every point carries its game day, and the window says its season (3.17.0)", async () => {
+  const { body, isError } = await invoke("rankings_timeline", {
+    player_tag: "#2P0PP",
+    location: "US",
+    from: "2026-09-11T00:00:00Z",
+    to: "2026-09-11T23:59:59Z",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  // T1 is 10:00Z exactly: the first instant of game day 2026-09-11.
+  assert.deepEqual(
+    body.points.map((p) => p.day),
+    ["2026-09-11", "2026-09-11"],
+  );
+  assert.ok("season" in body.applied.window);
+  assert.ok(Array.isArray(body.applied.window.crosses));
+  const board = await invoke("rankings_timeline", { location: "US" });
+  assert.ok(board.body.points.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.day)));
 });

@@ -8,6 +8,7 @@ navTitle: "Verify"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
 console: ["Verify a player you have added", "/account/verify", "Console ▸ Verify"]
+reviewed: "2026-09-19 against contract 3.17.0"
 ---
 
 # Verify: proving a player is yours
@@ -93,5 +94,10 @@ read somebody else's log on a loop.
 
 Verification is recorded on the claim itself (`status`, method and
 time), with the proving battle on the challenge, so anything that later
-needs "is this claim proven" can read it without a second lookup. No tool
-changes its answers yet; consumers come later.
+needs "is this claim proven" can read it without a second lookup.
+`elixir_my_players` carries it as `claim_status` (`verified` or
+`unverified`) beside each player you track, and
+[Elixir Clan](https://clan.poapkings.com) is the first consumer: signing in
+with Elixir there requires a verified player, and the clan it acts for is
+chosen from your verified claims only. No data tool changes its answers on
+it; the record is the same for everyone.

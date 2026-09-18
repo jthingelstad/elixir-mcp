@@ -8,7 +8,7 @@
  *  frames. `live: true` asks for a fresh read, served if in hand or
  *  queued (1.7.0), the way clans_roster does. */
 
-import { normalizeTag } from "@elixir-mcp/contracts";
+import { normalizeTag, gameDay } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../time.mjs";
 import { zeroSeriesNote } from "../controls.mjs";
 import {
@@ -33,6 +33,7 @@ import {
   liveStatus,
   livePendingNote,
   withWindowSugar,
+  seasonFieldsForInstants,
 } from "./shared.mjs";
 
 const BOARD_SCHEMA = {
@@ -337,7 +338,7 @@ export const rankingsTools = {
           offset + rows.length < snapshot.entries
             ? `Page ${Math.floor(offset / limit) + 1}: pass offset ${offset + limit} for the next ${Math.min(limit, snapshot.entries - offset - rows.length)} places.`
             : null,
-          "rating is Path of Legends elo on the pol board; per-battle rating and rank for a recorded player are on their battles (startingTrophies, trophyChange, globalRank).",
+          "rating on the pol board is the player's Path of Legends rating: the same number the profile carries as pol_trophies (players_timeline, players_profile), verified equal on the live API; per-battle rating and rank for a recorded player are on their battles (startingTrophies, trophyChange, globalRank).",
         ),
         docs: docsRef("recording", "leaderboards"),
         meta,
@@ -665,6 +666,9 @@ export const rankingsTools = {
         }
         subject = "clan";
       }
+      const seasonFields = await seasonFieldsForInstants(ctx.db, from, to, {
+        flavor: "series",
+      });
       const applied = appliedBlock({
         board,
         location: row.location_key,
@@ -677,6 +681,7 @@ export const rankingsTools = {
             args.from !== undefined || args.to !== undefined
               ? "argument"
               : "default",
+          ...seasonFields.echo,
         },
         limit,
       });
@@ -699,6 +704,7 @@ export const rankingsTools = {
         );
         points = rows.reverse().map((r) => ({
           observed_at: r.observed_at.toISOString(),
+          day: gameDay(r.observed_at),
           unchanged_until: r.last_confirmed_at.toISOString(),
           rank: r.rank,
           rating: r.rating,
@@ -720,6 +726,7 @@ export const rankingsTools = {
         );
         points = rows.reverse().map((r) => ({
           observed_at: r.observed_at.toISOString(),
+          day: gameDay(r.observed_at),
           unchanged_until: r.last_confirmed_at.toISOString(),
           rated_players: r.rated_players,
           best_rank: r.best_rank,
@@ -739,6 +746,7 @@ export const rankingsTools = {
         );
         points = rows.reverse().map((r) => ({
           observed_at: r.observed_at.toISOString(),
+          day: gameDay(r.observed_at),
           unchanged_until: r.last_confirmed_at.toISOString(),
           rated_players: r.entries,
           floor_rating: r.floor_rating,
@@ -757,7 +765,8 @@ export const rankingsTools = {
         points,
         notes: notes(
           subject === "player" ? null : zeroSeriesNote(points, "rated_players"),
-          "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held.",
+          seasonFields.seasonNotes,
+          "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
           subject === "player"
             ? "on_board false means the player was below the rating floor at that snapshot; rank and rating are then null, not zero. Per-battle rank and rating for a recorded player are on their battles (globalRank, startingTrophies, trophyChange)."
             : subject === "clan"
@@ -800,17 +809,43 @@ export const rankingsTools = {
           AS_OF_SCHEMA.description,
         );
       const limit = Math.min(200, Math.max(1, Number(args.limit ?? 50)));
+      // game_days_seen (3.17.0, call 6): a sighting is one /events read,
+      // and game_event_day keeps only its UTC day; the read's instant is
+      // on its receipt, so the game day (10:00Z grid) is the receipt's.
+      // A UTC day with no receipt on record (the elixir-bot backfill's
+      // sparser reads) keeps the UTC day as its game day.
       const { rows } = await ctx.db.query(
-        `select e.event_tag, e.title, e.description, e.first_seen_at, e.last_seen_at,
-                array_agg(d.day::text order by d.day) as days
+        `with sighting as (
+           select distinct (r.fetched_at at time zone 'UTC')::date as day,
+                  game_day(r.fetched_at) as game_day
+           from api_receipt r
+           where r.endpoint = 'events' and r.admission = 'admitted'
+             and r.fetched_at >= $1::date - interval '1 day'
+             and r.fetched_at < $2::date + interval '2 days')
+         select e.event_tag, e.title, e.description, e.first_seen_at, e.last_seen_at,
+                array_agg(distinct d.day::text order by d.day::text) as days,
+                array_agg(distinct coalesce(s.game_day, d.day)::text order by coalesce(s.game_day, d.day)::text) as game_days,
+                exists (select 1 from game_event_day x
+                         where x.event_tag = e.event_tag
+                           and x.day = (select max(day) from game_event_day)) as running_on_latest
          from game_event e
          join game_event_day d on d.event_tag = e.event_tag
+         left join sighting s on s.day = d.day
          where d.day between $1::date and $2::date
          group by e.event_tag
          order by max(d.day) desc, min(d.day) desc
          limit $3`,
-        [from.toISOString().slice(0, 10), to.toISOString().slice(0, 10), limit],
+        // `to` is the exclusive instant (a date-only to resolves to the
+        // NEXT midnight), so the last day inside it is the day before.
+        [
+          from.toISOString().slice(0, 10),
+          new Date(to.getTime() - 1).toISOString().slice(0, 10),
+          limit,
+        ],
       );
+      const seasonFields = await seasonFieldsForInstants(ctx.db, from, to, {
+        flavor: "plain",
+      });
       // The horizon is a fact of the table, not a date in the code: the
       // daily sightings began 2026-09-11, and the elixir-bot backfill
       // (2026-09-15) placed earlier, sparser reads before them.
@@ -826,6 +861,7 @@ export const rankingsTools = {
               args.from !== undefined || args.to !== undefined
                 ? "argument"
                 : "default",
+            ...seasonFields.echo,
           },
           limit,
         }),
@@ -836,12 +872,16 @@ export const rankingsTools = {
           title: r.title,
           description: r.description,
           days_seen: r.days,
+          game_days_seen: r.game_days,
           first_seen_at: r.first_seen_at.toISOString(),
           last_seen_at: r.last_seen_at.toISOString(),
-          running_on_latest_day: r.days.includes(running[0]?.latest_day),
+          // A fact of the table, not of the window asked (3.17.0: a
+          // window ending before the latest sighting said false).
+          running_on_latest_day: r.running_on_latest,
         })),
         notes: notes(
-          "days_seen is the UTC days /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
+          seasonFields.seasonNotes,
+          "days_seen is the UTC days /events listed the event and game_days_seen the same sightings on the game day grid (10:00Z, the one the series tools use; a read before 10:00Z belongs to the day before); the API gives no start or end, so an event's span is its first and last sighting, at daily resolution. days_seen retires at 4.0.0.",
           `Sightings began ${running[0]?.first_day ?? "when recording did"}; nothing before that date is known, and days without a read are unknown, not empty.`,
           "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match.",
         ),

@@ -7,6 +7,7 @@ order: 22
 navTitle: "Architecture"
 icon: layers
 lede: "Collectors, the door, the job ledger, admission and retention."
+reviewed: "2026-09-19 against contract 3.17.0"
 ---
 
 # Architecture
@@ -159,8 +160,9 @@ tools trace directly to agent-filed feedback.
 The VPC has no NAT — cloud components cannot reach the internet at
 all, which is a security posture worth keeping. The one exception is a
 small non-VPC **relay** Lambda fed by a queue. It does three jobs with
-deliberately different guarantees: transactional email (magic-link
-codes via JMAP — retried hard, dead-lettered loudly), anonymous
+deliberately different guarantees: transactional email (sign-in codes,
+sent over Amazon SES since 2026-09-17 — retried hard, dead-lettered
+loudly), anonymous
 [Tinylytics](https://tinylytics.app) product events (best-effort,
 dropped on failure), and newsletter enrollment at sign-in (Buttondown;
 idempotent, and an unsubscribed address is never re-subscribed). An
@@ -303,9 +305,15 @@ allowance on a fresh read instead of waiting for the schedule.
 ## Honesty machinery
 
 Coverage tools report recording start, per-endpoint freshness, and
-completeness ratios; timelines disclose their epochs; empty windows and
-inverted ranges refuse rather than pretending. The rule throughout: the
-system must never present a partial record as a complete one.
+completeness ratios; every envelope carries a `completeness_note` when
+the record is measurably behind the profile's own battle counter;
+timelines disclose their epochs; inverted ranges refuse rather than
+pretending. Every windowed answer says which season it starts in and
+every season roll it crosses, every aggregate carries the control its
+number needs (the mode split, the level gap, the trophy floor, the
+clipped bucket), and a note fires only when the control detects a
+confound. The rule throughout: the system must never present a partial
+record as a complete one, or a pooled one as comparable.
 
 ## Operations
 

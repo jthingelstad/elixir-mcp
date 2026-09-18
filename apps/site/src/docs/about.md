@@ -8,6 +8,7 @@ navTitle: "What this is"
 icon: info
 lede: "A hub that records Clash Royale history and serves it to agents over MCP."
 console: ["See the corpus", "/data", "Data"]
+reviewed: "2026-09-19 against contract 3.17.0"
 ---
 
 # About Elixir MCP
@@ -36,10 +37,12 @@ planned (see [Terms](/docs/terms)). Occasional product updates go out on the
 Elixir MCP newsletter (you're enrolled at sign-in; every issue has an
 unsubscribe link, and unsubscribing sticks).
 
-**The family:** Elixir MCP is one of the POAP KINGS projects, alongside
+**The family:** Elixir MCP is the record under the Elixir family, alongside
 [Elixir Drop](https://drop.poapkings.com) (the elixir-cost learning
-game) and Elixir Agent (the clan's own agent, which reads its game
-facts from this service). The code is public — start at
+game), [Elixir Clan](https://clan.poapkings.com) (being in a clan: standing,
+the Elder band, action cards, run against this record with your clan's own
+policy) and Elixir Agent (the clan's own agent, which reads its game facts
+from this service). The code is public — start at
 [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp);
 the [Architecture](/docs/architecture) page maps the related repos.
 

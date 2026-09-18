@@ -40,7 +40,8 @@ docs, meta }`.
 - `timeline` is oldest first. `next_cursor` is `window.to`; pass it back as
   `from` to continue.
 - `read_to` is your pointer after this call. With `mark_read: false` it is
-  unchanged: that is the dry run.
+  unchanged: that is the dry run. It is `null` until something has been
+  marked read on the account; the default window is then the last day.
 - `has_more` is always `false`; `timeline_more` says how many items the cap
   left out.
 - `meta.timeline_pending` on any response counts subjects of yours the
@@ -103,6 +104,40 @@ Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 
 Members' moments on a clan's timeline are capped per response; the entry's
 standouts keep the aggregate.
+
+### The `facts` keys, by kind
+
+`text` is written from `facts`, and `facts` is what a consumer branches on.
+Every member's moment on a clan's timeline adds `player_tag` and `name` (the
+member) to the keys below; a clan's own item carries the clan's keys only.
+
+| kind | `facts` |
+|---|---|
+| `battle_session` | `started_at`, `ended_at`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (ladder only), `won_in_a_row`, `open` |
+| `session_standout` | the session's keys above, plus `crossed` (every rung the session has passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`) and `newly` (the rungs this window learned) |
+| `badge_earned` | `badge`, `level`, `max_level`, `prior_level` (when there was one) |
+| `legendary_badge_earned` | `badge` |
+| `arena_changed` | `from`, `to` (arena ids), `from_name`, `to_name`, and `promoted_by` (a battle, below) when the record holds the crossing |
+| `ranked_promotion` | `from`, `to` (league numbers), `from_name`, `to_name`, and `promoted_by` when the record holds it |
+| `best_trophies_band` | `best`, `band`, and `crossed_by` when the record holds it |
+| `career_wins_step` | `wins`, `step`, and `crossed_by` when every win between the two snapshots is on the record |
+| `collection_level_step` | `level`, `step` |
+| `card_unlocked` | `card`, `card_id`, `rarity` |
+| `clan_joined`, `clan_left` | `clan_tag`, `clan_name`, `at` |
+| `member_joined` | `player_tag`, `name`, `role`, `roster_size_before`, `roster_size_after` |
+| `member_left` | `player_tag`, `name`, `role_at_departure`, `joined_observed_at`, `roster_size_before`, `roster_size_after` |
+| `member_role_changed` | `player_tag`, `name`, `role_before`, `role_after`, `direction`, `roster_size_before`, `roster_size_after` |
+| `bracket_observed` | `season_id`, `section_index`, `is_colosseum`, `rivals[]` (`tag`, `name`, `recorded`) |
+| `race_finished` | `season_id`, `section_index`, `fame`, `finish_time` |
+| `week_resolved` | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change` |
+| `quiet_crossed` | `rung` (5, 10 or 20), `days_quiet`, `days_since_poll`, and `role` on a clan's timeline |
+| `returned` | `after_days` |
+| `account_*` | the event's own detail (a feedback id and status, a subject tag, a tier, a connection name) |
+
+A `promoted_by` or `crossed_by` battle is the one shape described above
+(`battle_id`, `battle_time`, `type`, `opponent` or `opponents`, `crowns`,
+`crowns_against`, `trophy_change`, `trophies_after`, and `arena_floor` on the
+arena moment).
 
 A profile-derived moment (arena, ranked league, best band, collection
 level, badges, cards) is written once, by the first profile poll that
