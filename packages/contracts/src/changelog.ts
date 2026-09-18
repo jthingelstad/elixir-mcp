@@ -16,6 +16,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.16.0",
+    date: "2026-09-19",
+    summary:
+      "The control next to every number (docs/reviews/2026-09-19-INTERFACE-REVIEW.md Part 4, Phase 3): every tool that serves a rate, trend, rank or sum carries the control the 3.13.0 principle names, and a note fires only on a detected confound. players_summary: last_30_days.modes (the window's battles by mode group), top_deck and best_deck carry modes and dominant_mode, trophy_floor when the window holds ladder battles, the deck comparability note and the floor note. Additive.",
+  },
+  {
     version: "3.15.1",
     date: "2026-09-19",
     summary:

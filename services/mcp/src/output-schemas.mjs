@@ -215,6 +215,33 @@ const LEVEL_GAP = {
     "Mean of this side's deck-average card level minus the opposing side's, two decimals; positive = outlevelled them. null when no battle had both levels.",
 };
 
+/** The Trophy Road floor a player stood on in a window (3.13.0). */
+const TROPHY_FLOOR = {
+  type: "object",
+  description:
+    "The Trophy Road floor the player stood on in the window (3.13.0): present when the window holds ladder battles and the arena's floor is known. floored is true when a loss touched it, and then net_trophies counts wins in full and those losses at zero.",
+  properties: {
+    floor: COUNT,
+    arena: {
+      type: ["object", "null"],
+      properties: { id: NULLABLE_INT, name: { type: "string" } },
+    },
+    source: {
+      type: "string",
+      enum: ["losses_on_floor", "arena_snapshots"],
+    },
+    floored: { type: "boolean" },
+    on_floor_losses: COUNT,
+    losses_landing_on_floor: COUNT,
+    ladder_battles: COUNT,
+    trophy_range: {
+      type: "object",
+      properties: { lowest: COUNT, highest: COUNT },
+    },
+  },
+  required: ["floor", "floored", "on_floor_losses"],
+};
+
 export const OUTPUT_SCHEMAS = {
   players_summary: {
     type: "object",
@@ -238,9 +265,11 @@ export const OUTPUT_SCHEMAS = {
           ...RECORD,
           net_trophies: COUNT,
           first_recorded: { type: ["string", "null"] },
+          modes: MODE_SPLIT,
         },
-        required: ["battles", "wins", "losses", "win_rate"],
+        required: ["battles", "wins", "losses", "win_rate", "modes"],
       },
+      trophy_floor: TROPHY_FLOOR,
       top_deck: {
         type: ["object", "null"],
         properties: {
@@ -248,6 +277,11 @@ export const OUTPUT_SCHEMAS = {
           cards: { type: "array", items: DECK_CARD },
           battles: COUNT,
           win_rate: RATE,
+          modes: MODE_SPLIT,
+          dominant_mode: {
+            type: ["object", "null"],
+            properties: { mode: { type: "string" }, share: RATE },
+          },
         },
       },
       best_deck: { type: ["object", "null"] },
@@ -424,31 +458,7 @@ export const OUTPUT_SCHEMAS = {
           required: ["iso_week", "week_of", "battles", "win_rate"],
         },
       },
-      trophy_floor: {
-        type: "object",
-        description:
-          "The Trophy Road floor the player stood on in the window (3.13.0): present when the window holds ladder battles and the arena's floor is known. floored is true when a loss touched it, and then net_trophies counts wins in full and those losses at zero.",
-        properties: {
-          floor: COUNT,
-          arena: {
-            type: ["object", "null"],
-            properties: { id: NULLABLE_INT, name: { type: "string" } },
-          },
-          source: {
-            type: "string",
-            enum: ["losses_on_floor", "arena_snapshots"],
-          },
-          floored: { type: "boolean" },
-          on_floor_losses: COUNT,
-          losses_landing_on_floor: COUNT,
-          ladder_battles: COUNT,
-          trophy_range: {
-            type: "object",
-            properties: { lowest: COUNT, highest: COUNT },
-          },
-        },
-        required: ["floor", "floored", "on_floor_losses"],
-      },
+      trophy_floor: TROPHY_FLOOR,
       notes: NOTES,
       docs: DOCS,
       meta: META,

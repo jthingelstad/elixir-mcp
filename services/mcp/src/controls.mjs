@@ -22,17 +22,93 @@ export function modeGroupOf(type) {
 }
 
 /** Fold per-type counts ({type, battles, wins, losses}) into one object
- *  keyed by mode group: { ladder: {battles, wins, losses}, war: ... }. */
+ *  keyed by mode group: { ladder: {battles, wins, losses}, war: ... }.
+ *  Rows may carry `mode_group` instead of `type` (the daily rollup's
+ *  grain, daily-sql.mjs), so clans_standings and the meta path share
+ *  the fold (3.16.0). */
 export function modeSplit(typeRows) {
   const out = {};
   for (const r of typeRows) {
-    const g = modeGroupOf(r.type);
+    const g = r.mode_group ?? modeGroupOf(r.type);
     const cur = (out[g] ??= { battles: 0, wins: 0, losses: 0 });
-    cur.battles += r.battles;
-    cur.wins += r.wins;
-    cur.losses += r.losses;
+    cur.battles += Number(r.battles ?? 0);
+    cur.wins += Number(r.wins ?? 0);
+    cur.losses += Number(r.losses ?? 0);
   }
   return out;
+}
+
+/**
+ * Whether a clan's members' battles are recorded at all (3.16.0). An
+ * activity-scope clan records roster and war only, so every battle
+ * count for its members is zero by construction, not by play; a
+ * comprehensive one records every member's log, and a member of an
+ * activity clan may still be recorded directly (a claim, a collection,
+ * a board). Returns the clan-level basis and, per member,
+ * `log_recorded` and `recorded_since` (the first recorded battle).
+ */
+export async function coverageBasis(db, clanTag) {
+  const {
+    rows: [clan],
+  } = await db.query(
+    `select exists (select 1 from recording
+                     where subject_type = 'clan' and subject_tag = $1
+                       and status = 'active' and scope = 'comprehensive') as comprehensive`,
+    [clanTag],
+  );
+  const comprehensive = clan?.comprehensive === true;
+  const { rows } = await db.query(
+    `select cm.player_tag,
+            ($2 or exists (select 1 from recording r
+                            where r.subject_type = 'player' and r.subject_tag = cm.player_tag
+                              and r.status = 'active' and r.scope = 'comprehensive')) as log_recorded,
+            (select min(bp.battle_time) from battle_participant bp
+              where bp.player_tag = cm.player_tag) as recorded_since
+       from clan_membership cm
+      where cm.clan_tag = $1 and cm.left_observed_at is null`,
+    [clanTag, comprehensive],
+  );
+  const members = new Map();
+  for (const r of rows)
+    members.set(r.player_tag, {
+      log_recorded: r.log_recorded === true,
+      recorded_since: r.recorded_since?.toISOString() ?? null,
+    });
+  return {
+    basis: comprehensive ? "recorded" : "roster_and_war_only",
+    members,
+  };
+}
+
+/** The one sentence an activity-scope clan's counts carry. */
+export function coverageBasisNote(basis) {
+  if (basis !== "roster_and_war_only") return null;
+  return "basis is roster_and_war_only: this clan's recording covers the roster and the war, not its members' battle logs, so every battle count here is zero by construction for a member whose log_recorded is false; read log_recorded before reading a zero.";
+}
+
+/** A segment meta read whose returned rows are all one player's decks
+ *  is that player's habit, not a meta (3.16.0). Fires only then. */
+export function singlePlayerNote(rows, { what = "deck" } = {}) {
+  const shown = rows.filter((r) => typeof r.players === "number");
+  if (shown.length === 0 || !shown.every((r) => r.players === 1)) return null;
+  return `Every ${what} row here was played by ONE player (players: 1): this segment's numbers describe a few players' habits, not a meta; widen the segment or read the corpus for the field.`;
+}
+
+/** How many of a rival's observed races were Colosseum weeks, which
+ *  score on period points with no finish line and so pool badly with
+ *  the fame of a regular week (3.16.0). */
+export function colosseumMix(weeks) {
+  const total = weeks.length;
+  const colosseum = weeks.filter((w) => w.is_colosseum === true).length;
+  return { colosseum_races: colosseum, regular_races: total - colosseum };
+}
+
+/** A series whose every point reads zero on `field` is an empty field,
+ *  not a flat one (3.16.0): rankings_timeline's rated_players. */
+export function zeroSeriesNote(points, field) {
+  if (points.length === 0) return null;
+  if (!points.every((p) => Number(p[field] ?? 0) === 0)) return null;
+  return `${field} is 0 at every point in the window: nobody was rated on this board then, so the curve describes an empty field, not a flat one.`;
 }
 
 /** Battle types to a count per mode group: { ladder: 10, war: 4 }. */

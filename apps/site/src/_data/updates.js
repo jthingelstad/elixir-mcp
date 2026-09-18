@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "The control next to every number, and a population is named",
+    body: "3.13.0 put the mode split, the level gap, the trophy floor and the clipped-week mark beside the five tools that had misled an agent; this release carries the same controls to every other tool that serves a rate, a trend, a rank or a sum. players_summary says which modes a month was played in and whether the player stood on a floor; clans_standings says which mode each member's record comes from and whether members are comparable at all; battles_trends marks clipped weeks and imported ones; the corpus meta tools carry each row's modes and level gap and take a trophy band, so the meta at your level is one argument; clans_participation says whether a member's log is recorded at all before it says zero; the pilot scores carry the arena and trophies they were scored in. And on the six segment tools the population is named, never assumed: segment 'mine' is your clan, segment 'corpus' is the whole recorded corpus, an omitted segment says which answered, and a corpus read says how many recorded clans and players it was drawn from. Contract 3.16.0.",
+  },
+  {
+    date: "2026-09-19",
     title: "The record reaches the wire",
     body: "The recorder has kept more than the tools showed: a battle's event and tournament tags and how its deck was chosen, a boat attack's towers, each war day's points and rank for every clan in the race, the rivals' clan scores and repair points, a player's past Path of Legends finals, the career war-day and clan-card counters, a clan's type, location and description, the API's own close instant for a war week and its own word for the day. Every one of those is now served on the tool that owns the question, beside what was there, with nothing renamed and no migration. Contract 3.15.0.",
   },

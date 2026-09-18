@@ -13,6 +13,14 @@ import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedDeck, seedPlayedDeck } from "./deck-rows.mjs";
+import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
+import {
+  modeSplit,
+  singlePlayerNote,
+  colosseumMix,
+  zeroSeriesNote,
+  coverageBasis,
+} from "../src/controls.mjs";
 
 let scratch;
 let account;
@@ -428,4 +436,134 @@ test("battles_levels: monthly_trend carries its population and the guard fires o
     () => call("battles_levels", { player_tag: F, arena_id: 42 }),
     (err) => err.code === "bad_request" && /arena id/.test(err.message),
   );
+});
+
+test("controls.mjs (3.16.0): the rollup-shaped split, the single-player, colosseum, zero-series and coverage helpers", async () => {
+  assert.deepEqual(
+    modeSplit([
+      { mode_group: "ladder", battles: 3, wins: 2, losses: 1 },
+      { mode_group: "ladder", battles: "2", wins: "0", losses: "2" },
+      { type: "riverRacePvP", battles: 1, wins: 1, losses: 0 },
+    ]),
+    {
+      ladder: { battles: 5, wins: 2, losses: 3 },
+      war: { battles: 1, wins: 1, losses: 0 },
+    },
+  );
+  assert.equal(singlePlayerNote([{ players: 1 }, { players: 2 }]), null);
+  assert.match(
+    singlePlayerNote([{ players: 1 }, { players: 1 }]),
+    /ONE player/,
+  );
+  assert.equal(singlePlayerNote([]), null);
+  assert.deepEqual(
+    colosseumMix([{ is_colosseum: true }, { is_colosseum: false }, {}]),
+    { colosseum_races: 1, regular_races: 2 },
+  );
+  assert.equal(
+    zeroSeriesNote(
+      [{ rated_players: 0 }, { rated_players: 3 }],
+      "rated_players",
+    ),
+    null,
+  );
+  assert.match(
+    zeroSeriesNote(
+      [{ rated_players: 0 }, { rated_players: 0 }],
+      "rated_players",
+    ),
+    /nobody was rated/,
+  );
+  assert.equal(zeroSeriesNote([], "rated_players"), null);
+
+  // coverageBasis: an activity-scope clan with one directly recorded member.
+  const CLAN = "#2PYLQGCC";
+  await scratch.db.query(
+    "insert into clan (clan_tag) values ($1) on conflict do nothing",
+    [CLAN],
+  );
+  await scratch.db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope) values ('clan', $1, $2, 'activity')`,
+    [CLAN, account.accountId],
+  );
+  for (const tag of [F, OPPONENTS[0]])
+    await scratch.db.query(
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role) values ($1, $2, now(), 'member')`,
+      [CLAN, tag],
+    );
+  const activity = await coverageBasis(scratch.db, CLAN);
+  assert.equal(activity.basis, "roster_and_war_only");
+  assert.equal(
+    activity.members.get(F).log_recorded,
+    true,
+    "F is recorded directly",
+  );
+  assert.match(activity.members.get(F).recorded_since, /^2026-07-20T/);
+  assert.equal(activity.members.get(OPPONENTS[0]).log_recorded, false);
+  await scratch.db.query(
+    "update recording set scope = 'comprehensive' where subject_type = 'clan' and subject_tag = $1",
+    [CLAN],
+  );
+  const deep = await coverageBasis(scratch.db, CLAN);
+  assert.equal(deep.basis, "recorded");
+  assert.equal(deep.members.get(OPPONENTS[0]).log_recorded, true);
+  await scratch.db.query("delete from clan_membership where clan_tag = $1", [
+    CLAN,
+  ]);
+});
+
+test("players_summary: the window's mode split, the deck's modes and dominant mode, the floor (Phase 3 item 2)", async () => {
+  // Fresh battles so the 30-day window holds them whatever the date: four
+  // war wins on deck B, four ladder battles on deck A with two ON the
+  // 12,500 floor.
+  const recent = (i) =>
+    new Date(Date.now() - (3 * 24 - i * 6) * 3600_000).toISOString();
+  for (let i = 0; i < 4; i++)
+    await battle({
+      at: recent(i),
+      type: "riverRacePvP",
+      arena: PIT,
+      outcome: "win",
+      myDeck: DECK_B,
+      myLevel: 15.12,
+      oppLevel: 13.5,
+    });
+  for (const [i, [outcome, starting, change]] of [
+    ["loss", 12500, null],
+    ["loss", 12500, null],
+    ["win", 12500, 30],
+    ["loss", 12530, -30],
+  ].entries())
+    await battle({
+      at: recent(4 + i),
+      type: "PvP",
+      arena: PIT,
+      outcome,
+      myDeck: DECK_A,
+      myLevel: 16.0,
+      oppLevel: 15.3,
+      starting,
+      trophyChange: change,
+    });
+  const { rows: days } = await scratch.db.query(
+    `select distinct to_char(battle_time at time zone 'UTC', 'YYYY-MM-DD') as day
+       from battle_participant where player_tag = $1 and battle_time > now() - interval '31 days'`,
+    [F],
+  );
+  await refreshDailyRollups(
+    scratch.db,
+    days.map((d) => ({ playerTag: F, day: d.day })),
+  );
+  const res = await call("players_summary", { player_tag: F });
+  assert.ok(
+    res.last_30_days.modes.war.battles >= 4,
+    JSON.stringify(res.last_30_days),
+  );
+  assert.ok(res.last_30_days.modes.ladder.battles >= 4);
+  assert.equal(res.trophy_floor.floored, true);
+  assert.equal(res.trophy_floor.floor, 12500);
+  assert.ok(res.trophy_floor.on_floor_losses >= 2);
+  assert.ok(res.top_deck.modes, "the deck carries its split");
+  assert.ok(res.top_deck.dominant_mode.mode);
+  assert.ok(res.notes.some((l) => /trophy floor/.test(l)));
 });

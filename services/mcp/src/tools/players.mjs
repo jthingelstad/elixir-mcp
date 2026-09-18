@@ -43,6 +43,14 @@ import {
   seasonFieldsForDays,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
+import {
+  modeSplit,
+  dominantMode,
+  comparabilityNote,
+  shortHash,
+  trophyFloor,
+  trophyFloorNote,
+} from "../controls.mjs";
 import { iconUrlsOf } from "./cards.mjs";
 
 /** Escape LIKE/ILIKE metacharacters so user text matches literally
@@ -104,10 +112,29 @@ export const playersTools = {
          from d`,
         [tag, since],
       );
+      // The control next to the number (3.16.0): the window's mode split
+      // from the same rollup rows, and the floor the player stood on.
+      const modeRows = await ctx.db.query(
+        `with d as ${dailySql({ players: "array[$1]", from: "$2", to: "null" })}
+         select d.mode_group, sum(d.battles)::int as battles,
+                sum(d.wins)::int as wins, sum(d.losses)::int as losses
+         from d group by d.mode_group`,
+        [tag, since],
+      );
+      const floor = await trophyFloor(ctx.db, tag, { from: since, to: null });
       const deck = await ctx.db.query(
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  (select json_agg(json_build_object('type', t.type, 'battles', t.n,
+                                                     'wins', t.w, 'losses', t.l))
+                     from (select x.type, count(*)::int as n,
+                                  count(*) filter (where x.outcome = 'win')::int as w,
+                                  count(*) filter (where x.outcome = 'loss')::int as l
+                             from battle_participant x
+                            where x.player_tag = $1 and x.deck_hash = bp.deck_hash
+                              and x.battle_time > now() - interval '30 days'
+                            group by x.type) t) as by_type
            from battle_participant bp
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
@@ -142,20 +169,30 @@ export const playersTools = {
         d?.deck_hash,
         b?.deck_hash,
       ]);
-      const deckShape = (row) =>
-        row
-          ? {
-              deck_hash: row.deck_hash,
-              cards: (identities.get(row.deck_hash)?.cards ?? []).map(
-                ({ id, name }) => ({ id, name }),
-              ),
-              battles: row.battles,
-              win_rate:
-                row.wins + row.losses > 0
-                  ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
-                  : null,
-            }
-          : null;
+      const deckShape = (row) => {
+        if (!row) return null;
+        const modes = row.by_type ? modeSplit(row.by_type) : undefined;
+        return {
+          deck_hash: row.deck_hash,
+          cards: (identities.get(row.deck_hash)?.cards ?? []).map(
+            ({ id, name }) => ({ id, name }),
+          ),
+          battles: row.battles,
+          win_rate:
+            row.wins + row.losses > 0
+              ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
+              : null,
+          ...(modes ? { modes, dominant_mode: dominantMode(modes) } : {}),
+        };
+      };
+      const windowModes = modeSplit(modeRows.rows);
+      const topDeck = deckShape(d);
+      const bestDeck = b && b.deck_hash !== d?.deck_hash ? deckShape(b) : null;
+      const deckClash = comparabilityNote(
+        [topDeck, bestDeck]
+          .filter(Boolean)
+          .map((x) => ({ ...x, label: shortHash(x.deck_hash) })),
+      );
       return {
         player_tag: tag,
         name: p0.name,
@@ -186,13 +223,17 @@ export const playersTools = {
               ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
               : null,
           first_recorded: r.first_recorded?.toISOString() ?? null,
+          modes: windowModes,
         },
-        top_deck: deckShape(d),
+        ...(floor ? { trophy_floor: floor } : {}),
+        top_deck: topDeck,
         // most-played is often NOT the best-performing deck.
-        best_deck: b && b.deck_hash !== d?.deck_hash ? deckShape(b) : null,
+        best_deck: bestDeck,
         notes: notes(
           "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded.",
           "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
+          deckClash,
+          trophyFloorNote(floor),
           "History may predate active recording; elixir_coverage has the capture story.",
         ),
         docs: docsRef("recording", "completeness"),

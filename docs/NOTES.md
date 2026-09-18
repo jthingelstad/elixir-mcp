@@ -4178,3 +4178,31 @@ into a bracket they were not in. `series_status.by_war_day` is keyed
 
 **Phase 3 can start** on product calls 1 and 5; nothing else is open
 from Phase 2.
+
+## 2026-09-18 — Top 100 bundle reviewed against the record; model placement settled
+
+**Jamie's handoff** (built with the MCP; "a starting point, not a
+requirement") is in `docs/top100/` and `fixtures/top100/`. Its core
+decision, the builder computes and the model writes, is the same
+invariant `docs/EMAIL.md` sets for the four no-LLM kinds. **What the
+record changes:** the global PoL board is recorded hourly (the bundle
+assumed daily; the 10:00Z rows are the week boundaries, the hourly
+series makes the spike deep cut sharp); the board is the whole field
+above the floor, so movers diff the full field and the "200-deep"
+question dissolves; every top-200 player is recorded comprehensively
+for the season, so the meta section covers ~100 of 100 and the honest
+caveat is battle coverage, not player coverage; season finals exist back
+to 2022-10, so the season-reset special is that week's Thursday issue.
+
+**Decided (Jamie):** Anthropic API directly, from a non-VPC editor Lambda
+- Bedrock lists Claude Opus 5 and reports it AUTHORIZED, but a Converse
+call answers AccessDeniedException "not available for this account"
+(checked today; the listing lies, the invoke is the test). Start on
+`claude-opus-5`, compare `claude-fable-5-1` on stored briefs. Subjects
+generated (writer proposes, editor picks). Named players are LINKS into
+Browse (every recipient is an account holder; the public page's sign-in
+wall is the CTA), tags only in a footer appendix. `level_gap` leaves the
+rotation for this audience. No personalization. Two model passes, three
+lint passes, a failing issue never sends. The bundle's gold sample uses
+em dashes its own tone rule forbids; the rule becomes the editor's, not
+a regex, and the sample stays as Jamie wrote it.

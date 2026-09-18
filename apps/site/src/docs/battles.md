@@ -154,6 +154,12 @@ therefore serves the controls beside it:
   `battles`, or snap `from`/`to` to Mondays.
 - `battles_levels` monthly points carry the population they were scored in;
   see [How the numbers are made](/docs/methodology#the-level-curve-and-pilot-score).
+- `players_summary` (3.16.0) carries `last_30_days.modes` (the window's
+  split), `top_deck.modes` and `dominant_mode` on both decks, and
+  `trophy_floor` when the window holds ladder battles; the deck
+  comparability note fires when the top and best decks were played in
+  different modes or at gaps half a level apart, and the floor note when a
+  loss touched the floor.
 
 The notes fire on a detected confound, not as a standing caveat: a
 `battles_decks` read within one mode whose decks met similar levels carries
