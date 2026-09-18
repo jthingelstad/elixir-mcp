@@ -4744,3 +4744,150 @@ What's-new, with elixir-bot's pin bumped the same week). Beyond it,
 nothing from Jamie; from the next session, first: tomorrow's 04:40Z
 `phases` line and, if any statement owns more than half of the rebuild,
 that before the renames.
+
+## 2026-09-19 — Interface review, Phase 6: 4.0.0, the batched major (contract 4.0.0). The review is closed.
+
+Phase 6 of `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (review
+Part 5.3, Part 2.2), product call 7 decided by Jamie 2026-09-18: **no
+deprecation window**, every client of this server is first-party and was
+updated in the same pass. One major, 3.18.0 → 4.0.0, no migration.
+Thirteen rename commits `81c11ea`..`8aba20c` (one per item, in the
+brief's order), pushed 22:00Z, deployed **22:09:15Z** (exit 0, migrations
+136 → 136); `2708ce8` deployed 22:14Z for the crossings fix below.
+
+**Step zero.** The instrumented nightly (`phases`) has still not run:
+the next 04:40Z is 2026-09-19's. Proceeded; it is the first item of the
+next session either way.
+
+**Shipped (every rename with its replacement is in the CHANGELOG's
+`breaking`).** `players_timeline.series[].date` → `day` only.
+`battles_query.battles[].arena` → `{id, name}` (the one arena shape with
+`trophy_floor.arena` and `modal_arena`). `players_profile.snapshot.lifetime`
+→ snake_case only (`snapshot-columns.mjs` renders one block). `group_by:
+"mode"` → `"game_mode"`. `clans_standings.members[].trophy_net` →
+`net_trophies` (the SQL alias too; a timeline session's `trophy_net` is a
+different quantity and keeps its name). The series' `pol_league` metric →
+`league_number` (an alias in `metricSelect()` over the table's
+`pol_league` column; the profile's `path_of_legend` keeps the API's own
+`leagueNumber`). `clans_participation.weeks[].complete` → `partial` +
+`covers` on the current week, nothing on whole weeks.
+`elixir_coverage.average_ratio` → a number; `incomplete_days` gone.
+`war_current.period.nominal_period_elapsed` gone. `game_events.days_seen`
+gone. `clans_roster.lifetime.as_of` gone. `segment` REQUIRED on the six
+segment tools (`required: ["segment"]` in each schema, `resolveSegment`
+refuses, the omitted note and the `omitted` flag are gone); a missing
+required argument anywhere now gets the argument's own description as
+the hint, so the refusal names `'mine'`, `'corpus'` and the object.
+`elixir_feedback` → `elixir_send_feedback` (registry, tool group, scope
+test, console link, every docs page; the older What's-new entries keep
+the old name as the record of what they shipped). Docs: `battles.md`,
+`recording.md`, `responses.md`, `clocks.md`, `glossary.md`,
+`choosing-a-tool.md`, `agents.md`, `protocol.md`, ENGINEERING, the
+instructions; What's-new "4.0.0: one name for everything". The
+conventions test asserts that no retired name appears in `tools/list`,
+any tool source or any docs page, treating a parenthetical that says
+what a name was as history.
+
+**Measured live, read-only, 22:09–22:15Z.** `tools.json`: `contract_version
+4.0.0`, 55 tools, `elixir_send_feedback` present and `elixir_feedback`
+absent. `players_timeline({days: 2, metrics: ["trophies",
+"league_number"]})`: points carry `day` and `league_number`, no `date`
+(`368a8298`). `battles_query({limit: 1})`: `arena: {id: 54000142, name:
+"Ultimate Clash Pit"}`, no `arena_id` (`a4fccd72`).
+`players_profile("#VJQV8G8RL")`: `lifetime` is the seven snake_case keys
+(`17878c74`). `clans_standings("#GJ09RJP8", 7d)`: `net_trophies: 653`, no
+`trophy_net` (`9d43e76b`). `clans_participation("#GJ09RJP8", 2 weeks)`:
+W37 carries no flag, W38 `partial: true` with `covers` to the call instant
+(`4637d6a7`). `elixir_coverage("#VJQV8G8RL")`: `average_ratio: 1` (a
+number), no `incomplete_days` (`4bef4daf`). `war_current()`: `period`
+without `nominal_period_elapsed` (`ec1a42c3`). `game_events({days: 1})`:
+`game_days_seen` only (`aa09eb53`). `clans_roster("#GJ09RJP8")`:
+`lifetime.profile_observed_at`, no `as_of` (`14917f47`).
+`badges_rarity({limit: 1})` without `segment`: `bad_request`, `class:
+input`, the hint naming the three shapes (`95588a23`).
+`elixir_changelog({since: "3.18.0"})`: one entry, 4.0.0, `breaking`
+naming every rename (`78e230de`). `{audit_census: {from: the deploy
+instant, to: 22:40Z}}`: `svc:poap-kings-discord` 3 calls / 0 errors,
+`svc:ship-it-discord` 3 / 0, `svc:elixir-kings-discord` 3 / 0 (each
+instance's first calls after its restart, the timeline polls as readers);
+`mcp` 13 / 2, both errors mine and expected (the segment refusal above
+and `war_current` on Elixir Kings, which has no race). `elixir-bot` and
+Clan made no call in the window: the bot calls the hub only on a member's
+question or a job, and Clan on a session; neither can be provoked
+read-only, so their first 4.0.0 call is unobserved here (both gates
+green on the 4.0.0 shapes).
+
+**Found by the acceptance read and fixed (`2708ce8`).** The unbounded
+`battles_query` carried **118 season crossings and a two-kilobyte note**:
+Phase 4 anchored an unbounded span at the season calendar's first row,
+and the calendar reaches back to 2016 for the finals boards. The span
+now starts at the first recorded battle (`min(battle_time)`, one probe on
+`battle_time_idx`): nine crossings, and the note names the seasons when
+there are at most four, else counts them ("Window spans 10 seasons, S127
+(2025-12) to S136 (2026-09)").
+
+**Decisions taken inside the phase.** (a) `pol_league` stays the table
+column; the wire name is an alias, so no migration and no rewrite. (b)
+The profile's `path_of_legend` object keeps `leagueNumber`: the rename
+was the series' metric, not the API-shaped object. (c) A timeline
+session's `trophy_net` keeps its name: it is a sum over a session, not
+the window sum the standings and performance tools share; the retired-name
+test allows it beside `session`/`standout`/`rung`. (d) `segment` required
+is enforced by both the schema (`tools/list` says so) and the resolver;
+the validator's refusal hint became the argument's description for every
+tool, since a hint that says "read tools/list" is what the review called a
+wall. (e) The camelCase lifetime tests in the ingest suite stay: they
+are the API's JSON, not the wire. (f) The What's-new history keeps the
+old tool name in the entries that shipped it; only current text was
+renamed.
+
+**Consumers, updated before the deploy and restarted after it.**
+`elixir-bot` `c39689d1`: `PINNED_CONTRACT = "4"`, `mcp_stats._day` reads
+`day` only, the drift test moved to majors 4/5; gates green; restarted
+22:10Z (pid 80411). `elixir-mcp-discord` `6f4d2f2`: `elixir_send_feedback`
+in `feedback.js`, `reactions.js`, `review.js`, `trace.js`, the `mcp.js`
+tail resolution (`elixir-mcp_send_feedback` → `elixir_send_feedback`),
+the prompts (in `src/`, so a restart), README and AGENTS; verify green;
+the three instances restarted one at a time at 22:09:33Z, 22:09:38Z,
+22:09:41Z (`build 0.3.0+6f4d2f2 · Elixir MCP 4.0.0`, no live turn), each
+logging `contract_version_changed_at_boot` 3.18.0 → 4.0.0.
+`clan.poapkings.com` `506c56c`: `manage/scout.mjs` reads `battle_count`
+and `collection_level`; verify green; CI validate + deploy succeeded at
+22:05:53Z (before the hub deploy, and safe: the snake_case keys have been
+on the wire since 3.14.0). `drop.poapkings.com`: grep finds no retired
+name; its hub reads are `elixir_track_player`, `elixir_my_players` and
+the REST API; nothing to change, nothing restarted. The **collection
+updater** (`svc:collection-updater`, 191 calls in seven days, last
+2026-09-17 10:23Z, the only caller of `collections_edit` with
+`action, collection, tags`): no retired name is on that tool, so nothing
+to change; its source is in no checkout under `~/Projects` (not the
+hub, Drop's admin job, or the OpenClaw cron list), which is worth knowing
+before the next rename that touches `collections_edit`. My own connector
+and Jamie's still hold a 3.x `tools/list` and need a reconnect.
+
+**The interface review is closed.** Six phases, 3.13.0 → 4.0.0 in one
+day (2026-09-18: 3.14.0 at 13:4xZ, 3.15.0 15:58Z, 3.15.1 17:54Z, 3.16.0
+18:41Z, 3.17.0 19:38Z, 3.18.0 20:59Z, 4.0.0 22:09Z). What the review
+left open that is in no phase, for the objectives to carry:
+- **The nightly meta rollup's cost** (Phase 4/5): 603 s on day 11 of a
+  28-day season against 93 s before the band tables; tomorrow's 04:40Z
+  `phases` line says which statement owns it; month-end lands near the
+  900 s ceiling (Run Elixir MCP).
+- **The 12 mis-keyed `war_week` rows** (Phase 5's
+  `{war_week_season_census}`: ten `(135, 1)` rows across ten clans keyed
+  to season 135 at the 2026-09-14 race close, eight with participants and
+  standings, plus POAP KINGS' empty `(134, 4)` and `(132, 4)`), each with
+  a correct sibling: `{war_week_rekey_repair}` as its own op, after reading
+  which writer keys a close-slot read to season − 1 so a re-walk cannot
+  write them back (Keep the Record True).
+- **POAP KINGS' non-empty timeline window, 1.2–1.9 s**: the day-wide
+  member battle scan is a parallel seq scan of `battle` because the
+  `b.created_at <= to` filter beats the clan-time index; the empty path
+  no longer pays it (Run Elixir MCP).
+- **Review Part 7 not yet built**: 7.1's budget extension to every tool
+  whose 14-day p95 exceeds 5 s (the deadline race covers them; the
+  cancellable statement budget still names three tools); the rest of Part
+  7 (7.2 `from`/`to`, 7.3 resource and prompt audit, 7.4 refusal census,
+  7.5 controls census, 7.6 explain_timeline) shipped in Phase 5.
+- **Part 6.6**: agents reaching for `live_fetch`'s raw board path before
+  `rankings_players`; a descriptions question, unmeasured since 3.14.0.
