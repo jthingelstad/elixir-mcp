@@ -4112,3 +4112,69 @@ change required.
 **Phase 3 needs:** product calls 1 (trophy band on the meta tools) and 5
 (the agent door's segment default; recommend keep the rule + `segment:
 "mine"`). Nothing manual.
+
+## 2026-09-19 — Phase 2 follow-ups: day 4 recorded, the finish sentinel, a 1-based day rank (contract 3.15.1)
+
+Three items the Phase 2 acceptance read surfaced (Jamie, 2026-09-18);
+one patch, 3.15.0 → 3.15.1 (the added field is `rank`). Commits
+`511e3e3`, `f86f882`, `adac44f`; verify green; deployed 17:54Z (exit 0,
+smoke green, migrations 134/0).
+
+**1. Day 4 of every war week reaches `war_period_log`.** The rule in
+`projectPeriodLogs` (`ingest/src/war.mjs`) kept only the poll's own
+section; a day's `periodLogs` entry appears after the day closes, and a
+section's fourth day closes as the section rolls, so its entry was only
+ever seen in the next section's polls and dropped. The rule now keeps an
+earlier section's entry too, but per item: an earlier entry names the
+CURRENT bracket's clans, each with its own result in whatever bracket it
+raced then (cr-agent-api-docs river-race.md), so only the items of clans
+in THIS clan's bracket that section (`war_week_clan`) are that section's
+days, which is always this clan itself plus any rival carried over.
+Rows land under their own section (`period_index / 7`); fill-once still
+guards rewrites. The test projects the war-day fixture (period 27) with
+seeded brackets for sections 0 and 1 and asserts periods 3-6 and 10-13
+land for exactly the two bracket clans, day 4 included, and nothing for
+the three current rivals that raced elsewhere. Then the race lane re-walk
+from the archive: `{series_backfill: {lane: "race", reset: true}}` ran
+the whole lane in one budget (6,306 receipts, 127 batches, 5,187 objects
+read, 2 missing, 134 s, `done`), 1,006 rows written. `series_status`
+gained `war_period_log.by_war_day`. **Before:** 625 rows, 18 clans, 23
+sections; day 1: 260, day 2: 185, day 3: 180, day 4: 0. **After:** 1,645
+rows, 26 clans, 23 sections; day 1: 470, day 2: 395, day 3: 390, day 4:
+390. Days 1-3 grew too: a clan whose earlier weeks came from the race
+log (war_week and war_week_clan rows, no race poll in that section) now
+gets those weeks' days from later polls' entries, and eight more clans
+have a log at all. `{series_census_self}` after: clan 4,181 days / 0
+missing clan rows, player 15,539 days / 0 missing profile rows, battle
+272,129 / 0 without facts. Live: `war_history({season_id: 136,
+section_index: 0})` for POAP KINGS carries FOUR `days` (periods 3-6);
+day 4 shows the finished boat at `progress_start = progress_end =
+10134`, `points_earned 0`, and Happy Win carrying its 3,000.
+
+**2. `finish_time` is null for a clan that did not finish.** The API marks
+those with epoch zero (`19691231T235959.000Z`, cr-agent-api-docs
+clans.md); the record stores it as observed and served it as a time.
+`finishInstant()` (`mcp/src/time.mjs`) nulls any instant at or before the
+epoch, applied at every render of `war_week_clan.finish_time`:
+`war_current.standings[]` and `race_finished_at`, the exact week's
+`war_history.standings[]`, the timeline's `race_finished_at`
+(`activity/entries.mjs`) and the `race_finished` event payload
+(`event-payloads.mjs`). Ingest and the stored value untouched. Live: the
+four non-finishing clans on S136 W0 read `finish_time: null`; POAP KINGS
+keeps `2026-09-13T09:38:04Z`.
+
+**3. `rank` beside `end_of_day_rank` on each day's standings.** The API's
+`endOfDayRank` is 0-based with -1 for not yet ranked; every other rank on
+the surface is 1-based. `rank` is `end_of_day_rank + 1`, null for -1, on
+`war_history.days[]` and `war_current.days_closed[]`; the notes, the
+output schema and `battles.md`'s war section say so. Live: day 4 of
+S136 W0 shows POAP KINGS (finished on day 3) with `end_of_day_rank: -1,
+rank: null` and Happy Win `0 → 1`.
+
+**Decisions.** The scope rule is per item, not per entry: accepting a
+whole earlier-section entry would write the current rivals' own results
+into a bracket they were not in. `series_status.by_war_day` is keyed
+`period_index % 7 - 2` so the four buckets read as war days.
+
+**Phase 3 can start** on product calls 1 and 5; nothing else is open
+from Phase 2.
