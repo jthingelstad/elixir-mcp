@@ -3286,3 +3286,77 @@ overlapping day; commit of the non-overlapping rows and the rollup
 keys; the numbers in NOTES; elixir-bot untouched. Needs Jamie's go;
 nothing manual before; afterwards, revoke the `backfill-elixir-bot`
 gateway row in Admin as on 09-15.
+
+## 2026-09-18 — Time-series Phase 2, verified: the race lane's slot-band mislabel, repaired
+
+The review session read Phase 2 back (the code, the NOTES, three
+archived rosters and the one race poll inside a mid-season Monday's
+slot band) and returned "fix this first": `raceSeasonFor` treated a
+payload whose `sectionIndex` was past the calendar's as the season
+before. That case does not occur at the roll (the finished race is
+served until 10:00Z, then 404 until the new race appears at section 0,
+so calendar and payload agree); it occurs on every mid-season Monday,
+when the next week's race opens in its slot inside the 09:3x-10:00Z
+band while the calendar still says the last section (POAP KINGS
+2026-09-14T09:57:54Z: `sectionIndex 1, periodIndex 7`, calendar 0,
+confirmed from the archived object). The lane filed those polls under
+the previous season's week of that number, silently (0 unresolved),
+inserting the new bracket's clans there as phantom rivals (fame 0, no
+rank, `clan_score` set, stamped after that season's end) and
+overwriting the real week's own `period_points` and `clan_score`;
+`war_week` and the period logs were untouched (`least()` kept the
+start, a fresh week's `periodLogs` is empty).
+
+**Shipped (`4c2fbb1`, deployed 01:0xZ).** The rule: section ==
+calendar is the current season; section == calendar + 1 within the
+season's own count is the current season, the payload's section; only
+calendar section 0 with the payload at the previous season's last
+section inside thirty minutes of the start is the season before;
+anything else is null and counted. `{race_week_repair}` (dry run by
+default): the census of `war_week_clan` rows stamped past their
+season's end by more than that allowance, split into phantoms
+(unranked: the closed week's log never named them) and overwritten real
+rows; the repair deletes the phantoms and nulls `period_points`,
+`clan_score`, `repair_points` and the stamp on the rest.
+`{series_backfill: {reset: true}}` walks a lane again from the first
+receipt. Tests: the slot-band poll lands on S136 section 1 with nothing
+under S135 week 1; a stray poll (section 3 on a section-0 day) is
+counted, never filed; the repair and the reset re-walk.
+
+**Measured live, read-only, then the repair.** Census before: 125 rows
+in 25 weeks of 11 clans, seasons 130-135: 104 phantoms, 21 overwritten
+real rows (POAP KINGS S130 week 2 held four phantom rivals stamped
+2026-04-20T09:39Z, its own row's `period_points` overwritten with 0).
+Repair: 104 deleted, 21 nulled. Race lane re-walked from receipt 0
+under the corrected rule (01:06Z → 01:09Z): 5,813 receipts, 4,919
+objects + 478 hits, 619 rows, 0 unresolved, 0 missing. Census after: 0
+stale rows. `war_week_clan` 1,819 → 1,715 rows, 459 with `clan_score`
+(561 before, the phantoms' among them); `war_period_log` 550 rows,
+unchanged. The next `riverracelog` polls refill `repair_points` on the
+21 nulled rows for the weeks the log still serves.
+
+**Corrections to the Phase 2 entry, from the same verification.** (1)
+"0 pinned by construction because a pin needs a new delivery" is not
+the main cause: the emitter runs the promotion lookup at emit time
+over the moment's window, so a crossing battle already in the record
+pins immediately; most of the 141 are members of polled clans whose
+battle logs are not recorded (124k roster-only rows against 963
+recorded players), so there is no battle to find, now or later. The
+week's honest number is the pinned share among moments for players
+whose log is recorded. (2) The March-April rosters are not tag-only
+synthesis: the 09-15 tenure replay landed v4's `raw_json`, the full
+API payload (2026-03-12, 04-20 and 05-20 read back with trophies,
+donations, arena, `clanRank`, `lastSeen` on every member and the clan
+score on the clan row), so every api row in the series carries its
+metrics.
+
+**Carried into Phase 3.** The census design drops the tags-only class;
+the profile replay of the 51-day hole runs BEFORE `{series_import}`
+(the replay adds the profile columns under `profile_observed_at` to
+days the clan lane already has roster rows for, and the import then
+sees them as overlapping and writes nothing there; the other order
+would let the import claim days the archive can fill with real
+payloads); what the bot adds to the clan series is five days (03-07 to
+03-11) and 07-03, the rest is comparison; the pinned share is reported
+for recorded players. Live cost after the phase (clan 241 ms, player
+189 ms) is within what 4.6 sized.
