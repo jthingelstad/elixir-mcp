@@ -844,7 +844,7 @@ test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () 
   });
   assert.match(
     moved.notes[0],
-    /scored mostly in an arena other than their current one/,
+    /scored mostly in a Trophy Road arena other than their current one/,
   );
   assert.match(moved.notes[0], /Ultimate Clash Pit → Little Prince's Tavern/);
 });

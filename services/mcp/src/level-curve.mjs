@@ -36,7 +36,7 @@ export function levelPairsSql(clauses = []) {
       select r.* from recent r join duos d on d.battle_id = r.battle_id
       where r.lvl is not null and r.outcome in ('win','loss')
         ${clauses.join(" ")})
-    select a.battle_id, a.player_tag, a.outcome, a.battle_time,
+    select a.battle_id, a.player_tag, a.outcome, a.battle_time, a.type,
            a.lvl - o.lvl as gap,
            a.starting_trophies, a.arena, a.arena_id, o.lvl as opponent_level
     from sides a join sides o on o.battle_id = a.battle_id
