@@ -405,6 +405,17 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
        on conflict (lane) do update set started_at = coalesce(series_backfill_state.started_at, now())`,
       [lane],
     );
+    // {reset: true}: walk the lane again from the first receipt (the
+    // race lane after the slot-band repair, 2026-09-18). The guards make
+    // a second walk exact; the tallies start over.
+    if (spec.reset === true)
+      await db.query(
+        `update series_backfill_state
+            set after_receipt_id = 0, receipts_done = 0, rows_written = 0,
+                started_at = now(), finished_at = null, updated_at = now()
+          where lane = $1`,
+        [lane],
+      );
     while (Date.now() - started < budgetMs) {
       const {
         rows: [state],
@@ -796,6 +807,81 @@ export async function arenaMomentDedupe(databaseUrl, spec = {}) {
       [days],
     );
     return { days, dry_run: dryRun, duplicates: ids.length, deleted, after };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * {race_week_repair: {dry_run?: true}} - the repair for the race lane's
+ * first rule (2026-09-17): a slot-band poll on a mid-season Monday
+ * (the next week's race open before 10:00Z) was filed under the
+ * PREVIOUS season's week of that number, which inserted the new
+ * bracket's clans there as phantom rivals (fame 0, no rank, stamped
+ * after that season's end) and overwrote the real week's own
+ * period_points and clan_score. war_week and the period logs were
+ * untouched. The census (dry run) lists war_week_clan rows whose
+ * period_points stamp is past their season's end by more than the
+ * stand-by allowance raceSeasonFor grants (thirty minutes), split into
+ * phantoms (no rank: the closed week's log never named them) and
+ * overwritten real rows (ranked). The repair deletes the phantoms and
+ * nulls period_points, clan_score, repair_points and the stamp on the
+ * overwritten rows; the race lane re-run under the corrected rule
+ * refills them from the real polls, and the next log poll the rest.
+ */
+export async function raceWeekRepair(databaseUrl, spec = {}) {
+  const dryRun = spec.dry_run !== false;
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const stale = `from war_week_clan w
+       join season s on s.war_season_id = w.season_id
+      where w.period_points_observed_at >= s.ends_at + interval '30 minutes'`;
+    const {
+      rows: [census],
+    } = await db.query(
+      `select count(*)::int as rows,
+              count(*) filter (where w.rank is null)::int as phantoms,
+              count(*) filter (where w.rank is not null)::int as overwritten,
+              count(distinct (w.clan_tag, w.season_id, w.section_index))::int as weeks,
+              count(distinct w.clan_tag)::int as clans,
+              min(w.season_id) as first_season, max(w.season_id) as last_season
+       ${stale}`,
+    );
+    const { rows: sample } = await db.query(
+      `select w.clan_tag, w.season_id, w.section_index, w.participant_clan_tag, w.rank,
+              w.fame, w.period_points, w.clan_score, w.period_points_observed_at
+       ${stale} order by w.season_id, w.section_index, w.clan_tag, w.participant_clan_tag limit 12`,
+    );
+    let deleted = 0;
+    let nulled = 0;
+    if (!dryRun) {
+      await db.query("begin");
+      try {
+        deleted = (
+          await db.query(
+            `delete from war_week_clan w using season s
+              where s.war_season_id = w.season_id
+                and w.period_points_observed_at >= s.ends_at + interval '30 minutes' and w.rank is null`,
+          )
+        ).rowCount;
+        nulled = (
+          await db.query(
+            `update war_week_clan w
+                set period_points = null, clan_score = null, repair_points = null,
+                    period_points_observed_at = null
+               from season s
+              where s.war_season_id = w.season_id
+                and w.period_points_observed_at >= s.ends_at + interval '30 minutes' and w.rank is not null`,
+          )
+        ).rowCount;
+        await db.query("commit");
+      } catch (err) {
+        await db.query("rollback").catch(() => {});
+        throw err;
+      }
+    }
+    return { dry_run: dryRun, census, sample, deleted, nulled };
   } finally {
     await db.end();
   }

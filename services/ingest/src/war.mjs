@@ -496,11 +496,22 @@ async function projectPeriodLogs(
  * The season and section a race payload belongs to, from the calendar
  * alone (the backfill's race lane, review Part 5 as carried in by the
  * Phase 1 verification): the season row whose bounds contain the fetch,
- * and its section by the 10:00Z grid. In the stand-by window after a
- * roll the API still describes the OLD race (cr-agent-api-docs/clans.md),
- * so a payload whose sectionIndex is past the calendar's is the season
- * before. A payload whose section is behind the calendar's names no
- * race the calendar knows; null, and the lane counts it.
+ * and its section by the 10:00Z grid. Two things move off the grid,
+ * both bounded (cr-agent-api-docs/clans.md, river-race.md):
+ *
+ *  - A race opens in its own slot inside the 09:3x-10:00Z band before
+ *    the hour, so on every mid-season Monday a poll in that band carries
+ *    the NEXT section while the calendar still says the last one
+ *    (POAP KINGS 2026-09-14T09:57:54Z: sectionIndex 1, calendar 0). That
+ *    is the current season, the payload's section. The first version of
+ *    this rule filed it under the previous season and wrote phantom
+ *    rivals there (Phase 2 verification, 2026-09-18).
+ *  - At the roll the finished race is served until 10:00Z and then 404
+ *    until the new race appears at section 0, so calendar and payload
+ *    agree; if the old race were ever served in the first minutes after
+ *    the roll (calendar section 0, the payload at the previous season's
+ *    last section), it is the season before. Nothing else is guessed:
+ *    null, and the lane counts it.
  */
 export async function raceSeasonFor(db, { payload, fetchedAt }) {
   if (!Number.isInteger(payload?.sectionIndex)) return null;
@@ -514,13 +525,20 @@ export async function raceSeasonFor(db, { payload, fetchedAt }) {
   );
   const s = rows[0];
   if (!s) return null;
-  const calendarSection = Math.floor(
-    (Date.parse(fetchedAt) - s.starts_at.getTime()) / (7 * 86_400_000),
-  );
-  if (payload.sectionIndex === calendarSection)
-    return { seasonId: s.war_season_id, sectionIndex: payload.sectionIndex };
-  if (payload.sectionIndex > calendarSection && s.prev_season_id !== null)
-    return { seasonId: s.prev_season_id, sectionIndex: payload.sectionIndex };
+  const sinceStartMs = Date.parse(fetchedAt) - s.starts_at.getTime();
+  const calendarSection = Math.floor(sinceStartMs / (7 * 86_400_000));
+  const section = payload.sectionIndex;
+  if (section === calendarSection)
+    return { seasonId: s.war_season_id, sectionIndex: section };
+  if (section === calendarSection + 1 && section < s.sections)
+    return { seasonId: s.war_season_id, sectionIndex: section };
+  if (
+    calendarSection === 0 &&
+    s.prev_season_id !== null &&
+    section === s.prev_sections - 1 &&
+    sinceStartMs < 30 * 60_000
+  )
+    return { seasonId: s.prev_season_id, sectionIndex: section };
   return null;
 }
 

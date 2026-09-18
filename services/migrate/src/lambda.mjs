@@ -68,6 +68,7 @@ import {
   seriesBackfill,
   seriesCensusSelf,
   arenaMomentDedupe,
+  raceWeekRepair,
 } from "./ops-series.mjs";
 
 export async function handler(event) {
@@ -346,6 +347,14 @@ export async function handler(event) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
       event.series_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.race_week_repair) {
+    const result = await raceWeekRepair(
+      process.env.DATABASE_URL,
+      event.race_week_repair === true ? {} : event.race_week_repair,
     );
     console.log(JSON.stringify(result));
     return result;

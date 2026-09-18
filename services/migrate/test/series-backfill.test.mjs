@@ -14,7 +14,11 @@ import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
 import { archiveKey, processResult } from "../../ingest/src/pipeline.mjs";
 import { payloadHash } from "../../ingest/src/hash.mjs";
-import { seriesBackfill, seriesCensusSelf } from "../src/ops-series.mjs";
+import {
+  seriesBackfill,
+  seriesCensusSelf,
+  raceWeekRepair,
+} from "../src/ops-series.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -270,12 +274,37 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
     periodIndex: l.periodIndex + 7,
   }));
   await admitted("currentriverrace", clanTag, standby, "2026-09-07T10:05:00Z");
+  // A mid-season Monday in the slot band: the next week's race is open
+  // (section 1, period 7) while the calendar says section 0 until
+  // 10:00Z. The current season, the payload's section - never the
+  // season before (the phantom-rivals bug of 2026-09-17).
+  const slotBand = structuredClone(race);
+  slotBand.sectionIndex = 1;
+  slotBand.periodIndex = 7;
+  slotBand.periodLogs = [];
+  slotBand.clans = race.clans.map((c, i) => ({
+    ...c,
+    tag: i === 0 ? clanTag : `#2PP0V9${["QP", "UP", "CP", "JP"][i - 1]}`,
+    fame: 0,
+    periodPoints: 0,
+  }));
+  slotBand.clan = { ...race.clan, fame: 0, periodPoints: 0 };
+  await admitted("currentriverrace", clanTag, slotBand, "2026-09-14T09:57:54Z");
+  // And one the calendar cannot place: section 3 on a section-0 day.
+  const stray = structuredClone(slotBand);
+  stray.sectionIndex = 3;
+  stray.periodIndex = 21;
+  await admitted("currentriverrace", clanTag, stray, "2026-09-08T12:00:00Z");
   const before = (await db.query(`select count(*)::int as n from clan_event`))
     .rows[0].n;
   const r = await seriesBackfill(DB_URL, { lane: "race", batch: 200 }, deps);
   assert.equal(r.done, true);
-  assert.equal(r.receipts, 2);
-  assert.equal(r.unresolved_season, 0);
+  assert.equal(r.receipts, 4);
+  assert.equal(
+    r.unresolved_season,
+    1,
+    "the stray poll is counted, never filed",
+  );
   const { rows: weeks } = await db.query(
     `select season_id, section_index from war_week where clan_tag = $1 order by 1, 2`,
     [clanTag],
@@ -285,8 +314,21 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
     [
       [135, 3],
       [135, 4],
+      [136, 1],
     ],
-    "2026-08-31 is S135 section 3; the stand-by read on 09-07 10:05Z is S135 section 4, not S136",
+    "2026-08-31 is S135 section 3; the stand-by read on 09-07 10:05Z is S135 section 4; the slot-band read on 09-14 09:57Z is S136 section 1",
+  );
+  const {
+    rows: [phantoms],
+  } = await db.query(
+    `select count(*)::int as n from war_week_clan
+      where clan_tag = $1 and season_id = 135 and section_index = 1`,
+    [clanTag],
+  );
+  assert.equal(
+    phantoms.n,
+    0,
+    "nothing filed under the previous season's week 1",
   );
   const {
     rows: [{ rivals, logs }],
@@ -295,7 +337,7 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
             (select count(*)::int from war_period_log where clan_tag = $1) as logs`,
     [clanTag],
   );
-  assert.equal(rivals, 10);
+  assert.equal(rivals, 15, "five clans in each of the three weeks");
   assert.ok(logs > 0);
   const after = (await db.query(`select count(*)::int as n from clan_event`))
     .rows[0].n;
@@ -356,4 +398,56 @@ test("battle lane fills the ten columns where null and the self census reads eve
       ["race", true],
     ],
   );
+});
+
+test("race_week_repair: phantoms go, overwritten real rows are nulled, and a reset re-walk refills them", async () => {
+  // What the first rule wrote: under S135 week 1 (a closed, logged
+  // week), the new bracket's clans as phantoms and the observing clan's
+  // own row stamped after the season's end.
+  const clanTag = "#J2RGCRVG";
+  await db.query(
+    `insert into war_week (clan_tag, season_id, section_index) values ($1, 135, 1) on conflict do nothing`,
+    [clanTag],
+  );
+  await db.query(
+    `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, fame, rank,
+       period_points, clan_score, period_points_observed_at)
+     values ($1, 135, 1, $1, 9000, 1, 777, 52000, '2026-09-14T09:57:54Z'),
+            ($1, 135, 1, '#2PP0V9QP', 0, null, 0, 1000, '2026-09-14T09:57:54Z'),
+            ($1, 135, 1, '#2PP0V9UP', 0, null, 0, 1000, '2026-09-14T09:57:54Z')`,
+    [clanTag],
+  );
+  const dry = await raceWeekRepair(DB_URL, {});
+  assert.equal(dry.dry_run, true);
+  assert.equal(dry.census.phantoms, 2);
+  assert.equal(dry.census.overwritten, 1);
+  assert.equal(dry.census.weeks, 1);
+  const wet = await raceWeekRepair(DB_URL, { dry_run: false });
+  assert.equal(wet.deleted, 2);
+  assert.equal(wet.nulled, 1);
+  const {
+    rows: [own],
+  } = await db.query(
+    `select fame, rank, period_points, clan_score, period_points_observed_at from war_week_clan
+      where clan_tag = $1 and season_id = 135 and section_index = 1 and participant_clan_tag = $1`,
+    [clanTag],
+  );
+  assert.deepEqual(own, {
+    fame: 9000,
+    rank: 1,
+    period_points: null,
+    clan_score: null,
+    period_points_observed_at: null,
+  });
+  const again = await raceWeekRepair(DB_URL, {});
+  assert.equal(again.census.rows, 0);
+  // The re-walk from receipt 0 refills the real weeks under the fixed rule.
+  const rerun = await seriesBackfill(
+    DB_URL,
+    { lane: "race", batch: 200, reset: true },
+    deps,
+  );
+  assert.equal(rerun.done, true);
+  assert.equal(rerun.receipts, 4);
+  assert.equal(rerun.state.receipts_done, 4);
 });
