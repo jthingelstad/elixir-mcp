@@ -14,6 +14,60 @@ polling-rate question is left to the adaptive-polling work, and the
 decisions that need Jamie are collected up front. Parts 1 to 8 and the
 appendices are the evidence; **"Read this first"** is the part to read.
 
+## Outcome (2026-09-18)
+
+Phases 1 to 4 shipped and were verified on 2026-09-17 and 2026-09-18
+as migrations 0126 to 0134 and contract 3.12.0; the NOTES entries
+"Time-series review, Phase 1" through "Phase 4" carry what landed and
+the live numbers, and the three "verified" entries between them carry
+what the review's re-checks found and what was fixed. **Phase 5 was
+declined by Jamie on 2026-09-18**: poapkings.com stays on its own CR API
+build and local SQLite; the tools it would have used exist
+(`clans_timeline`, `clans_members_timeline`, `clans_roster`'s lifetime
+block, `war_history`), and the dead `auto-update.sh` crontab line on
+Jamie's host (1.5) is still there. The body below is left as written on
+the 17th; what execution corrected in it:
+
+- **4.2 as revised is what shipped**, with one more stamp than the
+  revision carried: `roster_observed_at` (0133) dates the roster's own
+  four columns, `profile_observed_at` the profile's, `observed_at` the
+  shared four; each writer guards on its own stamp. Without the third
+  stamp a roster observation behind a later profile poll wrote nothing,
+  which the backfill would have hit on most March to July days.
+- **The arena moment moved to the roster** (Phase 1 verified, then two
+  corrections): the profile's baseline row carries the roster's newer
+  arena on a shared column, so a profile-stamp baseline could never see
+  the move. The roster emits `arena_changed` at its own cadence, once per
+  crossing, never from a replay; the battle log pins the crossing battle
+  when it arrives later. Most moments are for members whose log is not
+  recorded, so the pinned share is reported for recorded players only.
+- **Part 5 gained a race lane** (war_period_log and the rivals' columns
+  from the archived race payloads) and its calendar rule was wrong on
+  first landing: the next week's race opens in its slot before 10:00Z on
+  every mid-season Monday, and "section past the calendar's" is that,
+  not the season-roll stand-by. Repaired and re-run.
+- **Part 6's tags-only class never existed**: the March and April
+  rosters in the archive are v4's full API payloads. The bot import
+  added five days of member rows, 403 Sunday `pre_reset` rows, 310
+  rollup keys (ten of them siblings of recorder keys under another mode
+  group, found and removed), and the roster columns on 113
+  profile-written rows. The census: clan metrics at the same tick never
+  disagreed over 191 days; ten of ten differing member pairs matched an
+  archived intraday roster. The profile replay ran with moments off,
+  under the rule Phase 2 settled, so the July to September ledger for
+  those players stays quiet by design.
+- **7.1 to 7.3 gained per-point stamps** (`observed_at`,
+  `profile_observed_at`, `roster_observed_at`, `source`, `kind`,
+  `clan_tag`) and a date-only window of game days; `clans_timeline`'s
+  profile-derived aggregates are selectable metrics.
+- **Not done from the plan**: Phase 5 (declined); `player_daily_battle_rollup`
+  stays on the UTC calendar day (3.3, Tier 2); the Tier 2 items stand.
+
+Still open for Jamie after the phases: revoke the `backfill-elixir-bot`
+gateway row in Admin; refresh any connector holding a pre-3.12.0
+`tools/list`; drop the `staging` schema; the Drop and Clan stacks take the
+Elixir application tags in their own repos.
+
 ## Read this first: the principle, and the four decisions
 
 **The principle.** A pull feeds every subject it describes, not only the
