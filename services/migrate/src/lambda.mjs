@@ -72,6 +72,8 @@ import {
   arenaMomentDedupe,
   raceWeekRepair,
   explainSeries,
+  lifetimeZeroCensus,
+  lifetimeZeroRepair,
 } from "./ops-series.mjs";
 
 export async function handler(event) {
@@ -374,6 +376,22 @@ export async function handler(event) {
     const result = await seriesCensus(
       process.env.DATABASE_URL,
       event.series_census === true ? {} : event.series_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.lifetime_zero_census) {
+    const result = await lifetimeZeroCensus(
+      process.env.DATABASE_URL,
+      event.lifetime_zero_census === true ? {} : event.lifetime_zero_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.lifetime_zero_repair) {
+    const result = await lifetimeZeroRepair(
+      process.env.DATABASE_URL,
+      event.lifetime_zero_repair === true ? {} : event.lifetime_zero_repair,
     );
     console.log(JSON.stringify(result));
     return result;

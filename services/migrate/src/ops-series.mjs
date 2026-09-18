@@ -345,6 +345,28 @@ async function objectKeysFor(s3, bucket, endpoint, entityKey) {
   return map;
 }
 
+/** The archive's two reads (`getObject(key)` -> gzip bytes, `listKeys(endpoint,
+ *  entity)` -> Map(hash16 -> key)), from the test's in-memory archive or
+ *  the bucket. */
+async function archiveReads(deps = {}) {
+  let getObject = deps.getObject;
+  let listKeys = deps.listKeys;
+  if (!getObject || !listKeys) {
+    const bucket = process.env.ARCHIVE_BUCKET;
+    if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
+    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({});
+    getObject ??= async (key) => {
+      const res = await s3.send(
+        new GetObjectCommand({ Bucket: bucket, Key: key }),
+      );
+      return Buffer.from(await res.Body.transformToByteArray());
+    };
+    listKeys ??= (ep, entity) => objectKeysFor(s3, bucket, ep, entity);
+  }
+  return { getObject, listKeys };
+}
+
 export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
   const lane = String(spec.lane ?? "");
   const endpoint = LANE_ENDPOINT[lane];
@@ -360,21 +382,7 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
   // members for a second overlaps live ingest far less than one that
   // holds two hundred for twelve. A deadlock is the batch's to retry.
   const batch = Math.min(Math.max(Number(spec.batch ?? 50), 1), 2000);
-  const bucket = process.env.ARCHIVE_BUCKET;
-  let getObject = deps.getObject;
-  let listKeys = deps.listKeys;
-  if (!getObject || !listKeys) {
-    if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
-    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
-    const s3 = new S3Client({});
-    getObject ??= async (key) => {
-      const res = await s3.send(
-        new GetObjectCommand({ Bucket: bucket, Key: key }),
-      );
-      return Buffer.from(await res.Body.transformToByteArray());
-    };
-    listKeys ??= (ep, entity) => objectKeysFor(s3, bucket, ep, entity);
-  }
+  const { getObject, listKeys } = await archiveReads(deps);
   const { projectClanSeries, projectProfileSeries } =
     await import("../../ingest/src/series.mjs");
   const { projectRaceSeries, raceSeasonFor } =
@@ -987,4 +995,166 @@ export async function explainSeries(databaseUrl, spec = {}) {
   } finally {
     await db.end();
   }
+}
+
+/**
+ * {lifetime_zero_census: {after?: {player_tag, snapshot_date, snapshot_kind}, batch?: 200, budget_s?: 240}}
+ *   Read-only (review 2026-09-19, defect 10). player_snapshot_daily
+ *   serves collection_level 0 on days whose payload carried no
+ *   collectionLevel, where the contract promises null for an omitted
+ *   key. First the whole picture: rows with collection_level = 0 and a
+ *   profile stamp, by source and by month. Then, keyset over those rows
+ *   from `after`, the row's receipt (the admitted player fetch whose
+ *   fetched_at is the row's profile_observed_at) and its archived
+ *   payload: does it carry the key at all? `payload_no_key` is what
+ *   {lifetime_zero_repair} nulls; `payload_zero` is a real zero the
+ *   API sent and stays. Pass `next_after` back until `done`.
+ *
+ * {lifetime_zero_repair: {dry_run?: true, after?, batch?, budget_s?}}
+ *   The same walk; where the payload had no key, the column becomes
+ *   null, batch by batch in short transactions. dry_run (the default)
+ *   walks and counts without writing. A row with no receipt or no
+ *   archived object is reported and left alone.
+ */
+const ZERO_ROWS = `collection_level = 0 and profile_observed_at is not null`;
+
+async function lifetimeZeroWalk(databaseUrl, spec, deps, { write }) {
+  const budgetMs =
+    Math.min(Math.max(Number(spec.budget_s ?? 240), 5), 280) * 1000;
+  const batch = Math.min(Math.max(Number(spec.batch ?? 200), 1), 2000);
+  const dryRun = write && spec.dry_run !== false;
+  const { getObject, listKeys } = await archiveReads(deps);
+  const { gunzipSync } = await import("node:zlib");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const started = Date.now();
+  const tally = {
+    op: write ? "lifetime_zero_repair" : "lifetime_zero_census",
+    ...(write ? { dry_run: dryRun } : {}),
+    rows_walked: 0,
+    payload_has_key: 0,
+    payload_zero: 0,
+    payload_no_key: 0,
+    no_receipt: 0,
+    missing_object: 0,
+    unreadable: 0,
+    ...(write ? { nulled: 0 } : {}),
+    by_source: {},
+    done: false,
+  };
+  let after = spec.after ?? null;
+  try {
+    if (!write) {
+      await db.query("set transaction_read_only = on");
+      const { rows } = await db.query(
+        `select source, to_char(snapshot_date, 'YYYY-MM') as month, count(*)::int as rows
+         from player_snapshot_daily where ${ZERO_ROWS}
+         group by 1, 2 order by 1, 2`,
+      );
+      tally.zero_rows = rows;
+      tally.zero_total = rows.reduce((n, r) => n + r.rows, 0);
+    }
+    while (Date.now() - started < budgetMs) {
+      const { rows } = await db.query(
+        `select s.player_tag, s.snapshot_date::text as snapshot_date, s.snapshot_kind, s.source,
+                s.profile_observed_at,
+                (select r.payload_hash from api_receipt r
+                  where r.endpoint = 'player' and r.entity_key = s.player_tag
+                    and r.admission = 'admitted' and r.fetched_at = s.profile_observed_at
+                  order by r.receipt_id desc limit 1) as payload_hash
+         from player_snapshot_daily s
+         where ${ZERO_ROWS}
+           and ($1::text is null
+                or (s.player_tag, s.snapshot_date, s.snapshot_kind) > ($1, $2::date, $3))
+         order by s.player_tag, s.snapshot_date, s.snapshot_kind
+         limit $4`,
+        [
+          after?.player_tag ?? null,
+          after?.snapshot_date ?? null,
+          after?.snapshot_kind ?? null,
+          batch,
+        ],
+      );
+      if (rows.length === 0) {
+        tally.done = true;
+        break;
+      }
+      const toNull = [];
+      for (const row of rows) {
+        tally.rows_walked += 1;
+        const src = (tally.by_source[row.source] ??= {
+          rows: 0,
+          payload_no_key: 0,
+        });
+        src.rows += 1;
+        if (!row.payload_hash) {
+          tally.no_receipt += 1;
+          continue;
+        }
+        const keys = await listKeys("player", row.player_tag);
+        const key = keys.get(row.payload_hash.slice(0, 16));
+        if (!key) {
+          tally.missing_object += 1;
+          continue;
+        }
+        let payload;
+        try {
+          payload = JSON.parse(
+            gunzipSync(await getObject(key)).toString("utf8"),
+          );
+        } catch {
+          tally.unreadable += 1;
+          continue;
+        }
+        if (payload && Object.hasOwn(payload, "collectionLevel")) {
+          tally.payload_has_key += 1;
+          if (payload.collectionLevel === 0) tally.payload_zero += 1;
+        } else {
+          tally.payload_no_key += 1;
+          src.payload_no_key += 1;
+          toNull.push(row);
+        }
+      }
+      if (write && !dryRun && toNull.length > 0) {
+        await db.query("begin");
+        try {
+          for (const row of toNull)
+            await db.query(
+              `update player_snapshot_daily set collection_level = null
+                where player_tag = $1 and snapshot_date = $2::date and snapshot_kind = $3
+                  and ${ZERO_ROWS}`,
+              [row.player_tag, row.snapshot_date, row.snapshot_kind],
+            );
+          await db.query("commit");
+          tally.nulled += toNull.length;
+        } catch (err) {
+          await db.query("rollback").catch(() => {});
+          throw err;
+        }
+      }
+      const last = rows[rows.length - 1];
+      after = {
+        player_tag: last.player_tag,
+        snapshot_date: last.snapshot_date,
+        snapshot_kind: last.snapshot_kind,
+      };
+      if (rows.length < batch) {
+        tally.done = true;
+        break;
+      }
+    }
+    if (!tally.done) tally.next_after = after;
+    tally.elapsed_ms = Date.now() - started;
+    return tally;
+  } finally {
+    await db.end();
+  }
+}
+
+export function lifetimeZeroCensus(databaseUrl, spec = {}, deps = {}) {
+  return lifetimeZeroWalk(databaseUrl, spec, deps, { write: false });
+}
+
+export function lifetimeZeroRepair(databaseUrl, spec = {}, deps = {}) {
+  return lifetimeZeroWalk(databaseUrl, spec, deps, { write: true });
 }

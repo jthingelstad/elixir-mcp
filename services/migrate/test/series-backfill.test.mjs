@@ -18,6 +18,8 @@ import {
   seriesBackfill,
   seriesCensusSelf,
   raceWeekRepair,
+  lifetimeZeroCensus,
+  lifetimeZeroRepair,
 } from "../src/ops-series.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -450,4 +452,91 @@ test("race_week_repair: phantoms go, overwritten real rows are nulled, and a res
   assert.equal(rerun.done, true);
   assert.equal(rerun.receipts, 4);
   assert.equal(rerun.state.receipts_done, 4);
+});
+
+test("lifetime_zero_census reads the zeros back to their payloads; lifetime_zero_repair nulls only the keyless ones (defect 10, 2026-09-19)", async () => {
+  const profile = await fixture("player/profile.json");
+  // Three players, one zero row each on 2026-08-10: a payload with no
+  // collectionLevel (the bot replay's shape), a payload that said 0, and
+  // a row with no receipt at all. A fourth row is a real level and is
+  // never walked.
+  const tags = ["#8QQQQQQQ", "#8QQQQQQR", "#8QQQQQQL", "#8QQQQQQP"];
+  for (const tag of tags)
+    await db.query(
+      "insert into player (player_tag) values ($1) on conflict do nothing",
+      [tag],
+    );
+  const at = "2026-08-10T12:00:00Z";
+  const keyless = { ...structuredClone(profile), tag: tags[0] };
+  delete keyless.collectionLevel;
+  const zero = {
+    ...structuredClone(profile),
+    tag: tags[1],
+    collectionLevel: 0,
+  };
+  await admitted("player", tags[0], keyless, at);
+  await admitted("player", tags[1], zero, at);
+  for (const [tag, level] of [
+    [tags[0], 0],
+    [tags[1], 0],
+    [tags[2], 0],
+    [tags[3], 1754],
+  ])
+    await db.query(
+      `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, trophies, observed_at, profile_observed_at, collection_level, source)
+       values ($1, '2026-08-10', 'daily', 5000, $2, $2, $3, 'api')`,
+      [tag, at, level],
+    );
+
+  const census = await lifetimeZeroCensus(DB_URL, { batch: 2 }, deps);
+  assert.equal(census.done, true, "two batches inside one budget");
+  assert.ok(census.rows_walked >= 3, `walked ${census.rows_walked}`);
+  assert.equal(census.payload_no_key, 1);
+  assert.equal(census.payload_zero, 1);
+  assert.equal(census.no_receipt, 1);
+  assert.ok(
+    census.zero_rows.some((r) => r.source === "api" && r.month === "2026-08"),
+    JSON.stringify(census.zero_rows),
+  );
+  // The keyset cursor: from the first row on, the walk sees the rest.
+  const rest = await lifetimeZeroCensus(
+    DB_URL,
+    {
+      after: {
+        player_tag: [...tags].sort()[0],
+        snapshot_date: "2026-08-10",
+        snapshot_kind: "daily",
+      },
+    },
+    deps,
+  );
+  assert.equal(rest.rows_walked, census.rows_walked - 1);
+
+  const dry = await lifetimeZeroRepair(DB_URL, {}, deps);
+  assert.equal(dry.dry_run, true);
+  assert.equal(dry.payload_no_key, 1);
+  assert.equal(dry.nulled, 0);
+  const still = await db.query(
+    `select count(*)::int as n from player_snapshot_daily where player_tag = any($1) and collection_level = 0`,
+    [tags],
+  );
+  assert.equal(still.rows[0].n, 3, "a dry run writes nothing");
+
+  const wet = await lifetimeZeroRepair(DB_URL, { dry_run: false }, deps);
+  assert.equal(wet.nulled, 1);
+  const { rows } = await db.query(
+    `select player_tag, collection_level from player_snapshot_daily where player_tag = any($1) order by 1`,
+    [tags],
+  );
+  assert.deepEqual(
+    Object.fromEntries(rows.map((r) => [r.player_tag, r.collection_level])),
+    {
+      [tags[0]]: null, // keyless payload: nulled
+      [tags[1]]: 0, // the API said 0: stays
+      [tags[2]]: 0, // no receipt: left alone, reported
+      [tags[3]]: 1754,
+    },
+  );
+  const again = await lifetimeZeroRepair(DB_URL, { dry_run: false }, deps);
+  assert.equal(again.nulled, 0, "rerunnable");
 });
