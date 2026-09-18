@@ -232,7 +232,12 @@ export async function seriesStatus(databaseUrl, spec = {}) {
                              (select season_month, count(*)::int n from player_pol_season group by 1) k))
           from player_pol_season) as player_pol_season,
          (select json_build_object('rows', count(*), 'clans', count(distinct clan_tag),
-                 'sections', count(distinct (season_id, section_index)))
+                 'sections', count(distinct (season_id, section_index)),
+                 -- by war day (period_index % 7 - 2): day 4 was never kept
+                 -- before 2026-09-18 (the projector's section scope rule).
+                 'by_war_day', (select json_object_agg(d, n) from
+                                (select period_index % 7 - 2 as d, count(*)::int as n
+                                   from war_period_log group by 1 order by 1) w))
           from war_period_log) as war_period_log,
          (select json_build_object('rows', count(*),
                  'roster_only', count(*) filter (where roster_observed_at is not null and profile_observed_at is null),
