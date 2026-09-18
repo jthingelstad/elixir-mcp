@@ -36,7 +36,7 @@ You are being run by a program, not a person. Three things differ from the prose
 2. **The brief decides.** \`drought_mode\` and \`sections_cleared\` are inputs, computed by the program from the novelty bar. Honour them: in drought mode shrink as the fallback says. A \`deep_cut.type\` of \`none\` means there is no deep cut this week; omit the section. \`meta.available: false\` means omit the meta section.
 3. **Answer with JSON only**, matching the schema you were given: \`subject\` (the one you would send, under 60 characters), \`subjects\` (two alternates), \`preheader\`, \`body_markdown\` (sections 2-10 as markdown: \`##\` headings, paragraphs, \`**bold**\`, \`-\` lists, pipe tables with a header row; no HTML, no emoji), \`sections_included\`, \`numbers_used\`.
 
-Names: print player and clan names exactly as the brief spells them; the program links them. The season and the issue dates are in \`season\` and \`window\`; the send day is a Thursday, so "a week ago" is last Thursday.
+Names: print player and clan names exactly as the brief spells them, with their emoji and non-Latin characters as the characters themselves (never as \\u escapes, which have arrived broken); the program links them. The season and the issue dates are in \`season\` and \`window\`; the send day is a Thursday, so "a week ago" is last Thursday.
 `;
 
 export const EDITOR_PROMPT = `You are the editor of the same newsletter. You receive the brief, a draft issue as JSON, and the program's lint findings. Return the corrected issue as JSON with the same schema.

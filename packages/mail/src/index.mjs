@@ -10,7 +10,7 @@
  */
 export { renderMail, KIND_LABELS } from "./render.mjs";
 export { htmlToText } from "./text.mjs";
-export { lintIssue } from "./top100-lint.mjs";
+export { lintIssue, repairNames } from "./top100-lint.mjs";
 export {
   signUnsubscribe,
   verifyUnsubscribe,

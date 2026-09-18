@@ -27,6 +27,28 @@ function resolvePath(obj, path) {
     .reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
+/** Names the model's JSON mangled (an emoji written as a broken escape:
+ *  "Hypno "u2764\ns Hans" for "Hypno ❤️ Hans", 2026-09-18) put back from
+ *  the brief's spelling: a name with non-ASCII in it is matched by its
+ *  ASCII tokens with a short run of anything between them. Bounded to
+ *  the brief's names. */
+export function repairNames(body, names) {
+  let out = String(body ?? "");
+  for (const name of names) {
+    if (!name || !/[^\x20-\x7e]/.test(name) || out.includes(name)) continue;
+    const tokens = name
+      .split(/[^\x21-\x7e]+/)
+      .filter((t) => t.length >= 2)
+      .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    if (tokens.length === 0) continue;
+    // The broken escape carries letters ("u2764", a stray "s"), so the
+    // gap allows anything, short and non-greedy.
+    const re = new RegExp(tokens.join("[\\s\\S]{1,16}?"), "g");
+    out = out.replace(re, name);
+  }
+  return out;
+}
+
 /** The deterministic lint. Returns [] when the issue may send. */
 export function lintIssue(issue, brief) {
   const problems = [];

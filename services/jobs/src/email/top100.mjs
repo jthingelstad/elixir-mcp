@@ -22,7 +22,7 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
 import { upsertIssue } from "./ledger.mjs";
-import { lintIssue } from "@elixir-mcp/mail";
+import { lintIssue, repairNames } from "@elixir-mcp/mail";
 
 const MASTHEAD = "Ultimate Champions";
 const STRAP = "Elixir's weekly read of the Path of Legends top 100";
@@ -410,6 +410,22 @@ export async function top100Generate({
   }
 }
 
+function briefNames(brief) {
+  const names = new Set();
+  for (const p of brief.board?.top100 ?? []) names.add(p.name);
+  for (const list of [
+    brief.movers?.up,
+    brief.movers?.down,
+    brief.movers?.entered,
+    brief.movers?.exited,
+    brief.podium,
+  ])
+    for (const p of list ?? []) names.add(p.name);
+  for (const c of brief.clans ?? []) names.add(c.clan_name);
+  if (brief.deep_cut?.facts?.player) names.add(brief.deep_cut.facts.player);
+  return [...names].filter(Boolean);
+}
+
 async function readJson(bucket, key) {
   const out = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   return JSON.parse(await out.Body.transformToString());
@@ -427,6 +443,9 @@ export async function top100Accept({
     readJson(bucket, issueKey),
     readJson(bucket, briefKey),
   ]);
+  // Names the model spelled through a broken JSON escape come back
+  // from the brief before anything else looks at the body.
+  issue.body_markdown = repairNames(issue.body_markdown, briefNames(brief));
   const problems = lintIssue(issue, brief);
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();

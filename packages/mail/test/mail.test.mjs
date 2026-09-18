@@ -139,3 +139,12 @@ test("the Top 100 lint traces numbers to the brief and rejects tags, bangs and u
   assert.ok(problems.some((p) => /without a rating delta/.test(p)));
   assert.ok(problems.some((p) => /does not resolve/.test(p)));
 });
+
+test("repairNames puts a name the model's JSON mangled back from the brief", async () => {
+  const { repairNames } = await import("../src/index.mjs");
+  const body =
+    'A week ago **Hypno "u2764\ns Hans** held rank 1; TR⚡️Matthew⚡️ climbed.';
+  const out = repairNames(body, ["Hypno ❤️ Hans", "TR⚡️Matthew⚡️", "JTR_CR"]);
+  assert.ok(out.includes("**Hypno ❤️ Hans**"), out);
+  assert.ok(out.includes("TR⚡️Matthew⚡️ climbed"));
+});
