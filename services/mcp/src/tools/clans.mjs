@@ -658,7 +658,11 @@ export const clansTools = {
           iso_week: isoWeekLabel(start),
           from: start.toISOString(),
           to: end.toISOString(),
-          complete: end <= now,
+          // The mark every clipped bucket carries (4.0.0; complete before):
+          // the current ISO week is the one the window clips.
+          ...(end > now
+            ? { partial: true, covers: { from: start.toISOString(), to: now.toISOString() } }
+            : {}),
         });
       }
       const seasonFields = await seasonFieldsForInstants(ctx.db, from, null, {

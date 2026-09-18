@@ -670,9 +670,14 @@ export const OUTPUT_SCHEMAS = {
             iso_week: { type: "string" },
             from: ISO,
             to: ISO,
-            complete: { type: "boolean" },
+            partial: {
+              type: "boolean",
+              description:
+                "Present and true on the current week, which now clips (4.0.0; complete: false before); covers says the span it holds.",
+            },
+            covers: { type: "object", properties: { from: ISO, to: ISO } },
           },
-          required: ["iso_week", "from", "to", "complete"],
+          required: ["iso_week", "from", "to"],
         },
       },
       war_weeks: {

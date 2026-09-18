@@ -335,7 +335,7 @@ measures; it never rates.
 
 | Field | Meaning |
 |---|---|
-| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`, `complete`); Monday 00:00 UTC to Monday, the current week partial |
+| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`); Monday 00:00 UTC to Monday; the current week carries `partial: true` with `covers` (the mark every clipped bucket carries; 4.0.0, `complete` before) |
 | `war_weeks[]` | the clan's recorded war weeks inside the window with their observed bounds; war weeks run on the game's grid, not ISO weeks |
 | `members[].battles`, `ranked_battles`, `donations` | columns aligned to `weeks[]`, one entry per ISO week in order; `donations` is the game's weekly counter as of the last daily snapshot in the week, `null` with no snapshot |
 | `members[].war_decks`, `war_points`, `war_decks_by_day`, `war_battles_by_day` | columns aligned to `war_weeks[]`; `war_decks_by_day` holds war days 1 to 4 from roster polls during the day (`null` where the day was not polled) and `war_battles_by_day` the member's recorded war battles each day. `verbosity: "compact"` keeps only `war_decks` |
