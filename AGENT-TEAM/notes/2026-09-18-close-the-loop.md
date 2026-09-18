@@ -1,6 +1,14 @@
 # Close the Loop — 2026-09-18
 
-## 13:45Z — Feedback #54–#60 actioned as contract 3.13.0; deploy owed on an expired `jamie` session
+## 13:45Z — Feedback #54–#60 actioned as contract 3.13.0, deployed, all seven responded `done`
+
+Resolved in the same session: Jamie renewed the `jamie` profile
+(`aws login`), the deploy landed (exit 0, `tools.json` 3.13.0), the
+read-only acceptance in docs/NOTES.md passed from the first call each, and
+the seven responses below were sent (`updated: 1` each). Kept as the
+record of what was owed and how it was closed.
+
+### Earlier, 13:20Z — deploy owed on an expired `jamie` session
 
 - **Commits:** `ca54742` (battles_opponents windowed calls answer again),
   `23fc9c1` (contract 3.13.0: the control next to the number). Pushed to

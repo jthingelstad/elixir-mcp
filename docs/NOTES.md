@@ -3790,22 +3790,26 @@ to decompose the residual, narrower trophy bands — `arena_id` is the
 control that answers the case; and `battles_cards` keeps its 120-row cap
 with per-row counts rather than full W/L per mode (payload).
 
-**Not deployed at the time of writing; owed.** `AWS_PROFILE=jamie node
-infra/scripts/deploy.mjs` failed at the first STS call: the `jamie`
-profile is an `aws login` session (`login_session` in ~/.aws/config) and
-its token had expired; `aws sts get-caller-identity` confirms
-`ExpiredToken`. Only Jamie can renew it (`aws login --profile jamie`,
-browser sign-in). Until the deploy lands the seven feedback items stay
-`new`; the responses are drafted in
-`AGENT-TEAM/notes/2026-09-18-close-the-loop.md` and are sent with
-`{feedback_respond}` (status `done`, `shipped_in: 3.13.0`) only after live
-acceptance. Live acceptance, read-only, once deployed: `battles_decks`
-for #20JJJ2CCRU `days:30 min_battles:2` → `comparable: false`, Mortar
-row `modes.war` only, Hogs `modes.ladder` only, gaps ≈ +1.6 / +0.7;
-`battles_levels` `mode:"ladder" days:60` → monthly points with
-`modal_arena` 54000141 then 54000142 and the population note first;
-`battles_performance days:30` → `trophy_floor.floor 12500`, `floored`
-true; `battles_opponents days:30 min_battles:2` → rows, not `internal`;
-`battles_query battle_id` for one of the five #58 battles → both sides'
-`elixir_leaked`. The flaky `profile-refresh.test.mjs` window (06:39Z–
-12:00Z) was not in play (verify ran 13:3xZ).
+**Deployed 13:4xZ (`deploy.mjs` exit 0, smoke green, `tools.json` at
+3.13.0) after Jamie renewed the `jamie` profile: it is an `aws login`
+session (`login_session` in ~/.aws/config) and its token had expired at
+the first STS call (`ExpiredToken`), the same stop Keep the Record True
+hit on 2026-09-08. Only Jamie can renew it; the rule is finish verify,
+commit, push, draft the responses, then ask once.**
+
+**Live acceptance, read-only, from the FIRST call each (the corpus's own
+pass criterion).** `battles_decks` #20JJJ2CCRU `days:30 min_battles:2`:
+`comparable: false`; Hogs `modes.ladder` 45 only, gap +0.57 (16.00 vs
+15.43); Mortar `modes.war` 14 only, gap +1.71 (15.31 vs 13.60); the first
+note names both hashes and gaps. `battles_levels mode:ladder days:60`:
+July modal_arena Magic Academy 54000141 at 12,321 mean trophies, August
+and September Ultimate Clash Pit 54000142 at ~12,535; the population note
+leads. `battles_performance days:30 group_by:week`: `trophy_floor.floor
+12500`, `floored` true, 3 on-floor + 4 landing losses, range 12,500–
+12,600; W34 and W38 marked partial with `covers`. `battles_opponents
+days:30 min_battles:2`: answers (87 distinct opponents, none repeated).
+`battles_query` Sept 16–17 ladder: Griffith48 row me 8.20 / opp 1.53 /
+differential +6.67, matching the filer's hand table. All seven items
+responded `done`, `shipped_in 3.13.0`, through `{feedback_respond}` with
+the expected-state guard (`updated: 1` each); the filer's
+`elixir_my_feedback` shows them.
