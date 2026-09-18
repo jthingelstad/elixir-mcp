@@ -44,8 +44,9 @@ the same day as the war day and the season roll it sits inside. (Before
 game day then.) `players_timeline` returns one point per snapshot day and
 only from `snapshots_available_from`, and `players_summary.trophies_as_of`
 is a date, not an instant, because it names the snapshot the trophy count
-came from. Snapshot-series tools take `YYYY-MM-DD` bounds only; an instant
-is refused.
+came from. The series tools take `YYYY-MM-DD` bounds, game days; an
+instant is accepted and floored to its game day, and the response says
+which day it became (`applied.window.floored`, 3.17.0).
 
 Events carry `created_at`, the moment the recorder noticed the change, which
 is "observed between two polls": a member who left at 09:05 and was noticed

@@ -27,7 +27,8 @@ after a month gets a month's timeline (capped at 30 days and 200 items).
 |---|---|---|---|
 | `from` | string | your read pointer, else 24 hours ago | an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; capped at 30 days before `to` |
 | `to` | string | now | an ISO instant, or a date covering that whole local day |
-| `mark_read` | boolean | `true` | move your read pointer to this window's end |
+| `mark_read` | boolean | `true` | move the read pointer (the reader's, or the account's) to this window's end |
+| `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`; 3.18.0): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
 | `kinds` | string[] | all | keep only items of these kinds (the table below, or `account_*`); entries are untouched. A consumer that wakes on a few kinds reads only those |
 | `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
@@ -45,15 +46,18 @@ docs, meta }`.
 - `has_more` is always `false`; `timeline_more` says how many items the cap
   left out.
 - `meta.timeline_pending` on any response counts subjects of yours the
-  recorder has admitted something for since your pointer.
+  recorder has admitted something for since the oldest named reader's
+  pointer when any reader has marked, else since the account's own.
 
-### One read pointer per account
+### One pointer per reader
 
-`mark_read` moves a single instant on the account. Two consumers that both
-mark will move each other's window. Either give each consumer its own
-[agent](/docs/agents) (each has its own pointer), or read with
-`mark_read: false` and keep your own `from`. The code for the second shape
-is on the [agents page](/docs/agents#consuming-the-timeline).
+Without `reader`, `mark_read` moves a single instant on the account, and
+two consumers that both mark move each other's window. With `reader`
+(3.18.0) each consumer names its own pointer and marks it alone; the
+account's unnamed pointer stays a person's own client's. A consumer that
+keeps its own cursor still can (`mark_read: false` and its own `from`), but
+`meta.timeline_pending` then counts against a pointer it never moves. The
+code for both shapes is on the [agents page](/docs/agents#consuming-the-timeline).
 
 ## Who is a subject
 
@@ -205,14 +209,16 @@ entry: a clan's silence is the clan's activity.
 
 1. Read `game_clock` once; if you care about war, schedule yourself from
    `war_day_closes_at`.
-2. Call `elixir_timeline` from your saved `from` with `mark_read: false`,
-   and `kinds` naming what you wake on. If `timeline` is empty, there is
-   nothing to consider. Otherwise read the items, then the entries for the
-   shape of the window.
+2. Call `elixir_timeline` as your own `reader`, with `kinds` naming what
+   you wake on; skip the call when the last response's
+   `meta.timeline_pending` was 0. If `timeline` is empty, there is nothing
+   to consider. Otherwise read the items, then the entries for the shape of
+   the window.
 3. Drill with the data tools for anything worth more: `clans_roster`,
    `war_current`, `clans_participation`, `players_summary`.
-4. Save `next_cursor`; move the pointer with `mark_read` only if this
-   consumer owns it.
+4. Nothing to save: your reader's pointer is the window's end. A consumer
+   without a `reader` saves `next_cursor` and marks only if it owns the
+   account's pointer.
 
 On first run the window is the last 24 hours; an agent that posts a month
 of backlog into a channel is the most common mistake with a feed like this,

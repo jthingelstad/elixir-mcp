@@ -114,6 +114,17 @@ export const ON_BEHALF_OF_SCHEMA = {
     "Agent connections: the end user's id on your surface (e.g. discord:1234), mapped once with elixir_identify. Ignored on a personal connection.",
 };
 
+/** Beside on_behalf_of (3.18.0): the asker's name as the surface shows
+ *  it, so an unmapped id's no_subject refusal can carry candidates[]
+ *  (clan members whose whole name matches) instead of leaving the
+ *  agent to pull the roster and compare names itself. */
+export const DISPLAY_NAME_SCHEMA = {
+  type: "string",
+  maxLength: 60,
+  description:
+    "Agent connections, beside on_behalf_of: the asker's display name on your surface. When on_behalf_of is not mapped yet, no_subject carries candidates[]: the clan members whose whole name matches it (case and spacing ignored), so one elixir_identify call follows; nothing is guessed from a partial match.",
+};
+
 export const TAG_RULE_HINT =
   "Tags are # plus 3-12 characters from 0289PYLQGRJCUV (letter O folds to zero).";
 
@@ -735,16 +746,25 @@ export function docsRef(page, section) {
  * rather than read off a global because one Lambda serves every caller, and a
  * remembered "last user" would be the worst bug this file could have.
  */
-export async function subject(db, account, inputTag, need, onBehalfOf = null) {
+export async function subject(
+  db,
+  account,
+  inputTag,
+  need,
+  onBehalfOf = null,
+  displayName = null,
+) {
   let resolved;
   try {
     resolved = await resolveSubject(db, account, inputTag, need, {
       onBehalfOf,
+      displayName,
     });
   } catch (err) {
     if (err?.code === "invalid_tag")
       throw new ToolFailure(err.code, err.message, TAG_RULE_HINT);
-    if (err?.code) throw new ToolFailure(err.code, err.message, err.hint);
+    if (err?.code)
+      throw new ToolFailure(err.code, err.message, err.hint, err.data);
     throw err;
   }
   await stampRead(db, resolved.tag);
@@ -806,6 +826,10 @@ export async function pendingHints(db, account) {
             select 1 from poll_state ps
              where ps.subject_tag = s.tag
                and ps.last_admitted_at > coalesce(
+                 -- The oldest NAMED pointer when any reader has marked
+                 -- (3.18.0), else the account's own; a consumer that
+                 -- names itself sees pending fall to 0 after its read.
+                 (select min(read_to) from timeline_reader where account_id = $1),
                  (select activity_seen_at from account where account_id = $1),
                  'epoch'::timestamptz))) as timeline_pending`,
       [account.accountId],

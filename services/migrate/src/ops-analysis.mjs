@@ -150,7 +150,17 @@ export async function abYield(databaseUrl, spec) {
  *  a batch is judged by adoption rather than by shipping (review 4.5).
  *  Read-only, counts only. */
 export async function auditCensus(databaseUrl, spec) {
+  // A window is days back from now, or an explicit from/to (3.18.0,
+  // review Part 7.2): fourteen days that span a redesign cannot be
+  // split, and every phase's before/after is one number without this.
   const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
+  const toTs = spec?.to ? new Date(spec.to) : new Date();
+  const fromTs = spec?.from
+    ? new Date(spec.from)
+    : new Date(toTs.getTime() - days * 86_400_000);
+  if (Number.isNaN(fromTs.getTime()) || Number.isNaN(toTs.getTime()))
+    return { error: "from/to must be ISO instants" };
+  if (fromTs >= toTs) return { error: "from must be before to" };
   const { TOOL_GROUPS } = await import("@elixir-mcp/contracts");
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -169,17 +179,17 @@ export async function auditCensus(databaseUrl, spec) {
               count(*) filter (where truncated)::int as truncated,
               max(created_at) as last_called
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz
        group by tool order by calls desc`,
-      [days],
+      [fromTs, toTs],
     );
     const { rows: perSurface } = await db.query(
       `select surface, count(*)::int as calls,
               count(*) filter (where error_code is not null)::int as errors
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz
        group by surface order by calls desc`,
-      [days],
+      [fromTs, toTs],
     );
     // Which CLIENT (Claude.ai, Claude Code, mcp-remote, a bot naming
     // itself) made the calls and how often each is refused: the way to see
@@ -193,17 +203,17 @@ export async function auditCensus(databaseUrl, spec) {
               count(*) filter (where tool = 'elixir_my_players')::int as identity_lookups,
               max(created_at) as last_called
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz
        group by client_name, surface order by calls desc`,
-      [days],
+      [fromTs, toTs],
     );
     const { rows: errors } = await db.query(
       `select tool, error_code, count(*)::int as n
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz
          and error_code is not null
        group by tool, error_code order by n desc limit 30`,
-      [days],
+      [fromTs, toTs],
     );
     // The catch-all, by path shape (tags folded so the axis is the
     // endpoint, not the subject).
@@ -216,9 +226,9 @@ export async function auditCensus(databaseUrl, spec) {
               count(*) filter (where truncated)::int as truncated
        from mcp_call_audit
        where tool = 'live_fetch'
-         and created_at > now() - make_interval(days => $1)
+         and created_at > $1::timestamptz and created_at <= $2::timestamptz
        group by 1 order by calls desc`,
-      [days],
+      [fromTs, toTs],
     );
     const {
       rows: [liveShare],
@@ -226,8 +236,8 @@ export async function auditCensus(databaseUrl, spec) {
       `select count(*) filter (where tool = 'live_fetch')::int as live_calls,
               count(*)::int as calls
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)`,
-      [days],
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz`,
+      [fromTs, toTs],
     );
     // Adoption of shipped feedback: calls to each item's related_tools
     // since its response, by anyone and by the requester.
@@ -257,9 +267,9 @@ export async function auditCensus(databaseUrl, spec) {
               count(*) filter (where on_behalf_of is not null)::int as delegated,
               round(avg(duration_ms))::int as avg_ms
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz
        group by 1 order by calls desc`,
-      [days],
+      [fromTs, toTs],
     );
     const {
       rows: [coldStarts],
@@ -269,8 +279,8 @@ export async function auditCensus(databaseUrl, spec) {
               round(avg(duration_ms) filter (where cold_start))::int as cold_avg_ms,
               round(avg(duration_ms) filter (where cold_start = false))::int as warm_avg_ms
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)`,
-      [days],
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz`,
+      [fromTs, toTs],
     );
     // Where the wall time goes, per tool: the database, the live lane,
     // or the answer's own size. Rows without db_ms predate the column.
@@ -286,15 +296,31 @@ export async function auditCensus(databaseUrl, spec) {
               round(percentile_cont(0.95) within group (order by live_wait_ms))::int as p95_live_wait_ms,
               round(avg(serialize_ms))::int as avg_serialize_ms
        from mcp_call_audit
-       where created_at > now() - make_interval(days => $1)
+       where created_at > $1::timestamptz and created_at <= $2::timestamptz
          and db_ms is not null
        group by tool order by calls desc`,
-      [days],
+      [fromTs, toTs],
+    );
+    // The manual over the wire (3.18.0): resources/read and prompts/get
+    // rows, by page and by client.
+    const { rows: reads } = await db.query(
+      `select tool as method,
+              coalesce(args->>'uri', args->>'name') as name,
+              count(*)::int as calls,
+              count(distinct account_id)::int as accounts,
+              count(distinct coalesce(client_name, '(unnamed)'))::int as clients,
+              count(*) filter (where error_code is not null)::int as not_found
+       from mcp_call_audit
+       where tool in ('resources/read', 'prompts/get')
+         and created_at > $1::timestamptz and created_at <= $2::timestamptz
+       group by 1, 2 order by calls desc limit 60`,
+      [fromTs, toTs],
     );
     const called = new Set(perTool.map((r) => r.tool));
     const never_called = Object.keys(TOOL_GROUPS).filter((t) => !called.has(t));
     return {
-      days,
+      days: spec?.from ? null : days,
+      window: { from: fromTs.toISOString(), to: toTs.toISOString() },
       per_tool: perTool,
       per_surface: perSurface,
       per_client: perClient,
@@ -311,6 +337,7 @@ export async function auditCensus(databaseUrl, spec) {
         by_path: livePaths,
       },
       feedback_adoption: adoption,
+      resources_and_prompts: reads,
       never_called,
     };
   } finally {

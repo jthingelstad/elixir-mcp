@@ -735,6 +735,38 @@ export async function buildPlayerEntry(
 /* Clan entry                                                          */
 /* ------------------------------------------------------------------ */
 
+/** The empty-path probe (3.18.0): did this window learn a battle of the
+ *  clan's at all, split into played within a day of the window (the
+ *  narrated ones) and late captures. Exported so {explain_timeline} can
+ *  EXPLAIN the same statement the tool runs. */
+export function clanLearnedQuery({ tag, fromMs, toMs }) {
+  return {
+    text: `select count(distinct b.battle_id) filter (where b.battle_time >= ${ts(fromMs - DAY_MS)})::int as recent,
+                  count(distinct b.battle_id) filter (where b.battle_time < ${ts(fromMs - DAY_MS)})::int as late
+             from battle b
+             join battle_participant bp on bp.battle_id = b.battle_id
+            where b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+              and bp.clan_tag = $1`,
+    values: [tag],
+  };
+}
+
+/** The day-wide member battle fetch behind sessions and standouts: the
+ *  statement an empty window used to pay for (review Part 6.1). */
+export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
+  return {
+    text: `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change,
+                  (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}) as learned
+             from battle_participant bp
+             join battle b on b.battle_id = bp.battle_id
+            where bp.clan_tag = $1
+              and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
+              and b.created_at <= ${ts(toMs)}
+            order by bp.player_tag, b.battle_time`,
+    values: [tag],
+  };
+}
+
 export async function buildClanEntry(
   db,
   { tag, scope = "comprehensive", fromMs, toMs, timezone = "UTC", perf = null },
@@ -763,32 +795,25 @@ export async function buildClanEntry(
   // a day back on battle_time regardless of when a row was learned so a
   // session that straddles windows is judged whole; `learned` marks the
   // rows this window admitted, and the activity counts use only those.
-  const { rows: allBattles } = await timed(perf, "clan.member_battles", () =>
-    db.query(
-      `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change,
-              (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}) as learned
-       from battle_participant bp
-       join battle b on b.battle_id = bp.battle_id
-      where bp.clan_tag = $1
-        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
-        and b.created_at <= ${ts(toMs)}
-      order by bp.player_tag, b.battle_time`,
-      [tag],
-    ),
+  // The empty path first (review Part 6.1, 3.18.0): 95-99% of the
+  // Discord agents' reads return nothing, and the day-wide member
+  // battle scan below is most of an empty read's cost. One probe off
+  // the battle created_at index says whether this window learned a
+  // battle of the clan's at all; when it did not, the session, standout,
+  // returned and most-active queries have nothing to find and are
+  // skipped. The probe splits the learned count into played-within-a-day
+  // (narrated) and late captures, so the late count comes for free.
+  const { rows: learnedRows } = await timed(perf, "clan.learned", () =>
+    db.query(clanLearnedQuery({ tag, fromMs, toMs })),
   );
+  const learnedRecent = learnedRows[0]?.recent ?? 0;
+  const lateCount = learnedRows[0]?.late ?? 0;
+  const { rows: allBattles } = learnedRecent
+    ? await timed(perf, "clan.member_battles", () =>
+        db.query(clanMemberBattlesQuery({ tag, fromMs, toMs })),
+      )
+    : { rows: [] };
   const memberBattles = allBattles.filter((r) => r.learned);
-  const { rows: lateRows } = await timed(perf, "clan.late", () =>
-    db.query(
-      `select count(distinct b.battle_id)::int as n
-         from battle b
-         join battle_participant bp on bp.battle_id = b.battle_id
-        where b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
-          and b.battle_time < ${ts(fromMs - DAY_MS)}
-          and bp.clan_tag = $1`,
-      [tag],
-    ),
-  );
-  const lateCount = lateRows[0]?.n ?? 0;
   const distinctBattles = new Set();
   const byMode = {};
   const byPlayer = new Map();
@@ -1040,9 +1065,11 @@ export async function buildClanEntry(
     ...sessionFacts(sess),
     crossed: sess.crossed,
   }));
-  const { rows: returned } = await timed(perf, "clan.returned", () =>
-    db.query(
-      `with inwin as (
+  const { rows: returned } = !learnedRecent
+    ? { rows: [] }
+    : await timed(perf, "clan.returned", () =>
+        db.query(
+          `with inwin as (
        select bp.player_tag, min(bp.battle_time) as first_in
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
@@ -1060,14 +1087,16 @@ export async function buildClanEntry(
       where prior.t is not null
         and i.first_in - prior.t >= make_interval(days => $2)
       order by after_days desc`,
-      [tag, RETURN_AFTER_DAYS],
-    ),
-  );
+          [tag, RETURN_AFTER_DAYS],
+        ),
+      );
 
   // Standouts, bounded and named.
-  const { rows: most } = await timed(perf, "clan.most", () =>
-    db.query(
-      `select bp.player_tag, p.name, count(distinct bp.battle_id)::int as battles
+  const { rows: most } = !learnedRecent
+    ? { rows: [] }
+    : await timed(perf, "clan.most", () =>
+        db.query(
+          `select bp.player_tag, p.name, count(distinct bp.battle_id)::int as battles
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
        join player p on p.player_tag = bp.player_tag
@@ -1076,9 +1105,9 @@ export async function buildClanEntry(
         and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
       group by bp.player_tag, p.name
       order by battles desc, p.name nulls last limit $2`,
-      [tag, STANDOUT_CAP],
-    ),
-  );
+          [tag, STANDOUT_CAP],
+        ),
+      );
   // Member moments from the ledger: named, bounded.
   const { rows: momentRows } = await timed(perf, "clan.moments", () =>
     db.query(

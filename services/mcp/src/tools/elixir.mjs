@@ -33,6 +33,7 @@ import {
   ToolFailure,
   TAG_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
+  DISPLAY_NAME_SCHEMA,
   TAG_RULE_HINT,
   subject,
   buildMeta,
@@ -213,7 +214,11 @@ export const elixirTools = {
       "How complete the record is for a tag: recording start, last successful poll per endpoint, battles captured (including appearances recorded before the tag was tracked), capture estimates over observation intervals ending in the last seven days, and unmeasured_tail_hours since the latest profile snapshot. Use it to caveat answers honestly; missing coverage is unknown, not evidence of absence.",
     inputSchema: {
       type: "object",
-      properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
+      properties: {
+        player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
+      },
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -224,6 +229,7 @@ export const elixirTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       const polls = await ctx.db.query(
@@ -318,6 +324,13 @@ export const elixirTools = {
           description:
             "The meta.request_id of the call this is about. Every response carries one; passing it here attaches the exact request, its arguments and its answer to the report, so the maintainer can see what you saw. Prefer this over describing the call in words.",
         },
+        request_ids: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: 20,
+          description:
+            "Beside request_id (3.18.0): every call this is about when a turn made several; the first becomes request_id when that was omitted, and all of them are kept with the report.",
+        },
       },
       required: ["message"],
       additionalProperties: false,
@@ -346,9 +359,22 @@ export const elixirTools = {
       // shape of an id should still be heard.
       const UUID =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const requestIds = [
+        ...(Array.isArray(args.request_ids) ? args.request_ids : []),
+      ]
+        .map((v) => String(v))
+        .filter((v) => UUID.test(v))
+        .slice(0, 20);
       const requestId = UUID.test(String(args.request_id ?? ""))
         ? String(args.request_id)
-        : null;
+        : (requestIds[0] ?? null);
+      const contextBlock =
+        args.context || requestIds.length
+          ? JSON.stringify({
+              ...(args.context ? { context: String(args.context) } : {}),
+              ...(requestIds.length ? { request_ids: requestIds } : {}),
+            })
+          : null;
       const { rows } = await ctx.db.query(
         `insert into feedback (account_id, surface, category, message, context, request_id)
          values ($1, 'mcp', $2, $3, $4, $5)
@@ -357,9 +383,7 @@ export const elixirTools = {
           ctx.account.accountId,
           args.category ?? "general",
           message.slice(0, 4000),
-          args.context
-            ? JSON.stringify({ context: String(args.context) })
-            : null,
+          contextBlock,
           requestId,
         ],
       );
@@ -390,7 +414,11 @@ export const elixirTools = {
       return {
         ok: true,
         feedback_id: rows[0].feedback_id,
-        applied: appliedBlock({ category: args.category ?? "general" }),
+        applied: appliedBlock({
+          category: args.category ?? "general",
+          request_id: requestId ?? undefined,
+          request_ids: requestIds.length ? requestIds : undefined,
+        }),
         notes: notes(
           "Received; feedback is reviewed and drives the roadmap. elixir_my_feedback shows the response when it lands, and meta.feedback_responses_pending on any call says when.",
         ),
@@ -782,7 +810,13 @@ export const elixirTools = {
           type: "boolean",
           default: true,
           description:
-            "Move your read pointer to this window's end. A dry run, or a second consumer on the same account, passes false and keeps its own from.",
+            "Move the read pointer (the reader's, or the account's) to this window's end; false is a dry run that keeps it.",
+        },
+        reader: {
+          type: "string",
+          pattern: "^[a-z0-9][a-z0-9-]{0,31}$",
+          description:
+            "A name for THIS consumer's read pointer (3.18.0): omit from to read since it, mark_read moves it and read_to reports it; other readers on the same account keep theirs, and the account's unnamed pointer is untouched. meta.timeline_pending counts against the oldest named pointer. Lowercase letters, digits and hyphens, up to 32.",
         },
         sections: {
           type: "array",
@@ -809,10 +843,24 @@ export const elixirTools = {
       const tz = zoneFor(ctx, args) ?? "UTC";
       const DAY_MS = 86_400_000;
       const CAP_MS = 30 * DAY_MS;
-      const { rows: acct } = await ctx.db.query(
-        `select activity_seen_at from account where account_id = $1`,
-        [ctx.account.accountId],
-      );
+      const reader =
+        args.reader === undefined ? null : String(args.reader).trim();
+      if (reader !== null && !/^[a-z0-9][a-z0-9-]{0,31}$/.test(reader))
+        throw new ToolFailure(
+          "bad_request",
+          `reader must match ^[a-z0-9][a-z0-9-]{0,31}$ (got '${reader}').`,
+          "A short lowercase name for this consumer, e.g. editor or poap-kings-discord.",
+        );
+      const { rows: acct } = reader
+        ? await ctx.db.query(
+            `select read_to as activity_seen_at from timeline_reader
+              where account_id = $1 and reader = $2`,
+            [ctx.account.accountId, reader],
+          )
+        : await ctx.db.query(
+            `select activity_seen_at from account where account_id = $1`,
+            [ctx.account.accountId],
+          );
       const pointerMs = acct[0]?.activity_seen_at
         ? acct[0].activity_seen_at.getTime()
         : null;
@@ -941,7 +989,16 @@ export const elixirTools = {
       );
 
       const marking = args.mark_read !== false;
-      if (marking) {
+      if (marking && reader) {
+        await ctx.db.query(
+          `insert into timeline_reader (account_id, reader, read_to)
+           values ($1, $2, to_timestamp($3 / 1000.0))
+           on conflict (account_id, reader) do update set
+             read_to = greatest(timeline_reader.read_to, excluded.read_to),
+             updated_at = now()`,
+          [ctx.account.accountId, reader, toMs],
+        );
+      } else if (marking) {
         await ctx.db.query(
           `update account
               set activity_seen_at = greatest(coalesce(activity_seen_at, 'epoch'::timestamptz),
@@ -963,6 +1020,7 @@ export const elixirTools = {
             ...seasonFields.echo,
           },
           mark_read: marking,
+          ...(reader ? { reader } : {}),
           ...(sections ? { sections } : {}),
           ...(kinds ? { kinds } : {}),
           verbosity: compact ? "compact" : "full",

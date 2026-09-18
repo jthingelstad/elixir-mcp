@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-19",
+    title:
+      "The seam: named readers, error classes, candidates, seven more shapes",
+    body: "The things consumers worked around are served. A consumer of the timeline names its own read pointer (reader), so two bots on one account stop moving each other's window and the 'anything new?' hint on every response finally means something for a bot that marks; and an empty window answers in a fraction of the time. Every error now says what kind of thing it is in one word (retry, input, subject, server, budget), so a pending live read is no longer counted as a failure. An agent that passes the asker's display name gets the matching clan members back in the refusal instead of pulling the roster to compare names. Feedback takes every request id a turn produced. Seven more tools declare the shape of what comes back. And a person's omitted clan is their primary player's clan, or an honest refusal, never an alt's. Contract 3.18.0.",
+  },
+  {
+    date: "2026-09-19",
     title: "One grammar, one vocabulary",
     body: "The same words now mean the same things on every tool. Every window says which season it starts in and every season roll it crosses, so a sixty-day read across the roll is named as one before an agent averages it; 'this season' is one argument (season) on the battle tools and the standings as it was on the meta tools. The daily series take an instant and floor it to its game day instead of refusing it, and say which day it became. Every point has one shape: day on every series and board point, partial and covers on a clipped month as on a clipped week, the profile's stamp under one name on the roster, and the event calendar on the game day grid beside the UTC one. The glossary now defines the words the responses use (game day, series, stamp, source, kind, control, comparable, floor, the four trophy kinds), choosing-a-tool names every tool, and six pages were re-read against the wire. Contract 3.17.0.",
   },

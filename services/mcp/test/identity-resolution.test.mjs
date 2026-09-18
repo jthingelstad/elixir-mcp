@@ -123,6 +123,51 @@ test("an agent omitting the tag is told what would fix it, not guessed at", asyn
   );
 });
 
+test("3.18.0: an unmapped on_behalf_of with a display_name carries the whole-name candidates; a partial name carries none", async () => {
+  // Exactly one member's whole name matches, case and spacing ignored:
+  // the refusal names them and the hint is the one identify call.
+  await assert.rejects(
+    () =>
+      resolveSubject(db, agent, undefined, "full", {
+        onBehalfOf: "discord:77",
+        displayName: "king levy",
+      }),
+    (e) =>
+      e.code === "no_subject" &&
+      e.data.candidates.length === 1 &&
+      e.data.candidates[0].player_tag === ALT &&
+      e.data.candidates[0].name === "King Levy" &&
+      e.data.candidates[0].clan_tag === CLAN &&
+      /elixir_identify\(\{ external_id: "discord:77", player_tag: "#/.test(
+        e.hint,
+      ),
+  );
+  // "King" alone is half of two names: nothing is a candidate, and the
+  // hint says to ask.
+  await assert.rejects(
+    () =>
+      resolveSubject(db, agent, undefined, "full", {
+        onBehalfOf: "discord:77",
+        displayName: "King",
+      }),
+    (e) =>
+      e.code === "no_subject" &&
+      e.data.candidates.length === 0 &&
+      /No clan member's whole name is 'King'/.test(e.hint),
+  );
+  // No display name: the refusal still says what to pass next time.
+  await assert.rejects(
+    () =>
+      resolveSubject(db, agent, undefined, "full", {
+        onBehalfOf: "discord:77",
+      }),
+    (e) =>
+      e.code === "no_subject" &&
+      e.data.candidates.length === 0 &&
+      /display_name/.test(e.hint),
+  );
+});
+
 test("on_behalf_of resolves once the agent has been told who someone is", async () => {
   await assert.rejects(
     () =>
@@ -329,4 +374,36 @@ test("the clan named at initialize is the primary player's, and it is what an om
   );
   // Naming the other one explicitly still works.
   assert.equal(await resolveEntitledClan(db, account, ALT_CLAN), ALT_CLAN);
+});
+
+test("3.18.0: when the primary player's clan is not recorded, an omitted clan_tag is refused as not_recorded, never an alt's clan", async () => {
+  // The two-clan account above, with the primary's clan no longer
+  // recorded: the old default slid to the alt's recorded clan (the reason
+  // Elixir Clan pinned the tag on every call); now it says which clan is
+  // missing and how to record it, and the alt's clan stays reachable by
+  // name.
+  const {
+    rows: [acct],
+  } = await db.query(
+    `select account_id from account where email_hash = 'two-clan'`,
+  );
+  const account = { accountId: acct.account_id, kind: "person" };
+  await db.query(
+    `update recording set status = 'stopped' where subject_type = 'clan' and subject_tag = $1`,
+    [PRIMARY_CLAN],
+  );
+  await assert.rejects(
+    () => resolveEntitledClan(db, account, undefined),
+    (e) =>
+      e.code === "not_recorded" &&
+      e.message.includes(PRIMARY_CLAN) &&
+      e.hint.includes(`elixir_track_clan({ clan_tag: "${PRIMARY_CLAN}" })`) &&
+      e.hint.includes(ALT_CLAN),
+  );
+  assert.equal(await resolveEntitledClan(db, account, ALT_CLAN), ALT_CLAN);
+  await db.query(
+    `update recording set status = 'active' where subject_type = 'clan' and subject_tag = $1`,
+    [PRIMARY_CLAN],
+  );
+  assert.equal(await resolveEntitledClan(db, account, undefined), PRIMARY_CLAN);
 });

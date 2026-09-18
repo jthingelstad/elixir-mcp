@@ -296,6 +296,61 @@ export async function ledger(databaseUrl, spec = {}) {
  * looks like it drifts more. Read the spread across clans, not any
  * single clan's number.
  */
+/** {war_week_season_census: true} (Phase 5, 2026-09-19): war_week rows
+ *  whose observed start lies outside their season's bounds (the season
+ *  row keyed by the war number), with the writers that could have keyed
+ *  them, so a mis-keyed week is a count and a list, not a Phase 4
+ *  observation. Read-only; the repair is its own op. */
+export async function warWeekSeasonCensus(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: totals } = await db.query(
+      `select count(*)::int as war_weeks,
+              count(*) filter (where w.started_observed_at is null)::int as unstarted,
+              count(*) filter (where s.war_season_id is null)::int as no_season_row
+         from war_week w
+         left join season s on s.war_season_id = w.season_id`,
+    );
+    const { rows } = await db.query(
+      `select w.clan_tag, w.season_id, w.section_index, w.is_colosseum,
+              w.started_observed_at, w.finished_observed_at,
+              s.season_month, s.starts_at, s.ends_at,
+              (select s2.war_season_id from season s2
+                where s2.starts_at <= w.started_observed_at and s2.ends_at > w.started_observed_at) as season_of_start,
+              (select count(*)::int from war_participation p
+                where p.clan_tag = w.clan_tag and p.season_id = w.season_id
+                  and p.section_index = w.section_index) as participants,
+              (select count(*)::int from war_week_clan c
+                where c.clan_tag = w.clan_tag and c.season_id = w.season_id
+                  and c.section_index = w.section_index) as standings,
+              (select count(*)::int from war_period_log l
+                where l.clan_tag = w.clan_tag and l.season_id = w.season_id
+                  and l.section_index = w.section_index) as period_logs
+         from war_week w
+         join season s on s.war_season_id = w.season_id
+        where w.started_observed_at is not null
+          and (w.started_observed_at < s.starts_at - interval '1 hour'
+               or w.started_observed_at >= s.ends_at + interval '1 hour')
+        order by w.started_observed_at desc, w.clan_tag
+        limit 200`,
+    );
+    return {
+      ...totals[0],
+      outside_season: rows.length,
+      rows: rows.map((r) => ({
+        ...r,
+        started_observed_at: r.started_observed_at?.toISOString() ?? null,
+        finished_observed_at: r.finished_observed_at?.toISOString() ?? null,
+        starts_at: r.starts_at.toISOString(),
+        ends_at: r.ends_at.toISOString(),
+      })),
+    };
+  } finally {
+    await db.end();
+  }
+}
+
 export async function warDrift(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();

@@ -62,6 +62,7 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
   const result = await invoke("battles_meta_decks", { limit: 5 });
   assert.equal(result.isError, true);
   assert.equal(result.body.error.code, "query_timeout");
+  assert.equal(result.body.error.class, "retry");
   assert.match(result.body.error.hint, /battles_meta_decks\(/);
   assert.ok(
     Date.now() - start < 900,

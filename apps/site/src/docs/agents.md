@@ -101,17 +101,19 @@ anyway. `elixir_my_identities` lists what the agent has learned.
 
 ### A complete exchange
 
+Pass the asker's display name beside the id (`display_name`, 3.18.0) and
+the refusal does the roster comparison for you: `error.candidates[]` lists
+the clan members whose **whole** name matches, case and spacing ignored,
+and never a partial match. One candidate is one `elixir_identify` call;
+zero or several is a question to the person.
+
 ```text
-member (discord:1234): how am I doing?
+member Raquaza (discord:1234): how am I doing?
 
-→ players_summary({ on_behalf_of: "discord:1234" })
-← { error: { code: "no_subject", message: "No player is mapped to discord:1234 yet.", hint: "…" } }
-
-agent: I don't have you linked yet. Which player are you in POAP KINGS?
-member: Raquaza
-
-→ players_search({ query: "Raquaza", limit: 5 })
-← { matches: [ { player_tag: "#UL2V9QRG0", name: "raquaza", source: "clanmate" } ], … }
+→ players_summary({ on_behalf_of: "discord:1234", display_name: "Raquaza" })
+← { error: { code: "no_subject", class: "subject", message: "No player is mapped to discord:1234 yet.",
+    candidates: [ { player_tag: "#UL2V9QRG0", name: "raquaza", clan_tag: "#J2RGCRVG", role: "coLeader" } ],
+    hint: "candidates[] holds the one clan member whose whole name is 'Raquaza': elixir_identify({ external_id: \"discord:1234\", player_tag: \"#UL2V9QRG0\" }) once, say so in a line, and answer." } }
 
 → elixir_identify({ external_id: "discord:1234", player_tag: "#UL2V9QRG0" })
 ← { external_id: "discord:1234", player_tag: "#UL2V9QRG0", name: "raquaza", clan_tag: "#J2RGCRVG",
@@ -124,7 +126,10 @@ member: Raquaza
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
 ```
 
-Every later call from `discord:1234` resolves with no lookup. Always read
+Without `display_name`, or when no whole name matches (`candidates: []`),
+ask which player in the clan they are, resolve the answer with
+`players_search`, and identify once. Every later call from `discord:1234`
+resolves with no lookup. Always read
 `meta.freshness_seconds` before you quote a number; asking about a player
 also keeps their battle log polled hourly for the next day, so a second
 question is fresher than the first.
@@ -135,23 +140,32 @@ question is fresher than the first.
 in order, plus one entry per subject. For an agent the subject is the clan
 it represents: its members' sessions and moments, joins and departures, the
 war moments and the presence crossings arrive as items, and the entry
-summarizes the window. The pointer is **per account**: two consumers that
-both call it with `mark_read: true` will each move the other's window. A
-headless runtime keeps its own cursor and never marks:
+summarizes the window. A consumer names its own pointer with `reader`
+(3.18.0): a short name (`editor`, `poap-kings-discord`), and from then on
+an omitted `from` reads since that reader's pointer, `mark_read` moves it
+and `read_to` reports it, while other readers on the same account and the
+account's own unnamed pointer are untouched. A headless runtime reads and
+marks as itself:
 
 ```js
-// state.from persisted between runs (an ISO instant); omit on the very
-// first run and the window is the last 24 hours.
+// The first read with a new reader name covers the last 24 hours; every
+// later one starts where this reader's last mark_read ended.
 const page = await call("elixir_timeline", {
-  from: state.from,
-  mark_read: false,               // never move the account's read pointer
+  reader: "editor",                 // this consumer's own pointer
   sections: ["roster", "war", "presence"],   // optional: trim items and entries
 });
 if (page.timeline.length === 0) return;           // nothing to consider
 for (const item of page.timeline) consider(item);  // item.text is the sentence; item.facts the numbers
 for (const entry of page.entries) context(entry);  // the window's shape per subject
-state.from = page.next_cursor;                    // the window end you just read
+// read_to is now the window's end; nothing to persist locally.
 ```
+
+A runtime that keeps its own cursor still can (pass `from`, `mark_read:
+false`), but then `meta.timeline_pending` cannot help it: that hint counts
+admissions since the OLDEST named pointer on the account, or the account's
+own when no reader has ever marked, so a reader that marks sees it fall to
+0 after its read and can skip the next poll when it is 0 on any call it was
+making anyway.
 
 The item and entry shapes are on [Timeline](/docs/timeline), with the
 `facts` keys each `kind` carries (a `battle_session` has `battles`, `won`,
@@ -161,8 +175,8 @@ record holds it, the promoting battle under `promoted_by`; a clan's
 `member_left` has the departing member's `player_tag`, `name` and
 `role_at_departure`). Branch on `kind` and `facts`; `text` is for the person.
 `meta.timeline_pending` on any response counts subjects of yours the
-recorder has admitted something for since your pointer, which is only
-meaningful if something marks.
+recorder has admitted something for since the oldest named reader's
+pointer (or the account's), which is only meaningful if something marks.
 
 **Polling has a price.** A loop that calls `elixir_timeline` and
 `elixir_my_feedback` every 300 seconds makes about 576 calls a day, well over

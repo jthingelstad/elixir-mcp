@@ -33,6 +33,7 @@ import {
   notRecordedOrPending,
   TAG_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
+  DISPLAY_NAME_SCHEMA,
   subject,
   buildMeta,
   zoneFor,
@@ -67,7 +68,11 @@ export const playersTools = {
       "The headline in one call: current trophies and clan, last-30-days record and win rate, and the most-played deck with its record. Start here for “how am I doing?”; drill in with battles_performance / battles_decks.",
     inputSchema: {
       type: "object",
-      properties: { player_tag: TAG_SCHEMA, on_behalf_of: ON_BEHALF_OF_SCHEMA },
+      properties: {
+        player_tag: TAG_SCHEMA,
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
+      },
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -78,6 +83,7 @@ export const playersTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       const asOf = new Date();
@@ -277,6 +283,7 @@ export const playersTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         live: {
           type: "boolean",
           description:
@@ -293,6 +300,7 @@ export const playersTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       // live: true (1.7.0, asynchronous): a fresh read is served from the
@@ -376,6 +384,7 @@ export const playersTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         metrics: {
           type: "array",
           items: { type: "string", enum: PLAYER_METRICS },
@@ -557,6 +566,7 @@ export const playersTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         verbosity: VERBOSITY(
           "each card as id, name, level, forms_unlocked only; support_cards likewise.",
         ),
@@ -571,6 +581,7 @@ export const playersTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       // The collection is a table (0076), joined to the catalog for the

@@ -12,6 +12,7 @@ import {
   ToolFailure,
   TAG_RULE_HINT,
   ON_BEHALF_OF_SCHEMA,
+  DISPLAY_NAME_SCHEMA,
   VERBOSITY,
   subject,
   entitledClan,
@@ -611,6 +612,7 @@ export const warTools = {
           description: "Focus one member's participation (member_weeks).",
         },
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         seasons: {
           type: "integer",
           minimum: 1,
@@ -647,6 +649,7 @@ export const warTools = {
             args.player_tag,
             "summary",
             args.on_behalf_of,
+            args.display_name,
           )
         ).tag;
       const seasons = Number(args.seasons ?? 3);

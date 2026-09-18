@@ -118,11 +118,13 @@ function instructionsFor(kind, identity) {
     agent: [
       "START with clans_roster (once per run; verbosity 'compact' for a",
       "count), war_current (decks_today is who still has decks) and",
-      "elixir_timeline from your own from with mark_read false: the clan's",
-      "items in order, then its entry. meta.timeline_pending and",
-      "meta.feedback_responses_pending ride every response: poll the feed",
-      "and elixir_my_feedback only when they say there is something new,",
-      "never on a timer.",
+      "elixir_timeline as your own reader (reader: a short name for this",
+      "consumer; its pointer moves only when you mark): the clan's items in",
+      "order, then its entry. meta.timeline_pending (against the oldest",
+      "named reader) and meta.feedback_responses_pending ride every",
+      "response: poll the feed and elixir_my_feedback only when they say",
+      "there is something new, never on a timer. Pass display_name beside",
+      "an unmapped on_behalf_of and no_subject carries candidates[].",
     ],
     integration: [],
   };
@@ -235,6 +237,7 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
     body = {
       error: {
         code: "result_too_large",
+        class: "input",
         message: `Result exceeds ${MCP_RESULT_MAX_CHARS} characters.`,
         hint,
       },
@@ -319,6 +322,9 @@ export async function handleMcpMessage(message, context) {
   if (method === "resources/read") {
     const uri = String(params.uri ?? "");
     const found = await readResource(uri, { db: context.db ?? null });
+    // A read of the corpus is audited like a call (3.18.0, review Part
+    // 7.3): "nobody reads the resources" was a guess with no number.
+    await context.auditRead?.("resources/read", { uri }, Boolean(found));
     if (!found) {
       return {
         statusCode: 200,
@@ -337,6 +343,11 @@ export async function handleMcpMessage(message, context) {
   }
   if (method === "prompts/get") {
     const prompt = getPrompt(params.name);
+    await context.auditRead?.(
+      "prompts/get",
+      { name: String(params.name ?? "") },
+      Boolean(prompt),
+    );
     if (!prompt) {
       return {
         statusCode: 200,

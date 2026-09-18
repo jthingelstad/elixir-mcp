@@ -119,6 +119,10 @@ async function resolveEntitlements(db, account) {
     ownTags: claims.map((c) => c.player_tag),
     clans,
     roles, // clan_tag -> best role among claimed member tags (owner: leader)
+    // The primary player's current clan, recorded or not (3.18.0): what
+    // an omitted clan_tag means on a person's door, so the default agrees
+    // with the "Your clan is" sentence and never slides to an alt's.
+    primaryClan: claims.find((c) => c.is_primary)?.clan_tag ?? null,
   };
 }
 
@@ -156,12 +160,38 @@ async function identityFor(db, accountId, externalId) {
   return rows[0]?.player_tag ?? null;
 }
 
+/** The clan members whose WHOLE name matches the asker's display name
+ *  (case and spacing ignored), across the agent's entitled clans
+ *  (3.18.0): what an unmapped on_behalf_of's refusal carries so the
+ *  agent's next call is elixir_identify, not clans_roster. A partial
+ *  match is not a candidate. */
+async function nameCandidates(db, clans, displayName) {
+  if (typeof displayName !== "string" || clans.length === 0) return [];
+  const wanted = displayName.replace(/\s+/g, "").toLowerCase();
+  if (!wanted) return [];
+  const { rows } = await db.query(
+    `select cm.player_tag, p.name, cm.clan_tag, cm.role
+       from clan_membership cm
+       join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = any($1::text[]) and cm.left_observed_at is null
+        and lower(regexp_replace(coalesce(p.name, ''), '\\s', '', 'g')) = $2
+      order by cm.clan_tag, p.name`,
+    [clans, wanted],
+  );
+  return rows.map((r) => ({
+    player_tag: r.player_tag,
+    name: r.name,
+    clan_tag: r.clan_tag,
+    role: r.role,
+  }));
+}
+
 export async function resolveSubject(
   db,
   account,
   inputTag,
   _need = "full",
-  { onBehalfOf = null } = {},
+  { onBehalfOf = null, displayName = null } = {},
 ) {
   const ent = await resolveEntitlements(db, account);
   let tag;
@@ -181,13 +211,27 @@ export async function resolveSubject(
       tag = mapped;
     } else if ((account.kind ?? "person") !== "person") {
       // An agent has no self to fall back on. Say what would fix it rather
-      // than guessing a member of the clan, which would be confidently wrong.
+      // than guessing a member of the clan, which would be confidently
+      // wrong. With the asker's display name (3.18.0) the refusal carries
+      // the members whose whole name matches, so exactly one candidate is
+      // one elixir_identify call away and zero or several is a question.
+      const candidates = onBehalfOf
+        ? await nameCandidates(db, ent.clans, displayName)
+        : [];
       throw {
         code: "no_subject",
         message: onBehalfOf
           ? `No player is mapped to ${onBehalfOf} yet.`
           : "This connection acts for a clan, so there is no default player.",
-        hint: "Ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.",
+        hint:
+          candidates.length === 1
+            ? `candidates[] holds the one clan member whose whole name is '${displayName}': elixir_identify({ external_id: ${JSON.stringify(onBehalfOf)}, player_tag: ${JSON.stringify(candidates[0].player_tag)} }) once, say so in a line, and answer.`
+            : candidates.length > 1
+              ? `candidates[] holds ${candidates.length} clan members named '${displayName}': ask which one they are, then elixir_identify({ external_id, player_tag }) once.`
+              : onBehalfOf && displayName
+                ? `No clan member's whole name is '${displayName}': ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.`
+                : "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.",
+        ...(onBehalfOf ? { data: { candidates } } : {}),
       };
     } else {
       // Still is_primary, not relationship: 0055 is the EXPAND half, and
@@ -269,6 +313,22 @@ export async function resolveEntitledClan(db, account, inputTag) {
       };
     }
     return tag;
+  }
+  // A person's default is the PRIMARY player's clan (3.18.0, review Part
+  // 3.2 item 7). It sorted first already when recorded; when it is not,
+  // the default used to slide to an alt's recorded clan, which is why
+  // Elixir Clan pinned the tag on every call. Now it says so instead.
+  if (
+    (account.kind ?? "person") === "person" &&
+    !account.isOwner &&
+    ent.primaryClan &&
+    !ent.clans.includes(ent.primaryClan)
+  ) {
+    throw {
+      code: "not_recorded",
+      message: `Your primary player's clan ${ent.primaryClan} is not recorded, so nothing defaults to it.`,
+      hint: `elixir_track_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${ent.clans.length ? ` (recorded clans of your other players: ${ent.clans.join(", ")})` : ""}.`,
+    };
   }
   if (ent.clans.length === 0) {
     // Two ways to have no default, and they need different next steps: a

@@ -273,6 +273,93 @@ test("mark_read moves the bookmark to the window end; the next read resumes ther
   assert.equal(resumed.body.window.from, read.body.window.to);
 });
 
+test("3.18.0: a named reader keeps its own pointer; the account's is untouched; timeline_pending counts against the oldest named pointer", async () => {
+  // The account pointer stands at the previous test's window end. A
+  // consumer naming itself starts with no pointer of its own (a 24-hour
+  // default), marks, and resumes from its own mark; the account column
+  // does not move.
+  const { rows: acctBefore } = await ctx.db.query(
+    `select activity_seen_at from account where account_id = $1`,
+    [owner],
+  );
+  const first = await call("elixir_timeline", {
+    reader: "editor",
+    mark_read: false,
+  });
+  assert.equal(first.isError, false, JSON.stringify(first.body));
+  assert.equal(first.body.applied.window.source, "default");
+  assert.equal(first.body.applied.reader, "editor");
+  assert.equal(first.body.read_to, null, "this reader has not marked yet");
+
+  const to = new Date().toISOString();
+  const marked = await call("elixir_timeline", {
+    reader: "editor",
+    from: "2026-09-03",
+    to,
+  });
+  assert.equal(marked.body.read_to, marked.body.window.to);
+  const { rows: readers } = await ctx.db.query(
+    `select reader, read_to from timeline_reader where account_id = $1`,
+    [owner],
+  );
+  assert.deepEqual(
+    readers.map((r) => [r.reader, r.read_to.toISOString()]),
+    [["editor", marked.body.window.to]],
+  );
+  const { rows: acctAfter } = await ctx.db.query(
+    `select activity_seen_at from account where account_id = $1`,
+    [owner],
+  );
+  assert.equal(
+    acctAfter[0].activity_seen_at.toISOString(),
+    acctBefore[0].activity_seen_at.toISOString(),
+    "the account's unnamed pointer did not move",
+  );
+  const resumed = await call("elixir_timeline", {
+    reader: "editor",
+    mark_read: false,
+  });
+  assert.equal(resumed.body.applied.window.source, "pointer");
+  assert.equal(resumed.body.window.from, marked.body.window.to);
+
+  // A second reader is its own: no pointer yet, and the hint counts
+  // against the OLDEST named pointer, so an admission after the older
+  // reader's mark is pending even though the newer reader has read past it.
+  const other = await call("elixir_timeline", {
+    reader: "poll-lane",
+    mark_read: false,
+  });
+  assert.equal(other.body.read_to, null);
+  await ctx.db.query(
+    `update timeline_reader set read_to = now() - interval '2 days' where reader = 'editor'`,
+  );
+  await ctx.db.query(
+    `insert into timeline_reader (account_id, reader, read_to) values ($1, 'poll-lane', now())`,
+    [owner],
+  );
+  await ctx.db.query(
+    `update poll_state set last_admitted_at = now() - interval '1 day'
+      where subject_tag = $1 and endpoint = 'player_battlelog'`,
+    [OBSERVER],
+  );
+  const clock = await call("game_clock", {});
+  assert.ok(
+    clock.body.meta.timeline_pending >= 1,
+    "pending against the oldest named pointer (editor, 2 days back)",
+  );
+  await call("elixir_timeline", { reader: "editor", days: 1 });
+  const clockAfter = await call("game_clock", {});
+  assert.equal(
+    clockAfter.body.meta.timeline_pending,
+    0,
+    "the oldest reader has read",
+  );
+
+  const bad = await call("elixir_timeline", { reader: "Not Valid!" });
+  assert.equal(bad.isError, true);
+  assert.equal(bad.body.error.code, "bad_request");
+});
+
 test("a window longer than 30 days is capped and says so; from after to is refused", async () => {
   const capped = await call("elixir_timeline", {
     from: "2026-01-01",

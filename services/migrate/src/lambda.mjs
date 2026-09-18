@@ -14,7 +14,8 @@ import {
   towerHpBackfill,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
-import { activityPreview } from "./ops-activity.mjs";
+import { activityPreview, explainTimeline } from "./ops-activity.mjs";
+import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 
 import {
   seed,
@@ -42,6 +43,7 @@ import {
   tables,
   ledger,
   warDrift,
+  warWeekSeasonCensus,
   enumCensus,
   captureAudit,
   probe,
@@ -243,6 +245,11 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.war_week_season_census) {
+    const result = await warWeekSeasonCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.war_drift) {
     const result = await warDrift(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
@@ -323,6 +330,30 @@ export async function handler(event) {
     const result = await argsCensus(
       process.env.DATABASE_URL,
       event.args_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.refusal_census) {
+    const result = await refusalCensus(
+      process.env.DATABASE_URL,
+      event.refusal_census === true ? {} : event.refusal_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.controls_census) {
+    const result = await controlsCensus(
+      process.env.DATABASE_URL,
+      event.controls_census === true ? {} : event.controls_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.explain_timeline) {
+    const result = await explainTimeline(
+      process.env.DATABASE_URL,
+      event.explain_timeline === true ? {} : event.explain_timeline,
     );
     console.log(JSON.stringify(result));
     return result;

@@ -6,6 +6,8 @@ import {
   DISCLAIMER,
   CONTRACT_VERSION,
   ERROR_CODES,
+  ERROR_CLASS,
+  ERROR_CLASSES,
   toolError,
 } from "../dist/index.js";
 
@@ -33,11 +35,28 @@ test("error taxonomy is closed and stable", () => {
   ]);
 });
 
-test("toolError omits hint cleanly when absent", () => {
+test("toolError omits hint cleanly when absent, and carries the code's class (3.18.0)", () => {
   assert.deepEqual(toolError("not_recorded", "no recording for #ABC"), {
     code: "not_recorded",
+    class: "subject",
     message: "no recording for #ABC",
   });
+});
+
+test("every error code has exactly one class, and the five classes are the closed set (3.18.0)", () => {
+  assert.deepEqual(
+    [...ERROR_CLASSES],
+    ["retry", "input", "subject", "server", "budget"],
+  );
+  for (const code of ERROR_CODES)
+    assert.ok(ERROR_CLASSES.includes(ERROR_CLASS[code]), `${code} has a class`);
+  assert.deepEqual(Object.keys(ERROR_CLASS).sort(), [...ERROR_CODES].sort());
+  // The three a consumer used to derive for itself.
+  assert.equal(ERROR_CLASS.live_pending, "retry");
+  assert.equal(ERROR_CLASS.query_timeout, "retry");
+  assert.equal(ERROR_CLASS.internal, "server");
+  assert.equal(ERROR_CLASS.quota_exceeded, "budget");
+  assert.equal(ERROR_CLASS.no_subject, "subject");
 });
 
 test("pre-reset window: final hour before Monday 00:10 UTC only", async () => {

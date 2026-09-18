@@ -260,6 +260,11 @@ test("live_fetch: allowlist validation, then honest live_unavailable", async () 
   assert.equal(bad.body.error.code, "bad_request");
   const badTag = await call("live_fetch", { path: "/players/NOT-A-TAG!" });
   assert.equal(badTag.body.error.code, "invalid_tag");
+  assert.equal(
+    badTag.body.error.class,
+    "input",
+    "3.18.0: every error carries its class",
+  );
   const crossed = await call("live_fetch", {
     path: "/clans/#J2RGCRVG/battlelog",
   });
@@ -415,6 +420,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
   });
   assert.equal(five.isError, true);
   assert.equal(five.body.error.code, "bad_request");
+  assert.equal(five.body.error.class, "input");
 });
 
 test("Elixir MCP service domain: added = recorded, notify is the only toggle", async () => {
@@ -611,6 +617,33 @@ test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS 
     "substring filter finds KHAOS battles",
   );
   assert.ok(q.body.battles.every((b) => b.game_mode.name.startsWith("Chaos_")));
+});
+
+test("3.18.0: elixir_feedback keeps every request id a turn names; the first becomes request_id; a malformed one is dropped, never the report", async () => {
+  const a = "11111111-1111-4111-8111-111111111111";
+  const b = "22222222-2222-4222-8222-222222222222";
+  const filed = await call("elixir_feedback", {
+    message: "Two calls in one turn disagreed about the floor.",
+    category: "data_quality",
+    request_ids: [a, "not-an-id", b],
+  });
+  assert.equal(filed.isError, false, JSON.stringify(filed.body));
+  assert.equal(filed.body.applied.request_id, a);
+  assert.deepEqual(filed.body.applied.request_ids, [a, b]);
+  const { rows } = await db.query(
+    `select request_id, context from feedback where feedback_id = $1`,
+    [filed.body.feedback_id],
+  );
+  assert.equal(rows[0].request_id, a);
+  assert.deepEqual(rows[0].context.request_ids, [a, b]);
+  // An explicit request_id stays the one the console joins on.
+  const both = await call("elixir_feedback", {
+    message: "The named one is the culprit.",
+    request_id: b,
+    request_ids: [a],
+  });
+  assert.equal(both.body.applied.request_id, b);
+  assert.deepEqual(both.body.applied.request_ids, [a]);
 });
 
 test("feedback loop closes: file, maintainer responds, requester sees it", async () => {
@@ -1806,6 +1839,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   });
   assert.equal(nobody.isError, true);
   assert.equal(nobody.body.error.code, "no_subject");
+  assert.equal(nobody.body.error.class, "subject");
   await db.query(
     "insert into clan (clan_tag, name) values ('#J2RGCRVG', 'POAP KINGS') on conflict do nothing",
   );

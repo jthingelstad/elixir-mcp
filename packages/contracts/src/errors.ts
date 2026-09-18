@@ -22,8 +22,50 @@ export const ERROR_CODES = [
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
+/**
+ * What kind of thing an error is, beside which (3.18.0; review
+ * 2026-09-19 Part 3.2): the machine-readable answer to "call again",
+ * "fix the call", "there is nothing to answer about", "the server
+ * failed" or "you are out of budget", so a consumer never derives it
+ * from the code list. Every code has exactly one class.
+ *
+ *   retry    not a failure of the call: call again (live_pending after
+ *            retry_after_s; query_timeout after a few seconds or with a
+ *            narrower window)
+ *   input    the call is wrong as sent: a tag, an argument, a size
+ *   subject  the call is fine, there is nothing to answer about: unknown,
+ *            unrecorded, not entitled, no default subject
+ *   server   the server failed; the request_id is what to report
+ *   budget   a quota or the live lane's ceiling
+ */
+export const ERROR_CLASSES = [
+  "retry",
+  "input",
+  "subject",
+  "server",
+  "budget",
+] as const;
+export type ErrorClass = (typeof ERROR_CLASSES)[number];
+
+export const ERROR_CLASS: Record<ErrorCode, ErrorClass> = {
+  invalid_tag: "input",
+  not_entitled: "subject",
+  not_recorded: "subject",
+  not_found: "subject",
+  quota_exceeded: "budget",
+  live_unavailable: "server",
+  live_pending: "retry",
+  bad_request: "input",
+  no_subject: "subject",
+  result_too_large: "input",
+  query_timeout: "retry",
+  internal: "server",
+};
+
 export interface ToolError {
   code: ErrorCode;
+  /** The code's class (3.18.0): retry | input | subject | server | budget. */
+  class?: ErrorClass;
   message: string;
   hint?: string;
   /** live_pending: seconds until the queued read is expected in hand (3.14.0). */
@@ -38,5 +80,8 @@ export function toolError(
   message: string,
   hint?: string,
 ): ToolError {
-  return hint === undefined ? { code, message } : { code, message, hint };
+  const cls = ERROR_CLASS[code];
+  return hint === undefined
+    ? { code, class: cls, message }
+    : { code, class: cls, message, hint };
 }

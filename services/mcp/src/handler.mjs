@@ -23,7 +23,11 @@ import {
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
-import { FULL_OAUTH_SCOPE, responseMeta } from "@elixir-mcp/contracts";
+import {
+  FULL_OAUTH_SCOPE,
+  responseMeta,
+  ERROR_CLASS,
+} from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
 import { makeRegistry } from "./tools.mjs";
 import { makeInvoker, auditRow, onBehalfOfOf } from "./invoker.mjs";
@@ -57,7 +61,12 @@ export function makeHandler({
   // malformed argument and could not report: no code, no hint, and no
   // request_id to quote (playtest round, 2026-09-09).
   const envelope = (code, message, hint) => ({
-    error: { code, message, ...(hint ? { hint } : {}) },
+    error: {
+      code,
+      class: ERROR_CLASS[code],
+      message,
+      ...(hint ? { hint } : {}),
+    },
     meta: responseMeta({
       as_of: new Date().toISOString(),
       request_id: randomUUID(),
@@ -341,6 +350,26 @@ export function makeHandler({
           onBehalfOf: onBehalfOfOf(args),
           rpcErrorCode: rpcCode,
         });
+      // A resources/read or prompts/get is one audit row under the
+      // method's name with the uri or prompt name as its argument
+      // (3.18.0): the same surface and client as a tool call, so the
+      // census can say which clients read the manual and which never do.
+      const auditRead = (method, args, found) =>
+        auditRow(db, {
+          accountId: account.accountId,
+          tokenId: account.tokenId ?? null,
+          requestId: randomUUID(),
+          surface,
+          tool: method,
+          args,
+          startedAt: Date.now(),
+          errorCode: found ? null : "not_found",
+          viewerIp,
+          viewerCountry,
+          clientName,
+          oauthFamilyId: account.oauthFamilyId ?? null,
+          principalKind: account.kind ?? "person",
+        });
       if (message?.method === "tools/call" && message.id !== undefined) {
         const tool = String(message.params?.name ?? "");
         if (registry.has(tool)) {
@@ -427,6 +456,7 @@ export function makeHandler({
         // protocol.mjs calls this at its own refusal sites (unknown tool,
         // hidden tool, daily quota): auditRefusal(rpcCode, toolName, args).
         auditRefusal,
+        auditRead,
         invokeTool: makeInvoker({
           db,
           account,

@@ -242,7 +242,509 @@ const TROPHY_FLOOR = {
   required: ["floor", "floored", "on_floor_losses"],
 };
 
+/** The seven schemas the call log asked for next (3.18.0, review Part
+ *  3.2): the tools called enough in fourteen days to deserve a declared
+ *  shape, permissive below the keys a consumer branches on. */
+const POPULATION = {
+  type: "object",
+  description:
+    "On a corpus read: the recorded clans and players the answer was drawn from, and the distinct players in the window (null on the rollup path until the nightly rebuild).",
+  properties: {
+    recorded_clans: COUNT,
+    recorded_players: COUNT,
+    players_in_window: NULLABLE_INT,
+  },
+};
+const META_ROW_COMMON = {
+  battles: COUNT,
+  wins: COUNT,
+  losses: COUNT,
+  players: NULLABLE_INT,
+  usage_share: RATE,
+  win_rate: RATE,
+  shrunk_win_rate: RATE,
+  insufficient_sample: { type: "boolean" },
+  mean_level_gap: LEVEL_GAP,
+  modes: MODE_SPLIT,
+};
+const META_COMMON = {
+  applied: {
+    type: "object",
+    properties: {
+      segment: { type: "object" },
+      window: WINDOW_ECHO,
+      mode: { type: "string" },
+      trophy_band: { type: "string" },
+      min_battles: COUNT,
+      limit: COUNT,
+    },
+    required: ["segment", "window"],
+  },
+  population: POPULATION,
+  methodology: { type: "object" },
+  decided_battles: COUNT,
+  segment_win_rate: RATE,
+  prior_win_rate: RATE,
+  prior_basis: { type: "string" },
+  excluded: {
+    type: "object",
+    properties: {
+      considered: COUNT,
+      duels: COUNT,
+      boat: COUNT,
+      draws: COUNT,
+      unresolved: COUNT,
+      no_deck: COUNT,
+    },
+  },
+  players_as_of: { type: ["string", "null"] },
+  comparable: { type: "boolean" },
+  modes_in_window: {
+    type: "array",
+    description:
+      "When mode was omitted: the window's battles per mode group with each group's mean level gap, the pooled populations behind the rows.",
+    items: {
+      type: "object",
+      properties: {
+        mode: { type: "string" },
+        battles: COUNT,
+        mean_level_gap: LEVEL_GAP,
+      },
+    },
+  },
+  notes: NOTES,
+  docs: DOCS,
+  meta: META,
+};
+const PILOT_PLAYER = {
+  type: ["object", "null"],
+  description:
+    "The scored player: pilot_score = actual minus level-expected win rate over n battles; insufficient_sample: true with n below the floor and no score.",
+  properties: {
+    player_tag: TAG,
+    n: COUNT,
+    mean_gap: { type: "number" },
+    actual_win_rate: RATE,
+    expected_from_levels: RATE,
+    pilot_score: { type: "number" },
+    standard_error: { type: "number" },
+    insufficient_sample: { type: "boolean" },
+    experience: { type: "object" },
+    cohort: { type: "object" },
+    monthly_trend: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          month: { type: "string", description: "YYYY-MM, UTC." },
+          partial: { type: "boolean" },
+          covers: { type: "object", properties: { from: ISO, to: ISO } },
+          n: COUNT,
+          pilot_score: { type: "number" },
+          actual_win_rate: RATE,
+          expected_from_levels: RATE,
+          mean_gap: { type: "number" },
+          opponent_mean_level: { type: ["number", "null"] },
+          mean_starting_trophies: {
+            type: ["integer", "null"],
+            description:
+              "Over the month's ladder battles only; null with none.",
+          },
+          modal_arena: { type: ["object", "null"] },
+        },
+        required: ["month", "n", "pilot_score"],
+      },
+    },
+  },
+  required: ["player_tag", "n"],
+};
+
 export const OUTPUT_SCHEMAS = {
+  elixir_my_feedback: {
+    type: "object",
+    properties: {
+      applied: { type: "object" },
+      feedback: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            feedback_id: {
+              type: "string",
+              description:
+                "The id as a decimal string (a bigint on the wire); pass it back as given.",
+            },
+            created_at: ISO,
+            surface: { type: ["string", "null"] },
+            category: { type: ["string", "null"] },
+            message: { type: "string" },
+            status: {
+              type: "string",
+              enum: ["new", "seen", "planned", "done", "declined"],
+            },
+            response: { type: ["string", "null"] },
+            responded_at: { type: ["string", "null"] },
+            shipped_in: {
+              type: ["string", "null"],
+              description: "The contract version that shipped it, when done.",
+            },
+            related_tools: {
+              type: ["array", "null"],
+              items: { type: "string" },
+            },
+          },
+          required: [
+            "feedback_id",
+            "created_at",
+            "message",
+            "status",
+            "response",
+            "responded_at",
+            "shipped_in",
+            "related_tools",
+          ],
+        },
+      },
+      total: COUNT,
+      next_offset: {
+        type: ["integer", "null"],
+        description: "Pass as offset for the next page; null at the end.",
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: ["feedback", "total", "next_offset", "notes", "docs", "meta"],
+  },
+
+  rankings_players: {
+    type: "object",
+    description:
+      "A board page; with location 'list', the recorded mode boards instead (boards[] and no players).",
+    properties: {
+      board: { type: "string", enum: ["pol", "pol_final", "mode", "trophy"] },
+      location: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          label: { type: ["string", "null"] },
+          kind: { type: ["string", "null"] },
+          country_code: { type: ["string", "null"] },
+        },
+        required: ["key"],
+      },
+      boards: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            location: { type: "string" },
+            name: { type: ["string", "null"] },
+            enabled: { type: "boolean" },
+          },
+        },
+      },
+      applied: { type: "object" },
+      live_status: { type: "object" },
+      snapshot: {
+        type: ["object", "null"],
+        description: "null when the board has no snapshot on or before as_of.",
+        properties: {
+          observed_at: ISO,
+          unchanged_until: ISO,
+          season_id: { type: "string" },
+          season_month: { type: "string" },
+          entries: COUNT,
+          truncated: { type: "boolean" },
+          cadence_minutes: NULLABLE_INT,
+        },
+        required: ["observed_at", "unchanged_until", "season_month", "entries"],
+      },
+      players: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            rank: COUNT,
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            rating: {
+              type: ["integer", "null"],
+              description:
+                "On the pol boards the player's Path of Legends rating: the profile's pol_trophies.",
+            },
+            clan_tag: { type: ["string", "null"] },
+            clan_name: { type: ["string", "null"] },
+          },
+          required: ["rank", "player_tag", "rating"],
+        },
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: ["board", "applied", "notes", "docs", "meta"],
+  },
+
+  war_history: {
+    type: "object",
+    properties: {
+      clan_tag: TAG,
+      applied: { type: "object" },
+      weeks: {
+        type: "array",
+        description: "Newest first.",
+        items: {
+          type: "object",
+          properties: {
+            season_id: COUNT,
+            section_index: COUNT,
+            is_colosseum: { type: "boolean" },
+            in_progress: { type: "boolean" },
+            finished: { type: ["string", "null"] },
+            closed_at: { type: ["string", "null"] },
+            our_rank: NULLABLE_INT,
+            our_fame: NULLABLE_INT,
+            our_clan_score: NULLABLE_INT,
+            our_repair_points: NULLABLE_INT,
+            finished_early: { type: "boolean" },
+            trophy_change: NULLABLE_INT,
+          },
+          required: ["season_id", "section_index", "is_colosseum", "finished"],
+        },
+      },
+      history_starts_at: {
+        type: "object",
+        properties: { season_id: COUNT, section_index: COUNT },
+      },
+      member: TAG,
+      member_weeks: {
+        type: ["array", "null"],
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            season_id: COUNT,
+            section_index: COUNT,
+            points: NULLABLE_INT,
+            decks_used: NULLABLE_INT,
+            boat_attacks: NULLABLE_INT,
+            repair_points: NULLABLE_INT,
+            war_days_battled: {
+              type: ["integer", "null"],
+              description:
+                "null when neither polls nor recorded battles covered the week.",
+            },
+            war_days: { type: ["array", "null"], items: COUNT },
+          },
+          required: ["player_tag", "season_id", "section_index", "points"],
+        },
+      },
+      standings: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            clan_tag: TAG,
+            name: { type: ["string", "null"] },
+            fame: NULLABLE_INT,
+            period_points: NULLABLE_INT,
+            rank: NULLABLE_INT,
+            trophy_change: NULLABLE_INT,
+            finish_time: { type: ["string", "null"] },
+            clan_score: NULLABLE_INT,
+            repair_points: NULLABLE_INT,
+          },
+        },
+      },
+      days: { type: "array" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: ["clan_tag", "applied", "weeks", "notes", "docs", "meta"],
+  },
+
+  battles_meta_decks: {
+    type: "object",
+    properties: {
+      ...META_COMMON,
+      decks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            deck_hash: { type: "string" },
+            ...META_ROW_COMMON,
+            first_used: { type: ["string", "null"] },
+            last_used: { type: ["string", "null"] },
+            level_gap_battles: NULLABLE_INT,
+            dominant_mode: { type: ["object", "null"] },
+            cards: { type: "array", items: DECK_CARD },
+            tower_troop: { type: ["object", "null"] },
+          },
+          required: [
+            "deck_hash",
+            "battles",
+            "wins",
+            "losses",
+            "win_rate",
+            "cards",
+          ],
+        },
+      },
+    },
+    required: ["applied", "decided_battles", "decks", "notes", "docs", "meta"],
+  },
+
+  battles_meta_cards: {
+    type: "object",
+    properties: {
+      ...META_COMMON,
+      cards: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            card_id: COUNT,
+            name: { type: ["string", "null"] },
+            evolution: {
+              type: "integer",
+              description:
+                "Card FORM (1 = Evolution, 2 = Hero); absent on the base form.",
+            },
+            ...META_ROW_COMMON,
+          },
+          required: ["card_id", "battles", "wins", "losses", "win_rate"],
+        },
+      },
+    },
+    required: ["applied", "decided_battles", "cards", "notes", "docs", "meta"],
+  },
+
+  battles_levels: {
+    type: "object",
+    properties: {
+      applied: {
+        type: "object",
+        properties: { window: WINDOW_ECHO, verbosity: { type: "string" } },
+        required: ["window"],
+      },
+      curve: {
+        type: "array",
+        description: "Absent at verbosity compact.",
+        items: { type: "object" },
+      },
+      player: PILOT_PLAYER,
+      methodology: { type: "object" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: ["applied", "methodology", "notes", "docs", "meta"],
+  },
+
+  clans_participation: {
+    type: "object",
+    properties: {
+      clan_tag: TAG,
+      name: { type: ["string", "null"] },
+      applied: {
+        type: "object",
+        properties: {
+          clan_tag: TAG,
+          weeks: COUNT,
+          verbosity: { type: "string" },
+          window: WINDOW_ECHO,
+        },
+        required: ["weeks", "window"],
+      },
+      recording_active_since: { type: ["string", "null"] },
+      first_roster_observed_at: { type: ["string", "null"] },
+      basis: { type: "string", enum: ["recorded", "roster_and_war_only"] },
+      weeks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            iso_week: { type: "string" },
+            from: ISO,
+            to: ISO,
+            complete: { type: "boolean" },
+          },
+          required: ["iso_week", "from", "to", "complete"],
+        },
+      },
+      war_weeks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            season_id: COUNT,
+            section_index: COUNT,
+            is_colosseum: { type: "boolean" },
+            started_observed_at: { type: ["string", "null"] },
+            finished_observed_at: { type: ["string", "null"] },
+          },
+          required: ["season_id", "section_index"],
+        },
+      },
+      member_count: COUNT,
+      members: {
+        type: "array",
+        description:
+          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points, war_decks_by_day, war_battles_by_day, war_days_battled), one entry each in order; null is unknown, never zero.",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            role: { type: ["string", "null"] },
+            joined_observed_at: { type: ["string", "null"] },
+            tenure_known: { type: "boolean" },
+            days_in_clan_observed: NULLABLE_INT,
+            log_recorded: { type: "boolean" },
+            recorded_since: { type: ["string", "null"] },
+            last_battle_time: { type: ["string", "null"] },
+            last_battle_time_in_clan: { type: ["string", "null"] },
+            days_since_battle: { type: ["number", "null"] },
+            battles: { type: "array", items: NULLABLE_INT },
+            ranked_battles: { type: "array", items: NULLABLE_INT },
+            donations: { type: "array", items: NULLABLE_INT },
+            war_decks: { type: "array", items: NULLABLE_INT },
+            war_points: { type: "array", items: NULLABLE_INT },
+            war_decks_by_day: { type: "array" },
+            war_battles_by_day: { type: "array" },
+            war_days_battled: { type: "array", items: NULLABLE_INT },
+          },
+          required: [
+            "player_tag",
+            "tenure_known",
+            "log_recorded",
+            "battles",
+            "war_decks",
+            "war_days_battled",
+          ],
+        },
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "clan_tag",
+      "applied",
+      "basis",
+      "weeks",
+      "war_weeks",
+      "members",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
+
   players_summary: {
     type: "object",
     properties: {

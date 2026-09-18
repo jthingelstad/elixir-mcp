@@ -359,30 +359,41 @@ never carries internals.
 `isError: true` whose `content[0].text` is JSON:
 
 ```json
-{ "error": { "code": "not_recorded", "message": "…", "hint": "…" },
+{ "error": { "code": "not_recorded", "class": "subject", "message": "…", "hint": "…" },
   "meta": { "as_of": "…", "request_id": "…", "disclaimer": "…", "contract_version": "{{ tools.contractVersion }}" } }
 ```
 
-| Code | Meaning |
-|---|---|
-| `invalid_tag` | input failed tag normalisation; hint states the rule |
-| `not_entitled` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
-| `not_recorded` | the subject is valid but nothing has been recorded for it |
-| `not_found` | unknown to the record and to the live API; an unknown docs page, example or collection |
-| `no_subject` | nothing to answer about: no primary player on the account, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag) |
-| `quota_exceeded` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
-| `live_unavailable` | the live lane is not configured, or the fresh payload was refused at admission |
-| `live_pending` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
-| `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
-| `result_too_large` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
-| `query_timeout` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
-| `internal` | the arguments were accepted and the server failed (3.13.0). Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_feedback`. Before 3.13.0 this case was reported as `bad_request`, which told an agent to fix a call that was fine |
+| Code | Class | Meaning |
+|---|---|---|
+| `invalid_tag` | `input` | input failed tag normalisation; hint states the rule |
+| `not_entitled` | `subject` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
+| `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (3.18.0: the default never slides to an alt's clan; the hint names the clan and the tracking call) |
+| `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example or collection |
+| `no_subject` | `subject` | nothing to answer about: no primary player on the account, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question (3.18.0) |
+| `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
+| `live_unavailable` | `server` | the live lane is not configured, or the fresh payload was refused at admission |
+| `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
+| `bad_request` | `input` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
+| `result_too_large` | `input` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
+| `query_timeout` | `retry` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
+| `internal` | `server` | the arguments were accepted and the server failed (3.13.0). Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_feedback`. Before 3.13.0 this case was reported as `bad_request`, which told an agent to fix a call that was fine |
 
 Every code is one branch: the message is for a person, the hint names one
 executable next step (a tool and its arguments), and an agent should never
 have to read the message to know which case it is in. Check the error body,
 not only the transport flag; `meta.request_id` identifies the call for a
 report.
+
+**`class`** (3.18.0) is the one word a consumer branches on without
+knowing the code list: `retry` is not a failure of the call (call again:
+`live_pending` after `retry_after_s`, `query_timeout` after a few seconds or
+with a narrower window); `input` means the call is wrong as sent; `subject`
+means the call is fine and there is nothing to answer about; `server` means
+the server failed and `meta.request_id` is what to report; `budget` is a
+quota. Every code has exactly one class (`ERROR_CLASS` in the contracts
+package), so a consumer that counted `live_pending` as a failed call and
+swept after it can stop. Transport-level refusals (the rate limit, a
+database that will not connect) carry the same envelope and class.
 
 The heavy MCP reads `battles_meta_decks`, `battles_meta_cards` and
 `clans_standings` share a query budget of **at most 18 seconds per call**,

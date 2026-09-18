@@ -418,3 +418,40 @@ test("collector credits raise the daily quota 10:1, capped at 4x base", async ()
   assert.equal(capped.max, 2000, "capped at 4x base");
   await db.query(`delete from gateway where name = 'credit-gw'`);
 });
+
+test("3.18.0: a resources/read and a prompts/get are audited under the method's name, a missing one as not_found", async () => {
+  const reads = [];
+  const ctx = context({
+    auditRead: async (method, args, found) => {
+      reads.push({ method, args, found });
+    },
+  });
+  const page = await handleMcpMessage(
+    rpc("resources/read", { uri: "elixir://docs/glossary" }),
+    ctx,
+  );
+  assert.ok(page.payload.result, "the page is served");
+  const missing = await handleMcpMessage(
+    rpc("resources/read", { uri: "elixir://docs/nope" }),
+    ctx,
+  );
+  assert.equal(missing.payload.error.code, -32002);
+  const prompt = await handleMcpMessage(rpc("prompts/list", {}), ctx);
+  const first = prompt.payload.result.prompts[0].name;
+  await handleMcpMessage(rpc("prompts/get", { name: first }), ctx);
+  await handleMcpMessage(rpc("prompts/get", { name: "not-a-prompt" }), ctx);
+  assert.deepEqual(reads, [
+    {
+      method: "resources/read",
+      args: { uri: "elixir://docs/glossary" },
+      found: true,
+    },
+    {
+      method: "resources/read",
+      args: { uri: "elixir://docs/nope" },
+      found: false,
+    },
+    { method: "prompts/get", args: { name: first }, found: true },
+    { method: "prompts/get", args: { name: "not-a-prompt" }, found: false },
+  ]);
+});

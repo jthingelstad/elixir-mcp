@@ -17,6 +17,7 @@ import {
   ToolFailure,
   TAG_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
+  DISPLAY_NAME_SCHEMA,
   MODE_SCHEMA,
   WINDOW_ARGS,
   WINDOW_FROM_DESC,
@@ -147,6 +148,7 @@ export const battlesTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         ...WINDOW_ARGS,
         season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
@@ -230,6 +232,7 @@ export const battlesTools = {
           args.player_tag,
           "battles",
           args.on_behalf_of,
+          args.display_name,
         );
         tag = s.tag;
       }
@@ -660,6 +663,7 @@ export const battlesTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         ...WINDOW_ARGS,
         season: SEASON_ARG_SCHEMA,
         last_n_battles: {
@@ -697,6 +701,7 @@ export const battlesTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       const win = await resolveSeasonWindow(ctx, args, {
@@ -997,6 +1002,7 @@ export const battlesTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         perspective: {
           type: "string",
           enum: ["mine", "opponent"],
@@ -1016,6 +1022,7 @@ export const battlesTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       const win = await resolveSeasonWindow(ctx, args, {
@@ -1139,6 +1146,7 @@ export const battlesTools = {
       properties: {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         ...WINDOW_ARGS,
         season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
@@ -1165,6 +1173,7 @@ export const battlesTools = {
           args.player_tag,
           "summary",
           args.on_behalf_of,
+          args.display_name,
         )
       ).tag;
       const win = await resolveSeasonWindow(ctx, args, {
@@ -2030,6 +2039,7 @@ export const battlesTools = {
       type: "object",
       properties: {
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
+        display_name: DISPLAY_NAME_SCHEMA,
         player_tag: {
           type: "string",
           description:
@@ -2089,6 +2099,7 @@ export const battlesTools = {
             args.player_tag,
             "summary",
             args.on_behalf_of,
+            args.display_name,
           )
         ).tag;
       const BANDS = {

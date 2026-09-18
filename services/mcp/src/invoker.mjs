@@ -8,7 +8,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
-import { responseMeta } from "@elixir-mcp/contracts";
+import { responseMeta, ERROR_CLASS } from "@elixir-mcp/contracts";
 import { TOOL_GROUPS } from "@elixir-mcp/contracts";
 import { ToolFailure } from "./tools.mjs";
 import { pendingHints } from "./tools/shared.mjs";
@@ -498,6 +498,9 @@ export function makeInvoker({
           body: {
             error: {
               code: err.code,
+              // The code's class (3.18.0): retry | input | subject |
+              // server | budget, so a consumer branches on one word.
+              class: ERROR_CLASS[err.code],
               message: err.message,
               ...(err.hint ? { hint: err.hint } : {}),
               // Machine-readable fields beside the prose (retry_after_s
@@ -531,6 +534,7 @@ export function makeInvoker({
           body: {
             error: {
               code: "internal",
+              class: "server",
               message: `Tool ${name} failed unexpectedly; the arguments were accepted and the server failed.`,
               hint: `Retry the same ${name} call once; if it fails again, elixir_feedback({ category: "bug", request_id: "${requestId}" }) with the arguments.`,
             },
