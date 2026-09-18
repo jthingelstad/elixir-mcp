@@ -10,7 +10,6 @@ import {
   SEGMENT_SCHEMA,
   resolveSegment,
   populationBlock,
-  omittedSegmentNote,
   appliedBlock,
   notes,
   docsRef,
@@ -26,7 +25,6 @@ async function badgeScope(ctx, args, params) {
     return {
       where: `pb.player_tag = $${params.length}`,
       echo: seg.echo,
-      omitted: false,
     };
   }
   if (seg.kind === "clan") {
@@ -35,7 +33,6 @@ async function badgeScope(ctx, args, params) {
       where: `pb.player_tag in (select cm.player_tag from clan_membership cm
                where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
       echo: seg.echo,
-      omitted: false,
     };
   }
   if (seg.kind === "collection") {
@@ -44,10 +41,9 @@ async function badgeScope(ctx, args, params) {
       where: `pb.player_tag in (select m.subject_tag from collection_member m
                where m.collection_id = $${params.length})`,
       echo: seg.echo,
-      omitted: false,
     };
   }
-  return { where: null, echo: seg.echo, omitted: seg.omitted };
+  return { where: null, echo: seg.echo };
 }
 
 async function population(db, scopeWhere, params) {
@@ -76,7 +72,7 @@ const KIND_NOTES = [
 export const badgesTools = {
   badges_rarity: {
     description:
-      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
+      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
     inputSchema: {
       type: "object",
       properties: {
@@ -88,6 +84,7 @@ export const badgesTools = {
         },
         limit: { type: "integer", minimum: 1, maximum: 300, default: 200 },
       },
+      required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -144,7 +141,6 @@ export const badgesTools = {
               }),
         })),
         notes: notes(
-          omittedSegmentNote(scope, corpus),
           "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
           KIND_NOTES,
         ),
@@ -156,7 +152,7 @@ export const badgesTools = {
 
   badges_holders: {
     description:
-      "Who holds a badge: every recorded player in a named population (segment 'mine', 'corpus' or an object; omitted answers the corpus with a note) with the named badge, with level and progress where tiered, names not just tags, and their current clan. Names must match the API's badge identifier exactly (badges_rarity lists them); a near-miss is refused with candidates rather than guessed.",
+      "Who holds a badge: every recorded player in a named population (segment 'mine', 'corpus' or an object) with the named badge, with level and progress where tiered, names not just tags, and their current clan. Names must match the API's badge identifier exactly (badges_rarity lists them); a near-miss is refused with candidates rather than guessed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -175,7 +171,7 @@ export const badgesTools = {
         },
         limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
       },
-      required: ["badge"],
+      required: ["badge", "segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -257,7 +253,7 @@ export const badgesTools = {
           clan_tag: r.clan_tag,
           observed_at: r.observed_at.toISOString(),
         })),
-        notes: notes(omittedSegmentNote(scope, corpus), KIND_NOTES),
+        notes: notes(KIND_NOTES),
         docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };

@@ -110,10 +110,11 @@ trophies and the ranked standing, so the two sides of it are not one series.
   (the whole recorded corpus, said on purpose) or `{ player_tag | clan_tag |
   collection }`. The corpus is one population among the others, never a
   default: it is the matchmaking neighbourhood of the recorded clans and
-  players, and a number over all of it describes nobody in particular. A
-  read that omits `segment` still answers the corpus, says so in its first
-  note, and carries `population` (the recorded clans and players it was
-  drawn from, and the distinct players in the window).
+  players, and a number over all of it describes nobody in particular.
+  `segment` is required (4.0.0): a call without it is refused with the
+  three shapes in the hint, and a corpus read carries `population` (the
+  recorded clans and players it was drawn from, and the distinct players
+  in the window).
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
   series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)

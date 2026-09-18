@@ -137,11 +137,11 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   (`entitledClan()`); segment tools take `segment` and name a population
   (`SEGMENT_SCHEMA`, `resolveSegment()`, `segmentFilter()`): `"mine"`,
   `"corpus"` or an object naming one subject. The corpus is one population
-  among the others, never a default (Jamie, 2026-09-18): an omitted
-  `segment` still answers it, but the response says so (`omittedSegmentNote`)
-  and carries `population` (`populationBlock`); 4.0.0 makes `segment`
-  required. The first sentence of the description says which, in the fixed
-  phrase. Nothing to default to is `no_subject`, never a guess.
+  among the others, never a default (Jamie, 2026-09-18): `segment` is
+  required since 4.0.0 (`resolveSegment()` refuses its absence with the
+  argument's own description as the hint) and a corpus read carries
+  `population` (`populationBlock`). The first sentence of the description
+  says which, in the fixed phrase. Nothing to default to is `no_subject`, never a guess.
 - **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
   `weeks` as sugar, resolved once by `resolveWindow()`; date-only bounds in
   `zoneFor()`'s zone, which the per-call `timezone` argument overrides.

@@ -389,7 +389,9 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
     JSON.stringify(body.notes),
   );
   assert.ok(
-    body.series.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.day) && !("date" in p)),
+    body.series.every(
+      (p) => /^\d{4}-\d{2}-\d{2}$/.test(p.day) && !("date" in p),
+    ),
     "day rides beside date",
   );
   // A date-only window says nothing about flooring.
@@ -427,7 +429,11 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
     to: "2026-09-06",
   });
   assert.equal(league.isError, false, JSON.stringify(league.body));
-  assert.ok(league.body.series.every((p) => "league_number" in p && !("pol_league" in p)));
+  assert.ok(
+    league.body.series.every(
+      (p) => "league_number" in p && !("pol_league" in p),
+    ),
+  );
   const old = await call("players_timeline", { metrics: ["pol_league"] });
   assert.equal(old.isError, true);
   assert.equal(old.body.error.code, "bad_request");

@@ -47,7 +47,6 @@ import {
   deckIdentities,
   renderDecks,
   populationBlock,
-  omittedSegmentNote,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -1319,7 +1318,7 @@ export const battlesTools = {
 
   battles_meta_decks: {
     description:
-      "Observed deck meta for a named population: segment 'mine' (your clan), 'corpus' (the whole recorded corpus, on purpose) or {clan_tag | player_tag | collection}; omitted answers the corpus with a note. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
+      "Observed deck meta for a named population: segment 'mine' (your clan), 'corpus' (the whole recorded corpus, on purpose) or {clan_tag | player_tag | collection}. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1341,6 +1340,7 @@ export const battlesTools = {
         limit: { type: "integer", minimum: 1, maximum: 40, default: 20 },
         trophy_band: META_TROPHY_BAND_SCHEMA,
       },
+      required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -1597,7 +1597,6 @@ export const battlesTools = {
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         decks: shaped,
         notes: notes(
-          omittedSegmentNote(seg, population),
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped) : null,
@@ -1620,7 +1619,7 @@ export const battlesTools = {
 
   battles_meta_cards: {
     description:
-      "Observed card meta for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
+      "Observed card meta for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1642,6 +1641,7 @@ export const battlesTools = {
         limit: { type: "integer", minimum: 1, maximum: 130, default: 30 },
         trophy_band: META_TROPHY_BAND_SCHEMA,
       },
+      required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -1871,7 +1871,6 @@ export const battlesTools = {
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         cards: shaped,
         notes: notes(
-          omittedSegmentNote(seg, population),
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped, { what: "card" }) : null,
@@ -1896,7 +1895,7 @@ export const battlesTools = {
 
   battles_trends: {
     description:
-      "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
+      "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1911,6 +1910,7 @@ export const battlesTools = {
         season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
       },
+      required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -2013,7 +2013,6 @@ export const battlesTools = {
         ...(population ? { population } : {}),
         weeks,
         notes: notes(
-          omittedSegmentNote(seg, population),
           partialWeeksNote(partial),
           "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
           !args.mode && weeks.some((w) => Object.keys(w.modes).length > 1)

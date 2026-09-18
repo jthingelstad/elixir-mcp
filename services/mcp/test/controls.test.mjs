@@ -362,7 +362,10 @@ test("battles_query: the opponent's elixir_leaked and the differential ride the 
   // The arena's name and its id ride the row together (defect 4, 2026-09-19).
   assert.ok(
     res.battles.every(
-      (b) => b.arena.name === PIT.name && b.arena.id === PIT.id && !("arena_id" in b),
+      (b) =>
+        b.arena.name === PIT.name &&
+        b.arena.id === PIT.id &&
+        !("arena_id" in b),
     ),
   );
   const standoff = res.battles.find((b) => b.me.elixir_leaked === 17.96);

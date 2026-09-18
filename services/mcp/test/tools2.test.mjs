@@ -848,6 +848,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   );
 
   const corpus = await call("battles_meta_decks", {
+    segment: "corpus",
     min_battles: 1,
     from: "2020-01-01",
   });
@@ -892,6 +893,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.equal(both.body.error.code, "bad_request");
 
   const cards = await call("battles_meta_cards", {
+    segment: "corpus",
     min_battles: 1,
     from: "2020-01-01",
   });
@@ -899,7 +901,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.ok(cards.body.cards.length > 0);
   assert.ok(cards.body.cards.every((c) => c.usage_share !== null));
 
-  const trends = await call("battles_trends", { weeks: 52 });
+  const trends = await call("battles_trends", { segment: "corpus", weeks: 52 });
   assert.equal(trends.isError, false, JSON.stringify(trends.body));
   assert.ok(trends.body.weeks.length > 0, "weekly rows");
   const wk = trends.body.weeks.at(-1);
@@ -914,6 +916,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
     "the split sums to the week",
   );
   const clipped = await call("battles_trends", {
+    segment: "corpus",
     from: "2026-08-24",
     to: "2026-09-03T12:00:00Z",
   });
@@ -1214,6 +1217,7 @@ test("meta denominators exclude draws and unresolved outcomes before shrinkage",
 
 test("card meta refuses an inverted window", async () => {
   const result = await call("battles_meta_cards", {
+    segment: "corpus",
     from: "2026-09-05",
     to: "2026-09-01",
   });
@@ -1482,7 +1486,7 @@ test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boa
 });
 
 test("badges are a dimension: rarity census and holders, exact names only", async () => {
-  const rarity = await call("badges_rarity", {});
+  const rarity = await call("badges_rarity", { segment: "corpus" });
   assert.equal(rarity.isError, false, JSON.stringify(rarity.body));
   const n = rarity.body.players_considered;
   assert.ok(n >= 1);
@@ -1492,18 +1496,27 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   assert.ok(years.by_level[4] >= 1, "the fixture's level-4 holder is counted");
   assert.equal(years.holder_share, Number((years.holders / n).toFixed(3)));
   assert.ok(rarity.body.badges.every((b) => b.holders <= n));
-  const oneOff = await call("badges_rarity", { kind: "one_off" });
+  const oneOff = await call("badges_rarity", {
+    segment: "corpus",
+    kind: "one_off",
+  });
   assert.ok(oneOff.body.badges.every((b) => b.kind === "one_off"));
   assert.ok(oneOff.body.badges.length < rarity.body.badges.length);
 
-  const holders = await call("badges_holders", { badge: "yearsplayed" });
+  const holders = await call("badges_holders", {
+    segment: "corpus",
+    badge: "yearsplayed",
+  });
   assert.equal(holders.isError, false, JSON.stringify(holders.body));
   assert.equal(holders.body.badge, "YearsPlayed");
   assert.ok(holders.body.holders_total >= 1);
   const me = holders.body.holders.find((h) => h.player_tag === OBSERVER);
   assert.equal(me.level, 4);
   assert.equal(me.name_known, true);
-  const near = await call("badges_holders", { badge: "Years" });
+  const near = await call("badges_holders", {
+    segment: "corpus",
+    badge: "Years",
+  });
   assert.equal(near.isError, true);
   assert.equal(near.body.error.code, "not_found");
   assert.match(
@@ -1511,7 +1524,10 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
     /YearsPlayed/,
     "candidates, not a guess",
   );
-  const none = await call("badges_holders", { badge: "NoSuchBadgeAtAll" });
+  const none = await call("badges_holders", {
+    segment: "corpus",
+    badge: "NoSuchBadgeAtAll",
+  });
   assert.equal(none.body.error.code, "not_found");
 });
 
@@ -1525,8 +1541,8 @@ test("meta tools default to the current season, take a season, and say what a wi
   ]) {
     const args =
       tool === "cards_synergy"
-        ? { card: "Knight", min_pair_battles: 1 }
-        : { min_battles: 1 };
+        ? { card: "Knight", min_pair_battles: 1, segment: "corpus" }
+        : { min_battles: 1, segment: "corpus" };
     const dflt = await call(tool, args);
     assert.equal(dflt.isError, false, JSON.stringify(dflt.body));
     const w = dflt.body.applied.window;
@@ -1599,7 +1615,10 @@ test("meta tools default to the current season, take a season, and say what a wi
   }
   // battles_trends keeps its 12-week default and crosses by design; season
   // bounds it, every week names its season, the roll is marked.
-  const trends = await call("battles_trends", { season: "2026-08" });
+  const trends = await call("battles_trends", {
+    segment: "corpus",
+    season: "2026-08",
+  });
   assert.equal(trends.isError, false, JSON.stringify(trends.body));
   assert.equal(trends.body.applied.window.source, "season");
   assert.ok(trends.body.weeks.length > 0);
@@ -1608,12 +1627,13 @@ test("meta tools default to the current season, take a season, and say what a wi
     JSON.stringify(trends.body.weeks),
   );
   const spanning = await call("battles_trends", {
+    segment: "corpus",
     from: "2026-08-20T00:00:00Z",
     to: "2026-09-10T00:00:00Z",
   });
   assert.equal(spanning.body.applied.window.source, "argument");
   assert.equal(spanning.body.applied.window.crosses.length, 1);
-  const twelve = await call("battles_trends", {});
+  const twelve = await call("battles_trends", { segment: "corpus" });
   assert.equal(twelve.body.applied.window.source, "default");
   assert.ok(Array.isArray(twelve.body.applied.window.crosses));
 });
@@ -1636,15 +1656,19 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   };
   const byKey = (rows, key) => Object.fromEntries(rows.map((r) => [key(r), r]));
   for (const [tool, args, key] of [
-    ["battles_meta_decks", { min_battles: 1, limit: 40 }, (r) => r.deck_hash],
+    [
+      "battles_meta_decks",
+      { min_battles: 1, limit: 40, segment: "corpus" },
+      (r) => r.deck_hash,
+    ],
     [
       "battles_meta_cards",
-      { min_battles: 1, limit: 130 },
+      { min_battles: 1, limit: 130, segment: "corpus" },
       (r) => `${r.card_id}|${r.evolution ?? 0}`,
     ],
     [
       "cards_synergy",
-      { card: "Knight", min_pair_battles: 1, limit: 60 },
+      { card: "Knight", min_pair_battles: 1, limit: 60, segment: "corpus" },
       (r) => `${r.card_id}|${r.evolution ?? 0}`,
     ],
   ]) {
@@ -1686,11 +1710,13 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   }
   // A mode read has its own rows (players never sum across modes).
   const rawMode = await call("battles_meta_cards", {
+    segment: "corpus",
     ...bounds,
     mode: "ladder",
     min_battles: 1,
   });
   const rolledMode = await call("battles_meta_cards", {
+    segment: "corpus",
     season: "2026-08",
     mode: "ladder",
     min_battles: 1,
@@ -1714,6 +1740,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   });
   assert.equal(seg.body.players_as_of, undefined);
   const corpus = await call("battles_meta_decks", {
+    segment: "corpus",
     season: "2026-08",
     min_battles: 1,
   });
@@ -1739,19 +1766,19 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   for (const [tool, args, listKey, key] of [
     [
       "battles_meta_decks",
-      { min_battles: 1, limit: 40 },
+      { min_battles: 1, limit: 40, segment: "corpus" },
       "decks",
       (r) => r.deck_hash,
     ],
     [
       "battles_meta_cards",
-      { min_battles: 1, limit: 130 },
+      { min_battles: 1, limit: 130, segment: "corpus" },
       "cards",
       (r) => `${r.card_id}|${r.evolution ?? 0}`,
     ],
     [
       "cards_synergy",
-      { card: "Knight", min_pair_battles: 1, limit: 60 },
+      { card: "Knight", min_pair_battles: 1, limit: 60, segment: "corpus" },
       "partners",
       (r) => `${r.card_id}|${r.evolution ?? 0}`,
     ],
@@ -1797,6 +1824,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     "update meta_season_state set bands_rebuilt_at = null where season_month = '2026-08'",
   );
   const pending = await call("battles_meta_decks", {
+    segment: "corpus",
     season: "2026-08",
     min_battles: 1,
     trophy_band: "13000_plus",
@@ -1809,26 +1837,33 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     "update meta_season_state set bands_rebuilt_at = rebuilt_at where season_month = '2026-08'",
   );
 
-  // The population is named (product call 5, 3.16.0): segment omitted
-  // answers the corpus and says so, with the population it was drawn
-  // from; "corpus" answers the same without the note; "mine" is the
-  // caller's clan.
-  const omitted = await call("battles_meta_decks", {
-    season: "2026-08",
-    min_battles: 1,
-  });
-  assert.match(omitted.body.notes[0], /segment was omitted/);
-  assert.ok(Number.isInteger(omitted.body.population.recorded_clans));
-  assert.ok(Number.isInteger(omitted.body.population.recorded_players));
-  assert.ok("players_in_window" in omitted.body.population);
-  assert.deepEqual(omitted.body.applied.segment, { kind: "corpus" });
+  // The population is named (product call 5; required since 4.0.0): a
+  // call without segment is refused with the hint naming the three
+  // shapes; "corpus" answers with the population it was drawn from;
+  // "mine" is the caller's clan.
+  for (const [tool, args] of [
+    ["battles_meta_decks", { season: "2026-08", min_battles: 1 }],
+    ["battles_meta_cards", { season: "2026-08", min_battles: 1 }],
+    ["battles_trends", { weeks: 2 }],
+    ["cards_synergy", { card: "Knight" }],
+    ["badges_rarity", {}],
+    ["badges_holders", { badge: "MasteryWitch" }],
+  ]) {
+    const omitted = await call(tool, args);
+    assert.equal(omitted.isError, true, tool);
+    assert.equal(omitted.body.error.code, "bad_request");
+    assert.equal(omitted.body.error.class, "input");
+    assert.match(omitted.body.error.hint, /'mine'.*'corpus'.*object/);
+  }
   const explicit = await call("battles_meta_decks", {
     season: "2026-08",
     min_battles: 1,
     segment: "corpus",
   });
   assert.ok(!explicit.body.notes.some((n) => /segment was omitted/.test(n)));
-  assert.ok(explicit.body.population);
+  assert.ok(Number.isInteger(explicit.body.population.recorded_clans));
+  assert.ok(Number.isInteger(explicit.body.population.recorded_players));
+  assert.ok("players_in_window" in explicit.body.population);
   assert.deepEqual(explicit.body.applied.segment, { kind: "corpus" });
   // "mine" on an account with no clan is no_subject, never a guess; once
   // the account's player is in a recorded clan it is that clan.
@@ -1873,10 +1908,12 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   for (const tool of ["badges_rarity", "battles_trends", "cards_synergy"]) {
     const r = await call(
       tool,
-      tool === "cards_synergy" ? { card: "Knight" } : {},
+      tool === "cards_synergy"
+        ? { card: "Knight", segment: "corpus" }
+        : { segment: "corpus" },
     );
     assert.equal(r.isError, false, JSON.stringify(r.body));
-    assert.match(r.body.notes[0], /segment was omitted/, tool);
+    assert.ok(!r.body.notes.some((n) => /segment was omitted/.test(n)), tool);
     assert.ok(r.body.population, tool);
   }
 });
@@ -2045,6 +2082,7 @@ test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", 
   const decks = await call("battles_decks", {});
   const anchorId = decks.body.decks[0].cards[0].id;
   const { body, isError } = await call("cards_synergy", {
+    segment: "corpus",
     card_id: anchorId,
     from: "2020-01-01",
     min_pair_battles: 1,
@@ -2061,6 +2099,7 @@ test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", 
     assert.notEqual(p.card_id, anchorId);
   }
   const byName = await call("cards_synergy", {
+    segment: "corpus",
     card: "witch",
     from: "2020-01-01",
     min_pair_battles: 1,
@@ -2071,11 +2110,14 @@ test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", 
     "Witch",
     "exact match beats Mother Witch",
   );
-  const fuzzy = await call("cards_synergy", { card: "gobl" });
+  const fuzzy = await call("cards_synergy", {
+    segment: "corpus",
+    card: "gobl",
+  });
   assert.equal(fuzzy.isError, true);
   assert.equal(fuzzy.body.error.code, "bad_request");
   assert.match(fuzzy.body.error.message, /Candidates/);
-  const neither = await call("cards_synergy", {});
+  const neither = await call("cards_synergy", { segment: "corpus" });
   assert.equal(neither.body.error.code, "bad_request");
 });
 

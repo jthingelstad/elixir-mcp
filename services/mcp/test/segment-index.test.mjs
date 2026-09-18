@@ -30,7 +30,7 @@ test("the whole corpus reads the participant's own battle_time: the window index
   // 0098: battle_participant_window covers (battle_time) with deck_hash,
   // player_tag and outcome for pvp participants with a deck, so a corpus
   // window scan is index-only; battle is joined only for a mode filter.
-  const segment = await segmentFilter({}, {}, []);
+  const segment = await segmentFilter({}, { segment: "corpus" }, []);
   assert.equal(segment.timeColumn, "bp.battle_time");
   assert.equal(segment.where, null);
 });

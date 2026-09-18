@@ -108,10 +108,18 @@ export function makeRegistry() {
       // a handler can see anything the schema did not promise.
       const problem = validateArgs(TOOLS[name].inputSchema, args ?? {});
       if (problem) {
+        // A missing required argument's hint is that argument's own
+        // description (4.0.0): a segment tool called without segment is
+        // told 'mine', 'corpus' or the object, not to read tools/list.
+        const missing = /^arguments\.([a-z_]+) is required\.$/.exec(problem);
+        const own =
+          missing &&
+          TOOLS[name].inputSchema.properties?.[missing[1]]?.description;
         throw new ToolFailure(
           "bad_request",
           problem,
-          "Valid values and shapes are the tool's declared inputSchema (tools/list).",
+          own ??
+            "Valid values and shapes are the tool's declared inputSchema (tools/list).",
         );
       }
       const body = await TOOLS[name].handler(ctx, args);

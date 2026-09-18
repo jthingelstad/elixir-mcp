@@ -52,8 +52,8 @@ named with `segment: "corpus"`, never a default; a corpus read carries
 **segment** — the population a segment tool scores: `"mine"` (the caller's
 clan: the agent's, or the primary player's), `"corpus"`, `{ player_tag }`,
 `{ clan_tag }` (the clan's current members) or `{ collection }`. Every
-population is stated; omitting `segment` answers the corpus and the first
-note says so.
+population is stated: `segment` is required (4.0.0), and a call without
+it is refused with the three shapes in the hint.
 
 **collection** — a curated, named group of players or clans (a slug such as
 `pros`) that records its members at its own scope.

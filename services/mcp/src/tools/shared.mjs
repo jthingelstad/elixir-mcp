@@ -212,7 +212,7 @@ export function VERBOSITY(compactDesc) {
  *  answers the corpus and the response says so in a note. */
 export const SEGMENT_SCHEMA = {
   description:
-    "The population to score: 'mine' (the caller's clan: the agent's clan, or the primary player's), 'corpus' (the whole recorded corpus, explicitly), or an object naming exactly one of player_tag, clan_tag (current members) or collection (a player collection's slug). Omitted answers the corpus and says so in a note; the corpus is one population among others, never a default.",
+    "The population to score, REQUIRED (4.0.0): 'mine' (the caller's clan: the agent's clan, or the primary player's), 'corpus' (the whole recorded corpus, explicitly), or an object naming exactly one of player_tag, clan_tag (current members) or collection (a player collection's slug). The corpus is one population among others, never a default: a call without segment is refused.",
   anyOf: [
     { type: "string", enum: ["mine", "corpus"] },
     {
@@ -236,23 +236,27 @@ export const SEGMENT_SCHEMA = {
 
 /**
  * The segment as one resolved thing, before any tool builds its own
- * predicate: `{ kind, omitted, echo, ... }` where kind is corpus, player,
+ * predicate: `{ kind, echo, ... }` where kind is corpus, player,
  * clan or collection and the object carries the resolved tag, clan tag
  * or collection id. "mine" resolves through entitledClan(undefined), so
  * an account with no clan is no_subject, never a guess.
  */
 export async function resolveSegment(ctx, args) {
   const raw = args.segment;
+  // The population is named, never defaulted (product call 5; required
+  // since 4.0.0, a note-and-corpus default from 3.16.0 to 3.18.0).
   if (raw === undefined || raw === null)
-    return { kind: "corpus", omitted: true, echo: { kind: "corpus" } };
+    throw new ToolFailure(
+      "bad_request",
+      "segment is required: name the population to score.",
+      `Pass segment: "mine" (your clan), segment: "corpus" (the whole recorded corpus, on purpose) or an object naming one of player_tag, clan_tag or collection.`,
+    );
   if (typeof raw === "string") {
-    if (raw === "corpus")
-      return { kind: "corpus", omitted: false, echo: { kind: "corpus" } };
+    if (raw === "corpus") return { kind: "corpus", echo: { kind: "corpus" } };
     if (raw === "mine") {
       const clanTag = await entitledClan(ctx.db, ctx.account, undefined);
       return {
         kind: "clan",
-        omitted: false,
         clanTag,
         echo: { kind: "clan", clan_tag: clanTag, source: "mine" },
       };
@@ -284,7 +288,6 @@ export async function resolveSegment(ctx, args) {
     ).tag;
     return {
       kind: "player",
-      omitted: false,
       tag,
       echo: { kind: "player", player_tag: tag },
     };
@@ -293,7 +296,6 @@ export async function resolveSegment(ctx, args) {
     const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
     return {
       kind: "clan",
-      omitted: false,
       clanTag,
       echo: { kind: "clan", clan_tag: clanTag },
     };
@@ -315,14 +317,13 @@ export async function resolveSegment(ctx, args) {
     }
     return {
       kind: "collection",
-      omitted: false,
       collectionId: rows[0].collection_id,
       slug,
       echo: { kind: "collection", collection: slug },
     };
   }
   // An empty object is the corpus, said with an object.
-  return { kind: "corpus", omitted: false, echo: { kind: "corpus" } };
+  return { kind: "corpus", echo: { kind: "corpus" } };
 }
 
 /** The recorded population a corpus number is drawn from (product call
@@ -360,13 +361,6 @@ async function recordedPopulation(db) {
 export async function populationBlock(db, { playersInWindow = null } = {}) {
   const pop = await recordedPopulation(db);
   return { ...pop, players_in_window: playersInWindow };
-}
-
-/** The one sentence an omitted segment carries; fires on that condition
- *  only. */
-export function omittedSegmentNote(seg, pop) {
-  if (!seg?.omitted) return null;
-  return `segment was omitted, so this answer is the whole recorded corpus: the matchmaking neighbourhood of ${pop ? `${pop.recorded_clans} recorded clans and ${pop.recorded_players} recorded players` : "the recorded clans and players"}, not the game; a number over all of it describes nobody in particular. Pass segment: "mine" for your clan, or segment: "corpus" to name this population on purpose.`;
 }
 
 // --- shared helpers --------------------------------------------------------
@@ -955,7 +949,6 @@ export async function segmentFilter(ctx, args, params) {
       timeColumn: "bp.battle_time",
       label: seg.tag,
       echo: seg.echo,
-      omitted: false,
     };
   }
   if (seg.kind === "clan") {
@@ -966,7 +959,6 @@ export async function segmentFilter(ctx, args, params) {
       timeColumn: "bp.battle_time",
       label: seg.clanTag,
       echo: seg.echo,
-      omitted: false,
     };
   }
   if (seg.kind === "collection") {
@@ -977,7 +969,6 @@ export async function segmentFilter(ctx, args, params) {
       timeColumn: "bp.battle_time",
       label: seg.slug,
       echo: seg.echo,
-      omitted: false,
     };
   }
   return {
@@ -988,7 +979,6 @@ export async function segmentFilter(ctx, args, params) {
     timeColumn: "bp.battle_time",
     label: "corpus",
     echo: seg.echo,
-    omitted: seg.omitted,
   };
 }
 

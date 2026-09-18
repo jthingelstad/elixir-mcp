@@ -22,7 +22,6 @@ import {
   notes,
   META_METHODOLOGY,
   populationBlock,
-  omittedSegmentNote,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -72,7 +71,7 @@ async function resolveCard(db, { card_id, card }) {
 export const synergyTools = {
   cards_synergy: {
     description:
-      "What a card is played WITH, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; the anchor's forms merge by default, partners stay split by form.",
+      "What a card is played WITH, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; the anchor's forms merge by default, partners stay split by form.",
     inputSchema: {
       type: "object",
       properties: {
@@ -114,6 +113,7 @@ export const synergyTools = {
             "Only decks whose own player entered with starting trophies in this band: the anchor's partners at a level. A corpus season read answers from the banded rollup once the nightly rebuild has filled it, else from the raw rows with a note.",
         },
       },
+      required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
@@ -337,7 +337,6 @@ export const synergyTools = {
           };
         }),
         notes: notes(
-          omittedSegmentNote(seg, population),
           bandPending
             ? "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it)."
             : null,

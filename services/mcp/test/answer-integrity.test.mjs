@@ -147,7 +147,10 @@ test("coverage uses matching observation intervals and updates when late battles
     "4.0.0: the always-null field is gone",
   );
   assert.equal(complete.completeness_last_7_days.average_ratio, 1);
-  assert.equal(typeof complete.completeness_last_7_days.average_ratio, "number");
+  assert.equal(
+    typeof complete.completeness_last_7_days.average_ratio,
+    "number",
+  );
   assert.equal(complete.completeness_last_7_days.incomplete_intervals, 0);
   assert.equal(
     typeof complete.completeness_last_7_days.unmeasured_tail_hours,

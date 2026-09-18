@@ -1487,7 +1487,9 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   assert.equal(body.weeks.at(-1).partial, true, "the current week is partial");
   assert.ok(body.weeks.at(-1).covers.to <= new Date().toISOString());
   assert.ok(
-    body.weeks.slice(0, -1).every((w) => !("partial" in w) && !("complete" in w)),
+    body.weeks
+      .slice(0, -1)
+      .every((w) => !("partial" in w) && !("complete" in w)),
     "4.0.0: whole weeks carry no mark, and complete is gone",
   );
   assert.match(body.weeks[0].iso_week, /^\d{4}-W\d{2}$/);
