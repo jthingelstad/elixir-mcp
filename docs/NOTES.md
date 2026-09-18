@@ -4553,3 +4553,194 @@ Phase 2 race re-walk or an earlier scope bug. Not touched here.
 **Phase 5 needs:** product call 4 (a named reader pointer on
 `elixir_timeline`: Jamie's answer is yes, with the empty-path cost fixed
 first, so the fix is item one of the phase). Nothing manual.
+
+## 2026-09-19 — Interface review, Phase 5: the seam (contract 3.18.0)
+
+Phase 5 of `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (review
+Part 3.2, 6 and 7), with items 8 and 9 added by Jamie; product call 4 (a
+named reader pointer on `elixir_timeline`) answered yes with the
+empty-path cost fixed first. One minor, 3.17.0 → 3.18.0; migration 0136
+(`timeline_reader`, additive). Commits `8c7f2b2`, `b1253b0`, `4bade29`;
+deployed 20:59Z (exit 0, migrations 135 → 136), code again 21:14Z, the
+stack (an IAM statement) 21:16Z. All nine items shipped.
+
+**Step zero.** (a) The nightly's `phases` line does not exist yet: the
+instrumented rebuild (`fc28bc0`) deployed at 20:25Z and the next 04:40Z
+run is 2026-09-19's; today's 04:40Z line is the 3.15.1 rebuild (92,752
+ms, 188,118 decks, 413,698 decided) and the only 3.16.0-shape reading is
+the hand run's 603 s (Phase 4 entry). Nothing to stop on; the reading is
+item one of the next session, read from tomorrow's line. (b)
+`{backends: true}` at 20:37Z: the two orphaned `create temp table pop`
+backends were still executing (pid 22040 at 57:41, pid 23344 at 42:40,
+both `IO / BuffileRead`, spilling) among 22 connections;
+`{terminate_backends: {like: "%create temp table pop%", older_than_s:
+1800}}` returned both `terminated: true` (42:49 and 57:49 running); the
+next `{backends}` at 20:38:44Z showed 11 connections and neither pid. No
+Phase 5 timing was taken before that.
+
+**Shipped.** (1) The empty path: `buildClanEntry` runs one probe off the
+`battle_created_at` index (`clanLearnedQuery`: the battles of the clan's
+this window learned, split into played-within-a-day and late captures)
+and skips the day-wide member scan, `clan.returned` and `clan.most` when
+it learned none; the late count now comes from the probe. `{explain_timeline:
+{request_id | account_id | as_agent_of, from, to}}` replays one read
+through the same `buildTimeline` with per-query `perf_ms`, the audited
+row's own numbers, and `EXPLAIN (ANALYZE, BUFFERS)` of the probe and the
+scan; it marks nothing. The reader pointer: `reader` (a short name,
+`^[a-z0-9][a-z0-9-]{0,31}$`) selects a `timeline_reader` row: an omitted
+`from` reads since it, `mark_read` upserts it (greatest), `read_to`
+reports it, `applied.reader` echoes it; the account's `activity_seen_at`
+is untouched when a reader is named. `pendingHints` counts against
+`min(read_to)` over the account's readers that marked in the last 30
+days, else the account pointer, else epoch. (2) `ERROR_CLASS` and
+`ERROR_CLASSES` in `packages/contracts/src/errors.ts`; `toolError()`
+carries `class`; the invoker, the handler's transport envelope and the
+response-cap refusal all render it. (3) `DISPLAY_NAME_SCHEMA` beside
+`on_behalf_of` on the eleven subject tools; `subject()` passes it to
+`resolveSubject`, which on an unmapped id computes `nameCandidates` over
+the agent's entitled clans (`lower(regexp_replace(name, '\s', '', 'g'))`
+equality, never a partial) and throws `no_subject` with `data:
+{candidates}` and a hint that spells the identify call when there is
+exactly one. (4) Seven `OUTPUT_SCHEMAS`; the registry's validator found
+two shapes the code and my first draft disagreed on (`feedback_id` is a
+bigint string on the wire; `modes_in_window` is an array of `{mode,
+battles, mean_level_gap}`) and the schemas say so. (5)
+`{audit_census: {from, to}}` (an explicit window beside `days`, echoed as
+`window`); `resources/read` and `prompts/get` are audited from the
+handler as rows under the method's name with `{uri}` / `{name}`, the
+surface and client of the door, `error_code: not_found` when missing,
+and a `resources_and_prompts` block on the census; `{refusal_census:
+{code, days, limit}}` and `{controls_census: {days, limit}}` in
+`services/migrate/src/ops-captures.mjs` read the captured bodies from the
+archive bucket (the migrate role gained `s3:GetObject` on `calls/*`,
+read-only, `4bade29`: the first run counted all 26 captures missing with
+`AccessDenied`, which the census now reports as `last_read_error`
+instead of silence). (6) `elixir_feedback` takes `request_ids[]` (≤ 20,
+UUIDs kept, the rest dropped, never the report); the first becomes
+`request_id` when that was omitted; all ride under `context.request_ids`;
+`applied` echoes both. (7) `resolveEntitlements` returns `primaryClan`
+(the primary claim's current clan, recorded or not) and
+`resolveEntitledClan` on a person's door with no `clan_tag` refuses
+`not_recorded` naming it and the `elixir_track_clan` call (with the other
+players' recorded clans in the hint) when it is not recorded, where the
+default used to slide to an alt's recorded clan; the owner and agents
+are unchanged. (8) `clocks.md` "Computed, observed, played" says the
+series tools floor an instant. (9) `{war_week_season_census}` in
+`ops-diagnostics.mjs`. Docs: `protocol.md` (the `Class` column and its
+paragraph, `candidates`, the primary-clan `not_recorded`), `agents.md`
+(the reader, the shorter first contact with a `candidates` exchange),
+`timeline.md` (the `reader` row, "One pointer per reader", the routine),
+the instructions' agent block (reader, `display_name`); CHANGELOG and
+What's-new. Fingerprint re-pinned from a fresh scratch database.
+
+**Measured live, read-only except the pointer writes the acceptance
+required.** Item 1, the agent's exact call (`e3ab3573`, the POAP KINGS
+agent, `from` 2026-09-17T13:39:58.672Z, 17 kinds, full verbosity; the
+audited row: 18,287 ms, 18,145 ms db, 20 queries, 0 items). BEFORE
+(`activity_preview` as the agent on that window, 20:57Z, the same code
+path timed per query): 569 ms elapsed, 444 ms of queries
+(`clan.member_battles` 357, `clan.late` 25, `clan.members` 16,
+`clan.donations` 14). AFTER (`{explain_timeline: {request_id:
+"e3ab3573"}}`): first read 1,240 ms / 956 ms db with `clan.donations`
+772 (a cold cache on `player_snapshot_daily`), then **44 ms / 29 ms db**
+and 51 / 33 (`clan.learned` 3–4, `clan.members` 5, `clan.moments` 4,
+`clan.donations` 12); the probe's plan is an index scan of
+`battle_created_at` (43 rows) into the participant pkey, 0.5 ms; the
+day-wide scan it replaces is a parallel seq scan of `battle` (82,007 rows
+per worker, 7,570 buffers read, 336 ms warm) that the planner picks over
+the clan-time index because of the `b.created_at <= to` filter. The
+current empty window (20:50–20:55Z, as the agent): 206 ms / 141 ms db
+(the probe 99 ms cold). The acceptance predicate ("under 500 ms db")
+holds at 29–33 ms warm. `elixir_timeline({reader: "opus-phase5", days:
+1, kinds: ["ranked_promotion"], verbosity: "compact"})` on my account:
+`applied.reader`, `read_to` = the window's end, `timeline_pending: 0` on
+the response and on the `game_clock` call after it (`978cfa0b`), 12
+subjects. The three Discord instances poll as `<instance>-editor` since
+their 21:02–21:08Z restarts: `args_census` shows 13 `elixir_timeline`
+calls with `from, kinds, mark_read, reader, verbosity` in the hour;
+their reads run 192–317 ms on Ship It! and Elixir Kings and 1.2–1.9 s on
+POAP KINGS, whose five-minute windows on a war day are never empty (the
+non-empty path still pays the `battle` seq scan above: the next lever).
+Item 2: `players_profile({player_tag: "#ABC123"})` answers `{code:
+"invalid_tag", class: "input"}` (`4374f25b`). Item 4: `tools.json`
+carries `outputSchema` on 20 tools (13 + the 7). Item 5:
+`{audit_census: {from: 19:38Z, to: 21:20Z}}` echoes `window`, `days:
+null`; `resources_and_prompts: []` (no client has read a resource or
+prompt in the window; the number exists now). `{refusal_census: {code:
+"invalid_tag", days: 14}}`: 40 refusals, 26 captured and read, **every
+elixir-bot `war_history` refusal (39) was the tag `#ABC123`** and the
+one `players_summary` refusal was the web explorer; the bot's own log
+holds no such line, because the caller was not the bot: it was its test
+suite, whose `tests/conftest.py` isolates the database and the LLM and
+never isolated `elixir_mcp.call_tool`, so every `scripts/gates.sh` run
+(mine included: 4 refusals in the 19:38–21:20Z window are my two gate
+runs) sent the fixtures' placeholder tag to the live door. Fixed in
+elixir-bot `9a9ac51a` (an autouse fixture empties the token; 2,507
+tests pass). `{controls_census: {days: 2}}` over 135 captured calls:
+`comparable: false` fired 12 (standings 4, battles_decks 4, meta decks
+3, cards 1) and the follow-up within ten minutes passed `mode` 3 times
+of 12; `trophy_floor.floored` 11 (summary 5, performance 6);
+`season_crossed` 13; `segment_omitted` 8, followed by a `+mode` read 4
+times; `partial` 3; `completeness_note`, the pooled-modes and the
+single-player notes 0 in two days. Item 9: `{war_week_season_census}`:
+347 war_week rows, 261 with no observed start, **12 whose start lies
+outside their season**, every one with a correctly keyed sibling for the
+same clan and section in the season the start falls in, every one at a
+race-close instant with a `currentriverrace` receipt at that exact
+second: ten `(135, 1)` rows across ten clans stamped 2026-09-14
+09:52–09:57Z (season 136's week 1 keyed to 135; eight carry participants
+4–165 and five standings each, two `war_period_log` rows carry 20 logs,
+two are empty) and POAP KINGS' `(134, 4)` at 2026-08-31 09:37Z and
+`(132, 4)` at 2026-06-29 09:45Z (empty: 0 participants, 0 standings, 0
+logs). The Phase 4 observation is this. The writer keyed the close-slot
+read to the previous season while the sibling row got the calendar's;
+the eight populated duplicates double-count in `war_history`'s season
+windows and in `clans_participation.war_weeks`. Not touched here: the
+repair is its own op for Keep the Record True, `{war_week_rekey_repair}`:
+for each census row with `sibling_in_season_of_start`, fold or delete
+its `war_participation`, `war_week_clan`, `war_attendance_day` and
+`war_period_log` children after checking the sibling carries the same or
+fuller rows, then delete the row; and the cause (which writer keys a
+close-slot observation to season − 1 when `inferSeasonId` reads the
+calendar at `nowMs`) needs a read of the race lane's re-walk path
+(`ops-series`, `series_backfill reset`) before the repair, since a
+re-walk would write them back.
+
+**Decisions taken inside the phase.** (a) A reader silent for 30 days no
+longer holds `timeline_pending` (`b1253b0`): my acceptance reader would
+otherwise have pinned the hint high on Jamie's account forever. (b) The
+Discord consumer keeps its local cursor as `from` and names a reader
+that marks; the reader's pointer may run a window ahead of the cursor
+after a failed turn, and the cursor decides. (c) `game_days_seen`-style
+derivation for `candidates`: computed at refusal time from
+`clan_membership`, no table. (d) `feedback_id` is declared a string
+because that is the wire (a bigint); the number form is 4.0.0's. (e)
+`running_on_latest_day`, `feedback_id` and `modes_in_window` were
+learned from the validator, not the review: an output schema is a test.
+(f) Item 7 refuses rather than choosing: the review's "make
+`entitledClan` agree" cannot be met by ordering when the primary's clan
+is not recorded, so the honest default is a `not_recorded` that names
+it. (g) The Clan Lambda was not restarted and keeps pinning `clan_tag`:
+its clan is the gate's verified-claim clan, not the person door's
+default, so item 7 changes nothing it depends on. (h) elixir-bot's
+`elixir_mcp.py` logs the class and demotes `retry` to a line; it does
+not branch further (the callers already fall back on None).
+
+**Consumers.** `elixir-mcp-discord` `ecd77f4`: `read()` takes `reader`
+and marks when one is named; `pollRoutine` passes `readerName(routine.key)`
+(`<instance>-<routine>` in the hub's alphabet, ≤ 32); `outcome()`
+carries `errorClass`; `unexpectedErrors` treats class `retry` (and the
+two codes, for a hub without classes) as expected; `WHO_IS_ASKING`
+passes `display_name` and reads `candidates[]` instead of pulling the
+roster; verify green; the three instances restarted one at a time
+(poapkings 21:02:35Z, shipit 21:07:53Z, elixirkings 21:07:59Z, each
+`build 0.3.0+ecd77f4 · Elixir MCP 3.18.0`), no live turn at the time.
+`elixir-bot` `49b16349` (the class in the log line; restarted 21:08Z,
+pid 98049) and `9a9ac51a` (the test fixture; no restart needed).
+
+**Phase 6 needs:** product call 7 (the thirty-day window, answered:
+yes, announced at the window's start through `elixir_changelog` and
+What's-new, with elixir-bot's pin bumped the same week). Beyond it,
+nothing from Jamie; from the next session, first: tomorrow's 04:40Z
+`phases` line and, if any statement owns more than half of the rebuild,
+that before the renames.
