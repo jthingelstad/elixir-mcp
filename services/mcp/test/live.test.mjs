@@ -150,6 +150,8 @@ test("live_fetch: the first ask queues and answers live_pending; the second find
   assert.equal(first.isError, true);
   assert.equal(first.body.error.code, "live_pending");
   assert.match(first.body.error.hint, /15 s/);
+  // The seconds ride as a field, not only inside the English (defect 8).
+  assert.equal(first.body.error.retry_after_s, 15);
   const { body, isError } = await invoke("live_fetch", {
     path: `/players/${tag}`,
   });
@@ -225,6 +227,19 @@ test("players_profile live:true answers from the record NOW with pending, then s
   assert.equal(second.body.snapshot.trophies, fresher.trophies, "served fresh");
 });
 
+test("an unrecorded clan asked live answers live_pending with retry_after_s as a field (defect 8, 2026-09-19)", async () => {
+  const live = fakeGatewayLive({});
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  const { body, isError } = await invoke("clans_roster", {
+    clan_tag: "#GQ0YLCYV",
+    live: true,
+  });
+  assert.equal(isError, true);
+  assert.equal(body.error.code, "live_pending");
+  assert.equal(body.error.retry_after_s, 15);
+  assert.match(body.error.hint, /Call again in 15 s/);
+});
+
 test("an unfulfilled live ask stays live_pending; asking again neither mints a second job nor charges twice", async () => {
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
@@ -243,6 +258,7 @@ test("an unfulfilled live ask stays live_pending; asking again neither mints a s
     });
     assert.equal(isError, true);
     assert.equal(body.error.code, "live_pending");
+    assert.ok(Number.isInteger(body.error.retry_after_s));
   }
   const { rows: jobs } = await db.query(
     `select count(*)::int n from job where entity_key = '#GQ0YLCYJ' and status in ('queued', 'leased')`,

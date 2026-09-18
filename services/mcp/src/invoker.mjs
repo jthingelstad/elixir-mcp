@@ -500,6 +500,9 @@ export function makeInvoker({
               code: err.code,
               message: err.message,
               ...(err.hint ? { hint: err.hint } : {}),
+              // Machine-readable fields beside the prose (retry_after_s
+              // on live_pending, 3.14.0).
+              ...(err.data ?? {}),
             },
             meta: responseMeta({
               as_of: new Date().toISOString(),

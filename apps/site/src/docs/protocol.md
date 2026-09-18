@@ -372,7 +372,7 @@ never carries internals.
 | `no_subject` | nothing to answer about: no primary player on the account, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag) |
 | `quota_exceeded` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | the live lane is not configured, or the fresh payload was refused at admission |
-| `live_pending` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. The hint carries `retry_after_s` (1.7.0) |
+| `live_pending` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
 | `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 | `query_timeout` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |

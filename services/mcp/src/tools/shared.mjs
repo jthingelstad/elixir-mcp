@@ -83,10 +83,14 @@ async function spendLiveQuota(ctx) {
 }
 
 export class ToolFailure extends Error {
-  constructor(code, message, hint) {
+  /** `data`: machine-readable fields rendered beside code, message and
+   *  hint on the error body (retry_after_s on live_pending, 3.14.0), so
+   *  a consumer never regexes seconds out of the English. */
+  constructor(code, message, hint, data = undefined) {
     super(message);
     this.code = code;
     this.hint = hint;
+    this.data = data;
   }
 }
 
@@ -513,6 +517,7 @@ export function notRecordedOrPending(live, message, hint) {
       "live_pending",
       `${message} A live read is queued.`,
       `Call again in ${live.retry_after_s} s.`,
+      { retry_after_s: live.retry_after_s },
     );
   return new ToolFailure("not_recorded", message, hint);
 }

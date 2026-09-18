@@ -26,6 +26,8 @@ export interface ToolError {
   code: ErrorCode;
   message: string;
   hint?: string;
+  /** live_pending: seconds until the queued read is expected in hand (3.14.0). */
+  retry_after_s?: number;
 }
 
 /** JSON-RPC error code for quota exhaustion (librarian's convention). */

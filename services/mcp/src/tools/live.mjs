@@ -65,6 +65,7 @@ export const liveTools = {
           "live_pending",
           `A fresh read of ${args.path} is queued.`,
           `Call again in ${live.retry_after_s} s; the recorded-data tools answer now.`,
+          { retry_after_s: live.retry_after_s },
         );
       }
       const result = { payload: live.payload };
