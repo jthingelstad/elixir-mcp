@@ -1663,6 +1663,12 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     min_battles: 1,
   });
   assert.deepEqual(strip(rolledMode.body).cards, strip(rawMode.body).cards);
+  assert.ok(
+    rolledMode.body.cards.every(
+      (c) => Object.keys(c.modes).join() === "ladder",
+    ),
+    "a mode read's rows split to that mode alone on both paths",
+  );
   assert.deepEqual(
     strip(rolledMode.body).excluded,
     strip(rawMode.body).excluded,

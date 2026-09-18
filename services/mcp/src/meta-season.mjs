@@ -173,11 +173,17 @@ export async function rollupDeckModes(db, roll, hashes) {
   const banded = roll.trophyBand !== null && roll.trophyBand !== undefined;
   const params = [roll.month, hashes];
   if (banded) params.push(roll.trophyBand);
+  // With a mode asked for, the split is that group alone, as the raw
+  // path's group-by over the filtered rows would be.
+  const modeClause =
+    roll.modeGroup === "all"
+      ? "and mode_group <> 'all'"
+      : `and mode_group = $${params.push(roll.modeGroup)}`;
   const { rows } = await db.query(
     `select deck_hash, mode_group, battles, wins, losses
      from ${banded ? "deck_meta_season_band" : "deck_meta_season"}
-     where season_month = $1 and mode_group <> 'all' and deck_hash = any($2)
-       ${banded ? "and trophy_band = $3" : ""}`,
+     where season_month = $1 and deck_hash = any($2)
+       ${banded ? "and trophy_band = $3" : ""} ${modeClause}`,
     params,
   );
   const out = new Map();
@@ -215,13 +221,17 @@ export async function rollupCardModes(db, roll, keys) {
     keys.map((k) => k.form),
   ];
   if (banded) params.push(roll.trophyBand);
+  const modeClause =
+    roll.modeGroup === "all"
+      ? "and cm.mode_group <> 'all'"
+      : `and cm.mode_group = $${params.push(roll.modeGroup)}`;
   const { rows } = await db.query(
     `select cm.card_id, cm.form, cm.mode_group, cm.battles, cm.wins, cm.losses
      from ${banded ? "card_meta_season_band" : "card_meta_season"} cm
      join unnest($2::int[], $3::smallint[]) k(card_id, form)
        on k.card_id = cm.card_id and k.form = cm.form
-     where cm.season_month = $1 and cm.mode_group <> 'all'
-       ${banded ? "and cm.trophy_band = $4" : ""}`,
+     where cm.season_month = $1
+       ${banded ? "and cm.trophy_band = $4" : ""} ${modeClause}`,
     params,
   );
   const out = new Map();
