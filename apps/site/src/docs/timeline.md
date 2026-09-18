@@ -47,7 +47,8 @@ docs, meta }`.
   left out.
 - `meta.timeline_pending` on any response counts subjects of yours the
   recorder has admitted something for since the oldest named reader's
-  pointer when any reader has marked, else since the account's own.
+  pointer when any reader has marked in the last 30 days (a reader silent
+  longer is dead and no longer counts), else since the account's own.
 
 ### One pointer per reader
 

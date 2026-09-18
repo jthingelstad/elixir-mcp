@@ -828,8 +828,11 @@ export async function pendingHints(db, account) {
                and ps.last_admitted_at > coalesce(
                  -- The oldest NAMED pointer when any reader has marked
                  -- (3.18.0), else the account's own; a consumer that
-                 -- names itself sees pending fall to 0 after its read.
-                 (select min(read_to) from timeline_reader where account_id = $1),
+                 -- names itself sees pending fall to 0 after its read. A
+                 -- reader that has not marked for 30 days is dead and
+                 -- must not hold the hint high for everyone else.
+                 (select min(read_to) from timeline_reader
+                   where account_id = $1 and updated_at > now() - interval '30 days'),
                  (select activity_seen_at from account where account_id = $1),
                  'epoch'::timestamptz))) as timeline_pending`,
       [account.accountId],

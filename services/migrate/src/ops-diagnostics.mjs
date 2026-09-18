@@ -326,7 +326,18 @@ export async function warWeekSeasonCensus(databaseUrl) {
                   and c.section_index = w.section_index) as standings,
               (select count(*)::int from war_period_log l
                 where l.clan_tag = w.clan_tag and l.season_id = w.season_id
-                  and l.section_index = w.section_index) as period_logs
+                  and l.section_index = w.section_index) as period_logs,
+              -- The row this one duplicates when the season of its start
+              -- already has the same section for the clan.
+              exists (select 1 from war_week w2
+                       where w2.clan_tag = w.clan_tag and w2.section_index = w.section_index
+                         and w2.season_id = (select s2.war_season_id from season s2
+                                              where s2.starts_at <= w.started_observed_at
+                                                and s2.ends_at > w.started_observed_at)) as sibling_in_season_of_start,
+              (select min(r.fetched_at) from api_receipt r
+                where r.endpoint = 'currentriverrace' and r.entity_key = w.clan_tag
+                  and r.fetched_at >= w.started_observed_at - interval '1 minute'
+                  and r.fetched_at <= w.started_observed_at + interval '1 minute') as receipt_at
          from war_week w
          join season s on s.war_season_id = w.season_id
         where w.started_observed_at is not null

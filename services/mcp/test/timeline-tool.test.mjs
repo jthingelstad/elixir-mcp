@@ -355,6 +355,13 @@ test("3.18.0: a named reader keeps its own pointer; the account's is untouched; 
     "the oldest reader has read",
   );
 
+  // A reader that has not marked for 30 days no longer holds the hint.
+  await ctx.db.query(
+    `update timeline_reader set read_to = now() - interval '40 days', updated_at = now() - interval '31 days' where reader = 'poll-lane'`,
+  );
+  const stale = await call("game_clock", {});
+  assert.equal(stale.body.meta.timeline_pending, 0, "a dead reader is ignored");
+
   const bad = await call("elixir_timeline", { reader: "Not Valid!" });
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");

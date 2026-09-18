@@ -21,6 +21,10 @@ function captureKey(at, requestId) {
   return `calls/dt=${dt}/request_id=${requestId}.json.gz`;
 }
 
+/** The last read failure, so a census that reads nothing says why
+ *  instead of counting every capture as missing. */
+let lastReadError = null;
+
 async function readCapture(s3, bucket, row) {
   const { GetObjectCommand } = await import("@aws-sdk/client-s3");
   try {
@@ -32,7 +36,8 @@ async function readCapture(s3, bucket, row) {
     );
     const bytes = Buffer.from(await out.Body.transformToByteArray());
     return JSON.parse((await gunzipAsync(bytes)).toString("utf8"));
-  } catch {
+  } catch (err) {
+    lastReadError = `${err?.name ?? "error"}: ${err?.message ?? err}`;
     return null;
   }
 }
@@ -119,6 +124,7 @@ export async function refusalCensus(databaseUrl, spec = {}) {
       refusals: rows.length,
       captures_read: read,
       captures_missing: missing,
+      last_read_error: lastReadError,
       by_tool: [...byKey.values()].map((c) => ({
         tool: c.tool,
         surface: c.surface,
@@ -243,6 +249,7 @@ export async function controlsCensus(databaseUrl, spec = {}) {
       audited_calls: rows.length,
       captures_read: read,
       captures_missing: missing,
+      last_read_error: lastReadError,
       controls: per,
     };
   } finally {
