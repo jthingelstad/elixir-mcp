@@ -83,6 +83,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
 
   const r = entry.roster;
   const st = entry.standouts;
+  const items = (l) => l?.items ?? l ?? [];
   const standouts = [];
   for (const m of (st?.most_battles ?? []).slice(0, 3))
     standouts.push({
@@ -96,7 +97,6 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       name: s.name ?? s.tag,
       text: sessionText(s, tz),
     });
-  const items = (l) => l?.items ?? l ?? [];
   for (const x of items(st?.ranked_promotions))
     standouts.push({
       tag: x.tag,

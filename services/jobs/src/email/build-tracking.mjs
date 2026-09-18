@@ -29,7 +29,11 @@ export async function buildTracking({ db, account, week, season }) {
   const fromMs = week.from.getTime();
   const toMs = week.to.getTime();
   const tz = account.timezone;
-  const { entries, quiet, items } = await buildTimeline(db, subjects, {
+  const {
+    entries,
+    quiet,
+    timeline: items,
+  } = await buildTimeline(db, subjects, {
     fromMs,
     toMs,
     timezone: tz,
@@ -40,7 +44,7 @@ export async function buildTracking({ db, account, week, season }) {
       .filter((it) => it.subject_tag === tag && MOMENT_KINDS.has(it.kind))
       .slice(0, 8)
       .map((it) => {
-        const text = itemText(it, tz);
+        const text = it.text ?? itemText(it, tz);
         // "Wed 22:57 thingles joined Elixir Kings." -> when + the rest
         const m = /^(\w{3} \d{2}:\d{2})\s+(.*)$/.exec(text);
         return m ? { when: m[1], text: m[2] } : { when: "", text };
