@@ -297,7 +297,7 @@ export const playersTools = {
 
   players_timeline: {
     description:
-      "Time series from daily snapshots, one point per game day: trophies by default, or any of the day row's metrics (donations and donations_received, the weekly counters; the lifetime block: battle_count, wins, losses, three_crown_wins, star_points, collection_level, king_tower_level, total_donations, the challenge and tournament counters; the Path of Legends standing; the seasonal trophies; arena_id, clan_tag, clan_rank, game_last_seen_at from the roster). Every point carries observed_at, profile_observed_at (null on a roster-only day) and roster_observed_at. progress_key adds the side-mode progress series; kind selects the pre_reset or season_roll row. Granularity week returns the last row of each ISO week.",
+      "Time series from daily snapshots, one point per game day, for the caller by default: trophies, or any of the day row's metrics (the roster's trophies, donations, arena, clan and rank; the profile's lifetime block and Path of Legends standing; the seasonal trophies; the full list is on recording#daily-series). Every point carries observed_at, profile_observed_at (null on a roster-only day) and roster_observed_at. progress_key adds the side-mode progress series; kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week.",
     inputSchema: {
       type: "object",
       properties: {

@@ -772,7 +772,7 @@ export const elixirTools = {
 
   elixir_timeline: {
     description:
-      "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS in order plus one summary ENTRY per subject. A person's subjects are the players they track and the clans they added; an agent's is the clan it represents, whose members appear on the clan's timeline. Items are named moments with an instant: battle sessions (a 30-minute gap breaks a session; single battles never appear), badges by name, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, the boat crossing the line, a week resolving, quiet rungs crossed, returns, and your account events. Each entry opens with a sentence a person can read, then always-present sections. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: last 24 hours; capped at 30 days). mark_read moves the pointer to the window end; a dry run passes false. Needs only cr:read.",
+      "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS in order plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, war milestones, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
     inputSchema: {
       type: "object",
       properties: {

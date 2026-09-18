@@ -206,7 +206,7 @@ export const warTools = {
 
   war_current: {
     description:
-      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists (name + tag) and drops the participants array. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
+      "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists and drops participants. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
     inputSchema: {
       type: "object",
       properties: {

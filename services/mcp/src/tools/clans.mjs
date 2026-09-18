@@ -264,7 +264,7 @@ export const clansTools = {
 
   clans_roster: {
     description:
-      "A clan's roster, yours by default: roles, latest trophies and donations per member, activity recency (last recorded battle and the game's own last-seen), the member's tenure and badge count, the lifetime block as of the latest profile poll (best trophies, battles, wins, losses, three-crown wins, collection level, king tower level, total donations; null for a member whose profile is not recorded), and recent join/leave/role events. verbosity compact answers 'how many members' and 'what is this clan called' with the name, the count and the role breakdown only. live: true asks for a fresh read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
+      "A clan's roster, yours by default: per member the role, latest trophies and donations, last recorded battle and the game's own last-seen, tenure, badge count and the lifetime block as of the latest profile poll (null for a member whose profile is not recorded), plus recent join, leave and role events. verbosity compact keeps the name, the member count and the role breakdown. live: true asks for a fresh read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
     inputSchema: {
       type: "object",
       properties: {
@@ -482,7 +482,7 @@ export const clansTools = {
 
   clans_participation: {
     description:
-      "Every open member's participation, week by week, in ONE call: per ISO week the battles played, ranked battles and the donation counter at week end; per recorded war week the decks used and each war day's decks (null where the day was not polled); per member the observed join, whether that join predates the recording, the last recorded battle and days since it. Facts with their windows and the recording horizon, no rating or ranking: the raw material for any clan's own participation rules. weeks 1 to 8, default 5; the current week is partial and says so. verbosity compact drops the per-day war arrays and points.",
+      "Every open member's participation, week by week, for the caller's clan by default, in ONE call: per ISO week the battles played, ranked battles and the donation counter at week end; per recorded war week the decks used and each war day's decks (null where the day was not polled); per member the observed join, whether it predates the recording, the last recorded battle and days since it. Facts with their windows and the recording horizon, never a rating. weeks 1 to 8, default 5; the current week is partial and says so. verbosity compact drops the per-day war arrays and points.",
     inputSchema: {
       type: "object",
       properties: {

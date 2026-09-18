@@ -257,6 +257,11 @@ either source; "wins on day D" is the day's last profile read, and a day the
 roster wrote with no profile poll carries the roster's columns and null
 elsewhere, with `profile_observed_at` null to say so.
 
+`clans_roster` at full verbosity carries each member's latest profile row as
+`lifetime` (`as_of`, `best_trophies`, `battle_count`, `wins`, `losses`,
+`three_crown_wins`, `collection_level`, `king_tower_level`,
+`total_donations`), `null` for a member whose profile is not recorded.
+
 `clans_timeline`'s `members_seen` counts the member rows the roster wrote on
 that day, whatever the clan's `members` said. It reads above `members` on a
 day a member left: their row keeps the clan's tag until the next roster places
