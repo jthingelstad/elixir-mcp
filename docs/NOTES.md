@@ -3480,3 +3480,66 @@ lifetime block, the `rankings_timeline` description, one minor bump
 with its changelog and What's-new, the tools reference regenerated;
 `elixir_data_insights.players_with_snapshot` renamed or filtered. Jamie
 reads the tool names before the bump.
+
+## 2026-09-18 — Time-series Phase 3, verified: the rollup double count, the roster columns, the hand check
+
+The review session read Phase 3 back and returned "fix this first": prove
+the 310 added rollup keys do not double count. Three commits, three
+deploys, all read back live.
+
+**The rollup double count (`80c21b0`).** The bot has no `challenge`
+mode group; its challenge and special-event battles fold onto `casual`,
+and the record files the same battles under `challenge` or `tournament`
+from `MODE_GROUP_BY_TYPE`, so a folded bot key the census counted as
+absent can be the record's own battles under another group - and
+`daily-sql` sums both. The same shape can arise from `game_mode_id`
+folded to 0 where the record holds the real id. `{series_census}`'s
+rollup block now counts the committed bot keys with such a sibling and
+names them; the commit's insert excludes them and takes back any
+already committed. Live: **10 of the 310** were siblings - every one on
+2026-04-04, game mode 72000009, the bot's `casual` against the record's
+`tournament` (4 + 4 + 3 + 1 + ... battles a player). Removed; the census
+after reads `with_sibling_key 0`, `absent 10` (those ten, never to
+land); the other 300 stand. So the 727 differing present keys, split
+332 / 365, are 3.3's boundary residual and nothing else.
+
+**The 113 rows the profile wrote and the roster never did.** The
+roster-columns-only path: `clan_tag`, `clan_rank`, `game_last_seen_at`
+and `roster_observed_at` where the roster stamp was null, never a
+shared column (the 0133 split guard is what makes it safe), `source`
+unchanged - the row's origin is the profile's, these columns' the
+bot's. Live: 113 filled; POAP KINGS' first five days now have their
+members under the clan's tag, which the Phase 4 member timeline reads
+by. A second commit: 0 / 0 / 0 / 0 / 0.
+
+**The hand check (`5525964`).** Ten of the 141 trophies pairs differing
+at what read as the same tick, May onward, against every archived
+roster of that game day (1 to 98 rosters a day): **all ten match** an
+archived roster - the bot's value is a real observation the archive
+holds. The check also showed why the census had misclassified them:
+the recorder's day value is the profile's later read (trophies is a
+shared column whose stamp is `observed_at`), and the census compared
+against the roster stamp. Reclassed on the value's own stamp: trophies
+7,653 equal / 984 residual / **10** differing, donations 6,063 / 1,351 /
+3, donations_received 5,580 / 1,825 / 12, clan_rank 7,215 / 1,423 / 9,
+over 8,647 pairs; the ten remaining trophies pairs are March-April,
+one roster a day, the bot's value from a profile poll with no time.
+The mapping is proven on members as well as on the clan.
+
+**Carried into Phase 4, from the same verification.** Per point:
+`observed_at`, `profile_observed_at`, `roster_observed_at` (null means
+that writer never touched the row), `source`, `kind`, and on a member
+point `clan_tag`; one note per response when any point in the window
+is `source: elixir-bot` (the instant is the bot's day, approximated on
+four days); `clans_timeline.members_seen` counts rows with a roster
+stamp, not rows with a clan tag; `elixir_data_insights.players_with_snapshot`
+filters on `profile_observed_at`; a line in the docs section that the
+July-September ledger for the hole's players is quiet by rule (the
+replay wrote rows, never moments). Tool names stand: `players_timeline`,
+`clans_timeline`, `clans_members_timeline`.
+
+**For Jamie.** Revoke the `backfill-elixir-bot` gateway row
+(`927ec4b2-6b07-4db2-808f-12a3912a3ad4`) in Admin; the `staging` schema
+can go now that the commit has used it (`drop schema staging cascade`
+is a one-line op for the next session, or leave it: three small tables
+outside the fingerprint).
