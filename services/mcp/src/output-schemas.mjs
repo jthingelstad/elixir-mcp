@@ -896,15 +896,10 @@ export const OUTPUT_SCHEMAS = {
           lifetime: {
             type: ["object", "null"],
             description:
-              "Both spellings until 4.0.0: the snake_case keys are the ones clans_roster and players_timeline speak and the ones that stay; the camelCase keys are retired at the major.",
+              "The lifetime block as the last profile poll carried it, in the names clans_roster and players_timeline speak (4.0.0: one shape); null on a profile that never carried the counters.",
             properties: {
-              battleCount: NULLABLE_INT,
               wins: NULLABLE_INT,
               losses: NULLABLE_INT,
-              threeCrownWins: NULLABLE_INT,
-              starPoints: NULLABLE_INT,
-              expPoints: NULLABLE_INT,
-              collectionLevel: NULLABLE_INT,
               battle_count: NULLABLE_INT,
               three_crown_wins: NULLABLE_INT,
               star_points: NULLABLE_INT,
