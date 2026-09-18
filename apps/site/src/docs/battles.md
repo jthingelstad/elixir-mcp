@@ -97,7 +97,7 @@ This table is generated from the contract, so it is what the tools accept.
 `game_mode.name` is finer than the group: an event mode such as a Chaos or
 Crazy Mode battle is a `challenge`-group battle with its own mode name, which
 `battles_query({ mode_name })` can filter by substring and
-`battles_performance({ group_by: "mode" })` lists.
+`battles_performance({ group_by: "game_mode" })` lists.
 
 ## Duels and boat battles
 

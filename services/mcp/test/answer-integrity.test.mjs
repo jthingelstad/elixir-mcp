@@ -53,7 +53,7 @@ test("performance totals agree across views beyond 2000 battles, with explicit r
   });
   const modes = await call("battles_performance", {
     ...args,
-    group_by: "mode",
+    group_by: "game_mode",
   });
   assert.equal(summary.window.battles, 3000);
   assert.equal(summary.window.win_rate, 0.667);

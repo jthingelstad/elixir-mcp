@@ -189,7 +189,7 @@ export const battlesTools = {
         game_mode: {
           type: "string",
           description:
-            "Case-insensitive substring of the game's mode name ('chaos', 'crazy'); discover names with battles_performance group_by: 'mode'.",
+            "Case-insensitive substring of the game's mode name ('chaos', 'crazy'); discover names with battles_performance group_by: 'game_mode'.",
         },
         live: {
           type: "boolean",
@@ -657,7 +657,7 @@ export const battlesTools = {
 
   battles_performance: {
     description:
-      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks, and trophy_floor when the player stood on an arena floor (losses there cost nothing, so net_trophies is asymmetric). compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view (buckets the window clips are marked partial) and group_by mode the "what have I been playing" view.',
+      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks, and trophy_floor when the player stood on an arena floor (losses there cost nothing, so net_trophies is asymmetric). compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view (buckets the window clips are marked partial) and group_by game_mode the "what have I been playing" view.',
     inputSchema: {
       type: "object",
       properties: {
@@ -681,9 +681,9 @@ export const battlesTools = {
         compare_to: { type: "string", description: WINDOW_TO_DESC },
         group_by: {
           type: "string",
-          enum: ["week", "mode"],
+          enum: ["week", "game_mode"],
           description:
-            "week: weekly series (ISO weeks). mode: the named game mode (not the mode group; event modes included). Overrides before_after and compare_*.",
+            "week: weekly series (ISO weeks). game_mode: per named game mode (the row's game_mode, not the mode group; event modes included). Overrides before_after and compare_*.",
         },
         before_after: {
           type: "string",
@@ -804,7 +804,7 @@ export const battlesTools = {
       const { from, to } = win;
       let result;
       const caveats = [];
-      if (args.group_by === "mode") {
+      if (args.group_by === "game_mode") {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
         const params = [tag];
         const add = (clause, value) => {

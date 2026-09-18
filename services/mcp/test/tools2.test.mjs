@@ -597,7 +597,7 @@ test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS 
     [OBSERVER],
   );
 
-  const perf = await call("battles_performance", { group_by: "mode" });
+  const perf = await call("battles_performance", { group_by: "game_mode" });
   assert.equal(perf.isError, false, JSON.stringify(perf.body));
   const chaos = perf.body.by_mode.filter((m) =>
     (m.game_mode ?? "").startsWith("Chaos_"),
@@ -1456,7 +1456,7 @@ test("battles_performance: decided vs boat denominators, mode key documented", a
   assert.ok(w.decided_battles <= w.wins + w.losses);
   assert.ok(w.decided_battles < w.battles);
   assert.match(body.notes.join(" "), /decided_wins/);
-  const modes = await call("battles_performance", { group_by: "mode" });
+  const modes = await call("battles_performance", { group_by: "game_mode" });
   assert.match(modes.body.notes.join(" "), /\(game_mode, type\)/);
   assert.ok(modes.body.by_mode.every((r) => "type" in r));
 });
