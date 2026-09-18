@@ -169,6 +169,9 @@ therefore serves the controls beside it:
   members' logs are not recorded, where every count is zero by
   construction for a member whose `log_recorded` is false). `trophy_net`
   is `null` when `ladder_battles` is 0.
+- `battles_trends` (3.16.0) weeks carry `modes` and, when the window clips
+  a week, `partial: true` with `covers {from, to}`, the same marks
+  `battles_performance` puts on its weekly buckets.
 
 The notes fire on a detected confound, not as a standing caveat: a
 `battles_decks` read within one mode whose decks met similar levels carries

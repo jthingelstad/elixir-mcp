@@ -871,6 +871,24 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.ok(trends.body.weeks.length > 0, "weekly rows");
   const wk = trends.body.weeks.at(-1);
   assert.ok(wk.players >= 1 && wk.battles >= wk.wins + wk.losses);
+  // 3.16.0: every week carries its mode split, and a week the window
+  // clips is marked with the span it holds (the fixture's weeks all end
+  // before now, so only an explicit `to` inside a week clips one).
+  assert.ok(trends.body.weeks.every((w) => typeof w.modes === "object"));
+  assert.equal(
+    Object.values(wk.modes).reduce((n, m) => n + m.battles, 0),
+    wk.battles,
+    "the split sums to the week",
+  );
+  const clipped = await call("battles_trends", {
+    from: "2026-08-24",
+    to: "2026-09-03T12:00:00Z",
+  });
+  assert.equal(clipped.isError, false, JSON.stringify(clipped.body));
+  const last = clipped.body.weeks.at(-1);
+  assert.equal(last.partial, true, "the week `to` cuts is partial");
+  assert.equal(last.covers.to, "2026-09-03T12:00:00.000Z");
+  assert.ok(clipped.body.notes.some((l) => /partial/.test(l)));
 
   const missing = await call("battles_meta_decks", {
     segment: { collection: "nope" },

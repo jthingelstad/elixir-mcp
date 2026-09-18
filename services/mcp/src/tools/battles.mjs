@@ -12,7 +12,6 @@ import {
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { formatLocal } from "../time.mjs";
-import { modeGroupOf } from "../controls.mjs";
 import {
   requireEnum,
   ToolFailure,
@@ -89,6 +88,7 @@ const CONTROLS_DOCS = docsRef("battles", "the-control-next-to-the-number");
 const DENOMINATOR_DOCS = docsRef("battles", "decided-battles-and-denominators");
 
 import {
+  modeGroupOf,
   modeSplit,
   countByMode,
   modeGaps,
@@ -1697,6 +1697,44 @@ export const battlesTools = {
          order by w.week_start`,
         params,
       );
+      // The control next to the number (3.16.0): the week's mode split
+      // (one more group-by over the same rows), and the buckets the
+      // window clips marked with the span they hold.
+      const { rows: byType } = await ctx.db.query(
+        `select date_trunc('week', b.battle_time)::date::text as week_of, b.type,
+                count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+          where ${where.join(" and ")}
+          group by 1, 2`,
+        params,
+      );
+      const typesByWeek = new Map();
+      for (const t of byType) {
+        if (!typesByWeek.has(t.week_of)) typesByWeek.set(t.week_of, []);
+        typesByWeek.get(t.week_of).push(t);
+      }
+      const shaped = rows.map((r) => ({
+        iso_week: r.iso_week,
+        week_of: r.week_of,
+        battles: r.battles,
+        wins: r.wins,
+        losses: r.losses,
+        players: r.players,
+        win_rate:
+          r.wins + r.losses > 0
+            ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+            : null,
+        trophy_battles: r.trophy_battles,
+        net_trophies: r.net_trophies,
+        season_month: r.season_month,
+        modes: modeSplit(typesByWeek.get(r.week_of) ?? []),
+      }));
+      const { rows: weeks, partial } = markPartialWeeks(shaped, {
+        from: null,
+        to: win.to ? new Date(win.to) : null,
+      });
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -1704,23 +1742,13 @@ export const battlesTools = {
           weeks: args.weeks,
           mode: args.mode,
         }),
-        weeks: rows.map((r) => ({
-          iso_week: r.iso_week,
-          week_of: r.week_of,
-          battles: r.battles,
-          wins: r.wins,
-          losses: r.losses,
-          players: r.players,
-          win_rate:
-            r.wins + r.losses > 0
-              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
-              : null,
-          trophy_battles: r.trophy_battles,
-          net_trophies: r.net_trophies,
-          season_month: r.season_month,
-        })),
+        weeks,
         notes: notes(
+          partialWeeksNote(partial),
           "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+          !args.mode && weeks.some((w) => Object.keys(w.modes).length > 1)
+            ? "Weeks pool every mode group (modes says which); matchmaking differs by mode, so pass mode before reading win_rate as a trend of strength."
+            : null,
           "season_month is the season the week's Tuesday to Sunday fall in; a season rolls on Monday at 10:00 UTC, so a roll week's first hours belong to the season before (applied.window.crosses says where).",
           win.seasonNotes,
           "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was.",
