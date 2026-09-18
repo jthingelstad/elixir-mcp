@@ -273,12 +273,19 @@ export const playersTools = {
           favorite_card_id: row.favorite_card_id,
           years_played: row.years_played,
           account_age_days: row.account_age_days,
+          // The frozen career counters the profile carries (0127): war
+          // day wins, cards donated to clans, the old Trophy Road best.
+          war_day_wins: row.war_day_wins,
+          clan_cards_collected: row.clan_cards_collected,
+          legacy_trophy_road_high_score: row.legacy_trophy_road_high_score,
         },
         badges: row.badges ?? [],
         snapshot: {
           date: row.snapshot_date.toISOString().slice(0, 10),
           trophies: row.trophies,
-          path_of_legend: row.pol,
+          // {current, best} as always, plus the last twelve season finals
+          // the record kept (player_pol_season, 0130), newest first.
+          path_of_legend: { ...row.pol, seasons: row.pol_seasons ?? [] },
           league_statistics: row.league_stats,
           donations_this_week: row.donations,
           donations_received_this_week: row.donations_received,
@@ -288,6 +295,7 @@ export const playersTools = {
           livePendingNote(live),
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
           "attributes and clan carry ids only; names and icons resolve through cards_catalog.",
+          "path_of_legend.seasons lists the last twelve season finals the record kept (the API's lastPathOfLegendSeasonResult, read in the following month; rank null unless globally ranked), newest first; empty for a player recorded after their last final or never ranked.",
         ),
         docs: docsRef("recording", "the-games-own-last-seen"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),

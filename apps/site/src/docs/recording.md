@@ -260,7 +260,21 @@ elsewhere, with `profile_observed_at` null to say so.
 `clans_roster` at full verbosity carries each member's latest profile row as
 `lifetime` (`as_of`, `best_trophies`, `battle_count`, `wins`, `losses`,
 `three_crown_wins`, `collection_level`, `king_tower_level`,
-`total_donations`), `null` for a member whose profile is not recorded.
+`total_donations`), `null` for a member whose profile is not recorded, plus
+the three frozen career counters the profile carries on the player rather
+than the day: `war_day_wins` (the game's own `warDayWins`, war day wins over
+the account's life), `clan_cards_collected` (cards donated to clans over the
+account's life) and `legacy_trophy_road_high_score` (the best on the old
+Trophy Road). `players_profile.attributes` carries the same three.
+
+A player's past Path of Legends finals are kept once per season: the
+profile poll in the following month carries the API's
+`lastPathOfLegendSeasonResult`, and the record files it under the season it
+closes (`league`, `trophies`, `rank`; `rank` is `null` unless the player was
+globally ranked). `players_profile.snapshot.path_of_legend.seasons[]` lists
+the last twelve, newest first, keyed by `season_month`; the archive holds
+every recorded player's final since March 2026 and the series tools carry
+the standing at the roll hour (`players_timeline({ kind: "season_roll" })`).
 
 `clans_timeline`'s `members_seen` counts the member rows the roster wrote on
 that day, whatever the clan's `members` said. It reads above `members` on a

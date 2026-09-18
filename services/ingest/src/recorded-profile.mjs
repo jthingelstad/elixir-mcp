@@ -7,6 +7,7 @@ export async function readRecordedProfile(db, tag) {
             p.last_known_clan_tag, cl.name as clan_name,
                 cl.badge_id as clan_badge_id, p.last_known_clan_role,
                 p.years_played, p.account_age_days,
+                p.war_day_wins, p.clan_cards_collected, p.legacy_trophy_road_high_score,
                 s.snapshot_date, s.snapshot_kind, s.trophies,
                 s.donations, s.donations_received, s.created_at as snapshot_at,
                 s.arena_id, s.best_trophies, s.favorite_card_id,
@@ -22,7 +23,14 @@ export async function readRecordedProfile(db, tag) {
                     'name', b.name, 'level', b.level, 'max_level', b.max_level,
                     'progress', b.progress, 'target', b.target)
                   order by b.name), '[]'::jsonb)
-                 from player_badge b where b.player_tag = p.player_tag) as badges
+                 from player_badge b where b.player_tag = p.player_tag) as badges,
+                (select coalesce(jsonb_agg(jsonb_build_object(
+                    'season_month', f.season_month, 'league', f.league,
+                    'trophies', f.trophies, 'rank', f.rank)
+                  order by f.season_month desc), '[]'::jsonb)
+                 from (select season_month, league, trophies, rank from player_pol_season
+                        where player_tag = p.player_tag
+                        order by season_month desc limit 12) f) as pol_seasons
          from player p
          left join clan cl on cl.clan_tag = p.last_known_clan_tag
          left join lateral (

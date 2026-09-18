@@ -284,6 +284,9 @@ export const OUTPUT_SCHEMAS = {
           favorite_card_id: { type: ["integer", "null"] },
           years_played: { type: ["integer", "null"] },
           account_age_days: { type: ["integer", "null"] },
+          war_day_wins: NULLABLE_INT,
+          clan_cards_collected: NULLABLE_INT,
+          legacy_trophy_road_high_score: NULLABLE_INT,
         },
       },
       badges: { type: "array" },
@@ -301,6 +304,21 @@ export const OUTPUT_SCHEMAS = {
             properties: {
               current: POL_RESULT,
               best: POL_RESULT,
+              seasons: {
+                type: "array",
+                description:
+                  "The last twelve season finals the record kept, newest first (3.15.0).",
+                items: {
+                  type: "object",
+                  properties: {
+                    season_month: { type: "string" },
+                    league: NULLABLE_INT,
+                    trophies: NULLABLE_INT,
+                    rank: NULLABLE_INT,
+                  },
+                  required: ["season_month"],
+                },
+              },
             },
             required: ["current", "best"],
           },

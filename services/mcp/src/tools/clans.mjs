@@ -383,6 +383,7 @@ export const clansTools = {
       const roster = await ctx.db.query(
         `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
                 p.game_last_seen_at, p.years_played, p.account_age_days,
+                  p.war_day_wins, p.clan_cards_collected, p.legacy_trophy_road_high_score,
                   nn.nickname,
                   s.trophies, s.donations,
                   l.best_trophies, l.battle_count, l.wins, l.losses, l.three_crown_wins,
@@ -450,6 +451,9 @@ export const clansTools = {
                 collection_level: m.collection_level,
                 king_tower_level: m.king_tower_level,
                 total_donations: m.total_donations,
+                war_day_wins: m.war_day_wins,
+                clan_cards_collected: m.clan_cards_collected,
+                legacy_trophy_road_high_score: m.legacy_trophy_road_high_score,
               }
             : null,
         })),

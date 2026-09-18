@@ -99,7 +99,13 @@ before(async () => {
     await fixture("player_battlelog/with_clanmate_2v2.json"),
     "2026-09-02T11:10:50Z",
   );
+  // A profile poll in September writes the August final once, and the
+  // three frozen counters onto the player.
+  const profile = await fixture("player/profile.json");
+  await send("player", profile.tag, profile, "2026-09-03T14:40:34Z");
+  PROFILE = profile;
 });
+let PROFILE;
 
 after(async () => {
   await db.end();
@@ -158,4 +164,67 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
     (b) => b.context.deck_selection === "draft",
   );
   assert.ok(drafted, "a drafted deck says so");
+});
+
+test("players_profile carries the Path of Legends finals and the frozen counters; clans_roster.lifetime the counters (Phase 2 items 4, 5)", async () => {
+  const tag = PROFILE.tag;
+  const finals = await db.query(
+    "select season_month, league, trophies, rank from player_pol_season where player_tag = $1",
+    [tag],
+  );
+  assert.equal(finals.rows.length, 1, "the poll wrote one final");
+  // A second, older final, so the order and the cap are visible.
+  await db.query(
+    `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
+     values ($1, '2026-06', 5, 1200, 8000, now())`,
+    [tag],
+  );
+  const profile = await call("players_profile", { player_tag: tag });
+  const seasons = profile.snapshot.path_of_legend.seasons;
+  assert.equal(seasons.length, 2);
+  assert.equal(seasons[0].season_month, finals.rows[0].season_month);
+  assert.deepEqual(seasons[1], {
+    season_month: "2026-06",
+    league: 5,
+    trophies: 1200,
+    rank: 8000,
+  });
+  assert.deepEqual(profile.snapshot.path_of_legend.current, {
+    leagueNumber: 1,
+    trophies: 0,
+    rank: null,
+  });
+  assert.equal(profile.attributes.war_day_wins, PROFILE.warDayWins);
+  assert.equal(
+    profile.attributes.clan_cards_collected,
+    PROFILE.clanCardsCollected,
+  );
+  assert.equal(
+    profile.attributes.legacy_trophy_road_high_score,
+    PROFILE.legacyTrophyRoadHighScore,
+  );
+  assert.match(profile.notes.join(" "), /path_of_legend.seasons/);
+
+  // The roster's lifetime block carries the same counters.
+  await db.query(
+    "insert into clan (clan_tag, name) values ($1, 'POAP KINGS') on conflict do nothing",
+    [PROFILE.clan.tag],
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by) values ('clan', $1, $2)`,
+    [PROFILE.clan.tag, account.accountId],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     values ($1, $2, now(), 'elder') on conflict do nothing`,
+    [PROFILE.clan.tag, tag],
+  );
+  const roster = await call("clans_roster", { clan_tag: PROFILE.clan.tag });
+  const me = roster.members.find((m) => m.player_tag === tag);
+  assert.equal(
+    me.lifetime.legacy_trophy_road_high_score,
+    PROFILE.legacyTrophyRoadHighScore,
+  );
+  assert.equal(me.lifetime.war_day_wins, PROFILE.warDayWins);
+  assert.equal(me.lifetime.clan_cards_collected, PROFILE.clanCardsCollected);
 });

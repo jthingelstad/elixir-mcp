@@ -1745,7 +1745,11 @@ test("players_profile renders a snapshot with every typed column null and passes
   );
   const { body, isError } = await call("players_profile", { player_tag: tag });
   assert.equal(isError, false, JSON.stringify(body));
-  assert.deepEqual(body.snapshot.path_of_legend, { current: null, best: null });
+  assert.deepEqual(body.snapshot.path_of_legend, {
+    current: null,
+    best: null,
+    seasons: [],
+  });
   assert.equal(body.snapshot.league_statistics, null);
   assert.equal(body.snapshot.lifetime, null);
   assert.equal(body.snapshot.trophies, 4200);
@@ -1760,6 +1764,7 @@ test("players_profile renders a snapshot with every typed column null and passes
   assert.deepEqual(partial.body.snapshot.path_of_legend, {
     current: { leagueNumber: 3, trophies: 120, rank: null },
     best: null,
+    seasons: [],
   });
   assert.equal(partial.body.snapshot.lifetime.battleCount, 9);
   assert.equal(partial.body.snapshot.lifetime.starPoints, null);
