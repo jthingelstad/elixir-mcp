@@ -3247,10 +3247,18 @@ beside live ingest: clan receipts avg 462 ms (164 before), player
 not a regression of the writers. The hour-after reading was not taken:
 the `jamie` profile's `aws login` session expired at 00:3xZ, after the
 last deploy and the final census, and only Jamie can renew it. The
-first `{series_status: {hours: 1}}` of the next session is that
-reading, with the arena moments' battle share and the storage rate a
-day on (`{tables}`: `player_snapshot_daily` 37.0 MB at 140,042 rows on
-23:42Z is the baseline).
+session was renewed at 00:5xZ and the reading taken at 00:53Z, 79
+minutes after the last lane: player 189 ms avg / 338 max (183 before
+the lanes), currentriverrace 181 ms, clan 241 ms avg / 1,039 max (164
+before: a first-of-day roster now writes ~42 member rows and reads the
+members' prior arenas; the rest of the gap is the hour's mix). No
+alarm. Arena moments in the day: 145, 144 from the roster, 0 pinned
+with a battle - the 141 the lane wrote have their crossing battles
+already in the record, and a pin needs a NEW delivery to carry the
+crossing, so only moments from here on can be pinned; the week's
+reading is the honest one. `player_snapshot_daily` 140,097 rows at 37.0
+MB (4,204 dead, autovacuum's); the storage rate a day on is
+`{tables}` against that.
 
 **Decisions taken inside the phase.** (1) Fifty receipts a transaction,
 not two hundred, and a deadlock is the batch's to retry. (2) The
