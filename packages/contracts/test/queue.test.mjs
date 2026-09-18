@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  PRODUCT_EMAIL_KINDS,
+  isProductEmailKind,
   validateEmailMessage,
   EMAIL_KIND_CLASS,
   unsubscribeHeaders,
@@ -61,12 +63,16 @@ test("a result may carry the collector's observed/filtered counts; the filter sp
 });
 
 test("mail policy: every kind is classified; bulk needs one-click unsubscribe, transactional refuses it", () => {
-  for (const kind of Object.keys(EMAIL_KIND_CLASS))
-    assert.equal(
-      EMAIL_KIND_CLASS[kind],
-      "transactional",
-      `${kind} is transactional today`,
-    );
+  // Three transactional kinds, six product (bulk) kinds (docs/EMAIL.md).
+  for (const kind of ["login", "welcome", "owner_notify"])
+    assert.equal(EMAIL_KIND_CLASS[kind], "transactional", `${kind}`);
+  for (const kind of PRODUCT_EMAIL_KINDS)
+    assert.equal(EMAIL_KIND_CLASS[kind], "bulk", `${kind} is bulk`);
+  assert.equal(
+    Object.keys(EMAIL_KIND_CLASS).length,
+    3 + PRODUCT_EMAIL_KINDS.length,
+    "every kind is classified, none twice",
+  );
   const login = { v: 1, kind: "login", to: "a@b.c", code: "123456" };
   assert.equal(validateEmailMessage(login).ok, true);
   assert.deepEqual(
@@ -78,34 +84,38 @@ test("mail policy: every kind is classified; bulk needs one-click unsubscribe, t
   const r = validateEmailMessage(mislabelled);
   assert.equal(r.ok, false);
   assert.ok(r.errors.includes("unsubscribe:transactional"));
-  // A bulk kind, were one added: the headers the relay would send.
-  const digest = {
+  // A product kind arrives rendered and carries its one-click URL.
+  const report = {
     v: 1,
-    kind: "digest",
+    kind: "clan_report",
     to: "a@b.c",
+    subject: "POAP KINGS, Sep 7 – 14",
+    text: "the text",
+    html: "<p>the html</p>",
     unsubscribe: { url: "https://x/u?t=1" },
   };
-  const saved = EMAIL_KIND_CLASS.digest;
-  EMAIL_KIND_CLASS.digest = "bulk";
-  try {
-    assert.equal(validateEmailMessage(digest).ok, true);
-    assert.deepEqual(unsubscribeHeaders(digest), [
-      { name: "List-Unsubscribe", value: "<https://x/u?t=1>" },
-      { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
-    ]);
-    const bare = validateEmailMessage({ ...digest, unsubscribe: undefined });
-    assert.equal(bare.ok, false);
-    assert.ok(bare.errors.includes("unsubscribe:missing"));
-    const http = validateEmailMessage({
-      ...digest,
-      unsubscribe: { url: "http://x/u" },
-    });
-    assert.ok(
-      !http.ok && http.errors.includes("unsubscribe:missing"),
-      "https only",
-    );
-  } finally {
-    if (saved === undefined) delete EMAIL_KIND_CLASS.digest;
-    else EMAIL_KIND_CLASS.digest = saved;
-  }
+  assert.equal(validateEmailMessage(report).ok, true);
+  assert.deepEqual(unsubscribeHeaders(report), [
+    { name: "List-Unsubscribe", value: "<https://x/u?t=1>" },
+    { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
+  ]);
+  const bare = validateEmailMessage({ ...report, unsubscribe: undefined });
+  assert.equal(bare.ok, false);
+  assert.ok(bare.errors.includes("unsubscribe:missing"));
+  const http = validateEmailMessage({
+    ...report,
+    unsubscribe: { url: "http://x/u" },
+  });
+  assert.ok(
+    !http.ok && http.errors.includes("unsubscribe:missing"),
+    "https only",
+  );
+  const unrendered = validateEmailMessage({
+    ...report,
+    subject: undefined,
+    text: "",
+  });
+  assert.ok(!unrendered.ok && unrendered.errors.includes("subject:missing"));
+  assert.ok(unrendered.errors.includes("text:missing"));
+  assert.ok(isProductEmailKind("milestone") && !isProductEmailKind("login"));
 });

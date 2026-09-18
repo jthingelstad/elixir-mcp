@@ -1,0 +1,526 @@
+{
+ "week": {
+  "from": "2026-09-07T10:00:00Z",
+  "to": "2026-09-14T10:00:00Z",
+  "label": "Sep 7 – 14",
+  "key": "2026-W37",
+  "season": 136,
+  "war_week": 1
+ },
+ "clan": {
+  "tag": "#J2RGCRVG",
+  "name": "POAP KINGS",
+  "scope": "comprehensive",
+  "members": 47,
+  "members_from": 48
+ },
+ "headline": {
+  "battles": 3200,
+  "active": 46,
+  "of": 47,
+  "sessions": 803,
+  "donations": 542,
+  "donations_leader": {
+   "name": "Chanco",
+   "tag": "#20R8QRLYLP",
+   "n": 74
+  }
+ },
+ "war": {
+  "present": true,
+  "season": 136,
+  "week": 1,
+  "rank": 1,
+  "fame": 10134,
+  "trophy_change": 20,
+  "clan_score": 1160,
+  "finished": "2026-09-14T09:38:05Z",
+  "finished_early": false,
+  "participants": null
+ },
+ "membership": {
+  "joined": [
+   {
+    "name": "Brotherinpants",
+    "tag": "#RRU9PGJQ9",
+    "when": "Tue"
+   },
+   {
+    "name": "VVSBUDGET",
+    "tag": "#20CLVPLG8R",
+    "when": "Sat"
+   },
+   {
+    "name": "ㅤᴀɴᴅᴇʀㅤ:)",
+    "tag": "#LCUVPUYCY",
+    "when": "Sat",
+    "note": "left again the same day"
+   }
+  ],
+  "left": [
+   {
+    "name": "pax",
+    "tag": "#UCP028JQ8",
+    "when": "Thu",
+    "role": "member"
+   },
+   {
+    "name": "Ditaka",
+    "tag": "#VGJJLC9PR",
+    "when": "Thu",
+    "role": "member"
+   },
+   {
+    "name": "Th15_Guy",
+    "tag": "#QLGYYG0Q",
+    "when": "Thu",
+    "role": "member"
+   }
+  ],
+  "roles": [
+   {
+    "name": "pax",
+    "tag": "#UCP028JQ8",
+    "from": "elder",
+    "to": "member"
+   },
+   {
+    "name": "Th15_Guy",
+    "tag": "#QLGYYG0Q",
+    "from": "elder",
+    "to": "member"
+   }
+  ]
+ },
+ "standouts": [
+  {
+   "name": "Aaqib Javed",
+   "tag": "#2G2RPVPP",
+   "text": "449 battles, the most in the clan; 37 in one Saturday sitting with 12 wins in a row; promoted to Master 2 in ranked"
+  },
+  {
+   "name": "L-Drxgo⚡",
+   "tag": "#2CY2RJL9G",
+   "text": "48 battles in one sitting Saturday, 24W-24L, half of them ranked"
+  },
+  {
+   "name": "NOBITA",
+   "tag": "#JRVV9VC0C",
+   "text": "44 battles in one Monday sitting, 10W-34L"
+  },
+  {
+   "name": "canavar",
+   "tag": "#P2U0PC2UU",
+   "text": "+350 trophies, 13,650 → 14,000, clan rank 17 → 2"
+  },
+  {
+   "name": "MONICA",
+   "tag": "#VGC22YGP",
+   "text": "+353 trophies, 13,647 → 14,000, clan rank 18 → 6"
+  }
+ ],
+ "presence": {
+  "quiet": [
+   {
+    "name": "sniperhendo",
+    "days": 7
+   }
+  ],
+  "returned": [
+   {
+    "name": "pokemon",
+    "days": 10
+   },
+   {
+    "name": "round hamster",
+    "days": 7
+   }
+  ]
+ },
+ "badges": [
+  {
+   "name": "bonus",
+   "badge": "Mastery: Miner"
+  },
+  {
+   "name": "Sandeep",
+   "badge": "Mastery: Fire Spirit Hut"
+  },
+  {
+   "name": "sikander sidhu",
+   "badge": "Mastery: Ice Wizard"
+  }
+ ],
+ "roster_note": null,
+ "roster": [
+  {
+   "name": "Aaqib Javed",
+   "tag": "#2G2RPVPP",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 393
+  },
+  {
+   "name": "canavar",
+   "tag": "#P2U0PC2UU",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 350,
+   "battles": 101
+  },
+  {
+   "name": "L-Drxgo⚡",
+   "tag": "#2CY2RJL9G",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 205
+  },
+  {
+   "name": "Vijay",
+   "tag": "#C920YGLC2",
+   "role": "co-leader",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 264
+  },
+  {
+   "name": "Sandeep",
+   "tag": "#UQ2R9RGVP",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 102
+  },
+  {
+   "name": "MONICA",
+   "tag": "#VGC22YGP",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 353,
+   "battles": 141
+  },
+  {
+   "name": "TDuck",
+   "tag": "#PLCCYUQL",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 58
+  },
+  {
+   "name": "The Joesma",
+   "tag": "#PR8YLQ2CV",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 14
+  },
+  {
+   "name": "dez42",
+   "tag": "#9Q9QRCPPU",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 31
+  },
+  {
+   "name": "King Levy",
+   "tag": "#U8RYG9Y2U",
+   "role": "co-leader",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 16
+  },
+  {
+   "name": "OllieTurtle",
+   "tag": "#RJ9RRQPVU",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 39
+  },
+  {
+   "name": "Kurd Paraw",
+   "tag": "#2G09Q20QC",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 17
+  },
+  {
+   "name": "Fullboat",
+   "tag": "#8U2P0JPR",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": 42
+  },
+  {
+   "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+   "tag": "#2P9GRU2Q0",
+   "role": "member",
+   "trophies": 14000,
+   "delta": 0,
+   "battles": null
+  },
+  {
+   "name": "raquaza",
+   "tag": "#UL2V9QRG0",
+   "role": "co-leader",
+   "trophies": 13904,
+   "delta": -29,
+   "battles": 7
+  },
+  {
+   "name": "AHMOメŞΛDØW",
+   "tag": "#UVQ8RJYG9",
+   "role": "member",
+   "trophies": 13681,
+   "delta": -3,
+   "battles": 28
+  },
+  {
+   "name": "sikander sidhu",
+   "tag": "#JYRQ8U92C",
+   "role": "member",
+   "trophies": 13598,
+   "delta": 72,
+   "battles": 124
+  },
+  {
+   "name": "Chanco",
+   "tag": "#20R8QRLYLP",
+   "role": "member",
+   "trophies": 13560,
+   "delta": 60,
+   "battles": 46
+  },
+  {
+   "name": "ryguy67",
+   "tag": "#V8Q8PUL0U",
+   "role": "member",
+   "trophies": 13184,
+   "delta": 0,
+   "battles": 61
+  },
+  {
+   "name": "kiruba⚜️",
+   "tag": "#G2CUUJQ8V",
+   "role": "member",
+   "trophies": 13177,
+   "delta": 0,
+   "battles": 30
+  },
+  {
+   "name": "blackberry",
+   "tag": "#L9CUUJPLJ",
+   "role": "member",
+   "trophies": 13000,
+   "delta": -88,
+   "battles": 120
+  },
+  {
+   "name": "King Thing",
+   "tag": "#20JJJ2CCRU",
+   "role": "leader",
+   "trophies": 12504,
+   "delta": 4,
+   "battles": 18
+  },
+  {
+   "name": "Alfablack",
+   "tag": "#2YG98VVQ",
+   "role": "member",
+   "trophies": 12349,
+   "delta": -33,
+   "battles": 23
+  },
+  {
+   "name": "shimmeringhost",
+   "tag": "#2209PJPVGG",
+   "role": "member",
+   "trophies": 12289,
+   "delta": 94,
+   "battles": 83
+  },
+  {
+   "name": "God Bless You",
+   "tag": "#U92P8PQG0",
+   "role": "member",
+   "trophies": 12105,
+   "delta": 6,
+   "battles": 57
+  },
+  {
+   "name": "I Hate Witch",
+   "tag": "#20LP8UPJ8R",
+   "role": "member",
+   "trophies": 11616,
+   "delta": 115,
+   "battles": null
+  },
+  {
+   "name": "Tere",
+   "tag": "#U08P889Y0",
+   "role": "member",
+   "trophies": 11532,
+   "delta": 0,
+   "battles": 19
+  },
+  {
+   "name": "Andy",
+   "tag": "#2LRYLQPL",
+   "role": "member",
+   "trophies": 11110,
+   "delta": 389,
+   "battles": 57
+  },
+  {
+   "name": "Ak",
+   "tag": "#UCRLVL29U",
+   "role": "member",
+   "trophies": 11085,
+   "delta": 234,
+   "battles": 75
+  },
+  {
+   "name": "BigNorton",
+   "tag": "#CV20JCY0V",
+   "role": "member",
+   "trophies": 11004,
+   "delta": 92,
+   "battles": 37
+  },
+  {
+   "name": "Gabriel",
+   "tag": "#8G8UYG2PQ",
+   "role": "member",
+   "trophies": 9527,
+   "delta": -95,
+   "battles": 11
+  },
+  {
+   "name": "Mega Goblin",
+   "tag": "#229QY8UL9U",
+   "role": "member",
+   "trophies": 9446,
+   "delta": 273,
+   "battles": 60
+  },
+  {
+   "name": "nyje47",
+   "tag": "#VC8VY8R29",
+   "role": "member",
+   "trophies": 8807,
+   "delta": 219,
+   "battles": 55
+  },
+  {
+   "name": "bonus",
+   "tag": "#20GPQPC9RV",
+   "role": "member",
+   "trophies": 8600,
+   "delta": 100,
+   "battles": 139
+  },
+  {
+   "name": "NOBITA",
+   "tag": "#JRVV9VC0C",
+   "role": "member",
+   "trophies": 8530,
+   "delta": 30,
+   "battles": 160
+  },
+  {
+   "name": "round hamster",
+   "tag": "#VR0QRP2PG",
+   "role": "member",
+   "trophies": 8067,
+   "delta": -29,
+   "battles": null
+  },
+  {
+   "name": "Brotherinpants",
+   "tag": "#RRU9PGJQ9",
+   "role": "member",
+   "trophies": 7884,
+   "delta": 0,
+   "battles": null
+  },
+  {
+   "name": "VVSBUDGET",
+   "tag": "#20CLVPLG8R",
+   "role": "member",
+   "trophies": 7750,
+   "delta": 36,
+   "battles": 27
+  },
+  {
+   "name": "£eoππe§§;",
+   "tag": "#VJG09L9YY",
+   "role": "member",
+   "trophies": 7667,
+   "delta": 7,
+   "battles": 21
+  },
+  {
+   "name": "pokemon",
+   "tag": "#V0CRYP2GG",
+   "role": "member",
+   "trophies": 7563,
+   "delta": -6,
+   "battles": null
+  },
+  {
+   "name": "Waltadr",
+   "tag": "#20G9RY299P",
+   "role": "member",
+   "trophies": 7405,
+   "delta": 30,
+   "battles": 20
+  },
+  {
+   "name": "alex",
+   "tag": "#20G0JGQLPL",
+   "role": "member",
+   "trophies": 7262,
+   "delta": 90,
+   "battles": null
+  },
+  {
+   "name": "pigsareus",
+   "tag": "#20CGPVUL92",
+   "role": "member",
+   "trophies": 6452,
+   "delta": 148,
+   "battles": null
+  },
+  {
+   "name": "Gem",
+   "tag": "#20GQUGPRC2",
+   "role": "member",
+   "trophies": 5971,
+   "delta": 37,
+   "battles": null
+  },
+  {
+   "name": "1spaceO2",
+   "tag": "#VQUQJP8Q9",
+   "role": "member",
+   "trophies": 5844,
+   "delta": 89,
+   "battles": 5
+  },
+  {
+   "name": "x.x.hari.x.x",
+   "tag": "#URPCLR8UQ",
+   "role": "member",
+   "trophies": 5794,
+   "delta": 178,
+   "battles": 107
+  }
+ ],
+ "coverage": "Roster read every 20 minutes; 46 of 47 members have a recorded profile. Battles per member are profile deltas: a dash means the profile was not polled at both ends of the week."
+}

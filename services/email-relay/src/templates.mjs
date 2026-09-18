@@ -19,7 +19,7 @@
  *     what stops the first templated user string from being an injection.
  */
 
-import { DISCLAIMER } from "@elixir-mcp/contracts";
+import { DISCLAIMER, isProductEmailKind } from "@elixir-mcp/contracts";
 
 const SIGNIN_BASE = "https://elixir.poapkings.com/signin";
 const SITE = "https://elixir.poapkings.com";
@@ -93,6 +93,13 @@ const button = (href, label) =>
    </table>`;
 
 export function renderEmail(msg) {
+  // A product kind (a weekly report, a milestone) is rendered where the
+  // facts are, by packages/mail in the jobs Lambda, and rides the queue
+  // whole; the relay has no database and composes nothing. The
+  // validator already refused one without subject and text.
+  if (isProductEmailKind(msg.kind)) {
+    return { subject: msg.subject, text: msg.text, html: msg.html ?? null };
+  }
   if (msg.kind === "login") {
     const link = msg.token ? `${SIGNIN_BASE}?login_token=${msg.token}` : null;
     const consent = msg.client_name

@@ -84,10 +84,33 @@ export interface CrResultMessage {
 /** Email queue message — VPC Lambdas enqueue, the non-VPC relay sends
  *  (DESIGN §7 NAT-free posture). Plaintext email address rides the queue
  *  (SSE-encrypted at rest) because the relay must address the mail. */
+/** The six product mail kinds (docs/EMAIL.md, 2026-09-18): five weekly
+ *  reports and the event-driven milestone mail. Every one is bulk: sent
+ *  on a schedule to many people, switchable per kind on the account
+ *  page, one-click unsubscribable. The body is RENDERED upstream (the
+ *  jobs Lambda, packages/mail) and rides the message; the relay sends
+ *  what it is given and never composes a report. */
+export const PRODUCT_EMAIL_KINDS = [
+  "clan_report",
+  "arena_week",
+  "tracking_report",
+  "top_100",
+  "collector_activity",
+  "milestone",
+] as const;
+export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
+
 export interface EmailMessage {
   v: 1;
-  kind: "login" | "welcome" | "owner_notify";
+  kind: "login" | "welcome" | "owner_notify" | ProductEmailKind;
   to: string;
+  /** product kinds: the rendered mail. subject and text are required;
+   *  html rides beside them (multipart/alternative). */
+  subject?: string;
+  text?: string;
+  html?: string;
+  /** product kinds: the ledger row this send fulfils, for the log line. */
+  issue_key?: string;
   /** login: the 6-digit code. */
   code?: string;
   /** login: the magic token for the link. */
@@ -139,7 +162,17 @@ export const EMAIL_KIND_CLASS: Record<
   login: "transactional",
   welcome: "transactional",
   owner_notify: "transactional",
+  clan_report: "bulk",
+  arena_week: "bulk",
+  tracking_report: "bulk",
+  top_100: "bulk",
+  collector_activity: "bulk",
+  milestone: "bulk",
 };
+
+export function isProductEmailKind(kind: unknown): kind is ProductEmailKind {
+  return (PRODUCT_EMAIL_KINDS as readonly string[]).includes(kind as string);
+}
 
 /** The RFC 8058 headers for a validated message: two for a bulk kind,
  *  none for a transactional one. */
@@ -188,6 +221,17 @@ export function validateEmailMessage(
   }
   if (m.kind === "login" && typeof m.code !== "string")
     errors.push("code:missing");
+  // A product kind arrives rendered: no subject or text means the
+  // composer failed upstream, and a relay that filled one in would be
+  // composing after all.
+  if (isProductEmailKind(m.kind)) {
+    if (typeof m.subject !== "string" || m.subject.length === 0)
+      errors.push("subject:missing");
+    if (typeof m.text !== "string" || m.text.length === 0)
+      errors.push("text:missing");
+    if (m.html !== undefined && typeof m.html !== "string")
+      errors.push("html:invalid");
+  }
   if (
     m.kind === "owner_notify" &&
     m.notify_kind !== undefined &&

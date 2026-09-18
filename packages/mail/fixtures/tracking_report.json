@@ -1,0 +1,34 @@
+{
+  "week": {"from": "2026-09-07T10:00:00Z", "to": "2026-09-14T10:00:00Z", "label": "Sep 7 – 14", "key": "2026-W37", "season": 136},
+  "account": {"name": "Jamie"},
+  "primary": {"tag": "#20JJJ2CCRU", "name": "King Thing", "nickname": "Jamie",
+    "trophies": {"from": 12510, "to": 12504}, "battles": 19, "wins": 9, "losses": 10, "sessions": 10, "war_battles": 8,
+    "clan": {"name": "POAP KINGS", "tag": "#J2RGCRVG", "role": "leader", "rank": 23, "rank_from": 24},
+    "moments": []},
+  "alts": [
+    {"tag": "#VJG0J29QP", "name": "Big Thing", "battles": 16, "wins": 16, "losses": 0, "sessions": 5, "trophies": null,
+     "moments": [{"when": "Wed 22:57", "text": "joined Elixir Kings"}, {"when": "Sun 07:17", "text": "left Elixir Kings (was elder)"}, {"when": "Sun 07:17", "text": "joined Ship It!"}]},
+    {"tag": "#VJQV8G8RL", "name": "thingles", "battles": 20, "wins": 20, "losses": 0, "sessions": 7, "trophies": null,
+     "moments": [{"when": "Tue 23:37", "text": "joined ALT KINGS"}, {"when": "Wed 22:57", "text": "left ALT KINGS (was leader)"}, {"when": "Wed 22:57", "text": "joined Elixir Kings"}]}
+  ],
+  "friends": [
+    {"tag": "#U8RYG9Y2U", "name": "King Levy", "nickname": "Levi", "battles": 25, "wins": 9, "losses": 16, "sessions": 14, "modes": "25 ranked", "trophies": null, "clan": "POAP KINGS", "moments": []},
+    {"tag": "#UL2V9QRG0", "name": "raquaza", "nickname": "Tyler", "battles": 22, "wins": 9, "losses": 13, "sessions": 8, "modes": "10 casual, 7 ladder, 5 ranked", "trophies": {"from": 13933, "to": 13904}, "clan": "POAP KINGS", "moments": []}
+  ],
+  "watching": [
+    {"tag": "#C920YGLC2", "name": "Vijay", "line": "300 battles, 144W-156L (289 casual, 8 ranked, 3 war)", "clan": "POAP KINGS", "delta": null},
+    {"tag": "#RJ9RRQPVU", "name": "OllieTurtle", "line": "65 battles, 37W-28L (54 ranked, 11 casual)", "clan": "POAP KINGS", "delta": null},
+    {"tag": "#20R8QRLYLP", "name": "Chanco", "line": "46 battles; led the clan's donations (74)", "clan": "POAP KINGS", "delta": 60},
+    {"tag": "#V0CRYP2GG", "name": "pokemon", "line": "4 battles, 2W-2L; back after 10 quiet days", "clan": "POAP KINGS", "delta": -6},
+    {"tag": "#VGJJLC9PR", "name": "Ditaka", "line": "no recorded battles; left POAP KINGS on Thursday", "clan": null, "delta": 0},
+    {"tag": "#VPY0Y2209", "name": "JaxikoLane", "line": "nothing recorded this week", "clan": null, "delta": null},
+    {"tag": "#200UL8LYUJ", "name": "Lucky Red Panda", "line": "nothing recorded this week", "clan": null, "delta": null},
+    {"tag": "#2282UV9UY8", "name": "Lord of Latency", "line": "quiet for 148 days", "clan": null, "delta": null}
+  ],
+  "clans": [
+    {"tag": "#J2RGCRVG", "name": "POAP KINGS", "line": "3,200 battles by 46 of 47 members; war week 1 finished 1st with 10,134 fame; roster 48 → 47"},
+    {"tag": "#GJ09RJP8", "name": "Elixir Kings", "line": "28 battles by 2 players who were members during the week; roster now 1"},
+    {"tag": "#GCYQR9VY", "name": "Ship It!", "line": "recording began inside the week; roster 1"}
+  ],
+  "coverage": "12 subjects; every tracked player was polled inside the week."
+}

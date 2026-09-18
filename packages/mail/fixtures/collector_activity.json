@@ -1,0 +1,125 @@
+{
+ "week": {
+  "from": "2026-09-06T14:00:00Z",
+  "to": "2026-09-13T14:00:00Z",
+  "label": "Sep 6 – 13",
+  "key": "2026-W37"
+ },
+ "account": {
+  "name": "Jamie",
+  "tier": "owner"
+ },
+ "collectors": [
+  {
+   "name": "Mini P.E.K.K.A",
+   "status": "active",
+   "version": "1.4.2",
+   "fetches": 6120,
+   "errors": 3,
+   "breaker_trips": 0,
+   "quiet_hours": 0,
+   "lifetime_points": 34482
+  },
+  {
+   "name": "Hog Rider",
+   "status": "active",
+   "version": "1.4.2",
+   "fetches": 4870,
+   "errors": 1,
+   "breaker_trips": 0,
+   "quiet_hours": 17,
+   "lifetime_points": 27923,
+   "note": "quiet Thu 01:40 → Thu 18:40"
+  },
+  {
+   "name": "Witch",
+   "status": "active",
+   "version": "1.4.2",
+   "fetches": 4402,
+   "errors": 0,
+   "breaker_trips": 0,
+   "quiet_hours": 0,
+   "lifetime_points": 25549
+  },
+  {
+   "name": "Royal Hogs",
+   "status": "active",
+   "version": "1.4.1",
+   "fetches": 3715,
+   "errors": 2,
+   "breaker_trips": 1,
+   "quiet_hours": 0,
+   "lifetime_points": 21473,
+   "note": "one 403 breaker trip Sat, 5 min"
+  },
+  {
+   "name": "Skeleton Army",
+   "status": "active",
+   "version": "1.4.2",
+   "fetches": 1810,
+   "errors": 0,
+   "breaker_trips": 0,
+   "quiet_hours": 0,
+   "lifetime_points": 8581
+  },
+  {
+   "name": "Cannon",
+   "status": "active",
+   "version": "1.4.2",
+   "fetches": 1640,
+   "errors": 0,
+   "breaker_trips": 0,
+   "quiet_hours": 0,
+   "lifetime_points": 8259
+  }
+ ],
+ "totals": {
+  "fetches": 22557,
+  "of_fleet": 1.0,
+  "api_bytes": 1520000000,
+  "submitted_bytes": 583000000,
+  "saved_share": 0.62,
+  "errors": 6,
+  "breaker_trips": 1,
+  "quiet_hours": 17
+ },
+ "by_endpoint": [
+  [
+   "player battle logs",
+   12940
+  ],
+  [
+   "player profiles",
+   5912
+  ],
+  [
+   "clan rosters",
+   2545
+  ],
+  [
+   "river race",
+   790
+  ],
+  [
+   "rankings",
+   370
+  ]
+ ],
+ "credits": {
+  "earned": 2255,
+  "base": 500,
+  "cap": 2000,
+  "applied": 2000,
+  "slots": {
+   "players": 2,
+   "clans": 1
+  },
+  "capped": true
+ },
+ "lifetime": {
+  "points": 126267,
+  "credits": 12626
+ },
+ "fleet_note": "Your six collectors are the whole fleet this week.",
+ "coverage": "Counted from the collector ledger."
+}

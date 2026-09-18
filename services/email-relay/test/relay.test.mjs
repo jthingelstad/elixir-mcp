@@ -438,3 +438,45 @@ test("the transport follows EMAIL_TRANSPORT: jmap unless it says ses", () => {
   assert.equal(typeof jmap, "function");
   assert.equal(typeof unset, "function");
 });
+
+test("a product kind rides the queue rendered: sent as given with the one-click headers, refused without them", async () => {
+  const sent = [];
+  const handler = makeHandler({ send: async (m) => sent.push(m) });
+  const record = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  const report = {
+    v: 1,
+    kind: "clan_report",
+    to: "a@b.com",
+    subject: "POAP KINGS, Sep 7 – 14: 1st in war",
+    text: "the text part",
+    html: "<p>the html part</p>",
+    issue_key: "clan_report/2026-W37/#J2RGCRVG",
+    unsubscribe: {
+      url: "https://elixir.poapkings.com/api/email/unsubscribe?t=abc",
+    },
+  };
+  const noUnsub = { ...report };
+  delete noUnsub.unsubscribe;
+  const noSubject = { ...report };
+  delete noSubject.subject;
+  const result = await handler({
+    Records: [
+      record("r1", report),
+      record("r2", noUnsub),
+      record("r3", noSubject),
+    ],
+  });
+  assert.deepEqual(
+    result.batchItemFailures.map((f) => f.itemIdentifier).sort(),
+    ["r2", "r3"],
+    "a bulk kind without one-click or without a subject is a bad message",
+  );
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].subject, report.subject);
+  assert.equal(sent[0].text, report.text);
+  assert.equal(sent[0].html, report.html);
+  assert.deepEqual(
+    sent[0].headers.map((h) => h.name),
+    ["List-Unsubscribe", "List-Unsubscribe-Post"],
+  );
+});

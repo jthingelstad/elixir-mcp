@@ -1,0 +1,40 @@
+{
+ "masthead": "Ultimate Champions",
+ "strap": "Elixir's weekly read of the Path of Legends top 100",
+ "subject": "You can gain 263 rating and still fall 89 places",
+ "preheader": "Path of Legends, Season 136, week of Sep 12–18.",
+ "issue": {
+  "date": "2026-09-18",
+  "label": "Sep 12 – 18",
+  "season": 136,
+  "day_of_season": 8,
+  "data_as_of": "2026-09-18T10:07:50Z"
+ },
+ "body_markdown": "**Last Friday, 2253 rating led the world. Today it wouldn't crack the top 100.**\n\nThe board has inflated by roughly 450 points in seven days. Season 136 is\nfilling in, and almost everyone in the top 100 gained. That makes rank movement\na story about pace, not performance.\n\n## The podium\n\n**1. Hypno ❤️ Hans — 2699.** Was #2 a week ago at 2247. The only player to hold\na top-3 place all week.\n\n**2. JTR_CR — 2694.** Wasn't in the top 200 last Friday. Entered and went\nstraight to second.\n\n**3. AK Tanjiro — 2689.** Climbed from #44 to #3, adding 625 rating.\n\nThe top is tight: 10 points separate #1 from #3, and 63 points cover the whole\ntop 10.\n\n**The clan story:** four of the top 33 play for YT: Hypno Cr — ranks 1, 4, 9\nand 33. Sup Gskk Kiddaa has three. No other clan has more than two.\n\n## Biggest climbers\n\n| Player | Rank | Rating |\n|---|---|---|\n| ШТУРМУЕМДМИША | 166 → 8 | +702 |\n| ZQuentino | 199 → 53 | +602 |\n| khazardy✨安之 | 141 → 5 | +720 |\n| LonDex Play | 154 → 20 | +644 |\n| Lil Log | 135 → 10 | +678 |\n\n## Biggest drops\n\n| Player | Rank | Rating |\n|---|---|---|\n| YouTube. KAi_CR | 6 → 95 | +263 |\n| Pompeyo4.1 | 11 → 96 | +279 |\n| CHI Pompeyo4 | 14 → 78 | +319 |\n| Barti | 38 → 97 | +358 |\n| SK Morten | 18 → 71 | +346 |\n\nLook at the second column. **Every player on the drop list gained rating.** They\nfell because the field climbed faster. In a filling season, standing still is\nlosing ground, and only a stored history shows you which one you're doing.\n\n**Off the board:** Night graveyard, 5th last Friday, is no longer in the top\n100.\n\n## The deep cut: what a weekly snapshot misses\n\nRamboOo went from #134 to #64 this week. A simple week-over-week diff would\ncall that a modest climb and move on.\n\nHere's what actually happened: RamboOo reached **#1 on Tuesday** at 2586 rating,\nafter gaining 575 points in four days, then lost 89 points and 63 places over\nthe next two.\n\nA whole run at the top, invisible in the weekly delta. The daily record is the\nonly reason we can tell you about it.\n\n## The meta\n\n*[Placeholder in this sample. Real version: top-100 deck clusters, the Hero vs.\nEvolution split, and the fastest-rising card, each with sample sizes and a\n\"based on N of 100 recorded\" line.]*\n\n## Ask your own agent\n\nConnect Elixir to Claude, ChatGPT, or any MCP client and ask:\n\n- \"How has my Path of Legends rating moved this season?\"\n- \"What's my win rate when my deck is under-leveled?\"\n- \"Which opponents beat me most often, and what do they play?\"",
+ "players_index": [
+  {
+   "name": "Hypno ❤️ Hans",
+   "tag": "#L8999VJC"
+  },
+  {
+   "name": "JTR_CR",
+   "tag": "#8JCRL98YC"
+  },
+  {
+   "name": "AK Tanjiro",
+   "tag": "#208R8PQJP9"
+  },
+  {
+   "name": "RamboOo",
+   "tag": "#YUQYJV08"
+  }
+ ],
+ "cta": {
+  "head": "Start your record",
+  "text": "Everything above exists because Elixir was recording. Your history starts the day you track your tag, not the day you first ask a question.",
+  "button": "Request access",
+  "url": "https://elixir.poapkings.com/"
+ },
+ "share_url": "https://elixir.poapkings.com/top100/2026-09-18",
+ "coverage": "Data from the Path of Legends board recorded at the 10:00 UTC daily reset, Sep 18."
+}

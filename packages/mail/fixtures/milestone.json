@@ -1,0 +1,50 @@
+{
+ "account": {
+  "name": "Jamie"
+ },
+ "sent_at": "2026-09-12T02:10:00Z",
+ "milestones": [
+  {
+   "kind": "arena_changed",
+   "subject": {
+    "tag": "#20JJJ2CCRU",
+    "name": "King Thing",
+    "relationship": "primary"
+   },
+   "headline": "You reached Ultimate Clash Pit",
+   "at": "Fri 20:56",
+   "big": "12,500",
+   "big_label": "trophies",
+   "lines": [
+    "Arena 22 → 23, a new personal best.",
+    "Won the deciding battle 2–1 against SamyMartinez... in Trophy Road.",
+    "It took 14 battles this week to climb the last 62."
+   ],
+   "next": "The next arena, Ultimate Champion, opens at 13,000."
+  },
+  {
+   "kind": "ranked_promotion",
+   "subject": {
+    "tag": "#VJQV8G8RL",
+    "name": "thingles",
+    "relationship": "alt"
+   },
+   "headline": "thingles advanced to Master 1",
+   "at": "Fri 21:40",
+   "big": "Master 1",
+   "big_label": "Path of Legends · Season 136",
+   "lines": [
+    "Up from Challenger 3 on a 20–0 week.",
+    "Your best league this season on that account."
+   ],
+   "next": "Master 2 is 250 rating away."
+  }
+ ],
+ "also": [
+  {
+   "tag": "#20JJJ2CCRU",
+   "name": "King Thing",
+   "text": "Mastery: Royal Hogs — 1,000 damage badge earned Thursday"
+  }
+ ]
+}
