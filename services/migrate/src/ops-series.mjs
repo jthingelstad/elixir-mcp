@@ -743,7 +743,14 @@ export async function seriesCensusSelf(databaseUrl, spec = {}) {
               count(*) filter (where not exists
                 (select 1 from player_snapshot_daily s
                   where s.player_tag = d.player_tag and s.snapshot_date = d.day
-                    and s.snapshot_kind = 'daily' and s.profile_observed_at is not null))::int as missing_profile_row
+                    and s.snapshot_kind = 'daily' and s.profile_observed_at is not null))::int as missing_profile_row,
+              -- A profile row the 0127 columns never reached: total_donations
+              -- is on every profile the API has ever served.
+              count(*) filter (where exists
+                (select 1 from player_snapshot_daily s
+                  where s.player_tag = d.player_tag and s.snapshot_date = d.day
+                    and s.snapshot_kind = 'daily' and s.profile_observed_at is not null
+                    and s.total_donations is null))::int as profile_rows_without_lifetime
        from days d`,
       [since],
     );
