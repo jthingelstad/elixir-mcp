@@ -937,7 +937,11 @@ export const OUTPUT_SCHEMAS = {
         description:
           "Measured intervals plus the explicit unmeasured tail after the latest profile snapshot.",
         properties: {
-          average_ratio: { type: ["string", "null"] },
+          average_ratio: {
+            type: ["string", "null"],
+            description:
+              'A string with three decimals ("0.667") until 4.0.0, which makes it a number; the interval ratio beside it is already a number.',
+          },
           incomplete_days: { type: "null" },
           incomplete_intervals: { type: ["integer", "null"] },
           measured_intervals: COUNT,
