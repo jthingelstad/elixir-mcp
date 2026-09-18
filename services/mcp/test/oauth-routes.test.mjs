@@ -302,9 +302,9 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   assert.ok(readTools.length > 0);
   assert.deepEqual(writeTools.map(({ name }) => name).sort(), [
     "collections_edit",
-    "elixir_feedback",
     "elixir_identify",
     "elixir_nickname",
+    "elixir_send_feedback",
     "elixir_track_clan",
     "elixir_track_player",
   ]);
@@ -336,7 +336,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     collections_edit: "collections:write",
     elixir_track_clan: "recordings:write",
     elixir_track_player: "recordings:write",
-    elixir_feedback: "feedback:write",
+    elixir_send_feedback: "feedback:write",
     elixir_identify: "account:write",
     elixir_nickname: "account:write",
   };
@@ -394,7 +394,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
         id: 4,
         method: "tools/call",
         params: {
-          name: "elixir_feedback",
+          name: "elixir_send_feedback",
           arguments: { message: "authorized scope regression" },
         },
       }),

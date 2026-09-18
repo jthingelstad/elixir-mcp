@@ -464,7 +464,7 @@ export const DOC_LINKS = {
     "Feedback",
     [
       ["About the project", "/docs/about"],
-      ["elixir_feedback", "/docs/tools/help#elixir_feedback"],
+      ["elixir_send_feedback", "/docs/tools/help#elixir_send_feedback"],
     ],
   ],
   "status:collectors": [

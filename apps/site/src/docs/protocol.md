@@ -201,7 +201,7 @@ grant. Refreshing never widens scope.
 | `recordings:write` | track or stop tracking players and clans | `elixir_track_player`, `elixir_track_clan` |
 | `collections:write` | edit collections you own | `collections_edit` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
-| `feedback:write` | file attributed feedback | `elixir_feedback` |
+| `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` | no tool; see below |
 
 Canonical order is the order above. A call to a tool outside the token's
@@ -376,7 +376,7 @@ never carries internals.
 | `bad_request` | `input` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | `input` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 | `query_timeout` | `retry` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
-| `internal` | `server` | the arguments were accepted and the server failed (3.13.0). Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_feedback`. Before 3.13.0 this case was reported as `bad_request`, which told an agent to fix a call that was fine |
+| `internal` | `server` | the arguments were accepted and the server failed (3.13.0). Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_send_feedback`. Before 3.13.0 this case was reported as `bad_request`, which told an agent to fix a call that was fine |
 
 Every code is one branch: the message is for a person, the hint names one
 executable next step (a tool and its arguments), and an agent should never
@@ -505,7 +505,7 @@ in its hint.
 
 ## Feedback and the changelog, over the wire
 
-- `elixir_feedback({ message, category?, context?, request_id? })`: `message`
+- `elixir_send_feedback({ message, category?, context?, request_id? })`: `message`
   1 to 4000 chars; `category` one of `general` (default), `bug`,
   `data_quality`, `feature`, `praise`, `other`. `request_id` is the
   `meta.request_id` of the call the feedback is about — every response

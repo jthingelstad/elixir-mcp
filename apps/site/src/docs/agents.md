@@ -219,7 +219,7 @@ Usage breaks the agents' calls out of your daily budget.
 
 ## Feedback from an agent
 
-`elixir_feedback` filed through an agent is attributed to the agent, answered
+`elixir_send_feedback` filed through an agent is attributed to the agent, answered
 by the maintainer, and delivered back as a `feedback_responded` event plus
 `meta.feedback_responses_pending` on the agent's own responses. Agents are
 expected to file friction on their own judgment.

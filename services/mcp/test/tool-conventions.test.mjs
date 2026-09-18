@@ -194,3 +194,49 @@ test("no source names a retired tool, and every call-shaped mention is a real to
       assert.ok(known.has(m[1]), `${file} mentions ${m[1]}({...}), not a tool`);
   }
 });
+
+test("4.0.0: no retired name survives in a declaration, a note, a docs pointer or the docs corpus", () => {
+  // The names the major retired (CHANGELOG 4.0.0 `breaking`), each with
+  // the shape it takes on the wire, so a description that still says
+  // "days_seen" or a doc that still teaches `trophy_net` on the standings
+  // fails here rather than in a consumer.
+  const retired = [
+    /\btrophy_net\b(?![\s\S]{0,80}(session|standout|rung))/, // sessions keep theirs
+    /\bpol_league\b/,
+    /\bdays_seen\b/,
+    /\bnominal_period_elapsed\b/,
+    /\bincomplete_days\b/,
+    /\belixir_feedback\b/,
+    /group_by:? ["']mode["']/,
+    /\bbattleCount\b|\bthreeCrownWins\b|\bcollectionLevel\b/,
+    /lifetime\.as_of\b/,
+    /segment was omitted|omitted answers the corpus/,
+  ];
+  const declared = JSON.stringify(declarations);
+  const docsDir = path.join(here, "../../../apps/site/src/docs");
+  const docs = readdirSync(docsDir)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => ({
+      file: `docs/${f}`,
+      text: readFileSync(path.join(docsDir, f), "utf8"),
+    }));
+  for (const { file, text } of [
+    { file: "tools/list", text: declared },
+    ...sources,
+    ...docs,
+  ]) {
+    // Docs may say what a name was ("trophy_net before"): a mention
+    // inside a (4.0.0; ... before) aside or a "was" clause is history,
+    // not a live name.
+    const live = text.replace(
+      /\([^()]*4\.0\.0[^()]*\)|\([^()]*\bbefore\)/g,
+      "",
+    );
+    for (const re of retired)
+      assert.doesNotMatch(
+        live,
+        re,
+        `${file} still carries a retired name: ${re}`,
+      );
+  }
+});

@@ -78,7 +78,7 @@ async function spendLiveQuota(ctx) {
           ? ", shared with your owner's other agents"
           : ""
       }).`,
-      "Recorded-data tools are unlimited within the normal quota. Higher tiers get more: elixir_docs({ page: 'roles' }), or ask via elixir_feedback.",
+      "Recorded-data tools are unlimited within the normal quota. Higher tiers get more: elixir_docs({ page: 'roles' }), or ask via elixir_send_feedback.",
     );
   }
 }

@@ -120,8 +120,8 @@ export const clansTools = {
             : null,
         // null, not 0, when the window holds no ladder battle: a sum over
         // nothing is not a net of nothing (3.16.0).
-        // The name battles_performance uses (4.0.0; trophy_net before).
-        net_trophies: r.ladder_battles > 0 ? r.trophy_net : null,
+        // The name battles_performance uses (4.0.0).
+        net_trophies: r.ladder_battles > 0 ? r.net_trophies : null,
         ladder_battles: r.ladder_battles,
         modes: modeSplit(r.modes ?? []),
         mean_level_gap:

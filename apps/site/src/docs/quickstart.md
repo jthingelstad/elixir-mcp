@@ -109,7 +109,7 @@ developer-mode custom connectors whose availability depends on your plan and
 region, and its expectations of a server (specific `search` and `fetch`
 tools for deep research) differ from a general MCP tool surface. Elixir MCP
 does not test against ChatGPT and makes no claim that it works there. If you
-try it and it does, or does not, `elixir_feedback` is the place to say so.
+try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 
 ## 4. Ask something
 

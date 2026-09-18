@@ -326,7 +326,7 @@ export function Feedback({ navigate }) {
         { key: "category", label: "Category", col: 2 },
         { key: "state", label: "State", col: 4 },
       ]}
-      empty="Nothing filed yet — your agent can file too, with elixir_feedback."
+      empty="Nothing filed yet — your agent can file too, with elixir_send_feedback."
       footnote="Open an item to read the whole note and the maintainer's reply. A filed note cannot be edited; send another if something changed."
     />
   );

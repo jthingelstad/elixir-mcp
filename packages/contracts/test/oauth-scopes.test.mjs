@@ -39,7 +39,7 @@ test("every tool has exactly the capability its behavior requires", () => {
     // The feed advances the caller's own bookmark and nothing else; the
     // scheduled read-only routine is what it exists for (feedback #16).
     elixir_timeline: OAUTH_SCOPE.READ,
-    elixir_feedback: OAUTH_SCOPE.FEEDBACK_WRITE,
+    elixir_send_feedback: OAUTH_SCOPE.FEEDBACK_WRITE,
     // Remembering which human is which is account state, like a nickname: it
     // writes nothing about the game and grants nothing, since recorded reads
     // are universal either way.

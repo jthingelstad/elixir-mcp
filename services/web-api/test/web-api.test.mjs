@@ -908,7 +908,7 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
       path: "/api/explore",
       cookie,
       body: {
-        tool: "elixir_feedback",
+        tool: "elixir_send_feedback",
         args: { message: "battles_query filters rock", category: "praise" },
       },
     }),
@@ -937,7 +937,7 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   );
   assert.ok(list.feedback.length >= 2);
   assert.ok(list.feedback.every((f) => f.surface === "web"));
-  // The MCP-surface path (elixir_feedback at the MCP door) is covered in
+  // The MCP-surface path (elixir_send_feedback at the MCP door) is covered in
   // services/mcp/test/tools2 "feedback loop closes".
   assert.equal(list.feedback[0].from_player, "#2PP0V90Y");
 

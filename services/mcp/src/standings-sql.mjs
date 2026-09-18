@@ -63,7 +63,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
        select player_tag,
               sum(battles)::int as battles, sum(wins)::int as wins,
               sum(losses)::int as losses, sum(draws)::int as draws,
-              sum(trophy_delta) filter (where mode_group = 'ladder')::int as trophy_net,
+              sum(trophy_delta) filter (where mode_group = 'ladder')::int as net_trophies,
               sum(battles) filter (where mode_group = 'ladder')::int as ladder_battles
        from d group by player_tag
      ),
@@ -103,7 +103,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
             coalesce(su.wins, 0)::int as wins,
             coalesce(su.losses, 0)::int as losses,
             coalesce(su.draws, 0)::int as draws,
-            coalesce(su.trophy_net, 0)::int as trophy_net,
+            coalesce(su.net_trophies, 0)::int as net_trophies,
             coalesce(su.ladder_battles, 0)::int as ladder_battles,
             mo.modes, g.mean_level_gap, coalesce(g.level_gap_battles, 0)::int as level_gap_battles,
             st.streak_kind, st.streak_len

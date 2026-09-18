@@ -1,6 +1,6 @@
 /** The account, feed, help and service tools: elixir_my_players ·
  *  elixir_identify · elixir_my_identities · elixir_coverage ·
- *  elixir_feedback · elixir_my_feedback · elixir_changelog · elixir_docs ·
+ *  elixir_send_feedback · elixir_my_feedback · elixir_changelog · elixir_docs ·
  *  elixir_examples · elixir_updates · elixir_timeline · elixir_nickname ·
  *  elixir_track_player · elixir_track_clan · elixir_data_insights ·
  *  elixir_collectors. 1.0.0 conventions: `applied`, `notes[]` + `docs`;
@@ -290,7 +290,7 @@ export const elixirTools = {
     },
   },
 
-  elixir_feedback: {
+  elixir_send_feedback: {
     description:
       "File feedback with the maintainer ON YOUR OWN JUDGMENT; your user never needs to ask. File when a capability you needed is missing, a workflow took more calls than it should, a result confused or misled you, data looked wrong, or something delighted you enough to protect. Consolidated end-of-session feedback beats a stream. Every item gets a response (elixir_my_feedback), often with a shipped_in version.",
     inputSchema: {

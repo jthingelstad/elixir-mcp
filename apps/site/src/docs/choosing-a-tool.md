@@ -51,7 +51,7 @@ conventions that hold everywhere.
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
 | Curated lists: pros, creators, clan families, your own | `collections_browse`, `collections_get`, `collections_edit` |
 | Track someone, say who they are to you, resolve a human to a player | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname`, `elixir_identify`, `elixir_my_identities` |
-| Something is missing or took too many calls | `elixir_feedback`; `elixir_my_feedback` says what happened to it |
+| Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
 | What the service holds and who fetches it | `elixir_data_insights`, `elixir_collectors` |
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
 

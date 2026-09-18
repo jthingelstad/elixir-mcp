@@ -52,7 +52,7 @@ test("an agent has no personal identity tools", () => {
   assert.ok(!agent.includes("elixir_track_clan"));
   // But it keeps the things a clan agent actually needs.
   assert.ok(agent.includes("elixir_timeline"), "its own feed");
-  assert.ok(agent.includes("elixir_feedback"), "and its own voice");
+  assert.ok(agent.includes("elixir_send_feedback"), "and its own voice");
   assert.ok(agent.includes("war_current"));
   assert.ok(agent.includes("game_clock"));
 });
@@ -135,7 +135,7 @@ test("the opening brief no longer sends anyone to look themselves up", async () 
   // Everyone is still invited to file friction; that is the point of the
   // exercise, not a person-only courtesy.
   for (const text of [person, agent, integration])
-    assert.ok(text.includes("elixir_feedback"));
+    assert.ok(text.includes("elixir_send_feedback"));
 });
 
 test("a person is told who they are, and told not to look it up", async () => {

@@ -430,7 +430,7 @@ export function makeHandler({
             envelope(
               "quota_exceeded",
               `Rate limit reached (${account.hourlyRateLimit ?? HOURLY_RATE_LIMIT} requests per hour for this connection).`,
-              `The window is hourly and resets in ${retryAfter}s. Recorded-data reads are unlimited within it - see /docs (Roles) or ask via elixir_feedback.`,
+              `The window is hourly and resets in ${retryAfter}s. Recorded-data reads are unlimited within it - see /docs (Roles) or ask via elixir_send_feedback.`,
             ),
           ),
         };

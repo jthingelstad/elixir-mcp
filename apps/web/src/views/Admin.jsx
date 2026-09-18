@@ -533,7 +533,7 @@ function AdminFeedback({ navigate }) {
     <LogTable
       crumb="Admin"
       title="Feedback queue"
-      note="Sent from the console and from elixir_feedback at the MCP door."
+      note="Sent from the console and from elixir_send_feedback at the MCP door."
       cols={[
         ["WHEN", "left"],
         ["FROM", "left"],
@@ -901,7 +901,7 @@ function AdminServiceTokens() {
 /** The call a report is about, read over the admin lane so the maintainer
  *  sees what the filer saw — the arguments and the answer, not a
  *  description of them. Attached by the console's Report this call button
- *  and by elixir_feedback's request_id (contract 1.1.0). */
+ *  and by elixir_send_feedback's request_id (contract 1.1.0). */
 function AttachedCall({ requestId }) {
   const call = useAdminCall(requestId);
   const record = call.data ?? null;
@@ -1030,7 +1030,7 @@ function AdminFeedbackItem({ id, navigate }) {
           </span>
         </div>
         {/* Feedback is written in Markdown — the console's form says so
-            and elixir_feedback takes it the same way — so it renders as
+            and elixir_send_feedback takes it the same way — so it renders as
             Markdown here too. The reader's side already did; the queue
             where it is actually READ was showing the asterisks. */}
         <div

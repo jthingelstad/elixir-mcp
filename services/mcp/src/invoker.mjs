@@ -536,7 +536,7 @@ export function makeInvoker({
               code: "internal",
               class: "server",
               message: `Tool ${name} failed unexpectedly; the arguments were accepted and the server failed.`,
-              hint: `Retry the same ${name} call once; if it fails again, elixir_feedback({ category: "bug", request_id: "${requestId}" }) with the arguments.`,
+              hint: `Retry the same ${name} call once; if it fails again, elixir_send_feedback({ category: "bug", request_id: "${requestId}" }) with the arguments.`,
             },
             meta: responseMeta({
               as_of: new Date().toISOString(),

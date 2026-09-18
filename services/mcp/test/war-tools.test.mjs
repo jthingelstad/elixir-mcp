@@ -508,9 +508,9 @@ test("the registry declares 55 tools, every one classified and annotated", () =>
       // Recorded game history stays read-only to every tool here - the
       // recording pipeline is the only writer of facts.
       "collections_edit",
-      "elixir_feedback",
       "elixir_identify",
       "elixir_nickname",
+      "elixir_send_feedback",
       "elixir_track_clan",
       "elixir_track_player",
     ],

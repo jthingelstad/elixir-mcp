@@ -131,7 +131,7 @@ function instructionsFor(kind, identity) {
   const feedback = [
     "If you hit friction - a missing capability, a confusing result, a",
     "workflow that took more calls than it should - file it via",
-    "elixir_feedback ON YOUR OWN JUDGMENT before the session ends;",
+    "elixir_send_feedback ON YOUR OWN JUDGMENT before the session ends;",
     "agent-initiated feedback is expected and welcome, and every item gets a",
     "maintainer response (watch meta.feedback_responses_pending, read via",
     "elixir_my_feedback).",
@@ -231,7 +231,7 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
       ? `Narrow the arguments (${narrowing.join(", ")})${params.includes("verbosity") ? "; verbosity: 'compact' is usually enough" : ""}.${sizing}`
       : params.length
         ? `Narrow the arguments (${params.join(", ")}).${sizing}`
-        : "This tool has no narrowing arguments. Report this request_id with elixir_feedback.";
+        : "This tool has no narrowing arguments. Report this request_id with elixir_send_feedback.";
     // A sliced JSON document is not a usable tool result. Keep a small,
     // valid failure and its receipt; never discard metadata at the tail.
     body = {
