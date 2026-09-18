@@ -358,7 +358,7 @@ export const battlesTools = {
 
       const { rows } = await ctx.db.query(
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.game_mode_id, b.game_mode_name,
-                b.arena, b.league_number,
+                b.arena, b.arena_id, b.league_number,
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
                 bp.princess_tower_hp_2, bp.outcome
@@ -445,7 +445,10 @@ export const battlesTools = {
           ...(tz ? { battle_time_local: formatLocal(r.battle_time, tz) } : {}),
           type: r.type,
           game_mode: { id: r.game_mode_id, name: r.game_mode_name },
+          // The name has been on every row since 0001; the id since the
+          // 0131 backfill (null on a row it never reached).
           arena: r.arena,
+          arena_id: r.arena_id,
           league_number: r.league_number,
           me: {
             ...(tag ? {} : { player_tag: r.player_tag }),

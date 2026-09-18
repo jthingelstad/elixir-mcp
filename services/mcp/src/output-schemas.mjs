@@ -461,6 +461,7 @@ export const OUTPUT_SCHEMAS = {
             type: { type: "string" },
             game_mode: { type: "object" },
             arena: { type: ["string", "null"] },
+            arena_id: { type: ["integer", "null"] },
             league_number: { type: ["integer", "null"] },
             me: { type: "object" },
             teammates: { type: "array", items: PARTICIPANT },

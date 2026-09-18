@@ -33,7 +33,7 @@ answers from the perspective of the tag you asked about:
 | `battle_time_local` | the same instant as ISO 8601 with a UTC offset (`2026-09-09T23:31:47-05:00`), present when a timezone applies (the account's, or the call's `timezone`) |
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
-| `arena` | the arena id the battle was fought in |
+| `arena`, `arena_id` | `arena` the arena's name and `arena_id` its id (the higher side's arena, stamped at battle time); `arena_id` is `null` on a row the id never reached |
 | `league_number` | the Path of Legends league when the battle was ranked; `null` otherwise |
 | `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir_leaked`, `elixir_leaked_differential`, `tower_hp` |
 | `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir_leaked`, `tower_hp` |
