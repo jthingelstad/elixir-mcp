@@ -318,7 +318,7 @@ export async function resolveSegment(ctx, args) {
  *  5): the active clan recordings and the players whose battle logs are
  *  recorded (directly, or as current members of a comprehensive clan),
  *  the same count elixir_data_insights serves. */
-export async function recordedPopulation(db) {
+async function recordedPopulation(db) {
   const {
     rows: [r],
   } = await db.query(

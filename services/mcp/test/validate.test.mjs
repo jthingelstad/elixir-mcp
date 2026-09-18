@@ -5,9 +5,14 @@ import { validateArgs } from "../src/validate.mjs";
 
 /** A value of the wrong type for a declared property. */
 function wrongTyped(spec) {
-  const types = Array.isArray(spec.type) ? spec.type : [spec.type];
+  const types = Array.isArray(spec.anyOf)
+    ? spec.anyOf.flatMap((b) => (Array.isArray(b.type) ? b.type : [b.type]))
+    : Array.isArray(spec.type)
+      ? spec.type
+      : [spec.type];
   if (!types.includes("object")) return { nope: true };
-  return 1;
+  if (!types.includes("integer") && !types.includes("number")) return 1;
+  return true;
 }
 
 // The handler must never run: a ctx with no database proves it did not.

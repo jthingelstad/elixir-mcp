@@ -33,6 +33,23 @@ function matchesType(declared, value) {
 /** Returns null when valid, else a human-readable problem naming the path. */
 export function validateArgs(schema, value, path = "arguments") {
   if (!schema || typeof schema !== "object") return null;
+  // anyOf (3.16.0, the segment argument: a string or an object): valid
+  // when any branch accepts the value; the problem reported is the
+  // branch whose type matched, else the type list of every branch.
+  if (Array.isArray(schema.anyOf)) {
+    const problems = [];
+    for (const branch of schema.anyOf) {
+      const problem = validateArgs(branch, value, path);
+      if (problem === null) return null;
+      problems.push({ branch, problem });
+    }
+    const typed = problems.find((p) => matchesType(p.branch.type, value));
+    if (typed) return typed.problem;
+    const want = schema.anyOf
+      .map((b) => (Array.isArray(b.type) ? b.type.join(" or ") : b.type))
+      .join(" or ");
+    return `${path} must be ${want}, got ${typeOf(value)}.`;
+  }
   if (schema.type !== undefined && !matchesType(schema.type, value)) {
     const want = Array.isArray(schema.type)
       ? schema.type.join(" or ")

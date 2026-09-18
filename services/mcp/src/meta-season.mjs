@@ -23,7 +23,7 @@ export async function rawScanMemory(db) {
 
 /** The five trophy bands the meta tools and battles_levels speak (0135):
  *  the participant's own starting trophies at battle time. */
-export const TROPHY_BANDS = {
+const TROPHY_BANDS = {
   under_5000: [0, 5000],
   "5000_8000": [5000, 8000],
   "8000_11000": [8000, 11000],
