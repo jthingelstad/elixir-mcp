@@ -12,11 +12,11 @@
   "dependencies": {
     "@elixir-mcp/contracts": "*",
     "@elixir-mcp/design": "*",
-    "marked": "^18.0.11"
+    "marked": "^18.0.13"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
     "jsdom": "^30.0.1",
-    "lucide-static": "^1.44.0"
+    "lucide-static": "^1.46.0"
   }
 }
