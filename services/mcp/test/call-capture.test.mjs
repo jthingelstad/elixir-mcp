@@ -287,7 +287,10 @@ test("a tool failure is captured as the error body the caller saw", async () => 
   assert.equal(row[COL.captured], true);
   const [put] = s3.objects.values();
   const stored = JSON.parse(gunzipSync(put.Body).toString("utf8"));
-  assert.equal(stored.response.error.code, "bad_request");
+  // The caller's code is the audit's since 3.13.0 (it was bad_request,
+  // which told an agent to fix a call that was fine: feedback #56).
+  assert.equal(stored.response.error.code, "internal");
+  assert.match(stored.response.error.hint, /Retry the same war_current call/);
 });
 
 test("one EMF line per call, with and without the Tool dimension", async () => {

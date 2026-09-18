@@ -141,6 +141,26 @@ independently fitted monthly models. A missing point means insufficient scored
 observations, not zero performance. The public table's floors are generated
 from the same method declarations used by the readers.
 
+**What `n` counts.** `player.n` and each monthly point's `n` count the scored
+player's qualifying battles, one observation per battle from their side. A
+curve bin's `n` counts both sides of every qualifying match, so the bins sum
+to twice the battles. `methodology.n` in the response says the same.
+
+**What the score adjusts for, and what it cannot.** The curve conditions on
+opponent **card levels** and on nothing else. It does not see opponent skill,
+so a player who climbs into a stronger population posts a falling
+`pilot_score` with no change in how they play, and a monthly trend that
+crosses an arena boundary reads as a decline when it is a move. Every
+monthly point therefore carries the population it was scored in:
+`mean_starting_trophies`, `modal_arena {id, name}`, `mean_gap`,
+`opponent_mean_level`, `actual_win_rate` and `expected_from_levels`. When the
+modal arena changes between two points, or the mean starting trophies move by
+200 or more, the response leads with a note naming the change; pass
+`arena_id` (finer than `trophy_band`, which spans several arenas at the top
+of Trophy Road) to score one population alone. Decomposing the residual into
+levels, population and play would need an opponent-skill proxy the record does
+not yet hold.
+
 ### What `standard_error` means
 
 For compatibility, this field remains `0.5 / sqrt(n)`. It is the maximum

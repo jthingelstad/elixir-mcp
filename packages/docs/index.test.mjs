@@ -57,6 +57,7 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
       "what-a-battle-record-holds",
       "mode-groups",
       "duels-and-boat-battles",
+      "the-control-next-to-the-number",
       "decided-battles-and-denominators",
       "deck-identity-and-forms",
       "war-weeks-points-and-fame",

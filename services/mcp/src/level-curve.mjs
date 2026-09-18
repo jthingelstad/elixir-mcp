@@ -14,8 +14,10 @@ export function medianSortedScores(scores) {
 /**
  * The scored population as a temp table (one transaction), from which the
  * curve and every score are read. `clauses` filter the RECENT rows (alias
- * r: r.type, r.starting_trophies) so a mode or trophy-band condition
- * applies to both participants.
+ * r: r.type, r.starting_trophies, r.arena) so a mode, trophy-band or
+ * arena condition applies to both participants. Each pair row also
+ * carries the scored side's starting_trophies and the battle's arena
+ * (3.13.0), so a monthly point can say what population it was scored in.
  *
  * The 2026-09-10 review measured this at 6-22 seconds per call: the
  * "exactly two participants" rule was a correlated count per row. It is
@@ -25,7 +27,7 @@ export function levelPairsSql(clauses = []) {
   return `create temp table lv_pairs on commit drop as
     with recent as (
       select bp.battle_id, bp.player_tag, bp.side, bp.outcome, bp.starting_trophies,
-             b.battle_time, b.type, bp.deck_avg_level as lvl
+             b.battle_time, b.type, b.arena, b.arena_id, bp.deck_avg_level as lvl
       from battle_participant bp join battle b on b.battle_id = bp.battle_id
       where b.battle_time > now() - $1::interval and b.type_class = 'pvp'),
     duos as (
@@ -35,13 +37,17 @@ export function levelPairsSql(clauses = []) {
       where r.lvl is not null and r.outcome in ('win','loss')
         ${clauses.join(" ")})
     select a.battle_id, a.player_tag, a.outcome, a.battle_time,
-           a.lvl - o.lvl as gap
+           a.lvl - o.lvl as gap,
+           a.starting_trophies, a.arena, a.arena_id, o.lvl as opponent_level
     from sides a join sides o on o.battle_id = a.battle_id
       and o.side <> a.side and o.outcome <> a.outcome`;
 }
 
 export const PILOT_METHODOLOGY = {
   observation_unit: "player_battle",
+  n: "player.n and each monthly_trend n count the scored player's qualifying battles, one observation per battle from their side; a curve bin's n counts both sides of every qualifying match.",
+  adjusts_for:
+    "opponent card levels only, never opponent skill: a player who climbs into a stronger population posts a falling pilot_score with unchanged play, so hold arena_id or trophy_band fixed before reading a trend.",
   level_precision_decimals: 2,
   curve_min_observations: 200,
   player_min_battles: 30,
@@ -59,7 +65,8 @@ export const PILOT_METHODOLOGY = {
  *  floors are on the methodology page (PILOT_DOCS). */
 export const PILOT_NOTES = [
   "pilot_score = actual minus level-expected win rate over scored observations: a descriptive in-sample residual, not proof of skill, improvement or spending independence.",
-  "Only recorded PvP battles with exactly two opposing participants, known deck-average levels and opposite decided outcomes qualify; each contributes two dependent observations.",
+  "Only recorded PvP battles with exactly two opposing participants, known deck-average levels and opposite decided outcomes qualify; a curve bin counts both sides of each, while a player's n counts their own battles once.",
+  "pilot_score adjusts for opponent CARD LEVELS, not opponent skill: climbing into a stronger population lowers it with no change in play, so read monthly_trend beside its population fields and hold arena_id or trophy_band fixed before calling a trend a decline or an improvement.",
   "The curve is refit per request over the window, so a score can move with no new battles; standard_error is the legacy 0.5 / sqrt(n) approximation, not a confidence interval.",
 ];
 export const PILOT_DOCS = "methodology#the-level-curve-and-pilot-score";

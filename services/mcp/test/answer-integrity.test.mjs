@@ -184,6 +184,39 @@ test("oversized tool output is a bounded JSON failure retaining the request rece
   assert.ok(result.content[0].text.length < 48000);
 });
 
+test("an oversized page says which limit would have fit (feedback #56)", async () => {
+  // 25 battles came to ~96k characters: twice the cap, so about eleven
+  // fit with the 10% margin. Without applied.limit there is no sizing.
+  const response = await handleMcpMessage(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "battles_query", arguments: { limit: 25 } },
+    },
+    {
+      registry,
+      spendQuota: async () => ({ allowed: true, max: Infinity }),
+      invokeTool: async () => ({
+        body: {
+          applied: { window: {}, limit: 25, verbosity: "full" },
+          battles: "x".repeat(96000),
+          meta: {
+            request_id: "00000000-0000-0000-0000-000000000002",
+            as_of: new Date().toISOString(),
+          },
+        },
+        isError: false,
+      }),
+    },
+  );
+  const body = JSON.parse(response.payload.result.content[0].text);
+  assert.equal(body.error.code, "result_too_large");
+  assert.match(body.error.hint, /at limit 25 \(verbosity full\)/);
+  const fits = Number(/a limit of (\d+) should fit/.exec(body.error.hint)[1]);
+  assert.ok(fits >= 10 && fits <= 12, body.error.hint);
+});
+
 test("unknown snapshot times and incompatible lifetime counters do not assert coverage", async () => {
   const tag = "#P0R";
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);

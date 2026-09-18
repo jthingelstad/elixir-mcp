@@ -189,9 +189,30 @@ const PARTICIPANT = {
     clan_tag: { type: ["string", "null"] },
     rounds_played: COUNT,
     deck: { type: ["object", "null"] },
+    elixir_leaked: {
+      type: ["number", "null"],
+      description:
+        "This side's own leaked-elixir counter (3.13.0); null when the game did not report it. Full verbosity only.",
+    },
     tower_hp: { type: ["object", "null"] },
   },
   required: ["player_tag", "name_known"],
+};
+
+/** Battles by mode group: { ladder: {battles, wins, losses}, war: ... }. */
+const MODE_SPLIT = {
+  type: "object",
+  description:
+    "The row's battles by mode group (ladder, ranked, war, casual, challenge, tournament, other), each with battles, wins and losses.",
+  additionalProperties: {
+    type: "object",
+    properties: { battles: COUNT, wins: COUNT, losses: COUNT },
+  },
+};
+const LEVEL_GAP = {
+  type: ["number", "null"],
+  description:
+    "Mean of this side's deck-average card level minus the opposing side's, two decimals; positive = outlevelled them. null when no battle had both levels.",
 };
 
 export const OUTPUT_SCHEMAS = {
@@ -355,7 +376,54 @@ export const OUTPUT_SCHEMAS = {
       after: PERF_WINDOW,
       split_at: ISO,
       by_mode: { type: "array" },
-      weekly: { type: "array" },
+      weekly: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            iso_week: { type: "string" },
+            week_of: { type: "string" },
+            ...RECORD,
+            trophy_battles: COUNT,
+            net_trophies: COUNT,
+            partial: {
+              type: "boolean",
+              description:
+                "Present and true when the window clips this ISO week (3.13.0); covers says the span the row holds.",
+            },
+            covers: {
+              type: "object",
+              properties: { from: ISO, to: ISO },
+            },
+          },
+          required: ["iso_week", "week_of", "battles", "win_rate"],
+        },
+      },
+      trophy_floor: {
+        type: "object",
+        description:
+          "The Trophy Road floor the player stood on in the window (3.13.0): present when the window holds ladder battles and the arena's floor is known. floored is true when a loss touched it, and then net_trophies counts wins in full and those losses at zero.",
+        properties: {
+          floor: COUNT,
+          arena: {
+            type: ["object", "null"],
+            properties: { id: NULLABLE_INT, name: { type: "string" } },
+          },
+          source: {
+            type: "string",
+            enum: ["losses_on_floor", "arena_snapshots"],
+          },
+          floored: { type: "boolean" },
+          on_floor_losses: COUNT,
+          losses_landing_on_floor: COUNT,
+          ladder_battles: COUNT,
+          trophy_range: {
+            type: "object",
+            properties: { lowest: COUNT, highest: COUNT },
+          },
+        },
+        required: ["floor", "floored", "on_floor_losses"],
+      },
       notes: NOTES,
       docs: DOCS,
       meta: META,
@@ -423,6 +491,11 @@ export const OUTPUT_SCHEMAS = {
         required: ["window"],
       },
       total_battles_in_window: COUNT,
+      comparable: {
+        type: "boolean",
+        description:
+          "false when the rows were played in different modes or at level gaps half a level apart, so their win rates do not rank the decks (3.13.0); the first note says which rows clash.",
+      },
       decks: {
         type: "array",
         items: {
@@ -433,10 +506,24 @@ export const OUTPUT_SCHEMAS = {
             tower_troop: { type: "object" },
             ...RECORD,
             share_of_battles: RATE,
+            modes: MODE_SPLIT,
+            dominant_mode: { type: "string" },
+            dominant_mode_share: RATE,
+            mean_level_gap: LEVEL_GAP,
+            own_mean_level: { type: ["number", "null"] },
+            opponent_mean_level: { type: ["number", "null"] },
+            level_gap_battles: COUNT,
             first_used: ISO,
             last_used: ISO,
           },
-          required: ["deck_hash", "cards", "battles", "win_rate"],
+          required: [
+            "deck_hash",
+            "cards",
+            "battles",
+            "win_rate",
+            "modes",
+            "mean_level_gap",
+          ],
         },
       },
       notes: NOTES,

@@ -199,10 +199,30 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
         "min_battles",
       ].includes(p),
     );
+    // The cap depends on what the rows hold, so a caller cannot size a
+    // page up front (feedback #56: a full battles_query page of 25 was
+    // over, and the schema had implied 25 was safe). Say the page that
+    // fits: the limit that applied, scaled by the overrun, with room.
+    const applied = Number(invoked?.applied?.limit);
+    const fits =
+      Number.isInteger(applied) && applied > 1
+        ? Math.max(
+            1,
+            Math.floor((applied * MCP_RESULT_MAX_CHARS * 0.9) / text.length),
+          )
+        : null;
+    const sizing =
+      fits !== null && fits < applied
+        ? ` This page was ${text.length} characters at limit ${applied}${
+            invoked?.applied?.verbosity
+              ? ` (verbosity ${invoked.applied.verbosity})`
+              : ""
+          }; a limit of ${fits} should fit the same arguments.`
+        : "";
     const hint = narrowing.length
-      ? `Narrow the arguments (${narrowing.join(", ")})${params.includes("verbosity") ? "; verbosity: 'compact' is usually enough" : ""}.`
+      ? `Narrow the arguments (${narrowing.join(", ")})${params.includes("verbosity") ? "; verbosity: 'compact' is usually enough" : ""}.${sizing}`
       : params.length
-        ? `Narrow the arguments (${params.join(", ")}).`
+        ? `Narrow the arguments (${params.join(", ")}).${sizing}`
         : "This tool has no narrowing arguments. Report this request_id with elixir_feedback.";
     // A sliced JSON document is not a usable tool result. Keep a small,
     // valid failure and its receipt; never discard metadata at the tail.

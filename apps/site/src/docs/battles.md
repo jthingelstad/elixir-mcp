@@ -35,15 +35,39 @@ answers from the perspective of the tag you asked about:
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
 | `arena` | the arena id the battle was fought in |
 | `league_number` | the Path of Legends league when the battle was ranked; `null` otherwise |
-| `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir_leaked`, `tower_hp` |
-| `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `tower_hp` |
+| `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir_leaked`, `elixir_leaked_differential`, `tower_hp` |
+| `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir_leaked`, `tower_hp` |
 | `name_known` | `false` when no observation ever carried a name for that tag; `players_names` resolves the ones the corpus knows |
 | `rounds_played` | present on duel rows only: how many games the row collapses |
 
 `deck` holds the cards as played, with levels on the in-game 1 to 16 scale
 and each card's form (see [Deck identity and forms](#deck-identity-and-forms)).
-`elixir_leaked` is the game's own leaked-elixir counter for the asked-about
-side; `null` when the game did not report it.
+
+`elixir_leaked` is the game's own leaked-elixir counter for **each side**:
+the log row carries both, and every participant object serves its own;
+`null` when the game did not report it. `me.elixir_leaked_differential` is
+`me` minus the one opponent on a head-to-head row (`null` on duels, 2v2 and
+wherever a side did not report). Read the pair, never the absolute: at high
+trophies both players routinely hold elixir waiting for the other to
+commit, and both leak, so a player leaking 18 in a mutual standoff and a
+player leaking 18 because they misplayed look identical on their own
+number. The differential is the better read and still cannot separate
+waste from a deliberate hold to react to the opponent's placement, which
+would need placement timestamps the API does not expose. **Neither number
+is a skill measure**, and the response says so in a note whenever the
+field is served.
+
+`trophy_change` is the trophies the battle moved, on Trophy Road (`PvP`)
+and Path of Legends (`pathOfLegend`) only; other modes carry `null`. On a
+Trophy Road **loss** it has a second meaning: every arena has a trophy
+floor its players cannot fall below, a loss standing exactly on the floor
+comes back from the game with **no `trophyChange` at all** and is served as
+`null`, and a loss just above the floor is clamped to it (a `-3` or `-4`
+that would have been `-29`). `battles_performance.trophy_floor` names the
+floor a player stood on in a window and how many losses touched it, and
+`battles_query` says in a note when a page holds such losses. For a player
+parked on a floor, wins pay in full and losses cost nothing, so any trophy
+sum tracks how recently they played more than how well.
 
 `tower_hp` is **hitpoints remaining at the end of the battle**, not tower
 level: `{ king, princess: [a, b] }` per side. A destroyed princess tower reads
@@ -51,7 +75,8 @@ level: `{ king, princess: [a, b] }` per side. A destroyed princess tower reads
 tower on head-to-head rows and writes `0` on duel rows, so array length was
 never a tower count; position carries no meaning). `null` means the game did
 not report tower state for that side. `verbosity: "compact"` drops `deck`,
-`elixir_leaked` and `tower_hp` and keeps `deck_hash`.
+`elixir_leaked`, `elixir_leaked_differential` and `tower_hp` and keeps
+`deck_hash`.
 
 ## Mode groups
 
@@ -86,6 +111,49 @@ A **boat battle** (`boatBattle`) is an attack on a static defense, not a
 head-to-head match. The record classes every battle as `type_class` `pvp`
 (head-to-head) or `boat`, and the tools branch on it. Boat battles are
 outside every decided-battle denominator; a boat win still counts in `wins`.
+
+## The control next to the number
+
+A win rate is not interpretable without knowing who it was earned against,
+and the record knows. **Matchmaking differs by mode**: river race battles
+are drawn from the five racing clans, not from players at your trophies,
+and a strong player in an ordinary clan routinely meets opponents a level
+or more below them there (the record has seen gaps past +4), while Trophy
+Road pairs by trophies and rarely hands anyone a full level. So a deck played only
+in war looks like a star and a deck played only on ladder looks weak,
+whatever their quality; that is the default shape of the data for anyone
+who plays both, not an edge case. Every aggregate that serves a win rate
+therefore serves the controls beside it:
+
+- `battles_decks` rows carry `modes` (battles, wins and losses per
+  [mode group](#mode-groups)), `dominant_mode` with its share, and
+  `mean_level_gap`: the deck's average card level minus the opposing
+  side's, averaged over `level_gap_battles` (positive means you outlevelled
+  them), with `own_mean_level` and `opponent_mean_level` beside it. The
+  response carries `comparable`, `false` when two returned decks were
+  played predominantly in different modes or at mean gaps half a level
+  apart, and the first note then names the rows that clash. Rank decks only
+  within one mode (pass `mode`) and at similar gaps; `battles_levels` gives
+  the level-expected win rate a gap implies.
+- `battles_cards` rows carry `modes` (a count per mode group) and
+  `mean_level_gap` over the battles the card appeared in; the response
+  carries `modes_in_window` (battles and mean gap per mode group over the
+  whole window) and `comparable`. A card met mostly in war games inherits
+  war's matchmaking, so a "nemesis" table pooled across modes is a mode
+  table first; pass `mode` before reading a row as a weakness.
+- `battles_performance` carries `trophy_floor` when the window holds ladder
+  battles and the arena's floor is known (see `trophy_change` above), and
+  with `group_by: "week"` marks every bucket the window clips with
+  `partial: true` and `covers {from, to}`: a `days: 30` series usually opens
+  on two thirds of a week shaped exactly like the whole ones, and that row
+  anchors the trend. Compare partial buckets by `win_rate`, never by
+  `battles`, or snap `from`/`to` to Mondays.
+- `battles_levels` monthly points carry the population they were scored in;
+  see [How the numbers are made](/docs/methodology#the-level-curve-and-pilot-score).
+
+The notes fire on a detected confound, not as a standing caveat: a
+`battles_decks` read within one mode whose decks met similar levels carries
+no warning and `comparable: true`.
 
 ## Decided battles and denominators
 
@@ -155,6 +223,14 @@ list them per member as `points`, with `decks_used`. **Fame** belongs to the
 boat, the clan as a whole: the standings show each clan's fame and the
 week's finish line is a fame total. Dividing a clan's fame among its members
 is not a computation the record supports, and it is never done here.
+
+`decks_used` counts **decks, not battles, over the race week**:
+`war_current.participants[].decks_used` and `war_history.member_weeks[].decks_used`
+are the week's cumulative count, while `war_current.decks_today` is this
+policy day's. A war day gives each member four decks; a 1v1 consumes one and
+a duel consumes one per round played (two or three), so four decks is
+anywhere from two to four battles, and a member at `decks_used: 4` on war
+day 1 with one duel and one 1v1 in their log has finished the day.
 
 During a war day, `war_current.standings` also carries `period_points`: the
 clan's score in the day currently being fought. `fame` is the cumulative boat

@@ -207,12 +207,14 @@ A failed call returns a structured body rather than prose:
 { "error": { "code": "not_found", "message": "…", "hint": "…" } }
 ```
 
-The `code` is from a closed set of nine, listed with the JSON-RPC and HTTP
+The `code` is from a closed set, listed with the JSON-RPC and HTTP
 layers on the [Protocol reference](/docs/protocol#errors); the `hint` names
-the one call that would fix it. Two are worth branching on by code rather
+the one call that would fix it. Three are worth branching on by code rather
 than by message: `no_subject` (nothing to answer about: no primary player,
-an unmapped `on_behalf_of`, an agent with no recorded clan) and
-`result_too_large` (narrow the arguments). Errors carry a `meta` envelope too, with the same
+an unmapped `on_behalf_of`, an agent with no recorded clan),
+`result_too_large` (narrow the arguments; the hint sizes the page that fits)
+and `internal` (the server failed, not your call: retry once, then report
+the `request_id`). Errors carry a `meta` envelope too, with the same
 `request_id` — a call that failed is still a call you can ask us about.
 
 **A note for client authors:** check the error body, not just the transport

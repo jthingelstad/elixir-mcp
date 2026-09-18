@@ -82,8 +82,24 @@ const roundsPlayed = (deck) =>
 // part of identity and must be visible).
 
 const BATTLE_DOCS = docsRef("battles", "what-a-battle-record-holds");
+// Where the mode split, the level gap, the trophy floor and the partial
+// bucket are explained (3.13.0): the deck and card aggregates point here.
+const CONTROLS_DOCS = docsRef("battles", "the-control-next-to-the-number");
 const DENOMINATOR_DOCS = docsRef("battles", "decided-battles-and-denominators");
 
+import {
+  modeSplit,
+  countByMode,
+  modeGaps,
+  dominantMode,
+  comparabilityNote,
+  pooledModesNote,
+  shortHash,
+  trophyFloor,
+  trophyFloorNote,
+  markPartialWeeks,
+  partialWeeksNote,
+} from "../controls.mjs";
 import {
   LEVEL_EDGES_SQL,
   levelPairsSql,
@@ -361,11 +377,11 @@ export const battlesTools = {
         const { rows: rest } = await ctx.db.query(
           tag
             ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, p.name
+                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, o.elixir_leaked, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            where o.battle_id = any($1) and o.player_tag <> $2`
             : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, p.name
+                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, o.elixir_leaked, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            join unnest($1::text[], $2::int[]) me(battle_id, side)
              on me.battle_id = o.battle_id
@@ -386,8 +402,14 @@ export const battlesTools = {
         rows.map((r) => r.battle_id),
       );
       const deckOf = (o) => decks.get(`${o.battle_id}|${o.player_tag}`) ?? null;
+      const leaked = (v) => (v === null || v === undefined ? null : Number(v));
+      let leakRows = 0;
+      let floorLosses = 0;
       const battles = rows.map((r) => {
         const rest = others.get(r.battle_id) ?? [];
+        // The other side's leak (feedback #58): the log row carries both
+        // sides' counters and the record kept both; a caller was paying
+        // one battles_query per opponent to reconstruct the pair.
         const shape = (o) => ({
           player_tag: o.player_tag,
           name: o.name,
@@ -398,8 +420,25 @@ export const battlesTools = {
           deck_hash: o.deck_hash,
           clan_tag: o.clan_tag,
           ...roundsPlayed(deckOf(o)),
-          ...(compact ? {} : { deck: deckOf(o), tower_hp: towerHpOf(o) }),
+          ...(compact
+            ? {}
+            : {
+                deck: deckOf(o),
+                elixir_leaked: leaked(o.elixir_leaked),
+                tower_hp: towerHpOf(o),
+              }),
         });
+        const opponents = rest.filter((o) => o.side !== r.side);
+        const myLeak = leaked(r.elixir_leaked);
+        const oppLeak =
+          opponents.length === 1 ? leaked(opponents[0].elixir_leaked) : null;
+        if (!compact && myLeak !== null) leakRows++;
+        if (
+          r.type === "PvP" &&
+          r.outcome === "loss" &&
+          r.trophy_change === null
+        )
+          floorLosses++;
         return {
           battle_id: r.battle_id,
           battle_time: r.battle_time.toISOString(),
@@ -420,13 +459,18 @@ export const battlesTools = {
               ? {}
               : {
                   deck: deckOf(r),
-                  elixir_leaked:
-                    r.elixir_leaked === null ? null : Number(r.elixir_leaked),
+                  elixir_leaked: myLeak,
+                  // me minus the one opponent on a head-to-head row; null
+                  // on duels, 2v2 and wherever a side did not report.
+                  elixir_leaked_differential:
+                    myLeak !== null && oppLeak !== null
+                      ? Number((myLeak - oppLeak).toFixed(2))
+                      : null,
                   tower_hp: towerHpOf(r),
                 }),
           },
           teammates: rest.filter((o) => o.side === r.side).map(shape),
-          opponents: rest.filter((o) => o.side !== r.side).map(shape),
+          opponents: opponents.map(shape),
         };
       });
 
@@ -526,6 +570,12 @@ export const battlesTools = {
           compact
             ? null
             : "Deck card levels are the in-game 1-16 scale; evolution marks the FORM played (1 = Evolution, 2 = Hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
+          leakRows > 0
+            ? "elixir_leaked is each side's own counter: at high trophies both players routinely hold and both leak, so the absolute value describes the match, not the player; elixir_leaked_differential (me minus the one opponent) is the better read and still cannot separate waste from holding elixir to react to a placement, so neither is a skill measure."
+            : null,
+          floorLosses > 0
+            ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null: a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`
+            : null,
         ),
         docs: BATTLE_DOCS,
         meta: await buildMeta(
@@ -541,7 +591,7 @@ export const battlesTools = {
 
   battles_performance: {
     description:
-      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks. compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view and group_by mode the "what have I been playing" view.',
+      'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks, and trophy_floor when the player stood on an arena floor (losses there cost nothing, so net_trophies is asymmetric). compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view (buckets the window clips are marked partial) and group_by mode the "what have I been playing" view.',
     inputSchema: {
       type: "object",
       properties: {
@@ -756,8 +806,11 @@ export const battlesTools = {
            order by date_trunc('week', bp.battle_time)`,
           params,
         );
-        result = {
-          weekly: rows.map((r) => ({
+        // A bucket the window clips is marked (feedback #60): the first
+        // row of a days:30 series is usually two thirds of a week shaped
+        // exactly like the whole ones, and it anchors the trend.
+        const weekly = markPartialWeeks(
+          rows.map((r) => ({
             iso_week: r.iso_week,
             week_of: r.week_of,
             battles: r.battles,
@@ -771,8 +824,11 @@ export const battlesTools = {
                 ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
                 : null,
           })),
-        };
+          { from, to },
+        );
+        result = { weekly: weekly.rows };
         caveats.push(
+          partialWeeksNote(weekly.partial),
           "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
           "net_trophies covers only trophy_battles: war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks.",
         );
@@ -809,6 +865,14 @@ export const battlesTools = {
         };
       }
       const grouped = Boolean(args.group_by);
+      // The floor under net_trophies (feedback #59): a player standing on
+      // an arena's trophy floor loses nothing on a loss, so the sum counts
+      // wins in full and losses at zero. Read once over the window (a
+      // last_n_battles sample and the compare windows share the state).
+      const floor =
+        args.mode && args.mode !== "ladder"
+          ? null
+          : await trophyFloor(ctx.db, tag, { from, to });
       return {
         player_tag: tag,
         applied: appliedBlock({
@@ -837,7 +901,9 @@ export const battlesTools = {
               : undefined,
         }),
         ...result,
+        ...(floor ? { trophy_floor: floor } : {}),
         notes: notes(
+          trophyFloorNote(floor),
           caveats,
           grouped
             ? null
@@ -857,7 +923,7 @@ export const battlesTools = {
 
   battles_cards: {
     description:
-      'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you (the nemesis question). Duels are excluded (no single deck).',
+      'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you (the nemesis question). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Duels are excluded (no single deck).',
     inputSchema: {
       type: "object",
       properties: {
@@ -908,13 +974,24 @@ export const battlesTools = {
                          order by o.player_tag limit 1) opp on true
            join battle_participant_card pc
              on pc.battle_id = bp.battle_id and pc.player_tag = opp.player_tag`;
+      // The control beside each row (feedback #54, 3.13.0): the mean
+      // level gap over the battles the card appeared in, and the row's
+      // battles by mode group, so a card met mostly in war games does not
+      // read as a ladder nemesis.
+      const levelSource = `left join lateral (
+           select avg(o.deck_avg_level) as lvl from battle_participant o
+           where o.battle_id = bp.battle_id and o.side <> bp.side
+             and bp.deck_avg_level is not null) lv on true`;
       const { rows } = await ctx.db.query(
         `select c.name, pc.card_id as id, pc.form as evolution,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
-                count(*) filter (where bp.outcome = 'loss')::int as losses
+                count(*) filter (where bp.outcome = 'loss')::int as losses,
+                round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
+                array_agg(b.type) as types
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          ${cardSource}
+         ${levelSource}
          join card c on c.card_id = pc.card_id
          where ${where.join(" and ")} and pc.round = 0 and pc.slot > 0
          group by 1, 2, 3
@@ -923,6 +1000,21 @@ export const battlesTools = {
          limit 120`,
         params,
       );
+      // The window's own split, for the pooled note: battles and mean
+      // level gap per mode group over every battle the rows were drawn
+      // from (duels excluded as the rows are).
+      const { rows: groups } = await ctx.db.query(
+        `select b.type, count(*)::int as battles, count(lv.lvl)::int as level_battles,
+                round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
+         from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id
+         ${levelSource}
+         where ${where.join(" and ")} and bp.deck_hash is not null
+         group by b.type`,
+        params,
+      );
+      const pooledGroups = modeGaps(groups);
+      const guard = args.mode ? null : pooledModesNote(pooledGroups);
       return {
         player_tag: tag,
         applied: appliedBlock({
@@ -931,6 +1023,13 @@ export const battlesTools = {
           mode: args.mode,
           min_battles: 3,
         }),
+        modes_in_window: Object.fromEntries(
+          pooledGroups.map((g) => [
+            g.mode,
+            { battles: g.battles, mean_level_gap: g.mean_level_gap },
+          ]),
+        ),
+        comparable: guard === null,
         cards: rows.map((r) => ({
           id: Number(r.id),
           name: r.name,
@@ -939,14 +1038,19 @@ export const battlesTools = {
           wins: r.wins,
           losses: r.losses,
           win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
+          modes: countByMode(r.types),
+          mean_level_gap:
+            r.mean_level_gap === null ? null : Number(r.mean_level_gap),
         })),
         notes: notes(
+          guard,
           mine
             ? "win_rate is YOUR record when this card is in your deck."
             : "win_rate is YOUR record when this card appears in the OPPONENT deck; low means nemesis.",
+          "Each row's modes counts its battles by mode group and mean_level_gap is your deck's average level minus the opposing side's in those battles; a row's record is comparable to another's only at similar values of both.",
           FORM_ROWS_NOTE,
         ),
-        docs: docsRef("battles", "deck-identity-and-forms"),
+        docs: CONTROLS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: win.timezone,
         }),
@@ -956,7 +1060,7 @@ export const battlesTools = {
 
   battles_decks: {
     description:
-      "Battles grouped by exact deck identity (deck_hash): per-deck record, first/last used, win rate, share of battles. Deck identity is the exact card set played (some event modes field more or fewer than 8). Unbounded by default and says so in applied.window; pass a deck_hash to battles_query or battles_performance to drill in.",
+      "Battles grouped by exact deck identity (deck_hash): per-deck record, win rate, share of battles, first/last used, plus the controls that make a win rate readable: modes (battles per mode group), dominant_mode and mean_level_gap against the opposing side. comparable is false when the rows were played in different modes or at gaps half a level apart (war matchmaking flatters a deck), and a note says which. Unbounded by default; pass mode to rank decks within one mode, a deck_hash to battles_query or battles_performance to drill in.",
     inputSchema: {
       type: "object",
       properties: {
@@ -999,20 +1103,47 @@ export const battlesTools = {
       if (win.from) add("bp.battle_time >= ?", win.from);
       if (win.to) add("bp.battle_time < ?", win.to);
       modeClause(args, add);
+      // The control beside the win rate (feedback #54, 3.13.0): the mean
+      // level gap against the opposing side (deck_avg_level is stamped at
+      // ingest) and the mode split, so a war-only deck's 79% and a
+      // ladder-only deck's 42% stop reading as deck quality.
       const { rows } = await ctx.db.query(
         `select bp.deck_hash,
                 min(b.battle_time) as first_used, max(b.battle_time) as last_used,
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
-                count(*) filter (where bp.outcome = 'draw')::int as draws
+                count(*) filter (where bp.outcome = 'draw')::int as draws,
+                round(avg(bp.deck_avg_level - opp.lvl)::numeric, 2) as mean_level_gap,
+                round(avg(opp.lvl)::numeric, 2) as opponent_mean_level,
+                round(avg(bp.deck_avg_level) filter (where opp.lvl is not null)::numeric, 2) as own_mean_level,
+                count(opp.lvl)::int as level_gap_battles
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
+         left join lateral (
+           select avg(o.deck_avg_level) as lvl from battle_participant o
+           where o.battle_id = bp.battle_id and o.side <> bp.side
+             and bp.deck_avg_level is not null) opp on true
          where ${where.join(" and ")}
          group by bp.deck_hash
          order by count(*) desc
          limit 100`,
         params,
       );
+      const { rows: byType } = await ctx.db.query(
+        `select bp.deck_hash, b.type,
+                count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+         where ${where.join(" and ")}
+         group by bp.deck_hash, b.type`,
+        params,
+      );
+      const typesByDeck = new Map();
+      for (const r of byType) {
+        if (!typesByDeck.has(r.deck_hash)) typesByDeck.set(r.deck_hash, []);
+        typesByDeck.get(r.deck_hash).push(r);
+      }
       const identities = await deckIdentities(
         ctx.db,
         rows.map((r) => r.deck_hash),
@@ -1029,17 +1160,10 @@ export const battlesTools = {
       else if (args.sort === "win_rate") shaped.sort((a, z) => wr(z) - wr(a));
       const limit = Math.min(Math.max(Number(args.limit ?? 40), 1), 100);
       shaped = shaped.slice(0, limit);
-      return {
-        player_tag: tag,
-        applied: appliedBlock({
-          window: win.echo,
-          mode: args.mode,
-          sort: args.sort ?? "battles",
-          min_battles: args.min_battles,
-          limit,
-        }),
-        total_battles_in_window: totalBattles,
-        decks: shaped.map((r) => ({
+      const decks = shaped.map((r) => {
+        const modes = modeSplit(typesByDeck.get(r.deck_hash) ?? []);
+        const dominant = dominantMode(modes);
+        return {
           deck_hash: r.deck_hash,
           ...(identities.get(r.deck_hash) ?? { cards: [] }),
           battles: r.battles,
@@ -1054,16 +1178,51 @@ export const battlesTools = {
             totalBattles > 0
               ? Number((r.battles / totalBattles).toFixed(3))
               : null,
+          modes,
+          ...(dominant
+            ? {
+                dominant_mode: dominant.mode,
+                dominant_mode_share: dominant.share,
+              }
+            : {}),
+          mean_level_gap:
+            r.mean_level_gap === null ? null : Number(r.mean_level_gap),
+          own_mean_level:
+            r.own_mean_level === null ? null : Number(r.own_mean_level),
+          opponent_mean_level:
+            r.opponent_mean_level === null
+              ? null
+              : Number(r.opponent_mean_level),
+          level_gap_battles: r.level_gap_battles,
           first_used: r.first_used.toISOString(),
           last_used: r.last_used.toISOString(),
-        })),
+        };
+      });
+      const guard = comparabilityNote(
+        decks.map((d) => ({ ...d, label: shortHash(d.deck_hash) })),
+        { what: "deck" },
+      );
+      return {
+        player_tag: tag,
+        applied: appliedBlock({
+          window: win.echo,
+          mode: args.mode,
+          sort: args.sort ?? "battles",
+          min_battles: args.min_battles,
+          limit,
+        }),
+        total_battles_in_window: totalBattles,
+        comparable: guard === null,
+        decks,
         notes: notes(
+          guard,
           win.source === "unbounded"
             ? "No window was given, so this is the whole recorded history for the player; pass from/to for a period."
             : null,
           "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks.",
+          "mean_level_gap is this deck's average card level minus the opposing side's over level_gap_battles (positive = you outlevelled them); modes splits the row by mode group, and win rates across rows are comparable only when comparable is true.",
         ),
-        docs: docsRef("battles", "deck-identity-and-forms"),
+        docs: CONTROLS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: win.timezone,
         }),
@@ -1570,6 +1729,11 @@ export const battlesTools = {
           description:
             "Both participants must have starting trophies in this band; conditions the curve and the scored observations on the same population.",
         },
+        arena_id: {
+          type: "integer",
+          description:
+            "Only battles fought in this arena (the id players_timeline and the battle row carry, e.g. 54000142): a finer population control than trophy_band, holding the matchmaking pool fixed across a monthly_trend.",
+        },
       },
       additionalProperties: false,
     },
@@ -1577,6 +1741,15 @@ export const battlesTools = {
       const days = Number(args.days ?? 90);
       if (!Number.isInteger(days) || days < 7 || days > 365)
         throw new ToolFailure("bad_request", "days must be 7-365.");
+      if (
+        args.arena_id !== undefined &&
+        (!Number.isInteger(args.arena_id) || args.arena_id < 54000000)
+      )
+        throw new ToolFailure(
+          "bad_request",
+          `arena_id ${args.arena_id} is not a Clash Royale arena id.`,
+          "Arena ids look like 54000142; players_timeline({ metrics: ['arena_id'] }) shows the ones a player has been in.",
+        );
       let focus = null;
       // Same as war_history: being told who is asking is a focus, not noise.
       if (args.player_tag !== undefined || args.on_behalf_of)
@@ -1608,6 +1781,14 @@ export const battlesTools = {
         params.push(lo, hi);
         clauses.push(
           `and r.starting_trophies >= $${params.length - 1} and r.starting_trophies < $${params.length}`,
+        );
+      }
+      // By the arena's NAME, which every battle row has carried since
+      // 0001; arena_id on the battle row is the 0131 backfill's.
+      if (args.arena_id !== undefined) {
+        params.push(args.arena_id);
+        clauses.push(
+          `and r.arena = (select name from arena where arena_id = $${params.length})`,
         );
       }
       const EDGES = LEVEL_EDGES_SQL;
@@ -1652,6 +1833,10 @@ export const battlesTools = {
            where p.player_tag = $1`,
             [focus],
           );
+          // Each monthly point carries the population it was scored in
+          // (feedback #55): the score adjusts for card levels, not for
+          // opponent skill, so an arena change between two months is the
+          // first thing to rule out before reading a trend.
           const { rows: trend } = await ctx.db.query(
             `${base},
            curve as (
@@ -1660,13 +1845,30 @@ export const battlesTools = {
              from pairs group by bin having count(*) >= ${CURVE_FLOOR})
            select to_char(date_trunc('month', p.battle_time), 'YYYY-MM') as month,
                   count(*)::int as n,
-                  round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score
+                  round((avg((p.outcome = 'win')::int) - avg(c.wr))::numeric, 3) as pilot_score,
+                  round(avg((p.outcome = 'win')::int)::numeric, 3) as actual_win_rate,
+                  round(avg(c.wr)::numeric, 3) as expected_from_levels,
+                  round(avg(p.gap)::numeric, 2) as mean_gap,
+                  round(avg(p.opponent_level)::numeric, 2) as opponent_mean_level,
+                  round(avg(p.starting_trophies))::int as mean_starting_trophies,
+                  mode() within group (order by p.arena) as modal_arena
            from pairs p
            join curve c on c.bin = width_bucket(p.gap, ${EDGES})
            where p.player_tag = $1
            group by 1 having count(*) >= ${PILOT_METHODOLOGY.monthly_min_battles} order by 1`,
             [focus],
           );
+          const arenaNames = [
+            ...new Set(trend.map((t) => t.modal_arena).filter(Boolean)),
+          ];
+          const arenaIds = new Map();
+          if (arenaNames.length) {
+            const { rows: arenas } = await ctx.db.query(
+              `select arena_id, name from arena where name = any($1)`,
+              [arenaNames],
+            );
+            for (const a of arenas) arenaIds.set(a.name, a.arena_id);
+          }
           // Experience cohort (0024): tenure from the YearsPlayed badge;
           // percentile of pilot_score among corpus players (n >= 30 in
           // this window) in the same tenure bucket. Absent badge = tenure
@@ -1751,6 +1953,23 @@ export const battlesTools = {
                     month: t.month,
                     n: t.n,
                     pilot_score: Number(t.pilot_score),
+                    actual_win_rate: Number(t.actual_win_rate),
+                    expected_from_levels: Number(t.expected_from_levels),
+                    mean_gap: Number(t.mean_gap),
+                    opponent_mean_level:
+                      t.opponent_mean_level === null
+                        ? null
+                        : Number(t.opponent_mean_level),
+                    mean_starting_trophies:
+                      t.mean_starting_trophies === null
+                        ? null
+                        : Number(t.mean_starting_trophies),
+                    modal_arena: t.modal_arena
+                      ? {
+                          id: arenaIds.get(t.modal_arena) ?? null,
+                          name: t.modal_arena,
+                        }
+                      : null,
                   })),
                 }
               : {
@@ -1763,6 +1982,30 @@ export const battlesTools = {
 
         await ctx.db.query("commit");
         const compact = args.verbosity === "compact";
+        // The guard fires on a detected population change inside the
+        // trend: a different modal arena, or mean starting trophies that
+        // moved by 200 or more between two points.
+        let populationNote = null;
+        const points = player?.monthly_trend ?? [];
+        for (let i = 1; i < points.length && !populationNote; i++) {
+          const a = points[i - 1];
+          const b = points[i];
+          const arenaMoved =
+            a.modal_arena?.name &&
+            b.modal_arena?.name &&
+            a.modal_arena.name !== b.modal_arena.name;
+          const trophiesMoved =
+            a.mean_starting_trophies !== null &&
+            b.mean_starting_trophies !== null &&
+            Math.abs(a.mean_starting_trophies - b.mean_starting_trophies) >=
+              200;
+          if (arenaMoved || trophiesMoved)
+            populationNote = `monthly_trend spans a population change between ${a.month} and ${b.month}: ${
+              arenaMoved
+                ? `modal arena ${a.modal_arena.name} to ${b.modal_arena.name}`
+                : "the same arena"
+            }, mean starting trophies ${a.mean_starting_trophies?.toLocaleString("en-US") ?? "unknown"} to ${b.mean_starting_trophies?.toLocaleString("en-US") ?? "unknown"}; pilot_score adjusts for card levels and not for the opponents' skill, so the step can be the pool rather than the play - hold arena_id fixed to compare.`;
+        }
         return {
           applied: appliedBlock({
             window: {
@@ -1772,6 +2015,7 @@ export const battlesTools = {
               days,
             },
             trophy_band: args.trophy_band,
+            arena_id: args.arena_id,
             mode: args.mode,
             verbosity: compact ? "compact" : "full",
           }),
@@ -1779,6 +2023,7 @@ export const battlesTools = {
           ...(player ? { player } : {}),
           methodology: PILOT_METHODOLOGY,
           notes: notes(
+            populationNote,
             PILOT_NOTES,
             player && !player.experience.tenure_known
               ? "YearsPlayed badge absent, so tenure is unknown (usually an account under one year, with rare veteran exceptions) and no cohort is claimed."

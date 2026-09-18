@@ -376,6 +376,7 @@ never carries internals.
 | `bad_request` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 | `query_timeout` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
+| `internal` | the arguments were accepted and the server failed (3.13.0). Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_feedback`. Before 3.13.0 this case was reported as `bad_request`, which told an agent to fix a call that was fine |
 
 Every code is one branch: the message is for a person, the hint names one
 executable next step (a tool and its arguments), and an agent should never
@@ -400,7 +401,11 @@ The body is replaced by a `result_too_large` error, "Result exceeds 48000
 characters.", with a hint naming the tool's narrowing arguments and, where
 the tool has it, `verbosity: "compact"` (or, for a tool without any, asking
 you to report the `request_id`). The original `request_id` is preserved and
-`isError` is set. `battles_query` refuses `limit` above 25 unless
+`isError` is set. The size of a page depends on what its rows hold (a full
+`battles_query` page carries both sides' decks), so it cannot be predicted
+up front; when the call had a `limit`, the hint also says how large the page
+was and **which `limit` would have fit** the same arguments, so one retry
+replaces a guessing loop. `battles_query` refuses `limit` above 25 unless
 `verbosity: "compact"` for this reason, and `live_fetch` refuses a
 `/players/{tag}/battlelog` path with the same code before spending a live
 fetch, pointing at `battles_query({ live: true })`.

@@ -483,6 +483,7 @@ export const warTools = {
         notes: notes(
           livePendingNote(live),
           "points are per-member contributions; fame belongs to the boat (the clan).",
+          "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
           "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
           decksToday
@@ -688,6 +689,9 @@ export const warTools = {
               ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
               : "Pass player_tag for one member's week-by-week participation (member_weeks).",
           "finished_early marks regular weeks where the boat hit the 10,000-fame line: decks used after the finish earn zero points, so per-deck math there is invalid.",
+          focus || hasSeason
+            ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three) and a 1v1 one, so decks are not battles."
+            : null,
           hasSeason
             ? null
             : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",

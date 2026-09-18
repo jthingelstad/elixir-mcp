@@ -19,6 +19,7 @@ test("every response meta carries disclaimer and contract version", () => {
 test("error taxonomy is closed and stable", () => {
   assert.deepEqual([...ERROR_CODES].sort(), [
     "bad_request",
+    "internal",
     "invalid_tag",
     "live_pending",
     "live_unavailable",

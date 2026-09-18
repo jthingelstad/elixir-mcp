@@ -440,7 +440,10 @@ export function makeInvoker({
         };
       } else {
         // Opaque to the caller, never opaque to the operator: the audit row
-        // says "internal" and this line says what actually broke.
+        // says "internal" and this line says what actually broke. The
+        // code is `internal` too (3.13.0): it was bad_request, and an
+        // agent that read it as "fix your arguments" gave up on a call
+        // whose arguments were fine (feedback #56, battles_opponents).
         console.error(
           "tool_failed_unexpectedly",
           name,
@@ -450,8 +453,9 @@ export function makeInvoker({
         outcome = {
           body: {
             error: {
-              code: "bad_request",
-              message: `Tool ${name} failed unexpectedly.`,
+              code: "internal",
+              message: `Tool ${name} failed unexpectedly; the arguments were accepted and the server failed.`,
+              hint: `Retry the same ${name} call once; if it fails again, elixir_feedback({ category: "bug", request_id: "${requestId}" }) with the arguments.`,
             },
             meta: responseMeta({
               as_of: new Date().toISOString(),
