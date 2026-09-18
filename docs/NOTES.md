@@ -3137,3 +3137,144 @@ day's arena moments. At the deploy (21:26Z): 1 `arena_changed` row in
 the last day, 0 with a battle, 0 from the roster. The after reading is
 in the Phase 2 entry below; arena moves are rare enough per day that
 the share will read properly over a week, not an hour.
+
+## 2026-09-17 — Time-series review, Phase 2: the backfill from the archive (0134)
+
+Phase 2 of the execution brief (review Part 5, plus the race lane the
+Phase 1 verification carried in). Every decision of 2026-09-17 stands.
+RDS snapshot `elixir-mcp-pre-series-backfill-2026-09-17` (21:33Z)
+before the first lane; the migrate Lambda was held by the lanes from
+21:41Z to 23:34Z with four short deploys between them; the door stayed
+up throughout.
+
+**Shipped.** `3123fd8` `{series_backfill: {lane, budget_s, batch}}`:
+the walk is the admitted receipts of the lane's endpoint in
+`receipt_id` order, keyset-resumable on `series_backfill_state`, one
+short transaction per batch; each receipt's archived object is found
+through one `ListObjectsV2` per entity on first sight (hash16 → key,
+cached for the container's life) and parsed once per hash. The lanes
+call the projectors' series halves only, with `observedAt` the
+receipt's `fetched_at`: clan (`projectClanSeries`), player
+(`projectProfileSeries`: `upsertProfileSnapshot` split out of
+`projectPlayerSnapshot`, the kinds, the progress buckets, the frozen
+counters, the PoL final - no baselines, no moments, no badges, no
+collection), race (`projectRaceSeries`: the week row, the rivals'
+columns through the standings upsert the live poll now shares
+(`upsertRaceStandings`), the badges and the period logs, the season
+from the calendar with the stand-by window handled by
+`raceSeasonFor` - never an event or an anchor; 0134 admits `'race'`)
+and battle (the ten 0131 columns from each log's canonical entries,
+filled where null). `{series_census_self}` (read-only): every admitted
+roster receipt's (clan, game day) has its clan row and member rows,
+every profile receipt's day has a profile row, battles without their
+facts, the lanes' state. `infra/scripts/series-backfill.mjs` drives a
+lane to done. Then, from the run: `bbcbf11` fifty receipts a
+transaction and a `40P01` replays the batch (the first live batch of
+200 deadlocked against a collector submission on the player rows both
+upsert); `939a0d5` the batch's objects prefetched eight at a time
+before its transaction (the micro sat at 10-12% CPU with full credits
+and zero latencies through the clan lane: the cost was the serial GET);
+`9e9f5a1` the parsed cache bounded to 300 entries (the battle lane's
+first invocation held every log of 240 s and died at 1 GB); `ef27c82`
+the moment fix below and `{arena_moment_dedupe}`; `b96b2d7` the census
+explains a miss.
+
+**The lanes, measured.** Archive listed before: clan 39,794 objects,
+player 36,014, currentriverrace 4,857, player_battlelog 41,483;
+receipts clan 44,486, player 38,729, race 5,712, battlelog 72,741.
+Clan lane 21:41Z → 22:30Z, 44,598 receipts, 34,507 objects read + 3,517
+cache hits, 719,376 facts, 15 deadlock retries, 57 ms a receipt; ~44
+min wall against the review's ~50. Player lane 22:31Z → 23:14Z, 38,904
+receipts, 37,425 objects, 56,554 facts (a day's last receipt fills the
+new columns, every earlier one writes nothing, as the 0133 guards say),
+1 deadlock retry, 71 ms a receipt; 43 min against ~50. Race lane 128 s,
+5,762 receipts, 4,847 objects, 1,746 facts, 0 unresolved seasons, 22 ms
+a receipt with the prefetch. Battle lane 23:18Z → 23:34Z, 73,391
+receipts, 37,513 objects + 29,901 hits, 251,846 battles filled, 12 ms a
+receipt; 11 min against the review's ~1.5 h. "Missing" objects were 13,
+42, 5 and 17, all in each lane's last invocation: receipts admitted
+live during the run, whose objects postdate the cached listing and
+whose rows the live projector wrote; nothing older was missing.
+
+**The census, before and after.** Before (21:41Z, since 2026-03-12):
+3,717 (clan, day) pairs for 852 clans, 3,477 without a clan row,
+3,478 without member rows; 14,662 profile days, 756 without a profile
+row; 251,921 of 253,939 battles without their facts. After (23:4xZ):
+3,735 pairs, 0 without a clan row; 60 are days a clan had zero members;
+20 have 1-2 members whose day row carries another clan's tag, every one
+a player who was in a different clan by the day's last roster
+observation (the census now names them), which is last-observation-wins
+doing its job; 14,679 profile days, 0 missing; 256,163 battles, 0
+without facts. `{series_status}`: `clan_snapshot_daily` 3,891 rows for
+852 clans from 2026-03-11 (3,735 daily, 136 pre_reset, 20 season_roll);
+`player_snapshot_daily` 23,614 → 140,042 rows (124,252 roster-only,
+1,173 profile-only, 14,617 both; 28,621 players, 841 clans; 37.0 MB,
+264 bytes a row against the review's 258 - the 380 read earlier was
+bloat); `player_progress_daily` 25,318 rows, 1,709 players, 19 keys
+from 2026-03-07; `player_pol_season` 2,177 finals for 1,710 players
+over 2026-02 → 2026-08; `war_period_log` 550 rows, 16 clans, 22
+sections; `war_week_clan.clan_score` on 561 rows;
+`war_participation.repair_points` on 4,785; `clan.type`/`location_id`
+on 852; frozen counters on 1,739 players; `mode_season` 20 keys.
+Database 4.17 → 4.25 GB. `battle` grew 98 → 119 MB (every row touched
+once). No alarm through the run.
+
+**The moment mistake, found by the run.** `{series_status}` read 209
+`arena_changed` rows in the last day after the clan lane, 208 from the
+roster, against 1 before it. The clan lane's receipts from the last 24
+hours passed correction 1's freshness gate, and for each of them the
+prior observation was yesterday's row (today's already carried a later
+live stamp), so a member who had moved arena that day got a moment per
+roster poll. `ef27c82`: `projectClanSeries` takes `moments: false` and
+the backfill passes it (a replay writes rows and never moments, said
+directly); the emitter is idempotent per crossing (a moment into the
+same arena already on the ledger since the prior observation is the
+same move, whichever writer or delivery sees it; test pinned);
+`{arena_moment_dedupe}` keeps the earliest per (player, from, to). Dry
+run: 207 rows, 141 crossings, 66 duplicates; the 66 removed. Decided:
+the 141 stay. They are real moves inside the last day, one row each,
+and the profile path would not emit them either now (its arena
+baseline is either writer's newest row, which the lane updated) -
+absence would have been the worse record. Correction 2's after
+reading: 141 arena moments in the day, 140 from the roster, 0 yet
+pinned with a battle (2.5 hours since its deploy; the log's next
+delivery of a crossing win is what pins one - the week's reading is the
+honest one and goes in the next entry).
+
+**Ingest during the lanes.** The hour the player and battle lanes ran
+beside live ingest: clan receipts avg 462 ms (164 before), player
+1,843 ms (183 before) - contention with the lanes' writes on the micro,
+not a regression of the writers. The hour-after reading was not taken:
+the `jamie` profile's `aws login` session expired at 00:3xZ, after the
+last deploy and the final census, and only Jamie can renew it. The
+first `{series_status: {hours: 1}}` of the next session is that
+reading, with the arena moments' battle share and the storage rate a
+day on (`{tables}`: `player_snapshot_daily` 37.0 MB at 140,042 rows on
+23:42Z is the baseline).
+
+**Decisions taken inside the phase.** (1) Fifty receipts a transaction,
+not two hundred, and a deadlock is the batch's to retry. (2) The
+objects are prefetched concurrently; the database is still one query
+at a time. (3) The parsed cache is bounded. (4) The backfill emits no
+moment by an explicit option, and the emitter is once per crossing.
+(5) The race lane resolves the week from the calendar: a payload whose
+`sectionIndex` is past the calendar's is the season before (the
+stand-by window); one behind it is unresolved and counted (0 live).
+(6) A (clan, day) whose members' rows carry another clan's tag is not a
+miss.
+
+**Left out, and why.** Nothing of Part 5. The moves of the last day that
+the lane wrote once are kept (above). The instance was not upgraded:
+Jamie asked mid-run whether the micro was the limiter; the metrics said
+no (10-12% CPU, credits full, latencies zero), the class is a template
+literal, and the prefetch was the fix.
+
+**Phase 3 next (review Part 6): the elixir-bot import and the
+validation census.** `{replay}` of the bot's 5,488 profile payloads
+(2026-07-15 → 09-03) under the backfill gateway; the export script
+reading `elixir-v51.db` read-only into the documented intermediate;
+`{series_import}` into staging; `{series_census}` over every
+overlapping day; commit of the non-overlapping rows and the rollup
+keys; the numbers in NOTES; elixir-bot untouched. Needs Jamie's go;
+nothing manual before; afterwards, revoke the `backfill-elixir-bot`
+gateway row in Admin as on 09-15.
