@@ -3360,3 +3360,123 @@ payloads); what the bot adds to the clan series is five days (03-07 to
 03-11) and 07-03, the rest is comparison; the pinned share is reported
 for recorded players. Live cost after the phase (clan 241 ms, player
 189 ms) is within what 4.6 sized.
+
+## 2026-09-18 — Time-series review, Phase 3: the elixir-bot import and the validation census
+
+Phase 3 of the execution brief (review Part 6), with the adjustments
+the Phase 2 verification carried in: the profile replay before the
+import, no tags-only class in the census, the pinned share reported for
+recorded players. Decision 3 stands: history import is in scope and IS
+the validation; nothing in elixir-bot changed (its database was opened
+`?mode=ro` throughout). Every write went through the projector with
+`source: 'elixir-bot'` and no moment; the rollup keys by exception.
+
+**Shipped.** `231e93c` `{replay: {moments: false}}`: processResult
+carries `deps.moments` to the player projector, and the snapshot
+(donation_reset, the milestones), the badges and the collection write
+their rows and skip their moments when it is false - the settled rule,
+applied to the profile path; `infra/scripts/backfill-replay-profiles.mjs`
+drives the bot's profile payloads for the 51-day hole through it.
+`4474edb` `infra/scripts/elixir-bot-series-export.mjs`, the documented
+intermediate (one entry per bot day in the roster payload's own shape,
+`day` the Chicago metric_date which maps to the game day of the same
+name row for row - asserted for every clan_daily_metrics.observed_at -
+fields the bot never kept absent, a Chicago Sunday marked; the rollup
+slice mapped, with the folded keys summed); `{series_import: {stage}}`
+into a `staging` schema; `{series_census}` (read-only); `{series_import:
+{commit: true}}`, the non-overlapping rows through `projectClanSeries`
+(a `clanRow` option) and the rollup keys the record lacks. `21fd47f`,
+`4e8589a`, and the census's class names. Tests over a live-shaped day
+set: the census classes and the commit's non-overlap rule, the Sunday
+pre_reset row, a second commit writing nothing.
+
+**Measured live, read-only, in order.**
+
+*The profile replay* (01:19Z → 01:41Z): 5,488 payloads for 71 players
+(the bot keys entities without `#`; King Thing is among them),
+2026-07-15T07:03Z → 09-03T23:30Z, all admitted, 89 ms a payload, 22
+minutes; player receipts 38,729 → 44,659 with the day's live polls;
+1,000+ new archive objects (King Thing's 2026-08-0x objects carry this
+run's LastModified). The rows for those days already existed - the
+2026-09-04 import had projected them and the Phase 2 player lane had
+filled their columns - so the snapshot table moved by the hour's live
+growth only (140,166 → 140,183); the census confirms every profile day
+since 03-12 has its row and every profile row its lifetime columns
+(`profile_rows_without_lifetime` 0 over 14,686 days). What the replay
+adds is the receipts and the archive for the hole, which is what
+Part 6 asked of it.
+
+*The export:* 195 days (191 with a clan row, 03-07 → 03-10 member rows
+only, given D+1 04:50Z as their instant and marked `modal`), 8,684
+member rows for 144 players, 28 Sundays, 0 observations outside their
+game day; the rollup slice 2,371 bot rows → 2,352 keys (19 folded onto
+casual), 83 players, 13,066 battles. Staged in 203 ms.
+
+*The census before the commit* (POAP KINGS, 2026-03-01 → 09-17):
+clan days: 191 both, 0 only the bot, 0 only the recorder (07-03 is in
+the record from the v4 tenure replay). Clan metrics on the 191 days, at
+the same tick (within five minutes) the values never disagree:
+clan_score 67 equal / 124 residual / 0 disagree, clan_war_trophies
+174 / 17 / 0, members 172 / 19 / 0, required_trophies 188 / 3 / 0,
+donations_per_week 66 / 125 / 0. Member rows: 8,684 bot rows, 8,534
+with a recorder roster row that day, 37 with no row at all, 7 recorder
+rows the bot lacks, 113 whose day row the profile wrote and the roster
+never did (75 of them 03-07 → 03-11, before the record's first roster).
+The 8,534 pairs: trophies 7,565 equal / 828 residual / 141 differing
+at what reads as the same tick; donations 5,993 / 1,152 / 183;
+donations_received 5,506 / 1,684 / 138; clan_rank 7,111 / 1,414 / 9.
+The recorder's roster stamp against the bot's tick: 2,315 more than an
+hour earlier, 3,146 within the hour before, 319 within the hour after,
+606 one to three hours after, 1,745 three to six, 403 more than six.
+The "same tick" reading for members is the bot's CLAN tick: its member
+values came from profile polls with no time of their own
+(`player_daily_metrics`), so those 141 / 183 / 138 / 9 are differences
+whose bot read time is unknown, not contradictions of one payload -
+1.7% of the pairs on trophies. Sundays: 1,239 bot rows; 836 with a
+recorder pre_reset row (395 equal, 441 differing: 204 with the bot
+higher, the climb after the recorder's 23:1xZ poll; 237 with the bot
+lower, the bot's last read before the reset earlier than the
+recorder's), 403 the recorder's window missed (members whose profile
+was not recorded then; the forced pre-reset poll was the profile's).
+Rollup slice: 2,352 keys, 310 absent (792 battles), 1,315 equal, 727
+different (332 with the bot holding more battles, 365 the recorder) -
+the Chicago-to-UTC day boundary moving a US clan's evening battles
+between adjacent days, 3.3's stated residual.
+
+*The commit* (1.7 s): 0 clan rows (the record had every day), 37
+member rows, 403 Sunday pre_reset rows carrying the bot's MAX (their
+daily rows' donations left null), 8,647 overlapping member rows
+skipped, 310 rollup keys added. A second commit: 0 / 0 / 0 / 0. Census
+after: members only-bot 0, rollup absent 0; the recorder-captured
+counts unchanged (the census reads `source = 'api'`).
+
+**Decisions taken inside the phase.** (1) The profile replay ran with
+`moments: false`: the 09-15 precedent ran the full projector, but the
+rule settled in Phase 2 (a replay writes rows and never moments) is the
+one to follow, and 51 days of badge, card, band and streak moments
+arriving dated in the past would have been a flood on the timeline.
+(2) The four member-only days before the bot's first roster take the
+bot's modal roster hour as their instant, marked `modal` in the
+intermediate; the reviewer may prefer they stay out. (3) The 113 rows
+the profile wrote and the roster never did are NOT given the bot's
+roster columns: the bot's member tick is unknown, and the projector's
+shared-column rule would let an approximated stamp replace a real
+profile observation of trophies. A roster-columns-only import path
+would fill `clan_rank` and `lastSeen` on those days without that
+hazard; not built, for the verification to call. (4) The Sunday rule
+as 6.2 wrote it: the bot's MAX is the pre_reset row, the daily row's
+donations null. (5) The rollup keys folded onto `casual` are summed.
+
+**Left for Jamie.** Revoke the `backfill-elixir-bot` gateway row in
+Admin, as on 09-15. The staging schema holds the intermediate (three
+small tables, outside the fingerprint) for the verification to read;
+it can be dropped afterwards.
+
+**Phase 4 next (review Part 7): the readers.** The two docs sections
+first (`clocks#the-game-day`, `recording#daily-series`),
+`players_timeline` extended, `clans_timeline` and
+`clans_members_timeline` with output schemas, the `clans_roster`
+lifetime block, the `rankings_timeline` description, one minor bump
+with its changelog and What's-new, the tools reference regenerated;
+`elixir_data_insights.players_with_snapshot` renamed or filtered. Jamie
+reads the tool names before the bump.
