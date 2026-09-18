@@ -510,8 +510,9 @@ test("game_events: what was on, by the days it was seen", async () => {
   assert.equal(isError, false, JSON.stringify(body));
   const merge = body.events.find((e) => e.title === "Merge Tactics");
   const chaos = body.events.find((e) => e.title === "C.H.A.O.S");
-  assert.deepEqual(merge.days_seen, ["2026-09-11", "2026-09-12"]);
-  assert.deepEqual(chaos.days_seen, ["2026-09-11"]);
+  assert.deepEqual(merge.game_days_seen, ["2026-09-11", "2026-09-12"]);
+  assert.deepEqual(chaos.game_days_seen, ["2026-09-11"]);
+  assert.ok(!("days_seen" in merge), "4.0.0: the UTC-day list is gone");
   assert.equal(body.latest_sighting_day, "2026-09-13");
   assert.equal(body.first_sighting_day, "2026-09-11");
   assert.ok(
@@ -531,12 +532,12 @@ test("game_events: game_days_seen puts the same sightings on the game day grid, 
   const merge = body.events.find((e) => e.title === "Merge Tactics");
   // Three UTC days; the 04:00Z read on the 13th is game day the 12th,
   // and the two reads without a receipt keep their UTC day.
-  assert.deepEqual(merge.days_seen, ["2026-09-11", "2026-09-12", "2026-09-13"]);
   assert.deepEqual(merge.game_days_seen, ["2026-09-11", "2026-09-12"]);
+  assert.ok(!("days_seen" in merge));
   assert.equal(merge.running_on_latest_day, true);
   assert.ok("season" in body.applied.window);
   assert.ok(Array.isArray(body.applied.window.crosses));
-  assert.ok(body.notes.some((n) => /game_days_seen/.test(n)));
+  assert.ok(body.notes.some((n) => /game_days_seen is the game days/.test(n)));
 });
 
 test("rankings_timeline: every point carries its game day, and the window says its season (3.17.0)", async () => {

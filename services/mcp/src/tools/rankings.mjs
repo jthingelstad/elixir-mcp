@@ -871,7 +871,6 @@ export const rankingsTools = {
           event_tag: r.event_tag,
           title: r.title,
           description: r.description,
-          days_seen: r.days,
           game_days_seen: r.game_days,
           first_seen_at: r.first_seen_at.toISOString(),
           last_seen_at: r.last_seen_at.toISOString(),
@@ -881,7 +880,7 @@ export const rankingsTools = {
         })),
         notes: notes(
           seasonFields.seasonNotes,
-          "days_seen is the UTC days /events listed the event and game_days_seen the same sightings on the game day grid (10:00Z, the one the series tools use; a read before 10:00Z belongs to the day before); the API gives no start or end, so an event's span is its first and last sighting, at daily resolution. days_seen retires at 4.0.0.",
+          "game_days_seen is the game days (the 10:00Z grid the series tools use; a read before 10:00Z belongs to the day before) on which /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
           `Sightings began ${running[0]?.first_day ?? "when recording did"}; nothing before that date is known, and days without a read are unknown, not empty.`,
           "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match.",
         ),
