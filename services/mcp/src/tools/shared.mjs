@@ -491,13 +491,16 @@ async function seasonFieldsForSpan(
       : fromMs === null
         ? null
         : await seasonAt(db, fromMs);
-  // An unbounded span crosses every roll on record: it starts where the
-  // record's seasons do, and the first row is where they begin, not a
-  // boundary the span crossed.
+  // An unbounded span crosses every roll the RECORD spans: it starts at
+  // the first recorded battle, not at the season calendar's first row
+  // (the calendar reaches back to 2016 for the finals boards, and the
+  // 4.0.0 acceptance read found an unbounded battles_query carrying 118
+  // crossings and a two-kilobyte note). min(battle_time) is one index
+  // probe on battle_time_idx.
   const spanFromMs =
     fromMs ??
     (
-      await db.query(`select min(starts_at) as first from season`)
+      await db.query(`select min(battle_time) as first from battle`)
     ).rows[0]?.first?.getTime() ??
     endMs;
   const crosses = await seasonCrossings(db, spanFromMs, endMs);
@@ -521,6 +524,14 @@ async function seasonFieldsForSpan(
         .filter(Boolean)
         .map(seasonLabel)
     : [];
+  // The note names the seasons when there are a few; a long span says
+  // how many and its ends (crosses[] carries them all).
+  const spans =
+    spanned.length > 4
+      ? `${spanned.length} seasons, ${spanned[0]} to ${spanned.at(-1)}`
+      : spanned.length > 1
+        ? `${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}`
+        : spanned[0];
   return {
     start: startRow,
     seasonAgeDays,
@@ -532,7 +543,7 @@ async function seasonFieldsForSpan(
     },
     seasonNotes: notes(
       crosses.length
-        ? `Window spans ${spanned.length > 1 ? `${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}` : spanned[0]}; ${CROSSING_TAIL[flavor] ?? CROSSING_TAIL.balance}`
+        ? `Window spans ${spans}; ${CROSSING_TAIL[flavor] ?? CROSSING_TAIL.balance}`
         : null,
     ),
   };
