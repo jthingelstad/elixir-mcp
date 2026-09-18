@@ -824,6 +824,162 @@ Resources:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
+          # Product email (docs/EMAIL.md): the queue the relay drains, the
+          # secret the one-click unsubscribe token is signed with (the same
+          # one the web API verifies it with), the owner's address for a
+          # failed Top 100 issue, and the editor to hand a brief to.
+          EMAIL_QUEUE_URL: !Ref EmailQueue
+          SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
+          OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
+          EDITOR_FUNCTION: elixir-mcp-editor
+
+  EditorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-editor
+      RetentionInDays: 30
+  EditorFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: EditorLogGroup
+    Properties:
+      FunctionName: elixir-mcp-editor
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      # Two model passes with thinking on a 40 KB brief run minutes.
+      Timeout: 840
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt EditorRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref EditorCodeKey }
+      Environment:
+        Variables:
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
+          JOBS_FUNCTION: !Ref JobsFunction
+          EDITOR_MODEL: !Ref EditorModel
+          # Resolved only once the key is in the secret: a resolve of a
+          # missing JSON key fails the whole stack update.
+          ANTHROPIC_API_KEY: !If
+            - HasAnthropicKey
+            - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:anthropic_api_key}}"
+            - !Ref AWS::NoValue
+
+  # Product email (docs/EMAIL.md): five weekly kinds at 14:00Z on their
+  # days, the milestone mail hourly, the Top 100 brief on Thursday at
+  # 10:30Z after the daily board lands (its send is the 14:00Z rule).
+  # One rule per kind so a kind can be paused alone.
+  EmailClanReportRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-clan-report
+      ScheduleExpression: cron(0 14 ? * MON *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-clan-report
+          Input: '{"email": "clan_report"}'
+  EmailClanReportPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailClanReportRule.Arn
+  EmailArenaWeekRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-arena-week
+      ScheduleExpression: cron(0 14 ? * TUE *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-arena-week
+          Input: '{"email": "arena_week"}'
+  EmailArenaWeekPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailArenaWeekRule.Arn
+  EmailTrackingReportRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-tracking-report
+      ScheduleExpression: cron(0 14 ? * WED *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-tracking-report
+          Input: '{"email": "tracking_report"}'
+  EmailTrackingReportPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailTrackingReportRule.Arn
+  EmailTop100GenerateRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-top100-generate
+      ScheduleExpression: cron(30 10 ? * THU *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-top100-generate
+          Input: '{"top100_generate": true}'
+  EmailTop100GeneratePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailTop100GenerateRule.Arn
+  EmailTop100Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-top100
+      ScheduleExpression: cron(0 14 ? * THU *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-top100
+          Input: '{"email": "top_100"}'
+  EmailTop100Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailTop100Rule.Arn
+  EmailCollectorActivityRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-collector-activity
+      ScheduleExpression: cron(0 14 ? * SUN *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-collector-activity
+          Input: '{"email": "collector_activity"}'
+  EmailCollectorActivityPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailCollectorActivityRule.Arn
+  EmailMilestoneRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-milestone
+      ScheduleExpression: cron(20 * * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-milestone
+          Input: '{"email": "milestone"}'
+  EmailMilestonePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailMilestoneRule.Arn
 
   # Hourly Postgres payload sweep (DATA-TOOLS section 1): superseded
   # payload rows leave Postgres once their S3 twin is HEAD-verified, and
