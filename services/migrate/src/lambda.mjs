@@ -70,6 +70,7 @@ import {
   seriesCensusSelf,
   arenaMomentDedupe,
   raceWeekRepair,
+  explainSeries,
 } from "./ops-series.mjs";
 
 export async function handler(event) {
@@ -364,6 +365,14 @@ export async function handler(event) {
     const result = await seriesCensus(
       process.env.DATABASE_URL,
       event.series_census === true ? {} : event.series_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.explain_series) {
+    const result = await explainSeries(
+      process.env.DATABASE_URL,
+      event.explain_series === true ? {} : event.explain_series,
     );
     console.log(JSON.stringify(result));
     return result;

@@ -893,3 +893,98 @@ export async function raceWeekRepair(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/**
+ * {explain_series: {clan_tag?, days?, player_tag?}} - read-only: EXPLAIN
+ * (ANALYZE, BUFFERS) of the shapes clans_timeline, clans_members_timeline
+ * and players_timeline run (contract 3.12.0), on the live database, the
+ * pattern of {explain_meta} and {explain_standings}: the op that
+ * explains the exact text the tool serves.
+ */
+export async function explainSeries(databaseUrl, spec = {}) {
+  const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
+  const playerTag = String(spec.player_tag ?? "#20JJJ2CCRU").toUpperCase();
+  const days = Math.min(365, Math.max(1, Number(spec.days ?? 180)));
+  const from = new Date(Date.now() - days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set transaction_read_only = on");
+    await db.query("set statement_timeout = 120000");
+    const out = [];
+    const explain = async (name, text, values) => {
+      const started = Date.now();
+      const { rows } = await db.query(
+        `explain (analyze, buffers, format text) ${text}`,
+        values,
+      );
+      const plan = rows.map((r) => r["QUERY PLAN"]);
+      out.push({
+        name,
+        ms: Date.now() - started,
+        rows: Number(
+          /actual time=[^ ]+ rows=(\d+)/.exec(plan[0] ?? "")?.[1] ?? NaN,
+        ),
+        execution_ms: Number(
+          /Execution Time: ([\d.]+)/.exec(plan.at(-1) ?? "")?.[1] ?? NaN,
+        ),
+        buffers:
+          /Buffers: shared hit=(\d+)(?: read=(\d+))?/
+            .exec(plan.slice(0, 6).join("\n"))
+            ?.slice(1, 3) ?? null,
+        plan_head: plan.slice(0, 4),
+      });
+    };
+    await explain(
+      "clans_timeline: the clan rows plus the roster aggregates (default metrics)",
+      `select c.day, c.snapshot_kind, c.observed_at, c.source, c.clan_score, c.clan_war_trophies,
+              c.members, c.donations_per_week, c.required_trophies, a.*
+         from clan_snapshot_daily c
+         left join lateral (
+           select sum(s.trophies)::int as total_member_trophies,
+                  round(avg(s.trophies))::int as avg_member_trophies,
+                  count(*) filter (where s.roster_observed_at is not null)::int as members_seen
+             from player_snapshot_daily s
+            where s.clan_tag = c.clan_tag and s.snapshot_date = c.day and s.snapshot_kind = c.snapshot_kind) a on true
+        where c.clan_tag = $1 and c.snapshot_kind = 'daily' and c.day >= $2::date
+        order by c.day`,
+      [clanTag, from],
+    );
+    await explain(
+      "clans_members_timeline: every member's rows for the window",
+      `select s.player_tag, s.snapshot_date, s.snapshot_kind, s.observed_at, s.profile_observed_at,
+              s.roster_observed_at, s.source, s.trophies, s.donations
+         from player_snapshot_daily s
+        where s.clan_tag = $1 and s.snapshot_kind = 'daily' and s.snapshot_date >= $2::date
+        order by s.player_tag, s.snapshot_date`,
+      [clanTag, from],
+    );
+    await explain(
+      "players_timeline: one player's rows",
+      `select snapshot_date, snapshot_kind, observed_at, profile_observed_at, roster_observed_at, source,
+              trophies, wins, king_tower_level
+         from player_snapshot_daily
+        where player_tag = $1 and snapshot_kind = 'daily' and snapshot_date >= $2::date
+        order by snapshot_date`,
+      [playerTag, from],
+    );
+    await explain(
+      "players_timeline: the progress series",
+      `select p.progress_key, p.day, p.trophies from player_progress_daily p
+        where p.player_tag = $1 and p.snapshot_kind = 'daily' and p.day >= $2::date
+        order by p.progress_key, p.day`,
+      [playerTag, from],
+    );
+    return {
+      clan_tag: clanTag,
+      player_tag: playerTag,
+      days,
+      from,
+      explains: out,
+    };
+  } finally {
+    await db.end();
+  }
+}
