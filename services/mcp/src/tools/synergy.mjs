@@ -22,7 +22,15 @@ import {
   notes,
   META_METHODOLOGY,
 } from "./shared.mjs";
-import { seasonRollup, rollupSynergy, rawScanMemory } from "../meta-season.mjs";
+import {
+  seasonRollup,
+  rollupSynergy,
+  rawScanMemory,
+  rollupCardModes,
+  TROPHY_BAND_NAMES,
+  trophyBandClause,
+} from "../meta-season.mjs";
+import { modeSplit } from "../controls.mjs";
 import { catalogItems } from "./cards.mjs";
 
 /** Resolve a card by id or by EXACT name (case-insensitive) against the
@@ -97,6 +105,12 @@ export const synergyTools = {
           description: "Decided decks a pair needs to be listed.",
         },
         limit: { type: "integer", minimum: 1, maximum: 60, default: 20 },
+        trophy_band: {
+          type: "string",
+          enum: TROPHY_BAND_NAMES,
+          description:
+            "Only decks whose own player entered with starting trophies in this band: the anchor's partners at a level. A corpus season read answers from the banded rollup once the nightly rebuild has filled it, else from the raw rows with a note.",
+        },
       },
       additionalProperties: false,
     },
@@ -122,6 +136,9 @@ export const synergyTools = {
         params.push(typesForModeGroup(args.mode));
         where.push(`bp.type = any($${params.length})`);
       }
+      requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
+      if (args.trophy_band)
+        where.push(trophyBandClause(args.trophy_band, params));
       const merge = args.merge_forms !== false;
       const formBit = { base: 0, evolution: 1, hero: 2 }[
         args.anchor_form ?? "base"
@@ -151,9 +168,19 @@ export const synergyTools = {
       // A corpus read over one season comes from the rollup (0121): the
       // anchor's row (form -1 = any form) and its pairs; a segment or an
       // explicit window walks the raw rows as before.
-      const roll = await seasonRollup(ctx.db, { win, seg, mode: args.mode });
+      const rolled = await seasonRollup(ctx.db, {
+        win,
+        seg,
+        mode: args.mode,
+        trophyBand: args.trophy_band ?? null,
+      });
+      const bandPending = rolled?.pending === true;
+      const roll = bandPending ? null : rolled;
       let rows;
       let totals;
+      // The anchor's decks by mode group (3.16.0): the control beside a
+      // co-occurrence read, since war and ladder pool different decks.
+      let anchorModes;
       if (roll) {
         const r = await rollupSynergy(ctx.db, roll, {
           anchorId: anchor.id,
@@ -170,8 +197,25 @@ export const synergyTools = {
           anchor_wins: r.anchor.wins,
         };
         rows = r.partners;
+        anchorModes = modeSplit(
+          (
+            await rollupCardModes(ctx.db, roll, [
+              { card_id: anchor.id, form: merge ? -1 : formBit },
+            ])
+          ).get(`${anchor.id}|${merge ? -1 : formBit}`) ?? [],
+        );
       } else {
         await rawScanMemory(ctx.db);
+        const { rows: byType } = await ctx.db.query(
+          `select bp.type, count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses
+           from battle_participant bp
+           where ${where.join(" and ")} and ${anchorMatch}
+           group by bp.type`,
+          params,
+        );
+        anchorModes = modeSplit(byType);
         rows = (
           await ctx.db.query(
             `with pop as (
@@ -240,11 +284,13 @@ export const synergyTools = {
               : null,
           usage_share:
             decided > 0 ? Number((anchorDecks / decided).toFixed(3)) : null,
+          modes: anchorModes,
         },
         applied: appliedBlock({
           segment: seg.echo,
           window: win.echo,
           mode: args.mode,
+          trophy_band: args.trophy_band,
           merge_forms: merge,
           anchor_form: merge ? undefined : (args.anchor_form ?? "base"),
           min_pair_battles: minPair,
@@ -280,6 +326,12 @@ export const synergyTools = {
           };
         }),
         notes: notes(
+          bandPending
+            ? "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it)."
+            : null,
+          !args.mode && Object.keys(anchorModes ?? {}).length > 1
+            ? "anchor.modes splits the anchor's decks by mode group: war and ladder pool different decks, so pass mode before reading a partner as a ladder habit."
+            : null,
           "co_occurrence_rate = decks with anchor AND partner / decks with anchor; baseline_usage = the partner's share of all decided decks in the segment; lift = co_occurrence_rate / baseline_usage.",
           "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
           "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",

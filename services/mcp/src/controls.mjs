@@ -137,7 +137,9 @@ export function modeGaps(typeRows) {
   return [...pooled.values()].map((g) => ({
     mode: g.mode,
     battles: g.battles,
-    mean_level_gap: g.gapN > 0 ? Number((g.gapSum / g.gapN).toFixed(2)) : null,
+    // + 0 folds a -0 to 0, so a rollup read and a raw read compare equal.
+    mean_level_gap:
+      g.gapN > 0 ? Number((g.gapSum / g.gapN).toFixed(2)) + 0 : null,
   }));
 }
 

@@ -1680,6 +1680,95 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   });
   assert.equal(seg.body.prior_basis, corpus.body.prior_basis);
   assert.equal(seg.body.prior_win_rate, corpus.body.prior_win_rate);
+
+  // 3.16.0: every meta row carries modes and mean_level_gap on both
+  // paths (pinned equal above), the response carries comparable and
+  // modes_in_window, and a segment whose rows are one player's habits
+  // says so.
+  assert.equal(typeof corpus.body.comparable, "boolean");
+  assert.ok(corpus.body.decks.every((d) => typeof d.modes === "object"));
+  assert.ok(corpus.body.decks.every((d) => "mean_level_gap" in d));
+  assert.ok(Array.isArray(corpus.body.modes_in_window));
+  assert.ok(
+    seg.body.notes.some((n) => /ONE player/.test(n)) ||
+      seg.body.decks.some((d) => d.players > 1),
+  );
+
+  // The trophy band (0135): the same rows from the band table and from
+  // the raw rows; before a rebuild has filled the band tables the raw
+  // path answers with the fallback note.
+  for (const [tool, args, listKey, key] of [
+    [
+      "battles_meta_decks",
+      { min_battles: 1, limit: 40 },
+      "decks",
+      (r) => r.deck_hash,
+    ],
+    [
+      "battles_meta_cards",
+      { min_battles: 1, limit: 130 },
+      "cards",
+      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+    ],
+    [
+      "cards_synergy",
+      { card: "Knight", min_pair_battles: 1, limit: 60 },
+      "partners",
+      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+    ],
+  ]) {
+    const band = { trophy_band: "13000_plus" };
+    const rawBand = await call(tool, { ...args, ...bounds, ...band });
+    const rolledBand = await call(tool, {
+      ...args,
+      season: "2026-08",
+      ...band,
+    });
+    assert.equal(rawBand.isError, false, JSON.stringify(rawBand.body));
+    assert.equal(rolledBand.isError, false, JSON.stringify(rolledBand.body));
+    assert.equal(rolledBand.body.applied.trophy_band, "13000_plus");
+    if (tool !== "cards_synergy")
+      assert.ok(
+        rawBand.body[listKey].length > 0,
+        `${tool}: the band holds rows`,
+      );
+    assert.equal(
+      typeof rolledBand.body.players_as_of,
+      "string",
+      `${tool}: band from the rollup`,
+    );
+    const listA = byKey(strip(rawBand.body)[listKey], key);
+    const listB = byKey(strip(rolledBand.body)[listKey], key);
+    assert.deepEqual(
+      Object.keys(listB).sort(),
+      Object.keys(listA).sort(),
+      `${tool}: the same banded rows`,
+    );
+    for (const k of Object.keys(listA)) {
+      const a = { ...listA[k] };
+      const b = { ...listB[k] };
+      assert.deepEqual(b, a, `${tool}: banded row ${k}`);
+    }
+    assert.ok(
+      rolledBand.body.decided_battles <= corpus.body.decided_battles,
+      "the band is within the season",
+    );
+  }
+  await db.query(
+    "update meta_season_state set bands_rebuilt_at = null where season_month = '2026-08'",
+  );
+  const pending = await call("battles_meta_decks", {
+    season: "2026-08",
+    min_battles: 1,
+    trophy_band: "13000_plus",
+  });
+  assert.equal(pending.body.players_as_of, undefined, "raw path");
+  assert.ok(
+    pending.body.notes.some((n) => /banded rollup is not built yet/.test(n)),
+  );
+  await db.query(
+    "update meta_season_state set bands_rebuilt_at = rebuilt_at where season_month = '2026-08'",
+  );
 });
 
 test("dailySql sums equal the raw rows over any instant window, edge days included", async () => {

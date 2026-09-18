@@ -83,6 +83,37 @@ rows as before, exact to the instant, and take only the corpus prior from
 the rollup. The two paths answer the same numbers over the same window;
 a test holds them equal.
 
+**The control next to each meta row (3.16.0).** Every deck and card row
+carries `modes` (its decided observations by mode group) and
+`mean_level_gap` (the deck's average card level minus the opposing side's,
+over the observations where both were known; `level_gap_battles` on deck
+rows says how many), and the response carries `comparable`, `false` when
+two returned rows were played predominantly in different modes or at gaps
+half a level apart, with the first note naming them. With `mode` omitted
+the response also carries `modes_in_window` (the window's decided
+observations and mean gap per mode group) and a note when the pooled
+groups' gaps differ: a card met mostly in war inherits war's matchmaking.
+A segment read whose returned rows were all played by one player says so
+in a note; those numbers are a few players' habits, not a meta. On the
+rollup path the level gap is a nightly sum (a row first seen since the
+last rebuild carries `mean_level_gap: null` until tonight); on the raw
+path it is computed in the same scan.
+
+**The trophy band (3.16.0).** `trophy_band` on `battles_meta_decks`,
+`battles_meta_cards` and `cards_synergy` keeps only the observations whose
+own player entered the battle with starting trophies in the band
+(`under_5000`, `5000_8000`, `8000_11000`, `11000_13000`, `13000_plus`, the
+bands `battles_levels` speaks): the meta at a level, since a deck that
+dominates at 13,000 may not exist at 6,000. A corpus season read answers
+from the banded rollup, which the nightly rebuild keeps beside the
+unbanded one, once it has been filled for the season; before that (the
+first night after the band arrived, or a season the job has not reached)
+the read falls back to the raw rows under the query budget and says so in
+a note. On a banded read `excluded` still counts the whole season and
+mode (a duel or a boat battle has no band of its own); `decided_battles`
+and every row are the band's. Observations without starting trophies
+(war, casual) are in the unbanded rows only.
+
 This shrinkage moderates extremes; it does **not** guarantee rank order. With a
 prior of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
 about 63.3%. Neither estimate adjusts for player skill, opposition or deck loyalty.

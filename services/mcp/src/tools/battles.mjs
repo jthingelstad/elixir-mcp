@@ -52,7 +52,25 @@ import {
   rollupDecks,
   rollupCards,
   rawScanMemory,
+  TROPHY_BAND_NAMES,
+  trophyBandClause,
+  rollupDeckModes,
+  rollupCardModes,
+  rollupModeGroups,
 } from "../meta-season.mjs";
+
+/** The trophy band argument the three meta tools take (0135): the
+ *  participant's own starting trophies at battle time. */
+const META_TROPHY_BAND_SCHEMA = {
+  type: "string",
+  enum: TROPHY_BAND_NAMES,
+  description:
+    "Only battles the deck's own player entered with starting trophies in this band: the meta at a level. A corpus season read answers from the banded rollup once the nightly rebuild has filled it, else from the raw rows with a note.",
+};
+
+/** The band fallback sentence when the rollup is not yet built. */
+const BAND_FALLBACK_NOTE =
+  "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it), so distinct-player counts are exact and the read is slower.";
 import { resolveInstant } from "../time.mjs";
 
 /** tower_hp as served, from the three columns (0123): king when
@@ -100,6 +118,7 @@ import {
   trophyFloorNote,
   markPartialWeeks,
   partialWeeksNote,
+  singlePlayerNote,
 } from "../controls.mjs";
 import {
   LEVEL_EDGES_SQL,
@@ -1292,6 +1311,7 @@ export const battlesTools = {
           default: "battles",
         },
         limit: { type: "integer", minimum: 1, maximum: 40, default: 20 },
+        trophy_band: META_TROPHY_BAND_SCHEMA,
       },
       additionalProperties: false,
     },
@@ -1314,6 +1334,9 @@ export const battlesTools = {
         params.push(typesForModeGroup(args.mode));
         scope.push(`bp.type = any($${params.length})`);
       }
+      requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
+      if (args.trophy_band)
+        scope.push(trophyBandClause(args.trophy_band, params));
       const where = [
         ...scope,
         "bp.deck_hash is not null",
@@ -1322,18 +1345,28 @@ export const battlesTools = {
       ];
       const minBattles = args.min_battles ?? 5;
       // A corpus read over one season comes from the rollup (0121); a
-      // segment or an explicit window scans the raw rows as before.
-      const roll = await seasonRollup(ctx.db, { win, seg, mode: args.mode });
+      // segment or an explicit window scans the raw rows as before. A
+      // banded read (0135) comes from the band tables once built.
+      const rolled = await seasonRollup(ctx.db, {
+        win,
+        seg,
+        mode: args.mode,
+        trophyBand: args.trophy_band ?? null,
+      });
+      const bandPending = rolled?.pending === true;
+      const roll = bandPending ? null : rolled;
       let rows;
       let excluded;
       let prior;
       let totalDecided;
       let totalWins;
+      let modeGroups = null;
       if (roll) {
         ({ excluded, prior } = roll);
         rows = await rollupDecks(ctx.db, roll, { minBattles });
         totalDecided = prior.decided;
         totalWins = Math.round((prior.mean ?? 0) * prior.decided);
+        if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
         await rawScanMemory(ctx.db);
         const { prior: populationPrior, ...breakdown } =
@@ -1351,21 +1384,90 @@ export const battlesTools = {
           }));
         // The participant carries everything this aggregate needs (0095,
         // 0099: type_class and type); no join to battle.
-        ({ rows } = await ctx.db.query(
-          `select bp.deck_hash,
-                  count(*)::int as battles,
-                  count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  count(distinct bp.player_tag)::int as players,
-                  min(bp.battle_time) as first_used,
-                  max(bp.battle_time) as last_used
-           from battle_participant bp
-           where ${where.join(" and ")}
-           group by bp.deck_hash`,
+        // ONE scan, grouped by (deck, type): the per-deck row, its mode
+        // split and the window's per-type groups all fold from it (3.16.0);
+        // the level gap is the lateral avg battles_decks uses (3.13.0).
+        const { rows: byDeckType } = await ctx.db.query(
+          `with d as (
+             select bp.deck_hash, bp.type, bp.player_tag,
+                    count(*)::int as battles,
+                    count(*) filter (where bp.outcome = 'win')::int as wins,
+                    count(*) filter (where bp.outcome = 'loss')::int as losses,
+                    min(bp.battle_time) as first_used,
+                    max(bp.battle_time) as last_used,
+                    sum(bp.deck_avg_level - lv.lvl) as gap_sum,
+                    count(lv.lvl)::int as gap_n
+             from battle_participant bp
+             left join lateral (
+               select avg(o.deck_avg_level) as lvl from battle_participant o
+               where o.battle_id = bp.battle_id and o.side <> bp.side
+                 and bp.deck_avg_level is not null) lv on true
+             where ${where.join(" and ")}
+             group by bp.deck_hash, bp.type, bp.player_tag)
+           select deck_hash, type,
+                  sum(battles)::int as battles, sum(wins)::int as wins, sum(losses)::int as losses,
+                  count(distinct player_tag)::int as players,
+                  min(first_used) as first_used, max(last_used) as last_used,
+                  sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n,
+                  (select count(distinct d2.player_tag)::int from d d2 where d2.deck_hash = d.deck_hash) as deck_players
+           from d group by deck_hash, type`,
           params,
-        ));
+        );
+        const byDeck = new Map();
+        for (const t of byDeckType) {
+          const cur = byDeck.get(t.deck_hash) ?? {
+            deck_hash: t.deck_hash,
+            battles: 0,
+            wins: 0,
+            losses: 0,
+            players: t.deck_players,
+            first_used: t.first_used,
+            last_used: t.last_used,
+            gap_sum: 0,
+            gap_n: 0,
+            types: [],
+          };
+          cur.battles += t.battles;
+          cur.wins += t.wins;
+          cur.losses += t.losses;
+          if (t.first_used < cur.first_used) cur.first_used = t.first_used;
+          if (t.last_used > cur.last_used) cur.last_used = t.last_used;
+          cur.gap_sum += Number(t.gap_sum ?? 0);
+          cur.gap_n += t.gap_n;
+          cur.types.push(t);
+          byDeck.set(t.deck_hash, cur);
+        }
+        rows = [...byDeck.values()].map((r) => ({
+          ...r,
+          // + 0 folds a -0 to 0 so the two paths compare equal.
+          mean_level_gap:
+            r.gap_n > 0 ? Number((r.gap_sum / r.gap_n).toFixed(2)) + 0 : null,
+          level_gap_battles: r.gap_n,
+        }));
         totalDecided = rows.reduce((n, r) => n + r.battles, 0);
         totalWins = rows.reduce((n, r) => n + r.wins, 0);
+        if (!args.mode) {
+          const perType = new Map();
+          for (const t of byDeckType) {
+            const cur = perType.get(t.type) ?? {
+              type: t.type,
+              battles: 0,
+              gap_sum: 0,
+              level_battles: 0,
+            };
+            cur.battles += t.battles;
+            cur.gap_sum += Number(t.gap_sum ?? 0);
+            cur.level_battles += t.gap_n;
+            perType.set(t.type, cur);
+          }
+          modeGroups = modeGaps(
+            [...perType.values()].map((g) => ({
+              ...g,
+              mean_level_gap:
+                g.level_battles > 0 ? g.gap_sum / g.level_battles : null,
+            })),
+          );
+        }
       }
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
       const priorMean = prior.mean ?? 0.5;
@@ -1393,6 +1495,11 @@ export const battlesTools = {
             : {}),
           first_used: r.first_used.toISOString(),
           last_used: r.last_used.toISOString(),
+          mean_level_gap:
+            r.mean_level_gap === null || r.mean_level_gap === undefined
+              ? null
+              : Number(r.mean_level_gap),
+          level_gap_battles: r.level_gap_battles ?? 0,
         }));
       const sort = args.sort ?? "battles";
       shaped.sort((a, z) =>
@@ -1406,20 +1513,32 @@ export const battlesTools = {
       const limit = Math.min(args.limit ?? 20, 40);
       shaped = shaped.slice(0, limit);
       // The identity's cards come from deck_card (0091), for the returned
-      // rows only - no exemplar, no participant JSON.
-      const identities = await deckIdentities(
-        ctx.db,
-        shaped.map((r) => r.deck_hash),
+      // rows only - no exemplar, no participant JSON. The row's mode
+      // split (3.16.0): the rollup's per-group keys, or one group-by over
+      // the returned decks' raw rows.
+      const hashes = shaped.map((r) => r.deck_hash);
+      const identities = await deckIdentities(ctx.db, hashes);
+      const modesByDeck = roll
+        ? await rollupDeckModes(ctx.db, roll, hashes)
+        : new Map(rows.map((r) => [r.deck_hash, r.types]));
+      shaped = shaped.map((row) => {
+        const modes = modeSplit(modesByDeck.get(row.deck_hash) ?? []);
+        return {
+          ...row,
+          modes,
+          dominant_mode: dominantMode(modes),
+          ...(identities.get(row.deck_hash) ?? { cards: [] }),
+        };
+      });
+      const clash = comparabilityNote(
+        shaped.map((r) => ({ ...r, label: shortHash(r.deck_hash) })),
       );
-      shaped = shaped.map((row) => ({
-        ...row,
-        ...(identities.get(row.deck_hash) ?? { cards: [] }),
-      }));
       return {
         applied: appliedBlock({
           segment: seg.echo,
           window: win.echo,
           mode: args.mode,
+          trophy_band: args.trophy_band,
           min_battles: minBattles,
           sort,
           limit,
@@ -1437,8 +1556,21 @@ export const battlesTools = {
             }),
         excluded,
         ...(roll ? { players_as_of: roll.players_as_of } : {}),
+        comparable: clash === null,
+        ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         decks: shaped,
-        notes: notes(SEGMENT_NOTES, win.seasonNotes, roll?.note),
+        notes: notes(
+          clash,
+          modeGroups ? pooledModesNote(modeGroups) : null,
+          seg.where ? singlePlayerNote(shaped) : null,
+          bandPending ? BAND_FALLBACK_NOTE : null,
+          args.trophy_band && roll
+            ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
+            : null,
+          SEGMENT_NOTES,
+          win.seasonNotes,
+          roll?.note,
+        ),
         docs: SEGMENT_DOCS,
         meta: responseMeta({
           as_of: new Date().toISOString(),
@@ -1470,6 +1602,7 @@ export const battlesTools = {
           default: "usage",
         },
         limit: { type: "integer", minimum: 1, maximum: 130, default: 30 },
+        trophy_band: META_TROPHY_BAND_SCHEMA,
       },
       additionalProperties: false,
     },
@@ -1492,6 +1625,9 @@ export const battlesTools = {
         params.push(typesForModeGroup(args.mode));
         scope.push(`bp.type = any($${params.length})`);
       }
+      requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
+      if (args.trophy_band)
+        scope.push(trophyBandClause(args.trophy_band, params));
       const where = [
         ...scope,
         "bp.deck_hash is not null",
@@ -1499,17 +1635,26 @@ export const battlesTools = {
         "bp.type_class = 'pvp'",
       ];
       const minBattles = args.min_battles ?? 10;
-      const roll = await seasonRollup(ctx.db, { win, seg, mode: args.mode });
+      const rolled = await seasonRollup(ctx.db, {
+        win,
+        seg,
+        mode: args.mode,
+        trophyBand: args.trophy_band ?? null,
+      });
+      const bandPending = rolled?.pending === true;
+      const roll = bandPending ? null : rolled;
       let rows;
       let excluded;
       let prior;
       let totalDecided;
       let totalWins;
+      let modeGroups = null;
       if (roll) {
         ({ excluded, prior } = roll);
         rows = await rollupCards(ctx.db, roll, { minBattles });
         totalDecided = prior.decided;
         totalWins = Math.round((prior.mean ?? 0) * prior.decided);
+        if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
         await rawScanMemory(ctx.db);
         const { prior: populationPrior, ...breakdown } =
@@ -1530,34 +1675,65 @@ export const battlesTools = {
         // card per deck, not one probe per card per participant. A deck's
         // cards are exactly its round-0, slot > 0 played cards, so the
         // counts are the per-participant counts.
+        // ONE scan into (deck, player, type) pairs; the card rows, their
+        // mode splits and the window's per-type groups fold from the
+        // materialised CTE (3.16.0). The level gap is the lateral avg
+        // battles_decks uses (3.13.0).
         ({ rows } = await ctx.db.query(
           `with pairs as (
-           select bp.deck_hash, bp.player_tag,
+           select bp.deck_hash, bp.player_tag, bp.type,
                   count(*)::int as battles,
-                  count(*) filter (where bp.outcome = 'win')::int as wins
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  sum(bp.deck_avg_level - lv.lvl) as gap_sum,
+                  count(lv.lvl)::int as gap_n
            from battle_participant bp
+           left join lateral (
+             select avg(o.deck_avg_level) as lvl from battle_participant o
+             where o.battle_id = bp.battle_id and o.side <> bp.side
+               and bp.deck_avg_level is not null) lv on true
            where ${where.join(" and ")}
-           group by bp.deck_hash, bp.player_tag),
+           group by bp.deck_hash, bp.player_tag, bp.type),
          totals as (
            select coalesce(sum(battles), 0)::int as decided,
-                  coalesce(sum(wins), 0)::int as wins
-           from pairs)
-         select dc.card_id, c.name, dc.form as evolution,
-                sum(p.battles)::int as battles,
-                sum(p.wins)::int as wins,
-                sum(p.battles - p.wins)::int as losses,
-                count(distinct p.player_tag)::int as players,
+                  coalesce(sum(wins), 0)::int as wins,
+                  (select jsonb_agg(jsonb_build_object('type', g.type, 'battles', g.battles,
+                                                       'level_battles', g.gap_n,
+                                                       'mean_level_gap', g.gap))
+                     from (select type, sum(battles)::int as battles, sum(gap_n)::int as gap_n,
+                                  round((sum(gap_sum) / nullif(sum(gap_n), 0))::numeric, 2) as gap
+                             from pairs group by type) g) as by_type
+           from pairs),
+         per_type as (
+           select dc.card_id, dc.form, p.type,
+                  sum(p.battles)::int as battles, sum(p.wins)::int as wins,
+                  sum(p.gap_sum) as gap_sum, sum(p.gap_n)::int as gap_n
+           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
+           group by dc.card_id, dc.form, p.type),
+         per_card as (
+           select dc.card_id, dc.form, count(distinct p.player_tag)::int as players
+           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
+           group by dc.card_id, dc.form)
+         select pt.card_id, c.name, pt.form as evolution,
+                sum(pt.battles)::int as battles,
+                sum(pt.wins)::int as wins,
+                sum(pt.battles - pt.wins)::int as losses,
+                pc.players,
+                round((sum(pt.gap_sum) / nullif(sum(pt.gap_n), 0))::numeric, 2) as mean_level_gap,
+                json_agg(json_build_object('type', pt.type, 'battles', pt.battles,
+                                           'wins', pt.wins, 'losses', pt.battles - pt.wins)) as by_type,
                 t.decided as total_decided,
-                t.wins as total_wins
-         from pairs p
-         join deck_card dc on dc.deck_hash = p.deck_hash
-         join card c on c.card_id = dc.card_id
+                t.wins as total_wins,
+                t.by_type as window_types
+         from per_type pt
+         join per_card pc on pc.card_id = pt.card_id and pc.form = pt.form
+         join card c on c.card_id = pt.card_id
          cross join totals t
-         group by dc.card_id, c.name, dc.form, t.decided, t.wins`,
+         group by pt.card_id, c.name, pt.form, pc.players, t.decided, t.wins, t.by_type`,
           params,
         ));
         totalDecided = rows[0]?.total_decided ?? 0;
         totalWins = rows[0]?.total_wins ?? 0;
+        if (!args.mode) modeGroups = modeGaps(rows[0]?.window_types ?? []);
       }
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
       const priorMean = prior.mean ?? 0.5;
@@ -1585,6 +1761,12 @@ export const battlesTools = {
                 shrunk_win_rate: ebShrink(r.wins, r.wins + r.losses, priorMean),
               }
             : {}),
+          mean_level_gap:
+            r.mean_level_gap === null || r.mean_level_gap === undefined
+              ? null
+              : Number(r.mean_level_gap),
+          _form: r.evolution,
+          _types: r.by_type ?? null,
         }));
       const sort = args.sort ?? "usage";
       shaped.sort((a, z) =>
@@ -1595,11 +1777,32 @@ export const battlesTools = {
       );
       const limit = Math.min(args.limit ?? 30, 130);
       shaped = shaped.slice(0, limit);
+      // The row's mode split (3.16.0): the rollup's per-group keys, or
+      // one group-by over the returned cards' raw rows.
+      const modesByCard = roll
+        ? await rollupCardModes(
+            ctx.db,
+            roll,
+            shaped.map((r) => ({ card_id: r.card_id, form: r._form })),
+          )
+        : null;
+      shaped = shaped.map(({ _form, _types, ...row }) => ({
+        ...row,
+        modes: modeSplit(
+          (modesByCard ? modesByCard.get(`${row.card_id}|${_form}`) : _types) ??
+            [],
+        ),
+      }));
+      const clash = comparabilityNote(
+        shaped.map((r) => ({ ...r, label: r.name })),
+        { what: "card" },
+      );
       return {
         applied: appliedBlock({
           segment: seg.echo,
           window: win.echo,
           mode: args.mode,
+          trophy_band: args.trophy_band,
           min_battles: minBattles,
           sort,
           limit,
@@ -1617,8 +1820,17 @@ export const battlesTools = {
             }),
         excluded,
         ...(roll ? { players_as_of: roll.players_as_of } : {}),
+        comparable: clash === null,
+        ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         cards: shaped,
         notes: notes(
+          clash,
+          modeGroups ? pooledModesNote(modeGroups) : null,
+          seg.where ? singlePlayerNote(shaped, { what: "card" }) : null,
+          bandPending ? BAND_FALLBACK_NOTE : null,
+          args.trophy_band && roll
+            ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
+            : null,
           SEGMENT_NOTES,
           win.seasonNotes,
           roll?.note,
