@@ -1473,10 +1473,10 @@ export const OUTPUT_SCHEMAS = {
               description: "1 - (rank - 1) / ranked_members.",
             },
             win_rate: RATE,
-            trophy_net: {
+            net_trophies: {
               type: ["integer", "null"],
               description:
-                "Sum of trophy_change on ladder battles in the window; null when ladder_battles is 0 (3.16.0; it read 0 before).",
+                "Sum of trophy_change on ladder battles in the window, the name battles_performance uses (4.0.0; trophy_net before); null when ladder_battles is 0.",
             },
             ladder_battles: COUNT,
             modes: MODE_SPLIT,

@@ -649,9 +649,10 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
   assert.ok(body.below_floor.every((m) => !("percentile" in m)));
   // 3.9.0: ladder trophy net and the streak ending at the latest battle,
   // in the same call (the per-member battles_performance loop retired).
-  assert.equal(body.members[0].trophy_net, 90);
+  assert.equal(body.members[0].net_trophies, 90);
+  assert.ok(!("trophy_net" in body.members[0]), "4.0.0: one spelling");
   assert.deepEqual(body.members[0].current_streak, { kind: "win", length: 3 });
-  assert.equal(body.members[1].trophy_net, -30);
+  assert.equal(body.members[1].net_trophies, -30);
   assert.deepEqual(
     body.members[1].current_streak,
     { kind: "win", length: 1 },
@@ -659,9 +660,9 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
   );
   assert.ok(
     body.below_floor.every(
-      (m) => m.current_streak === null && m.trophy_net === null,
+      (m) => m.current_streak === null && m.net_trophies === null,
     ),
-    "no decided battle, no streak; no ladder battle, trophy_net null (3.16.0)",
+    "no decided battle, no streak; no ladder battle, net_trophies null (3.16.0)",
   );
   // The control next to the number (3.16.0): each member's mode split,
   // ladder count and level gap; comparable and basis on the response.

@@ -167,8 +167,8 @@ therefore serves the controls beside it:
   gaps half a level apart, the first note naming them) and `basis`
   (`recorded`, or `roster_and_war_only` for an activity-scope clan whose
   members' logs are not recorded, where every count is zero by
-  construction for a member whose `log_recorded` is false). `trophy_net`
-  is `null` when `ladder_battles` is 0.
+  construction for a member whose `log_recorded` is false). `net_trophies`
+  (4.0.0; `trophy_net` before) is `null` when `ladder_battles` is 0.
 - `battles_trends` (3.16.0) weeks carry `modes` and, when the window clips
   a week, `partial: true` with `covers {from, to}`, the same marks
   `battles_performance` puts on its weekly buckets.

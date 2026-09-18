@@ -206,9 +206,9 @@ profile; `season_trophies` is the seasonal Trophy Road (resets on the roll;
 is the Path of Legends standing, the number `rankings_players` and
 `rankings_timeline` call `rating` (the same figure, verified equal on the
 live API); `progress[].trophies` is a side mode's. `trophy_change` is one
-battle's swing; `net_trophies` (`battles_performance`) and `trophy_net`
-(`clans_standings`, sessions) are two spellings of the same recorded ladder
-sum, one name at the next major.
+battle's swing; `net_trophies` is the recorded ladder sum over a window on
+`battles_performance` and `clans_standings` (one spelling since 4.0.0); a
+timeline session's `trophy_net` is the same sum over that session.
 
 **league_number, pol_league** — the same Path of Legends league under two
 names: `league_number` on a battle row (the league the battle started in),
