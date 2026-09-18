@@ -659,10 +659,47 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
   );
   assert.ok(
     body.below_floor.every(
-      (m) => m.current_streak === null && m.trophy_net === 0,
+      (m) => m.current_streak === null && m.trophy_net === null,
     ),
-    "no decided battle, no streak",
+    "no decided battle, no streak; no ladder battle, trophy_net null (3.16.0)",
   );
+  // The control next to the number (3.16.0): each member's mode split,
+  // ladder count and level gap; comparable and basis on the response.
+  assert.equal(body.members[0].ladder_battles, 3);
+  assert.deepEqual(body.members[0].modes, {
+    ladder: { battles: 3, wins: 3, losses: 0 },
+  });
+  assert.equal(body.members[0].mean_level_gap, null, "no levels seeded");
+  assert.equal(typeof body.members[0].log_recorded, "boolean");
+  assert.match(body.members[0].recorded_since, /^2026-/);
+  assert.equal(body.comparable, true, "both ranked members are ladder-only");
+  assert.equal(body.basis, "recorded");
+  assert.ok(!body.notes.some((l) => /NOT comparable/.test(l)));
+
+  // Member B goes to war five times: 62% war against A's 100% ladder,
+  // so the two are not comparable and the note names them.
+  for (let i = 0; i < 5; i++) {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ($1, now() - make_interval(mins => $2), 'riverRacePvP', 'pvp') on conflict do nothing`,
+      [`st-w-${i}`, 10 + i],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class)
+       values ($1, $2, now() - make_interval(mins => $3), 0, 'win', 'riverRacePvP', 'pvp') on conflict do nothing`,
+      [`st-w-${i}`, members[1], 10 + i],
+    );
+  }
+  await refreshDailyRollups(db, await rollupPairs(db, "st-%"));
+  const mixed = (
+    await call(invoke, "clans_standings", { days: 7, min_battles: 3 })
+  ).body;
+  const b = mixed.members.find((m) => m.player_tag === members[1]);
+  assert.deepEqual(b.modes.war, { battles: 5, wins: 5, losses: 0 });
+  assert.equal(b.ladder_battles, 3);
+  assert.equal(mixed.comparable, false);
+  assert.match(mixed.notes[0], /NOT comparable across rows/);
+  assert.match(mixed.notes[0], /member .* in war/);
   assert.ok(
     Math.abs(body.median_win_rate - 0.6665) < 0.001,
     `median of the two ranked rates, got ${body.median_win_rate}`,

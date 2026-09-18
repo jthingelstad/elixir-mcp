@@ -39,7 +39,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
   });
   const text = `with d as ${daily},
      s as (
-       select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time
+       select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time, bp.side, bp.deck_avg_level
        from battle_participant bp
        where bp.player_tag in ${members}
          and bp.battle_time >= $2
@@ -63,8 +63,31 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
        select player_tag,
               sum(battles)::int as battles, sum(wins)::int as wins,
               sum(losses)::int as losses, sum(draws)::int as draws,
-              sum(trophy_delta) filter (where mode_group = 'ladder')::int as trophy_net
+              sum(trophy_delta) filter (where mode_group = 'ladder')::int as trophy_net,
+              sum(battles) filter (where mode_group = 'ladder')::int as ladder_battles
        from d group by player_tag
+     ),
+     -- The control next to the number (3.16.0): the member's battles by
+     -- mode group from the same rollup rows, and the mean level gap
+     -- against the opposing side over the raw rows the streak reads.
+     modes as (
+       select player_tag,
+              json_agg(json_build_object('mode_group', mode_group, 'battles', battles,
+                                         'wins', wins, 'losses', losses)) as modes
+       from (select player_tag, mode_group, sum(battles)::int as battles,
+                    sum(wins)::int as wins, sum(losses)::int as losses
+               from d group by player_tag, mode_group) m
+       group by player_tag
+     ),
+     gaps as (
+       select s.player_tag,
+              round(avg(s.deck_avg_level - o.lvl)::numeric, 2) as mean_level_gap,
+              count(o.lvl)::int as level_gap_battles
+       from s
+       left join lateral (select avg(o.deck_avg_level) as lvl from battle_participant o
+                           where o.battle_id = s.battle_id and o.side <> s.side) o on true
+       where s.deck_avg_level is not null
+       group by s.player_tag
      )
      select cm.player_tag, p.name, p.years_played,
             coalesce(su.battles, 0)::int as battles,
@@ -72,10 +95,14 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
             coalesce(su.losses, 0)::int as losses,
             coalesce(su.draws, 0)::int as draws,
             coalesce(su.trophy_net, 0)::int as trophy_net,
+            coalesce(su.ladder_battles, 0)::int as ladder_battles,
+            mo.modes, g.mean_level_gap, coalesce(g.level_gap_battles, 0)::int as level_gap_battles,
             st.streak_kind, st.streak_len
      from clan_membership cm
      join player p on p.player_tag = cm.player_tag
      left join sums su on su.player_tag = cm.player_tag
+     left join modes mo on mo.player_tag = cm.player_tag
+     left join gaps g on g.player_tag = cm.player_tag
      left join streak st on st.player_tag = cm.player_tag
      where cm.clan_tag = $1 and cm.left_observed_at is null`;
   return { text, values };

@@ -160,6 +160,15 @@ therefore serves the controls beside it:
   comparability note fires when the top and best decks were played in
   different modes or at gaps half a level apart, and the floor note when a
   loss touched the floor.
+- `clans_standings` (3.16.0) members carry `modes`, `ladder_battles`,
+  `mean_level_gap` (over `level_gap_battles`), `log_recorded` and
+  `recorded_since`; the response carries `comparable` (`false` when two
+  ranked members' records come predominantly from different modes or from
+  gaps half a level apart, the first note naming them) and `basis`
+  (`recorded`, or `roster_and_war_only` for an activity-scope clan whose
+  members' logs are not recorded, where every count is zero by
+  construction for a member whose `log_recorded` is false). `trophy_net`
+  is `null` when `ladder_battles` is 0.
 
 The notes fire on a detected confound, not as a standing caveat: a
 `battles_decks` read within one mode whose decks met similar levels carries

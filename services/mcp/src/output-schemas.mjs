@@ -940,6 +940,17 @@ export const OUTPUT_SCHEMAS = {
       },
       ranked_members: COUNT,
       median_win_rate: RATE,
+      comparable: {
+        type: "boolean",
+        description:
+          "false when two ranked members' records come predominantly from different mode groups or from level gaps half a level apart; the first note then names them (3.16.0).",
+      },
+      basis: {
+        type: "string",
+        enum: ["recorded", "roster_and_war_only"],
+        description:
+          "recorded when the clan's members' battle logs are recorded; roster_and_war_only for an activity-scope clan, where every count is zero by construction for a member whose log_recorded is false (3.16.0).",
+      },
       members: {
         type: "array",
         items: {
@@ -952,8 +963,19 @@ export const OUTPUT_SCHEMAS = {
               description: "1 - (rank - 1) / ranked_members.",
             },
             win_rate: RATE,
+            trophy_net: {
+              type: ["integer", "null"],
+              description:
+                "Sum of trophy_change on ladder battles in the window; null when ladder_battles is 0 (3.16.0; it read 0 before).",
+            },
+            ladder_battles: COUNT,
+            modes: MODE_SPLIT,
+            mean_level_gap: LEVEL_GAP,
+            level_gap_battles: COUNT,
+            log_recorded: { type: "boolean" },
+            recorded_since: { type: ["string", "null"] },
           },
-          required: ["player_tag", "rank", "percentile"],
+          required: ["player_tag", "rank", "percentile", "modes"],
         },
       },
       below_floor: { type: "array" },

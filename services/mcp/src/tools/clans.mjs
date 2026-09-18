@@ -31,6 +31,12 @@ import {
   livePendingNote,
   notRecordedOrPending,
 } from "./shared.mjs";
+import {
+  modeSplit,
+  comparabilityNote,
+  coverageBasis,
+  coverageBasisNote,
+} from "../controls.mjs";
 
 import {
   LEVEL_EDGES_SQL,
@@ -92,6 +98,7 @@ export const clansTools = {
         mode: args.mode ?? null,
       });
       const { rows } = await ctx.db.query(query.text, query.values);
+      const coverage = await coverageBasis(ctx.db, clanTag);
       const withRate = rows.map((r) => ({
         player_tag: r.player_tag,
         name: r.name,
@@ -104,7 +111,17 @@ export const clansTools = {
           r.wins + r.losses > 0
             ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
             : null,
-        trophy_net: r.trophy_net,
+        // null, not 0, when the window holds no ladder battle: a sum over
+        // nothing is not a net of nothing (3.16.0).
+        trophy_net: r.ladder_battles > 0 ? r.trophy_net : null,
+        ladder_battles: r.ladder_battles,
+        modes: modeSplit(r.modes ?? []),
+        mean_level_gap:
+          r.mean_level_gap === null ? null : Number(r.mean_level_gap),
+        level_gap_battles: r.level_gap_battles,
+        log_recorded: coverage.members.get(r.player_tag)?.log_recorded ?? false,
+        recorded_since:
+          coverage.members.get(r.player_tag)?.recorded_since ?? null,
         current_streak: r.streak_kind
           ? { kind: r.streak_kind, length: r.streak_len }
           : null,
@@ -123,6 +140,12 @@ export const clansTools = {
       const unranked = withRate
         .filter((m) => m.wins + m.losses < minBattles)
         .sort((a, z) => z.battles - a.battles);
+      // Comparable only within one mode and at similar gaps: the guard
+      // names the two members that clash (3.16.0).
+      const clash = comparabilityNote(
+        ranked.map((m) => ({ ...m, label: m.name ?? m.player_tag })),
+        { what: "member" },
+      );
       const rates = ranked.map((m) => m.win_rate).sort((a, z) => a - z);
       const median =
         rates.length > 0
@@ -144,12 +167,16 @@ export const clansTools = {
         }),
         ranked_members: ranked.length,
         median_win_rate: median,
+        comparable: clash === null,
+        basis: coverage.basis,
         members: ranked,
         below_floor: unranked,
         notes: notes(
-          "Covers RECORDED battles only, and capture starts differ per member (elixir_coverage per tag).",
+          clash,
+          coverageBasisNote(coverage.basis),
+          "Covers RECORDED battles only, and capture starts differ per member (recorded_since per member; elixir_coverage per tag).",
           "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
-          "trophy_net sums trophy_change on ladder battles in the window; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
+          "trophy_net sums trophy_change on ladder battles in the window and is null when ladder_battles is 0; modes splits each member's battles by mode group and mean_level_gap is their deck's average level minus the opposing side's; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
         ),
         docs: docsRef("recording", "completeness"),
         meta: responseMeta({
