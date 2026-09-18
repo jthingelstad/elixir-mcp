@@ -971,7 +971,11 @@ export const OUTPUT_SCHEMAS = {
             ladder_battles: COUNT,
             modes: MODE_SPLIT,
             mean_level_gap: LEVEL_GAP,
-            level_gap_battles: COUNT,
+            level_gap_battles: {
+              type: "integer",
+              description:
+                "The member's latest leveled battles in the window the gap was averaged over, at most 50.",
+            },
             log_recorded: { type: "boolean" },
             recorded_since: { type: ["string", "null"] },
           },

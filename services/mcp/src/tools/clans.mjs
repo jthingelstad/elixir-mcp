@@ -176,7 +176,7 @@ export const clansTools = {
           coverageBasisNote(coverage.basis),
           "Covers RECORDED battles only, and capture starts differ per member (recorded_since per member; elixir_coverage per tag).",
           "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
-          "trophy_net sums trophy_change on ladder battles in the window and is null when ladder_battles is 0; modes splits each member's battles by mode group and mean_level_gap is their deck's average level minus the opposing side's; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
+          "trophy_net sums trophy_change on ladder battles in the window and is null when ladder_battles is 0; modes splits each member's battles by mode group and mean_level_gap is their deck's average level minus the opposing side's over their latest level_gap_battles (at most 50) battles in the window; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
         ),
         docs: docsRef("recording", "completeness"),
         meta: responseMeta({
