@@ -424,24 +424,62 @@ async function projectRivalBadges(db, clans) {
  * periodLogs[]: the race's closed war days per clan, present on every
  * race poll (time-series review 2.3). The array spans the whole season
  * and every entry names the CURRENT bracket's clans
- * (cr-agent-api-docs/models/river-race.md), so only the entries of the
- * section this poll is in are this bracket's days: fill-once, scoped by
- * period_index / 7 = section_index. An older poll cannot rewrite a day.
+ * (cr-agent-api-docs/models/river-race.md), each with its own result
+ * on that day in whatever bracket it raced then. The entries of the
+ * section this poll is in are this bracket's days and are kept whole.
+ * A day's entry first appears after the day closes, and a section's
+ * fourth war day closes as the section rolls, so its entry is only
+ * ever seen in the NEXT section's polls: an earlier section's entry is
+ * kept too, but only the items of clans that were in this clan's
+ * bracket that section (war_week_clan), which is always this clan
+ * itself and any rival carried over. Before 2026-09-18 the rule kept
+ * the poll's own section only and day 4 of every week was never
+ * recorded (interface review Phase 2 acceptance). Fill-once: an older
+ * poll cannot rewrite a day.
  */
 async function projectPeriodLogs(
   db,
   { tag, seasonId, sectionIndex, periodLogs, fetchedAt },
 ) {
   if (!Array.isArray(periodLogs) || periodLogs.length === 0) return 0;
+  const earlier = [
+    ...new Set(
+      periodLogs
+        .map((l) =>
+          Number.isInteger(l?.periodIndex)
+            ? Math.floor(l.periodIndex / 7)
+            : null,
+        )
+        .filter((s) => s !== null && s !== sectionIndex),
+    ),
+  ];
+  // section -> the clans of this clan's bracket that section.
+  const brackets = new Map();
+  if (earlier.length > 0) {
+    const { rows } = await db.query(
+      `select section_index, participant_clan_tag from war_week_clan
+        where clan_tag = $1 and season_id = $2 and section_index = any($3)`,
+      [tag, seasonId, earlier],
+    );
+    for (const r of rows) {
+      if (!brackets.has(r.section_index))
+        brackets.set(r.section_index, new Set());
+      brackets.get(r.section_index).add(r.participant_clan_tag);
+    }
+  }
   const rows = [];
   for (const log of periodLogs) {
     if (!Number.isInteger(log?.periodIndex)) continue;
-    if (Math.floor(log.periodIndex / 7) !== sectionIndex) continue;
+    const section = Math.floor(log.periodIndex / 7);
+    const bracket = section === sectionIndex ? null : brackets.get(section);
+    if (section !== sectionIndex && !bracket) continue;
     for (const item of log.items ?? []) {
       if (!item?.clan?.tag) continue;
+      const clan = normalizeTag(item.clan.tag);
+      if (bracket && !bracket.has(clan)) continue;
       rows.push({
         period: log.periodIndex,
-        clan: normalizeTag(item.clan.tag),
+        clan,
         pointsEarned: item.pointsEarned ?? null,
         start: item.progressStartOfDay ?? null,
         end: item.progressEndOfDay ?? null,
@@ -467,16 +505,15 @@ async function projectPeriodLogs(
        (clan_tag, season_id, section_index, period_index, participant_clan_tag,
         points_earned, progress_start, progress_end, progress_earned,
         end_of_day_rank, defenses_remaining, progress_from_defenses, observed_at)
-     select $1, $2, $3, t.period, t.clan, t.points, t.start, t.stop, t.earned,
-            t.rank, t.defenses, t.from_defenses, $4::timestamptz
-     from unnest($5::int[], $6::text[], $7::int[], $8::int[], $9::int[], $10::int[],
-                 $11::int[], $12::int[], $13::int[])
+     select $1, $2, t.period / 7, t.period, t.clan, t.points, t.start, t.stop, t.earned,
+            t.rank, t.defenses, t.from_defenses, $3::timestamptz
+     from unnest($4::int[], $5::text[], $6::int[], $7::int[], $8::int[], $9::int[],
+                 $10::int[], $11::int[], $12::int[])
        as t(period, clan, points, start, stop, earned, rank, defenses, from_defenses)
      on conflict do nothing`,
     [
       tag,
       seasonId,
-      sectionIndex,
       fetchedAt,
       rows.map((r) => r.period),
       rows.map((r) => r.clan),

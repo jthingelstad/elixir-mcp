@@ -572,12 +572,31 @@ test("the race poll keeps the rivals' clanScore, repairPoints and badge, and the
   const log = await fixture("riverracelog/log.json");
   await projectRiverRaceLog(ctx.db, { clanTag, payload: log });
   const nowMs = Date.parse("2026-08-31T08:00:00Z");
+  // The poll is section 3 of season 135 (the calendar's). Sections 0 and
+  // 1 of that season are recorded weeks whose bracket held this clan and
+  // one rival that carried over; the race's earlier-section entries name
+  // the current bracket, and only those two are that section's clans.
+  const carried = race.clans.find((c) => c.tag !== clanTag).tag;
+  for (const section of [0, 1]) {
+    await ctx.db.query(
+      `insert into war_week (clan_tag, season_id, section_index) values ($1, 135, $2)
+       on conflict do nothing`,
+      [clanTag, section],
+    );
+    for (const participant of [clanTag, carried])
+      await ctx.db.query(
+        `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag)
+         values ($1, 135, $2, $3) on conflict do nothing`,
+        [clanTag, section, participant],
+      );
+  }
   const first = await projectRiverRace(ctx.db, {
     payload: race,
     fetchedAt: "2026-08-31T07:37:36Z",
     nowMs,
   });
   assert.equal(first.projected, "war");
+  assert.equal(first.seasonId, 135);
   const rival = race.clans.find((c) => c.tag !== clanTag);
   const {
     rows: [wc],
@@ -609,7 +628,51 @@ test("the race poll keeps the rivals' clanScore, repairPoints and badge, and the
       period_index: l.periodIndex,
       clans: l.items.length,
     })),
-    "only this section's closed days; earlier sections name this bracket's clans and are not this bracket's days",
+    "this section's closed days, every clan of the bracket",
+  );
+  // An earlier section's entry names the CURRENT bracket's clans, each
+  // with its own result in whatever bracket it raced then; only the
+  // clans of THIS clan's bracket that section are that section's days
+  // (always this clan itself), which is how a section's fourth day,
+  // first seen in the next section's polls, reaches the record.
+  const { rows: earlier } = await ctx.db.query(
+    `select l.section_index, l.period_index, l.participant_clan_tag
+       from war_period_log l
+      where l.clan_tag = $1 and l.season_id = $2 and l.section_index <> $3
+      order by 1, 2, 3`,
+    [clanTag, first.seasonId, first.sectionIndex],
+  );
+  assert.ok(earlier.length > 0, "earlier sections' days are kept");
+  assert.ok(
+    earlier.every((r) => Math.floor(r.period_index / 7) === r.section_index),
+    "each row sits under its own section",
+  );
+  for (const r of earlier) {
+    const {
+      rows: [inBracket],
+    } = await ctx.db.query(
+      `select 1 from war_week_clan where clan_tag = $1 and season_id = $2
+          and section_index = $3 and participant_clan_tag = $4`,
+      [clanTag, first.seasonId, r.section_index, r.participant_clan_tag],
+    );
+    assert.ok(
+      inBracket,
+      `${r.participant_clan_tag} was in the bracket of section ${r.section_index}`,
+    );
+  }
+  // Sections 0 and 1 hold periods 3-6 and 10-13 for exactly the two
+  // bracket clans: day 4 (periods 6 and 13) included; the three rivals
+  // of the current bracket that raced elsewhere then are not there.
+  assert.equal(earlier.length, 16);
+  assert.deepEqual(
+    [...new Set(earlier.map((r) => r.participant_clan_tag))].sort(),
+    [clanTag, carried].sort(),
+  );
+  assert.deepEqual(
+    earlier
+      .filter((r) => r.participant_clan_tag === clanTag)
+      .map((r) => r.period_index),
+    [3, 4, 5, 6, 10, 11, 12, 13],
   );
   // The same poll again: fill-once, nothing written; a doctored later
   // poll cannot rewrite a closed day.
