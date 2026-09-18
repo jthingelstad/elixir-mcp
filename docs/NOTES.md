@@ -3543,3 +3543,96 @@ replay wrote rows, never moments). Tool names stand: `players_timeline`,
 can go now that the commit has used it (`drop schema staging cascade`
 is a one-line op for the next session, or leave it: three small tables
 outside the fingerprint).
+
+## 2026-09-18 — Time-series review, Phase 4: the readers (contract 3.12.0)
+
+Phase 4 of the execution brief (review Part 7), with what the three
+verifications carried in: every point stamped (`observed_at`,
+`profile_observed_at`, `roster_observed_at`, `source`, `kind`, and on a
+member point `clan_tag`), one note per response when a point is
+`source: elixir-bot`, `members_seen` counting roster stamps,
+`elixir_data_insights.players_with_snapshot` on the profile stamp, the
+quiet-ledger line in the docs. Tool names as the reviewer confirmed:
+`players_timeline`, `clans_timeline`, `clans_members_timeline`. One
+minor bump, 3.11.1 → 3.12.0; two deploys (02:34Z with the site, 02:4xZ
+the explain op).
+
+**Shipped (`b8e50c2`, `+explain`).** Docs first: `clocks#the-game-day`
+and `recording#daily-series`, both pointers resolving before any tool
+named them. `services/mcp/src/daily-series.mjs`: the metric catalogue
+over the day row (27 metrics), the date-only window (game days; days
+and weeks as sugar), the stamps every point carries, the notes said
+once. `players_timeline`: every metric of the day row, `kind`,
+`progress_key` (a Player.progress key or `'all'`, adding `progress[]`),
+the season fields on `applied.window`, docs at `recording#daily-series`.
+`clans_timeline` (new, Clans): the five clan metrics from
+`clan_snapshot_daily`, the three roster aggregates over that day's
+member rows by default, the six profile-derived aggregates on request
+(null where no profile is recorded; `members_6_years_plus` reads the
+player's current years, said in a note), week granularity, `kind`,
+`series_available_from`, compact = the five clan metrics.
+`clans_members_timeline` (new, Clans): every member the roster placed in
+the clan in the window or `player_tags` (≤50), `limit` on members (max
+50, a note when more had points), a member point carrying `clan_tag`
+(a member who moved clans that day is under the later clan's tag, said
+in a note), compact = first, last and the delta per numeric metric.
+`clans_roster` full verbosity: `years_played`, `account_age_days`,
+`badge_count` and `lifetime {as_of, best_trophies, battle_count, wins,
+losses, three_crown_wins, collection_level, king_tower_level,
+total_donations}` from the latest profile poll, null for an unrecorded
+profile (review 7.5: the site rendered these from 46 profile reads a
+day). `rankings_timeline`'s description says one snapshot a day since
+2026-09-11 and only when the board moved. Output schemas for the three
+series tools and the roster's new fields; the registry at 55 tools;
+`CHANGELOG` 3.12.0, the What's-new entry, two `choosing-a-tool` rows,
+the tools reference regenerated at build. Tests: the four readers over
+rows the live projectors wrote from the fixtures (three game days, a
+Sunday pre-reset hour, a moved profile, a zero progress bucket).
+
+**Measured live, read-only.** Published: `tools.json` at 3.12.0 with 55
+tools, both docs sections served. Through the door (this session's
+connector holds the 3.11.1 `tools/list`, the serverInfo cache-bust
+case, so only the two changed tools were callable): `players_timeline`
+for King Thing over five days carries the stamps per point (09-16:
+`roster_observed_at` 09:53Z later than `profile_observed_at` 04:00Z, so
+its trophies are the roster's), `king_tower_level 16`, `clan_rank`, the
+season echo (2026-09 / 136, age 10); `clans_roster` carries the lifetime
+block, tenure and badge count for all 46 members (`years_played` null
+where the YearsPlayed badge is absent, the 0024 rule). `{explain_series}`
+(POAP KINGS, King Thing, 180 days, cold): `clans_timeline` with the
+roster aggregates 180 rows in 370 ms (2,863 buffers hit, 698 read: the
+lateral over `player_snapshot_daily_clan_day`); `clans_members_timeline`
+8,253 rows in 21 ms (1,783 buffers, none read); `players_timeline` 180
+rows in 1.6 ms; the progress series 213 rows in 65 ms (104 reads). The
+review's Appendix A sized the clan timeline at ~240 buffers on a
+synthetic year; the live table is 140k rows across 850 clans and the
+aggregate reads ~20 buffers a day.
+
+**Decisions taken inside the phase.** (1) `clans_timeline`'s default
+metrics are the five clan metrics plus the three roster aggregates; the
+profile-derived six are selectable, never an `include_*` flag (the
+conventions ban it). (2) `members_6_years_plus` reads `player.years_played`
+(state), not a per-day value: the snapshot does not carry it. (3) The
+two new tools' point objects carry `day`; `players_timeline`'s keep
+`date` (its shape since 1.0.0; the output schema allows both). (4) The
+date-only window stays the series tools' own (`dayWindow`), with the
+season fields computed for the days rather than through
+`resolveSeasonWindow`, whose instants are the wrong grain. (5) The
+connector's cached list means the two new tools are exercised here by
+the suite and the plans, not by a door call; a client with a fresh
+`tools/list` is the first door read.
+
+**Left for Jamie.** Refresh the connector (its `tools/list` is the
+3.11.1 one) to see `clans_timeline` and `clans_members_timeline`; the
+`backfill-elixir-bot` gateway row from Phase 3 still wants revoking.
+
+**Phase 5 next (review 7.5 and the plan row): poapkings.com onto
+Elixir**, in its own repo under the domain lease, on the clan token
+Jamie issues: the build sources everything from the four tools
+(`clans_timeline`, `clans_members_timeline`, `clans_roster`,
+`war_history` / `war_rivals`), `update-roster.js`'s CR calls,
+`backfill-cr-history.js` and `data/clash-royale.sqlite` retire,
+`OPERATOR.md` is rewritten, the dead `auto-update.sh` crontab line on
+Jamie's host is removed or repointed. Needs the token (a clan MCP token
+for POAP KINGS, preferred; an integration token as the fallback) and
+Jamie's go.
