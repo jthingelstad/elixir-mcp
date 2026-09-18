@@ -3813,3 +3813,24 @@ differential +6.67, matching the filer's hand table. All seven items
 responded `done`, `shipped_in 3.13.0`, through `{feedback_respond}` with
 the expected-state guard (`updated: 1` each); the filer's
 `elixir_my_feedback` shows them.
+
+## 2026-09-18 — Queue to zero: the /events manifest spelling (#50–#52) and a clan the game has no race for (#53)
+
+`d85e793`, deployed `--skip-web` 13:54Z, migrations 134/0. **(#50–#52)**
+The nightly shape census filed `[].eventTag`, `[].title`, `[].description`
+as unknown on its first `/events` sample: the endpoint is a BARE ARRAY
+(admission.mjs, cr-agent-api-docs events.md) and the manifest said
+`items[].*` — the same manifest-spelling class as #49 (clanScore). Entries
+corrected; `fixtures/events/bare_array.json` pins the shape so the fixture
+test, not the census, catches the next one. No data was lost: the projector
+always read the array. **(#53)** The Elixir Kings preview routine asked
+`war_current` for `#GJ09RJP8` and was refused "No war weeks recorded …
+live: true reads the race now." The record was right and the hint wrong:
+the clan has one member, its race log was admitted empty and
+`/currentriverrace` is a 404 (checked with `npm run cr`), so a live read
+answers the same. When `poll_state.riverracelog.last_admitted_at` and a
+recent 404 on `currentriverrace` both exist, the refusal now says the game
+reports no race, cites both instants, and points at `clans_roster` for the
+member count; still `not_recorded`, message and hint only. Live acceptance:
+the door answers exactly that for `#GJ09RJP8`. All four responded `done`;
+`{feedback_pending}` reads 0.
