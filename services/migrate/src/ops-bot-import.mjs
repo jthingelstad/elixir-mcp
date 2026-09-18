@@ -241,6 +241,23 @@ export async function seriesCensus(databaseUrl, spec = {}) {
                from b join r on r.player_tag = b.player_tag and r.snapshot_date = b.day) as metrics`,
       [clanTag, from, to],
     );
+    // Ten of the trophies pairs that differ at what reads as the same
+    // tick, from May on (27 to 126 archived rosters a day), for the hand
+    // check: does the bot's value appear in any roster of that day?
+    const { rows: disagreeSample } = await db.query(
+      `select b.player_tag, b.day::text as day, b.trophies as bot_trophies, r.trophies as recorder_trophies,
+              b.fetched_at as bot_at, r.roster_observed_at as recorder_at
+         from staging.bot_member_day b
+         join player_snapshot_daily r
+           on r.player_tag = b.player_tag and r.snapshot_date = b.day and r.snapshot_kind = 'daily'
+          and r.clan_tag = $1 and r.source = 'api' and r.roster_observed_at is not null
+        where b.day between $2::date and $3::date and b.day >= '2026-05-01'
+          and r.trophies is distinct from b.trophies
+          and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300
+        order by b.day, b.player_tag limit 10`,
+      [clanTag, from, to],
+    );
+    members.trophies_disagree_sample = disagreeSample;
     const {
       rows: [sundays],
     } = await db.query(
