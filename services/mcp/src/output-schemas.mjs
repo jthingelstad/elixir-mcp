@@ -1001,8 +1001,16 @@ export const OUTPUT_SCHEMAS = {
             },
             type: { type: "string" },
             game_mode: { type: "object" },
-            arena: { type: ["string", "null"] },
-            arena_id: { type: ["integer", "null"] },
+            arena: {
+              type: "object",
+              description:
+                "The higher side's arena, stamped at battle time (4.0.0: one {id, name} shape with trophy_floor.arena and modal_arena); id is null on a row the 0131 backfill never reached.",
+              properties: {
+                id: { type: ["integer", "null"] },
+                name: { type: ["string", "null"] },
+              },
+              required: ["id", "name"],
+            },
             league_number: { type: ["integer", "null"] },
             mode_group: {
               type: "string",

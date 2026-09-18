@@ -33,7 +33,7 @@ answers from the perspective of the tag you asked about:
 | `battle_time_local` | the same instant as ISO 8601 with a UTC offset (`2026-09-09T23:31:47-05:00`), present when a timezone applies (the account's, or the call's `timezone`) |
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
-| `arena`, `arena_id` | `arena` the arena's name and `arena_id` its id (the higher side's arena, stamped at battle time); `arena_id` is `null` on a row the id never reached |
+| `arena` | `{ id, name }`, the higher side's arena stamped at battle time (4.0.0: the one arena shape, as `trophy_floor.arena` and `modal_arena`); `id` is `null` on a row the id never reached |
 | `league_number` | the Path of Legends league when the battle was ranked; `null` otherwise |
 | `mode_group` | the contract's fold of `type` (`ladder`, `ranked`, `war`, `casual`, `challenge`, `tournament`, or `other` for a type the fold does not know), the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |

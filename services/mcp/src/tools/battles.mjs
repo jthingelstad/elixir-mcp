@@ -477,10 +477,10 @@ export const battlesTools = {
           ...(tz ? { battle_time_local: formatLocal(r.battle_time, tz) } : {}),
           type: r.type,
           game_mode: { id: r.game_mode_id, name: r.game_mode_name },
-          // The name has been on every row since 0001; the id since the
+          // One shape with trophy_floor.arena and modal_arena (4.0.0):
+          // the name has been on every row since 0001, the id since the
           // 0131 backfill (null on a row it never reached).
-          arena: r.arena,
-          arena_id: r.arena_id,
+          arena: { id: r.arena_id, name: r.arena },
           league_number: r.league_number,
           // The contract's fold of type (modes.ts), so no consumer keeps
           // its own copy of the table (3.15.0).
@@ -2071,7 +2071,7 @@ export const battlesTools = {
         arena_id: {
           type: "integer",
           description:
-            "Only battles fought in this arena (the id players_timeline and the battle row carry, e.g. 54000142): a finer population control than trophy_band, holding the matchmaking pool fixed across a monthly_trend.",
+            "Only battles fought in this arena (the id players_timeline carries as arena_id and the battle row under arena.id, e.g. 54000142): a finer population control than trophy_band, holding the matchmaking pool fixed across a monthly_trend.",
         },
       },
       additionalProperties: false,
