@@ -1129,8 +1129,13 @@ test("war_current says what kind of day it is at the top level, from the calenda
   assert.equal(body.day_kind, today.kind, "beside season_id, not buried");
   assert.equal(body.war_day, today.warDay ?? null);
   assert.equal(body.period.period_index, today.periodIndex);
+  // One name, one meaning: the next war day to open after this one, on
+  // war days too, equal to game_clock's at the same instant (defect 2).
+  const clock = (await call(invoke, "game_clock", {})).body;
+  assert.equal(body.next_war_day_opens_at, clock.next_war_day_opens_at);
+  assert.equal(body.period.next_war_day_opens_at, clock.next_war_day_opens_at);
+  assert.ok(Date.parse(body.next_war_day_opens_at) > Date.now());
   if (today.warDay) {
-    assert.equal(body.next_war_day_opens_at, null, "war is already open");
     assert.ok(body.decks_today, "the nudge list the description promises");
     assert.equal(body.decks_today.war_day, today.warDay);
     assert.equal(body.decks_today_reason, undefined);
@@ -1405,6 +1410,25 @@ test("game_clock: the next boundaries a routine schedules itself from", async ()
     warDay2.notes.join(" "),
     /nothing in the event feed announces the time/i,
   );
+});
+
+test("the calendar's next_war_day_opens_at equals game_clock's on a training day and every war day (defect 2, 2026-09-19)", async () => {
+  const registry = makeRegistry();
+  for (const at of [
+    "2026-09-08T12:00:00Z", // training day 2
+    "2026-09-10T12:00:00Z", // war day 1
+    "2026-09-11T12:00:00Z", // war day 2
+    "2026-09-13T12:00:00Z", // war day 4: after the next training block
+    "2026-10-04T12:00:00Z", // colosseum day 4: the next season's first war day
+  ]) {
+    const clock = await registry.invoke("game_clock", {}, { at });
+    const period = await periodAt(db, Date.parse(at));
+    assert.equal(
+      new Date(period.nextWarDayOpensMs).toISOString(),
+      clock.next_war_day_opens_at,
+      `at ${at} (${clock.day_kind} ${clock.war_day ?? ""})`,
+    );
+  }
 });
 
 test("war_current on a clan the game has no race for says so instead of pointing at live (feedback #53)", async () => {
