@@ -1,0 +1,116 @@
+{
+  "_fixture_notes": [
+    "Real data pulled 2026-09-18 from Elixir MCP (rankings_players, current and as_of 2026-09-11).",
+    "board.top100 is TRUNCATED TO 25 ENTRIES for readability. The real brief carries all 100.",
+    "meta.* is a PLACEHOLDER shape with illustrative values. The two calls needed to fill it (battles_meta_decks, battles_meta_cards) were not run. Do not treat meta numbers as real.",
+    "deep_cut.facts are real: RamboOo's actual path across the window.",
+    "coverage.* values are illustrative."
+  ],
+  "generated_at": "2026-09-18T14:30:00Z",
+  "data_as_of": "2026-09-18T10:07:50Z",
+  "season": { "id": 136, "month": "2026-09", "day_of_season": 8 },
+  "window": { "from": "2026-09-12T00:36:40Z", "to": "2026-09-18T10:07:50Z" },
+  "board": {
+    "top100": [
+      { "rank": 1, "name": "Hypno ❤️ Hans", "tag": "#L8999VJC", "rating": 2699, "clan_name": "YT: Hypno Cr", "clan_tag": "#JYCGQ20P" },
+      { "rank": 2, "name": "JTR_CR", "tag": "#8JCRL98YC", "rating": 2694, "clan_name": "Tiktok Live", "clan_tag": "#J0UPVRP2" },
+      { "rank": 3, "name": "AK Tanjiro", "tag": "#208R8PQJP9", "rating": 2689, "clan_name": "TIKTOK LIVE", "clan_tag": "#J9LQGV0L" },
+      { "rank": 4, "name": "Hypno ❤️ Crona", "tag": "#VLL8YQC9G", "rating": 2687, "clan_name": "YT: Hypno Cr", "clan_tag": "#JYCGQ20P" },
+      { "rank": 5, "name": "khazardy✨安之", "tag": "#RVCQ2CQGJ", "rating": 2672, "clan_name": "khazardy's", "clan_tag": "#JYQCL20J" },
+      { "rank": 6, "name": "Mohamed Light", "tag": "#G9YV9GR8R", "rating": 2661, "clan_name": null, "clan_tag": null },
+      { "rank": 7, "name": "vadimgovnish", "tag": "#V02VR8JVP", "rating": 2642, "clan_name": "Sup Gskk Kiddaa", "clan_tag": "#GCCJVQLU" },
+      { "rank": 8, "name": "ШТУРМУЕМДМИША", "tag": "#C89L0002L", "rating": 2638, "clan_name": "NoA", "clan_tag": "#Q9QPPGGG" },
+      { "rank": 9, "name": "Hypno❤️Dybala", "tag": "#VJU89YPRU", "rating": 2637, "clan_name": "YT: Hypno Cr", "clan_tag": "#JYCGQ20P" },
+      { "rank": 10, "name": "Lil Log", "tag": "#YJPLQRR09", "rating": 2636, "clan_name": "Jynxzi Verse", "clan_tag": "#GR2J822G" },
+      { "rank": 11, "name": "Alem", "tag": "#VCG282UUG", "rating": 2628, "clan_name": "Bad Luck™️", "clan_tag": "#PJJ8GCGR" },
+      { "rank": 12, "name": "TKK.jackbest2.6", "tag": "#VC0JRC2JU", "rating": 2615, "clan_name": "GUERREIROS PT", "clan_tag": "#G89QUY2P" },
+      { "rank": 13, "name": "Pedro™️", "tag": "#RJ88Y8U08", "rating": 2615, "clan_name": "Supremacy L.", "clan_tag": "#Q0U2Y2JU" },
+      { "rank": 14, "name": "SimonBarbsGod", "tag": "#CQCVJULU2", "rating": 2606, "clan_name": "pot de miel", "clan_tag": "#GR8URJ8Q" },
+      { "rank": 15, "name": "Steeef", "tag": "#9LVP2RCLL", "rating": 2606, "clan_name": "Sup Gskk Kiddaa", "clan_tag": "#GCCJVQLU" },
+      { "rank": 16, "name": "喆喆✨白影", "tag": "#ULLY8RVVR", "rating": 2605, "clan_name": "PekkaBS", "clan_tag": "#J990RRQV" },
+      { "rank": 17, "name": "Soulless", "tag": "#Q99RGUQRR", "rating": 2603, "clan_name": "NoA", "clan_tag": "#Q9QPPGGG" },
+      { "rank": 18, "name": "Juicy", "tag": "#YGGYQYV", "rating": 2602, "clan_name": "Lightest Påth", "clan_tag": "#YQ989J9R" },
+      { "rank": 19, "name": "Cosmiik", "tag": "#UJRCC9PYY", "rating": 2591, "clan_name": "mortar", "clan_tag": "#GJYV9G2U" },
+      { "rank": 20, "name": "LonDex Play", "tag": "#JYG0G0Y9P", "rating": 2589, "clan_name": null, "clan_tag": null },
+      { "rank": 21, "name": "AgonyKing", "tag": "#UGP2UCQ8Q", "rating": 2588, "clan_name": "NOLITO BANEADO", "clan_tag": "#RYUYJRGJ" },
+      { "rank": 22, "name": "Mohamed❤️Swaggy", "tag": "#U28CUJYUG", "rating": 2584, "clan_name": "Fantasy", "clan_tag": "#JYJ980J8" },
+      { "rank": 23, "name": "Toji | 中号", "tag": "#PGRV9GVU9", "rating": 2584, "clan_name": null, "clan_tag": null },
+      { "rank": 24, "name": "91至寒❤️和韧✨瓜呱", "tag": "#VR8YGR8YL", "rating": 2568, "clan_name": "MAS I 暴力美学✨", "clan_tag": "#QCY8CRGQ" },
+      { "rank": 25, "name": "Miku", "tag": "#9YUC9LQ0L", "rating": 2564, "clan_name": "discord.gg/hog", "clan_tag": "#GJJ2P8LQ" }
+    ],
+    "cutoff_rating": 2434,
+    "prev_leader_rating": 2253,
+    "median_rating_gain": 452,
+    "spread_top10": 63
+  },
+  "movers": {
+    "up": [
+      { "name": "ШТУРМУЕМДМИША", "tag": "#C89L0002L", "rank_from": 166, "rank_to": 8, "rating_from": 1936, "rating_to": 2638 },
+      { "name": "ZQuentino", "tag": "#RRLV0GQCV", "rank_from": 199, "rank_to": 53, "rating_from": 1914, "rating_to": 2516 },
+      { "name": "khazardy✨安之", "tag": "#RVCQ2CQGJ", "rank_from": 141, "rank_to": 5, "rating_from": 1952, "rating_to": 2672 },
+      { "name": "LonDex Play", "tag": "#JYG0G0Y9P", "rank_from": 154, "rank_to": 20, "rating_from": 1945, "rating_to": 2589 },
+      { "name": "Lil Log", "tag": "#YJPLQRR09", "rank_from": 135, "rank_to": 10, "rating_from": 1958, "rating_to": 2636 }
+    ],
+    "down": [
+      { "name": "YouTube. KAi_CR", "tag": "#V2GRPU28Y", "rank_from": 6, "rank_to": 95, "rating_from": 2190, "rating_to": 2453 },
+      { "name": "Pompeyo4.1", "tag": "#9890JJJV", "rank_from": 11, "rank_to": 96, "rating_from": 2171, "rating_to": 2450 },
+      { "name": "CHI Pompeyo4", "tag": "#YP9VPGUUG", "rank_from": 14, "rank_to": 78, "rating_from": 2151, "rating_to": 2470 },
+      { "name": "Barti", "tag": "#8LR0P09LR", "rank_from": 38, "rank_to": 97, "rating_from": 2088, "rating_to": 2446 },
+      { "name": "SK Morten", "tag": "#R09228V", "rank_from": 18, "rank_to": 71, "rating_from": 2138, "rating_to": 2484 }
+    ],
+    "entered": [
+      { "name": "JTR_CR", "tag": "#8JCRL98YC", "rank_to": 2, "rating_to": 2694, "prior_depth_searched": 200 },
+      { "name": "vadimgovnish", "tag": "#V02VR8JVP", "rank_to": 7, "rating_to": 2642, "prior_depth_searched": 200 },
+      { "name": "SimonBarbsGod", "tag": "#CQCVJULU2", "rank_to": 14, "rating_to": 2606, "prior_depth_searched": 200 }
+    ],
+    "exited": [
+      { "name": "Night graveyard", "tag": "#220JL80LUC", "rank_from": 5, "rating_from": 2217, "last_seen": "2026-09-16T10:00:00Z" }
+    ]
+  },
+  "podium": [
+    { "name": "Hypno ❤️ Hans", "tag": "#L8999VJC", "rating": 2699, "rank_from": 2, "rating_from": 2247, "days_in_top3": 7, "clan_name": "YT: Hypno Cr", "deck_summary": null },
+    { "name": "JTR_CR", "tag": "#8JCRL98YC", "rating": 2694, "rank_from": null, "rating_from": null, "days_in_top3": 1, "clan_name": "Tiktok Live", "deck_summary": null },
+    { "name": "AK Tanjiro", "tag": "#208R8PQJP9", "rating": 2689, "rank_from": 44, "rating_from": 2064, "days_in_top3": 2, "clan_name": "TIKTOK LIVE", "deck_summary": null }
+  ],
+  "clans": [
+    { "clan_name": "YT: Hypno Cr", "clan_tag": "#JYCGQ20P", "members_in_top100": 4, "best_rank": 1 },
+    { "clan_name": "Sup Gskk Kiddaa", "clan_tag": "#GCCJVQLU", "members_in_top100": 3, "best_rank": 7 },
+    { "clan_name": "NoA", "clan_tag": "#Q9QPPGGG", "members_in_top100": 2, "best_rank": 8 },
+    { "clan_name": "PekkaBS", "clan_tag": "#J990RRQV", "members_in_top100": 2, "best_rank": 16 }
+  ],
+  "meta": {
+    "decks": [],
+    "hero_share": 0.4,
+    "evo_only_share": 0.6,
+    "shared_decks": [],
+    "rising_card": null,
+    "players_covered": 0,
+    "players_total": 100
+  },
+  "deep_cut": {
+    "type": "spike_hidden_by_weekly",
+    "facts": {
+      "player": "RamboOo",
+      "tag": "#YUQYJV08",
+      "rank_from": 134,
+      "rank_to": 64,
+      "rating_from": 1958,
+      "rating_to": 2497,
+      "peak_rank": 1,
+      "peak_rating": 2586,
+      "peak_date": "2026-09-16",
+      "rating_gained_before_peak": 575,
+      "days_to_peak": 4,
+      "rating_lost_after_peak": 89,
+      "places_lost_after_peak": 63
+    },
+    "novelty_score": 0.91,
+    "runner_up_type": "deck_churn"
+  },
+  "coverage": {
+    "players_recorded": 0,
+    "battles_recorded": 0,
+    "freshness_seconds": 15765,
+    "gaps": ["deck and battle data not pulled for this fixture"]
+  }
+}

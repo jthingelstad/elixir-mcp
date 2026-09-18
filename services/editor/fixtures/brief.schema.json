@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elixir.poapkings.com/schemas/weekly-brief.v1.json",
+  "title": "Elixir Weekly brief",
+  "description": "Everything the generator is allowed to print. All deltas and selections are computed by the collector; the generator never does arithmetic.",
+  "type": "object",
+  "required": ["generated_at", "data_as_of", "season", "window", "board", "movers", "podium", "clans", "meta", "deep_cut", "coverage"],
+  "additionalProperties": false,
+  "properties": {
+    "generated_at": { "type": "string", "format": "date-time" },
+    "data_as_of": { "type": "string", "format": "date-time", "description": "observed_at of the leaderboard snapshot used" },
+    "season": {
+      "type": "object",
+      "required": ["id", "month", "day_of_season"],
+      "properties": {
+        "id": { "type": "integer" },
+        "month": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" },
+        "day_of_season": { "type": "integer", "minimum": 1, "description": "drives season-age framing; <=10 means lead on rating" }
+      }
+    },
+    "window": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "format": "date-time" },
+        "to": { "type": "string", "format": "date-time" }
+      }
+    },
+    "board": {
+      "type": "object",
+      "required": ["top100", "cutoff_rating", "prev_leader_rating", "median_rating_gain", "spread_top10"],
+      "properties": {
+        "top100": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "required": ["rank", "name", "tag", "rating"],
+            "properties": {
+              "rank": { "type": "integer" },
+              "name": { "type": "string" },
+              "tag": { "type": "string" },
+              "rating": { "type": "integer" },
+              "clan_name": { "type": ["string", "null"] },
+              "clan_tag": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "cutoff_rating": { "type": "integer", "description": "rating at rank 100" },
+        "prev_leader_rating": { "type": "integer", "description": "rank-1 rating at window start" },
+        "median_rating_gain": { "type": "integer" },
+        "spread_top10": { "type": "integer", "description": "rating at rank 1 minus rating at rank 10" }
+      }
+    },
+    "movers": {
+      "type": "object",
+      "required": ["up", "down", "entered", "exited"],
+      "properties": {
+        "up": { "$ref": "#/$defs/moverList" },
+        "down": { "$ref": "#/$defs/moverList" },
+        "entered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "tag", "rank_to", "rating_to"],
+            "properties": {
+              "name": { "type": "string" },
+              "tag": { "type": "string" },
+              "rank_to": { "type": "integer" },
+              "rating_to": { "type": "integer" },
+              "prior_depth_searched": { "type": "integer", "description": "how deep the as_of board was read; absence below this is why they count as new" }
+            }
+          }
+        },
+        "exited": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "tag", "rank_from", "rating_from"],
+            "properties": {
+              "name": { "type": "string" },
+              "tag": { "type": "string" },
+              "rank_from": { "type": "integer" },
+              "rating_from": { "type": "integer" },
+              "last_seen": { "type": ["string", "null"], "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "podium": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["name", "tag", "rating", "rank_from", "rating_from"],
+        "properties": {
+          "name": { "type": "string" },
+          "tag": { "type": "string" },
+          "rating": { "type": "integer" },
+          "rank_from": { "type": ["integer", "null"], "description": "null means not on the as_of board" },
+          "rating_from": { "type": ["integer", "null"] },
+          "days_in_top3": { "type": "integer" },
+          "clan_name": { "type": ["string", "null"] },
+          "deck_summary": { "type": ["string", "null"], "description": "null when the player is not recorded" }
+        }
+      }
+    },
+    "clans": {
+      "type": "array",
+      "description": "sorted by members_in_top100 desc",
+      "items": {
+        "type": "object",
+        "required": ["clan_name", "members_in_top100", "best_rank"],
+        "properties": {
+          "clan_name": { "type": "string" },
+          "clan_tag": { "type": ["string", "null"] },
+          "members_in_top100": { "type": "integer" },
+          "best_rank": { "type": "integer" }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["decks", "hero_share", "evo_only_share", "shared_decks", "players_covered", "players_total"],
+      "properties": {
+        "decks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["deck_id", "cards", "players", "battles", "win_rate", "share"],
+            "properties": {
+              "deck_id": { "type": "string", "description": "deck_hash; identity includes card form" },
+              "cards": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "form"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "form": { "enum": ["standard", "evolution", "hero", "champion"] }
+                  }
+                }
+              },
+              "players": { "type": "integer" },
+              "battles": { "type": "integer" },
+              "win_rate": { "type": "number" },
+              "share": { "type": "number" },
+              "players_using": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "hero_share": { "type": "number", "description": "share of covered top-100 players whose main deck includes a hero form" },
+        "evo_only_share": { "type": "number" },
+        "shared_decks": {
+          "type": "array",
+          "description": "decks used as a main deck by 2+ top-100 players; the cluster story",
+          "items": {
+            "type": "object",
+            "required": ["deck_id", "players"],
+            "properties": {
+              "deck_id": { "type": "string" },
+              "players": { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+            }
+          }
+        },
+        "rising_card": {
+          "type": ["object", "null"],
+          "required": ["name", "form", "share_now", "share_prev"],
+          "properties": {
+            "name": { "type": "string" },
+            "form": { "enum": ["standard", "evolution", "hero", "champion"] },
+            "share_now": { "type": "number" },
+            "share_prev": { "type": "number" }
+          }
+        },
+        "players_covered": { "type": "integer", "description": "top-100 players with recorded battles in the window" },
+        "players_total": { "type": "integer" }
+      }
+    },
+    "deep_cut": {
+      "type": "object",
+      "required": ["type", "facts"],
+      "properties": {
+        "type": { "enum": ["spike_hidden_by_weekly", "level_gap", "deck_churn", "head_to_head", "session_pattern"] },
+        "facts": { "type": "object", "description": "type-specific, all precomputed; every value here is printable as-is" },
+        "novelty_score": { "type": "number" },
+        "runner_up_type": { "type": ["string", "null"], "description": "for the critic pass: the second-best candidate" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["players_recorded", "battles_recorded", "freshness_seconds", "gaps"],
+      "properties": {
+        "players_recorded": { "type": "integer" },
+        "battles_recorded": { "type": "integer" },
+        "freshness_seconds": { "type": "integer" },
+        "gaps": { "type": "array", "items": { "type": "string" }, "description": "plain-language notes, e.g. 'deck data covers 41 of 100'" }
+      }
+    }
+  },
+  "$defs": {
+    "moverList": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["name", "tag", "rank_from", "rank_to", "rating_from", "rating_to"],
+        "properties": {
+          "name": { "type": "string" },
+          "tag": { "type": "string" },
+          "rank_from": { "type": "integer" },
+          "rank_to": { "type": "integer" },
+          "rating_from": { "type": "integer" },
+          "rating_to": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

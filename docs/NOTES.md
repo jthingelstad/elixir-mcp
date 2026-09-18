@@ -4182,7 +4182,7 @@ from Phase 2.
 ## 2026-09-18 — Top 100 bundle reviewed against the record; model placement settled
 
 **Jamie's handoff** (built with the MCP; "a starting point, not a
-requirement") is in `docs/top100/` and `fixtures/top100/`. Its core
+requirement") is in `docs/top100/` and `services/editor/fixtures/` (moved out of the CR payload fixture tree, whose manifest test walks every directory). Its core
 decision, the builder computes and the model writes, is the same
 invariant `docs/EMAIL.md` sets for the four no-LLM kinds. **What the
 record changes:** the global PoL board is recorded hourly (the bundle

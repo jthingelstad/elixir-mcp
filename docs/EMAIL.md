@@ -188,7 +188,7 @@ person account tracking that clan.
 
 One issue for everyone, the platform's one LLM email. Jamie's starting
 bundle is in `docs/top100/` (spec, generator prompt, handoff notes) and
-`fixtures/top100/` (brief schema, a real brief from 2026-09-18, the
+`services/editor/fixtures/` (brief schema, a real brief from 2026-09-18, the
 hand-written gold issue); the review that reconciled it with the record
 is in `NOTES.md` (2026-09-18, "Top 100 bundle reviewed"). Decided:
 
