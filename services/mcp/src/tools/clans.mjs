@@ -633,6 +633,9 @@ export const clansTools = {
       }
       const members = await ctx.db.query(MEMBERS_SQL, [clanTag]);
       const tags = members.rows.map((m) => m.player_tag);
+      // Whether the members' logs are recorded at all (3.16.0): for an
+      // activity-scope clan every count below is zero by construction.
+      const coverage = await coverageBasis(ctx.db, clanTag);
       // The six reads that follow, from participation-sql.mjs so the
       // migrate Lambda's explain_participation diagnostic reads the same
       // plans this serves.
@@ -699,6 +702,10 @@ export const clansTools = {
           joined && firstRoster && joined.getTime() > firstRoster.getTime(),
         );
         const last = m.last_battle ? new Date(m.last_battle) : null;
+        const lastInClan = m.last_battle_in_clan
+          ? new Date(m.last_battle_in_clan)
+          : null;
+        const cov = coverage.members.get(m.player_tag);
         return {
           player_tag: m.player_tag,
           name: m.name,
@@ -708,7 +715,10 @@ export const clansTools = {
           days_in_clan_observed: joined
             ? Math.floor((now - joined) / 86400_000)
             : null,
+          log_recorded: cov?.log_recorded ?? false,
+          recorded_since: cov?.recorded_since ?? null,
           last_battle_time: last?.toISOString() ?? null,
+          last_battle_time_in_clan: lastInClan?.toISOString() ?? null,
           days_since_battle: last
             ? Number(((now - last) / 86400_000).toFixed(2))
             : null,
@@ -759,6 +769,21 @@ export const clansTools = {
                   return [1, 2, 3, 4].map((day) => battled?.get(day) ?? 0);
                 }),
               }),
+          // Days battled per war week (3.16.0), the count war_history
+          // computes: a poll that saw decks used OR a recorded war battle;
+          // null when the week has no coverage from either source, so a
+          // consumer never spreads a weekly total over days.
+          war_days_battled: warWeeks.rows.map((w) => {
+            const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
+            const days = daysByKey.get(k);
+            const battled = battledByKey.get(k);
+            if (!days && !battled) return null;
+            const seen = new Set();
+            for (const [day, d] of days ?? [])
+              if (d.decks_used_today > 0) seen.add(day);
+            for (const [day, n] of battled ?? []) if (n > 0) seen.add(day);
+            return seen.size;
+          }),
         };
       });
       return {
@@ -777,6 +802,7 @@ export const clansTools = {
         recording_active_since:
           clan.recording_active_since?.toISOString?.() ?? null,
         first_roster_observed_at: firstRoster?.toISOString() ?? null,
+        basis: coverage.basis,
         weeks: weekBounds,
         war_weeks: warWeeks.rows.map((w) => ({
           season_id: w.season_id,
@@ -792,7 +818,8 @@ export const clansTools = {
           "donations is the game's weekly counter as of the last daily snapshot in that ISO week (it resets Mondays); null means no snapshot fell in the week.",
           "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
-          "Counts cover RECORDED battles only; elixir_coverage per tag says how complete a member's log is.",
+          coverageBasisNote(coverage.basis),
+          "Counts cover RECORDED battles only (log_recorded and recorded_since per member say whose log is recorded and since when; elixir_coverage per tag says how complete it is); war_days_battled per war week counts the days a member fought from polls and recorded battles, null when neither source covered the week; last_battle_time_in_clan is the last recorded battle played as a member of this clan.",
         ),
         docs: docsRef("recording", "participation-by-week"),
         meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"]),

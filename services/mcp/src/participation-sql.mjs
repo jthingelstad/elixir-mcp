@@ -15,7 +15,11 @@ import { WAR_BATTLE_TYPES } from "./war-battles-sql.mjs";
 
 export const MEMBERS_SQL = `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
        (select max(bp.battle_time) from battle_participant bp
-        where bp.player_tag = cm.player_tag) as last_battle
+        where bp.player_tag = cm.player_tag) as last_battle,
+       -- The last recorded battle IN this clan (3.16.0): the participant
+       -- row's clan_tag is the clan the player was in when it was played.
+       (select max(bp.battle_time) from battle_participant bp
+        where bp.player_tag = cm.player_tag and bp.clan_tag = cm.clan_tag) as last_battle_in_clan
 from clan_membership cm
 join player p on p.player_tag = cm.player_tag
 where cm.clan_tag = $1 and cm.left_observed_at is null

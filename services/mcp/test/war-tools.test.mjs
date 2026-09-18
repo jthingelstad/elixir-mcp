@@ -1467,16 +1467,44 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     "donations",
     "joined_observed_at",
     "last_battle_time",
+    "last_battle_time_in_clan",
+    "log_recorded",
     "name",
     "player_tag",
     "ranked_battles",
+    "recorded_since",
     "role",
     "tenure_known",
     "war_battles_by_day",
+    "war_days_battled",
     "war_decks",
     "war_decks_by_day",
     "war_points",
   ]);
+  // 3.16.0: the coverage controls. This clan's recording is
+  // comprehensive, so basis is recorded and every member's log is.
+  assert.equal(body.basis, "recorded");
+  assert.ok(body.members.every((x) => x.log_recorded === true));
+  assert.ok(
+    body.members.every(
+      (x) => x.war_days_battled.length === body.war_weeks.length,
+    ),
+  );
+  assert.ok(
+    body.members.every((x) =>
+      x.war_days_battled.every(
+        (d) => d === null || (Number.isInteger(d) && d >= 0 && d <= 4),
+      ),
+    ),
+  );
+  assert.ok(
+    body.members.every(
+      (x) =>
+        x.last_battle_time_in_clan === null ||
+        x.last_battle_time_in_clan <= x.last_battle_time,
+    ),
+  );
+  assert.ok(!body.notes.some((n) => /roster_and_war_only/.test(n)));
   assert.equal(m.battles.length, 8);
   // A member present at the first roster poll has a lower-bound tenure,
   // never a fact; one seen joining later has a known one.

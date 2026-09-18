@@ -339,6 +339,10 @@ measures; it never rates.
 | `members[].war_decks`, `war_points`, `war_decks_by_day`, `war_battles_by_day` | columns aligned to `war_weeks[]`; `war_decks_by_day` holds war days 1 to 4 from roster polls during the day (`null` where the day was not polled) and `war_battles_by_day` the member's recorded war battles each day. `verbosity: "compact"` keeps only `war_decks` |
 | `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | when the record first saw them in the clan; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
 | `members[].last_battle_time`, `days_since_battle` | the last recorded battle in any clan, and its age |
+| `members[].last_battle_time_in_clan` | the last recorded battle played as a member of this clan (3.16.0) |
+| `members[].log_recorded`, `recorded_since` | whether the member's battle log is recorded at all (the clan's comprehensive scope, or a recording of their own) and their first recorded battle (3.16.0); read `log_recorded` before reading a zero |
+| `members[].war_days_battled` | per war week, the days the member fought: a poll that saw decks used or a recorded war battle; `null` when neither source covered the week (3.16.0), so a weekly total is never spread over days |
+| `basis` | `recorded` when the clan's members' logs are recorded; `roster_and_war_only` for an activity-scope clan, where every battle count is zero by construction for a member whose `log_recorded` is false (3.16.0) |
 | `recording_active_since`, `first_roster_observed_at` | the recording horizon for the clan |
 
 Null is unknown, never zero, throughout: a week with no snapshot has
