@@ -195,9 +195,10 @@ their summed duration, so you can see how much of the week the number actually
 describes: a high `average_ratio` over a few hours describes only those hours.
 Compare `measured_hours` against 168 before reading it as a full week. `incomplete_intervals` counts
 measured intervals with fewer captured than expected battles. Interval
-`is_complete` uses exact counts even when a rounded ratio displays as one. The old `incomplete_days` field is retained as
-null: a multi-day interval cannot establish which particular day lost battles.
-`unmeasured_tail_hours` gives the age of the unbracketed tail since the latest
+`is_complete` uses exact counts even when a rounded ratio displays as one.
+(`incomplete_days`, always null because a multi-day interval cannot say
+which day lost battles, was removed at 4.0.0; `average_ratio` became a
+number then.) `unmeasured_tail_hours` gives the age of the unbracketed tail since the latest
 profile snapshot; it is not included in `average_ratio`. Older unbracketed
 history remains unknown.
 

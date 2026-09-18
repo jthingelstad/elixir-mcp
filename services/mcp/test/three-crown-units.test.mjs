@@ -201,7 +201,7 @@ test("a boat win inflates wins without moving win_rate, and both halves are show
 /**
  * elixir_coverage reports the span it actually measured.
  *
- * average_ratio "1.000" is computed over observation intervals ENDING in
+ * average_ratio 1 is computed over observation intervals ENDING in
  * the last seven days, which can be a couple of days of coverage. The note
  * disclosed the mechanism but nothing said how much of the week was
  * watched, so a tester read a perfect ratio as a fully captured week and

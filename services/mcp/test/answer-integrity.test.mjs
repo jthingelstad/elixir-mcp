@@ -142,7 +142,12 @@ test("coverage uses matching observation intervals and updates when late battles
   await seed(21, 30);
   const complete = await call("elixir_coverage", { player_tag: tag });
   assert.equal(complete.observation_intervals[0].ratio, 1);
-  assert.equal(complete.completeness_last_7_days.incomplete_days, null);
+  assert.ok(
+    !("incomplete_days" in complete.completeness_last_7_days),
+    "4.0.0: the always-null field is gone",
+  );
+  assert.equal(complete.completeness_last_7_days.average_ratio, 1);
+  assert.equal(typeof complete.completeness_last_7_days.average_ratio, "number");
   assert.equal(complete.completeness_last_7_days.incomplete_intervals, 0);
   assert.equal(
     typeof complete.completeness_last_7_days.unmeasured_tail_hours,

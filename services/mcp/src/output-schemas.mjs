@@ -1608,11 +1608,10 @@ export const OUTPUT_SCHEMAS = {
           "Measured intervals plus the explicit unmeasured tail after the latest profile snapshot.",
         properties: {
           average_ratio: {
-            type: ["string", "null"],
+            type: ["number", "null"],
             description:
-              'A string with three decimals ("0.667") until 4.0.0, which makes it a number; the interval ratio beside it is already a number.',
+              "Captured over expected battles across the measured intervals, weighted by expected battles, three decimals (a number since 4.0.0); null with no measured interval.",
           },
-          incomplete_days: { type: "null" },
           incomplete_intervals: { type: ["integer", "null"] },
           measured_intervals: COUNT,
           measured_span: { type: ["object", "null"] },
@@ -1626,7 +1625,6 @@ export const OUTPUT_SCHEMAS = {
         },
         required: [
           "average_ratio",
-          "incomplete_days",
           "incomplete_intervals",
           "measured_intervals",
           "measured_span",

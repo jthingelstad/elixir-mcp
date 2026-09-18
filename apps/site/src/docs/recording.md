@@ -316,7 +316,7 @@ no record for no activity.
 | `battles` | `recorded_appearances`, `first_recorded`, `last_recorded`, including appearances recorded from other players' logs before the tag was added |
 | `snapshots.first_date` | first daily profile snapshot; timelines exist only from here |
 | `observation_intervals[]` | consecutive profile snapshots bracket an interval; `expected_battles` is the lifetime battle counter's change, `captured_battles` counts recorded battles in `(observed_from, observed_to]`; `is_complete` and `ratio` are `null` with a `note` when the two are not comparable |
-| `completeness_last_7_days` | `average_ratio` weighted by expected battles over intervals ending in the last 7 days; `measured_intervals`, `unknown_intervals`, `incomplete_intervals`; `unmeasured_tail_hours` is the age of the unbracketed tail after the latest profile; `incomplete_days` is always `null` |
+| `completeness_last_7_days` | `average_ratio` weighted by expected battles over intervals ending in the last 7 days; `measured_intervals`, `unknown_intervals`, `incomplete_intervals`; `unmeasured_tail_hours` is the age of the unbracketed tail after the latest profile. `average_ratio` is a number (4.0.0; a three-decimal string before) |
 
 Two caveats the numbers cannot escape: the lifetime counter includes some
 modes the battle log never shows, so a ratio under 1.0 is an upper bound on

@@ -96,14 +96,14 @@ export async function captureCoverage(db, playerTag) {
   return {
     observation_intervals: intervals,
     completeness_last_7_days: {
+      // A number, three decimals (4.0.0; a string before, the one ratio
+      // on the wire that was). incomplete_days, always null since an
+      // interval may span several days, is gone.
       average_ratio: known.length
         ? expected === 0
-          ? "1.000"
-          : (captured / expected).toFixed(3)
+          ? 1
+          : Number((captured / expected).toFixed(3))
         : null,
-      // Retained for older clients. An interval may span several days, so a
-      // count of incomplete DAYS is no longer a supported inference.
-      incomplete_days: null,
       incomplete_intervals: known.length
         ? known.filter((r) => !r.is_complete).length
         : null,
@@ -112,7 +112,7 @@ export async function captureCoverage(db, playerTag) {
       measured_hours: known.length ? Number(measuredHours.toFixed(2)) : null,
       unmeasured_tail_hours: unmeasuredTailHours,
       unknown_intervals: intervals.length - known.length,
-      note: "Estimate over observation intervals ending in the last seven days; an interval can begin earlier. Battles are counted in (observed_from, observed_to]. average_ratio is weighted by expected battles. IT DOES NOT MEAN THE WEEK WAS FULLY OBSERVED: measured_span is the first-to-last extent of the intervals behind it and measured_hours is their summed duration, so a high ratio over a few hours describes only those hours - compare measured_hours against 168 before reading average_ratio as a week. unmeasured_tail_hours is the unbracketed time since the latest profile snapshot; incomplete_days is deprecated and always null.",
+      note: "Estimate over observation intervals ending in the last seven days; an interval can begin earlier. Battles are counted in (observed_from, observed_to]. average_ratio is weighted by expected battles. IT DOES NOT MEAN THE WEEK WAS FULLY OBSERVED: measured_span is the first-to-last extent of the intervals behind it and measured_hours is their summed duration, so a high ratio over a few hours describes only those hours - compare measured_hours against 168 before reading average_ratio as a week. unmeasured_tail_hours is the unbracketed time since the latest profile snapshot.",
     },
   };
 }
