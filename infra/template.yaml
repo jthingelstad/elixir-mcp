@@ -29,6 +29,11 @@ Parameters:
     Type: String
     Default: claude-opus-5
     Description: The model the Top 100 editor Lambda writes with (Anthropic API model id)
+  AnthropicKeyInSecret:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Set to true once the app secret carries anthropic_api_key (secret-add-keys.mjs); until then the editor Lambda has no key and the Top 100 issue is not generated
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
@@ -83,6 +88,7 @@ Conditions:
   HasDbSnapshot: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
   HasOriginSecret: !Not [!Equals [!Ref OriginSecret, ""]]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
+  HasAnthropicKey: !Equals [!Ref AnthropicKeyInSecret, "true"]
 
 Resources:
   # ------------------------------------------------------------ networking

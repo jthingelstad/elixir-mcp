@@ -53,6 +53,7 @@ export const PRESERVED_PARAMETERS = [
   // The Top 100 writer's model: changed by hand when a newer one is
   // wanted, never reset by a deploy.
   "EditorModel",
+  "AnthropicKeyInSecret",
 ];
 
 /**
