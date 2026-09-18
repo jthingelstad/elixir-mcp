@@ -1763,6 +1763,23 @@ test("players_profile renders a snapshot with every typed column null and passes
   });
   assert.equal(partial.body.snapshot.lifetime.battleCount, 9);
   assert.equal(partial.body.snapshot.lifetime.starPoints, null);
+  // One lifetime shape across the tools (defect 7, 2026-09-19): the
+  // snake_case keys ride beside the camelCase ones with equal values.
+  assert.equal(partial.body.snapshot.lifetime.battle_count, 9);
+  assert.equal(partial.body.snapshot.lifetime.star_points, null);
+  assert.equal(partial.body.snapshot.lifetime.collection_level, null);
+  for (const [camel, snake] of [
+    ["battleCount", "battle_count"],
+    ["threeCrownWins", "three_crown_wins"],
+    ["starPoints", "star_points"],
+    ["expPoints", "exp_points"],
+    ["collectionLevel", "collection_level"],
+  ])
+    assert.equal(
+      partial.body.snapshot.lifetime[camel],
+      partial.body.snapshot.lifetime[snake],
+      snake,
+    );
 });
 
 test("a window on bp.battle_time answers what a window on b.battle_time answered (review 3.3)", async () => {

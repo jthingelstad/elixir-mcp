@@ -337,6 +337,8 @@ export const OUTPUT_SCHEMAS = {
           donations_received_this_week: { type: ["integer", "null"] },
           lifetime: {
             type: ["object", "null"],
+            description:
+              "Both spellings until 4.0.0: the snake_case keys are the ones clans_roster and players_timeline speak and the ones that stay; the camelCase keys are retired at the major.",
             properties: {
               battleCount: NULLABLE_INT,
               wins: NULLABLE_INT,
@@ -345,6 +347,11 @@ export const OUTPUT_SCHEMAS = {
               starPoints: NULLABLE_INT,
               expPoints: NULLABLE_INT,
               collectionLevel: NULLABLE_INT,
+              battle_count: NULLABLE_INT,
+              three_crown_wins: NULLABLE_INT,
+              star_points: NULLABLE_INT,
+              exp_points: NULLABLE_INT,
+              collection_level: NULLABLE_INT,
             },
           },
         },

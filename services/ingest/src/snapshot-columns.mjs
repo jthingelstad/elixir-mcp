@@ -113,6 +113,10 @@ export function snapshotObjects(row) {
     row.collection_level,
   )
     ? {
+        // Both spellings until 4.0.0 (review 2026-09-19, defect 7): the
+        // camelCase set is the JSON the API sent, kept for the clients
+        // that read it; the snake_case set is the one clans_roster and
+        // players_timeline speak, and the one that stays.
         battleCount: row.battle_count,
         wins: row.wins,
         losses: row.losses,
@@ -120,6 +124,11 @@ export function snapshotObjects(row) {
         starPoints: row.star_points,
         expPoints: row.exp_points,
         collectionLevel: row.collection_level,
+        battle_count: row.battle_count,
+        three_crown_wins: row.three_crown_wins,
+        star_points: row.star_points,
+        exp_points: row.exp_points,
+        collection_level: row.collection_level,
       }
     : null;
   return {
