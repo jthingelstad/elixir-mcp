@@ -230,6 +230,11 @@ export const clansTools = {
                   round(avg(p.starting_trophies))::int as mean_starting_trophies,
                   mode() within group (order by p.arena_id) as modal_arena_id,
                   mode() within group (order by p.arena) as modal_arena,
+                  -- The Trophy Road arena the member's LADDER battles were
+                  -- fought in: the only arena comparable to the profile's
+                  -- (a Path of Legends battle's arena is a league name).
+                  mode() within group (order by p.arena_id) filter (where p.type = 'PvP') as modal_ladder_arena_id,
+                  mode() within group (order by p.arena) filter (where p.type = 'PvP') as modal_ladder_arena,
                   (select s.arena_id from player_snapshot_daily s
                     where s.player_tag = cm.player_tag and s.arena_id is not null
                     order by s.snapshot_date desc, s.snapshot_kind desc limit 1) as current_arena_id
@@ -312,16 +317,16 @@ export const clansTools = {
             (() => {
               const moved = rows.filter(
                 (r) =>
-                  r.modal_arena_id !== null &&
+                  r.modal_ladder_arena_id !== null &&
                   r.current_arena_id !== null &&
-                  r.modal_arena_id !== r.current_arena_id,
+                  r.modal_ladder_arena_id !== r.current_arena_id,
               );
               return moved.length > 0
-                ? `${moved.length === 1 ? "One member was" : `${moved.length} members were`} scored mostly in an arena other than their current one (${moved
+                ? `${moved.length === 1 ? "One member was" : `${moved.length} members were`} scored mostly in a Trophy Road arena other than their current one (${moved
                     .slice(0, 3)
                     .map(
                       (r) =>
-                        `${r.name ?? r.player_tag}: ${r.modal_arena} → ${arenaName.get(r.current_arena_id) ?? r.current_arena_id}`,
+                        `${r.name ?? r.player_tag}: ${r.modal_ladder_arena} → ${arenaName.get(r.current_arena_id) ?? r.current_arena_id}`,
                     )
                     .join(
                       "; ",
@@ -330,7 +335,7 @@ export const clansTools = {
             })(),
             PILOT_NOTES,
             "basis counts describe the curve's volume only; unchanged counts do not identify an unchanged curve.",
-            "mean_starting_trophies and modal_arena say which population each member was scored in; current_arena is the latest snapshot's.",
+            "mean_starting_trophies and modal_arena say which population each member was scored in (a Path of Legends battle's arena is its league); current_arena is the latest snapshot's Trophy Road arena, compared against the member's ladder battles only.",
           ),
           docs: PILOT_DOCS,
           meta: responseMeta({ as_of: asOf.toISOString() }),
