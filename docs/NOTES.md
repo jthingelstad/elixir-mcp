@@ -4206,3 +4206,164 @@ rotation for this audience. No personalization. Two model passes, three
 lint passes, a failing issue never sends. The bundle's gold sample uses
 em dashes its own tone rule forbids; the rule becomes the editor's, not
 a regex, and the sample stays as Jamie wrote it.
+
+## 2026-09-19 — Interface review, Phase 3: the control next to every number (contract 3.16.0)
+
+Phase 3 of `docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (review
+Part 4), product calls 1 (trophy band: option A) and 5 (the population is
+named) answered by Jamie 2026-09-18. One minor, 3.15.1 → 3.16.0; one
+additive, non-rewriting migration (0135). Commits `4f56ae6`..`f383fb5`
+(sixteen); deployed 18:41Z (exit 0, smoke green, migrations 134 → 135),
+the code again at 18:44Z, 18:47Z, 18:49Z, 18:51Z and 18:59Z for the
+follow-ups below. All nine items shipped.
+
+**Shipped.** (1) `controls.mjs`: `coverageBasis(db, clanTag)` →
+`{basis: recorded | roster_and_war_only, members: Map(tag → {log_recorded,
+recorded_since})}` (a comprehensive clan recording, or a player's own
+comprehensive recording), `coverageBasisNote`, `singlePlayerNote(rows)`,
+`colosseumMix(weeks)`, `zeroSeriesNote(points, field)`; `modeSplit`
+takes the daily rollup's `mode_group` rows beside `type` rows. (2)
+`players_summary`: `last_30_days.modes` from the same rollup rows,
+`modes` + `dominant_mode` on `top_deck` AND `best_deck` (so the #54
+clash fires at the summary level), `trophy_floor` via `trophyFloor`,
+the two notes. (3) `clans_standings`: per member `modes` (one more
+group-by in `standings-sql.mjs`), `ladder_battles`, `mean_level_gap` +
+`level_gap_battles`, `log_recorded`, `recorded_since`; `comparable`
+and `basis` on the response; `trophy_net` null when `ladder_battles`
+is 0. (4) `battles_trends`: `modes` per week (a second group-by over
+the same rows), `partial`/`covers` via `markPartialWeeks`, a pooled-modes
+note when `mode` was omitted; `source` NOT added: the tool reads raw
+participant rows, so the bot-imported rollup keys never enter its
+counts, and a `source` column on the rollup is schema. (5) The meta
+tools: rows carry `modes` and `mean_level_gap` on both paths, the raw
+path folding everything from ONE scan grouped by (deck, type, player)
+for decks and one (deck, player, type) CTE for cards (the
+"one population scan plus one grouping scan" test holds); `comparable`,
+`modes_in_window`, `pooledModesNote`, `singlePlayerNote` on a segment.
+`trophy_band` on the three meta tools. Migration 0135: `level_gap_sum` /
+`level_gap_battles` on `deck_meta_season` and `card_meta_season`,
+`players` on `meta_season_totals`, `bands_rebuilt_at` on
+`meta_season_state`, and three EMPTY companion tables
+(`meta_season_band_totals`, `deck_meta_season_band`,
+`card_meta_season_band`) keyed by the band: a nullable column cannot sit
+in the rollup's primary key and re-keying a 150 MB table is the rewrite
+the 0099 rule forbids, so the banded rows live beside the unbanded under
+their own key. The nightly rebuild fills all of it (`popSql` computes the
+band from the participant's own starting trophies and the level gap by a
+self join on the season's rows, never a probe per row); the hourly
+increment adds onto the band tables only once `bands_rebuilt_at` is set,
+so a few hours' rows never read as a season. `seasonRollup` answers
+`{pending: true}` for a band before that and the tools fall back to the
+raw path with a note. Fingerprint re-pinned from a fresh scratch build
+(twice: the `players` column came with item 9). (6)
+`clans_pilot_scores`: `mean_starting_trophies`, `modal_arena {id,
+name}`, `current_arena` per member; the note names members whose modal
+LADDER arena differs from their current one (the first version compared
+the modal arena over every scored battle, and a Path of Legends battle's
+arena is a league name, so 24 of 40 "moved"; fixed to 7 real moves).
+(7) `clans_participation`: `log_recorded`, `recorded_since`,
+`last_battle_time_in_clan` (the participant row's clan_tag),
+`war_days_battled` per war week (polls OR recorded battles, null without
+coverage), `basis`, the activity-scope note. (8) `clans_timeline`
+`members_with_profile`; `war_rivals` `colosseum_races` with a note only
+when any; `rankings_timeline` the zero-series note; `rankings_clans`
+`field_size`. (9) `SEGMENT_SCHEMA` is `anyOf [string enum ["mine",
+"corpus"], object]`; `resolveSegment` (shared.mjs) is the one resolver
+`segmentFilter` and `badgeScope` sit on; "mine" is `entitledClan(undefined)`
+so an account with no clan is `no_subject`; `omittedSegmentNote` fires
+only when `segment` was absent; `populationBlock` puts `{recorded_clans,
+recorded_players, players_in_window}` on every corpus read (the rollup
+path's `players_in_window` is the nightly `meta_season_totals.players`,
+null until the first rebuild); `validateArgs` learned `anyOf`. The
+instructions, `choosing-a-tool` "Conventions on one screen", the
+glossary's `corpus` and `segment`, ENGINEERING "Defaults by family" and
+the six descriptions say a population is named, never defaulted. Docs:
+`battles.md` "The control next to the number" (players_summary,
+clans_standings, battles_trends), `methodology.md` (the meta rows'
+controls, the band, the pilot population), `recording.md`
+(participation-by-week, members_with_profile); What's-new.
+
+**Measured live, read-only, 18:41Z–18:59Z, on POAP KINGS unless said.**
+`players_summary()`: `trophy_floor.floored: true` (12,500, 3 on-floor +
+4 landing), `last_30_days.modes` war 41 / ladder 45 / casual 1, the Hogs
+deck `modes.ladder: 45` (100%), the Mortar best deck `modes.war: 14`, the
+note "NOT comparable across rows" naming both. `clans_standings({days:
+7})`: `comparable: false`, note naming sniperhendo (60% ranked, gap
++0.03) and Andy (76% ladder, +0.47); `trophy_net: null` on the ten
+members with no ladder battle; `basis: recorded`. `battles_trends({weeks:
+3, mode: "ladder"})`: W38 `partial: true`, `covers.to` the call instant;
+`population` 18 recorded clans / 986 recorded players / 5,884 in the
+window; the omitted-segment note first. `battles_meta_cards({mode:
+"ladder", limit: 3})`: rows carry `modes.ladder` (Arrows 1,777),
+`comparable: true`, `mean_level_gap: null` and `players_in_window: null`
+until tonight's rebuild fills the sums. `battles_meta_decks({mode:
+"ladder", trophy_band: "11000_13000", limit: 3})`: answered from the RAW
+path with the fallback note (the band tables are empty until the first
+nightly), 1,732 decided, 901 players in the band, `mean_level_gap` on
+every row (-1.10, -0.23, +0.92), `comparable: false` naming the gaps;
+the "under 2 s from the rollup" half of the predicate is measurable after
+the first nightly run (~04:40Z). `battles_meta_decks({segment: {clan_tag:
+"#J2RGCRVG"}, mode: "ladder"})`: the single-player note (every row
+`players: 1`), no `population`, no omitted note. `segment: "mine"` could
+NOT be sent from this session's MCP client (it caches the pre-3.16.0
+schema with `segment` as an object and mangles a bare string); the unit
+test pins "mine" → the caller's clan and `no_subject` without one.
+`clans_participation({clan_tag: "#G89QUY2P"})`: `basis:
+roster_and_war_only`, `log_recorded: false` on 40 of 50 members and TRUE
+on 10 recorded on their own (a board or a collection), which is the point
+of the per-member flag; `war_days_battled` per war week.
+`clans_pilot_scores({days: 30})`: 40 scored, 7 real Trophy Road moves
+named (BigNorton Royal Road → Musketeer Street, …). `war_rivals()`:
+`colosseum_races: 0` on all four, the Colosseum note silent. Durations
+from the Lambda log: `players_summary` 225 → ~950 ms; `clans_standings`
+7-day 563 → 4,671 ms at 18:44Z and the 30-day default 15,448 ms at
+18:55Z, the level-gap lateral over the members' raw window rows (12,657
+random heap reads at 0.6 ms cold, `explain_standings`); bounded to each
+member's latest 50 leveled battles (`f383fb5`, `level_gap_battles` says
+the sample): 30-day 5.2 s warm, 7-day 332 ms. `battles_trends` 3-week
+ladder 4.7 s (16 s was one 12-week call earlier in the day).
+`clans_pilot_scores` unchanged (~8 s). `battles_meta_cards` corpus
+season 249 ms; the banded raw read 2.6–3.2 s.
+
+**Broken live for two minutes.** `dc7b3e8` (18:49Z) made
+`clans_pilot_scores` read `p.type` from `lv_pairs`, which did not carry
+it; the commit chain pushed and deployed past a failing test because the
+test run and the deploy were one shell line joined by `;`. `239c51b`
+(18:51Z) carried `type` into `lv_pairs`. The rule I broke and re-learn:
+`&&`, never `;`, between the test and the push.
+
+**Decisions taken inside the phase.** (a) Band tables beside the rollups
+rather than a column in their keys (above). (b) The hourly increment is
+gated on `bands_rebuilt_at`, and the gap columns increment `null + x`,
+which stays null until a rebuild has filled them: a reader never serves a
+few hours as a season. (c) On the rollup path a mode read's `modes` split
+is that group alone, as the raw group-by would be (`edf78bc`). (d)
+`clans_timeline`'s `type`/`location_id` stayed opt-in from Phase 2; the
+new `members_with_profile` is a default aggregate. (e) `clans_standings`
+`log_recorded` rides beside `recorded_since` (both come from
+`coverageBasis`). (f) `battles_trends` without `source` (above). (g) The
+`fixtures/top100/` and `docs/top100/` directories are someone else's
+untracked work; they make the two manifest tests fail on this checkout
+and are not in any commit here; a clean worktree of HEAD passes them.
+
+**Consumers.** `elixir-mcp-discord` `4203f1d`: `meta-report.md` reads
+`comparable` and names its population (segment "corpus" / "mine") instead
+of "be honest about sample size"; the same edit applied to the three
+live instances' copies (`~/.elixir-mcp-discord/{poapkings,shipit,elixirkings}/agent/routines/meta-report.md`),
+which hot-load: a prompt change is never a restart there, and a
+`kickstart -k` during a live turn is the thing that repo forbids.
+`clan.poapkings.com` `a8038d1`: the engine's floor reads
+`war_days_battled` when present (the spread stays as fallback) and
+`log_recorded` (an unrecorded log never passes the ranked floor);
+verify green; CI validate + deploy succeeded (the Lambda replaced).
+
+**Pending the first nightly (04:40Z):** the band tables and the level-gap
+sums; then `battles_meta_cards({mode: "ladder"})` rows carry
+`mean_level_gap` and `battles_meta_decks({trophy_band: "11000_13000"})`
+answers from `deck_meta_season_band` (the "under 2 s" predicate). The
+brief expected `mean_level_gap` on the corpus rows today; it needs the
+sums.
+
+**Phase 4 needs:** product calls 3 (series tools accept an instant
+floored to the game day: yes) and 6 (`game_days_seen` beside `days_seen`:
+yes), both answered. Nothing manual.
