@@ -481,31 +481,45 @@ Lambda.
 ## PHASE 6: 4.0.0, the batched major (review Part 5.3)
 
 **Goal:** the names and shapes the additive phases doubled are settled to
-one. **Depends on:** product call 7. **Contract bump:** major, with the
-deprecation window announced at the START of the window (an `elixir_changelog`
-entry with `breaking` naming every rename and the removal date, a What's-new
-entry, and the old and new fields served side by side until the date).
+one. **Depends on:** product call 7, DECIDED by Jamie 2026-09-18: NO
+deprecation window. Every client of this server is first-party (the three
+Discord instances, elixir-bot, Clan, Drop, the collection updater, Jamie's
+own Claude sessions), so there is nobody to wait for; the phase is ONE
+session that ships the renames, updates every consumer that reads a
+retired name in the same pass, and restarts them after the deploy. The
+`elixir_changelog` `breaking` entry is the record of what moved, not a
+warning of what will. **Contract bump:** major (4.0.0).
 
-At the end of the window, in one deploy: remove `players_timeline.series[].date`;
-`battles_query.arena` becomes `{id, name}`; the camelCase lifetime block
-goes; `group_by: "mode"` goes (`"game_mode"` stays); `clans_standings.trophy_net`
-→ `net_trophies`; `pol_league` and `league_number` → one name;
-`clans_participation.weeks[].complete` → `partial`; `elixir_coverage.average_ratio`
-numeric and `incomplete_days` removed; `war_current.nominal_period_elapsed`
-removed; `game_events.days_seen` removed if call 6 was yes; `segment`
-becomes REQUIRED on the six segment tools (product call 5, decided
-2026-09-18: a call without it refuses `bad_request` with a hint naming
-`"mine"`, `"corpus"` and the object; the Phase 3 omitted-segment note is
-the teaching bridge, and `{args_census}` on those tools shows when calls
-without `segment` have fallen to zero, the signal the window can close);
-consider `elixir_feedback` → `elixir_send_feedback` under the write-tool
-naming rule.
-Update the `CHANGELOG` `breaking` entry, the docs pages, the output schemas,
-the tools reference; bump `elixir-bot`'s `PINNED_CONTRACT` to "4"
-(`elixir_mcp.py:40`) in the same week and restart it; discord's version DM is
-the second announcement. Acceptance: `tools.json` at 4.0.0; every retired
-name absent from a live read of each tool; `elixir_changelog({ since:
-"3.18.0" })` carries the `breaking` text.
+In one session and one deploy: remove `players_timeline.series[].date`
+(`day` stays); `battles_query.arena` becomes `{id, name}` (`arena_id`
+folds into it); the camelCase lifetime block on `players_profile` goes
+(the snake_case keys stay, one shape with `clans_roster` and
+`players_timeline`); `group_by: "mode"` goes (`"game_mode"` stays);
+`clans_standings.trophy_net` → `net_trophies`; `pol_league` and
+`league_number` → one name (`league_number`, the battle row's); 
+`clans_participation.weeks[].complete` → `partial`;
+`elixir_coverage.average_ratio` numeric and `incomplete_days` removed;
+`war_current.nominal_period_elapsed` removed; `game_events.days_seen`
+removed (`game_days_seen` stays); `clans_roster.lifetime.as_of` removed
+(`profile_observed_at` stays); `segment` becomes REQUIRED on the six
+segment tools (product call 5: a call without it refuses `bad_request`,
+class `input`, with a hint naming `"mine"`, `"corpus"` and the object);
+`elixir_feedback` → `elixir_send_feedback` under the write-tool naming
+rule (`elixir_my_feedback` stays). Update the `CHANGELOG` `breaking`
+entry (every rename with its new name), the docs pages, the output
+schemas, the tools reference, the instructions. In the SAME pass update
+every consumer that reads a retired name, verify each with its own gate,
+and restart it after the deploy: `elixir-bot` (`PINNED_CONTRACT` → "4",
+`elixir_mcp.py:40`; `mcp_stats.py` drops the `date` fallback), the three
+`elixir-mcp-discord` instances (`elixir_feedback` → `elixir_send_feedback`
+in `feedback.js`, `reactions.js`, `mcp.js` name resolution and the
+prompts), `clan.poapkings.com` (`manage/scout.mjs` reads the snake_case
+lifetime keys; `clans_participation` readers `partial`), Drop (reads no
+retired name; confirm by grep). Acceptance: `tools.json` at 4.0.0; every
+retired name absent from a live read of each tool it lived on;
+`elixir_changelog({ since: "3.18.0" })` carries the `breaking` text; each
+restarted consumer's first call after the deploy audited at 4.0.0 with no
+error.
 
 ---
 
