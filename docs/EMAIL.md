@@ -1,16 +1,18 @@
 # Weekly email — the five report kinds
 
-**Design, ratified 2026-09-18 (Jamie, in session). Nothing built yet.**
-The first product email Elixir sends, and the reason mail moved to SES.
-Decisions are recorded here and in `NOTES.md`; the public description of
-what each email contains belongs at `/docs/email` when it ships, not here.
+**Design, ratified 2026-09-18 (Jamie, in session); BUILT AND DEPLOYED the
+same night** (NOTES 2026-09-18, "Product email shipped"). Six kinds, not
+five: the milestone mail joined during the design. The public description
+is `/docs/email`; this file is the design and the engineering shape.
+Palette: dark for all six (Jamie, from the gallery). Collector Activity is
+one mail per ACCOUNT, every collector it runs pooled.
 
 ## What is decided
 
-- **Five weekly kinds**, all bulk under the mail policy
-  (`docs/ENGINEERING.md`, "Mail is transactional until a kind says
-  otherwise"): `tracking_report`, `arena_week`, `clan_report`, `top_100`,
-  `collector_activity`.
+- **Six kinds**, all bulk under the mail policy (`docs/ENGINEERING.md`,
+  "Mail is transactional until a kind says otherwise"): five weekly
+  (`clan_report`, `arena_week`, `tracking_report`, `top_100`,
+  `collector_activity`) and the event-driven `milestone`.
 - **Every kind is a switch on the account page. All default ON (opt-out),**
   the beta stance from 0051: taking part in the beta includes the product
   email, and every issue carries one-click unsubscribe. Unlike the removed
@@ -52,6 +54,7 @@ DST bookkeeping.
 | Wed 14:00Z | `tracking_report` | Its own day; state and progress across every subject you track reads differently after the battle report, not beside it. |
 | Thu 14:00Z | `top_100` | Mid-week, standalone, shareable. |
 | Sun 14:00Z | `collector_activity` | The operator's week closes Sun→Sun; the thank-you goes out as it closes, on a day operators are around. Friday and Saturday stay quiet. |
+| Hourly (:20) | `milestone` | Firsts on the recipient's own tags since the last look, bundled; exempt from the one-a-day rule because it is the one people most want and holding it makes it late. |
 
 **Content windows.** The four game reports cover the same **game week,
 Monday 10:00Z → Monday 10:00Z** (the policy grid every clan shares;
@@ -252,8 +255,53 @@ the fleet's week (the status page already has it). Never empty: a silent
 collector is the report ("your collector went quiet Wednesday"). The
 thank-you is concrete, in the operator's own numbers.
 
+### `milestone` — as it happens
+
+Congratulations for a FIRST on the recipient's primary or alts, from the
+same named moments the timeline serves (`buildPlayerEntry` items):
+`arena_changed` up, `ranked_promotion` up, `best_trophies_band`,
+`career_wins_step`, `collection_level_step`, `card_unlocked`,
+`badge_earned`, `legendary_badge_earned`. Each moment's own identity
+(`arena:<id>`, `league:<id>`, `band:<n>`, `badge:<name>:<level>`…) mails
+once per account and subject, ever (`email_milestone`), so a season's
+re-climb is silent and a higher rung is news; a move down never keys.
+Hourly, 26-hour lookback, everything new bundled with the biggest moment
+as the subject. Friends' and watchers' moments are the Tracking report's.
+
+## As built (2026-09-18)
+
+- `packages/mail`: `renderMail(kind, facts, links)`, `htmlToText`, the
+  signed one-click token, the Top 100 lint. Fixtures per kind are the
+  gallery's real week.
+- `services/jobs/src/email/`: `runEmail` (the op `{email: kind,
+  account_id | account_email, force}`), builders per kind calling tool
+  handlers in-process (`ctx.mjs`) and the timeline's own entries, the
+  ledger, `deliver`. Top 100: `top100.mjs` builds the brief, writes it to
+  `mail/top100/<date>/brief.json` and queues `{brief_key}` on
+  `EditorQueue` (the NAT-free VPC has no Lambda endpoint); `top100_accept`
+  lints and stores the issue.
+- `services/editor`: the non-VPC Lambda on the Anthropic API
+  (`claude-opus-5`, the `EditorModel` parameter): writer with the
+  `brief_value` tool, editor pass with the lint's findings, issue back to
+  S3, `{top100_accept}` invoked on jobs. Its key is
+  `anthropic_api_key` in the app secret behind the preserved parameter
+  `AnthropicKeyInSecret` (false until the key is added by hand).
+- Web API: `/api/me/email` (GET/PUT), `/api/me/email/send`,
+  `/api/email/unsubscribe` (GET page, POST flip; the RFC 8058 form body
+  tolerated), `/api/public/top100/<date|latest>` (the issue as a page, no
+  session; the share link in the mail, a prettier path later means a
+  CloudFront function line).
+- Console: the Email panel on Profile (six switches, send-me-this-now,
+  recent sends). Names link to the Explore record pages that exist
+  (`/explore/player/<tag>`, `/explore/clan/<tag>`); a card page is still
+  to come.
+- Seven EventBridge rules; 0137 + 0138.
+
 ## Open
 
-- The Top 100 masthead name (subjects are generated; the name is a string).
+- The Top 100 masthead name (subjects are generated; the name is a string;
+  "Ultimate Champions" is the placeholder in code).
+- A card record page in Browse, so deck lists can link.
+- A pretty public path for the Top 100 issue.
 - Multi-clan Clan Report for a family account (no such account yet).
 - Local-morning delivery (see Cadence).

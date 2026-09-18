@@ -4891,3 +4891,65 @@ left open that is in no phase, for the objectives to carry:
   7.5 controls census, 7.6 explain_timeline) shipped in Phase 5.
 - **Part 6.6**: agents reaching for `live_fetch`'s raw board path before
   `rankings_players`; a descriptions question, unmeasured since 3.14.0.
+
+## 2026-09-18 — Product email shipped: six kinds, the editor Lambda, the switches (b76ce92..HEAD)
+
+**Built and deployed overnight on Jamie's go** ("proceed with building
+out the email features"), with the lease held. Design as `docs/EMAIL.md`,
+plus two decisions Jamie made from the gallery: dark palette for all
+kinds; Collector Activity is one mail per ACCOUNT, all its collectors
+pooled. A sixth kind joined during design: `milestone`, congratulations
+for a first on the recipient's own tags (arena up, ranked promotion,
+best band, wins/collection step, card, badge), keyed by the moment's own
+identity so it mails once ever, hourly, bundled.
+
+**Shape.** Contract: six bulk kinds, rendered upstream, subject/text
+required, one-click required (queue.ts). 0137: `account_email_pref`
+(absent = on), `email_issue` / `email_send` (write-after-enqueue),
+`email_milestone`; 0138: kinds may carry digits (top_100 failed the
+first check). `packages/mail`: the renderer for every kind (the gallery's
+shell and components), the text alternative derived from the HTML, the
+HMAC one-click token under SESSION_SECRET, the Top 100 lint. The jobs
+Lambda composes by calling tool handlers in-process with the
+recipient's ctx (`makeRegistry().invoke`, validated like the door) and
+the timeline's own `buildPlayerEntry` / `buildClanEntry` /
+`buildTimeline` for sessions, moments, roster changes and standouts, and
+enqueues rendered mail on the relay queue; seven EventBridge rules. Web
+API: switches, send-me-this-now (the same composer, past the ledger),
+the unsubscribe page and POST, the issue as a public page at
+`/api/public/top100/<date>`. Console: Email panel on Profile. Docs:
+`/docs/email`, a privacy paragraph, What's new.
+
+**The Top 100 pipeline** is live to the model's door. `top100_generate`
+built a real brief from the record on its first run: 1,000-deep boards
+now and a week ago, inflation 514, median gain 575, every drop a rating
+gain, the spike rule finding RamboOo (#4 → #64 with a day at #1) without
+being told, the meta over `pol-global-top-100` available. The first
+invoke timed out reaching the editor: **the NAT-free VPC has no Lambda
+endpoint**, so the brief now travels by `EditorQueue` (+ DLQ) like mail
+does. The editor Lambda then consumed it and failed on the one thing
+left: no API key.
+
+**Queued for Jamie (only you can):** the classifier refused my
+`secret-add-keys.mjs` run. Run
+`AWS_PROFILE=jamie node infra/scripts/secret-add-keys.mjs anthropic_api_key=ANTHROPIC_API_TOKEN`
+then `AWS_PROFILE=jamie node infra/scripts/deploy.mjs --skip-web --param=AnthropicKeyInSecret=true`,
+then invoke jobs with `{"top100_generate": true}` (or wait for Thursday
+10:30Z). The queued message in `elixir-mcp-editor-dlq` is the keyless
+attempt; it can be purged.
+
+**Test sends to Jamie's account, all six kinds, on the live record:**
+arena_week, tracking_report, clan_report (three clans: POAP KINGS,
+Elixir Kings, Ship It!), collector_activity, milestone all composed and
+were enqueued and relayed without a retry; top_100 has no issue yet.
+Compositions ran 1–8 s. Two builder bugs were found by the sends and
+fixed the same hour (the timeline's items field, a helper defined after
+use). Bounce and complaint handling is unchanged (configuration set →
+ops queue; SES suppression list on).
+
+**Deviations from the design, stated:** the Top 100 share page is the
+mail's own HTML at `/api/public/top100/<date>` rather than a pretty
+path (a CloudFront function line and a SPA section; later). No card
+record page yet, so deck lists are text. The inline-style ratchet stayed
+under its ceiling with the Email panel's inline styles; retire them into
+the stylesheet with the next console pass.
