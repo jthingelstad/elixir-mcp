@@ -13,6 +13,6 @@
     "@tanstack/react-query": "^5.102.8"
   },
   "devDependencies": {
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   }
 }
