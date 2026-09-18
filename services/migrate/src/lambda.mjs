@@ -20,6 +20,7 @@ import {
   seed,
   accountEmailOp,
   accountRoleOp,
+  accountEnrollOp,
   principalOp,
   integrationOp,
 } from "./ops-accounts.mjs";
@@ -204,6 +205,14 @@ export async function handler(event) {
     const result = await accountEmailOp(
       process.env.DATABASE_URL,
       event.account_email,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.account_enroll) {
+    const result = await accountEnrollOp(
+      process.env.DATABASE_URL,
+      event.account_enroll,
     );
     console.log(JSON.stringify(result));
     return result;

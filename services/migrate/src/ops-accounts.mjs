@@ -1,6 +1,6 @@
 import { integrationsRoutes } from "../../web-api/src/routes/integrations.mjs";
 import pg from "pg";
-import { createPrincipal } from "@elixir-mcp/claims";
+import { createPrincipal, addPlayer } from "@elixir-mcp/claims";
 
 /**
  * One-time production seeding, run by explicit invoke payload only
@@ -313,6 +313,150 @@ export async function integrationOp(databaseUrl, spec) {
         )
       ).rows;
     return result;
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * Enroll people who never asked: an approved account each, their player
+ * claimed as primary, their clan tracked at activity scope.
+ *
+ * {account_enroll: {dry_run, source?, accounts: [{email, player_tag, clan_tag?}]}}
+ *
+ * Built for moving elixir-bot's weekly email recipients onto Elixir
+ * (2026-09-18): those people have a verified address and a known tag in the
+ * bot's database but no account here, and the only door is the access
+ * request they never sent. This does what approval does, minus the request
+ * and minus the welcome mail (they did not ask; the first thing they hear
+ * from Elixir should be the email that moved).
+ *
+ * Per entry the rules are the approval's own: an address that already has an
+ * account is reported and never touched, whatever it holds; the claim goes
+ * through addPlayer (primary, recording started if nobody records them);
+ * the clan is the one the record places them in unless clan_tag names one,
+ * and clan_tag: null defers it - the account stays un-onboarded so the
+ * ordinary first-sign-in onboarding resolves it once a fresh profile exists.
+ * dry_run returns the same plan without writing.
+ */
+export async function accountEnrollOp(databaseUrl, spec) {
+  const entries = Array.isArray(spec?.accounts) ? spec.accounts : [];
+  if (entries.length === 0) return { error: "accounts required" };
+  const dryRun = spec.dry_run !== false;
+  const source = String(spec.source ?? "ops");
+  const { emailHash, normalizeEmail } =
+    await import("../../auth/src/crypto.mjs");
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const { clanOf } = await import("../../web-api/src/onboard.mjs");
+  const { ensureClanRecording } = await import("../../mcp/src/tools.mjs");
+
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const plan = [];
+    for (const entry of entries) {
+      const email = normalizeEmail(entry?.email);
+      if (!email.includes("@")) {
+        plan.push({ email: entry?.email ?? null, error: "email required" });
+        continue;
+      }
+      const hash = emailHash(email);
+      const ref = hash.slice(0, 10);
+      let tag;
+      try {
+        tag = normalizeTag(String(entry.player_tag ?? ""));
+      } catch {
+        plan.push({ account_ref: ref, error: "bad player_tag" });
+        continue;
+      }
+      const { rows: existing } = await db.query(
+        `select account_id, status, role from account where email_hash = $1`,
+        [hash],
+      );
+      if (existing[0]) {
+        plan.push({
+          account_ref: ref,
+          player_tag: tag,
+          action: "skip",
+          reason: "exists",
+          status: existing[0].status,
+          role: existing[0].role,
+        });
+        continue;
+      }
+      // Explicit clan_tag wins; null defers; absent asks the record.
+      const explicit = entry.clan_tag;
+      const resolved =
+        explicit === undefined
+          ? (await clanOf(db, tag)).clanTag
+          : explicit === null
+            ? null
+            : normalizeTag(String(explicit));
+      const { rows: rec } = await db.query(
+        `select 1 from recording where subject_type = 'player'
+           and subject_tag = $1 and status = 'active' limit 1`,
+        [tag],
+      );
+      const step = {
+        account_ref: ref,
+        player_tag: tag,
+        action: "create",
+        clan_tag: resolved,
+        clan: resolved
+          ? explicit === undefined
+            ? "from_record"
+            : "explicit"
+          : "deferred",
+        recording_starts: rec.length === 0,
+      };
+      if (dryRun) {
+        plan.push(step);
+        continue;
+      }
+      const {
+        rows: [created],
+      } = await db.query(
+        `insert into account (email_hash, email, status, role, kind,
+                              requested_player_tag, decided_at)
+         values ($1, $2, 'approved', 'member', 'person', $3, now())
+         returning account_id`,
+        [hash, email, tag],
+      );
+      const accountId = created.account_id;
+      await db.query(
+        `insert into account_event (account_id, kind, detail) values ($1, 'enrolled', $2)`,
+        [accountId, JSON.stringify({ via: "ops", source })],
+      );
+      const added = await addPlayer(
+        db,
+        { accountId },
+        { tag, makePrimary: true, via: "ops" },
+      );
+      step.claimed = added.ok === true;
+      step.recording_started = added.recordingStarted === true;
+      if (resolved) {
+        await db.query(
+          `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+          [resolved],
+        );
+        await db.query(
+          `insert into account_clan (account_id, clan_tag, scope)
+           values ($1, $2, 'activity')
+           on conflict (account_id, clan_tag) do nothing`,
+          [accountId, resolved],
+        );
+        await ensureClanRecording(db, resolved, accountId);
+        await db.query(
+          `update account set onboarded_at = now() where account_id = $1`,
+          [accountId],
+        );
+      }
+      step.account_id = accountId;
+      plan.push(step);
+    }
+    const created = plan.filter((p) => p.action === "create").length;
+    const skipped = plan.filter((p) => p.action === "skip").length;
+    return { dry_run: dryRun, created, skipped, plan };
   } finally {
     await db.end();
   }

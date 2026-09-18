@@ -24,7 +24,7 @@ import { addPlayer } from "@elixir-mcp/claims";
 import { ensureClanRecording } from "../../mcp/src/tools.mjs";
 
 /** The clan we believe this player is in, or null if we do not know yet. */
-async function clanOf(db, playerTag) {
+export async function clanOf(db, playerTag) {
   const { rows } = await db.query(
     `select coalesce(cm.clan_tag, p.last_known_clan_tag) as clan_tag,
             (p.player_tag is not null) as observed
