@@ -3636,3 +3636,42 @@ Jamie issues: the build sources everything from the four tools
 Jamie's host is removed or repointed. Needs the token (a clan MCP token
 for POAP KINGS, preferred; an integration token as the fallback) and
 Jamie's go.
+
+## 2026-09-18 — elixir-bot's email recipients enrolled as Elixir accounts (`account_enroll`)
+
+**Decision (Jamie, in session):** the weekly clan email elixir-bot sends
+(the BCC recap and the per-member Arena Dispatch, both to its
+`list_member_emails()`) moves out of elixir-bot and into Elixir MCP. Step
+one, done today: every recipient gets an Elixir account under the address
+elixir-bot had verified, their player claimed as primary, their clan
+tracked at activity scope. "Elixir is not just for our clan": two
+recipients who have since left the clan were enrolled too, with the clan
+half deferred (`clan_tag: null`) so the ordinary first-sign-in onboarding
+resolves it from a fresh profile rather than pinning them to a clan they
+left. **No welcome email**: they did not ask for an account, and the first
+thing they hear from Elixir should be the email that moved, not an
+approval for a request they never sent.
+
+**The op** is `{account_enroll: {dry_run, source, accounts: [{email,
+player_tag, clan_tag?}]}}` on the migrate Lambda (`ops-accounts.mjs`,
+commit 18cb2ff). Approval's own rules minus the request: an address with
+an account is skipped and never touched; the claim goes through
+`addPlayer` (primary, recording started where nobody records them); the
+clan is what `clanOf` says (exported from `onboard.mjs` so both ways in
+agree), an explicit tag, or deferred. `account_event 'enrolled' {via: ops,
+source}` marks them. `dry_run` is the default, and the run was dry first.
+
+**The run:** 16 recipients read from `elixir-v51.db` (read-only). Three
+already had accounts and were skipped; one of those holds a different
+address on Elixir than elixir-bot has for them, so the bot's address was
+dropped from the payload rather than create a duplicate. Thirteen
+created, all claimed primary; four recordings started (members the
+comprehensive clan watch covered without a player recording row of their
+own). Person accounts 7 -> 20. Addresses and tags stay in the two
+databases; none belong in this file.
+
+**Open, in order:** (1) the email itself moves: elixir-mcp composes and
+sends the weekly mail, elixir-bot's two senders go quiet; (2) the member
+whose Elixir address differs then gets mail at the Elixir one; (3) the
+Buttondown list question from 0049 is unchanged by this: `newsletter_opt_in`
+was left false, transactional mail is not governed by it.
