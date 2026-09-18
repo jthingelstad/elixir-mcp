@@ -1333,3 +1333,45 @@ test("game_clock: the next boundaries a routine schedules itself from", async ()
     /nothing in the event feed announces the time/i,
   );
 });
+
+test("war_current on a clan the game has no race for says so instead of pointing at live (feedback #53)", async () => {
+  // A one-member clan: recorded, its race log admitted empty, and the
+  // current-race read a 404. Before, the refusal read "No war weeks
+  // recorded ... live: true reads the race now", and a live read would
+  // have 404'd the same way.
+  const SOLO = "#GJ09RJP8";
+  const {
+    rows: [owner],
+  } = await db.query(`select account_id from account where is_owner limit 1`);
+  await db.query(`insert into clan (clan_tag) values ($1)`, [SOLO]);
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope) values ('clan', $1, $2, 'activity')`,
+    [SOLO, owner.account_id],
+  );
+  const bare = await call(invoke, "war_current", { clan_tag: SOLO });
+  assert.equal(bare.isError, true);
+  assert.equal(bare.body.error.code, "not_recorded");
+  assert.match(bare.body.error.message, /No war weeks recorded/);
+
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at) values ($1, 'riverracelog', now() - interval '1 hour')`,
+    [SOLO],
+  );
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status) values ($1, 'solo-gw', '127.0.0.2', 'active') returning gateway_id`,
+    [owner.account_id],
+  );
+  await db.query(
+    `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+     values ($1, 'currentriverrace', $2, now() - interval '30 minutes', 404, 'http')`,
+    [gw.gateway_id, SOLO],
+  );
+  const known = await call(invoke, "war_current", { clan_tag: SOLO });
+  assert.equal(known.isError, true);
+  assert.equal(known.body.error.code, "not_recorded");
+  assert.match(known.body.error.message, /The game reports no river race/);
+  assert.match(known.body.error.hint, /live: true answers the same/);
+  assert.match(known.body.error.hint, /clans_roster/);
+});

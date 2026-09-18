@@ -235,12 +235,33 @@ export const warTools = {
         [clanTag],
       );
       if (!weekRows[0]) {
+        // Say what the record knows before pointing at live (feedback
+        // #53: a one-member clan's routine was told "live reads the race
+        // now" when the game itself has no race for the clan: its log
+        // poll was admitted empty and the race read is a 404). A live
+        // read would answer the same, and the caller's rule is to spend
+        // one only when it changes the answer.
+        const {
+          rows: [known],
+        } = await ctx.db.query(
+          `select (select max(last_admitted_at) from poll_state
+                    where subject_tag = $1 and endpoint = 'riverracelog') as log_admitted_at,
+                  (select max(fetched_at) from collector_fetch_error
+                    where entity_key = $1 and endpoint = 'currentriverrace'
+                      and http_status = 404 and fetched_at > now() - interval '2 days') as race_404_at`,
+          [clanTag],
+        );
+        const noRace = known?.log_admitted_at && known?.race_404_at;
         throw notRecordedOrPending(
           live,
-          "No war weeks recorded for this clan yet.",
+          noRace
+            ? "The game reports no river race for this clan: its race log was read empty and the current race is not found."
+            : "No war weeks recorded for this clan yet.",
           args.live
             ? "The live payload was admitted but no race projected; the clan may be between races. Try war_rivals for its history."
-            : "The first riverracelog poll lands within a day of tracking; live: true reads the race now.",
+            : noRace
+              ? `A clan that has not entered a river race has nothing to record and live: true answers the same (race log admitted ${known.log_admitted_at.toISOString()}, race read 404 at ${known.race_404_at.toISOString()}); clans_roster({ clan_tag }) says how many members it has.`
+              : "The first riverracelog poll lands within a day of tracking; live: true reads the race now.",
         );
       }
       const wk = weekRows[0];

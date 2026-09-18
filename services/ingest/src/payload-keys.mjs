@@ -618,10 +618,13 @@ export const PAYLOAD_KEYS = {
     "items[].id": to("ranking_board.location_key (board 'mode')"),
     "items[].name": to("ranking_board.label", opt),
   },
+  // /events is a BARE ARRAY (admission.mjs, cr-agent-api-docs events.md),
+  // so its paths start at `[]`: the manifest said `items[]` and the first
+  // census filed the three real paths as unknown (feedback #50-#52).
   events: {
-    "items[].eventTag": to("game_event.event_tag; game_event_day.event_tag"),
-    "items[].title": to("game_event.title"),
-    "items[].description": to("game_event.description", opt),
+    "[].eventTag": to("game_event.event_tag; game_event_day.event_tag"),
+    "[].title": to("game_event.title"),
+    "[].description": to("game_event.description", opt),
   },
   globaltournaments: {
     "items[].tag": dropped(
