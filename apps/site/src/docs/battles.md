@@ -275,14 +275,23 @@ closed-week roster path. The exact week also carries:
 
 - `standings[]`, every clan in the week's bracket with `fame`, `rank`,
   `trophy_change`, `finish_time`, `clan_score` and `repair_points`.
+  `finish_time` is when the clan's boat crossed the line and `null` for a
+  clan that did not: the API marks those with an epoch-zero sentinel
+  (`19691231T235959.000Z`), which the record stores as observed and never
+  serves as a time. The same rule holds on `war_current.standings[]` and
+  `race_finished_at`.
 - `days[]`, the race's own day-by-day: the API's `periodLogs`, one entry per
   closed war day (`war_day`, `period_index`) with `standings[]` per clan:
   `points_earned` (that day's score), `progress_start` and `progress_end`
-  (boat progress at the day's open and close), `progress_earned`,
-  `end_of_day_rank`, `defenses_remaining` and `progress_from_defenses`. The
-  record has kept the log since 2026-09-17 and the archive backfill filled
-  earlier weeks where a race poll carried it; a week with no log has
-  `days: []`.
+  (boat progress at the day's open and close), `progress_earned`, `rank`
+  (the placement at day end, 1-based like every other rank here; `null`
+  while unranked), `end_of_day_rank` (the API's own value, 0-based, `-1`
+  for not yet ranked), `defenses_remaining` and `progress_from_defenses`.
+  The record has kept the log since 2026-09-17 and the archive backfill
+  filled earlier weeks where a race poll carried it; a week with no log
+  has `days: []`. A section's fourth day closes as the section rolls, so
+  its entry is first seen in the next section's polls and lands a day
+  later than the others.
 
 `war_current` carries the same day-by-day for the running week as
 `days_closed[]` (full verbosity; the day being fought joins it when it

@@ -617,7 +617,11 @@ export const OUTPUT_SCHEMAS = {
             },
             rank: { type: ["integer", "null"] },
             trophy_change: { type: ["integer", "null"] },
-            finish_time: { type: ["string", "null"] },
+            finish_time: {
+              type: ["string", "null"],
+              description:
+                "When the clan's boat crossed the line; null for a clan that has not (the API's epoch-zero sentinel is never served).",
+            },
             clan_score: {
               type: ["integer", "null"],
               description:
@@ -662,7 +666,16 @@ export const OUTPUT_SCHEMAS = {
                   progress_start: NULLABLE_INT,
                   progress_end: NULLABLE_INT,
                   progress_earned: NULLABLE_INT,
-                  end_of_day_rank: NULLABLE_INT,
+                  end_of_day_rank: {
+                    type: ["integer", "null"],
+                    description:
+                      "The API's endOfDayRank, 0-based; -1 means not yet ranked. rank is the 1-based reading.",
+                  },
+                  rank: {
+                    type: ["integer", "null"],
+                    description:
+                      "1-based placement at day end, like every other rank here; null while unranked.",
+                  },
                   defenses_remaining: NULLABLE_INT,
                   progress_from_defenses: NULLABLE_INT,
                 },

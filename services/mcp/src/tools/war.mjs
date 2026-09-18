@@ -6,6 +6,7 @@ import { gameClock } from "../../../ingest/src/game-clock.mjs";
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import { periodAt, observedStart } from "../war-period.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
+import { finishInstant } from "../time.mjs";
 import {
   buildMeta,
   ToolFailure,
@@ -67,6 +68,12 @@ async function warDaysLog(db, clanTag, seasonId, sectionIndex) {
       progress_end: r.progress_end,
       progress_earned: r.progress_earned,
       end_of_day_rank: r.end_of_day_rank,
+      // 1-based like every other rank on the surface; the API's
+      // endOfDayRank is 0-based and -1 means not yet ranked.
+      rank:
+        Number.isInteger(r.end_of_day_rank) && r.end_of_day_rank >= 0
+          ? r.end_of_day_rank + 1
+          : null,
       defenses_remaining: r.defenses_remaining,
       progress_from_defenses: r.progress_from_defenses,
     });
@@ -429,10 +436,10 @@ export const warTools = {
       // Our own boat's finish, if it has one this week: standings carry
       // finish_time per participant, and ours is the one that decides
       // whether remaining decks still add fame.
-      const raceFinishedAt =
-        standings.rows
-          .find((r) => r.participant_clan_tag === clanTag)
-          ?.finish_time?.toISOString() ?? null;
+      const raceFinishedAt = finishInstant(
+        standings.rows.find((r) => r.participant_clan_tag === clanTag)
+          ?.finish_time,
+      );
       // Today's remaining-decks picture (CLAN-PULSE.md): only while the
       // anchored war-day period is nominally still open.
       let decksToday = null;
@@ -537,7 +544,7 @@ export const warTools = {
         ...(live ? { live_status: liveStatus(live) } : {}),
         standings: standings.rows.map((row) => ({
           ...row,
-          finish_time: row.finish_time?.toISOString() ?? null,
+          finish_time: finishInstant(row.finish_time),
         })),
         ...(compact ? {} : { participants: participation.rows }),
         participants_count: participation.rows.length,
@@ -564,8 +571,9 @@ export const warTools = {
           "points are per-member contributions; fame belongs to the boat (the clan).",
           "standings.clan_score is the game's own strength number for each clan in the bracket (latest observed) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
           daysClosed
-            ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress and end_of_day_rank; the running day is not in it until it closes."
+            ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress, rank (1-based; null while unranked) and end_of_day_rank (the API's 0-based value); the running day is not in it until it closes."
             : null,
+          "standings.finish_time is null for a clan that has not finished (the API marks it with epoch zero, never a time).",
           "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
           "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
@@ -778,7 +786,7 @@ export const warTools = {
         );
         standings = rows.map((r) => ({
           ...r,
-          finish_time: r.finish_time?.toISOString() ?? null,
+          finish_time: finishInstant(r.finish_time),
         }));
       }
       // The chronologically-latest unfinished week is the one still being
@@ -831,7 +839,7 @@ export const warTools = {
           "points are per-member contributions; fame belongs to the boat (the clan).",
           "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
           hasSeason
-            ? "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it."
+            ? "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
             : null,
           "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
           hasSeason && !focus

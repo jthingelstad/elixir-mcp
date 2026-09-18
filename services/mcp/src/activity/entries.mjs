@@ -27,6 +27,7 @@
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 import { periodAt } from "../war-period.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
+import { finishInstant } from "../time.mjs";
 import {
   hydratePlayerEvents,
   hydrateClanEvents,
@@ -929,7 +930,7 @@ export async function buildClanEntry(
       war_day: null,
       fame: ours[0]?.fame ?? null,
       place_of_five: standing[0]?.place ?? null,
-      race_finished_at: iso(ours[0]?.finish_time),
+      race_finished_at: finishInstant(ours[0]?.finish_time),
       decks: null,
       resolved,
     };

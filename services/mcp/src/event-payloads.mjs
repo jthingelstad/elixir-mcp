@@ -11,6 +11,8 @@
  * looked up that the keys do not name.
  */
 
+import { finishInstant } from "./time.mjs";
+
 const ROLE_RANK = { member: 0, elder: 1, coLeader: 2, leader: 3 };
 
 /** As ingest/roster.mjs spells it: promoted / demoted / unknown. */
@@ -292,7 +294,7 @@ export async function hydrateClanEvents(db, rows) {
           season_id: r.war_season_id,
           section_index: r.section_index,
           fame: r.fame,
-          finish_time: r.finish_time ? r.finish_time.toISOString() : null,
+          finish_time: finishInstant(r.finish_time),
         };
         break;
       default:

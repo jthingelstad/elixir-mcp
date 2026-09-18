@@ -114,3 +114,15 @@ export function isoWeekLabel(date) {
   const week = Math.ceil(((d - yearStart) / 86400_000 + 1) / 7);
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
+
+/** A race finish instant as the wire should carry it: the API marks a
+ *  clan that did not finish with epoch zero (19691231T235959.000Z,
+ *  cr-agent-api-docs clans.md), which the record stores as observed;
+ *  at read it is null, never a time (interface review Phase 2
+ *  acceptance, 2026-09-18). */
+export function finishInstant(value) {
+  if (value === null || value === undefined) return null;
+  const ms = value instanceof Date ? value.getTime() : Date.parse(value);
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  return new Date(ms).toISOString();
+}

@@ -988,6 +988,55 @@ test("the race's day-by-day, clan_score, repair_points, closed_at and the API's 
     .body;
   assert.equal(compact.days_closed, undefined, "compact drops the log");
 
+  // The API's epoch-zero finish sentinel reads null; a real finish stays.
+  // end_of_day_rank stays the API's 0-based value and rank is 1-based,
+  // null for the -1 "not yet ranked" sentinel.
+  // A rival from the day log (the race fixture's bracket, which the log
+  // fixture's week does not fully share).
+  const rivalTag = body.days[0].standings.find(
+    (c) => c.clan_tag !== CLAN,
+  ).clan_tag;
+  await db.query(
+    `update war_week_clan set finish_time = '1969-12-31T23:59:59Z'
+      where clan_tag = $1 and season_id = 134 and section_index = 3 and participant_clan_tag = $2`,
+    [CLAN, rivalTag],
+  );
+  await db.query(
+    `update war_week_clan set finish_time = '2026-08-02T09:38:04Z'
+      where clan_tag = $1 and season_id = 134 and section_index = 3 and participant_clan_tag = $1`,
+    [CLAN],
+  );
+  await db.query(
+    `update war_period_log set end_of_day_rank = -1
+      where clan_tag = $1 and season_id = 134 and section_index = 3 and period_index = 24
+        and participant_clan_tag = $2`,
+    [CLAN, rivalTag],
+  );
+  const again = (
+    await call(invoke, "war_history", { season_id: 134, section_index: 3 })
+  ).body;
+  assert.equal(
+    again.standings.find((c) => c.clan_tag === rivalTag).finish_time,
+    null,
+    "epoch zero is not a time",
+  );
+  assert.equal(
+    again.standings.find((c) => c.clan_tag === CLAN).finish_time,
+    "2026-08-02T09:38:04.000Z",
+  );
+  const d1 = again.days[0].standings;
+  assert.ok(
+    d1.every((c) =>
+      c.end_of_day_rank >= 0
+        ? c.rank === c.end_of_day_rank + 1
+        : c.rank === null,
+    ),
+  );
+  assert.equal(d1.find((c) => c.clan_tag === rivalTag).rank, null);
+  assert.equal(d1.find((c) => c.clan_tag === rivalTag).end_of_day_rank, -1);
+  assert.match(again.notes.join(" "), /epoch zero/);
+  assert.match(again.notes.join(" "), /rank \(1-based/);
+
   // war_rivals: the latest observed clan_score per rival.
   const rivalTags = race.clans
     .map((c) => c.tag)
