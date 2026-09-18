@@ -269,7 +269,7 @@ const PROJECTORS = {
     }
     return result;
   },
-  async player(db, { entityKey, receiptId, payload, fetchedAt }) {
+  async player(db, { entityKey, receiptId, payload, fetchedAt, moments }) {
     // Identity refresh + clan auto-follow stamp (§4.2).
     let clanTag = null;
     if (payload.clan?.tag) {
@@ -354,12 +354,14 @@ const PROJECTORS = {
       playerTag: entityKey,
       payload,
       fetchedAt,
+      moments,
     });
     const snapshot = await projectPlayerSnapshot(db, {
       playerTag: entityKey,
       payload,
       fetchedAt,
       receiptId,
+      moments,
     });
     // The collection (0076): cards and tower troops, levels on the
     // display scale, with card_unlocked / card_leveled nods.
@@ -367,6 +369,7 @@ const PROJECTORS = {
       playerTag: entityKey,
       payload,
       fetchedAt,
+      moments,
     });
     // The side-mode season keys the profile carries (0104), verbatim,
     // and the buckets' values as a series (0129).
@@ -714,6 +717,8 @@ export async function processResult(db, rawMessage, deps = {}) {
         // EMF on stdout, the scheduler's pattern: injectable, never
         // awaited on a network, default the process's own stdout.
         emitMetrics: deps.emitMetrics ?? ((line) => process.stdout.write(line)),
+        // A replay writes rows and never moments (deps.moments false).
+        moments: deps.moments !== false,
       });
       t = mark("project_ms", t);
     }

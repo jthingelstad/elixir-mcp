@@ -24,6 +24,9 @@ export async function replay(databaseUrl, spec) {
     // roster-history lane (see processResult). Tenure from those
     // rosters is reconstructed client-side and lands via tenure_history.
     skipProjection: spec.skip_projection === true,
+    // {replay: {moments: false}}: the full projection, rows only - the
+    // profile replay of the elixir-bot hole (Phase 3, 2026-09-18).
+    moments: spec.moments !== false,
   };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();

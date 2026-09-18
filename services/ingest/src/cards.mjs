@@ -86,7 +86,7 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
  *  changed rows and the feed events they earn. */
 export async function projectPlayerCards(
   db,
-  { playerTag, payload, fetchedAt },
+  { playerTag, payload, fetchedAt, moments = true },
 ) {
   const rows = [];
   const seen = [];
@@ -161,6 +161,7 @@ export async function projectPlayerCards(
       );
       const nameOf = new Map(named.map((r) => [r.card_id, r]));
       for (const row of moved) {
+        if (!moments) break;
         const card = nameOf.get(row.card_id);
         await emitEvent(db, row.is_new ? "card_unlocked" : "card_leveled", {
           tag: playerTag,

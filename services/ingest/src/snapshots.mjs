@@ -58,7 +58,7 @@ import { emitEvent } from "./events.mjs";
  */
 export async function projectPlayerBadges(
   db,
-  { playerTag, payload, fetchedAt },
+  { playerTag, payload, fetchedAt, moments = true },
 ) {
   if (!Array.isArray(payload.badges) || payload.badges.length === 0)
     return { changed: 0, feedEvents: [] };
@@ -109,7 +109,7 @@ export async function projectPlayerBadges(
   // writes nothing (a new tracking arrives with a whole shelf, and that is
   // history, not news). Progress inside a level is recorded, never a row.
   const firstObservation = Number(changed[0]?.prior_count ?? 0) === 0;
-  if (!firstObservation) {
+  if (!firstObservation && moments) {
     for (const row of changed) {
       const level = row.new_level;
       let type = null;
@@ -300,7 +300,17 @@ export async function upsertProfileSnapshot(
 
 export async function projectPlayerSnapshot(
   db,
-  { playerTag, payload, fetchedAt, receiptId = null, kind = "daily" },
+  {
+    playerTag,
+    payload,
+    fetchedAt,
+    receiptId = null,
+    kind = "daily",
+    // false for a replay ({replay: {moments: false}}): the rows, never
+    // the moments - the settled rule, applied to the profile path on
+    // 2026-09-18 for the elixir-bot profile replay.
+    moments = true,
+  },
 ) {
   const day = gameDay(fetchedAt);
 
@@ -367,11 +377,13 @@ export async function projectPlayerSnapshot(
         fetchedAt,
         receiptId,
         kind: extra,
+        moments,
       });
     }
   }
 
   if (
+    moments &&
     latest &&
     typeof payload.donations === "number" &&
     typeof latest.donations === "number" &&
@@ -409,7 +421,7 @@ export async function projectPlayerSnapshot(
       [payload.arena.id, payload.arena.name, fetchedAt],
     );
   }
-  if (kind === "daily")
+  if (kind === "daily" && moments)
     await ledgerMilestones(db, {
       playerTag,
       prev: latest,

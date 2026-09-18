@@ -924,3 +924,59 @@ test("the arena moment is once per crossing: a re-walk of the same day's rosters
   );
   assert.equal(rows[0].n, 1);
 });
+
+test("a replay with moments: false projects the profile's rows and writes no moment", async () => {
+  const message = ({ payload, fetchedAt }) => ({
+    v: 1,
+    job: { endpoint: "player", entity_key: payload.tag, lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: fetchedAt,
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
+      "base64",
+    ),
+  });
+  const base = await fixture("player/profile.json");
+  const P = "#2PP0V9RR";
+  const first = structuredClone(base);
+  first.tag = P;
+  first.trophies = 6000;
+  first.bestTrophies = 6000;
+  first.wins = 999;
+  first.badges = first.badges.slice(0, 3);
+  await processResult(
+    ctx.db,
+    message({ payload: first, fetchedAt: "2026-07-15T12:00:00Z" }),
+  );
+  const moved = structuredClone(first);
+  moved.trophies = 6510;
+  moved.bestTrophies = 6510; // a 500 band crossed
+  moved.wins = 1001; // a career-wins step crossed
+  moved.badges[0].level = (moved.badges[0].level ?? 0) + 1;
+  moved.cards[0].level += 1; // a card leveled
+  moved.arena = { id: 54000060, name: "Elsewhere" };
+  const r = await processResult(
+    ctx.db,
+    message({ payload: moved, fetchedAt: "2026-07-16T12:00:00Z" }),
+    { moments: false },
+  );
+  assert.equal(r.outcome, "admitted");
+  const { rows: events } = await ctx.db.query(
+    `select event_type from player_event where player_tag = $1`,
+    [P],
+  );
+  assert.deepEqual(events, [], "rows, never moments");
+  const { rows } = await ctx.db.query(
+    `select trophies, wins, arena_id from player_snapshot_daily
+      where player_tag = $1 and snapshot_date = '2026-07-16' and snapshot_kind = 'daily'`,
+    [P],
+  );
+  assert.deepEqual(rows[0], { trophies: 6510, wins: 1001, arena_id: 54000060 });
+  const {
+    rows: [badge],
+  } = await ctx.db.query(
+    `select level from player_badge where player_tag = $1 and name = $2`,
+    [P, moved.badges[0].name],
+  );
+  assert.equal(badge.level, moved.badges[0].level, "the badge row moved");
+});
