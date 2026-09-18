@@ -181,7 +181,11 @@ export async function seriesCensus(databaseUrl, spec = {}) {
     // (either way), so a difference is what moved between them (the
     // bot's day ends ~05Z, the recorder's at 10Z; before May the two
     // read the same tick). "disagree": the same tick and the values
-    // still differ.
+    // still differ. A member's trophies and donations are shared
+    // columns whose stamp is observed_at (the profile's later read wins
+    // them); clan_rank is the roster's own, stamped roster_observed_at.
+    // The hand check of 2026-09-18 (ten pairs, every bot value found in
+    // an archived roster of that day) is what fixed the stamp.
     const apart = (a, b) => `abs(extract(epoch from ${a} - ${b})) > 300`;
     const metric = (col, botCol = col) => `
       count(*) filter (where r.${col} is not distinct from b.${botCol})::int as "${col}_equal",
@@ -220,14 +224,14 @@ export async function seriesCensus(databaseUrl, spec = {}) {
                 where s.roster_observed_at is null) as profile_row_without_roster,
               (select json_build_object(
                  'trophies_equal', count(*) filter (where r.trophies is not distinct from b.trophies),
-                 'trophies_residual', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
-                 'trophies_disagree', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
+                 'trophies_residual', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.observed_at - b.fetched_at)) > 300),
+                 'trophies_disagree', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.observed_at - b.fetched_at)) <= 300),
                  'donations_equal', count(*) filter (where not b.sunday and r.donations is not distinct from b.donations),
-                 'donations_residual', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
-                 'donations_disagree', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
+                 'donations_residual', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and abs(extract(epoch from r.observed_at - b.fetched_at)) > 300),
+                 'donations_disagree', count(*) filter (where not b.sunday and r.donations is distinct from b.donations and abs(extract(epoch from r.observed_at - b.fetched_at)) <= 300),
                  'donations_received_equal', count(*) filter (where not b.sunday and r.donations_received is not distinct from b.donations_received),
-                 'donations_received_residual', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
-                 'donations_received_disagree', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
+                 'donations_received_residual', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and abs(extract(epoch from r.observed_at - b.fetched_at)) > 300),
+                 'donations_received_disagree', count(*) filter (where not b.sunday and r.donations_received is distinct from b.donations_received and abs(extract(epoch from r.observed_at - b.fetched_at)) <= 300),
                  'clan_rank_equal', count(*) filter (where r.clan_rank is not distinct from b.clan_rank),
                  'clan_rank_residual', count(*) filter (where r.clan_rank is distinct from b.clan_rank and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
                  'clan_rank_disagree', count(*) filter (where r.clan_rank is distinct from b.clan_rank and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300),
@@ -246,14 +250,14 @@ export async function seriesCensus(databaseUrl, spec = {}) {
     // check: does the bot's value appear in any roster of that day?
     const { rows: disagreeSample } = await db.query(
       `select b.player_tag, b.day::text as day, b.trophies as bot_trophies, r.trophies as recorder_trophies,
-              b.fetched_at as bot_at, r.roster_observed_at as recorder_at
+              b.fetched_at as bot_at, r.observed_at as recorder_at
          from staging.bot_member_day b
          join player_snapshot_daily r
            on r.player_tag = b.player_tag and r.snapshot_date = b.day and r.snapshot_kind = 'daily'
           and r.clan_tag = $1 and r.source = 'api' and r.roster_observed_at is not null
         where b.day between $2::date and $3::date and b.day >= '2026-05-01'
           and r.trophies is distinct from b.trophies
-          and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) <= 300
+          and abs(extract(epoch from r.observed_at - b.fetched_at)) <= 300
         order by b.day, b.player_tag limit 10`,
       [clanTag, from, to],
     );
