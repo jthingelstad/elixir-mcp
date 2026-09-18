@@ -214,7 +214,10 @@ export async function seriesCensus(databaseUrl, spec = {}) {
               (select count(*)::int from b join r on r.player_tag = b.player_tag and r.snapshot_date = b.day) as both,
               (select count(*)::int from b join player_snapshot_daily s
                  on s.player_tag = b.player_tag and s.snapshot_date = b.day and s.snapshot_kind = 'daily'
-                where s.clan_tag is distinct from $1) as both_under_another_clan,
+                where s.clan_tag is not null and s.clan_tag <> $1) as under_another_clan,
+              (select count(*)::int from b join player_snapshot_daily s
+                 on s.player_tag = b.player_tag and s.snapshot_date = b.day and s.snapshot_kind = 'daily'
+                where s.roster_observed_at is null) as profile_row_without_roster,
               (select json_build_object(
                  'trophies_equal', count(*) filter (where r.trophies is not distinct from b.trophies),
                  'trophies_residual', count(*) filter (where r.trophies is distinct from b.trophies and abs(extract(epoch from r.roster_observed_at - b.fetched_at)) > 300),
