@@ -1769,6 +1769,76 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   await db.query(
     "update meta_season_state set bands_rebuilt_at = rebuilt_at where season_month = '2026-08'",
   );
+
+  // The population is named (product call 5, 3.16.0): segment omitted
+  // answers the corpus and says so, with the population it was drawn
+  // from; "corpus" answers the same without the note; "mine" is the
+  // caller's clan.
+  const omitted = await call("battles_meta_decks", {
+    season: "2026-08",
+    min_battles: 1,
+  });
+  assert.match(omitted.body.notes[0], /segment was omitted/);
+  assert.ok(Number.isInteger(omitted.body.population.recorded_clans));
+  assert.ok(Number.isInteger(omitted.body.population.recorded_players));
+  assert.ok("players_in_window" in omitted.body.population);
+  assert.deepEqual(omitted.body.applied.segment, { kind: "corpus" });
+  const explicit = await call("battles_meta_decks", {
+    season: "2026-08",
+    min_battles: 1,
+    segment: "corpus",
+  });
+  assert.ok(!explicit.body.notes.some((n) => /segment was omitted/.test(n)));
+  assert.ok(explicit.body.population);
+  assert.deepEqual(explicit.body.applied.segment, { kind: "corpus" });
+  // "mine" on an account with no clan is no_subject, never a guess; once
+  // the account's player is in a recorded clan it is that clan.
+  const nobody = await call("battles_meta_decks", {
+    season: "2026-08",
+    min_battles: 1,
+    segment: "mine",
+  });
+  assert.equal(nobody.isError, true);
+  assert.equal(nobody.body.error.code, "no_subject");
+  await db.query(
+    "insert into clan (clan_tag, name) values ('#J2RGCRVG', 'POAP KINGS') on conflict do nothing",
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
+     values ('clan', '#J2RGCRVG', $1, 'comprehensive') on conflict do nothing`,
+    [account.accountId],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     values ('#J2RGCRVG', $1, now(), 'member') on conflict do nothing`,
+    [OBSERVER],
+  );
+  const mine = await call("battles_meta_decks", {
+    season: "2026-08",
+    min_battles: 1,
+    segment: "mine",
+  });
+  assert.equal(mine.isError, false, JSON.stringify(mine.body));
+  assert.equal(mine.body.applied.segment.kind, "clan");
+  assert.equal(mine.body.applied.segment.clan_tag, "#J2RGCRVG");
+  assert.equal(mine.body.applied.segment.source, "mine");
+  assert.equal(
+    mine.body.population,
+    undefined,
+    "a clan read carries no corpus population",
+  );
+  const junk = await call("battles_meta_decks", { segment: "theirs" });
+  assert.equal(junk.isError, true);
+  assert.equal(junk.body.error.code, "bad_request");
+  for (const tool of ["badges_rarity", "battles_trends", "cards_synergy"]) {
+    const r = await call(
+      tool,
+      tool === "cards_synergy" ? { card: "Knight" } : {},
+    );
+    assert.equal(r.isError, false, JSON.stringify(r.body));
+    assert.match(r.body.notes[0], /segment was omitted/, tool);
+    assert.ok(r.body.population, tool);
+  }
 });
 
 test("dailySql sums equal the raw rows over any instant window, edge days included", async () => {

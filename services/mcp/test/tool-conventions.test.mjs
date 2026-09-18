@@ -79,7 +79,7 @@ test("verbosity is the one size control, and always the same enum", () => {
   }
 });
 
-test("segment tools take a nested segment, never a flat scope", () => {
+test("segment tools take a nested segment, never a flat scope; the population is named (3.16.0)", () => {
   for (const name of [
     "battles_meta_decks",
     "battles_meta_cards",
@@ -90,7 +90,17 @@ test("segment tools take a nested segment, never a flat scope", () => {
   ]) {
     const p = byName.get(name).inputSchema.properties;
     assert.ok(p.segment, `${name} has segment`);
-    assert.equal(p.segment.type, "object", name);
+    // "mine" and "corpus" as strings, or the object naming one subject.
+    const [strings, object] = p.segment.anyOf;
+    assert.deepEqual(strings, { type: "string", enum: ["mine", "corpus"] });
+    assert.equal(object.type, "object", name);
+    assert.deepEqual(Object.keys(object.properties).sort(), [
+      "clan_tag",
+      "collection",
+      "on_behalf_of",
+      "player_tag",
+    ]);
+    assert.match(p.segment.description, /never a default/);
     for (const flat of ["player_tag", "clan_tag", "collection"])
       assert.ok(!(flat in p), `${name} has no flat ${flat}`);
   }

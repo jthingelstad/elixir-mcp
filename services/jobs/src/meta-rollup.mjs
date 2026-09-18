@@ -166,14 +166,20 @@ function aggregateSql(month, { withPlayers, withBands = true }) {
     // The band tables (0135): the same three shapes keyed by the
     // participant's own trophy band, decided rows with a band only.
     bandTotals: `insert into meta_season_band_totals
-       (season_month, mode_group, trophy_band, decided, wins)
+       (season_month, mode_group, trophy_band, decided, wins, players)
      select '${month}', mode_group, trophy_band,
-            count(*)::int, count(*) filter (where outcome = 'win')::int
+            count(*)::int, count(*) filter (where outcome = 'win')::int, ${players}
      from dec where trophy_band is not null
      group by mode_group, trophy_band
      on conflict (season_month, mode_group, trophy_band) do update set
        decided = meta_season_band_totals.decided + excluded.decided,
        wins = meta_season_band_totals.wins + excluded.wins`,
+    // The decided players per mode (product call 5): nightly only.
+    totalPlayers: withPlayers
+      ? `update meta_season_totals t set players = d.n
+         from (select mode_group, count(distinct player_tag)::int as n from dec group by mode_group) d
+         where t.season_month = '${month}' and t.mode_group = d.mode_group`
+      : null,
     bandDecks: `insert into deck_meta_season_band
        (season_month, mode_group, trophy_band, deck_hash, battles, wins, losses, players,
         first_used, last_used, level_gap_sum, level_gap_battles)
@@ -228,6 +234,7 @@ async function runAggregates(db, sql) {
   await db.query(sql.decks);
   await db.query(sql.deckPlayers);
   await db.query(sql.cards);
+  if (sql.totalPlayers) await db.query(sql.totalPlayers);
   if (sql.withBands) {
     await db.query(sql.bandTotals);
     await db.query(sql.bandDecks);

@@ -41,13 +41,19 @@ only when no reason remains. See [One recording, many reasons](/docs/recording#a
 current race and race log; `comprehensive` also records every current
 member's battles and profile, following joins and leaves.
 
-**corpus** — everything recorded, across every subject and every account: the
-population the segment tools default to. It is the matchmaking neighbourhood
-of the clans and players recorded, not a random sample of the ladder.
+**corpus** — everything recorded, across every subject and every account. It
+is the matchmaking neighbourhood of the clans and players recorded (a few
+hundred thousand players observed around a few dozen recorded clans), not a
+random sample of the ladder, and a number over all of it describes nobody
+in particular. One population among the others a segment tool can score,
+named with `segment: "corpus"`, never a default; a corpus read carries
+`population` (the recorded clans and players it was drawn from).
 
-**segment** — a slice of the corpus a meta tool scores: `{ player_tag }`,
-`{ clan_tag }` (the clan's current members) or `{ collection }`. Omit the
-whole object for the corpus.
+**segment** — the population a segment tool scores: `"mine"` (the caller's
+clan: the agent's, or the primary player's), `"corpus"`, `{ player_tag }`,
+`{ clan_tag }` (the clan's current members) or `{ collection }`. Every
+population is stated; omitting `segment` answers the corpus and the first
+note says so.
 
 **collection** — a curated, named group of players or clans (a slug such as
 `pros`) that records its members at its own scope.

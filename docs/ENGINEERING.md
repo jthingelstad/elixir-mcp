@@ -134,10 +134,14 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   writes. `*_tag` is one tag, `*_tags` an array, `collection` a slug.
 - **Defaults by family.** Player-shaped tools default `player_tag` to the
   caller (`subject()`); clan tools default `clan_tag` to the recorded clan
-  (`entitledClan()`); segment tools take a nested `segment` and default to
-  the corpus (`SEGMENT_SCHEMA`, `segmentFilter()`). The first sentence of the
-  description says which, in the fixed phrase. Nothing to default to is
-  `no_subject`, never a guess.
+  (`entitledClan()`); segment tools take `segment` and name a population
+  (`SEGMENT_SCHEMA`, `resolveSegment()`, `segmentFilter()`): `"mine"`,
+  `"corpus"` or an object naming one subject. The corpus is one population
+  among the others, never a default (Jamie, 2026-09-18): an omitted
+  `segment` still answers it, but the response says so (`omittedSegmentNote`)
+  and carries `population` (`populationBlock`); 4.0.0 makes `segment`
+  required. The first sentence of the description says which, in the fixed
+  phrase. Nothing to default to is `no_subject`, never a guess.
 - **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
   `weeks` as sugar, resolved once by `resolveWindow()`; date-only bounds in
   `zoneFor()`'s zone, which the per-call `timezone` argument overrides.

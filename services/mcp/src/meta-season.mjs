@@ -66,7 +66,7 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
   const {
     rows: [totals],
   } = await db.query(
-    `select considered, duels, boat, draws, unresolved, no_deck, decided, wins
+    `select considered, duels, boat, draws, unresolved, no_deck, decided, wins, players
      from meta_season_totals where season_month = $1 and mode_group = $2`,
     [month, modeGroup],
   );
@@ -79,6 +79,7 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
     no_deck: 0,
     decided: 0,
     wins: 0,
+    players: null,
   };
   if (trophyBand) {
     // The band's own decided total and wins; the exclusion categories are
@@ -86,16 +87,24 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
     const {
       rows: [band],
     } = await db.query(
-      `select decided, wins from meta_season_band_totals
+      `select decided, wins, players from meta_season_band_totals
        where season_month = $1 and mode_group = $2 and trophy_band = $3`,
       [month, modeGroup, trophyBand],
     );
-    t = { ...t, decided: band?.decided ?? 0, wins: band?.wins ?? 0 };
+    t = {
+      ...t,
+      decided: band?.decided ?? 0,
+      wins: band?.wins ?? 0,
+      players: band?.players ?? null,
+    };
   }
   return {
     month,
     modeGroup,
     trophyBand,
+    // The distinct players decided in the season and mode, as of the
+    // rebuild (product call 5); null until a rebuild has counted them.
+    players: t.players ?? null,
     final: state.final,
     counters_through: state.counters_through.toISOString(),
     players_as_of: state.rebuilt_at.toISOString(),

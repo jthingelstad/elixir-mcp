@@ -75,10 +75,16 @@ never named.
 - **Omit `player_tag` to mean the caller**: a person's primary player, or
   whoever `on_behalf_of` maps to on an agent connection. Omit `clan_tag` to
   mean the recorded clan. Nothing is looked up first.
-- **The segment tools default to the corpus.** `battles_meta_decks`,
+- **The segment tools name a population.** `battles_meta_decks`,
   `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity` and
-  `badges_holders` take a nested `segment: { player_tag | clan_tag |
-  collection }`; omit the whole object for everything recorded.
+  `badges_holders` take `segment`: `"mine"` (the caller's clan), `"corpus"`
+  (the whole recorded corpus, said on purpose) or `{ player_tag | clan_tag |
+  collection }`. The corpus is one population among the others, never a
+  default: it is the matchmaking neighbourhood of the recorded clans and
+  players, and a number over all of it describes nobody in particular. A
+  read that omits `segment` still answers the corpus, says so in its first
+  note, and carries `population` (the recorded clans and players it was
+  drawn from, and the distinct players in the window).
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. `days` and
   `weeks` are sugar; `season` on the meta tools bounds one season. Every

@@ -8,8 +8,9 @@ import { responseMeta } from "@elixir-mcp/contracts";
 import {
   ToolFailure,
   SEGMENT_SCHEMA,
-  entitledClan,
-  subject,
+  resolveSegment,
+  populationBlock,
+  omittedSegmentNote,
   appliedBlock,
   notes,
   docsRef,
@@ -19,67 +20,36 @@ const BADGE_DOCS = docsRef("glossary");
 
 /** Population filter over player_badge.player_tag from `args.segment`. */
 async function badgeScope(ctx, args, params) {
-  const seg = args.segment ?? {};
-  const picked = ["player_tag", "clan_tag", "collection"].filter(
-    (k) => seg[k] !== undefined,
-  );
-  if (picked.length > 1) {
-    throw new ToolFailure(
-      "bad_request",
-      "segment takes at most one of player_tag, clan_tag, collection.",
-    );
-  }
-  if (seg.player_tag !== undefined) {
-    const tag = (
-      await subject(
-        ctx.db,
-        ctx.account,
-        seg.player_tag,
-        "summary",
-        seg.on_behalf_of,
-      )
-    ).tag;
-    params.push(tag);
+  const seg = await resolveSegment(ctx, args);
+  if (seg.kind === "player") {
+    params.push(seg.tag);
     return {
       where: `pb.player_tag = $${params.length}`,
-      echo: { kind: "player", player_tag: tag },
+      echo: seg.echo,
+      omitted: false,
     };
   }
-  if (seg.clan_tag !== undefined) {
-    const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
-    params.push(clanTag);
+  if (seg.kind === "clan") {
+    params.push(seg.clanTag);
     return {
       where: `pb.player_tag in (select cm.player_tag from clan_membership cm
                where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
-      echo: { kind: "clan", clan_tag: clanTag },
+      echo: seg.echo,
+      omitted: false,
     };
   }
-  if (seg.collection !== undefined) {
-    const slug = String(seg.collection).toLowerCase().trim();
-    const { rows } = await ctx.db.query(
-      `select c.collection_id from collection c
-       where c.slug = $1 and c.kind = 'player'
-         and (c.visibility = 'public' or c.owner_account = $2)`,
-      [slug, ctx.account.accountId],
-    );
-    if (!rows[0])
-      throw new ToolFailure(
-        "not_found",
-        `No player collection '${slug}'.`,
-        "collections_browse lists what exists.",
-      );
-    params.push(rows[0].collection_id);
+  if (seg.kind === "collection") {
+    params.push(seg.collectionId);
     return {
       where: `pb.player_tag in (select m.subject_tag from collection_member m
                where m.collection_id = $${params.length})`,
-      echo: { kind: "collection", collection: slug },
+      echo: seg.echo,
+      omitted: false,
     };
   }
-  return { where: null, echo: { kind: "corpus" } };
+  return { where: null, echo: seg.echo, omitted: seg.omitted };
 }
 
-/** Everyone in scope with at least one observed badge: the n every
- *  holder_share and rarity claim is over. */
 async function population(db, scopeWhere, params) {
   const {
     rows: [r],
@@ -106,7 +76,7 @@ const KIND_NOTES = [
 export const badgesTools = {
   badges_rarity: {
     description:
-      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over the whole recorded population (default) or a segment (clan, collection, one player), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
+      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
     inputSchema: {
       type: "object",
       properties: {
@@ -145,8 +115,14 @@ export const badgesTools = {
          limit ${limit}`,
         params,
       );
+      const corpus = scope.where
+        ? null
+        : await populationBlock(ctx.db, {
+            playersInWindow: pop.players_considered,
+          });
       return {
         applied: appliedBlock({ segment: scope.echo, kind: args.kind, limit }),
+        ...(corpus ? { population: corpus } : {}),
         ...pop,
         badges: rows.map((r) => ({
           name: r.name,
@@ -168,6 +144,7 @@ export const badgesTools = {
               }),
         })),
         notes: notes(
+          omittedSegmentNote(scope, corpus),
           "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
           KIND_NOTES,
         ),
@@ -179,7 +156,7 @@ export const badgesTools = {
 
   badges_holders: {
     description:
-      "Who holds a badge: every recorded player in scope (the corpus by default, or a segment) with the named badge, with level and progress where tiered, names not just tags, and their current clan. Names must match the API's badge identifier exactly (badges_rarity lists them); a near-miss is refused with candidates rather than guessed.",
+      "Who holds a badge: every recorded player in a named population (segment 'mine', 'corpus' or an object; omitted answers the corpus with a note) with the named badge, with level and progress where tiered, names not just tags, and their current clan. Names must match the API's badge identifier exactly (badges_rarity lists them); a near-miss is refused with candidates rather than guessed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -248,6 +225,11 @@ export const badgesTools = {
         params,
       );
       const oneOff = rows.length > 0 && rows.every((r) => r.level === null);
+      const corpus = scope.where
+        ? null
+        : await populationBlock(ctx.db, {
+            playersInWindow: pop.players_considered,
+          });
       return {
         badge: exact.name,
         kind: rows.length === 0 ? null : oneOff ? "one_off" : "tiered",
@@ -257,6 +239,7 @@ export const badgesTools = {
           min_level: args.min_level,
           limit,
         }),
+        ...(corpus ? { population: corpus } : {}),
         ...pop,
         holders_total: rows[0]?.holders_total ?? 0,
         holders: rows.map((r) => ({
@@ -274,7 +257,7 @@ export const badgesTools = {
           clan_tag: r.clan_tag,
           observed_at: r.observed_at.toISOString(),
         })),
-        notes: notes(KIND_NOTES),
+        notes: notes(omittedSegmentNote(scope, corpus), KIND_NOTES),
         docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };

@@ -21,6 +21,8 @@ import {
   appliedBlock,
   notes,
   META_METHODOLOGY,
+  populationBlock,
+  omittedSegmentNote,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -70,7 +72,7 @@ async function resolveCard(db, { card_id, card }) {
 export const synergyTools = {
   cards_synergy: {
     description:
-      "What a card is played WITH, for a segment (the corpus by default) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; forms merge for the anchor by default while partners stay split by form.",
+      "What a card is played WITH, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; the anchor's forms merge by default, partners stay split by form.",
     inputSchema: {
       type: "object",
       properties: {
@@ -192,6 +194,7 @@ export const synergyTools = {
         });
         totals = {
           decided: roll.prior.decided,
+          window_players: roll.players,
           anchor_decks: r.anchor.battles,
           anchor_players: r.anchor.players,
           anchor_wins: r.anchor.wins,
@@ -224,6 +227,7 @@ export const synergyTools = {
            where ${where.join(" and ")}),
          totals as (
            select count(*)::int as decided,
+                  count(distinct player_tag)::int as window_players,
                   count(*) filter (where has_anchor)::int as anchor_decks,
                   count(distinct player_tag) filter (where has_anchor)::int as anchor_players,
                   count(*) filter (where has_anchor and outcome = 'win')::int as anchor_wins
@@ -243,7 +247,7 @@ export const synergyTools = {
            where pop.has_anchor and dc.card_id <> ${anchorId}
            group by 1, 2, 3)
          select p.*, bl.battles as baseline_battles,
-                t.decided, t.anchor_decks, t.anchor_players, t.anchor_wins
+                t.decided, t.window_players, t.anchor_decks, t.anchor_players, t.anchor_wins
          from pairs p
          join baseline bl on bl.card_id = p.card_id and bl.form = p.form
          cross join totals t
@@ -257,6 +261,7 @@ export const synergyTools = {
         if (!rows[0]) {
           const { rows: tr } = await ctx.db.query(
             `select count(*)::int as decided,
+                    count(distinct bp.player_tag)::int as window_players,
                     count(*) filter (where ${anchorMatch})::int as anchor_decks,
                     count(distinct bp.player_tag) filter (where ${anchorMatch})::int as anchor_players,
                     count(*) filter (where ${anchorMatch} and bp.outcome = 'win')::int as anchor_wins
@@ -269,7 +274,13 @@ export const synergyTools = {
       }
       const decided = totals.decided ?? 0;
       const anchorDecks = totals.anchor_decks ?? 0;
+      const population = seg.where
+        ? null
+        : await populationBlock(ctx.db, {
+            playersInWindow: totals.window_players ?? null,
+          });
       return {
+        ...(population ? { population } : {}),
         anchor: {
           card_id: anchor.id,
           name: anchor.name,
@@ -326,6 +337,7 @@ export const synergyTools = {
           };
         }),
         notes: notes(
+          omittedSegmentNote(seg, population),
           bandPending
             ? "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it)."
             : null,

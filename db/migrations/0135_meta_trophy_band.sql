@@ -31,6 +31,11 @@ alter table deck_meta_season
 alter table card_meta_season
   add column level_gap_sum     numeric,
   add column level_gap_battles integer;
+-- players: the distinct players decided in the season and mode, so a
+-- corpus read can say whose neighbourhood it describes (product call 5);
+-- a nightly count, null until the rebuild, never incremented.
+alter table meta_season_totals
+  add column players integer;
 alter table meta_season_state
   add column bands_rebuilt_at timestamptz;
 comment on column meta_season_state.bands_rebuilt_at is
@@ -42,6 +47,7 @@ create table meta_season_band_totals (
   trophy_band   text not null check (trophy_band in ('under_5000', '5000_8000', '8000_11000', '11000_13000', '13000_plus')),
   decided       integer not null default 0,
   wins          integer not null default 0,
+  players       integer,
   primary key (season_month, mode_group, trophy_band)
 );
 

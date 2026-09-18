@@ -194,21 +194,169 @@ export function VERBOSITY(compactDesc) {
 /** Segment scoping for the corpus-wide tools, NESTED so the name itself
  *  says it is a scope and not the caller (review 2.2.3): the same flat
  *  player_tag meant "you" on eleven tools and "the corpus" on five. */
+/** The population a segment tool scores (product call 5, 2026-09-18: a
+ *  population is named, never assumed). The strings are sugar: "mine"
+ *  is the caller's clan, "corpus" the whole recorded corpus said out
+ *  loud; the object names one player, clan or collection. Omitted still
+ *  answers the corpus and the response says so in a note. */
 export const SEGMENT_SCHEMA = {
-  type: "object",
   description:
-    "Scope: exactly one of player_tag, clan_tag (current members) or collection (a player collection's slug, e.g. 'pros'). OMIT the whole object for the entire recorded corpus.",
-  properties: {
-    player_tag: { type: "string", description: "One recorded player." },
-    clan_tag: {
-      type: "string",
-      description: "A recorded clan's current members.",
+    "The population to score: 'mine' (the caller's clan: the agent's clan, or the primary player's), 'corpus' (the whole recorded corpus, explicitly), or an object naming exactly one of player_tag, clan_tag (current members) or collection (a player collection's slug). Omitted answers the corpus and says so in a note; the corpus is one population among others, never a default.",
+  anyOf: [
+    { type: "string", enum: ["mine", "corpus"] },
+    {
+      type: "object",
+      properties: {
+        player_tag: { type: "string", description: "One recorded player." },
+        clan_tag: {
+          type: "string",
+          description: "A recorded clan's current members.",
+        },
+        collection: {
+          type: "string",
+          description: "A player collection's slug.",
+        },
+        on_behalf_of: ON_BEHALF_OF_SCHEMA,
+      },
+      additionalProperties: false,
     },
-    collection: { type: "string", description: "A player collection's slug." },
-    on_behalf_of: ON_BEHALF_OF_SCHEMA,
-  },
-  additionalProperties: false,
+  ],
 };
+
+/**
+ * The segment as one resolved thing, before any tool builds its own
+ * predicate: `{ kind, omitted, echo, ... }` where kind is corpus, player,
+ * clan or collection and the object carries the resolved tag, clan tag
+ * or collection id. "mine" resolves through entitledClan(undefined), so
+ * an account with no clan is no_subject, never a guess.
+ */
+export async function resolveSegment(ctx, args) {
+  const raw = args.segment;
+  if (raw === undefined || raw === null)
+    return { kind: "corpus", omitted: true, echo: { kind: "corpus" } };
+  if (typeof raw === "string") {
+    if (raw === "corpus")
+      return { kind: "corpus", omitted: false, echo: { kind: "corpus" } };
+    if (raw === "mine") {
+      const clanTag = await entitledClan(ctx.db, ctx.account, undefined);
+      return {
+        kind: "clan",
+        omitted: false,
+        clanTag,
+        echo: { kind: "clan", clan_tag: clanTag, source: "mine" },
+      };
+    }
+    throw new ToolFailure(
+      "bad_request",
+      `segment must be 'mine', 'corpus' or an object naming one of player_tag, clan_tag, collection (got '${raw}').`,
+    );
+  }
+  const seg = raw;
+  const picked = ["player_tag", "clan_tag", "collection"].filter(
+    (k) => seg[k] !== undefined,
+  );
+  if (picked.length > 1) {
+    throw new ToolFailure(
+      "bad_request",
+      "segment takes at most one of player_tag, clan_tag, collection.",
+    );
+  }
+  if (seg.player_tag !== undefined) {
+    const tag = (
+      await subject(
+        ctx.db,
+        ctx.account,
+        seg.player_tag,
+        "summary",
+        seg.on_behalf_of,
+      )
+    ).tag;
+    return {
+      kind: "player",
+      omitted: false,
+      tag,
+      echo: { kind: "player", player_tag: tag },
+    };
+  }
+  if (seg.clan_tag !== undefined) {
+    const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
+    return {
+      kind: "clan",
+      omitted: false,
+      clanTag,
+      echo: { kind: "clan", clan_tag: clanTag },
+    };
+  }
+  if (seg.collection !== undefined) {
+    const slug = String(seg.collection).toLowerCase().trim();
+    const { rows } = await ctx.db.query(
+      `select c.collection_id from collection c
+       where c.slug = $1 and c.kind = 'player'
+         and (c.visibility = 'public' or c.owner_account = $2)`,
+      [slug, ctx.account.accountId],
+    );
+    if (!rows[0]) {
+      throw new ToolFailure(
+        "not_found",
+        `No player collection '${slug}'.`,
+        "collections_browse lists what exists.",
+      );
+    }
+    return {
+      kind: "collection",
+      omitted: false,
+      collectionId: rows[0].collection_id,
+      slug,
+      echo: { kind: "collection", collection: slug },
+    };
+  }
+  // An empty object is the corpus, said with an object.
+  return { kind: "corpus", omitted: false, echo: { kind: "corpus" } };
+}
+
+/** The recorded population a corpus number is drawn from (product call
+ *  5): the active clan recordings and the players whose battle logs are
+ *  recorded (directly, or as current members of a comprehensive clan),
+ *  the same count elixir_data_insights serves. */
+export async function recordedPopulation(db) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `with direct as (
+       select subject_tag as player_tag from recording
+       where subject_type = 'player' and status = 'active'),
+     via as (
+       select cm.player_tag
+       from recording r
+       join clan_membership cm on cm.clan_tag = r.subject_tag
+         and cm.left_observed_at is null
+       where r.subject_type = 'clan' and r.status = 'active'
+         and r.scope = 'comprehensive')
+     select (select count(*) from recording
+              where subject_type = 'clan' and status = 'active')::int as recorded_clans,
+            (select count(distinct player_tag) from
+              (select player_tag from direct union select player_tag from via) u)::int as recorded_players`,
+  );
+  return {
+    recorded_clans: r.recorded_clans,
+    recorded_players: r.recorded_players,
+  };
+}
+
+/** The population block a corpus read carries (3.16.0): whose
+ *  neighbourhood the number describes. `playersInWindow` is the distinct
+ *  players the read actually counted, null when the path cannot say. */
+export async function populationBlock(db, { playersInWindow = null } = {}) {
+  const pop = await recordedPopulation(db);
+  return { ...pop, players_in_window: playersInWindow };
+}
+
+/** The one sentence an omitted segment carries; fires on that condition
+ *  only. */
+export function omittedSegmentNote(seg, pop) {
+  if (!seg?.omitted) return null;
+  return `segment was omitted, so this answer is the whole recorded corpus: the matchmaking neighbourhood of ${pop ? `${pop.recorded_clans} recorded clans and ${pop.recorded_players} recorded players` : "the recorded clans and players"}, not the game; a number over all of it describes nobody in particular. Pass segment: "mine" for your clan, or segment: "corpus" to name this population on purpose.`;
+}
 
 // --- shared helpers --------------------------------------------------------
 
@@ -732,67 +880,37 @@ export function requireOrderedWindow(from, to) {
  *  battle_participant rows to the segment's players, the time column
  *  whose leading index matches that scope, plus the echo. */
 export async function segmentFilter(ctx, args, params) {
-  const seg = args.segment ?? {};
-  const picked = ["player_tag", "clan_tag", "collection"].filter(
-    (k) => seg[k] !== undefined,
-  );
-  if (picked.length > 1) {
-    throw new ToolFailure(
-      "bad_request",
-      "segment takes at most one of player_tag, clan_tag, collection.",
-    );
-  }
-  if (seg.player_tag !== undefined) {
-    const tag = (
-      await subject(
-        ctx.db,
-        ctx.account,
-        seg.player_tag,
-        "summary",
-        seg.on_behalf_of,
-      )
-    ).tag;
-    params.push(tag);
+  const seg = await resolveSegment(ctx, args);
+  if (seg.kind === "player") {
+    params.push(seg.tag);
     return {
       where: `bp.player_tag = $${params.length}`,
       timeColumn: "bp.battle_time",
-      label: tag,
-      echo: { kind: "player", player_tag: tag },
+      label: seg.tag,
+      echo: seg.echo,
+      omitted: false,
     };
   }
-  if (seg.clan_tag !== undefined) {
-    const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
-    params.push(clanTag);
+  if (seg.kind === "clan") {
+    params.push(seg.clanTag);
     return {
       where: `bp.player_tag in (select cm.player_tag from clan_membership cm
                where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
       timeColumn: "bp.battle_time",
-      label: clanTag,
-      echo: { kind: "clan", clan_tag: clanTag },
+      label: seg.clanTag,
+      echo: seg.echo,
+      omitted: false,
     };
   }
-  if (seg.collection !== undefined) {
-    const slug = String(seg.collection).toLowerCase().trim();
-    const { rows } = await ctx.db.query(
-      `select c.collection_id from collection c
-       where c.slug = $1 and c.kind = 'player'
-         and (c.visibility = 'public' or c.owner_account = $2)`,
-      [slug, ctx.account.accountId],
-    );
-    if (!rows[0]) {
-      throw new ToolFailure(
-        "not_found",
-        `No player collection '${slug}'.`,
-        "collections_browse lists what exists.",
-      );
-    }
-    params.push(rows[0].collection_id);
+  if (seg.kind === "collection") {
+    params.push(seg.collectionId);
     return {
       where: `bp.player_tag in (select m.subject_tag from collection_member m
                where m.collection_id = $${params.length})`,
       timeColumn: "bp.battle_time",
-      label: slug,
-      echo: { kind: "collection", collection: slug },
+      label: seg.slug,
+      echo: seg.echo,
+      omitted: false,
     };
   }
   return {
@@ -802,7 +920,8 @@ export async function segmentFilter(ctx, args, params) {
     // mode filter asks for battle.type.
     timeColumn: "bp.battle_time",
     label: "corpus",
-    echo: { kind: "corpus" },
+    echo: seg.echo,
+    omitted: seg.omitted,
   };
 }
 

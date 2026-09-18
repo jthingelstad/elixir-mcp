@@ -45,6 +45,8 @@ import {
   corpusPrior,
   deckIdentities,
   renderDecks,
+  populationBlock,
+  omittedSegmentNote,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -1291,7 +1293,7 @@ export const battlesTools = {
 
   battles_meta_decks: {
     description:
-      "Observed deck meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
+      "Observed deck meta for a named population: segment 'mine' (your clan), 'corpus' (the whole recorded corpus, on purpose) or {clan_tag | player_tag | collection}; omitted answers the corpus with a note. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1361,11 +1363,13 @@ export const battlesTools = {
       let totalDecided;
       let totalWins;
       let modeGroups = null;
+      let playersInWindow = null;
       if (roll) {
         ({ excluded, prior } = roll);
         rows = await rollupDecks(ctx.db, roll, { minBattles });
         totalDecided = prior.decided;
         totalWins = Math.round((prior.mean ?? 0) * prior.decided);
+        playersInWindow = roll.players;
         if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
         await rawScanMemory(ctx.db);
@@ -1409,7 +1413,8 @@ export const battlesTools = {
                   count(distinct player_tag)::int as players,
                   min(first_used) as first_used, max(last_used) as last_used,
                   sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n,
-                  (select count(distinct d2.player_tag)::int from d d2 where d2.deck_hash = d.deck_hash) as deck_players
+                  (select count(distinct d2.player_tag)::int from d d2 where d2.deck_hash = d.deck_hash) as deck_players,
+                  (select count(distinct d3.player_tag)::int from d d3) as window_players
            from d group by deck_hash, type`,
           params,
         );
@@ -1444,6 +1449,7 @@ export const battlesTools = {
             r.gap_n > 0 ? Number((r.gap_sum / r.gap_n).toFixed(2)) + 0 : null,
           level_gap_battles: r.gap_n,
         }));
+        playersInWindow = byDeckType[0]?.window_players ?? 0;
         totalDecided = rows.reduce((n, r) => n + r.battles, 0);
         totalWins = rows.reduce((n, r) => n + r.wins, 0);
         if (!args.mode) {
@@ -1533,6 +1539,10 @@ export const battlesTools = {
       const clash = comparabilityNote(
         shaped.map((r) => ({ ...r, label: shortHash(r.deck_hash) })),
       );
+      // A corpus read says whose neighbourhood it describes (3.16.0).
+      const population = seg.where
+        ? null
+        : await populationBlock(ctx.db, { playersInWindow });
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -1543,6 +1553,7 @@ export const battlesTools = {
           sort,
           limit,
         }),
+        ...(population ? { population } : {}),
         methodology: META_METHODOLOGY,
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
@@ -1560,6 +1571,7 @@ export const battlesTools = {
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         decks: shaped,
         notes: notes(
+          omittedSegmentNote(seg, population),
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped) : null,
@@ -1582,7 +1594,7 @@ export const battlesTools = {
 
   battles_meta_cards: {
     description:
-      "Observed card meta for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
+      "Observed card meta for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1649,11 +1661,13 @@ export const battlesTools = {
       let totalDecided;
       let totalWins;
       let modeGroups = null;
+      let playersInWindow = null;
       if (roll) {
         ({ excluded, prior } = roll);
         rows = await rollupCards(ctx.db, roll, { minBattles });
         totalDecided = prior.decided;
         totalWins = Math.round((prior.mean ?? 0) * prior.decided);
+        playersInWindow = roll.players;
         if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
         await rawScanMemory(ctx.db);
@@ -1696,6 +1710,7 @@ export const battlesTools = {
          totals as (
            select coalesce(sum(battles), 0)::int as decided,
                   coalesce(sum(wins), 0)::int as wins,
+                  count(distinct player_tag)::int as players,
                   (select jsonb_agg(jsonb_build_object('type', g.type, 'battles', g.battles,
                                                        'level_battles', g.gap_n,
                                                        'mean_level_gap', g.gap))
@@ -1723,16 +1738,18 @@ export const battlesTools = {
                                            'wins', pt.wins, 'losses', pt.battles - pt.wins)) as by_type,
                 t.decided as total_decided,
                 t.wins as total_wins,
+                t.players as total_players,
                 t.by_type as window_types
          from per_type pt
          join per_card pc on pc.card_id = pt.card_id and pc.form = pt.form
          join card c on c.card_id = pt.card_id
          cross join totals t
-         group by pt.card_id, c.name, pt.form, pc.players, t.decided, t.wins, t.by_type`,
+         group by pt.card_id, c.name, pt.form, pc.players, t.decided, t.wins, t.players, t.by_type`,
           params,
         ));
         totalDecided = rows[0]?.total_decided ?? 0;
         totalWins = rows[0]?.total_wins ?? 0;
+        playersInWindow = rows[0]?.total_players ?? 0;
         if (!args.mode) modeGroups = modeGaps(rows[0]?.window_types ?? []);
       }
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
@@ -1797,6 +1814,9 @@ export const battlesTools = {
         shaped.map((r) => ({ ...r, label: r.name })),
         { what: "card" },
       );
+      const population = seg.where
+        ? null
+        : await populationBlock(ctx.db, { playersInWindow });
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -1807,6 +1827,7 @@ export const battlesTools = {
           sort,
           limit,
         }),
+        ...(population ? { population } : {}),
         methodology: META_METHODOLOGY,
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
@@ -1824,6 +1845,7 @@ export const battlesTools = {
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         cards: shaped,
         notes: notes(
+          omittedSegmentNote(seg, population),
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped, { what: "card" }) : null,
@@ -1848,7 +1870,7 @@ export const battlesTools = {
 
   battles_trends: {
     description:
-      "Weekly time series for a segment: the whole corpus (default), or segment.clan_tag / segment.player_tag / segment.collection. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
+      "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}; omitted answers the corpus with a note. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1916,7 +1938,10 @@ export const battlesTools = {
         `select date_trunc('week', b.battle_time)::date::text as week_of, b.type,
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
-                count(*) filter (where bp.outcome = 'loss')::int as losses
+                count(*) filter (where bp.outcome = 'loss')::int as losses,
+                (select count(distinct bp2.player_tag)::int
+                   from battle_participant bp2 join battle b2 on b2.battle_id = bp2.battle_id
+                  where ${where.join(" and ").replaceAll("bp.", "bp2.").replaceAll("b.type", "b2.type").replaceAll("b.battle_time", "b2.battle_time")}) as window_players
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
           where ${where.join(" and ")}
           group by 1, 2`,
@@ -1947,6 +1972,11 @@ export const battlesTools = {
         from: null,
         to: win.to ? new Date(win.to) : null,
       });
+      const population = seg.where
+        ? null
+        : await populationBlock(ctx.db, {
+            playersInWindow: byType[0]?.window_players ?? 0,
+          });
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -1954,8 +1984,10 @@ export const battlesTools = {
           weeks: args.weeks,
           mode: args.mode,
         }),
+        ...(population ? { population } : {}),
         weeks,
         notes: notes(
+          omittedSegmentNote(seg, population),
           partialWeeksNote(partial),
           "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
           !args.mode && weeks.some((w) => Object.keys(w.modes).length > 1)
