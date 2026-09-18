@@ -145,7 +145,8 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.series.length, 3);
   const [d1, d2, d6] = body.series;
-  assert.equal(d1.date, "2026-09-01");
+  assert.equal(d1.day, "2026-09-01");
+  assert.ok(!("date" in d1), "4.0.0: date is gone, day is the one key");
   assert.equal(d1.kind, "daily");
   assert.equal(d1.source, "api");
   assert.equal(d1.clan_tag, CLAN);
@@ -156,7 +157,7 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
   assert.equal(d1.observed_at, "2026-09-01T14:00:00.000Z");
   assert.equal(d2.wins - d1.wins, 5);
   assert.equal(d2.trophies - d1.trophies, 30);
-  assert.equal(d6.date, "2026-09-06");
+  assert.equal(d6.day, "2026-09-06");
   assert.equal(body.applied.kind, "daily");
   assert.equal(body.applied.progress_key, "all");
   assert.equal(
@@ -389,7 +390,7 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
     JSON.stringify(body.notes),
   );
   assert.ok(
-    body.series.every((p) => p.day === p.date),
+    body.series.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.day) && !("date" in p)),
     "day rides beside date",
   );
   // A date-only window says nothing about flooring.

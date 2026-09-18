@@ -86,7 +86,6 @@ const WINDOW_ECHO = {
 const SERIES_POINT = {
   type: "object",
   properties: {
-    date: DATE,
     day: DATE,
     iso_week: { type: "string" },
     kind: { type: "string", enum: ["daily", "pre_reset", "season_roll"] },

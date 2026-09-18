@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "4.0.0: one name for everything",
+    body: "The five releases since the record redesign each put a new name beside an old one so nothing broke mid-week; this release keeps the new name and retires the old, in one deploy, with every first-party client updated the same evening. A series point has day; a battle's arena is an id and a name; the lifetime block is one shape on every tool that carries it; a standing's net_trophies is spelled the way the performance tool spells it; the Path of Legends league is league_number everywhere; a week is partial, never complete; coverage's ratio is a number; the event calendar is on game days; and the six population tools ask you to name the population. Filing feedback is elixir_send_feedback. The contract's changelog names every retired field and its replacement; reconnect your client so it sees the new tool list. Contract 4.0.0.",
+  },
+  {
+    date: "2026-09-19",
     title:
       "The seam: named readers, error classes, candidates, seven more shapes",
     body: "The things consumers worked around are served. A consumer of the timeline names its own read pointer (reader), so two bots on one account stop moving each other's window and the 'anything new?' hint on every response finally means something for a bot that marks; and an empty window answers in a fraction of the time. Every error now says what kind of thing it is in one word (retry, input, subject, server, budget), so a pending live read is no longer counted as a failure. An agent that passes the asker's display name gets the matching clan members back in the refusal instead of pulling the roster to compare names. Feedback takes every request id a turn produced. Seven more tools declare the shape of what comes back. And a person's omitted clan is their primary player's clan, or an honest refusal, never an alt's. Contract 3.18.0.",

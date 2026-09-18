@@ -459,7 +459,6 @@ export const playersTools = {
       const points = (
         weekly ? rows.sort((a, z) => a.snapshot_date - z.snapshot_date) : rows
       ).map((r) => ({
-        date: r.snapshot_date.toISOString().slice(0, 10),
         day: r.snapshot_date.toISOString().slice(0, 10),
         ...(weekly ? { iso_week: r.iso_week } : {}),
         ...pointStamps(r),
