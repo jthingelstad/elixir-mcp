@@ -566,4 +566,10 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
   assert.ok(res.top_deck.modes, "the deck carries its split");
   assert.ok(res.top_deck.dominant_mode.mode);
   assert.ok(res.notes.some((l) => /trophy floor/.test(l)));
+  // The best deck (war, 11-3 in September plus the four fresh wins) is
+  // not the top deck (ladder): both carry modes and the clash note fires.
+  assert.ok(res.best_deck, JSON.stringify(res));
+  assert.equal(res.best_deck.dominant_mode.mode, "war");
+  assert.equal(res.top_deck.dominant_mode.mode, "ladder");
+  assert.ok(res.notes.some((l) => /NOT comparable across rows/.test(l)));
 });

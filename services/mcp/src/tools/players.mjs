@@ -144,7 +144,16 @@ export const playersTools = {
       const best = await ctx.db.query(
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  (select json_agg(json_build_object('type', t.type, 'battles', t.n,
+                                                     'wins', t.w, 'losses', t.l))
+                     from (select x.type, count(*)::int as n,
+                                  count(*) filter (where x.outcome = 'win')::int as w,
+                                  count(*) filter (where x.outcome = 'loss')::int as l
+                             from battle_participant x
+                            where x.player_tag = $1 and x.deck_hash = bp.deck_hash
+                              and x.battle_time > now() - interval '30 days'
+                            group by x.type) t) as by_type
            from battle_participant bp
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
