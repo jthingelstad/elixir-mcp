@@ -43,6 +43,14 @@ const skip = built
   ? false
   : "no built tree at dist/site - run: node infra/scripts/build-site.mjs --skip-stats";
 
+/** One page per live registry group. Derive these from the built registry so
+ *  adding a group cannot silently publish links to a missing family page. */
+const TOOL_GROUP_PAGES = built
+  ? JSON.parse(read("tools.json")).groups.map(
+      (group) => `/docs/tools/${group.slug}`,
+    )
+  : [];
+
 /** The pages the static site claims, as canonical paths. */
 const STATIC_PAGES = [
   "/",
@@ -76,17 +84,7 @@ const STATIC_PAGES = [
   "/docs/choosing-a-tool",
   "/docs/protocol",
   "/docs/tools",
-  "/docs/tools/account",
-  "/docs/tools/players",
-  "/docs/tools/battles",
-  "/docs/tools/cards",
-  "/docs/tools/clans",
-  "/docs/tools/war",
-  "/docs/tools/collections",
-  "/docs/tools/live",
-  "/docs/tools/timeline",
-  "/docs/tools/service",
-  "/docs/tools/help",
+  ...TOOL_GROUP_PAGES,
   "/docs/responses",
   "/docs/timeline",
   "/docs/privacy",
@@ -400,6 +398,16 @@ test(
     );
     assert.equal(json.tool_count, declarations.length);
 
+    for (const group of json.groups) {
+      const family = read(`docs/tools/${group.slug}/index.html`);
+      for (const tool of group.tools) {
+        assert.ok(
+          family.includes(`id="${tool.name}"`),
+          `/docs/tools/${group.slug} omits ${tool.name}`,
+        );
+      }
+    }
+
     for (const d of declarations) {
       assert.ok(documented.includes(d.name), `tools.json omits ${d.name}`);
       assert.ok(
@@ -414,6 +422,20 @@ test(
     }
   },
 );
+
+test("the protocol requires an explicit segment", () => {
+  const protocol = readFileSync(
+    path.join(repoRoot, "apps/site/src/docs/protocol.md"),
+    "utf8",
+  );
+  assert.match(protocol, /`segment` is required since 4\.0\.0/);
+  assert.ok(
+    !protocol.includes(
+      "| the whole `segment` object | the entire recorded corpus |",
+    ),
+    "the protocol still documents the retired implicit corpus default",
+  );
+});
 
 test("versioned examples follow the generated contract", { skip }, () => {
   const version = JSON.parse(read("tools.json")).contract_version;

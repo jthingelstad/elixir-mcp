@@ -427,15 +427,17 @@ The same conventions hold on every tool; the `initialize` instructions state
 them once and the per-argument descriptions are one line each. The shorter
 version, with the tool map, is [Choosing a tool](/docs/choosing-a-tool).
 
-**What omitting an argument means** depends on the tool's family, and the
-first sentence of every description says which:
+**What omitting a subject argument means** depends on the tool's family, and
+the first sentence of every description says which. Segment tools are the
+exception: `segment` is required since 4.0.0, because the corpus is one
+population among the others and never an implicit default.
 
-| Family | Omitted argument | Means |
+| Family | Subject argument | Omission rule |
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `battles_levels`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
 | Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | the recorded clan: a person's first tracked clan, an agent's clan |
-| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity`, `badges_holders`) | the whole `segment` object | the entire recorded corpus |
-| `game_clock`, `cards_catalog`, the Help tools | nothing to omit | no subject at all |
+| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player, clan or collection |
+| `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 
 No default is ever looked up first, and there is no "no default" guess: a
 player tool with nothing to answer about is `no_subject` with the fixing call
