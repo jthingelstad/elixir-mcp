@@ -23,12 +23,7 @@ const BRIEF_VALUE_TOOL = {
   input_schema: {
     type: "object",
     properties: {
-      paths: {
-        type: "array",
-        items: { type: "string" },
-        minItems: 1,
-        maxItems: 40,
-      },
+      paths: { type: "array", items: { type: "string" } },
     },
     required: ["paths"],
     additionalProperties: false,
