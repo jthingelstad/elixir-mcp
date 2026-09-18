@@ -386,7 +386,10 @@ test("war_current: the period is the calendar's; the anchor only says when this 
       stale.body.period.freshness_seconds >= 10800,
       "the poll age is its own field",
     );
-    assert.equal(stale.body.period.nominal_period_elapsed, false);
+    assert.ok(
+      !("nominal_period_elapsed" in stale.body.period),
+      "4.0.0: the always-false flag is gone; the calendar's period is open by construction",
+    );
     assert.equal(
       stale.body.period.period_start_nominal,
       new Date(now.startMs).toISOString(),

@@ -348,9 +348,6 @@ export const warTools = {
           source_observed_at: meta.source_polls.currentriverrace.observed_at,
           freshness_seconds:
             meta.source_polls.currentriverrace.freshness_seconds,
-          // The calendar's period is open by construction at now; the
-          // field stays for readers that check it.
-          nominal_period_elapsed: false,
           period_start_nominal: new Date(p.startMs).toISOString(),
           period_end_nominal: new Date(p.endMs).toISOString(),
           week_end_nominal: new Date(p.weekEndMs).toISOString(),

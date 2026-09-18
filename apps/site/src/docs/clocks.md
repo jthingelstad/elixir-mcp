@@ -135,10 +135,10 @@ a clan's last poll:
   10:00 UTC, land on the **previous** policy day. The first sign is a member
   counted with five decks: `decks_today.over_cap` lists members observed
   with more than four decks in a policy day rather than rounding them away.
-- `nominal_period_elapsed` is always `false` now that the period comes
-  from the calendar (a day that has ended is simply not the current one);
-  it stays on the wire for readers that check it. `period.source_observed_at`
-  says how fresh the race itself is.
+- The period is the calendar's, open by construction (a day that has
+  ended is simply not the current one; the always-false
+  `nominal_period_elapsed` flag was removed at 4.0.0).
+  `period.source_observed_at` says how fresh the race itself is.
 
 ## Windows and timezones
 
