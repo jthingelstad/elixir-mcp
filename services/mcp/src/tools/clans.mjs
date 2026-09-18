@@ -257,7 +257,7 @@ export const clansTools = {
 
   clans_roster: {
     description:
-      "A clan's roster, yours by default: roles, latest trophies and donations per member, activity recency (last recorded battle and the game's own last-seen), and recent join/leave/role events. verbosity compact answers 'how many members' and 'what is this clan called' with the name, the count and the role breakdown only. live: true asks for a fresh read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
+      "A clan's roster, yours by default: roles, latest trophies and donations per member, activity recency (last recorded battle and the game's own last-seen), the member's tenure and badge count, the lifetime block as of the latest profile poll (best trophies, battles, wins, losses, three-crown wins, collection level, king tower level, total donations; null for a member whose profile is not recorded), and recent join/leave/role events. verbosity compact answers 'how many members' and 'what is this clan called' with the name, the count and the role breakdown only. live: true asks for a fresh read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
     inputSchema: {
       type: "object",
       properties: {
@@ -368,11 +368,20 @@ export const clansTools = {
           `${clanTag} is not in the record.`,
           "live: true reads it from the game.",
         );
+      // Per member: the latest row's trophies and donations (the roster
+      // writes them at its own cadence since 0127), and, at full
+      // verbosity, the lifetime block from the latest PROFILE row plus
+      // the player's tenure and badge count (review 7.5: the site
+      // rendered these from 46 profile reads a day).
       const roster = await ctx.db.query(
         `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
-                p.game_last_seen_at,
+                p.game_last_seen_at, p.years_played, p.account_age_days,
                   nn.nickname,
                   s.trophies, s.donations,
+                  l.best_trophies, l.battle_count, l.wins, l.losses, l.three_crown_wins,
+                  l.collection_level, l.king_tower_level, l.total_donations,
+                  l.profile_observed_at,
+                  (select count(*)::int from player_badge b where b.player_tag = cm.player_tag) as badge_count,
                   (select max(bp.battle_time) from battle_participant bp
                    where bp.player_tag = cm.player_tag) as last_battle
            from clan_membership cm
@@ -383,6 +392,13 @@ export const clansTools = {
              select trophies, donations from player_snapshot_daily
              where player_tag = cm.player_tag order by snapshot_date desc, snapshot_kind desc limit 1
            ) s on true
+           left join lateral (
+             select best_trophies, battle_count, wins, losses, three_crown_wins, collection_level,
+                    king_tower_level, total_donations, profile_observed_at
+             from player_snapshot_daily
+             where player_tag = cm.player_tag and profile_observed_at is not null
+             order by snapshot_date desc, snapshot_kind desc limit 1
+           ) l on true
            where cm.clan_tag = $1 and cm.left_observed_at is null
            order by cm.role desc, s.trophies desc nulls last`,
         [clanTag, ctx.account.accountId],
@@ -411,6 +427,24 @@ export const clansTools = {
           last_recorded_battle: m.last_battle?.toISOString() ?? null,
           // The GAME's own activity stamp, not ours.
           last_seen_in_game: m.game_last_seen_at?.toISOString() ?? null,
+          years_played: m.years_played ?? null,
+          account_age_days: m.account_age_days ?? null,
+          badge_count: m.badge_count ?? 0,
+          // The lifetime block as of the latest profile poll; null for a
+          // member whose profile is not recorded.
+          lifetime: m.profile_observed_at
+            ? {
+                as_of: m.profile_observed_at.toISOString(),
+                best_trophies: m.best_trophies,
+                battle_count: m.battle_count,
+                wins: m.wins,
+                losses: m.losses,
+                three_crown_wins: m.three_crown_wins,
+                collection_level: m.collection_level,
+                king_tower_level: m.king_tower_level,
+                total_donations: m.total_donations,
+              }
+            : null,
         })),
         events_recorded_since:
           roster.rows

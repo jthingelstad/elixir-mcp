@@ -586,7 +586,7 @@ export const rankingsTools = {
 
   rankings_timeline: {
     description:
-      "How a leaderboard moved: for one player (player_tag) or one clan (clan_tag), their rank and rating at every snapshot of the global Path of Legends board across a window - the season story at hourly resolution; or, with neither, the board's own curve: the rating floor (last place), the summit (#1 and their rating) and the size of the rated field per snapshot. Windows are from/to; omitted means the current season so far. Snapshots where an unchanged board was merely confirmed carry the same values, so a flat stretch is a flat stretch.",
+      "How a leaderboard moved: for one player (player_tag) or one clan (clan_tag), their rank and rating at every snapshot of the global Path of Legends board across a window - one snapshot a day since 2026-09-11 (hourly before, for the global board), and only when the board moved; or, with neither, the board's own curve: the rating floor (last place), the summit (#1 and their rating) and the size of the rated field per snapshot. Windows are from/to; omitted means the current season so far. A snapshot exists only when the board changed; a flat stretch is confirmed, not repeated.",
     inputSchema: {
       type: "object",
       properties: {
@@ -609,7 +609,7 @@ export const rankingsTools = {
           maximum: 2000,
           default: 800,
           description:
-            "Most snapshots to return, newest kept; the global board is ~24 a day.",
+            "Most snapshots to return, newest kept; the global board is one a day since 2026-09-11, and only when it moved.",
         },
       },
       additionalProperties: false,

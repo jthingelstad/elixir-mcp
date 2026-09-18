@@ -1381,10 +1381,15 @@ export const elixirTools = {
                      where subject_type = 'clan' and status = 'active'
                        and scope = 'comprehensive')::int as clans_comprehensive`),
         q(`select count(*)::int as n from api_receipt`),
-        q(`select (select count(distinct player_tag) from player_snapshot_daily)::int as with_snapshot,
+        // Players with a PROFILE snapshot: since 0127 the roster writes
+        // rows for every member of every polled clan, so the count reads
+        // profile_observed_at (Phase 3 verification, 2026-09-18).
+        q(`select (select count(distinct player_tag) from player_snapshot_daily
+                     where profile_observed_at is not null)::int as with_snapshot,
                     (select count(distinct player_tag) from player_badge)::int as with_badges,
                     (select count(distinct player_tag) from player_snapshot_daily
-                     where snapshot_date >= current_date - 7)::int as with_snapshot_last_7_days,
+                     where profile_observed_at is not null
+                       and snapshot_date >= current_date - 7)::int as with_snapshot_last_7_days,
                     (select max(snapshot_date)::text from player_snapshot_daily) as newest_snapshot`),
         async () =>
           (

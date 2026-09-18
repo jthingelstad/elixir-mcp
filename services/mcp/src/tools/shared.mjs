@@ -408,6 +408,54 @@ export async function resolveSeasonWindow(
   };
 }
 
+/**
+ * The season fields for a DATE-bounded window (the daily series: game
+ * days from `fromDay` to `toDay` inclusive, today when `toDay` is null):
+ * the season the window starts in, every roll inside it, the season's
+ * age at the window's end, and the crossing note - the same echo the
+ * instant-bounded tools carry from resolveSeasonWindow.
+ */
+export async function seasonFieldsForDays(db, fromDay, toDay) {
+  const nowMs = Date.now();
+  const fromMs = Date.parse(`${fromDay}T10:00:00Z`);
+  const endMs = toDay
+    ? Math.min(Date.parse(`${toDay}T10:00:00Z`) + DAY_MS, nowMs)
+    : nowMs;
+  const start = await seasonAt(db, fromMs);
+  const crosses = await seasonCrossings(db, fromMs, endMs);
+  const season = start
+    ? {
+        month: start.season_month,
+        war: start.war_season_id,
+        starts_at: start.starts_at.toISOString(),
+        ends_at: start.ends_at.toISOString(),
+      }
+    : null;
+  const seasonAgeDays = start
+    ? Math.floor(
+        (Math.min(endMs, start.ends_at.getTime()) - start.starts_at.getTime()) /
+          DAY_MS,
+      )
+    : null;
+  const spanned = crosses.length
+    ? [crosses[0].from_season, ...crosses.map((c) => c.to_season)]
+        .filter(Boolean)
+        .map(seasonLabel)
+    : [];
+  return {
+    echo: {
+      season,
+      crosses,
+      ...(seasonAgeDays === null ? {} : { season_age_days: seasonAgeDays }),
+    },
+    seasonNotes: notes(
+      crosses.length
+        ? `Window spans ${spanned.slice(0, -1).join(", ")} and ${spanned.at(-1)}; the seasonal trophies and the Path of Legends standing reset on the roll, so points on either side of it are not one series.`
+        : null,
+    ),
+  };
+}
+
 /** The one echo block. Undefined values are dropped so a tool spreads
  *  whatever it applied and the response carries only what is true. */
 /** live: true, asynchronously (1.7.0). Returns { state: "fresh",

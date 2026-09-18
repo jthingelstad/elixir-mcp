@@ -10,7 +10,19 @@ import {
   responseMeta,
 } from "@elixir-mcp/contracts";
 import {
-  WINDOW_DATE_ONLY_DESC,
+  PLAYER_METRICS,
+  KINDS,
+  KIND_SCHEMA,
+  GRANULARITY_SCHEMA,
+  DAY_WINDOW_ARGS,
+  STAMP_COLUMNS,
+  GAME_DAY_NOTE,
+  dayWindow,
+  pointStamps,
+  metricValue,
+  botSourceNote,
+} from "../daily-series.mjs";
+import {
   TIMEZONE_SCHEMA,
   VERBOSITY,
   requireEnum,
@@ -28,7 +40,7 @@ import {
   notes,
   docsRef,
   deckIdentities,
-  withWindowSugar,
+  seasonFieldsForDays,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
 import { iconUrlsOf } from "./cards.mjs";
@@ -285,7 +297,7 @@ export const playersTools = {
 
   players_timeline: {
     description:
-      "Time series from daily snapshots: trophies, donations (the weekly counter, which resets Mondays), battle_count, collection_level. The trophy-graph tool. Granularity week returns the last snapshot of each ISO week.",
+      "Time series from daily snapshots, one point per game day: trophies by default, or any of the day row's metrics (donations and donations_received, the weekly counters; the lifetime block: battle_count, wins, losses, three_crown_wins, star_points, collection_level, king_tower_level, total_donations, the challenge and tournament counters; the Path of Legends standing; the seasonal trophies; arena_id, clan_tag, clan_rank, game_last_seen_at from the roster). Every point carries observed_at, profile_observed_at (null on a roster-only day) and roster_observed_at. progress_key adds the side-mode progress series; kind selects the pre_reset or season_roll row. Granularity week returns the last row of each ISO week.",
     inputSchema: {
       type: "object",
       properties: {
@@ -293,29 +305,20 @@ export const playersTools = {
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         metrics: {
           type: "array",
-          items: {
-            type: "string",
-            enum: ["trophies", "donations", "battle_count", "collection_level"],
-          },
+          items: { type: "string", enum: PLAYER_METRICS },
           default: ["trophies"],
           description: "Which series to return.",
         },
-        from: { type: "string", description: WINDOW_DATE_ONLY_DESC },
-        to: { type: "string", description: WINDOW_DATE_ONLY_DESC },
-        days: {
-          type: "integer",
-          minimum: 1,
-          description:
-            "Last N days of snapshots, today included: sugar for from. Or use from/to.",
-        },
-        weeks: {
-          type: "integer",
-          minimum: 1,
-          description:
-            "Last N weeks of snapshots, today included: sugar for from. Or use from/to.",
-        },
+        ...DAY_WINDOW_ARGS,
         timezone: TIMEZONE_SCHEMA,
-        granularity: { type: "string", enum: ["day", "week"], default: "day" },
+        granularity: GRANULARITY_SCHEMA,
+        kind: KIND_SCHEMA,
+        progress_key: {
+          type: "string",
+          maxLength: 60,
+          description:
+            "A Player.progress key as the API spells it (2v2League_202609, seasonal-trophy-road-202609, AutoChess_2026_Season_11, or '' for the Merge Tactics pre-season arena) or 'all': adds progress[] with that bucket's trophies, best_trophies and arena_id per day. A bucket at zero writes no row.",
+        },
       },
       additionalProperties: false,
     },
@@ -330,54 +333,24 @@ export const playersTools = {
         )
       ).tag;
       const tz = zoneFor(ctx, rawArgs);
-      // The window sugar, as a date: snapshot days are game days (the
-      // 10:00Z grid, 0126), and N days back from today is the day N-1
-      // days ago, today included.
-      const args = withWindowSugar(rawArgs);
-      if (args.from !== rawArgs.from)
-        args.from = new Date(Date.parse(args.from) + 86_400_000)
-          .toISOString()
-          .slice(0, 10);
-      for (const d of ["from", "to"]) {
-        if (
-          args[d] !== undefined &&
-          (!/^\d{4}-\d{2}-\d{2}$/.test(String(args[d])) ||
-            Number.isNaN(Date.parse(args[d])))
-        ) {
-          throw new ToolFailure(
-            "bad_request",
-            `Unparseable ${d}: ${args[d]}`,
-            WINDOW_DATE_ONLY_DESC,
-          );
-        }
-      }
-      requireEnum(args.granularity, ["day", "week"], "granularity");
-      for (const metric of args.metrics ?? []) {
-        requireEnum(
-          metric,
-          ["trophies", "donations", "battle_count", "collection_level"],
-          "metric",
-        );
-      }
+      const win = dayWindow(rawArgs);
+      requireEnum(rawArgs.granularity, ["day", "week"], "granularity");
+      requireEnum(rawArgs.kind, KINDS, "kind");
+      for (const metric of rawArgs.metrics ?? [])
+        requireEnum(metric, PLAYER_METRICS, "metric");
       const metrics =
-        Array.isArray(args.metrics) && args.metrics.length > 0
-          ? args.metrics
+        Array.isArray(rawArgs.metrics) && rawArgs.metrics.length > 0
+          ? rawArgs.metrics
           : ["trophies"];
-      const where = [`player_tag = $1`, `snapshot_kind = 'daily'`];
-      const params = [tag];
-      if (args.from && args.to && args.from > args.to) {
-        throw new ToolFailure(
-          "bad_request",
-          "from is after to — the window is inverted.",
-          "Swap the bounds; from must be the earlier date.",
-        );
-      }
-      if (args.from) {
-        params.push(args.from);
+      const kind = rawArgs.kind ?? "daily";
+      const where = [`player_tag = $1`, `snapshot_kind = $2`];
+      const params = [tag, kind];
+      if (win.from) {
+        params.push(win.from);
         where.push(`snapshot_date >= $${params.length}::date`);
       }
-      if (args.to) {
-        params.push(args.to);
+      if (win.to) {
+        params.push(win.to);
         where.push(`snapshot_date <= $${params.length}::date`);
       }
       // Epoch disclosure: snapshots start later than battles; never let a
@@ -388,52 +361,109 @@ export const playersTools = {
         [tag],
       );
       const snapshotsFrom = epoch[0]?.first ?? null;
-      const weekly = args.granularity === "week";
+      const weekly = rawArgs.granularity === "week";
+      const cols = `snapshot_date, ${STAMP_COLUMNS}, ${PLAYER_METRICS.join(", ")}`;
       const { rows } = await ctx.db.query(
         weekly
           ? `select distinct on (date_trunc('week', snapshot_date))
-               snapshot_date, to_char(snapshot_date, 'IYYY-"W"IW') as iso_week,
-               trophies, donations,
-               battle_count, collection_level
+               ${cols}, to_char(snapshot_date, 'IYYY-"W"IW') as iso_week
              from player_snapshot_daily where ${where.join(" and ")}
              order by date_trunc('week', snapshot_date), snapshot_date desc`
-          : `select snapshot_date, trophies, donations,
-                battle_count, collection_level
-             from player_snapshot_daily where ${where.join(" and ")}
+          : `select ${cols} from player_snapshot_daily where ${where.join(" and ")}
              order by snapshot_date`,
         params,
       );
-      const points = weekly
-        ? rows.sort((a, z) => a.snapshot_date - z.snapshot_date)
-        : rows;
+      const points = (
+        weekly ? rows.sort((a, z) => a.snapshot_date - z.snapshot_date) : rows
+      ).map((r) => ({
+        date: r.snapshot_date.toISOString().slice(0, 10),
+        ...(weekly ? { iso_week: r.iso_week } : {}),
+        ...pointStamps(r),
+        ...Object.fromEntries(metrics.map((m) => [m, metricValue(r, m)])),
+      }));
+      // The progress series (0129): one bucket, or every bucket the
+      // player has had, per day in the same window and kind (pre_reset
+      // does not exist there: nothing in a bucket is weekly).
+      let progress;
+      if (rawArgs.progress_key !== undefined) {
+        const key = String(rawArgs.progress_key);
+        const pWhere = [`player_tag = $1`, `snapshot_kind = $2`];
+        const pParams = [tag, kind === "pre_reset" ? "daily" : kind];
+        if (key !== "all") {
+          pParams.push(key);
+          pWhere.push(`progress_key = $${pParams.length}`);
+        }
+        if (win.from) {
+          pParams.push(win.from);
+          pWhere.push(`day >= $${pParams.length}::date`);
+        }
+        if (win.to) {
+          pParams.push(win.to);
+          pWhere.push(`day <= $${pParams.length}::date`);
+        }
+        const { rows: prog } = await ctx.db.query(
+          `select p.progress_key, m.mode, m.season_month, p.day, p.observed_at,
+                  p.trophies, p.best_trophies, p.arena_id
+             from player_progress_daily p
+             join mode_season m on m.progress_key = p.progress_key
+            where ${pWhere.join(" and ")}
+            order by p.progress_key, p.day`,
+          pParams,
+        );
+        progress = prog.map((r) => ({
+          key: r.progress_key,
+          mode: r.mode,
+          season_month: r.season_month,
+          day: r.day.toISOString().slice(0, 10),
+          observed_at: r.observed_at.toISOString(),
+          trophies: r.trophies,
+          best_trophies: r.best_trophies,
+          arena_id: r.arena_id,
+        }));
+      }
+      const seasonFields = await seasonFieldsForDays(
+        ctx.db,
+        win.from ?? snapshotsFrom ?? new Date().toISOString().slice(0, 10),
+        win.to,
+      );
+      const rosterOnly = points.filter(
+        (p) => p.profile_observed_at === null,
+      ).length;
       return {
         player_tag: tag,
         applied: appliedBlock({
           window: {
-            from: args.from ?? null,
-            to: args.to ?? null,
-            source: args.from || args.to ? "argument" : "unbounded",
+            from: win.from,
+            to: win.to,
+            source: win.source,
             ...(tz ? { timezone: tz } : {}),
+            ...seasonFields.echo,
           },
           granularity: weekly ? "week" : "day",
+          kind,
           metrics,
+          ...(rawArgs.progress_key !== undefined
+            ? { progress_key: String(rawArgs.progress_key) }
+            : {}),
         }),
         snapshots_available_from: snapshotsFrom,
-        series: points.map((r) => ({
-          date: r.snapshot_date.toISOString().slice(0, 10),
-          ...(weekly ? { iso_week: r.iso_week } : {}),
-          ...Object.fromEntries(metrics.map((m) => [m, r[m]])),
-        })),
+        series: points,
+        ...(progress ? { progress } : {}),
         notes: notes(
-          snapshotsFrom && args.from && args.from < snapshotsFrom
-            ? `Requested from ${args.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`
+          snapshotsFrom && win.from && win.from < snapshotsFrom
+            ? `Requested from ${win.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each snapshot; it resets Mondays around 00:10 UTC."
+            ? "donations is the weekly counter as of each snapshot; it resets Mondays around 00:10 UTC (kind: pre_reset is the row from the hour before)."
             : null,
-          "Snapshot days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; the series exists only from snapshots_available_from.",
+          rosterOnly > 0
+            ? `${rosterOnly} of ${points.length} points are roster-only (profile_observed_at null): the roster's columns are the day's, the lifetime block is null there.`
+            : null,
+          botSourceNote(points),
+          ...seasonFields.seasonNotes,
+          GAME_DAY_NOTE,
         ),
-        docs: docsRef("recording", "completeness"),
+        docs: docsRef("recording", "daily-series"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"], {
           timezone: tz,
         }),

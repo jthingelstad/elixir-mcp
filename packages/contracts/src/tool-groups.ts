@@ -304,6 +304,16 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Clan participation by week",
     readOnly: true,
   },
+  clans_timeline: {
+    group: "Clans",
+    title: "Clan timeline",
+    readOnly: true,
+  },
+  clans_members_timeline: {
+    group: "Clans",
+    title: "Clan members' timeline",
+    readOnly: true,
+  },
 
   // War — river race, current and historical (docs: models/river-race.md).
   // game_clock needs no subject at all: it is a property of the game, not

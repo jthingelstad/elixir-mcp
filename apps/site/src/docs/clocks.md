@@ -51,6 +51,29 @@ Events carry `created_at`, the moment the recorder noticed the change, which
 is "observed between two polls": a member who left at 09:05 and was noticed
 at 09:15 has an event stamped 09:15.
 
+## The game day
+
+Every daily series in the record (`players_timeline`, `clans_timeline`,
+`clans_members_timeline`, and the progress series) is keyed by one day: the
+**game day**, the date whose 10:00 UTC start the observation falls after. It is
+the same partition as the [policy day](#the-policy-day) below, so a war day, a
+season roll (the first Monday of the month at 10:00 UTC) and a series row never
+straddle: the snapshot taken at 09:00 UTC on the roll Monday is the last row of
+the old season, and the first row after 10:00 UTC is the first of the new one.
+The function is pure UTC arithmetic (`game_day(at) = date(at - 10 hours)`), so
+daylight-saving changes cannot move it. A point's `day` is the game's; your
+timezone is a display concern, and `applied.window.timezone` says which zone
+date-only bounds were resolved in.
+
+Within a game day the **last observation wins**: a row is the state as of its
+newest observation, and every point carries the instants that produced it -
+`observed_at` (the newest observation of either writer), `profile_observed_at`
+(the profile poll that wrote the lifetime columns) and, on member rows,
+`roster_observed_at` (the roster poll that wrote the clan columns). Null means
+that writer never touched the row. Two extra rows are kept where a counter is
+about to reset: `kind: pre_reset` in the hour before the Monday 00:10 UTC
+donation reset, and `kind: season_roll` in the hour before the season rolls.
+
 ## The policy day
 
 Clash Royale does not publish a calendar. The river race resets once a day

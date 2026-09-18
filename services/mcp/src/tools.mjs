@@ -25,6 +25,7 @@ import { liveTools } from "./tools/live.mjs";
 import { playersTools } from "./tools/players.mjs";
 import { warTools } from "./tools/war.mjs";
 import { rankingsTools } from "./tools/rankings.mjs";
+import { seriesTools } from "./tools/series.mjs";
 import { validateArgs } from "./validate.mjs";
 import { OUTPUT_SCHEMAS } from "./output-schemas.mjs";
 import { ToolFailure } from "./tools/shared.mjs";
@@ -43,6 +44,7 @@ const TOOLS = {
   ...badgesTools,
   ...cardsTools,
   ...clansTools,
+  ...seriesTools,
   ...liveTools,
   ...playersTools,
   ...warTools,

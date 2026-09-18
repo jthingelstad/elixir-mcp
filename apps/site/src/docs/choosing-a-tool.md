@@ -31,6 +31,8 @@ conventions that hold everywhere.
 | Which game-mode leaderboard ids can I read? | `rankings_players({ board: "mode", location: "list" })`, then pass a returned `location` to read its board |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
 | What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked, donations, war days per member per week, in one call) |
+| How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
+| How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
 | What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment` |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |

@@ -80,6 +80,33 @@ const WINDOW_ECHO = {
   required: ["source"],
 };
 
+/** A point of a member's daily series: the day, the stamps that
+ *  produced the row (null means that writer never touched it), and the
+ *  metrics asked for. */
+const SERIES_POINT = {
+  type: "object",
+  properties: {
+    date: DATE,
+    day: DATE,
+    iso_week: { type: "string" },
+    kind: { type: "string", enum: ["daily", "pre_reset", "season_roll"] },
+    observed_at: { type: ["string", "null"] },
+    profile_observed_at: {
+      type: ["string", "null"],
+      description:
+        "The profile poll that wrote the lifetime block; null on a roster-only day.",
+    },
+    roster_observed_at: {
+      type: ["string", "null"],
+      description:
+        "The roster poll that wrote the clan columns; null when the roster never touched the row.",
+    },
+    source: { type: "string", enum: ["api", "elixir-bot"] },
+    clan_tag: { type: ["string", "null"] },
+  },
+  required: ["kind", "source"],
+};
+
 const NOTES = {
   type: "array",
   items: { type: "string" },
@@ -516,6 +543,25 @@ export const OUTPUT_SCHEMAS = {
             first_observed_in_clan: { type: ["string", "null"] },
             last_recorded_battle: { type: ["string", "null"] },
             last_seen_in_game: { type: ["string", "null"] },
+            years_played: NULLABLE_INT,
+            account_age_days: NULLABLE_INT,
+            badge_count: COUNT,
+            lifetime: {
+              type: ["object", "null"],
+              description:
+                "As of the latest profile poll; null for a member whose profile is not recorded.",
+              properties: {
+                as_of: ISO,
+                best_trophies: NULLABLE_INT,
+                battle_count: NULLABLE_INT,
+                wins: NULLABLE_INT,
+                losses: NULLABLE_INT,
+                three_crown_wins: NULLABLE_INT,
+                collection_level: NULLABLE_INT,
+                king_tower_level: NULLABLE_INT,
+                total_donations: NULLABLE_INT,
+              },
+            },
           },
           required: ["player_tag", "role"],
         },
@@ -527,6 +573,136 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
     },
     required: ["clan_tag", "applied", "name", "member_count", "meta"],
+  },
+
+  players_timeline: {
+    type: "object",
+    properties: {
+      player_tag: TAG,
+      applied: {
+        type: "object",
+        properties: { window: WINDOW_ECHO, kind: { type: "string" } },
+        required: ["window"],
+      },
+      snapshots_available_from: { type: ["string", "null"] },
+      series: { type: "array", items: SERIES_POINT },
+      progress: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            key: { type: "string" },
+            mode: { type: "string" },
+            season_month: { type: ["string", "null"] },
+            day: DATE,
+            observed_at: ISO,
+            trophies: NULLABLE_INT,
+            best_trophies: NULLABLE_INT,
+            arena_id: NULLABLE_INT,
+          },
+          required: ["key", "day", "observed_at"],
+        },
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "player_tag",
+      "applied",
+      "snapshots_available_from",
+      "series",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
+
+  clans_timeline: {
+    type: "object",
+    properties: {
+      clan_tag: TAG,
+      applied: {
+        type: "object",
+        properties: { window: WINDOW_ECHO, kind: { type: "string" } },
+        required: ["window"],
+      },
+      series_available_from: { type: ["string", "null"] },
+      series: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            day: DATE,
+            iso_week: { type: "string" },
+            kind: {
+              type: "string",
+              enum: ["daily", "pre_reset", "season_roll"],
+            },
+            observed_at: ISO,
+            source: { type: "string", enum: ["api", "elixir-bot"] },
+          },
+          required: ["day", "kind", "observed_at", "source"],
+        },
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "clan_tag",
+      "applied",
+      "series_available_from",
+      "series",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
+
+  clans_members_timeline: {
+    type: "object",
+    properties: {
+      clan_tag: TAG,
+      applied: {
+        type: "object",
+        properties: {
+          window: WINDOW_ECHO,
+          kind: { type: "string" },
+          limit: COUNT,
+        },
+        required: ["window"],
+      },
+      member_count: COUNT,
+      members: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            points: COUNT,
+            series: { type: "array", items: SERIES_POINT },
+            first: { anyOf: [SERIES_POINT, { type: "null" }] },
+            last: { anyOf: [SERIES_POINT, { type: "null" }] },
+            delta: { type: ["object", "null"] },
+          },
+          required: ["player_tag", "points"],
+        },
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "clan_tag",
+      "applied",
+      "member_count",
+      "members",
+      "notes",
+      "docs",
+      "meta",
+    ],
   },
 
   clans_standings: {

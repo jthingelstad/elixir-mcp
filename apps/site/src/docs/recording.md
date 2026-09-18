@@ -235,6 +235,45 @@ Every response's `meta` says what it was built from:
 Freshness advances only when a payload is admitted, never on a fetch that was
 refused, so a stale value is honest.
 
+## Daily series
+
+Three tables hold the record's day-grained history, one row per subject per
+[game day](/docs/clocks#the-game-day), the last observation of the day winning:
+
+| Series | Written by | From | Read by |
+|---|---|---|---|
+| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, seasonal trophies) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_timeline`, `clans_members_timeline` |
+| a clan's day (clan score, war trophies, member count, required trophies, weekly donations, type and location) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_timeline` |
+| a player's progress buckets (the seasonal Trophy Road, 2v2 League, Merge Tactics: trophies, best trophies, arena per bucket) | the profile poll | 2026-03-07 | `players_timeline` with `progress_key` |
+
+Two writers share a member's row. The roster writes trophies, donations,
+donations received, arena, the clan, the rank and the game's last-seen at
+its own cadence (every fifteen minutes for a tracked clan); the profile writes
+the lifetime block at its own (every eight hours or slower). Each writer's
+columns are dated by its own stamp (`roster_observed_at`, `profile_observed_at`),
+the shared columns belong to whichever observation is newer, and `observed_at`
+is the newest of either. So "trophies on day D" is the day's last read from
+either source; "wins on day D" is the day's last profile read, and a day the
+roster wrote with no profile poll carries the roster's columns and null
+elsewhere, with `profile_observed_at` null to say so.
+
+`source` on a point is `api` for a row from a recorded payload (live or the
+archive backfill of 2026-09-17) and `elixir-bot` for the few rows imported
+from POAP KINGS' earlier bot on 2026-09-18: five member-only days before the
+first archived roster (2026-03-07 to 03-11, their instant the bot's usual
+roster hour) and the Sunday `pre_reset` rows for members whose profile was not
+recorded then. A window that contains such a point says so in `notes[]`. The
+July to September 2026 hole in the profile archive was filled by replaying
+the bot's own profile payloads; that replay wrote rows and never moments, so
+the timeline for those players is quiet over those weeks by rule, not by
+absence of play.
+
+`kind` selects the daily row (the default), the `pre_reset` row (the hour
+before the Monday 00:10 UTC donation reset, the honest weekly donation total)
+or the `season_roll` row (the hour before the season rolls). A bucket of the
+progress series that reads zero trophies and zero best trophies is not a row:
+no record for no activity.
+
 ## Completeness
 
 `elixir_coverage({ player_tag? })` returns:
