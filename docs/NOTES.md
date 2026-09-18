@@ -3675,3 +3675,28 @@ sends the weekly mail, elixir-bot's two senders go quiet; (2) the member
 whose Elixir address differs then gets mail at the Elixir one; (3) the
 Buttondown list question from 0049 is unchanged by this: `newsletter_opt_in`
 was left false, transactional mail is not governed by it.
+
+**Same day, two corrections.** (a) The admin accounts list read "0
+players · 0 clans" for every one of them. It counted `recording` rows with
+`requested_by` = the account, i.e. recordings the account ORIGINATED, and
+a recording is one row per subject shared by everyone who wants it, so an
+account whose player was already recorded starts nothing. The label said
+"Tracking"; the number was "started". `players_tracked` / `clans_tracked`
+now count `claim` and `account_clan` (2036118); the ops list reports the
+same. Nothing else read that column, so the tools were always right for
+these accounts. (b) One pre-existing admin account tracked nothing at all
+(made before the request form carried a tag). `account_enroll` gained
+`fill_empty: true` (5311b8a): an approved person account with no claim and
+no clan is filled the same way a new one is; anything tracking anything
+is still skipped, as `exists_tracking`. Jamie asked; dry run, then the
+run: 1 player · 1 clan.
+
+**Flaky test, not fixed:** `services/ingest/test/profile-refresh.test.mjs`
+anchors its scenario to `date(now - 12h)` and the pipeline's freshness
+guard is 24h, so between roughly 06:39Z and 12:00Z the morning polls are
+24-29h old, `fresh` is false, and three tests fail (mapped with a shimmed
+clock: pass at 12:30Z, 13:30Z, 14:40Z, 20:00Z, 05:00Z; fail at 08:00Z).
+Every push to date has landed outside the window, which is why CI is
+green. The scenario crosses the 10:00Z game-day roll on purpose, so the
+times cannot be shifted by hours; the fix is injecting the clock into the
+pipeline. Until then, do not push in that window.
