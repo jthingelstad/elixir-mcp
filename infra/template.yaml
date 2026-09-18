@@ -23,6 +23,12 @@ Parameters:
     Type: String
   JobsCodeKey:
     Type: String
+  EditorCodeKey:
+    Type: String
+  EditorModel:
+    Type: String
+    Default: claude-opus-5
+    Description: The model the Top 100 editor Lambda writes with (Anthropic API model id)
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
@@ -451,6 +457,51 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
+              # Product email (docs/EMAIL.md): the jobs Lambda composes
+              # and enqueues; the relay sends. The Top 100 brief and
+              # issue pass through the archive bucket under mail/ and
+              # the editor Lambda is invoked by name.
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt EmailQueue.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub
+                  - ${Arn}/mail/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:elixir-mcp-editor
+
+  # The Top 100 editor: the one function that calls a model, non-VPC
+  # on the relay's pattern because the VPC has no internet. It reads
+  # and writes only under mail/ and hands the issue back to the jobs
+  # Lambda, which lints and stores it; it holds no database.
+  EditorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-editor
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-editor
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub
+                  - ${Arn}/mail/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt JobsFunction.Arn
 
   EmailRelayRole:
     Type: AWS::IAM::Role

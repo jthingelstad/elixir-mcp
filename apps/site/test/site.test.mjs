@@ -101,6 +101,7 @@ const STATIC_PAGES = [
   "/docs/operators",
   "/docs/verify",
   "/docs/activity",
+  "/docs/email",
   "/updates",
   "/data/growth",
   "/data/collect",

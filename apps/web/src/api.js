@@ -38,6 +38,10 @@ export const api = {
     request("POST", "/api/me/connections/refusals/dismiss", body),
   signOut: () => request("POST", "/api/session/signout", {}),
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
+  emailPrefs: () => request("GET", "/api/me/email"),
+  setEmailPref: (kind, enabled) =>
+    request("PUT", "/api/me/email", { kind, enabled }),
+  sendEmailNow: (kind) => request("POST", "/api/me/email/send", { kind }),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
   claimAction: (body) => request("POST", "/api/claims", body),
   clan: () => request("GET", "/api/clan"),

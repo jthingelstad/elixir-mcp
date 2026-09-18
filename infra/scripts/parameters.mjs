@@ -21,6 +21,7 @@ export const REQUIRED_PARAMETERS = [
   "EmailRelayCodeKey",
   "MigrateCodeKey",
   "JobsCodeKey",
+  "EditorCodeKey",
 ];
 
 /**
@@ -49,6 +50,9 @@ export const PRESERVED_PARAMETERS = [
   // The relay's transport: flipped to ses by hand once the poapkings.com
   // identity has verified; a deploy must never flip it back to jmap.
   "EmailTransport",
+  // The Top 100 writer's model: changed by hand when a newer one is
+  // wanted, never reset by a deploy.
+  "EditorModel",
 ];
 
 /**

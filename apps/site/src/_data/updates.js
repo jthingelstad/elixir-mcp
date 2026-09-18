@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "Email: six kinds, each a switch",
+    body: "Elixir now sends mail from the record: a Monday clan report, Tuesday's your week in the Arena, Wednesday's tracking report, Thursday's Top 100 (one shared issue), Sunday's collector activity for operators, and a milestone note when something you or an alt did is a first. Five are structured reports with no model in the loop; the Top 100 is written by a model that may print a number only after reading it from a brief the program built, and the program checks every number before it sends. All six are on by default, each a switch on your Profile with a send-me-this-now button, and every issue carries a one-click off. Details at /docs/email.",
+  },
+  {
+    date: "2026-09-19",
     title: "4.0.0: one name for everything",
     body: "The five releases since the record redesign each put a new name beside an old one so nothing broke mid-week; this release keeps the new name and retires the old, in one deploy, with every first-party client updated the same evening. A series point has day; a battle's arena is an id and a name; the lifetime block is one shape on every tool that carries it; a standing's net_trophies is spelled the way the performance tool spells it; the Path of Legends league is league_number everywhere; a week is partial, never complete; coverage's ratio is a number; the event calendar is on game days; and the six population tools ask you to name the population. Filing feedback is elixir_send_feedback. The contract's changelog names every retired field and its replacement; reconnect your client so it sees the new tool list. Contract 4.0.0.",
   },

@@ -7,9 +7,18 @@
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
  *  {activity_histogram: true} · {meta_rollup_nightly: true} ·
- *  {meta_rollup_hourly: true} · {shape_census: true}. */
+ *  {meta_rollup_hourly: true} · {shape_census: true} · {email: "<kind>",
+ *  account_id?, force?} (docs/EMAIL.md: the six product mail kinds, one
+ *  EventBridge rule each; account_id + force is the account page's
+ *  "send me this now") · {top100_generate: true} (the brief for the
+ *  Top 100 issue, handed to the editor Lambda through the archive
+ *  bucket) · {top100_accept: {key}} (the editor's answer, linted and
+ *  stored as the issue to send). */
 
 import pg from "pg";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { runEmail } from "./email/index.mjs";
+import { top100Generate, top100Accept } from "./email/top100.mjs";
 import { activityHistogram } from "./activity.mjs";
 import { metaRollupNightly, metaRollupHourly } from "./meta-rollup.mjs";
 import { shapeCensus } from "./shape-census.mjs";
@@ -214,7 +223,46 @@ export async function sweepOperational(databaseUrl) {
   }
 }
 
+const sqs = new SQSClient({});
+async function enqueueEmail(msg) {
+  await sqs.send(
+    new SendMessageCommand({
+      QueueUrl: process.env.EMAIL_QUEUE_URL,
+      MessageBody: JSON.stringify(msg),
+    }),
+  );
+}
+
 export async function handler(event) {
+  if (typeof event?.email === "string") {
+    const result = await runEmail({
+      databaseUrl: process.env.DATABASE_URL,
+      kind: event.email,
+      accountId: event.account_id ?? null,
+      force: Boolean(event.force),
+      enqueue: enqueueEmail,
+      secret: process.env.SESSION_SECRET,
+    });
+    console.log(JSON.stringify({ email: result }));
+    return result;
+  }
+  if (event?.top100_generate) {
+    const result = await top100Generate({
+      databaseUrl: process.env.DATABASE_URL,
+      bucket: process.env.ARCHIVE_BUCKET,
+    });
+    console.log(JSON.stringify({ top100_generate: result }));
+    return result;
+  }
+  if (event?.top100_accept) {
+    const result = await top100Accept({
+      databaseUrl: process.env.DATABASE_URL,
+      bucket: process.env.ARCHIVE_BUCKET,
+      key: event.top100_accept.key,
+    });
+    console.log(JSON.stringify({ top100_accept: result }));
+    return result;
+  }
   if (event?.shape_census) {
     const result = await shapeCensus(process.env.DATABASE_URL);
     // The nightly series line rides the same invocation (series-metrics.mjs);

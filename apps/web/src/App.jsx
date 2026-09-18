@@ -456,6 +456,7 @@ export const DOC_LINKS = {
     "Your account",
     [
       ["Tiers & roles", "/docs/roles"],
+      ["Email", "/docs/email"],
       ["Limits", "/docs/limits"],
       ["Privacy", "/docs/privacy"],
     ],

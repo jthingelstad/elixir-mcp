@@ -24,6 +24,7 @@ export const LAMBDAS = [
   { name: "email-relay", entry: "services/email-relay/src/index.mjs" },
   { name: "migrate", entry: "services/migrate/src/lambda.mjs" },
   { name: "jobs", entry: "services/jobs/src/index.mjs" },
+  { name: "editor", entry: "services/editor/src/index.mjs" },
 ];
 
 export async function buildAll() {
@@ -50,6 +51,14 @@ export async function buildAll() {
       minify: false,
       logLevel: "error",
     });
+    if (name === "editor") {
+      // The writer prompt is a document (docs/top100), read at runtime
+      // beside the code so the file in the repo is the one that runs.
+      await cp(
+        path.join(repoRoot, "docs/top100/generator-prompt.md"),
+        path.join(outDir, "generator-prompt.md"),
+      );
+    }
     if (name === "migrate") {
       await cp(
         path.join(repoRoot, "db/migrations"),

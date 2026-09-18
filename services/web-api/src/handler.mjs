@@ -28,6 +28,7 @@ import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { collectorRoutes } from "./routes/collector.mjs";
 import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
+import { emailRoutes } from "./routes/email.mjs";
 import { collectionsRoutes } from "./routes/collections.mjs";
 import { publicRoutes } from "./routes/public.mjs";
 import { gatewaysRoutes } from "./routes/gateways.mjs";
@@ -98,6 +99,9 @@ export function makeHandler({
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
   capture = null,
+  /** Enqueue any email message on the relay queue; the product email
+   *  routes compose and hand off through it. null = sending is off. */
+  enqueueEmail = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
   const ping = async (eventName, value) => {
@@ -227,6 +231,16 @@ export function makeHandler({
     ...integrationsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
+    ...emailRoutes({
+      resolveAccount,
+      secret,
+      databaseUrl,
+      enqueueEmail:
+        enqueueEmail ??
+        (async () => {
+          throw new Error("email sending is not configured");
+        }),
+    }),
   };
 
   return async function handler(event, context) {
@@ -242,7 +256,11 @@ export function makeHandler({
         wildcardRoute(routes, method, path, event));
     if (!route) return json(404, { error: "not_found" });
     let body = {};
-    if (event.body) {
+    // The one-click unsubscribe POST (RFC 8058) carries
+    // "List-Unsubscribe=One-Click" as a form body, not JSON; the route
+    // reads only the query string.
+    const formOnly = path === "/api/email/unsubscribe";
+    if (event.body && !formOnly) {
       try {
         // API Gateway v2 may deliver bodies base64-encoded.
         body = JSON.parse(

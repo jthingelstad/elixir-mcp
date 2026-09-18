@@ -8,6 +8,7 @@ import {
   useUsage,
 } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
+import { EmailPanel } from "./EmailPanel.jsx";
 
 /**
  * Profile — the account you are signed in as, all on one page.
@@ -86,6 +87,8 @@ export function Profile({ me, refresh, navigate }) {
           />
         </div>
       </section>
+
+      <EmailPanel />
 
       <Devices />
 

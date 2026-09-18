@@ -85,7 +85,18 @@ in adds your address to the mailing list. That is a deliberate choice
 rather than an oversight, and this paragraph exists so it is not a
 surprise.
 
-**You can leave at any time.** Every issue carries an unsubscribe link.
+**The reports, and the milestone note.** Elixir also sends six kinds of
+its own mail from your record ([Email](/docs/email)): five weekly
+reports and a congratulations when something you did is a first. They
+are on by default for the same reason the newsletter is, each is its
+own switch on your account page, and every issue carries a one-click
+off for its kind. Turning one off is recorded on your account and never
+overridden. The reports are built by programs from the same readers the
+tools use; the Top 100 is written by a language model from a brief the
+program built, and the program checks every number before it sends.
+None of this mail carries tracking pixels or rewritten links.
+
+**You can leave at any time.** Every newsletter issue carries an unsubscribe link.
 Unsubscribing is permanent and is never overridden: once an address has
 told Buttondown to stop, nothing here re-subscribes it, including a
 later sign-in. The list is hosted at Buttondown, which processes your

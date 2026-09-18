@@ -1,0 +1,208 @@
+/** The product email job: one op per kind, idempotent by the ledger.
+ *
+ *  runEmail composes for every eligible recipient (or one, for the
+ *  account page's "send me this now"), enqueues each rendered mail on
+ *  the email queue the relay drains, and records the send after the
+ *  enqueue. Re-running a period sends only what the ledger lacks;
+ *  `force` is the manual path and skips that check. Every kind is
+ *  bulk under the mail policy, so every message carries the signed
+ *  one-click unsubscribe URL for its recipient and kind. */
+import pg from "pg";
+import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
+import { lastGameWeek, lastCollectorWeek } from "./week.mjs";
+import { upsertIssue } from "./ledger.mjs";
+import { deliver } from "./deliver.mjs";
+import { buildArena } from "./build-arena.mjs";
+import { buildTracking } from "./build-tracking.mjs";
+import { buildClan } from "./build-clan.mjs";
+import { buildCollector } from "./build-collector.mjs";
+import { buildMilestone, recordMilestones } from "./build-milestone.mjs";
+import { tryTool } from "./shared.mjs";
+
+const MILESTONE_LOOKBACK_MS = 26 * 3600_000;
+
+export async function runEmail({
+  databaseUrl,
+  db = null,
+  kind,
+  now = new Date(),
+  enqueue,
+  secret,
+  accountId = null,
+  force = false,
+}) {
+  const own = !db;
+  if (own) {
+    db = new pg.Client({ connectionString: databaseUrl });
+    await db.connect();
+  }
+  try {
+    const recipients = await loadRecipients(db, kind, { accountId });
+    const result = {
+      kind,
+      recipients: recipients.length,
+      composed: 0,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      details: [],
+    };
+    if (recipients.length === 0) return result;
+    const season = await seasonOf(db, recipients[0], now);
+    const manual = force ? `~m${now.getTime()}` : "";
+    const send = async ({ issueId, issueKey, account, facts }) => {
+      const r = await deliver({
+        db,
+        enqueue,
+        secret,
+        kind,
+        issueId,
+        issueKey,
+        account,
+        facts,
+        force,
+      });
+      if (r.sent) result.sent += 1;
+      else result.skipped += 1;
+      return r;
+    };
+    if (kind === "clan_report") {
+      const week = lastGameWeek(now);
+      const { rows: clans } = await db.query(
+        `select distinct ac.clan_tag from account_clan ac where ac.account_id = any($1::uuid[]) order by ac.clan_tag`,
+        [recipients.map((r) => r.accountId)],
+      );
+      for (const { clan_tag } of clans) {
+        const { rows: who } = await db.query(
+          `select account_id from account_clan where clan_tag = $1`,
+          [clan_tag],
+        );
+        const members = recipients.filter((r) =>
+          who.some((w) => w.account_id === r.accountId),
+        );
+        if (members.length === 0) continue;
+        try {
+          const facts = await buildClan({
+            db,
+            account: members[0],
+            clanTag: clan_tag,
+            week,
+            season,
+          });
+          if (!facts) {
+            result.skipped += members.length;
+            continue;
+          }
+          const issueId = await upsertIssue(db, {
+            kind,
+            periodKey: week.key + manual,
+            subjectKey: clan_tag,
+            facts,
+            status: "queued",
+          });
+          result.composed += 1;
+          for (const account of members)
+            await send({
+              issueId,
+              issueKey: `${kind}/${week.key}/${clan_tag}`,
+              account,
+              facts,
+            });
+        } catch (err) {
+          result.failed += 1;
+          result.details.push({ clan: clan_tag, error: err?.message });
+          console.error("email_compose_failed", kind, clan_tag, err?.message);
+        }
+      }
+      return result;
+    }
+    for (const account of recipients) {
+      try {
+        let facts = null;
+        let week = null;
+        let periodKey = null;
+        if (kind === "arena_week") {
+          week = lastGameWeek(now);
+          facts = await buildArena({ db, account, week, season });
+          periodKey = week.key;
+        } else if (kind === "tracking_report") {
+          week = lastGameWeek(now);
+          facts = await buildTracking({ db, account, week, season });
+          periodKey = week.key;
+        } else if (kind === "collector_activity") {
+          week = lastCollectorWeek(now);
+          facts = await buildCollector({ db, account, week });
+          periodKey = week.key;
+        } else if (kind === "milestone") {
+          const fromMs = now.getTime() - MILESTONE_LOOKBACK_MS;
+          facts = await buildMilestone({
+            db,
+            account,
+            fromMs,
+            toMs: now.getTime(),
+          });
+          periodKey = now.toISOString().slice(0, 10);
+        } else if (kind === "top_100") {
+          facts = await latestTop100(db);
+          periodKey = facts?.issue?.date ?? now.toISOString().slice(0, 10);
+        } else {
+          throw new Error(`unknown kind ${kind}`);
+        }
+        if (!facts) {
+          result.skipped += 1;
+          continue;
+        }
+        const subjectKey = kind === "top_100" ? "" : account.accountId;
+        const { _moments, ...stored } = facts;
+        const issueId = await upsertIssue(db, {
+          kind,
+          periodKey: periodKey + manual,
+          subjectKey,
+          facts: kind === "top_100" ? null : stored,
+          status: "queued",
+        });
+        result.composed += 1;
+        const r = await send({
+          issueId,
+          issueKey: `${kind}/${periodKey}/${subjectKey || "all"}`,
+          account,
+          facts,
+        });
+        if (kind === "milestone" && r.sent)
+          await recordMilestones(db, account.accountId, _moments ?? []);
+      } catch (err) {
+        result.failed += 1;
+        result.details.push({
+          account: account.accountId,
+          error: err?.message,
+        });
+        console.error(
+          "email_compose_failed",
+          kind,
+          account.accountId,
+          err?.message,
+        );
+      }
+    }
+    return result;
+  } finally {
+    if (own) await db.end();
+  }
+}
+
+async function seasonOf(db, account, now) {
+  const clock = await tryTool(callTool, accountCtx(db, account), "game_clock", {
+    at: now.toISOString(),
+  });
+  return clock?.season_id ?? null;
+}
+
+/** The newest composed Top 100 issue's facts (the editor pipeline wrote
+ *  them); null when there is none to send. */
+async function latestTop100(db) {
+  const { rows } = await db.query(
+    `select facts from email_issue where kind = 'top_100' and subject_key = '' and facts is not null
+      order by composed_at desc limit 1`,
+  );
+  return rows[0]?.facts ?? null;
+}

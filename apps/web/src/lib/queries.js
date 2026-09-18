@@ -28,6 +28,7 @@ export const keys = {
   feed: ["me", "feed"],
   gateways: ["me", "gateways"],
   sessions: ["me", "sessions"],
+  email: ["me", "email"],
   connections: ["me", "connections"],
   principals: ["me", "principals"],
   collections: ["me", "collections"],
@@ -57,6 +58,9 @@ const payload = (call) => () => call().then(unwrap);
 
 export const useUsage = () =>
   useQuery({ queryKey: keys.usage, queryFn: payload(api.usage) });
+
+export const useEmailPrefs = () =>
+  useQuery({ queryKey: keys.email, queryFn: payload(api.emailPrefs) });
 
 export const useMyClans = () =>
   useQuery({ queryKey: keys.clans, queryFn: payload(api.myClans) });
