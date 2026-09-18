@@ -718,6 +718,13 @@ export const OUTPUT_SCHEMAS = {
       clan_tag: TAG,
       applied: { type: "object" },
       name: { type: ["string", "null"] },
+      type: {
+        type: ["string", "null"],
+        description:
+          "open, inviteOnly or closed, as the last roster poll carried it (3.15.0).",
+      },
+      location_id: NULLABLE_INT,
+      description: { type: ["string", "null"] },
       member_count: COUNT,
       role_counts: { type: "object" },
       members: {
@@ -751,6 +758,9 @@ export const OUTPUT_SCHEMAS = {
                 collection_level: NULLABLE_INT,
                 king_tower_level: NULLABLE_INT,
                 total_donations: NULLABLE_INT,
+                war_day_wins: NULLABLE_INT,
+                clan_cards_collected: NULLABLE_INT,
+                legacy_trophy_road_high_score: NULLABLE_INT,
               },
             },
           },

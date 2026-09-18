@@ -50,6 +50,10 @@ const CLAN_METRICS = [
   "donations_per_week",
   "required_trophies",
 ];
+/** The clan's own attributes on the day row, to ask for (3.15.0): open /
+ *  inviteOnly / closed, and the location code. The select always fetched
+ *  them; the enum never named them. */
+const CLAN_ATTRIBUTES = ["type", "location_id"];
 const CLAN_AGGREGATES = [
   "total_member_trophies",
   "avg_member_trophies",
@@ -65,6 +69,7 @@ const CLAN_PROFILE_AGGREGATES = [
 ];
 const ALL_CLAN_METRICS = [
   ...CLAN_METRICS,
+  ...CLAN_ATTRIBUTES,
   ...CLAN_AGGREGATES,
   ...CLAN_PROFILE_AGGREGATES,
 ];
@@ -150,7 +155,9 @@ export const seriesTools = {
         [clanTag],
       );
       const availableFrom = epoch[0]?.first ?? null;
-      const needAggregates = metrics.some((m) => !CLAN_METRICS.includes(m));
+      const needAggregates = metrics.some(
+        (m) => !CLAN_METRICS.includes(m) && !CLAN_ATTRIBUTES.includes(m),
+      );
       const weekly = args.granularity === "week";
       const cols = `c.day, c.snapshot_kind, c.observed_at, c.source, c.clan_score, c.clan_war_trophies,
                     c.members, c.donations_per_week, c.required_trophies, c.type, c.location_id

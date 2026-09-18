@@ -243,7 +243,7 @@ Three tables hold the record's day-grained history, one row per subject per
 | Series | Written by | From | Read by |
 |---|---|---|---|
 | a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, seasonal trophies) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_timeline`, `clans_members_timeline` |
-| a clan's day (clan score, war trophies, member count, required trophies, weekly donations, type and location) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_timeline` |
+| a clan's day (clan score, war trophies, member count, required trophies, weekly donations, and on request `type` and `location_id`) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_timeline` |
 | a player's progress buckets (the seasonal Trophy Road, 2v2 League, Merge Tactics: trophies, best trophies, arena per bucket) | the profile poll | 2026-03-07 | `players_timeline` with `progress_key` |
 
 Two writers share a member's row. The roster writes trophies, donations,
@@ -257,7 +257,11 @@ either source; "wins on day D" is the day's last profile read, and a day the
 roster wrote with no profile poll carries the roster's columns and null
 elsewhere, with `profile_observed_at` null to say so.
 
-`clans_roster` at full verbosity carries each member's latest profile row as
+`clans_roster` carries the clan's own `type` (`open`, `inviteOnly`,
+`closed`), `location_id` (the API's location code) and `description` as the
+last roster poll carried them (`null` before 2026-09-17), at both
+verbosities: the first three things a joiner asks. At full verbosity it
+carries each member's latest profile row as
 `lifetime` (`as_of`, `best_trophies`, `battle_count`, `wins`, `losses`,
 `three_crown_wins`, `collection_level`, `king_tower_level`,
 `total_donations`), `null` for a member whose profile is not recorded, plus

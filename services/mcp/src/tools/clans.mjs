@@ -328,7 +328,7 @@ export const clansTools = {
       // The cheap answer to a cheap question (#11): one indexed count.
       if (compact) {
         const { rows } = await ctx.db.query(
-          `select c.name,
+          `select c.name, c.type, c.location_id, c.description,
                   count(cm.player_tag)::int as member_count,
                   count(*) filter (where cm.role = 'leader')::int as leaders,
                   count(*) filter (where cm.role = 'coLeader')::int as co_leaders,
@@ -338,7 +338,7 @@ export const clansTools = {
            left join clan_membership cm
              on cm.clan_tag = c.clan_tag and cm.left_observed_at is null
            where c.clan_tag = $1
-           group by c.name`,
+           group by c.name, c.type, c.location_id, c.description`,
           [clanTag],
         );
         const row = rows[0];
@@ -353,6 +353,9 @@ export const clansTools = {
           applied,
           ...(live ? { live_status: liveStatus(live) } : {}),
           name: row.name ?? null,
+          type: row.type ?? null,
+          location_id: row.location_id ?? null,
+          description: row.description ?? null,
           member_count: row.member_count ?? 0,
           role_counts: {
             leader: row.leaders ?? 0,
@@ -366,7 +369,7 @@ export const clansTools = {
       }
 
       const clanRow = await ctx.db.query(
-        `select name from clan where clan_tag = $1`,
+        `select name, type, location_id, description from clan where clan_tag = $1`,
         [clanTag],
       );
       if (!clanRow.rows[0])
@@ -423,6 +426,12 @@ export const clansTools = {
         applied,
         ...(live ? { live_status: liveStatus(live) } : {}),
         name: clanRow.rows[0]?.name ?? null,
+        // What a joiner asks first (3.15.0): open, invite only or closed;
+        // where; and what the clan says about itself. As the last roster
+        // poll carried them; null before 2026-09-17.
+        type: clanRow.rows[0]?.type ?? null,
+        location_id: clanRow.rows[0]?.location_id ?? null,
+        description: clanRow.rows[0]?.description ?? null,
         member_count: roster.rows.length,
         members: roster.rows.map((m) => ({
           player_tag: m.player_tag,
