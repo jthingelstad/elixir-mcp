@@ -600,6 +600,12 @@ export const OUTPUT_SCHEMAS = {
             rank: { type: ["integer", "null"] },
             trophy_change: { type: ["integer", "null"] },
             finish_time: { type: ["string", "null"] },
+            clan_score: {
+              type: ["integer", "null"],
+              description:
+                "The game's own strength number for the clan, latest observed (3.15.0).",
+            },
+            repair_points: { type: ["integer", "null"] },
           },
           required: ["participant_clan_tag", "fame", "period_points"],
         },
@@ -608,7 +614,47 @@ export const OUTPUT_SCHEMAS = {
       participants_count: COUNT,
       member_count: COUNT,
       members_not_in_race: { type: "array" },
-      period: { type: "object" },
+      period: {
+        type: "object",
+        properties: {
+          api_period_type: {
+            type: ["string", "null"],
+            description:
+              "The API's own word for the day at the last race poll: training, warDay or colosseum (3.15.0).",
+          },
+        },
+      },
+      days_closed: {
+        type: "array",
+        description:
+          "Full verbosity: the race's own day-by-day (periodLogs), one entry per closed war day (3.15.0).",
+        items: {
+          type: "object",
+          properties: {
+            war_day: { type: ["integer", "null"] },
+            period_index: COUNT,
+            standings: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  clan_tag: TAG,
+                  name: { type: ["string", "null"] },
+                  points_earned: NULLABLE_INT,
+                  progress_start: NULLABLE_INT,
+                  progress_end: NULLABLE_INT,
+                  progress_earned: NULLABLE_INT,
+                  end_of_day_rank: NULLABLE_INT,
+                  defenses_remaining: NULLABLE_INT,
+                  progress_from_defenses: NULLABLE_INT,
+                },
+                required: ["clan_tag"],
+              },
+            },
+          },
+          required: ["period_index", "standings"],
+        },
+      },
       race_finished_at: { type: ["string", "null"] },
       decks_today: {
         type: ["object", "null"],

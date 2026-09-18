@@ -35,6 +35,45 @@ const CLAN_TAG_SCHEMA = {
  *  accepted - recorded or not - and a fresh read is served if in hand or
  *  queued (1.7.0, asynchronous), the way players_profile does for a
  *  player. Without it, the clan must be recorded. */
+/** The race's day-by-day (war_period_log, 0130): one entry per closed war
+ *  day with every clan in the bracket, the API's own periodLogs. The war
+ *  day comes from the policy grid; the name from the week's standings. */
+async function warDaysLog(db, clanTag, seasonId, sectionIndex) {
+  const { rows } = await db.query(
+    `select l.period_index, p.war_day, l.participant_clan_tag, c.participant_name,
+            l.points_earned, l.progress_start, l.progress_end, l.progress_earned,
+            l.end_of_day_rank, l.defenses_remaining, l.progress_from_defenses
+       from war_period_log l
+       left join war_period p on p.war_season_id = l.season_id and p.period_index = l.period_index
+       left join war_week_clan c on c.clan_tag = l.clan_tag and c.season_id = l.season_id
+         and c.section_index = l.section_index and c.participant_clan_tag = l.participant_clan_tag
+      where l.clan_tag = $1 and l.season_id = $2 and l.section_index = $3
+      order by l.period_index, l.end_of_day_rank nulls last, l.participant_clan_tag`,
+    [clanTag, seasonId, sectionIndex],
+  );
+  const days = new Map();
+  for (const r of rows) {
+    if (!days.has(r.period_index))
+      days.set(r.period_index, {
+        war_day: r.war_day,
+        period_index: r.period_index,
+        standings: [],
+      });
+    days.get(r.period_index).standings.push({
+      clan_tag: r.participant_clan_tag,
+      name: r.participant_name,
+      points_earned: r.points_earned,
+      progress_start: r.progress_start,
+      progress_end: r.progress_end,
+      progress_earned: r.progress_earned,
+      end_of_day_rank: r.end_of_day_rank,
+      defenses_remaining: r.defenses_remaining,
+      progress_from_defenses: r.progress_from_defenses,
+    });
+  }
+  return [...days.values()];
+}
+
 async function clanSubject(ctx, args, endpoint) {
   if (args.live === true) {
     let tag;
@@ -180,7 +219,11 @@ export const warTools = {
                   filter (where not in_progress))::int as median_fame,
                 max(fame) filter (where not in_progress)::int as max_fame,
                 count(*) filter (where fame = 0 and not in_progress)::int as zero_fame_races,
-                max(fame) filter (where in_progress)::int as current_race_fame
+                max(fame) filter (where in_progress)::int as current_race_fame,
+                (select w.clan_score from war_week_clan w
+                  where w.participant_clan_tag = races.participant_clan_tag
+                    and w.clan_score is not null
+                  order by w.season_id desc, w.section_index desc limit 1) as clan_score
          from races group by participant_clan_tag
          order by mean_fame desc nulls last`,
         [clanTag, rivals],
@@ -196,6 +239,7 @@ export const warTools = {
         notes: notes(
           "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
           "Fame statistics cover finished races only; current_race_fame is the week in progress.",
+          "clan_score is the game's own strength number for the clan as last observed in any recorded race (null before 2026-09-17, when the race poll began keeping it).",
           "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
         ),
         docs: WAR_DOCS,
@@ -309,14 +353,27 @@ export const warTools = {
       }
       const standings = await ctx.db.query(
         `select participant_clan_tag, participant_name, fame, period_points,
-                rank, trophy_change, finish_time
+                rank, trophy_change, finish_time, clan_score, repair_points
            from war_week_clan
            where clan_tag = $1 and season_id = $2 and section_index = $3
            order by rank nulls last, fame desc`,
         [clanTag, wk.season_id, wk.section_index],
       );
+      // The closed days of the running week (3.15.0), and the API's own
+      // word for today beside the grid's kind.
+      const daysClosed = compact
+        ? null
+        : await warDaysLog(ctx.db, clanTag, wk.season_id, wk.section_index);
+      const {
+        rows: [apiPeriod],
+      } = await ctx.db.query(
+        `select period_type from poll_state
+          where subject_tag = $1 and endpoint = 'currentriverrace'`,
+        [clanTag],
+      );
+      if (period) period.api_period_type = apiPeriod?.period_type ?? null;
       const participation = await ctx.db.query(
-        `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks,
+        `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points,
                   exists (select 1 from clan_membership cm
                           where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
                             and cm.left_observed_at is null) as in_clan
@@ -501,9 +558,14 @@ export const warTools = {
               decks_today_reason: !period ? "period_unknown" : "training_day",
             }),
         ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
+        ...(daysClosed ? { days_closed: daysClosed } : {}),
         notes: notes(
           livePendingNote(live),
           "points are per-member contributions; fame belongs to the boat (the clan).",
+          "standings.clan_score is the game's own strength number for each clan in the bracket (latest observed) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
+          daysClosed
+            ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress and end_of_day_rank; the running day is not in it until it closes."
+            : null,
           "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
           "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
@@ -513,6 +575,7 @@ export const warTools = {
           overCapNote,
           raceFinishedNote,
           "Days follow the 10:00 UTC policy reset for every clan and the period is the calendar's: cite the *_nominal instants; started_observed_at is when the recorder first saw this period open (null when it has not), observed_offset_minutes its distance from the policy hour including polling latency.",
+          "period.api_period_type is the API's own word for the day at the last race poll (training, warDay, colosseum); period.kind is the policy grid's, and the two disagree only when the clan's reset has drifted across the boundary.",
           "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
         ),
         docs: CLOCK_DOCS,
@@ -598,8 +661,9 @@ export const warTools = {
         [clanTag],
       );
       const { rows: weeks } = await ctx.db.query(
-        `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at,
+        `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at, w.closed_at,
                 own.fame as our_fame, own.rank as our_rank, own.trophy_change,
+                own.clan_score as our_clan_score, own.repair_points as our_repair_points,
                 (w.season_id, w.section_index) =
                   (select season_id, section_index from war_week
                    where clan_tag = $1
@@ -635,7 +699,7 @@ export const warTools = {
         const { rows } = await ctx.db.query(
           `with wp as (
              select wp.player_tag, wp.season_id, wp.section_index,
-                    wp.points, wp.decks_used, wp.boat_attacks
+                    wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points
              from war_participation wp
              where wp.clan_tag = $1
                and ($2::text is null or wp.player_tag = $2)
@@ -668,7 +732,7 @@ export const warTools = {
              from days
              group by season_id, section_index, player_tag)
            select wp.player_tag, p.name, wp.season_id, wp.section_index,
-                  wp.points, wp.decks_used, wp.boat_attacks,
+                  wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points,
                   case when cov.season_id is not null
                        then coalesce(pp.war_days_battled, 0) end as war_days_battled,
                   case when cov.season_id is not null
@@ -698,6 +762,25 @@ export const warTools = {
           war_days: r.war_days_battled === null ? null : (r.war_days ?? []),
         }));
       }
+      // The exact week's day-by-day and its standings with the rivals'
+      // clan_score and repair_points (3.15.0).
+      let days = null;
+      let standings = null;
+      if (hasSeason && weeks.length > 0) {
+        days = await warDaysLog(ctx.db, clanTag, exactSeason, exactSection);
+        const { rows } = await ctx.db.query(
+          `select participant_clan_tag as clan_tag, participant_name as name, fame, period_points,
+                  rank, trophy_change, finish_time, clan_score, repair_points
+             from war_week_clan
+            where clan_tag = $1 and season_id = $2 and section_index = $3
+            order by rank nulls last, fame desc`,
+          [clanTag, exactSeason, exactSection],
+        );
+        standings = rows.map((r) => ({
+          ...r,
+          finish_time: r.finish_time?.toISOString() ?? null,
+        }));
+      }
       // The chronologically-latest unfinished week is the one still being
       // fought; older null-standings weeks are capture gaps.
       return {
@@ -718,8 +801,13 @@ export const warTools = {
               ? true
               : undefined,
           finished: w.finished_observed_at?.toISOString() ?? null,
+          // The API's own close instant (riverracelog createdDate); finished
+          // is the recorder's sighting and carries polling latency.
+          closed_at: w.closed_at?.toISOString() ?? null,
           our_rank: w.our_rank,
           our_fame: w.our_fame,
+          our_clan_score: w.our_clan_score,
+          our_repair_points: w.our_repair_points,
           // A regular week that hit the 10,000-fame finish line stopped
           // earning member points; decks_used keeps counting.
           ...(w.our_fame === 10000 && !w.is_colosseum
@@ -737,8 +825,14 @@ export const warTools = {
           : {}),
         ...(focus ? { member: focus } : {}),
         ...(focus || hasSeason ? { member_weeks: memberWeeks } : {}),
+        ...(standings ? { standings } : {}),
+        ...(days ? { days } : {}),
         notes: notes(
           "points are per-member contributions; fame belongs to the boat (the clan).",
+          "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
+          hasSeason
+            ? "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it."
+            : null,
           "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
           hasSeason && !focus
             ? "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled."

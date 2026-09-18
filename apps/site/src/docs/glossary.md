@@ -144,6 +144,13 @@ members here. See [War weeks, points and fame](/docs/battles#war-weeks-points-an
 **boat** — the clan's river-race vessel: the thing fame accrues to and the
 thing a boat battle attacks.
 
+**clan_score** — the game's own strength number for a clan, as the race poll
+reports it per bracket clan; on `war_current.standings[]`, the exact week's
+`war_history.standings[]` and `war_rivals` rows (latest observed).
+
+**repair_points** — what repairing the boat cost in a race: per clan on the
+standings, per member on participation. Never fame, never points.
+
 **PoL, Trophy Road** — Path of Legends is the ranked ladder (`mode:
 "ranked"`, with `league_number`); Trophy Road is the trophy ladder
 (`mode: "ladder"`).

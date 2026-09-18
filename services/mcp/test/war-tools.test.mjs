@@ -920,6 +920,84 @@ test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 +
   assert.equal(inRange.body.applied.limit, 50, "the applied limit is visible");
 });
 
+test("the race's day-by-day, clan_score, repair_points, closed_at and the API's period word reach the wire (Phase 2 items 2, 3, 7)", async () => {
+  // The war-day race fixture is season 134 section 3 (period 27, war day
+  // 4): its periodLogs hold days 1-3 (periods 24-26) for five clans, its
+  // clans carry clanScore, and the log fixture already recorded the week.
+  const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
+  const race = await fixture("currentriverrace/war_day.json");
+  await projectRaceSeries(db, {
+    payload: race,
+    fetchedAt: "2026-08-02T12:00:00Z",
+    seasonId: 134,
+    sectionIndex: 3,
+  });
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at, period_type)
+     values ($1, 'currentriverrace', now(), 'warDay')
+     on conflict (subject_tag, endpoint) do update set period_type = 'warDay'`,
+    [CLAN],
+  );
+  const { body } = await call(invoke, "war_history", {
+    season_id: 134,
+    section_index: 3,
+  });
+  assert.equal(body.days.length, 3, "three closed days");
+  assert.deepEqual(
+    body.days.map((d) => [d.period_index, d.war_day]),
+    [
+      [24, 1],
+      [25, 2],
+      [26, 3],
+    ],
+  );
+  const day1 = body.days[0];
+  assert.equal(day1.standings.length, 5);
+  assert.ok(day1.standings.every((c) => typeof c.clan_tag === "string"));
+  assert.ok(day1.standings.every((c) => Number.isInteger(c.points_earned)));
+  assert.ok(day1.standings.every((c) => Number.isInteger(c.end_of_day_rank)));
+  assert.ok("progress_from_defenses" in day1.standings[0]);
+  // The log fixture and the race fixture name different brackets for
+  // the same week, so the union is what the record holds.
+  assert.ok(body.standings.length >= 5, "every clan in the bracket");
+  const ours = body.standings.find((c) => c.clan_tag === CLAN);
+  assert.ok(Number.isInteger(ours.clan_score), "the game's strength number");
+  assert.equal(ours.repair_points, 0);
+  assert.ok(body.member_weeks.every((w) => "repair_points" in w));
+  assert.equal(body.weeks[0].our_clan_score, ours.clan_score);
+  assert.ok(
+    body.weeks[0].closed_at === null ||
+      /^\d{4}-\d{2}-\d{2}T/.test(body.weeks[0].closed_at),
+    "closed_at is the API's instant or null on an older week",
+  );
+  assert.match(body.notes.join(" "), /closed_at is the API's own/);
+  assert.match(body.notes.join(" "), /days is the race's own day-by-day/);
+  // A window read carries closed_at on every week, never days.
+  const window = (await call(invoke, "war_history", { seasons: 3 })).body;
+  assert.ok(window.weeks.every((w) => "closed_at" in w));
+  assert.equal(window.days, undefined);
+  assert.equal(window.standings, undefined);
+
+  // war_current: the running week's closed days and the API's own word.
+  const current = (await call(invoke, "war_current", {})).body;
+  assert.ok(Array.isArray(current.days_closed));
+  assert.ok(current.standings.every((c) => "clan_score" in c));
+  assert.ok(current.participants.every((p) => "repair_points" in p));
+  assert.equal(current.period.api_period_type, "warDay");
+  const compact = (await call(invoke, "war_current", { verbosity: "compact" }))
+    .body;
+  assert.equal(compact.days_closed, undefined, "compact drops the log");
+
+  // war_rivals: the latest observed clan_score per rival.
+  const rivalTags = race.clans
+    .map((c) => c.tag)
+    .filter((t) => t !== CLAN)
+    .slice(0, 2);
+  const rivals = (await call(invoke, "war_rivals", { rival_tags: rivalTags }))
+    .body;
+  assert.ok(rivals.rivals.every((r) => Number.isInteger(r.clan_score)));
+});
+
 test("war_history: finished_early flags 10000-fame regular weeks; horizon named", async () => {
   const { body } = await call(invoke, "war_history", { seasons: 12 });
   assert.ok(body.history_starts_at, "recording horizon is explicit");

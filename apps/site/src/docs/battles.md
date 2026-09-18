@@ -259,10 +259,46 @@ because that endpoint does not report the former current-day value.
   indices; `null` `war_days_battled` means per-day attendance is unknown for
   that week, not zero.
 
+- `closed_at`, the API's own close instant for the week (its
+  `createdDate` on the race log), beside `finished`, which is when the
+  recorder saw the week closed and so carries polling latency. `closed_at`
+  is `null` on weeks older than the log the API still served when the
+  column arrived (2026-09-17).
+- `our_clan_score` and `our_repair_points`, the clan's own score and repair
+  cost that week (see below).
+
 Supply `season_id` and `section_index` together to select one exact week.
 Without `player_tag`, `member_weeks` then contains every recorded participant
-for that week, including their tag, name, points, decks, boat attacks and the
-same per-day attendance fields. This is the one-call closed-week roster path.
+for that week, including their tag, name, points, decks, boat attacks,
+`repair_points` and the same per-day attendance fields. This is the one-call
+closed-week roster path. The exact week also carries:
+
+- `standings[]`, every clan in the week's bracket with `fame`, `rank`,
+  `trophy_change`, `finish_time`, `clan_score` and `repair_points`.
+- `days[]`, the race's own day-by-day: the API's `periodLogs`, one entry per
+  closed war day (`war_day`, `period_index`) with `standings[]` per clan:
+  `points_earned` (that day's score), `progress_start` and `progress_end`
+  (boat progress at the day's open and close), `progress_earned`,
+  `end_of_day_rank`, `defenses_remaining` and `progress_from_defenses`. The
+  record has kept the log since 2026-09-17 and the archive backfill filled
+  earlier weeks where a race poll carried it; a week with no log has
+  `days: []`.
+
+`war_current` carries the same day-by-day for the running week as
+`days_closed[]` (full verbosity; the day being fought joins it when it
+closes), `clan_score` and `repair_points` on every `standings[]` row,
+`repair_points` per participant, and `period.api_period_type`, the API's
+own word for the day (`training`, `warDay`, `colosseum`) beside the policy
+grid's `period.kind`; the two differ only when the clan's reset has drifted
+across the boundary. `war_rivals` rows carry each rival's latest observed
+`clan_score`.
+
+**Clan score and repair points.** `clan_score` is the game's own strength
+number for a clan (the `clanScore` the race poll reports per bracket clan,
+the same figure a clan's profile shows); it is the number a scout wants
+first and the record keeps the latest observation per race. `repair_points`
+is what repairing the boat cost: per clan on the standings, per member on
+participation, MAX-merged like every war counter.
 
 Which day it is, and why a member can appear with more decks than a day
 holds, is on [Time and clocks](/docs/clocks#the-policy-day).
