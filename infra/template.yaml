@@ -475,9 +475,11 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/mail/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              # The VPC has no Lambda endpoint (NAT-free), so the brief is
+              # handed to the editor through a queue, like mail.
               - Effect: Allow
-                Action: lambda:InvokeFunction
-                Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:elixir-mcp-editor
+                Action: sqs:SendMessage
+                Resource: !GetAtt EditorQueue.Arn
 
   # The Top 100 editor: the one function that calls a model, non-VPC
   # on the relay's pattern because the VPC has no internet. It reads
@@ -508,6 +510,36 @@ Resources:
               - Effect: Allow
                 Action: lambda:InvokeFunction
                 Resource: !GetAtt JobsFunction.Arn
+              - Effect: Allow
+                Action:
+                  [
+                    sqs:ReceiveMessage,
+                    sqs:DeleteMessage,
+                    sqs:GetQueueAttributes,
+                    sqs:GetQueueUrl,
+                  ]
+                Resource: !GetAtt EditorQueue.Arn
+
+  # The brief's way out of the VPC: one message per Top 100 issue,
+  # consumed by the editor. Visibility outlasts the editor's timeout so a
+  # running edit is never redelivered; three receives, then it stays in
+  # the DLQ for the owner to see.
+  EditorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-editor
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 86400
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EditorDeadLetterQueue.Arn
+        maxReceiveCount: 3
+  EditorDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-editor-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
 
   EmailRelayRole:
     Type: AWS::IAM::Role
@@ -831,7 +863,7 @@ Resources:
           EMAIL_QUEUE_URL: !Ref EmailQueue
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
-          EDITOR_FUNCTION: elixir-mcp-editor
+          EDITOR_QUEUE_URL: !Ref EditorQueue
 
   EditorLogGroup:
     Type: AWS::Logs::LogGroup
@@ -863,6 +895,13 @@ Resources:
             - HasAnthropicKey
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:anthropic_api_key}}"
             - !Ref AWS::NoValue
+
+  EditorEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt EditorQueue.Arn
+      FunctionName: !Ref EditorFunction
+      BatchSize: 1
 
   # Product email (docs/EMAIL.md): five weekly kinds at 14:00Z on their
   # days, the milestone mail hourly, the Top 100 brief on Thursday at

@@ -6,7 +6,7 @@
  *  and a week ago through the rankings readers, computes every delta,
  *  cluster and threshold the writer may print (deltas are precomputed:
  *  the model never subtracts), decides drought mode and the deep cut,
- *  writes the brief to the archive bucket and invokes the editor
+ *  writes the brief to the archive bucket and queues it for the editor
  *  Lambda, which has the internet the VPC does not. top100Accept takes
  *  the editor's answer back, lints it (every number traces to the
  *  brief, no tags, no exclamation marks, tables pair rank and rating,
@@ -18,7 +18,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
 import { upsertIssue } from "./ledger.mjs";
@@ -30,7 +30,7 @@ const SITE = "https://elixir.poapkings.com";
 const DAY_MS = 86_400_000;
 
 const s3 = new S3Client({});
-const lambda = new LambdaClient({});
+const sqs = new SQSClient({});
 
 async function readBoard(ctx, asOf = null) {
   const pages = [];
@@ -388,12 +388,13 @@ export async function top100Generate({
       status: "composed",
       note: `brief ${key}`,
     });
-    if (process.env.EDITOR_FUNCTION) {
-      await lambda.send(
-        new InvokeCommand({
-          FunctionName: process.env.EDITOR_FUNCTION,
-          InvocationType: "Event",
-          Payload: Buffer.from(JSON.stringify({ brief_key: key })),
+    // The VPC has no Lambda endpoint: the editor is reached through its
+    // queue, the way mail reaches the relay.
+    if (process.env.EDITOR_QUEUE_URL) {
+      await sqs.send(
+        new SendMessageCommand({
+          QueueUrl: process.env.EDITOR_QUEUE_URL,
+          MessageBody: JSON.stringify({ brief_key: key }),
         }),
       );
     }

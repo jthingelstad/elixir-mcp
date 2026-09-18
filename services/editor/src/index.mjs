@@ -18,7 +18,12 @@ const lambda = new LambdaClient({});
 
 export async function handler(event) {
   const bucket = process.env.ARCHIVE_BUCKET;
-  const briefKey = event?.brief_key;
+  // Reached through its SQS queue (one message per issue), or invoked
+  // directly with {brief_key} from the ops side.
+  const record = event?.Records?.[0];
+  const briefKey = record
+    ? JSON.parse(record.body)?.brief_key
+    : event?.brief_key;
   if (!briefKey) throw new Error("editor: brief_key missing");
   const out = await s3.send(
     new GetObjectCommand({ Bucket: bucket, Key: briefKey }),
