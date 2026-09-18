@@ -165,3 +165,61 @@ test("refuses an empty list and reports a bad tag without stopping the rest", as
   assert.equal(out.plan[0].error, "bad player_tag");
   assert.equal(out.plan[1].error, "email required");
 });
+
+test("fill_empty fills an existing account that tracks nothing and leaves one that tracks anything", async () => {
+  // The pre-existing account from before(): approved, no claim, no clan.
+  const dry = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: true,
+    fill_empty: true,
+    accounts: [
+      { email: "existing@example.com", player_tag: "#2PP0V9PP" },
+      // Enrolled above: tracks a player and a clan, so it stays untouched.
+      { email: "one@example.com", player_tag: "#2PP0V9RR" },
+    ],
+  });
+  assert.equal(dry.filled, 1);
+  assert.equal(dry.skipped, 1);
+  assert.equal(dry.plan[0].action, "fill");
+  assert.equal(dry.plan[0].clan_tag, "#J2RGCRVG");
+  assert.equal(dry.plan[1].reason, "exists_tracking");
+
+  // Without the flag the empty account is still a plain skip.
+  const plain = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: true,
+    accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
+  });
+  assert.equal(plain.plan[0].action, "skip");
+  assert.equal(plain.plan[0].reason, "exists");
+
+  const out = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: false,
+    fill_empty: true,
+    accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
+  });
+  assert.equal(out.filled, 1);
+  assert.equal(out.plan[0].claimed, true);
+  const { rows } = await db.query(
+    `select a.role, a.onboarded_at is not null as onboarded,
+            (select count(*)::int from claim c where c.account_id = a.account_id and c.is_primary) as primaries,
+            (select string_agg(ac.clan_tag, ',') from account_clan ac where ac.account_id = a.account_id) as clans,
+            (select string_agg(e.kind, ',' order by e.event_id) from account_event e where e.account_id = a.account_id) as events
+     from account a where a.email = 'existing@example.com'`,
+  );
+  assert.deepEqual(rows, [
+    {
+      role: "member",
+      onboarded: true,
+      primaries: 1,
+      clans: "#J2RGCRVG",
+      events: "filled,claim_added",
+    },
+  ]);
+  // The one account still on the list is never claimed twice: the same
+  // player, a second time, is "exists_tracking" now.
+  const again = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: false,
+    fill_empty: true,
+    accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
+  });
+  assert.equal(again.plan[0].reason, "exists_tracking");
+});

@@ -339,11 +339,18 @@ export async function integrationOp(databaseUrl, spec) {
  * and clan_tag: null defers it - the account stays un-onboarded so the
  * ordinary first-sign-in onboarding resolves it once a fresh profile exists.
  * dry_run returns the same plan without writing.
+ *
+ * fill_empty: an account that already exists but tracks NOTHING (no claim,
+ * no clan) is filled the same way instead of skipped; one that tracks
+ * anything is still left alone, whatever it holds. The rule is
+ * onboardAccount's own, for the account that was made before the request
+ * form carried a tag.
  */
 export async function accountEnrollOp(databaseUrl, spec) {
   const entries = Array.isArray(spec?.accounts) ? spec.accounts : [];
   if (entries.length === 0) return { error: "accounts required" };
   const dryRun = spec.dry_run !== false;
+  const fillEmpty = spec.fill_empty === true;
   const source = String(spec.source ?? "ops");
   const { emailHash, normalizeEmail } =
     await import("../../auth/src/crypto.mjs");
@@ -371,19 +378,34 @@ export async function accountEnrollOp(databaseUrl, spec) {
         continue;
       }
       const { rows: existing } = await db.query(
-        `select account_id, status, role from account where email_hash = $1`,
+        `select account_id, status, role, kind from account where email_hash = $1`,
         [hash],
       );
+      let fill = null;
       if (existing[0]) {
-        plan.push({
-          account_ref: ref,
-          player_tag: tag,
-          action: "skip",
-          reason: "exists",
-          status: existing[0].status,
-          role: existing[0].role,
-        });
-        continue;
+        const { rows: tracks } = await db.query(
+          `select (select count(*)::int from claim where account_id = $1) as players,
+                  (select count(*)::int from account_clan where account_id = $1) as clans`,
+          [existing[0].account_id],
+        );
+        const empty = tracks[0].players === 0 && tracks[0].clans === 0;
+        if (
+          !fillEmpty ||
+          !empty ||
+          existing[0].status !== "approved" ||
+          existing[0].kind !== "person"
+        ) {
+          plan.push({
+            account_ref: ref,
+            player_tag: tag,
+            action: "skip",
+            reason: empty ? "exists" : "exists_tracking",
+            status: existing[0].status,
+            role: existing[0].role,
+          });
+          continue;
+        }
+        fill = existing[0];
       }
       // Explicit clan_tag wins; null defers; absent asks the record.
       const explicit = entry.clan_tag;
@@ -401,7 +423,7 @@ export async function accountEnrollOp(databaseUrl, spec) {
       const step = {
         account_ref: ref,
         player_tag: tag,
-        action: "create",
+        action: fill ? "fill" : "create",
         clan_tag: resolved,
         clan: resolved
           ? explicit === undefined
@@ -414,19 +436,28 @@ export async function accountEnrollOp(databaseUrl, spec) {
         plan.push(step);
         continue;
       }
-      const {
-        rows: [created],
-      } = await db.query(
-        `insert into account (email_hash, email, status, role, kind,
-                              requested_player_tag, decided_at)
-         values ($1, $2, 'approved', 'member', 'person', $3, now())
-         returning account_id`,
-        [hash, email, tag],
-      );
-      const accountId = created.account_id;
+      let accountId;
+      if (fill) {
+        accountId = fill.account_id;
+      } else {
+        const {
+          rows: [created],
+        } = await db.query(
+          `insert into account (email_hash, email, status, role, kind,
+                                requested_player_tag, decided_at)
+           values ($1, $2, 'approved', 'member', 'person', $3, now())
+           returning account_id`,
+          [hash, email, tag],
+        );
+        accountId = created.account_id;
+      }
       await db.query(
-        `insert into account_event (account_id, kind, detail) values ($1, 'enrolled', $2)`,
-        [accountId, JSON.stringify({ via: "ops", source })],
+        `insert into account_event (account_id, kind, detail) values ($1, $2, $3)`,
+        [
+          accountId,
+          fill ? "filled" : "enrolled",
+          JSON.stringify({ via: "ops", source }),
+        ],
       );
       const added = await addPlayer(
         db,
@@ -456,8 +487,9 @@ export async function accountEnrollOp(databaseUrl, spec) {
       plan.push(step);
     }
     const created = plan.filter((p) => p.action === "create").length;
+    const filled = plan.filter((p) => p.action === "fill").length;
     const skipped = plan.filter((p) => p.action === "skip").length;
-    return { dry_run: dryRun, created, skipped, plan };
+    return { dry_run: dryRun, created, filled, skipped, plan };
   } finally {
     await db.end();
   }
