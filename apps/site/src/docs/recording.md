@@ -257,6 +257,13 @@ either source; "wins on day D" is the day's last profile read, and a day the
 roster wrote with no profile poll carries the roster's columns and null
 elsewhere, with `profile_observed_at` null to say so.
 
+`clans_timeline`'s `members_seen` counts the member rows the roster wrote on
+that day, whatever the clan's `members` said. It reads above `members` on a
+day a member left: their row keeps the clan's tag until the next roster places
+them elsewhere, so the day counts both the leaver and whoever the count
+settled on. It reads below `members` on a partial day (the roster was polled,
+but not every member's row is on the game day's grid yet).
+
 `source` on a point is `api` for a row from a recorded payload (live or the
 archive backfill of 2026-09-17) and `elixir-bot` for the few rows imported
 from POAP KINGS' earlier bot on 2026-09-18: five member-only days before the

@@ -241,7 +241,18 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
     d1.members_14000_plus,
     roster.memberList.filter((m) => m.trophies >= 14000).length,
   );
-  assert.ok(body.notes.some((n) => n.includes("members_seen")));
+  // The note says both readings: above members (a leaver's row still
+  // carries the tag) and below (a partial day) (defect 9, 2026-09-19).
+  assert.ok(
+    body.notes.some(
+      (n) =>
+        n.includes("members_seen") &&
+        /members who left/.test(n) &&
+        /above members/.test(n) &&
+        /below members/.test(n),
+    ),
+    body.notes.join("\n"),
+  );
   assert.ok(body.notes.some((n) => n.includes("profile-derived")));
 
   const compact = await call("clans_timeline", {
