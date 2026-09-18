@@ -516,6 +516,7 @@ test("lifetime_zero_census reads the zeros back to their payloads; lifetime_zero
   assert.equal(dry.dry_run, true);
   assert.equal(dry.payload_no_key, 1);
   assert.equal(dry.nulled, 0);
+  assert.equal(dry.would_null, 1);
   const still = await db.query(
     `select count(*)::int as n from player_snapshot_daily where player_tag = any($1) and collection_level = 0`,
     [tags],

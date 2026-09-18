@@ -1133,6 +1133,8 @@ async function lifetimeZeroWalk(databaseUrl, spec, deps, { write }) {
           toNull.push(row);
         }
       }
+      if (write && dryRun)
+        tally.would_null = (tally.would_null ?? 0) + toNull.length;
       if (write && !dryRun && toNull.length > 0) {
         await db.query("begin");
         try {
