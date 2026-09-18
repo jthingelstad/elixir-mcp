@@ -8,6 +8,7 @@
  *  bulk under the mail policy, so every message carries the signed
  *  one-click unsubscribe URL for its recipient and kind. */
 import pg from "pg";
+import { emailHash } from "../../../auth/src/crypto.mjs";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { lastGameWeek, lastCollectorWeek } from "./week.mjs";
 import { upsertIssue } from "./ledger.mjs";
@@ -29,6 +30,7 @@ export async function runEmail({
   enqueue,
   secret,
   accountId = null,
+  accountEmail = null,
   force = false,
 }) {
   const own = !db;
@@ -37,6 +39,15 @@ export async function runEmail({
     await db.connect();
   }
   try {
+    // An ops invocation names the person by address; the address is
+    // hashed here and never logged.
+    if (!accountId && accountEmail) {
+      const { rows } = await db.query(
+        `select account_id from account where email_hash = $1`,
+        [emailHash(accountEmail)],
+      );
+      accountId = rows[0]?.account_id ?? "00000000-0000-0000-0000-000000000000";
+    }
     const recipients = await loadRecipients(db, kind, { accountId });
     const result = {
       kind,

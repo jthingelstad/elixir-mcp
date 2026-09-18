@@ -239,6 +239,7 @@ export async function handler(event) {
       databaseUrl: process.env.DATABASE_URL,
       kind: event.email,
       accountId: event.account_id ?? null,
+      accountEmail: event.account_email ?? null,
       force: Boolean(event.force),
       enqueue: enqueueEmail,
       secret: process.env.SESSION_SECRET,
