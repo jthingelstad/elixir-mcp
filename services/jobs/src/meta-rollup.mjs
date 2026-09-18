@@ -50,24 +50,32 @@ const TROPHY_BAND_CASE = `case
  *  the increment's slice), with its mode group, trophy band and the
  *  level gap against the opposing side (both sides of a battle share
  *  its battle_time, so both are in the slice and the gap is a self
- *  join, never a probe per row). */
+ *  join, never a probe per row). The opposing side's level is joined
+ *  as a hashed, pre-aggregated set: the first shape (3.16.0) was a
+ *  LATERAL over a once-referenced CTE, which the planner inlines, so
+ *  every participant row re-grouped the whole season and the first
+ *  nightly on the live corpus ran past the Lambda's 900 s (2026-09-18
+ *  19:40Z, rolled back; the 3.15.1 rebuild took 93 s). */
 function popSql(fromWhere) {
   return `create temp table pop on commit drop as
-     with rows as (
+     with rows as materialized (
        select bp.battle_id, bp.side, bp.player_tag, bp.deck_hash, bp.outcome, bp.battle_time,
               bp.type, bp.type_class, bp.deck_avg_level,
               ${MODE_GROUP_CASE} as mode_group,
               ${TROPHY_BAND_CASE} as trophy_band
        ${fromWhere}),
-     sides as (
-       select battle_id, side, avg(deck_avg_level) as lvl from rows group by battle_id, side)
+     sides as materialized (
+       select battle_id, side, avg(deck_avg_level) as lvl from rows group by battle_id, side),
+     opposing as materialized (
+       select s.battle_id, s.side, avg(o.lvl) as lvl
+       from sides s join sides o on o.battle_id = s.battle_id and o.side <> s.side
+       group by s.battle_id, s.side)
      select r.player_tag, r.deck_hash, r.outcome, r.battle_time, r.type, r.type_class,
             r.mode_group, r.trophy_band,
             case when r.deck_avg_level is not null and o.lvl is not null
                  then r.deck_avg_level - o.lvl end as level_gap
      from rows r
-     left join lateral (select avg(s.lvl) as lvl from sides s
-                         where s.battle_id = r.battle_id and s.side <> r.side) o on true`;
+     left join opposing o on o.battle_id = r.battle_id and o.side = r.side`;
 }
 
 /** How far behind now() the hourly increment reads, so an ingest
