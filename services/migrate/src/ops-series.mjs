@@ -1007,14 +1007,23 @@ export async function explainSeries(databaseUrl, spec = {}) {
  *   from `after`, the row's receipt (the admitted player fetch whose
  *   fetched_at is the row's profile_observed_at) and its archived
  *   payload: does it carry the key at all? `payload_no_key` is what
- *   {lifetime_zero_repair} nulls; `payload_zero` is a real zero the
- *   API sent and stays. Pass `next_after` back until `done`.
+ *   {lifetime_zero_repair} nulls by default; `payload_zero` is a zero
+ *   the payload itself carried, counted by the gateway that admitted
+ *   the receipt (`zero_by_gateway`), because the live API never
+ *   reports collectionLevel 0 for an established account and the
+ *   2026-09-18 replay of elixir-bot's own profile rows did (the first
+ *   live census, 2026-09-18: 1,499 zero rows, every one an explicit 0
+ *   through the backfill-elixir-bot gateway). Pass `next_after` back
+ *   until `done`.
  *
- * {lifetime_zero_repair: {dry_run?: true, after?, batch?, budget_s?}}
+ * {lifetime_zero_repair: {dry_run?: true, zero_from_gateway?: "backfill-elixir-bot", after?, batch?, budget_s?}}
  *   The same walk; where the payload had no key, the column becomes
- *   null, batch by batch in short transactions. dry_run (the default)
- *   walks and counts without writing. A row with no receipt or no
- *   archived object is reported and left alone.
+ *   null, batch by batch in short transactions. With zero_from_gateway
+ *   a payload whose key reads 0 AND whose receipt came through the
+ *   named gateway is nulled too (Jamie's call: the bot's serialisation
+ *   wrote 0 for a level it never tracked, the game did not). dry_run
+ *   (the default) walks and counts without writing. A row with no
+ *   receipt or no archived object is reported and left alone.
  */
 const ZERO_ROWS = `collection_level = 0 and profile_observed_at is not null`;
 
@@ -1023,6 +1032,7 @@ async function lifetimeZeroWalk(databaseUrl, spec, deps, { write }) {
     Math.min(Math.max(Number(spec.budget_s ?? 240), 5), 280) * 1000;
   const batch = Math.min(Math.max(Number(spec.batch ?? 200), 1), 2000);
   const dryRun = write && spec.dry_run !== false;
+  const zeroFromGateway = write ? (spec.zero_from_gateway ?? null) : null;
   const { getObject, listKeys } = await archiveReads(deps);
   const { gunzipSync } = await import("node:zlib");
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -1038,8 +1048,9 @@ async function lifetimeZeroWalk(databaseUrl, spec, deps, { write }) {
     no_receipt: 0,
     missing_object: 0,
     unreadable: 0,
-    ...(write ? { nulled: 0 } : {}),
+    ...(write ? { nulled: 0, zero_from_gateway: zeroFromGateway } : {}),
     by_source: {},
+    zero_by_gateway: {},
     done: false,
   };
   let after = spec.after ?? null;
@@ -1057,12 +1068,14 @@ async function lifetimeZeroWalk(databaseUrl, spec, deps, { write }) {
     while (Date.now() - started < budgetMs) {
       const { rows } = await db.query(
         `select s.player_tag, s.snapshot_date::text as snapshot_date, s.snapshot_kind, s.source,
-                s.profile_observed_at,
-                (select r.payload_hash from api_receipt r
-                  where r.endpoint = 'player' and r.entity_key = s.player_tag
-                    and r.admission = 'admitted' and r.fetched_at = s.profile_observed_at
-                  order by r.receipt_id desc limit 1) as payload_hash
+                s.profile_observed_at, r.payload_hash, g.name as gateway
          from player_snapshot_daily s
+         left join lateral (
+           select r.payload_hash, r.gateway_id from api_receipt r
+            where r.endpoint = 'player' and r.entity_key = s.player_tag
+              and r.admission = 'admitted' and r.fetched_at = s.profile_observed_at
+            order by r.receipt_id desc limit 1) r on true
+         left join gateway g on g.gateway_id = r.gateway_id
          where ${ZERO_ROWS}
            and ($1::text is null
                 or (s.player_tag, s.snapshot_date, s.snapshot_kind) > ($1, $2::date, $3))
@@ -1108,7 +1121,12 @@ async function lifetimeZeroWalk(databaseUrl, spec, deps, { write }) {
         }
         if (payload && Object.hasOwn(payload, "collectionLevel")) {
           tally.payload_has_key += 1;
-          if (payload.collectionLevel === 0) tally.payload_zero += 1;
+          if (payload.collectionLevel === 0) {
+            tally.payload_zero += 1;
+            const gw = row.gateway ?? "(none)";
+            tally.zero_by_gateway[gw] = (tally.zero_by_gateway[gw] ?? 0) + 1;
+            if (zeroFromGateway && gw === zeroFromGateway) toNull.push(row);
+          }
         } else {
           tally.payload_no_key += 1;
           src.payload_no_key += 1;

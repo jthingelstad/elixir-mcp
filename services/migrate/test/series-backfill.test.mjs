@@ -539,4 +539,34 @@ test("lifetime_zero_census reads the zeros back to their payloads; lifetime_zero
   );
   const again = await lifetimeZeroRepair(DB_URL, { dry_run: false }, deps);
   assert.equal(again.nulled, 0, "rerunnable");
+
+  // An explicit 0 is counted by the gateway that admitted it, and nulled
+  // only when that gateway is named (the elixir-bot replay's zeros).
+  const {
+    rows: [gw],
+  } = await db.query("select name from gateway where gateway_id = $1", [
+    gatewayId,
+  ]);
+  assert.equal(census.zero_by_gateway[gw.name], 1);
+  const named = await lifetimeZeroRepair(
+    DB_URL,
+    { dry_run: false, zero_from_gateway: "some-other-gateway" },
+    deps,
+  );
+  assert.equal(named.nulled, 0, "another gateway's zeros stay");
+  const bot = await lifetimeZeroRepair(
+    DB_URL,
+    { dry_run: false, zero_from_gateway: gw.name },
+    deps,
+  );
+  assert.equal(bot.nulled, 1);
+  assert.equal(
+    (
+      await db.query(
+        "select collection_level from player_snapshot_daily where player_tag = $1",
+        [tags[1]],
+      )
+    ).rows[0].collection_level,
+    null,
+  );
 });
