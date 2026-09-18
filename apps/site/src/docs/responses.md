@@ -49,9 +49,17 @@ poll of any kind. It is null if a required source has never been polled. A fresh
 profile must never disguise a stale battle log. These fields describe polling
 freshness, not the age of every individual historic row.
 
-**`completeness_note`** — present only when capture is known to be incomplete.
-When it is there, say so in the answer. It is the service admitting a gap; an
-agent that drops it on the floor is laundering that admission.
+**`completeness_note`** — present only when capture is known to be incomplete
+or cannot be known. On a player subject whose window ends inside the last
+seven days (an unbounded window ends now), the envelope reads the newest
+profile interval, the two latest profile polls and the recorded battles between
+them, and the note fires when fewer than 90% of the battles the profile counted
+are recorded, or when the interval is not comparable and more than 48 hours
+have passed since the last profile poll. It names the interval, the counts and
+the `elixir_coverage` call that has the whole week. When it is there, say so in
+the answer. It is the service admitting a gap; an agent that drops it on the
+floor is laundering that admission. (Until 3.14.0 the field was promised and
+never set.)
 
 **`timezone_applied`** — the display timezone used for local labels, when one
 is configured on the account. Stored timestamps and the envelope remain UTC.

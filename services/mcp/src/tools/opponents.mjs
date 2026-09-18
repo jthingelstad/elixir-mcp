@@ -144,6 +144,7 @@ export const opponentsTools = {
         docs: docsRef("battles", "what-a-battle-record-holds"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: win.timezone,
+          windowTo: win.to,
         }),
       };
     },

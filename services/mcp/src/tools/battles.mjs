@@ -586,7 +586,7 @@ export const battlesTools = {
           ctx.account,
           tag ?? rows[0]?.player_tag ?? "#",
           ["player_battlelog"],
-          { timezone: tz },
+          { timezone: tz, windowTo: win.to },
         ),
       };
     },
@@ -919,6 +919,7 @@ export const battlesTools = {
         docs: DENOMINATOR_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: tz,
+          windowTo: win.to,
         }),
       };
     },
@@ -1056,6 +1057,7 @@ export const battlesTools = {
         docs: CONTROLS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: win.timezone,
+          windowTo: win.to,
         }),
       };
     },
@@ -1228,6 +1230,7 @@ export const battlesTools = {
         docs: CONTROLS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: win.timezone,
+          windowTo: win.to,
         }),
       };
     },

@@ -24,6 +24,7 @@ import { responseMeta, roleQuotas, MODE_GROUPS } from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 import { resolveInstant } from "../time.mjs";
+import { recentCompleteness, completenessNote } from "../coverage.mjs";
 import {
   seasonAt,
   seasonByKey,
@@ -636,11 +637,24 @@ export async function buildMeta(
   account,
   tag,
   endpoints = ["player_battlelog"],
-  { timezone } = {},
+  { timezone, windowTo } = {},
 ) {
   const isPlayer = endpoints.some(
     (e) => e === "player" || e === "player_battlelog",
   );
+  // meta.completeness_note fires for a player subject whose window ends
+  // inside the last seven days (an unbounded window ends now) when the
+  // newest profile interval reads under 0.9 or is unknown with a tail
+  // over 48 hours (review 2026-09-19, defect 13: promised on every seam,
+  // set by nothing).
+  const recentWindow =
+    windowTo === undefined ||
+    windowTo === null ||
+    Date.now() - new Date(windowTo).getTime() < 7 * 86_400_000;
+  const completeness =
+    isPlayer && recentWindow && /^#[0289PYLQGRJCUV]{3,12}$/.test(tag)
+      ? completenessNote(tag, await recentCompleteness(db, tag))
+      : null;
   const {
     rows: [row],
   } = await db.query(
@@ -682,6 +696,7 @@ export async function buildMeta(
         ? Math.max(...ages)
         : null,
     ...(tz ? { timezone_applied: tz } : {}),
+    ...(completeness ? { completeness_note: completeness } : {}),
   });
 }
 

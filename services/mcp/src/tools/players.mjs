@@ -466,6 +466,7 @@ export const playersTools = {
         docs: docsRef("recording", "daily-series"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"], {
           timezone: tz,
+          windowTo: win.to,
         }),
       };
     },

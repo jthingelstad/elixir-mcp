@@ -116,3 +116,75 @@ export async function captureCoverage(db, playerTag) {
     },
   };
 }
+
+/** The cheap read behind meta.completeness_note (review 2026-09-19,
+ *  defect 13): the two newest profile rows and the recorded battles
+ *  between their stamps, one query, nothing cached. `ratio` is null when
+ *  the two are not comparable (one row, a null counter, a counter that
+ *  went backwards, more battles recorded than counted); `tail_hours` is
+ *  the unbracketed time since the newest profile poll, null with no
+ *  profile row at all. The full seven-day picture is captureCoverage. */
+export async function recentCompleteness(db, playerTag) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `with r as (
+       select profile_observed_at as at, battle_count
+       from player_snapshot_daily
+       where player_tag = $1 and snapshot_kind = 'daily' and profile_observed_at is not null
+       order by snapshot_date desc limit 2),
+     b as (
+       select max(at) as observed_to, min(at) as observed_from, count(*)::int as n,
+              (select battle_count from r order by at desc limit 1)
+                - (select battle_count from r order by at asc limit 1) as expected
+       from r)
+     select b.observed_from, b.observed_to, b.n, b.expected,
+            case when b.n = 2 then
+              (select count(*)::int from battle_participant bp
+               where bp.player_tag = $1
+                 and bp.battle_time > b.observed_from and bp.battle_time <= b.observed_to)
+            end as captured
+     from b`,
+    [playerTag],
+  );
+  const comparable =
+    r.n === 2 &&
+    r.expected !== null &&
+    r.expected >= 0 &&
+    r.captured !== null &&
+    r.captured <= r.expected;
+  return {
+    observed_from: r.n === 2 ? r.observed_from.toISOString() : null,
+    observed_to: r.observed_to ? r.observed_to.toISOString() : null,
+    expected_battles: comparable ? r.expected : null,
+    captured_battles: comparable ? r.captured : null,
+    ratio: comparable
+      ? r.expected === 0
+        ? 1
+        : Number((r.captured / r.expected).toFixed(3))
+      : null,
+    tail_hours: r.observed_to
+      ? Number(
+          Math.max(
+            0,
+            (Date.now() - r.observed_to.getTime()) / 3600_000,
+          ).toFixed(1),
+        )
+      : null,
+  };
+}
+
+/** The sentence, or null: a measured gap (ratio under 0.9) or an unknown
+ *  one (no comparable interval and more than 48 hours since the last
+ *  profile poll). */
+export function completenessNote(playerTag, recent) {
+  if (recent.ratio !== null && recent.ratio < 0.9)
+    return `Capture is incomplete for ${playerTag}: ${recent.captured_battles} of the ${recent.expected_battles} battles the profile counted between ${recent.observed_from} and ${recent.observed_to} are recorded (${recent.ratio}); battle-derived numbers in that span undercount. elixir_coverage({ player_tag: "${playerTag}" }) has the intervals.`;
+  if (
+    recent.ratio === null &&
+    recent.tail_hours !== null &&
+    recent.tail_hours > 48
+  )
+    return `Completeness is unknown for ${playerTag}: no comparable profile interval, and ${recent.tail_hours} hours have passed since the last profile poll (${recent.observed_to}); battle-derived numbers since then may undercount. elixir_coverage({ player_tag: "${playerTag}" }) has the intervals.`;
+  return null;
+}
