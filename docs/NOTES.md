@@ -3700,3 +3700,112 @@ Every push to date has landed outside the window, which is why CI is
 green. The scenario crosses the 10:00Z game-day roll on purpose, so the
 times cannot be shifted by hours; the fix is injecting the clock into the
 pipeline. Until then, do not push in that window.
+
+## 2026-09-18 — Contract 3.13.0: every aggregate ships the control next to the number (feedback #54–#60)
+
+**The corpus.** One consuming agent (Jamie's session, 2026-09-18 morning)
+filed seven items after reaching six wrong conclusions from CORRECT data
+about #20JJJ2CCRU. The payloads were right; each withheld the one fact that
+made its number interpretable. (E1, #54) `battles_decks`: a war-only Mortar
+deck at 78.6% beside a ladder-only Royal Hogs deck at 42.2%, advised to
+ladder; the record showed 24/24 war vs 122/122 ladder, mean level gap
++1.61 vs +0.71, and 11–0 against opponents ≥1.5 levels down; in the only
+overlapping gap band Hogs led 50% to 44%. (E2, #55) `battles_levels`
+monthly_trend +0.047 → −0.124 → −0.177 read as decline; the step lands on
+the 2026-08-01 arena change (54000141 → 54000142). (E3, #58) absolute
+`elixir_leaked` built a coaching note; the pair told the opposite story on
+three of five battles and July did not replicate September (p = 0.24).
+(E4, #59) `net_trophies` for a player on the 12,500 floor: losses ON the
+floor are `trophy_change: null` and cost nothing, clamped losses look like
+ordinary −3/−4. (E5, #60.1) `days:30` + `group_by:"week"`: the first
+bucket was two thirds of a week shaped like the whole ones. (E6, #54)
+`battles_cards perspective:"opponent"` pooled war and ladder into one
+nemesis table. Plus #56 (`battles_opponents` failing on any window;
+`result_too_large` with no discoverable threshold), #60.2 (`n` unit),
+#60.3 (`decks_used` cumulative vs per-day), and #57 praise for
+`battles_levels` with `mode`, `elixir_coverage`, the live lane and
+`applied.window` — the negative control not to regress.
+
+**Ratified principle (Jamie, via the corpus): every aggregate ships the
+control next to the number, and the note fires on a detected confound,
+not as boilerplate.** Any win-rate row carries its mode distribution and
+mean level gap; any trend row carries the population facts that moved
+under it; any trophy aggregate carries floor state. This belongs in the
+service, not in each caller's prompt: prompts do not travel to the next
+person who installs the MCP.
+
+**Shipped (ca54742, 23fc9c1; contract 3.12.0 → 3.13.0, additive).**
+`services/mcp/src/controls.mjs` holds the helpers. `battles_decks` rows:
+`modes` {group: {battles, wins, losses}}, `dominant_mode` + share,
+`mean_level_gap` / `own_mean_level` / `opponent_mean_level` /
+`level_gap_battles` (deck_avg_level is stamped at ingest, 0025; the
+opposing side is a lateral avg); response `comparable`, false when two
+rows are ≥60% in different mode groups or their gaps differ ≥0.5, and the
+first note names the clashing rows. `battles_cards` rows: `modes` (count
+per group), `mean_level_gap`; response `modes_in_window`, `comparable`, a
+pooled-modes note when the groups' gaps differ ≥0.5. `battles_levels`:
+`lv_pairs` carries the scored side's `starting_trophies`, the battle's
+`arena`/`arena_id` and `opponent_level`; monthly points carry
+`actual_win_rate`, `expected_from_levels`, `mean_gap`,
+`opponent_mean_level`, `mean_starting_trophies`, `modal_arena {id,name}`;
+a note when the modal arena changes or the mean trophies move ≥200
+between points; new `arena_id` argument, filtered by the arena's NAME
+(`battle.arena` has been on every row since 0001; `battle.arena_id` is
+the 0131 backfill's); `methodology.n` and `methodology.adjusts_for`.
+`battles_performance`: `trophy_floor` from the window's ladder losses
+(`trophy_change null` on a loss = ON the floor, cr-agent-api-docs
+players.md 2026-09-15) and the arena's snapshot floor (0102 index),
+with `floored`, `on_floor_losses`, `losses_landing_on_floor` (clamped or
+full, indistinguishable), `trophy_range`; the note fires only when
+`floored`. Weekly rows the window clips carry `partial: true` and
+`covers {from,to}`. `battles_query` full: `elixir_leaked` on every other
+participant (the record ALWAYS held both sides: the five never-polled
+opponents returned their own leak), `me.elixir_leaked_differential`
+(null on duels/2v2/unreported), a note that neither is a skill measure,
+a note counting floor losses on the page. `war_current`/`war_history`:
+`decks_used` is the week's cumulative count and a duel consumes one deck
+per round played (two or three). Error code `internal` (was
+`bad_request` for an unexpected throw — a category error that told the
+agent to fix a call that was fine); `result_too_large` hint says the page
+size at the applied limit and which limit fits (0.9 × cap ÷ overrun).
+Docs: `battles#the-control-next-to-the-number` (new H2, pinned in
+packages/docs), `trophy_change` and `elixir_leaked` semantics, decks vs
+battles under war weeks, methodology on `n` and what the score adjusts
+for, protocol on `internal` and the sizing hint. `controls.test.mjs`
+seeds the session's shape (406 ladder battles at +0.70 across an arena
+change, 14 war at +1.62, four floor losses, a clipped week) and asserts
+every control and guard; `npm run verify` green.
+
+**Decisions taken inside the change.** (1) Mode split as an object keyed
+by group, not an array: an agent reads `modes.war.battles` without a
+scan. (2) `comparable` is a boolean beside the prose, so the guard is
+machine-checkable (ask 4 of #54). (3) The level gap is against the
+opposing SIDE's mean (a 2v2 averages both), never the first opponent by
+tag. (4) The floor's `losses_landing_on_floor` deliberately does not
+claim clamping: a −32 from 12,532 is a full loss that landed on it. (5)
+`arena_id` conditions the battle's arena (the higher side's) rather than
+each participant's, since the row has one arena. (6) Not done: a
+floor-robust companion metric (time-above-floor), an opponent-skill proxy
+to decompose the residual, narrower trophy bands — `arena_id` is the
+control that answers the case; and `battles_cards` keeps its 120-row cap
+with per-row counts rather than full W/L per mode (payload).
+
+**Not deployed at the time of writing; owed.** `AWS_PROFILE=jamie node
+infra/scripts/deploy.mjs` failed at the first STS call: the `jamie`
+profile is an `aws login` session (`login_session` in ~/.aws/config) and
+its token had expired; `aws sts get-caller-identity` confirms
+`ExpiredToken`. Only Jamie can renew it (`aws login --profile jamie`,
+browser sign-in). Until the deploy lands the seven feedback items stay
+`new`; the responses are drafted in
+`AGENT-TEAM/notes/2026-09-18-close-the-loop.md` and are sent with
+`{feedback_respond}` (status `done`, `shipped_in: 3.13.0`) only after live
+acceptance. Live acceptance, read-only, once deployed: `battles_decks`
+for #20JJJ2CCRU `days:30 min_battles:2` → `comparable: false`, Mortar
+row `modes.war` only, Hogs `modes.ladder` only, gaps ≈ +1.6 / +0.7;
+`battles_levels` `mode:"ladder" days:60` → monthly points with
+`modal_arena` 54000141 then 54000142 and the population note first;
+`battles_performance days:30` → `trophy_floor.floor 12500`, `floored`
+true; `battles_opponents days:30 min_battles:2` → rows, not `internal`;
+`battles_query battle_id` for one of the five #58 battles → both sides'
+`elixir_leaked`. The flaky `profile-refresh.test.mjs` window (06:39Z–
+12:00Z) was not in play (verify ran 13:3xZ).
