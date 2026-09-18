@@ -109,10 +109,17 @@ export const clansTools = {
           ? { kind: r.streak_kind, length: r.streak_len }
           : null,
       }));
-      const ranked = withRate
+      const rankedOnly = withRate
         .filter((m) => m.wins + m.losses >= minBattles)
-        .sort((a, z) => z.win_rate - a.win_rate || z.battles - a.battles)
-        .map((m, i) => ({ ...m, rank: i + 1 }));
+        .sort((a, z) => z.win_rate - a.win_rate || z.battles - a.battles);
+      // The percentile the note has always stated, served (review
+      // 2026-09-19, defect 6): rank 1 reads 1, the last rank reads
+      // 1/ranked_members.
+      const ranked = rankedOnly.map((m, i) => ({
+        ...m,
+        rank: i + 1,
+        percentile: Number((1 - i / rankedOnly.length).toFixed(3)),
+      }));
       const unranked = withRate
         .filter((m) => m.wins + m.losses < minBattles)
         .sort((a, z) => z.battles - a.battles);

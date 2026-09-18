@@ -804,7 +804,22 @@ export const OUTPUT_SCHEMAS = {
       },
       ranked_members: COUNT,
       median_win_rate: RATE,
-      members: { type: "array" },
+      members: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            rank: COUNT,
+            percentile: {
+              type: "number",
+              description: "1 - (rank - 1) / ranked_members.",
+            },
+            win_rate: RATE,
+          },
+          required: ["player_tag", "rank", "percentile"],
+        },
+      },
       below_floor: { type: "array" },
       notes: NOTES,
       docs: DOCS,

@@ -642,6 +642,11 @@ test("clans_standings: ranked by win rate with floor, median, and honest basis",
   assert.equal(body.members[0].rank, 1);
   assert.equal(body.members[0].win_rate, 1);
   assert.equal(body.members[1].win_rate, 0.333);
+  // percentile = 1 - (rank-1)/ranked_members, served since 3.14.0 (the
+  // note stated it for a field the row did not carry; defect 6).
+  assert.equal(body.members[0].percentile, 1);
+  assert.equal(body.members[1].percentile, 0.5);
+  assert.ok(body.below_floor.every((m) => !("percentile" in m)));
   // 3.9.0: ladder trophy net and the streak ending at the latest battle,
   // in the same call (the per-member battles_performance loop retired).
   assert.equal(body.members[0].trophy_net, 90);
