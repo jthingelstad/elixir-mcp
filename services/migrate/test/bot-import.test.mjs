@@ -283,6 +283,9 @@ test("stage, census, commit: only what the record lacks lands, with source elixi
     absent: 1,
     present_equal: 1,
     present_different: 0,
+    bot_more_battles: 0,
+    recorder_more_battles: 0,
+    absent_battles: 3,
   });
 
   const committed = await seriesImport(DB_URL, { commit: true });
