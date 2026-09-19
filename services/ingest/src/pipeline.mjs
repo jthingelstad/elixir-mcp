@@ -113,7 +113,7 @@ async function requestProfileRefresh(
  *  profile when the last profile admission is more than
  *  SESSION_PROFILE_DEBOUNCE_HOURS old and no request is outstanding.
  *  The planner serves it as it serves 0101's arena request: owed now. */
-export const SESSION_PROFILE_DEBOUNCE_HOURS = 8;
+const SESSION_PROFILE_DEBOUNCE_HOURS = 8;
 
 async function requestProfileAfterSession(db, playerTag, fetchedAt) {
   const { rowCount } = await db.query(

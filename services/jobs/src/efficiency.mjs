@@ -19,11 +19,11 @@
 
 import pg from "pg";
 
-export const NAMESPACE = "ElixirMCP/Record";
+const NAMESPACE = "ElixirMCP/Record";
 const DAY = 86_400_000;
 
 /** UTC day string of an instant. */
-export function utcDay(at) {
+function utcDay(at) {
   return new Date(at).toISOString().slice(0, 10);
 }
 
