@@ -103,10 +103,32 @@ export function makeRegistry() {
             ? ga - gb
             : a.annotations.title.localeCompare(b.annotations.title);
         }),
-    invoke: async (name, ctx, args) => {
+    invoke: async (name, ctx, rawArgs) => {
+      // verbosity is the one size control and the instructions say so
+      // without listing tools, so agents pass it everywhere (four
+      // refusals in four days, 2026-09-19). A tool with one size accepts
+      // it, drops it before validation, echoes applied.verbosity as full
+      // and says in a note that compact had nothing to drop. Additive:
+      // the eleven tools that declare it are unchanged.
+      let args = rawArgs ?? {};
+      let oneSize = null;
+      if (
+        Object.hasOwn(args, "verbosity") &&
+        !Object.hasOwn(TOOLS[name].inputSchema.properties ?? {}, "verbosity")
+      ) {
+        const { verbosity, ...rest } = args;
+        if (verbosity !== "full" && verbosity !== "compact")
+          throw new ToolFailure(
+            "bad_request",
+            "arguments.verbosity must be one of full, compact.",
+            `${name} has one size; verbosity is accepted and has no effect.`,
+          );
+        oneSize = verbosity;
+        args = rest;
+      }
       // The declared schema is the contract clients see; enforce it before
       // a handler can see anything the schema did not promise.
-      const problem = validateArgs(TOOLS[name].inputSchema, args ?? {});
+      const problem = validateArgs(TOOLS[name].inputSchema, args);
       if (problem) {
         // A missing required argument's hint is that argument's own
         // description (4.0.0): a segment tool called without segment is
@@ -124,6 +146,13 @@ export function makeRegistry() {
       }
       const body = await TOOLS[name].handler(ctx, args);
       assertResponseMeta(body?.meta);
+      if (oneSize !== null && body && typeof body === "object") {
+        body.applied = { ...(body.applied ?? {}), verbosity: "full" };
+        if (oneSize === "compact" && Array.isArray(body.notes))
+          body.notes.push(
+            `${name} has one size: verbosity 'compact' was accepted and had nothing to drop.`,
+          );
+      }
       // A declared output schema the body does not satisfy is a build bug:
       // loud under the test runner, a log line in production (a schema
       // mistake must never take a working tool down).
