@@ -58,6 +58,7 @@ import {
   auditCensus,
   argsCensus,
   previewIntel,
+  pilotPairs,
 } from "./ops-analysis.mjs";
 import {
   feedbackPending,
@@ -372,6 +373,26 @@ export async function handler(event) {
       event.preview_intel,
     );
     console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.pilot_pairs) {
+    const result = await pilotPairs(
+      process.env.DATABASE_URL,
+      event.pilot_pairs,
+    );
+    // The two CSVs are megabytes; the log line carries the counts.
+    console.log(
+      JSON.stringify({
+        pilot_pairs: {
+          days: result.days,
+          total: result.total,
+          offset: result.offset,
+          returned: result.returned,
+          players: result.players,
+          done: result.done,
+        },
+      }),
+    );
     return result;
   }
   if (event?.export_payloads) {

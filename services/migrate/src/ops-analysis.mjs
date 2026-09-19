@@ -488,3 +488,108 @@ export async function previewIntel(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** Pilot Score population export ({pilot_pairs: {days, offset, limit}}):
+ *  the EXACT rows both Pilot readers score (services/mcp level-curve.mjs,
+ *  unfiltered corpus, one row per side of each qualifying match) as a
+ *  gzip+base64 CSV, paged so one answer stays under the invoke limit.
+ *  Read-only; added for the 2026-09-19 Pilot Score assessment so the
+ *  method could be audited off-line (reliability, calibration, fit)
+ *  without a clone. `bid` is a dense per-export match id, so both sides
+ *  of a match pair up without shipping battle ids. A second CSV carries
+ *  the page's players with the profile fields a validity check needs. */
+export async function pilotPairs(databaseUrl, spec) {
+  const { levelPairsSql } = await import("../../mcp/src/level-curve.mjs");
+  const { gzipSync } = await import("node:zlib");
+  const days = Math.min(Math.max(Number(spec?.days ?? 90), 7), 365);
+  const offset = Math.max(Number(spec?.offset ?? 0), 0);
+  const limit = Math.min(Math.max(Number(spec?.limit ?? 100000), 1), 200000);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("begin");
+    await db.query(levelPairsSql(), [`${days} days`]);
+    const { rows: tot } = await db.query(
+      `select count(*)::int as n from lv_pairs`,
+    );
+    const { rows } = await db.query(
+      `select dense_rank() over (order by p.battle_id) as bid,
+              p.player_tag, (p.outcome = 'win')::int as win,
+              extract(epoch from p.battle_time)::bigint as t,
+              p.type, p.gap, p.opponent_level, p.starting_trophies, p.arena_id,
+              bp.crowns, bp.trophy_change
+       from lv_pairs p
+       join battle_participant bp
+         on bp.battle_id = p.battle_id and bp.player_tag = p.player_tag
+       order by bid, p.player_tag
+       offset $1 limit $2`,
+      [offset, limit],
+    );
+    const tags = [...new Set(rows.map((r) => r.player_tag))];
+    const { rows: players } = await db.query(
+      `select pl.player_tag, pl.years_played, pl.account_age_days,
+              pl.last_known_clan_tag,
+              s.trophies, s.best_trophies, s.pol_trophies, s.pol_best_trophies,
+              s.battle_count, s.wins, s.losses, s.three_crown_wins,
+              s.exp_points, s.collection_level, s.king_tower_level, s.arena_id
+       from player pl
+       left join lateral (
+         select * from player_snapshot_daily d
+         where d.player_tag = pl.player_tag and d.trophies is not null
+         order by d.snapshot_date desc limit 1) s on true
+       where pl.player_tag = any($1)`,
+      [tags],
+    );
+    await db.query("rollback");
+    const csv = (list, cols) =>
+      [
+        cols.join(","),
+        ...list.map((r) => cols.map((c) => r[c] ?? "").join(",")),
+      ].join("\n");
+    const pack = (list, cols) =>
+      gzipSync(Buffer.from(csv(list, cols))).toString("base64");
+    const pairCols = [
+      "bid",
+      "player_tag",
+      "win",
+      "t",
+      "type",
+      "gap",
+      "opponent_level",
+      "starting_trophies",
+      "arena_id",
+      "crowns",
+      "trophy_change",
+    ];
+    const playerCols = [
+      "player_tag",
+      "years_played",
+      "account_age_days",
+      "last_known_clan_tag",
+      "trophies",
+      "best_trophies",
+      "pol_trophies",
+      "pol_best_trophies",
+      "battle_count",
+      "wins",
+      "losses",
+      "three_crown_wins",
+      "exp_points",
+      "collection_level",
+      "king_tower_level",
+      "arena_id",
+    ];
+    return {
+      days,
+      total: tot[0].n,
+      offset,
+      returned: rows.length,
+      players: players.length,
+      done: offset + rows.length >= tot[0].n,
+      pairs_csv_gz_b64: pack(rows, pairCols),
+      players_csv_gz_b64: pack(players, playerCols),
+    };
+  } finally {
+    await db.end();
+  }
+}
