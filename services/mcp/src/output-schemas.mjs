@@ -853,7 +853,23 @@ export const OUTPUT_SCHEMAS = {
           legacy_trophy_road_high_score: NULLABLE_INT,
         },
       },
-      badges: { type: "array" },
+      badges: {
+        type: "array",
+        description:
+          "Current badge state: name is the API's identifier (MasterySkeletonWarriors), label the badge as a player says it (Guards Mastery, 4.2.0); level, max_level, progress, target where tiered.",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            label: { type: "string" },
+            level: NULLABLE_INT,
+            max_level: NULLABLE_INT,
+            progress: NULLABLE_INT,
+            target: NULLABLE_INT,
+          },
+          required: ["name", "label"],
+        },
+      },
       snapshot: {
         type: "object",
         properties: {

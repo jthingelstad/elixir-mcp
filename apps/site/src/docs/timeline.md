@@ -85,7 +85,7 @@ belongs to, so `sections` filters items and entries together.
 |---|---|---|
 | `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. Single battles never appear. |
 | `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
-| `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge, `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
+| `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`, 4.2.0), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
 
 A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
@@ -120,8 +120,8 @@ member) to the keys below; a clan's own item carries the clan's keys only.
 |---|---|
 | `battle_session` | `started_at`, `ended_at`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (ladder only), `won_in_a_row`, `open` |
 | `session_standout` | the session's keys above, plus `crossed` (every rung the session has passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`) and `newly` (the rungs this window learned) |
-| `badge_earned` | `badge`, `level`, `max_level`, `prior_level` (when there was one) |
-| `legendary_badge_earned` | `badge` |
+| `badge_earned` | `badge`, `badge_label`, `level`, `max_level`, `prior_level` (when there was one) |
+| `legendary_badge_earned` | `badge`, `badge_label` |
 | `arena_changed` | `from`, `to` (arena ids), `from_name`, `to_name`, and `promoted_by` (a battle, below) when the record holds the crossing |
 | `ranked_promotion` | `from`, `to` (league numbers), `from_name`, `to_name`, and `promoted_by` when the record holds it |
 | `best_trophies_band` | `best`, `band`, and `crossed_by` when the record holds it |

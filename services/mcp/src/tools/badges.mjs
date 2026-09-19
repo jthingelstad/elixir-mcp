@@ -4,6 +4,7 @@
  *  one. The population is every player with an observed profile, or a
  *  segment (clan / collection / one player) of it. */
 
+import { badgeLabel } from "../badge-names.mjs";
 import { responseMeta } from "@elixir-mcp/contracts";
 import {
   ToolFailure,
@@ -66,7 +67,7 @@ async function population(db, scopeWhere, params) {
 
 const KIND_NOTES = [
   "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level and by_level counts holders per level.",
-  "holder_share = holders / players_considered; badge names are the API's own identifiers.",
+  "holder_share = holders / players_considered; badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery).",
 ];
 
 export const badgesTools = {
@@ -123,6 +124,7 @@ export const badgesTools = {
         ...pop,
         badges: rows.map((r) => ({
           name: r.name,
+          label: badgeLabel(r.name),
           kind: r.one_off ? "one_off" : "tiered",
           holders: r.holders,
           holder_share:
@@ -228,6 +230,7 @@ export const badgesTools = {
           });
       return {
         badge: exact.name,
+        label: badgeLabel(exact.name),
         kind: rows.length === 0 ? null : oneOff ? "one_off" : "tiered",
         applied: appliedBlock({
           badge: exact.name,

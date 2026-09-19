@@ -6,6 +6,7 @@
  *  of an arena already celebrated is silent and a higher one is news.
  *  Bundled: everything new since the last look goes in one mail. */
 import { buildPlayerEntry } from "../../../mcp/src/activity/entries.mjs";
+import { badgeLabel } from "../../../mcp/src/badge-names.mjs";
 import { itemText } from "../../../mcp/src/activity/summary.mjs";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
@@ -112,14 +113,23 @@ function card(kind, f, subject, at, tz) {
         lines: [],
       };
     case "badge_earned":
-    case "legendary_badge_earned":
+    case "legendary_badge_earned": {
+      // The badge as a player says it (Jamie, 2026-09-19: the mail read
+      // "MasterySkeletonWarriors (level 5)"; it is Guards Mastery, level 5).
+      const label = f.badge_label ?? badgeLabel(f.badge);
       return {
-        headline: `${who} earned ${f.badge}${f.level != null ? ` (level ${f.level})` : ""}`,
-        big: null,
+        headline:
+          f.level > 1
+            ? `${who} took ${label} to level ${f.level}`
+            : `${who} earned ${label}`,
+        big: f.level > 1 ? String(f.level) : null,
+        big_label: f.level > 1 ? `${label}, level` : undefined,
         lines: [
           kind === "legendary_badge_earned" ? "A legendary badge." : "",
+          f.max_level && f.level === f.max_level ? "The top level." : "",
         ].filter(Boolean),
       };
+    }
     default:
       return {
         headline: itemText({ kind, facts: f, subject_name: subject.name }, tz),

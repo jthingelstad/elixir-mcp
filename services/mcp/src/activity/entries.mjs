@@ -24,6 +24,7 @@
  * narrated. State facts are a diff of the latest snapshot at each end.
  */
 
+import { badgeLabel } from "../badge-names.mjs";
 import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
 import { periodAt } from "../war-period.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
@@ -418,9 +419,11 @@ function decorate(kind, payload, arenaNames) {
   // The badge's or card's own name under its own key, so it never shadows
   // the member's `name` on a clan timeline ("Lava Hound unlocked Lava
   // Hound", 2026-09-16).
+  // badge_label is the badge as a player says it (badge-names.mjs);
+  // badge stays the API's identifier, which badges_holders matches on.
   if (kind === "badge_earned" || kind === "legendary_badge_earned") {
     const { name, ...rest } = payload;
-    return { badge: name, ...rest };
+    return { badge: name, badge_label: badgeLabel(name), ...rest };
   }
   if (kind === "card_unlocked") {
     const { name, ...rest } = payload;

@@ -1,3 +1,4 @@
+import { badgeLabel } from "../badge-names.mjs";
 import { readRecordedProfile } from "../../../ingest/src/recorded-profile.mjs";
 /** players_summary · players_profile · players_timeline ·
  *  players_collection · players_names · players_search. Conventions
@@ -353,7 +354,12 @@ export const playersTools = {
           clan_cards_collected: row.clan_cards_collected,
           legacy_trophy_road_high_score: row.legacy_trophy_road_high_score,
         },
-        badges: row.badges ?? [],
+        // name is the API's identifier; label the badge as a player says it.
+        badges: (row.badges ?? []).map((b) => ({
+          name: b.name,
+          label: badgeLabel(b.name),
+          ...b,
+        })),
         snapshot: {
           date: row.snapshot_date.toISOString().slice(0, 10),
           trophies: row.trophies,

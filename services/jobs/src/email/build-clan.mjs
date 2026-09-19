@@ -3,6 +3,7 @@
  *  activity, roster changes, standouts, presence and donations the way
  *  the feed says them; war_history gives the week that closed; the
  *  members' daily series gives the roster table; clans_roster the roles. */
+import { badgeLabel } from "../../../mcp/src/badge-names.mjs";
 import { buildClanEntry } from "../../../mcp/src/activity/entries.mjs";
 import { accountCtx, callTool } from "./ctx.mjs";
 import { tryTool, weekday } from "./shared.mjs";
@@ -119,7 +120,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
     .flatMap((b) =>
       (b.names?.items ?? b.names ?? []).map((n) => ({
         name: b.name ?? b.tag,
-        badge: n,
+        badge: badgeLabel(n),
       })),
     )
     .slice(0, 8);

@@ -778,9 +778,12 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
     "level 4 is texture; level 5 and a final level are moments",
   );
   assert.ok(badges.every((b) => b.facts.name === member.name));
+  // badge stays the identifier; badge_label and the text are the badge
+  // as a player says it (badge-names.mjs).
+  assert.equal(badges[0].facts.badge_label, "Hog Mastery");
   assert.equal(
     badges[0].text,
-    `Tue 05:02 ${member.name} took MasteryHog to level 5.`,
+    `Tue 05:02 ${member.name} took Hog Mastery to level 5.`,
   );
   const card = body.timeline.find((it) => it.kind === "card_unlocked");
   assert.equal(card.facts.card, "Lava Hound");

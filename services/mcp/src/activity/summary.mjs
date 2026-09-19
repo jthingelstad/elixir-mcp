@@ -7,6 +7,8 @@
  * agent's tokens either.
  */
 
+import { badgeLabel } from "../badge-names.mjs";
+
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "?");
 
@@ -101,11 +103,11 @@ export function summarizePlayer(e, timeZone = "UTC") {
         parts.push(`${num(n.value)} career wins`);
         break;
       case "legendary_badge":
-        parts.push(`earned ${n.name}`);
+        parts.push(`earned ${badgeLabel(n.name)}`);
         break;
       case "badge_level":
         parts.push(
-          `${plural(n.count, "badge level-up")}${n.names?.length ? ` (${n.names.join(", ")})` : ""}`,
+          `${plural(n.count, "badge level-up")}${n.names?.length ? ` (${n.names.map(badgeLabel).join(", ")})` : ""}`,
         );
         break;
       case "clan_joined":
@@ -257,7 +259,7 @@ export function summarizeClan(e, timeZone = "UTC") {
           .slice(0, 3)
           .map(
             (m) =>
-              `${m.name ?? m.tag} ${m.count}${m.names?.length ? ` (${m.names.join(", ")})` : ""}`,
+              `${m.name ?? m.tag} ${m.count}${m.names?.length ? ` (${m.names.map(badgeLabel).join(", ")})` : ""}`,
           )
           .join(", ")}`,
       );
@@ -312,10 +314,12 @@ export function itemText(it, timeZone = "UTC") {
         f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";
       return `${at} ${member || subj} played ${plural(f.battles, "battle")} in one sitting (${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${run})${f.open ? ", still going" : ""}.`;
     }
+    // The badge as a player says it: a level above 1 is a level taken,
+    // the first level (or a one-off) is a badge earned.
     case "badge_earned":
-      return `${at} ${member || subj} took ${f.badge ?? f.name}${f.level ? ` to level ${f.level}` : ""}.`;
+      return `${at} ${member || subj} ${f.level > 1 ? `took ${badgeLabel(f.badge ?? f.name)} to level ${f.level}` : `earned ${badgeLabel(f.badge ?? f.name)}`}.`;
     case "legendary_badge_earned":
-      return `${at} ${member || subj} earned ${f.badge ?? f.name}.`;
+      return `${at} ${member || subj} earned ${badgeLabel(f.badge ?? f.name)}.`;
     case "arena_changed":
       return `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}${onBattle(f.promoted_by)}.`;
     case "ranked_promotion":

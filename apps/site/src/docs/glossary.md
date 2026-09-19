@@ -188,6 +188,14 @@ KINGS' earlier bot); on `applied.window`, `argument`, `default`,
 `trophy_floor`, how the floor was learned; on a `players_search` match, what
 matched.
 
+**badge label** — a badge the way a player says it. The API names a
+badge by the game's internal identifier and carries no display name, so
+`MasterySkeletonWarriors` is served as `label` `Guards Mastery` beside
+its `name` on `players_profile`, `badges_rarity` and `badges_holders`,
+and as `badge_label` on a timeline badge item (4.2.0). Mastery badges
+resolve the card's internal codename to its shown name; dated badges say
+the month. Match on `name`; say `label`.
+
 **kind** — a local enum, five of them: a series point's snapshot kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind
 (`battle_session`, `ranked_promotion` and the rest, on
