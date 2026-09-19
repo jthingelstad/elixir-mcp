@@ -5146,3 +5146,24 @@ records a moment only after a send, so nothing was lost inside the
 26-hour lookback). And a metric filter on `email_compose_failed` with
 an alarm (`elixir-mcp-email-compose-failed`), so a per-account failure
 pages like a run failure does.
+## 2026-09-19 — Keep the Boards: daily board record and collection reconciliation
+
+The 10:00Z Path of Legends planning tick has one global receipt. The approved,
+read-only migrate `{stats:true}` receipt reports its 10:07:53Z global snapshot
+at 1,000 entries with `truncated: false`; the public status reader remained
+healthy. The authorized `boards` client reconciliation made the global,
+United States, Japan, and global-top-ten-clans collections equal their
+recorded boards, then a post-sync dry run returned zero additions/removals for
+all four.
+
+Two measured watches remain. Only 145/262 enabled regional Path of Legends
+boards were confirmed within 26 hours; 640 natural `rankings_pol` HTTP 404s in
+the same trailing-24-hour stats receipt explain much, but not necessarily all,
+of the 117 stale locations. This remains Run Elixir MCP's upstream/result
+boundary coverage investigation, with no cadence, admission-freshness, or
+global-budget change authorized from the aggregate. The same receipt counted
+467 active ranking-origin recordings. That is above the boards objective's
+roughly-400 alert line; its approved aggregate cannot distinguish expected
+unique top-200 seasonal churn from stale presences, so the next authorized
+diagnostic must establish that distinction before changing the documented
+seasonal sticky-retention rule.
