@@ -396,3 +396,90 @@ export function partialWeeksNote(partial) {
   if (partial.length === 0) return null;
   return `${partial.length === 1 ? "Bucket" : "Buckets"} ${partial.join(", ")} ${partial.length === 1 ? "is" : "are"} partial: the window clips ${partial.length === 1 ? "it" : "them"} (covers says the span each row holds), so compare ${partial.length === 1 ? "it" : "them"} by win_rate, never by battles, or snap from/to to Mondays.`;
 }
+
+/**
+ * The battle types that move trophies (feedback #61): Trophy Road and
+ * Path of Legends are the only ones the API stamps trophyChange on
+ * (cr-agent-api-docs players.md). A weekly row's `trophy_battles`
+ * counts the ones that REPORTED a delta, and a loss standing on an
+ * arena floor reports none, so `trophy_mode_battles` (every battle of
+ * these types) is the denominator for "how many ladder games", and the
+ * two differ by exactly the floor losses.
+ */
+export const TROPHY_MODE_TYPES = ["PvP", "pathOfLegend"];
+
+/** Fires when a weekly row holds trophy-mode battles that reported no
+ *  delta; names the weeks and the counts so the smaller number is never
+ *  read as the games played. */
+export function trophyBattlesNote(weeks) {
+  const short = weeks.filter(
+    (w) =>
+      typeof w.trophy_mode_battles === "number" &&
+      w.trophy_mode_battles > w.trophy_battles,
+  );
+  if (short.length === 0) return null;
+  const names = short.map((w) => w.iso_week);
+  const counts = short.map((w) => w.trophy_mode_battles - w.trophy_battles);
+  const list = (xs) =>
+    xs.length <= 2
+      ? xs.join(" and ")
+      : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
+  return `${short.length === 1 ? "Week" : "Weeks"} ${list(names)} ${short.length === 1 ? "holds" : "hold"} ${list(counts.map(String))} trophy-mode ${counts.every((c) => c === 1) ? "battle" : "battles"} with no reported trophy change (a loss standing on an arena floor reports none): trophy_battles excludes them and is not the count of ladder battles played, so divide by trophy_mode_battles.`;
+}
+
+/**
+ * Every population change inside a monthly trend (feedback #55, #62):
+ * a step where the modal arena differs or the mean starting trophies
+ * moved by 200 or more. ALL qualifying steps, in order; the first
+ * version stopped at the first hit and stayed quiet on a later arena
+ * crossing, which is the harder confound and exactly the one the guard
+ * was written for.
+ */
+export function populationChanges(points) {
+  const out = [];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const arenaChanged = Boolean(
+      a.modal_arena?.name &&
+      b.modal_arena?.name &&
+      a.modal_arena.name !== b.modal_arena.name,
+    );
+    const known = (v) => typeof v === "number";
+    const trophyDelta =
+      known(a.mean_starting_trophies) && known(b.mean_starting_trophies)
+        ? b.mean_starting_trophies - a.mean_starting_trophies
+        : null;
+    if (arenaChanged || (trophyDelta !== null && Math.abs(trophyDelta) >= 200))
+      out.push({
+        from_month: a.month,
+        to_month: b.month,
+        arena_changed: arenaChanged,
+        from_arena: a.modal_arena ?? null,
+        to_arena: b.modal_arena ?? null,
+        from_trophies: a.mean_starting_trophies ?? null,
+        to_trophies: b.mean_starting_trophies ?? null,
+        trophy_delta: trophyDelta,
+      });
+  }
+  return out;
+}
+
+/** One sentence naming EVERY step; null when the trend holds none. */
+export function populationChangesNote(changes) {
+  if (changes.length === 0) return null;
+  const fmt = (v) => (v === null ? "unknown" : v.toLocaleString("en-US"));
+  const steps = changes.map(
+    (c) =>
+      `between ${c.from_month} and ${c.to_month}: ${
+        c.arena_changed
+          ? `modal arena ${c.from_arena.name} to ${c.to_arena.name}`
+          : "the same arena"
+      }, mean starting trophies ${fmt(c.from_trophies)} to ${fmt(c.to_trophies)}`,
+  );
+  const list =
+    steps.length <= 2
+      ? steps.join(", and ")
+      : `${steps.slice(0, -1).join("; ")}; and ${steps.at(-1)}`;
+  return `monthly_trend spans ${changes.length === 1 ? "a population change" : `${changes.length} population changes (population_changes lists them)`} ${list}; pilot_score adjusts for card levels and not for the opponents' skill, so ${changes.length === 1 ? "the step" : "each step"} can be the pool rather than the play - hold arena_id fixed to compare.`;
+}

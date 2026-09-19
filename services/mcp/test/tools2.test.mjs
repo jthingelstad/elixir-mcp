@@ -200,10 +200,13 @@ test("days/weeks are sugar on EVERY windowed tool, as the instructions promise",
 
   const tl = await call("players_timeline", { days: 2 });
   assert.equal(tl.isError, false, JSON.stringify(tl.body));
+  // days: N is N GAME days on the 10:00Z grid, today's included, so the
+  // expected day is the game day a day ago (the UTC date of that instant
+  // less ten hours), not the UTC date: before 10:00Z they differ.
   assert.equal(
     tl.body.applied.window.from,
-    new Date(dayAgo).toISOString().slice(0, 10),
-    "two days of snapshots: yesterday and today",
+    new Date(dayAgo - 10 * 3600_000).toISOString().slice(0, 10),
+    "two game days of snapshots: yesterday's and today's",
   );
 });
 

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "Three guards moved onto the number they guard",
+    body: "An agent re-ran every 3.13.0 fix and found all of them holding, then found three places where the guard sat beside the field that needed it. A weekly row's trophy_battles counted only the ladder games the game reported a trophy delta for, so a player parked on an arena floor (where a loss costs nothing and reports nothing) showed fewer games than they played and a better record than they had; trophy_mode_battles now sits beside it as the count of ladder and Path of Legends games played, the docs name both, and a note says which weeks differ. The monthly pilot-score trend warned about the first population change it found and said nothing about a later one, even an arena crossing; it now lists every step under population_changes and names them all. And battles_decks called its denominator the battles in the window when duels were silently outside it; excluded now itemizes them and the numbers reconcile with battles_performance. Contract 4.1.0.",
+  },
+  {
+    date: "2026-09-19",
     title: "Email: six kinds, each a switch",
     body: "Elixir now sends mail from the record: a Monday clan report, Tuesday's your week in the Arena, Wednesday's tracking report, Thursday's Top 100 (one shared issue), Sunday's collector activity for operators, and a milestone note when something you or an alt did is a first. Five are structured reports with no model in the loop; the Top 100 is written by a model that may print a number only after reading it from a brief the program built, and the program checks every number before it sends. All six are on by default, each a switch on your Profile with a send-me-this-now button, and every issue carries a one-click off. Details at /docs/email.",
   },

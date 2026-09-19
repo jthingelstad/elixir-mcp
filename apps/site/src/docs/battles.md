@@ -107,9 +107,14 @@ A **duel** (`riverRaceDuel`, `riverRaceDuelColosseum`) is **one row for up to
 three games**. `crowns` is summed across the rounds, `tower_hp` describes the
 final round only, `deck_hash` is `null` because there is no single deck, the
 decks sit under `deck.rounds[]` one per round, and `rounds_played` says how
-many rounds the row holds. `battles_cards` and the meta tools exclude duels
-for exactly this reason; `battles_opponents` counts a duel once however many
-rounds it held.
+many rounds the row holds. `battles_decks`, `battles_cards` and the meta
+tools exclude duels for exactly this reason: `battles_decks` itemizes them
+under `excluded {duels, no_deck}` and its `total_battles_in_window` is the
+head-to-head battles with a deck, the denominator of `share_of_battles`, so
+`total_battles_in_window + excluded.duels + excluded.no_deck` is
+`battles_performance.battles` over the same window (4.1.0); a note says so
+whenever the window held a duel. `battles_opponents` counts a duel once
+however many rounds it held.
 
 A **boat battle** (`boatBattle`) is an attack on a static defense, not a
 head-to-head match. The record classes every battle as `type_class` `pvp`
@@ -194,6 +199,14 @@ denominator:
   `battles` minus `decided_battles` is draws plus unresolved plus boat.
 - Duel crowns are summed over rounds, so `crowns_for` and `crowns_against`
   mix units when a window holds duels; `duel_battles` says how many did.
+- On a weekly row (`battles_performance group_by: "week"`, `battles_trends`),
+  `trophy_mode_battles` counts the Trophy Road and Path of Legends battles
+  played, and `trophy_battles` the ones for which the game reported a
+  trophy delta: a loss standing on an arena floor reports none (see
+  `trophy_change` above), so `trophy_battles` can be lower than the
+  trophy-mode battles played, and only losses drop out. `net_trophies` sums
+  `trophy_battles`. Divide by `trophy_mode_battles` for a ladder record; a
+  note names the weeks where the two differ (4.1.0).
 
 The meta tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`,
 `cards_synergy`) count decided head-to-head **player-battle observations**,

@@ -120,7 +120,11 @@ async function events(type) {
 
 // Fresh enough for the activity signals: the guard is 24h from now, and
 // the scenario has to be a real morning with real gaps between polls.
-const day = new Date(Date.now() - 12 * 3600_000).toISOString().slice(0, 10);
+// The day is today's UTC date from 06:00Z (the scenario's first poll is
+// 06:07Z, so yesterday's would be older than the guard by then) and
+// yesterday's before it; twelve hours back put the first poll outside
+// the guard every day between 06:07Z and noon.
+const day = new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 10);
 const at = (hhmmss) => `${day}T${hhmmss}Z`;
 const logAt = (hhmmss) => `${day.replaceAll("-", "")}T${hhmmss}.000Z`;
 

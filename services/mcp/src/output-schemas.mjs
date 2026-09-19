@@ -354,6 +354,25 @@ const PILOT_PLAYER = {
         required: ["month", "n", "pilot_score"],
       },
     },
+    population_changes: {
+      type: "array",
+      description:
+        "Every step of monthly_trend where the modal arena differs or mean starting trophies moved by 200 or more (4.1.0); empty when the population held. The note names them all.",
+      items: {
+        type: "object",
+        properties: {
+          from_month: { type: "string" },
+          to_month: { type: "string" },
+          arena_changed: { type: "boolean" },
+          from_arena: { type: ["object", "null"] },
+          to_arena: { type: ["object", "null"] },
+          from_trophies: { type: ["integer", "null"] },
+          to_trophies: { type: ["integer", "null"] },
+          trophy_delta: { type: ["integer", "null"] },
+        },
+        required: ["from_month", "to_month", "arena_changed", "trophy_delta"],
+      },
+    },
   },
   required: ["player_tag", "n"],
 };
@@ -949,7 +968,16 @@ export const OUTPUT_SCHEMAS = {
             iso_week: { type: "string" },
             week_of: { type: "string" },
             ...RECORD,
-            trophy_battles: COUNT,
+            trophy_mode_battles: {
+              ...COUNT,
+              description:
+                "Trophy Road and Path of Legends battles played this week (4.1.0): the denominator for ladder games; trophy_battles is the subset that reported a trophy delta.",
+            },
+            trophy_battles: {
+              ...COUNT,
+              description:
+                "Trophy-mode battles that reported a trophy delta; a loss standing on an arena floor reports none and is outside this count.",
+            },
             net_trophies: COUNT,
             partial: {
               type: "boolean",
@@ -1072,7 +1100,18 @@ export const OUTPUT_SCHEMAS = {
         properties: { window: WINDOW_ECHO },
         required: ["window"],
       },
-      total_battles_in_window: COUNT,
+      total_battles_in_window: {
+        ...COUNT,
+        description:
+          "Head-to-head battles with a deck in the window, the denominator of share_of_battles; duels have no single deck and sit in excluded (4.1.0).",
+      },
+      excluded: {
+        type: "object",
+        description:
+          "Battles in the window outside the rows (4.1.0): duels (no single deck) and any other battle with no recorded deck; total_battles_in_window plus these is battles_performance.battles over the same window.",
+        properties: { duels: COUNT, no_deck: COUNT },
+        required: ["duels", "no_deck"],
+      },
       comparable: {
         type: "boolean",
         description:

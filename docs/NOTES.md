@@ -5023,3 +5023,52 @@ resolution, for the interface-review owner.
 sharing means forwarding the email. Removed: the route, the share link
 in the mail's footer, the `share_url` fact. Every mail surface stays
 behind a session or an address the relay sent to.
+
+## 2026-09-19 — Contract 4.1.0: the 3.13.0 guards moved onto the field they guard (feedback #61, #62, #63)
+
+An agent's regression run (findings doc "Elixir MCP — test run 2026-09-19",
+filed as #61-#64) re-ran all eleven 3.13.0 items and confirmed each fixed,
+then found three defects of one shape: a guard landed beside the field
+that needed it. All three shipped in one additive release:
+
+- **#61 `trophy_battles`** (weekly rows on `battles_performance` and
+  `battles_trends`) counted the trophy-mode battles that REPORTED a delta,
+  and a loss on an arena floor reports none, so it read 8 against 10
+  ladder games and any rate over it flattered exactly the floored player
+  the response had named. `trophy_mode_battles` (`PvP` + `pathOfLegend`,
+  `TROPHY_MODE_TYPES` in controls.mjs; the API stamps `trophyChange` on
+  those two only) now rides beside it, the denominators doc lists both,
+  and `trophyBattlesNote` names the weeks where they differ. Verified on
+  the live fixture below: W38 reads 8 and 10.
+- **#62 the monthly_trend population note** stopped at the first
+  qualifying step and stayed quiet on a later arena crossing - the
+  confound #55 was filed for, with the guard now pointing away from it.
+  `populationChanges()` lists every step under
+  `player.population_changes[]` and `populationChangesNote` names them
+  all; the test fixture is a player whose LATER step carries the crossing.
+- **#63 `battles_decks.total_battles_in_window`** excluded duels silently
+  (no single deck, so no `deck_hash`), and the docs' list of
+  duel-excluding tools left it out. Now `excluded {duels, no_deck}` rides
+  the response, the note says what sits outside the rows whenever a duel
+  is in the window, and `total_battles_in_window + excluded.* ==
+  battles_performance.battles` is asserted. Also fixed on the way: the
+  total was summed over the first 100 decks, not the window.
+
+The name `total_battles_in_window` stays (a rename is a major and 4.0.0
+was this morning); its meaning is documented and `excluded` makes it
+reconcilable. #64 is praise for the negative controls and is answered.
+
+**Two clock-edge test failures on `main` fixed in the same push** (CI was
+red since 41cf73e, both unrelated to those commits): `tools2.test.mjs`
+"days/weeks are sugar" expected the UTC yesterday where `players_timeline
+days: 2` answers the GAME day (10:00Z grid), red 00:00-10:00Z; and
+`profile-refresh.test.mjs` anchored its "morning" on `now - 12h`, which
+put its 06:07Z first poll outside the 24 h freshness guard every day
+between 06:07Z and noon. Both now compute what the code actually promises.
+
+Transcribed from the lease queue (loop run 2026-09-18T23:34Z): shipped
+c1782e8 (rankings docs route, explicit-segment protocol), verify green,
+canonical deploy and public read-back passed, feedback backlog 0; another
+actor committed unpushed 031ffb0 onto the checkout under the loop lease,
+so that run did not append or push its receipt. Its owner has since
+pushed; nothing left to recover.

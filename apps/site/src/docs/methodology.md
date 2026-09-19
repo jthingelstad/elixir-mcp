@@ -186,11 +186,17 @@ monthly point therefore carries the population it was scored in:
 `mean_starting_trophies` (over the month's **ladder** battles only, since a
 Path of Legends battle's starting trophies is its league rating on another
 scale; null for a month with none), `modal_arena {id, name}`, `mean_gap`,
-`opponent_mean_level`, `actual_win_rate` and `expected_from_levels`. When the
-modal arena changes between two points, or the mean starting trophies move by
-200 or more, the response leads with a note naming the change; pass
-`arena_id` (finer than `trophy_band`, which spans several arenas at the top
-of Trophy Road) to score one population alone. Decomposing the residual into
+`opponent_mean_level`, `actual_win_rate` and `expected_from_levels`. Every
+step where the modal arena changes, or the mean starting trophies move by
+200 or more, is listed under `player.population_changes[]` (`from_month`,
+`to_month`, `arena_changed`, `from_arena`, `to_arena`, `from_trophies`,
+`to_trophies`, `trophy_delta`; an empty list when the population held) and
+the response leads with one note naming **all** of them: a trend with two
+steps names both, so a named first step is never read as the only one
+(4.1.0; the first version named the earliest step and stayed quiet on a
+later arena crossing). Pass `arena_id` (finer than `trophy_band`, which
+spans several arenas at the top of Trophy Road) to score one population
+alone. Decomposing the residual into
 levels, population and play would need an opponent-skill proxy the record does
 not yet hold.
 

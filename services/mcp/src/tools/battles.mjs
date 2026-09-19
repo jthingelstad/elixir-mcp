@@ -122,6 +122,10 @@ import {
   markPartialMonths,
   partialWeeksNote,
   singlePlayerNote,
+  TROPHY_MODE_TYPES,
+  trophyBattlesNote,
+  populationChanges,
+  populationChangesNote,
 } from "../controls.mjs";
 import {
   LEVEL_EDGES_SQL,
@@ -861,6 +865,11 @@ export const battlesTools = {
         if (to) add("bp.battle_time < ?", to);
         modeClause(args, add);
         if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
+        // trophy_battles counts the rows that REPORTED a delta and a loss
+        // on an arena floor reports none (feedback #61), so the trophy-mode
+        // count rides beside it as the denominator for "games played".
+        params.push(TROPHY_MODE_TYPES);
+        const trophyModes = `$${params.length}`;
         const { rows } = await ctx.db.query(
           `select to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
                   date_trunc('week', bp.battle_time)::date::text as week_of,
@@ -868,6 +877,7 @@ export const battlesTools = {
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(*) filter (where bp.outcome = 'draw')::int as draws,
+                  count(*) filter (where b.type = any(${trophyModes}))::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
@@ -887,6 +897,7 @@ export const battlesTools = {
             wins: r.wins,
             losses: r.losses,
             draws: r.draws,
+            trophy_mode_battles: r.trophy_mode_battles,
             trophy_battles: r.trophy_battles,
             net_trophies: r.net_trophies,
             win_rate:
@@ -899,8 +910,9 @@ export const battlesTools = {
         result = { weekly: weekly.rows };
         caveats.push(
           partialWeeksNote(weekly.partial),
+          trophyBattlesNote(weekly.rows),
           "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
-          "net_trophies covers only trophy_battles: war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks.",
+          "net_trophies sums trophy_battles, the trophy-mode battles (ladder and Path of Legends) that reported a delta; war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks, and trophy_mode_battles is the count of those battles played.",
         );
         if (args.before_after || args.compare_from || args.compare_to)
           caveats.push(
@@ -1139,7 +1151,7 @@ export const battlesTools = {
 
   battles_decks: {
     description:
-      "Battles grouped by exact deck identity (deck_hash): per-deck record, win rate, share of battles, first/last used, plus the controls that make a win rate readable: modes (battles per mode group), dominant_mode and mean_level_gap against the opposing side. comparable is false when the rows were played in different modes or at gaps half a level apart (war matchmaking flatters a deck), and a note says which. Unbounded by default; pass mode to rank decks within one mode, a deck_hash to battles_query or battles_performance to drill in.",
+      "Battles grouped by exact deck identity (deck_hash): per-deck record, win rate, share of battles, first/last used, plus the controls that make a win rate readable: modes (battles per mode group), dominant_mode and mean_level_gap against the opposing side. comparable is false when rows were played in different modes or at gaps half a level apart (war matchmaking flatters a deck), and a note says which. Duels have no single deck and sit under excluded, outside rows and shares. Unbounded by default; pass mode to rank within one mode, a deck_hash to battles_query or battles_performance to drill in.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1232,7 +1244,39 @@ export const battlesTools = {
         ctx.db,
         rows.map((r) => r.deck_hash),
       );
-      const totalBattles = rows.reduce((n, r) => n + r.battles, 0);
+      // The denominator of share_of_battles is every deck-bearing battle
+      // in the window (the type split above has no row cap; the deck
+      // query keeps 100), and what has no deck is itemized beside it
+      // (feedback #63): a duel has no single deck, so it is outside
+      // these rows, and battles_performance.battles counts it.
+      const totalBattles = byType.reduce((n, r) => n + r.battles, 0);
+      const {
+        rows: [left],
+      } = await ctx.db.query(
+        `select count(*) filter (where b.type = any($${params.length + 1}))::int as duels,
+                count(*) filter (where not coalesce(b.type = any($${params.length + 1}), false))::int as no_deck
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+          where ${where
+            .filter((w) => w !== "bp.deck_hash is not null")
+            .join(" and ")} and bp.deck_hash is null`,
+        [...params, DUEL_TYPES],
+      );
+      const excluded = { duels: left.duels, no_deck: left.no_deck };
+      const excludedNote =
+        excluded.duels + excluded.no_deck > 0
+          ? `${[
+              excluded.duels > 0
+                ? `${excluded.duels} duel ${excluded.duels === 1 ? "battle is" : "battles are"}`
+                : null,
+              excluded.no_deck > 0
+                ? `${excluded.no_deck} ${excluded.no_deck === 1 ? "battle" : "battles"} with no recorded deck ${excluded.no_deck === 1 ? "is" : "are"}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(
+                " and ",
+              )} outside these rows (a duel has no single deck); total_battles_in_window and share_of_battles are over the ${totalBattles} head-to-head battles with a deck, and battles_performance.battles counts every one.`
+          : null;
       let shaped = rows;
       if (args.min_battles) {
         shaped = shaped.filter((r) => r.battles >= args.min_battles);
@@ -1296,10 +1340,12 @@ export const battlesTools = {
           limit,
         }),
         total_battles_in_window: totalBattles,
+        excluded,
         comparable: guard === null,
         decks,
         notes: notes(
           guard,
+          excludedNote,
           win.seasonNotes,
           win.source === "unbounded"
             ? "No window was given, so this is the whole recorded history for the player; pass from/to for a period."
@@ -1949,13 +1995,14 @@ export const battlesTools = {
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(distinct bp.player_tag)::int as players,
+                  count(*) filter (where b.type = any($${params.length + 1}))::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
            where ${where.join(" and ")}
            group by date_trunc('week', b.battle_time)) w
          order by w.week_start`,
-        params,
+        [...params, TROPHY_MODE_TYPES],
       );
       // The control next to the number (3.16.0): the week's mode split
       // (one more group-by over the same rows), and the buckets the
@@ -1989,6 +2036,7 @@ export const battlesTools = {
           r.wins + r.losses > 0
             ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
             : null,
+        trophy_mode_battles: r.trophy_mode_battles,
         trophy_battles: r.trophy_battles,
         net_trophies: r.net_trophies,
         season_month: r.season_month,
@@ -2014,6 +2062,7 @@ export const battlesTools = {
         weeks,
         notes: notes(
           partialWeeksNote(partial),
+          trophyBattlesNote(weeks),
           "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
           !args.mode && weeks.some((w) => Object.keys(w.modes).length > 1)
             ? "Weeks pool every mode group (modes says which); matchmaking differs by mode, so pass mode before reading win_rate as a trend of strength."
@@ -2331,30 +2380,16 @@ export const battlesTools = {
 
         await ctx.db.query("commit");
         const compact = args.verbosity === "compact";
-        // The guard fires on a detected population change inside the
-        // trend: a different modal arena, or mean starting trophies that
-        // moved by 200 or more between two points.
-        let populationNote = null;
+        // The guard fires on every detected population change inside the
+        // trend (a different modal arena, or mean starting trophies that
+        // moved by 200 or more between two points), machine-readable
+        // under player.population_changes and named in one note. Feedback
+        // #62: the first version emitted the earliest step only and stayed
+        // quiet on a later arena crossing, which read as "checked, clean".
         const points = player?.monthly_trend ?? [];
-        for (let i = 1; i < points.length && !populationNote; i++) {
-          const a = points[i - 1];
-          const b = points[i];
-          const arenaMoved =
-            a.modal_arena?.name &&
-            b.modal_arena?.name &&
-            a.modal_arena.name !== b.modal_arena.name;
-          const trophiesMoved =
-            a.mean_starting_trophies !== null &&
-            b.mean_starting_trophies !== null &&
-            Math.abs(a.mean_starting_trophies - b.mean_starting_trophies) >=
-              200;
-          if (arenaMoved || trophiesMoved)
-            populationNote = `monthly_trend spans a population change between ${a.month} and ${b.month}: ${
-              arenaMoved
-                ? `modal arena ${a.modal_arena.name} to ${b.modal_arena.name}`
-                : "the same arena"
-            }, mean starting trophies ${a.mean_starting_trophies?.toLocaleString("en-US") ?? "unknown"} to ${b.mean_starting_trophies?.toLocaleString("en-US") ?? "unknown"}; pilot_score adjusts for card levels and not for the opponents' skill, so the step can be the pool rather than the play - hold arena_id fixed to compare.`;
-        }
+        const changes = populationChanges(points);
+        if (player?.monthly_trend) player.population_changes = changes;
+        const populationNote = populationChangesNote(changes);
         const winFrom = new Date(asOf.getTime() - days * 86400_000);
         const seasonFields = await seasonFieldsForInstants(
           ctx.db,

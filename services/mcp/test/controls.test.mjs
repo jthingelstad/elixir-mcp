@@ -28,6 +28,9 @@ const registry = makeRegistry();
 // Tags use the game's own alphabet (0289PYLQGRJCUV): the player table
 // checks it.
 const F = "#2PYLQG0";
+// The second scored player (#62): three months whose LATER step carries
+// the arena crossing, so a guard that stops at the first hit misses it.
+const G = "#2PYLQG8";
 const OPPONENTS = [..."289PYLQGRJ"].map((c) => `#2PYLQGC${c}`);
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
@@ -46,8 +49,9 @@ const DECK_OPP = Array.from({ length: 8 }, (_, i) => ({
 }));
 
 let n = 0;
-/** One head-to-head battle, F on side 0, with both decks as rows. */
+/** One head-to-head battle, F (or `who`) on side 0, with both decks as rows. */
 async function battle({
+  who = F,
   at,
   type,
   arena,
@@ -81,7 +85,7 @@ async function battle({
             ($1,$11,1,$12,$4::timestamptz,$5,'pvp',$13,$14,$8,null,$15,1)`,
     [
       id,
-      F,
+      who,
       outcome,
       at,
       type,
@@ -99,7 +103,7 @@ async function battle({
   );
   await seedPlayedDeck(scratch.db, {
     battle_id: id,
-    player_tag: F,
+    player_tag: who,
     battle_time: at,
     cards: myDeck,
   });
@@ -131,14 +135,15 @@ before(async () => {
     kind: "person",
     role: "member",
   };
-  for (const tag of [F, ...OPPONENTS])
+  for (const tag of [F, G, ...OPPONENTS])
     await scratch.db.query("insert into player (player_tag) values ($1)", [
       tag,
     ]);
-  await scratch.db.query(
-    "insert into recording (subject_type,subject_tag,requested_by) values ('player',$1,$2)",
-    [F, account.accountId],
-  );
+  for (const tag of [F, G])
+    await scratch.db.query(
+      "insert into recording (subject_type,subject_tag,requested_by) values ('player',$1,$2)",
+      [tag, account.accountId],
+    );
   for (const a of [MAGIC, PIT])
     await scratch.db.query(
       "insert into arena (arena_id, name) values ($1, $2) on conflict do nothing",
@@ -218,6 +223,44 @@ before(async () => {
       myLeak,
       oppLeak,
     });
+  // A July duel for F (#63): one row for up to three games, no single
+  // deck, so it has no deck_hash and sits outside battles_decks' rows.
+  await scratch.db.query(
+    `insert into battle (battle_id,battle_time,type,type_class,game_mode_name,arena,arena_id)
+     values ('ctrl-duel','2026-07-25T12:00:00Z','riverRaceDuel','pvp','CW_Duel_1v1',$1,$2)`,
+    [PIT.name, PIT.id],
+  );
+  await scratch.db.query(
+    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,type,type_class,crowns)
+     values ('ctrl-duel',$1,0,'loss','2026-07-25T12:00:00Z','riverRaceDuel','pvp',2),
+            ('ctrl-duel',$2,1,'win','2026-07-25T12:00:00Z','riverRaceDuel','pvp',4)`,
+    [F, OPPONENTS[0]],
+  );
+
+  // G's three ladder months at F's gap (+0.70, a populated bin): June in
+  // Magic Academy at 11,972, July in Magic Academy at 12,300 (+328, a
+  // trophies-only step), August in the Pit at 12,536 (the arena
+  // crossing, on the LATER step). Twenty a month clears the monthly
+  // floor; forty in the Pit so an arena_id read still scores.
+  const gMonths = [
+    ["2026-06-10T00:00:00Z", MAGIC, 11972, 20],
+    ["2026-07-10T00:00:00Z", MAGIC, 12300, 20],
+    ["2026-08-10T00:00:00Z", PIT, 12536, 40],
+  ];
+  for (const [start, arena, starting, count] of gMonths)
+    for (let i = 0; i < count; i++)
+      await battle({
+        who: G,
+        at: day(start, i, 6),
+        type: "PvP",
+        arena,
+        outcome: i % 2 === 0 ? "win" : "loss",
+        myDeck: DECK_A,
+        myLevel: 16.0,
+        oppLevel: 15.3,
+        starting,
+        trophyChange: i % 2 === 0 ? 30 : -29,
+      });
 });
 after(async () => scratch.drop());
 
@@ -458,6 +501,137 @@ test("battles_levels: monthly_trend carries its population and the guard fires o
     () => call("battles_levels", { player_tag: F, arena_id: 42 }),
     (err) => err.code === "bad_request" && /arena id/.test(err.message),
   );
+});
+
+test("battles_performance group_by week: trophy_mode_battles rides beside trophy_battles and the note names the floor weeks (#61)", async () => {
+  const res = await call("battles_performance", {
+    player_tag: F,
+    from: "2026-09-01",
+    to: "2026-09-18",
+    group_by: "week",
+  });
+  const floorWeek = res.weekly.find((w) => w.iso_week === "2026-W38");
+  assert.ok(floorWeek, JSON.stringify(res.weekly));
+  // Six ladder battles, two of them losses ON the floor with no delta.
+  assert.equal(floorWeek.trophy_mode_battles, 6);
+  assert.equal(floorWeek.trophy_battles, 4);
+  assert.equal(
+    floorWeek.trophy_battles + res.trophy_floor.on_floor_losses,
+    floorWeek.trophy_mode_battles,
+  );
+  const note = res.notes.find((l) => /with no reported trophy change/.test(l));
+  assert.ok(note, JSON.stringify(res.notes));
+  assert.match(
+    note,
+    /^Week 2026-W38 holds 2 trophy-mode battles with no reported trophy change/,
+  );
+  // A war week has no trophy-mode battles at all, and the count says so.
+  const warWeek = res.weekly.find((w) => w.iso_week === "2026-W36");
+  assert.equal(warWeek.trophy_mode_battles, 0);
+  assert.equal(warWeek.trophy_battles, 0);
+  // August: every ladder battle reported a delta, so the two counts agree
+  // and the note stays quiet.
+  const aug = await call("battles_performance", {
+    player_tag: F,
+    from: "2026-08-03",
+    to: "2026-08-30",
+    group_by: "week",
+  });
+  for (const w of aug.weekly)
+    assert.equal(w.trophy_mode_battles, w.trophy_battles);
+  assert.ok(!aug.notes.some((l) => /with no reported trophy change/.test(l)));
+  // battles_trends carries the same pair on its weeks.
+  const trends = await call("battles_trends", {
+    segment: { player_tag: F },
+    from: "2026-09-14",
+    to: "2026-09-18",
+    mode: "ladder",
+  });
+  const tw = trends.weeks.find((w) => w.iso_week === "2026-W38");
+  assert.equal(tw.trophy_mode_battles, 6);
+  assert.equal(tw.trophy_battles, 4);
+  assert.ok(
+    trends.notes.some((l) => /^Week 2026-W38 holds 2 trophy-mode/.test(l)),
+  );
+});
+
+test("battles_levels: every population change is named, including a later arena crossing (#62)", async () => {
+  const res = await call("battles_levels", {
+    player_tag: G,
+    days: 200,
+    mode: "ladder",
+    verbosity: "compact",
+  });
+  const trend = res.player.monthly_trend;
+  assert.deepEqual(
+    trend.map((t) => t.month),
+    ["2026-06", "2026-07", "2026-08"],
+    JSON.stringify(res.player),
+  );
+  // Both steps qualify: June to July moves the trophies 328 in the same
+  // arena, July to August crosses the arena. Both are listed, in order.
+  assert.deepEqual(
+    res.player.population_changes.map((c) => [
+      c.from_month,
+      c.to_month,
+      c.arena_changed,
+      c.trophy_delta,
+    ]),
+    [
+      ["2026-06", "2026-07", false, 328],
+      ["2026-07", "2026-08", true, 236],
+    ],
+  );
+  assert.deepEqual(res.player.population_changes[1].from_arena, MAGIC);
+  assert.deepEqual(res.player.population_changes[1].to_arena, PIT);
+  const note = res.notes.find((l) => /population change/.test(l));
+  assert.match(note, /spans 2 population changes/);
+  assert.match(
+    note,
+    /between 2026-06 and 2026-07: the same arena, mean starting trophies 11,972 to 12,300/,
+  );
+  assert.match(
+    note,
+    /between 2026-07 and 2026-08: modal arena Magic Academy to Ultimate Clash Pit, mean starting trophies 12,300 to 12,536/,
+  );
+  // Holding the arena fixed leaves one month and no change.
+  const pit = await call("battles_levels", {
+    player_tag: G,
+    days: 200,
+    arena_id: PIT.id,
+  });
+  assert.deepEqual(pit.player.population_changes, []);
+  assert.ok(!pit.notes.some((l) => /population change/.test(l)));
+});
+
+test("battles_decks: duels are itemized under excluded and the shares' denominator reconciles with battles_performance (#63)", async () => {
+  const win = { player_tag: F, from: "2026-07-01", to: "2026-09-18" };
+  const decks = await call("battles_decks", win);
+  assert.deepEqual(decks.excluded, { duels: 1, no_deck: 0 });
+  assert.equal(decks.total_battles_in_window, 420);
+  const perf = await call("battles_performance", win);
+  assert.equal(
+    decks.total_battles_in_window +
+      decks.excluded.duels +
+      decks.excluded.no_deck,
+    perf.window.battles,
+  );
+  assert.equal(perf.window.duel_battles, 1);
+  const note = decks.notes.find((l) => /outside these rows/.test(l));
+  assert.match(
+    note,
+    /^1 duel battle is outside these rows \(a duel has no single deck\); total_battles_in_window and share_of_battles are over the 420 head-to-head battles with a deck/,
+  );
+  // share_of_battles is over the deck-bearing battles, and says so.
+  assert.equal(decks.decks[0].share_of_battles, Number((406 / 420).toFixed(3)));
+  // A duel-free window: no exclusion, no note.
+  const clean = await call("battles_decks", {
+    player_tag: F,
+    from: "2026-08-01",
+    to: "2026-08-31",
+  });
+  assert.deepEqual(clean.excluded, { duels: 0, no_deck: 0 });
+  assert.ok(!clean.notes.some((l) => /outside these rows/.test(l)));
 });
 
 test("controls.mjs (3.16.0): the rollup-shaped split, the single-player, colosseum, zero-series and coverage helpers", async () => {
