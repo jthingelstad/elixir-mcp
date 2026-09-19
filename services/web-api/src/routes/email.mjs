@@ -19,7 +19,7 @@
 import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
 import { verifyUnsubscribe, KIND_LABELS } from "@elixir-mcp/mail";
 import { runEmail } from "../../../jobs/src/email/index.mjs";
-import { readSentMail } from "../../../jobs/src/email/archive.mjs";
+import { SENDS_SQL, sendRow, loadSendRecord } from "../send-record.mjs";
 import { json, UUID_RE } from "../http.mjs";
 
 const SITE = "https://elixir.poapkings.com";
@@ -68,31 +68,6 @@ async function setPref(db, accountId, kind, enabled, via) {
     )
     .catch(() => {});
 }
-
-/** The Tinylytics pixel, removed from an archived body before the
- *  console shows it: opens are counted per mail, and a person reading
- *  their own record is not an open. */
-function stripPixel(html) {
-  return String(html ?? "").replace(
-    /<img[^>]+tinylytics\.app\/pixel\/[^>]*>/g,
-    "",
-  );
-}
-
-const SENDS_SQL = `select s.send_id, s.issue_id, s.enqueued_at, s.archived,
-         coalesce(s.subject, i.subject_line) as subject,
-         i.kind, i.period_key, i.status
-    from email_send s join email_issue i on i.issue_id = s.issue_id`;
-
-const sendRow = (r) => ({
-  send_id: r.send_id,
-  kind: r.kind,
-  label: KIND_LABELS[r.kind] ?? r.kind,
-  subject: r.subject,
-  period: r.period_key,
-  sent_at: r.enqueued_at,
-  archived: r.archived,
-});
 
 export function emailRoutes({
   resolveAccount,
@@ -151,29 +126,13 @@ export function emailRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       const sendId = String(event.pathParam ?? "");
       if (!UUID_RE.test(sendId)) return json(404, { error: "not_found" });
-      const { rows } = await db.query(
-        `${SENDS_SQL} where s.send_id = $1 and s.account_id = $2`,
-        [sendId, account.accountId],
-      );
-      const row = rows[0];
-      if (!row) return json(404, { error: "not_found" });
-      const out = { send: sendRow(row), html: null, text: null };
-      if (row.archived && archive) {
-        try {
-          const body = await readSentMail({
-            store: archive,
-            at: row.enqueued_at,
-            sendId,
-          });
-          out.html = stripPixel(body.html);
-          out.text = body.text ?? null;
-          out.archived_at = body.archived_at ?? null;
-        } catch (err) {
-          console.error("mail_archive_read_failed", sendId, err?.message);
-          out.archive_error = true;
-        }
-      }
-      return json(200, out);
+      const record = await loadSendRecord(db, {
+        sendId,
+        accountId: account.accountId,
+        archive,
+      });
+      if (!record) return json(404, { error: "not_found" });
+      return json(200, record);
     },
     "PUT /api/me/email": async (db, event, body) => {
       const account = await resolveAccount(db, event, {

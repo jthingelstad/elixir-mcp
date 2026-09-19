@@ -1,5 +1,6 @@
 import { Icon } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { MailFrame } from "../../components/MailFrame.jsx";
 import { useEmailRecord } from "../../lib/queries.js";
 
 /**
@@ -17,29 +18,19 @@ import { useEmailRecord } from "../../lib/queries.js";
 const when = (ts) =>
   ts ? new Date(ts).toISOString().slice(0, 19).replace("T", " ") + "Z" : "—";
 
-/** The mail in a frame that runs nothing: same-origin so the frame can
- *  be sized to its content, links opening in a new tab, no scripts (an
- *  archived mail carries none, and a frame that could run one would be
- *  the one place in the console that does). */
-function MailFrame({ html }) {
-  const [height, setHeight] = useState(600);
-  const doc = html.replace(/<head>/i, '<head><base target="_blank">');
-  return (
-    <iframe
-      title="The email as it was sent"
-      srcDoc={doc}
-      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-      className="block w-full border border-line rounded-[12px] bg-ground"
-      style={{ height: `${height}px` }}
-      onLoad={(ev) => {
-        const h = ev.target.contentDocument?.documentElement?.scrollHeight;
-        if (h) setHeight(h + 24);
-      }}
-    />
-  );
+/** The mail's footer links here with ?report=1 ("Something not right?
+ *  Send feedback about this email"): one click from the inbox to the
+ *  feedback form with this email attached. Read once, at open. */
+function wantsReport() {
+  return new URLSearchParams(window.location.search).get("report") === "1";
 }
 
 export function EmailRecord({ id, navigate }) {
+  const [report] = useState(wantsReport);
+  useEffect(() => {
+    if (report && id)
+      navigate(`/account/feedback?send_id=${encodeURIComponent(id)}`);
+  }, [report, id, navigate]);
   // The envelope, because 404 is an answer this page reads.
   const record = useEmailRecord(id);
   const status = record.data?.status ?? (record.isError ? 0 : null);

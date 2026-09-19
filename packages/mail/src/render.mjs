@@ -65,13 +65,18 @@ const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
 const playerUrl = (tag) => `${SITE}/explore/player/${tagPath(tag)}`;
 const clanUrl = (tag) => `${SITE}/explore/clan/${tagPath(tag)}`;
-// The console's list of every email sent to the reader (apps/web
-// views/Activity.jsx, Emails). The footer names the send by id and links
-// the LIST, not the record: a link carrying the id would put a
-// per-recipient identifier in a tagged link into the site, which
-// /docs/email promises never happens. The record is one click from the
-// list, where the newest send is the top row.
+// The console's record of one sent email (apps/web views/account/
+// EmailRecord.jsx) and its list (views/Activity.jsx, Emails). The
+// footer links the record by its id, and with ?report=1 the record
+// opens straight into feedback with the email attached (Jamie,
+// 2026-09-19: "something not right? send feedback", one click). These
+// two links carry the send id and so carry NO campaign tag, like the
+// one-click unsubscribe: /docs/email promises no per-recipient
+// identifier travels in a tagged link, and the console reports a
+// record page to analytics without its id.
 const SENT_MAIL_LIST_URL = `${SITE}/account/activity/emails`;
+const sentMailUrl = (sendId, { report = false } = {}) =>
+  `${SITE}/account/activity/e/${encodeURIComponent(sendId)}${report ? "?report=1" : ""}`;
 
 /** Links into the site carry the campaign tag Tinylytics reads
  *  (utm_source=email, utm_medium=<kind>, utm_campaign=<kind>-<period>),
@@ -178,7 +183,7 @@ function make(campaign = null, { pixel = true } = {}) {
   <tr><td style="padding:18px 8px 0;font-family:${FONT};font-size:11.5px;line-height:1.6;color:${DARK.faint};">
     ${extraFooter}
     You get this because it is on for your Elixir account. <a href="${T(links.manage)}" style="color:${DARK.link};">Manage your emails</a> · <a href="${links.unsubscribe}" style="color:${DARK.link};">Turn off ${esc(unsubscribeKind)}</a><br>
-    ${links.send_id ? `This email is <span style="font-family:${MONO};">${esc(links.send_id)}</span> · <a href="${T(SENT_MAIL_LIST_URL)}" style="color:${DARK.link};">Every email sent to you</a>, to see it again or report a problem with it.<br>` : ""}
+    ${links.send_id ? `This email is <a href="${sentMailUrl(links.send_id)}" style="font-family:${MONO};color:${DARK.link};">${esc(links.send_id)}</a> · Something not right? <a href="${sentMailUrl(links.send_id, { report: true })}" style="color:${DARK.link};">Send feedback about this email</a> · <a href="${T(SENT_MAIL_LIST_URL)}" style="color:${DARK.link};">Every email sent to you</a><br>` : ""}
     ${esc(DISCLAIMER)}
   </td></tr>
 </table></td></tr></table>${campaign && pixel ? pixelTag(pixelPath(campaign.kind, campaign.period)) : ""}</body></html>`;
@@ -772,8 +777,8 @@ const RENDERERS = {
  *  `links.manage` the account page; `links.period` (a week key, an
  *  issue date, a day) names the issue in the campaign tag on every link
  *  into the site and in the pixel's path; `links.send_id` (absent on a
- *  page render) is this send's own id, printed in the footer beside a
- *  link to the console's list of sent emails. */
+ *  page render) is this send's own id, linked in the footer to its
+ *  record in the console and to feedback about it. */
 export function renderMail(kind, facts, links) {
   const fn = RENDERERS[kind];
   if (!fn) throw new Error(`renderMail: unknown kind ${kind}`);

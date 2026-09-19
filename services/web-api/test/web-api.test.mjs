@@ -1082,6 +1082,47 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   const item = queue.find((f) => f.send_id === mine[0].send_id);
   assert.equal(item.send_kind, "milestone");
   assert.equal(item.send_subject, "You took Guards Mastery to level 5");
+  // The maintainer's side: every send, every account, with the reports
+  // counted and the recipient named by player, never by address; and
+  // the same record with its body over the admin lane.
+  const audit = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/email/sends",
+        cookie: bossCookie,
+        body: undefined,
+      }),
+    ),
+  ).sends;
+  const audited = audit.find((s) => s.send_id === mine[0].send_id);
+  assert.equal(audited.reports, 1);
+  assert.equal(audited.kind, "milestone");
+  assert.ok(!JSON.stringify(audit).includes("@"), "no address in the audit");
+  assert.ok(audit.some((s) => s.send_id === theirs.send_id));
+  assert.equal(
+    (await get(`/api/admin/email/sends`)).statusCode,
+    403,
+    "a member is not an admin",
+  );
+  const adminRec = parse(
+    await withStore(
+      event({
+        method: "GET",
+        path: `/api/admin/email/sends/${mine[0].send_id}`,
+        cookie: bossCookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(
+    adminRec.html,
+    "<html><body><p>Congratulations</p></body></html>",
+  );
+  assert.equal(
+    (await get(`/api/admin/email/sends/${mine[0].send_id}`)).statusCode,
+    403,
+  );
   // A malformed send_id is dropped, not refused.
   const loose = await handler(
     event({

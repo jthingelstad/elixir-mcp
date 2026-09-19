@@ -80,14 +80,20 @@ immediate and yours to reverse.
 ## Every email, on the record
 
 Every email Elixir sends you has its own id, printed in its footer
-("This email is …"). [Activity → Emails](/account/activity/emails)
-lists every product email sent to your account, newest first, the way
-MCP requests lists every call; open one to see the mail as it went out
-and to **report a problem with this email**, which files feedback with
-that email attached so nobody has to describe it. Quote the id and we
-can find the one send you mean in our logs. Reading your own record is
-never counted as an open (the image below is stripped before it is
+("This email is …"); the id opens that email's record in your account,
+and **Something not right? Send feedback about this email** beside it
+opens the feedback form with that email attached, one click from your
+inbox. [Activity → Emails](/account/activity/emails) lists every
+product email sent to your account, newest first, the way MCP requests
+lists every call; open one to see the mail as it went out. A report
+about an email carries the mail itself, so nobody has to describe it,
+and the maintainer reads the same body you were sent. Quote the id and
+we can find the one send you mean in our logs. Reading your own record
+is never counted as an open (the image below is stripped before it is
 shown). Sign-in codes are not listed.
+
+Every product email is kept as it was sent, so what we send can be
+audited without waiting for anyone to report it.
 
 ## What the mail counts
 
@@ -101,8 +107,11 @@ against it, and Tinylytics says so itself. Links into the site carry a
 own numbers can say which mail brought people to which page. There is no
 redirector: a link goes where it says. The one-click *turn off* link
 carries no tag. Nothing counted is tied to you: no per-recipient
-identifier travels in either the image or the links; the email's own id
-is printed in the footer as text and never in a link.
+identifier travels in either the image or the tagged links. The two
+footer links that carry the email's own id (its record, and feedback
+about it) carry no campaign tag, like the *turn off* link, and the
+console reports those pages to analytics as "an email record", never
+which one.
 
 Names are links into Browse, where the record is; tags appear only where
 a name alone could be ambiguous. Nothing in a report is advice.

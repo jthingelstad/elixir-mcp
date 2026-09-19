@@ -134,7 +134,7 @@ test("deliver: the send has its own id, in the footer, in the queue message, in 
   // the mail by period, which is what was throwing before (period was
   // not defined: every product send failed from the 09-18 pixel deploy
   // until this test existed).
-  assert.ok(msg.html.includes(r.send_id));
+  assert.ok(msg.html.includes(`/account/activity/e/${r.send_id}?report=1`));
   assert.ok(msg.html.includes("/account/activity/emails?utm_source=email"));
   assert.ok(msg.html.includes("path=%2Fmail%2Fmilestone%2F2026-09-19"));
   assert.ok(msg.html.includes("Guards Mastery"));

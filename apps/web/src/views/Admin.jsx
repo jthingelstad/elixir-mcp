@@ -2,11 +2,14 @@ import { Icon, LogTable, Markdown, ago } from "@elixir-mcp/ui";
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
+import { MailFrame } from "../components/MailFrame.jsx";
 import {
   keys,
   useAdminAccounts,
   useAdminCall,
   useAdminCollections,
+  useAdminEmail,
+  useAdminEmailSends,
   useAdminConnections,
   useAdminFeedback,
   useAdminGateways,
@@ -58,6 +61,8 @@ function principalLabel(a) {
 }
 
 const day = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : "—");
+const when = (ts) =>
+  ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
 
 export function Admin({ me, page = "requests", navigate, itemId }) {
   if (!me?.is_admin)
@@ -85,7 +90,113 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
     ) : (
       <AdminFeedback navigate={navigate} />
     );
+  if (page === "emails")
+    return itemId ? (
+      <AdminEmailRecord id={itemId} navigate={navigate} />
+    ) : (
+      <AdminEmails navigate={navigate} />
+    );
   return <AdminRequests />;
+}
+
+/** Everything sent, every account (Jamie, 2026-09-19: "we can audit
+ *  what we send without user feedback"). The same table the person's
+ *  Activity → Emails is, with the recipient named by player and public
+ *  id and the reports filed about each send counted. */
+function AdminEmails({ navigate }) {
+  const sends = useAdminEmailSends().data?.sends ?? [];
+  const rows = sends.map((m) => [
+    when(m.sent_at),
+    m.to_player ?? m.public_id ?? "—",
+    m.label ?? m.kind,
+    {
+      text: m.subject ?? "—",
+      title: m.subject ?? "",
+      onClick: () => navigate(`/admin/emails/${m.send_id}`),
+    },
+    m.archived ? "kept" : { text: "not kept", tone: "warn" },
+    m.reports > 0 ? { text: String(m.reports), tone: "warn" } : "—",
+    {
+      text: m.send_id.slice(0, 8),
+      title: m.send_id,
+      onClick: () => navigate(`/admin/emails/${m.send_id}`),
+    },
+  ]);
+  return (
+    <LogTable
+      crumb="Admin"
+      title="Emails sent"
+      note="Every product email queued for any account, newest first. Open one to read it as it was sent."
+      cols={[
+        ["WHEN", "left"],
+        ["TO", "left"],
+        ["KIND", "left"],
+        ["SUBJECT", "left"],
+        ["BODY", "left"],
+        ["REPORTS", "right"],
+        ["EMAIL", "left"],
+      ]}
+      rows={rows}
+      monoCols={[0, 1, 6]}
+      filters={[
+        { key: "kind", label: "Kind", col: 2 },
+        { key: "to", label: "To", col: 1 },
+      ]}
+      minWidth={820}
+      empty="Nothing sent yet."
+      footnote="email_send, last 200. TO is the recipient's primary player (or public id); never an address. REPORTS counts feedback filed about that send; EMAIL is the id in its footer."
+    />
+  );
+}
+
+/** One sent email, the maintainer's read: the row and the body. */
+function AdminEmailRecord({ id, navigate }) {
+  const record = useAdminEmail(id);
+  const rec = record.data ?? null;
+  const back = (
+    <div className="page__crumb">
+      <a onClick={() => navigate("/admin/emails")}>‹ Emails sent</a>
+    </div>
+  );
+  if (record.isError || (record.isSuccess && !rec?.send))
+    return (
+      <>
+        {back}
+        <div className="empty">
+          <div className="empty__title">No email by that id</div>
+        </div>
+      </>
+    );
+  if (!rec) return <p className="text-ink-faint">Loading…</p>;
+  const { send } = rec;
+  return (
+    <>
+      {back}
+      <div className="record__head">
+        <h1 className="text-[24px] m-0 text-ink">
+          {send.subject ?? send.label}
+        </h1>
+        <span className="chip chip--info">
+          <span className="chip__dot" />
+          {send.label}
+        </span>
+      </div>
+      <p className="record__sub">
+        <span className="mono">{when(send.sent_at)}</span>
+        {send.period ? ` · ${send.period}` : ""} ·{" "}
+        <span className="mono">{send.send_id}</span>
+      </p>
+      {rec.html ? (
+        <MailFrame html={rec.html} />
+      ) : (
+        <p className="caveat">
+          {rec.archive_error
+            ? "Kept, but the archive could not be read back just now."
+            : "The body was not kept (sent before 2026-09-19)."}
+        </p>
+      )}
+    </>
+  );
 }
 
 /** Access requests. Granted by hand, oldest first — the queue is short
@@ -953,6 +1064,43 @@ function AttachedCall({ requestId }) {
   );
 }
 
+/** The email a report is about (0139), read over the admin lane so the
+ *  maintainer reads what the filer was sent — the mail itself, not a
+ *  description of it. Attached by the record's and the footer's
+ *  "report a problem with this email". */
+function AttachedEmail({ sendId, navigate }) {
+  const mail = useAdminEmail(sendId);
+  const rec = mail.data ?? null;
+  return (
+    <div
+      className="panel__body"
+      style={{ borderTop: "1px solid var(--line-soft)" }}
+    >
+      <div className="mono text-[11px] text-ink-faint mb-[6px]">
+        THE EMAIL ·{" "}
+        <a onClick={() => navigate(`/admin/emails/${sendId}`)}>{sendId}</a>
+      </div>
+      {mail.isError && (
+        <p className="caveat m-0">That send is no longer in the ledger.</p>
+      )}
+      {rec?.send && (
+        <p className="m-0 mb-2 text-[13px]">
+          {rec.send.label} · {when(rec.send.sent_at)}
+          {rec.send.subject ? ` · ${rec.send.subject}` : ""}
+        </p>
+      )}
+      {rec?.html && <MailFrame html={rec.html} />}
+      {rec?.send && !rec.html && (
+        <p className="caveat m-0">
+          {rec.archive_error
+            ? "Kept, but the archive could not be read back just now."
+            : "The body was not kept (sent before 2026-09-19)."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** One feedback item, admin lane: the full record plus the moderation
  *  acts — status and the maintainer response (which lands in the
  *  filer's event feed). The response box finally exposes what the API
@@ -1041,20 +1189,7 @@ function AdminFeedbackItem({ id, navigate }) {
         </div>
         {item.request_id && <AttachedCall requestId={item.request_id} />}
         {item.send_id && (
-          // The email a report is about (0139): the kind and subject
-          // from the ledger; the filer's own record has the body.
-          <div
-            className="panel__body"
-            style={{ borderTop: "1px solid var(--line-soft)" }}
-          >
-            <div className="mono text-[11px] text-ink-faint mb-[6px]">
-              THE EMAIL · {item.send_id}
-            </div>
-            <p className="m-0 text-[13px]">
-              {item.send_kind ? `${item.send_kind} · ` : ""}
-              {item.send_subject ?? "no longer in the ledger"}
-            </p>
-          </div>
+          <AttachedEmail sendId={item.send_id} navigate={navigate} />
         )}
         {item.context && (
           <div

@@ -49,6 +49,8 @@ export const keys = {
   adminFeedback: ["admin", "feedback"],
   adminServiceTokens: ["admin", "service-tokens"],
   adminCall: (id) => ["admin", "calls", id],
+  adminEmailSends: ["admin", "email", "sends"],
+  adminEmail: (id) => ["admin", "email", "sends", id],
   adminIntegrations: ["admin", "integrations"],
   adminCollections: ["admin", "collections"],
   status: ["status"],
@@ -197,6 +199,21 @@ export const useAdminCall = (id) =>
   useQuery({
     queryKey: keys.adminCall(id),
     queryFn: payload(() => api.adminCall(id)),
+    enabled: Boolean(id),
+  });
+
+/** Every product email sent, every account: the audit of what we send. */
+export const useAdminEmailSends = adminRead(
+  keys.adminEmailSends,
+  api.adminEmailSends,
+);
+
+/** An email attached to a feedback note, or opened from the sends
+ *  audit: the row and the body as sent. */
+export const useAdminEmail = (id) =>
+  useQuery({
+    queryKey: keys.adminEmail(id),
+    queryFn: payload(() => api.adminEmail(id)),
     enabled: Boolean(id),
   });
 

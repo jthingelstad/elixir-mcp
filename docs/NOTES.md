@@ -5118,10 +5118,21 @@ from the details of that email — a new section in Activity."
   `feedback.send_id` (a column, 0066's argument again; the admin queue
   shows kind and subject beside it). The Profile panel's recent list
   links there.
-- **The footer links the list, not the record.** `/docs/email` promises
-  no per-recipient identifier travels in the image or the links; a send
-  id is one. So the id is text and the link is `/account/activity/emails`,
-  where the newest send is the top row.
+- **The footer links the record, and feedback about it, directly**
+  (Jamie's second pass, same morning: "Something not right? Please send
+  feedback", one click). The first pass had linked only the list, to
+  keep `/docs/email`'s promise that no per-recipient identifier travels
+  in a tagged link. Resolved without breaking the promise: the two
+  id-carrying links are untagged like the one-click unsubscribe, and
+  the console's analytics bridge reports a record page as its kind
+  (`/account/activity/e`), never which one — including on a document
+  that lands there from the mail, where the embed's raw-URL hit is
+  skipped for a normalized beacon. The promise's wording now says so.
+- **The maintainer reads the same body.** Admin → Emails sent lists
+  every send (recipient by primary player, never an address; reports
+  counted), each opening the mail as sent; the feedback queue's attached
+  email shows the body inline. What we send is auditable without
+  anyone reporting it.
 
 **Incident, found on the way.** The 09-18 pixel commit (41cf73e) passed
 `period` into `links` in `deliver.mjs` without destructuring it:

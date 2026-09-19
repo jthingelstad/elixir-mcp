@@ -29,13 +29,24 @@
  */
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 
+/**
+ * A record of one call or one sent email: /account/activity/c/<request_id>,
+ * /account/activity/e/<send_id>, /admin/emails/<send_id>. The id is a
+ * per-person identifier (a send id names one email to one reader), and
+ * /docs/email promises no such identifier reaches analytics. The bridge
+ * reports these pages WITHOUT the id, and a document that loads on one
+ * (the mail's footer links straight here) skips the embed's raw-URL hit
+ * and reports the same normalized page by beacon instead.
+ */
+const PRIVATE_RECORD = /^\/(account\/activity\/[ce]|admin\/emails)\/./;
+
 export function loadTinylytics() {
   if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
     return;
 
-  // Always, and before the early return below: patching pushState is what
+  // Always, and before the early returns below: patching pushState is what
   // makes the rest of the session countable.
-  bridgeRouteChanges();
+  const { landing } = bridgeRouteChanges();
 
   // The embed reads the address bar as it executes, so it is the one thing
   // that must not run while a magic token is in it. Nothing is lost by
@@ -43,6 +54,10 @@ export function loadTinylytics() {
   // we deliberately do not keep, and every hit after this one is a beacon
   // built from the ROUTE (analyticsLocation), never from the raw URL.
   if (window.location.pathname.startsWith("/signin")) return;
+  if (PRIVATE_RECORD.test(window.location.pathname)) {
+    landing();
+    return;
+  }
 
   const script = document.createElement("script");
   script.defer = true;
@@ -69,6 +84,12 @@ export function analyticsLocation(
   const segments = pathname.split("/").filter(Boolean);
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
+  // A private record (see PRIVATE_RECORD) is its page and its kind of
+  // record, never which one: /account/activity/e, not the send id.
+  if (PRIVATE_RECORD.test(pathname)) {
+    const kindOf = segments[0] === "admin" ? page : `${page}/${segments[2]}`;
+    return { path: kindOf, url: new URL(kindOf, origin).toString() };
+  }
   const id = segments.slice(2).join("/");
   if (id) url.searchParams.set("id", decodeURIComponent(id));
   return { path: page, url: url.toString() };
@@ -76,6 +97,18 @@ export function analyticsLocation(
 
 function bridgeRouteChanges() {
   let last = analyticsLocation();
+  const beacon = (next, referrer) => {
+    try {
+      if (typeof navigator.sendBeacon !== "function") return;
+      const collector = new URL(`https://tinylytics.app/collector/${SITE_ID}`);
+      collector.searchParams.set("url", next.url);
+      collector.searchParams.set("path", next.path);
+      collector.searchParams.set("referrer", referrer);
+      navigator.sendBeacon(collector.toString());
+    } catch {
+      // Analytics is best-effort and must never interrupt navigation.
+    }
+  };
   const send = () => {
     const next = analyticsLocation();
     // /signin reports nothing, and it also ENDS the view before it: sign out,
@@ -88,16 +121,7 @@ function bridgeRouteChanges() {
     if (next.url === last?.url) return;
     const referrer = last ? last.url : document.referrer;
     last = next;
-    try {
-      if (typeof navigator.sendBeacon !== "function") return;
-      const collector = new URL(`https://tinylytics.app/collector/${SITE_ID}`);
-      collector.searchParams.set("url", next.url);
-      collector.searchParams.set("path", next.path);
-      collector.searchParams.set("referrer", referrer);
-      navigator.sendBeacon(collector.toString());
-    } catch {
-      // Analytics is best-effort and must never interrupt navigation.
-    }
+    beacon(next, referrer);
   };
   const original = history.pushState.bind(history);
   history.pushState = (...args) => {
@@ -105,6 +129,13 @@ function bridgeRouteChanges() {
     send();
   };
   window.addEventListener("popstate", send);
+  // The document hit the embed is not allowed to record on a private
+  // record: the same normalized page, by beacon, with the real referrer.
+  return {
+    landing: () => {
+      if (last) beacon(last, document.referrer);
+    },
+  };
 }
 
 /**

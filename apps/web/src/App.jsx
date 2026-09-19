@@ -123,6 +123,7 @@ export const SECTIONS = {
       { slug: "connections", label: "Connections" },
       { slug: "collections", label: "Collections" },
       { slug: "feedback", label: "Feedback" },
+      { slug: "emails", label: "Emails sent" },
       { slug: "usage", label: "Across accounts" },
       { slug: "collectors", label: "Collectors", ownerOnly: true },
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
@@ -170,6 +171,9 @@ const ADMIN_SUBS = [
   // same clash on Usage was to name whose it is ("Across accounts"),
   // and its docs map already calls this page the feedback queue.
   ["feedback", "Feedback queue", "/admin/feedback"],
+  // "Emails sent", not "Emails": Account > Activity > Emails is on the
+  // rail too, and the qualifier says whose these are (everyone's).
+  ["emails", "Emails sent", "/admin/emails"],
   ["usage", "Across accounts", "/admin/usage"],
 ];
 
@@ -568,6 +572,13 @@ export const DOC_LINKS = {
     ],
   ],
   "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
+  "admin:emails": [
+    "What we send",
+    [
+      ["Email", "/docs/email"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
+    ],
+  ],
   "admin:usage": [
     "Usage across accounts",
     [

@@ -321,8 +321,20 @@ submit feedback from one." Built the same day, contract 4.2.0:
   and "Report a problem with this email" which files feedback with
   `feedback.send_id` (a column, like `request_id`; the queue shows the
   kind and subject beside the report).
-- The footer links the LIST, not the record: the id is a per-recipient
-  identifier, and `/docs/email` promises none travels in a tagged link.
+- The footer links the record by id and, with `?report=1`, straight
+  into feedback with the email attached ("Something not right? Send
+  feedback about this email", Jamie's second pass the same morning).
+  Those two links carry NO campaign tag (the id is a per-recipient
+  identifier; `/docs/email` promises none travels in a tagged link) and
+  `apps/web/src/analytics.js` reports a record page without its id: the
+  bridge normalizes `/account/activity/{c,e}/<id>` and `/admin/emails/<id>`
+  to the page, and a document that LANDS on one skips the embed's raw
+  hit and beacons the normalized page instead.
+- Maintainer side: `GET /api/admin/email/sends` (every send, recipient
+  by primary player, reports counted) and `/api/admin/email/sends/<id>`
+  (the body); Admin → Emails sent, and the feedback queue's attached
+  email shows the mail itself (`send-record.mjs`, shared with the
+  person's routes the way `call-record.mjs` is).
 - Badge names: the API's identifiers read as code in mail
   (`MasterySkeletonWarriors`), so `services/mcp/src/badge-names.mjs`
   serves the badge as a player says it beside the identifier everywhere

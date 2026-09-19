@@ -47,6 +47,27 @@ describe("analyticsLocation", () => {
     expect(new URL(seen.url).searchParams.get("id")).toBe("2ABC");
   });
 
+  test("a private record (a call, a sent email) reports its kind of page and never its id", () => {
+    // A send id names one email to one reader: /docs/email promises no
+    // per-recipient identifier reaches analytics, not even as ?id=.
+    const id = "5c1c5dbf-b0d0-4843-b751-8d6a60e535c7";
+    expect(at(`/account/activity/e/${id}`)).toEqual({
+      path: "/account/activity/e",
+      url: `${ORIGIN}/account/activity/e`,
+    });
+    expect(at(`/account/activity/c/${id}`)).toEqual({
+      path: "/account/activity/c",
+      url: `${ORIGIN}/account/activity/c`,
+    });
+    expect(at(`/admin/emails/${id}`)).toEqual({
+      path: "/admin/emails",
+      url: `${ORIGIN}/admin/emails`,
+    });
+    // The lists themselves are ordinary pages.
+    expect(at("/account/activity/emails").path).toBe("/account/activity");
+    expect(at("/admin/emails").path).toBe("/admin/emails");
+  });
+
   test("an encoded tag is reported decoded", () => {
     // Explore strips the leading '#' when it builds hrefs, but a bookmark
     // or a hand-typed URL can still carry %23.

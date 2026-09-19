@@ -9,6 +9,12 @@ import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
 import { UUID_RE, ID_RE, json } from "../http.mjs";
 import { onboardAccount } from "../onboard.mjs";
 import { loadCallRecord } from "../call-record.mjs";
+import {
+  SENDS_COLS,
+  SENDS_FROM,
+  sendRow,
+  loadSendRecord,
+} from "../send-record.mjs";
 const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
 export function adminRoutes({
@@ -28,6 +34,45 @@ export function adminRoutes({
       const requestId = String(event.pathParam ?? "");
       if (!UUID_RE.test(requestId)) return json(404, { error: "not_found" });
       const record = await loadCallRecord(db, { requestId, capture });
+      if (!record) return json(404, { error: "not_found" });
+      return json(200, record);
+    },
+
+    "GET /api/admin/email/sends": async (db, event) => {
+      // Everything sent, every account, newest first (Jamie, 2026-09-19:
+      // "we can audit what we send without user feedback"). Recipients
+      // are named by their primary player and public id, never an
+      // address; the body is one click away through the record.
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const { rows } = await db.query(
+        `select ${SENDS_COLS},
+                a.public_id,
+                (select c.player_tag from claim c
+                 where c.account_id = s.account_id and c.is_primary) as to_player,
+                (select count(*)::int from feedback f where f.send_id = s.send_id) as reports
+           ${SENDS_FROM}
+           join account a on a.account_id = s.account_id
+          order by s.enqueued_at desc limit 200`,
+      );
+      return json(200, {
+        sends: rows.map((r) => ({
+          ...sendRow(r),
+          account_id: r.account_id,
+          public_id: r.public_id,
+          to_player: r.to_player,
+          reports: r.reports,
+        })),
+      });
+    },
+    "GET /api/admin/email/sends/*": async (db, event) => {
+      // The same record as /api/me/email/sends/<id>, over every account:
+      // the body a report is about, read by the maintainer.
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const sendId = String(event.pathParam ?? "");
+      if (!UUID_RE.test(sendId)) return json(404, { error: "not_found" });
+      const record = await loadSendRecord(db, { sendId, archive: capture });
       if (!record) return json(404, { error: "not_found" });
       return json(200, record);
     },
