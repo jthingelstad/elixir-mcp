@@ -11,6 +11,17 @@ export default [
   {
     date: "2026-09-19",
     title:
+      "The session clock: your battle log every 30 minutes while you play, and a page that says what the recorder lost",
+    body: "The recorder was losing about 4% of all battles - some 7,000 a week - and knew it only as a count of 'gaps'. Measured against the game's own lifetime battle counter, the loss came almost entirely from long sittings that began inside a long wait: the old schedule estimated each player's pace and waited up to a day for the quiet ones, and a battle is three minutes, so a sitting fills the 30-entry log in ninety. The schedule is now one rule: while you are playing, your log is read every 30 minutes; after a read that found nothing the wait doubles, and it never passes two hours. Your profile is read once a day and once after a session. The cost is more reads - about two and a half times as many battle-log calls, most of them empty and bodiless - inside the same budget, and the loss should fall to near zero. Status > Efficiency shows both, per day: reads, how many found nothing, gaps, and battles lost, measured nightly. Recording and coverage carries the new promise.",
+  },
+  {
+    date: "2026-09-19",
+    title: "The rhythm tile is gone; the year of days stays",
+    body: "The 24-by-7 'when they play' tile under the battle-activity year came down. It was built to place battle-log reads where a player's expected battles crossed the log's batch; scored against a week of reads it did not place them (players sit down in hours the histogram rated ordinary), the session clock above does the job with one rule, and the year was always the part worth looking at. Nothing about the year changes: a day with battles is drawn with them, a watched empty day is zero, a day nobody was watching is hatched.",
+  },
+  {
+    date: "2026-09-19",
+    title:
       "A silent collector says so, and the catalog says when it was really confirmed",
     body: "The fleet list said 'active' for a collector that had not checked in for forty hours; the lifecycle state was true and the reading was not. elixir_collectors and the fleet page now say what a collector is doing: active when it checked in within the hour, silent when it is enrolled to run and has not (with when it went quiet and when it was last seen), draining when it was stopped on purpose; the enrolment state stays beside it as lifecycle. The maintainer is told once each time a collector goes silent, the way quarantine already told him. Also fixed: the card catalog's fetched_at said 09-10 while the catalog had been fetched and confirmed every night since; it now reads the poll's own admission stamp. Contract 6.1.0, additive.",
   },

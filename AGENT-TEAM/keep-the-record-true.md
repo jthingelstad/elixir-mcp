@@ -13,15 +13,21 @@ samples real values against game reality (the Observatory rule).
   24h and trend): gaps mean the rotating battlelog rolled past unseen
   battles — quantify which subjects and whether cadence policy or fleet
   capacity is the cause. First-polls are history arriving, never gaps.
-  Since 2026-09-11 the scheduler SKIPS a battle-log or profile poll when
-  a roster fresher than the last poll shows the member idle since it
-  (sighting older than two hours: `ROSTER_GATE_SESSION_HOURS` in
-  `services/scheduler/src/plan.mjs`). That trades fetches for trust in
-  the roster's `lastSeen`, so gaps are the gate's first symptom: a gap
-  rate above the ~0.1% it was (7 of 5,500) with the gapped subjects'
-  rosters showing them idle is the gate being wrong, and the grace is
-  the lever — never silence the audit. Profiles have no fairness floor
-  any more; on the Monday after 00:10Z confirm every recorded player
+  Since 2026-09-19 battle logs run the SESSION CLOCK (30 min after a
+  read that delivered battles, doubling to a 2 h ceiling after empty
+  ones; `SESSION_FOLLOWUP_MINUTES` / `SESSION_CEILING_MINUTES` in
+  `services/scheduler/src/plan.mjs`), chosen because the recorder was
+  losing ~7,150 battles a week (4.3%) to sittings that began inside a
+  long wait. The number to read is now on **Status ▸ Efficiency**
+  (`/api/public/efficiency`, nightly `capture_efficiency_daily`):
+  battles lost per day against the game's own lifetime counter, with
+  the day's reads, empty share and gaps beside it. The replay said the
+  2 h ceiling ends the loss (9 over-capacity intervals a week against
+  1,041); a lost-battles line that does not fall to near zero within
+  two days of the deploy, or gaps above ~1 an hour, means a sitting
+  shape the ceiling does not cover — name the players and their
+  interval lengths, never silence the audit. Profiles read once a day
+  and after a session; on the Monday after 00:10Z confirm every recorded player
   whose last snapshot had donations > 0 got a `season_roll` snapshot,
   and name the misses.
 - **Projection spot-checks.** Pick a handful of recent battles/war rows

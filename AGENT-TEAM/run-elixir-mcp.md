@@ -44,7 +44,8 @@ Establish, with receipts:
   must stay within roughly one API key's budget — that is ToS posture,
   never an optimization target to raise.
 - **Scheduled jobs.** The jobs lambda's work happened: the nightly
-  activity histogram ran, Monday's sweeps ran (CloudWatch logs
+  activity row (05:30Z) and efficiency row (05:20Z, `{capture_efficiency}`;
+  yesterday's `LostBattles` on the dashboard) ran, Monday's sweeps ran (CloudWatch logs
   `/aws/lambda/elixir-mcp-jobs`). The 04:40Z meta rollup's log line
   carries `phases`: since 0140 (2026-09-19) `pop_days` is the days not
   yet sealed, seconds on an ordinary night (10 s on day 12 of

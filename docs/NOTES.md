@@ -5988,3 +5988,70 @@ and the histogram's rhythm half goes while the year view's not-recorded
 marks stay. Baselines for the acceptance read: 313 battlelog polls/hr,
 62% `nothing_new`, 765 gaps / 51,756 audited (1.48%), **7,156 battles
 lost in the week (4.3%)**, `PlannedJobs` quiet mean 650/hr.
+
+## 2026-09-19 — Adaptive polling becomes the session clock (0144–0146)
+
+Jamie read the loss number ("we are losing too many battles. Ouch.") and
+the replay table, chose the aggressive end, and asked for the whole plan
+in one pass. Shipped in four commits (eed9bd2, 5643d4f, 49a8a08 and this
+one), one deploy.
+
+**Decisions, ratified.** (1) **The session clock is the player
+schedule.** A battle-log read that delivered battles is followed in 30
+minutes; after an empty read the wait doubles; the ceiling is **two
+hours**, the replay's zero-loss setting (9 over-capacity intervals a
+week against 1,041 at 2.75× the battle-log polls). `poll_state.empty_streak`
+(0144) is stamped by ingest at admission; the planner's wait is
+`min(120, 30 × 2^streak)`; the reader cap and the daily fairness floor
+stand; a row never stamped waits one follow-up. (2) **Profiles read
+once a day and once after a session**: a battle log that delivered
+battles stamps `refresh_requested_at` (the 0101 seam) unless a profile
+was admitted in the last eight hours; the directly-tracked eight-hour
+cap and the pre-reset/season-roll watchers stand. (3) **Retired**: the
+yield cadence branches for both player endpoints (the EWMA is still
+written and still ranks eligible work under a starved budget), the
+burst bound and `ELIXIR_LOSS_BOUND` (the `half` arm had run since 09-09
+with no decision), `inLossBoundArm`, `{ab_yield}`, the roster gate and
+its inputs, the `activity_bph` borrow, `LossBoundedJobs`
+(`SessionFollowupJobs` replaces it on the ledger line and the
+dashboard). `yield_bph`, `burst_bph`, `burst_at` stay as columns until
+a later migration drops the battlelog pair. (4) **The efficiency
+instrument comes with the change, not after it** (Jamie: "otherwise we
+are tuning blind"): `capture_efficiency_daily` (0145), written by the
+jobs Lambda at 05:20Z for the last three closed UTC days — reads,
+found-nothing, battles captured, gaps, and battles lost by the method of
+the section above (the lifetime counter's move over each snapshot
+interval less what the record holds, gap-free intervals setting the
+noise floor); `GET /api/public/efficiency` (public, five-minute cache;
+today so far with its loss blank until the morning after; the last
+hour); **Status ▸ Efficiency** in the console; `ElixirMCP/Record`
+`LostBattles`, `CaptureGaps`, `BattlelogPolls`, `NothingNewShare` on the
+dashboard. (5) **The rhythm half of the histogram is gone**: the 24×7
+tile, its rotation, the rhythm on `/api/me/battle-activity`, the
+decayed computation in the nightly job; the year of days stays, and so
+does the row behind it (the not-recorded marks — a rolled log must
+never draw as zero — `recorded_from`, first/last battle, `battles_28d`).
+0146 drops NOT NULL on the four rhythm columns so the job can stop
+writing them; the columns drop in a later migration. `/docs/activity`
+says what became of it. (6) `recording.md` "How often a subject is
+fetched" is the new promise in one paragraph a player can hold; the
+architecture page's scheduler section follows; two What's-new entries;
+Keep the Record True reads the Efficiency page instead of the gate.
+
+**The expected shape of tomorrow.** Battle-log polls from ~313/hr to
+~835/hr (the replay's 2 h / all cell), most of the extra empty and
+bodiless; `PlannedJobs` from ~650/hr to ~1,150–1,250/hr, a third of the
+3,600/hr bucket; profile reads about level (61/hr daily base plus
+session primes). Gaps from ~4.5/hr toward ~0.1/hr; `LostBattles` from
+~1,000 a day toward tens. The first efficiency row lands at 05:20Z on
+09-20 for 09-19 — a day split between the two schedules — and 09-20's
+row, the first full day on the clock, is the acceptance read. Below
+expectation: read `players_with_gaps` and the gap intervals' lengths
+before touching the ceiling; the replay's over-capacity count is the
+number to beat, and `{poll_replay}` re-runs it on any week.
+
+**Queued.** Drop `player_activity.rhythm`, `rhythm_weight`,
+`rhythm_battles`, `half_life_days` and `poll_state.burst_bph`,
+`burst_at` in the migration after this deploy has settled. Retire
+`{poll_replay}`'s replay half once the clock has a week of its own
+rows; the loss half is the nightly job now.
