@@ -16,8 +16,10 @@ import { seedDeck, hashFor } from "../../mcp/test/deck-rows.mjs";
 import {
   metaRollupNightly,
   metaRollupHourly,
+  metaRollupEquivalence,
   rebuildSeason,
   INCREMENT_LAG_MS,
+  SEAL_AFTER_MS,
 } from "../src/meta-rollup.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -264,8 +266,11 @@ test("hourly: battles created since the cursor add to the counters; players wait
     nowMs: later + INCREMENT_LAG_MS + 120_000,
   });
   assert.equal(nothing.battles, 0);
-  // Tonight's rebuild settles the players.
-  await rebuildSeason(db, current);
+  // Tonight's rebuild settles the players (its cursor past the rows'
+  // created_at, as tonight is).
+  await rebuildSeason(db, current, {
+    nowMs: later + INCREMENT_LAG_MS + 180_000,
+  });
   const {
     rows: [knight],
   } = await db.query(
@@ -299,4 +304,135 @@ test("hourly: the war-calendar guard counts war-typed battles outside every peri
   );
   assert.equal(emf.WarBattleUnresolved, 1);
   assert.equal(JSON.parse(warUnresolvedEmf(0)).WarBattleUnresolved, 0);
+});
+
+test("the population table (0140): days build and seal, a late battle lands in its sealed day, the aggregates equal a raw rebuild, the final path drops the rows", async () => {
+  const current = await seasonAt(db, NOW);
+  const month = current.season_month;
+  const start = current.starts_at.getTime();
+  const DAY = 86_400_000;
+  // The nights so far built every game day from the start to now; the
+  // ones whose end is a day behind the cursor are sealed.
+  const { rows: ledger } = await db.query(
+    `select game_day::text as day, rows, sealed from meta_season_pop_day
+      where season_month = $1 order by 1`,
+    [month],
+  );
+  const {
+    rows: [{ pop_through }],
+  } = await db.query(
+    `select pop_through from meta_season_state where season_month = $1`,
+    [month],
+  );
+  const cursorMs = pop_through.getTime();
+  const expectDays = Math.ceil((cursorMs - start) / DAY);
+  assert.equal(
+    ledger.length,
+    expectDays,
+    "one ledger row per game day to the cursor",
+  );
+  const expectSealed = ledger.filter(
+    (_, i) => start + (i + 1) * DAY + SEAL_AFTER_MS <= cursorMs,
+  ).length;
+  assert.equal(ledger.filter((r) => r.sealed).length, expectSealed);
+  assert.equal(ledger[0].sealed, true, "day 0 is sealed");
+  assert.equal(
+    ledger[0].day,
+    new Date(start - 10 * 3600_000).toISOString().slice(0, 10),
+  );
+  // Day 0 holds the test's five battles plus the hourly test's two, all
+  // pvp with a deck; the table is the aggregates' population.
+  assert.equal(ledger[0].rows, 7);
+  const {
+    rows: [{ n: popRows }],
+  } = await db.query(
+    `select count(*)::int as n from meta_season_pop where season_month = $1`,
+    [month],
+  );
+  assert.equal(popRows, 7);
+
+  // A battle played on day 0 (sealed) but recorded only now: the next
+  // night appends it and counts it; the sealed day is not rebuilt.
+  const later = cursorMs + 60_000;
+  await battle("late-1", B, GIANT, "win", start + 30_000_000, {
+    createdAt: later,
+  });
+  const night = await rebuildSeason(db, current, { nowMs: later + 60_000 });
+  assert.equal(
+    night.days.late,
+    1,
+    "the late battle appended to its sealed day",
+  );
+  assert.equal(
+    night.days.built,
+    expectDays - expectSealed,
+    "only the unsealed days rebuilt",
+  );
+  const {
+    rows: [{ decided }],
+  } = await db.query(
+    `select decided from meta_season_totals where season_month = $1 and mode_group = 'all'`,
+    [month],
+  );
+  assert.equal(decided, 7, "6 decided before, the late one counted");
+  const {
+    rows: [giant],
+  } = await db.query(
+    `select battles, wins, players from deck_meta_season
+      where season_month = $1 and mode_group = 'all' and deck_hash = $2`,
+    [month, hashFor(GIANT)],
+  );
+  assert.deepEqual(giant, { battles: 2, wins: 2, players: 1 });
+
+  // The proof: the raw rows bounded at pop_through give the same
+  // population and the same six tables, row for row.
+  const eq = await metaRollupEquivalence(URL, { nowMs: NOW });
+  assert.equal(eq.season_month, month);
+  assert.equal(eq.hourly_ran, false);
+  assert.deepEqual(eq.pop, {
+    raw_rows: 8,
+    pop_rows: 8,
+    raw_not_in_pop: 0,
+    pop_not_in_raw: 0,
+    differing: 0,
+  });
+  for (const [table, t] of Object.entries(eq.tables))
+    assert.equal(t.equal, true, `${table}: ${JSON.stringify(t)}`);
+  assert.ok(eq.tables.deck_meta_season.live_rows > 0);
+
+  // The final path builds the same way and drops the rows after.
+  const fin = await rebuildSeason(db, current, {
+    final: true,
+    nowMs: later + 120_000,
+  });
+  assert.equal(fin.final, true);
+  assert.equal(fin.days.dropped, expectDays);
+  const {
+    rows: [{ n: after }],
+  } = await db.query(
+    `select count(*)::int as n from meta_season_pop where season_month = $1`,
+    [month],
+  );
+  assert.equal(after, 0);
+  assert.equal(
+    (
+      await db.query(
+        `select count(*)::int as n from meta_season_pop_day where season_month = $1`,
+        [month],
+      )
+    ).rows[0].n,
+    0,
+  );
+  const {
+    rows: [{ decided: finalDecided }],
+  } = await db.query(
+    `select decided from meta_season_totals where season_month = $1 and mode_group = 'all'`,
+    [month],
+  );
+  assert.equal(finalDecided, 7, "the final rollup counts the same population");
+  // Un-final it for the tests that follow (none rebuild; kept honest).
+  await db.query(
+    `update meta_season_state set final = false where season_month = $1`,
+    [month],
+  );
 });

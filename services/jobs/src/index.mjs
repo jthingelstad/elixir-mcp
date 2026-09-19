@@ -7,7 +7,8 @@
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
  *  {activity_histogram: true} · {meta_rollup_nightly: true} ·
- *  {meta_rollup_hourly: true} · {shape_census: true} · {email: "<kind>",
+ *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} ·
+ *  {shape_census: true} · {email: "<kind>",
  *  account_id?, force?} (docs/EMAIL.md: the six product mail kinds, one
  *  EventBridge rule each; account_id + force is the account page's
  *  "send me this now") · {top100_generate: true} (the brief for the
@@ -20,7 +21,11 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { runEmail } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
 import { activityHistogram } from "./activity.mjs";
-import { metaRollupNightly, metaRollupHourly } from "./meta-rollup.mjs";
+import {
+  metaRollupNightly,
+  metaRollupHourly,
+  metaRollupEquivalence,
+} from "./meta-rollup.mjs";
 import { shapeCensus } from "./shape-census.mjs";
 import { seriesMetrics } from "./series-metrics.mjs";
 
@@ -291,6 +296,16 @@ export async function handler(event) {
   if (event?.series_metrics) {
     const result = await seriesMetrics(process.env.DATABASE_URL);
     console.log(JSON.stringify({ series_metrics: result }));
+    return result;
+  }
+  if (event?.meta_rollup_equivalence) {
+    const result = await metaRollupEquivalence(
+      process.env.DATABASE_URL,
+      event.meta_rollup_equivalence === true
+        ? {}
+        : { seasonMonth: event.meta_rollup_equivalence.season_month ?? null },
+    );
+    console.log(JSON.stringify({ meta_rollup_equivalence: result }));
     return result;
   }
   if (event?.meta_rollup_nightly) {

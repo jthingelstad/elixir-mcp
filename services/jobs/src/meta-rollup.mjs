@@ -3,15 +3,18 @@
  *
  * Two entry points, both from EventBridge through the jobs handler:
  *
- *  - metaRollupNightly: a full rebuild of the running season, then any
+ *  - metaRollupNightly: the running season rebuilt from its persisted
+ *    population (0140: meta_season_pop, one row per participant, built
+ *    by game day and appended to, never re-derived whole), then any
  *    ended season that has battles but no final rollup yet (so the
  *    backfill of past seasons is the job's first few nights, not an
- *    operator's invocation), each as ONE transaction over the raw rows.
- *    This is the only writer of `players` (a distinct count never
- *    sums) and of `final`. There is no pair rollup (0122): the pair
- *    aggregation was 25M rows on the micro; cards_synergy walks the
- *    anchor's decks instead. Bounded by a wall-clock
- *    budget; what it does not reach tonight it reaches tomorrow.
+ *    operator's invocation). The aggregates are ONE transaction over
+ *    the population table. This is the only writer of `players` (a
+ *    distinct count never sums) and of `final`. There is no pair rollup
+ *    (0122): the pair aggregation was 25M rows on the micro;
+ *    cards_synergy walks the anchor's decks instead. Bounded by a
+ *    wall-clock budget; what it does not reach tonight it reaches
+ *    tomorrow.
  *  - metaRollupHourly: the counters (battles, wins, losses, the totals)
  *    for the running season, incremented from the battles created since
  *    the season's cursor, up to five minutes ago so an ingest transaction
@@ -26,6 +29,27 @@
  * and mode; decided when it is pvp, head-to-head (a deck) and won or
  * lost. 'all' rows hold every mode; card form -1 holds every form.
  * mode_group is data (MODE_GROUP_BY_TYPE), as in rollups.mjs.
+ *
+ * The population table (0140; interface review close-out 2026-09-19).
+ * The rebuild used to re-derive `pop` from the raw battle_participant
+ * heap every night: 227 s of a 495 s run on day 12 of September, every
+ * statement scaling with the season's rows, the 900 s ceiling due
+ * around day 22 and the final rebuild at the close never finishing.
+ * Now meta_season_pop holds the running season's population keyed by
+ * game day (0126). A night rebuilds only the days not yet SEALED (a day
+ * seals once its 10:00Z end is a full day past the cursor, so a battle
+ * log fetched hours late still lands in its day), appends to sealed
+ * days the battles created since the last run's cursor (nothing late
+ * is lost, whatever its age), and aggregates from the table. Every row
+ * is bounded by battle.created_at <= the cursor, which is also the
+ * hourly's counters_through: the two writers never count a battle
+ * twice. Days build in their own short transactions, so a run the
+ * Lambda cuts short keeps its days; the aggregates are one transaction.
+ * The from-scratch and final paths build the same table the same way,
+ * and the final path drops the season's rows once its rollup is final.
+ * A participant row enriched after its day sealed (a cross-observer
+ * sighting filling a null) is not re-read; the equivalence op measures
+ * how many that is.
  */
 
 import pg from "pg";
@@ -46,19 +70,21 @@ const TROPHY_BAND_CASE = `case
   when bp.starting_trophies < 13000 then '11000_13000'
   else '13000_plus' end`;
 
-/** The population temp table: one row per participant in the season (or
- *  the increment's slice), with its mode group, trophy band and the
- *  level gap against the opposing side (both sides of a battle share
- *  its battle_time, so both are in the slice and the gap is a self
- *  join, never a probe per row). The opposing side's level is joined
- *  as a hashed, pre-aggregated set: the first shape (3.16.0) was a
- *  LATERAL over a once-referenced CTE, which the planner inlines, so
- *  every participant row re-grouped the whole season and the first
- *  nightly on the live corpus ran past the Lambda's 900 s (2026-09-18
- *  19:40Z, rolled back; the 3.15.1 rebuild took 93 s). */
-function popSql(fromWhere) {
-  return `create temp table pop on commit drop as
-     with rows as materialized (
+/** The population's SELECT: one row per participant in `fromWhere`'s
+ *  slice (the hourly's increment, or one game day of the season), with
+ *  its mode group, trophy band and the level gap against the opposing
+ *  side (both sides of a battle share its battle_time and its
+ *  created_at, so both are in any slice and the gap is a self join,
+ *  never a probe per row). The opposing side's level is joined as a
+ *  hashed, pre-aggregated set: the first shape (3.16.0) was a LATERAL
+ *  over a once-referenced CTE, which the planner inlines, so every
+ *  participant row re-grouped the whole season and the first nightly on
+ *  the live corpus ran past the Lambda's 900 s (2026-09-18 19:40Z,
+ *  rolled back; the 3.15.1 rebuild took 93 s). */
+const POP_COLUMNS =
+  "battle_id, player_tag, deck_hash, outcome, battle_time, type, type_class, mode_group, trophy_band, level_gap";
+function popSelect(fromWhere) {
+  return `with rows as materialized (
        select bp.battle_id, bp.side, bp.player_tag, bp.deck_hash, bp.outcome, bp.battle_time,
               bp.type, bp.type_class, bp.deck_avg_level,
               ${MODE_GROUP_CASE} as mode_group,
@@ -70,13 +96,54 @@ function popSql(fromWhere) {
        select s.battle_id, s.side, avg(o.lvl) as lvl
        from sides s join sides o on o.battle_id = s.battle_id and o.side <> s.side
        group by s.battle_id, s.side)
-     select r.player_tag, r.deck_hash, r.outcome, r.battle_time, r.type, r.type_class,
+     select r.battle_id, r.player_tag, r.deck_hash, r.outcome, r.battle_time, r.type, r.type_class,
             r.mode_group, r.trophy_band,
             case when r.deck_avg_level is not null and o.lvl is not null
                  then r.deck_avg_level - o.lvl end as level_gap
      from rows r
      left join opposing o on o.battle_id = r.battle_id and o.side = r.side`;
 }
+
+/** The hourly's population: a temp table over the increment's slice. */
+function popSql(fromWhere) {
+  return `create temp table pop on commit drop as ${popSelect(fromWhere)}`;
+}
+
+/** The persisted population as the aggregates read it: the season's
+ *  rows of meta_season_pop under the alias every statement names. */
+function popTable(month) {
+  return `(select * from meta_season_pop where season_month = '${month}') pop`;
+}
+
+/** The season's rows from the raw heap, bounded by created_at: one game
+ *  day (`day` set) or every day of a created_at slice (`day` null, the
+ *  late append). `game_day()` is 0126's. */
+function popInsertSql(onConflict) {
+  return `insert into meta_season_pop (season_month, game_day, ${POP_COLUMNS})
+     select $1, game_day(p.battle_time), ${POP_COLUMNS} from (${popSelect(
+       `from battle_participant bp
+        join battle b on b.battle_id = bp.battle_id
+        where bp.battle_time >= $2 and bp.battle_time < $3
+          and b.created_at > $4 and b.created_at <= $5`,
+     )}) p
+     ${onConflict}`;
+}
+const POP_UPSERT = `on conflict (season_month, game_day, battle_id, player_tag) do update set
+       deck_hash = excluded.deck_hash, outcome = excluded.outcome,
+       type = excluded.type, type_class = excluded.type_class,
+       mode_group = excluded.mode_group, trophy_band = excluded.trophy_band,
+       level_gap = excluded.level_gap
+     where (meta_season_pop.deck_hash, meta_season_pop.outcome, meta_season_pop.type,
+            meta_season_pop.type_class, meta_season_pop.mode_group,
+            meta_season_pop.trophy_band, meta_season_pop.level_gap)
+           is distinct from
+           (excluded.deck_hash, excluded.outcome, excluded.type, excluded.type_class,
+            excluded.mode_group, excluded.trophy_band, excluded.level_gap)`;
+const EPOCH = new Date(0);
+const DAY_MS = 86_400_000;
+/** A game day seals once its end is this far behind the cursor: a
+ *  battle log fetched hours after the day still lands in its day. */
+export const SEAL_AFTER_MS = DAY_MS;
 
 /** How far behind now() the hourly increment reads, so an ingest
  *  transaction open at the read is not passed over. */
@@ -87,7 +154,7 @@ const NIGHTLY_BUDGET_MS = 300_000;
 
 /** The aggregate statements, shared by the rebuild (into empty rows)
  *  and the increment (added onto existing ones). `pop` must exist. */
-function aggregateSql(month, { withPlayers, withBands = true }) {
+function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
   const players = withPlayers ? "count(distinct player_tag)::int" : "null";
   return {
     withBands,
@@ -106,7 +173,7 @@ function aggregateSql(month, { withPlayers, withBands = true }) {
                                and pop.deck_hash is not null)::int,
             count(*) filter (where pop.outcome = 'win' and pop.type_class = 'pvp'
                                and pop.deck_hash is not null)::int
-     from pop cross join lateral (values (pop.mode_group), ('all')) m(mode_group)
+     from ${pop} cross join lateral (values (pop.mode_group), ('all')) m(mode_group)
      group by m.mode_group
      on conflict (season_month, mode_group) do update set
        considered = meta_season_totals.considered + excluded.considered,
@@ -120,7 +187,7 @@ function aggregateSql(month, { withPlayers, withBands = true }) {
     decided: `create temp table dec on commit drop as
      select m.mode_group, pop.deck_hash, pop.player_tag, pop.outcome, pop.battle_time,
             pop.trophy_band, pop.level_gap
-     from pop cross join lateral (values (pop.mode_group), ('all')) m(mode_group)
+     from ${pop} cross join lateral (values (pop.mode_group), ('all')) m(mode_group)
      where pop.type_class = 'pvp' and pop.deck_hash is not null
        and pop.outcome in ('win', 'loss')`,
     // level_gap_sum / level_gap_battles (0135): null + x stays null on a
@@ -262,25 +329,155 @@ async function runAggregates(db, sql) {
   return phases;
 }
 
-/** One season, rebuilt from the raw rows in one transaction. */
-export async function rebuildSeason(db, season, { final = false } = {}) {
+/** The season's game days from its start to the cursor (the running
+ *  season's current, partial day included), as [dayKey, startMs, endMs]. */
+function seasonDays(season, cursorMs) {
+  const out = [];
+  const endMs = Math.min(season.ends_at.getTime(), cursorMs);
+  for (let t = season.starts_at.getTime(); t < endMs; t += DAY_MS)
+    out.push({
+      day: new Date(t - 10 * 3600_000).toISOString().slice(0, 10),
+      startMs: t,
+      endMs: Math.min(t + DAY_MS, season.ends_at.getTime()),
+    });
+  return out;
+}
+
+/** The population days not yet sealed, built from the raw rows bounded
+ *  by the cursor, each its own transaction; sealed when their end is a
+ *  day behind the cursor. Stops at the deadline and says so: the days
+ *  committed so far stay, and the next run continues. */
+async function buildPopDays(db, season, cursor, { deadlineMs }) {
+  const month = season.season_month;
+  const { rows: ledger } = await db.query(
+    `select game_day::text as day, sealed from meta_season_pop_day where season_month = $1`,
+    [month],
+  );
+  const sealed = new Set(ledger.filter((r) => r.sealed).map((r) => r.day));
+  const out = { built: 0, changed: 0, sealed: sealed.size, complete: true };
+  for (const d of seasonDays(season, cursor.getTime())) {
+    if (sealed.has(d.day)) continue;
+    if (Date.now() > deadlineMs) {
+      out.complete = false;
+      break;
+    }
+    await db.query("begin");
+    try {
+      await db.query("set local work_mem = '64MB'");
+      const { rowCount: changed } = await db.query(popInsertSql(POP_UPSERT), [
+        month,
+        new Date(d.startMs),
+        new Date(d.endMs),
+        EPOCH,
+        cursor,
+      ]);
+      const {
+        rows: [{ n }],
+      } = await db.query(
+        `select count(*)::int as n from meta_season_pop where season_month = $1 and game_day = $2`,
+        [month, d.day],
+      );
+      const seal = d.endMs + SEAL_AFTER_MS <= cursor.getTime();
+      await db.query(
+        `insert into meta_season_pop_day (season_month, game_day, rows, built_at, sealed)
+         values ($1, $2, $3, $4, $5)
+         on conflict (season_month, game_day) do update set
+           rows = excluded.rows, built_at = excluded.built_at, sealed = excluded.sealed`,
+        [month, d.day, n, cursor, seal],
+      );
+      await db.query("commit");
+      out.built += 1;
+      out.changed += changed;
+      if (seal) out.sealed += 1;
+    } catch (err) {
+      await db.query("rollback").catch(() => {});
+      throw err;
+    }
+  }
+  return out;
+}
+
+/** The season's population rows dropped once its rollup is final: one
+ *  statement a day, never the season in one (the 0099 rule's spirit). */
+async function dropPop(db, season) {
+  const month = season.season_month;
+  const { rows } = await db.query(
+    `select game_day::text as day from meta_season_pop_day where season_month = $1 order by 1`,
+    [month],
+  );
+  for (const r of rows)
+    await db.query(
+      `delete from meta_season_pop where season_month = $1 and game_day = $2`,
+      [month, r.day],
+    );
+  await db.query(`delete from meta_season_pop_day where season_month = $1`, [
+    month,
+  ]);
+  return rows.length;
+}
+
+/** One season, rebuilt: its population days brought up to the cursor,
+ *  the late battles appended, then the aggregates in one transaction.
+ *  `incomplete: true` when the days did not all fit before the
+ *  deadline; nothing else is touched then. */
+export async function rebuildSeason(
+  db,
+  season,
+  { final = false, deadlineMs = Date.now() + 480_000, nowMs = null } = {},
+) {
   const month = season.season_month;
   const t0 = Date.now();
+  // The cursor is the database's clock (the hourly reads the same one);
+  // injectable so a test can rebuild "later" than its rows' created_at.
+  const {
+    rows: [{ cursor }],
+  } = await db.query("select coalesce($1::timestamptz, now()) as cursor", [
+    nowMs === null ? null : new Date(nowMs),
+  ]);
+  const {
+    rows: [prior],
+  } = await db.query(
+    `select pop_through from meta_season_state where season_month = $1`,
+    [month],
+  );
+  const tPop = Date.now();
+  const days = await buildPopDays(db, season, cursor, { deadlineMs });
+  const phases = { pop_days: Date.now() - tPop };
+  if (!days.complete)
+    return {
+      season_month: month,
+      final,
+      incomplete: true,
+      days,
+      ms: Date.now() - t0,
+      phases,
+    };
   await db.query("begin");
   try {
     // The meta queries spill at the micro's 4 MB work_mem (review 2.6);
     // this connection is the job's own.
     await db.query("set local work_mem = '64MB'");
-    const {
-      rows: [{ cursor }],
-    } = await db.query("select now() as cursor");
-    const tPop = Date.now();
-    await db.query(
-      popSql(`from battle_participant bp
-       where bp.battle_time >= $1 and bp.battle_time < $2`),
-      [season.starts_at, season.ends_at],
-    );
-    const phases = { pop: Date.now() - tPop };
+    // Battles recorded since the last run whose day has sealed: appended,
+    // whatever their age. (An unsealed day was just rebuilt to the same
+    // bound, so the conflict is a no-op there.)
+    const tLate = Date.now();
+    let late = 0;
+    if (prior?.pop_through) {
+      const { rows: perDay } = await db.query(
+        `with ins as (${popInsertSql("on conflict do nothing returning game_day")})
+         select game_day, count(*)::int as n from ins group by game_day`,
+        [month, season.starts_at, season.ends_at, prior.pop_through, cursor],
+      );
+      for (const r of perDay) {
+        late += r.n;
+        await db.query(
+          `update meta_season_pop_day set rows = rows + $3
+            where season_month = $1 and game_day = $2`,
+          [month, r.game_day, r.n],
+        );
+      }
+    }
+    phases.pop_late = Date.now() - tLate;
     for (const table of [
       "meta_season_totals",
       "deck_meta_season",
@@ -290,32 +487,40 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
       "card_meta_season_band",
     ])
       await db.query(`delete from ${table} where season_month = $1`, [month]);
-    const sql = aggregateSql(month, { withPlayers: true });
+    const sql = aggregateSql(month, {
+      withPlayers: true,
+      pop: popTable(month),
+    });
     Object.assign(phases, await runAggregates(db, sql));
     const {
       rows: [counts],
     } = await db.query(
       `select (select count(*)::int from deck_meta_season where season_month = $1) as decks,
               (select count(*)::int from card_meta_season where season_month = $1) as cards,
-              (select decided from meta_season_totals where season_month = $1 and mode_group = 'all') as decided`,
+              (select decided from meta_season_totals where season_month = $1 and mode_group = 'all') as decided,
+              (select count(*)::int from meta_season_pop where season_month = $1) as pop_rows`,
       [month],
     );
     await db.query(
-      `insert into meta_season_state (season_month, counters_through, rebuilt_at, final, bands_rebuilt_at)
-       values ($1, $2, $2, $3, $2)
+      `insert into meta_season_state
+         (season_month, counters_through, rebuilt_at, final, bands_rebuilt_at, pop_through)
+       values ($1, $2, $2, $3, $2, $2)
        on conflict (season_month) do update set
          counters_through = excluded.counters_through,
          rebuilt_at = excluded.rebuilt_at,
          final = excluded.final,
-         bands_rebuilt_at = excluded.bands_rebuilt_at`,
+         bands_rebuilt_at = excluded.bands_rebuilt_at,
+         pop_through = excluded.pop_through`,
       [month, cursor, final],
     );
     await db.query("commit");
+    const dropped = final ? await dropPop(db, season) : 0;
     return {
       season_month: month,
       final,
       ms: Date.now() - t0,
       phases,
+      days: { ...days, late, dropped },
       ...counts,
     };
   } catch (err) {
@@ -323,6 +528,10 @@ export async function rebuildSeason(db, season, { final = false } = {}) {
     throw err;
   }
 }
+
+/** The population days stop building past this point of the run, so
+ *  the aggregates that follow still fit the Lambda's 900 s. */
+const POP_DEADLINE_MS = 480_000;
 
 /** The running season and every ended season with battles but no final
  *  rollup, oldest first, within the budget. */
@@ -333,6 +542,7 @@ export async function metaRollupNightly(
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   const started = Date.now();
+  const deadlineMs = started + POP_DEADLINE_MS;
   const done = [];
   try {
     const { rows: current } = await db.query(
@@ -340,7 +550,8 @@ export async function metaRollupNightly(
        where starts_at <= $1 and ends_at > $1`,
       [new Date(nowMs)],
     );
-    if (current[0]) done.push(await rebuildSeason(db, current[0]));
+    if (current[0])
+      done.push(await rebuildSeason(db, current[0], { deadlineMs }));
     // Ended a day ago or more, holding battles, not yet final. Oldest
     // first so a from-scratch install fills history in order.
     const { rows: pending } = await db.query(
@@ -355,14 +566,176 @@ export async function metaRollupNightly(
       [new Date(nowMs)],
     );
     let skipped = 0;
-    for (const season of pending) {
+    for (let i = 0; i < pending.length; i += 1) {
       if (Date.now() - started > budgetMs) {
-        skipped += 1;
-        continue;
+        skipped = pending.length - i;
+        break;
       }
-      done.push(await rebuildSeason(db, season, { final: true }));
+      const r = await rebuildSeason(db, pending[i], {
+        final: true,
+        deadlineMs,
+      });
+      done.push(r);
+      // A season whose days did not all fit stays pending: its days are
+      // committed and tomorrow continues from them.
+      if (r.incomplete) {
+        skipped = pending.length - i;
+        break;
+      }
     }
     return { rebuilt: done, pending_after: skipped, ms: Date.now() - started };
+  } finally {
+    await db.end();
+  }
+}
+
+const ROLLUP_TABLES = [
+  ["meta_season_totals", "season_month, mode_group"],
+  ["deck_meta_season", "season_month, mode_group, deck_hash"],
+  ["card_meta_season", "season_month, mode_group, card_id, form"],
+  ["meta_season_band_totals", "season_month, mode_group, trophy_band"],
+  ["deck_meta_season_band", "season_month, mode_group, trophy_band, deck_hash"],
+  [
+    "card_meta_season_band",
+    "season_month, mode_group, trophy_band, card_id, form",
+  ],
+];
+
+/** {meta_rollup_equivalence: {season_month?}} - read-only: the proof
+ *  that the persisted population and what it aggregates are what a
+ *  from-scratch rebuild over the raw rows would produce, bounded at the
+ *  season's pop_through. In one transaction that is rolled back: the
+ *  raw population into a temp table; its rows against meta_season_pop
+ *  (missing, extra, differing); then the six rollup tables rebuilt from
+ *  it into temp shadows of the same names (a temp table shadows the
+ *  public one for an unqualified name, so the very statements the
+ *  nightly runs write there) and each compared with the live table by
+ *  row count and a checksum of the ordered rows. The live tables also
+ *  carry the hourly's increments since the rebuild: `hourly_ran` says
+ *  whether counters_through moved past pop_through, in which case the
+ *  counter checksums are expected to differ. Runs about as long as the
+ *  old nightly did; not a routine check. */
+export async function metaRollupEquivalence(
+  databaseUrl,
+  { seasonMonth = null, nowMs = Date.now() } = {},
+) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const t0 = Date.now();
+  try {
+    const { rows: seasons } = await db.query(
+      seasonMonth
+        ? `select season_month, starts_at, ends_at from season where season_month = $1`
+        : `select season_month, starts_at, ends_at from season where starts_at <= $1 and ends_at > $1`,
+      [seasonMonth ?? new Date(nowMs)],
+    );
+    const season = seasons[0];
+    if (!season) return { error: "no_season" };
+    const month = season.season_month;
+    const {
+      rows: [state],
+    } = await db.query(
+      `select pop_through, counters_through from meta_season_state where season_month = $1`,
+      [month],
+    );
+    if (!state?.pop_through) return { season_month: month, error: "no_pop" };
+    await db.query("begin");
+    try {
+      // Not `set transaction read only`: CREATE TABLE AS is refused
+      // there even for a temp table. The rollback is the guarantee.
+      await db.query("set local work_mem = '64MB'");
+      const phases = {};
+      const timed = async (name, fn) => {
+        const t = Date.now();
+        const out = await fn();
+        phases[name] = Date.now() - t;
+        return out;
+      };
+      await timed("pop_raw", () =>
+        db.query(
+          `create temp table pop_raw on commit drop as ${popSelect(
+            `from battle_participant bp
+             join battle b on b.battle_id = bp.battle_id
+             where bp.battle_time >= $1 and bp.battle_time < $2 and b.created_at <= $3`,
+          )}`,
+          [season.starts_at, season.ends_at, state.pop_through],
+        ),
+      );
+      const {
+        rows: [pop],
+      } = await timed("pop_diff", () =>
+        db.query(
+          `select (select count(*)::int from pop_raw) as raw_rows,
+                  (select count(*)::int from meta_season_pop where season_month = $1) as pop_rows,
+                  (select count(*)::int from pop_raw r
+                    where not exists (select 1 from meta_season_pop p
+                                       where p.season_month = $1 and p.battle_id = r.battle_id
+                                         and p.player_tag = r.player_tag)) as raw_not_in_pop,
+                  (select count(*)::int from meta_season_pop p
+                    where p.season_month = $1
+                      and not exists (select 1 from pop_raw r
+                                       where r.battle_id = p.battle_id and r.player_tag = p.player_tag)) as pop_not_in_raw,
+                  (select count(*)::int from pop_raw r
+                    join meta_season_pop p on p.season_month = $1
+                     and p.battle_id = r.battle_id and p.player_tag = r.player_tag
+                    where (r.deck_hash, r.outcome, r.type, r.type_class, r.mode_group, r.trophy_band, r.level_gap)
+                          is distinct from
+                          (p.deck_hash, p.outcome, p.type, p.type_class, p.mode_group, p.trophy_band, p.level_gap)) as differing`,
+          [month],
+        ),
+      );
+      for (const [table] of ROLLUP_TABLES)
+        await db.query(
+          `create temp table ${table} (like public.${table} including indexes) on commit drop`,
+        );
+      const sql = aggregateSql(month, {
+        withPlayers: true,
+        pop: "pop_raw pop",
+      });
+      Object.assign(phases, await runAggregates(db, sql));
+      const tables = {};
+      for (const [table, key] of ROLLUP_TABLES) {
+        const sum = async (schema) => {
+          const {
+            rows: [r],
+          } = await db.query(
+            `select count(*)::int as rows, md5(coalesce(string_agg(t::text, '|' order by ${key}), '')) as checksum
+             from ${schema}.${table} t where season_month = $1`,
+            [month],
+          );
+          return r;
+        };
+        const raw = await sum("pg_temp");
+        const live = await sum("public");
+        tables[table] = {
+          raw_rows: raw.rows,
+          live_rows: live.rows,
+          equal: raw.rows === live.rows && raw.checksum === live.checksum,
+          raw_checksum: raw.checksum,
+          live_checksum: live.checksum,
+        };
+      }
+      const {
+        rows: [after],
+      } = await db.query(
+        `select counters_through from meta_season_state where season_month = $1`,
+        [month],
+      );
+      await db.query("rollback");
+      return {
+        season_month: month,
+        pop_through: state.pop_through.toISOString(),
+        hourly_ran:
+          after.counters_through.getTime() !== state.pop_through.getTime(),
+        pop,
+        tables,
+        phases,
+        ms: Date.now() - t0,
+      };
+    } catch (err) {
+      await db.query("rollback").catch(() => {});
+      throw err;
+    }
   } finally {
     await db.end();
   }
