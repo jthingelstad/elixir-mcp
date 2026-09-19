@@ -5900,3 +5900,91 @@ fifth larger than on 09-13 and the per-poll gap rate is unchanged.
 the polls that delivered battles (and on 93% of the empty ones), a
 15-point separation, and no target or ceiling in the replay cuts empty
 polls without raising over-capacity intervals 1.4–2.2×.
+
+## 2026-09-19 — The session clock replayed, and what a week loses
+
+Same afternoon, after the section above. Jamie: the rhythm is a unicorn
+hunt; the year view is the product and the 24×7 tile is not; take the
+KISS rule instead and measure the breakage first, "otherwise we are
+tuning blind". The instrument is `{poll_replay: {days, to?, followups?,
+ceilings?, active_min?, cold_ceiling?}}` on the migrate Lambda (read-only,
+25 s), which replaced `{rhythm_score}` and took `rhythm.mjs` with it
+(05246d6, 1547716). Two answers.
+
+**A correction to the section above.** "The median warm player plays 16
+battles a week" was `battles_28d / 4` at the window start, when most of
+the polled population had days of recording, not weeks. The snapshot
+intervals below hold **168,394 lifetime-counter battles across 1,218
+players in the week: ~140 battles per player per week.** The recorded
+population is the boards and the top clans, and it plays a lot. The
+conclusion stands (a decayed histogram still spreads sittings over every
+hour ever played); the picture of the player does not.
+
+**1. Breakage: ~7,150 battles a week, 4.3% of what the record holds.**
+The profile's lifetime `battleCount` is the API's one ground truth, so
+every snapshot interval ending in the window is read as the counter's
+delta (expected) against `battle_participant` rows inside it (captured),
+split by whether an audited `capture_audit` gap fell inside. 6,804
+intervals on 1,218 players. **Without a gap (6,105 intervals): expected
+122,264, captured 121,412, shortfall 4,545 = 3.7%** — the modes the
+battle log never shows (and 3,693 the other way: battles in the record
+the counter does not count, other observers' logs). **With a gap (699
+intervals): expected 46,130, captured 38,010, shortfall 8,861 = 19.2%.**
+Taking the 3.7% noise off the gap intervals leaves **7,156 battles lost
+in the week — 4.3% of all battles, ~1,000 a day, 10 per gap interval on
+average.** The shape is a tail: median shortfall per gap interval 3,
+p90 28, max 348. Twelve players lost 130–348 each in one interval
+(`#29PR0CCR0` 609 expected / 261 captured; `#LQPJLJ8UQ` 420 / 90;
+`#QC9YRJUR0` 503 / 201; `#P8PVUGYYQ` 449 / 160 over three) — 2,670 of
+the 8,861, 30% of the loss on 1% of the players with a gap. These are
+players who sit down for 40–80 battles at a time, and the log holds 30.
+
+**2. The session clock: the same curve as the yield clock, with a
+cleaner dial.** The rule: after a poll that found battles wait F; after
+an empty poll double the wait up to C; a player with fewer than A
+battles in the trailing seven days stays on the 24-hour floor (A = 0 is
+one ceiling for everyone). Replayed over each player's week from their
+first actual poll against the battles the record holds per hour, beside
+the actual polls judged the same way (51,049 intervals, 304/hr, 58.6%
+empty, 1,041 over 25 battles — the audit's 712 true gaps inside that,
+so the model over-counts gaps ~1.5× on both sides). F = 20 was worse
+than 30 everywhere (more polls, same gaps); F = 30 below:
+
+| C | A | polls/hr (× today) | empty (×) | over capacity (×) |
+|---|---|---|---|---|
+| 2 h | all | 835 (2.75) | 3.09 | **9 (0.01)** |
+| 2 h | ≥100/wk | 424 (1.40) | 1.24 | 671 (0.65) |
+| 3 h | all | 680 (2.24) | 2.35 | 155 (0.15) |
+| 3 h | ≥50/wk | 513 (1.69) | 1.57 | 380 (0.37) |
+| 3 h | ≥100/wk | 369 (1.22) | 1.01 | 778 (0.75) |
+| 4 h | all | 592 (1.95) | 1.96 | 372 (0.36) |
+| 4 h | ≥100/wk | 335 (1.10) | 0.89 | 933 (0.90) |
+| 6 h | all | 515 (1.69) | 1.64 | 603 (0.58) |
+| 6 h | ≥100/wk | 305 (1.01) | 0.80 | 1,122 (1.08) |
+| 8 h | all | 462 (1.52) | 1.46 | 849 (0.82) |
+| 8 h | ≥50/wk | 375 (1.23) | 1.08 | 995 (0.96) |
+
+Read across: **at today's spend the session clock buys today's gaps
+(6 h / ≥100: 1.01× polls, 1.08× gaps)**; every reduction in gaps is
+bought with polls, about one for one near today's point and steeper
+beyond it; and the volume tier saves little because the population is
+nearly all heavy (at A = 100, only 6% of player-days were cold). The
+physics Jamie named is the reason: a battle is ~3 minutes, a sitting
+fills the 30-entry log in ~90 minutes, and a gap is a sitting that
+starts inside the wait — so only a ceiling under the fill time ends
+them, and that costs `1,469 ÷ C` polls an hour whatever the rule. What
+the session clock changes is not the price but the dial: one rule a
+player can be told (every 30 minutes while you play; every C when you
+are not), and the loss it buys down is now a measured number.
+
+**3. The control, again.** Previous poll productive → 61.5% productive;
+previous empty → 21.0% (n 18,949 / 32,093). Unchanged from the morning.
+
+**Standing.** The decisions are in the plan handed to Jamie with this
+section: the ceiling is a budget decision (2 h ends the loss at 2.75×
+battlelog polls; 3 h leaves ~15% of it at 2.2×), the instrument comes
+before the change (Jamie: the breakage belongs on the collector pages),
+and the histogram's rhythm half goes while the year view's not-recorded
+marks stay. Baselines for the acceptance read: 313 battlelog polls/hr,
+62% `nothing_new`, 765 gaps / 51,756 audited (1.48%), **7,156 battles
+lost in the week (4.3%)**, `PlannedJobs` quiet mean 650/hr.
