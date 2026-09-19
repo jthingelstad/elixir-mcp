@@ -814,7 +814,33 @@ function DocsStrip({ here }) {
   );
 }
 
+/** Where a signed-out deep link wanted to go, kept across the sign-in
+ *  (2026-09-19: the mail footer links straight to an email's record and
+ *  to feedback about it, and a phone that opens the link is usually
+ *  signed out). localStorage, not sessionStorage: a magic link opens in
+ *  a new tab. Console paths only, read once and cleared. */
+const AFTER_SIGN_IN = "elixir.after_sign_in";
+export function rememberAfterSignIn(path) {
+  try {
+    if (/^\/(account|admin)\//.test(path))
+      window.localStorage.setItem(AFTER_SIGN_IN, path);
+  } catch {
+    // Storage denied: the sign-in lands on Overview, as before.
+  }
+}
+export function takeAfterSignIn() {
+  try {
+    const path = window.localStorage.getItem(AFTER_SIGN_IN);
+    window.localStorage.removeItem(AFTER_SIGN_IN);
+    return path && /^\/(account|admin)\//.test(path) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
 export function SignInWall({ navigate }) {
+  // The path this wall stands in front of, remembered for after.
+  rememberAfterSignIn(window.location.pathname + window.location.search);
   return (
     <div className="panel mx-auto mt-12 max-w-[420px]">
       <div className="panel__body text-center">
@@ -893,7 +919,7 @@ const signInRoute = createRoute({
       <SignIn
         onAuthed={async () => {
           await refresh();
-          navigate("/account/overview");
+          navigate(takeAfterSignIn() ?? "/account/overview");
         }}
       />
     );
