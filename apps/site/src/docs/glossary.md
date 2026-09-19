@@ -227,8 +227,15 @@ account under a year old.
 forms plus the tower troop, never levels. See
 [Deck identity and forms](/docs/battles#deck-identity-and-forms).
 
-**form** — a card's Evolution or Hero variant, a bit field (1 = Evolution,
-2 = Hero, 3 = both). Part of deck identity; never a level.
+**form** — which variant of a card was played: `"base"`, `"evolution"` or
+`"hero"`, the one spelling on every card object since 5.0.0 (the API's
+bit field `evolutionLevel`, 1 = Evolution, 2 = Hero, 3 = both, is decoded
+into it, and into the `forms_available` / `forms_unlocked` sets on the
+catalog and collections). Part of deck identity; never a level. See
+[Cards](/docs/cards).
+
+**type** — a card's kind: `troop`, `building`, `spell` or `tower_troop`,
+derived from the id range because the API carries no type field.
 
 **tower troop** — the card in the princess-tower slot (Tower Princess, Cannoneer,
 Dagger Duchess, ...); part of deck identity.

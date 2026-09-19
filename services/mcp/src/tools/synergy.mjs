@@ -38,7 +38,7 @@ import { catalogItems } from "./cards.mjs";
 /** Resolve a card by id or by EXACT name (case-insensitive) against the
  *  recorded catalog. A name that only matches as a substring is refused
  *  with the candidates: Witch and Mother Witch are one fuzzy match apart. */
-async function resolveCard(db, { card_id, card }) {
+export async function resolveCard(db, { card_id, card }) {
   const items = (await catalogItems(db))
     .filter((r) => r.kind === "card")
     .map((r) => r.item);

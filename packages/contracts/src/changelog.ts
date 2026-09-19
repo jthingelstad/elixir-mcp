@@ -31,7 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "The same release fills out the card noun (docs/reviews/2026-09-19-CARDS-REVIEW.md): `cards_catalog` carries `type` (troop, building, spell, tower_troop, from the id range the API does not spell out) and `fetched_at` beside `as_of` (which is the catalog's last CHANGE, and now says so); `battles_meta_cards` takes `cards: [ids]` and `battles_meta_decks` takes `containing: [ids]` (decks with ALL the cards, any form), both applied after aggregation so `usage_share` and `decided_battles` stay the population's.",
       "No deprecation window: every client of this server is first-party (the 3.0.0 and 4.0.0 precedent). The first call after reconnecting should re-fetch `tools/list`.",
     ),
-    tools_added: [],
+    tools_added: ["cards_card"],
     breaking: list(
       'Every card object carries `form: "base" | "evolution" | "hero"` and the integer `evolution` key is gone: deck cards on `battles_query`, `battles_decks`, `battles_meta_decks` and `players_summary` (which once dropped the form), rows of `battles_cards` and `battles_meta_cards`, and `cards_synergy` partners (which carried both spellings). `forms_available` / `forms_unlocked` on the catalog and collections are unchanged (they are sets). `elixir_timeline` facts are unchanged.',
       "`battles_levels` removed: the Level Curve and the per-player Pilot Score, monthly trend, experience cohort and population changes. No replacement; `mean_level_gap` on `players_summary`, `battles_decks`, `battles_cards`, `battles_meta_decks`, `battles_meta_cards` and `clans_standings` is the record's statement about card levels.",

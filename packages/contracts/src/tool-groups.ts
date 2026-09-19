@@ -275,6 +275,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
 
   // Cards — the global catalog and what rides with what (docs: cards.md).
   cards_catalog: { group: "Cards", title: "Card catalog", readOnly: true },
+  cards_card: {
+    group: "Cards",
+    title: "One card, everything recorded",
+    readOnly: true,
+  },
   cards_synergy: { group: "Cards", title: "Card synergy", readOnly: true },
 
   // Clans — roster-shaped views (docs: clans.md).

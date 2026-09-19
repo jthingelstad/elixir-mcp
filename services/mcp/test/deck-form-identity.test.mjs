@@ -18,6 +18,7 @@ import { deckHash } from "@elixir-mcp/contracts";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, seedDeck } from "./deck-rows.mjs";
+import { rebuildSeason } from "../../jobs/src/meta-rollup.mjs";
 
 let scratch;
 let account;
@@ -239,4 +240,140 @@ test("5.0.0: the catalog says the type from the id range and when it last change
     verbosity: "compact",
   });
   assert.equal(compact.cards[0].type, "troop");
+});
+
+test("5.0.0 cards_card: one card in one call on a player segment (raw path) and on the corpus (rollup path)", async () => {
+  // The fixture catalog has no form bits; give the Witch her Evolution.
+  await scratch.db.query(
+    `update card set max_evolution_level = 1, rarity = 'epic', elixir_cost = 5 where card_id = 26000007`,
+  );
+  // Raw path: the seeded player, every form of the Witch.
+  const mine = await call("cards_card", {
+    card: "Witch",
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+  });
+  assert.equal(mine.card.id, 26000007);
+  assert.equal(mine.card.type, "troop");
+  assert.deepEqual(mine.card.forms_available, ["evolution"]);
+  assert.ok(mine.card.first_played.base && mine.card.first_played.evolution);
+  assert.equal(mine.card.first_played.hero, null);
+  assert.equal(mine.season.mode_group, "all");
+  assert.equal(mine.season.decided_battles, 6);
+  assert.equal(mine.season.all.battles, 6, "all forms merged");
+  assert.equal(mine.season.all.usage_share, 1);
+  assert.equal(mine.season.all.players, 1);
+  assert.deepEqual(
+    mine.season.forms.map((f) => [f.form, f.battles]),
+    [
+      ["base", 3],
+      ["evolution", 3],
+    ],
+  );
+  assert.equal(mine.history, undefined, "history is a corpus series");
+  assert.equal(mine.by_band, undefined);
+  assert.equal(mine.decks.length, 2, "both identities carry the Witch");
+  assert.ok(mine.decks.every((d) => d.cards.some((c) => c.id === 26000007)));
+  assert.ok(mine.decks[0].cards.every((c) => typeof c.form === "string"));
+  assert.equal(mine.members, undefined, "members is a clan block");
+  assert.ok(mine.notes.some((n) => /history/.test(n)));
+  assert.equal(mine.docs, "cards#one-card-in-one-call");
+
+  // A card the player never played reads as zero, not as an error.
+  await scratch.db.query(
+    `insert into card (card_id, name, kind) values (28000000, 'Fireball', 'card') on conflict do nothing`,
+  );
+  const never = await call("cards_card", {
+    card_id: 28000000,
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+  });
+  assert.equal(never.season.all.battles, 0);
+  assert.equal(never.season.decided_battles, 6);
+  assert.deepEqual(never.season.forms, []);
+  assert.deepEqual(never.decks, []);
+
+  // Exact names only.
+  await assert.rejects(
+    call("cards_card", { card: "Witc", segment: { player_tag: TAG } }),
+    /not an exact card name|No card named/,
+  );
+
+  // Corpus rollup path: rebuild the season the fixtures sit in.
+  const {
+    rows: [season],
+  } = await scratch.db.query(
+    `select * from season where season_month = '2026-08'`,
+  );
+  await rebuildSeason(scratch.db, season, { final: false });
+  const corpus = await call("cards_card", {
+    card_id: 26000007,
+    segment: "corpus",
+    season: "2026-08",
+  });
+  assert.equal(corpus.season.all.battles, 6);
+  assert.equal(corpus.season.decided_battles, 6);
+  assert.ok(
+    Array.isArray(corpus.season.by_mode),
+    "mode split when mode is omitted",
+  );
+  assert.equal(corpus.season.by_mode[0].mode_group, "ladder");
+  assert.equal(corpus.history.length, 1, "one recorded season");
+  assert.equal(corpus.history[0].season.month, "2026-08");
+  assert.equal(corpus.history[0].battles, 6);
+  assert.ok(Array.isArray(corpus.by_band));
+  assert.ok(Array.isArray(corpus.partners));
+  assert.ok(
+    corpus.partners.every(
+      (p) => typeof p.form === "string" && p.card_id !== 26000007,
+    ),
+  );
+  assert.equal(corpus.decks.length, 2);
+  assert.ok(corpus.population, "a corpus read names its population");
+
+  const compact = await call("cards_card", {
+    card_id: 26000007,
+    segment: "corpus",
+    season: "2026-08",
+    verbosity: "compact",
+  });
+  assert.equal(compact.decks, undefined);
+  assert.equal(compact.partners, undefined);
+  assert.ok(compact.history);
+});
+
+test("5.0.0 cards_card: a clan segment says who played the card and who holds it", async () => {
+  await scratch.db.query(
+    `insert into clan (clan_tag, name) values ('#2CRPCL9V', 'Card Clan') on conflict do nothing`,
+  );
+  await scratch.db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     values ('#2CRPCL9V', $1, '2026-09-01T00:00:00Z', 'member')`,
+    [TAG],
+  );
+  await scratch.db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, scope)
+     values ('clan', '#2CRPCL9V', $1, 'comprehensive')`,
+    [account.accountId],
+  );
+  await scratch.db.query(
+    `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
+     values ($1, 26000007, 14, 120, 1, 2, now(), now())`,
+    [TAG],
+  );
+  const res = await call("cards_card", {
+    card_id: 26000007,
+    segment: { clan_tag: "#2CRPCL9V" },
+    from: "2026-09-01",
+  });
+  assert.equal(res.members.members, 1);
+  assert.equal(res.members.members_with_collection, 1);
+  assert.equal(res.members.played.length, 1);
+  assert.equal(res.members.played[0].player_tag, TAG);
+  assert.equal(res.members.played[0].battles, 6);
+  assert.equal(res.members.played[0].level_played, 14);
+  assert.deepEqual(res.members.played[0].forms, ["base", "evolution"]);
+  assert.equal(res.members.held.length, 1);
+  assert.equal(res.members.held[0].level, 14);
+  assert.deepEqual(res.members.held[0].forms_unlocked, ["evolution"]);
 });

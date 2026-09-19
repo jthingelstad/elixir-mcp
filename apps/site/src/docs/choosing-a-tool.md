@@ -44,6 +44,7 @@ conventions that hold everywhere.
 | Two to four players side by side | `battles_compare` |
 | Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks` and `battles_cards` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
 | How is a population trending week by week? | `battles_trends` with a `segment` |
+| Tell me about this card - usage, history, partners, decks, who in my clan plays it | `cards_card` (one call; [Cards](/docs/cards)) |
 | What is this card played with? | `cards_synergy`; `cards_catalog` resolves ids and names |
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |

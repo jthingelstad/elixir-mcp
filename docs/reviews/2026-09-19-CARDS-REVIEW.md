@@ -20,7 +20,8 @@ on. Every battle side stores its eight cards by **id, form and level**;
 every deck has an identity built from card:form pairs; every recorded
 player's collection is snapshotted; and the nightly rollups already hold
 **per season × mode group × card × form** counters (plus a trophy-band
-cut and a card-pair table). What is missing is the *reader shaped like a
+cut; the pair table of 0121 was dropped in 0122 and `cards_synergy` walks
+`deck_card`). What is missing is the *reader shaped like a
 card*: today an agent asking about one card must pull a 130-row meta
 table and find its row, cannot ask for the card's history across seasons
 (the rollup has it), cannot list decks that contain it, cannot ask who in
@@ -45,7 +46,6 @@ Matchups are a minor release after.
 | `player_card` | a recorded player's collection as last seen | level, count toward next, `evolution_level` (forms **unlocked**, bit field), star_level, first/last observed | the collection page's source |
 | `card_meta_season` | season × mode group × card × form | battles, wins, losses, distinct players | form **−1 = all forms merged**; mode `all` too |
 | `card_meta_season_band` | the same × trophy band | + `level_gap_sum`, `level_gap_battles` | the meta at a level |
-| `card_pair_season` | season × mode × unordered card pair (with forms) | co-battles, wins, players | what `cards_synergy` reads |
 
 Card ids carry the type in their range (`26000xxx` troops, `27000xxx`
 buildings, `28000xxx` spells, `159000xxx` tower troops —
@@ -103,9 +103,11 @@ have no tool, and all but one are a query over data already recorded.
    `battle_participant_card` by member in the window), who holds it and
    at what level (from `player_card`), both cheap and indexed.
 5. **Matchups are missing** — the "what beats it" question. Nothing in
-   the record answers it corpus-wide; `card_pair_season` is same-side
-   only. A cross-side table (season × mode × card A × card B → battles,
-   wins for A) is ~15k rows per season per mode and the same nightly job.
+   the record answers it corpus-wide; `cards_synergy` walks same-side
+   pairs from `deck_card` at read time and nothing crosses sides. A
+   cross-side table (season × mode × card
+   A × card B → battles, wins for A) is ~15k rows per season per mode and
+   the same nightly job.
 6. **The form vocabulary is split.** Card rows on the meta and deck
    readers carry `evolution: 1|2` (an integer named after one of the two
    forms it encodes); `cards_synergy` partners carry that *and*
