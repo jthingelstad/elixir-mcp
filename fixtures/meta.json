@@ -11,6 +11,7 @@
   "currentriverrace/war_day.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-08-31T07:37:36Z" },
   "currentriverrace/training.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-09-03T03:00:47Z" },
   "currentriverrace/colosseum.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-09-03T14:40:34Z" },
+  "currentriverrace/slot_band.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-09-14T09:57:54Z", "_": "the race close slot on a mid-season Monday: sectionIndex 1, periodIndex 7 read at 09:57Z while the calendar says section 0 until 10:00Z; from the elixir-mcp archive, not the elixir-bot export" },
   "riverracelog/log.json": { "entity_key": "#J2RGCRVG", "fetched_at": "2026-08-03T13:05:18Z" },
   "cards/catalog.json": { "entity_key": "GLOBAL", "fetched_at": "2026-08-26T13:13:43Z" }
 }

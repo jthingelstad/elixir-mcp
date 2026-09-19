@@ -515,7 +515,7 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
               });
               rows += out.facts;
             } else if (lane === "race") {
-              const week = await raceSeasonFor(db, {
+              const week = raceSeasonFor({
                 payload,
                 fetchedAt: observedAt,
               });
@@ -902,6 +902,257 @@ export async function raceWeekRepair(databaseUrl, spec = {}) {
       }
     }
     return { dry_run: dryRun, census, sample, deleted, nulled };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * {war_week_rekey_repair: {apply?: true}} - the repair for the twelve
+ * war_week rows {war_week_season_census} lists (interface review
+ * close-out, 2026-09-19): rows whose started_observed_at lies outside
+ * their season. All twelve were stamped by the race lane's first rule
+ * (3123fd8, 2026-09-17: a slot-band poll filed under the season before;
+ * corrected in 4c2fbb1 and shared with the live clock as raceWeekFor
+ * since 2026-09-19). {race_week_repair} cleaned war_week_clan after it;
+ * the war_week rows themselves kept the stamp. Dry run by default; the
+ * verdict per row:
+ *
+ *  - confirmed: the row carries closed_at or finished_observed_at, so
+ *    its key is the API's own (the riverracelog names the season) and
+ *    the week is real; only the start stamp is wrong. Cleared to null
+ *    (the recorder never saw that week open) and folded into the
+ *    sibling under the season of the start as least(), which is the
+ *    week the poll really saw open. Eight of the twelve: real S135
+ *    week-1 rows closed 2026-08-17 for clans whose log reached back.
+ *  - phantom: no close, no participants, standings, period logs or
+ *    attendance. Deleted; the stamp and is_colosseum fold into the
+ *    sibling (created if absent). Four of the twelve.
+ *  - move: no close but rows under the key (a live poll keyed wrong,
+ *    never observed; the class exists so the op is complete). Every
+ *    dependent row is re-keyed to the target with on conflict do
+ *    nothing, then the source key is deleted. REFUSED when the target
+ *    already holds a participant or a standing for the same subject
+ *    with different values: nothing under that key moves and the row
+ *    is reported.
+ *  - unplaced: no season row covers the start, or the section is past
+ *    the target season's count. Reported, untouched.
+ *
+ * Idempotent: an applied row leaves the census, so a second run finds
+ * nothing. One transaction for the apply.
+ */
+export async function warWeekRekeyRepair(databaseUrl, spec = {}) {
+  const apply = spec.apply === true;
+  const { OUTSIDE_SEASON_WEEKS_SQL } = await import("./ops-diagnostics.mjs");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const iso = (d) => d?.toISOString() ?? null;
+  try {
+    const { rows } = await db.query(OUTSIDE_SEASON_WEEKS_SQL);
+    const plan = [];
+    for (const r of rows) {
+      const key = {
+        clan_tag: r.clan_tag,
+        season_id: r.season_id,
+        section_index: r.section_index,
+      };
+      const entry = {
+        ...key,
+        started_observed_at: iso(r.started_observed_at),
+        closed_at: iso(r.closed_at),
+        finished_observed_at: iso(r.finished_observed_at),
+        participants: r.participants,
+        standings: r.standings,
+        period_logs: r.period_logs,
+        attendance: r.attendance,
+        target: null,
+        sibling: null,
+        verdict: null,
+        action: null,
+        refused: null,
+      };
+      plan.push(entry);
+      if (
+        r.season_of_start === null ||
+        r.sections_of_start === null ||
+        r.section_index >= r.sections_of_start
+      ) {
+        entry.verdict = "unplaced";
+        entry.action = "none";
+        continue;
+      }
+      entry.target = {
+        season_id: r.season_of_start,
+        section_index: r.section_index,
+      };
+      const {
+        rows: [sib],
+      } = await db.query(
+        `select w.is_colosseum, w.started_observed_at, w.finished_observed_at, w.closed_at,
+                (select count(*)::int from war_participation p
+                  where p.clan_tag = w.clan_tag and p.season_id = w.season_id
+                    and p.section_index = w.section_index) as participants,
+                (select count(*)::int from war_week_clan c
+                  where c.clan_tag = w.clan_tag and c.season_id = w.season_id
+                    and c.section_index = w.section_index) as standings
+           from war_week w
+          where w.clan_tag = $1 and w.season_id = $2 and w.section_index = $3`,
+        [r.clan_tag, r.season_of_start, r.section_index],
+      );
+      const folded = sib
+        ? sib.started_observed_at === null ||
+          sib.started_observed_at > r.started_observed_at
+          ? r.started_observed_at
+          : sib.started_observed_at
+        : r.started_observed_at;
+      entry.sibling = {
+        exists: Boolean(sib),
+        participants: sib?.participants ?? 0,
+        standings: sib?.standings ?? 0,
+        started_observed_at: iso(sib?.started_observed_at),
+        started_observed_at_after: iso(folded),
+        is_colosseum_after: Boolean(sib?.is_colosseum) || r.is_colosseum,
+      };
+      const confirmed = r.closed_at !== null || r.finished_observed_at !== null;
+      const empty =
+        r.participants === 0 &&
+        r.standings === 0 &&
+        r.period_logs === 0 &&
+        r.attendance === 0;
+      if (confirmed) {
+        entry.verdict = "confirmed";
+        entry.action = "clear_start";
+        continue;
+      }
+      if (empty) {
+        entry.verdict = "phantom";
+        entry.action = "delete";
+        continue;
+      }
+      entry.verdict = "move";
+      // The target's own rows for the same subjects, where they differ.
+      const {
+        rows: [conflict],
+      } = await db.query(
+        `select
+           (select count(*)::int from war_participation a
+              join war_participation b
+                on b.clan_tag = a.clan_tag and b.player_tag = a.player_tag
+               and b.season_id = $4 and b.section_index = $3
+             where a.clan_tag = $1 and a.season_id = $2 and a.section_index = $3
+               and (a.points, a.decks_used, a.boat_attacks, a.repair_points)
+                   is distinct from (b.points, b.decks_used, b.boat_attacks, b.repair_points)) as participants,
+           (select count(*)::int from war_week_clan a
+              join war_week_clan b
+                on b.clan_tag = a.clan_tag and b.participant_clan_tag = a.participant_clan_tag
+               and b.season_id = $4 and b.section_index = $3
+             where a.clan_tag = $1 and a.season_id = $2 and a.section_index = $3
+               and (a.fame, a.rank, a.trophy_change, a.period_points, a.clan_score, a.repair_points)
+                   is distinct from (b.fame, b.rank, b.trophy_change, b.period_points, b.clan_score, b.repair_points)) as standings`,
+        [r.clan_tag, r.season_id, r.section_index, r.season_of_start],
+      );
+      if (conflict.participants > 0 || conflict.standings > 0) {
+        entry.action = "none";
+        entry.refused = {
+          participants_differ: conflict.participants,
+          standings_differ: conflict.standings,
+        };
+        continue;
+      }
+      entry.action = "rekey";
+    }
+
+    const counts = {
+      clear_start: 0,
+      delete: 0,
+      rekey: 0,
+      refused: 0,
+      unplaced: 0,
+    };
+    for (const e of plan) {
+      if (e.refused) counts.refused += 1;
+      else if (e.verdict === "unplaced") counts.unplaced += 1;
+      else counts[e.action] += 1;
+    }
+    if (!apply) return { dry_run: true, rows: plan.length, counts, plan };
+
+    await db.query("begin");
+    try {
+      for (const e of plan) {
+        if (e.action === "none") continue;
+        const src = [e.clan_tag, e.season_id, e.section_index];
+        const tgt = [e.clan_tag, e.target.season_id, e.target.section_index];
+        // The sibling takes the stamp (least) and the colosseum flag;
+        // created from the source's own row when absent.
+        await db.query(
+          `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at)
+           select $1, $2, $3, is_colosseum, started_observed_at
+             from war_week where clan_tag = $1 and season_id = $4 and section_index = $3
+           on conflict (clan_tag, season_id, section_index) do update set
+             is_colosseum = war_week.is_colosseum or excluded.is_colosseum,
+             started_observed_at = least(war_week.started_observed_at, excluded.started_observed_at)`,
+          [...tgt, e.season_id],
+        );
+        if (e.action === "clear_start") {
+          await db.query(
+            `update war_week set started_observed_at = null
+              where clan_tag = $1 and season_id = $2 and section_index = $3`,
+            src,
+          );
+          continue;
+        }
+        if (e.action === "rekey") {
+          for (const [table, cols] of [
+            [
+              "war_participation",
+              "player_tag, points, decks_used, boat_attacks, repair_points",
+            ],
+            [
+              "war_week_clan",
+              "participant_clan_tag, participant_name, fame, finish_time, rank, trophy_change, period_points, period_points_observed_at, clan_score, repair_points",
+            ],
+            ["war_attendance_day", "war_day, player_tag, decks_used_today"],
+            [
+              "war_period_log",
+              "period_index, participant_clan_tag, points_earned, progress_start, progress_end, progress_earned, end_of_day_rank, defenses_remaining, progress_from_defenses, observed_at",
+            ],
+          ]) {
+            await db.query(
+              `insert into ${table} (clan_tag, season_id, section_index, ${cols})
+               select $1, $4, $3, ${cols} from ${table}
+                where clan_tag = $1 and season_id = $2 and section_index = $3
+               on conflict do nothing`,
+              [...src, e.target.season_id],
+            );
+            await db.query(
+              `delete from ${table} where clan_tag = $1 and season_id = $2 and section_index = $3`,
+              src,
+            );
+          }
+        }
+        // delete, and rekey once its rows have moved: the source key goes.
+        await db.query(
+          `delete from war_week where clan_tag = $1 and season_id = $2 and section_index = $3`,
+          src,
+        );
+      }
+      await db.query("commit");
+    } catch (err) {
+      await db.query("rollback").catch(() => {});
+      throw err;
+    }
+    const {
+      rows: [after],
+    } = await db.query(
+      `select count(*)::int as outside_season from (${OUTSIDE_SEASON_WEEKS_SQL}) c`,
+    );
+    return {
+      dry_run: false,
+      rows: plan.length,
+      counts,
+      plan,
+      outside_season_after: after.outside_season,
+    };
   } finally {
     await db.end();
   }

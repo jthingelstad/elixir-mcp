@@ -296,28 +296,18 @@ export async function ledger(databaseUrl, spec = {}) {
  * looks like it drifts more. Read the spread across clans, not any
  * single clan's number.
  */
-/** {war_week_season_census: true} (Phase 5, 2026-09-19): war_week rows
- *  whose observed start lies outside their season's bounds (the season
- *  row keyed by the war number), with the writers that could have keyed
- *  them, so a mis-keyed week is a count and a list, not a Phase 4
- *  observation. Read-only; the repair is its own op. */
-export async function warWeekSeasonCensus(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const { rows: totals } = await db.query(
-      `select count(*)::int as war_weeks,
-              count(*) filter (where w.started_observed_at is null)::int as unstarted,
-              count(*) filter (where s.war_season_id is null)::int as no_season_row
-         from war_week w
-         left join season s on s.war_season_id = w.season_id`,
-    );
-    const { rows } = await db.query(
-      `select w.clan_tag, w.season_id, w.section_index, w.is_colosseum,
-              w.started_observed_at, w.finished_observed_at,
+/** The war_week rows whose observed start lies outside their season's
+ *  bounds by more than an hour, with the season of the start, the
+ *  counts under the key and the sibling under the season of the start.
+ *  ONE text for the census and {war_week_rekey_repair}, so the repair
+ *  acts on exactly the rows the census reports. Ordered newest first. */
+export const OUTSIDE_SEASON_WEEKS_SQL = `select w.clan_tag, w.season_id, w.section_index, w.is_colosseum,
+              w.started_observed_at, w.finished_observed_at, w.closed_at,
               s.season_month, s.starts_at, s.ends_at,
               (select s2.war_season_id from season s2
                 where s2.starts_at <= w.started_observed_at and s2.ends_at > w.started_observed_at) as season_of_start,
+              (select s2.sections from season s2
+                where s2.starts_at <= w.started_observed_at and s2.ends_at > w.started_observed_at) as sections_of_start,
               (select count(*)::int from war_participation p
                 where p.clan_tag = w.clan_tag and p.season_id = w.season_id
                   and p.section_index = w.section_index) as participants,
@@ -327,6 +317,9 @@ export async function warWeekSeasonCensus(databaseUrl) {
               (select count(*)::int from war_period_log l
                 where l.clan_tag = w.clan_tag and l.season_id = w.season_id
                   and l.section_index = w.section_index) as period_logs,
+              (select count(*)::int from war_attendance_day a
+                where a.clan_tag = w.clan_tag and a.season_id = w.season_id
+                  and a.section_index = w.section_index) as attendance,
               -- The row this one duplicates when the season of its start
               -- already has the same section for the clan.
               exists (select 1 from war_week w2
@@ -344,8 +337,25 @@ export async function warWeekSeasonCensus(databaseUrl) {
           and (w.started_observed_at < s.starts_at - interval '1 hour'
                or w.started_observed_at >= s.ends_at + interval '1 hour')
         order by w.started_observed_at desc, w.clan_tag
-        limit 200`,
+        limit 200`;
+
+/** {war_week_season_census: true} (Phase 5, 2026-09-19): war_week rows
+ *  whose observed start lies outside their season's bounds (the season
+ *  row keyed by the war number), with the writers that could have keyed
+ *  them, so a mis-keyed week is a count and a list, not a Phase 4
+ *  observation. Read-only; the repair is {war_week_rekey_repair}. */
+export async function warWeekSeasonCensus(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: totals } = await db.query(
+      `select count(*)::int as war_weeks,
+              count(*) filter (where w.started_observed_at is null)::int as unstarted,
+              count(*) filter (where s.war_season_id is null)::int as no_season_row
+         from war_week w
+         left join season s on s.war_season_id = w.season_id`,
     );
+    const { rows } = await db.query(OUTSIDE_SEASON_WEEKS_SQL);
     return {
       ...totals[0],
       outside_season: rows.length,
@@ -353,6 +363,7 @@ export async function warWeekSeasonCensus(databaseUrl) {
         ...r,
         started_observed_at: r.started_observed_at?.toISOString() ?? null,
         finished_observed_at: r.finished_observed_at?.toISOString() ?? null,
+        closed_at: r.closed_at?.toISOString() ?? null,
         starts_at: r.starts_at.toISOString(),
         ends_at: r.ends_at.toISOString(),
       })),

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  raceWeekFor,
   periodInfo,
   inferSeasonId,
   warClock,
@@ -222,4 +223,43 @@ test("Path of Legends season names: the API's month, its list position, and the 
     settledPolMonths(Date.UTC(2026, 9, 5, 9, 59, 59)).at(-1),
     "2026-08",
   );
+});
+
+test("raceWeekFor: one calendar rule for both war_week writers", () => {
+  const at = (s) => Date.parse(s);
+  // The mid-season Monday close slot: the next race is open at 09:57Z
+  // while the calendar still says section 0 until 10:00Z. The current
+  // season, the payload's section - never S135 week 1.
+  assert.deepEqual(raceWeekFor(1, at("2026-09-14T09:57:54Z")), {
+    seasonId: 136,
+    sectionIndex: 1,
+  });
+  assert.deepEqual(raceWeekFor(0, at("2026-09-14T09:20:00Z")), {
+    seasonId: 136,
+    sectionIndex: 0,
+  });
+  // The four instants the 2026-09-19 census found stamped a season low.
+  assert.deepEqual(raceWeekFor(4, at("2026-08-31T09:37:36Z")), {
+    seasonId: 135,
+    sectionIndex: 4,
+  });
+  assert.deepEqual(raceWeekFor(4, at("2026-06-29T09:45:00Z")), {
+    seasonId: 133,
+    sectionIndex: 4,
+  });
+  // The season roll: the finished race inside its own season, and a
+  // stand-by read of it in the first half hour after 10:00Z, both S135.
+  assert.deepEqual(raceWeekFor(4, at("2026-09-07T09:54:04Z")), {
+    seasonId: 135,
+    sectionIndex: 4,
+  });
+  assert.deepEqual(raceWeekFor(4, at("2026-09-07T10:05:00Z")), {
+    seasonId: 135,
+    sectionIndex: 4,
+  });
+  // Past the allowance, or a section the calendar cannot place: null.
+  assert.equal(raceWeekFor(4, at("2026-09-07T10:31:00Z")), null);
+  assert.equal(raceWeekFor(3, at("2026-09-08T12:00:00Z")), null);
+  assert.equal(raceWeekFor(5, at("2026-10-05T09:50:00Z")), null);
+  assert.equal(raceWeekFor("1", at("2026-09-14T09:57:54Z")), null);
 });

@@ -18,6 +18,7 @@ import {
   seriesBackfill,
   seriesCensusSelf,
   raceWeekRepair,
+  warWeekRekeyRepair,
   lifetimeZeroCensus,
   lifetimeZeroRepair,
 } from "../src/ops-series.mjs";
@@ -570,4 +571,178 @@ test("lifetime_zero_census reads the zeros back to their payloads; lifetime_zero
     ).rows[0].collection_level,
     null,
   );
+});
+
+test("war_week_rekey_repair: confirmed weeks keep their key and lose the stamp, phantoms go, a wrong-keyed live week moves, a differing target refuses", async () => {
+  // Its own clan, so the earlier tests' POAP KINGS rows stay out of it.
+  const clan = "#2PP0V8YJ";
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [clan],
+  );
+  for (const tag of ["#2PPP000", "#2PPP999"])
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+  const week = (season, section, cols = {}) =>
+    db.query(
+      `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at, finished_observed_at, closed_at)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        clan,
+        season,
+        section,
+        cols.colosseum ?? false,
+        cols.started ?? null,
+        cols.finished ?? null,
+        cols.closed ?? null,
+      ],
+    );
+  const part = (season, section, tag, points) =>
+    db.query(
+      `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks, repair_points)
+       values ($1, $2, $3, $4, $5, 4, 0, 0)`,
+      [clan, season, section, tag, points],
+    );
+  const standing = (season, section, tag, fame) =>
+    db.query(
+      `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, fame)
+       values ($1, $2, $3, $4, $5)`,
+      [clan, season, section, tag, fame],
+    );
+  // 1. confirmed: the real S135 week 1 (closed 08-17 by the log) whose
+  //    start the first race-lane rule stamped from the 09-14 slot-band
+  //    poll; its sibling S136 week 1 was first seen later that day.
+  await week(135, 1, {
+    started: "2026-09-14T09:57:54Z",
+    finished: "2026-08-17T09:54:06Z",
+    closed: "2026-08-17T09:54:06Z",
+  });
+  await part(135, 1, "#2PPP000", 1800);
+  await standing(135, 1, clan, 10000);
+  await week(136, 1, { started: "2026-09-14T10:05:00Z" });
+  await part(136, 1, "#2PPP000", 0);
+  // 2. phantom with a sibling: POAP KINGS' (134, 4) shape, the colosseum
+  //    flag on the phantom and the sibling already stamped.
+  await week(134, 4, { started: "2026-08-31T09:37:36Z", colosseum: true });
+  await week(135, 4, { started: "2026-08-31T09:37:36Z", colosseum: true });
+  // 3. phantom with no sibling: the (132, 4) shape; the sibling is created.
+  await week(132, 4, { started: "2026-06-29T09:45:00Z" });
+  // 4. move: a live poll keyed a season low with rows and no close, the
+  //    target absent.
+  await week(135, 2, { started: "2026-09-21T09:50:00Z" });
+  await part(135, 2, "#2PPP999", 250);
+  await standing(135, 2, clan, 1200);
+  await standing(135, 2, "#2PP0V9QP", 900);
+  // 5. refused: the target holds the same participant with other values.
+  await week(135, 3, { started: "2026-09-28T09:50:00Z" });
+  await part(135, 3, "#2PPP999", 100);
+  await week(136, 3, { started: "2026-09-28T10:02:00Z" });
+  await part(136, 3, "#2PPP999", 200);
+
+  const dry = await warWeekRekeyRepair(DB_URL, {});
+  assert.equal(dry.dry_run, true);
+  const mine = dry.plan.filter((e) => e.clan_tag === clan);
+  const by = Object.fromEntries(
+    mine.map((e) => [`${e.season_id}/${e.section_index}`, e]),
+  );
+  assert.equal(mine.length, 5);
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(by).map(([k, e]) => [k, [e.verdict, e.action]]),
+    ),
+    {
+      "135/1": ["confirmed", "clear_start"],
+      "134/4": ["phantom", "delete"],
+      "132/4": ["phantom", "delete"],
+      "135/2": ["move", "rekey"],
+      "135/3": ["move", "none"],
+    },
+  );
+  assert.deepEqual(by["135/1"].target, { season_id: 136, section_index: 1 });
+  assert.equal(
+    by["135/1"].sibling.started_observed_at,
+    "2026-09-14T10:05:00.000Z",
+  );
+  assert.equal(
+    by["135/1"].sibling.started_observed_at_after,
+    "2026-09-14T09:57:54.000Z",
+  );
+  assert.deepEqual(by["132/4"].target, { season_id: 133, section_index: 4 });
+  assert.equal(by["132/4"].sibling.exists, false);
+  assert.deepEqual(by["135/3"].refused, {
+    participants_differ: 1,
+    standings_differ: 0,
+  });
+  // The dry run wrote nothing.
+  const count = async () =>
+    (
+      await db.query(
+        `select count(*)::int as n from war_week where clan_tag = $1`,
+        [clan],
+      )
+    ).rows[0].n;
+  assert.equal(await count(), 8);
+
+  const wet = await warWeekRekeyRepair(DB_URL, { apply: true });
+  assert.equal(wet.dry_run, false);
+  assert.equal(
+    wet.counts.clear_start >= 1 &&
+      wet.counts.delete >= 2 &&
+      wet.counts.rekey >= 1,
+    true,
+  );
+  const { rows: weeks } = await db.query(
+    `select season_id, section_index, is_colosseum, started_observed_at, closed_at,
+            (select count(*)::int from war_participation p where p.clan_tag = w.clan_tag
+               and p.season_id = w.season_id and p.section_index = w.section_index) as participants,
+            (select count(*)::int from war_week_clan c where c.clan_tag = w.clan_tag
+               and c.season_id = w.season_id and c.section_index = w.section_index) as standings
+       from war_week w where clan_tag = $1 order by 1, 2`,
+    [clan],
+  );
+  assert.deepEqual(
+    weeks.map((w) => [
+      w.season_id,
+      w.section_index,
+      w.is_colosseum,
+      w.started_observed_at?.toISOString() ?? null,
+      w.participants,
+      w.standings,
+    ]),
+    [
+      [133, 4, false, "2026-06-29T09:45:00.000Z", 0, 0],
+      [135, 1, false, null, 1, 1],
+      [135, 3, false, "2026-09-28T09:50:00.000Z", 1, 0],
+      [135, 4, true, "2026-08-31T09:37:36.000Z", 0, 0],
+      [136, 1, false, "2026-09-14T09:57:54.000Z", 1, 0],
+      [136, 2, false, "2026-09-21T09:50:00.000Z", 1, 2],
+      [136, 3, false, "2026-09-28T10:02:00.000Z", 1, 0],
+    ],
+    "the confirmed week keeps its key, close and rows; phantoms are gone; the moved week's rows sit under S136; the refused one is untouched",
+  );
+  assert.equal(
+    weeks
+      .find((w) => w.season_id === 135 && w.section_index === 1)
+      .closed_at.toISOString(),
+    "2026-08-17T09:54:06.000Z",
+  );
+  const {
+    rows: [moved],
+  } = await db.query(
+    `select points from war_participation where clan_tag = $1 and season_id = 136 and section_index = 2 and player_tag = '#2PPP999'`,
+    [clan],
+  );
+  assert.equal(moved.points, 250);
+  // Idempotent: only the refused row is left for the census, and a
+  // second apply changes nothing.
+  const again = await warWeekRekeyRepair(DB_URL, { apply: true });
+  assert.deepEqual(
+    again.plan
+      .filter((e) => e.clan_tag === clan)
+      .map((e) => [e.season_id, e.section_index, e.action]),
+    [[135, 3, "none"]],
+  );
+  assert.equal(await count(), 7);
 });

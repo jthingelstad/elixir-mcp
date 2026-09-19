@@ -68,6 +68,7 @@ import {
   seriesCensusSelf,
   arenaMomentDedupe,
   raceWeekRepair,
+  warWeekRekeyRepair,
   explainSeries,
   lifetimeZeroCensus,
   lifetimeZeroRepair,
@@ -418,6 +419,14 @@ export async function handler(event) {
     const result = await explainSeries(
       process.env.DATABASE_URL,
       event.explain_series === true ? {} : event.explain_series,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.war_week_rekey_repair) {
+    const result = await warWeekRekeyRepair(
+      process.env.DATABASE_URL,
+      event.war_week_rekey_repair === true ? {} : event.war_week_rekey_repair,
     );
     console.log(JSON.stringify(result));
     return result;

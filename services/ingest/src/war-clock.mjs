@@ -223,6 +223,54 @@ export function settledPolMonths(atMs) {
   return months;
 }
 
+/**
+ * The season and section a currentriverrace payload belongs to, from
+ * the calendar alone: ONE rule for both writers of war_week (the live
+ * projector's clock and the backfill's race lane). Two things move off
+ * the 10:00Z grid, both bounded (cr-agent-api-docs/clans.md,
+ * river-race.md):
+ *
+ *  - A race opens in its own slot inside the 09:3x-10:00Z band before
+ *    the hour, so on every mid-season Monday a poll in that band carries
+ *    the NEXT section while the calendar still says the last one (POAP
+ *    KINGS 2026-09-14T09:57:54Z: sectionIndex 1, periodIndex 7, calendar
+ *    section 0; fixtures/currentriverrace/slot_band.json). That is the
+ *    current season, the payload's section. The race lane's first rule
+ *    (3123fd8, 2026-09-17) filed it under the PREVIOUS season's week of
+ *    that number; 4c2fbb1 corrected the lane the same night, and the
+ *    twelve war_week rows it had stamped were repaired on 2026-09-19
+ *    ({war_week_rekey_repair}). The live clock never had the defect
+ *    (seasonFromDate at the fetch instant is the current season), but it
+ *    was its own copy of the rule; now there is one.
+ *  - At the roll the finished race is served until 10:00Z and then 404
+ *    until the new race appears at section 0, so calendar and payload
+ *    agree; if the old race were ever served in the first minutes after
+ *    the roll (calendar section 0, the payload at the previous season's
+ *    last section), it is the season before. Nothing else is guessed:
+ *    null, and the caller decides (the lane counts it).
+ */
+const RACE_STANDBY_MS = 30 * 60_000;
+export function raceWeekFor(sectionIndex, atMs) {
+  if (!Number.isInteger(sectionIndex)) return null;
+  const { seasonId, seasonStartMs } = seasonFromDate(atMs);
+  const sections = Math.round(
+    (nextSeasonStartMs(atMs) - seasonStartMs) / WEEK_MS,
+  );
+  const calendarSection = Math.floor((atMs - seasonStartMs) / WEEK_MS);
+  if (sectionIndex === calendarSection) return { seasonId, sectionIndex };
+  if (sectionIndex === calendarSection + 1 && sectionIndex < sections)
+    return { seasonId, sectionIndex };
+  if (calendarSection === 0 && atMs - seasonStartMs < RACE_STANDBY_MS) {
+    const prev = seasonFromDate(seasonStartMs - 1);
+    const prevSections = Math.round(
+      (seasonStartMs - prev.seasonStartMs) / WEEK_MS,
+    );
+    if (sectionIndex === prevSections - 1)
+      return { seasonId: prev.seasonId, sectionIndex };
+  }
+  return null;
+}
+
 export function inferSeasonId(liveSeasonId, logged, atMs = null) {
   if (typeof liveSeasonId === "number") return liveSeasonId;
   // Stateless: the calendar decides. The old logged-state roll inference

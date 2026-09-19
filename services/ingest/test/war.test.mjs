@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { clanEvents } from "./event-rows.mjs";
-import { projectRiverRace } from "../src/war.mjs";
+import { projectRiverRace, raceSeasonFor } from "../src/war.mjs";
 import { ingestBattlelog } from "../src/battles.mjs";
 import { fixture, scratchDb, seedReceipt } from "./helpers.mjs";
 
@@ -599,4 +599,67 @@ test("bracket_observed: the first sight of a new week names its rivals, once", a
     p.rivals.every((r) => r.name),
     "rivals are named from the war_week_clan rows",
   );
+});
+
+test("the close slot: a captured 09:57Z read of the next race keys to the CURRENT season", async () => {
+  // fixtures/currentriverrace/slot_band.json is the archived POAP KINGS
+  // read at 2026-09-14T09:57:54Z: sectionIndex 1, periodIndex 7, the
+  // week-1 race already matched while the calendar says section 0 until
+  // 10:00Z. The race lane's first rule filed this under S135 week 1
+  // (2026-09-17); the live writer and the lane now share raceWeekFor.
+  // Replayed under another clan tag so the shared scratch DB's POAP
+  // KINGS rows (a real S135 week 1 among them, from the log) stay out
+  // of the assertion.
+  const captured = await fixture("currentriverrace/slot_band.json");
+  const SLOT = "#2PP0V8YC";
+  const swap = (c) => (c.tag === captured.clan.tag ? { ...c, tag: SLOT } : c);
+  const payload = {
+    ...captured,
+    clan: { ...captured.clan, tag: SLOT },
+    clans: captured.clans.map(swap),
+  };
+  assert.equal(payload.sectionIndex, 1);
+  assert.equal(payload.periodIndex, 7);
+  assert.equal(payload.seasonId, undefined, "live payloads carry no seasonId");
+  const fetchedAt = "2026-09-14T09:57:54Z";
+  const nowMs = Date.parse("2026-09-14T09:58:30Z");
+  const result = await projectRiverRace(ctx.db, { payload, fetchedAt, nowMs });
+  assert.equal(result.projected, "war");
+  const { rows: weeks } = await ctx.db.query(
+    `select season_id, section_index, started_observed_at from war_week where clan_tag = $1`,
+    [SLOT],
+  );
+  assert.deepEqual(
+    weeks.map((w) => [w.season_id, w.section_index]),
+    [[136, 1]],
+    "S136 week 1, nothing under S135",
+  );
+  assert.equal(
+    weeks[0].started_observed_at.toISOString(),
+    "2026-09-14T09:57:54.000Z",
+  );
+  const { rows: keyed } = await ctx.db.query(
+    `select 'participation' as t, season_id, count(*)::int as n from war_participation where clan_tag = $1 group by 1, 2
+     union all
+     select 'standings', season_id, count(*)::int from war_week_clan where clan_tag = $1 group by 1, 2
+     order by 1`,
+    [SLOT],
+  );
+  assert.deepEqual(keyed, [
+    { t: "participation", season_id: 136, n: payload.clan.participants.length },
+    { t: "standings", season_id: 136, n: 5 },
+  ]);
+  const bracket = await clanEvents(
+    ctx.db,
+    "clan_tag = $1 and event_type = 'bracket_observed'",
+    [SLOT],
+  );
+  assert.equal(bracket.length, 1);
+  assert.equal(bracket[0].payload.season_id, 136);
+  assert.equal(bracket[0].payload.section_index, 1);
+  // The lane's rule is the same function, so it agrees on the capture.
+  assert.deepEqual(raceSeasonFor({ payload: captured, fetchedAt }), {
+    seasonId: 136,
+    sectionIndex: 1,
+  });
 });
