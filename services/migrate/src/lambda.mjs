@@ -59,6 +59,7 @@ import {
   argsCensus,
   previewIntel,
   pilotPairs,
+  polSeasons,
 } from "./ops-analysis.mjs";
 import {
   feedbackPending,
@@ -373,6 +374,23 @@ export async function handler(event) {
       event.preview_intel,
     );
     console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.pol_seasons) {
+    const result = await polSeasons(
+      process.env.DATABASE_URL,
+      event.pol_seasons,
+    );
+    console.log(
+      JSON.stringify({
+        pol_seasons: {
+          rows: result.rows,
+          players: result.players,
+          final_rows: result.final_rows,
+          final_seasons: result.final_seasons,
+        },
+      }),
+    );
     return result;
   }
   if (event?.pilot_pairs) {

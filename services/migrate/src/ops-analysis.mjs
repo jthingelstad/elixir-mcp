@@ -593,3 +593,68 @@ export async function pilotPairs(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** Ranked season finals export ({pol_seasons: {min_seasons, top}}): every
+ *  player_pol_season row (the API's lastPathOfLegendSeasonResult, written
+ *  once per season) for players with at least min_seasons rows, and the
+ *  top `top` places of every recorded season-final global board
+ *  (ranking_snapshot board pol_final), so a season-to-season stability
+ *  test of the game's own Ranked rating can run off-line. Read-only;
+ *  gzip+base64 CSV like pilot_pairs. Built for the 2026-09-19 Pilot
+ *  Score evolution. */
+export async function polSeasons(databaseUrl, spec) {
+  const { gzipSync } = await import("node:zlib");
+  const minSeasons = Math.min(Math.max(Number(spec?.min_seasons ?? 2), 1), 12);
+  const top = Math.min(Math.max(Number(spec?.top ?? 2000), 100), 9999);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select s.player_tag, s.season_month, s.league, s.trophies, s.rank
+       from player_pol_season s
+       join (select player_tag from player_pol_season
+             group by player_tag having count(*) >= $1) k using (player_tag)
+       order by s.player_tag, s.season_month`,
+      [minSeasons],
+    );
+    const { rows: finals } = await db.query(
+      `select sn.season_month, e.rank, e.player_tag, e.rating
+       from ranking_snapshot sn
+       join ranking_entry e on e.snapshot_id = sn.snapshot_id
+       where sn.board = 'pol_final' and sn.location_key = 'global'
+         and e.rank <= $1
+       order by sn.season_month, e.rank`,
+      [top],
+    );
+    const csv = (list, cols) =>
+      [
+        cols.join(","),
+        ...list.map((r) => cols.map((c) => r[c] ?? "").join(",")),
+      ].join("\n");
+    const pack = (list, cols) =>
+      gzipSync(Buffer.from(csv(list, cols))).toString("base64");
+    return {
+      min_seasons: minSeasons,
+      top,
+      rows: rows.length,
+      players: new Set(rows.map((r) => r.player_tag)).size,
+      final_rows: finals.length,
+      final_seasons: new Set(finals.map((r) => r.season_month)).size,
+      seasons_csv_gz_b64: pack(rows, [
+        "player_tag",
+        "season_month",
+        "league",
+        "trophies",
+        "rank",
+      ]),
+      finals_csv_gz_b64: pack(finals, [
+        "season_month",
+        "rank",
+        "player_tag",
+        "rating",
+      ]),
+    };
+  } finally {
+    await db.end();
+  }
+}

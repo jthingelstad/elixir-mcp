@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
-import { pilotPairs } from "../src/ops-analysis.mjs";
+import { pilotPairs, polSeasons } from "../src/ops-analysis.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -111,4 +111,48 @@ test("pilot_pairs exports both sides of each qualifying match, pages, and carrie
   const rest = await pilotPairs(SCRATCH_URL, { days: 30, offset: 1, limit: 1 });
   assert.equal(rest.returned, 1);
   assert.equal(rest.done, true);
+});
+
+test("pol_seasons exports season finals for players with enough seasons and the top of every final board", async () => {
+  // Seasons are seeded by migrations; use two that exist.
+  const { rows: seasons } = await db.query(
+    `select season_month from season order by season_month desc limit 2`,
+  );
+  const [s1, s2] = seasons.map((r) => r.season_month);
+  await db.query(
+    `insert into player (player_tag) values ('#2PP0V9GG'), ('#2PP0V9YY') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
+     values ('#2PP0V9GG', $1, 10, 1900, null, now()),
+            ('#2PP0V9GG', $2, 10, 2010, 500, now()),
+            ('#2PP0V9YY', $2, 9, 1500, null, now())`,
+    [s1, s2],
+  );
+  const { rows: snap } = await db.query(
+    `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
+     values ('pol_final', 'global', $1, now(), now(), 'h1', 2) returning snapshot_id`,
+    [s2],
+  );
+  await db.query(
+    `insert into ranking_entry (snapshot_id, rank, player_tag, rating)
+     values ($1, 1, '#2PP0V9GG', 4100), ($1, 2, '#2PP0V9YY', 4000)`,
+    [snap[0].snapshot_id],
+  );
+  const out = await polSeasons(SCRATCH_URL, { min_seasons: 2, top: 100 });
+  assert.equal(out.rows, 2, "only the two-season player's rows");
+  assert.equal(out.players, 1);
+  assert.equal(out.final_rows, 2);
+  assert.equal(out.final_seasons, 1);
+  const seasonsCsv = unpack(out.seasons_csv_gz_b64);
+  assert.deepEqual(seasonsCsv[0], [
+    "player_tag",
+    "season_month",
+    "league",
+    "trophies",
+    "rank",
+  ]);
+  assert.equal(seasonsCsv[1][0], "#2PP0V9GG");
+  const finals = unpack(out.finals_csv_gz_b64);
+  assert.deepEqual(finals[1].slice(1), ["1", "#2PP0V9GG", "4100"]);
 });
