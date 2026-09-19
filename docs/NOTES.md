@@ -5487,3 +5487,126 @@ nothing in the archive can supply the instant for clans enrolled after
 08-10. `#GCCJVQLU`'s `war_week` rows remain for a clan the door refuses
 as unrecorded; whether rival-only clans should hold war rows at all is
 a question for the record's owner, not this repair.
+
+## 2026-09-19 — The nightly meta rollup's population is a table (0140): 495 s → 212 s on day 12, exact against a raw rebuild (Run Elixir MCP)
+
+The close-out entry's arithmetic held: on the 04:40Z run today `pop`
+was 227.5 s of 495 s, re-derived from the raw `battle_participant` heap
+and read by all ten aggregates, and every statement scaled with the
+season's rows. Read first: `meta-rollup.mjs` (`popSql`,
+`runAggregates`, `rebuildSeason`, `meta_season_state`), the 3.16.0
+entry (the LATERAL-over-a-CTE shape that ran past 900 s on 09-18 and
+`244c9f4`'s materialized sides), Phase 4/5's band tables and their
+`bands_rebuilt_at` gate, and `0126`'s `game_day`.
+
+**Shipped `4b31add` (verify green, pushed 16:06Z, deployed 16:08Z with
+0140 applied: `{"applied":139,"ran":1}`).** `meta_season_pop` holds the
+running season's population - one row per participant with its mode
+group, trophy band and level gap, the exact shape `pop` had - keyed by
+game day, plus `meta_season_pop_day` (rows, built_at, sealed per day)
+and `meta_season_state.pop_through`. The nightly: (1) builds every game
+day from the season's start to the cursor that is not yet SEALED, each
+in its own short transaction from the raw rows bounded by
+`battle.created_at <= cursor` (upsert, touching a row only when it
+changed); a day seals once its 10:00Z end is a full day behind the
+cursor, so a battle log fetched hours late still lands in its day; (2)
+appends to sealed days the battles created since the last run's
+`pop_through`, whatever their age (`on conflict do nothing`, the
+ledger's row counts follow), so nothing late is lost; (3) deletes the
+season's six rollup tables and runs the same ten aggregate statements
+against `meta_season_pop` (the statements name `pop`; the source is
+now a parameter, the hourly's temp slice or the table). The cursor is
+also `counters_through`, so the hourly increment and the nightly never
+count a battle twice - the old shape read the heap after taking the
+cursor and the hourly re-added whatever landed in between. Days stop
+building at 480 s into the run and the season reports `incomplete`
+(its days committed, the aggregates untouched, tomorrow continues), so
+a from-scratch month can never take the Lambda past 900 s; the
+pending-seasons loop stops at the first incomplete one. The final path
+builds the same way and then drops the season's rows one day a
+statement; the ledger goes with them. Migration 0140 is two empty
+tables and one nullable column, instant; the fingerprint re-pinned from
+a fresh scratch DB. No wire change: nothing but the job reads the new
+tables, and the tools' `seasonRollup` path is untouched. Tests: days
+build and seal by the cursor, a battle played on a sealed day but
+recorded later is appended and counted, the aggregates from the table
+equal a raw rebuild row for row, the final path drops the rows; the
+existing tools2 pin (rollup path == raw scan through the tools) and the
+deck-form-identity rollup read still pass. `rebuildSeason` takes an
+injectable `nowMs` for the cursor, as the hourly does.
+
+`{meta_rollup_equivalence}` (jobs Lambda, one transaction rolled back):
+the raw population bounded at `pop_through` into a temp table; its rows
+against `meta_season_pop` (missing, extra, differing on any column);
+then the six rollup tables rebuilt from it into temp shadows of the
+same names (a temp table shadows the public one for an unqualified
+name, so the nightly's own statements write there) and each compared
+with the live table by row count and an md5 over the ordered rows.
+`hourly_ran` says whether `counters_through` moved past `pop_through`
+during the check.
+
+**Measured, one hand-run night each way (reserved concurrency 1,
+`AWS_MAX_ATTEMPTS=1`, the :45 hourly not in between).** The first night
+after the deploy is the from-scratch path, 16:08:05–16:13:47Z: **341 s**
+- `pop_days` 110.0 s for 13 days (501,284 rows, 11 sealed), then
+totals 1.5, decided 1.6, decks 23.6, deck_players 14.6, cards 53.1,
+total_players 4.9, band_totals 4.0, band_decks 27.8, band_deck_players
+11.3, band_cards 84.7; 213,835 decks, 1,830 cards, 497,402 decided.
+Thirteen day-sized statements built the same population in half the
+old single statement's time (each day's self join fits `work_mem`).
+The incremental night, 16:19:28–16:23:00Z: **212 s** - `pop_days`
+**10.3 s** (the two unsealed days, 556 rows changed), `pop_late` 0.13 s
+(0 rows: nothing older than a day arrived), then totals 1.2, decided
+1.2, decks 22.5, deck_players 15.0, cards 54.7, total_players 5.0,
+band_totals 3.9, band_decks 26.8, band_deck_players 13.0, band_cards
+52.5; 214,017 decks, 497,956 decided, 501,840 rows. `pop` is 4.5% of
+its 227.5 s. The aggregates are 201 s and still scale with the season:
+at 2.3x the rows (day 28 from day 12) the run projects to ~475 s, 47%
+under the ceiling, and the `final: true` rebuild at the 10-05 close is
+the same run (its days already built and sealed) plus the day-a-
+statement drop. The two costs left are `cards` and `band_cards` (the
+`deck_card` join and the distinct-player count per card); they are the
+next lever if the season outgrows the projection, not tonight's.
+
+**Equivalence, 16:14:04–16:19:19Z (315 s, `hourly_ran: false`).**
+`pop`: raw 501,284, table 501,284, raw_not_in_pop 0, pop_not_in_raw 0,
+differing 0. Tables, raw rebuild vs live, rows and checksum:
+`meta_season_totals` 6 = 6 (`38a56a8f…`), `deck_meta_season` 213,835 =
+213,835 (`8f9dc68a…`), `card_meta_season` 1,830 = 1,830
+(`9dae6d01…`), `meta_season_band_totals` 22 = 22 (`a0a6bccc…`),
+`deck_meta_season_band` 131,878 = 131,878 (`58e10e16…`),
+`card_meta_season_band` 6,144 = 6,144 (`e5def041…`). Exact.
+
+**Through the door, before (16:06Z, counters through 15:40:15Z,
+requests `624ac0aa` and `7f4e37f1`) and after (16:23Z, counters through
+16:19:28Z, requests `a24204c8` and `6902f71c`).**
+`battles_meta_decks({segment: "corpus", season: "current", mode:
+"ladder", trophy_band: "11000_13000", limit: 3})`: decided 1,818 →
+1,820; the same three decks in the same order, `29e8cf97…` 86/58/28
+gap -1.10 unchanged, `1bf504a6…` 71/34/37 gap -0.23 unchanged,
+`72c6c8fb…` 58/57/1 → 59/57/2 with `last_used` moving from 09-18 to
+09-19 14:53Z (one battle recorded between the reads). `cards_card`
+Knight, corpus, current season: `season.all` 52,810/25,576/27,234 →
+53,020/25,681/27,339 on 495,864 → 497,956 decided; `by_band` under_5000
+298,307 decided, Knight 29,651 → 299,718 and 29,797; 5000_8000 896 →
+898, Knight 116 both; 8000_11000 2,032 → 2,035, Knight 281 both;
+11000_13000 4,220 → 4,233, Knight 549 → 551; 13000_plus 32,038 →
+32,144, Knight 4,599 → 4,614; every `mean_level_gap` identical to the
+digit; `players` up (15,857 → 16,485 on `all`) because "before" was as
+of 04:40Z and "after" as of 16:19Z. The deltas are the 39 minutes of
+recording between the reads and nothing else. `{backends}` after the
+runs: no `create temp table` backend of ours left behind; nothing to
+terminate.
+
+**Read this next time.** The nightly's `phases` line now has
+`pop_days` and `pop_late` before the ten aggregates; `days.built`
+should be 2 on an ordinary night (the current day and the one before),
+`days.sealed` the count so far, `days.late` the rows older than a day
+that arrived. `run-elixir-mcp.md` carries the sentence. Not done: a
+participant row enriched after its day sealed (a cross-observer
+sighting filling a null) is not re-read; the equivalence op's
+`differing` is 0 today and is the number to watch. I ran the nightly
+twice, not once: the first hand-run was necessarily the from-scratch
+path (every day built), and the incremental night the acceptance names
+needed a second run; both were inside one hourly window with the
+hourly quiet.

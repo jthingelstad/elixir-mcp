@@ -45,7 +45,15 @@ Establish, with receipts:
   never an optimization target to raise.
 - **Scheduled jobs.** The jobs lambda's work happened: the nightly
   activity histogram ran, Monday's sweeps ran (CloudWatch logs
-  `/aws/lambda/elixir-mcp-jobs`).
+  `/aws/lambda/elixir-mcp-jobs`). The 04:40Z meta rollup's log line
+  carries `phases`: since 0140 (2026-09-19) `pop_days` is the days not
+  yet sealed, seconds on an ordinary night (10 s on day 12 of
+  September); the ten aggregates scale with the season and were ~200 s
+  that day, so a run past ~500 s mid-season is the thing to read. The
+  proof that the population table matches the raw rows is
+  `{meta_rollup_equivalence: true}` on the jobs lambda (rolled back,
+  about five minutes on the micro, `hourly_ran` says whether the :45
+  increment moved the counters meanwhile); not a routine check.
 - **Doors.** MCP and web-api error alarms quiet; p95 latency alarm
   quiet; OAuth discovery serving (the deploy smoke checks these — a run
   after a deploy re-verifies with reads). `elixir-mcp-migrate-duration`
