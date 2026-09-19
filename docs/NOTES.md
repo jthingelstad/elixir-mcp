@@ -5244,3 +5244,22 @@ profile), and the card-level fact stays as `mean_level_gap`,
 `level_gap_battles` and `comparable` on the deck, card, summary and
 standings readers - described, never adjusted for. `docs/META-INTEL.md`
 sections 9 and 10's Pilot half are withdrawn with a dated note.
+
+**5.0.0 SHIPPED (2026-09-19, b9b75f0 / 7b3311a / 9a88ed8 + 4ba2a0f, two
+deploys, smoke 40/40).** Pilot Score removed (above); the form vocabulary
+settled to `form: base | evolution | hero` on every card object;
+`cards_card` (the card noun in one call: catalog + type + first played per
+form, this window all forms and per form by mode, by band, every season
+as a series, partners, decks, and on a clan who plays and who holds);
+`battles_meta_cards.cards[]`, `battles_meta_decks.containing[]`, `type`
+and `fetched_at` on the catalog; `/docs/cards`. Production smoke through
+the boards service token: corpus ladder read 3.2 s / 21 KB, clan read
+2.3 s, player read 0.6 s, fuzzy name refused with candidates, removed
+tools answer "Unknown tool". Queued next (minor): the matchup rollup
+("what beats it"), a cross-side season x mode x card A x card B table
+beside the meta rollup.
+
+**Queued for Keep the Record True:** `cards_catalog.fetched_at` equals
+`as_of` at 2026-09-10T23:57Z, so no catalog fetch has confirmed the
+catalog since (the `cards` endpoint is on a daily cadence; 24 receipts
+all time). Check the poll_state row and the collector's `cards` lane.
