@@ -80,6 +80,15 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
   );
 });
 
+test("links.pixel false renders tagged links without the open pixel (the public page)", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "top_100.json"), "utf8"),
+  );
+  const { html } = renderMail("top_100", facts, { ...links, pixel: false });
+  assert.ok(!/<img/i.test(html));
+  assert.ok(html.includes("utm_campaign=top_100-2026-W37"));
+});
+
 test("tagLink leaves foreign URLs alone and keeps an existing query string", async () => {
   const { tagLink } = await import("../src/index.mjs");
   assert.equal(

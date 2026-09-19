@@ -776,7 +776,9 @@ export function renderMail(kind, facts, links) {
       "renderMail: links.unsubscribe and links.manage are required",
     );
   const campaign = links.period ? { kind, period: String(links.period) } : null;
-  const out = fn(facts, make(campaign));
+  // A page render (the public Top 100 issue) tags its links but counts
+  // as a page view through the site's script, not as an open.
+  const out = fn(facts, make(campaign, { pixel: links.pixel !== false }));
   return {
     subject: out.subject,
     preheader: out.preheader,
