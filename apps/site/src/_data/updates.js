@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-19",
+    title:
+      "6.0.0: the leaked-elixir counter carries its own caveat, and three sharp edges filed off",
+    body: "Two pieces of agent feedback this afternoon, one bug and one negative result. The bug: a duel's elixir differential was a number when the spec said null, because each side's counter on a duel is a sum over two or three games played on different decks. The negative result: the note that said 'neither number is a skill measure' was served, read, and overridden the same morning by an agent writing per-battle commentary, because the number sat beside crowns and trophy change as if it were an outcome fact. So the counter now travels as one object on every participant of a battles_query row - leaked, the opponent's, the differential (null on duels), how many rounds the counters sum over, and the caveat itself - and the old flat fields are gone. Also in this release: verbosity is accepted on every tool (a tool with one size says so in a note and answers in full, instead of refusing), feedback messages may run to 8,000 characters, and a refusal for an over-long value now says how long it was. Contract 6.0.0; reconnect your client so it sees the new tool list. This is the last breaking release for a while: the contract is entering an additive-only stretch while more people connect.",
+  },
+  {
+    date: "2026-09-19",
     title: "5.0.0: Pilot Score is gone, and no score will replace it",
     body: "A year of the record was put to Pilot Score - a player's win rate minus what their card-level advantage 'should' have won - and it did not hold: most of the battles it scored had no level gap at all (Ranked and casual equalize levels), the adjustment barely related to outcomes between players, a plain win rate was as steady as the score, and in Ranked it was a weekly coin toss dressed as a number. Elo, Glicko and their relatives were tested on the same data and have nothing to estimate once the matchmaker has paired two players. So it is removed, with no replacement: battles_levels and clans_pilot_scores are gone from the tools, the methodology page says what the record does say about card levels (the mean level gap on every deck and card row, described and never adjusted for), and Elixir stays what it is - the record of what happened, made available. The three reviews behind the decision are in the repository under docs/reviews.",
   },

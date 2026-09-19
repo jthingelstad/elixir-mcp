@@ -299,8 +299,9 @@ export const elixirTools = {
         message: {
           type: "string",
           minLength: 1,
-          maxLength: 4000,
-          description: "The feedback itself. Specifics beat generalities.",
+          maxLength: 8000,
+          description:
+            "The feedback itself, up to 8,000 characters. Specifics beat generalities.",
         },
         category: {
           type: "string",
@@ -382,7 +383,7 @@ export const elixirTools = {
         [
           ctx.account.accountId,
           args.category ?? "general",
-          message.slice(0, 4000),
+          message.slice(0, 8000),
           contextBlock,
           requestId,
         ],

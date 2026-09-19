@@ -26,8 +26,11 @@ export function feedbackRoutes({
       });
       if (!account) return json(401, { error: "unauthenticated" });
       const message = String(body.message ?? "").trim();
-      if (!message || message.length > 4000)
-        return json(400, { error: "bad_request", message: "1-4000 chars." });
+      if (!message || message.length > 8000)
+        return json(400, {
+          error: "bad_request",
+          message: `1-8000 chars; it is ${message.length}.`,
+        });
       const category = [
         "general",
         "bug",

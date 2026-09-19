@@ -62,8 +62,10 @@ export function validateArgs(schema, value, path = "arguments") {
   if (typeof value === "string") {
     if (schema.minLength !== undefined && value.length < schema.minLength)
       return `${path} must be at least ${schema.minLength} characters.`;
+    // Say how long it was (feedback #64): a caller over the cap trims
+    // blind otherwise.
     if (schema.maxLength !== undefined && value.length > schema.maxLength)
-      return `${path} must be at most ${schema.maxLength} characters.`;
+      return `${path} must be at most ${schema.maxLength} characters; it is ${value.length}.`;
     if (schema.pattern !== undefined && !new RegExp(schema.pattern).test(value))
       return `${path} does not match ${schema.pattern}.`;
   }

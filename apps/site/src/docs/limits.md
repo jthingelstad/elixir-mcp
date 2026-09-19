@@ -45,7 +45,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
 | Access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Role-upgrade requests | `POST /api/me/role-request` | pending state | one pending at a time | HTTP 409 |
-| Feedback | `elixir_send_feedback`, `POST /api/feedback` | none | message 1 to 4000 chars | never metered beyond the daily call quota |
+| Feedback | `elixir_send_feedback`, `POST /api/feedback` | none | message 1 to 8,000 chars (the refusal says how long it was) | never metered beyond the daily call quota |
 | Collector door, work | `/api/collector/lease` and `/submit` | `collector-work#<gateway>` | 10,000 per hour | HTTP 429 with `retry-after` and `{"error":"rate_limited","scope":"work","limit_per_hour":10000,"retry_after_s":N,"hint":"…"}` |
 | Collector door, config | `/api/collector/config` | `collector-config#<gateway>` | 120 per hour | same shape, `scope: "config"` |
 | Collector outstanding leases | `/api/collector/lease` | per gateway | 2 unsubmitted | HTTP 429 `{"error":"lease_cap","hint":"At most 2 unsubmitted leases; submit or wait 90s."}` |
