@@ -107,6 +107,35 @@ const FORM_ROWS_NOTE =
 const roundsPlayed = (deck) =>
   Array.isArray(deck?.rounds) ? { rounds_played: deck.rounds.length } : {};
 
+// The leaked-elixir counter travels as one object with its caveat ON the
+// value (6.0.0, feedback #66): a note beside the row was read and
+// overridden by a consuming agent the morning it shipped, because the
+// number sat beside crowns and trophy_change as if it were an outcome
+// fact. `rounds` is what the counters sum over; a duel's sides each sum
+// two or three games on different decks, so its differential is null
+// (feedback #65: the 3.13.0 spec said so and the code did not).
+const ELIXIR_CAVEAT =
+  "Not a skill measure. Do not describe a player's leak as good or poor play: holding elixir to make the opponent commit first is a deliberate line that raises leak by design, and the record has no placement timestamps to separate that from waste. At high trophies both sides routinely hold and both leak.";
+const isDuel = (type) => /^riverRaceDuel/.test(String(type ?? ""));
+const elixirOf = (own, opponent, type, deck) => {
+  if (own === null) return null;
+  const duel = isDuel(type);
+  return {
+    leaked: own,
+    opponent_leaked: opponent,
+    differential:
+      !duel && opponent !== null ? Number((own - opponent).toFixed(2)) : null,
+    // A duel row whose rounds were never recorded (an archive import)
+    // still sums them: null says "more than one, count unknown".
+    rounds: duel
+      ? Array.isArray(deck?.rounds)
+        ? deck.rounds.length
+        : null
+      : 1,
+    caveat: ELIXIR_CAVEAT,
+  };
+};
+
 // Deck identities render from deck_card via shared deckIdentities (0091):
 // {id, name, form} plus tower_troop - the shape deckCards/towerTroop
 // produced from an exemplar's JSON (playtest round, 2026-09-09: forms are
@@ -459,7 +488,12 @@ export const battlesTools = {
             ? {}
             : {
                 deck: deckOf(o),
-                elixir_leaked: leaked(o.elixir_leaked),
+                elixir: elixirOf(
+                  leaked(o.elixir_leaked),
+                  null,
+                  r.type,
+                  deckOf(o),
+                ),
                 tower_hp: towerHpOf(o),
               }),
         });
@@ -527,13 +561,7 @@ export const battlesTools = {
               ? {}
               : {
                   deck: deckOf(r),
-                  elixir_leaked: myLeak,
-                  // me minus the one opponent on a head-to-head row; null
-                  // on duels, 2v2 and wherever a side did not report.
-                  elixir_leaked_differential:
-                    myLeak !== null && oppLeak !== null
-                      ? Number((myLeak - oppLeak).toFixed(2))
-                      : null,
+                  elixir: elixirOf(myLeak, oppLeak, r.type, deckOf(r)),
                   tower_hp: towerHpOf(r),
                 }),
           },
@@ -635,12 +663,12 @@ export const battlesTools = {
           caveats,
           deckStats &&
             "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
-          "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many.",
+          "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many.",
           compact
             ? null
             : "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
           leakRows > 0
-            ? "elixir_leaked is each side's own counter: at high trophies both players routinely hold and both leak, so the absolute value describes the match, not the player; elixir_leaked_differential (me minus the one opponent) is the better read and still cannot separate waste from holding elixir to react to a placement, so neither is a skill measure."
+            ? "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels) before elixir.leaked, and neither as a skill measure."
             : null,
           floorLosses > 0
             ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null: a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`

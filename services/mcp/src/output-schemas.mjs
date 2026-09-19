@@ -179,6 +179,25 @@ const PERF_WINDOW = {
   required: ["battles", "wins", "losses", "decided_battles", "win_rate"],
 };
 
+/** The leaked-elixir counter as one object with its caveat on it (6.0.0,
+ *  feedback #65/#66). Full verbosity only; null when the side did not
+ *  report. differential is me minus the one opponent on a single-game
+ *  head-to-head row and null on duels (each side's counter sums rounds
+ *  played on different decks), 2v2 and unreported opponents. */
+const ELIXIR = {
+  type: ["object", "null"],
+  description:
+    "This side's leaked-elixir counter with its caveat on the value (6.0.0). leaked: the side's own counter, summed across rounds on a duel; opponent_leaked: the one opponent's on a head-to-head row (null on 2v2, teammates and opponents); differential: leaked minus opponent_leaked on a single-game head-to-head row, null on duels; rounds: how many games the counters sum over; caveat: why none of it is a skill measure. Null when the game did not report it. Full verbosity only.",
+  properties: {
+    leaked: { type: "number" },
+    opponent_leaked: { type: ["number", "null"] },
+    differential: { type: ["number", "null"] },
+    rounds: { type: ["integer", "null"], minimum: 1 },
+    caveat: { type: "string" },
+  },
+  required: ["leaked", "opponent_leaked", "differential", "rounds", "caveat"],
+};
+
 const PARTICIPANT = {
   type: "object",
   properties: {
@@ -190,11 +209,7 @@ const PARTICIPANT = {
     clan_tag: { type: ["string", "null"] },
     rounds_played: COUNT,
     deck: { type: ["object", "null"] },
-    elixir_leaked: {
-      type: ["number", "null"],
-      description:
-        "This side's own leaked-elixir counter (3.13.0); null when the game did not report it. Full verbosity only.",
-    },
+    elixir: ELIXIR,
     tower_hp: { type: ["object", "null"] },
   },
   required: ["player_tag", "name_known"],
@@ -1006,7 +1021,22 @@ export const OUTPUT_SCHEMAS = {
                 remaining: { type: ["integer", "null"] },
               },
             },
-            me: { type: "object" },
+            me: {
+              type: "object",
+              properties: {
+                player_tag: TAG,
+                outcome: { type: "string" },
+                crowns: { type: ["integer", "null"] },
+                trophy_change: { type: ["integer", "null"] },
+                starting_trophies: { type: ["integer", "null"] },
+                deck_hash: { type: ["string", "null"] },
+                rounds_played: COUNT,
+                deck: { type: ["object", "null"] },
+                elixir: ELIXIR,
+                tower_hp: { type: ["object", "null"] },
+              },
+              required: ["outcome"],
+            },
             teammates: { type: "array", items: PARTICIPANT },
             opponents: { type: "array", items: PARTICIPANT },
           },

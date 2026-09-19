@@ -230,12 +230,20 @@ before(async () => {
      values ('ctrl-duel','2026-07-25T12:00:00Z','riverRaceDuel','pvp','CW_Duel_1v1',$1,$2)`,
     [PIT.name, PIT.id],
   );
+  // Both sides' leak counters are sums over the duel's two rounds
+  // (#65: the differential of two multi-round sums is not a number).
   await scratch.db.query(
-    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,type,type_class,crowns)
-     values ('ctrl-duel',$1,0,'loss','2026-07-25T12:00:00Z','riverRaceDuel','pvp',2),
-            ('ctrl-duel',$2,1,'win','2026-07-25T12:00:00Z','riverRaceDuel','pvp',4)`,
+    `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,type,type_class,crowns,elixir_leaked)
+     values ('ctrl-duel',$1,0,'loss','2026-07-25T12:00:00Z','riverRaceDuel','pvp',2,8.64),
+            ('ctrl-duel',$2,1,'win','2026-07-25T12:00:00Z','riverRaceDuel','pvp',4,6.32)`,
     [F, OPPONENTS[0]],
   );
+  await seedPlayedDeck(scratch.db, {
+    battle_id: "ctrl-duel",
+    player_tag: F,
+    battle_time: "2026-07-25T12:00:00Z",
+    rounds: [DECK_A, DECK_B],
+  });
 
   // G's three ladder months at F's gap (+0.70, a populated bin): June in
   // Magic Academy at 11,972, July in Magic Academy at 12,300 (+328, a
@@ -394,7 +402,7 @@ test("battles_performance group_by week: the bucket the window clips is marked p
   assert.equal(clipped.weekly.at(-1).covers.to, "2026-08-26T00:00:00.000Z");
 });
 
-test("battles_query: the opponent's elixir_leaked and the differential ride the row, with the caveat (#58)", async () => {
+test("battles_query: elixir is one object with the caveat on it, the differential null on duels (#58, #65, #66)", async () => {
   const res = await call("battles_query", {
     player_tag: F,
     from: "2026-09-15",
@@ -411,17 +419,50 @@ test("battles_query: the opponent's elixir_leaked and the differential ride the 
         !("arena_id" in b),
     ),
   );
-  const standoff = res.battles.find((b) => b.me.elixir_leaked === 17.96);
-  assert.equal(standoff.opponents[0].elixir_leaked, 19.45);
-  assert.equal(standoff.me.elixir_leaked_differential, -1.49);
-  const waste = res.battles.find((b) => b.me.elixir_leaked === 7.61);
-  assert.equal(waste.me.elixir_leaked_differential, 7.4);
-  const unreported = res.battles.find((b) => b.me.elixir_leaked === null);
-  assert.equal(unreported.me.elixir_leaked_differential, null);
-  assert.equal(unreported.opponents[0].elixir_leaked, null);
+  const standoff = res.battles.find((b) => b.me.elixir?.leaked === 17.96);
+  assert.deepEqual(standoff.me.elixir, {
+    leaked: 17.96,
+    opponent_leaked: 19.45,
+    differential: -1.49,
+    rounds: 1,
+    caveat: standoff.me.elixir.caveat,
+  });
+  assert.match(standoff.me.elixir.caveat, /Not a skill measure/);
+  // The opponent carries its own counter and nothing of the other side.
+  assert.equal(standoff.opponents[0].elixir.leaked, 19.45);
+  assert.equal(standoff.opponents[0].elixir.opponent_leaked, null);
+  assert.equal(standoff.opponents[0].elixir.differential, null);
+  assert.ok(!("elixir_leaked" in standoff.me));
+  assert.ok(!("elixir_leaked_differential" in standoff.me));
+  const waste = res.battles.find((b) => b.me.elixir?.leaked === 7.61);
+  assert.equal(waste.me.elixir.differential, 7.4);
+  const unreported = res.battles.find((b) => b.me.elixir === null);
+  assert.ok(unreported, "an unreported side is null, not an object");
+  assert.equal(unreported.opponents[0].elixir, null);
   assert.ok(
-    res.notes.some((l) => /describes the match, not the player/.test(l)),
+    res.notes.some((l) => /neither as a skill measure/.test(l)),
     res.notes.join("\n"),
+  );
+  // A duel (#65): both counters sum across the rounds, the differential is
+  // null, rounds says how many, and the duel note names the field.
+  const duelRes = await call("battles_query", { battle_id: "ctrl-duel" });
+  const duel = duelRes.battles[0];
+  assert.equal(duel.type, "riverRaceDuel");
+  assert.equal(duel.me.rounds_played, 2);
+  assert.deepEqual(duel.me.elixir, {
+    leaked: 8.64,
+    opponent_leaked: 6.32,
+    differential: null,
+    rounds: 2,
+    caveat: duel.me.elixir.caveat,
+  });
+  assert.equal(duel.opponents[0].elixir.leaked, 6.32);
+  assert.equal(duel.opponents[0].elixir.rounds, null); // its rounds were not seeded
+  assert.ok(
+    duelRes.notes.some((l) =>
+      /elixir\.leaked sums across rounds for both sides/.test(l),
+    ),
+    duelRes.notes.join("\n"),
   );
   // Two losses on the floor carry trophy_change null, and the note says why.
   assert.equal(
@@ -439,9 +480,9 @@ test("battles_query: the opponent's elixir_leaked and the differential ride the 
     to: "2026-09-18",
     verbosity: "compact",
   });
-  assert.equal(compact.battles[0].me.elixir_leaked, undefined);
-  assert.equal(compact.battles[0].opponents[0].elixir_leaked, undefined);
-  assert.ok(!compact.notes.some((l) => /elixir_leaked is each/.test(l)));
+  assert.equal(compact.battles[0].me.elixir, undefined);
+  assert.equal(compact.battles[0].opponents[0].elixir, undefined);
+  assert.ok(!compact.notes.some((l) => /elixir is each/.test(l)));
 });
 
 test("battles_performance group_by week: trophy_mode_battles rides beside trophy_battles and the note names the floor weeks (#61)", async () => {
@@ -669,4 +710,47 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
   const clash = res.notes.find((l) => /NOT comparable across rows/.test(l));
   assert.ok(!/unknown/.test(clash), clash);
   assert.match(clash, /mean level gap \+0\.70.*gap \+1\.62/);
+});
+
+test("verbosity is accepted on every tool: a one-size tool answers in full and says so (2026-09-19)", async () => {
+  // battles_decks declares no verbosity; the instructions call it the
+  // one size control, so agents send it (four refusals in four days).
+  const res = await call("battles_decks", {
+    player_tag: F,
+    from: "2026-09-15",
+    to: "2026-09-18",
+    verbosity: "compact",
+  });
+  assert.equal(res.applied.verbosity, "full");
+  assert.ok(
+    res.notes.some((l) =>
+      /battles_decks has one size: verbosity 'compact' was accepted/.test(l),
+    ),
+    res.notes.join("\n"),
+  );
+  // 'full' on a one-size tool is silent: nothing to say.
+  const full = await call("battles_decks", {
+    player_tag: F,
+    from: "2026-09-15",
+    to: "2026-09-18",
+    verbosity: "full",
+  });
+  assert.equal(full.applied.verbosity, "full");
+  assert.ok(!full.notes.some((l) => /has one size/.test(l)));
+  // The enum still holds.
+  await assert.rejects(
+    call("battles_decks", { player_tag: F, verbosity: "tiny" }),
+    (e) =>
+      e.code === "bad_request" &&
+      /must be one of full, compact/.test(e.message),
+  );
+  // A tool that declares it is untouched: compact still drops.
+  const compact = await call("battles_query", {
+    player_tag: F,
+    from: "2026-09-15",
+    to: "2026-09-18",
+    verbosity: "compact",
+  });
+  assert.equal(compact.applied.verbosity, "compact");
+  assert.equal(compact.battles[0].me.deck, undefined);
 });

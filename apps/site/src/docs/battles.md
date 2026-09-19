@@ -39,27 +39,34 @@ answers from the perspective of the tag you asked about:
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck; `draft`, `draftCompetitive`, `pick`, `predefined`, `warDeckPick` and the like for a deck chosen on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
 | `boat` | full verbosity, `boatBattle` rows only: `side` (`attacker` or `defender`), `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing) |
-| `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir_leaked`, `elixir_leaked_differential`, `tower_hp` |
-| `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir_leaked`, `tower_hp` |
+| `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir`, `tower_hp` |
+| `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir`, `tower_hp` |
 | `name_known` | `false` when no observation ever carried a name for that tag; `players_names` resolves the ones the corpus knows |
 | `rounds_played` | present on duel rows only: how many games the row collapses |
 
 `deck` holds the cards as played, with levels on the in-game 1 to 16 scale
 and each card's form (see [Deck identity and forms](#deck-identity-and-forms)).
 
-`elixir_leaked` is the game's own leaked-elixir counter for **each side**:
-the log row carries both, and every participant object serves its own;
-`null` when the game did not report it. `me.elixir_leaked_differential` is
-`me` minus the one opponent on a head-to-head row (`null` on duels, 2v2 and
-wherever a side did not report). Read the pair, never the absolute: at high
-trophies both players routinely hold elixir waiting for the other to
-commit, and both leak, so a player leaking 18 in a mutual standoff and a
-player leaking 18 because they misplayed look identical on their own
-number. The differential is the better read and still cannot separate
-waste from a deliberate hold to react to the opponent's placement, which
-would need placement timestamps the API does not expose. **Neither number
-is a skill measure**, and the response says so in a note whenever the
-field is served.
+`elixir` is the game's own leaked-elixir counter for **each side**, served
+as one object so its caveat travels on the value (6.0.0): `{ leaked,
+opponent_leaked, differential, rounds, caveat }`, or `null` when the game
+did not report it. `leaked` is the side's own counter; `opponent_leaked`
+is the one opponent's on `me` of a head-to-head row (`null` on 2v2, and
+always `null` on teammates and opponents, which carry only their own);
+`differential` is `leaked` minus `opponent_leaked` on a **single-game**
+head-to-head row and `null` on duels; `rounds` is how many games the
+counters sum over (a duel's sides each sum two or three games played on
+different decks, which is why a duel has no differential and why its
+`leaked` is not comparable with a single game's). Read the differential,
+never the absolute: at high trophies both players routinely hold elixir
+waiting for the other to commit, and both leak, so a player leaking 18 in
+a mutual standoff and a player leaking 18 because they misplayed look
+identical on their own number. The differential is the better read and
+still cannot separate waste from a deliberate hold to react to the
+opponent's placement, which would need placement timestamps the API does
+not expose. **Neither number is a skill measure**; `caveat` says so on
+every object, and the response repeats it in a note whenever the field is
+served. Do not describe a player's leak as good or poor play.
 
 `trophy_change` is the trophies the battle moved, on Trophy Road (`PvP`)
 and Path of Legends (`pathOfLegend`) only; other modes carry `null`. On a
@@ -79,8 +86,7 @@ level: `{ king, princess: [a, b] }` per side. A destroyed princess tower reads
 tower on head-to-head rows and writes `0` on duel rows, so array length was
 never a tower count; position carries no meaning). `null` means the game did
 not report tower state for that side. `verbosity: "compact"` drops `deck`,
-`elixir_leaked`, `elixir_leaked_differential` and `tower_hp` and keeps
-`deck_hash`.
+`elixir` and `tower_hp` and keeps `deck_hash`.
 
 ## Mode groups
 
