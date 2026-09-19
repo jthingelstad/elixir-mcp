@@ -3148,7 +3148,7 @@ input[aria-invalid="true"] {
   }
 }
 
-/* ---- Battle activity (0084): a year of days and a 24x7 rhythm ---- */
+/* ---- Battle activity (0084): a year of days ---- */
 /* One sequential hue (the accent) in four steps on the dark surface; a
    day that was not recorded is hatched, so it can never be mistaken
    for a quiet one. Cells are buttons so a tap (the phone case) and a
@@ -3184,8 +3184,7 @@ input[aria-invalid="true"] {
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
 }
-.activity__yearwrap,
-.activity__rhythmwrap {
+.activity__yearwrap {
   display: flex;
   gap: 6px;
   min-width: 0;
@@ -3200,13 +3199,6 @@ input[aria-invalid="true"] {
   color: var(--ink-faint);
   width: 26px;
   flex: none;
-}
-.activity__dows--rhythm {
-  grid-template-rows: repeat(7, minmax(0, 1fr));
-  gap: 2px;
-  padding-top: 0;
-  line-height: 1;
-  align-items: center;
 }
 .activity__scroll {
   overflow-x: auto;
@@ -3341,38 +3333,6 @@ input[aria-invalid="true"] {
 }
 .activity__legend-gap {
   width: var(--s-3);
-}
-.activity__rhythm-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  align-items: baseline;
-  margin-top: var(--s-2);
-  font-size: var(--t-body-sm);
-  color: var(--ink-body);
-}
-.activity__rhythmwrap > div:last-child {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.activity__rhythm {
-  display: grid;
-  grid-template-columns: repeat(24, minmax(0, 1fr));
-  gap: 2px;
-}
-.activity__cell--r {
-  width: auto;
-  height: auto;
-  aspect-ratio: 1;
-  cursor: default;
-}
-.activity__hours {
-  display: grid;
-  grid-template-columns: repeat(24, minmax(0, 1fr));
-  gap: 2px;
-  margin-top: 3px;
-  font-size: 10px;
-  color: var(--ink-faint);
 }
 .activity__table {
   font-size: var(--t-body-sm);

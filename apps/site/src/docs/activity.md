@@ -1,26 +1,23 @@
 ---
 slug: activity
-title: "Battle activity: a year of days and a weekly rhythm"
-description: "The battle-activity graphic on each player you track: a year of UTC days and a 24-by-7 rhythm rebuilt nightly from the record, what a not-recorded day means and why it is never drawn as zero, how the decayed histogram is computed, and what it will drive next."
+title: "Battle activity: a year of days"
+description: "The battle-activity graphic on each player you track: a year of UTC days drawn from the record, what a not-recorded day means and why it is never drawn as zero, and how the nightly row behind it is computed."
 section: using
 order: 18
 navTitle: "Battle activity"
 icon: calendar-days
-lede: "Every player you track shows a year of days and the hours they play, drawn from what Elixir recorded, with the days it was not watching marked as exactly that."
+lede: "Every player you track shows a year of days, drawn from what Elixir recorded, with the days it was not watching marked as exactly that."
 console: ["See yours on the Overview", "/account", "Console ▸ Overview"]
 ---
 
-# Battle activity: a year of days and a weekly rhythm
+# Battle activity: a year of days
 
 The first thing on **Console ▸ Overview** is your battle activity, with a
 chip per tracked player to switch between them; each player's own record
-under **Tracking** carries the same graphic beside its capture details.
-It has two parts: a year of days, one cell per UTC day
-coloured by how the day went and shaded by how much was played, and a
-rhythm tile, twenty-four hours by seven weekdays, showing when that
-player plays. Both are drawn
-from the battles already in the record; nothing is read from the game to
-draw them.
+under **Tracking** carries the same graphic beside its capture details:
+a year of days, one cell per UTC day coloured by how the day went and
+shaded by how much was played, drawn from the battles already in the
+record; nothing is read from the game to draw it.
 
 ## What is drawn
 
@@ -36,12 +33,6 @@ neutral purple. Tap or focus a cell and the day's count and record are
 written under the graphic; the list beneath it holds the last two weeks
 as a table.
 
-**The rhythm.** Every recorded battle in the window lands in one of 168
-cells, its weekday and hour. The tile is rotated into your device's clock
-and says which offset it used. Recent weeks count for more than old ones
-(see below), so a player whose evenings moved is read from where they play
-now.
-
 Days in the year graphic are UTC calendar days (midnight to midnight), not
 the 10:00 UTC game days the series tools and the war grid use. The graphic
 is rebuilt nightly from the battle rows by their UTC date, which is the day a
@@ -50,8 +41,6 @@ season and war clock, and a graphic of "did they play on the 12th" is not a
 war question. A late-night session (after 10:00 UTC, before midnight) is one
 cell here and one game day in `players_timeline`; a session between midnight
 and 10:00 UTC is the next cell here and still the previous game day there.
-The rhythm is shown in your clock because "when do they play" is a question
-about a person.
 
 ## Not recorded is not zero
 
@@ -81,24 +70,24 @@ Two marks from the recorder narrow coverage further:
   The lifetime counter includes some modes the log never shows, so this
   marks generously.
 
-The rhythm tile has no such distinction to make: it is built from every
-recorded battle in the window, and its header says how many that is.
-
 ## How it is computed
 
-A nightly job (05:30 UTC) rebuilds one row per recorded player from the
-battle record: the daily counts, and the rhythm as a decayed histogram in
-which each battle adds `2^(-age in days / 28)` to its weekday-hour cell.
-A battle four weeks old counts half, eight weeks old a quarter. The row is
-a projection, rebuilt in full every night, never a system of record, and
-a player added today has a graphic after the next run.
+The year's counts are the record's daily rollup, read live. A nightly job
+(05:30 UTC) writes one row per recorded player beside it with what the
+rollup cannot say: the not-recorded marks above, the first and last
+battle in the year, and the 28-day count. The row is a projection,
+rebuilt in full every night, never a system of record, and a player
+added today has a graphic after the next run.
 
-## What it is for next
+## What became of the rhythm
 
-The same histogram is step one of adaptive polling. Today every player's
-battle log is read on a yield schedule; once a week of histograms has
-been compared with the capture audit, the scheduler will place each log
-read where the player's expected battles cross the log's batch, using the
-fleet-wide rhythm as the starting point for a player with fewer than
-twenty battles. That change is not made yet, and the graphic does not
-change when it is.
+Until 2026-09-19 the graphic carried a second tile, twenty-four hours by
+seven weekdays, built as a decayed histogram of when the player played.
+It was step one of an adaptive polling design in which the recorder
+would place each battle-log read where the player's expected battles
+crossed the log's batch. Scored against a week of reads it did not: the
+population plays in sittings that land in hours the histogram rated
+ordinary, and no placement it produced cut empty reads without raising
+lost battles. The recorder runs [the session
+clock](/docs/recording#how-often-a-subject-is-fetched) instead, and the
+tile came down with the design; the year is the product.

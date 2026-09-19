@@ -33,7 +33,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
 
   const wanted = tagFromPath(tag);
   const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
-  // The nightly histogram, players only: a clan has no rhythm of its own.
+  // The nightly activity row, players only: a clan has no year of its own.
   const tracked = Boolean(claim);
   const activityQuery = useBattleActivity(tracked ? wanted : null);
   const activity = activityQuery.error

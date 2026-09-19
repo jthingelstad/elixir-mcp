@@ -2,9 +2,10 @@ import { json } from "../http.mjs";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 
 /**
- * Battle activity (0084): the nightly histogram for one of the account's
- * own players, shaped for the console graphic - a year of UTC days and a
- * 24x7 rhythm. One route, read-only; the row is the jobs Lambda's.
+ * Battle activity (0084): the nightly activity row for one of the
+ * account's own players, shaped for the console graphic - a year of UTC
+ * days. One route, read-only; the row is the jobs Lambda's. The 24x7
+ * rhythm it carried retired 2026-09-19.
  *
  * The one rule that matters here: zero means "we were reading this
  * player's log at the time, and nothing was played". Coverage is read
@@ -29,7 +30,7 @@ function utcDay(at) {
   return new Date(at).toISOString().slice(0, 10);
 }
 
-/** The year of days ending on the histogram's own day: each with its
+/** The year of days ending on the activity row's own day: each with its
  *  count and status. Exported for the route test and the docs example. */
 /** How many days after a UTC day a battle-log read still covers it. */
 const READ_REACH_DAYS = 2;
@@ -92,7 +93,7 @@ export function battleActivityRoutes({ resolveAccount }) {
         throw err;
       }
       // Your own players only: the graphic sits on the tracked record,
-      // and a friend's or a stranger's rhythm is theirs.
+      // and a friend's or a stranger's year is theirs.
       const { rows: claims } = await db.query(
         `select c.player_tag, p.name from claim c
            join player p on p.player_tag = c.player_tag
@@ -101,8 +102,7 @@ export function battleActivityRoutes({ resolveAccount }) {
       );
       if (claims.length === 0) return json(404, { error: "not_yours" });
       const { rows } = await db.query(
-        `select player_tag, computed_at, window_days, half_life_days,
-                rhythm, rhythm_weight, rhythm_battles,
+        `select player_tag, computed_at, window_days,
                 array(select to_char(d, 'YYYY-MM-DD') from unnest(not_recorded_days) as d) as not_recorded_days,
                 recorded_from, first_battle_at, last_battle_at, battles_28d
            from player_activity where player_tag = $1`,
@@ -158,10 +158,6 @@ export function battleActivityRoutes({ resolveAccount }) {
           rec[0]?.recorded_from?.toISOString() ??
           null,
         window_days: row?.window_days ?? 365,
-        half_life_days: row?.half_life_days ?? null,
-        rhythm: row?.rhythm ?? null,
-        rhythm_weight: row ? Number(row.rhythm_weight) : null,
-        rhythm_battles: row?.rhythm_battles ?? null,
         battles_28d: row?.battles_28d ?? null,
         first_battle_at: row?.first_battle_at?.toISOString() ?? null,
         last_battle_at: row?.last_battle_at?.toISOString() ?? null,

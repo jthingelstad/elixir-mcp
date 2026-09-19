@@ -94,13 +94,11 @@ before(async () => {
     );
   await db.query(
     `insert into player_activity
-       (player_tag, computed_at, window_days, half_life_days, rhythm, rhythm_weight,
-        rhythm_battles, not_recorded_days, recorded_from, first_battle_at,
-        last_battle_at, battles_28d)
-     values ($1, '2026-09-13T05:30:00Z', 365, 28, $2::real[], 2.5, 3,
-             '{2026-09-11}'::date[],
+       (player_tag, computed_at, window_days, not_recorded_days, recorded_from,
+        first_battle_at, last_battle_at, battles_28d)
+     values ($1, '2026-09-13T05:30:00Z', 365, '{2026-09-11}'::date[],
              '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3)`,
-    [TAG, new Array(168).fill(0)],
+    [TAG],
   );
   // The year's counts are the daily rollup (0123), not a column.
   await db.query(
@@ -230,8 +228,7 @@ test("GET: your own player's year, oldest first, coverage from the log reads", a
   assert.equal(by["2026-09-12"].status, "recorded");
   assert.equal(body.log_reads_from, "2026-07-08");
   assert.equal(body.log_read_days, 4);
-  assert.equal(body.rhythm.length, 168);
-  assert.equal(body.rhythm_weight, 2.5);
+  assert.equal("rhythm" in body, false, "the rhythm retired 2026-09-19");
   assert.equal(body.not_recorded_days, 1);
   // The hash form is accepted too (a pasted %23 link).
   const r2 = await get(`/api/me/battle-activity/%23${TAG.slice(1)}`);

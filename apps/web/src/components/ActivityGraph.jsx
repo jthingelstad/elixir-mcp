@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Battle activity: a GitHub-style year of days and a 24x7 rhythm tile,
- * drawn from the nightly histogram (docs/activity). Mobile first, like
- * Verify: the year scrolls sideways and opens on the newest weeks, the
- * rhythm fits any width, and a tap on a cell writes what it holds into
- * the caption underneath instead of relying on hover.
+ * Battle activity: a GitHub-style year of days (docs/activity). Mobile
+ * first, like Verify: the year scrolls sideways and opens on the newest
+ * weeks, and a tap on a cell writes what it holds into the caption
+ * underneath instead of relying on hover. The 24x7 rhythm tile that sat
+ * under it retired 2026-09-19 (Jamie: the year is the product; the
+ * rhythm was not worth its place, and the scheduler never used it).
  *
  * The rule the whole graphic exists to keep: zero is a day a battle-log
  * read covered and nothing was played. A day with battles is drawn with
@@ -36,7 +37,6 @@ const MONTHS = [
   "Nov",
   "Dec",
 ];
-const HOUR_MARKS = [0, 6, 12, 18];
 
 function isoDow(day) {
   // 1 = Monday ... 7 = Sunday, from a YYYY-MM-DD read as UTC.
@@ -107,25 +107,7 @@ function monthLabels(cols) {
   return labels;
 }
 
-/** Rotate the UTC rhythm into the viewer's clock: the browser's offset
- *  in whole hours (a half-hour zone lands on its nearest hour). */
-export function localRhythm(rhythm, offsetHours) {
-  const out = new Array(168).fill(0);
-  for (let dow = 0; dow < 7; dow += 1)
-    for (let hour = 0; hour < 24; hour += 1) {
-      const utc = (((dow * 24 + hour - offsetHours) % 168) + 168) % 168;
-      out[dow * 24 + hour] = rhythm[utc] ?? 0;
-    }
-  return out;
-}
-
-function offsetLabel(offsetHours) {
-  if (offsetHours === 0) return "UTC";
-  const sign = offsetHours > 0 ? "+" : "−";
-  return `UTC${sign}${Math.abs(offsetHours)}`;
-}
-
-export function ActivityGraph({ data, offsetHours = null }) {
+export function ActivityGraph({ data }) {
   const [picked, setPicked] = useState(null);
   const scroller = useRef(null);
   useEffect(() => {
@@ -147,10 +129,6 @@ export function ActivityGraph({ data, offsetHours = null }) {
   const max = days.reduce((m, d) => Math.max(m, d.battles), 0);
   const cols = weeks(days);
   const months = monthLabels(cols);
-  const offset =
-    offsetHours ?? Math.round(-new Date().getTimezoneOffset() / 60);
-  const rhythm = localRhythm(data.rhythm ?? [], offset);
-  const rmax = rhythm.reduce((m, w) => Math.max(m, w), 0);
   const withBattles = days.filter((d) => d.battles > 0).length;
   const coveredDays = days.filter((d) => d.status === "recorded").length;
   const notRecorded = days.filter((d) => d.status === "not_recorded").length;
@@ -263,55 +241,6 @@ export function ActivityGraph({ data, offsetHours = null }) {
               : ""}
           </span>
         )}
-      </div>
-
-      <div className="activity__rhythm-head">
-        <span>When they play, by hour and weekday ({offsetLabel(offset)})</span>
-        <span className="footnote">
-          every recorded battle in the last {data.window_days} days
-          {data.rhythm_battles != null ? ` (${data.rhythm_battles})` : ""},
-          recent weeks weighted; half-life {data.half_life_days} days
-        </span>
-      </div>
-      <div className="activity__rhythmwrap">
-        <div
-          className="activity__dows activity__dows--rhythm"
-          aria-hidden="true"
-        >
-          {DOW.map((d) => (
-            <span key={d}>{d}</span>
-          ))}
-        </div>
-        <div>
-          <div
-            className="activity__rhythm"
-            role="group"
-            aria-label="Battle rhythm by weekday and hour"
-          >
-            {rhythm.map((w, i) => {
-              const dow = Math.floor(i / 24);
-              const hour = i % 24;
-              const share = rmax > 0 ? w / rmax : 0;
-              const lvl = w === 0 ? 0 : level(share, 1);
-              return (
-                <span
-                  key={i}
-                  className={`activity__cell activity__cell--r activity__cell--l${lvl}`}
-                  role="img"
-                  aria-label={`${DOW[dow]} ${String(hour).padStart(2, "0")}:00: ${Math.round(share * 100)}% of the peak`}
-                  title={`${DOW[dow]} ${String(hour).padStart(2, "0")}:00 · weight ${w.toFixed(2)}`}
-                />
-              );
-            })}
-          </div>
-          <div className="activity__hours" aria-hidden="true">
-            {Array.from({ length: 24 }, (_, h) => (
-              <span key={h}>
-                {HOUR_MARKS.includes(h) ? String(h).padStart(2, "0") : ""}
-              </span>
-            ))}
-          </div>
-        </div>
       </div>
 
       <details className="activity__table">

@@ -2,8 +2,8 @@
  * The battle-activity graphic: a day with battles is always drawn (even
  * outside coverage), a not-recorded day is its own kind of cell, a
  * recorded quiet day says zero, a tap lands the day in the caption, the
- * rhythm rotates into the viewer's clock, and a player without a row
- * yet is told so.
+ * and a player without a row yet is told so. (The rhythm tile retired
+ * 2026-09-19.)
  */
 import { test, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -12,7 +12,6 @@ import {
   level,
   shareBin,
   weeks,
-  localRhythm,
 } from "../src/components/ActivityGraph.jsx";
 
 afterEach(cleanup);
@@ -49,16 +48,12 @@ function fixture() {
       ...(day === "2026-09-12" ? { partial: true } : {}),
     });
   }
-  const rhythm = new Array(168).fill(0);
-  rhythm[38] = 1; // Tuesday 14:00Z
   return {
     computed_at: "2026-09-13T05:30:00Z",
     window_days: 365,
     half_life_days: 28,
-    rhythm_battles: 262,
     log_reads_from: "2026-07-08",
     recorded_from: "2026-09-03T18:13:44Z",
-    rhythm,
     days,
   };
 }
@@ -89,19 +84,8 @@ test("weeks pads the first column to Monday", () => {
   expect(cols[0][2].day).toBe("2026-09-09");
 });
 
-test("localRhythm rotates UTC buckets into the viewer's offset", () => {
-  const r = new Array(168).fill(0);
-  r[38] = 1; // Tue 14:00Z
-  expect(localRhythm(r, -5)[24 + 9]).toBe(1); // Tue 09:00 in UTC-5
-  expect(localRhythm(r, 0)[38]).toBe(1);
-  // Across midnight: Mon 23:00Z is Tue 01:00 at UTC+2.
-  const m = new Array(168).fill(0);
-  m[23] = 1;
-  expect(localRhythm(m, 2)[24 + 1]).toBe(1);
-});
-
 test("coverage follows the log reads, not recorded is its own cell, a quiet recorded day is zero, and a tap writes the caption", () => {
-  render(<ActivityGraph data={fixture()} offsetHours={0} />);
+  render(<ActivityGraph data={fixture()} />);
   const notRecorded = screen.getByRole("button", {
     name: /^Sun 6 Sep 2026: not recorded$/,
   });
@@ -151,17 +135,8 @@ test("coverage follows the log reads, not recorded is its own cell, a quiet reco
   expect(screen.getByText("fewer")).toBeTruthy();
   // The legend swatch and the list both name it.
   expect(screen.getAllByText("not recorded").length).toBeGreaterThan(0);
-  // The rhythm: 168 cells, the Tuesday-14:00 one at the peak, every
-  // recorded battle counted in the header.
-  const peak = screen.getByRole("img", {
-    name: /Tue 14:00: 100% of the peak/,
-  });
-  expect(peak.className).toContain("activity__cell--l4");
-  expect(screen.getAllByRole("img").length).toBe(168);
-  expect(screen.getByText(/\(UTC\)/)).toBeTruthy();
-  expect(
-    screen.getByText(/every recorded battle in the last 365 days \(262\)/),
-  ).toBeTruthy();
+  // No rhythm tile: nothing renders as an img.
+  expect(screen.queryAllByRole("img").length).toBe(0);
 });
 
 test("no row yet says so instead of drawing an empty year", () => {

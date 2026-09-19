@@ -1,8 +1,9 @@
 /**
- * The nightly battle-activity histogram (0084) over a scratch database:
- * decayed 24x7 buckets, UTC daily counts, and the not-recorded marks
- * from the capture audit and the coverage rule - carried forward across
- * rebuilds, and never before recording began.
+ * The nightly battle-activity row (0084) over a scratch database: the
+ * not-recorded marks from the capture audit and the coverage rule -
+ * carried forward across rebuilds, and never before recording began -
+ * and the row's own dates. The 24x7 rhythm retired 2026-09-19 (0146):
+ * the columns stay null until they drop.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -10,13 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import {
-  activityHistogram,
-  daysBetween,
-  utcDay,
-  BUCKETS,
-  HALF_LIFE_DAYS,
-} from "../src/activity.mjs";
+import { activityHistogram, daysBetween, utcDay } from "../src/activity.mjs";
 import { handler } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -27,7 +22,8 @@ const NAME = `elixir_mcp_test_activity_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 // A Sunday noon. 2026-09-08 is a Tuesday; 2026-08-16 is the Sunday
-// exactly 28 days (one half-life) earlier; 2026-06-01 is a Monday.
+// exactly 28 days earlier (on the edge of the 28-day count); 2026-06-01
+// is a Monday.
 const NOW = new Date("2026-09-13T12:00:00Z");
 const PLAYER = "#P0P0P0P0";
 const QUIET = "#P0P0P0P2"; // recorded, never played
@@ -141,7 +137,7 @@ test("daysBetween walks UTC days inclusive; utcDay is the UTC calendar day", () 
   assert.equal(utcDay("2026-09-13T23:59:59Z"), "2026-09-13");
 });
 
-test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero row for a quiet player", async () => {
+test("rebuild: marks from both rules, the row's dates, no rhythm, and a row for a quiet player", async () => {
   const out = await activityHistogram(DB_URL, { now: NOW });
   assert.equal(out.players, 2);
   assert.equal(out.with_battles, 1);
@@ -150,18 +146,10 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
     [PLAYER],
   );
   const row = rows[0];
-  assert.equal(row.rhythm.length, BUCKETS);
-  assert.equal(row.half_life_days, HALF_LIFE_DAYS);
-  // Tuesday 14h = (2-1)*24 + 14; 4 d 21.5 h old.
-  const ageA = (NOW - Date.parse("2026-09-08T14:30:00Z")) / 86_400_000;
-  assert.ok(Math.abs(row.rhythm[38] - 2 ** (-ageA / 28)) < 1e-3, "A decays");
-  // Sunday 12h = 6*24 + 12, exactly one half-life: half a battle.
-  assert.ok(Math.abs(row.rhythm[156] - 0.5) < 1e-3, "B is half");
-  // Monday 10h, 104 days: a quarter of a quarter and a bit.
-  assert.ok(Math.abs(row.rhythm[10] - 2 ** (-104.083 / 28)) < 1e-3, "C fades");
-  // Sunday 20h = 6*24 + 20.
-  assert.ok(row.rhythm[164] > 0.8, "E recent");
-  assert.equal(row.rhythm_battles, 6, "Z is outside the year");
+  assert.equal(row.rhythm, null, "the rhythm is no longer written");
+  assert.equal(row.rhythm_weight, null);
+  assert.equal(row.rhythm_battles, null);
+  assert.equal(row.half_life_days, null);
   assert.equal(
     row.battles_28d,
     4,
@@ -178,8 +166,6 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
   assert.equal(utcDay(row.recorded_from), "2026-09-03");
   assert.equal(row.first_battle_at.toISOString(), "2026-06-01T10:00:00.000Z");
   assert.equal(row.last_battle_at.toISOString(), "2026-09-08T15:30:00.000Z");
-  const weight = row.rhythm.reduce((n, w) => n + w, 0);
-  assert.ok(Math.abs(Number(row.rhythm_weight) - weight) < 1e-2);
 
   const quiet = (
     await db.query(`select * from player_activity where player_tag = $1`, [
@@ -187,9 +173,9 @@ test("rebuild: decayed buckets, daily counts, marks from both rules, and a zero 
     ])
   ).rows[0];
   assert.ok(quiet, "a recorded player with no battles still gets a row");
-  assert.equal(quiet.rhythm_battles, 0);
   assert.deepEqual(quiet.not_recorded_days, []);
-  assert.equal(Number(quiet.rhythm_weight), 0);
+  assert.equal(quiet.battles_28d, 0);
+  assert.equal(quiet.first_battle_at, null);
 });
 
 test("marks never precede recording; older marks carry forward across rebuilds", async () => {
