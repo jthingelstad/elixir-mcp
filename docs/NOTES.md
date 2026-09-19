@@ -5360,3 +5360,130 @@ empty-path read (~200 ms) is the cheapest probe there is, so there is
 nothing lighter to gate on. Part 7.1's cancellable statement budget: the
 deadline race covers every read-only tool. Part 6.6: `live_fetch` has 0
 calls of 793 since the deploy; nothing to measure yet.
+
+## 2026-09-19 — The twelve mis-keyed war_week rows: one calendar rule for both writers, `{war_week_rekey_repair}` applied (Keep the Record True)
+
+The close-out entry above carried the review's reading of the twelve:
+"the writer keyed the close-slot read to the previous season while the
+sibling row got the calendar's; the eight populated duplicates
+double-count in `war_history`'s season windows". Reading the writers
+before touching anything corrected two thirds of that. Census first
+(`{war_week_season_census}`, 15:37Z): 361 `war_week` rows, 12
+`outside_season`, the same twelve as on 09-18, every one with a
+`currentriverrace` receipt at its start instant to the second.
+
+**The mechanism, with the code path.** A race opens in its own slot
+inside the 09:3x–10:00Z band on every mid-season Monday, so a
+`currentriverrace` read in that band carries the NEXT section while the
+calendar still says the last one (the archived POAP KINGS read at
+2026-09-14T09:57:54Z: `sectionIndex 1, periodIndex 7`, calendar section
+0; now `fixtures/currentriverrace/slot_band.json`). Two writers key
+`war_week`. The live projector (`services/ingest/src/war.mjs`
+`projectRiverRace` → `clanClock` → `war-clock.mjs` `warClock` →
+`inferSeasonId`, which is `seasonFromDate(fetchedAt).seasonId` since
+the phantom-season fix `52167e7`) takes the season the fetch instant
+falls in — 136 at 09:57Z on 09-14 — and the payload's section: `(136,
+1)`, correct, and the replay in this entry's test proves it. The
+backfill's race lane (`services/migrate/src/ops-series.mjs`
+`seriesBackfill` → `war.mjs` `raceSeasonFor` → `projectRaceSeries`, which
+runs the same `insert into war_week ... started_observed_at =
+least(...)`) had its own copy of the rule, and its first version
+(`3123fd8`, 2026-09-17 evening) read `sectionIndex > calendarSection`
+as the stand-by window after a roll and filed the read under
+`prev_season_id`: `(135, 1)`. `4c2fbb1` corrected the lane the same
+night and `{race_week_repair}` cleaned the phantom rivals it had
+written to `war_week_clan`, but the `war_week` rows the lane had
+inserted or stamped were, as that entry says, "untouched". So the
+bleed had already stopped on 09-18 01:0xZ: Monday's close slot would
+have added nothing. `season.mjs` and `payload-keys.mjs` are not in the
+path — the season row is read by the lane's rule for its `sections`
+count, and the keys module only names the column.
+
+**What the twelve are.** Eight are real weeks: the `(135, 1)` rows of
+`#PPCLCJG9 #PPLCV9G2 #GR2J822G #L9VRJ #QPY22Q0L #9V9GGVCQ #P9GPQ2Y0
+#G89QUY2P` carry `closed_at` 2026-08-17 09:30–09:57Z from the
+riverracelog (which names its season), 4–165 participants and five
+standings each, two with 20 period logs — season 135 week 1 for clans
+whose log reached back that far. `war_history` for `#L9VRJ` shows the
+sequence: `clan_score` 12,962 → 12,982 → 13,002 → 13,022 → 13,042 →
+13,142 → 13,162 across `(135, 0)` … `(136, 1)`, each week its own
+(request `4a2b5b4b`). Their only defect was `started_observed_at`
+stamped 2026-09-14 09:52–09:57Z: the lane's `least()` filled a null
+start with the slot-band read. Nothing double-counted; `war_history`
+lists seven distinct weeks for `seasons: 2`. Four are phantoms with no
+close and no rows: `(135, 1)` for `#JYJ980J8` and `#GCCJVQLU` (young
+clans whose logs start at `(135, 2)`; the phantom made
+`history_starts_at` say `(135, 1)`, request `9b069dd9`), and POAP
+KINGS' `(134, 4)` at 08-31 09:37Z and `(132, 4)` at 06-29 09:45Z —
+sections that do not exist in four-week seasons, the same rule walking
+the elixir-bot archive's close-slot reads. The `(134, 4)` phantom sat
+in `clans_participation.war_weeks` as an empty tenth week with a `null`
+column in every member's `war_decks` (request `ca26508c`).
+
+**Shipped `aa95aa6` (verify green, pushed 15:50Z, deployed 15:52Z).**
+(1) `war-clock.mjs` `raceWeekFor(sectionIndex, atMs)` is the ONE
+calendar rule and both writers call it: section == calendar is the
+current season; calendar + 1 within the season's count is the current
+season, the payload's section; the previous season's last section
+inside thirty minutes of a roll is the season before; anything else
+null. The live clock gains only the stand-by allowance (a read of the
+finished race in the first half hour after a roll would have been a
+phantom last section of the new season; now it is the season before,
+as on the lane) and keeps its own season when the rule returns null,
+as it always did. `raceSeasonFor` is a thin wrapper, no database. (2)
+Tests: the captured 09:57:54Z payload replayed through the live
+projector under a fresh clan lands as `(136, 1)` with 48 participants
+and five standings under season 136, nothing under 135, and the
+bracket event names 136; the lane's rule agrees on the same capture;
+the clock test pins the four census instants (09-14 09:57 → `(136,
+1)`, 08-31 09:37 → `(135, 4)`, 06-29 09:45 → `(133, 4)`, 09-07 10:05 →
+`(135, 4)`) and the nulls (10:31Z after a roll, section 3 on a
+section-0 day, a section past the count). A race-lane re-walk cannot
+write the rows back: the lane's own test already replays a slot-band
+poll to `(136, 1)` with nothing under `(135, 1)`, and the rule is now
+the same function. (3) `{war_week_rekey_repair}`: dry run by default,
+`{apply: true}` to execute, one transaction, idempotent; the census
+predicate is one exported text so the repair acts on exactly the rows
+the census reports. Verdict per row: `confirmed` (`closed_at` or
+`finished_observed_at` set: the key is the API's own; the start is
+cleared to null and folded into the sibling as `least()`), `phantom`
+(no close, no participants, standings, period logs or attendance:
+deleted, stamp and colosseum flag folded into the sibling, created if
+absent), `move` (rows under a key with no close: re-keyed to the season
+of the start with `on conflict do nothing`, then the source deleted;
+REFUSED when the target already holds a participant or standing for
+the same subject with different values), `unplaced` (no season row, or
+a section past the target's count: reported). The migrate test covers
+all four verdicts, the refusal, and the second run.
+
+**Dry run, then apply (15:52:30Z).** Dry run: 12 rows, `clear_start`
+8, `delete` 4, `rekey` 0, `refused` 0; every target sibling already
+carried the stamp (the 09-18 re-walk under the corrected rule had
+folded the same reads into `(136, 1)`, `(135, 4)` and `(133, 4)`), so
+`started_observed_at_after` equalled `started_observed_at` on all
+twelve siblings. Apply: the same counts, `outside_season_after` 0. A
+second apply: 0 rows. Census after: 357 `war_week` rows (four fewer),
+280 unstarted (eight more), 0 `outside_season`.
+
+**Acceptance, live and read-only through the door.** `war_history`
+`#JYJ980J8 seasons: 2`: five weeks, `history_starts_at` `(135, 2)`
+(request `e3637a3f`; before: six with an empty `(135, 1)` and the
+horizon at `(135, 1)`). `#GCCJVQLU` is not a recorded clan (it was
+polled as a rival; `not_recorded`, request `18698492`), so the second
+clan is `#L9VRJ`: the same seven weeks before and after, its real
+`(135, 1)` closed 08-17 kept with rank 1, fame 10,000, `clan_score`
+12,982 (request `c97e2e7d`). `clans_participation` POAP KINGS `weeks:
+8`: `war_weeks` 10 → 9, the `(134, 4)` phantom gone and the other nine
+identical instant for instant, every member's `war_decks` and
+`war_days_battled` one column shorter (request `bd562d97`; `(132, 4)`
+was outside the eight-week window on both reads). Nothing elixir-bot,
+the Discord instances or Clan read changed shape: `war_history`'s
+fields are the same and the four keys that vanished were empty.
+
+**Not done.** The close-out's "double-count" sentence was wrong and is
+corrected here, not there. The eight real weeks now carry
+`started_observed_at` null: the recorder did not see them open, and
+nothing in the archive can supply the instant for clans enrolled after
+08-10. `#GCCJVQLU`'s `war_week` rows remain for a clan the door refuses
+as unrecorded; whether rival-only clans should hold war rows at all is
+a question for the record's owner, not this repair.
