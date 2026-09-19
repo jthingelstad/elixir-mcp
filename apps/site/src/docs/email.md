@@ -1,7 +1,7 @@
 ---
 slug: email
 title: "Email"
-description: "The six emails Elixir sends: five weekly reports built from your record with no model in the loop, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per mail, never per reader."
+description: "The six emails Elixir sends: five weekly reports built from your record with no model in the loop, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
 section: using
 order: 17
 navTitle: "Email"
@@ -106,12 +106,16 @@ against it, and Tinylytics says so itself. Links into the site carry a
 **campaign tag** (`utm_source=email`, the kind, the issue), so the site's
 own numbers can say which mail brought people to which page. There is no
 redirector: a link goes where it says. The one-click *turn off* link
-carries no tag. Nothing counted is tied to you: no per-recipient
-identifier travels in either the image or the tagged links. The two
-footer links that carry the email's own id (its record, and feedback
-about it) carry no campaign tag, like the *turn off* link, and the
-console reports those pages to analytics as "an email record", never
-which one.
+carries no tag. Nothing counted is tied to you: the count is per issue
+and per campaign, never per reader, and no open or click is attributed
+to a recipient. The footer's links to this email's own record and to
+feedback about it carry the email's id, because they open one of your
+own records (see [Privacy](/docs/privacy), bucket two); the console
+reports those pages to analytics as "an email record", never which one.
+
+Every product email's footer also carries the same line for everyone:
+Elixir is free and sponsor-supported, with a link to
+[Support](/support). Sponsorship changes nothing about the mail you get.
 
 Names are links into Browse, where the record is; tags appear only where
 a name alone could be ambiguous. Nothing in a report is advice.

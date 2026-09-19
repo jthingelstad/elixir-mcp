@@ -48,8 +48,8 @@ describe("analyticsLocation", () => {
   });
 
   test("a private record (a call, a sent email) reports its kind of page and never its id", () => {
-    // A send id names one email to one reader: /docs/email promises no
-    // per-recipient identifier reaches analytics, not even as ?id=.
+    // Report hygiene: one row per kind of record page, never one per
+    // record (docs/ENGINEERING.md, "Product identifiers versus measurement").
     const id = "5c1c5dbf-b0d0-4843-b751-8d6a60e535c7";
     expect(at(`/account/activity/e/${id}`)).toEqual({
       path: "/account/activity/e",

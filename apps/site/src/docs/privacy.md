@@ -1,7 +1,7 @@
 ---
 slug: privacy
 title: "Privacy"
-description: "What Elixir MCP stores, why, and what it never stores: public Clash Royale game data plus history, your email address and what we use it for, and anonymous analytics with no account attached."
+description: "What Elixir MCP stores and why, in four buckets: public Clash Royale game data and its history; your own account's records, shown to you in full; aggregate measurement with no account attached; and sponsorship that buys nothing."
 section: policy
 order: 31
 navTitle: "Privacy"
@@ -12,20 +12,27 @@ lede: "What is public-postured, what is private, and what is never stored."
 # Privacy
 
 **What this is.** Elixir MCP is a private beta, run by one person, with
-every account approved by hand. It is not a commercial product: nothing
-here is sold, there is no advertising, and there is no revenue. Public
-Clash Royale data is already published broadly by third-party sites, so
-the record kept here is not a new kind of exposure — but it is a
-genuine one, and the rest of this page describes it plainly. If this
-ever opens to general signup, the questions that come with that —
-lawful basis, data-subject rights, how children are handled — get
-answered before it does, not after.
+every account approved by hand. It is free: nothing here is sold, there
+is no advertising, and the only money is voluntary
+[sponsorship](/support) that buys nothing. Public Clash Royale data is
+already published broadly by third-party sites, so the record kept here
+is not a new kind of exposure — but it is a genuine one, and the rest of
+this page describes it plainly. If this ever opens to general signup,
+the questions that come with that — lawful basis, data-subject rights,
+how children are handled — get answered before it does, not after.
 
-**What we store.** Game data from the public Clash Royale API: battles,
+Everything below sorts into four buckets, and the distinction between
+the second and the third is the one that matters: **your account's own
+records** are kept per account, because the product is made of them,
+and every one of them is shown to you; **measurement** is aggregate,
+per page and per mail, and never knows who you are.
+
+**1. Game data.** Game data from the public Clash Royale API: battles,
 profiles, clan rosters, war standings. All of it is publicly queryable
-by anyone with a tag and an API key.
+by anyone with a tag and an API key. No sponsor owns any part of the
+record.
 
-We store two things about your email address. A one-way hash is your
+**2. Your account.** We store two things about your email address. A one-way hash is your
 account's identity — it is what a sign-in looks you up by, and it is
 the only thing older parts of the system ever see. We also keep the
 address itself, so we can actually send you the mail the service
@@ -33,12 +40,18 @@ promises: your sign-in codes and links, and notices about your own
 account. An account we cannot write to is an account we can never tell
 anything. The address is never a lookup key, never appears on a public
 surface, and is never sold, shared, or used to advertise. We also store
-your timezone if you set one, and operational records of your own
-activity: sign-ins, claims, recording changes, and your agent's tool
-calls (used for quotas and product improvement — you can see your own
-usage under Usage). The request and response of each tool call are kept
-for 90 days and are visible to you under Activity, where each request id
-opens the call record.
+your timezone if you set one, and the records of your own activity
+that the product is made of: sign-ins, claims, recording changes, your
+agent's tool calls, every email we sent you, and the feedback you filed.
+They are used for quotas, for debugging, for answering your reports and
+for deciding what to build — and every one of them is yours to see, in
+full, under Activity and Usage: each request id opens the call record
+(request and response kept 90 days), each email opens the mail as it
+was sent. Identifiers from these records — a request id, an email's id,
+a player tag — appear wherever the product needs them, including in
+links inside the mail we send you; they point at records you can
+already open, and they are not tracking identifiers. Nothing in this
+bucket is shared, sold, or used to target you with anything.
 
 **Who can see what.** All recorded game data — battles, profiles,
 clans, war — is readable by every approved account, the same way the
@@ -52,31 +65,42 @@ query, is a capability the game's own API does not offer, and any
 approved account can run it. Your account data — claims, watches,
 quotas, usage, feedback — is yours alone.
 
-**Website analytics.** Every page — the public ones and the signed-in
-application both — uses [Tinylytics](https://tinylytics.app), a small
-privacy-focused analytics service, to count visits anonymously: page
-hits and visitor country. No cookies, no cross-site tracking, and **no
-account is ever attached to a view**. We cannot tell from analytics who
-was signed in, and we do not try.
+**3. Measurement.** Every page — the public ones and the signed-in
+application both — and every mail we send uses
+[Tinylytics](https://tinylytics.app), a small privacy-focused analytics
+service hosted in Europe, to count in aggregate: page hits and visitor
+country, opens per mail issue, clicks per campaign. No cookies, no
+cross-site tracking, **no account is ever attached to a view, and no
+open or click is ever attributed to a recipient**. We cannot tell from
+measurement who was signed in or who opened what, and we do not try.
 
 The sign-in page is the one deliberate exception: it loads no analytics
 script, and the view itself is never recorded, because a magic sign-in
 link arrives as part of that URL and a live credential should not travel
-anywhere it does not have to. Pages you visit after signing in are
-counted like any other, and by their path alone — what a view reports is
-built from the route, never from the address bar.
+anywhere it does not have to.
 
 What a page view records is the page: `/explore/player`, `/status/service`,
-`/account`. Where a page is about a specific record, the Clash Royale
-tag rides along as an ordinary attribute of the view. Those tags are
-public game identifiers — the same ones printed in the game and served
-by Supercell's own API to anyone with a key — not personal information,
-and they are not treated as such here.
+`/account/activity/e`. Where a page is about one player or clan, the
+Clash Royale tag rides along as an ordinary attribute of the view (a
+public game identifier, not personal information). Where a page is one
+of your own records — a call, an email — the view reports the kind of
+page and not which record, so the report reads as pages rather than a
+thousand one-hit rows; that is report hygiene, and the promise above is
+what it rests on.
 
 Product events such as "a tool call happened" or "feedback was filed"
 are counted server-side, again with **no account attached** — the values
 carry tool names and categories only, never your data, and never who
 made the call.
+
+**4. Money.** Elixir is free and stays free. It is supported by
+voluntary [GitHub sponsorship](/support) that buys nothing — no quota,
+no retention, no features, no priority, no different treatment — as
+Supercell's Fan Content Policy requires of donations. The ask is the
+same for everyone: the Support page, the console's top bar, and a line
+in every product email's footer. Nothing about your account or what
+you do decides whether or how you are asked, and there is no list of
+who gave.
 
 **The newsletter, and why it is opt-out.** Elixir MCP is a private beta
 and every account is approved by hand. Taking part includes occasional
@@ -96,9 +120,10 @@ tools use; the Top 100 is written by a language model from a brief the
 program built, and the program checks every number before it sends.
 Every mail Elixir sends, sign-in codes included, carries a Tinylytics
 pixel and campaign-tagged links: an open and a click are counted against
-the MAIL (which kind, which issue), through the same cookieless,
-Europe-hosted analytics as the site, with no identifier for you in
-either. What that can and cannot tell us is on [Email](/docs/email).
+the MAIL (which kind, which issue), never against you. Every product
+email also carries its own id in the footer and links into your own
+account's record of it; that is bucket two, not measurement. What the
+counting can and cannot tell us is on [Email](/docs/email).
 
 **You can leave at any time.** Every newsletter issue carries an unsubscribe link.
 Unsubscribing is permanent and is never overridden: once an address has
@@ -133,10 +158,13 @@ Addresses are removed after 30 days; the usage history stays without
 them. Nothing here is shared, and it is never used to profile you, only
 to answer "what is using this, and from where".
 
-**What we never do.** No selling data, no advertising, no ad or
-cross-site tracking, no analytics attached to your gameplay or your
-identity. Feedback you send is read by the maintainer and used to
-improve the product.
+**What we never do.** No advertising and no ad or retargeting scripts;
+no data brokers; no selling or sharing of anything here. No
+per-recipient open or click tracking, no engagement scoring, and no
+automation that acts on whether you read your mail. No use of game data
+to target an individual with anything commercial. Sponsorship is never
+tied to anything about your account. Feedback you send is read by the
+maintainer and used to improve the product, and nothing else.
 
 **Retention.** Recorded game history is kept indefinitely (it is the
 product). Raw API payloads are archived. Operational logs are pruned

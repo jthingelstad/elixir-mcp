@@ -5167,3 +5167,50 @@ roughly-400 alert line; its approved aggregate cannot distinguish expected
 unique top-200 seasonal churn from stale presences, so the next authorized
 diagnostic must establish that distinction before changing the documented
 seasonal sticky-retention rule.
+
+## 2026-09-19 — Analytics and privacy, settled (Jamie): four buckets, and product identifiers are not tracking identifiers
+
+Jamie: "Let's discuss and settle this analytics privacy issue. It keeps
+coming up and causing wrong choices. Elixir MCP is a free product all
+about players. It is not a blog so my view of privacy is different
+here... still far short of surveillance capitalism... keep in mind the
+sponsor options." The support page (`/support`, GitHub Sponsors, three
+suggested amounts that buy nothing) already answered the money half.
+
+**Why it kept going wrong.** The docs said "tracking" for two different
+things. *Product records* (call audit, email sends, events, feedback,
+connections) are per account because the product is made of them, and
+every one is shown to the account. *Measurement* (Tinylytics) is per
+page, per issue, per campaign, and never per person. The privacy page's
+"no per-recipient identifier travels in the links" treated a send id -
+a pointer into a record its holder can open - as if it were a tracking
+identifier. That produced issue #25's analytics proxy (undone), the
+first pass of the mail footer this morning (linked the list, not the
+record; undone the same morning), and the wrong comment on the analytics
+bridge. The one URL rule that IS real: `/signin` loads no analytics
+because a credential is in it.
+
+**Ratified.** Four buckets on `/docs/privacy`: game data (public,
+recorded, no sponsor owns any of it); your account (first-party, shown
+in full; its identifiers may appear anywhere the product needs them,
+including in mail); measurement (aggregate, no account, no
+per-recipient open or click, ever); money (free; voluntary GitHub
+sponsorship that buys nothing, as the Fan Content Policy requires of
+donations; the ask is identical for everyone - `/support`, the console
+top bar, one line in every product email footer; no list of who gave).
+"What we never do" now names the line: no ads or ad scripts, no
+brokers, no selling or sharing, no per-recipient open/click tracking,
+no engagement scoring, no automation on read state, no commercial
+targeting from game data, sponsorship decoupled from everything.
+
+**Changed to match.** `/docs/privacy` restructured (the "no revenue"
+sentence gone); `/docs/email` "What the mail counts" loses the
+per-recipient clause and gains the support line; `/docs/terms` names
+sponsorship under the policy; `docs/ENGINEERING.md` carries the
+two-category rule so no agent re-derives it; the analytics bridge's
+comments say report hygiene, which is what the normalization is for;
+the mail footer's record and feedback links are tagged like every
+other link (the click is a per-campaign count, and that was the point
+of tagging), and every product email ends with "Elixir is free and
+sponsor-supported; sponsorship changes nothing about your account.
+Support Elixir."

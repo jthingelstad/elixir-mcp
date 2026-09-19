@@ -31,12 +31,16 @@ const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 
 /**
  * A record of one call or one sent email: /account/activity/c/<request_id>,
- * /account/activity/e/<send_id>, /admin/emails/<send_id>. The id is a
- * per-person identifier (a send id names one email to one reader), and
- * /docs/email promises no such identifier reaches analytics. The bridge
- * reports these pages WITHOUT the id, and a document that loads on one
- * (the mail's footer links straight here) skips the embed's raw-URL hit
- * and reports the same normalized page by beacon instead.
+ * /account/activity/e/<send_id>, /admin/emails/<send_id>. Report hygiene,
+ * the same reason Explore ids ride as ?id= rather than as a path: every
+ * record as its own page shreds the report into one-hit rows, and a
+ * record page is worth one row per KIND ("email records opened"), not
+ * one per record. It is not a privacy device - a send id points at a
+ * record its holder can already open (docs/ENGINEERING.md, "Product
+ * identifiers versus measurement"). The bridge reports these pages as
+ * their kind, and a document that loads on one (the mail's footer links
+ * straight here) skips the embed's raw-URL hit and reports the same
+ * normalized page by beacon instead, so the landing counts once, cleanly.
  */
 const PRIVATE_RECORD = /^\/(account\/activity\/[ce]|admin\/emails)\/./;
 
@@ -84,8 +88,8 @@ export function analyticsLocation(
   const segments = pathname.split("/").filter(Boolean);
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
-  // A private record (see PRIVATE_RECORD) is its page and its kind of
-  // record, never which one: /account/activity/e, not the send id.
+  // A record page (see PRIVATE_RECORD) reports as its kind of record,
+  // never which one: /account/activity/e, not the send id.
   if (PRIVATE_RECORD.test(pathname)) {
     const kindOf = segments[0] === "admin" ? page : `${page}/${segments[2]}`;
     return { path: kindOf, url: new URL(kindOf, origin).toString() };

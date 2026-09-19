@@ -14,6 +14,9 @@ lede: "The short version: unofficial, best effort, be decent."
 **Free, and staying that way.** Elixir MCP is free to use. Supercell's
 Fan Content Policy prohibits charging for fan content, and any future
 paid tier would require Supercell's express approval — none is planned.
+It is supported by voluntary [sponsorship](/support) that is not tied
+to any feature, quota, retention, priority or other benefit, as the
+same policy requires of donations.
 
 **Unofficial.** This service is not affiliated with, endorsed,
 sponsored, or specifically approved by Supercell, and Supercell is not

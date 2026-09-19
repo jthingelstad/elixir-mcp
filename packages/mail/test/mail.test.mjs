@@ -96,25 +96,35 @@ test("links.send_id puts the send's id and its console link in the footer; a pag
   const id = "3f2a9c1b-0000-4000-8000-000000000001";
   const { html } = renderMail("milestone", facts, { ...links, send_id: id });
   assert.ok(html.includes(`This email is <a`));
-  // The record and the feedback link carry the id and NO campaign tag
-  // (a per-recipient identifier never travels in a tagged link); the
-  // list link is tagged like every other link into the site.
+  // The record, the feedback link and the list are tagged like every
+  // other link into the site: a send id is a product identifier, and
+  // the click is counted per campaign (ENGINEERING, "Product
+  // identifiers versus measurement").
   assert.ok(
     html.includes(
-      `href="https://elixir.poapkings.com/account/activity/e/${id}"`,
+      `href="https://elixir.poapkings.com/account/activity/e/${id}?utm_source=email`,
     ),
   );
   assert.ok(
     html.includes(
-      `href="https://elixir.poapkings.com/account/activity/e/${id}?report=1"`,
-    ),
+      `href="https://elixir.poapkings.com/account/activity/e/${id}?report=1&amp;utm_source=email`,
+    ) ||
+      html.includes(
+        `href="https://elixir.poapkings.com/account/activity/e/${id}?report=1&utm_source=email`,
+      ),
   );
-  assert.ok(!new RegExp(`e/${id}[^"]*utm_`).test(html));
   assert.ok(
     html.includes(
       "https://elixir.poapkings.com/account/activity/emails?utm_source=email",
     ),
   );
+  // Every product email carries the same support line, tagged by kind.
+  assert.ok(
+    html.includes(
+      "https://elixir.poapkings.com/support?utm_source=email&utm_medium=milestone",
+    ),
+  );
+  assert.ok(html.includes("Support Elixir"));
   const text = htmlToText(html);
   assert.ok(text.includes(id), "the text alternative carries the id too");
   const page = renderMail("milestone", facts, links).html;

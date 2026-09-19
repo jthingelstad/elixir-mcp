@@ -287,6 +287,25 @@ the mail (`/mail/<kind>/<period>`, `/mail/login`, `/mail/welcome`; the
 owner's own notifications carry none) and `utm_` tags on links into the
 site. Counts per mail, never per reader.
 
+**Product identifiers versus measurement (ratified 2026-09-19; NOTES
+that day, "Analytics and privacy, settled").** Two categories, and the
+confusion between them produced wrong choices three times (issue #25's
+analytics proxy, the first pass of the mail footer, the analytics
+bridge's comments). *Product records* are per account and shown to the
+account: call audit, email sends, account events, feedback,
+connections. Their identifiers - request ids, send ids, tags - may
+appear anywhere the product needs them, including in links inside
+mail; they point at records the holder can open and are not tracking
+identifiers, so nothing about them needs hiding from a URL.
+*Measurement* is Tinylytics: per page, per mail issue, per campaign,
+never per account, never per recipient. The analytics bridge
+(`apps/web/src/analytics.js`) reports a record page as its kind
+(`/account/activity/e`) for REPORT HYGIENE - one row per page - not as
+a privacy device. The one URL that skips analytics entirely is one
+carrying a credential (`/signin`). Do not add per-recipient open or
+click tracking, engagement scoring, or automation on read state; do not
+tie sponsorship (`/support`) to anything on an account.
+
 ## Where the patterns live
 
 - **CR API truth:** `cr-agent-api-docs` — a standalone repo, deliberately NOT

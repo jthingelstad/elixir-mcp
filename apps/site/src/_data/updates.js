@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "Privacy, said plainly: four buckets",
+    body: "The privacy page is restructured around the distinction that matters. Game data is public and recorded, and no sponsor owns any of it. Your account's own records - calls, emails sent, events, feedback, connections - are kept because the product is made of them, and every one is shown to you in full; their identifiers appear wherever the product needs them, including in the mail we send, and they are not tracking identifiers. Measurement is aggregate: pages, opens per issue, clicks per campaign, never per person, never a per-recipient open or click. And money: Elixir is free, supported by voluntary sponsorship that buys nothing, asked of everyone in the same words - now including one line at the foot of every product email. What we never do is spelled out as a list.",
+  },
+  {
+    date: "2026-09-19",
     title: "Badges by their names, and every email on the record",
     body: "A milestone mail read 'You earned MasterySkeletonWarriors (level 5)', which is the game's internal name for the Guards Mastery badge; the API carries no display name for a badge, only an icon. Every surface that says a badge now says it the way a player would: the timeline's text and its badge_label, the milestone and tracking mails, players_profile, badges_rarity and badges_holders (label beside the identifier). Every email Elixir sends you now has its own id, printed in the footer and logged where it was sent, and Activity has an Emails view: every product email sent to your account, newest first, each opening the mail as it went out, with a report-a-problem button that files feedback with the email attached; the footer of every email links its own record and, one click, feedback about it. Reading your own record is never counted as an open, and every email is kept as sent so what we send can be audited. Also fixed: every product email since the 09-18 evening deploy had failed to compose (the campaign period never reached the renderer); the held milestones go out with the next hourly pass. Contract 4.2.0.",
   },

@@ -69,12 +69,15 @@ const clanUrl = (tag) => `${SITE}/explore/clan/${tagPath(tag)}`;
 // EmailRecord.jsx) and its list (views/Activity.jsx, Emails). The
 // footer links the record by its id, and with ?report=1 the record
 // opens straight into feedback with the email attached (Jamie,
-// 2026-09-19: "something not right? send feedback", one click). These
-// two links carry the send id and so carry NO campaign tag, like the
-// one-click unsubscribe: /docs/email promises no per-recipient
-// identifier travels in a tagged link, and the console reports a
-// record page to analytics without its id.
+// 2026-09-19: "something not right? send feedback", one click). The
+// send id is a product identifier, not a tracking one (ENGINEERING,
+// "Product identifiers versus measurement"), so these links are tagged
+// like every other link into the site; the console reports the record
+// page to analytics as its kind, never which record.
 const SENT_MAIL_LIST_URL = `${SITE}/account/activity/emails`;
+// The same line to everyone, in every product email (Jamie, 2026-09-19,
+// the settled policy): free, sponsor-supported, sponsorship buys nothing.
+const SUPPORT_URL = `${SITE}/support`;
 const sentMailUrl = (sendId, { report = false } = {}) =>
   `${SITE}/account/activity/e/${encodeURIComponent(sendId)}${report ? "?report=1" : ""}`;
 
@@ -183,7 +186,8 @@ function make(campaign = null, { pixel = true } = {}) {
   <tr><td style="padding:18px 8px 0;font-family:${FONT};font-size:11.5px;line-height:1.6;color:${DARK.faint};">
     ${extraFooter}
     You get this because it is on for your Elixir account. <a href="${T(links.manage)}" style="color:${DARK.link};">Manage your emails</a> · <a href="${links.unsubscribe}" style="color:${DARK.link};">Turn off ${esc(unsubscribeKind)}</a><br>
-    ${links.send_id ? `This email is <a href="${sentMailUrl(links.send_id)}" style="font-family:${MONO};color:${DARK.link};">${esc(links.send_id)}</a> · Something not right? <a href="${sentMailUrl(links.send_id, { report: true })}" style="color:${DARK.link};">Send feedback about this email</a> · <a href="${T(SENT_MAIL_LIST_URL)}" style="color:${DARK.link};">Every email sent to you</a><br>` : ""}
+    ${links.send_id ? `This email is <a href="${T(sentMailUrl(links.send_id))}" style="font-family:${MONO};color:${DARK.link};">${esc(links.send_id)}</a> · Something not right? <a href="${T(sentMailUrl(links.send_id, { report: true }))}" style="color:${DARK.link};">Send feedback about this email</a> · <a href="${T(SENT_MAIL_LIST_URL)}" style="color:${DARK.link};">Every email sent to you</a><br>` : ""}
+    Elixir is free and sponsor-supported; sponsorship changes nothing about your account. <a href="${T(SUPPORT_URL)}" style="color:${DARK.link};">Support Elixir</a><br>
     ${esc(DISCLAIMER)}
   </td></tr>
 </table></td></tr></table>${campaign && pixel ? pixelTag(pixelPath(campaign.kind, campaign.period)) : ""}</body></html>`;
