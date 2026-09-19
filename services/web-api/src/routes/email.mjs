@@ -10,7 +10,12 @@
  *       page's button: flips the kind off (or "all")
  */
 import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
-import { verifyUnsubscribe, renderMail, KIND_LABELS } from "@elixir-mcp/mail";
+import {
+  verifyUnsubscribe,
+  renderMail,
+  KIND_LABELS,
+  TINYLYTICS_EMBED_CODE,
+} from "@elixir-mcp/mail";
 import { runEmail } from "../../../jobs/src/email/index.mjs";
 import { json } from "../http.mjs";
 
@@ -166,10 +171,18 @@ export function emailRoutes({
       const facts = rows[0].facts;
       const wantsJson = /application\/json/.test(event.headers?.accept ?? "");
       if (wantsJson) return json(200, { date: rows[0].period_key, ...facts });
-      const { html: body } = renderMail("top_100", facts, {
+      // Links carry the issue's campaign; the open pixel is left off and
+      // the site's own script counts the page view instead.
+      const { html } = renderMail("top_100", facts, {
         unsubscribe: `${SITE}/account/profile`,
         manage: `${SITE}/account/profile`,
+        period: rows[0].period_key,
+        pixel: false,
       });
+      const body = html.replace(
+        "</body>",
+        `<script defer src="https://tinylytics.app/embed/${TINYLYTICS_EMBED_CODE}/min.js?hits&countries"></script></body>`,
+      );
       return {
         statusCode: 200,
         headers: {

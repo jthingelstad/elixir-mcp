@@ -80,7 +80,7 @@ export function tagLink(url, campaign) {
   return u.toString();
 }
 
-function make(campaign = null) {
+function make(campaign = null, { pixel = true } = {}) {
   const T = (url) => tagLink(url, campaign);
   const P = (tag, name) =>
     `<a href="${T(playerUrl(tag))}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
@@ -173,7 +173,7 @@ function make(campaign = null) {
     You get this because it is on for your Elixir account. <a href="${T(links.manage)}" style="color:${DARK.link};">Manage your emails</a> · <a href="${links.unsubscribe}" style="color:${DARK.link};">Turn off ${esc(unsubscribeKind)}</a><br>
     ${esc(DISCLAIMER)}
   </td></tr>
-</table></td></tr></table>${campaign ? pixelTag(pixelPath(campaign.kind, campaign.period)) : ""}</body></html>`;
+</table></td></tr></table>${campaign && pixel ? pixelTag(pixelPath(campaign.kind, campaign.period)) : ""}</body></html>`;
   }
   return {
     T,
