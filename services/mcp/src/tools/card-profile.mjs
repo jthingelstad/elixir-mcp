@@ -235,7 +235,7 @@ export const cardProfileTools = {
                on bt.season_month = b.season_month and bt.mode_group = b.mode_group
               and bt.trophy_band = b.trophy_band
              where b.season_month = $1 and b.mode_group = $2 and b.card_id = $3 and b.form = -1
-             order by b.trophy_band`,
+             order by array_position(array['under_5000','5000_8000','8000_11000','11000_13000','13000_plus'], b.trophy_band)`,
             [roll.month, modeGroup, anchor.id],
           );
           out.by_band = rows.map((r) => ({
@@ -324,7 +324,7 @@ export const cardProfileTools = {
           .join(
             ", ",
           )}); usage_share is the row's decided observations over the population's decided_battles.`,
-        "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent; a card's win rate describes who played it as much as the card.",
+        "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
         ...extraNotes,
         SEGMENT_NOTES,
         win.seasonNotes,
