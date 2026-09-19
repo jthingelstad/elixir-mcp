@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { migrate, loadMigrations } from "../src/migrate.mjs";
 import { schemaFingerprint } from "../src/fingerprint.mjs";
-import { abYield } from "../src/ops-analysis.mjs";
+import { abYield, rhythmScore } from "../src/ops-analysis.mjs";
 import { ledger, stats } from "../src/ops-diagnostics.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -949,6 +949,29 @@ test("ab_yield reports both hash arms with the audit's three new columns", async
       assert.equal(arm.gap_rate, null, "no audited polls, no rate");
     }
   }
+});
+
+test("rhythm_score reads an empty week as zero counts with every section present", async () => {
+  const out = await rhythmScore(SCRATCH_URL, {
+    days: 7,
+    to: "2020-01-08T00:00:00Z",
+  });
+  assert.equal(out.window.days, 7);
+  assert.equal(out.polls.total, 0);
+  assert.equal(out.coverage.warm_players, 0);
+  assert.equal(out.fleet.weekly_median, 0);
+  for (const set of [
+    out.own_rhythm,
+    out.stored_rhythm_in_sample,
+    out.fleet_rhythm_on_cold,
+  ]) {
+    assert.equal(set.polls, 0);
+    assert.equal(set.nothing_new.quiet_share, null);
+    assert.equal(set.productive.quiet_share, null);
+    assert.equal(set.gaps.peak_share, null);
+  }
+  assert.equal(out.replay.rule.polls, 0);
+  assert.equal(out.replay.actual.polls, 0);
 });
 
 // The 0091 backfill rehearsal (batches rebuild the projections from the

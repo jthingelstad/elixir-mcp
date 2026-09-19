@@ -55,7 +55,12 @@ import {
   vacuum,
   pollStateOp,
 } from "./ops-diagnostics.mjs";
-import { abYield, auditCensus, argsCensus } from "./ops-analysis.mjs";
+import {
+  abYield,
+  auditCensus,
+  argsCensus,
+  rhythmScore,
+} from "./ops-analysis.mjs";
 import {
   feedbackPending,
   feedbackRead,
@@ -216,6 +221,14 @@ export async function handler(event) {
   }
   if (event?.ab_yield) {
     const result = await abYield(process.env.DATABASE_URL, event.ab_yield);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.rhythm_score) {
+    const result = await rhythmScore(
+      process.env.DATABASE_URL,
+      event.rhythm_score === true ? {} : event.rhythm_score,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
