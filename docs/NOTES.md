@@ -5730,3 +5730,173 @@ re-stamped `6.1.0`. One real drift: quickstart §4 put the starter
 questions and the seven-day counts on Account → Overview; both live on
 Connections (`ConnectionQuestions`, `calls_7d` per connection), as the
 connections page itself said. Fixed.
+
+## 2026-09-19 — Adaptive polling, step two, Part 1: the rhythm scored, and it does not place polls
+
+Jamie brought the step-two read forward a day (the brief of 2026-09-13
+said no earlier than 09-20; six nightly histograms have run, 09-13 to
+09-19). Read 19:05–19:15Z; analysis only, and the answer is **no, so
+Part 2 (rhythm-placed battlelog polls) is not built** and Part 3 does
+not arise. The instrument, which is new and stays: `{rhythm_score:
+{days, to?}}` on the migrate Lambda (`services/migrate/src/ops-analysis.mjs`,
+read-only, aggregates only, 17 s for the week), with the rhythm
+arithmetic it and a future planner would share in
+`services/scheduler/src/rhythm.mjs` (bucket, mass between two instants,
+the peak hour a wait crossed, the next instant an expected count crosses
+a target, the fleet mean). Two deploys today for the op alone (dcd0f74,
+026a3fb), no schema change, flag-free: nothing in the scheduler reads
+any of it.
+
+**How the score is honest.** The stored `player_activity.rhythm` includes
+the very week being scored, and a rhythm with a 28-day half-life holds
+~16% of its mass in the last seven days, so scoring tonight's row
+against this week is memorisation. The op rebuilds each polled player's
+rhythm with the job's own formula as of the window's START (battles
+before 09-12 19:05Z, decayed to it) and rolls it forward through the
+job's 05:30Z runs, so a Thursday poll is judged by a rhythm that knows
+Monday to Wednesday and never itself — what the planner would have HELD.
+The frozen start-of-window rhythm and the stored in-sample row are
+reported beside it as the bounds. For every admitted battlelog poll in
+the window (non-backfill gateways; `nothing_new` is the `{stats}`
+definition, `filtered = observed`; productive is `new_facts > 0`; gaps
+are `capture_audit.gap`), three readings: the mass the rhythm puts on
+the poll's own hour, the battles it expected since the previous poll
+(mass between the two instants × the player's 28-day weekly rate), and
+the largest single-hour mass the wait crossed. Cold-start players
+(fewer than 20 battles in the year) read the fleet's mean rhythm (each
+warm player's unit-mass rhythm counted once) at the fleet's median
+weekly rate. One control the record already carries sits beside it:
+whether the previous poll delivered battles. Last, a replay: the
+placement rule (next poll when the expected count crosses the target,
+bounded 15 min below and a ceiling above) walked over each player's
+week with the rolling rhythm, judged against the battles the record
+holds per hour, for targets 1/2/5 × ceilings 4 h/8 h/24 h, beside the
+actual polls judged the same way (an hour's battles split across the
+polls its span overlaps; "over capacity" is more than 25 battles between
+two polls, the gap shape).
+
+**The week (09-12 19:05Z to 09-19 19:05Z) against the 09-13 baselines.**
+52,457 admitted battlelog polls on 1,469 players (312/hr over all
+hours, 376 in the last hour; the 09-13 read said ~500/hr in one hour's
+`{stats}`); `nothing_new` 32,531 (62%, against 77% — the 77% was one
+hour, this is the week); 19,473 productive polls delivering 162,634
+battles; capture audit 763 gaps in 51,701 audited polls (**1.48%, 4.5/hr,
+~109/day**, against 1.5% / ~3/hr / ~70/day: the per-poll rate is
+unchanged and the fleet is larger — 799 recordings against 647);
+distinct-content battlelog objects in the archive 175/hr in quiet hours
+over the last day (against ~125); `PlannedJobs` quiet-hour mean by day
+446 (09-12), 528, 536, 546, 568, 606, 633, **650 (09-19)**, the 10:00Z
+board hour 946–1,436. Coverage of the row the planner would read: 922 of
+the 1,469 polled players have a `player_activity` row (42,510 of the
+polls, 81%); the rest are comprehensive-clan members without a
+`recording` row of their own, which the job does not cover — a Part 2
+would have had to widen the job to every battlelog `poll_state` subject
+or fall back to the yield clock for a fifth of the polls.
+
+**1. Empty polls against the rhythm's hour: no separation.** The brief's
+first number, the share of `nothing_new` polls that landed in a bucket
+under 5% of the player's weekly mass, is **99.3%** — and the share of
+PRODUCTIVE polls in such a bucket is **99.2%**. One hour is 1/168 of a
+week (0.6% on average) and a bucket over 5% is rare for anyone but a
+player who plays the same two hours every day, so the threshold sorts
+nothing. The measure that the placement rule actually uses — battles
+expected since the previous poll — separates a little: **93.3% of empty
+polls had under one expected battle, and so did 78.3% of productive
+ones** (86.5% and 72.4% under half a battle; 96.5% and 85.7% under two;
+99.5% and 93.2% under the batch target of five). Read as a classifier:
+"one or more expected" is productive 66% of the time (base rate 37.5%)
+but catches only 22% of productive polls, and **69% of all battles this
+week arrived in polls the nightly rhythm expected under one battle
+for**. The frozen rhythm reads 91.0% / 79.3%; the stored in-sample row
+reads 95.2% / **28.1%** — that 78 → 28 is the leak, and it is the number
+a naive scoring would have shown. The reason is in the shape of play,
+not in the arithmetic: the median warm player plays 16 battles a week in
+two or three sittings, and a decayed 24×7 histogram spreads those over
+the hours they have EVER played, so its hourly rate is a fraction of a
+battle almost everywhere and a sitting looks like a surprise wherever it
+lands.
+
+**2. Gaps and the peak hour: the wait, not the hour.** Of 760 audited
+gaps under the rolling rhythm, **1.4% (11) had a preceding idle window
+that crossed a bucket over 20% of the player's mass**, against 0.1% of
+the 49,723 audited non-gap polls (frozen: 4.4% against 1.0%). The
+crossing is fourteen times more likely before a gap, and absent before
+98.6% of them. What separates a gap is the length of the wait: median
+530 min between a gap and its previous poll against 105 min otherwise —
+the yield clock's slow end, as the 09-13 read said, and the burst bound
+covers only players who have already overflowed once in 14 days. A
+rhythm cannot shorten that wait for the 98.6% whose sitting fell in an
+hour it rated ordinary.
+
+**3. Cold start: the fleet rhythm is flat.** At the window start 557 of
+the 1,469 polled players had fewer than 20 battles in the year (207 with
+no recorded battle at all; the boards and clan enrollments of the week
+before); rolled forward, only 1,337 polls (2.6%) were still cold when
+made — players cross 20 battles in days. The fleet mean's largest bucket
+is **2.4%** (Saturday 15:00Z; the top eight are Saturday 14–18Z and
+Friday 19–20Z), so it never crosses 5%, let alone 20%: under it 98.5% of
+cold empty polls and 75.0% of cold productive polls had under one
+expected battle (n 841 / 468), 32% of their battles inside that. A prior
+this flat places every cold poll on the ceiling; it is a clock with
+extra steps.
+
+**4. The replay: no setting beats the clock.** Actual polls judged on
+the model's footing: 50,988 intervals, 58.6% empty, 2.0% over capacity
+(1,041; the audit's 711 true gaps sit inside that, so the model
+over-counts gaps ~1.5× for both arms). The rule, rolling rhythm, 25-
+battle capacity:
+
+| target | ceiling | polls (× actual) | empty (× actual) | over capacity (× actual) |
+|---|---|---|---|---|
+| 1 | 4 h | 60,030 (1.18) | 40,601 (1.36) | 1,499 (1.44) |
+| 1 | 8 h | 37,696 (0.74) | 22,370 (0.75) | 1,921 (1.85) |
+| 1 | 24 h | 23,986 (0.47) | 13,176 (0.44) | 2,047 (1.97) |
+| 2 | 4 h | 52,056 (1.02) | 34,720 (1.16) | 1,541 (1.48) |
+| 2 | 8 h | 28,902 (0.57) | 15,878 (0.53) | 1,993 (1.92) |
+| 2 | 24 h | 14,392 (0.28) | 6,178 (0.21) | 2,120 (2.04) |
+| 5 | 4 h | 48,686 (0.95) | 32,460 (1.09) | 1,666 (1.60) |
+| 5 | 8 h | 24,694 (0.48) | 13,131 (0.44) | 2,140 (2.06) |
+| 5 | 24 h | 9,094 (0.18) | 2,906 (0.10) | 2,261 (2.17) |
+
+Every cell that cuts empty polls raises over-capacity intervals 1.4–2.2×,
+and the cells that hold gaps near today's (a 4 h ceiling) poll as much or
+more than the clock with MORE empties, because the rhythm concentrates
+polls in hours that were busy last month and leaves the others on the
+ceiling. The Part 3 bar was empty polls down a third with gaps not above
+the clock arm; no cell meets it, and the rule here had every advantage
+the production one would not (last night's rhythm every day, the
+reader's own week of battles as the judge).
+
+**5. What the record does separate.** The control: **a poll whose
+predecessor delivered battles is productive 61.5% of the time; one whose
+predecessor was empty, 21.1%** (n 19,269 / 32,400) — a 3× lift that
+covers 61% of all productive polls, against the rhythm's 2× on 22%. That
+is session continuation, and it is what the yield EWMA and the burst
+bound already act on, reactively. The efficient lever for the 62%
+`nothing_new` is the reactive one — how fast the cadence tightens after
+a productive poll and relaxes after an empty one, and the slow end that
+the 530-minute gap waits live on — not a predicted hour.
+
+**Decisions and standing.** (1) **Rhythm-placed battlelog polls are not
+built**; the `ELIXIR_RHYTHM_PLACEMENT` flag, the balanced arms and
+`RhythmPlacedJobs` do not exist and should not be started on this
+evidence. Re-score with `{rhythm_score}` only if the model changes
+(sessions rather than hours; a shorter half-life; a per-player prior
+that is not flat), never on the stored row alone — the in-sample number
+is a trap and the op prints it beside the honest one for that reason.
+(2) The histogram stays for the graphic it draws and for coverage; the
+`player_activity` row is not a scheduler input. (3) The adaptive
+direction's step (b) — profiles primed by facts (a battlelog that
+delivered battles primes a profile read, the snapshot day boundary
+primes one, `new_facts` history sets the rest) — does not depend on the
+rhythm and is still the next step, in its own session, scored the same
+way before it drives anything. (4) The reactive lever (5) is the
+candidate for the battlelog side: measure the EWMA's tighten/relax
+constants against the same week with the same op's replay footing
+before touching them. (5) Baselines re-stamped above; the fleet is a
+fifth larger than on 09-13 and the per-poll gap rate is unchanged.
+
+**One line.** No: the nightly rhythm expects under one battle on 78% of
+the polls that delivered battles (and on 93% of the empty ones), a
+15-point separation, and no target or ceiling in the replay cuts empty
+polls without raising over-capacity intervals 1.4–2.2×.
