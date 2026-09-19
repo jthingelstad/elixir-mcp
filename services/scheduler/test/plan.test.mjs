@@ -1120,3 +1120,103 @@ test("eligibleNow reports what the next tick would plan without planning it", as
     "a read-only view stamps nothing",
   );
 });
+
+test("a subject the API answers 404 for is due once a day and never starved (2026-09-19)", async () => {
+  // A regional board with no Path of Legends board behind it: never
+  // admitted, so the starvation floor found it every fifteen minutes
+  // forever (location 57000006, ten plans in two and a half hours).
+  await freshenCards(NOW);
+  await db.query(
+    `update ranking_board set enabled = true
+     where board = 'pol' and location_key = '57000006'`,
+  );
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'sched-gw', '127.0.0.1', 'active') returning gateway_id`,
+    [accountId],
+  );
+  const notFound = async (endpoint, key, at) =>
+    db.query(
+      `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+       values ($1, $2, $3, $4, 404, 'http')`,
+      [gw.gateway_id, endpoint, key, at],
+    );
+  const at = (iso) => new Date(iso);
+  const keys = (r) => r.jobs.map((j) => `${j.endpoint}:${j.entity_key}`);
+
+  // Planned at 10:02Z, answered 404 at 10:03Z. The old rule re-planned
+  // it at 10:18Z; now it is held.
+  await setState("57000006", "rankings_pol", {
+    planned: at("2026-09-03T10:02:00Z"),
+  });
+  await notFound("rankings_pol", "57000006", at("2026-09-03T10:03:00Z"));
+  await setTokens(100);
+  const held = await planTick(db, at("2026-09-03T10:20:00Z"));
+  assert.deepEqual(keys(held), []);
+  assert.equal(held.notFoundHeld, 1);
+  await setTokens(100);
+  assert.deepEqual(keys(await planTick(db, at("2026-09-03T23:00:00Z"))), []);
+
+  // A day after the 404 it is tried once more.
+  await freshenCards(at("2026-09-04T10:30:00Z"));
+  await setTokens(100);
+  assert.deepEqual(keys(await planTick(db, at("2026-09-04T10:30:00Z"))), [
+    "rankings_pol:57000006",
+  ]);
+  await setTokens(100);
+  assert.deepEqual(keys(await planTick(db, at("2026-09-04T10:35:00Z"))), []);
+
+  // Another 404: held for another day. An admission after it lifts the
+  // hold and the ordinary board-day rule takes over.
+  await notFound("rankings_pol", "57000006", at("2026-09-04T10:31:00Z"));
+  await freshenCards(at("2026-09-05T09:00:00Z"));
+  await setTokens(100);
+  assert.deepEqual(keys(await planTick(db, at("2026-09-05T09:00:00Z"))), []);
+  await setState("57000006", "rankings_pol", {
+    admitted: at("2026-09-05T10:03:00Z"),
+    planned: at("2026-09-05T10:02:00Z"),
+  });
+  await freshenCards(at("2026-09-06T10:02:00Z"));
+  await setTokens(100);
+  assert.deepEqual(keys(await planTick(db, at("2026-09-06T10:02:00Z"))), [
+    "rankings_pol:57000006",
+  ]);
+
+  // A recorded clan the game has no race for: currentriverrace's
+  // two-hour floor used to re-plan it twelve times a day.
+  await db.query(
+    `insert into recording (subject_type, subject_tag, scope, requested_by)
+     values ('clan', '#GJ09RJP8', 'activity', $1)`,
+    [accountId],
+  );
+  await setState("#GJ09RJP8", "clan", { admitted: NOW, planned: NOW });
+  await setState("#GJ09RJP8", "riverracelog", { admitted: NOW, planned: NOW });
+  await setState("#GJ09RJP8", "currentriverrace", {
+    planned: at("2026-09-06T10:00:00Z"),
+  });
+  await notFound("currentriverrace", "#GJ09RJP8", at("2026-09-06T10:01:00Z"));
+  await freshenCards(at("2026-09-06T14:00:00Z"));
+  await setState("57000006", "rankings_pol", {
+    admitted: at("2026-09-06T10:03:00Z"),
+    planned: at("2026-09-06T10:02:00Z"),
+  });
+  await setState("#GJ09RJP8", "clan", {
+    admitted: at("2026-09-06T13:50:00Z"),
+    planned: at("2026-09-06T13:50:00Z"),
+  });
+  await setState("#GJ09RJP8", "riverracelog", {
+    admitted: at("2026-09-06T13:50:00Z"),
+    planned: at("2026-09-06T13:50:00Z"),
+  });
+  await setTokens(100);
+  assert.deepEqual(keys(await planTick(db, at("2026-09-06T14:00:00Z"))), []);
+  await setTokens(100);
+  assert.deepEqual(
+    keys(await planTick(db, at("2026-09-07T10:30:00Z"))).filter((k) =>
+      k.startsWith("currentriverrace"),
+    ),
+    ["currentriverrace:#GJ09RJP8"],
+  );
+});

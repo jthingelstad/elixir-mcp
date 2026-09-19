@@ -335,6 +335,17 @@ export function jitterFactor(subjectTag, endpoint) {
 }
 
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
+
+// A subject the API answers 404 for (a location with no Path of Legends
+// board, a clan the game has no race for) never admits, so the
+// starvation floor found it "starved" every fifteen minutes forever:
+// on 2026-09-19 that was 632 rankings_pol and 158 currentriverrace
+// fetches a day, five percent of the one budget, each answered 404
+// (location 57000006: ten plans in two and a half hours). While the
+// last word from the API is 404 and nothing has admitted since, the
+// subject is due once a day and never starved; a requested refresh and
+// the pre-reset watcher still cut through.
+const NOT_FOUND_BACKOFF_MINUTES = 1440;
 export const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
 
 /** A daily leaderboard is read once per board-day, and the board-day
@@ -516,7 +527,12 @@ async function selectEligible(db, now, arm) {
                 select 1 from recording r
                 where r.subject_type = 'clan' and r.subject_tag = pl.last_known_clan_tag
                   and r.status = 'active')) as roster_tracked,
-             greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference
+             greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference,
+             -- The API's last 404 for this subject inside the error
+             -- table's seven-day retention (0143 indexes the lookup).
+             (select max(e.fetched_at) from collector_fetch_error e
+               where e.endpoint = ps.endpoint and e.entity_key = ps.subject_tag
+                 and e.http_status = 404) as last_not_found_at
       from poll_state ps
       left join player pl on pl.player_tag = ps.subject_tag
         and ps.endpoint in ('player_battlelog', 'player')
@@ -562,7 +578,7 @@ async function selectEligible(db, now, arm) {
            -- profile kept polling on the 480 branch (measured: 33/h before,
            -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
            activity_bph, directly_tracked, clan_tracked, board_every,
-           game_last_seen_at, roster_admitted_at, roster_tracked
+           game_last_seen_at, roster_admitted_at, roster_tracked, last_not_found_at
     from state`,
   );
 
@@ -581,6 +597,7 @@ async function selectEligible(db, now, arm) {
 
   const eligible = [];
   let gated = 0;
+  let notFoundHeld = 0;
   for (const r of rows) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
@@ -629,13 +646,25 @@ async function selectEligible(db, now, arm) {
       r.endpoint === "player" &&
       admittedMs < windowStartMs &&
       plannedMs < windowStartMs;
+    const notFoundMs = r.last_not_found_at ? r.last_not_found_at.getTime() : 0;
+    const notFound = notFoundMs > admittedMs;
+    if (notFound && !forcedPreReset && !requested) {
+      if (
+        nowMs - notFoundMs < NOT_FOUND_BACKOFF_MINUTES * MINUTE ||
+        nowMs - plannedMs < IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE
+      ) {
+        notFoundHeld += 1;
+        continue;
+      }
+    }
     const starved =
       forcedPreReset ||
       requested ||
-      (cadence.floor !== undefined &&
+      (!notFound &&
+        cadence.floor !== undefined &&
         nowMs - admittedMs >= cadence.floor * MINUTE &&
         nowMs - plannedMs >= IN_FLIGHT_SUPPRESSION_MINUTES * MINUTE);
-    if (!due && !starved) continue;
+    if (!due && !starved && !notFound) continue;
     const overdueMs = nowMs - referenceMs;
     eligible.push({
       subject_tag: r.subject_tag,
@@ -665,6 +694,7 @@ async function selectEligible(db, now, arm) {
       a.subject_tag.localeCompare(b.subject_tag),
   );
   eligible.gated = gated;
+  eligible.notFoundHeld = notFoundHeld;
   return eligible;
 }
 
@@ -744,5 +774,6 @@ export async function planTick(
     readCapped: selected.filter((j) => j.readCapped).length,
     requested: selected.filter((j) => j.requested).length,
     gated: eligible.gated ?? 0,
+    notFoundHeld: eligible.notFoundHeld ?? 0,
   };
 }

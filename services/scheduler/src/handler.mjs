@@ -33,6 +33,7 @@ export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
           bounded: result.bounded,
           read_capped: result.readCapped,
           requested: result.requested,
+          not_found_held: result.notFoundHeld,
         });
         if (pending && typeof pending.then === "function")
           pending.catch(() => {});
