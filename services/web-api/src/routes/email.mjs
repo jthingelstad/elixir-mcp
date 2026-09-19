@@ -2,7 +2,6 @@
  *
  *  GET  /api/me/email          the six switches (absent row = on)
  *  PUT  /api/me/email          {kind, enabled}
- *  POST /api/me/email/send     {kind}: compose this kind for me, now
  *  GET  /api/me/email/sends    every product email sent to me, newest
  *       first (the Activity page's Emails view)
  *  GET  /api/me/email/sends/<send_id>  one of them with its archived
@@ -18,7 +17,6 @@
  */
 import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
 import { verifyUnsubscribe, KIND_LABELS } from "@elixir-mcp/mail";
-import { runEmail } from "../../../jobs/src/email/index.mjs";
 import { SENDS_SQL, sendRow, loadSendRecord } from "../send-record.mjs";
 import { json, UUID_RE } from "../http.mjs";
 
@@ -69,13 +67,7 @@ async function setPref(db, accountId, kind, enabled, via) {
     .catch(() => {});
 }
 
-export function emailRoutes({
-  resolveAccount,
-  secret,
-  enqueueEmail,
-  databaseUrl,
-  archive = null,
-}) {
+export function emailRoutes({ resolveAccount, secret, archive = null }) {
   const claim = (event) => {
     const t = event.queryStringParameters?.t ?? "";
     return verifyUnsubscribe({ secret, token: t });
@@ -146,38 +138,6 @@ export function emailRoutes({
       await setPref(db, account.accountId, kind, body.enabled, "profile");
       return json(200, { kind, enabled: body.enabled });
     },
-    "POST /api/me/email/send": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account) return json(401, { error: "unauthenticated" });
-      const kind = String(body?.kind ?? "");
-      if (!isProductEmailKind(kind)) return json(400, { error: "bad_kind" });
-      // The same composer the schedule runs, for this account only, past the ledger.
-      const result = await runEmail({
-        db,
-        databaseUrl,
-        kind,
-        accountId: account.accountId,
-        force: true,
-        enqueue: enqueueEmail,
-        secret,
-        archive,
-      });
-      const sent = result.sent > 0;
-      return json(200, {
-        kind,
-        sent,
-        reason: sent
-          ? null
-          : result.failed
-            ? "failed"
-            : result.recipients === 0
-              ? "off_or_ineligible"
-              : "nothing_to_say",
-        detail: result.details?.[0]?.error ?? null,
-      });
-    },
     "GET /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);
       if (!c)
@@ -185,7 +145,7 @@ export function emailRoutes({
           400,
           page({
             title: "This link has expired",
-            lead: `Sign in and use <a href="${SITE}/account/profile">your account page</a> to change which emails you get.`,
+            lead: `Sign in and use <a href="${SITE}/account/profile/email">your email page</a> to change which emails you get.`,
           }),
         );
       const t = esc(event.queryStringParameters?.t ?? "");
@@ -193,7 +153,7 @@ export function emailRoutes({
         200,
         page({
           title: `Turn off ${labelOf(c.kind)}?`,
-          lead: `One click and Elixir stops sending you ${labelOf(c.kind)}. You can turn it back on any time from <a href="${SITE}/account/profile">your account page</a>.`,
+          lead: `One click and Elixir stops sending you ${labelOf(c.kind)}. You can turn it back on any time from <a href="${SITE}/account/profile/email">your email page</a>.`,
           form: `<form method="post" action="/api/email/unsubscribe?t=${t}"><button type="submit">Turn it off</button></form>`,
         }),
       );
@@ -205,7 +165,7 @@ export function emailRoutes({
           400,
           page({
             title: "This link has expired",
-            lead: `Sign in and use <a href="${SITE}/account/profile">your account page</a>.`,
+            lead: `Sign in and use <a href="${SITE}/account/profile/email">your email page</a>.`,
           }),
         );
       if (c.kind !== "all" && !isProductEmailKind(c.kind))
@@ -224,7 +184,7 @@ export function emailRoutes({
         200,
         page({
           title: `${labelOf(c.kind)}: off`,
-          lead: `Done. Elixir will not send you ${labelOf(c.kind)} again unless you turn it back on from <a href="${SITE}/account/profile">your account page</a>.`,
+          lead: `Done. Elixir will not send you ${labelOf(c.kind)} again unless you turn it back on from <a href="${SITE}/account/profile/email">your email page</a>.`,
         }),
       );
     },

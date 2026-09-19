@@ -14,7 +14,7 @@ lede: "Six kinds, each a switch, each one click from off. Five are weekly; one a
 Elixir sends six kinds of email. All six are **on by default** for
 every approved account, because taking part in the beta includes the
 product's mail, and all six are **a switch on your account page**
-([Profile](/account/profile)) with a one-click *turn off* link in every
+([Profile → Email](/account/profile/email)) with a one-click *turn off* link in every
 issue. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
@@ -70,9 +70,8 @@ leaderboard entries, written about neutrally, and linked to their record.
 
 ## Turning one off
 
-Each kind has its own switch on your [Profile](/account/profile), with a
-**send me this now** button beside it so you can see what a kind looks
-like for your account before deciding. Every issue's footer has a
+Each kind has its own switch on [Profile → Email](/account/profile/email),
+beside the list of what was sent to you. Every issue's footer has a
 one-click link for that kind; mail clients that support one-click
 unsubscribe show it as their own button. Turning a kind off is
 immediate and yours to reverse.

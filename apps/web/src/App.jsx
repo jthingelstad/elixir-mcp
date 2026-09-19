@@ -245,6 +245,11 @@ export const RAIL = [
     label: "Profile",
     icon: "user-round",
     to: "/account/profile",
+    subs: [
+      ["profile", "Profile", "/account/profile"],
+      ["email", "Email", "/account/profile/email"],
+      ["devices", "Devices", "/account/profile/devices"],
+    ],
   },
   {
     key: "feedback",
@@ -326,6 +331,8 @@ export function railPosition(path) {
     // belongs to Tracking rather than being a section of its own.
     if (page === "tracking" && rest)
       return { key: "tracking", doc: "tracking:record" };
+    // /account/profile/{email,devices} are Profile's own pages.
+    if (page === "profile") return { key: "profile", sub: rest ?? "profile" };
     return { key: page ?? "overview" };
   }
   return {};
@@ -484,8 +491,30 @@ export const DOC_LINKS = {
     "Your account",
     [
       ["Tiers & roles", "/docs/roles"],
-      ["Email", "/docs/email"],
       ["Limits", "/docs/limits"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "profile:profile": [
+    "Your account",
+    [
+      ["Tiers & roles", "/docs/roles"],
+      ["Limits", "/docs/limits"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "profile:email": [
+    "The emails Elixir sends",
+    [
+      ["Email", "/docs/email"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "profile:devices": [
+    "Your sessions",
+    [
+      ["Connections", "/docs/connections"],
       ["Privacy", "/docs/privacy"],
     ],
   ],

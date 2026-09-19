@@ -93,7 +93,10 @@ export function EmailRecord({ id, navigate }) {
           <Icon name="message-square" size={15} />
           Report a problem with this email
         </a>
-        <a className="btn btn--sm" onClick={() => navigate("/account/profile")}>
+        <a
+          className="btn btn--sm"
+          onClick={() => navigate("/account/profile/email")}
+        >
           Email switches
         </a>
       </div>

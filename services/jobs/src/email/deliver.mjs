@@ -15,7 +15,7 @@ import {
 import { alreadySent, recordSend } from "./ledger.mjs";
 import { archiveSentMail } from "./archive.mjs";
 
-const MANAGE_URL = "https://elixir.poapkings.com/account/profile";
+const MANAGE_URL = "https://elixir.poapkings.com/account/profile/email";
 
 export async function deliver({
   db,

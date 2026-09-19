@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "Profile: Email and Devices are their own pages",
+    body: "Profile is who you are and what your tier gives you; the six email switches and the list of what was sent to you now live at Profile → Email, and your signed-in sessions at Profile → Devices. The 'send me this now' button beside each switch is gone - it never made sense to a reader. Turning a kind off and on is where it was, one page over.",
+  },
+  {
+    date: "2026-09-19",
     title: "Privacy, said plainly: four buckets",
     body: "The privacy page is restructured around the distinction that matters. Game data is public and recorded, and no sponsor owns any of it. Your account's own records - calls, emails sent, events, feedback, connections - are kept because the product is made of them, and every one is shown to you in full; their identifiers appear wherever the product needs them, including in the mail we send, and they are not tracking identifiers. Measurement is aggregate: pages, opens per issue, clicks per campaign, never per person, never a per-recipient open or click. And money: Elixir is free, supported by voluntary sponsorship that buys nothing, asked of everyone in the same words - now including one line at the foot of every product email. What we never do is spelled out as a list.",
   },

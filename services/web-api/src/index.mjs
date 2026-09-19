@@ -98,7 +98,6 @@ export const handler = makeHandler({
         })
     : null,
   notifyOwner,
-  enqueueEmail: queueUrl ? enqueueEmail : null,
   // Captured tool calls are read back for the console's call record;
   // absent bucket = the record carries the row only.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),

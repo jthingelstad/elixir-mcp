@@ -1,14 +1,8 @@
-import { Icon, ago } from "@elixir-mcp/ui";
+import { Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
-import {
-  keys,
-  useInvalidate,
-  useSessions,
-  useUsage,
-} from "../../lib/queries.js";
+import { useUsage } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
-import { EmailPanel } from "./EmailPanel.jsx";
 
 /**
  * Profile — the account you are signed in as, all on one page.
@@ -88,9 +82,25 @@ export function Profile({ me, refresh, navigate }) {
         </div>
       </section>
 
-      <EmailPanel navigate={navigate} />
-
-      <Devices />
+      {/* Email and Devices are their own pages (Jamie, 2026-09-19):
+          each is a subject, and the profile is who you are and what
+          your tier gives you. */}
+      <section className="panel mb-[14px]">
+        <SubpageLink
+          navigate={navigate}
+          to="/account/profile/email"
+          icon="mail"
+          title="Email"
+          note="the six emails Elixir sends you, each a switch, and what was sent"
+        />
+        <SubpageLink
+          navigate={navigate}
+          to="/account/profile/devices"
+          icon="monitor-smartphone"
+          title="Devices"
+          note="every session that can act as you, with a sign-out for each"
+        />
+      </section>
 
       <TierPanel me={me} entitlements={e} usage={usage} />
 
@@ -194,108 +204,27 @@ export function Profile({ me, refresh, navigate }) {
   );
 }
 
-/**
- * Devices: every session that can still act as you, this one marked,
- * each with a sign-out, and one for everywhere else (0083, Jamie's ask
- * 2026-09-12 after the sign-in review). "Everywhere else" keeps this
- * session, so the list can be read afterwards to see that it worked;
- * the sign-out button in the rail ends this one.
- *
- * Sessions slide thirty days from last use and end at ninety; the
- * expiry shown is the sliding one, which every use of that device
- * moves.
- */
-function Devices() {
-  const query = useSessions();
-  const sessions = query.data?.sessions ?? null;
-  // When the data was read: 0 until it is, and nothing below uses it
-  // before then.
-  const now = query.dataUpdatedAt;
-  const [busy, setBusy] = useState(false);
-  const invalidate = useInvalidate();
-  const load = () => invalidate(keys.sessions);
-  const others = sessions?.filter((s) => !s.current) ?? [];
-  const where = (s) =>
-    [s.from, s.country].filter(Boolean).join(" · ") || "address not seen";
+function SubpageLink({ navigate, to, icon, title, note }) {
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
-      <div className="panel__head" style={{ flexWrap: "wrap" }}>
-        <span className="panel-title">Devices</span>
-        <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-          {sessions ? `${sessions.length} signed in` : "reading your sessions…"}
-        </span>
-        {others.length > 0 && (
-          <button
-            className="btn btn--sm btn--danger"
-            style={{ marginLeft: "auto" }}
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              await api.revokeSessionsEverywhere();
-              await load();
-              setBusy(false);
-            }}
-          >
-            {busy ? "Signing out…" : "Sign out everywhere else"}
-          </button>
-        )}
-      </div>
-      <div style={{ padding: "4px 0" }}>
-        {sessions?.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "10px 16px",
-              borderTop: "1px solid var(--line-soft)",
-              fontSize: "13.5px",
-            }}
-          >
-            <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-              <div style={{ color: "var(--ink)" }}>
-                {s.client ?? "Unknown device"}
-                {s.current && (
-                  <span
-                    className="chip chip--ok"
-                    style={{ marginLeft: "8px", fontSize: "11px" }}
-                  >
-                    this device
-                  </span>
-                )}
-              </div>
-              <div style={{ color: "var(--ink-faint)", fontSize: "12.5px" }}>
-                {where(s)} · last used {ago(s.last_seen_at, now)} · signed in{" "}
-                {ago(s.created_at, now)}
-              </div>
-            </div>
-            {!s.current && (
-              <button
-                className="btn btn--sm"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  await api.revokeSession(s.id);
-                  await load();
-                  setBusy(false);
-                }}
-              >
-                Sign out
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-      <p
-        className="footnote"
-        style={{ margin: 0, padding: "10px 16px 14px", textWrap: "pretty" }}
-      >
-        A sign-in lasts thirty days from its last use and ninety at most.
-        Signing out here ends that device&rsquo;s session at once; agents and
-        connected clients are separate and live under Connections.
-      </p>
-    </section>
+    <a
+      href={to}
+      className="flex items-center gap-3 px-4 py-[13px] border-t border-line-soft first:border-t-0 text-inherit"
+      onClick={(ev) => {
+        ev.preventDefault();
+        navigate(to);
+      }}
+    >
+      <span className="flex text-accent-bright">
+        <Icon name={icon} size={17} />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[14px] text-ink">{title}</span>
+        <span className="block text-[12.5px] text-ink-faint">{note}</span>
+      </span>
+      <span className="ml-auto flex items-center text-ink-link">
+        <Icon name="arrow-right" size={15} />
+      </span>
+    </a>
   );
 }
 

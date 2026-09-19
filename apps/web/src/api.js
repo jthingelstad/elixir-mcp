@@ -41,7 +41,6 @@ export const api = {
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),
-  sendEmailNow: (kind) => request("POST", "/api/me/email/send", { kind }),
   myEmailSends: () => request("GET", "/api/me/email/sends"),
   emailRecord: (send_id) =>
     request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),

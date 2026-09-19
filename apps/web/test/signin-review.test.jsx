@@ -24,7 +24,7 @@ import {
 import { renderWithProviders } from "./helpers.jsx";
 import { App } from "../src/App.jsx";
 import { SignIn } from "../src/views/SignIn.jsx";
-import { Profile } from "../src/views/account/Profile.jsx";
+import { DevicesPage } from "../src/views/account/DevicesPage.jsx";
 
 /** Timers and the clock only: the router schedules its first render
  *  on the microtask queue, and faking that leaves the app unrendered. */
@@ -223,7 +223,7 @@ test("a link opened from the same address just signs in", async () => {
   expect(screen.queryByText("Also sign in where you started?")).toBeNull();
 });
 
-test("Profile lists every device, marks this one, and signs the others out", async () => {
+test("Profile → Devices lists every device, marks this one, and signs the others out", async () => {
   const revoked = [];
   let sessions = [
     {
@@ -257,9 +257,7 @@ test("Profile lists every device, marks this one, and signs the others out", asy
       return [200, { ok: true, revoked: 1 }];
     },
   });
-  renderWithProviders(
-    <Profile me={{ email: "j@x.com" }} refresh={vi.fn()} navigate={vi.fn()} />,
-  );
+  renderWithProviders(<DevicesPage navigate={vi.fn()} />);
   expect(await screen.findByText("Safari on iPhone")).toBeTruthy();
   expect(screen.getByText("this device")).toBeTruthy();
   expect(screen.getByText(/198\.51\.100\.77 · CA/)).toBeTruthy();

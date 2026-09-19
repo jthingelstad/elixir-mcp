@@ -1,6 +1,8 @@
 import { Activity } from "./Activity.jsx";
 import { CallRecord } from "./account/CallRecord.jsx";
 import { EmailRecord } from "./account/EmailRecord.jsx";
+import { EmailPage } from "./account/EmailPage.jsx";
+import { DevicesPage } from "./account/DevicesPage.jsx";
 
 import { Overview } from "./account/Overview.jsx";
 import { Tracking } from "./account/Tracking.jsx";
@@ -43,6 +45,10 @@ export function Dashboard({
     ) : (
       <Tracking me={me} refresh={refresh} navigate={navigate} />
     );
+  if (page === "profile" && itemId === "email")
+    return <EmailPage navigate={navigate} />;
+  if (page === "profile" && itemId === "devices")
+    return <DevicesPage navigate={navigate} />;
   if (page === "profile")
     return <Profile me={me} refresh={refresh} navigate={navigate} />;
   if (page === "collections")

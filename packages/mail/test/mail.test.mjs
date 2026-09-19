@@ -17,7 +17,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.join(here, "../fixtures");
 const links = {
   unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
-  manage: "https://elixir.poapkings.com/account/profile",
+  manage: "https://elixir.poapkings.com/account/profile/email",
   period: "2026-W37",
 };
 
@@ -72,7 +72,7 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
   assert.ok(html.includes('title="#20JJJ2CCRU"'));
   // The manage link is tagged; the one-click unsubscribe is not (an API
   // path with no embed, and the ledger records it anyway).
-  assert.ok(html.includes("account/profile?utm_source=email"));
+  assert.ok(html.includes("account/profile/email?utm_source=email"));
   assert.ok(
     html.includes(
       'href="https://elixir.poapkings.com/api/email/unsubscribe?t=x"',

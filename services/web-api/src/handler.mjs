@@ -99,9 +99,6 @@ export function makeHandler({
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
   capture = null,
-  /** Enqueue any email message on the relay queue; the product email
-   *  routes compose and hand off through it. null = sending is off. */
-  enqueueEmail = null,
 }) {
   // Tinylytics ping (best-effort by contract; never blocks a response).
   const ping = async (eventName, value) => {
@@ -234,15 +231,9 @@ export function makeHandler({
     ...emailRoutes({
       resolveAccount,
       secret,
-      databaseUrl,
       // The archive bucket store the call record reads from; sent mail
       // lives in the same bucket under mail/sent/.
       archive: capture,
-      enqueueEmail:
-        enqueueEmail ??
-        (async () => {
-          throw new Error("email sending is not configured");
-        }),
     }),
   };
 

@@ -96,9 +96,9 @@ kind can ship before this exists.
 `via ∈ {profile, one_click, ops}`; absent row means enabled (the default
 is ON and a backfill is not needed). Every change writes an
 `account_event`. Person principals only: agents and integrations have no
-inbox. The account page shows the five switches and a **"send me this one
-now"** per kind — the product's preview and our test path in one. The
-Collector switch appears only for an account with a collector.
+inbox. Profile → Email shows the six switches (the "send me this one
+now" button beside each was removed 2026-09-19; the ops op is the test
+path). The Collector switch appears only for an account with a collector.
 
 ### 3. Ledger and idempotency
 
@@ -288,7 +288,9 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
   S3, `{top100_accept}` invoked on jobs. Its key is
   `anthropic_api_key` in the app secret behind the preserved parameter
   `AnthropicKeyInSecret` (false until the key is added by hand).
-- Web API: `/api/me/email` (GET/PUT), `/api/me/email/send`,
+- Web API: `/api/me/email` (GET/PUT), `/api/me/email/send` (REMOVED
+  2026-09-19: "send me this now" made no sense to a user; the operator's
+  test path is the jobs op with `account_email`),
   `/api/email/unsubscribe` (GET page, POST flip; the RFC 8058 form body
   tolerated). No anonymous page for an issue (Jamie, 2026-09-18): sharing
   a Top 100 is forwarding the mail.
