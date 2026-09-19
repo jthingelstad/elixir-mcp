@@ -4860,9 +4860,11 @@ the REST API; nothing to change, nothing restarted. The **collection
 updater** (`svc:collection-updater`, 191 calls in seven days, last
 2026-09-17 10:23Z, the only caller of `collections_edit` with
 `action, collection, tags`): no retired name is on that tool, so nothing
-to change; its source is in no checkout under `~/Projects` (not the
-hub, Drop's admin job, or the OpenClaw cron list), which is worth knowing
-before the next rename that touches `collections_edit`. My own connector
+to change. (Corrected 2026-09-19: its source is
+`clients/boards/boards.mjs` in THIS repo; `collection-updater` is the
+name of the service token the boards client runs under, which is all the
+surface name ever meant. I grepped for the token's name, not the tool's
+callers.) My own connector
 and Jamie's still hold a 3.x `tools/list` and need a reconnect.
 
 **The interface review is closed.** Six phases, 3.13.0 → 4.0.0 in one
@@ -4883,7 +4885,9 @@ left open that is in no phase, for the objectives to carry:
 - **POAP KINGS' non-empty timeline window, 1.2–1.9 s**: the day-wide
   member battle scan is a parallel seq scan of `battle` because the
   `b.created_at <= to` filter beats the clan-time index; the empty path
-  no longer pays it (Run Elixir MCP).
+  no longer pays it (Run Elixir MCP). (Re-measured 2026-09-19, below:
+  the seq scan is no longer the top cost; `donations` and the `learned`
+  probe are.)
 - **Review Part 7 not yet built**: 7.1's budget extension to every tool
   whose 14-day p95 exceeds 5 s (the deadline race covers them; the
   cancellable statement budget still names three tools); the rest of Part
@@ -5263,3 +5267,96 @@ beside the meta rollup.
 `as_of` at 2026-09-10T23:57Z, so no catalog fetch has confirmed the
 catalog since (the `cards` endpoint is on a daily cadence; 24 receipts
 all time). Check the poll_state row and the collector's `cards` lane.
+
+## 2026-09-19 — Interface review close-out, re-assessed after 4.1.0–5.0.0
+
+Jamie asked what remained of the review's open list now that three more
+releases had shipped from other sessions. Each item re-measured
+read-only through the door (audit and refusal censuses from the 4.0.0
+deploy instant 2026-09-18T22:09Z to 12:30Z; `{war_week_season_census}`;
+`{explain_timeline}`; the jobs Lambda's log). Verdicts, then the two
+things done here.
+
+**The nightly meta rollup (Run Elixir MCP, by 2026-09-29).** The first
+instrumented run happened: 2026-09-19 04:40Z, **495 s, one invocation, no
+retry**, 467,552 decided battles on day 12 of the 28-day season.
+`phases`: `pop` 227.5 s (46%), `band_cards` 88.4, `cards` 69.5,
+`band_decks` 35.8, `decks` 34.3, `deck_players` 15.3, `total_players` 4.9,
+`band_totals` 3.7, `band_deck_players` 6.1, `totals` 1.4, `decided` 1.3.
+No statement owns more than half, so Phase 5's stop rule does not trip;
+the four band statements together are 134 s (27%). 5.0.0 removed
+`battles_levels` but not the band tables (`cards_card.by_band` reads
+them), so nothing got cheaper. Every statement scales with the season's
+rows: at linear growth the run crosses the 900 s Lambda ceiling around
+day 22, **the 09-29 nightly**, and the `final: true` rebuild at the
+10-05 close would never complete, leaving September unfinalized. The
+lever is `pop`: it is re-derived from the raw `battle` /
+`battle_participant` rows every night and then read by all ten
+aggregates. Persisting it as a real per-participant table appended by
+game day (the running season only; the full-rebuild path builds it the
+same way) removes the 227 s outright and gives the aggregates a compact
+table to scan. One session; before the 29th.
+
+**The 12 mis-keyed `war_week` rows (Keep the Record True, before Monday).**
+Census unchanged: 12 `outside_season`, no `{war_week_rekey_repair}`
+exists, and no commit since has touched the writer. The next race close
+slot is **Monday 2026-09-21, 09:30–10:00Z**: if a close-slot read keys to
+season − 1, Monday adds ten more. Read the writer first (the fix that
+stops the bleed), then the repair op for the twelve.
+
+**POAP KINGS' non-empty timeline read (dismissed, profile corrected).** A
+12-hour window replayed through `{explain_timeline}`: 1,834 ms, db
+1,727 ms, and the member-battle seq scan I named in the Phase 6 entry
+is no longer the top cost. `clan.donations` 730 ms, `clan.learned` 514
+ms (its index-only scan on `battle_participant_clan_time` walks all
+75,965 POAP KINGS participant rows because "learned" is keyed on
+`created_at`, not `battle_time`, and only then bitmap-joins the
+`created_at` range), `clan.member_battles` 351 ms (the parallel seq
+scan, 96,848 rows per worker). 521 `elixir_timeline` reads since the
+deploy: avg 376 ms, p95 1,263 ms, max 6,426 ms, 0 errors. A five-minute
+poll and a sub-2 s interactive read; not worth a session. Whoever picks
+it up should start with `donations` and the `learned` probe, not the
+scan.
+
+**The collection updater (closed).** Found: `clients/boards/boards.mjs`,
+in this repo; `collection-updater` is the service token's name. It calls
+`rankings_players`, `rankings_clans`, `collections_get` and
+`collections_edit` only; 109 clean calls since the deploy. The
+`cards_card` calls under that token today (29 in an hour, five
+`'Skeleton' is not an exact card name` refusals with candidates) are the
+5.0.0 smoke through the boards token, not the updater. The Phase 6
+sentence saying its source was in no checkout is corrected in place.
+
+**Consumers after 4.0.0 and 5.0.0.** Discord: 534 calls across the three
+instances, two refusals of expected class (`war_current not_recorded`,
+`live_pending`), 0 errors 08:00–12:30Z on 5.0.0 without a restart: the
+model's tool list comes through the Anthropic MCP connector per request,
+so a hub major needs no Discord restart unless its own code names a
+retired tool (it does not; `resolveToolName`'s process-local cache is a
+name resolver, and an unknown name surfaces as the hub's own refusal).
+Elixir Clan made its first eight calls (three identity lookups, one
+refusal of expected class). **elixir-bot** had still made no hub call
+since 21:09Z on 09-18; its four tools (`players_timeline`,
+`battles_performance`, `war_history`, `clans_standings`) and every field
+it reads are untouched by 5.0.0's breaking list, but `PINNED_CONTRACT =
+"4"` would log a drift warning on the first call, so the pin advanced to
+`"5"` with the review sentence its comment requires (elixir-bot
+`e6ecef94`, gates green, restarted 15:23Z with no turn live, pid 70104).
+Two gates on elixir-bot's main were red before that commit, neither
+mine: one unformatted blank line from `5a25fb08`, and the
+deck-recommendation field test's fixed `2026-07-20` battle day, which
+fell out of the 60-day field window on 09-18; the fixture is now dated
+relative to today.
+
+**The connectors.** Three `segment is required` refusals on the `mcp`
+surface today are the stale 3.x `tools/list` on my connector and
+Jamie's; Jamie refreshed tools in Claude settings 2026-09-19, which
+takes effect in a new session. `elixir_send_feedback`'s two
+`bad_request`s are a human session over the 4,000-character limit, not
+a client.
+
+**Dismissed.** Gating the Discord poll on `timeline_pending`: the
+empty-path read (~200 ms) is the cheapest probe there is, so there is
+nothing lighter to gate on. Part 7.1's cancellable statement budget: the
+deadline race covers every read-only tool. Part 6.6: `live_fetch` has 0
+calls of 793 since the deploy; nothing to measure yet.
