@@ -4981,3 +4981,38 @@ parameter or a separate path when a consumer needs it; "evolution slot 1"
 is the writer's phrase for an Evo form, a prompt note for the next issue;
 the SQS retries of the keyless attempt re-ran the editor twice more
 after the direct invoke (idempotent, three model runs billed).
+
+## 2026-09-18 (late) — Mail counts opens and clicks through Tinylytics (Jamie's call)
+
+**Decision (Jamie):** every mail Elixir sends, the transactional kinds
+included, carries a Tinylytics pixel and `utm_`-tagged links, and the
+published "the service does not know whether you read it" line comes
+out. I had proposed links only; Jamie wants both. Owner notifications
+(his own mail to himself) carry no pixel so his reading never lands in
+the numbers.
+
+**Shape.** `packages/mail/src/pixel.mjs`: the pixel path names the MAIL,
+never the reader - `/mail/<kind>/<period>` for a product kind,
+`/mail/login`, `/mail/welcome` - on the site's embed code, so opens are
+ordinary hits under `/mail/` (a Tinylytics segment on that prefix reads
+as "email opens"). `tagLink` puts `utm_source=email`,
+`utm_medium=<kind>`, `utm_campaign=<kind>-<period>` on every link into
+elixir.poapkings.com (Browse record pages, the manage link, the CTA, the
+Top 100 share link); the one-click unsubscribe URL is untagged (an API
+path with no embed; the ledger records the flip). In the dashboard:
+Sources = email; Campaigns = kind and issue; click a campaign and Top
+pages says which links that issue's readers used. The console and the
+site already run the embed, so nothing else was added; the public Top
+100 page is server-rendered mail HTML and gets no script, so a visit
+there counts through the pixel in that HTML only.
+
+**Docs changed to match:** `/docs/email` ("What the mail counts"),
+`/docs/privacy`, `docs/ENGINEERING.md` (the mail policy paragraph),
+`docs/EMAIL.md`. The Buttondown newsletter's own pixel-free line on the
+privacy page is Buttondown's and stands.
+
+Seen while verifying, not mine, not fixed: `services/mcp/test/tools2.test.mjs`
+"days/weeks are sugar on EVERY windowed tool" fails at 02:2xZ on a clean
+worktree of `70ffbb3` too ("two days of snapshots: yesterday and today" for
+`players_timeline({days: 2})`) - a clock-edge case in the game-day
+resolution, for the interface-review owner.

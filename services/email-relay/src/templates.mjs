@@ -20,6 +20,7 @@
  */
 
 import { DISCLAIMER, isProductEmailKind } from "@elixir-mcp/contracts";
+import { pixelPath, pixelTag } from "@elixir-mcp/mail";
 
 const SIGNIN_BASE = "https://elixir.poapkings.com/signin";
 const SITE = "https://elixir.poapkings.com";
@@ -49,7 +50,10 @@ const FONT =
  * One shell for every message, so a login and a welcome are recognisably the
  * same sender. `preheader` is the hidden line inboxes show as a preview.
  */
-function shell({ title, preheader, body }) {
+/** `pixel` is the Tinylytics path the open counts under (/mail/login,
+ *  /mail/welcome); the owner's own notifications carry none, so Jamie's
+ *  reading of them never lands in the numbers. */
+function shell({ title, preheader, body, pixel = null }) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -78,6 +82,7 @@ function shell({ title, preheader, body }) {
         </table>
       </td></tr>
     </table>
+    ${pixel ? pixelTag(pixel) : ""}
   </body>
 </html>`;
 }
@@ -119,6 +124,7 @@ export function renderEmail(msg) {
         `The code and link expire in 15 minutes. If you didn't request this, ignore it.\n\n` +
         `${DISCLAIMER}\n`,
       html: shell({
+        pixel: pixelPath("login"),
         title: "Your Elixir MCP sign-in code",
         // Repeats the code so an inbox preview carries it, and phrased the way
         // Apple Mail's code detector expects.
@@ -159,6 +165,7 @@ export function renderEmail(msg) {
         `The five-minute version: ${SITE}/docs/quickstart\n\n` +
         `${DISCLAIMER}\n`,
       html: shell({
+        pixel: pixelPath("welcome"),
         title: "Your Elixir MCP access is approved",
         preheader:
           "You're in. Add your player, connect your agent, and start asking.",

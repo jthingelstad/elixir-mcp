@@ -94,7 +94,11 @@ off for its kind. Turning one off is recorded on your account and never
 overridden. The reports are built by programs from the same readers the
 tools use; the Top 100 is written by a language model from a brief the
 program built, and the program checks every number before it sends.
-None of this mail carries tracking pixels or rewritten links.
+Every mail Elixir sends, sign-in codes included, carries a Tinylytics
+pixel and campaign-tagged links: an open and a click are counted against
+the MAIL (which kind, which issue), through the same cookieless,
+Europe-hosted analytics as the site, with no identifier for you in
+either. What that can and cannot tell us is on [Email](/docs/email).
 
 **You can leave at any time.** Every newsletter issue carries an unsubscribe link.
 Unsubscribing is permanent and is never overridden: once an address has

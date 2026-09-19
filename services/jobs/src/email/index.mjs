@@ -61,7 +61,7 @@ export async function runEmail({
     if (recipients.length === 0) return result;
     const season = await seasonOf(db, recipients[0], now);
     const manual = force ? `~m${now.getTime()}` : "";
-    const send = async ({ issueId, issueKey, account, facts }) => {
+    const send = async ({ issueId, issueKey, period, account, facts }) => {
       const r = await deliver({
         db,
         enqueue,
@@ -69,6 +69,7 @@ export async function runEmail({
         kind,
         issueId,
         issueKey,
+        period,
         account,
         facts,
         force,
@@ -116,6 +117,7 @@ export async function runEmail({
             await send({
               issueId,
               issueKey: `${kind}/${week.key}/${clan_tag}`,
+              period: week.key,
               account,
               facts,
             });
@@ -176,6 +178,7 @@ export async function runEmail({
         const r = await send({
           issueId,
           issueKey: `${kind}/${periodKey}/${subjectKey || "all"}`,
+          period: periodKey,
           account,
           facts,
         });

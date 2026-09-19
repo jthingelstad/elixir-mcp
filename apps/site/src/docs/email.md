@@ -1,7 +1,7 @@
 ---
 slug: email
 title: "Email"
-description: "The six emails Elixir sends: five weekly reports built from your record with no model in the loop, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off."
+description: "The six emails Elixir sends: five weekly reports built from your record with no model in the loop, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per mail, never per reader."
 section: using
 order: 17
 navTitle: "Email"
@@ -77,12 +77,22 @@ one-click link for that kind; mail clients that support one-click
 unsubscribe show it as their own button. Turning a kind off is
 immediate and yours to reverse.
 
-## What the mail never does
+## What the mail counts
 
-No tracking pixels, no rewritten links, no open or click counts: the
-service does not know whether you read it. Names are links into Browse,
-where the record is; tags appear only where a name alone could be
-ambiguous. Nothing in a report is advice.
+Two things, both through [Tinylytics](https://tinylytics.app), the same
+cookieless analytics the site runs, hosted in Europe, keeping nothing
+about a person. A 1×1 image in each mail records an **open** as a page
+hit at a path that names the mail, never the reader (`/mail/clan_report/2026-W37`,
+`/mail/login`) — an undercount, since image blocking and caching both cut
+against it, and Tinylytics says so itself. Links into the site carry a
+**campaign tag** (`utm_source=email`, the kind, the issue), so the site's
+own numbers can say which mail brought people to which page. There is no
+redirector: a link goes where it says. The one-click *turn off* link
+carries no tag. Nothing counted is tied to you: no per-recipient
+identifier travels in either the image or the links.
+
+Names are links into Browse, where the record is; tags appear only where
+a name alone could be ambiguous. Nothing in a report is advice.
 
 ---
 

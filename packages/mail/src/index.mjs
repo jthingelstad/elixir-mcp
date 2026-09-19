@@ -8,7 +8,13 @@
  *  one-click unsubscribe token (RFC 8058) the footer and the header
  *  carry. Facts in, mail out; nothing here reads a database.
  */
-export { renderMail, KIND_LABELS } from "./render.mjs";
+export { renderMail, tagLink, KIND_LABELS } from "./render.mjs";
+export {
+  pixelPath,
+  pixelUrl,
+  pixelTag,
+  TINYLYTICS_EMBED_CODE,
+} from "./pixel.mjs";
 export { htmlToText } from "./text.mjs";
 export { lintIssue, repairNames } from "./top100-lint.mjs";
 export {

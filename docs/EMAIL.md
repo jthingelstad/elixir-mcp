@@ -118,8 +118,10 @@ rare duplicate is accepted rather than giving the relay a database.
 
 A workspace package, `packages/mail`, takes a facts object and returns
 `{subject, text, html}`: table layout, inline styles from the design
-tokens, plain-text alternative always, **pixel-free and links unwrapped**
-(policy; the configuration set has no open/click events). The jobs Lambda
+tokens, plain-text alternative always, **a Tinylytics pixel whose path
+names the mail and `utm_` tags on links into the site** (Jamie,
+2026-09-18, revising the pixel-free stance for Elixir's own mail: counts
+per mail, never per reader; SES's own tracking stays off, no redirector). The jobs Lambda
 renders; the message carries the rendered body; the relay's
 `templates.mjs` keeps owning transactional mail. Mind the 256 KB SQS cap:
 a 50-row roster in text+HTML is ~40–60 KB. If a kind ever exceeds it, a

@@ -7,6 +7,7 @@
  *  the coverage note last, the switch and the disclaimer in the footer.
  *  Dark only, by decision (Jamie, 2026-09-18, from the gallery). */
 import { DISCLAIMER } from "@elixir-mcp/contracts";
+import { pixelPath, pixelTag } from "./pixel.mjs";
 
 const SITE = "https://elixir.poapkings.com";
 const FONT =
@@ -65,11 +66,26 @@ const tagPath = (tag) =>
 const playerUrl = (tag) => `${SITE}/explore/player/${tagPath(tag)}`;
 const clanUrl = (tag) => `${SITE}/explore/clan/${tagPath(tag)}`;
 
-function make() {
+/** Links into the site carry the campaign tag Tinylytics reads
+ *  (utm_source=email, utm_medium=<kind>, utm_campaign=<kind>-<period>),
+ *  so the site's own cookieless analytics can say which mail brought
+ *  someone in and to what. No pixel, no redirector: the tag is on the
+ *  link, the count happens on the page (docs/email). */
+export function tagLink(url, campaign) {
+  if (!campaign || !url.startsWith(SITE)) return url;
+  const u = new URL(url);
+  u.searchParams.set("utm_source", "email");
+  u.searchParams.set("utm_medium", campaign.kind);
+  u.searchParams.set("utm_campaign", `${campaign.kind}-${campaign.period}`);
+  return u.toString();
+}
+
+function make(campaign = null) {
+  const T = (url) => tagLink(url, campaign);
   const P = (tag, name) =>
-    `<a href="${playerUrl(tag)}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
+    `<a href="${T(playerUrl(tag))}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
   const K = (tag, name) =>
-    `<a href="${clanUrl(tag)}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
+    `<a href="${T(clanUrl(tag))}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
   const delta = (v) =>
     v == null
       ? `<span style="color:${C.faint}">—</span>`
@@ -115,7 +131,7 @@ function make() {
       .join("")}</table>`;
   const button = (label, url) =>
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 6px;"><tr><td bgcolor="${DARK.gold}" style="background-color:${DARK.gold};border-radius:8px;">
-      <a href="${url}" style="display:inline-block;padding:11px 18px;font-family:${FONT};font-size:14px;font-weight:700;color:${DARK.goldOn};text-decoration:none;">${esc(label)}</a></td></tr></table>
+      <a href="${T(url)}" style="display:inline-block;padding:11px 18px;font-family:${FONT};font-size:14px;font-weight:700;color:${DARK.goldOn};text-decoration:none;">${esc(label)}</a></td></tr></table>
       <div style="font-family:${FONT};font-size:12px;color:${C.faint};word-break:break-all;">${esc(url)}</div>`;
   const cov = (text) =>
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;"><tr><td bgcolor="${C.head}" style="background-color:${C.head};border-left:3px solid ${C.accent};padding:10px 12px;font-family:${FONT};font-size:12.5px;line-height:1.5;color:${C.dim};"><strong style="color:${C.ink};">Coverage.</strong> ${text}</td></tr></table>`;
@@ -154,12 +170,13 @@ function make() {
   </td></tr>
   <tr><td style="padding:18px 8px 0;font-family:${FONT};font-size:11.5px;line-height:1.6;color:${DARK.faint};">
     ${extraFooter}
-    You get this because it is on for your Elixir account. <a href="${links.manage}" style="color:${DARK.link};">Manage your emails</a> · <a href="${links.unsubscribe}" style="color:${DARK.link};">Turn off ${esc(unsubscribeKind)}</a><br>
+    You get this because it is on for your Elixir account. <a href="${T(links.manage)}" style="color:${DARK.link};">Manage your emails</a> · <a href="${links.unsubscribe}" style="color:${DARK.link};">Turn off ${esc(unsubscribeKind)}</a><br>
     ${esc(DISCLAIMER)}
   </td></tr>
-</table></td></tr></table></body></html>`;
+</table></td></tr></table>${campaign ? pixelTag(pixelPath(campaign.kind, campaign.period)) : ""}</body></html>`;
   }
   return {
+    T,
     P,
     K,
     delta,
@@ -512,7 +529,8 @@ function markdownToMail(md, c, index = []) {
       .replace(/\*\*(.+?)\*\*/g, `<strong style="color:${C.ink};">$1</strong>`)
       .replace(
         /\[([^\]]+)\]\((https?:[^)]+)\)/g,
-        `<a href="$2" style="color:${C.link};">$1</a>`,
+        (m, text, url) =>
+          `<a href="${c.T(url)}" style="color:${C.link};">${text}</a>`,
       );
   };
   const lines = md.replace(/\r/g, "").split("\n");
@@ -594,7 +612,7 @@ function top100(f, c) {
     ${f.players_index?.length ? `${c.h2("Players in this issue")}<div style="font-family:${MONO};font-size:11.5px;line-height:1.7;color:${C.faint};">${f.players_index.map((x) => `${esc(x.name)} ${esc(x.tag)}`).join(" · ")}</div>` : ""}
     ${c.cov(esc(f.coverage))}`;
   const share = f.share_url
-    ? `Forward this, or share <a href="${f.share_url}" style="color:${DARK.link};">${esc(f.share_url)}</a><br>`
+    ? `Forward this, or share <a href="${c.T(f.share_url)}" style="color:${DARK.link};">${esc(f.share_url)}</a><br>`
     : "";
   return {
     subject: f.subject,
@@ -747,7 +765,9 @@ const RENDERERS = {
 
 /** {subject, preheader, html} for a kind's facts. `links.unsubscribe`
  *  is the signed one-click URL for this recipient and kind;
- *  `links.manage` the account page. */
+ *  `links.manage` the account page; `links.period` (a week key, an
+ *  issue date, a day) names the issue in the campaign tag on every link
+ *  into the site and in the pixel's path. */
 export function renderMail(kind, facts, links) {
   const fn = RENDERERS[kind];
   if (!fn) throw new Error(`renderMail: unknown kind ${kind}`);
@@ -755,7 +775,8 @@ export function renderMail(kind, facts, links) {
     throw new Error(
       "renderMail: links.unsubscribe and links.manage are required",
     );
-  const out = fn(facts, make());
+  const campaign = links.period ? { kind, period: String(links.period) } : null;
+  const out = fn(facts, make(campaign));
   return {
     subject: out.subject,
     preheader: out.preheader,

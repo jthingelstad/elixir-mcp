@@ -23,7 +23,11 @@ export async function deliver({
   if (!force && (await alreadySent(db, issueId, account.accountId)))
     return { sent: false, reason: "already_sent" };
   const token = signUnsubscribe({ secret, accountId: account.accountId, kind });
-  const links = { unsubscribe: unsubscribeUrl(token), manage: MANAGE_URL };
+  const links = {
+    unsubscribe: unsubscribeUrl(token),
+    manage: MANAGE_URL,
+    period,
+  };
   const { subject, html } = renderMail(kind, facts, links);
   const text = htmlToText(html);
   await enqueue({

@@ -278,10 +278,14 @@ policy (settled 2026-09-17 with the move to SES):
 
 Adding a kind without classifying it fails to typecheck, so the decision
 is made where the kind is born and cannot be forgotten. The unsubscribe
-endpoint itself does not exist yet; it lands with the first bulk kind,
-which cannot ship without it. Open and click tracking are never enabled
-(the SES configuration set's event list has neither), so nothing is added
-to a body and no link is rewritten.
+endpoint is `/api/email/unsubscribe` (2026-09-18, with the six product
+kinds; docs/EMAIL.md). SES's own open and click tracking are never
+enabled (the configuration set's event list has neither): no link is
+rewritten through Amazon. What mail carries instead (Jamie, 2026-09-18)
+is the site's Tinylytics, from `packages/mail`: a pixel whose path names
+the mail (`/mail/<kind>/<period>`, `/mail/login`, `/mail/welcome`; the
+owner's own notifications carry none) and `utm_` tags on links into the
+site. Counts per mail, never per reader.
 
 ## Where the patterns live
 
