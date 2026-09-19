@@ -172,11 +172,9 @@ The defaults differ by tool, and each says which applied:
 | `players_summary` | fixed 30 days (`source: "fixed"`); not an argument |
 | `players_timeline`, `clans_timeline`, `clans_members_timeline` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
 | `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
-| `battles_levels` | 90 days |
 | `rankings_timeline`, `game_events` | the current season so far |
 | `battles_meta_decks`, `battles_meta_cards`, `cards_synergy` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
-| `clans_pilot_scores` | 90 days |
 | `clans_participation` | 5 ISO weeks, the current one included |
 | `battles_trends` | 12 weeks |
 | `battles_performance`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |

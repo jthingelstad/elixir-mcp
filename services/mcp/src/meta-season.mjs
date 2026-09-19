@@ -21,7 +21,7 @@ export async function rawScanMemory(db) {
   await db.query("set work_mem = '32MB'");
 }
 
-/** The five trophy bands the meta tools and battles_levels speak (0135):
+/** The five trophy bands the meta tools speak (0135):
  *  the participant's own starting trophies at battle time. */
 const TROPHY_BANDS = {
   under_5000: [0, 5000],

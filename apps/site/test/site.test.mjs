@@ -642,30 +642,12 @@ test(
   "published methodology uses the reader floors and discloses statistical limits",
   { skip },
   async () => {
-    const { PILOT_METHODOLOGY } =
-      await import("../../../services/mcp/src/level-curve.mjs");
     const page = read("docs/methodology/index.html");
-    assert.ok(
-      page.includes(
-        `${PILOT_METHODOLOGY.curve_min_observations} player-battle observations`,
-      ),
-    );
-    assert.ok(
-      page.includes(
-        `${PILOT_METHODOLOGY.player_min_battles} battles in supported bins`,
-      ),
-    );
-    assert.ok(
-      page.includes(
-        `${PILOT_METHODOLOGY.monthly_min_battles} battles in supported bins`,
-      ),
-    );
     assert.ok(!page.includes("{{ statistics"));
-    assert.match(
-      page,
-      /not a calibrated error estimate or confidence interval for Pilot Score/,
-    );
-    assert.match(page, /unchanged counts do not identify an unchanged curve/);
+    // 5.0.0: no level-expected rate or player score is published; the
+    // page says the gap is described, not adjusted for.
+    assert.ok(!page.includes("Pilot Score"));
+    assert.match(page, /described, not adjusted for/);
     assert.match(page, /draws and unresolved outcomes are excluded/i);
     // The meta floors and the corpus prior are published from the same
     // declaration the SQL readers use (0.39.0).

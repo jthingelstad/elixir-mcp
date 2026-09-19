@@ -74,8 +74,6 @@ Deep cut types, rotating:
 
 - `spike_hidden_by_weekly` — a player's week-over-week delta conceals a run at
   the top. The strongest version of the template.
-- `level_gap` — win rate by deck-average level gap across the top 100. Pilot
-  Score. Nobody else computes this.
 - `deck_churn` — how many of the top 100 changed decks this week.
 - `head_to_head` — who actually beats whom at the top.
 - `session_pattern` — streak lengths, when the top 100 grind.

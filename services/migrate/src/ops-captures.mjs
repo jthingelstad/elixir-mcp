@@ -177,8 +177,6 @@ const CONTROL_TOOLS = [
   "cards_synergy",
   "clans_standings",
   "clans_participation",
-  "clans_pilot_scores",
-  "battles_levels",
 ];
 
 /**

@@ -434,7 +434,7 @@ population among the others and never an implicit default.
 
 | Family | Subject argument | Omission rule |
 |---|---|---|
-| Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `battles_levels`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
+| Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
 | Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | the recorded clan: a person's first tracked clan, an agent's clan |
 | Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player, clan or collection |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
@@ -470,8 +470,8 @@ in its hint.
   `min_battles`, `segment`, `verbosity`, as used. There are no `filters_applied`, `window_*` or
   `limit_applied` keys.
 - **`verbosity: full | compact`** is the one size control, on
-  `battles_query`, `war_current`, `clans_roster`, `battles_levels`,
-  `players_collection` and `cards_catalog`; each description says what
+  `battles_query`, `war_current`, `clans_roster`, `players_collection`
+  and `cards_catalog`; each description says what
   `compact` drops. There is no other flag for size.
 - **`notes[]` and `docs`** ride every response: one-sentence caveats to
   repeat, and a `page#section` pointer into this documentation

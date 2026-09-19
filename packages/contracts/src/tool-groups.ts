@@ -252,11 +252,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Compare players",
     readOnly: true,
   },
-  battles_levels: {
-    group: "Battles",
-    title: "Level Curve & Pilot Score",
-    readOnly: true,
-  },
   battles_meta_decks: {
     group: "Battles",
     title: "Meta decks (observed)",
@@ -292,11 +287,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   clans_standings: {
     group: "Clans",
     title: "Clan standings",
-    readOnly: true,
-  },
-  clans_pilot_scores: {
-    group: "Clans",
-    title: "Clan Pilot Scores",
     readOnly: true,
   },
   clans_participation: {

@@ -37,8 +37,8 @@ their own sake.
   fetches, active collectors; corpus transparency block) and
   **Changelog** (the contract CHANGELOG rendered). Full history is
   deliberate; retention policy comes later.
-- **Explore** (authed) — Player (+ Pilot Score tab, name search),
-  Clan & War (+ Standings, Clan Pilot Scores, Scouting Report),
+- **Explore** (authed) — Player (name search),
+  Clan & War (+ Standings, Scouting Report),
   **Meta** (meta decks/cards + segment trends, segment picker incl.
   collections), Collections, Collectors (ladder). CR live leaderboards
   stay agent-only (live_fetch) by decision.

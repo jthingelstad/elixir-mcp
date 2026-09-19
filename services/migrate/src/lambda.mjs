@@ -53,14 +53,7 @@ import {
   sessions,
   vacuum,
 } from "./ops-diagnostics.mjs";
-import {
-  abYield,
-  auditCensus,
-  argsCensus,
-  previewIntel,
-  pilotPairs,
-  polSeasons,
-} from "./ops-analysis.mjs";
+import { abYield, auditCensus, argsCensus } from "./ops-analysis.mjs";
 import {
   feedbackPending,
   feedbackRead,
@@ -366,51 +359,6 @@ export async function handler(event) {
       event.activity_preview,
     );
     console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.preview_intel) {
-    const result = await previewIntel(
-      process.env.DATABASE_URL,
-      event.preview_intel,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.pol_seasons) {
-    const result = await polSeasons(
-      process.env.DATABASE_URL,
-      event.pol_seasons,
-    );
-    console.log(
-      JSON.stringify({
-        pol_seasons: {
-          rows: result.rows,
-          players: result.players,
-          final_rows: result.final_rows,
-          final_seasons: result.final_seasons,
-        },
-      }),
-    );
-    return result;
-  }
-  if (event?.pilot_pairs) {
-    const result = await pilotPairs(
-      process.env.DATABASE_URL,
-      event.pilot_pairs,
-    );
-    // The two CSVs are megabytes; the log line carries the counts.
-    console.log(
-      JSON.stringify({
-        pilot_pairs: {
-          days: result.days,
-          total: result.total,
-          offset: result.offset,
-          returned: result.returned,
-          players: result.players,
-          done: result.done,
-        },
-      }),
-    );
     return result;
   }
   if (event?.export_payloads) {

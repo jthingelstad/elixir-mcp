@@ -6,9 +6,8 @@
  * made its number interpretable: a deck's win rate without the mode it
  * was played in (war matchmaking hands stronger players weaker
  * opponents, so a war-only deck outshines a ladder deck whatever their
- * quality), a pilot-score trend without the arena change under it, a
- * trophy sum without the floor that made losses free, a weekly bucket
- * the window had clipped. These helpers compute those controls so every
+ * quality), a trophy sum without the floor that made losses free, a
+ * weekly bucket the window had clipped. These helpers compute those controls so every
  * aggregate can carry them, and the note fires only when a confound is
  * detected: signal, not boilerplate.
  */
@@ -216,7 +215,7 @@ export function comparabilityNote(rows, { what = "deck" } = {}) {
       `${what} ${a.label} faced opponents at mean level ${gapText(a.gap)} and ${what} ${b.label} at ${gapText(b.gap)}`,
     );
   }
-  return `Win rates here are NOT comparable across rows: ${parts.join("; ")}; matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank ${what}s only within one mode and similar mean_level_gap (pass mode, and read battles_levels for the level-expected rate).`;
+  return `Win rates here are NOT comparable across rows: ${parts.join("; ")}; matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank ${what}s only within one mode and similar mean_level_gap (pass mode; the record describes the gap and does not adjust for it).`;
 }
 
 /**
@@ -364,34 +363,6 @@ export function markPartialWeeks(rows, { from, to }, now = new Date()) {
   return { rows: out, partial };
 }
 
-/**
- * The same mark for monthly buckets (3.17.0, one point vocabulary):
- * `rows` carry `month` (YYYY-MM, UTC); the window's edge months are
- * clipped and say so with `partial` and `covers`, the shape the weekly
- * series uses.
- */
-export function markPartialMonths(rows, { from, to }, now = new Date()) {
-  const end = to ?? now;
-  const partial = [];
-  const out = rows.map((r) => {
-    const start = new Date(`${r.month}-01T00:00:00Z`);
-    const stop = new Date(
-      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1),
-    );
-    const coversFrom = from && from > start ? from : start;
-    const coversTo = end < stop ? end : stop;
-    const clipped = coversFrom > start || coversTo < stop;
-    if (!clipped) return r;
-    partial.push(r.month);
-    return {
-      ...r,
-      partial: true,
-      covers: { from: coversFrom.toISOString(), to: coversTo.toISOString() },
-    };
-  });
-  return { rows: out, partial };
-}
-
 export function partialWeeksNote(partial) {
   if (partial.length === 0) return null;
   return `${partial.length === 1 ? "Bucket" : "Buckets"} ${partial.join(", ")} ${partial.length === 1 ? "is" : "are"} partial: the window clips ${partial.length === 1 ? "it" : "them"} (covers says the span each row holds), so compare ${partial.length === 1 ? "it" : "them"} by win_rate, never by battles, or snap from/to to Mondays.`;
@@ -425,61 +396,4 @@ export function trophyBattlesNote(weeks) {
       ? xs.join(" and ")
       : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
   return `${short.length === 1 ? "Week" : "Weeks"} ${list(names)} ${short.length === 1 ? "holds" : "hold"} ${list(counts.map(String))} trophy-mode ${counts.every((c) => c === 1) ? "battle" : "battles"} with no reported trophy change (a loss standing on an arena floor reports none): trophy_battles excludes them and is not the count of ladder battles played, so divide by trophy_mode_battles.`;
-}
-
-/**
- * Every population change inside a monthly trend (feedback #55, #62):
- * a step where the modal arena differs or the mean starting trophies
- * moved by 200 or more. ALL qualifying steps, in order; the first
- * version stopped at the first hit and stayed quiet on a later arena
- * crossing, which is the harder confound and exactly the one the guard
- * was written for.
- */
-export function populationChanges(points) {
-  const out = [];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    const arenaChanged = Boolean(
-      a.modal_arena?.name &&
-      b.modal_arena?.name &&
-      a.modal_arena.name !== b.modal_arena.name,
-    );
-    const known = (v) => typeof v === "number";
-    const trophyDelta =
-      known(a.mean_starting_trophies) && known(b.mean_starting_trophies)
-        ? b.mean_starting_trophies - a.mean_starting_trophies
-        : null;
-    if (arenaChanged || (trophyDelta !== null && Math.abs(trophyDelta) >= 200))
-      out.push({
-        from_month: a.month,
-        to_month: b.month,
-        arena_changed: arenaChanged,
-        from_arena: a.modal_arena ?? null,
-        to_arena: b.modal_arena ?? null,
-        from_trophies: a.mean_starting_trophies ?? null,
-        to_trophies: b.mean_starting_trophies ?? null,
-        trophy_delta: trophyDelta,
-      });
-  }
-  return out;
-}
-
-/** One sentence naming EVERY step; null when the trend holds none. */
-export function populationChangesNote(changes) {
-  if (changes.length === 0) return null;
-  const fmt = (v) => (v === null ? "unknown" : v.toLocaleString("en-US"));
-  const steps = changes.map(
-    (c) =>
-      `between ${c.from_month} and ${c.to_month}: ${
-        c.arena_changed
-          ? `modal arena ${c.from_arena.name} to ${c.to_arena.name}`
-          : "the same arena"
-      }, mean starting trophies ${fmt(c.from_trophies)} to ${fmt(c.to_trophies)}`,
-  );
-  const list =
-    steps.length <= 2
-      ? steps.join(", and ")
-      : `${steps.slice(0, -1).join("; ")}; and ${steps.at(-1)}`;
-  return `monthly_trend spans ${changes.length === 1 ? "a population change" : `${changes.length} population changes (population_changes lists them)`} ${list}; pilot_score adjusts for card levels and not for the opponents' skill, so ${changes.length === 1 ? "the step" : "each step"} can be the pool rather than the play - hold arena_id fixed to compare.`;
 }

@@ -42,7 +42,7 @@ conventions that hold everywhere.
 | Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`) |
 | Who do I keep meeting, and how does it go? | `battles_opponents` |
 | Two to four players side by side | `battles_compare` |
-| Am I winning because of levels or in spite of them? | `battles_levels` (the Level Curve and a Pilot Score with a monthly trend); `clans_pilot_scores` for every member in one call |
+| Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks` and `battles_cards` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
 | How is a population trending week by week? | `battles_trends` with a `segment` |
 | What is this card played with? | `cards_synergy`; `cards_catalog` resolves ids and names |
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
@@ -93,9 +93,9 @@ never named.
 default; `metrics` picks Path of Legends, a lifetime counter or the clan
 rank; one point per game day with `day`, `kind` and the stamps that wrote
 it), then `battles_performance({ group_by: "week" })` for the win rate and
-mode split behind each stretch of it (clipped weeks say `partial`), then
-`battles_levels` for whether the move tracks card levels or play: the
-monthly trend carries the population each month was scored in. Read
+mode split behind each stretch of it (clipped weeks say `partial`), and
+`battles_decks` for the `mean_level_gap` behind each deck, so a move can be
+read beside the card levels it was made with. Read
 `applied.window.crosses` on every one: a season roll resets the seasonal
 trophies and the ranked standing, so the two sides of it are not one series.
 

@@ -38,14 +38,15 @@ function positions(hay, needle) {
 /**
  * Search the pages.
  *
- * Tokenized, not exact-substring: "pilot score minimum battles" used
+ * Tokenized, not exact-substring: a phrase like "pilot score minimum
+ * battles" (a section that has since been removed) used
  * to return nothing because no page contains that phrase, and an agent
  * concluded the docs did not cover it (Claude, 2026-09-10). Now the
  * words are matched separately; pages holding EVERY word rank first,
  * and if none does the search degrades to ANY word and says so in
  * `fallback`. The excerpt is cut around the densest window of hits,
- * not the first one, so "Pilot Score" shows the formula rather than
- * the lede.
+ * not the first one, so a term that heads a section shows its formula
+ * rather than the lede.
  */
 export function searchDocs(query, limit = 5) {
   const words = terms(query);

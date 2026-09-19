@@ -92,7 +92,7 @@ test("elixir_docs: the index, one page, and a search that says where", async () 
   // The phrase no page contains, matched by word and pointing at the
   // section; then that section on its own.
   const words = await elixirTools.elixir_docs.handler(ctx, {
-    query: "pilot score minimum battles",
+    query: "shrunk win rate prior strength",
   });
   assert.equal(words.matches[0].slug, "methodology");
   assert.ok(words.matches[0].in_section);

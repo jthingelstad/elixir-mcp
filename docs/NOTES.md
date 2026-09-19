@@ -5214,3 +5214,33 @@ other link (the click is a per-campaign count, and that was the point
 of tagging), and every product email ends with "Elixir is free and
 sponsor-supported; sponsorship changes nothing about your account.
 Support Elixir."
+
+## Pilot Score removed; no derived player metric, ever (2026-09-19, contract 5.0.0)
+
+**RATIFIED, DO NOT RE-LITIGATE.** Jamie, 2026-09-19: Pilot Score was a
+mirage; it comes out entirely and Elixir will not attempt a branded or
+derived player metric of any kind. The lane is recording and making the
+record available. The evidence is in three same-day reviews under
+`docs/reviews/` (assessment, evolution, two-population test) and the
+removal plan beside them: 70-76% of the observations the score covered
+carried no level adjustment (Ranked and casual equalize card levels);
+between players the adjustment was orthogonal to outcomes (r = 0.09); a
+raw win rate was as reliable as the score; in Ranked the score was the
+win rate and the win rate a weekly coin toss; Elo, Glicko, TrueSkill and
+Bradley-Terry were fitted on 63,838 recorded-vs-recorded Ranked matches
+and beat a coin flip by 0.4% - the matchmaker has already spent the
+information an outcome-based rating needs. A position-given-levels
+residual ("Elixir Lift") tested well (0.86 month to month) and was
+declined anyway: a Trophy Road state that saturates for maxed players is
+not a metric for everyone, and building it is how Pilot Score happened.
+
+**Removed in 5.0.0:** `battles_levels`, `clans_pilot_scores`,
+`level-curve.mjs`, the population-change controls, the two output
+schemas, the methodology sections, the migrate ops `pilot_pairs`,
+`pol_seasons` and `preview_intel` (the prototype that seeded it). No
+deprecation window (first-party clients; the 3.0.0/4.0.0 precedent). No
+migration: `player.years_played` / `account_age_days` stay (roster and
+profile), and the card-level fact stays as `mean_level_gap`,
+`level_gap_battles` and `comparable` on the deck, card, summary and
+standings readers - described, never adjusted for. `docs/META-INTEL.md`
+sections 9 and 10's Pilot half are withdrawn with a dated note.

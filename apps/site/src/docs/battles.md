@@ -142,8 +142,8 @@ therefore serves the controls beside it:
   response carries `comparable`, `false` when two returned decks were
   played predominantly in different modes or at mean gaps half a level
   apart, and the first note then names the rows that clash. Rank decks only
-  within one mode (pass `mode`) and at similar gaps; `battles_levels` gives
-  the level-expected win rate a gap implies.
+  within one mode (pass `mode`) and at similar gaps; the record describes
+  the gap and does not adjust for it ([Methodology](/docs/methodology#card-levels-described-not-adjusted-for)).
 - `battles_cards` rows carry `modes` (a count per mode group) and
   `mean_level_gap` over the battles the card appeared in; the response
   carries `modes_in_window` (battles and mean gap per mode group over the
@@ -157,8 +157,6 @@ therefore serves the controls beside it:
   on two thirds of a week shaped exactly like the whole ones, and that row
   anchors the trend. Compare partial buckets by `win_rate`, never by
   `battles`, or snap `from`/`to` to Mondays.
-- `battles_levels` monthly points carry the population they were scored in;
-  see [How the numbers are made](/docs/methodology#the-level-curve-and-pilot-score).
 - `players_summary` (3.16.0) carries `last_30_days.modes` (the window's
   split), `top_deck.modes` and `dominant_mode` on both decks, and
   `trophy_floor` when the window holds ladder battles; the deck

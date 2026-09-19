@@ -315,68 +315,6 @@ const META_COMMON = {
   docs: DOCS,
   meta: META,
 };
-const PILOT_PLAYER = {
-  type: ["object", "null"],
-  description:
-    "The scored player: pilot_score = actual minus level-expected win rate over n battles; insufficient_sample: true with n below the floor and no score.",
-  properties: {
-    player_tag: TAG,
-    n: COUNT,
-    mean_gap: { type: "number" },
-    actual_win_rate: RATE,
-    expected_from_levels: RATE,
-    pilot_score: { type: "number" },
-    standard_error: { type: "number" },
-    insufficient_sample: { type: "boolean" },
-    experience: { type: "object" },
-    cohort: { type: "object" },
-    monthly_trend: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          month: { type: "string", description: "YYYY-MM, UTC." },
-          partial: { type: "boolean" },
-          covers: { type: "object", properties: { from: ISO, to: ISO } },
-          n: COUNT,
-          pilot_score: { type: "number" },
-          actual_win_rate: RATE,
-          expected_from_levels: RATE,
-          mean_gap: { type: "number" },
-          opponent_mean_level: { type: ["number", "null"] },
-          mean_starting_trophies: {
-            type: ["integer", "null"],
-            description:
-              "Over the month's ladder battles only; null with none.",
-          },
-          modal_arena: { type: ["object", "null"] },
-        },
-        required: ["month", "n", "pilot_score"],
-      },
-    },
-    population_changes: {
-      type: "array",
-      description:
-        "Every step of monthly_trend where the modal arena differs or mean starting trophies moved by 200 or more (4.1.0); empty when the population held. The note names them all.",
-      items: {
-        type: "object",
-        properties: {
-          from_month: { type: "string" },
-          to_month: { type: "string" },
-          arena_changed: { type: "boolean" },
-          from_arena: { type: ["object", "null"] },
-          to_arena: { type: ["object", "null"] },
-          from_trophies: { type: ["integer", "null"] },
-          to_trophies: { type: ["integer", "null"] },
-          trophy_delta: { type: ["integer", "null"] },
-        },
-        required: ["from_month", "to_month", "arena_changed", "trophy_delta"],
-      },
-    },
-  },
-  required: ["player_tag", "n"],
-};
-
 export const OUTPUT_SCHEMAS = {
   elixir_my_feedback: {
     type: "object",
@@ -639,28 +577,6 @@ export const OUTPUT_SCHEMAS = {
       },
     },
     required: ["applied", "decided_battles", "cards", "notes", "docs", "meta"],
-  },
-
-  battles_levels: {
-    type: "object",
-    properties: {
-      applied: {
-        type: "object",
-        properties: { window: WINDOW_ECHO, verbosity: { type: "string" } },
-        required: ["window"],
-      },
-      curve: {
-        type: "array",
-        description: "Absent at verbosity compact.",
-        items: { type: "object" },
-      },
-      player: PILOT_PLAYER,
-      methodology: { type: "object" },
-      notes: NOTES,
-      docs: DOCS,
-      meta: META,
-    },
-    required: ["applied", "methodology", "notes", "docs", "meta"],
   },
 
   clans_participation: {

@@ -1,12 +1,12 @@
 ---
 slug: methodology
 title: "How the numbers are made"
-description: "The populations, denominators, shrinkage formula and limits behind the meta tools and Pilot Score. Descriptive evidence, not proof of skill or improvement."
+description: "The populations, denominators, shrinkage formula and limits behind the meta tools and war participation. Descriptive evidence, not proof of skill or improvement."
 section: record
 order: 21
 navTitle: "Methodology"
 icon: flask-conical
-lede: "How derived numbers are computed — pilot score, meta segments, war participation."
+lede: "How derived numbers are computed — meta segments, shrinkage, war participation."
 ---
 
 # How the numbers are made
@@ -56,8 +56,7 @@ meta requires a nonempty cards array.
   where `m = {{ statistics.meta.prior_strength }}`; the strength is fixed.
 - **Sample floor:** below {{ statistics.meta.segment_min_decided }} decided
   observations the segment carries `insufficient_sample: true` and no
-  `shrunk_win_rate` is served on any row — the same rule `battles_levels`
-  applies before it serves a Pilot Score. Raw counts and rates remain.
+  `shrunk_win_rate` is served on any row. Raw counts and rates remain.
 - **Usage share:** the row's eligible observations divided by the segment's
   eligible observations. A battle contains several cards, so card usage shares
   are not parts of a total that sums to 100%.
@@ -103,7 +102,7 @@ path it is computed in the same scan.
 `battles_meta_cards` and `cards_synergy` keeps only the observations whose
 own player entered the battle with starting trophies in the band
 (`under_5000`, `5000_8000`, `8000_11000`, `11000_13000`, `13000_plus`, the
-bands `battles_levels` speaks): the meta at a level, since a deck that
+bands the meta tools speak): the meta at a level, since a deck that
 dominates at 13,000 may not exist at 6,000. A corpus season read answers
 from the banded rollup, which the nightly rebuild keeps beside the
 unbanded one, once it has been filled for the season; before that (the
@@ -135,111 +134,21 @@ aggregate; no battle payload is re-read.
 Within-player, leave-deck-out and leave-card-out lift remain unimplemented design
 ideas. They should not be inferred from these pooled fields.
 
-## The Level Curve and Pilot Score
+## Card levels: described, not adjusted for
 
-`battles_levels` and `clans_pilot_scores` use the same level inputs and population
-query. A qualifying recorded PvP battle has exactly two participants on opposing
-sides, both with known deck-average levels and opposite decided outcomes.
-Partial multiplayer records do not qualify. Each match contributes two
-player-battle observations, one from each perspective.
-
-Deck-average levels are stamped at ingest to two decimal places. The curve bins
-the difference between those averages and computes each bin's observed win rate.
-The personal tool can filter by mode and starting-trophy band; **both participants
-must pass the filters**. The clan tool uses the unfiltered corpus. Scores from
-different populations are not directly comparable. Returned gap ranges show
-the minimum and maximum observed gaps within each bin, not confidence limits.
-
-For a player's qualifying battles in bins that meet the curve floor:
-
-`pilot_score = actual_win_rate − mean(level-bin win rate)`
-
-A score of `0.05` means five percentage points above this fitted baseline. It is
-a **descriptive in-sample residual**, not a measurement of skill or the causal
-benefit of upgrading cards. The scored player's own observations contribute to
-the baseline. Mode, opposition, experience, deck choice and recording coverage
-can all influence the result.
-
-| Display rule | Minimum |
-| --- | --- |
-| Curve bin | {{ statistics.pilot.curve_min_observations }} player-battle observations |
-| Player or clan-member score | {{ statistics.pilot.player_min_battles }} battles in supported bins |
-| Monthly trend point | {{ statistics.pilot.monthly_min_battles }} battles in supported bins |
-
-Monthly points are returned only for a player who qualifies for an overall
-score. They reuse the whole requested window's fitted curve; they are not
-independently fitted monthly models. A missing point means insufficient scored
-observations, not zero performance. The public table's floors are generated
-from the same method declarations used by the readers.
-
-**What `n` counts.** `player.n` and each monthly point's `n` count the scored
-player's qualifying battles, one observation per battle from their side. A
-curve bin's `n` counts both sides of every qualifying match, so the bins sum
-to twice the battles. `methodology.n` in the response says the same.
-
-**What the score adjusts for, and what it cannot.** The curve conditions on
-opponent **card levels** and on nothing else. It does not see opponent skill,
-so a player who climbs into a stronger population posts a falling
-`pilot_score` with no change in how they play, and a monthly trend that
-crosses an arena boundary reads as a decline when it is a move. Every
-monthly point therefore carries the population it was scored in:
-`mean_starting_trophies` (over the month's **ladder** battles only, since a
-Path of Legends battle's starting trophies is its league rating on another
-scale; null for a month with none), `modal_arena {id, name}`, `mean_gap`,
-`opponent_mean_level`, `actual_win_rate` and `expected_from_levels`. Every
-step where the modal arena changes, or the mean starting trophies move by
-200 or more, is listed under `player.population_changes[]` (`from_month`,
-`to_month`, `arena_changed`, `from_arena`, `to_arena`, `from_trophies`,
-`to_trophies`, `trophy_delta`; an empty list when the population held) and
-the response leads with one note naming **all** of them: a trend with two
-steps names both, so a named first step is never read as the only one
-(4.1.0; the first version named the earliest step and stayed quiet on a
-later arena crossing). Pass `arena_id` (finer than `trophy_band`, which
-spans several arenas at the top of Trophy Road) to score one population
-alone. Decomposing the residual into
-levels, population and play would need an opponent-skill proxy the record does
-not yet hold.
-
-### What `standard_error` means
-
-For compatibility, this field remains `0.5 / sqrt(n)`. It is the maximum
-binomial standard error of a win proportion **under independent-trial
-assumptions**. This follows from the binomial variance formula with `p = 0.5`;
-see the [NIST binomial distribution reference](https://itl.nist.gov/div898/handbook/eda/section3/eda366i.htm).
-
-It is **not a calibrated error estimate or confidence interval for Pilot Score**.
-It excludes uncertainty in the fitted curve and dependence between observations.
-Do not present score ± this number as a confidence interval or use it to claim
-statistical significance. Both score tools return a `methodology` block that
-states the formula, floors and limitations.
-
-### Reading changes and cohort comparisons
-
-The curve is refit over a rolling window on each call, so a score can move
-without another battle from the player. Clan `basis` counts describe volume and
-window boundaries; **unchanged counts do not identify an unchanged curve**.
-Different observations and win rates can produce the same counts. Neither
-changed nor unchanged counts alone attribute a score change to the player.
-
-The optional experience cohort groups players by known YearsPlayed tenure and
-requires at least five qualifying players. Its percentile is the fraction whose
-rounded score is strictly below the focused player's score, including that
-player in the cohort denominator; ties are not counted as below. The median
-averages the two middle rounded scores for an even-sized cohort. Tenure matching
-does not control for opposition, mode, deck or spending. Missing tenure remains
-unknown. A rising score or percentile is a reason to investigate, not proof of
-improvement or spending independence.
-
-`clans_pilot_scores` (3.16.0) carries each member's Pilot Score beside the
-population it was scored in: `mean_starting_trophies` over the member's
-ladder battles only (3.17.0; a Path of Legends starting figure is a league
-rating and pooling the two described neither population; null for a member
-with no ladder battle in the window), `modal_arena` over every scored battle,
-and `current_arena` from the latest snapshot. When a
-member's modal arena differs from their current one the first note names
-them: the score adjusts for card levels, not for the population an arena
-change moved them into, the same guard `battles_levels` puts on a monthly
-trend.
+Every battle side's deck is recorded with each card's level, so the record
+can say how far a player's cards were above or below the opponent's: the
+`mean_level_gap` and `level_gap_battles` fields on `battles_meta_decks`,
+`battles_meta_cards`, `players_summary` decks and `clans_standings`
+members, with `comparable` and a note when two rows were played at gaps
+half a level apart. That is the whole of it. Elixir does **not** serve a
+level-expected win rate or a score of a player against one: a year of the
+record showed that in matchmade modes a win rate carries almost no
+information about the player once the matchmaker has paired them (the
+2026-09-19 reviews under `docs/reviews/` in the repository hold the
+evidence), and the readers that did so were removed in 5.0.0. Read the gap
+as a fact about the battles in a row, never as a judgment of who played
+them.
 
 ## Rival intelligence and coverage
 

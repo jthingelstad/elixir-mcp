@@ -540,51 +540,6 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   );
 });
 
-test("battles_levels: symmetric curve with floors; Pilot Score honest under small n", async () => {
-  const r = await call("battles_levels", { days: 365 });
-  assert.equal(r.isError, false, JSON.stringify(r.body));
-  assert.ok(Array.isArray(r.body.curve) && r.body.curve.length > 0);
-  for (const bin of r.body.curve) {
-    assert.ok(typeof bin.n === "number");
-    if (bin.n < 200) {
-      assert.equal(bin.win_rate, null, "below-floor bins serve counts only");
-      assert.equal(bin.insufficient_sample, true);
-    }
-  }
-  assert.match(r.body.notes.join(" "), /descriptive in-sample residual/);
-
-  // Fixture corpus is tiny: the player block must refuse, not guess.
-  const scored = await call("battles_levels", {
-    player_tag: OBSERVER,
-    days: 365,
-  });
-  assert.equal(scored.isError, false, JSON.stringify(scored.body));
-  assert.equal(scored.body.player.insufficient_sample, true);
-
-  const bad = await call("battles_levels", { days: 3 });
-  assert.equal(bad.isError, true);
-  assert.equal(bad.body.error.code, "bad_request");
-});
-
-test("experience cohorts: tenure rides player block and standings; unknown stays null", async () => {
-  await db.query(
-    `update player set years_played = 4, account_age_days = 1712 where player_tag = $1`,
-    [OBSERVER],
-  );
-  const r = await call("battles_levels", { player_tag: OBSERVER, days: 365 });
-  assert.equal(r.isError, false, JSON.stringify(r.body));
-  assert.equal(r.body.player.experience.years_played, 4);
-  assert.equal(r.body.player.experience.account_age_days, 1712);
-
-  await db.query(
-    `update player set years_played = null, account_age_days = null where player_tag = $1`,
-    [OBSERVER],
-  );
-  const unk = await call("battles_levels", { player_tag: OBSERVER, days: 365 });
-  assert.equal(unk.body.player.experience.years_played, null);
-  assert.equal(unk.body.player.experience.tenure_known, false);
-});
-
 test("event modes are discoverable: group_by mode + game_mode filter (the KHAOS gap)", async () => {
   await db.query(
     `insert into battle (battle_id, battle_time, type, type_class, game_mode_id, game_mode_name)
@@ -1252,20 +1207,6 @@ test("card meta does not dilute usage with empty card arrays", async () => {
   assert.equal(result.body.decided_battles, 2);
   assert.equal(result.body.cards[0].usage_share, 1);
   assert.equal(result.body.segment_win_rate, 0.5);
-});
-
-test("the published curve-omission option matches the score reader", async () => {
-  const tool = makeRegistry()
-    .declarations()
-    .find((t) => t.name === "battles_levels");
-  assert.equal(tool.inputSchema.properties.verbosity.type, "string");
-  const result = await call("battles_levels", {
-    days: 365,
-    verbosity: "compact",
-  });
-  assert.equal(result.isError, false);
-  assert.equal("curve" in result.body, false);
-  assert.equal(result.body.methodology.curve_min_observations, 200);
 });
 
 /**
@@ -2287,7 +2228,6 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
     ["battles_decks", { days: 5 }],
     ["battles_opponents", { days: 5 }],
     ["battles_compare", { player_tags: [OBSERVER, "#2PP0V90Y"], days: 5 }],
-    ["battles_levels", { days: 7 }],
     ["game_events", { days: 5 }],
     ["elixir_timeline", { mark_read: false }],
   ]) {

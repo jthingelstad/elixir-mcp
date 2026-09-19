@@ -24,6 +24,19 @@ const list = (...items: string[]) => items.map((i) => `- ${i}`).join("\n");
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "5.0.0",
+    date: "2026-09-19",
+    summary: md(
+      "Pilot Score is gone (Jamie, 2026-09-19: a mirage). Three reviews on the year of the record (docs/reviews/2026-09-19-PILOT-SCORE-ASSESSMENT.md, -PILOT-SCORE-EVOLUTION.md, -ELIXIR-LIFT-TWO-POPULATIONS.md) found that 70-76% of the observations it scored carried no level adjustment at all (Ranked and casual equalize card levels), that between players the adjustment was nearly orthogonal to outcomes (r = 0.09), that a raw win rate was as reliable as the score, and that in Ranked the score was the win rate and the win rate a weekly coin toss. Elixir records and makes the record available; it does not score players against an expected win rate, and will not carry a branded metric of any kind. The card-level fact stays where it always was: `mean_level_gap`, `level_gap_battles` and `comparable` on the deck, card, summary and standings readers.",
+      "No deprecation window: every client of this server is first-party (the 3.0.0 and 4.0.0 precedent). The first call after reconnecting should re-fetch `tools/list`.",
+    ),
+    breaking: list(
+      "`battles_levels` removed: the Level Curve and the per-player Pilot Score, monthly trend, experience cohort and population changes. No replacement; `mean_level_gap` on `players_summary`, `battles_decks`, `battles_cards`, `battles_meta_decks`, `battles_meta_cards` and `clans_standings` is the record's statement about card levels.",
+      "`clans_pilot_scores` removed. No replacement.",
+      "The meta readers' comparability note no longer points at `battles_levels` for a level-expected rate; it says the record describes the gap and does not adjust for it.",
+    ),
+  },
+  {
     version: "4.2.0",
     date: "2026-09-19",
     summary: md(

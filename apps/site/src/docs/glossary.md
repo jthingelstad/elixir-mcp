@@ -112,12 +112,6 @@ observations are not independent matches.
 to how few observations back it. Formula and floors on
 [Methodology](/docs/methodology#deck-and-card-meta-exactly-what-is-counted).
 
-**Pilot Score** — a player's actual win rate minus the win rate the level gap
-of their battles would predict: a descriptive residual, not a skill rating.
-
-**Level Curve** — win rate by deck-average level difference across the
-corpus, the baseline Pilot Score subtracts.
-
 **timeline** — `elixir_timeline`: what happened to the players and clans you
 track since your read pointer, as items in order (battle sessions, named
 moments, roster and war moments, presence) plus one summary entry per

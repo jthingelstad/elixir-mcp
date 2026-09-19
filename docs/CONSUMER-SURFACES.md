@@ -208,7 +208,7 @@ read of elixir-bot's private `elixir-v51.db` for recognition.
 structurally cannot produce from roster snapshots — per-member war participation
 history (it already hoards `fame`/`boat_attacks`/`decks_used` in SQLite but
 can't cleanly expose it), player timelines, deck/card performance, clan
-standings, pilot scores, corrected war history past the CR API's 20-week window.
+standings, corrected war history past the CR API's 20-week window.
 
 **Recognition is a SEPARATE seam (domain-boundary correction):** recognition /
 awards (war_champ, iron_king, rookie_mvp) are **elixir-bot's clan-management

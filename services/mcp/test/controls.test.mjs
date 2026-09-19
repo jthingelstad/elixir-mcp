@@ -444,65 +444,6 @@ test("battles_query: the opponent's elixir_leaked and the differential ride the 
   assert.ok(!compact.notes.some((l) => /elixir_leaked is each/.test(l)));
 });
 
-test("battles_levels: monthly_trend carries its population and the guard fires on the arena change (#55, #60)", async () => {
-  const res = await call("battles_levels", { player_tag: F, days: 90 });
-  assert.ok(res.player.monthly_trend, JSON.stringify(res.player));
-  const [jul, aug] = res.player.monthly_trend;
-  assert.equal(jul.month, "2026-07");
-  assert.equal(jul.n, 200);
-  assert.equal(jul.mean_gap, 0.7);
-  assert.equal(jul.opponent_mean_level, 15.3);
-  assert.equal(jul.mean_starting_trophies, 12300);
-  assert.deepEqual(jul.modal_arena, MAGIC);
-  assert.equal(aug.month, "2026-08");
-  assert.equal(aug.mean_starting_trophies, 12560);
-  assert.deepEqual(aug.modal_arena, PIT);
-  assert.equal(typeof aug.actual_win_rate, "number");
-  assert.equal(typeof aug.expected_from_levels, "number");
-  assert.match(
-    res.notes[0],
-    /population change between 2026-07 and 2026-08: modal arena Magic Academy to Ultimate Clash Pit, mean starting trophies 12,300 to 12,560/,
-  );
-  assert.match(res.methodology.n, /one observation per battle from their side/);
-  assert.match(res.methodology.adjusts_for, /never opponent skill/);
-  assert.ok(res.notes.some((l) => /CARD LEVELS, not opponent skill/.test(l)));
-  // player.n counts the scored player's battles once: the 406 ladder
-  // battles score (the war bin is under the curve floor).
-  assert.equal(res.player.n, 406);
-  // 3.17.0 (Phase 4 item 4): the window's edge months say they are
-  // clipped, in the weekly series' shape; a whole month inside says
-  // nothing. July and August sit whole inside a 90-day window ending
-  // now; a 40-day one starts inside August and clips it.
-  assert.ok(!("partial" in jul), JSON.stringify(jul));
-  assert.ok(!("partial" in aug), JSON.stringify(aug));
-  const sixty = await call("battles_levels", { player_tag: F, days: 60 });
-  const first = sixty.player.monthly_trend[0];
-  assert.equal(first.partial, true, JSON.stringify(sixty.player));
-  assert.equal(first.covers.from, sixty.applied.window.from);
-  assert.match(first.covers.to, /-01T00:00:00\.000Z$/);
-  assert.ok(
-    sixty.notes.some((l) =>
-      new RegExp(`monthly_trend's ${first.month} is partial`).test(l),
-    ),
-  );
-  assert.ok("season" in sixty.applied.window, "the window says its season");
-
-  // arena_id holds the pool fixed: one month left, no guard.
-  const pit = await call("battles_levels", {
-    player_tag: F,
-    days: 90,
-    arena_id: PIT.id,
-  });
-  assert.equal(pit.applied.arena_id, PIT.id);
-  assert.equal(pit.player.monthly_trend.length, 1);
-  assert.equal(pit.player.monthly_trend[0].month, "2026-08");
-  assert.ok(!pit.notes.some((l) => /population change/.test(l)));
-  await assert.rejects(
-    () => call("battles_levels", { player_tag: F, arena_id: 42 }),
-    (err) => err.code === "bad_request" && /arena id/.test(err.message),
-  );
-});
-
 test("battles_performance group_by week: trophy_mode_battles rides beside trophy_battles and the note names the floor weeks (#61)", async () => {
   const res = await call("battles_performance", {
     player_tag: F,
@@ -553,55 +494,6 @@ test("battles_performance group_by week: trophy_mode_battles rides beside trophy
   assert.ok(
     trends.notes.some((l) => /^Week 2026-W38 holds 2 trophy-mode/.test(l)),
   );
-});
-
-test("battles_levels: every population change is named, including a later arena crossing (#62)", async () => {
-  const res = await call("battles_levels", {
-    player_tag: G,
-    days: 200,
-    mode: "ladder",
-    verbosity: "compact",
-  });
-  const trend = res.player.monthly_trend;
-  assert.deepEqual(
-    trend.map((t) => t.month),
-    ["2026-06", "2026-07", "2026-08"],
-    JSON.stringify(res.player),
-  );
-  // Both steps qualify: June to July moves the trophies 328 in the same
-  // arena, July to August crosses the arena. Both are listed, in order.
-  assert.deepEqual(
-    res.player.population_changes.map((c) => [
-      c.from_month,
-      c.to_month,
-      c.arena_changed,
-      c.trophy_delta,
-    ]),
-    [
-      ["2026-06", "2026-07", false, 328],
-      ["2026-07", "2026-08", true, 236],
-    ],
-  );
-  assert.deepEqual(res.player.population_changes[1].from_arena, MAGIC);
-  assert.deepEqual(res.player.population_changes[1].to_arena, PIT);
-  const note = res.notes.find((l) => /population change/.test(l));
-  assert.match(note, /spans 2 population changes/);
-  assert.match(
-    note,
-    /between 2026-06 and 2026-07: the same arena, mean starting trophies 11,972 to 12,300/,
-  );
-  assert.match(
-    note,
-    /between 2026-07 and 2026-08: modal arena Magic Academy to Ultimate Clash Pit, mean starting trophies 12,300 to 12,536/,
-  );
-  // Holding the arena fixed leaves one month and no change.
-  const pit = await call("battles_levels", {
-    player_tag: G,
-    days: 200,
-    arena_id: PIT.id,
-  });
-  assert.deepEqual(pit.player.population_changes, []);
-  assert.ok(!pit.notes.some((l) => /population change/.test(l)));
 });
 
 test("battles_decks: duels are itemized under excluded and the shares' denominator reconciles with battles_performance (#63)", async () => {

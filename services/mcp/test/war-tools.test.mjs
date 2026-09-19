@@ -486,9 +486,9 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.match(body.notes.join(" "), /observed so far/);
 });
 
-test("the registry declares 55 tools, every one classified and annotated", () => {
+test("the registry declares 53 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 55);
+  assert.equal(decls.length, 53);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -759,150 +759,6 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
   // Outsiders refused like every clan tool.
   const out = await call(invokeOutsider, "war_rivals", {});
   assert.equal(out.body.error.code, "no_subject");
-});
-
-test("clans_pilot_scores: whole clan in one call (agent feedback #1)", async () => {
-  // Give two members enough leveled 1v1s to clear the floor.
-  const members = (
-    await db.query(
-      `select player_tag from clan_membership
-       where clan_tag = $1 and left_observed_at is null limit 2`,
-      [CLAN],
-    )
-  ).rows.map((r) => r.player_tag);
-  const ALPHA = "0289PYLQGRJCUV";
-  const otag = (j, i) =>
-    `#0PP${ALPHA[j]}${ALPHA[i % 14]}${ALPHA[Math.floor(i / 14)]}`;
-  for (let i = 0; i < 55; i++) {
-    for (const [j, tag] of members.entries()) {
-      const id = `cps-${j}-${i}`;
-      await db.query(
-        `insert into battle (battle_id, battle_time, type, type_class)
-         values ($1, now() - make_interval(hours => $2), 'PvP', 'pvp')
-         on conflict do nothing`,
-        [id, i * 2 + j],
-      );
-      await db.query(
-        `insert into player (player_tag) values ($1) on conflict do nothing`,
-        [otag(j, i)],
-      );
-      await db.query(
-        `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, deck_avg_level, type, type_class)
-         values ($1, $2, now() - make_interval(hours => $3), 0, $4, 14.0, 'PvP', 'pvp'),
-                ($1, $5, now() - make_interval(hours => $3), 1, $6, 14.0, 'PvP', 'pvp')
-         on conflict do nothing`,
-        [
-          id,
-          tag,
-          i * 2 + j,
-          i % 2 === j % 2 ? "win" : "loss",
-          otag(j, i),
-          i % 2 === j % 2 ? "loss" : "win",
-        ],
-      );
-    }
-  }
-  const { body, isError } = await call(invoke, "clans_pilot_scores", {
-    days: 30,
-  });
-  assert.equal(isError, false, JSON.stringify(body));
-  assert.ok(body.scored_members >= 2, "both seeded members scored");
-  assert.ok(body.members[0].rank === 1);
-  assert.ok(
-    body.members.every((m) => typeof m.pilot_score === "number" && m.n >= 30),
-  );
-  assert.match(body.notes.join(" "), /descriptive in-sample residual/);
-  // The population each member was scored in (3.16.0): the seeded
-  // battles carry no trophies or arena, so both read null, and the
-  // arena-move note stays quiet; then one member is scored in the Pit
-  // while their current arena is the Tavern, and the note names them.
-  assert.ok(body.members.every((m) => "mean_starting_trophies" in m));
-  assert.ok(body.members.every((m) => m.modal_arena === null));
-  assert.ok(!body.notes.some((n) => /scored mostly in an arena/.test(n)));
-  await db.query(
-    "insert into arena (arena_id, name) values (54000142, 'Ultimate Clash Pit'), (54000143, 'Little Prince''s Tavern') on conflict do nothing",
-  );
-  await db.query(
-    `update battle set arena = 'Ultimate Clash Pit', arena_id = 54000142 where battle_id like 'cps-0-%'`,
-  );
-  await db.query(
-    `update battle_participant set starting_trophies = 12500 where battle_id like 'cps-0-%' and player_tag = $1`,
-    [members[0]],
-  );
-  await db.query(
-    `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, trophies, arena_id, observed_at)
-     values ($1, current_date, 'daily', 13100, 54000143, now())
-     on conflict (player_tag, snapshot_date, snapshot_kind) do update set arena_id = 54000143`,
-    [members[0]],
-  );
-  const moved = (await call(invoke, "clans_pilot_scores", { days: 30 })).body;
-  const m0 = moved.members.find((m) => m.player_tag === members[0]);
-  assert.equal(m0.mean_starting_trophies, 12500);
-  assert.deepEqual(m0.modal_arena, {
-    id: 54000142,
-    name: "Ultimate Clash Pit",
-  });
-  assert.deepEqual(m0.current_arena, {
-    id: 54000143,
-    name: "Little Prince's Tavern",
-  });
-  assert.match(
-    moved.notes[0],
-    /scored mostly in a Trophy Road arena other than their current one/,
-  );
-  assert.match(moved.notes[0], /Ultimate Clash Pit → Little Prince's Tavern/);
-
-  // 3.17.0 (Phase 4 item 8): mean_starting_trophies is over LADDER
-  // battles only. Turn ten of the member's battles into Path of Legends
-  // ones at a league rating of 1,500: the mean stays 12,500, not the
-  // pooled 10,300, and the note says which population it describes.
-  await db.query(
-    `update battle_participant set type = 'pathOfLegend', starting_trophies = 1500
-      where player_tag = $1 and battle_id in
-        (select battle_id from battle_participant where player_tag = $1 and battle_id like 'cps-0-%' order by battle_id limit 10)`,
-    [members[0]],
-  );
-  await db.query(
-    `update battle set type = 'pathOfLegend'
-      where battle_id in (select battle_id from battle_participant where player_tag = $1 and type = 'pathOfLegend')`,
-    [members[0]],
-  );
-  const mixed = (await call(invoke, "clans_pilot_scores", { days: 30 })).body;
-  const m0b = mixed.members.find((m) => m.player_tag === members[0]);
-  assert.equal(m0b.mean_starting_trophies, 12500);
-  assert.match(
-    mixed.notes.join(" "),
-    /mean_starting_trophies is over the member's LADDER battles only/,
-  );
-  // Every window says its season (item 1).
-  assert.ok("season" in mixed.applied.window);
-  assert.ok(Array.isArray(mixed.applied.window.crosses));
-});
-
-test("clans_pilot_scores: basis says what the curve was fit on", async () => {
-  // Feedback #9: scores shifted between runs for players with no new
-  // battles, because the curve is refit over a rolling window every
-  // request. A version number would be a lie (no code changed); the
-  // basis is the honest discriminator.
-  const { body, isError } = await call(invoke, "clans_pilot_scores", {});
-  assert.equal(isError, false, JSON.stringify(body));
-  assert.ok(body.basis, "the response says what it was fit on");
-  assert.equal(typeof body.basis.curve_pairs, "number");
-  assert.equal(typeof body.basis.curve_bins, "number");
-  assert.ok(
-    Date.parse(body.applied.window.to) > Date.parse(body.applied.window.from),
-    "the window is a real interval",
-  );
-  assert.equal(
-    Math.round(
-      (Date.parse(body.applied.window.to) -
-        Date.parse(body.applied.window.from)) /
-        86400_000,
-    ),
-    body.applied.window.days,
-    "the window matches the declared days",
-  );
-  assert.match(body.notes.join(" "), /basis/);
 });
 
 test("players_search: corpus-wide names resolve; unknowns honest-empty", async () => {
@@ -1268,57 +1124,6 @@ test("game_clock refuses a date it cannot read, rather than guessing now", async
     () => registry.invoke("game_clock", {}, { at: "last tuesday" }),
     (err) => err.code === "bad_request",
   );
-});
-
-test("single-player and clan Pilot Scores share the same level observations and uncertainty disclosure", async () => {
-  const clan = await call(invoke, "clans_pilot_scores", { days: 30 });
-  assert.equal(clan.isError, false, JSON.stringify(clan.body));
-  for (const member of clan.body.members) {
-    const single = await call(invoke, "battles_levels", {
-      player_tag: member.player_tag,
-      days: 30,
-    });
-    assert.equal(single.isError, false, JSON.stringify(single.body));
-    for (const field of [
-      "n",
-      "pilot_score",
-      "actual_win_rate",
-      "expected_from_levels",
-      "standard_error",
-    ]) {
-      assert.equal(single.body.player[field], member[field], field);
-    }
-    assert.equal(
-      single.body.methodology.standard_error.confidence_interval,
-      false,
-    );
-  }
-  assert.equal(clan.body.methodology.standard_error.formula, "0.5 / sqrt(n)");
-  assert.match(clan.body.notes.join(" "), /counts do not identify/);
-});
-
-test("Pilot population excludes partial multiplayer and same-side observations", async () => {
-  const before = await call(invoke, "clans_pilot_scores", { days: 30 });
-  const tags = (
-    await db.query("select player_tag from player order by player_tag limit 3")
-  ).rows.map((r) => r.player_tag);
-  for (const [id, sides] of [
-    ["partial-team", [0, 0]],
-    ["three-players", [0, 1, 1]],
-  ]) {
-    await db.query(
-      "insert into battle (battle_id,battle_time,type,type_class) values ($1,now(),'PvP','pvp')",
-      [id],
-    );
-    for (const [i, side] of sides.entries()) {
-      await db.query(
-        "insert into battle_participant (battle_id,player_tag,side,outcome,deck_avg_level,battle_time,type,type_class) values ($1,$2,$3,$4,$5,now(),'PvP','pvp')",
-        [id, tags[i], side, i ? "loss" : "win", i === 2 ? null : 14],
-      );
-    }
-  }
-  const after = await call(invoke, "clans_pilot_scores", { days: 30 });
-  assert.equal(after.body.basis.curve_pairs, before.body.basis.curve_pairs);
 });
 
 /**

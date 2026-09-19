@@ -79,16 +79,16 @@ test("the index lede is never shorter than 40 characters, and description rides 
 });
 
 test("search matches by word, prefers pages with every word, and says when it fell back", () => {
-  const r = searchDocs("pilot score minimum battles");
+  const r = searchDocs("shrunk win rate prior strength");
   assert.ok(
     r.matches.length > 0,
     "the phrase no page contains still finds pages by word",
   );
   assert.equal(r.matches[0].slug, "methodology");
   assert.ok(r.matches[0].in_section, "the match names the section it is in");
-  const exact = searchDocs("Pilot Score");
+  const exact = searchDocs("Shrunk win rate");
   assert.equal(exact.fallback, false);
-  assert.match(exact.matches[0].excerpt, /Pilot Score/);
+  assert.match(exact.matches[0].excerpt, /Shrunk win rate/);
   assert.deepEqual(searchDocs(""), { matches: [], fallback: false });
   // Plurals: "quotas" finds the page that says "quota", and vice versa.
   const plural = searchDocs("quotas");

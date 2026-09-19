@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "5.0.0: Pilot Score is gone, and no score will replace it",
+    body: "A year of the record was put to Pilot Score - a player's win rate minus what their card-level advantage 'should' have won - and it did not hold: most of the battles it scored had no level gap at all (Ranked and casual equalize levels), the adjustment barely related to outcomes between players, a plain win rate was as steady as the score, and in Ranked it was a weekly coin toss dressed as a number. Elo, Glicko and their relatives were tested on the same data and have nothing to estimate once the matchmaker has paired two players. So it is removed, with no replacement: battles_levels and clans_pilot_scores are gone from the tools, the methodology page says what the record does say about card levels (the mean level gap on every deck and card row, described and never adjusted for), and Elixir stays what it is - the record of what happened, made available. The three reviews behind the decision are in the repository under docs/reviews.",
+  },
+  {
+    date: "2026-09-19",
     title: "Profile: Email and Devices are their own pages",
     body: "Profile is who you are and what your tier gives you; the six email switches and the list of what was sent to you now live at Profile → Email, and your signed-in sessions at Profile → Devices. The 'send me this now' button beside each switch is gone - it never made sense to a reader. Turning a kind off and on is where it was, one page over.",
   },

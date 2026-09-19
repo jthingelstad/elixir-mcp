@@ -23,7 +23,6 @@ const files = [
   ...readdirSync(path.join(src, "tools"))
     .filter((f) => f.endsWith(".mjs") && !f.endsWith(".test.mjs"))
     .map((f) => path.join(src, "tools", f)),
-  path.join(src, "level-curve.mjs"),
 ];
 
 /** [{ file, page, section|null, literal }] for every pointer in the source. */
@@ -70,10 +69,9 @@ test("docs pointers: every page and section a tool names exists in the corpus", 
   assert.deepEqual(misses, []);
 });
 
-test("docs pointers: the shared segment pointer and the pilot pointer resolve", async () => {
+test("docs pointers: the shared segment pointer resolves", async () => {
   const { SEGMENT_DOCS } = await import("../src/tools/shared.mjs");
-  const { PILOT_DOCS } = await import("../src/level-curve.mjs");
-  for (const ref of [SEGMENT_DOCS, PILOT_DOCS]) {
+  for (const ref of [SEGMENT_DOCS]) {
     const [page, section] = ref.split("#");
     const doc = DOCS.find((d) => d.slug === page);
     assert.ok(doc, `${ref}: no page`);

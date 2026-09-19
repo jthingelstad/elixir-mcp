@@ -287,7 +287,15 @@ domain, read-only annotations).
   levels-first (the 22-points-of-win-rate finding is bedrock and this
   design does not fight it).
 
-## 9. Track two: level economics (`battles_levels`) — REVIEW PENDING
+## 9. Track two: level economics (`battles_levels`) — WITHDRAWN 2026-09-19
+
+> **Withdrawn (contract 5.0.0).** Built as designed on 2026-09-04, measured
+> against a year of the record on 2026-09-19 and removed the same day:
+> `docs/reviews/2026-09-19-PILOT-SCORE-ASSESSMENT.md`,
+> `-PILOT-SCORE-EVOLUTION.md`, `-ELIXIR-LIFT-TWO-POPULATIONS.md` and
+> `-PILOT-SCORE-REMOVAL-PLAN.md`; the decision is in `docs/NOTES.md`. The
+> level-gap fact survives as `mean_level_gap` on the meta, summary and
+> standings readers. The text below is kept as the design history.
 
 The impact hierarchy this whole doc rests on (levels ≈ 22 points,
 composition ≈ 7, matchup ≈ 3) says the most actionable number we can

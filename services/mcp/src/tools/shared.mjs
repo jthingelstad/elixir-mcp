@@ -628,8 +628,8 @@ export async function resolveSeasonWindow(
 
 /**
  * The season fields for an instant pair a tool resolved itself
- * (battles_levels, clans_pilot_scores, rankings_timeline,
- * elixir_timeline build their windows from `days` or a pointer): the
+ * (rankings_timeline and elixir_timeline build their windows from
+ * `days` or a pointer): the
  * same echo and note resolveSeasonWindow carries (3.17.0).
  */
 export async function seasonFieldsForInstants(
@@ -1007,9 +1007,8 @@ export const META_METHODOLOGY = {
   prior_source:
     "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
   // Below this many decided observations a segment is flagged
-  // insufficient_sample and shrunk rates are withheld, mirroring
-  // battles_levels omitting pilot_score rather than serving a number it
-  // cannot support.
+  // insufficient_sample and shrunk rates are withheld rather than
+  // serving a number the sample cannot support.
   segment_min_decided: 30,
   excluded: ["duels (no single deck)", "boat battles", "draws", "unresolved"],
   confidence_intervals: false,
