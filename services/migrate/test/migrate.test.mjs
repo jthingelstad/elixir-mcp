@@ -958,20 +958,24 @@ test("rhythm_score reads an empty week as zero counts with every section present
   });
   assert.equal(out.window.days, 7);
   assert.equal(out.polls.total, 0);
-  assert.equal(out.coverage.warm_players, 0);
+  assert.equal(out.coverage.warm_players_at_start, 0);
   assert.equal(out.fleet.weekly_median, 0);
   for (const set of [
-    out.own_rhythm,
+    out.nightly_rhythm,
+    out.nightly_fleet_on_cold,
+    out.frozen_rhythm,
+    out.frozen_fleet_on_cold,
     out.stored_rhythm_in_sample,
-    out.fleet_rhythm_on_cold,
   ]) {
     assert.equal(set.polls, 0);
     assert.equal(set.nothing_new.quiet_share, null);
     assert.equal(set.productive.quiet_share, null);
     assert.equal(set.gaps.peak_share, null);
   }
-  assert.equal(out.replay.rule.polls, 0);
+  assert.equal(out.replay.rule.length, 9);
+  for (const cell of out.replay.rule) assert.equal(cell.polls, 0);
   assert.equal(out.replay.actual.polls, 0);
+  assert.equal(out.session_control.prev_empty.n, 0);
 });
 
 // The 0091 backfill rehearsal (batches rebuild the projections from the
