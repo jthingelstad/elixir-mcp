@@ -28,6 +28,7 @@ import {
 } from "../activity/entries.mjs";
 import { resolveInstant } from "../time.mjs";
 import { captureCoverage } from "../coverage.mjs";
+import { silentSince } from "../../../ingest/src/fleet.mjs";
 import { ensureGatewayCards } from "../gateway-cards.mjs";
 import {
   ToolFailure,
@@ -1534,22 +1535,42 @@ export const elixirTools = {
     async handler(ctx) {
       await ensureGatewayCards(ctx.db).catch(() => {});
       const { rows } = await ctx.db.query(
-        `select status, fetch_points, card_name, card_icon, last_success_at
+        `select status, fetch_points, card_name, card_icon, last_success_at,
+                last_heartbeat_at, enrolled_at
          from gateway where status <> 'revoked'
          order by fetch_points desc, enrolled_at`,
       );
       // No machine label here (#28): the operator-chosen name is private.
-      return {
-        collectors: rows.map((g) => ({
+      // status is what the collector is DOING: an active one that has
+      // not checked in for an hour reads silent (2026-09-19: Hog Rider
+      // was forty hours quiet under "active"); lifecycle keeps the
+      // enrolment state the door acts on.
+      const nowMs = Date.now();
+      const collectors = rows.map((g) => {
+        const silent = silentSince(g, nowMs);
+        return {
           name: g.card_name ?? "Collector",
           card: g.card_name,
-          status: g.status,
+          status: silent ? "silent" : g.status,
+          lifecycle: g.status,
           points: Number(g.fetch_points),
           quota_credits: Math.floor(Number(g.fetch_points) / 10),
+          last_seen: g.last_heartbeat_at?.toISOString() ?? null,
           last_success: g.last_success_at?.toISOString() ?? null,
-        })),
+          ...(silent ? { silent_since: silent.toISOString() } : {}),
+        };
+      });
+      const silentCount = collectors.filter(
+        (c) => c.status === "silent",
+      ).length;
+      return {
+        collectors,
         notes: notes(
           "Running one earns real quota (every 10 fetches adds +1 daily tool call, capped at 4x base) plus bonus recording slots; a machine with a static IP is all it takes.",
+          "status is what the collector is doing now: active (checked in within the hour), silent (enrolled to run but not checked in for over an hour), probation, pending or draining (stopped on purpose); lifecycle is the enrolment state.",
+          silentCount > 0
+            ? `${silentCount} collector${silentCount === 1 ? " is" : "s are"} silent; the fleet's budget is one whatever the count, so silence costs redundancy, not throughput.`
+            : null,
         ),
         docs: docsRef("operators"),
         meta: responseMeta({ as_of: new Date().toISOString() }),

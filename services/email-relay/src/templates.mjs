@@ -196,6 +196,7 @@ export function renderEmail(msg) {
       role_upgrade_request: "Elixir MCP: tier upgrade request",
       gateway_request: "Elixir MCP: collector raise-hand",
       gateway_quarantined: "Elixir MCP: collector QUARANTINED",
+      gateway_silent: "Elixir MCP: collector silent",
       approved_welcome: "Elixir MCP: account approved",
     };
     const leads = {
@@ -205,6 +206,7 @@ export function renderEmail(msg) {
       gateway_request: "Someone raised a hand to run a collector.",
       gateway_quarantined:
         "A collector stopped submitting and was quarantined.",
+      gateway_silent: "A collector has not checked in for an hour.",
       approved_welcome: "An account was approved.",
     };
     const kind = msg.notify_kind;

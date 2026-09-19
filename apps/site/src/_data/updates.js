@@ -11,6 +11,12 @@ export default [
   {
     date: "2026-09-19",
     title:
+      "A silent collector says so, and the catalog says when it was really confirmed",
+    body: "The fleet list said 'active' for a collector that had not checked in for forty hours; the lifecycle state was true and the reading was not. elixir_collectors and the fleet page now say what a collector is doing: active when it checked in within the hour, silent when it is enrolled to run and has not (with when it went quiet and when it was last seen), draining when it was stopped on purpose; the enrolment state stays beside it as lifecycle. The maintainer is told once each time a collector goes silent, the way quarantine already told him. Also fixed: the card catalog's fetched_at said 09-10 while the catalog had been fetched and confirmed every night since; it now reads the poll's own admission stamp. Contract 6.1.0, additive.",
+  },
+  {
+    date: "2026-09-19",
+    title:
       "6.0.0: the leaked-elixir counter carries its own caveat, and three sharp edges filed off",
     body: "Two pieces of agent feedback this afternoon, one bug and one negative result. The bug: a duel's elixir differential was a number when the spec said null, because each side's counter on a duel is a sum over two or three games played on different decks. The negative result: the note that said 'neither number is a skill measure' was served, read, and overridden the same morning by an agent writing per-battle commentary, because the number sat beside crowns and trophy change as if it were an outcome fact. So the counter now travels as one object on every participant of a battles_query row - leaked, the opponent's, the differential (null on duels), how many rounds the counters sum over, and the caveat itself - and the old flat fields are gone. Also in this release: verbosity is accepted on every tool (a tool with one size says so in a note and answers in full, instead of refusing), feedback messages may run to 8,000 characters, and a refusal for an over-long value now says how long it was. Contract 6.0.0; reconnect your client so it sees the new tool list. This is the last breaking release for a while: the contract is entering an additive-only stretch while more people connect.",
   },

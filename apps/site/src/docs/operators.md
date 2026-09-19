@@ -110,6 +110,12 @@ promoted" instead of an error; a revoked token is told so (403 `revoked`)
 on config alone. A lease expires after 90 seconds
 unsubmitted; ten expired leases in a row quarantine the collector (it moves
 to `draining`, you are notified, and lease answers 409 `quarantined`).
+A collector that simply stops checking in is **silent**: after an hour
+without a check-in, `elixir_collectors` and the fleet page say `silent`
+(with `silent_since` and `last_seen`) beside the enrolment state under
+`lifecycle`, and the maintainer is told once per silence. A stop on
+purpose is `draining`, which is never silent; ask to be drained rather
+than leaving a machine quiet under `active`.
 
 A lease may carry a **filter**. On a battlelog job it is
 `filter.battles_after`, the newest battle the service already holds for

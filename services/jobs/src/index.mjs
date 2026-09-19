@@ -17,6 +17,7 @@
  *  stored as the issue to send). */
 
 import pg from "pg";
+import { sweepSilentCollectors } from "./fleet.mjs";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { runEmail } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
@@ -327,12 +328,25 @@ export async function handler(event) {
     const result = await sweepPayloads(process.env.DATABASE_URL);
     if (event?.sweep_operational) {
       result.operational = await sweepOperational(process.env.DATABASE_URL);
+      result.fleet = await sweepSilentCollectors(process.env.DATABASE_URL, {
+        enqueue: enqueueEmail,
+      });
     }
     console.log(JSON.stringify(result));
     return result;
   }
   if (event?.sweep_operational) {
     const result = await sweepOperational(process.env.DATABASE_URL);
+    result.fleet = await sweepSilentCollectors(process.env.DATABASE_URL, {
+      enqueue: enqueueEmail,
+    });
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.sweep_fleet) {
+    const result = await sweepSilentCollectors(process.env.DATABASE_URL, {
+      enqueue: enqueueEmail,
+    });
     console.log(JSON.stringify(result));
     return result;
   }
