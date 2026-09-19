@@ -5610,3 +5610,94 @@ twice, not once: the first hand-run was necessarily the from-scratch
 path (every day built), and the incremental night the acceptance names
 needed a second run; both were inside one hourly window with the
 hourly quiet.
+
+## 2026-09-19 — Before the slow cycle: the punch list, items 1–7 shipped (contracts 6.0.0, 6.1.0)
+
+Jamie asked for the sharp edges to clear before letting the project sit
+and letting agents find bugs through the interfaces. The review read
+the repo, a seven-day audit census, the refusal censuses, the door's
+log, RDS and the alarms; thirteen items came back and Jamie took the
+first seven. Two decisions were his: feedback #66's remedy is the
+sub-object with the caveat on it, not opt-in (which would have been a
+sharper guarantee and is the next step if the object also fails to hold
+an agent); Hog Rider is `backfill-elixir-bot`, an import collector
+between runs, off on purpose. Everything below deployed the same
+afternoon (`a566502` 17:3xZ, `efda0c6` 17:50Z, `d39250d` 17:58Z),
+verify green each time, live acceptance read-only.
+
+**1. #65 / #66 (6.0.0, breaking).** `battles_query`'s flat
+`elixir_leaked` / `elixir_leaked_differential` are gone; every
+participant carries `elixir: { leaked, opponent_leaked, differential,
+rounds, caveat }` or null. `differential` is null on every
+`riverRaceDuel*` row (the 3.13.0 spec said so and the code did not;
+the #58 test asserted the head-to-head case only, and now seeds a
+two-round duel with counters on both sides). The caveat is on the
+value, phrased as an instruction with the counter-example. Live: the
+#65 fixture `e4f7dece…` answers `differential: null, rounds: 2`
+(request `1e5e7d4c`). Both items answered `done` in 6.0.0. No family
+consumer read the flat fields (elixir-bot's `elixir_leaked` is its own
+SQLite). elixir-bot's pin advanced to major 6 (`2000eaaa`, gates
+green, restarted 18:04Z between ticks).
+
+**2. verbosity everywhere (6.0.0, additive).** The instructions call it
+the one size control and 43 of 54 tools refused it (four refusals in
+four days). The registry accepts `full` or `compact` on a tool that
+does not declare it, echoes `applied.verbosity: "full"` and, on
+`compact`, adds one note that the tool had nothing to drop. The
+instruction sentence says so.
+
+**3. The clock-window flakes.** `tools2` "days/weeks are sugar" was
+already fixed by 4.1.0 (`b78413e`: the assertion uses the game-day
+grid, the handler's own formula). `profile-refresh.test.mjs` was not:
+its scenario spans 01:00Z–14:27Z against a 24h guard, so any anchor
+derived from the wall clock fails somewhere (twelve hours back failed
+06:39–12:00Z; 4.1.0's six hours back moved the window to 01:00–06:00Z,
+where the 00:40 Chicago automation runs). `mock.timers` now pins
+`Date` at 15:00Z of the scenario's day for the file; passes with the
+day forced to yesterday, tomorrow and two weeks back (`1931124`).
+
+**4. The catalog "not confirmed since 09-10" (6.1.0).** Nothing was
+wrong with the fetch: `{poll_state: {subject_tag: 'GLOBAL', endpoint:
+'cards'}}` (the new read-only op: the row, ten jobs, five receipts)
+showed a job and an admitted receipt every night, the last at 03:17Z
+today. `fetched_at` read `max(card.catalog_seen_at)`, which the
+projector moves only when a row moves - a re-fetch writes nothing, by
+design - so an unchanged catalog read as unconfirmed since its last
+change. It now reads the GLOBAL cards poll's `last_admitted_at`
+(`05f622f`). The 5.0.0 entry's "queued for Keep the Record True" is
+withdrawn.
+
+**5. A silent collector says so (6.1.0, 0142).** `ingest/fleet.mjs`
+holds the one rule (`silentSince`: active or probation, no check-in
+within the hour; never checked in counts from enrolment; draining and
+revoked are stops on purpose). `elixir_collectors.status` is what the
+collector is doing now (`silent` with `silent_since`), `lifecycle` the
+enrolment state, `last_seen` the heartbeat. The hourly operational
+sweep tells the owner once per silence (`gateway_silent`;
+`silent_notified_at`, reset by the next heartbeat). Live: Hog Rider
+read `silent` since 2026-09-18T01:40Z, then `{gateway_drain: {name:
+'Hog Rider'}}` (the new opposite of `gateway_recover`) moved it to
+`draining` (`d39250d`).
+
+**6. The 404 backoff (0143).** The cause: a subject the API answers
+404 for never admits, so the starvation floor found it every fifteen
+minutes forever - location `57000006` was planned ten times in two and
+a half hours; the day's 632 `rankings_pol` and 158 `currentriverrace`
+404s were five percent of the one budget answered with nothing. While
+the last word is 404 and nothing has admitted since, the subject is
+due once a day and never starved (a requested refresh and the
+pre-reset watcher cut through; an admission lifts the hold). The tick
+emits `NotFoundHeld` (12 subjects a tick after the deploy); `57000006`
+has not been re-planned since 17:42Z. Expect `fetch_errors_24h` to
+fall from ~800 to ~15 by tomorrow's `{stats}`.
+
+**7. Feedback length (6.0.0, 0141).** `elixir_send_feedback.message`
+takes 8,000 characters (the response column keeps 4,000), and every
+`maxLength` refusal from the validator says how long the value was
+(#64's queued item; #65 and #66 had been trimmed blind).
+
+**Not done, on purpose:** items 8–13 of the review (the contract
+freeze, the tool-list weight, the docs `reviewed:` stamps, the enrolled
+cohort's first mail, the funnel numbers, the `t4g.micro` trigger) are
+Jamie's calls and stay in the conversation, not here. 6.0.0's changelog
+says it is the last major before the additive-only stretch.
