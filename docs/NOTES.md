@@ -6050,6 +6050,22 @@ expectation: read `players_with_gaps` and the gap intervals' lengths
 before touching the ceiling; the replay's over-capacity count is the
 number to beat, and `{poll_replay}` re-runs it on any week.
 
+**First rows, and a correction to the loss figure.** The job run by
+hand after the deploy (7 s) wrote 09-16, 09-17, 09-18: reads 7,177 /
+7,711 / 7,987; found nothing 61%; captured ~22,000 a day; gaps 117 / 101
+/ 121; **battles lost 646 / 560 / 513 a day (2.9%, 2.5%, 2.3%), on 94 /
+92 / 91 players**; noise floor 2.1–2.5%. That is lower than the week's
+7,156 (~1,000 a day) in the section above, and the week's figure is the
+one to correct: `{poll_replay}` accepted any snapshot interval ending in
+the window whatever its length, so a player's first live profile after
+imported history counted the counter's whole move since the import
+(`#29PR0CCR0`'s 609-battle "interval" was weeks long, not a day), and
+that is not the recorder's loss. The nightly method bounds an interval
+to three days, which is what a gap inside it can explain. **The honest
+baseline is ~500–650 battles a day, 2.3–2.9% of what is played,
+concentrated on ~90 players a day** — still the number the two-hour
+ceiling was chosen to end, and now the number the page reports.
+
 **Queued.** Drop `player_activity.rhythm`, `rhythm_weight`,
 `rhythm_battles`, `half_life_days` and `poll_state.burst_bph`,
 `burst_at` in the migration after this deploy has settled. Retire
