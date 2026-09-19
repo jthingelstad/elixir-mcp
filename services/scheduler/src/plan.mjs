@@ -1,13 +1,10 @@
 /**
- * The planning tick — DESIGN §5.1-§5.3. Yield-only since 2026-09-05:
- * the legacy heat model retired after the full-day A/B (half the spend
- * at equal-or-better per-fetch yield; NOTES). The heat COLUMN remains
- * in poll_state, dormant.
+ * The planning tick — DESIGN §5.1-§5.3.
  *
  * Order within a tick (the ordering IS the design):
  *   1. settle the global token bucket (budget_state singleton row);
  *   2. seed poll_state rows for new subjects;
- *   3. select eligible work: due (past the yield cadence) OR starved
+ *   3. select eligible work: due (past the cadence) OR starved
  *      (past the fairness floor). Sort: starved FIRST (floors strictly
  *      dominate), then expected yield (bph x hours overdue), then
  *      overdue, then endpoint/tag for determinism;
@@ -17,15 +14,20 @@
  * The live lane never goes through this planner — its reserve is the
  * budget the planner deliberately does not spend (live_reserve fraction).
  *
- * Two bounds sit on top of the battlelog cadence since 2026-09-09
- * (docs/FETCH-LOOP-AUDIT-2026-09-09.md): a LOSS-AWARE bound from the
- * player's fastest recent log fill (burst_bph, stamped at admission from
- * battle timestamps), and a READER cap for subjects somebody asked about
- * in the last day (last_read_at, stamped at subject resolution). Both
- * only ever shorten a cadence; NULL means "no signal" and the rule is
- * byte-identical to before. The loss bound ships behind an A/B arm
- * (ELIXIR_LOSS_BOUND = off | half | all) so ab_yield can read both arms
- * over the same clock hours.
+ * The player endpoints run the SESSION CLOCK since 2026-09-19 (NOTES that
+ * day, "The session clock replayed, and what a week loses"). A battle is
+ * about three minutes and the API's log holds 30, so a sitting fills it
+ * in ~90 minutes; the recorder was losing 4.3% of all battles (~7,150 a
+ * week) to sittings that started inside a long wait. The rule is one a
+ * player can be told: while you are playing, your log is read every 30
+ * minutes; after a read that found nothing the wait doubles, and never
+ * passes the ceiling. Your profile is read once a day, and once after a
+ * session. The yield EWMA (0017), the roster gate (2026-09-11), the
+ * loss-aware burst bound and its A/B arm (2026-09-09) all retired with
+ * it; the replay showed them to sit on the same cost/loss curve, and the
+ * ceiling is the one dial. The reader cap (a subject somebody asked about
+ * in the last day polls at least hourly) and the requested refresh (0101)
+ * still cut through.
  */
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
@@ -40,15 +42,12 @@ const MINUTE = 60_000;
 
 // Cadence table (minutes) — §5.3. Data, not code.
 export const CADENCE = {
-  // Player endpoints: cadence comes from yieldCadenceMinutes (yield_bph
-  // signal with explicit unknown-activity defaults); only the fairness
-  // floor lives here.
+  // Player endpoints: the session clock (sessionCadenceMinutes); only
+  // the fairness floor lives here, and it is a guarantee about the worst
+  // case under a starved budget, never the schedule.
   player_battlelog: { floor: 1440 },
-  // No fairness floor for profiles since 2026-09-11 (Jamie: players may
-  // be idle and we owe them no snapshot): a profile is polled when the
-  // roster says its owner has been in the game since the last one, on
-  // an eight-hour minimum, and the pre-reset watcher still forces the
-  // one time-critical read.
+  // No fairness floor for profiles (2026-09-11): the daily read is the
+  // cadence, the pre-reset watcher forces the one time-critical read.
   player: {},
   // Clan: cadence comes from yieldCadenceMinutes (liveliness and churn
   // stamped by the roster projector, and whether anyone tracks the clan);
@@ -85,15 +84,19 @@ export const CADENCE = {
 };
 
 /**
- * Yield-mode cadence in minutes for one poll_state row. One activity
- * signal drives the player endpoints: yield_bph, the EWMA of observed
- * battles-per-hour (0017, updated at admission).
+ * Cadence in minutes for one poll_state row.
  *
- *  - battlelog: poll when ~TARGET_BATCH battles are expected to have
- *    accumulated (harvest efficiency), clamped [15m, 1440m]. Unknown
- *    activity seeds at 60m — discovery, not dormancy.
- *  - player: profile stretches with the same signal (a dormant player's
- *    snapshot barely changes), clamped [120m, 4320m].
+ *  - battlelog: THE SESSION CLOCK. `empty_streak` is stamped at
+ *    admission (pipeline.mjs): 0 when the log delivered battles, else one
+ *    more than before. The wait is SESSION_FOLLOWUP_MINUTES x 2^streak,
+ *    never above SESSION_CEILING_MINUTES; a row never stamped (a new
+ *    subject) waits one follow-up - discovery, not dormancy. The reader
+ *    cap can only shorten it.
+ *  - player: once a day (PROFILE_DAILY_MINUTES; the snapshot is keyed by
+ *    the game day), eight hours for a directly tracked player (a
+ *    published promise), and a requested refresh - ingest asks after a
+ *    session (pipeline.mjs, requestProfileAfterSession) or on arena
+ *    evidence (0101) - is owed now.
  *  - currentriverrace: the payload NAMES war days (hint = periodType);
  *    warDay/colosseum poll at 30m, training at 120m, unknown at 30m.
  *  - clan: who cares x how alive it is now (2026-09-11). A TRACKED
@@ -107,80 +110,37 @@ export const CADENCE = {
  *    the active branch: discovery, not dormancy.
  *  - riverracelog / cards: fixed cadences unchanged — flat and cheap.
  */
-const TARGET_BATCH = 5;
 const DAY = 86_400_000;
 /** Membership events per hour (joins, departures, role changes; EWMA on
  *  the clan row's yield_bph) above which a tracked clan keeps its
  *  15-minute cadence even when nobody has been seen this hour: 3 a day. */
 export const CLAN_CHURN_BPH = 3 / 24;
 
-/** The battlelog holds ~30 entries (measured: 1,578 of 2,000 payloads had
- *  exactly 30; the rest more). Loss math uses 30. */
-export const LOG_CAPACITY = 30;
-/** Poll before HALF the fastest observed fill time has elapsed, so a burst
- *  that starts right after a poll still cannot roll the log. Modelled
- *  2026-09-09: loss 3.7% -> 1.0% for +50% battlelog fetches at 0.5. */
-export const LOSS_SAFETY = 0.5;
-/** A burst older than this no longer bounds the cadence. */
-export const BURST_TTL_DAYS = 14;
+/** While a player is playing, the log is read this often. A battle is
+ *  ~3 minutes and the log holds 30, so a sitting fills it in ~90 minutes;
+ *  30 keeps every read inside a third of that. */
+export const SESSION_FOLLOWUP_MINUTES = 30;
+/** After a read that found nothing the wait doubles, and never passes
+ *  this. Jamie, 2026-09-19: "start more aggressive" - the two-hour
+ *  ceiling was the replay's zero-loss setting (9 over-capacity intervals
+ *  in a week against 1,041; 2.75x the battlelog polls). Change it here
+ *  and in the recording docs together; it is a published promise. */
+export const SESSION_CEILING_MINUTES = 120;
+/** The profile's day. */
+export const PROFILE_DAILY_MINUTES = 1440;
 /** Subjects a reader resolved in the last READ_TTL_HOURS poll at least
  *  every READ_CAP_MINUTES: the players people ask about must not be the
- *  ones parked on the 24h fairness clamp (three of seven were, live). */
+ *  ones parked on the ceiling. */
 export const READ_CAP_MINUTES = 60;
 export const READ_TTL_HOURS = 24;
 /** A player explicitly present in an account's Tracking list gets a profile
  * at least every eight hours. Clan-wide comprehensive capture can still use
- * the yield cadence for members nobody follows directly. */
+ * the daily cadence for members nobody follows directly. */
 export const DIRECT_PROFILE_CAP_MINUTES = 480;
-/** The roster gate applies to profiles only. A clan roster carries the
- *  game's own lastSeen for ~50 players at 2.2 KB; when it has not moved since
- *  a profile poll, that profile is not expected to have changed. It cannot
- *  vouch for a battle log: a completed session can rotate the log before the
- *  next observed lastSeen makes the player eligible again. Capture gaps made
- *  that failure mode measurable on 2026-09-12. */
-export const ROSTER_GATE_SESSION_HOURS = 2;
-/** Profile minimum interval once the roster says the player was active. */
-export const PROFILE_ACTIVE_MINUTES = 480;
-
-/** Whether a fresh roster shows this player idle since their last poll. */
-export function rosterGated(row, now = new Date()) {
-  if (row.endpoint !== "player") return false;
-  if (
-    !row.roster_tracked ||
-    !row.roster_admitted_at ||
-    !row.game_last_seen_at ||
-    !row.last_admitted_at
-  )
-    return false;
-  const roster = new Date(row.roster_admitted_at).getTime();
-  const seen = new Date(row.game_last_seen_at).getTime();
-  const polled = new Date(row.last_admitted_at).getTime();
-  return (
-    roster > polled &&
-    seen <= polled &&
-    now.getTime() - seen > ROSTER_GATE_SESSION_HOURS * 3600_000
-  );
-}
-
-/**
- * Minutes the loss-aware bound allows, or null when the row carries no
- * usable burst signal. burst_bph is derived from battle TIMESTAMPS at
- * admission, so unlike the yield EWMA it still knows the true rate after a
- * poll that already overflowed (the EWMA can only ever see 30 / interval).
- */
-export function lossBoundMinutes(row, now = new Date()) {
-  const burst =
-    row.burst_bph === null || row.burst_bph === undefined
-      ? null
-      : Number(row.burst_bph);
-  if (!(burst > 0)) return null;
-  const at = row.burst_at ? new Date(row.burst_at).getTime() : 0;
-  if (now.getTime() - at > BURST_TTL_DAYS * DAY) return null;
-  return Math.max(15, ((LOSS_SAFETY * LOG_CAPACITY) / burst) * 60);
-}
 
 /** Whether ingest asked for this profile and no admission has served it
- *  yet (0101). The in-flight window applies as it does to a floor. */
+ *  yet (0101; and after a session since 2026-09-19). The in-flight window
+ *  applies as it does to a floor. */
 export function refreshRequested(row, now = new Date()) {
   if (row.endpoint !== "player" || !row.refresh_requested_at) return false;
   const asked = new Date(row.refresh_requested_at).getTime();
@@ -203,57 +163,32 @@ export function readCapApplies(row, now = new Date()) {
   return age < READ_TTL_HOURS * 3600_000;
 }
 
+/** The session clock's own wait for a battlelog row, before the cap. */
+export function sessionWaitMinutes(row) {
+  const streak =
+    row.empty_streak === null || row.empty_streak === undefined
+      ? 0
+      : Math.max(0, Number(row.empty_streak));
+  return Math.min(
+    SESSION_CEILING_MINUTES,
+    SESSION_FOLLOWUP_MINUTES * 2 ** Math.min(streak, 16),
+  );
+}
+
 export function yieldCadenceMinutes(row, now = new Date()) {
   const bph =
     row.yield_bph === null || row.yield_bph === undefined
       ? null
       : Number(row.yield_bph);
   if (row.endpoint === "player_battlelog") {
-    let cadence;
-    if (bph === null) cadence = 60;
-    else if (bph <= 0.02) cadence = 1440;
-    else cadence = Math.min(1440, Math.max(15, (TARGET_BATCH / bph) * 60));
-    const bound = lossBoundMinutes(row, now);
-    if (bound !== null) cadence = Math.min(cadence, bound);
+    let cadence = sessionWaitMinutes(row);
     if (readCapApplies(row, now)) cadence = Math.min(cadence, READ_CAP_MINUTES);
     return cadence;
   }
   if (row.endpoint === "player") {
-    // With a roster fresher than the last profile poll, the gate decides
-    // whether the player was active at all; the cadence is then a flat
-    // eight hours (2026-09-11). Without roster information the activity
-    // buckets below stand.
-    if (
-      row.roster_admitted_at &&
-      row.last_admitted_at &&
-      new Date(row.roster_admitted_at).getTime() >
-        new Date(row.last_admitted_at).getTime()
-    ) {
-      return row.directly_tracked
-        ? Math.min(PROFILE_ACTIVE_MINUTES, DIRECT_PROFILE_CAP_MINUTES)
-        : PROFILE_ACTIVE_MINUTES;
-    }
-    // The profile row's OWN yield_bph is never written -- ingest records
-    // activity against the battlelog row only -- so this read borrowed NULL
-    // forever and every branch below the first was unreachable. Profiles
-    // polled every 8h regardless of whether the player had touched the game
-    // in a month, roughly 9x the intended rate for a dormant one, and the
-    // cohort did it in lockstep (the 2026-09-08 capture spikes).
-    const activity =
-      row.activity_bph === null || row.activity_bph === undefined
-        ? bph
-        : Number(row.activity_bph);
-    let cadence;
-    if (activity === null) cadence = 480;
-    else if (activity <= 0.02) cadence = 4320;
-    // Active players used to take 120m here, which was 70% of all profile
-    // spend (measured 2026-09-09) for a projection that is a DAILY
-    // snapshot; the pre-reset watcher forces the one time-critical read.
-    else if (activity >= 0.5) cadence = 480;
-    else cadence = 1440;
     return row.directly_tracked
-      ? Math.min(cadence, DIRECT_PROFILE_CAP_MINUTES)
-      : cadence;
+      ? Math.min(PROFILE_DAILY_MINUTES, DIRECT_PROFILE_CAP_MINUTES)
+      : PROFILE_DAILY_MINUTES;
   }
   if (row.endpoint === "currentriverrace") {
     return row.period_type === "training" ? 120 : 30;
@@ -274,23 +209,6 @@ export function yieldCadenceMinutes(row, now = new Date()) {
     return Number(row.board_every);
   }
   return CADENCE[row.endpoint].every;
-}
-
-/**
- * The loss bound's A/B arm. `half` applies it to the stable half of the
- * population whose jitter phase is below 1 (a hash, so the arms are the
- * same subjects every tick and ab_yield can split receipts the same way);
- * `all` promotes it; anything else is off.
- */
-export function lossBoundArm(env = process.env) {
-  const v = env.ELIXIR_LOSS_BOUND;
-  return v === "all" || v === "half" ? v : "off";
-}
-
-export function inLossBoundArm(subjectTag, arm) {
-  if (arm === "all") return true;
-  if (arm === "half") return jitterFactor(subjectTag, "player_battlelog") < 1;
-  return false;
 }
 
 /**
@@ -484,7 +402,7 @@ async function seedPollState(db, now = new Date()) {
     on conflict do nothing`);
 }
 
-async function selectEligible(db, now, arm) {
+async function selectEligible(db, now) {
   // reference freshness = the later of last plan and last admission; due
   // and starved both respect a short in-flight window so a pending job
   // isn't re-enqueued every tick.
@@ -492,15 +410,8 @@ async function selectEligible(db, now, arm) {
     `
     with state as (
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
-             ps.yield_bph, ps.hint, ps.period_type, ps.burst_bph, ps.burst_at, ps.last_read_at,
-             ps.refresh_requested_at,
-             -- Activity is only ever recorded on the battlelog row (ingest
-             -- writes yield_bph there and nowhere else), so a profile row
-             -- has to borrow it. Without this the 'player' cadence saw NULL
-             -- forever and every profile polled on the 480m branch.
-             (select b.yield_bph from poll_state b
-               where b.subject_tag = ps.subject_tag
-                 and b.endpoint = 'player_battlelog') as activity_bph,
+             ps.yield_bph, ps.hint, ps.period_type, ps.last_read_at,
+             ps.refresh_requested_at, ps.empty_streak,
              exists (select 1 from claim c
                      where c.player_tag = ps.subject_tag) as directly_tracked,
              -- A clan someone asked us to record, as opposed to one we read
@@ -514,19 +425,6 @@ async function selectEligible(db, now, arm) {
              (select b.every_minutes from ranking_board b
                where b.location_key = ps.subject_tag
                  and b.board = ${BOARD_OF_SQL}) as board_every,
-             -- The roster gate's two inputs (2026-09-11): the game's own
-             -- lastSeen for this player, and when their clan's roster was
-             -- last admitted. Null for anything that is not a player row.
-             pl.game_last_seen_at,
-             (select cps.last_admitted_at from poll_state cps
-               where cps.subject_tag = pl.last_known_clan_tag
-                 and cps.endpoint = 'clan') as roster_admitted_at,
-             -- Only a tracked clan's roster is fresh enough to gate
-             -- (2026-09-12); an incidental one is read every 4-24 h.
-             (ps.endpoint in ('player_battlelog', 'player') and exists (
-                select 1 from recording r
-                where r.subject_type = 'clan' and r.subject_tag = pl.last_known_clan_tag
-                  and r.status = 'active')) as roster_tracked,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference,
              -- The API's last 404 for this subject inside the error
              -- table's seven-day retention (0143 indexes the lookup).
@@ -534,8 +432,6 @@ async function selectEligible(db, now, arm) {
                where e.endpoint = ps.endpoint and e.entity_key = ps.subject_tag
                  and e.http_status = 404) as last_not_found_at
       from poll_state ps
-      left join player pl on pl.player_tag = ps.subject_tag
-        and ps.endpoint in ('player_battlelog', 'player')
       where (ps.endpoint in ('player_battlelog', 'player') and (
                exists (
                  select 1 from recording r
@@ -571,14 +467,8 @@ async function selectEligible(db, now, arm) {
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
-           yield_bph, hint, period_type, burst_bph, burst_at, last_read_at, refresh_requested_at,
-           -- The 2026-09-08 borrow computed this in the CTE and never
-           -- re-selected it here, so yieldCadenceMinutes saw undefined,
-           -- fell back to the profile row's own NULL yield_bph, and every
-           -- profile kept polling on the 480 branch (measured: 33/h before,
-           -- 35/h after). Found by the 2026-09-09 fetch-loop audit.
-           activity_bph, directly_tracked, clan_tracked, board_every,
-           game_last_seen_at, roster_admitted_at, roster_tracked, last_not_found_at
+           yield_bph, hint, period_type, last_read_at, refresh_requested_at, empty_streak,
+           directly_tracked, clan_tracked, board_every, last_not_found_at
     from state`,
   );
 
@@ -596,29 +486,17 @@ async function selectEligible(db, now, arm) {
       : 0;
 
   const eligible = [];
-  let gated = 0;
   let notFoundHeld = 0;
   for (const r of rows) {
     const cadence = CADENCE[r.endpoint];
     if (!cadence) continue;
-    // Ingest asked for this profile (0101): the player's own battles carry
-    // an arena the snapshot does not. Direct evidence of activity, so the
-    // roster gate does not apply, and it ranks with the floors: one fetch,
-    // owed now. Served once an admission passes the stamp.
+    // Ingest asked for this profile: after a session, or on arena
+    // evidence (0101). Direct evidence of activity, ranked with the
+    // floors: one fetch, owed now. Served once an admission passes the
+    // stamp.
     const requested = refreshRequested(r, now);
-    // A fresh roster can suppress an unchanged profile. Battle logs remain
-    // eligible on their own cadence: lastSeen is not a safe negative signal
-    // for capture completeness.
-    if (!requested && rosterGated(r, now)) {
-      gated += 1;
-      continue;
-    }
     const referenceMs = r.reference.getTime();
-    // Control-arm subjects never see their burst signal; the reader cap
-    // ships to everyone (it is cheap and the freshness win is the point).
-    const row = inLossBoundArm(r.subject_tag, arm)
-      ? r
-      : { ...r, burst_bph: null, burst_at: null };
+    const row = r;
     const jitter = jitterFactor(r.subject_tag, r.endpoint) * MINUTE;
     // A daily board is due once per board-day, anchored, not once per
     // elapsed day: every daily board reads in the tick after 10:00Z.
@@ -629,16 +507,12 @@ async function selectEligible(db, now, arm) {
     const due = dailyBoard
       ? referenceMs < boardDayStartMs(nowMs)
       : nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;
-    // Would the unbounded rule have made it due? Only the difference is
-    // attributable to the bounds (the metric that proves them).
-    const dueUnbounded = dailyBoard
+    // Would the rule without the reader cap have made it due? Only the
+    // difference is attributable to the cap (the metric that proves it).
+    const dueUncapped = dailyBoard
       ? due
       : nowMs - referenceMs >=
-        yieldCadenceMinutes(
-          { ...row, burst_bph: null, burst_at: null, last_read_at: null },
-          now,
-        ) *
-          jitter;
+        yieldCadenceMinutes({ ...row, last_read_at: null }, now) * jitter;
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
     const forcedPreReset =
@@ -671,9 +545,13 @@ async function selectEligible(db, now, arm) {
       endpoint: r.endpoint,
       starved,
       requested,
-      bounded:
-        due && !dueUnbounded && !starved && lossBoundMinutes(row, now) !== null,
-      readCapped: due && !dueUnbounded && !starved && readCapApplies(row, now),
+      // A battlelog read at the session follow-up: the player was playing
+      // at the last read. The share of these is the session clock's work.
+      followup:
+        r.endpoint === "player_battlelog" &&
+        due &&
+        sessionWaitMinutes(r) === SESSION_FOLLOWUP_MINUTES,
+      readCapped: due && !dueUncapped && !starved && readCapApplies(row, now),
       overdueMs,
       expectedYield:
         (r.yield_bph === null ? 0.5 : Number(r.yield_bph)) *
@@ -693,7 +571,6 @@ async function selectEligible(db, now, arm) {
       a.endpoint.localeCompare(b.endpoint) ||
       a.subject_tag.localeCompare(b.subject_tag),
   );
-  eligible.gated = gated;
   eligible.notFoundHeld = notFoundHeld;
   return eligible;
 }
@@ -703,8 +580,8 @@ async function selectEligible(db, now, arm) {
  * page's "work waiting" gauge. Same query and same rules as the tick;
  * nothing is stamped or spent.
  */
-export async function eligibleNow(db, now = new Date(), arm = lossBoundArm()) {
-  return selectEligible(db, now, arm);
+export async function eligibleNow(db, now = new Date()) {
+  return selectEligible(db, now);
 }
 
 /** Count eligible rows by endpoint, and how many are starved (past a
@@ -724,11 +601,7 @@ export function queueSummary(eligible) {
  * @param {import('pg').Client} db
  * @param {Date} now injectable for tests
  */
-export async function planTick(
-  db,
-  now = new Date(),
-  { arm = lossBoundArm() } = {},
-) {
+export async function planTick(db, now = new Date()) {
   const { tokens, liveReserve } = await settleBudget(db, now);
   await seedPollState(db, now);
   // The season rollover (0104): the running season and the next one are
@@ -742,12 +615,12 @@ export async function planTick(
       jobs: [],
       tokens,
       bulkBudget,
-      bounded: 0,
+      followup: 0,
       readCapped: 0,
       requested: 0,
     };
 
-  const eligible = await selectEligible(db, now, arm);
+  const eligible = await selectEligible(db, now);
   const selected = eligible.slice(0, bulkBudget);
 
   for (const job of selected) {
@@ -770,10 +643,9 @@ export async function planTick(
     })),
     tokens,
     bulkBudget,
-    bounded: selected.filter((j) => j.bounded).length,
+    followup: selected.filter((j) => j.followup).length,
     readCapped: selected.filter((j) => j.readCapped).length,
     requested: selected.filter((j) => j.requested).length,
-    gated: eligible.gated ?? 0,
     notFoundHeld: eligible.notFoundHeld ?? 0,
   };
 }

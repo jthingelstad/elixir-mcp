@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
-import { processResult, stampBurst } from "../src/pipeline.mjs";
+import { processResult } from "../src/pipeline.mjs";
 import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 
 let ctx;
@@ -111,56 +111,13 @@ test("battlelog message flows end to end: payload, receipt, battles, freshness, 
   );
   assert.ok(Number(ps[0].yield_bph) > 0, "fresh battles feed the yield signal");
   assert.equal(ps[0].last_admitted_at.toISOString(), FRESH_AT);
-  const { rows: burst } = await ctx.db.query(
-    `select burst_bph, burst_at from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+  // The session clock (2026-09-19): a read that delivered battles puts
+  // the streak at zero and asks for the profile once.
+  const { rows: clock } = await ctx.db.query(
+    `select empty_streak from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
     [observer],
   );
-  assert.notEqual(
-    burst[0].burst_bph,
-    null,
-    "a fresh admission stamps the burst signal",
-  );
-  assert.equal(burst[0].burst_at.toISOString(), FRESH_AT);
-});
-
-test("stampBurst: max battles in any 6h window over 14 days, as a per-hour rate", async () => {
-  const tag = "#8P8YLQ";
-  const asOf = "2026-09-09T12:00:00.000Z";
-  await ctx.db.query(`insert into player (player_tag) values ($1)`, [tag]);
-  await ctx.db.query(
-    `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog')`,
-    [tag],
-  );
-  const at = (hoursAgo) => new Date(Date.parse(asOf) - hoursAgo * 3600_000);
-  // 12 battles inside two hours (the grinder shape), 3 spread a day earlier,
-  // and one 20 days ago that must not count.
-  const times = [
-    ...Array.from({ length: 12 }, (_, i) => at(1 + i / 6)),
-    at(30),
-    at(31),
-    at(32),
-    at(20 * 24),
-  ];
-  for (const [i, t] of times.entries()) {
-    const id = `burst-${i}`;
-    await ctx.db.query(
-      `insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, 'PvP', 'pvp')`,
-      [id, t],
-    );
-    await ctx.db.query(
-      `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class)
-       values ($1, $2, 0, $3, 'PvP', 'pvp')`,
-      [id, tag, t],
-    );
-  }
-  await stampBurst(ctx.db, tag, asOf);
-  const { rows } = await ctx.db.query(
-    `select burst_bph, burst_at from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
-    [tag],
-  );
-  assert.equal(Number(rows[0].burst_bph), 2, "12 in a 6h window / 6 = 2 bph");
-  assert.equal(rows[0].burst_at.toISOString(), asOf);
-  // Bounded by the scheduler at 0.5 x 30 / 2 x 60 = 450 minutes.
+  assert.equal(clock[0].empty_streak, 0, "battles delivered: streak 0");
 });
 
 test("SQS redelivery is a duplicate: no second receipt, no double ingest", async () => {
@@ -1178,4 +1135,66 @@ test("last_success_at is owned by admission: rejections, fetch errors, and re-de
     new Date(await success()) > new Date(t1),
     "a content-identical refetch is a real, successful fetch",
   );
+});
+
+test("the session clock: empty reads count up, a delivering read resets and primes the profile once", async () => {
+  const file = "player_battlelog/with_boat_and_duel.json";
+  const observer = meta[file].entity_key;
+  // The fixture's battles are already in the record from the tests above
+  // and sit under the high-water mark; move them to the last hour so
+  // they are new battles of the same shape.
+  const compact = (ms) => new Date(ms).toISOString().replace(/[-:]/g, "");
+  const base = await fixture(file);
+  const payload = structuredClone(base).map((b, i) => ({
+    ...b,
+    battleTime: compact(Date.now() - 50 * 60_000 + i * 60_000),
+  }));
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog'), ($1, 'player')
+     on conflict do nothing`,
+    [observer],
+  );
+  const send = (p, at) =>
+    processResult(
+      ctx.db,
+      message({
+        endpoint: "player_battlelog",
+        entityKey: observer,
+        payload: p,
+        fetchedAt: at,
+      }),
+    );
+  const streak = async () =>
+    (
+      await ctx.db.query(
+        `select empty_streak from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+        [observer],
+      )
+    ).rows[0].empty_streak;
+  const asked = async () =>
+    (
+      await ctx.db.query(
+        `select refresh_requested_at from poll_state where subject_tag = $1 and endpoint = 'player'`,
+        [observer],
+      )
+    ).rows[0].refresh_requested_at;
+  // Two empty reads (an empty array is admitted and delivers nothing).
+  const t0 = Date.now() - 3600_000;
+  const at = (min) => new Date(t0 + min * 60_000).toISOString();
+  await send([], at(0));
+  assert.equal(await streak(), 1);
+  await send([], at(30));
+  assert.equal(await streak(), 2);
+  assert.equal(await asked(), null, "nothing delivered, nothing asked");
+  // A read that delivers battles: streak 0, profile asked once.
+  const r = await send(payload, at(60));
+  assert.equal(r.outcome, "admitted");
+  assert.equal(await streak(), 0);
+  assert.equal(r.projection.profileRefreshAfterSession, true);
+  assert.equal((await asked()).toISOString(), at(60));
+  // The same battles again: admitted, nothing new, streak 1; the profile
+  // request stands (debounced: still outstanding).
+  await send(payload, at(90));
+  assert.equal(await streak(), 1);
+  assert.equal((await asked()).toISOString(), at(60));
 });

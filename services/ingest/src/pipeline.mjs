@@ -70,33 +70,6 @@ function subjectTag(endpoint, entityKey) {
  *  identity accretion as before, plus the board itself and the
  *  presence rows that make a top-N appearance a recording reason. */
 
-/** Window and lookback are the scheduler's LOG_CAPACITY / LOSS_SAFETY
- *  counterpart: max battles in any 6h window over the trailing 14 days,
- *  as a per-hour rate. One indexed read of the player's recent battles
- *  (battle_participant_player_time), a window count, one row update. */
-const BURST_WINDOW_HOURS = 6;
-const BURST_LOOKBACK_DAYS = 14;
-
-export async function stampBurst(db, playerTag, asOf) {
-  await db.query(
-    `update poll_state ps
-       set burst_bph = b.bph, burst_at = $2::timestamptz
-     from (
-       select coalesce(max(n), 0) / ${BURST_WINDOW_HOURS}.0 as bph
-       from (
-         select count(*) over (
-                  order by battle_time
-                  range between interval '${BURST_WINDOW_HOURS} hours' preceding
-                            and current row) as n
-         from battle_participant
-         where player_tag = $1
-           and battle_time > $2::timestamptz - interval '${BURST_LOOKBACK_DAYS} days'
-           and battle_time <= $2::timestamptz) w) b
-     where ps.subject_tag = $1 and ps.endpoint = 'player_battlelog'`,
-    [playerTag, asOf],
-  );
-}
-
 /**
  * Ask for a profile the battle stream says is stale (0101). The observer's
  * own battles named an arena (see observerArena in battles.mjs for what
@@ -135,6 +108,26 @@ async function requestProfileRefresh(
   return rowCount > 0;
 }
 
+/** A profile is read once a day and once after a session (2026-09-19,
+ *  the session clock): a battle log that delivered battles asks for the
+ *  profile when the last profile admission is more than
+ *  SESSION_PROFILE_DEBOUNCE_HOURS old and no request is outstanding.
+ *  The planner serves it as it serves 0101's arena request: owed now. */
+export const SESSION_PROFILE_DEBOUNCE_HOURS = 8;
+
+async function requestProfileAfterSession(db, playerTag, fetchedAt) {
+  const { rowCount } = await db.query(
+    `update poll_state ps set refresh_requested_at = $2::timestamptz
+      where ps.subject_tag = $1 and ps.endpoint = 'player'
+        and coalesce(ps.last_admitted_at, 'epoch')
+              < $2::timestamptz - make_interval(hours => $3)
+        and (ps.refresh_requested_at is null
+             or ps.refresh_requested_at <= coalesce(ps.last_admitted_at, 'epoch'))`,
+    [normalizeTag(playerTag), fetchedAt, SESSION_PROFILE_DEBOUNCE_HOURS],
+  );
+  return rowCount > 0;
+}
+
 const PROJECTORS = {
   async player_battlelog(
     db,
@@ -165,10 +158,26 @@ const PROJECTORS = {
         [receiptId, entityKey, result.captureAudit.gap, fetchedAt],
       );
     }
-    // Burst signal (0061): the fastest this player recently filled the
-    // log, from battle TIMESTAMPS, so an overflowed poll still teaches
-    // the true rate. Same replay guard as the yield signal below.
-    if (fresh) await stampBurst(db, entityKey, fetchedAt);
+    // The session clock (2026-09-19): how many reads in a row found
+    // nothing. Zero after a read that delivered battles; the planner's
+    // wait is 30 min x 2^streak up to the ceiling. Replayed history is
+    // not a read of the present, so it never touches the clock.
+    if (fresh) {
+      await db.query(
+        `update poll_state
+            set empty_streak = case when $2::int > 0 then 0
+                                    else coalesce(empty_streak, 0) + 1 end
+          where subject_tag = $1 and endpoint = 'player_battlelog'`,
+        [entityKey, result.battlesInserted],
+      );
+      // A session asks for the profile once (debounced to eight hours).
+      if (result.battlesInserted > 0)
+        result.profileRefreshAfterSession = await requestProfileAfterSession(
+          db,
+          entityKey,
+          fetchedAt,
+        );
+    }
     // The observer's battles named an arena (0101): if the snapshot does
     // not know it yet, the profile is owed a read now, not in eight hours.
     if (fresh && result.arenaEvidence) {
@@ -187,8 +196,9 @@ const PROJECTORS = {
         fetchedAt,
       });
     }
-    // Yield signal (0017): battles-per-hour EWMA, the one activity
-    // number the yield scheduler ranks by. Hours are measured from the
+    // Yield signal (0017): battles-per-hour EWMA. Since the session clock
+    // (2026-09-19) no cadence reads it; the planner still ranks eligible
+    // work by it under a starved budget. Hours are measured from the
     // last admission; replayed history is excluded (backfill guard).
     if (fresh) {
       await db.query(

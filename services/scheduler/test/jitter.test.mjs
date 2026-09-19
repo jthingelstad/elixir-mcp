@@ -89,47 +89,23 @@ test("a cohort de-phases progressively, not just once", () => {
 });
 
 /**
- * The profile cadence has to read activity from where activity is recorded.
- *
- * ingest writes yield_bph to the player_battlelog row and nowhere else, so
- * the 'player' row's own column is NULL forever. Every branch below the first
- * was therefore unreachable and dormant profiles polled every 8h instead of
- * every 72h -- about 9x the intended rate, in lockstep.
+ * The profile cadence once read activity borrowed from the battlelog row
+ * (2026-09-08), and for a day the borrow was inert. Since the session
+ * clock (2026-09-19) there is nothing to borrow: the day is the cadence.
  */
 import { yieldCadenceMinutes } from "../src/plan.mjs";
 
-test("a dormant player's profile stretches instead of polling every 8h", () => {
-  const dormant = { endpoint: "player", yield_bph: null, activity_bph: 0 };
-  assert.equal(yieldCadenceMinutes(dormant), 4320);
-});
-
-test("an active player's profile tightens (to 8h, not 2h: the snapshot is daily)", () => {
-  assert.equal(
-    yieldCadenceMinutes({
-      endpoint: "player",
-      yield_bph: null,
-      activity_bph: 2,
-    }),
-    480,
-  );
-  assert.equal(
-    yieldCadenceMinutes({
-      endpoint: "player",
-      yield_bph: null,
-      activity_bph: 0.1,
-    }),
-    1440,
-  );
-});
-
-test("a genuinely unknown player still starts at the discovery cadence", () => {
-  // No battlelog row yet: 480m is discovery, not dormancy, and must survive.
-  assert.equal(
-    yieldCadenceMinutes({
-      endpoint: "player",
-      yield_bph: null,
-      activity_bph: null,
-    }),
-    480,
-  );
+test("a profile row's cadence reads nothing from the battlelog row: the day, for everyone (2026-09-19)", () => {
+  // The activity borrow (2026-09-08) and its branches retired with the
+  // session clock; what remains is that no profile row can drift from
+  // the day by the state of a different row.
+  for (const activity of [0, 2, 0.1, null])
+    assert.equal(
+      yieldCadenceMinutes({
+        endpoint: "player",
+        yield_bph: null,
+        activity_bph: activity,
+      }),
+      1440,
+    );
 });

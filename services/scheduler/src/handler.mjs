@@ -30,7 +30,7 @@ export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
       try {
         const pending = emitMetrics(stats, {
           planned: result.jobs.length,
-          bounded: result.bounded,
+          followup: result.followup,
           read_capped: result.readCapped,
           requested: result.requested,
           not_found_held: result.notFoundHeld,

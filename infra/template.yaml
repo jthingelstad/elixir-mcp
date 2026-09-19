@@ -706,9 +706,7 @@ Resources:
           # Call capture is on when this is set (services/mcp/src/capture.mjs).
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           # The Status page's "work waiting" gauge re-runs the scheduler's
-          # eligibility query, so it must see the same A/B arm and know the
-          # tick cadence. Keep ELIXIR_LOSS_BOUND identical to the scheduler's.
-          ELIXIR_LOSS_BOUND: half
+          # eligibility query, so it must know the tick cadence.
           SCHEDULER_TICK_MINUTES: !Ref SchedulerTickMinutes
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
           # Consent honours the site session and mints one (0083). Same
@@ -741,10 +739,6 @@ Resources:
       Environment:
         Variables:
           # Loss-aware battlelog bound A/B arm (docs/FETCH-LOOP-AUDIT-2026-09-09.md):
-          # off | half | all. `half` = the stable hash-selected half of subjects;
-          # promote to `all` once ab_yield shows the treated arm's gap rate under
-          # 1.5% of polls against the control arm over the same clock hours.
-          ELIXIR_LOSS_BOUND: half
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
 
   SchedulerRule:
@@ -2302,10 +2296,10 @@ Resources:
                   ],
                   [
                     "ElixirMCP/Ledger",
-                    "LossBoundedJobs",
+                    "SessionFollowupJobs",
                     {
                       "stat": "Sum",
-                      "label": "loss bounded",
+                      "label": "session follow-ups",
                       "yAxis": "right"
                     }
                   ],

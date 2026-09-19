@@ -34,11 +34,12 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
             { Name: "OldestQueuedAgeSeconds", Unit: "Seconds" },
             { Name: "DeadJobs", Unit: "Count" },
             { Name: "QueuedJobs", Unit: "Count" },
-            // Planner counters (2026-09-09): what the tick planned, and how
-            // many of those were due ONLY because of the loss-aware bound
-            // or the reader cap. The proof that a bound is doing work.
+            // Planner counters: what the tick planned; how many battlelog
+            // reads were the session clock's 30-minute follow-up (the
+            // player was playing at the last read; 2026-09-19); how many
+            // were due ONLY because of the reader cap.
             { Name: "PlannedJobs", Unit: "Count" },
-            { Name: "LossBoundedJobs", Unit: "Count" },
+            { Name: "SessionFollowupJobs", Unit: "Count" },
             { Name: "ReadCappedJobs", Unit: "Count" },
             { Name: "RequestedProfileJobs", Unit: "Count" },
             // Subjects held back because the API's last word was 404
@@ -60,7 +61,7 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
     DeadJobs: stats.dead ?? 0,
     QueuedJobs: (stats.queued_bulk ?? 0) + (stats.queued_live ?? 0),
     PlannedJobs: plan.planned ?? 0,
-    LossBoundedJobs: plan.bounded ?? 0,
+    SessionFollowupJobs: plan.followup ?? 0,
     ReadCappedJobs: plan.read_capped ?? 0,
     RequestedProfileJobs: plan.requested ?? 0,
     NotFoundHeld: plan.not_found_held ?? 0,

@@ -9,15 +9,12 @@ import {
   planTick,
   CADENCE,
   yieldCadenceMinutes,
-  lossBoundMinutes,
-  inLossBoundArm,
-  jitterFactor,
-  LOSS_SAFETY,
-  LOG_CAPACITY,
+  sessionWaitMinutes,
   READ_CAP_MINUTES,
+  SESSION_CEILING_MINUTES,
+  SESSION_FOLLOWUP_MINUTES,
   eligibleNow,
   queueSummary,
-  rosterGated,
 } from "../src/plan.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -396,7 +393,7 @@ test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", a
   );
 });
 
-test("a requested profile refresh (0101) is owed now: past the roster gate, ahead of the cadence, once", async () => {
+test("a requested profile refresh (0101) is owed now: ahead of the cadence, once", async () => {
   await freshenCards(NOW);
   await db.query(
     `insert into clan (clan_tag) values ('#G8Q2LPY') on conflict do nothing`,
@@ -407,10 +404,9 @@ test("a requested profile refresh (0101) is owed now: past the roster gate, ahea
      values ('clan', '#G8Q2LPY', $1, 'comprehensive')`,
     [accountId],
   );
-  // The profile was polled two hours ago (nowhere near eight), and the
-  // tracked roster, fresher than that poll, says the player was last seen
-  // before it: the gate would hold this row. Then ingest saw their own
-  // battles name an arena the snapshot lacks, twenty minutes ago.
+  // The profile was polled two hours ago (nowhere near a day). Then
+  // ingest saw their own battles name an arena the snapshot lacks,
+  // twenty minutes ago.
   await setState("#G8U2L9", "player_battlelog", {
     yieldBph: 5,
     admitted: min(5),
@@ -430,7 +426,7 @@ test("a requested profile refresh (0101) is owed now: past the roster gate, ahea
   assert.deepEqual(
     quiet.jobs.filter((j) => j.entity_key === "#G8U2L9"),
     [],
-    "without a request the profile waits: gated, and not due",
+    "without a request the profile waits: not due",
   );
   assert.equal(quiet.requested, 0);
 
@@ -448,10 +444,9 @@ test("a requested profile refresh (0101) is owed now: past the roster gate, ahea
   assert.deepEqual(
     asked.jobs.filter((j) => j.entity_key === "#G8U2L9").map((j) => j.endpoint),
     ["player"],
-    "the request is a floor: gate and cadence step aside",
+    "the request is a floor: the cadence steps aside",
   );
   assert.equal(asked.requested, 1);
-  assert.equal(asked.gated, 0, "a requested row is not counted as gated");
 
   // In flight: planned just now, not re-enqueued.
   await setTokens(100);
@@ -472,162 +467,183 @@ test("a requested profile refresh (0101) is owed now: past the roster gate, ahea
   assert.equal(served.requested, 0);
 });
 
-test("the roster gate saves idle profiles but never suppresses a battle log", async () => {
+/** setState with the session clock's streak. */
+async function setClock(tag, { streak, admitted, planned, read = null }) {
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, empty_streak, last_admitted_at, last_planned_at, last_read_at)
+     values ($1, 'player_battlelog', $2, $3, $4, $5)
+     on conflict (subject_tag, endpoint) do update set
+       empty_streak = excluded.empty_streak, last_admitted_at = excluded.last_admitted_at,
+       last_planned_at = excluded.last_planned_at, last_read_at = excluded.last_read_at`,
+    [tag, streak, admitted, planned, read],
+  );
+}
+
+test("the session clock: a tracked and an incidental player walked through a session and a cool-down", async () => {
   await freshenCards(NOW);
   await db.query(
-    `insert into clan (clan_tag) values ('#G8Q2LPY') on conflict do nothing`,
+    `insert into clan (clan_tag) values ('#G8Q2LPY'), ('#8C9LQPY') on conflict do nothing`,
   );
+  // Tracked: a member of a comprehensively recorded clan. Incidental: a
+  // recorded player whose clan nobody tracks. The clock is the same for
+  // both - the roster never gates a battle log (2026-09-12) and the
+  // session clock reads nothing but the row's own streak.
   await addPlayer("#G8U2L9", { clan: "#G8Q2LPY" });
-  // The gate needs a TRACKED clan (2026-09-12): its roster is read every
-  // 15-60 min while members play, so "idle since" is a claim about the
-  // last hour, not the last day.
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, scope)
      values ('clan', '#G8Q2LPY', $1, 'comprehensive')`,
     [accountId],
   );
-  // Both rows are DUE on their own cadence: the battlelog (5/h -> hourly)
-  // was polled three hours ago, the profile (eight hours once a roster is
-  // fresh) ten hours ago. The roster, admitted ten minutes ago, says the
-  // player was last seen twelve hours ago. That is enough to skip a profile,
-  // but not a rotating battle log: an unseen completed session can have
-  // filled it before lastSeen is observed again.
-  await setState("#G8U2L9", "player_battlelog", {
-    yieldBph: 5,
-    admitted: min(180),
-    planned: min(180),
-  });
-  await setState("#G8U2L9", "player", {
-    admitted: min(600),
-    planned: min(600),
-  });
-  await setState("#G8Q2LPY", "clan", { admitted: min(10), planned: min(10) });
-  await db.query(
-    `update player set game_last_seen_at = $2 where player_tag = $1`,
-    ["#G8U2L9", min(720)],
-  );
-  await setTokens(100);
-  const idle = await planTick(db, NOW);
-  assert.deepEqual(
-    idle.jobs.filter((j) => j.entity_key === "#G8U2L9").map((j) => j.endpoint),
-    ["player_battlelog"],
-    "an idle roster cannot suppress capture",
-  );
-  assert.equal(idle.gated, 1, "only the profile row was gated");
+  await addPlayer("#8C9LQ2U", { clan: "#8C9LQPY" });
+  await setState("#G8Q2LPY", "clan", { admitted: min(5), planned: min(5) });
+  await setState("#8C9LQPY", "clan", { admitted: min(5), planned: min(5) });
+  // Park the profiles: read an hour ago, nothing owed.
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setState(tag, "player", { admitted: min(60), planned: min(60) });
 
-  // Seen an hour ago - after both polls: the profile becomes eligible too.
-  await setState("#G8U2L9", "player_battlelog", {
-    yieldBph: 5,
-    admitted: min(180),
-    planned: min(180),
-  });
-  await db.query(
-    `update player set game_last_seen_at = $2 where player_tag = $1`,
-    ["#G8U2L9", min(60)],
-  );
-  await setTokens(100);
-  const active = await planTick(db, NOW);
+  const battlelogs = async () => {
+    await setTokens(100);
+    const r = await planTick(db, NOW);
+    return r.jobs
+      .filter((j) => j.endpoint === "player_battlelog")
+      .map((j) => j.entity_key)
+      .sort();
+  };
+  // Playing (streak 0): read 20 minutes ago - not yet; 35 minutes ago - due
+  // (jitter is +/-15% of 30 min, so 35 clears it for every hash).
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setClock(tag, { streak: 0, admitted: min(20), planned: min(20) });
+  assert.deepEqual(await battlelogs(), []);
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setClock(tag, { streak: 0, admitted: min(35), planned: min(35) });
+  const playing = await planTick(db, NOW);
   assert.deepEqual(
-    active.jobs
-      .filter((j) => j.entity_key === "#G8U2L9")
-      .map((j) => j.endpoint)
+    playing.jobs
+      .filter((j) => j.endpoint === "player_battlelog")
+      .map((j) => j.entity_key)
       .sort(),
-    ["player", "player_battlelog"],
+    ["#8C9LQ2U", "#G8U2L9"],
   );
+  assert.equal(playing.followup, 2, "both reads are session follow-ups");
 
-  // A roster OLDER than the last profile poll knows nothing about it, even
-  // with an ancient sighting.
-  assert.equal(
-    rosterGated(
-      {
-        endpoint: "player",
-        roster_tracked: true,
-        roster_admitted_at: min(720),
-        game_last_seen_at: min(720),
-        last_admitted_at: min(600),
-      },
-      NOW,
-    ),
-    false,
-    "an old roster cannot vouch for an unchanged profile",
-  );
-
-  // The same fresh, idle-since roster from an INCIDENTAL clan (no clan
-  // recording) gates no profile: read every 4-24 h, it cannot stand in for
-  // a fresh player observation.
-  await db.query(
-    `delete from recording where subject_type = 'clan' and subject_tag = '#G8Q2LPY'`,
-  );
-  await setState("#G8U2L9", "player_battlelog", {
-    yieldBph: 5,
-    admitted: min(180),
-    planned: min(180),
-  });
-  await setState("#G8U2L9", "player", {
-    admitted: min(600),
-    planned: min(600),
-  });
-  await setState("#G8Q2LPY", "clan", { admitted: min(10), planned: min(10) });
-  await setTokens(100);
-  const incidental = await planTick(db, NOW);
+  // Cooling down: one empty read -> 60 min; two -> 120 (the ceiling);
+  // ten -> still the ceiling. 50 minutes is not enough at streak 1, 70
+  // is; 100 is not enough at streak 2, 140 is.
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setClock(tag, { streak: 1, admitted: min(50), planned: min(50) });
+  assert.deepEqual(await battlelogs(), []);
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setClock(tag, { streak: 1, admitted: min(70), planned: min(70) });
+  assert.deepEqual(await battlelogs(), ["#8C9LQ2U", "#G8U2L9"]);
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setClock(tag, { streak: 2, admitted: min(100), planned: min(100) });
+  assert.deepEqual(await battlelogs(), []);
+  for (const tag of ["#G8U2L9", "#8C9LQ2U"])
+    await setClock(tag, { streak: 10, admitted: min(140), planned: min(140) });
+  const cooled = await planTick(db, NOW);
   assert.deepEqual(
-    incidental.jobs
-      .filter((j) => j.entity_key === "#G8U2L9")
-      .map((j) => j.endpoint)
+    cooled.jobs
+      .filter((j) => j.endpoint === "player_battlelog")
+      .map((j) => j.entity_key)
       .sort(),
-    ["player", "player_battlelog"],
-    "an incidental clan's roster never gates",
+    ["#8C9LQ2U", "#G8U2L9"],
+    "no streak takes a player past the ceiling",
   );
-  assert.equal(incidental.gated, 0, "nothing gated without a tracked roster");
+  assert.equal(cooled.followup, 0, "a ceiling read is not a follow-up");
+
+  // A reader asked about the incidental player: the cap makes an hourly
+  // read due even at the ceiling.
+  await setClock("#8C9LQ2U", {
+    streak: 10,
+    admitted: min(70),
+    planned: min(70),
+    read: min(10),
+  });
+  await setClock("#G8U2L9", {
+    streak: 10,
+    admitted: min(70),
+    planned: min(70),
+  });
+  const asked = await planTick(db, NOW);
+  assert.deepEqual(
+    asked.jobs
+      .filter((j) => j.endpoint === "player_battlelog")
+      .map((j) => j.entity_key),
+    ["#8C9LQ2U"],
+  );
+  assert.equal(asked.readCapped, 1);
+
+  // A row never stamped waits one follow-up: discovery, not dormancy.
+  await setClock("#G8U2L9", {
+    streak: null,
+    admitted: min(35),
+    planned: min(35),
+  });
+  await setClock("#8C9LQ2U", {
+    streak: null,
+    admitted: min(20),
+    planned: min(20),
+  });
+  assert.deepEqual(await battlelogs(), ["#G8U2L9"]);
 });
 
-test("profiles have no dormant floor; with a fresh roster the cadence is a flat eight hours", async () => {
+test("profiles are read once a day, eight hours when directly tracked, and now after a session", async () => {
   await freshenCards(NOW);
   await db.query(
     `insert into clan (clan_tag) values ('#R9YQ0LP') on conflict do nothing`,
   );
   await addPlayer("#R9YQ0L2", { clan: "#R9YQ0LP" });
-  // Dormant, no roster information: the 3-day bucket, and NOT starved at 2 days.
-  await setState("#R9YQ0L2", "player_battlelog", {
-    yieldBph: 0.01,
-    admitted: min(2 * 1440),
-    planned: min(2 * 1440),
+  await setClock("#R9YQ0L2", {
+    streak: 3,
+    admitted: min(30),
+    planned: min(30),
   });
+  const profile = async () => {
+    await setTokens(100);
+    const r = await planTick(db, NOW);
+    return r.jobs.some(
+      (j) => j.entity_key === "#R9YQ0L2" && j.endpoint === "player",
+    );
+  };
+  // Twenty hours: not yet (jitter can reach 1.15 x 1440 = 1,656 min, so
+  // the due case is set at 1,700).
   await setState("#R9YQ0L2", "player", {
-    admitted: min(2 * 1440),
-    planned: min(2 * 1440),
+    admitted: min(20 * 60),
+    planned: min(20 * 60),
   });
-  await setTokens(100);
-  const r = await planTick(db, NOW);
-  assert.ok(
-    !r.jobs.some((j) => j.entity_key === "#R9YQ0L2" && j.endpoint === "player"),
-    "two days without a floor: the dormant bucket has not elapsed",
-  );
-  // With a fresh roster saying the player was active since: eight hours.
-  await setState("#R9YQ0LP", "clan", { admitted: min(5), planned: min(5) });
-  await db.query(
-    `update player set game_last_seen_at = $2 where player_tag = $1`,
-    ["#R9YQ0L2", min(30)],
-  );
+  assert.equal(await profile(), false, "a day has not passed");
   await setState("#R9YQ0L2", "player", {
-    admitted: min(600),
-    planned: min(600),
+    admitted: min(1700),
+    planned: min(1700),
   });
-  await setTokens(100);
-  const r2 = await planTick(db, NOW);
-  assert.ok(
-    r2.jobs.some((j) => j.entity_key === "#R9YQ0L2" && j.endpoint === "player"),
-    "ten hours since the last profile, active since: due",
+  assert.equal(await profile(), true, "a day has passed");
+  assert.equal(
+    yieldCadenceMinutes({ endpoint: "player", yield_bph: 5 }),
+    1440,
+    "no activity branch: the day is the cadence for everyone",
   );
   assert.equal(
-    yieldCadenceMinutes({
-      endpoint: "player",
-      yield_bph: 0.01,
-      roster_admitted_at: min(5),
-      last_admitted_at: min(600),
-    }),
+    yieldCadenceMinutes({ endpoint: "player", directly_tracked: true }),
     480,
   );
+  // After a session (ingest stamped the request 10 minutes ago, the last
+  // admission before it): owed now, at two hours since the last read.
+  await setState("#R9YQ0L2", "player", {
+    admitted: min(120),
+    planned: min(120),
+  });
+  await db.query(
+    `update poll_state set refresh_requested_at = $2 where subject_tag = $1 and endpoint = 'player'`,
+    ["#R9YQ0L2", min(10)],
+  );
+  await setTokens(100);
+  const primed = await planTick(db, NOW);
+  assert.ok(
+    primed.jobs.some(
+      (j) => j.entity_key === "#R9YQ0L2" && j.endpoint === "player",
+    ),
+  );
+  assert.equal(primed.requested, 1);
 });
 
 test("a season's final board is fetched once: due while we do not hold it, never again after", async () => {
@@ -767,35 +783,35 @@ test("clan recording: heartbeat, riverrace capture, and every open member polled
   );
 });
 
-test("yield cadence: harvest-target battlelog, stretched profiles, hinted war days", () => {
+test("cadence: the session clock for battle logs, the day for profiles, hinted war days", () => {
   const c = (row) => yieldCadenceMinutes(row);
-  // Battlelog: poll when ~5 battles are expected.
-  assert.equal(c({ endpoint: "player_battlelog", yield_bph: null }), 60);
-  assert.equal(c({ endpoint: "player_battlelog", yield_bph: 0.01 }), 1440);
-  assert.equal(c({ endpoint: "player_battlelog", yield_bph: 20 }), 15);
+  // Battlelog: 30 x 2^streak, never past the ceiling; a row never stamped
+  // waits one follow-up. The yield signal is not read.
+  assert.equal(c({ endpoint: "player_battlelog", empty_streak: null }), 30);
+  assert.equal(c({ endpoint: "player_battlelog", empty_streak: 0 }), 30);
+  assert.equal(c({ endpoint: "player_battlelog", empty_streak: 1 }), 60);
+  assert.equal(c({ endpoint: "player_battlelog", empty_streak: 2 }), 120);
+  assert.equal(c({ endpoint: "player_battlelog", empty_streak: 3 }), 120);
+  assert.equal(c({ endpoint: "player_battlelog", empty_streak: 40 }), 120);
   assert.equal(
-    Math.round(c({ endpoint: "player_battlelog", yield_bph: 1 })),
-    300,
-  );
-  // Profiles ride the same signal. Active players take 480, not 120: the
-  // projection is a daily snapshot and the 120m branch was 70% of profile
-  // spend (2026-09-09 audit).
-  assert.equal(c({ endpoint: "player", yield_bph: 0.005 }), 4320);
-  assert.equal(c({ endpoint: "player", yield_bph: 2 }), 480);
-  assert.equal(c({ endpoint: "player", yield_bph: 0.2 }), 1440);
-  assert.equal(c({ endpoint: "player", yield_bph: null }), 480);
-  // The borrowed battlelog signal wins over the profile row's own NULL.
-  assert.equal(
-    c({ endpoint: "player", yield_bph: null, activity_bph: 0.01 }),
-    4320,
+    c({ endpoint: "player_battlelog", empty_streak: 9, yield_bph: 20 }),
+    120,
+    "a grinder's yield buys no shorter wait: the streak is the signal",
   );
   assert.equal(
-    c({
-      endpoint: "player",
-      yield_bph: null,
-      activity_bph: 0.01,
-      directly_tracked: true,
-    }),
+    sessionWaitMinutes({ empty_streak: 0 }),
+    SESSION_FOLLOWUP_MINUTES,
+  );
+  assert.equal(
+    sessionWaitMinutes({ empty_streak: 99 }),
+    SESSION_CEILING_MINUTES,
+  );
+  // Profiles: the day, whatever the activity; eight hours when tracked.
+  assert.equal(c({ endpoint: "player", yield_bph: 0.005 }), 1440);
+  assert.equal(c({ endpoint: "player", yield_bph: 2 }), 1440);
+  assert.equal(c({ endpoint: "player", yield_bph: null }), 1440);
+  assert.equal(
+    c({ endpoint: "player", yield_bph: null, directly_tracked: true }),
     480,
     "a directly tracked player's profile has an eight-hour nominal cap",
   );
@@ -923,174 +939,49 @@ test("clan scope: 'activity' records the clan only; upgrade re-seeds members", a
 // ---------------------------------------------------------------- 0061
 // Production shapes from docs/FETCH-LOOP-AUDIT-2026-09-09.md, pinned.
 
-test("loss-aware bound: the grinder shape, its TTL, and the NULL fallback", () => {
+test("reader cap: a friend on the ceiling polls hourly for a day after a read", () => {
   const c = (row) => yieldCadenceMinutes(row, NOW);
-  // #9U9QY99RY: 30 battles in 1.8h = 16.7 bph, while the EWMA (which only
-  // ever sees 30 / interval) reads 3 bph and would wait 100 minutes.
-  const grinder = {
-    endpoint: "player_battlelog",
-    yield_bph: 3,
-    burst_bph: 16.7,
-    burst_at: min(30),
-  };
-  assert.equal(Math.round(c({ ...grinder, burst_bph: null })), 100);
-  assert.equal(Math.round(c(grinder)), 54);
-  assert.equal(
-    Math.round(lossBoundMinutes(grinder, NOW)),
-    Math.round(((LOSS_SAFETY * LOG_CAPACITY) / 16.7) * 60),
-  );
-  // A burst older than 14 days no longer bounds anything.
-  assert.equal(Math.round(c({ ...grinder, burst_at: min(15 * 1440) })), 100);
-  // A slow player's burst never tightens below the rule (horizon 300h).
-  assert.equal(c({ ...grinder, yield_bph: 0.1, burst_bph: 0.1 }), 1440);
-  // The floor holds: 60 bph would want 15m from the bound too.
-  assert.equal(c({ ...grinder, burst_bph: 60 }), 15);
-  // The bound is a battlelog rule; profiles ignore it.
-  assert.equal(c({ ...grinder, endpoint: "player", activity_bph: 3 }), 480);
-});
-
-test("reader cap: a low-activity friend polls hourly for a day after a read", () => {
-  const c = (row) => yieldCadenceMinutes(row, NOW);
-  // King Levy's shape: 3 battles/day -> 0.125 bph -> the 24h clamp, and
-  // 23h stale at read time on 2026-09-09.
-  const friend = { endpoint: "player_battlelog", yield_bph: 0.125 };
-  assert.equal(c(friend), 1440);
+  const friend = { endpoint: "player_battlelog", empty_streak: 5 };
+  assert.equal(c(friend), SESSION_CEILING_MINUTES);
   assert.equal(c({ ...friend, last_read_at: min(120) }), READ_CAP_MINUTES);
-  assert.equal(c({ ...friend, last_read_at: min(25 * 60) }), 1440);
-  // A cap never loosens a grinder's own tighter cadence.
   assert.equal(
-    c({ endpoint: "player_battlelog", yield_bph: 20, last_read_at: min(1) }),
-    15,
+    c({ ...friend, last_read_at: min(25 * 60) }),
+    SESSION_CEILING_MINUTES,
+  );
+  // A cap never loosens a session follow-up.
+  assert.equal(
+    c({ endpoint: "player_battlelog", empty_streak: 0, last_read_at: min(1) }),
+    30,
   );
 });
 
-test("the A/B arm is a stable hash split of about half the population", () => {
-  const tags = Array.from({ length: 400 }, (_, i) => `#ARM${i.toString(36)}`);
-  const treated = tags.filter((t) => inLossBoundArm(t, "half"));
-  assert.ok(
-    treated.length > 160 && treated.length < 240,
-    `half arm holds ${treated.length} of 400`,
-  );
-  for (const t of tags)
-    assert.equal(
-      inLossBoundArm(t, "half"),
-      jitterFactor(t, "player_battlelog") < 1,
-      "the arm IS the jitter phase, so ab_yield can split receipts identically",
-    );
-  assert.ok(tags.every((t) => inLossBoundArm(t, "all")));
-  assert.ok(tags.every((t) => !inLossBoundArm(t, "off")));
-  assert.ok(tags.every((t) => !inLossBoundArm(t, undefined)));
-});
-
-async function stampSignals(tag, { burst, burstAt, readAt } = {}) {
+async function stampRead(tag, readAt) {
   await db.query(
-    `update poll_state set burst_bph = $2, burst_at = $3, last_read_at = $4
+    `update poll_state set last_read_at = $2
      where subject_tag = $1 and endpoint = 'player_battlelog'`,
-    [tag, burst ?? null, burstAt ?? null, readAt ?? null],
+    [tag, readAt ?? null],
   );
 }
-
-test("the loss bound makes a treated grinder due and leaves the control twin alone", async () => {
-  await freshenCards(NOW);
-  const tags = ["#G2RJ2L", "#G2RJ2P", "#G2RJ2Q", "#G2RJ2Y"]; // sorted
-  for (const t of tags) {
-    await addPlayer(t);
-    // EWMA 3 bph -> 100m rule; last polled 70m ago: not due unbounded
-    // (jitter floor 85m), due under the 54m bound (jitter ceiling 62m).
-    await setState(t, "player_battlelog", {
-      yieldBph: 3,
-      admitted: min(70),
-      planned: min(70),
-    });
-    await setState(t, "player", { admitted: min(1), planned: min(1) });
-    await stampSignals(t, { burst: 16.7, burstAt: min(10) });
-  }
-  await setTokens(100);
-  const off = await planTick(db, NOW, { arm: "off" });
-  assert.deepEqual(off.jobs, [], "control: nobody is due at 70 minutes");
-  assert.equal(off.bounded, 0);
-
-  await setTokens(100);
-  const all = await planTick(db, NOW, { arm: "all" });
-  assert.deepEqual(
-    all.jobs.map((j) => j.entity_key).sort(),
-    tags,
-    "treated: every grinder is due under the bound",
-  );
-  assert.equal(all.bounded, 4, "and each one is attributed to the bound");
-
-  // Reset planning stamps and prove the half arm is exactly the hash split.
-  for (const t of tags)
-    await setState(t, "player_battlelog", {
-      yieldBph: 3,
-      admitted: min(70),
-      planned: min(70),
-    });
-  for (const t of tags)
-    await stampSignals(t, { burst: 16.7, burstAt: min(10) });
-  await setTokens(100);
-  const half = await planTick(db, NOW, { arm: "half" });
-  assert.deepEqual(
-    half.jobs.map((j) => j.entity_key).sort(),
-    tags.filter((t) => inLossBoundArm(t, "half")).sort(),
-  );
-});
 
 test("a read within the day makes a clamped friend due; an older read does not", async () => {
   await freshenCards(NOW);
   await addPlayer("#L2VY9P");
   await addPlayer("#L2VY9Y");
   for (const t of ["#L2VY9P", "#L2VY9Y"]) {
-    await setState(t, "player_battlelog", {
-      yieldBph: 0.125,
-      admitted: min(180),
-      planned: min(180),
-    });
+    // On the ceiling (two hours; jitter floor 102 min), polled 90 min ago.
+    await setClock(t, { streak: 5, admitted: min(90), planned: min(90) });
     await setState(t, "player", { admitted: min(1), planned: min(1) });
   }
-  await stampSignals("#L2VY9P", { readAt: min(60) });
-  await stampSignals("#L2VY9Y", { readAt: min(25 * 60) });
+  await stampRead("#L2VY9P", min(60));
+  await stampRead("#L2VY9Y", min(25 * 60));
   await setTokens(100);
-  const { jobs, readCapped } = await planTick(db, NOW, { arm: "off" });
+  const { jobs, readCapped } = await planTick(db, NOW);
   assert.deepEqual(
     jobs.map((j) => j.entity_key),
     ["#L2VY9P"],
-    "read an hour ago: polled; read yesterday: still on the clamp",
+    "read an hour ago: polled; read yesterday: still on the ceiling",
   );
   assert.equal(readCapped, 1);
-});
-
-test("the profile row really borrows the battlelog signal now", async () => {
-  await freshenCards(NOW);
-  await addPlayer("#R0Y8UU");
-  await addPlayer("#R0Y8VV");
-  // Dormant: battlelog says 0.01 bph -> profile every 72h; polled 10h ago
-  // it must NOT be due (it was, under the inert borrow: 480m).
-  await setState("#R0Y8UU", "player_battlelog", {
-    yieldBph: 0.01,
-    admitted: min(1),
-    planned: min(1),
-  });
-  await setState("#R0Y8UU", "player", {
-    admitted: min(600),
-    planned: min(600),
-  });
-  // Active: 1 bph -> 480m; polled 9h ago it is due, 7h ago it is not.
-  await setState("#R0Y8VV", "player_battlelog", {
-    yieldBph: 1,
-    admitted: min(1),
-    planned: min(1),
-  });
-  await setState("#R0Y8VV", "player", {
-    admitted: min(540),
-    planned: min(540),
-  });
-  await setTokens(100);
-  const { jobs } = await planTick(db, NOW, { arm: "off" });
-  assert.deepEqual(
-    jobs.map((j) => `${j.endpoint}:${j.entity_key}`),
-    ["player:#R0Y8VV"],
-  );
 });
 
 test("eligibleNow reports what the next tick would plan without planning it", async () => {

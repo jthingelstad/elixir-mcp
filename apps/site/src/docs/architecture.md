@@ -203,53 +203,35 @@ The official API is current-state only: a player's battle log holds
 roughly the last 30 battles and nothing older. Recording therefore means
 fetching often enough that no battle rolls off the log before a collector
 has seen it, while the whole fleet stays inside one shared, conservative
-API budget. The scheduler decides who is fetched when, from four rules
-that only ever shorten each other:
+API budget. For players the scheduler runs **the session clock**
+(September 2026), one rule that replaced a per-player pace estimate, a
+burst bound and a roster gate once a week of measurement showed them to
+sit on the same cost-against-loss curve:
 
-- **Observed yield sets the base cadence.** Each recorded player carries
-  an exponentially-weighted average of battles-per-hour actually
-  harvested. The battle log is fetched when about five new battles are
-  expected, clamped between 15 minutes and 24 hours, so an active player
-  is polled tightly and a dormant one falls to daily on its own. A
-  newly added player starts at an hourly discovery cadence.
-- **A loss-aware bound stops bursts from rolling off.** Yield learns
-  from what a poll harvested, which is exactly what an overflowed log
-  hides: a poll that returns 30 unseen battles after six hours reads as
-  five an hour when the player may have played sixty. So at every
-  admission the recorder also measures, from the battle timestamps
-  themselves, the fastest this player has recently filled the log (the
-  busiest six-hour window of the last 14 days), and polls before half
-  that time has passed. A grinder who fills the log in two hours is
-  fetched every hour for as long as that pace stays in their recent
-  history; everyone else is unaffected.
+- **Thirty minutes while playing, doubling to a two-hour ceiling when
+  not.** A battle is about three minutes and the API's log holds 30, so
+  a sitting fills it in about 90 minutes. A battle-log read that
+  delivered battles is followed by another in 30 minutes; after a read
+  that found nothing the wait doubles, and never passes two hours. The
+  recorder measured its own loss against the game's lifetime battle
+  counter before choosing the ceiling: about 4% of all battles, nearly
+  all from long sittings that began inside a long wait, and the two-hour
+  ceiling was the setting that ended it.
 - **A reader cap keeps the players you ask about fresh.** Asking about a
   player through any tool marks that player as read, and their battle
-  log then stays within an hour for the next day. Without this, a
-  friend who plays a few games a day sits on the daily floor and can be
-  a day stale precisely when you look. Reading costs nothing beyond the
-  call itself; the extra fetches are a small, bounded slice of the
-  budget.
+  log then stays within an hour for the next day, wherever the clock
+  stands.
 - **A fairness floor guarantees no battle log is forgotten.** Whatever
-  the signals say, every recorded player's battle log is fetched at
-  least daily.
-- **The roster is the activity sensor.** A clan roster carries the
-  game's own `lastSeen` for every member in one small fetch. When a
-  tracked clan's roster (read every 15 to 60 minutes while members
-  play) is fresher than a member's last poll and shows they have not
-  been in the game since it, that battle-log or profile poll is
-  skipped: it would only return what the record already holds. A
-  sighting younger than two hours never gates, so a session in
-  progress is always followed. An incidental clan's roster is read
-  every 4 to 24 hours and never gates: in the gate's first day those
-  rosters held back the polls of players who then played a whole
-  25-battle session before the roster noticed, and capture gaps went
-  from 0.1% to 1.5%.
+  the clock says, every recorded player's battle log is fetched at
+  least daily, even under a starved budget.
 
-Profiles are polled less often than battle logs - every eight hours
-once the roster shows a player active, with no floor for the idle,
-because the record keeps one snapshot per day and an idle player owes
-it none; the one time-critical profile read, the pre-reset capture of
-the weekly donation counter, is forced separately. Clan rosters follow the clan's own day — every 15
+Profiles are read once a day, because the record keeps one snapshot per
+game day, and once after a session: a battle log that delivered battles
+asks for the profile unless one was read in the last eight hours. The
+one time-critical profile read, the pre-reset capture of the weekly
+donation counter, is forced separately. The
+[Efficiency](/status/efficiency) page publishes what the schedule costs
+and what it loses, per day. Clan rosters follow the clan's own day — every 15
 minutes while members of a tracked clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
 and a few times a day for a clan read only because a recorded player is

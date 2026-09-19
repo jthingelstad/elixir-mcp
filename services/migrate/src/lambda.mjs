@@ -55,12 +55,7 @@ import {
   vacuum,
   pollStateOp,
 } from "./ops-diagnostics.mjs";
-import {
-  abYield,
-  auditCensus,
-  argsCensus,
-  pollReplay,
-} from "./ops-analysis.mjs";
+import { auditCensus, argsCensus, pollReplay } from "./ops-analysis.mjs";
 import {
   feedbackPending,
   feedbackRead,
@@ -216,11 +211,6 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.gateway_provision,
     );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.ab_yield) {
-    const result = await abYield(process.env.DATABASE_URL, event.ab_yield);
     console.log(JSON.stringify(result));
     return result;
   }

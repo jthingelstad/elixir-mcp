@@ -2,7 +2,6 @@ import { ledgerStats } from "../../../scheduler/src/ledger.mjs";
 import {
   eligibleNow,
   queueSummary,
-  lossBoundArm,
   BUCKET_CAP_SECONDS,
 } from "../../../scheduler/src/plan.mjs";
 
@@ -206,9 +205,7 @@ export function publicRoutes({ queueStats }) {
       );
       let due = null;
       try {
-        due = queueSummary(
-          await eligibleNow(db, new Date(nowMs), lossBoundArm()),
-        );
+        due = queueSummary(await eligibleNow(db, new Date(nowMs)));
       } catch (err) {
         console.error("status_queue_failed", err?.message);
       }
