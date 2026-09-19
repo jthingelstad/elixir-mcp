@@ -5,9 +5,10 @@ whether the premise of Pilot Score is holding up now that the corpus is
 large, and for recommendations with data-science rigor. The one code change
 this review made is the read-only migrate op `pilot_pairs` (019d9dc), which
 exports the exact scored population so the deeper checks below can be run
-off-line; its deploy was blocked in this session (production deploy denied
-by the session's permission mode), so everything here was measured through
-the public tools and the read-only ops that already exist.
+off-line. It was deployed later the same day and the export analysed in
+[2026-09-19-PILOT-SCORE-EVOLUTION.md](2026-09-19-PILOT-SCORE-EVOLUTION.md),
+which carries the proposal; everything in THIS document was measured
+through the public tools and the read-only ops that already existed.
 
 **The premise under test.** `pilot_score = actual win rate − mean(level-bin
 win rate)`: a player's win rate minus what the corpus Level Curve says a
