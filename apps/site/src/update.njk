@@ -13,7 +13,7 @@ navActive: updates
 eleventyComputed:
   title: "{{ u.title }}"
   canonical: "/updates/{{ u.slug }}"
-  description: "{{ u.body | clamp(150) }}"
+  description: "{{ u.body | firstParagraph | clamp(150) }}"
 ---
 {#-
   One update, on its own page (2026-09-10). Both halves of the stream land

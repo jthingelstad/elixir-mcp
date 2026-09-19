@@ -19,7 +19,7 @@ eleventyExcludeFromCollections: true
       <link>{{ site.url }}/updates#{{ u.date }}-{{ loop.index }}</link>
       <guid isPermaLink="false">{{ site.url }}/updates#{{ u.date }}-{{ loop.index }}</guid>
       <pubDate>{{ u.date | rfc822 }}</pubDate>
-      <description>{{ u.body | esc }}</description>
+      <description>{{ u.body | md }}</description>
     </item>
     {%- endfor %}
   </channel>

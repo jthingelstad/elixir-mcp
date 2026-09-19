@@ -77,7 +77,7 @@ navActive: updates
           summary runs to a thousand words and the index is for finding
           the one you want. -#}
       <div class="panel__body">
-        <p style="color: var(--ink-body); margin: 0 0 10px; line-height: 1.65; text-wrap: pretty">{{ u.body | clamp(260) }}</p>
+        <p style="color: var(--ink-body); margin: 0 0 10px; line-height: 1.65; text-wrap: pretty">{{ u.body | firstParagraph | clamp(260) }}</p>
         <a href="/updates/{{ u.slug }}" style="font-size: 13.5px">Read it ›</a>
       </div>
     </article>
