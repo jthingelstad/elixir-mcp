@@ -9,7 +9,7 @@
  * and the profile that finally said so at 14:27Z. Reproduced against the
  * real pipeline on a scratch database.
  */
-import { test, before, after } from "node:test";
+import { test, before, after, mock } from "node:test";
 import assert from "node:assert/strict";
 import { playerEvents } from "./event-rows.mjs";
 import { gzipSync } from "node:zlib";
@@ -118,17 +118,20 @@ async function events(type) {
   ]);
 }
 
-// Fresh enough for the activity signals: the guard is 24h from now, and
-// the scenario has to be a real morning with real gaps between polls.
-// The day is today's UTC date from 06:00Z (the scenario's first poll is
-// 06:07Z, so yesterday's would be older than the guard by then) and
-// yesterday's before it; twelve hours back put the first poll outside
-// the guard every day between 06:07Z and noon.
-const day = new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 10);
+// Fresh enough for the activity signals: the pipeline's guard is 24h
+// from ITS clock, and the scenario runs 01:00Z to 14:27Z of one day.
+// Any anchor derived from the wall clock fails somewhere in the day
+// (twelve hours back failed 06:39Z-12:00Z, six hours back moved the
+// window to 01:00Z-06:00Z), so the JS clock is frozen at 15:00Z of the
+// scenario's day for the whole file: every poll is 0.5-14 hours old
+// whenever the test runs. Only Date is mocked; timers and SQL now()
+// (stamps, never compared with a poll) keep the real clock.
+const day = new Date().toISOString().slice(0, 10);
 const at = (hhmmss) => `${day}T${hhmmss}Z`;
 const logAt = (hhmmss) => `${day.replaceAll("-", "")}T${hhmmss}.000Z`;
 
 before(async () => {
+  mock.timers.enable({ apis: ["Date"], now: new Date(`${day}T15:00:00Z`) });
   ctx = await scratchDb("profile_refresh");
   const {
     rows: [account],
@@ -164,7 +167,10 @@ before(async () => {
   );
 });
 
-after(async () => ctx.drop());
+after(async () => {
+  mock.timers.reset();
+  await ctx.drop();
+});
 
 test("a profile in the old arena, then a log whose only new-arena battle was as the lower side: nothing asked", async () => {
   const first = await processResult(
