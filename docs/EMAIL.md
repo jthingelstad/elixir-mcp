@@ -298,6 +298,42 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
   to come.
 - Seven EventBridge rules; 0137 + 0138.
 
+## Send ids and the record (2026-09-19)
+
+Jamie, from the first milestone mail: "is there an email identifier we
+could put into the footer so we can match a sent email in our logs; it
+would be cool to see a list of emails sent to me like my MCP calls and
+submit feedback from one." Built the same day, contract 4.2.0:
+
+- `email_send.send_id` (0139) is the row's identity, minted in
+  `deliver` BEFORE the render so the footer carries it ("This email is
+  <id>"); the queue message carries `send_id` and the relay logs one
+  `mail_sent <kind> <send_id> <issue_key> <ses message id>` line per
+  product send, never the recipient. A force re-send is its own row.
+- The rendered mail is archived to the bucket under
+  `mail/sent/dt=<day>/send_id=<id>.json.gz` (`archive.mjs`, the calls/
+  split: S3 the body, `archived` the pointer), written before the
+  enqueue; a failed write logs and sends anyway.
+- Web: `GET /api/me/email/sends` and `/api/me/email/sends/<id>` (own
+  sends only; the body comes back with the pixel stripped, so the
+  console never counts as an open). Console: Activity → Emails, the
+  record at `/account/activity/e/<id>` in a sandboxed no-script frame,
+  and "Report a problem with this email" which files feedback with
+  `feedback.send_id` (a column, like `request_id`; the queue shows the
+  kind and subject beside the report).
+- The footer links the LIST, not the record: the id is a per-recipient
+  identifier, and `/docs/email` promises none travels in a tagged link.
+- Badge names: the API's identifiers read as code in mail
+  (`MasterySkeletonWarriors`), so `services/mcp/src/badge-names.mjs`
+  serves the badge as a player says it beside the identifier everywhere
+  (timeline `badge_label`, tool `label`, the mails' text).
+- Incident, same day: the 09-18 pixel commit passed `period` to
+  `deliver` without destructuring it, so every product send from that
+  deploy until this one threw `period is not defined` (milestone hourly,
+  the Friday sends; `email_compose_failed` in the jobs log, no alarm
+  because the run itself succeeded). The deliver test now renders a
+  real send.
+
 ## Open
 
 - The Top 100 masthead name (subjects are generated; the name is a string;

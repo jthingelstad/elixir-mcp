@@ -111,6 +111,10 @@ export interface EmailMessage {
   html?: string;
   /** product kinds: the ledger row this send fulfils, for the log line. */
   issue_key?: string;
+  /** product kinds: the send's own id (email_send.send_id, 0139), printed
+   *  in the mail's footer and logged by the relay beside the transport's
+   *  message id, so one sent email can be found from either end. */
+  send_id?: string;
   /** login: the 6-digit code. */
   code?: string;
   /** login: the magic token for the link. */

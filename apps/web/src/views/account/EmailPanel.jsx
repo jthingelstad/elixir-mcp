@@ -18,7 +18,7 @@ const BLURB = {
 
 /** The six product emails, each a switch, each with a way to see it now.
  *  Absent preference means on; the switch writes only a change. */
-export function EmailPanel() {
+export function EmailPanel({ navigate }) {
   const { data, isLoading } = useEmailPrefs();
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(null);
@@ -149,6 +149,10 @@ export function EmailPanel() {
                 `${r.subject ?? r.kind} (${new Date(r.sent_at).toLocaleDateString()})`,
             )
             .join(" · ")}
+          {" · "}
+          <a onClick={() => navigate?.("/account/activity/emails")}>
+            Every email sent to you ›
+          </a>
         </div>
       )}
     </section>

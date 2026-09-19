@@ -12,7 +12,7 @@ export function feedbackRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at, shipped_in, request_id
+                response, responded_at, created_at, shipped_in, request_id, send_id
          from feedback where account_id = $1
          order by feedback_id desc limit 50`,
         [account.accountId],
@@ -43,9 +43,14 @@ export function feedbackRoutes({
       const requestId = UUID_RE.test(String(body.request_id ?? ""))
         ? String(body.request_id)
         : null;
+      // The email this is about, the same way (0139): the console's
+      // email record links here with its send id.
+      const sendId = UUID_RE.test(String(body.send_id ?? ""))
+        ? String(body.send_id)
+        : null;
       const { rows: filed } = await db.query(
-        `insert into feedback (account_id, surface, category, message, context, request_id)
-         values ($1, 'web', $2, $3, $4, $5) returning feedback_id`,
+        `insert into feedback (account_id, surface, category, message, context, request_id, send_id)
+         values ($1, 'web', $2, $3, $4, $5, $6) returning feedback_id`,
         [
           account.accountId,
           category,
@@ -54,6 +59,7 @@ export function feedbackRoutes({
             ? JSON.stringify({ context: String(body.context) })
             : null,
           requestId,
+          sendId,
         ],
       );
       await ping("site.feedback", category);
@@ -83,6 +89,11 @@ export function feedbackRoutes({
       const { rows } = await db.query(
         `select f.feedback_id, f.surface, f.category, f.message, f.context,
                 f.status, f.response, f.responded_at, f.created_at, f.request_id,
+                f.send_id,
+                (select s.kind from email_send es join email_issue s on s.issue_id = es.issue_id
+                 where es.send_id = f.send_id) as send_kind,
+                (select coalesce(es.subject, s.subject_line) from email_send es join email_issue s on s.issue_id = es.issue_id
+                 where es.send_id = f.send_id) as send_subject,
                 (select c.player_tag from claim c
                  where c.account_id = f.account_id and c.is_primary) as from_player
          from feedback f order by f.feedback_id desc limit 100`,

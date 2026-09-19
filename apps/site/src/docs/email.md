@@ -77,6 +77,18 @@ one-click link for that kind; mail clients that support one-click
 unsubscribe show it as their own button. Turning a kind off is
 immediate and yours to reverse.
 
+## Every email, on the record
+
+Every email Elixir sends you has its own id, printed in its footer
+("This email is …"). [Activity → Emails](/account/activity/emails)
+lists every product email sent to your account, newest first, the way
+MCP requests lists every call; open one to see the mail as it went out
+and to **report a problem with this email**, which files feedback with
+that email attached so nobody has to describe it. Quote the id and we
+can find the one send you mean in our logs. Reading your own record is
+never counted as an open (the image below is stripped before it is
+shown). Sign-in codes are not listed.
+
 ## What the mail counts
 
 Two things, both through [Tinylytics](https://tinylytics.app), the same
@@ -89,7 +101,8 @@ against it, and Tinylytics says so itself. Links into the site carry a
 own numbers can say which mail brought people to which page. There is no
 redirector: a link goes where it says. The one-click *turn off* link
 carries no tag. Nothing counted is tied to you: no per-recipient
-identifier travels in either the image or the links.
+identifier travels in either the image or the links; the email's own id
+is printed in the footer as text and never in a link.
 
 Names are links into Browse, where the record is; tags appear only where
 a name alone could be ambiguous. Nothing in a report is advice.

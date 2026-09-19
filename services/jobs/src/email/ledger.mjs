@@ -44,10 +44,22 @@ export async function alreadySent(db, issueId, accountId) {
   return rows.length > 0;
 }
 
-export async function recordSend(db, issueId, accountId) {
+/** The send row carries the send's own id and subject (0139) so the
+ *  console can list what was sent without opening the archive, and
+ *  `archived` says whether the body landed there. `at` is the row's
+ *  enqueued_at, the archive key's day. A re-send under force (the
+ *  account page's "send me this now") is a NEW row: the primary key is
+ *  the send id, and (issue, account) is what alreadySent reads. */
+export async function recordSend(
+  db,
+  issueId,
+  accountId,
+  { sendId, subject = null, archived = false, at = new Date() } = {},
+) {
   await db.query(
-    `insert into email_send (issue_id, account_id) values ($1, $2)
+    `insert into email_send (send_id, issue_id, account_id, subject, archived, enqueued_at)
+     values ($1, $2, $3, $4, $5, $6)
      on conflict do nothing`,
-    [issueId, accountId],
+    [sendId, issueId, accountId, subject, archived, at],
   );
 }

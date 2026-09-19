@@ -53,13 +53,24 @@ export function makeHandler({ send, track = null, enroll = null }) {
             // The mail policy's other half: a bulk kind (none exist yet)
             // gets its one-click headers here; a transactional kind gets
             // none. The contract already refused the mismatches.
-            await send({
+            const out = await send({
               to: validated.msg.to,
               subject,
               text,
               html,
               headers: unsubscribeHeaders(validated.msg),
             });
+            // The one line that ties a sent product email to the
+            // transport: the send id the footer shows, the issue it
+            // fulfils, the message id SES assigned. Never the recipient.
+            if (validated.msg.send_id)
+              console.log(
+                "mail_sent",
+                validated.msg.kind,
+                validated.msg.send_id,
+                validated.msg.issue_key ?? "",
+                out?.message_id ?? "",
+              );
             // Mailing list: enrollment rides a login send, but only
             // when the ACCOUNT opted in — the enqueuing VPC Lambda has
             // the database and stamps msg.newsletter (issue #27).

@@ -351,6 +351,14 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/calls/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              # Sent product mail (0139): the console's email record
+              # reads one body at a time; the account page's "send me
+              # this now" composes in-process and archives its own send.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub
+                  - ${Arn}/mail/sent/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
@@ -1872,6 +1880,36 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # A product email that failed to compose for one account
+  # (email_compose_failed in the jobs log): the run itself succeeds, so
+  # the Lambda Errors alarm never sees it. 2026-09-19: every product send
+  # since the 09-18 evening deploy had thrown in the renderer for a day
+  # with nothing paging. One failure is worth a look.
+  EmailComposeFailedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref JobsLogGroup
+      FilterPattern: '"email_compose_failed"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Email
+          MetricName: ComposeFailed
+          MetricValue: "1"
+          DefaultValue: 0
+  EmailComposeFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-email-compose-failed
+      AlarmDescription: A product email failed to compose for an account (email_compose_failed in the jobs log); the run succeeded, the send did not
+      Namespace: ElixirMCP/Email
+      MetricName: ComposeFailed
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
   # A war-typed battle in the last seven days outside every war_period
   # row (the diagnostics probe's UNRESOLVED bucket, emitted hourly by the
   # meta rollup job): the scheduler's season upsert failed and the war
@@ -2080,7 +2118,7 @@ Resources:
               "width": 24,
               "height": 4,
               "properties": {
-                "title": "Elixir MCP alarms (17; the ops queue gets every state change)",
+                "title": "Elixir MCP alarms (18; the ops queue gets every state change)",
                 "alarms": [
                   "${DlqAlarmEmail.Arn}",
                   "${JobsErrorsAlarm.Arn}",
@@ -2089,6 +2127,7 @@ Resources:
                   "${LedgerDeadJobsAlarm.Arn}",
                   "${SeasonMismatchAlarm.Arn}",
                   "${WarUnresolvedAlarm.Arn}",
+                  "${EmailComposeFailedAlarm.Arn}",
                   "${SchedulerErrorsAlarm.Arn}",
                   "${SchedulerMissingAlarm.Arn}",
                   "${McpErrorsAlarm.Arn}",

@@ -29,6 +29,8 @@ export const keys = {
   gateways: ["me", "gateways"],
   sessions: ["me", "sessions"],
   email: ["me", "email"],
+  emailSends: ["me", "email", "sends"],
+  emailRecord: (id) => ["me", "email", "sends", id],
   connections: ["me", "connections"],
   principals: ["me", "principals"],
   collections: ["me", "collections"],
@@ -61,6 +63,22 @@ export const useUsage = () =>
 
 export const useEmailPrefs = () =>
   useQuery({ queryKey: keys.email, queryFn: payload(api.emailPrefs) });
+
+export const useMyEmailSends = (enabled = true) =>
+  useQuery({
+    queryKey: keys.emailSends,
+    queryFn: payload(api.myEmailSends),
+    enabled,
+  });
+
+/** An email record branches on the status like a call record (404 is
+ *  "not one of yours"), so it keeps the envelope. */
+export const useEmailRecord = (id) =>
+  useQuery({
+    queryKey: keys.emailRecord(id),
+    queryFn: answered(() => api.emailRecord(id)),
+    enabled: Boolean(id),
+  });
 
 export const useMyClans = () =>
   useQuery({ queryKey: keys.clans, queryFn: payload(api.myClans) });

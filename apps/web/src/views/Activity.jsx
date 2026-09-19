@@ -1,24 +1,28 @@
 import { LogTable } from "@elixir-mcp/ui";
 import {
   useActivityEvents,
+  useMyEmailSends,
   useMyTimeline,
   useMyRequests,
 } from "../lib/queries.js";
 
 /**
- * Activity's three views: the timeline, MCP requests, account events.
+ * Activity's four views: the timeline, MCP requests, emails, account
+ * events.
  *
- * They are rail sub-pages, and all three are the SAME table with
+ * They are rail sub-pages, and all four are the SAME table with
  * different columns — see components/LogTable.jsx. Activity lands on the
  * Timeline, which is what your connections read (elixir_timeline) and the
  * thing a reader opening Activity is usually asking about: what happened.
  *
  * Naming here follows the product, not the schema: mcp_call_audit is
- * "MCP requests", account_event is "account events".
+ * "MCP requests", email_send is "Emails", account_event is "account
+ * events".
  */
 const BY_SUB = {
   timeline: "timeline",
   requests: "requests",
+  emails: "emails",
   events: "events",
 };
 
@@ -39,6 +43,7 @@ export function Activity({ sub, navigate }) {
   // Each tab loads only its own read, and a tab already read is served
   // from the cache when you come back to it.
   const requests = useMyRequests(view === "requests").data?.requests ?? null;
+  const sends = useMyEmailSends(view === "emails").data?.sends ?? null;
   const events = useActivityEvents(view === "events").data?.events ?? null;
   const timeline = useMyTimeline(view === "timeline").data ?? null;
 
@@ -91,6 +96,46 @@ export function Activity({ sub, navigate }) {
         ]}
         empty="No calls yet. A connection appears here the first time it reads."
         footnote="mcp_call_audit — every tool call your connections and this site's explorer made, last 200. REQUEST is the id the caller was handed in meta.request_id; open it for the request, the response and where the time went."
+      />
+    );
+  }
+
+  if (view === "emails") {
+    // Every product email sent to this account, the way MCP requests
+    // lists every call: the id opens the record (the mail as sent),
+    // and the record is where "report a problem with this email" lives.
+    const rows = (sends ?? []).map((m) => [
+      when(m.sent_at),
+      m.label ?? m.kind,
+      {
+        text: m.subject ?? "—",
+        title: m.subject ?? "",
+        onClick: () => navigate?.(`/account/activity/e/${m.send_id}`),
+      },
+      m.archived ? "kept" : { text: "not kept", tone: "warn" },
+      {
+        text: m.send_id.slice(0, 8),
+        title: m.send_id,
+        onClick: () => navigate?.(`/account/activity/e/${m.send_id}`),
+      },
+    ]);
+    return (
+      <LogTable
+        crumb="Activity"
+        title="Emails"
+        note="Every email Elixir sent you, newest first. Open one to see it as it was sent, or to report a problem with it."
+        cols={[
+          ["WHEN", "left"],
+          ["KIND", "left"],
+          ["SUBJECT", "left"],
+          ["BODY", "left"],
+          ["EMAIL", "left"],
+        ]}
+        rows={rows}
+        monoCols={[0, 4]}
+        filters={[{ key: "kind", label: "Kind", col: 1 }]}
+        empty="Nothing sent yet. The switches on your Profile say which emails you get; each arrives here as it is sent."
+        footnote="email_send — every product email queued for your address, last 200. EMAIL is the id printed in the mail's footer; open it for the mail as it was sent and to report a problem with it. Sign-in codes are not listed."
       />
     );
   }

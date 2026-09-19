@@ -1,5 +1,6 @@
 import { Activity } from "./Activity.jsx";
 import { CallRecord } from "./account/CallRecord.jsx";
+import { EmailRecord } from "./account/EmailRecord.jsx";
 
 import { Overview } from "./account/Overview.jsx";
 import { Tracking } from "./account/Tracking.jsx";
@@ -26,6 +27,8 @@ export function Dashboard({
   if (page === "activity")
     return itemId === "c" ? (
       <CallRecord id={recordId} navigate={navigate} />
+    ) : itemId === "e" ? (
+      <EmailRecord id={recordId} navigate={navigate} />
     ) : (
       <Activity sub={sub} navigate={navigate} />
     );

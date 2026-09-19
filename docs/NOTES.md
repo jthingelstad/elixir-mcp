@@ -5072,3 +5072,66 @@ canonical deploy and public read-back passed, feedback backlog 0; another
 actor committed unpushed 031ffb0 onto the checkout under the loop lease,
 so that run did not append or push its receipt. Its owner has since
 pushed; nothing left to recover.
+
+## 2026-09-19 — Badges by their names; every sent email has an id and a record (contract 4.2.0); the Friday sends had all failed
+
+Jamie, from the first milestone mail on his phone: the subject read "You
+earned MasterySkeletonWarriors (level 5)", which looks like code, and
+"is there an email identifier we could put into the footer so we can
+match a sent email in our logs? It would be cool to see a list of emails
+sent to me just like my MCP calls and submit a feedback item directly
+from the details of that email — a new section in Activity."
+
+**Decided and built.**
+
+- **Badge labels beside identifiers, never instead.** The CR API names a
+  badge by Supercell's internal identifier and carries no display name
+  (only an icon), so `services/mcp/src/badge-names.mjs` says the badge
+  the way a player does and every surface serves it BESIDE the name:
+  `facts.badge_label` on timeline badge items (the text now reads "took
+  Guards Mastery to level 5" / "earned Beating Death"), `label` on
+  `players_profile.badges[]`, `badges_rarity` and `badges_holders`, and
+  the milestone, tracking and clan mails' text. `name`/`badge` stay the
+  identifier: `badges_holders` matches on it and the milestone ledger
+  keys on it. Mastery badges resolve the card's internal codename
+  (`SkeletonWarriors` is Guards, `AxeMan` is Executioner,
+  `RageBarbarian` is Lumberjack, `DartBarrell` is Flying Machine)
+  against the community card data (RoyaleAPI cr-api-data `sc_key`,
+  checked today); three codenames the data does not carry are inferred
+  by elimination against the catalog and marked so in the module
+  (`GiantBuffer` Rune Giant, `DarkMagic` Void, `MergeMaiden` Spirit
+  Empress). Dated badges say the month; `_v2` and a trailing `Badge`
+  are dropped. Additive, 4.2.0.
+- **Every product send has its own id** (`email_send.send_id`, 0139,
+  now the row's primary key; `(issue, account)` stays the idempotency
+  index). Minted in `deliver` before the render, so the footer reads
+  "This email is <id>"; the queue message carries it and the relay logs
+  `mail_sent <kind> <send_id> <issue_key> <ses message id>` (never the
+  recipient). The rendered mail is archived to the bucket under
+  `mail/sent/` before the enqueue (the calls/ split; a failed write
+  logs and sends anyway; the web-api role gained the prefix).
+- **Activity → Emails**, the fourth view: every product email sent to
+  the account, newest first; the record at `/account/activity/e/<id>`
+  shows the mail as sent in a sandboxed no-script frame with the pixel
+  stripped server-side (reading your own record is not an open), and
+  "Report a problem with this email" files feedback with
+  `feedback.send_id` (a column, 0066's argument again; the admin queue
+  shows kind and subject beside it). The Profile panel's recent list
+  links there.
+- **The footer links the list, not the record.** `/docs/email` promises
+  no per-recipient identifier travels in the image or the links; a send
+  id is one. So the id is text and the link is `/account/activity/emails`,
+  where the newest send is the top row.
+
+**Incident, found on the way.** The 09-18 pixel commit (41cf73e) passed
+`period` into `links` in `deliver.mjs` without destructuring it:
+`ReferenceError: period is not defined` on every product send since
+that deploy — the Friday arena/tracking/clan sends and every hourly
+milestone pass (`email_compose_failed` in the jobs log; no alarm,
+because the invocation itself succeeded and the failure is per-account
+inside the run). Fixed here with a deliver test that renders a real
+send; the held milestones go out with the next hourly pass (the ledger
+records a moment only after a send, so nothing was lost inside the
+26-hour lookback). And a metric filter on `email_compose_failed` with
+an alarm (`elixir-mcp-email-compose-failed`), so a per-account failure
+pages like a run failure does.

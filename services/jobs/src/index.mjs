@@ -233,6 +233,17 @@ async function enqueueEmail(msg) {
   );
 }
 
+/** The archive bucket store every send's body goes to (email/archive.mjs);
+ *  null without a bucket, which archives nothing and sends anyway. */
+let mailArchive;
+async function mailArchiveStore() {
+  if (mailArchive !== undefined) return mailArchive;
+  const bucket = process.env.ARCHIVE_BUCKET;
+  if (!bucket) return (mailArchive = null);
+  const { S3Client } = await import("@aws-sdk/client-s3");
+  return (mailArchive = { s3: new S3Client({}), bucket });
+}
+
 export async function handler(event) {
   if (typeof event?.email === "string") {
     const result = await runEmail({
@@ -243,6 +254,7 @@ export async function handler(event) {
       force: Boolean(event.force),
       enqueue: enqueueEmail,
       secret: process.env.SESSION_SECRET,
+      archive: await mailArchiveStore(),
     });
     console.log(JSON.stringify({ email: result }));
     return result;

@@ -89,6 +89,28 @@ test("links.pixel false renders tagged links without the open pixel (the public 
   assert.ok(html.includes("utm_campaign=top_100-2026-W37"));
 });
 
+test("links.send_id puts the send's id and its console link in the footer; a page render has neither", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
+  );
+  const id = "3f2a9c1b-0000-4000-8000-000000000001";
+  const { html } = renderMail("milestone", facts, { ...links, send_id: id });
+  assert.ok(html.includes(`This email is <span`));
+  assert.ok(html.includes(id));
+  // The list is linked and tagged; the id itself is never in a link
+  // (a per-recipient identifier must not travel in a tagged link).
+  assert.ok(
+    html.includes(
+      "https://elixir.poapkings.com/account/activity/emails?utm_source=email",
+    ),
+  );
+  assert.ok(!/href="[^"]*3f2a9c1b/.test(html));
+  const text = htmlToText(html);
+  assert.ok(text.includes(id), "the text alternative carries the id too");
+  const page = renderMail("milestone", facts, links).html;
+  assert.ok(!page.includes("This email is <span"));
+});
+
 test("tagLink leaves foreign URLs alone and keeps an existing query string", async () => {
   const { tagLink } = await import("../src/index.mjs");
   assert.equal(

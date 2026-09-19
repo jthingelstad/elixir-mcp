@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-19",
+    title: "Badges by their names, and every email on the record",
+    body: "A milestone mail read 'You earned MasterySkeletonWarriors (level 5)', which is the game's internal name for the Guards Mastery badge; the API carries no display name for a badge, only an icon. Every surface that says a badge now says it the way a player would: the timeline's text and its badge_label, the milestone and tracking mails, players_profile, badges_rarity and badges_holders (label beside the identifier). Every email Elixir sends you now has its own id, printed in the footer and logged where it was sent, and Activity has an Emails view: every product email sent to your account, newest first, each opening the mail as it went out, with a report-a-problem button that files feedback with the email attached. Reading your own record is never counted as an open. Also fixed: every product email since the 09-18 evening deploy had failed to compose (the campaign period never reached the renderer); the held milestones go out with the next hourly pass. Contract 4.2.0.",
+  },
+  {
+    date: "2026-09-19",
     title: "Three guards moved onto the number they guard",
     body: "An agent re-ran every 3.13.0 fix and found all of them holding, then found three places where the guard sat beside the field that needed it. A weekly row's trophy_battles counted only the ladder games the game reported a trophy delta for, so a player parked on an arena floor (where a loss costs nothing and reports nothing) showed fewer games than they played and a better record than they had; trophy_mode_battles now sits beside it as the count of ladder and Path of Legends games played, the docs name both, and a note says which weeks differ. The monthly pilot-score trend warned about the first population change it found and said nothing about a later one, even an arena crossing; it now lists every step under population_changes and names them all. And battles_decks called its denominator the battles in the window when duels were silently outside it; excluded now itemizes them and the numbers reconcile with battles_performance. Contract 4.1.0.",
   },

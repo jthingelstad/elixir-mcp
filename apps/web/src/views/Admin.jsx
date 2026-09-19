@@ -1040,6 +1040,22 @@ function AdminFeedbackItem({ id, navigate }) {
           <Markdown text={item.message} />
         </div>
         {item.request_id && <AttachedCall requestId={item.request_id} />}
+        {item.send_id && (
+          // The email a report is about (0139): the kind and subject
+          // from the ledger; the filer's own record has the body.
+          <div
+            className="panel__body"
+            style={{ borderTop: "1px solid var(--line-soft)" }}
+          >
+            <div className="mono text-[11px] text-ink-faint mb-[6px]">
+              THE EMAIL · {item.send_id}
+            </div>
+            <p className="m-0 text-[13px]">
+              {item.send_kind ? `${item.send_kind} · ` : ""}
+              {item.send_subject ?? "no longer in the ledger"}
+            </p>
+          </div>
+        )}
         {item.context && (
           <div
             className="panel__body"

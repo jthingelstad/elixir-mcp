@@ -3,6 +3,10 @@
  *  GET  /api/me/email          the six switches (absent row = on)
  *  PUT  /api/me/email          {kind, enabled}
  *  POST /api/me/email/send     {kind}: compose this kind for me, now
+ *  GET  /api/me/email/sends    every product email sent to me, newest
+ *       first (the Activity page's Emails view)
+ *  GET  /api/me/email/sends/<send_id>  one of them with its archived
+ *       body, the pixel stripped (a look at the record is not an open)
  *  GET  /api/email/unsubscribe?t=  a page with a button (no session:
  *       the token is the credential; a GET never changes state, because
  *       link scanners prefetch)
@@ -15,7 +19,8 @@
 import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
 import { verifyUnsubscribe, KIND_LABELS } from "@elixir-mcp/mail";
 import { runEmail } from "../../../jobs/src/email/index.mjs";
-import { json } from "../http.mjs";
+import { readSentMail } from "../../../jobs/src/email/archive.mjs";
+import { json, UUID_RE } from "../http.mjs";
 
 const SITE = "https://elixir.poapkings.com";
 
@@ -64,11 +69,37 @@ async function setPref(db, accountId, kind, enabled, via) {
     .catch(() => {});
 }
 
+/** The Tinylytics pixel, removed from an archived body before the
+ *  console shows it: opens are counted per mail, and a person reading
+ *  their own record is not an open. */
+function stripPixel(html) {
+  return String(html ?? "").replace(
+    /<img[^>]+tinylytics\.app\/pixel\/[^>]*>/g,
+    "",
+  );
+}
+
+const SENDS_SQL = `select s.send_id, s.issue_id, s.enqueued_at, s.archived,
+         coalesce(s.subject, i.subject_line) as subject,
+         i.kind, i.period_key, i.status
+    from email_send s join email_issue i on i.issue_id = s.issue_id`;
+
+const sendRow = (r) => ({
+  send_id: r.send_id,
+  kind: r.kind,
+  label: KIND_LABELS[r.kind] ?? r.kind,
+  subject: r.subject,
+  period: r.period_key,
+  sent_at: r.enqueued_at,
+  archived: r.archived,
+});
+
 export function emailRoutes({
   resolveAccount,
   secret,
   enqueueEmail,
   databaseUrl,
+  archive = null,
 }) {
   const claim = (event) => {
     const t = event.queryStringParameters?.t ?? "";
@@ -87,8 +118,7 @@ export function emailRoutes({
         [account.accountId],
       );
       const { rows: recent } = await db.query(
-        `select i.kind, i.period_key, i.subject_line, s.enqueued_at from email_send s join email_issue i on i.issue_id = s.issue_id
-          where s.account_id = $1 order by s.enqueued_at desc limit 12`,
+        `${SENDS_SQL} where s.account_id = $1 order by s.enqueued_at desc limit 12`,
         [account.accountId],
       );
       const by = new Map(rows.map((r) => [r.kind, r]));
@@ -101,13 +131,49 @@ export function emailRoutes({
           applies:
             kind === "collector_activity" ? Boolean(ops[0]?.operator) : true,
         })),
-        recent: recent.map((r) => ({
-          kind: r.kind,
-          period: r.period_key,
-          subject: r.subject_line,
-          sent_at: r.enqueued_at,
-        })),
+        recent: recent.map(sendRow),
       });
+    },
+    "GET /api/me/email/sends": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const { rows } = await db.query(
+        `${SENDS_SQL} where s.account_id = $1 order by s.enqueued_at desc limit 200`,
+        [account.accountId],
+      );
+      return json(200, { sends: rows.map(sendRow) });
+    },
+    "GET /api/me/email/sends/*": async (db, event) => {
+      // One sent email, opened from Activity or from its own footer: the
+      // row and, when the archive has it, the mail as it was sent. Own
+      // sends only; an id from someone else's footer opens nothing.
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const sendId = String(event.pathParam ?? "");
+      if (!UUID_RE.test(sendId)) return json(404, { error: "not_found" });
+      const { rows } = await db.query(
+        `${SENDS_SQL} where s.send_id = $1 and s.account_id = $2`,
+        [sendId, account.accountId],
+      );
+      const row = rows[0];
+      if (!row) return json(404, { error: "not_found" });
+      const out = { send: sendRow(row), html: null, text: null };
+      if (row.archived && archive) {
+        try {
+          const body = await readSentMail({
+            store: archive,
+            at: row.enqueued_at,
+            sendId,
+          });
+          out.html = stripPixel(body.html);
+          out.text = body.text ?? null;
+          out.archived_at = body.archived_at ?? null;
+        } catch (err) {
+          console.error("mail_archive_read_failed", sendId, err?.message);
+          out.archive_error = true;
+        }
+      }
+      return json(200, out);
     },
     "PUT /api/me/email": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
@@ -137,6 +203,7 @@ export function emailRoutes({
         force: true,
         enqueue: enqueueEmail,
         secret,
+        archive,
       });
       const sent = result.sent > 0;
       return json(200, {

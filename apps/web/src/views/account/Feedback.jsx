@@ -133,6 +133,17 @@ export function FeedbackItem({ id, navigate }) {
           </a>
         </p>
       )}
+      {item.send_id && (
+        <p className="text-[13px] -mt-3 mb-[22px]">
+          About one email ·{" "}
+          <a
+            className="mono"
+            onClick={() => navigate(`/account/activity/e/${item.send_id}`)}
+          >
+            {item.send_id.slice(0, 8)}
+          </a>
+        </p>
+      )}
 
       {item.response ? (
         <section
@@ -169,10 +180,18 @@ function prefillFromUrl() {
   return {
     context: context ? String(context).slice(0, 200) : "",
     requestId: q.get("request_id") ? String(q.get("request_id")) : "",
+    // The email record links here the same way (?send_id=<uuid>).
+    sendId: q.get("send_id") ? String(q.get("send_id")) : "",
   };
 }
 
-function Compose({ onSent, onClose, context = "", requestId = "" }) {
+function Compose({
+  onSent,
+  onClose,
+  context = "",
+  requestId = "",
+  sendId = "",
+}) {
   const [category, setCategory] = useState("general");
   const [message, setMessage] = useState(context ? `${context}\n\n` : "");
   const [sent, setSent] = useState(false);
@@ -220,6 +239,16 @@ function Compose({ onSent, onClose, context = "", requestId = "" }) {
                 </span>
               </div>
             )}
+            {sendId && (
+              <div className="notice">
+                <span>
+                  Reporting one email —{" "}
+                  <span className="mono">{sendId.slice(0, 8)}</span>. The mail
+                  as it was sent rides along with this; say what was wrong or
+                  missing in it.
+                </span>
+              </div>
+            )}
             <textarea
               rows={6}
               aria-label="Message"
@@ -238,6 +267,7 @@ function Compose({ onSent, onClose, context = "", requestId = "" }) {
                     category,
                     context || undefined,
                     requestId || undefined,
+                    sendId || undefined,
                   );
                   if (r.ok) {
                     setSent(true);
@@ -260,7 +290,10 @@ export function Feedback({ navigate }) {
   const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
   const [prefill] = useState(prefillFromUrl);
   const [composing, setComposing] = useState(
-    () => Boolean(prefill.context) || Boolean(prefill.requestId),
+    () =>
+      Boolean(prefill.context) ||
+      Boolean(prefill.requestId) ||
+      Boolean(prefill.sendId),
   );
   const [now] = useState(() => Date.now());
   const invalidate = useInvalidate();
@@ -309,6 +342,7 @@ export function Feedback({ navigate }) {
             onClose={() => setComposing(false)}
             context={prefill.context}
             requestId={prefill.requestId}
+            sendId={prefill.sendId}
           />
         ) : null
       }

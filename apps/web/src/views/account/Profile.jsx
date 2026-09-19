@@ -88,7 +88,7 @@ export function Profile({ me, refresh, navigate }) {
         </div>
       </section>
 
-      <EmailPanel />
+      <EmailPanel navigate={navigate} />
 
       <Devices />
 

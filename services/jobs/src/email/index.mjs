@@ -32,6 +32,7 @@ export async function runEmail({
   accountId = null,
   accountEmail = null,
   force = false,
+  archive = null,
 }) {
   const own = !db;
   if (own) {
@@ -72,7 +73,9 @@ export async function runEmail({
         period,
         account,
         facts,
+        archive,
         force,
+        now,
       });
       if (r.sent) result.sent += 1;
       else result.skipped += 1;

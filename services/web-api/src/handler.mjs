@@ -235,6 +235,9 @@ export function makeHandler({
       resolveAccount,
       secret,
       databaseUrl,
+      // The archive bucket store the call record reads from; sent mail
+      // lives in the same bucket under mail/sent/.
+      archive: capture,
       enqueueEmail:
         enqueueEmail ??
         (async () => {

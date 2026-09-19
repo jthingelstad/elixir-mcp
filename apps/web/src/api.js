@@ -42,6 +42,9 @@ export const api = {
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),
   sendEmailNow: (kind) => request("POST", "/api/me/email/send", { kind }),
+  myEmailSends: () => request("GET", "/api/me/email/sends"),
+  emailRecord: (send_id) =>
+    request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
   claimAction: (body) => request("POST", "/api/claims", body),
   clan: () => request("GET", "/api/clan"),
@@ -51,12 +54,13 @@ export const api = {
   adminCollectionAction: (body) =>
     request("POST", "/api/admin/collections", body),
   myFeedback: () => request("GET", "/api/me/feedback"),
-  sendFeedback: (message, category, context, request_id) =>
+  sendFeedback: (message, category, context, request_id, send_id) =>
     request("POST", "/api/feedback", {
       message,
       category,
       context,
       request_id,
+      send_id,
     }),
   adminFeedback: () => request("GET", "/api/admin/feedback"),
   adminCall: (request_id) =>

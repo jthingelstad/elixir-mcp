@@ -220,6 +220,7 @@ export const RAIL = [
     subs: [
       ["timeline", "Timeline", "/account/activity"],
       ["requests", "MCP requests", "/account/activity/requests"],
+      ["emails", "Emails", "/account/activity/emails"],
       ["events", "Account events", "/account/activity/events"],
     ],
   },
@@ -299,12 +300,19 @@ export function railPosition(path) {
   if (section === "data" && page === "dashboard") return { key: "explore" };
   if (section === "account") {
     // /account/activity/c/<request_id> is a call record and belongs to
-    // MCP requests rather than being a sub-page of its own.
+    // MCP requests rather than being a sub-page of its own; likewise
+    // /account/activity/e/<send_id>, an email record, belongs to Emails.
     if (page === "activity")
       return {
         key: "activity",
-        sub: rest === "c" ? "requests" : (rest ?? "timeline"),
+        sub:
+          rest === "c"
+            ? "requests"
+            : rest === "e"
+              ? "emails"
+              : (rest ?? "timeline"),
         ...(rest === "c" ? { doc: "activity:call" } : {}),
+        ...(rest === "e" ? { doc: "activity:email" } : {}),
       };
     if (page === "connections") return { key: "connections", sub: "clients" };
     // The agent record is addressable in its own right, but it belongs
@@ -418,6 +426,22 @@ export const DOC_LINKS = {
     [
       ["Response envelope", "/docs/responses#the-fields"],
       ["Retention", "/docs/limits#retention-windows"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "activity:emails": [
+    "The emails Elixir sends",
+    [
+      ["Email", "/docs/email"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  // The record of one sent email: what it is, and what is counted.
+  "activity:email": [
+    "One email",
+    [
+      ["Email", "/docs/email"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
       ["Privacy", "/docs/privacy"],
     ],
   ],

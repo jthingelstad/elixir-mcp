@@ -951,6 +951,148 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   assert.equal(triage.statusCode, 200);
 });
 
+test("emails sent to me: the list, one record with its archived body (pixel stripped), and a report about it (0139)", async () => {
+  const cookie = memberCookie;
+  const get = (path, h = handler) =>
+    h(event({ method: "GET", path, cookie, body: undefined }));
+  const { rows: who } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  const accountId = who[0].account_id;
+  const { rows: other } = await db.query(
+    `select account_id from account where email_hash = $1`,
+    [emailHash(JAMIE)],
+  );
+  // Two issues, one send each to the member, plus a send to someone else.
+  const { rows: issues } = await db.query(
+    `insert into email_issue (kind, period_key, subject_key, subject_line, status)
+     values ('milestone', '2026-09-19', $1, 'You took Guards Mastery to level 5', 'queued'),
+            ('arena_week', '2026-W37', $1, 'Your week in the Arena', 'queued')
+     returning issue_id`,
+    [accountId],
+  );
+  const { rows: sends } = await db.query(
+    `insert into email_send (issue_id, account_id, subject, archived, enqueued_at)
+     values ($1, $3, 'You took Guards Mastery to level 5', true, '2026-09-19T10:20:00Z'),
+            ($2, $3, null, false, '2026-09-15T14:00:00Z'),
+            ($1, $4, 'Somebody else''s', true, '2026-09-19T10:21:00Z')
+     returning send_id, account_id`,
+    [issues[0].issue_id, issues[1].issue_id, accountId, other[0].account_id],
+  );
+  const mine = sends.filter((s) => s.account_id === accountId);
+  const theirs = sends.find((s) => s.account_id !== accountId);
+
+  const list = parse(await get("/api/me/email/sends")).sends;
+  assert.deepEqual(
+    list.map((s) => [s.kind, s.label, s.subject, s.archived]),
+    [
+      ["milestone", "Milestones", "You took Guards Mastery to level 5", true],
+      ["arena_week", "Your week in the Arena", "Your week in the Arena", false],
+    ],
+    "newest first; an old row without its own subject falls back to the issue's",
+  );
+  assert.ok(list.every((s) => /^[0-9a-f-]{36}$/.test(s.send_id)));
+  // The Profile panel's recent list carries the same ids.
+  const prefs = parse(await get("/api/me/email"));
+  assert.equal(prefs.recent[0].send_id, mine[0].send_id);
+
+  // Without a store: the row answers, the body is null.
+  const bare = parse(await get(`/api/me/email/sends/${mine[0].send_id}`));
+  assert.equal(bare.send.subject, "You took Guards Mastery to level 5");
+  assert.equal(bare.html, null);
+  // Someone else's send, a malformed id, an unknown id: 404 alike.
+  assert.equal(
+    (await get(`/api/me/email/sends/${theirs.send_id}`)).statusCode,
+    404,
+  );
+  assert.equal((await get(`/api/me/email/sends/not-a-uuid`)).statusCode, 404);
+  assert.equal(
+    (await get(`/api/me/email/sends/00000000-0000-4000-8000-000000000000`))
+      .statusCode,
+    404,
+  );
+
+  // With a store: the archived body comes back with the pixel stripped.
+  const { gzipSync } = await import("node:zlib");
+  const { sentMailKey } = await import("../../jobs/src/email/archive.mjs");
+  const { pixelTag } = await import("@elixir-mcp/mail");
+  const stored = {
+    send_id: mine[0].send_id,
+    kind: "milestone",
+    subject: "You took Guards Mastery to level 5",
+    html: `<html><body><p>Congratulations</p>${pixelTag("/mail/milestone/2026-09-19")}</body></html>`,
+    text: "Congratulations",
+    archived_at: "2026-09-19T10:20:00.000Z",
+  };
+  const asked = [];
+  const withStore = makeHandler({
+    databaseUrl: DB_URL,
+    secret: SECRET,
+    sendLoginEmail: async () => {},
+    capture: {
+      s3: {
+        send: async (cmd) => {
+          asked.push(cmd.input.Key);
+          const body = gzipSync(JSON.stringify(stored));
+          return { Body: { transformToByteArray: async () => body } };
+        },
+      },
+      bucket: "archive",
+    },
+  });
+  const full = parse(
+    await get(`/api/me/email/sends/${mine[0].send_id}`, withStore),
+  );
+  assert.equal(full.html, "<html><body><p>Congratulations</p></body></html>");
+  assert.equal(full.text, "Congratulations");
+  assert.equal(full.archived_at, stored.archived_at);
+  assert.equal(asked[0], sentMailKey("2026-09-19T10:20:00Z", mine[0].send_id));
+  assert.match(asked[0], /^mail\/sent\/dt=2026-09-19\/send_id=/);
+  // A row that was never archived never asks the store.
+  await get(`/api/me/email/sends/${mine[1].send_id}`, withStore);
+  assert.equal(asked.length, 1);
+
+  // A report about the email: send_id is a column, and the queue sees
+  // the kind and subject beside it.
+  const filed = await handler(
+    event({
+      path: "/api/feedback",
+      cookie,
+      body: {
+        message: "The badge name was code",
+        category: "bug",
+        send_id: mine[0].send_id,
+      },
+    }),
+  );
+  assert.equal(filed.statusCode, 200);
+  const list2 = parse(await get("/api/me/feedback")).feedback;
+  assert.equal(list2[0].send_id, mine[0].send_id);
+  const queue = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/feedback",
+        cookie: bossCookie,
+        body: undefined,
+      }),
+    ),
+  ).feedback;
+  const item = queue.find((f) => f.send_id === mine[0].send_id);
+  assert.equal(item.send_kind, "milestone");
+  assert.equal(item.send_subject, "You took Guards Mastery to level 5");
+  // A malformed send_id is dropped, not refused.
+  const loose = await handler(
+    event({
+      path: "/api/feedback",
+      cookie,
+      body: { message: "still filed", send_id: "nope" },
+    }),
+  );
+  assert.equal(loose.statusCode, 200);
+});
+
 test("service tokens: owner issues, token validates at the MCP door, revoke kills it", async () => {
   const issued = parse(
     await handler(
