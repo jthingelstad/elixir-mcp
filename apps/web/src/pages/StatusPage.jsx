@@ -1,5 +1,6 @@
 import { Status } from "../views/Status.jsx";
 import { Fleet } from "../views/Collectors.jsx";
+import { Efficiency } from "../views/Efficiency.jsx";
 import { CollectorPage } from "../views/CollectorDetail.jsx";
 import { RaiseCollector } from "../views/RaiseCollector.jsx";
 import { useHere, useMe, useNav } from "../App.jsx";
@@ -10,6 +11,7 @@ export function StatusPage() {
   const navigate = useNav();
   const { me } = useMe();
   const { activePage, itemId } = useHere();
+  if (activePage === "efficiency") return <Efficiency navigate={navigate} />;
   if (activePage !== "collectors") return <Status navigate={navigate} />;
   if (itemId === "new") return <RaiseCollector navigate={navigate} />;
   if (itemId)

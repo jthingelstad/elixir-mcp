@@ -122,6 +122,7 @@ export const api = {
     ),
   publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
+  publicEfficiency: () => request("GET", "/api/public/efficiency"),
   myRequests: () => request("GET", "/api/me/requests"),
   callRecord: (request_id) =>
     request("GET", `/api/me/activity/calls/${encodeURIComponent(request_id)}`),

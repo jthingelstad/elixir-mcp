@@ -54,6 +54,7 @@ export const keys = {
   adminIntegrations: ["admin", "integrations"],
   adminCollections: ["admin", "collections"],
   status: ["status"],
+  efficiency: ["efficiency"],
   stats: ["stats"],
   exploreCollections: ["explore", "collections"],
 };
@@ -260,6 +261,13 @@ export const usePublicStatus = (refetchInterval = false) =>
     queryKey: keys.status,
     queryFn: payload(api.publicStatus),
     refetchInterval,
+  });
+
+/** Public: the session clock's cost and loss per day (0145). */
+export const usePublicEfficiency = () =>
+  useQuery({
+    queryKey: keys.efficiency,
+    queryFn: payload(api.publicEfficiency),
   });
 
 /** The collections the lookup offers: one bridge call, cached like a

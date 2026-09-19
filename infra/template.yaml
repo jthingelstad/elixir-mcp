@@ -1070,6 +1070,28 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ActivityHistogramRule.Arn
 
+  # What the battlelog schedule costs and loses, per UTC day (0145;
+  # Jamie, 2026-09-19): the last three closed days rewritten at 05:20Z,
+  # after the payload sweep and before the histogram, and yesterday's
+  # LostBattles line on the dashboard.
+  CaptureEfficiencyRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-capture-efficiency
+      ScheduleExpression: cron(20 5 * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: capture-efficiency
+          Input: '{"capture_efficiency": true}'
+
+  CaptureEfficiencyPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CaptureEfficiencyRule.Arn
+
   # The season meta rollups (0121): nightly, the running season rebuilt
   # from the raw rows (the only writer of distinct players and card
   # pairs) and any ended season filled in; hourly at :45, the counters
@@ -3200,6 +3222,64 @@ Resources:
                       "label": "cost alarm"
                     }
                   ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 52,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [
+                    "ElixirMCP/Record",
+                    "LostBattles",
+                    {
+                      "stat": "Maximum",
+                      "label": "battles lost (yesterday, measured nightly)"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Record",
+                    "CaptureGaps",
+                    {
+                      "stat": "Maximum",
+                      "label": "capture gaps"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Record",
+                    "BattlelogPolls",
+                    {
+                      "stat": "Maximum",
+                      "label": "battlelog polls",
+                      "yAxis": "right"
+                    }
+                  ],
+                  [
+                    "ElixirMCP/Record",
+                    "NothingNewShare",
+                    {
+                      "stat": "Maximum",
+                      "label": "found nothing, %",
+                      "yAxis": "right"
+                    }
+                  ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "The session clock: battles lost and what the schedule cost, per day",
+                "period": 86400,
+                "yAxis": {
+                  "left": {
+                    "min": 0
+                  },
+                  "right": {
+                    "min": 0
+                  }
                 }
               }
             }

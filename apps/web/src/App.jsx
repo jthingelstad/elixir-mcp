@@ -110,6 +110,7 @@ export const SECTIONS = {
     pages: [
       { slug: "service", label: "Status" },
       { slug: "collectors", label: "Collectors" },
+      { slug: "efficiency", label: "Efficiency" },
     ],
   },
   admin: {
@@ -263,7 +264,10 @@ export const RAIL = [
     label: "Status",
     icon: "heart-pulse",
     to: "/status/service",
-    subs: [["collectors", "Collectors", "/status/collectors"]],
+    subs: [
+      ["collectors", "Collectors", "/status/collectors"],
+      ["efficiency", "Efficiency", "/status/efficiency"],
+    ],
   },
   {
     key: "admin",
@@ -296,7 +300,7 @@ export function railPosition(path) {
   if (section === "status")
     return {
       key: "status",
-      sub: page === "collectors" ? "collectors" : undefined,
+      sub: ["collectors", "efficiency"].includes(page) ? page : undefined,
       // A record and the raise form both read the operators guide.
       ...(page === "collectors" && rest ? { doc: "status:collector" } : {}),
     };
@@ -530,6 +534,21 @@ export const DOC_LINKS = {
     [
       ["Operators guide", "/docs/operators"],
       ["Architecture", "/docs/architecture#collectors-in-depth"],
+    ],
+  ],
+  // The session clock's cost and loss, per day (2026-09-19).
+  "status:efficiency": [
+    "Efficiency",
+    [
+      [
+        "How often a subject is fetched",
+        "/docs/recording#how-often-a-subject-is-fetched",
+      ],
+      ["Completeness", "/docs/recording#completeness"],
+      [
+        "Architecture",
+        "/docs/architecture#scheduling-how-often-a-player-is-fetched-and-why",
+      ],
     ],
   ],
   // One collector's record: the page an operator reads while running one.

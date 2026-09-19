@@ -6,7 +6,7 @@
  *
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
- *  {activity_histogram: true} · {meta_rollup_nightly: true} ·
+ *  {activity_histogram: true} · {capture_efficiency: true} · {meta_rollup_nightly: true} ·
  *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} ·
  *  {shape_census: true} · {email: "<kind>",
  *  account_id?, force?} (docs/EMAIL.md: the six product mail kinds, one
@@ -22,6 +22,7 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { runEmail } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
 import { activityHistogram } from "./activity.mjs";
+import { captureEfficiency } from "./efficiency.mjs";
 import {
   metaRollupNightly,
   metaRollupHourly,
@@ -317,6 +318,11 @@ export async function handler(event) {
   if (event?.meta_rollup_hourly) {
     const result = await metaRollupHourly(process.env.DATABASE_URL);
     console.log(JSON.stringify({ meta_rollup_hourly: result }));
+    return result;
+  }
+  if (event?.capture_efficiency) {
+    const result = await captureEfficiency(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ capture_efficiency: result }));
     return result;
   }
   if (event?.activity_histogram) {

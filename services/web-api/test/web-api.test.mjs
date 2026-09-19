@@ -1612,6 +1612,23 @@ test("gateway config download is strictly one-time and owner-scoped", async () =
   assert.ok(after[0].provision_claimed_at);
 });
 
+test("public efficiency: no auth, five-minute cache, the rule, the days and today so far", async () => {
+  const res = await handler(
+    event({ method: "GET", path: "/api/public/efficiency", body: undefined }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  assert.match(res.headers["cache-control"], /max-age=300/);
+  const body = parse(res);
+  assert.equal(body.rule.followup_minutes, 30);
+  assert.equal(body.rule.ceiling_minutes, 120);
+  assert.ok(Array.isArray(body.days));
+  assert.equal(body.today.lost_battles, null, "today's loss is not yet known");
+  for (const k of ["battlelog_polls", "nothing_new_polls", "gaps"])
+    assert.ok(Number.isInteger(body.today[k]), `today carries ${k}`);
+  assert.ok(Number.isInteger(body.last_hour.battlelog_polls));
+  assert.ok(!JSON.stringify(body).includes("#"), "no player named");
+});
+
 test("public status: no auth, 60s cache, no confidential fields", async () => {
   const res = await handler(
     event({ method: "GET", path: "/api/public/status", body: undefined }),
