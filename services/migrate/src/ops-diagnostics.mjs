@@ -888,3 +888,44 @@ export async function explainStandings(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** One poll subject explained ({poll_state: {subject_tag, endpoint}}),
+ *  read-only: the poll_state row, the last ten ledger jobs for the key
+ *  and the last five receipts. Added 2026-09-19 when the card catalog
+ *  had not confirmed in nine days and nothing read-only could say
+ *  whether the planner, the lease or the admission was the silent
+ *  half. */
+export async function pollStateOp(databaseUrl, spec = {}) {
+  const subject = String(spec.subject_tag ?? "");
+  const endpoint = String(spec.endpoint ?? "");
+  if (!subject || !endpoint)
+    return { error: "poll_state needs subject_tag and endpoint" };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const {
+      rows: [state],
+    } = await db.query(
+      `select * from poll_state where subject_tag = $1 and endpoint = $2`,
+      [subject, endpoint],
+    );
+    const { rows: jobs } = await db.query(
+      `select j.job_id, j.status, j.lane, j.attempts, j.created_at, j.leased_at,
+              j.done_at, g.name as gateway
+       from job j left join gateway g on g.gateway_id = j.leased_by
+       where j.endpoint = $2 and j.entity_key = $1
+       order by j.job_id desc limit 10`,
+      [subject, endpoint],
+    );
+    const { rows: receipts } = await db.query(
+      `select r.receipt_id, r.fetched_at, r.admission, r.admission_errors, g.name as gateway
+       from api_receipt r left join gateway g on g.gateway_id = r.gateway_id
+       where r.endpoint = $2 and r.entity_key = $1
+       order by r.receipt_id desc limit 5`,
+      [subject, endpoint],
+    );
+    return { state: state ?? null, jobs, receipts };
+  } finally {
+    await db.end();
+  }
+}

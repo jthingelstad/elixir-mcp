@@ -235,6 +235,15 @@ test("5.0.0: the catalog says the type from the id range and when it last change
     ],
   );
   assert.ok("fetched_at" in res);
+  // fetched_at is the GLOBAL cards poll's admission stamp, not the last
+  // row change: an unchanged catalog confirmed today says today.
+  await scratch.db.query(
+    `insert into poll_state (subject_tag, endpoint, last_admitted_at)
+     values ('GLOBAL', 'cards', '2026-09-19T03:17:39Z')
+     on conflict (subject_tag, endpoint) do update set last_admitted_at = excluded.last_admitted_at`,
+  );
+  const confirmed = await call("cards_catalog", { ids: [26000007] });
+  assert.equal(confirmed.fetched_at, "2026-09-19T03:17:39.000Z");
   const compact = await call("cards_catalog", {
     ids: [26000007],
     verbosity: "compact",

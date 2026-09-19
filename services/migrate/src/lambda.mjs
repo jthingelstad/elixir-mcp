@@ -52,6 +52,7 @@ import {
   inspect,
   sessions,
   vacuum,
+  pollStateOp,
 } from "./ops-diagnostics.mjs";
 import { abYield, auditCensus, argsCensus } from "./ops-analysis.mjs";
 import {
@@ -104,6 +105,14 @@ export async function handler(event) {
   if (event?.tables) {
     // Sizes only - no payloads - so the whole answer is loggable.
     const result = await tables(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.poll_state) {
+    const result = await pollStateOp(
+      process.env.DATABASE_URL,
+      event.poll_state,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

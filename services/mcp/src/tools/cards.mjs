@@ -93,12 +93,24 @@ export async function readCatalog(db) {
   // as_of is the catalog's last CHANGE (ingest moves observed_at only
   // when a card's fields differ); fetched_at is the last confirming
   // fetch, so a reader can tell "unchanged since" from "stale" (5.0.0).
+  // The confirming instant is the GLOBAL cards poll's own admission
+  // stamp: catalog_seen_at moves only when a row moves (a re-fetch
+  // writes nothing, by design), so reading it here said the catalog
+  // had not been confirmed since its last change (2026-09-19: nine
+  // days "stale" while every daily fetch had landed). The row stamp is
+  // the fallback for a database without poll_state (tests).
+  const {
+    rows: [poll],
+  } = await db.query(
+    `select last_admitted_at from poll_state
+     where subject_tag = 'GLOBAL' and endpoint = 'cards'`,
+  );
   const fetched = rows.reduce(
     (m, r) =>
       r.catalog_seen_at && (!m || r.catalog_seen_at > m)
         ? r.catalog_seen_at
         : m,
-    null,
+    poll?.last_admitted_at ?? null,
   );
   return {
     cards: rows
