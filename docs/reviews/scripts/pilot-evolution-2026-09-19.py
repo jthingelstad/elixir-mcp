@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Reproduces the numbers in docs/reviews/2026-09-19-PILOT-SCORE-EVOLUTION.md.
 
-Input: the migrate Lambda's read-only `pilot_pairs` op, paged into two CSVs
-(pairs.csv, players.csv) -- see the review for the invocation. Nothing here
-touches the database. Needs numpy, pandas, scipy, scikit-learn.
+Input: two CSVs (pairs.csv, players.csv) that the migrate Lambda's read-only
+`pilot_pairs` op produced on 2026-09-19 -- see the review for the invocation.
+That op was removed with Pilot Score in 5.0.0 (b9b75f0); to re-run this,
+restore it from that commit's parent or write the equivalent query against a
+review clone. Nothing here touches the database. Needs numpy, pandas, scipy, scikit-learn.
 
     python3 pilot-evolution-2026-09-19.py /path/to/pairs.csv
 """
