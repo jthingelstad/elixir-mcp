@@ -5016,3 +5016,10 @@ Seen while verifying, not mine, not fixed: `services/mcp/test/tools2.test.mjs`
 worktree of `70ffbb3` too ("two days of snapshots: yesterday and today" for
 `players_timeline({days: 2})`) - a clock-edge case in the game-day
 resolution, for the interface-review owner.
+
+## 2026-09-18 (late) — No anonymous issue page: sharing a Top 100 is forwarding the mail
+
+**Jamie:** the public `/api/public/top100/<date>` page was not intended;
+sharing means forwarding the email. Removed: the route, the share link
+in the mail's footer, the `share_url` fact. Every mail surface stays
+behind a session or an address the relay sent to.

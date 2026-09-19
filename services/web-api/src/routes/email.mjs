@@ -8,14 +8,12 @@
  *       link scanners prefetch)
  *  POST /api/email/unsubscribe?t=  the one-click header's POST, and the
  *       page's button: flips the kind off (or "all")
+ *
+ *  There is deliberately no anonymous page for an issue (Jamie,
+ *  2026-09-18): sharing a Top 100 is forwarding the mail.
  */
 import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
-import {
-  verifyUnsubscribe,
-  renderMail,
-  KIND_LABELS,
-  TINYLYTICS_EMBED_CODE,
-} from "@elixir-mcp/mail";
+import { verifyUnsubscribe, KIND_LABELS } from "@elixir-mcp/mail";
 import { runEmail } from "../../../jobs/src/email/index.mjs";
 import { json } from "../http.mjs";
 
@@ -153,44 +151,6 @@ export function emailRoutes({
               : "nothing_to_say",
         detail: result.details?.[0]?.error ?? null,
       });
-    },
-    // The Top 100 issue as a page anyone can open: the mail's own HTML,
-    // rendered from the stored issue, no session. This is the share link
-    // in the mail. A JSON client gets the facts instead.
-    "GET /api/public/top100/*": async (db, event) => {
-      const date = String(event.pathParam ?? "");
-      const latest = date === "latest";
-      if (!latest && !/^\d{4}-\d{2}-\d{2}$/.test(date))
-        return json(404, { error: "not_found" });
-      const { rows } = await db.query(
-        `select period_key, facts from email_issue where kind = 'top_100' and subject_key = '' and facts is not null
-          ${latest ? "" : "and period_key = $1"} order by composed_at desc limit 1`,
-        latest ? [] : [date],
-      );
-      if (!rows[0]) return json(404, { error: "not_found" });
-      const facts = rows[0].facts;
-      const wantsJson = /application\/json/.test(event.headers?.accept ?? "");
-      if (wantsJson) return json(200, { date: rows[0].period_key, ...facts });
-      // Links carry the issue's campaign; the open pixel is left off and
-      // the site's own script counts the page view instead.
-      const { html } = renderMail("top_100", facts, {
-        unsubscribe: `${SITE}/account/profile`,
-        manage: `${SITE}/account/profile`,
-        period: rows[0].period_key,
-        pixel: false,
-      });
-      const body = html.replace(
-        "</body>",
-        `<script defer src="https://tinylytics.app/embed/${TINYLYTICS_EMBED_CODE}/min.js?hits&countries"></script></body>`,
-      );
-      return {
-        statusCode: 200,
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "cache-control": "public, max-age=600",
-        },
-        body,
-      };
     },
     "GET /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);

@@ -503,7 +503,6 @@ export async function top100Accept({
         button: "Request access",
         url: `${SITE}/`,
       },
-      share_url: `${SITE}/api/public/top100/${date}`,
       coverage: `Data from the Path of Legends board recorded at the 10:00 UTC reset, ${date}.${brief.coverage?.gaps?.length ? ` ${brief.coverage.gaps.join("; ")}.` : ""}`,
       numbers_used: issue.numbers_used ?? [],
       alternates: issue.subjects ?? [],

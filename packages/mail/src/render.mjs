@@ -611,9 +611,6 @@ function top100(f, c) {
     ${f.cta ? `${c.h2(f.cta.head)}${c.p(esc(f.cta.text))}${c.button(f.cta.button, f.cta.url)}` : ""}
     ${f.players_index?.length ? `${c.h2("Players in this issue")}<div style="font-family:${MONO};font-size:11.5px;line-height:1.7;color:${C.faint};">${f.players_index.map((x) => `${esc(x.name)} ${esc(x.tag)}`).join(" · ")}</div>` : ""}
     ${c.cov(esc(f.coverage))}`;
-  const share = f.share_url
-    ? `Forward this, or share <a href="${c.T(f.share_url)}" style="color:${DARK.link};">${esc(f.share_url)}</a><br>`
-    : "";
   return {
     subject: f.subject,
     preheader: f.preheader ?? "",
@@ -625,7 +622,6 @@ function top100(f, c) {
         preheader: f.preheader ?? "",
         body,
         unsubscribeKind: f.masthead,
-        extraFooter: share,
         links,
       }),
   };

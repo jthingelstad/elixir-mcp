@@ -290,9 +290,8 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
   `AnthropicKeyInSecret` (false until the key is added by hand).
 - Web API: `/api/me/email` (GET/PUT), `/api/me/email/send`,
   `/api/email/unsubscribe` (GET page, POST flip; the RFC 8058 form body
-  tolerated), `/api/public/top100/<date|latest>` (the issue as a page, no
-  session; the share link in the mail, a prettier path later means a
-  CloudFront function line).
+  tolerated). No anonymous page for an issue (Jamie, 2026-09-18): sharing
+  a Top 100 is forwarding the mail.
 - Console: the Email panel on Profile (six switches, send-me-this-now,
   recent sends). Names link to the Explore record pages that exist
   (`/explore/player/<tag>`, `/explore/clan/<tag>`); a card page is still
@@ -304,6 +303,5 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
 - The Top 100 masthead name (subjects are generated; the name is a string;
   "Ultimate Champions" is the placeholder in code).
 - A card record page in Browse, so deck lists can link.
-- A pretty public path for the Top 100 issue.
 - Multi-clan Clan Report for a family account (no such account yet).
 - Local-morning delivery (see Cadence).
