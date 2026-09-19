@@ -357,7 +357,7 @@ test("limited deck meta renders the identity from deck_card and the catalog, nev
   assert.equal(result.decks.length, 1);
   assert.equal(result.decided_battles, 2);
   assert.deepEqual(result.decks[0].cards, [
-    { id: 26000000, name: "Knight", evolution: 1 },
+    { id: 26000000, name: "Knight", form: "evolution" },
   ]);
   assert.deepEqual(result.decks[0].tower_troop, {
     id: 159000000,

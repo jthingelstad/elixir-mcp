@@ -8,6 +8,7 @@
 import {
   responseMeta,
   cardForms,
+  cardType,
   MAX_DISPLAY_LEVEL,
 } from "@elixir-mcp/contracts";
 import {
@@ -25,6 +26,7 @@ function shapeCatalogCard(c) {
   const { maxLevel, ...rest } = c;
   return {
     ...rest,
+    type: cardType(c.id),
     maxLevel: MAX_DISPLAY_LEVEL,
     ...(typeof maxLevel === "number" ? { maxLevelRarityScale: maxLevel } : {}),
     forms_available: cardForms(c.maxEvolutionLevel),
@@ -34,6 +36,7 @@ function shapeCatalogCard(c) {
 const compactCard = (c) => ({
   id: c.id,
   name: c.name,
+  type: c.type,
   ...(c.rarity ? { rarity: c.rarity } : {}),
   ...(c.elixirCost !== undefined ? { elixirCost: c.elixirCost } : {}),
   forms_available: c.forms_available,
@@ -56,12 +59,14 @@ export function iconUrlsOf(r) {
 export async function catalogItems(db) {
   const { rows } = await db.query(
     `select card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level,
-            icon_medium, icon_evolution_medium, icon_hero_medium, observed_at
+            icon_medium, icon_evolution_medium, icon_hero_medium, observed_at,
+            catalog_seen_at
      from card order by card_id`,
   );
   return rows.map((r) => ({
     kind: r.kind,
     observed_at: r.observed_at,
+    catalog_seen_at: r.catalog_seen_at,
     item: {
       id: r.card_id,
       name: r.name,
@@ -84,6 +89,16 @@ export async function readCatalog(db) {
     (m, r) => (r.observed_at > m ? r.observed_at : m),
     rows[0].observed_at,
   );
+  // as_of is the catalog's last CHANGE (ingest moves observed_at only
+  // when a card's fields differ); fetched_at is the last confirming
+  // fetch, so a reader can tell "unchanged since" from "stale" (5.0.0).
+  const fetched = rows.reduce(
+    (m, r) =>
+      r.catalog_seen_at && (!m || r.catalog_seen_at > m)
+        ? r.catalog_seen_at
+        : m,
+    null,
+  );
   return {
     cards: rows
       .filter((r) => r.kind === "card")
@@ -92,13 +107,14 @@ export async function readCatalog(db) {
       .filter((r) => r.kind === "support")
       .map((r) => shapeCatalogCard(r.item)),
     as_of: asOf.toISOString(),
+    fetched_at: fetched ? fetched.toISOString() : null,
   };
 }
 
 export const cardsTools = {
   cards_catalog: {
     description:
-      "Current card and tower-troop catalog: ids, names, rarities, elixir cost, icons, max levels and forms. Use it to resolve card ids instead of guessing; ids or query narrow it to the cards you mean, and verbosity compact keeps id, name, rarity, cost and forms. maxLevel is the in-game 1-16 scale like every recorded-data tool; maxLevelRarityScale is the API's rarity-relative cap for anyone joining to raw live_fetch payloads.",
+      "Current card and tower-troop catalog: ids, names, types, rarities, elixir cost, icons, max levels and forms. Use it to resolve card ids instead of guessing; ids or query narrow it to the cards you mean, and verbosity compact keeps id, name, rarity, cost and forms. maxLevel is the in-game 1-16 scale like every recorded-data tool; maxLevelRarityScale is the API's rarity-relative cap for anyone joining to raw live_fetch payloads.",
     inputSchema: {
       type: "object",
       properties: {
@@ -146,9 +162,11 @@ export const cardsTools = {
         cards: catalog.cards.filter(keep).map(shape),
         tower_troops: catalog.tower_troops.filter(keep).map(shape),
         as_of: catalog.as_of,
+        fetched_at: catalog.fetched_at,
         notes: notes(
+          "as_of is when the catalog last CHANGED (a card added, renamed, recosted or given a form); fetched_at is the last daily fetch that confirmed it.",
           "maxLevel is the in-game 1-16 scale (a level-16 card is maxed whatever its rarity); maxLevelRarityScale is the API's per-rarity cap.",
-          "forms_available decodes maxEvolutionLevel, a bit field (1 = Evolution, 2 = Hero), never a level.",
+          "forms_available decodes maxEvolutionLevel, a bit field (1 = Evolution, 2 = Hero), never a level; type comes from the card id's range (troop, building, spell, tower_troop), which the API does not spell out.",
         ),
         docs: docsRef("battles", "deck-identity-and-forms"),
         meta: responseMeta({ as_of: new Date().toISOString() }),

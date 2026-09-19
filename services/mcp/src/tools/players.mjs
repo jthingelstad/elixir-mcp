@@ -201,9 +201,9 @@ export const playersTools = {
         const modes = row.by_type ? modeSplit(row.by_type) : undefined;
         return {
           deck_hash: row.deck_hash,
-          cards: (identities.get(row.deck_hash)?.cards ?? []).map(
-            ({ id, name }) => ({ id, name }),
-          ),
+          // The identity's cards with their form (5.0.0: every card
+          // object carries form; this once dropped it).
+          cards: identities.get(row.deck_hash)?.cards ?? [],
           battles: row.battles,
           win_rate:
             row.wins + row.losses > 0

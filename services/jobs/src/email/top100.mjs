@@ -259,7 +259,7 @@ async function buildBrief({ db, account, now = new Date() }) {
       name: c.name,
       usage_share: c.usage_share ?? c.share ?? null,
       players: c.players ?? null,
-      evolution: c.evolution ?? null,
+      form: c.form ?? null,
     })),
     players_covered: decks?.population?.players ?? decks?.players ?? null,
     players_total: 100,

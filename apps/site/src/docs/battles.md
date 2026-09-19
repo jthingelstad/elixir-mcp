@@ -222,13 +222,20 @@ card, or a different tower troop, are two decks; the same deck at two
 different card levels is one. Some event modes field more or fewer than
 eight cards; the identity is the exact set played.
 
-A card's **form** is a bit field the API calls `evolutionLevel`: `1` is the
-Evolution form, `2` the Hero form, `3` both, absent or `0` the base card. It
-is a form discriminator, never a level or a progress counter, and forms are
-never merged: `battles_cards` and `battles_meta_cards` carry one row per form.
-On a collection, `maxEvolutionLevel` says which forms exist for the card and
-`evolutionLevel` which the player holds; `players_collection` and
-`cards_catalog` decode them into `forms_available` and `forms_unlocked`.
+A card's **form** is what the API encodes as the bit field `evolutionLevel`
+(`1` Evolution, `2` Hero, `3` both, absent or `0` the base card). Every card
+object the tools serve spells it as one word, **`form: "base" | "evolution"
+| "hero"`** (5.0.0; the integer `evolution` key is retired): on a played
+deck's cards in `battles_query`, `battles_decks`, `battles_meta_decks` and
+`players_summary`, on `battles_cards` and `battles_meta_cards` rows, and
+on `cards_synergy` partners. It is a form discriminator, never a level or a
+progress counter, and forms are never merged: the card readers carry one
+row per form. On a collection, `maxEvolutionLevel` says which forms exist
+for the card and `evolutionLevel` which the player holds; `players_collection`
+and `cards_catalog` decode those sets into `forms_available` and
+`forms_unlocked`. A card's **type** (troop, building, spell, tower troop) is
+not in the API; `cards_catalog` derives it from the id range and serves it
+as `type`.
 
 Cards are recorded **as rows, not only as the deck's JSON**: every card a
 participant played is a fact of its own, so card questions are indexed

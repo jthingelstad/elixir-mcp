@@ -131,8 +131,8 @@ test("battles_decks distinguishes the forms visibly, not only by hash", async ()
   assert.ok(base && evo, "both hashes present");
 
   const witch = (d) => d.cards.find((c) => c.id === 26000007);
-  assert.equal(witch(base).evolution, undefined, "base form carries no marker");
-  assert.equal(witch(evo).evolution, 1, "the Evolution says so");
+  assert.equal(witch(base).form, "base", "base form says so (5.0.0)");
+  assert.equal(witch(evo).form, "evolution", "the Evolution says so");
 
   // The whole point: the payloads must not be indistinguishable.
   assert.notDeepEqual(
@@ -155,8 +155,8 @@ test("battles_meta_decks renders forms the same way", async () => {
   const evo = byHash[hashFor(1)];
   assert.ok(evo, "the Evolution deck is present");
   assert.equal(
-    evo.cards.find((c) => c.id === 26000007).evolution,
-    1,
+    evo.cards.find((c) => c.id === 26000007).form,
+    "evolution",
     "meta decks must not erase the form either",
   );
   assert.deepEqual(evo.tower_troop, TOWER);
@@ -167,12 +167,76 @@ test("battles_cards splits the forms instead of merging them into one row", asyn
   const witches = res.cards.filter((c) => c.id === 26000007);
   assert.equal(witches.length, 2, "an Evo and its base card are not one card");
   assert.deepEqual(
-    witches.map((w) => w.evolution ?? 0).sort(),
-    [0, 1],
+    witches.map((w) => w.form).sort(),
+    ["base", "evolution"],
     "one base row and one Evolution row",
   );
   // A card played in only one form must not absorb the other's record.
   assert.ok(witches.every((w) => w.battles === 3));
   // Cards that never evolved stay single rows.
   assert.equal(res.cards.filter((c) => c.id === 26000021).length, 1);
+});
+
+test("5.0.0: containing narrows the deck meta to decks with ALL the cards; cards narrows the card meta; denominators stay the population's", async () => {
+  const all = await call("battles_meta_decks", {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    min_battles: 1,
+  });
+  const witch = await call("battles_meta_decks", {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    min_battles: 1,
+    containing: [26000007, 26000021],
+  });
+  assert.equal(witch.decks.length, 2, "both forms of the Witch deck qualify");
+  assert.equal(
+    witch.decided_battles,
+    all.decided_battles,
+    "the population is unchanged",
+  );
+  assert.deepEqual(witch.applied.containing, [26000007, 26000021]);
+  const none = await call("battles_meta_decks", {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    min_battles: 1,
+    containing: [26000007, 28000000],
+  });
+  assert.equal(none.decks.length, 0, "Fireball is in no seeded deck");
+  assert.equal(none.decided_battles, all.decided_battles);
+
+  const cards = await call("battles_meta_cards", {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    min_battles: 1,
+    cards: [26000007],
+  });
+  assert.deepEqual(
+    cards.cards.map((c) => c.form).sort(),
+    ["base", "evolution"],
+    "one card, every form of it, as separate rows",
+  );
+  assert.ok(cards.cards.every((c) => c.card_id === 26000007));
+  assert.equal(cards.decided_battles, 6, "the denominator is the population's");
+  assert.deepEqual(cards.applied.cards, [26000007]);
+});
+
+test("5.0.0: the catalog says the type from the id range and when it last changed vs was fetched", async () => {
+  const res = await call("cards_catalog", {
+    ids: [26000007, 27000000, 28000001],
+  });
+  assert.deepEqual(
+    res.cards.map((c) => [c.id, c.type]),
+    [
+      [26000007, "troop"],
+      [27000000, "building"],
+      [28000001, "spell"],
+    ],
+  );
+  assert.ok("fetched_at" in res);
+  const compact = await call("cards_catalog", {
+    ids: [26000007],
+    verbosity: "compact",
+  });
+  assert.equal(compact.cards[0].type, "troop");
 });

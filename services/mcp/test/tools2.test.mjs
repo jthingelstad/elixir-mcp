@@ -1608,12 +1608,12 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     [
       "battles_meta_cards",
       { min_battles: 1, limit: 130, segment: "corpus" },
-      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+      (r) => `${r.card_id}|${r.form}`,
     ],
     [
       "cards_synergy",
       { card: "Knight", min_pair_battles: 1, limit: 60, segment: "corpus" },
-      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+      (r) => `${r.card_id}|${r.form}`,
     ],
   ]) {
     const raw = await call(tool, { ...args, ...bounds });
@@ -1718,13 +1718,13 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
       "battles_meta_cards",
       { min_battles: 1, limit: 130, segment: "corpus" },
       "cards",
-      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+      (r) => `${r.card_id}|${r.form}`,
     ],
     [
       "cards_synergy",
       { card: "Knight", min_pair_battles: 1, limit: 60, segment: "corpus" },
       "partners",
-      (r) => `${r.card_id}|${r.evolution ?? 0}`,
+      (r) => `${r.card_id}|${r.form}`,
     ],
   ]) {
     const band = { trophy_band: "13000_plus" };

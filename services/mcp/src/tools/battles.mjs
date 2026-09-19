@@ -10,10 +10,12 @@ import {
   responseMeta,
   MODE_GROUPS,
   typesForModeGroup,
+  formName,
 } from "@elixir-mcp/contracts";
 import { formatLocal } from "../time.mjs";
 import {
   requireEnum,
+  decksContaining,
   ToolFailure,
   TAG_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
@@ -62,6 +64,16 @@ import {
 
 /** The trophy band argument the three meta tools take (0135): the
  *  participant's own starting trophies at battle time. */
+
+/** One card, or a handful: the ids a card-shaped question names (5.0.0).
+ *  Filters the rows AFTER aggregation, like min_battles and limit; the
+ *  denominators (decided_battles, usage_share) stay the population's. */
+const CARD_IDS_ARG = {
+  type: "array",
+  items: { type: "integer" },
+  minItems: 1,
+  maxItems: 8,
+};
 const META_TROPHY_BAND_SCHEMA = {
   type: "string",
   enum: TROPHY_BAND_NAMES,
@@ -90,13 +102,13 @@ function towerHpOf(r) {
 }
 
 const FORM_ROWS_NOTE =
-  "Forms are separate rows: evolution marks card FORM (1 = Evolution, 2 = Hero), never a level, so a card played in two forms carries two records.";
+  "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.";
 
 const roundsPlayed = (deck) =>
   Array.isArray(deck?.rounds) ? { rounds_played: deck.rounds.length } : {};
 
 // Deck identities render from deck_card via shared deckIdentities (0091):
-// {id, name, evolution?} plus tower_troop - the shape deckCards/towerTroop
+// {id, name, form} plus tower_troop - the shape deckCards/towerTroop
 // produced from an exemplar's JSON (playtest round, 2026-09-09: forms are
 // part of identity and must be visible).
 
@@ -626,7 +638,7 @@ export const battlesTools = {
           "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many.",
           compact
             ? null
-            : "Deck card levels are the in-game 1-16 scale; evolution marks the FORM played (1 = Evolution, 2 = Hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
+            : "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
           leakRows > 0
             ? "elixir_leaked is each side's own counter: at high trophies both players routinely hold and both leak, so the absolute value describes the match, not the player; elixir_leaked_differential (me minus the one opponent) is the better read and still cannot separate waste from holding elixir to react to a placement, so neither is a skill measure."
             : null,
@@ -1110,7 +1122,7 @@ export const battlesTools = {
         cards: rows.map((r) => ({
           id: Number(r.id),
           name: r.name,
-          ...(r.evolution > 0 ? { evolution: r.evolution } : {}),
+          form: formName(r.evolution),
           battles: r.wins + r.losses,
           wins: r.wins,
           losses: r.losses,
@@ -1373,6 +1385,11 @@ export const battlesTools = {
         },
         limit: { type: "integer", minimum: 1, maximum: 40, default: 20 },
         trophy_band: META_TROPHY_BAND_SCHEMA,
+        containing: {
+          ...CARD_IDS_ARG,
+          description:
+            "Only decks whose played cards include ALL these card ids, any form, tower troop excluded (the with_cards semantics of battles_query). Applied after aggregation: usage_share and decided_battles stay the population's.",
+        },
       },
       required: ["segment"],
       additionalProperties: false,
@@ -1535,6 +1552,10 @@ export const battlesTools = {
           );
         }
       }
+      if (args.containing) {
+        const keep = await decksContaining(ctx.db, args.containing);
+        rows = rows.filter((r) => keep.has(r.deck_hash));
+      }
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
       const priorMean = prior.mean ?? 0.5;
       const sufficient = totalDecided >= META_METHODOLOGY.segment_min_decided;
@@ -1609,6 +1630,7 @@ export const battlesTools = {
           window: win.echo,
           mode: args.mode,
           trophy_band: args.trophy_band,
+          containing: args.containing,
           min_battles: minBattles,
           sort,
           limit,
@@ -1674,6 +1696,11 @@ export const battlesTools = {
         },
         limit: { type: "integer", minimum: 1, maximum: 130, default: 30 },
         trophy_band: META_TROPHY_BAND_SCHEMA,
+        cards: {
+          ...CARD_IDS_ARG,
+          description:
+            "Only these card ids (every form of each). Applied after aggregation: usage_share and decided_battles stay the population's; min_battles still applies.",
+        },
       },
       required: ["segment"],
       additionalProperties: false,
@@ -1812,6 +1839,10 @@ export const battlesTools = {
         playersInWindow = rows[0]?.total_players ?? 0;
         if (!args.mode) modeGroups = modeGaps(rows[0]?.window_types ?? []);
       }
+      if (args.cards) {
+        const keep = new Set(args.cards.map(Number));
+        rows = rows.filter((r) => keep.has(Number(r.card_id)));
+      }
       const mean = totalDecided > 0 ? totalWins / totalDecided : 0.5;
       const priorMean = prior.mean ?? 0.5;
       const sufficient = totalDecided >= META_METHODOLOGY.segment_min_decided;
@@ -1820,7 +1851,7 @@ export const battlesTools = {
         .map((r) => ({
           card_id: Number(r.card_id),
           name: r.name,
-          ...(r.evolution > 0 ? { evolution: r.evolution } : {}),
+          form: formName(r.evolution),
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -1883,6 +1914,7 @@ export const battlesTools = {
           window: win.echo,
           mode: args.mode,
           trophy_band: args.trophy_band,
+          cards: args.cards,
           min_battles: minBattles,
           sort,
           limit,

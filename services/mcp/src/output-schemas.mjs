@@ -142,12 +142,14 @@ const DECK_CARD = {
   properties: {
     id: COUNT,
     name: { type: "string" },
-    evolution: {
-      type: "integer",
-      description: "1 = Evolution, 2 = Hero form.",
+    form: {
+      type: "string",
+      enum: ["base", "evolution", "hero"],
+      description:
+        "The form the card was played as (5.0.0; the integer evolution key is retired).",
     },
   },
-  required: ["id", "name"],
+  required: ["id", "name", "form"],
 };
 
 const RECORD = {
@@ -565,10 +567,10 @@ export const OUTPUT_SCHEMAS = {
           properties: {
             card_id: COUNT,
             name: { type: ["string", "null"] },
-            evolution: {
-              type: "integer",
-              description:
-                "Card FORM (1 = Evolution, 2 = Hero); absent on the base form.",
+            form: {
+              type: "string",
+              enum: ["base", "evolution", "hero"],
+              description: "The card FORM this row counts (5.0.0).",
             },
             ...META_ROW_COMMON,
           },

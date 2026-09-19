@@ -20,7 +20,12 @@
  * assembles them.
  */
 
-import { responseMeta, roleQuotas, MODE_GROUPS } from "@elixir-mcp/contracts";
+import {
+  responseMeta,
+  roleQuotas,
+  MODE_GROUPS,
+  formName,
+} from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 import { resolveInstant } from "../time.mjs";
@@ -1141,6 +1146,22 @@ export async function corpusPrior(db, { from, to = null, types = null }) {
  * (an identity is a set; the old exemplar order was one player's slots).
  * Returns a Map deck_hash -> { cards, tower_troop? }.
  */
+/**
+ * The deck hashes whose played cards include ALL of `cardIds`, any form
+ * (5.0.0, battles_meta_decks.containing): one indexed read of deck_card,
+ * the tower troop excluded (it is on the deck row, not in deck_card).
+ */
+export async function decksContaining(db, cardIds) {
+  const ids = [...new Set(cardIds.map(Number))];
+  const { rows } = await db.query(
+    `select deck_hash from deck_card
+     where card_id = any($1)
+     group by deck_hash having count(distinct card_id) = $2`,
+    [ids, ids.length],
+  );
+  return new Set(rows.map((r) => r.deck_hash));
+}
+
 export async function deckIdentities(db, hashes) {
   const wanted = [...new Set(hashes.filter(Boolean))];
   if (wanted.length === 0) return new Map();
@@ -1169,7 +1190,7 @@ export async function deckIdentities(db, hashes) {
       out.get(r.deck_hash).cards.push({
         id: r.card_id,
         name: r.name,
-        ...(r.form > 0 ? { evolution: r.form } : {}),
+        form: formName(r.form),
       });
   }
   return out;

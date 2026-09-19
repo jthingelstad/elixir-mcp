@@ -43,7 +43,11 @@ export function agoText(seconds) {
 /** Card names with the form the deck carried, the way the site says it. */
 export function cardLabel(card) {
   const form =
-    card.evolution === 2 ? " (Hero)" : card.evolution === 1 ? " (Evo)" : "";
+    card.form === "hero"
+      ? " (Hero)"
+      : card.form === "evolution"
+        ? " (Evo)"
+        : "";
   return `${card.name}${form}`;
 }
 

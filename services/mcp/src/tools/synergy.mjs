@@ -7,6 +7,7 @@ import {
   MODE_GROUPS,
   typesForModeGroup,
   cardForms,
+  formName,
 } from "@elixir-mcp/contracts";
 import {
   ToolFailure,
@@ -321,9 +322,7 @@ export const synergyTools = {
           return {
             card_id: Number(r.card_id),
             name: r.name,
-            ...(r.form > 0
-              ? { evolution: r.form, form: r.form === 1 ? "evolution" : "hero" }
-              : {}),
+            form: formName(r.form),
             co_battles: r.co_battles,
             players: r.players,
             co_occurrence_rate: rate === null ? null : Number(rate.toFixed(3)),

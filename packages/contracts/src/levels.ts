@@ -52,3 +52,27 @@ export function cardForms(value: number | null | undefined): CardForm[] {
     (form) => (bits & CARD_FORM_BITS[form]) !== 0,
   );
 }
+
+/**
+ * The one spelling of a played form (5.0.0). A battle-deck card, a meta
+ * row and a synergy partner all carry `form: "base" | "evolution" | "hero"`;
+ * the integer bit field stays an ingest and storage detail.
+ */
+export type PlayedForm = "base" | CardForm;
+export function formName(value: number | null | undefined): PlayedForm {
+  return value === 1 ? "evolution" : value === 2 ? "hero" : "base";
+}
+
+/**
+ * A card's type from its id range (cr-agent-api-docs/cards.md, observed):
+ * 26000xxx troops, 27000xxx buildings, 28000xxx spells, 159000xxx tower
+ * troops. The API carries no type field; this is the only source.
+ */
+export type CardType = "troop" | "building" | "spell" | "tower_troop";
+export function cardType(id: number): CardType | null {
+  if (id >= 26000000 && id < 27000000) return "troop";
+  if (id >= 27000000 && id < 28000000) return "building";
+  if (id >= 28000000 && id < 29000000) return "spell";
+  if (id >= 159000000 && id < 160000000) return "tower_troop";
+  return null;
+}
