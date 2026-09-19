@@ -59,7 +59,7 @@ import {
   abYield,
   auditCensus,
   argsCensus,
-  rhythmScore,
+  pollReplay,
 } from "./ops-analysis.mjs";
 import {
   feedbackPending,
@@ -224,10 +224,10 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.rhythm_score) {
-    const result = await rhythmScore(
+  if (event?.poll_replay) {
+    const result = await pollReplay(
       process.env.DATABASE_URL,
-      event.rhythm_score === true ? {} : event.rhythm_score,
+      event.poll_replay === true ? {} : event.poll_replay,
     );
     console.log(JSON.stringify(result));
     return result;

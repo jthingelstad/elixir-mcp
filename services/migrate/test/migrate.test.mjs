@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { migrate, loadMigrations } from "../src/migrate.mjs";
 import { schemaFingerprint } from "../src/fingerprint.mjs";
-import { abYield, rhythmScore } from "../src/ops-analysis.mjs";
+import { abYield, pollReplay } from "../src/ops-analysis.mjs";
 import { ledger, stats } from "../src/ops-diagnostics.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -951,31 +951,20 @@ test("ab_yield reports both hash arms with the audit's three new columns", async
   }
 });
 
-test("rhythm_score reads an empty week as zero counts with every section present", async () => {
-  const out = await rhythmScore(SCRATCH_URL, {
+test("poll_replay reads an empty week as zero counts with every section present", async () => {
+  const out = await pollReplay(SCRATCH_URL, {
     days: 7,
     to: "2020-01-08T00:00:00Z",
   });
   assert.equal(out.window.days, 7);
   assert.equal(out.polls.total, 0);
-  assert.equal(out.coverage.warm_players_at_start, 0);
-  assert.equal(out.fleet.weekly_median, 0);
-  for (const set of [
-    out.nightly_rhythm,
-    out.nightly_fleet_on_cold,
-    out.frozen_rhythm,
-    out.frozen_fleet_on_cold,
-    out.stored_rhythm_in_sample,
-  ]) {
-    assert.equal(set.polls, 0);
-    assert.equal(set.nothing_new.quiet_share, null);
-    assert.equal(set.productive.quiet_share, null);
-    assert.equal(set.gaps.peak_share, null);
-  }
-  assert.equal(out.replay.rule.length, 9);
-  for (const cell of out.replay.rule) assert.equal(cell.polls, 0);
   assert.equal(out.replay.actual.polls, 0);
+  assert.equal(out.replay.rule.length, 12);
+  for (const cell of out.replay.rule) assert.equal(cell.polls, 0);
   assert.equal(out.session_control.prev_empty.n, 0);
+  assert.equal(out.loss.intervals, 0);
+  assert.equal(out.loss.estimated_lost_battles, 0);
+  assert.equal(out.loss.estimated_lost_share, null);
 });
 
 // The 0091 backfill rehearsal (batches rebuild the projections from the

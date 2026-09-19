@@ -387,63 +387,49 @@ export async function argsCensus(databaseUrl, spec) {
 }
 
 /**
- * Score the nightly rhythm against a week of battlelog polls
- * ({rhythm_score: {days?, to?}}) BEFORE the planner reads it (adaptive
- * polling step two, NOTES 2026-09-13 "Adaptive polling, step one": "its
- * placement changes after a week of nightly histograms has been read
- * against the capture audit"). Read-only, aggregates only.
+ * The session clock replayed over a week of battlelog polls, and what
+ * the week lost ({poll_replay: {days?, to?}}). Read-only, aggregates only.
+ * Written 2026-09-19 when the rhythm-placed design was scored and
+ * rejected (NOTES that day) and Jamie asked for the KISS rule instead:
+ * after a poll that found battles wait F, after an empty one double the
+ * wait up to a ceiling C, and (optionally) park a player with no battle
+ * in D days on the 24-hour floor.
  *
- * The rhythm scored is the one the planner would have HELD at each poll:
- * rebuilt here from battle_participant with the histogram job's own
- * formula (365-day window, 28-day half-life) as of the window's start,
- * then rolled forward through the job's 05:30Z runs, so a poll on
- * Thursday is judged by a rhythm that knows Monday to Wednesday and never
- * by the battles it delivered itself. The frozen start-of-window rhythm
- * and the stored `player_activity.rhythm` (which includes the whole week)
- * are scored beside it: the lower and upper bounds, and the size of the
- * leak. For every admitted battlelog poll in the window: the mass the
- * player's rhythm puts on the poll's own hour, the battles it expected
- * since the previous poll, and the largest hourly mass the wait crossed;
- * cold-start players (fewer than `cold` battles in the year) under the
- * fleet's mean rhythm. A control beside it: whether the previous poll
- * delivered battles (the session the record already knows about). Last, a
- * replay grid: the placement rule (next poll when the expected count
- * crosses `target`, bounded 15 min .. `ceiling`) walked over each player's
- * week with the rolling rhythm against the battles the record holds per
- * hour, for several targets and ceilings, beside the polls that actually
- * happened on the same footing.
+ * Two answers. (1) The replay: each polled player's week from their
+ * first actual poll, the rule's polls judged against the battles the
+ * record holds per hour (an hour's battles split across the polls its
+ * span overlaps; "over capacity" is more than `capacity` battles between
+ * two polls, the gap shape), for every F × C × D, beside the actual polls
+ * judged the same way. (2) The loss: the profile's lifetime battleCount
+ * is the one ground truth the API gives, so every snapshot interval in
+ * the window is read as expected (the counter's delta) against captured
+ * (battle_participant rows inside it), split by whether an audited gap
+ * fell inside. Intervals without a gap that still come up short measure
+ * the modes the battle log never shows; that rate, taken off the gap
+ * intervals, leaves the battles the recorder lost. A control beside
+ * both: whether the previous poll delivered battles.
  */
-export async function rhythmScore(databaseUrl, spec = {}) {
-  const {
-    normalize,
-    bucketOf,
-    expectedBattles,
-    peakMassBetween,
-    nextDueMs,
-    fleetMass,
-    BUCKETS,
-  } = await import("../../scheduler/src/rhythm.mjs");
+export async function pollReplay(databaseUrl, spec = {}) {
   const days = Math.min(Math.max(Number(spec.days ?? 7), 1), 14);
   const toTs = spec.to ? new Date(spec.to) : new Date();
   if (Number.isNaN(toTs.getTime()))
     return { error: "to must be an ISO instant" };
   const fromTs = new Date(toTs.getTime() - days * 86_400_000);
-  const quiet = Number(spec.quiet ?? 0.05);
-  const peak = Number(spec.peak ?? 0.2);
-  const cold = Number(spec.cold ?? 20);
-  const target = Number(spec.target ?? 5);
   const capacity = Number(spec.capacity ?? 25);
-  const targets = Array.isArray(spec.targets) ? spec.targets : [1, 2, 5];
+  const followups = Array.isArray(spec.followups) ? spec.followups : [20, 30];
   const ceilings = Array.isArray(spec.ceilings)
     ? spec.ceilings
-    : [240, 480, 1440];
-  const floorMs = 15 * 60_000;
+    : [180, 240, 360];
+  const dormants = Array.isArray(spec.dormant_days)
+    ? spec.dormant_days
+    : [0, 7];
+  const dormantCeiling = Number(spec.dormant_ceiling ?? 1440);
   const started = Date.now();
+  const DAY = 86_400_000;
+  const HOUR = 3600_000;
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    // 1. The polls, with each one's predecessor (the previous admitted
-    //    poll may sit up to a day and a half before the window).
     const { rows: polls } = await db.query(
       `with seq as (
          select r.receipt_id, r.entity_key, r.fetched_at, r.new_facts, r.observed, r.filtered,
@@ -464,268 +450,84 @@ export async function rhythmScore(databaseUrl, spec = {}) {
       [fromTs, toTs],
     );
     const tags = [...new Set(polls.map((p) => p.entity_key))];
-    // 2. Each polled player's rhythm as of the window start: the job's
-    //    formula, decayed to `from`, over battles before it.
-    const { rows: rhythmRows } = await db.query(
-      `select bp.player_tag,
-              ((extract(isodow from bp.battle_time at time zone 'UTC')::int - 1) * 24
-                + extract(hour from bp.battle_time at time zone 'UTC')::int) as bucket,
-              count(*)::int as n,
-              sum(power(2, - extract(epoch from ($1::timestamptz - bp.battle_time)) / 86400.0 / 28))::float8 as w,
-              count(*) filter (where bp.battle_time > $1::timestamptz - interval '28 days')::int as n_28d
-         from battle_participant bp
-        where bp.player_tag = any($2::text[])
-          and bp.battle_time > $1::timestamptz - interval '365 days'
-          and bp.battle_time <= $1::timestamptz
-        group by 1, 2`,
-      [fromTs, tags],
-    );
-    // 3. The week's battles, by the 05:30Z run that first sees each one
-    //    (the rolling rhythm) and by hour (the replay). Weights are
-    //    relative to the start, so the two halves add.
-    const { rows: weekRows } = await db.query(
-      `select bp.player_tag,
-              date_trunc('day', bp.battle_time - interval '5 hours 30 minutes')
-                + interval '1 day 5 hours 30 minutes' as run_at,
-              ((extract(isodow from bp.battle_time at time zone 'UTC')::int - 1) * 24
-                + extract(hour from bp.battle_time at time zone 'UTC')::int) as bucket,
-              date_trunc('hour', bp.battle_time) as hour,
-              count(*)::int as n,
-              sum(power(2, - extract(epoch from ($2::timestamptz - bp.battle_time)) / 86400.0 / 28))::float8 as w
+    const { rows: hourRows } = await db.query(
+      `select bp.player_tag, date_trunc('hour', bp.battle_time) as hour, count(*)::int as n
          from battle_participant bp
         where bp.player_tag = any($1::text[])
           and bp.battle_time > $2::timestamptz and bp.battle_time <= $3::timestamptz
-        group by 1, 2, 3, 4`,
+        group by 1, 2`,
       [tags, fromTs, toTs],
     );
-    // 4. The stored row (in-sample): the leak's size, and coverage.
-    const { rows: storedRows } = await db.query(
-      `select player_tag, rhythm, rhythm_battles, battles_28d
-         from player_activity where player_tag = any($1::text[])`,
-      [tags],
+    const { rows: lastRows } = await db.query(
+      `select bp.player_tag, max(bp.battle_time) as last_at
+         from battle_participant bp
+        where bp.player_tag = any($1::text[]) and bp.battle_time <= $2::timestamptz
+        group by 1`,
+      [tags, fromTs],
+    );
+    // Snapshot intervals ending inside the window: the counter's delta
+    // against the battles the record holds, and whether a gap fell inside.
+    const { rows: intervals } = await db.query(
+      `with s as (
+         select player_tag, profile_observed_at as observed_at,
+                lag(profile_observed_at) over w as observed_from,
+                battle_count - lag(battle_count) over w as expected
+           from player_snapshot_daily
+          where player_tag = any($1::text[])
+            and profile_observed_at is not null and battle_count is not null
+            and snapshot_date >= ($2::timestamptz - interval '3 days')::date
+          window w as (partition by player_tag order by profile_observed_at)
+       )
+       select s.player_tag, s.observed_from, s.observed_at, s.expected,
+              (select count(*)::int from battle_participant bp
+                where bp.player_tag = s.player_tag
+                  and bp.battle_time > s.observed_from
+                  and bp.battle_time <= s.observed_at) as captured,
+              (select count(*)::int from capture_audit ca
+                where ca.subject_tag = s.player_tag and ca.gap
+                  and ca.fetched_at > s.observed_from
+                  and ca.fetched_at <= s.observed_at) as gaps
+         from s
+        where s.observed_from is not null
+          and s.observed_at > $2::timestamptz and s.observed_at <= $3::timestamptz
+          and s.expected is not null and s.expected >= 0`,
+      [tags, fromTs, toTs],
     );
 
-    const players = new Map();
-    for (const r of rhythmRows) {
-      let p = players.get(r.player_tag);
-      if (!p) {
-        p = { rhythm: new Array(BUCKETS).fill(0), n: 0, n28: 0 };
-        players.set(r.player_tag, p);
-      }
-      p.rhythm[r.bucket] += r.w;
-      p.n += r.n;
-      p.n28 += r.n_28d;
-    }
-    const stored = new Map(storedRows.map((r) => [r.player_tag, r]));
     const hours = new Map();
-    const runs = new Map();
-    for (const r of weekRows) {
-      if (!hours.has(r.player_tag)) hours.set(r.player_tag, new Map());
-      const h = hours.get(r.player_tag);
-      const hr = new Date(r.hour).getTime();
-      h.set(hr, (h.get(hr) ?? 0) + r.n);
-      if (!runs.has(r.player_tag)) runs.set(r.player_tag, []);
-      runs.get(r.player_tag).push({
-        at: new Date(r.run_at).getTime(),
-        bucket: r.bucket,
-        n: r.n,
-        w: r.w,
-      });
+    for (const r of hourRows) {
+      if (!hours.has(r.player_tag)) hours.set(r.player_tag, []);
+      hours.get(r.player_tag).push([new Date(r.hour).getTime(), r.n]);
     }
-    for (const list of runs.values()) list.sort((a, b) => a.at - b.at);
-
-    // Warm players place their own polls; cold ones borrow the fleet.
-    const warm = [];
-    const weeklyOf = new Map();
-    for (const [tag, p] of players) {
-      if (p.n >= cold) {
-        warm.push(p.rhythm);
-        weeklyOf.set(tag, p.n28 / 4);
-      }
-    }
-    const fleet = fleetMass(warm);
-    const weeklies = [...weeklyOf.values()].sort((a, b) => a - b);
-    const fleetWeekly = weeklies.length
-      ? weeklies[Math.floor(weeklies.length / 2)]
-      : 0;
-
-    /** A player's rhythm rolled forward: call advance(t) with rising t
-     *  and read mass/weekly/warm as the planner would have at t. */
-    const roller = (tag) => {
-      const base = players.get(tag);
-      const state = {
-        rhythm: base ? [...base.rhythm] : new Array(BUCKETS).fill(0),
-        n: base?.n ?? 0,
-        n28: base?.n28 ?? 0,
-        i: 0,
-        list: runs.get(tag) ?? [],
-        mass: null,
-        dirty: true,
-      };
-      return {
-        advance(t) {
-          while (state.i < state.list.length && state.list[state.i].at <= t) {
-            const r = state.list[state.i++];
-            state.rhythm[r.bucket] += r.w;
-            state.n += r.n;
-            state.n28 += r.n;
-            state.dirty = true;
-          }
-          if (state.dirty) {
-            state.mass = normalize(state.rhythm);
-            state.dirty = false;
-          }
-        },
-        get warm() {
-          return state.n >= cold;
-        },
-        get mass() {
-          return this.warm ? state.mass : fleet;
-        },
-        get weekly() {
-          return this.warm ? state.n28 / 4 : fleetWeekly;
-        },
-        get own() {
-          return state.mass;
-        },
-        get nOwn() {
-          return state.n;
-        },
-      };
-    };
-
-    const thresholds = [0.5, 1, 2, target];
-    const bucketStats = () => ({
-      n: 0,
-      quiet_bucket: 0,
-      expected_lt: Object.fromEntries(thresholds.map((t) => [t, 0])),
-      battles: 0,
-      battles_in_expected_lt: Object.fromEntries(thresholds.map((t) => [t, 0])),
-    });
-    const crossStats = () => ({ n: 0, peak_crossed: 0, intervals_min: [] });
-    const scoreSet = () => ({
-      polls: 0,
-      first_polls: 0,
-      nothing_new: bucketStats(),
-      productive: bucketStats(),
-      gaps: crossStats(),
-      audited_no_gap: crossStats(),
-    });
-    const nightly = scoreSet();
-    const nightlyCold = scoreSet();
-    const frozen = scoreSet();
-    const frozenCold = scoreSet();
-    const storedSet = scoreSet();
-
-    const score = (set, mass, weekly, poll) => {
-      set.polls += 1;
-      const t = new Date(poll.fetched_at).getTime();
-      const prev = poll.prev_at ? new Date(poll.prev_at).getTime() : null;
-      if (prev === null) set.first_polls += 1;
-      const nothingNew =
-        poll.observed !== null && poll.filtered !== null
-          ? poll.observed === poll.filtered
-          : null;
-      const productive = (poll.new_facts ?? 0) > 0;
-      const cls =
-        nothingNew === true
-          ? set.nothing_new
-          : productive
-            ? set.productive
-            : null;
-      if (cls) {
-        cls.n += 1;
-        if (mass[bucketOf(t)] < quiet) cls.quiet_bucket += 1;
-        cls.battles += poll.new_facts ?? 0;
-        if (prev !== null) {
-          const e = expectedBattles(mass, weekly, prev, t);
-          for (const th of thresholds)
-            if (e < th) {
-              cls.expected_lt[th] += 1;
-              cls.battles_in_expected_lt[th] += poll.new_facts ?? 0;
-            }
-        }
-      }
-      if (poll.audited && prev !== null) {
-        const c = poll.gap ? set.gaps : set.audited_no_gap;
-        c.n += 1;
-        if (peakMassBetween(mass, prev, t) > peak) c.peak_crossed += 1;
-        c.intervals_min.push((t - prev) / 60_000);
-      }
-    };
-
-    // The control: the session the record already knows about.
-    const session = {
-      prev_productive: { n: 0, productive: 0, nothing_new: 0 },
-      prev_empty: { n: 0, productive: 0, nothing_new: 0 },
-    };
-
-    let coldPlayersStart = 0;
-    let noHistoryPlayers = 0;
-    let pollsWithRow = 0;
-    let coldPollsNightly = 0;
+    for (const list of hours.values()) list.sort((a, b) => a[0] - b[0]);
+    const lastBefore = new Map(
+      lastRows.map((r) => [r.player_tag, new Date(r.last_at).getTime()]),
+    );
     const byTag = new Map();
     for (const p of polls) {
       if (!byTag.has(p.entity_key)) byTag.set(p.entity_key, []);
       byTag.get(p.entity_key).push(p);
     }
-    for (const [tag, list] of byTag) {
-      const p = players.get(tag);
-      const s = stored.get(tag);
-      if (s) pollsWithRow += list.length;
-      if (!p) noHistoryPlayers += 1;
-      const warmAtStart = p && p.n >= cold;
-      if (!warmAtStart) coldPlayersStart += 1;
-      const frozenMass = warmAtStart ? normalize(p.rhythm) : fleet;
-      const frozenWeekly = warmAtStart ? weeklyOf.get(tag) : fleetWeekly;
-      const roll = roller(tag);
-      const sm = s ? normalize(s.rhythm) : null;
-      for (const poll of list) {
-        const t = new Date(poll.fetched_at).getTime();
-        roll.advance(t);
-        if (roll.mass) {
-          if (roll.warm) score(nightly, roll.mass, roll.weekly, poll);
-          else {
-            coldPollsNightly += 1;
-            score(nightlyCold, roll.mass, roll.weekly, poll);
-          }
-        }
-        if (frozenMass)
-          score(
-            warmAtStart ? frozen : frozenCold,
-            frozenMass,
-            frozenWeekly,
-            poll,
-          );
-        if (sm && s.rhythm_battles >= cold)
-          score(storedSet, sm, Number(s.battles_28d) / 4, poll);
-        if (poll.prev_at && poll.prev_new_facts !== null) {
-          const c =
-            poll.prev_new_facts > 0
-              ? session.prev_productive
-              : session.prev_empty;
-          c.n += 1;
-          if ((poll.new_facts ?? 0) > 0) c.productive += 1;
-          if (poll.observed !== null && poll.observed === poll.filtered)
-            c.nothing_new += 1;
-        }
-      }
-    }
 
-    // The replay. Each player's week from their first actual poll: the
-    // rule's polls against the actual ones, both judged by the hourly
-    // battle counts the record holds (an hour's battles split across the
-    // polls its span overlaps). The rule reads the rolling rhythm.
     const battlesIn = (tag, aMs, bMs) => {
       const h = hours.get(tag);
       if (!h) return 0;
       let sum = 0;
       for (const [hr, n] of h) {
+        if (hr + HOUR <= aMs) continue;
+        if (hr >= bMs) break;
         const lo = Math.max(hr, aMs);
-        const hi = Math.min(hr + 3600_000, bMs);
-        if (hi > lo) sum += n * ((hi - lo) / 3600_000);
+        const hi = Math.min(hr + HOUR, bMs);
+        if (hi > lo) sum += n * ((hi - lo) / HOUR);
       }
       return sum;
+    };
+    /** The newest battle the record could know at `ref`. */
+    const lastBattleAt = (tag, ref) => {
+      let last = lastBefore.get(tag) ?? -Infinity;
+      const h = hours.get(tag);
+      if (h) for (const [hr] of h) if (hr < ref) last = Math.max(last, hr);
+      return last;
     };
     const tally = () => ({ polls: 0, empty: 0, over_capacity: 0, battles: 0 });
     const judge = (t, tag, a, b) => {
@@ -734,14 +536,25 @@ export async function rhythmScore(databaseUrl, spec = {}) {
       if (n < 0.5) t.empty += 1;
       if (n > capacity) t.over_capacity += 1;
       t.battles += n;
+      return n;
+    };
+    const session = {
+      prev_productive: { n: 0, productive: 0, nothing_new: 0 },
+      prev_empty: { n: 0, productive: 0, nothing_new: 0 },
     };
     const actual = { ...tally(), nothing_new: 0, gaps: 0 };
     const grid = [];
-    for (const tg of targets)
-      for (const ceil of ceilings)
-        grid.push({ target: tg, ceiling_min: ceil, ...tally() });
+    for (const f of followups)
+      for (const c of ceilings)
+        for (const d of dormants)
+          grid.push({
+            followup_min: f,
+            ceiling_min: c,
+            dormant_days: d,
+            ...tally(),
+            dormant_polls: 0,
+          });
     const endMs = toTs.getTime();
-    let replayed = 0;
     for (const [tag, list] of byTag) {
       const t0 = new Date(list[0].fetched_at).getTime();
       let prev = t0;
@@ -751,84 +564,94 @@ export async function rhythmScore(databaseUrl, spec = {}) {
         if (poll.observed !== null && poll.observed === poll.filtered)
           actual.nothing_new += 1;
         if (poll.gap) actual.gaps += 1;
+        if (poll.prev_new_facts !== null) {
+          const c =
+            poll.prev_new_facts > 0
+              ? session.prev_productive
+              : session.prev_empty;
+          c.n += 1;
+          if ((poll.new_facts ?? 0) > 0) c.productive += 1;
+          if (poll.observed !== null && poll.observed === poll.filtered)
+            c.nothing_new += 1;
+        }
         prev = t;
       }
-      if (!fleet && !players.get(tag)) continue;
-      replayed += 1;
       for (const cell of grid) {
-        const roll = roller(tag);
         let ref = t0;
+        let streak = (list[0].new_facts ?? 0) > 0 ? 0 : 1;
         for (;;) {
-          roll.advance(ref);
-          if (!roll.mass) break;
-          const due = nextDueMs(roll.mass, roll.weekly, ref, cell.target, {
-            floorMs,
-            ceilingMs: cell.ceiling_min * 60_000,
-          });
+          let wait = Math.min(
+            cell.ceiling_min,
+            cell.followup_min * 2 ** Math.min(streak, 12),
+          );
+          let dormant = false;
+          if (
+            cell.dormant_days > 0 &&
+            ref - lastBattleAt(tag, ref) > cell.dormant_days * DAY
+          ) {
+            wait = Math.max(wait, dormantCeiling);
+            dormant = true;
+          }
+          const due = ref + wait * 60_000;
           if (due >= endMs) break;
-          judge(cell, tag, ref, due);
+          const n = judge(cell, tag, ref, due);
+          if (dormant) cell.dormant_polls += 1;
+          streak = n >= 0.5 ? 0 : streak + 1;
           ref = due;
         }
       }
     }
 
-    const median = (xs) => {
+    // The loss.
+    const loss = {
+      intervals: 0,
+      players: new Set(),
+      gap: { intervals: 0, expected: 0, captured: 0, shortfall: 0, over: 0 },
+      no_gap: { intervals: 0, expected: 0, captured: 0, shortfall: 0, over: 0 },
+      shortfalls: [],
+      by_player: new Map(),
+    };
+    for (const r of intervals) {
+      loss.intervals += 1;
+      loss.players.add(r.player_tag);
+      const side = r.gaps > 0 ? loss.gap : loss.no_gap;
+      const expected = Number(r.expected);
+      const captured = Number(r.captured);
+      side.intervals += 1;
+      side.expected += expected;
+      side.captured += captured;
+      const short = Math.max(0, expected - captured);
+      side.shortfall += short;
+      side.over += Math.max(0, captured - expected);
+      if (r.gaps > 0) {
+        loss.shortfalls.push(short);
+        const p = loss.by_player.get(r.player_tag) ?? {
+          player_tag: r.player_tag,
+          gap_intervals: 0,
+          gaps: 0,
+          expected: 0,
+          captured: 0,
+          shortfall: 0,
+        };
+        p.gap_intervals += 1;
+        p.gaps += r.gaps;
+        p.expected += expected;
+        p.captured += captured;
+        p.shortfall += short;
+        loss.by_player.set(r.player_tag, p);
+      }
+    }
+    const share = (a, b) => (b > 0 ? Math.round((a / b) * 1000) / 1000 : null);
+    const pct = (xs, q) => {
       if (!xs.length) return null;
       const s = [...xs].sort((a, b) => a - b);
-      return Math.round(s[Math.floor(s.length / 2)]);
+      return s[Math.min(s.length - 1, Math.floor(q * s.length))];
     };
-    const share = (a, b) => (b > 0 ? Math.round((a / b) * 1000) / 1000 : null);
-    const finish = (set) => ({
-      polls: set.polls,
-      first_polls: set.first_polls,
-      nothing_new: {
-        n: set.nothing_new.n,
-        quiet_bucket: set.nothing_new.quiet_bucket,
-        quiet_share: share(set.nothing_new.quiet_bucket, set.nothing_new.n),
-        expected_lt_share: Object.fromEntries(
-          thresholds.map((t) => [
-            t,
-            share(set.nothing_new.expected_lt[t], set.nothing_new.n),
-          ]),
-        ),
-      },
-      productive: {
-        n: set.productive.n,
-        battles: set.productive.battles,
-        quiet_bucket: set.productive.quiet_bucket,
-        quiet_share: share(set.productive.quiet_bucket, set.productive.n),
-        expected_lt_share: Object.fromEntries(
-          thresholds.map((t) => [
-            t,
-            share(set.productive.expected_lt[t], set.productive.n),
-          ]),
-        ),
-        battles_in_expected_lt_share: Object.fromEntries(
-          thresholds.map((t) => [
-            t,
-            share(
-              set.productive.battles_in_expected_lt[t],
-              set.productive.battles,
-            ),
-          ]),
-        ),
-      },
-      gaps: {
-        n: set.gaps.n,
-        peak_crossed: set.gaps.peak_crossed,
-        peak_share: share(set.gaps.peak_crossed, set.gaps.n),
-        median_interval_min: median(set.gaps.intervals_min),
-      },
-      audited_no_gap: {
-        n: set.audited_no_gap.n,
-        peak_crossed: set.audited_no_gap.peak_crossed,
-        peak_share: share(
-          set.audited_no_gap.peak_crossed,
-          set.audited_no_gap.n,
-        ),
-        median_interval_min: median(set.audited_no_gap.intervals_min),
-      },
-    });
+    const noiseRate = share(loss.no_gap.shortfall, loss.no_gap.expected) ?? 0;
+    const estimated = Math.max(
+      0,
+      Math.round(loss.gap.shortfall - noiseRate * loss.gap.expected),
+    );
     const finishTally = (t) => ({
       polls: t.polls,
       empty: t.empty,
@@ -839,40 +662,29 @@ export async function rhythmScore(databaseUrl, spec = {}) {
       polls_ratio: share(t.polls, actual.polls),
       empty_ratio: share(t.empty, actual.empty),
       over_capacity_ratio: share(t.over_capacity, actual.over_capacity),
+      polls_per_hour: Math.round(t.polls / (days * 24)),
     });
-    const top = fleet
-      ? fleet
-          .map((m, i) => ({ bucket: i, mass: Math.round(m * 10000) / 10000 }))
-          .sort((a, b) => b.mass - a.mass)
-          .slice(0, 8)
-      : [];
     return {
       window: { from: fromTs.toISOString(), to: toTs.toISOString(), days },
-      params: { quiet, peak, cold, target, capacity, targets, ceilings },
+      params: {
+        capacity,
+        followups,
+        ceilings,
+        dormant_days: dormants,
+        dormant_ceiling: dormantCeiling,
+      },
       polls: {
         total: polls.length,
         players: tags.length,
+        per_hour: Math.round(polls.length / (days * 24)),
         nothing_new: polls.filter(
           (p) => p.observed !== null && p.observed === p.filtered,
         ).length,
         productive: polls.filter((p) => (p.new_facts ?? 0) > 0).length,
-        uncounted: polls.filter((p) => p.observed === null).length,
+        battles: polls.reduce((a, p) => a + (p.new_facts ?? 0), 0),
         audited: polls.filter((p) => p.audited).length,
         gaps: polls.filter((p) => p.gap).length,
       },
-      coverage: {
-        players_with_activity_row: stored.size,
-        polls_with_activity_row: pollsWithRow,
-        warm_players_at_start: warm.length,
-        cold_players_at_start: coldPlayersStart,
-        no_history_players: noHistoryPlayers,
-        cold_polls_nightly: coldPollsNightly,
-      },
-      nightly_rhythm: finish(nightly),
-      nightly_fleet_on_cold: finish(nightlyCold),
-      frozen_rhythm: finish(frozen),
-      frozen_fleet_on_cold: finish(frozenCold),
-      stored_rhythm_in_sample: finish(storedSet),
       session_control: Object.fromEntries(
         Object.entries(session).map(([k, c]) => [
           k,
@@ -883,23 +695,43 @@ export async function rhythmScore(databaseUrl, spec = {}) {
           },
         ]),
       ),
-      fleet: {
-        weekly_median: fleetWeekly,
-        players: warm.length,
-        top_buckets: top,
-      },
       replay: {
-        players: replayed,
         actual: {
           ...finishTally(actual),
           nothing_new: actual.nothing_new,
           gaps: actual.gaps,
         },
         rule: grid.map((cell) => ({
-          target: cell.target,
+          followup_min: cell.followup_min,
           ceiling_min: cell.ceiling_min,
+          dormant_days: cell.dormant_days,
+          dormant_polls: cell.dormant_polls,
           ...finishTally(cell),
         })),
+      },
+      loss: {
+        intervals: loss.intervals,
+        players: loss.players.size,
+        gap_intervals: {
+          ...loss.gap,
+          shortfall_share: share(loss.gap.shortfall, loss.gap.expected),
+          shortfall_median: pct(loss.shortfalls, 0.5),
+          shortfall_p90: pct(loss.shortfalls, 0.9),
+          shortfall_max: pct(loss.shortfalls, 1),
+        },
+        no_gap_intervals: {
+          ...loss.no_gap,
+          shortfall_share: noiseRate,
+        },
+        estimated_lost_battles: estimated,
+        estimated_lost_share: share(
+          estimated,
+          estimated + loss.gap.captured + loss.no_gap.captured,
+        ),
+        estimated_per_gap_interval: share(estimated, loss.gap.intervals),
+        top_players: [...loss.by_player.values()]
+          .sort((a, b) => b.shortfall - a.shortfall)
+          .slice(0, 12),
       },
       elapsed_ms: Date.now() - started,
     };
