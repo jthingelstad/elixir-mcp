@@ -113,3 +113,28 @@ export async function gatewayRecoverOp(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** {gateway_drain: {name}} - the opposite of gateway_recover: a collector
+ *  that is off on purpose (an import machine between runs, 2026-09-19:
+ *  Hog Rider) moves active or probation -> draining, so the fleet reads
+ *  it as stopped rather than silent and the hourly sweep has nothing to
+ *  say. gateway_recover brings it back. */
+export async function gatewayDrainOp(databaseUrl, spec) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const name = String(spec?.name ?? "");
+    if (!name) return { error: "name required" };
+    const { rows } = await db.query(
+      `update gateway set status = 'draining'
+       where (name = $1 or card_name = $1) and status in ('active', 'probation')
+       returning gateway_id, name, card_name, status`,
+      [name],
+    );
+    if (rows.length === 0)
+      return { error: `no active or probation gateway named ${name}` };
+    return { ok: true, ...rows[0] };
+  } finally {
+    await db.end();
+  }
+}

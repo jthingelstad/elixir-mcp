@@ -37,6 +37,7 @@ import {
   collectorTokenOp,
   collectorReleaseOp,
   gatewayRecoverOp,
+  gatewayDrainOp,
 } from "./ops-collectors.mjs";
 import {
   stats,
@@ -185,6 +186,14 @@ export async function handler(event) {
     const result = await collectorReleaseOp(
       process.env.DATABASE_URL,
       event.collector_release,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.gateway_drain) {
+    const result = await gatewayDrainOp(
+      process.env.DATABASE_URL,
+      event.gateway_drain,
     );
     console.log(JSON.stringify(result));
     return result;
