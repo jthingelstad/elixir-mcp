@@ -8,7 +8,7 @@ navTitle: "What this is"
 icon: info
 lede: "A hub that records Clash Royale history and serves it to agents over MCP."
 console: ["See the corpus", "/data", "Data"]
-reviewed: "2026-09-19 against contract 3.17.0"
+reviewed: "2026-09-19 against contract 6.1.0"
 ---
 
 # About Elixir MCP

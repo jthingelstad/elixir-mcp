@@ -5701,3 +5701,32 @@ freeze, the tool-list weight, the docs `reviewed:` stamps, the enrolled
 cohort's first mail, the funnel numbers, the `t4g.micro` trigger) are
 Jamie's calls and stay in the conversation, not here. 6.0.0's changelog
 says it is the last major before the additive-only stretch.
+
+## 2026-09-19 — Tool-list weight measured (no change), and the six stamped docs pages re-read against 6.1.0
+
+**Item 9, measured.** The wire `tools/list` at 6.1.0 is 176 KB for 54
+tools: descriptions 22.7 KB, input schemas 69.7 KB, annotations 5.5 KB,
+output schemas 77.6 KB (44%). The question was whether Claude.ai injects
+the output schemas into the model's context. It cannot: the Messages
+API tool type carries `name`, `description` and `input_schema` only,
+and Anthropic's own MCP→API converter (`@anthropic-ai/sdk`
+`helpers/beta/mcp.js` `mcpTool`, 0.127.0) copies exactly those three
+and drops `outputSchema` and `annotations`; Claude Code's loaded
+schemas show the same. So the model-facing cost of the connector is
+the descriptions and input schemas, about 23K tokens a chat, and
+`outputSchema` costs wire bytes that connectors cache. **Decision:
+`outputSchema` stays on `tools/list`** for every principal kind; it is
+the 3.18.0 promise to bots and buys nothing to remove. The real lever,
+if the number ever matters, is repeated argument prose: the same
+descriptions across tools are ~11K of the 23K (`segment` 939 chars × 7,
+`timezone` 219 × 21, `display_name` 351 × 11, `season` 241 × 14). Not
+trimmed: that prose is the 3.16.0/3.17.0 grammar, and #66's lesson is
+that meaning belongs on the value, not in a sentence elsewhere.
+
+**Item 10, done.** `about`, `architecture`, `connections`, `quickstart`,
+`limits`, `verify` re-read against the registry (no retired 4.0.0–6.0.0
+name survives on any of them; every tool-like identifier resolves) and
+re-stamped `6.1.0`. One real drift: quickstart §4 put the starter
+questions and the seven-day counts on Account → Overview; both live on
+Connections (`ConnectionQuestions`, `calls_7d` per connection), as the
+connections page itself said. Fixed.

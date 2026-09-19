@@ -7,7 +7,7 @@ order: 22
 navTitle: "Architecture"
 icon: layers
 lede: "Collectors, the door, the job ledger, admission and retention."
-reviewed: "2026-09-19 against contract 3.17.0"
+reviewed: "2026-09-19 against contract 6.1.0"
 ---
 
 # Architecture

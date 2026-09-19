@@ -7,7 +7,7 @@ order: 1
 navTitle: "Quickstart"
 icon: rocket
 lede: "Connect your MCP client, tell Elixir what to record, and ask it about Clash Royale history. Five minutes, no key to paste."
-reviewed: "2026-09-19 against contract 3.17.0"
+reviewed: "2026-09-19 against contract 6.1.0"
 ---
 
 # Connect a client
@@ -113,21 +113,21 @@ try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 
 ## 4. Ask something
 
-**Account → Overview** shows what is recorded for your primary so far and
-offers starter questions matched to it: a snapshot review when only a profile
-exists, a seven-day review once battles are in (30 days if the last week is
-empty), a deck comparison when two decks appear, a week-over-week comparison
-when both windows have battles. Copy one into your client. You never need
-to tell the client your tag; if it starts by listing your players, that is a
-bug worth reporting. The agent can also read this manual itself: `elixir_docs`
+**Account → Overview** shows what is recorded for your primary so far, and
+**Account → Connections** offers starter questions matched to it under
+**Try asking…**: a snapshot review when only a profile exists, a seven-day
+review once battles are in (30 days if the last week is empty), a deck
+comparison when two decks appear, a week-over-week comparison when both
+windows have battles. Copy one into your client. You never need to tell
+the client your tag; if it starts by listing your players, that is a bug
+worth reporting. The agent can also read this manual itself: `elixir_docs`
 serves these pages over the connection, and the eleven
 [examples](/examples/play) are offered as prompts, so "how do I scout a
 bracket?" is a question it can answer before it calls anything.
 
-The same page counts successful player, battle and war reads through your
-personal connections over the last seven days, so you can tell an authorized
-connection from a working one. **Review activity** lists every call with its
-`request_id`.
+Connections also counts each connection's calls over the last seven days,
+so you can tell an authorized connection from a working one. **Account →
+Activity** lists every call with its `request_id`.
 
 ## What next
 
