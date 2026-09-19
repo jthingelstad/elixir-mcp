@@ -959,7 +959,7 @@ test("poll_replay reads an empty week as zero counts with every section present"
   assert.equal(out.window.days, 7);
   assert.equal(out.polls.total, 0);
   assert.equal(out.replay.actual.polls, 0);
-  assert.equal(out.replay.rule.length, 12);
+  assert.equal(out.replay.rule.length, 16);
   for (const cell of out.replay.rule) assert.equal(cell.polls, 0);
   assert.equal(out.session_control.prev_empty.n, 0);
   assert.equal(out.loss.intervals, 0);

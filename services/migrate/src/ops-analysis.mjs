@@ -392,14 +392,14 @@ export async function argsCensus(databaseUrl, spec) {
  * Written 2026-09-19 when the rhythm-placed design was scored and
  * rejected (NOTES that day) and Jamie asked for the KISS rule instead:
  * after a poll that found battles wait F, after an empty one double the
- * wait up to a ceiling C, and (optionally) park a player with no battle
- * in D days on the 24-hour floor.
+ * wait up to a ceiling C, and (optionally) leave a player with fewer than
+ * A battles in the last seven days on the 24-hour floor.
  *
  * Two answers. (1) The replay: each polled player's week from their
  * first actual poll, the rule's polls judged against the battles the
  * record holds per hour (an hour's battles split across the polls its
  * span overlaps; "over capacity" is more than `capacity` battles between
- * two polls, the gap shape), for every F × C × D, beside the actual polls
+ * two polls, the gap shape), for every F × C × A, beside the actual polls
  * judged the same way. (2) The loss: the profile's lifetime battleCount
  * is the one ground truth the API gives, so every snapshot interval in
  * the window is read as expected (the counter's delta) against captured
@@ -420,10 +420,13 @@ export async function pollReplay(databaseUrl, spec = {}) {
   const ceilings = Array.isArray(spec.ceilings)
     ? spec.ceilings
     : [180, 240, 360];
-  const dormants = Array.isArray(spec.dormant_days)
-    ? spec.dormant_days
-    : [0, 7];
-  const dormantCeiling = Number(spec.dormant_ceiling ?? 1440);
+  // A player is HOT when the record holds at least `active_min` battles
+  // for them in the last seven days; anyone else sits on the cold
+  // ceiling (today's 24-hour floor). 0 means one ceiling for everyone.
+  const actives = Array.isArray(spec.active_min)
+    ? spec.active_min
+    : [0, 1, 20, 50];
+  const coldCeiling = Number(spec.cold_ceiling ?? 1440);
   const started = Date.now();
   const DAY = 86_400_000;
   const HOUR = 3600_000;
@@ -450,20 +453,16 @@ export async function pollReplay(databaseUrl, spec = {}) {
       [fromTs, toTs],
     );
     const tags = [...new Set(polls.map((p) => p.entity_key))];
+    // Hours from a week before the window: the week inside it is judged,
+    // the week before it only counts toward "battles in the last 7 days".
     const { rows: hourRows } = await db.query(
       `select bp.player_tag, date_trunc('hour', bp.battle_time) as hour, count(*)::int as n
          from battle_participant bp
         where bp.player_tag = any($1::text[])
-          and bp.battle_time > $2::timestamptz and bp.battle_time <= $3::timestamptz
+          and bp.battle_time > $2::timestamptz - interval '7 days'
+          and bp.battle_time <= $3::timestamptz
         group by 1, 2`,
       [tags, fromTs, toTs],
-    );
-    const { rows: lastRows } = await db.query(
-      `select bp.player_tag, max(bp.battle_time) as last_at
-         from battle_participant bp
-        where bp.player_tag = any($1::text[]) and bp.battle_time <= $2::timestamptz
-        group by 1`,
-      [tags, fromTs],
     );
     // Snapshot intervals ending inside the window: the counter's delta
     // against the battles the record holds, and whether a gap fell inside.
@@ -500,9 +499,6 @@ export async function pollReplay(databaseUrl, spec = {}) {
       hours.get(r.player_tag).push([new Date(r.hour).getTime(), r.n]);
     }
     for (const list of hours.values()) list.sort((a, b) => a[0] - b[0]);
-    const lastBefore = new Map(
-      lastRows.map((r) => [r.player_tag, new Date(r.last_at).getTime()]),
-    );
     const byTag = new Map();
     for (const p of polls) {
       if (!byTag.has(p.entity_key)) byTag.set(p.entity_key, []);
@@ -522,12 +518,16 @@ export async function pollReplay(databaseUrl, spec = {}) {
       }
       return sum;
     };
-    /** The newest battle the record could know at `ref`. */
-    const lastBattleAt = (tag, ref) => {
-      let last = lastBefore.get(tag) ?? -Infinity;
+    /** Battles the record could know at `ref` from the seven days before it. */
+    const battlesLast7d = (tag, ref) => {
       const h = hours.get(tag);
-      if (h) for (const [hr] of h) if (hr < ref) last = Math.max(last, hr);
-      return last;
+      if (!h) return 0;
+      let n = 0;
+      for (const [hr, k] of h) {
+        if (hr >= ref) break;
+        if (hr >= ref - 7 * DAY) n += k;
+      }
+      return n;
     };
     const tally = () => ({ polls: 0, empty: 0, over_capacity: 0, battles: 0 });
     const judge = (t, tag, a, b) => {
@@ -546,13 +546,13 @@ export async function pollReplay(databaseUrl, spec = {}) {
     const grid = [];
     for (const f of followups)
       for (const c of ceilings)
-        for (const d of dormants)
+        for (const a of actives)
           grid.push({
             followup_min: f,
             ceiling_min: c,
-            dormant_days: d,
+            active_min: a,
             ...tally(),
-            dormant_polls: 0,
+            cold_polls: 0,
           });
     const endMs = toTs.getTime();
     for (const [tag, list] of byTag) {
@@ -584,18 +584,18 @@ export async function pollReplay(databaseUrl, spec = {}) {
             cell.ceiling_min,
             cell.followup_min * 2 ** Math.min(streak, 12),
           );
-          let dormant = false;
+          let cold = false;
           if (
-            cell.dormant_days > 0 &&
-            ref - lastBattleAt(tag, ref) > cell.dormant_days * DAY
+            cell.active_min > 0 &&
+            battlesLast7d(tag, ref) < cell.active_min
           ) {
-            wait = Math.max(wait, dormantCeiling);
-            dormant = true;
+            wait = Math.max(wait, coldCeiling);
+            cold = true;
           }
           const due = ref + wait * 60_000;
           if (due >= endMs) break;
           const n = judge(cell, tag, ref, due);
-          if (dormant) cell.dormant_polls += 1;
+          if (cold) cell.cold_polls += 1;
           streak = n >= 0.5 ? 0 : streak + 1;
           ref = due;
         }
@@ -670,8 +670,8 @@ export async function pollReplay(databaseUrl, spec = {}) {
         capacity,
         followups,
         ceilings,
-        dormant_days: dormants,
-        dormant_ceiling: dormantCeiling,
+        active_min: actives,
+        cold_ceiling: coldCeiling,
       },
       polls: {
         total: polls.length,
@@ -704,8 +704,8 @@ export async function pollReplay(databaseUrl, spec = {}) {
         rule: grid.map((cell) => ({
           followup_min: cell.followup_min,
           ceiling_min: cell.ceiling_min,
-          dormant_days: cell.dormant_days,
-          dormant_polls: cell.dormant_polls,
+          active_min: cell.active_min,
+          cold_polls: cell.cold_polls,
           ...finishTally(cell),
         })),
       },
