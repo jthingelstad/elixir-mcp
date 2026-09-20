@@ -684,3 +684,12 @@ belongs to Understand Clash Royale. Details in `docs/NOTES.md` under the
 same date. Phase 2 (the stamp, `group_by: "archetype"` with members) is
 next.
 
+## 14. Phase 2 shipped — 2026-09-20 (contract 6.6.0)
+
+`469a003`. The stamp on every deck (0148, backfilled in 2 m 14 s),
+`group_by: "archetype" | "family"` with `members[]`, the filter over the
+whole population, `fit.plays_family` / `plays_archetype`. The Elixir Clan
+question is one call. Remaining from the design: the read-only Admin ▸
+Cards page, `cards_card.decks` filter, the resolver tool (deferred), the
+agent's seed run.
+

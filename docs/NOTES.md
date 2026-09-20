@@ -6411,3 +6411,44 @@ resolution). The bot is unchanged.
 filter; the read-only Admin ▸ Cards page; the resolver tool. The
 agent's seed run (design §12.4) is the next step and is not this
 session's.
+
+## 2026-09-20 — Deck archetypes, phase 2 shipped (contract 6.6.0): the stamp, who plays what, what a player already plays
+
+`469a003`, deployed ~18:25Z, verify green; the backfill (`{archetype_stamp}`)
+stamped all 205,164 decks in 2 m 14 s under version
+`2026-09|2026-09-20T17:51:59.000Z`; live acceptance read-only on POAP
+KINGS (request `83d6503c`: `battles_meta_decks { segment: "mine",
+group_by: "archetype" }` folds 686 decks into 65 archetypes, each with
+`members[]` - Goblin Barrel bait 18 members, Balloon beatdown 16, Elixir
+Golem beatdown 12, Evo Mega Knight bridge spam 11, Electro Giant
+beatdown 10 members and 631 battles).
+
+**The stamp (0148).** `deck.archetype_family / _label /
+_win_conditions / _version`, the last being `grammar|roles_version`.
+Written at deck insert (`deck-cards.mjs` → `stampDecks` with the cached
+vocabulary; an unchanged stamp writes nothing, so re-ingest still
+touches no row), caught up nightly after the meta rollup for every row
+behind the current version, and on demand via `{archetype_stamp}`.
+Readers fall back to classifying at read time for a row the nightly has
+not reached (`deckStamps`), so there is never a hole. The vocabulary
+cache is five minutes per connection: a warm Lambda may label with the
+previous vocabulary for that long after a deploy; the nightly re-stamp
+makes it moot by morning.
+
+**On the wire.** `group_by: "archetype" | "family"` on
+`battles_meta_decks` → `archetypes[]` (label/family, win_condition_ids,
+decks, battles, wins, losses, win_rate, players, share; `members[]` with
+the player's most-played deck of the shape on a clan/player/collection
+segment; on the corpus `players` sums the decks' distinct players and
+the note says so). Sorted by players then battles; `shrunk_win_rate`
+deliberately absent; `decks[]` empty. The `archetype` filter reads the
+stamp over every deck over `min_battles` (the 6.5.0 2,000 bound is
+gone). `fit_for.plays` and `fit.plays_family` / `plays_archetype` with
+the adoption-cost note (design §12.2). Docs: `archetypes` ("Who plays
+what"), `battles` (fit).
+
+**Not done:** `cards_card.decks` archetype filter; the read-only
+Admin ▸ Cards page (design §12.4); the resolver tool (deferred by
+Jamie); the agent's seed run (queued for Understand Clash Royale's next
+scheduled run - its objective carries the job as of `15b7fa0`, domain
+checkout, unpushed).
