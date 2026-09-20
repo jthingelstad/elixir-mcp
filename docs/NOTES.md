@@ -6071,3 +6071,84 @@ ceiling was chosen to end, and now the number the page reports.
 `burst_at` in the migration after this deploy has settled. Retire
 `{poll_replay}`'s replay half once the clock has a week of its own
 rows; the loss half is the nightly job now.
+
+## 2026-09-20 — The session clock's first morning (acceptance read, part one)
+
+Read 11:22Z from the public surfaces only: `/api/public/efficiency`
+(the 05:20Z rows and today so far) and `/api/public/status` (fetches per
+hour by collector, the budget hour, the queue). The `jamie` AWS session
+had expired, so the CloudWatch reads (`PlannedJobs` and
+`SessionFollowupJobs` per hour, the bucket's minimum `Tokens`,
+`RequestedProfileJobs`, RDS load) and `{stats}` wait for a sign-in and
+are listed at the end. The first FULL day on the clock is today; its row
+lands at 05:20Z tomorrow, and that is part two.
+
+**Today so far (00:00–11:22Z, every minute of it on the clock): 7,577
+battle-log reads, 666/hr; 72% found nothing; 9,976 battles captured
+(875/hr); 5 gaps, 0.44/hr; last hour 687 reads, 1 gap.** Against the
+three days before the switch: reads 313/hr → 666/hr (2.1×, under the
+replay's 835), empty 61% → 72%, captured ~920/hr → 875/hr on the night
+half of a UTC day (level, as it should be — the same battles are played
+whichever clock reads them), **gaps 4.5–5/hr → 0.44/hr, −90%.** Gaps are
+the leading indicator of loss (a gap is the log rolling past a read; the
+loss is how far), so the two-hour ceiling is doing what the replay said
+it would, at less than the predicted spend. The five gaps that remain
+are the question for tomorrow's row: at a two-hour ceiling a gap needs
+25+ battles inside one wait, which is a sitting at twelve an hour or
+more — a real shape in short modes — or a reader-capped row, or a
+collector that held a lease past the hour; `players_with_gaps` and the
+interval lengths in tomorrow's row say which.
+
+**The whole fleet, fetches per hour (all endpoints, from the status
+page's 24 h series):** 612–708 in the seven hours before the deploy;
+**1,598 at 20:00Z and 1,231 at 21:00Z** (the never-stamped surge, the
+section above: every row due at once, drained at 270 a tick), 665 at
+22:00Z, **1,188 at 23:00Z** (the cohort's second wave: the surge's empty
+reads all waited 60 then 120 minutes together), then **764, 974, 871,
+876, 903, 854, 880, 888, 904, 909** from 00:00Z to 09:00Z — the wave
+de-phased inside four hours as the jitter and the sessions were expected
+to make it — and 1,235 in the 10:00Z board hour. **Steady state is
+~880 fetches/hr against ~660 before, +35%**, not the +90% the replay
+priced, because the replay judged every player from their first poll at
+the follow-up and the real population sits at the ceiling most of the
+time. The budget hour at 11:22Z read 284 used of 3,600 at a 775/hr
+pace, `expected_hour` 1,336; nothing starved (`due_starved` 3 at the
+tick, the ordinary floor cases). The five collectors are all active and
+sharing evenly (137–231 in the last hour).
+
+**Yesterday's row, the split day (09-19: 20 hours old clock, 4 hours
+new, with the surge in it):** 11,155 reads, 65% empty, 26,480 captured,
+**147 gaps, 728 lost on 126 players** — above the 101–121 gaps and
+513–646 lost of the three days before. That is the surge collecting, in
+one half hour, every gap the old clock had already caused and not yet
+read (a player whose log had rolled since their last old-clock read
+registered the gap the moment the surge read them); it is the old
+clock's loss arriving on the day the new one started, not the new
+clock's. Tomorrow's row is the first that cannot be read that way.
+
+**Two things the switch changes on the collector pages, for Jamie.**
+(1) Every collector's `yield_24h` fell from 0.73–0.83 to **0.44–0.54**
+overnight. The column is "share of the last day's fetches that changed
+the record", and with the session clock the schedule decides that
+share, not the collector: empty reads are the price of being there
+when a sitting starts. The number is still true; it is no longer a
+number about the operator. (2) Collector points reward `new_facts > 0`
+only (ENGINEERING, "A receipt says what the fetch was worth"), so
+operators now earn fewer points per fetch for the same work. Both want
+a decision — re-word the column, or count a read at the clock's own
+cadence as worth its point — and neither is made here.
+
+**Verdict so far: above the bar on the leading indicator** (gaps −90%
+at 2.1× the battle-log reads and +35% fleet-wide), flag stays as it is
+(there is none: the clock is the rule). **Part two, tomorrow after
+05:20Z:** the 09-20 row's `lost_battles` against 513–646 and
+`players_with_gaps` against ~90; the loss should read in the tens. Below
+that, read the gapped players' interval lengths before touching the
+ceiling.
+
+**Waiting on `aws login --profile jamie`:** the hourly `PlannedJobs` /
+`SessionFollowupJobs` / `RequestedProfileJobs` split (how many profile
+reads the session prime added), the bucket's minimum `Tokens` per hour
+through the surge (whether the live reserve was ever the only thing
+left), RDS CPU / WriteIOPS / connections across the doubling of
+receipts, and `{stats}`'s `player` and `poll_state` write rates.
