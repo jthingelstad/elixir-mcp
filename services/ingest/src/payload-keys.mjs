@@ -250,6 +250,24 @@ export const PAYLOAD_KEYS = {
     currentWinLoseStreak: dropped(
       "intraday and derivable: the battle record answers a streak exactly (time-series review 2.1)",
     ),
+    // The three season-result objects are always present and null for a
+    // player with no Path of Legends history (cr-agent-api-docs
+    // players.md; the nightly census met one in twenty on 2026-09-20,
+    // feedback #67-#69). The bare path is the null: the projector reads
+    // the children through ?. and writes the columns null, and
+    // projectPolSeason writes no row.
+    currentPathOfLegendSeasonResult: to(
+      "player_snapshot_daily.pol_league / pol_trophies / pol_rank (null when the player has no Path of Legends history: the three columns stay null)",
+      opt,
+    ),
+    lastPathOfLegendSeasonResult: to(
+      "player_pol_season (null when the player has no Path of Legends history: no row is written)",
+      opt,
+    ),
+    bestPathOfLegendSeasonResult: to(
+      "player_snapshot_daily.pol_best_league / pol_best_trophies / pol_best_rank (null when the player has no Path of Legends history: the three columns stay null)",
+      opt,
+    ),
     "currentPathOfLegendSeasonResult.leagueNumber": to(
       "player_snapshot_daily.pol_league",
       opt,

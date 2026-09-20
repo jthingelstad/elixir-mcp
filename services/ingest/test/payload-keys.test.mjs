@@ -91,3 +91,18 @@ test("payloadPaths spells arrays, maps and scalar arrays the manifest's way", ()
     "progress.*.t",
   ]);
 });
+
+test("a profile with no Path of Legends history sends the three season results as null, and the manifest names the null (feedback #67-#69)", () => {
+  // The census walks a null as the bare path; each has a disposition.
+  const paths = payloadPaths({
+    currentPathOfLegendSeasonResult: null,
+    lastPathOfLegendSeasonResult: null,
+    bestPathOfLegendSeasonResult: null,
+  });
+  for (const p of paths) {
+    const d = dispositionOf("player", p);
+    assert.ok(d, `player.${p} has no disposition`);
+    assert.ok(d.optional, `player.${p} is optional`);
+    assert.match(d.to, /null when the player has no Path of Legends history/);
+  }
+});
