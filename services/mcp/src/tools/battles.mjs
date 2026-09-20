@@ -52,7 +52,16 @@ import {
   fieldedLevel,
   deckFit,
   heldCard,
+  ARCHETYPE_NOTE,
+  ARCHETYPE_ARG,
+  resolveArchetypeArg,
+  matchesArchetype,
 } from "./shared.mjs";
+
+/** How many candidate rows the archetype filter labels before the
+ *  limit (6.5.0): read-time classification is cheap per deck, not per
+ *  season. */
+const ARCHETYPE_SCAN = 2000;
 
 /** fit_for on the meta tools (6.4.0, feedback #70). */
 const FIT_FOR_SCHEMA = {
@@ -712,6 +721,7 @@ export const battlesTools = {
             : null,
         notes: notes(
           livePendingNote(live),
+          compact ? null : ARCHETYPE_NOTE,
           win.seasonNotes,
           caveats,
           deckStats &&
@@ -1254,6 +1264,7 @@ export const battlesTools = {
           description: "Drop decks with fewer battles than this.",
         },
         limit: { type: "integer", minimum: 1, maximum: 100, default: 40 },
+        archetype: ARCHETYPE_ARG,
       },
       additionalProperties: false,
     },
@@ -1362,6 +1373,16 @@ export const battlesTools = {
       if (args.min_battles) {
         shaped = shaped.filter((r) => r.battles >= args.min_battles);
       }
+      // The archetype filter (6.5.0): over the player's decks, by the
+      // label each carries; share_of_battles stays over every deck.
+      const archetype =
+        args.archetype === undefined
+          ? null
+          : await resolveArchetypeArg(ctx.db, args.archetype);
+      if (archetype)
+        shaped = shaped.filter((r) =>
+          matchesArchetype(identities.get(r.deck_hash)?.archetype, archetype),
+        );
       const wr = (r) =>
         r.wins + r.losses > 0 ? r.wins / (r.wins + r.losses) : -1;
       requireEnum(args.sort, ["battles", "wins", "win_rate"], "sort");
@@ -1424,6 +1445,7 @@ export const battlesTools = {
           mode: args.mode,
           sort: args.sort ?? "battles",
           min_battles: args.min_battles,
+          archetype: archetype ?? undefined,
           limit,
         }),
         total_battles_in_window: totalBattles,
@@ -1432,6 +1454,7 @@ export const battlesTools = {
         decks,
         notes: notes(
           guard,
+          ARCHETYPE_NOTE,
           excludedNote,
           win.seasonNotes,
           win.source === "unbounded"
@@ -1478,6 +1501,7 @@ export const battlesTools = {
             "Only decks whose played cards include ALL these card ids, any form, tower troop excluded (the with_cards semantics of battles_query). Applied after aggregation: usage_share and decided_battles stay the population's.",
         },
         fit_for: FIT_FOR_SCHEMA,
+        archetype: ARCHETYPE_ARG,
       },
       required: ["segment"],
       additionalProperties: false,
@@ -1490,6 +1514,10 @@ export const battlesTools = {
         args.fit_for === undefined
           ? null
           : await resolveFitFor(ctx.db, args.fit_for);
+      const archetype =
+        args.archetype === undefined
+          ? null
+          : await resolveArchetypeArg(ctx.db, args.archetype);
       const scope = []; // segment + window + mode: the population considered
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
@@ -1690,6 +1718,25 @@ export const battlesTools = {
             : z.battles - a.battles,
       );
       const limit = Math.min(args.limit ?? 20, 40);
+      // The archetype filter (6.5.0) reads the label off each identity,
+      // so with one asked the identities are fetched for every candidate
+      // row and the filter runs before the limit; without one, for the
+      // returned rows only, as before.
+      // Bounded at the top 2,000 candidates by the sort (a corpus season
+      // has more decks over min_battles than that); the stamped column
+      // of design phase 2 lifts the bound.
+      let archetypeCandidates = null;
+      if (archetype) {
+        const candidates = shaped.slice(0, ARCHETYPE_SCAN);
+        archetypeCandidates = candidates.length;
+        const all = await deckIdentities(
+          ctx.db,
+          candidates.map((r) => r.deck_hash),
+        );
+        shaped = candidates.filter((r) =>
+          matchesArchetype(all.get(r.deck_hash)?.archetype, archetype),
+        );
+      }
       shaped = shaped.slice(0, limit);
       // The identity's cards come from deck_card (0091), for the returned
       // rows only - no exemplar, no participant JSON. The row's mode
@@ -1752,6 +1799,7 @@ export const battlesTools = {
           trophy_band: args.trophy_band,
           containing: args.containing,
           fit_for: fit?.tag,
+          archetype: archetype ?? undefined,
           min_battles: minBattles,
           sort,
           limit,
@@ -1777,6 +1825,10 @@ export const battlesTools = {
         ...(fitBlock ? { unfieldable } : {}),
         notes: notes(
           fitBlock ? fitNotes(fitBlock, shaped, unfieldable) : NO_FIT_NOTE,
+          ARCHETYPE_NOTE,
+          archetype
+            ? `archetype '${archetype.requested}' resolved to ${archetype.family ? archetype.family.replace("_", " ") : "any family"}${archetype.win_conditions.length ? ` with ${archetype.win_conditions.map((w) => w.name).join(" and ")}` : ""} (${archetype.resolved_from}); the filter ran over the top ${archetypeCandidates} rows by ${sort}${archetypeCandidates === ARCHETYPE_SCAN ? ", the most it labels in one call" : ""}, and decided_battles and usage_share stay the population's.`
+            : null,
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped) : null,

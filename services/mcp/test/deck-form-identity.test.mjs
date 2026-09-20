@@ -563,3 +563,163 @@ test("6.4.0 fit_for: a row the player cannot field leaves decks[]; a fieldable r
   const coll = await call("players_collection", { player_tag: FIT });
   assert.deepEqual(coll.fielded, { days: 30, mean_level: 15.4, battles: 3 });
 });
+
+// --- 6.5.0: the archetype on every deck object, and the archetype filter --
+
+test("6.5.0: every deck object carries its archetype once the vocabulary is imported; the filter reads it; a name that is nothing refuses", async () => {
+  const { cardRolesImport, archetypeCensus } =
+    await import("../../migrate/src/ops-archetypes.mjs");
+  const { readFileSync } = await import("node:fs");
+  const snapshot = JSON.parse(
+    readFileSync(
+      new URL("../../../fixtures/card-roles.snapshot.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  // The catalog stub has only the eight fixture cards: the import refuses
+  // ids the catalog has not seen, so the vocabulary is narrowed to them.
+  const { rows: catalog } = await scratch.db.query(`select card_id from card`);
+  const known = new Set(catalog.map((r) => r.card_id));
+  const roles = snapshot.roles.filter((r) => known.has(r.id));
+  const aliases = snapshot.aliases.filter((a) =>
+    a.cards.every((id) => known.has(id)),
+  );
+  assert.ok(
+    roles.some((r) => r.id === 26000021),
+    "Hog Rider is in the fixture",
+  );
+  // The fixture's catalog stubs carry no cost; give them the catalog's.
+  for (const [id, cost] of [
+    [26000007, 5],
+    [26000021, 4],
+    [26000000, 3],
+    [26000010, 1],
+    [28000011, 2],
+    [26000014, 4],
+    [27000000, 3],
+    [28000001, 3],
+  ])
+    await scratch.db.query(
+      `update card set elixir_cost = $2 where card_id = $1`,
+      [id, cost],
+    );
+  // Before the import: named by cost, version null.
+  const before = await call("battles_decks", {
+    player_tag: TAG,
+    from: "2026-09-01",
+  });
+  assert.equal(before.decks[0].archetype.win_conditions.length, 0);
+  assert.equal(before.decks[0].archetype.roles_version, null);
+
+  const imported = await cardRolesImport(scratch.url, {
+    roles,
+    aliases,
+    roles_version: snapshot.roles_version,
+    source_commit: snapshot.source_commit,
+  });
+  assert.equal(imported.roles, roles.length);
+  // The reader caches the vocabulary for five minutes; a fresh client sees the import.
+  const { default: pg } = await import("pg");
+  const fresh = new pg.Client({ connectionString: scratch.url });
+  await fresh.connect();
+  try {
+    const callFresh = (name, args) =>
+      registry.invoke(name, { db: fresh, account }, args);
+    // Hog Rider, Witch, Knight, Skeletons, The Log, Musketeer, Cannon, Arrows: 25/8 = 3.13 -> cycle.
+    const res = await callFresh("battles_decks", {
+      player_tag: TAG,
+      from: "2026-09-01",
+    });
+    for (const d of res.decks) {
+      assert.equal(d.archetype.family, "cycle");
+      assert.equal(d.archetype.label, "Hog Rider cycle");
+      assert.deepEqual(d.archetype.win_conditions, [
+        { id: 26000021, name: "Hog Rider", form: "base" },
+      ]);
+      assert.equal(d.archetype.average_elixir, 3.13);
+      assert.equal(d.archetype.roles_version, snapshot.roles_version);
+      assert.equal(typeof d.archetype.grammar_version, "string");
+    }
+    assert.ok(
+      res.notes.some((n) => /archetype is Elixir's descriptive name/.test(n)),
+    );
+
+    // battles_query rows carry it on the rendered deck.
+    const q = await callFresh("battles_query", {
+      player_tag: TAG,
+      from: "2026-09-01",
+      limit: 1,
+    });
+    assert.equal(q.battles[0].me.deck.archetype.label, "Hog Rider cycle");
+    // players_summary's top deck carries it (its window is the last 30 days;
+    // the fixture's battles are on 2026-09-02, so only while that holds).
+    const sum = await callFresh("players_summary", { player_tag: TAG });
+    if (sum.top_deck) assert.equal(sum.top_deck.archetype.family, "cycle");
+    // The meta reader, and the filter by family, label and alias.
+    const meta = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+    });
+    assert.equal(meta.decks.length, 2);
+    assert.ok(meta.decks.every((d) => d.archetype.label === "Hog Rider cycle"));
+    const byFamily = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      archetype: "cycle",
+    });
+    assert.equal(byFamily.decks.length, 2);
+    assert.equal(byFamily.applied.archetype.family, "cycle");
+    assert.equal(byFamily.applied.archetype.resolved_from, "family");
+    const byLabel = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      archetype: "hog rider cycle",
+    });
+    assert.equal(byLabel.decks.length, 2);
+    assert.equal(byLabel.applied.archetype.resolved_from, "label");
+    const byAlias = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      archetype: "2.6 Hog",
+    });
+    assert.equal(byAlias.applied.archetype.resolved_from, "alias");
+    assert.equal(byAlias.decks.length, 2);
+    const none = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      archetype: "beatdown",
+    });
+    assert.deepEqual(none.decks, []);
+    assert.ok(none.notes.some((n) => /resolved to beatdown/.test(n)));
+    const decksByArchetype = await callFresh("battles_decks", {
+      player_tag: TAG,
+      from: "2026-09-01",
+      archetype: "Hog Rider cycle",
+    });
+    assert.equal(decksByArchetype.decks.length, 2);
+    assert.equal(
+      decksByArchetype.applied.archetype.requested,
+      "Hog Rider cycle",
+    );
+    await assert.rejects(
+      callFresh("battles_decks", {
+        player_tag: TAG,
+        from: "2026-09-01",
+        archetype: "purple monkey",
+      }),
+      (e) => e.code === "bad_request" && /LavaLoon/.test(e.hint),
+    );
+    // The census runs over the scratch corpus.
+    const census = await archetypeCensus(scratch.url, {});
+    assert.equal(census.decks, 2);
+    assert.equal(census.families.cycle.decks, 2);
+    assert.ok(census.histograms["26000021"], "Hog Rider has a histogram");
+  } finally {
+    await fresh.end();
+  }
+});

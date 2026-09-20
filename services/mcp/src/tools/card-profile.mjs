@@ -32,6 +32,7 @@ import {
   ebShrink,
   META_METHODOLOGY,
   deckIdentities,
+  ARCHETYPE_NOTE,
   decksContaining,
   populationBlock,
 } from "./shared.mjs";
@@ -325,6 +326,7 @@ export const cardProfileTools = {
             ", ",
           )}); usage_share is the row's decided observations over the population's decided_battles.`,
         "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
+        out.decks ? ARCHETYPE_NOTE : null,
         ...extraNotes,
         SEGMENT_NOTES,
         win.seasonNotes,

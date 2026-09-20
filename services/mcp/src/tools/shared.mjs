@@ -28,7 +28,12 @@ import {
   normalizeTag,
   cardForms,
   CARD_FORM_BITS,
+  classifyDeck,
+  resolveArchetypeName,
+  normalizeName,
+  FAMILIES,
 } from "@elixir-mcp/contracts";
+import { loadVocabulary } from "../../../ingest/src/card-roles.mjs";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 import { resolveInstant } from "../time.mjs";
@@ -1165,11 +1170,100 @@ export async function decksContaining(db, cardIds) {
   return new Set(rows.map((r) => r.deck_hash));
 }
 
+/** The archetype vocabulary (0147), cached per connection for five
+ *  minutes: it changes at a deploy, and every deck object needs it. */
+const VOCABULARY_TTL_MS = 5 * 60_000;
+const vocabularyCache = new WeakMap();
+async function vocabulary(db) {
+  const hit = vocabularyCache.get(db);
+  if (hit && hit.until > Date.now()) return hit.value;
+  const value = await loadVocabulary(db);
+  vocabularyCache.set(db, { value, until: Date.now() + VOCABULARY_TTL_MS });
+  return value;
+}
+
+/** A deck's archetype object (design §4.2): the grammar over the cards
+ *  with their catalog costs, the vocabulary's version beside the
+ *  grammar's. `cards` carry id, name, form and elixir_cost. */
+function archetypeOf(cards, vocab) {
+  const a = classifyDeck(cards, vocab.roles);
+  return {
+    family: a.family,
+    win_conditions: a.win_conditions,
+    label: a.label,
+    average_elixir: a.average_elixir,
+    basis: a.basis,
+    grammar_version: a.grammar_version,
+    roles_version: vocab.version?.roles_version ?? null,
+  };
+}
+
+/** The archetype argument on the deck readers (design §5.1): a family,
+ *  a composed label, or a community alias. */
+export const ARCHETYPE_ARG = {
+  type: "string",
+  maxLength: 80,
+  description:
+    "Only decks of this archetype: a family (beatdown, control, cycle, bait, bridge spam, siege), a composed label ('Royal Hogs bridge spam', 'Hog Rider cycle'), or a community name ('LavaLoon', 'Log Bait', '2.6 Hog'). Applied over the rows the call would return; applied.archetype echoes what it resolved to. An unknown name is refused with the vocabulary in the hint.",
+};
+
+/** A card name as a person types it to a catalog card: exact after
+ *  normalisation, with the dots of P.E.K.K.A dropped either way. */
+function cardMatcher(cards) {
+  const byKey = new Map();
+  for (const c of cards) {
+    byKey.set(normalizeName(c.name), c);
+    byKey.set(normalizeName(c.name.replace(/\./g, "")), c);
+  }
+  return (text) =>
+    byKey.get(normalizeName(text)) ??
+    byKey.get(normalizeName(String(text).replace(/\./g, ""))) ??
+    null;
+}
+
+export async function resolveArchetypeArg(db, text) {
+  const vocab = await vocabulary(db);
+  const resolved = resolveArchetypeName(
+    String(text),
+    vocab.aliases.map((a) => ({
+      alias: a.alias,
+      cards: a.cards,
+      family: a.family,
+    })),
+    cardMatcher(vocab.cards),
+    vocab.roles,
+  );
+  if (!resolved)
+    throw new ToolFailure(
+      "bad_request",
+      `Could not read archetype '${text}'.`,
+      `A family (${FAMILIES.filter((f) => f !== "unclassified")
+        .map((f) => f.replace("_", " "))
+        .join(
+          ", ",
+        )}), a label '<card> <family>' (Royal Hogs bridge spam), or a community name the docs page archetypes lists (LavaLoon, Log Bait, 2.6 Hog).`,
+    );
+  return { requested: String(text), ...resolved };
+}
+
+/** Does a deck's archetype match a resolution: the family when one was
+ *  named, and every resolved card among its win conditions. */
+export function matchesArchetype(archetype, resolved) {
+  if (!archetype) return false;
+  if (resolved.family && archetype.family !== resolved.family) return false;
+  const ids = new Set(archetype.win_conditions.map((w) => w.id));
+  return resolved.win_conditions.every((w) => ids.has(w.id));
+}
+
+/** The note that rides any response carrying deck objects (once). */
+export const ARCHETYPE_NOTE =
+  "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.";
+
 export async function deckIdentities(db, hashes) {
   const wanted = [...new Set(hashes.filter(Boolean))];
   if (wanted.length === 0) return new Map();
   const { rows } = await db.query(
-    `select d.deck_hash, dc.card_id, dc.form, c.name,
+    `select d.deck_hash, dc.card_id, dc.form, c.name, c.elixir_cost,
             d.tower_troop_id, t.name as tower_name
      from deck d
      left join deck_card dc on dc.deck_hash = d.deck_hash
@@ -1179,7 +1273,9 @@ export async function deckIdentities(db, hashes) {
      order by d.deck_hash, dc.card_id, dc.form`,
     [wanted],
   );
+  const vocab = await vocabulary(db);
   const out = new Map();
+  const costs = new Map();
   for (const r of rows) {
     if (!out.has(r.deck_hash)) {
       out.set(r.deck_hash, {
@@ -1188,14 +1284,26 @@ export async function deckIdentities(db, hashes) {
           ? {}
           : { tower_troop: { id: r.tower_troop_id, name: r.tower_name } }),
       });
+      costs.set(r.deck_hash, []);
     }
-    if (r.card_id !== null)
+    if (r.card_id !== null) {
       out.get(r.deck_hash).cards.push({
         id: r.card_id,
         name: r.name,
         form: formName(r.form),
       });
+      costs.get(r.deck_hash).push({
+        id: r.card_id,
+        name: r.name,
+        form: r.form,
+        elixir_cost: r.elixir_cost,
+      });
+    }
   }
+  // The archetype on the value (design §4.1): every deck object the
+  // contract serves passes through here.
+  for (const [hash, identity] of out)
+    identity.archetype = archetypeOf(costs.get(hash) ?? [], vocab);
   return out;
 }
 
@@ -1212,14 +1320,16 @@ export async function renderDecks(db, battleIds) {
   if (ids.length === 0) return new Map();
   const { rows } = await db.query(
     `select pc.battle_id, pc.player_tag, pc.round, pc.slot, pc.card_id, pc.form,
-            pc.level, pc.star_level, c.name
+            pc.level, pc.star_level, c.name, c.elixir_cost
      from battle_participant_card pc
      join card c on c.card_id = pc.card_id
      where pc.battle_id = any($1)
      order by pc.battle_id, pc.player_tag, pc.round, pc.slot`,
     [ids],
   );
+  const vocab = await vocabulary(db);
   const out = new Map();
+  const costs = new Map(); // deck object -> its cards with cost
   const card = (r) => ({
     id: r.card_id,
     name: r.name,
@@ -1234,15 +1344,27 @@ export async function renderDecks(db, battleIds) {
       deck = r.round > 0 ? { rounds: [] } : { cards: [] };
       out.set(key, deck);
     }
+    const priced = {
+      id: r.card_id,
+      name: r.name,
+      form: r.form,
+      elixir_cost: r.elixir_cost,
+    };
     if (r.round > 0) {
       while (deck.rounds.length < r.round) deck.rounds.push({ cards: [] });
-      deck.rounds[r.round - 1].cards.push(card(r));
+      const round = deck.rounds[r.round - 1];
+      round.cards.push(card(r));
+      (costs.get(round) ?? costs.set(round, []).get(round)).push(priced);
     } else if (r.slot === 0) {
       (deck.supportCards ??= []).push(card(r));
     } else {
       deck.cards.push(card(r));
+      (costs.get(deck) ?? costs.set(deck, []).get(deck)).push(priced);
     }
   }
+  // The archetype on every rendered deck and duel round (design §4.1).
+  for (const [holder, cards] of costs)
+    holder.archetype = archetypeOf(cards, vocab);
   return out;
 }
 

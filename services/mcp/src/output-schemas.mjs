@@ -157,6 +157,52 @@ const DECK_CARD = {
   required: ["id", "name", "form"],
 };
 
+/** The archetype on every deck object (6.5.0, design §4.2). */
+const ARCHETYPE = {
+  type: "object",
+  description:
+    "Elixir's descriptive name for the deck's shape: win condition(s) and family, composed from the cards and their catalog costs. A noun, never a quality claim.",
+  properties: {
+    family: {
+      type: "string",
+      enum: [
+        "beatdown",
+        "control",
+        "cycle",
+        "bait",
+        "bridge_spam",
+        "siege",
+        "unclassified",
+      ],
+    },
+    win_conditions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: COUNT,
+          name: { type: "string" },
+          form: { type: "string", enum: ["base", "evolution", "hero"] },
+        },
+      },
+    },
+    label: {
+      type: "string",
+      description:
+        '"<win condition(s)> <family>" with the win condition\'s form said as players say it (Evo Royal Hogs bridge spam); the bare family when no attested win condition is in the deck.',
+    },
+    average_elixir: { type: ["number", "null"] },
+    basis: { type: "string" },
+    grammar_version: { type: "string" },
+    roles_version: {
+      type: ["string", "null"],
+      description:
+        "The vocabulary's version (the cr-agent-api-docs commit time the card roles were imported from); null when none is imported.",
+    },
+  },
+  required: ["family", "win_conditions", "label", "average_elixir"],
+};
+
 const RECORD = {
   battles: COUNT,
   wins: COUNT,
@@ -640,6 +686,7 @@ export const OUTPUT_SCHEMAS = {
             level_gap_battles: NULLABLE_INT,
             dominant_mode: { type: ["object", "null"] },
             cards: { type: "array", items: DECK_CARD },
+            archetype: ARCHETYPE,
             tower_troop: { type: ["object", "null"] },
             fit: DECK_FIT,
           },
@@ -831,6 +878,7 @@ export const OUTPUT_SCHEMAS = {
         properties: {
           deck_hash: { type: "string" },
           cards: { type: "array", items: DECK_CARD },
+          archetype: ARCHETYPE,
           battles: COUNT,
           win_rate: RATE,
           modes: MODE_SPLIT,
@@ -1189,6 +1237,7 @@ export const OUTPUT_SCHEMAS = {
           properties: {
             deck_hash: { type: "string" },
             cards: { type: "array", items: DECK_CARD },
+            archetype: ARCHETYPE,
             tower_troop: { type: "object" },
             ...RECORD,
             share_of_battles: RATE,

@@ -56,6 +56,7 @@ import {
   pollStateOp,
 } from "./ops-diagnostics.mjs";
 import { auditCensus, argsCensus, pollReplay } from "./ops-analysis.mjs";
+import { cardRolesImport, archetypeCensus } from "./ops-archetypes.mjs";
 import {
   feedbackPending,
   feedbackRead,
@@ -252,6 +253,22 @@ export async function handler(event) {
       event.collection,
     );
     console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.card_roles_import) {
+    const result = await cardRolesImport(
+      process.env.DATABASE_URL,
+      event.card_roles_import,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.archetype_census) {
+    const result = await archetypeCensus(
+      process.env.DATABASE_URL,
+      typeof event.archetype_census === "object" ? event.archetype_census : {},
+    );
+    console.log(JSON.stringify({ decks: result.decks, roles: result.roles }));
     return result;
   }
   if (event?.feedback_respond) {

@@ -38,6 +38,7 @@ export async function scratchDb(suffix) {
   await db.connect();
   return {
     db,
+    url,
     async drop() {
       await db.end();
       const admin2 = new pg.Client({ connectionString: ADMIN_URL });

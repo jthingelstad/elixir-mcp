@@ -11,3 +11,4 @@ export * from "./tool-groups.js";
 export * from "./changelog.js";
 export * from "./roles.js";
 export * from "./principals.js";
+export * from "./archetypes.js";

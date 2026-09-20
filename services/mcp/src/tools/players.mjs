@@ -45,6 +45,7 @@ import {
   deckIdentities,
   seasonFieldsForDays,
   fieldedLevel,
+  ARCHETYPE_NOTE,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
 import {
@@ -205,6 +206,8 @@ export const playersTools = {
           // The identity's cards with their form (5.0.0: every card
           // object carries form; this once dropped it).
           cards: identities.get(row.deck_hash)?.cards ?? [],
+          // The archetype on the value (6.5.0).
+          archetype: identities.get(row.deck_hash)?.archetype ?? null,
           battles: row.battles,
           win_rate:
             row.wins + row.losses > 0
@@ -265,6 +268,7 @@ export const playersTools = {
         notes: notes(
           "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded.",
           "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
+          ARCHETYPE_NOTE,
           deckClash,
           trophyFloorNote(floor),
           "History may predate active recording; elixir_coverage has the capture story.",

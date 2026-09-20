@@ -119,6 +119,13 @@ if (!isCreate) {
     { FunctionName: "elixir-mcp-migrate" },
   );
   await runMigrations("elixir-mcp-migrate");
+  // The archetype vocabulary rides every deploy (0147): the Lambdas have
+  // no internet, so this checkout's sibling cr-agent-api-docs is the
+  // source, and its commit is the version.
+  console.error(
+    "importing the archetype vocabulary from ../cr-agent-api-docs...",
+  );
+  await import("./import-card-roles.mjs");
 }
 
 // 3. Stack ------------------------------------------------------------------
