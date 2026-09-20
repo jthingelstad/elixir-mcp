@@ -6284,3 +6284,39 @@ entry), a test that a null profile walks clean, and a glossary line
 (`539b66f`, deployed ~13:05Z; the census reads the manifest in the
 jobs Lambda, so the deploy is what stops the re-filing). Answered
 `done` on all three; backlog after: #70 only.
+
+## 2026-09-20 — The meta against one player's collection (contract 6.4.0, feedback #70)
+
+The Gym's daily-report agent recommended the corpus's best 11k–13k
+ladder deck to Jamie; two of the top four rows ran Minion Giant, which
+he does not own, and the top row at his levels sat 2.125 mean levels
+below the 16.0 he fields. **Jamie's decision (this session): card
+recommendations come from the player's collection, and the agent must
+suggest upgrade paths — grounded in what the player has, free to say
+what could be with some upgrades.** Shipped `31f3323`, deployed ~13:45Z,
+verify green, the Gym's acceptance passed live (request `decbc7a5`).
+
+`fit_for` on `battles_meta_decks` and `battles_meta_cards`
+(`resolveFitFor`, `fieldedLevel`, `deckFit`, `heldCard` in
+`tools/shared.mjs`). Deck rows: `held_level` per card and `fit`
+{`fieldable`, `missing` with `not_owned` / `form_not_unlocked`,
+`own_mean_level`, `vs_fielded`, `upgrades`, `mean_level_after_upgrades`};
+rows the player cannot field leave `decks[]` for `unfieldable[]` **after
+sort and limit** (the population's ranking untouched; the note counts
+fieldable-of-top-N). The benchmark is the mean `deck_avg_level` of the
+player's own decided pvp battles in the window and mode
+(`fit_for.fielded_mean_level`), not `battles_decks`'s dominant deck — it
+holds for a rotator. Upgrade target = that level rounded; a locked form
+is `missing`, never an upgrade. Card rows: `held` or null. Without
+`fit_for` both tools open `notes[]` with the population sentence (the
+Gym's (a)); `players_collection.fielded` (30 d) is its (d). An
+unrecorded collection refuses `not_recorded`. Levels are the display
+scale on both sides (contracts `displayLevel`, the one conversion —
+`player_card` and `deck_avg_level` both). Bonus from the live run:
+`30be11b2` also needs Evo Skeletons, which nobody had noticed.
+
+Not done: `cards_synergy` and `battles_trends` take no `fit_for` (no
+recommendation shape there); `fit_for` is a tag, not `on_behalf_of` — an
+agent passes the mapped player's tag. Another session's 6.3.0 (`3836084`,
+names beside tags) landed on this checkout mid-run and rode my push and
+the 13:05Z deploy; hence this is 6.4.0.
