@@ -326,3 +326,68 @@ export async function archetypeStamp(databaseUrl) {
     await db.end();
   }
 }
+
+/** {archetype_sample}: decks with their cards beside their stamped
+ *  label, for a debug read - the top `per_label` decks by season battles
+ *  under each of the `labels` most-played labels, the top `fallback`
+ *  decks named by cost alone, and `random` decks drawn with probability
+ *  proportional to battles. Read-only, this season. */
+export async function archetypeSample(databaseUrl, spec = {}) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: seasonRow } = await db.query(
+      `select season_month from season where starts_at <= now() order by season_month desc limit 1`,
+    );
+    const season = spec.season ?? seasonRow[0]?.season_month;
+    const labels = spec.labels ?? 60;
+    const perLabel = spec.per_label ?? 3;
+    const fallback = spec.fallback ?? 60;
+    const random = spec.random ?? 150;
+    const deckCols = `d.deck_hash, d.archetype_label as label, d.archetype_family as family,
+       d.archetype_win_conditions as win_conditions, m.battles, m.players,
+       (select string_agg(case dc.form when 1 then 'Evo ' when 2 then 'Hero ' else '' end || c.name, ', ' order by c.elixir_cost desc nulls last, c.name)
+          from deck_card dc join card c on c.card_id = dc.card_id where dc.deck_hash = d.deck_hash) as cards,
+       (select round(avg(c.elixir_cost)::numeric, 2) from deck_card dc join card c on c.card_id = dc.card_id where dc.deck_hash = d.deck_hash) as avg`;
+    const from = `from deck d join deck_meta_season m on m.deck_hash = d.deck_hash and m.season_month = $1 and m.mode_group = 'all'`;
+    const { rows: top } = await db.query(
+      `with ranked as (
+         select ${deckCols}, row_number() over (partition by d.archetype_label order by m.battles desc) as rn
+         ${from}
+         where d.archetype_win_conditions <> '{}'),
+       lab as (
+         select archetype_label, sum(battles) as b from deck d
+           join deck_meta_season m on m.deck_hash = d.deck_hash and m.season_month = $1 and m.mode_group = 'all'
+          where d.archetype_win_conditions <> '{}'
+          group by 1 order by 2 desc limit $2)
+       select r.* from ranked r join lab on lab.archetype_label = r.label
+        where r.rn <= $3 order by lab.b desc, r.rn`,
+      [season, labels, perLabel],
+    );
+    const { rows: bare } = await db.query(
+      `select ${deckCols} ${from} where d.archetype_win_conditions = '{}' order by m.battles desc limit $2`,
+      [season, fallback],
+    );
+    const { rows: rnd } = await db.query(
+      `select ${deckCols} ${from} where m.battles >= 3 order by random() * m.battles desc limit $2`,
+      [season, random],
+    );
+    const shape = (r) => ({
+      label: r.label,
+      family: r.family,
+      avg: r.avg === null ? null : Number(r.avg),
+      battles: r.battles,
+      players: r.players,
+      cards: r.cards,
+      hash: r.deck_hash.slice(0, 8),
+    });
+    return {
+      season,
+      top: top.map(shape),
+      fallback: bare.map(shape),
+      random: rnd.map(shape),
+    };
+  } finally {
+    await db.end();
+  }
+}

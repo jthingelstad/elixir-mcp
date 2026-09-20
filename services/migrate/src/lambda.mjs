@@ -60,6 +60,7 @@ import {
   cardRolesImport,
   archetypeCensus,
   archetypeStamp,
+  archetypeSample,
 } from "./ops-archetypes.mjs";
 import {
   feedbackPending,
@@ -270,6 +271,16 @@ export async function handler(event) {
   if (event?.archetype_stamp) {
     const result = await archetypeStamp(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.archetype_sample) {
+    const result = await archetypeSample(
+      process.env.DATABASE_URL,
+      typeof event.archetype_sample === "object" ? event.archetype_sample : {},
+    );
+    console.log(
+      JSON.stringify({ season: result.season, top: result.top.length }),
+    );
     return result;
   }
   if (event?.archetype_census) {
