@@ -154,7 +154,7 @@ test("the agent detail page offers its connect URL and a rename", async () => {
     public_id: "272bd891a21d",
     role: "leader",
     status: "approved",
-    clans: [{ clan_tag: "#J2RGCRVG", is_primary: true }],
+    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", is_primary: true }],
     tokens: [{ token_id: 1, name: "poap-kings", revoked_at: null }],
   };
   global.fetch = vi.fn(async (path) => {
@@ -178,6 +178,10 @@ test("the agent detail page offers its connect URL and a rename", async () => {
   );
   expect(url).toBeTruthy();
   expect(screen.getByText("rename")).toBeTruthy();
+  // The clan it acts for is named, with the tag beside the name - never
+  // the tag alone (the lede and the Clan row both render it).
+  expect(screen.getAllByText("POAP KINGS").length).toBeGreaterThanOrEqual(2);
+  expect(screen.getAllByText("#J2RGCRVG").length).toBeGreaterThanOrEqual(2);
   // The documented emergency path. /docs/agents has promised "Account →
   // Agents → Revoke key" since agents shipped, while the route, the client
   // method and no button at all existed.

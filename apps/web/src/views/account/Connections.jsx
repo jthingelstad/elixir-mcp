@@ -9,6 +9,7 @@ import {
   useMyPrincipals,
 } from "../../lib/queries.js";
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
+import { ClanRefs } from "../../components/ClanRefs.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
 
 /**
@@ -363,8 +364,11 @@ export function Connections({ me, navigate }) {
                     </span>
                   </td>
                   <td style={{ whiteSpace: "normal" }}>
-                    {(a.clans ?? []).map((c) => c.clan_tag).join(", ") ||
-                      "your record"}
+                    <ClanRefs
+                      clans={a.clans}
+                      navigate={navigate}
+                      empty="your record"
+                    />
                     <span
                       style={{
                         display: "block",

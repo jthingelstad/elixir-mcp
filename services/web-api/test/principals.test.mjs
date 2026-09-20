@@ -101,6 +101,9 @@ before(async () => {
     sendWelcomeEmail: async () => {},
   });
 
+  await db.query(
+    `insert into clan (clan_tag, name) values ('#J2RGCRVG', 'POAP KINGS') on conflict do nothing`,
+  );
   await seed(BOSS, "admin", { clans: ["#J2RGCRVG"] });
   await seed(LEADER, "member", { clans: ["#2GUCVLQR"] });
   await seed(PARTNER, "partner");
@@ -146,6 +149,19 @@ test("an agent is created for a clan you already added, and its key is shown onc
   );
   assert.equal(listed.agents.length, 1);
   assert.ok(!JSON.stringify(listed).includes(out.token));
+  // The clan comes with its name, for the console and the create form:
+  // a tag alone is not something a person recognises.
+  assert.deepEqual(listed.agents[0].clans, [
+    {
+      clan_tag: "#J2RGCRVG",
+      name: "POAP KINGS",
+      scope: "comprehensive",
+      is_primary: true,
+    },
+  ]);
+  assert.deepEqual(listed.addable_clans, [
+    { clan_tag: "#J2RGCRVG", name: "POAP KINGS", scope: "comprehensive" },
+  ]);
 });
 
 test("an admin's agent is not an admin", async () => {

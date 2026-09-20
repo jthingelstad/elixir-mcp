@@ -3,6 +3,7 @@ import { useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
+import { ClanRefs } from "../../components/ClanRefs.jsx";
 import { api } from "../../api.js";
 import {
   keys,
@@ -11,7 +12,6 @@ import {
   usePrincipalTimeline,
   usePrincipalIdentities,
 } from "../../lib/queries.js";
-import { tagPath } from "../../lib/tag-url.js";
 
 export function AgentDetail({ id, navigate }) {
   const principals = useMyPrincipals();
@@ -81,21 +81,8 @@ export function AgentDetail({ id, navigate }) {
           <p className="page__lede">
             {(agent.clans ?? []).length > 0 ? (
               <>
-                Acts for{" "}
-                {(agent.clans ?? []).map((c, i) => (
-                  <span key={c.clan_tag}>
-                    {i > 0 ? ", " : ""}
-                    <a
-                      className="mono"
-                      onClick={() =>
-                        navigate(`/explore/clan/${tagPath(c.clan_tag)}`)
-                      }
-                    >
-                      {c.clan_tag}
-                    </a>
-                  </span>
-                ))}
-                . An agent&rsquo;s name is its key&rsquo;s name, and it calls at
+                Acts for <ClanRefs clans={agent.clans} navigate={navigate} />.
+                An agent&rsquo;s name is its key&rsquo;s name, and it calls at
                 its own door.
               </>
             ) : (
@@ -190,8 +177,8 @@ export function AgentDetail({ id, navigate }) {
             )}
           </dd>
           <dt>Clan</dt>
-          <dd className="mono">
-            {(agent.clans ?? []).map((c) => c.clan_tag).join(", ") || "—"}
+          <dd>
+            <ClanRefs clans={agent.clans} navigate={navigate} />
           </dd>
           <dt>Slug</dt>
           <dd className="mono">{agent.public_id ?? "—"}</dd>
@@ -678,10 +665,8 @@ export function Agents({ navigate }) {
                       return (
                         <tr key={a.account_id}>
                           <td>{live[0]?.name ?? a.public_id}</td>
-                          <td className="mono">
-                            {(a.clans ?? [])
-                              .map((c) => c.clan_tag)
-                              .join(", ") || "—"}
+                          <td>
+                            <ClanRefs clans={a.clans} navigate={navigate} />
                           </td>
                           <td>{a.role}</td>
                           <td>

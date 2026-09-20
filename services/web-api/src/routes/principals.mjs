@@ -27,7 +27,11 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         // may only point at a clan its owner has already added.
         addable_clans: (
           await db.query(
-            `select clan_tag, scope from account_clan where account_id = $1 order by clan_tag`,
+            `select ac.clan_tag, cl.name, ac.scope
+               from account_clan ac
+               left join clan cl on cl.clan_tag = ac.clan_tag
+              where ac.account_id = $1
+              order by cl.name nulls last, ac.clan_tag`,
             [account.accountId],
           )
         ).rows,

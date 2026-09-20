@@ -36,9 +36,12 @@ export async function listPrincipals(db, ownerAccountId) {
               as timeline_pending,
             coalesce(
               (select json_agg(json_build_object('clan_tag', ac.clan_tag,
+                                                 'name', cl.name,
                                                  'scope', ac.scope,
                                                  'is_primary', ac.is_primary))
-               from account_clan ac where ac.account_id = a.account_id), '[]'
+               from account_clan ac
+               left join clan cl on cl.clan_tag = ac.clan_tag
+               where ac.account_id = a.account_id), '[]'
             ) as clans,
             -- WHERE it connects from and WHAT calls itself what. Five agents
             -- on one account were five identical rows of "something called a
