@@ -6180,3 +6180,90 @@ before the deploy and is not this change; unattributed, noted.) *Last
 hour at 11:45Z:* 700 polls, 71% nothing new, **0 gaps**; fetch errors
 in 24 h are the usual `rankings_pol` 404 backoff population. Nothing in
 this addendum changes the verdict; it removes the caveats on it.
+
+## 2026-09-20 — The Elixir Gym's rankings run, actioned (contract 6.2.0): a cutoff is not a floor
+
+The Gym's regression run against 6.1.0 (feedback #71–#76, filed
+11:39–12:21Z; eleven regressions confirmed fixed, #62's surface removed
+in 5.0.0) landed on `rankings_*`, a family no prior item had touched.
+Four findings, all shipped the same afternoon (`cab5ebb`, `97c1249`,
+deploys ~12:40Z and ~12:50Z, verify green, live acceptance read-only
+against the Gym's own repros). All six items answered `done`/`seen`,
+naming the commit; backlog after the run: #67–#70 (three recorder census
+items on the `*PathOfLegendSeasonResult` profile fields and #70,
+`battles_meta_decks` recommending a deck the caller cannot field at his
+levels) — not this run's scope, none overdue.
+
+**1. The live Path of Legends board is the API's top 1,000, and every
+surface called it a rating floor (#71, #76).** Settled against the API
+rather than inferred: `limit=5` returns a cursor, `limit=1000` and
+`limit=2000` both return exactly 1,000 with `paging.cursors` empty, and
+`after={"pos":1000}` returns `items: []` with only a `before` cursor.
+Supercell's cut, per board; `pol_final`'s 9,999 is the same kind (S135
+ends in a nine-way tie at #9999). The recorder stores what the API
+returns (Iceland reads 2), so nothing was dropped and the cutoff rising
+through a season is correct — the *word* was wrong, and `rated_players`
+is a count agents subtract across dates. Shipped: `snapshot.depth`,
+`snapshot.full`, `snapshot.floor_rating` on the player boards; a
+conditional full-board note that says whose cut it is and that the
+number is a cutoff that moves; `floor_delta`, `depth`, `full` on the
+timeline's board curve and `board_full` / `board_floor_rating` on a
+clan's points (so `#9V9GGVCQ`'s 8 → 7 → 4 sits beside 2058 → 2111 →
+2148); both "rises through a season" clauses gone; `recording#leaderboards`
+rewritten for the two regimes with the Gym's 09-19 numbers.
+**Decided against the Gym's (a):** `truncated` keeps its meaning (the API
+offered a cursor the recorder did not follow — true on mode boards) and
+stays `false` on a full PoL board; the note says what false means there,
+and `full: true` is the flag the Gym was reaching for. Written to
+`cr-agent-api-docs` `locations.md` with the probe (guarded claims).
+Not scheduled, noted as an idea: summing the 262 recorded location
+boards daily for a lower bound on the population above the true floor
+(the recorder already stores them; no reader surfaces it).
+
+**2. `rankings_timeline` returned an empty series before the recording
+horizon and its own note explained it as "the board did not change"
+(#72).** The horizon is now `min(observed_at)` per board from the table
+(`rankings_players` had it as a literal, "2026-09-11"): `meta.recorded_since`
+on every rankings read; a window ending before the first snapshot or
+starting a day or more before it echoes `applied.window.partial: true`
+with `covers` (the recorded span, or `null`) and a note that says
+unrecorded, not unchanged; quiet inside the record. `rankings_clans`
+gained the `as_of` sentence it never had. The tolerance (a start inside
+the horizon's first day is the first day's snapshot, no note) is what
+kept the fixture's own 00:00Z-to-10:00Z window honest.
+
+**3. `pol_final` answered three situations with one false note and
+instructed the action it refuses (#73).** `applied.season` is always
+echoed (resolved ordinal or `null`) with `season_requested` beside it —
+two keys, not the Gym's `{requested, resolved}` object, so the hit
+path's `applied.season: 135` is unchanged. Four notes: not happened
+(names the current season), in progress (names the fetch date after the
+roll), before S89 (the in-game Pass number, with the `game_clock`
+pointer), settled-but-unfetched. No `pol_final` note offers `live: true`,
+and the live-board floor sentence no longer rides a final.
+`FIRST_RANKED_SEASON = seasonIdForMonth("2022-10")` = 89, computed, not
+typed.
+
+**4. `verbosity` was accepted by the server and absent from 43 published
+schemas with `additionalProperties: false` (#74).** Fixed at the
+registry seam (`publishedInputSchema` in `tools.mjs`): every declaration
+carries it, the one-size tools as accepted-and-ignored; handlers keep
+their own schemas and `invoke()` still detects a one-size tool by the
+property's absence there. Test over the manifest; `tools.json` shows 54
+of 54.
+
+**Also:** `fleet.test.mjs` "quiet active collector" read three silences
+instead of one the day after it was written — the sweep test left two
+running collectors at its fixed `NOW`, which the wall clock passed by an
+hour overnight. Pinned to `Date.now() - 60 s` (the same class as the
+09-19 punch list's item 3). It was red on `main` before this run's
+changes.
+
+Transcribed from the lease queue (guard run 2026-09-20T10:23Z, blocked on
+Jamie): Guard found untrusted `err.message` logging in all four
+email-relay failure paths (`owner_notify_drop`, `buttondown_drop`,
+`send_retry`, `tinylytics_drop`); wants a captured-console no-PII
+regression test and bounded transport-class logs, then verify and
+deploy. Its `AWS_PROFILE=jamie` STS was ExpiredToken at the time
+(`aws login --profile jamie`); this run's session was live, so the
+credential is no longer the blocker — the work itself is still owed.
