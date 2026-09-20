@@ -258,6 +258,33 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   filter. Points reward `new_facts > 0` only. Every projector returns
   `facts`; a new one must.
 
+## Grammar in code, vocabulary in data
+
+A deck's archetype (`archetype` on every deck object, 6.5.0+) is a pure
+function in `packages/contracts/src/archetypes.ts` - the priority order
+of win conditions, the bait-package and bridge-partner tests, the cycle
+bound measured on the corpus, how a label is composed - over a
+vocabulary that is DATA: which cards are win conditions (and at which
+tier, implying which family), bait units, bridge partners, and cards
+that name a deck without being its win condition. The vocabulary lives
+in `cr-agent-api-docs` (`data/card-roles.json`, `data/deck-aliases.json`),
+one public URL per entry, validated by that repo's build, kept by the
+domain's Understand Clash Royale objective; it is imported into
+`card_role` / `deck_alias` / `card_role_version` at every deploy
+(`infra/scripts/import-card-roles.mjs`, from the sibling checkout - the
+Lambdas have no internet) and its commit time rides every archetype as
+`roles_version` beside the grammar's own version. Never write a card's
+role into code, and never edit the vocabulary here: a new card is
+attested in the reference with a source, and lands on the next deploy.
+
+The archetype is stamped on `deck` (0148) as a cache of that function
+with its version; the nightly re-stamps every row behind the current
+grammar + vocabulary pair, so history is relabelled on purpose when the
+vocabulary improves. The readers classify at read time for any row the
+nightly has not reached. No matchup table, no expected advantage, no
+quality claim rides a label - decided on 2026-09-20 and not to be
+re-litigated (`docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md`).
+
 ## Mail is transactional until a kind says otherwise
 
 Every email kind in `packages/contracts` (`EMAIL_KIND_CLASS`) is classified
@@ -319,8 +346,13 @@ tie sponsorship (`/support`) to anything on an account.
 
 `node infra/scripts/deploy.mjs` with `AWS_PROFILE=jamie` **in the environment** —
 the CLI profile flag alone does not satisfy the SDK's provider chain. Order is
-build → upload → migrate → stack → web. It is smoke-gated, and deploys are
-cumulative: never deploy past a commit whose infrastructure change is blocked.
+build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
+and deploys are cumulative: never deploy past a commit whose infrastructure
+change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
+refuses a checkout whose `data/card-roles.json` or `data/deck-aliases.json`
+is uncommitted: commit (and push) the reference first. It also refreshes
+`fixtures/card-roles.snapshot.json`, the tests' copy; commit that with the
+deploy's change if it moved.
 
 ## Verification follows the boundaries
 

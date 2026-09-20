@@ -51,6 +51,12 @@ Establish, with receipts:
   yet sealed, seconds on an ordinary night (10 s on day 12 of
   September); the ten aggregates scale with the season and were ~200 s
   that day, so a run past ~500 s mid-season is the thing to read. The
+  The same nightly log line carries `archetype_stamp` (since 0148): the
+  decks re-stamped because the grammar or the vocabulary moved, and the
+  version they were stamped under - `written` is 0 on an ordinary night
+  and the whole table (~205k, about two minutes) the night after a
+  vocabulary import or a grammar bump; a non-zero `written` with no
+  deploy that day is the thing to read. The
   proof that the population table matches the raw rows is
   `{meta_rollup_equivalence: true}` on the jobs lambda (rolled back,
   about five minutes on the micro, `hourly_ran` says whether the :45

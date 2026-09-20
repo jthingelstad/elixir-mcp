@@ -79,7 +79,8 @@ card's win rate describes who played it as much as the card.
 | How much is it played and does it win, for a population? | `cards_card` (`season`), or `battles_meta_cards` with `cards: [ids]` for the row beside other cards |
 | How has its usage moved across seasons? | `cards_card` (`history`, corpus) |
 | What is it played with? | `cards_synergy` (any segment); `cards_card.partners` for the top eight |
-| Which decks carry it? | `cards_card` (`decks`), or `battles_meta_decks` with `containing: [ids]` for the full ranked list |
+| Which decks carry it? | `cards_card` (`decks`; `archetype` narrows them to one shape), or `battles_meta_decks` with `containing: [ids]` for the full ranked list |
+| What is this deck called, or what does "LavaLoon" mean? | `cards_archetype` (`cards`, or `name`; every deck object already carries `archetype`) — see [Deck archetypes](/docs/archetypes) |
 | Who in my clan plays it, and at what level? Who holds it? | `cards_card` with `segment: "mine"` (`members`) |
 | Which of MY cards carry, which enemy cards beat me? | `battles_cards` (`perspective`) |
 | My battles with or against a card | `battles_query` (`with_card`, `with_cards`, `against_card`) |
