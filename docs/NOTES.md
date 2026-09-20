@@ -6551,3 +6551,62 @@ Jamie's call whether the label itself should ever carry two names beyond
 the pairs. (2) Mortar with two bait units (Dart Goblin, Spear Goblins)
 is siege-first by tier; "Mortar bait" is a shape the community names and
 Elixir resolves by alias only if one is added.
+
+## 2026-09-20 — The archetype debug pass (contract 6.9.0): a quarter of the season was one unnamed card
+
+Jamie: "look at the results of hundreds of these outcomes and see if it
+lands where it should." `{archetype_sample}` (migrate, read-only): the
+top three decks under each of the 70 most-played labels, the 80 biggest
+decks named by cost alone, and 200 battle-weighted random decks, each
+with its cards. Read by eye and against the rules.
+
+**Where it landed.** The classic shapes were right: 2.6 Hog and its
+Musketeer/Cannon/Ice Golem eight, Royal Hogs bridge spam with Royal
+Ghost, P.E.K.K.A bridge spam with Battle Ram + Bandit + Ghost and
+P.E.K.K.A control without them, Lava Hound Balloon, Graveyard Giant,
+3.0 Evo Royal Giant cycle, X-Bow siege at 3.0 and 3.5, Log Bait's
+barrel-plus-package, Miner cycle at 2.88 and Miner control at 3.75, Hog
+Rider control for the 4.1-4.4 mid-ladder Hog decks.
+
+**Where it did not.** 24% of season battles were bare "Beatdown" /
+"Cycle" / "Control", and the defining cards were three: **Minion
+Giant** (the season's most-played nameless deck was 2.6 Hog's eight with
+Minion Giant in the Hog slot, 2.63, 2,052 battles; another 3,613 on a
+3.00 Goblinstein / Minion Giant / Tesla cycle), **Goblinstein** and
+**Rune Giant**. Public sources: GamingOnPhone calls Minion Giant "a
+building-targeting win condition" and Rune Giant a "buffing support
+troop" that "doesn't have enough hitpoints to make it a full-blown win
+condition"; GameRant calls Goblinstein "your primary win condition" in
+one deck and "a secondary win condition" beside Royal Hogs; deckmelon
+titles decks by both. So Minion Giant (tier 9.35, control, cycle at
+cycle cost) and Goblinstein (tier 9.7) are attested, Rune Giant is
+declined with the quote, Giant Skeleton stays support. Four smaller
+corrections from the same read: Giant beside Sparky is "Giant Sparky"
+(a pair, alias added); a 3.6 Wall Breakers deck is not cycle (cycle at
+cycle cost, else control); a Ronin, Boss Bandit or Elite Barbarians
+deck behind huts and a horde is not bridge spam (needs a partner, else
+control); the tier-9 cards are ordered (Hog Rider, Ram Rider, Royal
+Hogs, Battle Ram, Miner, Goblin Drill, Wall Breakers, Minion Giant)
+instead of tying by card id. "Mortar Bait" added as an alias. All in
+cr-agent-api-docs `74db1f1`, `130a770`.
+
+**After the re-import and re-stamp (205,583 decks):** the nameless
+share is **2.4%** - the same order as elixir-bot's ~2% on the clan's own
+decks - and the queue holds only support cards (Baby Dragon, Wizard,
+Giant Skeleton, Bowler). The season's top archetype is **Minion Giant**:
+18,190 players on Minion Giant control and 10,704 on Minion Giant cycle,
+ahead of Evo Skeleton Barrel bait (8,869) and Hog Rider cycle (8,555).
+Nobody could see that while it read "Cycle".
+
+**Grammar:** `secondary_win_conditions[]` on every archetype (every
+other attested win condition present, by tier), so Tyler's ranked deck
+reads "Miner control" with `[Boss Bandit, Goblin Barrel]` beside it.
+Contract 6.9.0 (`102344c`), deployed ~19:40Z.
+
+**Left as observed, not changed:** Mega Knight and P.E.K.K.A (tier 7)
+anchor over a chip win condition beside them ("Mega Knight control" with
+Miner) - the community leads with the big card too ("MK Miner"), and the
+secondary list now carries the Miner; Lumberjack alone makes a
+P.E.K.K.A deck bridge spam by the partner test (the bot's rule; kept).
+The Rune Giant + Lumberjack + Golden Knight + Lightning decks (~3,000
+battles) are the largest honest fallback left.

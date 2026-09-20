@@ -101,6 +101,11 @@ Composition, in order:
 4. **No win condition**: by cost — at or under the cycle bound *cycle*,
    4.0 and over *beatdown*, between them *control*.
 
+`secondary_win_conditions[]` carries every other attested win condition
+in the deck, by priority — what the label leaves out — so "Miner control"
+can be said as "Miner control, with Goblin Barrel and Boss Bandit"
+without reading the cards.
+
 The average excludes Mirror (it has no cost), as the deck sites do, and
 uses the catalog's **current** costs: a balance change re-prices history,
 which is how the sites read it too.
