@@ -20,6 +20,7 @@ import {
 } from "./shared.mjs";
 import { synergyTools } from "./synergy.mjs";
 import { cardProfileTools } from "./card-profile.mjs";
+import { archetypeTools } from "./archetype.mjs";
 
 /** One catalog item as served: in-game max level, the API's rarity-scale
  *  value kept under an unambiguous name, and forms decoded. */
@@ -188,4 +189,5 @@ export const cardsTools = {
   },
   ...synergyTools,
   ...cardProfileTools,
+  ...archetypeTools,
 };

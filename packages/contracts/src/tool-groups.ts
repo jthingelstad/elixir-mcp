@@ -281,6 +281,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     readOnly: true,
   },
   cards_synergy: { group: "Cards", title: "Card synergy", readOnly: true },
+  cards_archetype: {
+    group: "Cards",
+    title: "Deck archetype, by name or by cards",
+    readOnly: true,
+  },
 
   // Clans — roster-shaped views (docs: clans.md).
   clans_roster: {

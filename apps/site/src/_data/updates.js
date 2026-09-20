@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-20",
+    title: "cards_archetype: what a deck name means, and what to call a deck",
+    body: "One tool for the two questions a player asks in one breath. Give it a name - 'bridge spam', 'Royal Hogs bridge spam', 'LavaLoon', '2.6 Hog' - and it says the family and win conditions it means, the other names for that shape, and how much of this season's record plays it. Give it eight cards, by id or by name with 'Evo' or 'Hero' where it matters, and it names the deck - no record required, and it says whether anyone recorded has played that exact set. Give it nothing and it hands over the whole vocabulary: the six families with their definitions, every win condition with its tier, the bait units and bridge partners, the aliases, and the version in force. Contract 6.8.0, additive.",
+  },
+  {
+    date: "2026-09-20",
     title:
       "Admin ▸ Cards: the archetype vocabulary in force, and the cards waiting for a name",
     body: "A read-only page for the maintainer: every catalog card with its archetype role (win condition and tier, bait unit, bridge partner) and the public source that attests it, the vocabulary version in force and which commit of the reference repository it was imported from, and the one operational list - the cards with no role that keep turning up as the defining card of a deck Elixir can only name by its cost this season. That list is the research agent's queue; a card leaves it only when a deck site or guide names decks by it. Nothing is edited here, on purpose: the vocabulary is a public, sourced file. Also: cards_card takes the archetype filter its siblings got, narrowing the decks that carry a card to one shape. Contract 6.7.0, additive.",

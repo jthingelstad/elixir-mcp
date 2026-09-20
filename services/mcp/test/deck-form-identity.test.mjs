@@ -881,3 +881,109 @@ test("6.6.0: decks are stamped (backfill and at insert), group_by folds by label
     await client.end();
   }
 });
+
+// --- 6.8.0: cards_archetype, the resolver ----------------------------------
+
+test("6.8.0 cards_archetype: a name to its shape and this season's corpus; eight cards to a name with or without a record; the vocabulary; nonsense refuses", async () => {
+  const { default: pg } = await import("pg");
+  const client = new pg.Client({ connectionString: scratch.url });
+  await client.connect();
+  try {
+    const callFresh = (name, args) =>
+      registry.invoke(name, { db: client, account }, args);
+    // name: the alias, the family word, the composed label.
+    const alias = await callFresh("cards_archetype", { name: "2.6 hog" });
+    assert.equal(alias.resolved.family, "cycle");
+    assert.equal(alias.resolved.resolved_from, "alias");
+    assert.deepEqual(
+      alias.resolved.win_conditions.map((w) => w.id),
+      [26000021],
+    );
+    assert.equal(alias.resolved.label, "Hog Rider cycle");
+    assert.ok(alias.resolved.aliases.includes("2.6 Hog"));
+    assert.equal(typeof alias.this_season.decks, "number");
+    assert.equal(alias.version.cycle_max, 3.4);
+    assert.ok(alias.notes[0].includes("resolved by a community alias"));
+    const fam = await callFresh("cards_archetype", { name: "Bridge Spam" });
+    assert.equal(fam.resolved.family, "bridge_spam");
+    assert.deepEqual(fam.resolved.win_conditions, []);
+    assert.equal(fam.resolved.label, "Bridge spam");
+    const label = await callFresh("cards_archetype", {
+      name: "hog rider cycle",
+    });
+    assert.equal(label.resolved.resolved_from, "label");
+    await assert.rejects(
+      callFresh("cards_archetype", { name: "purple monkey dishwasher" }),
+      (e) => e.code === "bad_request" && /LavaLoon/.test(e.hint),
+    );
+
+    // cards: the fixture deck by names, with a form prefix; and a set
+    // nobody recorded has played.
+    const named = await callFresh("cards_archetype", {
+      cards: [
+        "Evo Hog Rider",
+        "Witch",
+        "knight",
+        "Skeletons",
+        "The Log",
+        "Musketeer",
+        "Cannon",
+        "Arrows",
+      ],
+    });
+    assert.equal(named.archetype.label, "Evo Hog Rider cycle");
+    assert.equal(named.archetype.family, "cycle");
+    assert.equal(named.archetype.average_elixir, 3.13);
+    assert.deepEqual(named.archetype.win_conditions, [
+      { id: 26000021, name: "Hog Rider", form: "evolution" },
+    ]);
+    assert.ok(
+      named.in_the_record.identities >= 2,
+      "the fixture's identities share this card set",
+    );
+    assert.equal(named.applied.cards.find((c) => c.id === 26000021).form, 1);
+    const byId = await callFresh("cards_archetype", {
+      cards: [
+        26000021, 26000007, 26000000, 26000010, 28000011, 26000014, 27000000,
+        28000001,
+      ],
+    });
+    assert.equal(byId.archetype.label, "Hog Rider cycle");
+    const unplayed = await callFresh("cards_archetype", {
+      cards: [
+        "Hog Rider",
+        "Witch",
+        "Knight",
+        "Skeletons",
+        "The Log",
+        "Musketeer",
+        "Cannon",
+      ],
+    });
+    assert.equal(unplayed.in_the_record.identities, 0);
+    assert.equal(unplayed.archetype.family, "cycle");
+    assert.ok(unplayed.notes.some((n) => /7 cards named, not eight/.test(n)));
+    await assert.rejects(
+      callFresh("cards_archetype", { cards: ["Hog Rider", "Purple Monkey"] }),
+      (e) => e.code === "not_found" && /Purple Monkey/.test(e.message),
+    );
+    await assert.rejects(
+      callFresh("cards_archetype", { name: "cycle", cards: [26000021] }),
+      (e) => e.code === "bad_request",
+    );
+
+    // the vocabulary
+    const vocab = await callFresh("cards_archetype", {});
+    assert.equal(vocab.families.length, 7);
+    assert.ok(
+      vocab.win_conditions.some(
+        (w) => w.name === "Hog Rider" && w.at_cycle_cost === "cycle",
+      ),
+    );
+    assert.ok(vocab.aliases.some((a) => a.alias === "2.6 Hog"));
+    assert.match(vocab.grammar, /highest-priority win condition/);
+    assert.equal(vocab.version.grammar_version, "2026-09");
+  } finally {
+    await client.end();
+  }
+});

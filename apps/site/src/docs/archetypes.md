@@ -175,8 +175,16 @@ partner test is the difference.
 
 ## Resolving a name
 
-`battles_meta_decks` and `battles_decks` take `archetype`, a string,
-resolved in three layers, first match wins:
+**`cards_archetype`** answers the two questions on their own, with no
+population attached: `{ name }` says what a name means — family, win
+conditions, the other names for that shape, and how much of this
+season's record plays it — and `{ cards }` names a deck from up to eight
+cards (ids or names; `Evo` / `Hero` before a name sets its form), with no
+record required and a note on whether anyone recorded has played that
+exact set. Called with nothing it returns the vocabulary itself.
+
+`battles_meta_decks`, `battles_decks` and `cards_card` take `archetype`, a
+string, resolved the same way in three layers, first match wins:
 
 1. **An alias** — the community names the grammar does not produce:
    *LavaLoon*, *LumberLoon*, *Log Bait*, *Splashyard*, *Miner Poison*, *Hog
