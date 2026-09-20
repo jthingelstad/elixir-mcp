@@ -74,6 +74,42 @@ test("verbosity is the one size control, and always the same enum", () => {
   }
 });
 
+test("every published schema declares verbosity: the two-size tools in their own words, the rest as accepted-and-ignored (6.2.0, feedback #74)", () => {
+  // 6.0.0 accepted the argument server-side; the schemas still said
+  // additionalProperties: false without it, so a validating client
+  // refused the call before it was sent.
+  const twoSize = declarations.filter((d) =>
+    d.inputSchema.properties.verbosity.description.startsWith("compact:"),
+  );
+  const oneSize = declarations.filter(
+    (d) =>
+      !d.inputSchema.properties.verbosity.description.startsWith("compact:"),
+  );
+  assert.equal(twoSize.length + oneSize.length, declarations.length);
+  assert.ok(twoSize.length >= 11, `two-size tools: ${twoSize.length}`);
+  for (const name of [
+    "battles_query",
+    "cards_catalog",
+    "rankings_players",
+    "war_current",
+    "clans_roster",
+    "clans_participation",
+    "elixir_timeline",
+  ])
+    assert.ok(
+      twoSize.some((d) => d.name === name),
+      `${name} keeps its own compact description`,
+    );
+  for (const d of oneSize)
+    assert.match(
+      d.inputSchema.properties.verbosity.description,
+      /one size: compact is accepted and changes nothing/,
+      d.name,
+    );
+  for (const d of declarations)
+    assert.equal(d.inputSchema.additionalProperties, false, d.name);
+});
+
 test("segment tools take a nested segment, never a flat scope; the population is named (3.16.0)", () => {
   for (const name of [
     "battles_meta_decks",

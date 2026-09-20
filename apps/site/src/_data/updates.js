@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-20",
+    title: "The leaderboard is a top 1,000, and now says so: cutoff, not floor",
+    body: "The Elixir Gym's regression run on the rankings tools found a label, not a data gap: the live Path of Legends board the recorder keeps is the API's top 1,000 places (checked directly: the API offers a page cursor at limit 5 and none at 1,000, and a cursor placed past position 1,000 returns nothing), and every note that served it called the last place's rating a rating floor. It is a floor only while fewer than 1,000 players are rated - the first days of a season, or a small country (Iceland's whole board is two players). Once the board is full the field is pinned at 1,000 and that number is a cutoff that rises with play: on the 19th it rose 2058 to 2111 and a quarter of the previous day's board was below it before anyone played a game, so a player whose rating had not moved fell 248 places. Every board snapshot now carries depth, full and floor_rating; a full board carries a note that says all of this; the board curve carries the cutoff's daily move; a clan's count carries the board's state beside it; and the two notes that said a clan's rated players 'rises through a season' are gone, because it can fall while every one of the clan's players improves. Three smaller things from the same run: rankings_timeline names the day recording began (2026-09-11) when a window reaches before it, instead of returning an empty series that read as 'the board did not change'; a season final read for a season that has not happened, is in progress, or predates the ranked ladder (the number on the in-game Pass) says which; and every tool's published schema now declares verbosity, so a client that validates arguments no longer refuses what the server accepts. Contract 6.2.0, additive.",
+  },
+  {
     date: "2026-09-19",
     title:
       "The session clock: your battle log every 30 minutes while you play, and a page that says what the recorder lost",

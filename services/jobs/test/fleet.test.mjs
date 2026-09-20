@@ -133,14 +133,16 @@ test("the sweep tells the owner once per silence, and again after a heartbeat", 
 
 test("elixir_collectors reads a quiet active collector as silent and keeps the lifecycle beside it", async () => {
   // The tool reads the wall clock: put Hog Rider forty hours back from
-  // now and Mini P.E.K.K.A a minute back (the sweep test moved them).
+  // now and every running collector a minute back (the sweep test left
+  // them at its fixed NOW, which the wall clock passed by an hour the
+  // next day and read as three silences, not one).
   const quiet = new Date(Date.now() - 40 * 3600_000).toISOString();
   await ctx.db.query(
     `update gateway set last_heartbeat_at = $1 where name in ('hog', 'witch')`,
     [quiet],
   );
   await ctx.db.query(
-    `update gateway set last_heartbeat_at = $1 where name = 'mini'`,
+    `update gateway set last_heartbeat_at = $1 where name in ('mini', 'fresh', 'cannon')`,
     [new Date(Date.now() - 60_000).toISOString()],
   );
   const registry = makeRegistry();

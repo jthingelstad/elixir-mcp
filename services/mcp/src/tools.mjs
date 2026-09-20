@@ -51,6 +51,30 @@ const TOOLS = {
   ...rankingsTools,
 };
 
+/** The size control a one-size tool publishes (6.2.0, feedback #74).
+ *  6.0.0 made the server accept verbosity on every tool, but the
+ *  published schemas still said additionalProperties: false without
+ *  it, so a client that validates arguments before dispatch refused the
+ *  call locally and never saw the note. The declaration is the promise
+ *  clients read; it now matches the runtime. Handlers keep their own
+ *  schemas: invoke() still recognises a one-size tool by the property's
+ *  absence there and strips the argument before validation. */
+const ONE_SIZE_VERBOSITY = {
+  type: "string",
+  enum: ["full", "compact"],
+  default: "full",
+  description:
+    "This tool has one size: compact is accepted and changes nothing (the response says so in a note).",
+};
+
+function publishedInputSchema(schema) {
+  if (Object.hasOwn(schema.properties ?? {}, "verbosity")) return schema;
+  return {
+    ...schema,
+    properties: { ...(schema.properties ?? {}), verbosity: ONE_SIZE_VERBOSITY },
+  };
+}
+
 /**
  * `kind` shapes what a connection can see and call. It is threaded in rather
  * than read from a module global because one Lambda serves every principal,
@@ -75,7 +99,7 @@ export function makeRegistry() {
           return {
             name,
             description: t.description,
-            inputSchema: t.inputSchema,
+            inputSchema: publishedInputSchema(t.inputSchema),
             // The response contract, for the ten most-called tools first
             // (output-schemas.mjs): rendered on the docs, validated below.
             ...(OUTPUT_SCHEMAS[name]

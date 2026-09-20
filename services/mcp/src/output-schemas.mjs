@@ -428,10 +428,36 @@ export const OUTPUT_SCHEMAS = {
           season_id: { type: "string" },
           season_month: { type: "string" },
           entries: COUNT,
-          truncated: { type: "boolean" },
+          depth: {
+            type: "integer",
+            description:
+              "The places the board holds: 1,000 (the API's cut on a live board), 9,999 on a season final.",
+          },
+          full: {
+            type: "boolean",
+            description:
+              "entries is at depth: the board is a slice of the rated field, and floor_rating is a cutoff that moves with play, not a qualification threshold.",
+          },
+          floor_rating: {
+            type: ["integer", "null"],
+            description:
+              "The last place's rating: the rating floor while the board is below depth, the cutoff once it is full.",
+          },
+          truncated: {
+            type: "boolean",
+            description:
+              "The API offered a cursor past the places the recorder keeps. false on a full board means the API itself served nothing past depth.",
+          },
           cadence_minutes: NULLABLE_INT,
         },
-        required: ["observed_at", "unchanged_until", "season_month", "entries"],
+        required: [
+          "observed_at",
+          "unchanged_until",
+          "season_month",
+          "entries",
+          "depth",
+          "full",
+        ],
       },
       players: {
         type: "array",

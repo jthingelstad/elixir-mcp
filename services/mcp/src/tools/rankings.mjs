@@ -15,6 +15,7 @@ import {
   seasonFromDate,
   seasonIdForMonth,
   monthForSeasonId,
+  nextSeasonStartMs,
 } from "../../../ingest/src/war-clock.mjs";
 import {
   ToolFailure,
@@ -41,7 +42,7 @@ const BOARD_SCHEMA = {
   enum: ["pol", "trophy", "pol_final", "mode"],
   default: "pol",
   description:
-    "pol is the live Path of Legends board (players above the rating floor, recorded daily at the 10:00Z reset); pol_final is a season's FINAL Path of Legends standing at full depth (9,999 places), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
+    "pol is the live Path of Legends board (the API's top 1,000: everyone above the rating floor while fewer than 1,000 are rated, a top-1,000 slice once the board is full; recorded daily at the 10:00Z reset); pol_final is a season's FINAL Path of Legends standing, the API's 9,999 places (the tail is cut at #9999, mid-tie), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
 };
 
 const SEASON_SCHEMA = {
@@ -74,7 +75,82 @@ const ENDPOINT_OF = {
 };
 
 const FLOOR_NOTE =
-  "Path of Legends lists only players above a rating floor, and a season resets everyone below it: a board is small in a season's first days and fills through the month.";
+  "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold.";
+
+/** How many places a board holds (6.2.0, feedback #71/#76). The cut is
+ *  the API's, per board: probed 2026-09-20 on the live global Path of
+ *  Legends board, limit=5 returns a cursor, limit=1000 and limit=2000
+ *  both return 1,000 rows with no cursor, and a cursor placed at
+ *  position 1000 returns an empty page. A season final is served at
+ *  9,999 the same way (S135 ends in a nine-way tie cut at #9999). A
+ *  board below its depth is the whole rated field (Iceland reads 2); a
+ *  board at depth is a slice, and its last rating is a cutoff that moves
+ *  with play - which the standing notes had called a floor. */
+const BOARD_DEPTH = { pol_final: 9999 };
+const depthOf = (board) => BOARD_DEPTH[board] ?? 1000;
+const isFull = (snapshot) => snapshot.entries >= depthOf(snapshot.board);
+
+/** The ranked ladder's first season (October 2022) as game_clock counts
+ *  it: no Path of Legends final exists before it. */
+const FIRST_RANKED_SEASON = seasonIdForMonth("2022-10");
+
+const dayOf = (at) => at.toISOString().slice(0, 10);
+
+/** When recording of a board began: the oldest snapshot on record, or
+ *  null for a board never recorded. A fact of the table, not a date in
+ *  the code (feedback #72: rankings_players said "recording began
+ *  2026-09-11" from a literal, and rankings_timeline said nothing, so an
+ *  empty series before the horizon read as "the board did not change"). */
+async function boardHorizon(db, row) {
+  const { rows } = await db.query(
+    `select min(observed_at) as since from ranking_snapshot
+     where board = $1 and location_key = $2`,
+    [row.board, row.location_key],
+  );
+  return rows[0]?.since ?? null;
+}
+
+/** The note for a board with no snapshot to read. as_of before the
+ *  horizon and a board never recorded are different facts, and only the
+ *  latter has a live read to offer - never on pol_final, where a final
+ *  does not change and live is refused (feedback #73). */
+function noSnapshotNote(row, asOf, horizon, noun = "board") {
+  if (asOf && horizon)
+    return `No snapshot of this ${noun} exists on or before as_of; recording began ${dayOf(horizon)}.`;
+  return row.board === "pol_final"
+    ? null
+    : `This ${noun} has not been recorded yet. It is on the schedule; live: true reads it from the game now.`;
+}
+
+/** Why a season's final board is not here (feedback #73): a season that
+ *  has not happened, the one in progress, one before the ranked ladder
+ *  began (the number a player reads off the in-game Pass), or a settled
+ *  season whose row the schedule has not fetched yet. One sentence each,
+ *  and none offers live: true, which pol_final refuses. */
+function polFinalMissNote(requested, nowMs = Date.now()) {
+  const current = seasonFromDate(nowMs).seasonId;
+  if (requested === null)
+    return `No season final has been recorded yet; every settled season since S${FIRST_RANKED_SEASON} (October 2022) is on the schedule.`;
+  if (requested > current)
+    return `Season ${requested} has not happened; the current season is ${current} (game_clock).`;
+  if (requested === current)
+    return `Season ${current} is in progress; its final board is fetched after it rolls on ${dayOf(new Date(nextSeasonStartMs(nowMs)))}.`;
+  if (requested < FIRST_RANKED_SEASON)
+    return `Season ${requested} is before the ranked ladder began (S${FIRST_RANKED_SEASON}, October 2022), so no Path of Legends final exists for it. If this number came from a player's in-game Pass, that is a different numbering the API does not use; game_clock names the API's season.`;
+  return `Season ${requested}'s final board (${monthForSeasonId(requested)}) has not been recorded yet; it is on the schedule.`;
+}
+
+/** The note a full board carries (6.2.0): whose cut it is, and what the
+ *  last place's rating means once the field is pinned at depth. */
+function fullBoardNote(snapshot, floor) {
+  if (!isFull(snapshot)) return null;
+  const depth = depthOf(snapshot.board).toLocaleString("en-US");
+  const whose = snapshot.truncated
+    ? `the API offered more than the ${depth} the recorder keeps (truncated: true)`
+    : `the API serves ${depth} and offered nothing past them (truncated: false)`;
+  const value = floor === null || floor === undefined ? "" : ` (${floor})`;
+  return `This board holds ${depth} places and is full (${whose}): floor_rating${value} is the last place's rating, a cutoff that moves, not a qualification threshold - a player or clan can leave the board without losing rating, and rated_players compared across dates moves with the cutoff as well as with play.`;
+}
 
 /** The season argument as the record files it: the game clock's ordinal.
  *  A month (2026-08, the API's own name) resolves to the ordinal; a number
@@ -127,7 +203,7 @@ async function snapshotFor(ctx, args, row) {
       );
   }
   const { rows } = await ctx.db.query(
-    `select snapshot_id, season_month, observed_at, last_confirmed_at, entries, truncated
+    `select snapshot_id, board, season_month, observed_at, last_confirmed_at, entries, truncated
      from ranking_snapshot
      where board = $1 and location_key = $2
        and ($3::timestamptz is null or observed_at <= $3)
@@ -160,7 +236,7 @@ async function liveBoard(ctx, row) {
   });
 }
 
-function snapshotBlock(snapshot, row) {
+function snapshotBlock(snapshot, row, floor) {
   return {
     observed_at: snapshot.observed_at.toISOString(),
     // "Still this at" - an identical later fetch bumps this instead of
@@ -171,9 +247,24 @@ function snapshotBlock(snapshot, row) {
     season_id: String(seasonIdForMonth(snapshot.season_month)),
     season_month: snapshot.season_month,
     entries: snapshot.entries,
+    // The places the board holds and whether it holds them all (6.2.0):
+    // at depth the field is a slice and the last rating is a cutoff.
+    depth: depthOf(row.board),
+    full: isFull(snapshot),
+    ...(floor === undefined ? {} : { floor_rating: floor }),
     truncated: snapshot.truncated,
     cadence_minutes: row.every_minutes,
   };
+}
+
+/** The last place's rating on a player board: the floor while the board
+ *  is below depth, the cutoff once it is full. */
+async function floorOf(db, snapshot) {
+  const { rows } = await db.query(
+    `select min(rating) as floor from ranking_entry where snapshot_id = $1`,
+    [snapshot.snapshot_id],
+  );
+  return rows[0]?.floor ?? null;
 }
 
 export const rankingsTools = {
@@ -252,12 +343,25 @@ export const rankingsTools = {
       const limit = Math.min(500, Math.max(1, Number(args.limit ?? 100)));
       const offset = Math.max(0, Number(args.offset ?? 0));
       const compact = args.verbosity === "compact";
+      // A final's season is echoed whether or not it resolved (feedback
+      // #73): the ordinal the record filed it under, or null with the
+      // argument as given beside it, so a miss says which season missed.
+      const seasonRequested =
+        board === "pol_final" && args.season !== undefined
+          ? seasonIdForMonth(seasonArg(args.season))
+          : null;
       const applied = appliedBlock({
         board,
         location: row.location_key,
         season:
-          snapshot && board === "pol_final"
-            ? seasonIdForMonth(snapshot.season_month)
+          board === "pol_final"
+            ? snapshot
+              ? seasonIdForMonth(snapshot.season_month)
+              : null
+            : undefined,
+        season_requested:
+          board === "pol_final" && args.season !== undefined
+            ? args.season
             : undefined,
         as_of: asOf ? asOf.toISOString() : undefined,
         limit,
@@ -272,6 +376,8 @@ export const rankingsTools = {
         [ENDPOINT_OF[board]],
         { timezone: args.timezone },
       );
+      const horizon = await boardHorizon(ctx.db, row);
+      if (horizon) meta.recorded_since = horizon.toISOString();
       if (!snapshot) {
         return {
           board,
@@ -283,15 +389,13 @@ export const rankingsTools = {
           },
           applied,
           ...(live ? { live_status: liveStatus(live) } : {}),
-          ...(live ? { live_status: liveStatus(live) } : {}),
           snapshot: null,
           players: [],
           notes: notes(
             livePendingNote(live),
-            livePendingNote(live),
-            asOf
-              ? "No snapshot of this board exists on or before as_of; recording began 2026-09-11."
-              : "This board has not been recorded yet. It is on the schedule; live: true reads it from the game now.",
+            board === "pol_final"
+              ? polFinalMissNote(seasonRequested)
+              : noSnapshotNote(row, asOf, horizon),
             board === "trophy"
               ? "The Trophy Road board has been served empty by the API for recent seasons; Path of Legends (board: pol) is the competitive ranking."
               : FLOOR_NOTE,
@@ -300,6 +404,7 @@ export const rankingsTools = {
           meta,
         };
       }
+      const floor = await floorOf(ctx.db, snapshot);
       const { rows } = await ctx.db.query(
         `select rank, player_tag, name, rating, clan_tag, clan_name
          from ranking_entry where snapshot_id = $1
@@ -316,7 +421,7 @@ export const rankingsTools = {
         },
         applied,
         ...(live ? { live_status: liveStatus(live) } : {}),
-        snapshot: snapshotBlock(snapshot, row),
+        snapshot: snapshotBlock(snapshot, row, floor),
         players: rows.map((r) =>
           compact
             ? { rank: r.rank, player_tag: r.player_tag, rating: r.rating }
@@ -331,7 +436,10 @@ export const rankingsTools = {
         ),
         notes: notes(
           livePendingNote(live),
-          FLOOR_NOTE,
+          fullBoardNote(snapshot, floor),
+          board === "pol_final"
+            ? "A season final is the settled standing: the API serves its top 9,999 places and the record keeps them all."
+            : FLOOR_NOTE,
           snapshot.truncated
             ? "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing."
             : null,
@@ -348,7 +456,7 @@ export const rankingsTools = {
 
   rankings_clans: {
     description:
-      "Which clans have the most players on a recorded leaderboard - the global Path of Legends board by default: per clan the number of rated players, its best-placed player and their rank, over the WHOLE board (every player above the rating floor), not a top-100 slice, because at that depth sixty clans tie at one player and there is no ranking to find. Ties at the cutoff go to the clan whose best player is placed highest. as_of reads an earlier snapshot.",
+      "Which clans have the most players on a recorded leaderboard - the global Path of Legends board by default: per clan the number of rated players, its best-placed player and their rank, over the WHOLE recorded board (up to its 1,000 places; every rated player while fewer are rated), not a top-100 slice, because at that depth sixty clans tie at one player and there is no ranking to find. Ties at the cutoff go to the clan whose best player is placed highest. as_of reads an earlier snapshot.",
     inputSchema: {
       type: "object",
       properties: {
@@ -394,24 +502,31 @@ export const rankingsTools = {
         [ENDPOINT_OF[board]],
         { timezone: args.timezone },
       );
+      const horizon = await boardHorizon(ctx.db, row);
+      if (horizon) meta.recorded_since = horizon.toISOString();
       if (!snapshot) {
         return {
           board,
           location: { key: row.location_key, label: row.label },
           applied,
           ...(live ? { live_status: liveStatus(live) } : {}),
-          ...(live ? { live_status: liveStatus(live) } : {}),
           snapshot: null,
           clans: [],
           notes: notes(
             livePendingNote(live),
-            livePendingNote(live),
-            "This board has not been recorded yet. It is on the schedule; live: true reads it from the game now.",
+            board === "pol_final"
+              ? polFinalMissNote(
+                  args.season !== undefined
+                    ? seasonIdForMonth(seasonArg(args.season))
+                    : null,
+                )
+              : noSnapshotNote(row, asOf, horizon),
           ),
           docs: docsRef("recording", "leaderboards"),
           meta,
         };
       }
+      const floor = await floorOf(ctx.db, snapshot);
       const { rows } = await ctx.db.query(
         `select e.clan_tag, max(e.clan_name) as clan_name,
                 count(*)::int as rated_players,
@@ -440,7 +555,7 @@ export const rankingsTools = {
         },
         applied,
         ...(live ? { live_status: liveStatus(live) } : {}),
-        snapshot: snapshotBlock(snapshot, row),
+        snapshot: snapshotBlock(snapshot, row, floor),
         // The field the counts were taken over (3.16.0): the placed
         // players in this snapshot, so a rated_players of 12 reads as 12
         // of that many, not of the game.
@@ -458,9 +573,10 @@ export const rankingsTools = {
         })),
         notes: notes(
           livePendingNote(live),
-          `Counted over every placed player in the snapshot (field_size: ${snapshot.entries}); rated_players rises through a season as more of a clan's players cross the floor, so compare clans within one snapshot, not counts across dates.`,
+          `Counted over every placed player in the snapshot (field_size: ${snapshot.entries}${isFull(snapshot) ? `, the board's full ${depthOf(board).toLocaleString("en-US")}` : ""}); rated_players moves with the cutoff as well as with play - it can fall while every one of the clan's players improves - so compare clans within one snapshot, not counts across dates.`,
+          fullBoardNote(snapshot, floor),
           "Ties in rated_players are ordered by best_rank, the rank of the clan's best-placed player.",
-          FLOOR_NOTE,
+          board === "pol_final" ? null : FLOOR_NOTE,
         ),
         docs: docsRef("recording", "leaderboards"),
         meta,
@@ -536,19 +652,19 @@ export const rankingsTools = {
         kind: row.location_kind,
         country_code: row.country_code,
       };
+      const horizon = await boardHorizon(ctx.db, row);
+      if (horizon) meta.recorded_since = horizon.toISOString();
       if (!snapshot)
         return {
           board,
           location,
           applied,
           ...(live ? { live_status: liveStatus(live) } : {}),
-          ...(live ? { live_status: liveStatus(live) } : {}),
           snapshot: null,
           clans: [],
           notes: notes(
             livePendingNote(live),
-            livePendingNote(live),
-            "This ladder has not been recorded yet. It is on the schedule; live: true reads it from the game now.",
+            noSnapshotNote(row, asOf, horizon, "ladder"),
           ),
           docs: docsRef("recording", "leaderboards"),
           meta,
@@ -592,7 +708,7 @@ export const rankingsTools = {
 
   rankings_timeline: {
     description:
-      "How a leaderboard moved: for one player (player_tag) or one clan (clan_tag), their rank and rating at every snapshot of the global Path of Legends board across a window - one snapshot a day since the afternoon of 2026-09-11 (hourly before, for the global board), and only when the board moved; or, with neither, the board's own curve: the rating floor (last place), the summit (#1 and their rating) and the size of the rated field per snapshot. Windows are from/to; omitted means the current season so far. A snapshot exists only when the board changed; a flat stretch is confirmed, not repeated.",
+      "How a leaderboard moved: for one player (player_tag) or one clan (clan_tag), their rank and rating at every snapshot of the global Path of Legends board across a window (one a day since 2026-09-11, only when the board moved); or, with neither, the board's own curve: the last place's rating (the floor while the board is below its 1,000 places, the cutoff once full), the summit (#1) and the size of the field per snapshot. Windows are from/to; omitted means the current season so far. A flat stretch is confirmed, not repeated; a window before the first snapshot says so (applied.window.covers).",
     inputSchema: {
       type: "object",
       properties: {
@@ -669,6 +785,24 @@ export const rankingsTools = {
       const seasonFields = await seasonFieldsForInstants(ctx.db, from, to, {
         flavor: "series",
       });
+      // The recording horizon against the window (feedback #72): a
+      // window that starts before the board's first snapshot is clipped
+      // to it, and the clip is said in the echo (covers) and in a note,
+      // the way the week buckets say partial - so an empty series before
+      // the horizon never reads as a board that did not change.
+      const horizon = await boardHorizon(ctx.db, row);
+      // A window that ends before the first snapshot is unrecorded
+      // outright; one that starts a day or more before it is clipped. A
+      // start inside the horizon's first day is the first day's snapshot.
+      const beforeHorizon =
+        horizon !== null &&
+        (to <= horizon || horizon.getTime() - from.getTime() >= 86_400_000);
+      // covers is the recorded part of the window; null when none of it is.
+      const covers = !beforeHorizon
+        ? undefined
+        : to <= horizon
+          ? null
+          : { from: horizon.toISOString(), to: to.toISOString() };
       const applied = appliedBlock({
         board,
         location: row.location_key,
@@ -681,6 +815,7 @@ export const rankingsTools = {
             args.from !== undefined || args.to !== undefined
               ? "argument"
               : "default",
+          ...(beforeHorizon ? { partial: true, covers } : {}),
           ...seasonFields.echo,
         },
         limit,
@@ -692,6 +827,15 @@ export const rankingsTools = {
         [ENDPOINT_OF[board]],
         { timezone: args.timezone },
       );
+      if (horizon) meta.recorded_since = horizon.toISOString();
+      const horizonNote =
+        horizon === null
+          ? "This board has never been recorded, so the series is empty: nothing is known about it, not that it did not change."
+          : beforeHorizon
+            ? to <= horizon
+              ? `No snapshots exist before ${dayOf(horizon)} (recording of this board began then) and this window ends ${dayOf(to)}, so the series is empty: the board is unrecorded for the window, not unchanged.`
+              : `No snapshots exist before ${dayOf(horizon)} (recording of this board began then); this window starts ${dayOf(from)}, so the series covers ${dayOf(horizon)} onward (applied.window.covers), not the window you asked for.`
+            : null;
       let points;
       if (subject === "player") {
         const { rows } = await ctx.db.query(
@@ -713,14 +857,15 @@ export const rankingsTools = {
         }));
       } else if (subject === "clan") {
         const { rows } = await ctx.db.query(
-          `select s.observed_at, s.last_confirmed_at,
+          `select s.observed_at, s.last_confirmed_at, s.entries,
                   count(e.player_tag)::int as rated_players,
                   min(e.rank) as best_rank,
-                  (array_agg(e.player_tag order by e.rank))[1] as best_player_tag
+                  (array_agg(e.player_tag order by e.rank))[1] as best_player_tag,
+                  (select min(rating) from ranking_entry f where f.snapshot_id = s.snapshot_id) as floor_rating
            from ranking_snapshot s
            left join ranking_entry e on e.snapshot_id = s.snapshot_id and e.clan_tag = $3
            where s.board = $1 and s.location_key = $2 and s.observed_at between $4 and $5
-           group by s.snapshot_id, s.observed_at, s.last_confirmed_at
+           group by s.snapshot_id, s.observed_at, s.last_confirmed_at, s.entries
            order by s.observed_at desc limit $6`,
           [board, row.location_key, tagArg, from, to, limit],
         );
@@ -731,6 +876,10 @@ export const rankingsTools = {
           rated_players: r.rated_players,
           best_rank: r.best_rank,
           best_player_tag: r.best_player_tag,
+          // The board's state beside the clan's count (6.2.0): once the
+          // board is full, rated_players moves with this cutoff too.
+          board_full: r.entries >= depthOf(board),
+          board_floor_rating: r.floor_rating,
         }));
       } else {
         const { rows } = await ctx.db.query(
@@ -744,34 +893,53 @@ export const rankingsTools = {
            order by s.observed_at desc limit $5`,
           [board, row.location_key, from, to, limit],
         );
-        points = rows.reverse().map((r) => ({
-          observed_at: r.observed_at.toISOString(),
-          day: gameDay(r.observed_at),
-          unchanged_until: r.last_confirmed_at.toISOString(),
-          rated_players: r.entries,
-          floor_rating: r.floor_rating,
-          first: {
-            player_tag: r.first_tag,
-            name: r.first_name,
-            rating: r.first_rating,
-          },
-          truncated: r.truncated,
-        }));
+        let previousFloor = null;
+        points = rows.reverse().map((r) => {
+          const point = {
+            observed_at: r.observed_at.toISOString(),
+            day: gameDay(r.observed_at),
+            unchanged_until: r.last_confirmed_at.toISOString(),
+            rated_players: r.entries,
+            depth: depthOf(board),
+            full: r.entries >= depthOf(board),
+            floor_rating: r.floor_rating,
+            // The cutoff's move since the previous point (6.2.0): on a
+            // full board this is how far the tail was cut, without a
+            // second call.
+            floor_delta:
+              previousFloor === null || r.floor_rating === null
+                ? null
+                : r.floor_rating - previousFloor,
+            first: {
+              player_tag: r.first_tag,
+              name: r.first_name,
+              rating: r.first_rating,
+            },
+            truncated: r.truncated,
+          };
+          previousFloor = r.floor_rating;
+          return point;
+        });
       }
+      const fullPoints = points.filter((p) => p.full ?? p.board_full).length;
       return {
         board,
         location: { key: row.location_key, label: row.label },
         applied,
         points,
         notes: notes(
+          horizonNote,
           subject === "player" ? null : zeroSeriesNote(points, "rated_players"),
           seasonFields.seasonNotes,
           "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
           subject === "player"
-            ? "on_board false means the player was below the rating floor at that snapshot; rank and rating are then null, not zero. Per-battle rank and rating for a recorded player are on their battles (globalRank, startingTrophies, trophyChange)."
+            ? "on_board false means the player was not on the board at that snapshot - below the rating floor, or below the cutoff once the board is full; rank and rating are then null, not zero. Per-battle rank and rating for a recorded player are on their battles (globalRank, startingTrophies, trophyChange)."
             : subject === "clan"
-              ? "rated_players counts the clan's players above the floor at each snapshot; it rises through a season as more cross it."
-              : "floor_rating is the last place's rating - the tide of the season; rated_players is the size of the field above it.",
+              ? "rated_players counts the clan's players on the board at each snapshot; it moves with the cutoff (board_floor_rating, once board_full) as well as with play, and can fall while every one of the clan's players improves."
+              : `floor_rating is the last place's rating: the rating floor while rated_players is below depth, and once the board is full (full: true) the cutoff for the last of its ${depthOf(board).toLocaleString("en-US")} places, which rises as the field plays (floor_delta is its move since the previous point) while rated_players stays pinned at depth.`,
+          fullPoints > 0 && subject !== "player"
+            ? `${fullPoints} of ${points.length} points are at the board's full ${depthOf(board).toLocaleString("en-US")} places: a player or clan can leave the board without losing rating there, so compare rated_players across dates only against the cutoff.`
+            : null,
           FLOOR_NOTE,
         ),
         docs: docsRef("recording", "leaderboards"),

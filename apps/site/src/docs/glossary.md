@@ -310,7 +310,10 @@ the floor costs nothing (`trophy_change` null), so `net_trophies` counts
 wins in full and those losses at zero. `trophy_floor` names the floor, the
 arena and the losses it absorbed; `floored: true` is the tell. The rating
 floor on a Path of Legends board (`floor_rating`) is a different floor: the
-last placed player's rating.
+last placed player's rating — a rating floor while the board holds fewer
+than its 1,000 places (`snapshot.full: false`), and once it is full the
+1,000th place's rating, a cutoff that rises with play rather than a
+threshold anyone qualifies against.
 
 **manifest** — the recorder's declaration of what every key of every API
 payload becomes: the table and column it lands in, a derived value, or a

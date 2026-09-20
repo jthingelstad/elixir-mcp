@@ -558,3 +558,312 @@ test("rankings_timeline: every point carries its game day, and the window says i
   const board = await invoke("rankings_timeline", { location: "US" });
   assert.ok(board.body.points.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.day)));
 });
+
+// --- 6.2.0: the Elixir Gym's rankings run (feedback #71-#74, #76) ---------
+
+test("rankings_timeline: a window before the horizon says so, and a clipped one carries covers (6.2.0, #72)", async () => {
+  // The US board's first snapshot is T1 (2026-09-11T10:00Z). All of the
+  // month before it: empty, and the note says unrecorded, not unchanged.
+  const { body, isError } = await invoke("rankings_timeline", {
+    location: "US",
+    from: "2026-08-03",
+    to: "2026-09-07",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.deepEqual(body.points, []);
+  assert.match(body.notes[0], /No snapshots exist before 2026-09-11/);
+  assert.match(body.notes[0], /unrecorded for the window, not unchanged/);
+  assert.equal(body.applied.window.partial, true);
+  assert.equal(body.applied.window.covers, null);
+  assert.equal(body.meta.recorded_since, new Date(T1).toISOString());
+
+  // A straddling window: the series covers the horizon onward, and
+  // covers says from where.
+  const { body: clipped } = await invoke("rankings_timeline", {
+    location: "US",
+    from: "2026-09-06",
+    to: "2026-09-11",
+  });
+  assert.equal(clipped.points.length, 2);
+  assert.match(clipped.notes[0], /this window starts 2026-09-06/);
+  assert.match(clipped.notes[0], /covers 2026-09-11 onward/);
+  assert.equal(clipped.applied.window.partial, true);
+  assert.equal(clipped.applied.window.covers.from, new Date(T1).toISOString());
+  assert.equal(clipped.applied.window.covers.to, clipped.applied.window.to);
+
+  // Inside the record: the guard stays quiet, as the 3.13.0 guards do.
+  const { body: inside } = await invoke("rankings_timeline", {
+    location: "US",
+    from: "2026-09-11",
+    to: "2026-09-11",
+  });
+  assert.ok(!inside.notes.some((n) => /No snapshots exist/.test(n)));
+  assert.ok(!("partial" in inside.applied.window));
+  assert.equal(inside.meta.recorded_since, new Date(T1).toISOString());
+
+  // The sibling: rankings_players and rankings_clans name the horizon
+  // from the table on an as_of before it; a never-recorded board still
+  // offers the live read.
+  const { body: asOf } = await invoke("rankings_players", {
+    location: "US",
+    as_of: "2026-08-15",
+  });
+  assert.equal(asOf.snapshot, null);
+  assert.ok(
+    asOf.notes.some((n) =>
+      /on or before as_of; recording began 2026-09-11/.test(n),
+    ),
+  );
+  const { body: clansAsOf } = await invoke("rankings_clans", {
+    location: "US",
+    as_of: "2026-08-15",
+  });
+  assert.ok(
+    clansAsOf.notes.some((n) =>
+      /on or before as_of; recording began 2026-09-11/.test(n),
+    ),
+  );
+  const { body: never } = await invoke("rankings_clans", { location: "JP" });
+  assert.ok(never.notes.some((n) => /live: true reads it/.test(n)));
+  assert.ok(!("recorded_since" in never.meta));
+});
+
+test("pol_final: three seasons, three different notes; live is never offered; season is always echoed (6.2.0, #73)", async () => {
+  const current = 136; // the fixture's clock is the real one: S136 runs through 2026-10-05
+  const read = async (season) =>
+    (await invoke("rankings_players", { board: "pol_final", season })).body;
+  const future = await read(999);
+  const pass = await read(87);
+  const running = await read(current);
+  const settledMissing = await read(120);
+  for (const b of [future, pass, running, settledMissing]) {
+    assert.equal(b.snapshot, null);
+    assert.deepEqual(b.players, []);
+    assert.equal(b.applied.season, null, "resolved: nothing");
+    assert.ok(
+      !b.notes.some((n) => /live: true/.test(n)),
+      JSON.stringify(b.notes),
+    );
+  }
+  assert.equal(future.applied.season_requested, 999);
+  assert.match(
+    future.notes[0],
+    /Season 999 has not happened; the current season is \d+/,
+  );
+  assert.equal(pass.applied.season_requested, 87);
+  assert.match(
+    pass.notes[0],
+    /Season 87 is before the ranked ladder began \(S89, October 2022\)/,
+  );
+  assert.match(pass.notes[0], /in-game Pass/);
+  assert.match(
+    running.notes[0],
+    /is in progress; its final board is fetched after it rolls on \d{4}-\d{2}-\d{2}/,
+  );
+  assert.match(
+    settledMissing.notes[0],
+    /Season 120's final board \(2025-05\) has not been recorded yet; it is on the schedule/,
+  );
+  assert.equal(
+    new Set([
+      future.notes[0],
+      pass.notes[0],
+      running.notes[0],
+      settledMissing.notes[0],
+    ]).size,
+    4,
+  );
+
+  // The hit path is untouched: season resolves, and the request is echoed beside it.
+  const hit = await read("2026-08");
+  assert.equal(hit.applied.season, 135);
+  assert.equal(hit.applied.season_requested, "2026-08");
+  assert.equal(hit.snapshot.depth, 9999);
+  assert.equal(hit.snapshot.full, false);
+  assert.ok(hit.notes.some((n) => /top 9,999 places/.test(n)));
+  assert.ok(
+    !hit.notes.some((n) => /rating floor/.test(n)),
+    "no floor talk on a final",
+  );
+});
+
+test("a full board is labelled a cutoff, not a floor; a small one is the whole field (6.2.0, #71/#76)", async () => {
+  // A country board at the API's 1,000 places, the tail a six-way tie,
+  // then a day later the same 1,000 places with the cutoff up 53 and one
+  // player who did not move falling 248 places (the #8LPQRV8R8 case).
+  const JP = "57000122"; // the seeded Japan board
+  // A tag per place over the CR tag alphabet (the normalizer refuses others).
+  const ALPHABET = "0289PYLQGRJCUV";
+  const tagFor = (n) =>
+    "#2" +
+    [n % 14, Math.floor(n / 14) % 14, Math.floor(n / 196) % 14]
+      .map((d) => ALPHABET[d])
+      .join("");
+  const full = (shift) => ({
+    items: Array.from({ length: 1000 }, (_, i) => {
+      const rank = i + 1;
+      // 2058 at the tail on day one; ratings fall 3 a place from the top.
+      const rating =
+        rank >= 995 ? 2058 + shift : 2058 + shift + (1000 - rank) * 3;
+      return player(rank, tagFor(rank), `p${rank}`, rating, ["#2PPP2", "Full"]);
+    }),
+    paging: {},
+  });
+  const day1 = full(0);
+  // Day two: the same players, everyone above the tail up 53; the tail
+  // tie is cut at 1000 again, and one player keeps 2112 exactly.
+  const day2 = {
+    items: day1.items.map((p) => ({ ...p, eloRating: p.eloRating + 53 })),
+    paging: {},
+  };
+  // (Clanless, so the clan's count reads 999 of a 1,000-place board.)
+  day2.items[993] = {
+    rank: 994,
+    tag: "#8LPQRV8R8",
+    name: "flat",
+    eloRating: 2112,
+  };
+  await projectRankingBoard(db, {
+    board: "pol",
+    entityKey: JP,
+    receiptId: null,
+    payload: day1,
+    fetchedAt: "2026-09-18T10:07:00Z",
+  });
+  await projectRankingBoard(db, {
+    board: "pol",
+    entityKey: JP,
+    receiptId: null,
+    payload: day2,
+    fetchedAt: "2026-09-19T10:05:00Z",
+  });
+
+  const { body, isError } = await invoke("rankings_players", {
+    location: "JP",
+    offset: 990,
+    limit: 20,
+    verbosity: "compact",
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  assert.equal(body.snapshot.entries, 1000);
+  assert.equal(body.snapshot.depth, 1000);
+  assert.equal(body.snapshot.full, true);
+  assert.equal(body.snapshot.truncated, false, "the API offered no cursor");
+  assert.equal(body.snapshot.floor_rating, 2111);
+  assert.equal(body.players.at(-1).rank, 1000);
+  assert.deepEqual(
+    body.players.slice(-6).map((p) => p.rating),
+    [2111, 2111, 2111, 2111, 2111, 2111],
+  );
+  const cutoff = body.notes.find((n) =>
+    /holds 1,000 places and is full/.test(n),
+  );
+  assert.ok(cutoff, JSON.stringify(body.notes));
+  assert.match(
+    cutoff,
+    /the API serves 1,000 and offered nothing past them \(truncated: false\)/,
+  );
+  assert.match(
+    cutoff,
+    /floor_rating \(2111\) is the last place's rating, a cutoff that moves, not a qualification threshold/,
+  );
+  assert.match(cutoff, /can leave the board without losing rating/);
+  // The standing note no longer describes only the pre-cap regime.
+  const floor = body.notes.find((n) => n.startsWith("Path of Legends lists"));
+  assert.match(floor, /at most 1,000 places/);
+  assert.match(floor, /once it holds 1,000 it is full/);
+  assert.ok(!body.notes.some((n) => /fills through the month/.test(n)));
+
+  // The unmoved player: rank 746 -> 994 on an unchanged 2112.
+  const { body: line } = await invoke("rankings_timeline", {
+    player_tag: "#8LPQRV8R8",
+    location: "JP",
+    from: "2026-09-18",
+    to: "2026-09-19",
+  });
+  assert.deepEqual(
+    line.points.map((p) => [p.rank, p.rating, p.on_board]),
+    [
+      [null, null, false],
+      [994, 2112, true],
+    ],
+  );
+
+  // The board curve: pinned at 1,000, the cutoff up 53, and the notes
+  // say cutoff, depth and delta.
+  const { body: curve } = await invoke("rankings_timeline", {
+    location: "JP",
+    from: "2026-09-18",
+    to: "2026-09-19",
+  });
+  assert.deepEqual(
+    curve.points.map((p) => [
+      p.rated_players,
+      p.floor_rating,
+      p.floor_delta,
+      p.full,
+      p.depth,
+    ]),
+    [
+      [1000, 2058, null, true, 1000],
+      [1000, 2111, 53, true, 1000],
+    ],
+  );
+  assert.ok(
+    curve.notes.some((n) =>
+      /2 of 2 points are at the board's full 1,000 places/.test(n),
+    ),
+  );
+  assert.ok(
+    curve.notes.some((n) =>
+      /the cutoff for the last of its 1,000 places/.test(n),
+    ),
+  );
+  assert.ok(!curve.notes.some((n) => /the tide of the season/.test(n)));
+
+  // A clan's count carries the board's state beside it, and the note no
+  // longer claims a monotone rise.
+  const { body: clan } = await invoke("rankings_timeline", {
+    clan_tag: "#2PPP2",
+    location: "JP",
+    from: "2026-09-18",
+    to: "2026-09-19",
+  });
+  assert.deepEqual(
+    clan.points.map((p) => [
+      p.rated_players,
+      p.board_full,
+      p.board_floor_rating,
+    ]),
+    [
+      [1000, true, 2058],
+      [999, true, 2111],
+    ],
+  );
+  assert.ok(
+    clan.notes.some((n) =>
+      /can fall while every one of the clan's players improves/.test(n),
+    ),
+  );
+  assert.ok(!clan.notes.some((n) => /rises through a season/.test(n)));
+  const { body: clans } = await invoke("rankings_clans", {
+    location: "JP",
+    limit: 1,
+  });
+  assert.equal(clans.snapshot.full, true);
+  assert.equal(clans.snapshot.floor_rating, 2111);
+  assert.ok(
+    clans.notes.some((n) => /field_size: 1000, the board's full 1,000/.test(n)),
+  );
+  assert.ok(!clans.notes.some((n) => /rises through a season/.test(n)));
+
+  // The control: Iceland's whole board is two players, and stays that way.
+  const { body: small } = await invoke("rankings_players", {
+    location: "US",
+    limit: 2,
+  });
+  assert.equal(small.snapshot.entries, 8);
+  assert.equal(small.snapshot.full, false);
+  assert.equal(small.snapshot.floor_rating, 1850);
+  assert.ok(!small.notes.some((n) => /places and is full/.test(n)));
+});

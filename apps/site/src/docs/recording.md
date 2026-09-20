@@ -151,22 +151,54 @@ rather than duplicating it, so the record also says how long a board held.
 `rankings_players` reads a board — the latest, or as it was at any earlier
 instant with `as_of` — paged, because a whole board can run to a thousand
 places. `rankings_clans` aggregates it: which clans have the most rated
-players, ties broken by the clan's best-placed player. Both count over
-**everyone above the rating floor**, not a top-100 slice; a Path of Legends
-board lists only players above that floor, and a season resets everyone below
-it, so a board is small in a season's first days and fills through the month.
-`live: true` on either asks for a read of the board no older than a minute:
-served if in hand, otherwise queued while the latest snapshot answers with
-`live_status.state: "pending"`.
+players, ties broken by the clan's best-placed player. Both count over the
+**whole recorded board**, not a top-100 slice — and the whole board is the
+API's top 1,000. A live Path of Legends board has two regimes, and the
+payload says which one a snapshot is in. Below 1,000 rated players it is
+**everyone above the rating floor**: a season resets everyone below the
+floor, so a board is small in a season's first days and grows as players
+cross it (Iceland's whole board is two players). At 1,000 it is **full**
+(`snapshot.full: true`, `snapshot.depth: 1000`): the API serves exactly 1,000
+places and offers nothing past them, so from then on the field is pinned at
+1,000 and `floor_rating` — the last place's rating, on the snapshot and on
+every point of `rankings_timeline`'s board curve — is a **cutoff that moves
+with play, not a qualification threshold**. A player or clan can leave the
+board without losing rating: on 2026-09-19 the global cutoff rose 2058 → 2111
+and a quarter of the previous day's board was below it before anyone played.
+So a clan's `rated_players` compared across dates moves with the cutoff as
+well as with play, and can fall while every one of the clan's players
+improves; compare it against `floor_rating` on the same dates (a clan's
+timeline carries `board_full` and `board_floor_rating` beside the count, and
+the board curve carries `floor_delta`). `truncated` means something else:
+the API offered a cursor past the places the recorder keeps, which it never
+does on a Path of Legends board — `truncated: false` on a full board means
+the cut is the game's, not the record's. `live: true` on either tool asks for
+a read of the board no older than a minute: served if in hand, otherwise
+queued while the latest snapshot answers with `live_status.state: "pending"`.
+
+The record begins 2026-09-11 for every player board (`meta.recorded_since`
+on every rankings read). A `rankings_timeline` window that starts a day or
+more before it says so — `applied.window.partial: true`, `covers` naming the
+recorded span (null when none of the window is), and a note — so an empty
+series before the horizon reads as unrecorded, never as a board that did
+not change; `as_of` before it on `rankings_players` or `rankings_clans`
+answers the same way.
 
 **Everything else the API forgets about a season** is recorded beside it.
-A season's **final** Path of Legends board — the settled standing at full
-depth, 9,999 places — is fetched once the day after it rolls and was
-backfilled for every season since October 2022, the ranked ladder's first;
-read it with `board: pol_final` and a `season`, either the number
-`game_clock` counts (135 for August 2026) or the API's own name for the
-season, the month it started in (`2026-08`). The Pass's in-game "Season 87"
-is a third numbering the API does not use anywhere. The **clan ladders** (`clans` by clan
+A season's **final** Path of Legends board — the settled standing, the
+API's 9,999 places (`depth: 9999`; the tail is cut at #9999 mid-tie, so
+more players finished at the last rating than the board shows) — is fetched
+in the tick after it rolls and was backfilled for every season since
+October 2022, the ranked ladder's first (S89 as `game_clock` counts); read
+it with `board: pol_final` and a `season`, either the number `game_clock`
+counts (135 for August 2026) or the API's own name for the season, the
+month it started in (`2026-08`). The Pass's in-game "Season 87" is a third
+numbering the API does not use anywhere, and a `pol_final` read of a season
+before S89 says so, as a read of the season in progress says when its final
+will be fetched and a season that has not happened names the current one;
+`applied.season` is the ordinal the record resolved (null on a miss) with
+`season_requested` beside it. A final never changes, so `live: true` is
+refused there. The **clan ladders** (`clans` by clan
 score, `clanwars` by clan war trophies, 1,000 places by location) are
 recorded daily for global, the United States and Japan — `rankings_clan_ladder`.
 The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the
@@ -181,8 +213,8 @@ in the API's battle log; missing recorded battles do not prove absence.
 recorded daily as sightings, so `game_events` is the season's calendar built
 from the days each event was seen. `rankings_timeline` reads any of the player
 boards across a window: a player's rank and rating at every snapshot, a
-clan's rated players and best rank, or the board's own floor, summit and
-field size — the season story at daily resolution.
+clan's rated players and best rank, or the board's own last-place rating,
+summit and field size — the season story at daily resolution.
 
 **A top-200 appearance on the global board is a recording reason.** Any
 player who reaches it is recorded at comprehensive scope — every battle,
