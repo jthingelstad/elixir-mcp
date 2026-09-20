@@ -489,3 +489,121 @@ using archetypes"; GamingOnPhone, GameRant and GladiatorBoost archetype
 guides; aasifnid/clash-royale-deck-builder; the deck clustering
 analysis (Martell Flores). elixir-bot: `capabilities/decks.py`,
 `capabilities/deck_intel.py`, `db/schema.py` v28.*
+
+---
+
+## 12. Addendum — Jamie's decisions and three amendments (2026-09-20, later)
+
+**Decided.** (1) The cycle bound comes from the corpus trough, with the
+histogram published. (2) "bridge spam" for Royal Hogs. (3) Attest only
+what public titles attest today; the rest of the newer cards land
+honestly in tier 10 — and the maintenance path is §12.3, not a deploy.
+(4) The resolver tool is deferred to its own phase (it is exactly
+"take a deck by name and resolve what that could be"). (5)
+`/docs/archetypes`. No special casing for named decks, confirmed; the
+alias table stays an input-side convenience and becomes admin-editable
+(§12.3). This is the last large capability elixir-bot holds that the
+family needs in the right place.
+
+### 12.1 Forms in the label
+
+The community says "Evo Hogs", "Evo Knight bait", "Evo Archers PEKKA
+bridge spam", so the label carries the **win condition's** form:
+`"Evo Royal Hogs bridge spam"`, `"Hero Musketeer control"`
+— the `Evo` / `Hero` prefix on the card it belongs to, catalog names
+otherwise. Other cards' forms do not enter the label. So the label is
+form-aware exactly where players are, and `win_conditions[]` carries
+`form` beside `id` and `name`. Two identities that differ only in a
+support card's form still share a label; the note stays.
+
+### 12.2 Upgrades know the archetype
+
+When Elixir suggests card upgrades in deck compositions (`fit` on
+`battles_meta_decks`, 6.4.0), the archetype is part of the advice: it is
+usually easier to change the win condition and stay in the family a
+player already plays than to change family. So, once the label exists:
+
+- `fit` gains `plays_family: true|false` and `plays_archetype:
+  true|false` — whether the player's own fielded decks in the window
+  (their `battles_decks`) include this row's family / this row's exact
+  label. Computed from the player's decks' archetypes, no new query
+  shape.
+- `unfieldable[]` and the upgrade path stay as they are, but a note
+  ranks the reading: *"Rows in a family you already play cost the least
+  to adopt; a row sharing your family with a different win condition is
+  the usual next step; a row in a new family is a new deck to learn as
+  well as levels to buy."*
+- `battles_meta_decks { fit_for, same_family: true }` (phase 2, with the
+  stamp) narrows to the families the player already fields.
+
+Nothing here scores; it says what the player already does, beside what
+the row would need.
+
+### 12.3 The admin card catalog (a good idea, with a boundary)
+
+**The request.** An admin page listing the card catalog, opening any
+card to edit meta about it — coarse-grained, a checkbox that a card is
+a win condition — with the aliases of §5 editable there too; not a
+balance-change tracker, though a step in that direction.
+
+**Assessment: yes.** It fixes the one weakness of §3.2 as designed —
+that attesting Rune Giant or Goblin Machine as a win condition would be
+a code change, a contract minor and a deploy, for what is one line of
+community fact. It also puts the vocabulary where the owner can see all
+of it at once, which no code file does. The cost is a real one and worth
+stating: the classifier's *facts* move from a code table into a
+database table, so the family's shared `contracts` package stops being
+the one place the vocabulary lives. That is the right trade, because
+the family already gets the vocabulary through MCP responses, not by
+importing the table — Drop and Clan never classify a deck themselves.
+
+**The split that makes it safe: grammar in code, vocabulary in data.**
+The *rules* — the priority tiers, the bait-package test, the
+bridge-partner test, the cycle/beatdown bounds, the composition of a
+label, what `unclassified` means — stay in `packages/contracts`, tested
+and versioned as code. The *facts about cards* — which cards are win
+conditions and at which tier, which family a win condition implies,
+which cards are bait units, which are bridge partners — become rows of
+a `card_role` table seeded from §3.2 (with its source lines) by a
+migration, read by the classifier at run time, and edited in Admin.
+`rules_version` becomes two-part: the code's `grammar_version`
+("2026-09") and the data's `roles_version` (the latest `updated_at` of
+the table, as a date-time), both on every archetype object; a change to
+either re-stamps the phase-2 column nightly.
+
+**What the page holds** (Admin ▸ Cards, beside Collections — the same
+"an admin-managed catalog" shape):
+
+- **The list:** every catalog card — id, name, type (troop / building /
+  spell / tower troop, from the id range), rarity, elixir cost, forms
+  available, and the role columns: win condition (tier), implied family,
+  bait unit, bridge partner; a "role changed" stamp and by whom; a
+  filter for *unattested* (no role, appears as the most expensive card
+  in ≥ N tier-10 decks this season — the corpus telling the admin which
+  cards want a decision, which is the whole point of (3)).
+- **The card:** the catalog facts read-only (the API owns them), then
+  the editable roles: `win_condition` (off, or a tier 1–9.5 from §3.2),
+  `implied_family` (one of the six; with the cycle-cost switch as a
+  second choice where §3.2 has one, e.g. Hog Rider → control, cycle at
+  cycle cost), `bait_unit`, `bridge_partner`, and a **required** `source`
+  line on every change (a URL or "corpus 2026-09: …"), the thing that
+  keeps the vocabulary generic and auditable. Every save writes an
+  `account_event` (`card_role_changed`, before → after) and bumps
+  `roles_version`.
+- **Aliases:** a second tab, one row per alias — the text, the cards
+  (by catalog id) and family it resolves to, its source; add, edit,
+  retire. Read by the resolver of §5; never by the labeller.
+- **What is not there, on purpose:** named decks (no table, no tab — a
+  future section if ever pursued, and it would live here); balance
+  history (a card's cost and stats stay the API's and the catalog's
+  `as_of` says when they last changed); anything that scores a card;
+  editing the grammar (thresholds are code, read from the corpus
+  histogram, not typed in).
+
+**How it changes the phases.** Phase 1 grows by the migration (`card_role`
+seeded from §3.2, `deck_alias` seeded from §5) and the classifier
+reading them instead of a literal table; the admin page can land in
+phase 1 or 2 without changing the contract, since it edits data the
+tools already read. The verification of §8 is unchanged except that the
+fixture pins the *seed*, and an admin edit is expected to change labels
+— that is what it is for.
