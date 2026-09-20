@@ -173,8 +173,9 @@ export async function archetypeCensus(databaseUrl, spec = {}) {
   try {
     const { rows: roles } = await db.query(`select * from card_role`);
     const roleList = roles.map(rowToRole);
+    // The season in progress (the table is seeded ahead of the clock).
     const { rows: seasonRow } = await db.query(
-      `select season_month from season order by season_month desc limit 1`,
+      `select season_month from season where starts_at <= now() order by season_month desc limit 1`,
     );
     const seasonMonth = spec.season ?? seasonRow[0]?.season_month ?? null;
     // Every deck's cards with cost, plus this season's battles and
@@ -221,8 +222,10 @@ export async function archetypeCensus(databaseUrl, spec = {}) {
       // The histogram per win condition PRESENT in the deck (not only the
       // anchoring one): where the average elixir sits when the card is
       // in the deck is the question the cycle bound asks.
+      // Bins are the average itself: with eight cards it steps by an
+      // eighth, so a tenth-wide bin is empty three times in every unit.
       if (a.average_elixir !== null) {
-        const bin = (Math.floor(a.average_elixir * 10) / 10).toFixed(1);
+        const bin = a.average_elixir.toFixed(3);
         for (const c of cards) {
           const role = byId.get(c.id);
           if (!role || (role.tier === undefined && !role.bait_tiers)) continue;
@@ -236,8 +239,15 @@ export async function archetypeCensus(databaseUrl, spec = {}) {
       // A fallback deck's defining card: its most expensive card with no
       // role. Counted so the unattested queue is ranked by evidence.
       if (a.win_conditions.length === 0) {
+        // Troops and buildings only: a spell is never a win condition
+        // (Lightning led the first census's queue).
         const candidates = cards
-          .filter((c) => !byId.has(c.id) && typeof c.elixir_cost === "number")
+          .filter(
+            (c) =>
+              !byId.has(c.id) &&
+              typeof c.elixir_cost === "number" &&
+              c.id < 28000000,
+          )
           .sort((x, y) => y.elixir_cost - x.elixir_cost || x.id - y.id);
         const top = candidates[0];
         if (top) {

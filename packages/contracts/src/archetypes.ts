@@ -40,9 +40,13 @@ export type Family = (typeof FAMILIES)[number];
  *  vocabulary's version (the roles file's commit) rides beside it. */
 export const GRAMMAR_VERSION = "2026-09";
 
-/** The bounds, the community's numbers: "cycle" is quoted as under 3.5
- *  average elixir; heavy decks run 4.0 and up. CYCLE_MAX is provisional
- *  until the corpus histogram (design §3.3) pins it. */
+/** The bounds. "Cycle" is quoted as under 3.5 average elixir, and the
+ *  corpus agrees (archetype_census, 2026-09-20, season 2026-09, 570k
+ *  battles): with eight cards the average steps by an eighth, and for
+ *  Hog Rider, Royal Hogs and Miner the trough between the cycle plateau
+ *  and the heavier decks sits at exactly 3.5 - 3.375 is cycle, 3.5 is
+ *  not. So CYCLE_MAX admits 3.375 and refuses 3.5. Heavy decks run 4.0
+ *  and up (the fallback's lower edge). */
 export const CYCLE_MAX = 3.4;
 export const BEATDOWN_MIN = 4.0;
 

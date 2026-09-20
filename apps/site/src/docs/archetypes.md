@@ -108,14 +108,38 @@ which is how the sites read it too.
 ### The cycle bound
 
 Guides say "under 3.5"; the named cycle decks run 2.6–3.1. Elixir pins the
-bound where the corpus says the two populations part. The measurement —
-the distribution of average elixir over every recorded deck containing
-Hog Rider, and over every deck containing Royal Hogs, Miner, Balloon and
-Royal Giant — is run over the whole record with the `archetype_census`
-operator read and its result is recorded in the engineering ledger; the
-bound in force is `CYCLE_MAX` in the contract, and this page says the
-number the day it moves. As of the first census the bound is **3.4**
-(provisional, the guides' number, pending the histogram).
+bound where the record says the two populations part, and the record
+agrees with the guides read literally. An eight-card average steps by an
+eighth, so the question is whether 3.375 belongs with cycle or above it.
+Over every deck recorded in season 2026-09 (204,957 identities, 570,488
+battles), the battles per average for the three canonical chip win
+conditions:
+
+| average | Hog Rider | Royal Hogs | Miner |
+| --- | --- | --- | --- |
+| 2.625 | 12,231 | 63 | 225 |
+| 2.75 | 8,993 | 184 | 792 |
+| 2.875 | 2,057 | 6,058 | 5,437 |
+| 3.0 | 1,951 | 1,149 | 2,073 |
+| 3.125 | 2,039 | 2,246 | 1,828 |
+| 3.25 | 2,157 | 878 | 2,719 |
+| 3.375 | 3,628 | 1,909 | 1,849 |
+| **3.5** | **1,853** | **612** | **1,040** |
+| 3.625 | 2,776 | 909 | 1,325 |
+| 3.75 | 2,982 | 1,454 | 5,404 |
+| 3.875 | 2,603 | 1,387 | 1,479 |
+| 4.0 | 2,329 | 785 | 1,215 |
+| 4.125 | 4,297 | 2,071 | 738 |
+
+The trough is at exactly 3.5 for all three: 3.375 sits on the plateau
+below it, 3.5 is the dip before the heavier decks rise (Miner's 3.75 peak
+is the Miner Poison control shape; Hog Rider's 4.125 the Hog EQ and
+control shapes). So the bound in force, `CYCLE_MAX` in the contract, is
+**3.4**: an average of 3.375 is cycle, 3.5 is not. The `archetype_census`
+operator read reruns this over the whole record; the day the number
+moves, this page says so. (Balloon and Royal Giant show the same dip at
+3.5 with a second cluster at 2.875 and 3.0 respectively — "Balloon
+cycle" and "3.0 RG cycle"; Goblin Drill runs broad from 2.5 to 3.375.)
 
 ## Where the vocabulary lives, and who keeps it
 
