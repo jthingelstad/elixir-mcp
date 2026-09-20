@@ -6267,3 +6267,20 @@ regression test and bounded transport-class logs, then verify and
 deploy. Its `AWS_PROFILE=jamie` STS was ExpiredToken at the time
 (`aws login --profile jamie`); this run's session was live, so the
 credential is no longer the blocker — the work itself is still owed.
+
+## 2026-09-20 — Census items #67–#69: the three season-result objects name their null (no contract change)
+
+Filed by the nightly shape census as `bestPathOfLegendSeasonResult`,
+`currentPathOfLegendSeasonResult`, `lastPathOfLegendSeasonResult` with
+no child — which the walker emits only for a scalar. The scalar is
+`null`: the API sends all three as null for a player with no Path of
+Legends history (cr-agent-api-docs already said so; one of twenty
+sampled profiles was such a player). Every child already had a
+disposition; the bare path did not. The projector already read the
+children through `?.` and `projectPolSeason` already returned on a
+non-object, so the fix is the manifest entry with the written reason
+(the `princessTowersHitPoints` precedent: the `[]` entry and the bare
+entry), a test that a null profile walks clean, and a glossary line
+(`539b66f`, deployed ~13:05Z; the census reads the manifest in the
+jobs Lambda, so the deploy is what stops the re-filing). Answered
+`done` on all three; backlog after: #70 only.
