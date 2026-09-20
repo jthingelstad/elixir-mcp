@@ -345,6 +345,15 @@
       "attested_at": "2026-09-20"
     },
     {
+      "id": 28000003,
+      "name": "Rocket",
+      "tier": 10,
+      "family": "control",
+      "at_cycle_cost": "cycle",
+      "source": "https://royaletracker.gg/best-decks/archetypes (Rocket Cycle: fast cycle with Rocket, listed as a cycle archetype); https://deckmelon.com/best-decks/with/rocket ('Rocket Cycle', 'Rocket Control'). Tier 10: Rocket anchors a name only when no troop or building win condition is in the deck - a Rocket beside Mortar or Hog Rider is their spell, not the deck's name.",
+      "attested_at": "2026-09-20"
+    },
+    {
       "id": 28000004,
       "name": "Goblin Barrel",
       "tier": null,
@@ -651,6 +660,6 @@
       "name": "Minion Giant"
     }
   ],
-  "roles_version": "2026-09-20T17:51:59.000Z",
-  "source_commit": "6c4f517a1ca15a1193abe5166ea39c8fe4e841cf"
+  "roles_version": "2026-09-20T19:03:40.000Z",
+  "source_commit": "a5979193110d16fb69b94ea89e7b28b731d9fdbc"
 }
