@@ -854,6 +854,22 @@ test("6.6.0: decks are stamped (backfill and at insert), group_by folds by label
       assert.equal(d.fit.plays_archetype, true);
     }
     assert.ok(fitted.notes.some((n) => /costs the least to adopt/.test(n)));
+    // cards_card.decks takes the same filter.
+    const cc = await callFresh("cards_card", {
+      card_id: 26000007,
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      archetype: "cycle",
+    });
+    assert.equal(cc.applied.archetype.family, "cycle");
+    assert.equal(cc.decks.length, 2);
+    const ccNone = await callFresh("cards_card", {
+      card_id: 26000007,
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      archetype: "siege",
+    });
+    assert.deepEqual(ccNone.decks, []);
     await assert.rejects(
       callFresh("battles_meta_decks", {
         segment: { player_tag: TAG },

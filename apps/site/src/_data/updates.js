@@ -11,6 +11,18 @@ export default [
   {
     date: "2026-09-20",
     title:
+      "Admin ▸ Cards: the archetype vocabulary in force, and the cards waiting for a name",
+    body: "A read-only page for the maintainer: every catalog card with its archetype role (win condition and tier, bait unit, bridge partner) and the public source that attests it, the vocabulary version in force and which commit of the reference repository it was imported from, and the one operational list - the cards with no role that keep turning up as the defining card of a deck Elixir can only name by its cost this season. That list is the research agent's queue; a card leaves it only when a deck site or guide names decks by it. Nothing is edited here, on purpose: the vocabulary is a public, sourced file. Also: cards_card takes the archetype filter its siblings got, narrowing the decks that carry a card to one shape. Contract 6.7.0, additive.",
+  },
+  {
+    date: "2026-09-20",
+    title:
+      "What decks do our players use? One call, by archetype, with who plays each",
+    body: "battles_meta_decks now folds a population by archetype - group_by 'archetype' for rows like 'Royal Hogs bridge spam' and 'Hog Rider cycle', group_by 'family' for the six families - and on a clan, player or collection each row names the members who play the shape, with their most-played deck of it. Rows are sorted by who plays them, never by a win rate, because the same label wins and loses with the player. Underneath, every deck in the record now carries its archetype as a stamp (written when a deck first appears, caught up nightly whenever the rules or the vocabulary move), so the name filter covers a whole season instead of its top rows. And when the meta reader is checking decks against your collection, it now says which families and shapes you already field, and on every row whether it is one of them: a deck in a family you play costs the least to adopt, a new win condition inside that family is the usual next step, a new family is a new deck to learn as well as levels to buy. Contract 6.6.0, additive.",
+  },
+  {
+    date: "2026-09-20",
+    title:
       "Decks by their names: every deck carries its archetype, and a name resolves to decks",
     body: "Players say 'Royal Hogs bridge spam', 'Hog cycle', 'Log Bait' - not eight card names - and Elixir now speaks that language in both directions. Every deck it serves carries its archetype: the family (beatdown, control, cycle, bait, bridge spam, siege), the win condition with its form, a label composed from them ('Evo Royal Hogs bridge spam'), and the average elixir. And a name a person uses - a family, a label, or a community name like LavaLoon or 2.6 Hog - narrows battles_meta_decks and battles_decks to that shape, with the resolution echoed. The label is a noun, never a verdict: Elixir carries no matchup table and no 'this family beats that one', on purpose. The rules are code; which cards are win conditions, bait units and bridge partners is a public, sourced vocabulary in the standalone Clash Royale API reference, imported at deploy and versioned by its commit, so a new card is unnamed until a public source names it and history is relabelled when the vocabulary improves. The new docs page, Archetypes, has the families with their sources, the grammar, and the cycle bound and how it is measured over the whole record. Contract 6.5.0, additive.",
   },

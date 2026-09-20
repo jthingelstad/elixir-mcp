@@ -3308,3 +3308,33 @@ test("a request that finishes carries its request id on the timing line", async 
   assert.equal(timing.request_id, "req-fine");
   assert.equal(timing.timed_out, undefined);
 });
+
+test("GET /api/admin/cards: the catalog with its archetype roles, the vocabulary version, the unattested queue; admins only", async () => {
+  const member = await handler(
+    event({
+      method: "GET",
+      path: "/api/admin/cards",
+      cookie: newcomerCookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(member.statusCode, 403, "a member is not an admin");
+  const res = await handler(
+    event({
+      method: "GET",
+      path: "/api/admin/cards",
+      cookie: bossCookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  const body = parse(res);
+  assert.ok(Array.isArray(body.cards));
+  assert.ok(Array.isArray(body.unattested));
+  assert.ok(Array.isArray(body.aliases));
+  assert.ok("version" in body);
+  for (const c of body.cards) {
+    assert.ok(Number.isInteger(c.card_id));
+    assert.ok(c.role === null || typeof c.role.win_condition === "boolean");
+  }
+});

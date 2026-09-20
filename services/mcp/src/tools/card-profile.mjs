@@ -33,6 +33,10 @@ import {
   META_METHODOLOGY,
   deckIdentities,
   ARCHETYPE_NOTE,
+  ARCHETYPE_ARG,
+  resolveArchetypeArg,
+  deckStamps,
+  stampMatches,
   decksContaining,
   populationBlock,
 } from "./shared.mjs";
@@ -121,11 +125,20 @@ export const cardProfileTools = {
         verbosity: VERBOSITY(
           "keeps card, season and history; drops by_band, partners, decks and members.",
         ),
+        archetype: {
+          ...ARCHETYPE_ARG,
+          description:
+            "Only decks of this archetype among the decks carrying the card (a family, a composed label, or a community name); applied.archetype echoes the resolution. Unknown names are refused with the vocabulary.",
+        },
       },
       required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
+      const archetype =
+        args.archetype === undefined
+          ? null
+          : await resolveArchetypeArg(ctx.db, args.archetype);
       const anchor = await resolveCard(ctx.db, args);
       const compact = args.verbosity === "compact";
       requireEnum(args.mode, MODE_GROUPS, "mode");
@@ -186,6 +199,7 @@ export const cardProfileTools = {
           segment: seg.echo,
           window: win.echo,
           mode: args.mode,
+          archetype: archetype ?? undefined,
           verbosity: compact ? "compact" : "full",
         }),
         card,
@@ -302,6 +316,7 @@ export const cardProfileTools = {
           win,
           args,
           roll,
+          archetype,
           decided: usage.decided,
         });
 
@@ -474,7 +489,7 @@ async function seasonUsage(
  *  of the participant rows on a segment / explicit window. */
 async function topDecks(
   ctx,
-  { anchor, seg, params, segParamCount, win, args, roll, decided },
+  { anchor, seg, params, segParamCount, win, args, roll, decided, archetype },
 ) {
   const keep = await decksContaining(ctx.db, [anchor.id]);
   let rows;
@@ -503,6 +518,15 @@ async function topDecks(
     rows = res.rows;
   }
   rows.sort((a, z) => z.battles - a.battles);
+  // The archetype filter (6.6.0) over every deck carrying the card, by
+  // its stamp, before the top five are cut.
+  if (archetype) {
+    const stamps = await deckStamps(
+      ctx.db,
+      rows.map((r) => r.deck_hash),
+    );
+    rows = rows.filter((r) => stampMatches(stamps.get(r.deck_hash), archetype));
+  }
   const top = rows.slice(0, 5);
   const identities = await deckIdentities(
     ctx.db,

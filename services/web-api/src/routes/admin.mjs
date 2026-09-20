@@ -77,6 +77,90 @@ export function adminRoutes({
       return json(200, record);
     },
 
+    "GET /api/admin/cards": async (db, event) => {
+      // The card catalog with its archetype roles, read-only (design
+      // 2026-09-20 §12.4): the vocabulary in force and where it came
+      // from, and the one operational list - cards with no role that
+      // keep turning up as the defining (most expensive troop or
+      // building) card of a deck named by cost alone this season. The
+      // file is edited in cr-agent-api-docs, never here.
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const { rows: version } = await db.query(
+        `select roles_version, source_commit, imported_at, roles, aliases from card_role_version`,
+      );
+      const { rows: cards } = await db.query(
+        `select c.card_id, c.name, c.kind, c.rarity, c.elixir_cost, c.max_evolution_level,
+                r.tier, r.family, r.at_cycle_cost, r.needs_partner, r.pairs_with, r.bait_tiers,
+                r.bait_unit, r.bridge_partner, r.source, r.attested_at
+           from card c
+           left join card_role r on r.card_id = c.card_id
+          where c.name is not null
+          order by c.card_id`,
+      );
+      const { rows: season } = await db.query(
+        `select season_month from season where starts_at <= now() order by season_month desc limit 1`,
+      );
+      const seasonMonth = season[0]?.season_month ?? null;
+      // Decks with no attested win condition this season, and the most
+      // expensive troop or building in each that has no role.
+      const { rows: unattested } = await db.query(
+        `with fallback as (
+           select d.deck_hash, m.battles
+             from deck d
+             join deck_meta_season m on m.deck_hash = d.deck_hash
+              and m.season_month = $1 and m.mode_group = 'all'
+            where d.archetype_win_conditions = '{}'),
+         defining as (
+           select distinct on (f.deck_hash) f.deck_hash, f.battles, dc.card_id
+             from fallback f
+             join deck_card dc on dc.deck_hash = f.deck_hash
+             join card c on c.card_id = dc.card_id
+             left join card_role r on r.card_id = dc.card_id
+            where r.card_id is null and dc.card_id < 28000000 and c.elixir_cost is not null
+            order by f.deck_hash, c.elixir_cost desc, dc.card_id)
+         select x.card_id, c.name, count(*)::int as decks, sum(x.battles)::int as battles
+           from defining x join card c on c.card_id = x.card_id
+          group by x.card_id, c.name
+          order by battles desc, decks desc
+          limit 30`,
+        [seasonMonth],
+      );
+      const { rows: aliases } = await db.query(
+        `select alias, cards, family, source, attested_at from deck_alias order by alias`,
+      );
+      return json(200, {
+        version: version[0] ?? null,
+        season: seasonMonth,
+        cards: cards.map((c) => ({
+          card_id: c.card_id,
+          name: c.name,
+          kind: c.kind,
+          rarity: c.rarity,
+          elixir_cost: c.elixir_cost,
+          forms_available: c.max_evolution_level,
+          role:
+            c.tier !== null || c.bait_tiers || c.bait_unit || c.bridge_partner
+              ? {
+                  win_condition: c.tier !== null || Boolean(c.bait_tiers),
+                  tier: c.tier === null ? null : Number(c.tier),
+                  family: c.family,
+                  at_cycle_cost: c.at_cycle_cost,
+                  needs_partner: c.needs_partner,
+                  pairs_with: c.pairs_with,
+                  bait_tiers: c.bait_tiers,
+                  bait_unit: c.bait_unit,
+                  bridge_partner: c.bridge_partner,
+                  source: c.source,
+                  attested_at: c.attested_at,
+                }
+              : null,
+        })),
+        unattested,
+        aliases,
+      });
+    },
+
     "GET /api/admin/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });

@@ -10,6 +10,7 @@ import {
   useAdminCollections,
   useAdminEmail,
   useAdminEmailSends,
+  useAdminCards,
   useAdminConnections,
   useAdminFeedback,
   useAdminGateways,
@@ -99,7 +100,97 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
     ) : (
       <AdminEmails navigate={navigate} />
     );
+  if (page === "cards") return <AdminCards />;
   return <AdminRequests />;
+}
+
+/** The card catalog with its archetype roles, read-only (design
+ *  2026-09-20 §12.4). What is in force and where it came from, the
+ *  cards with a role, and the one operational list: cards with no role
+ *  that keep turning up as the defining card of a deck named by cost
+ *  alone this season - the queue for the research agent that keeps the
+ *  vocabulary file. Nothing here edits: the file lives in
+ *  cr-agent-api-docs and every entry there carries a public source. */
+function AdminCards() {
+  const data = useAdminCards().data;
+  const version = data?.version ?? null;
+  const cards = data?.cards ?? [];
+  const unattested = data?.unattested ?? [];
+  const roleText = (c) => {
+    const r = c.role;
+    if (!r) return "—";
+    const parts = [];
+    if (r.win_condition)
+      parts.push(
+        `win condition${r.tier !== null ? ` (tier ${r.tier})` : ""}: ${r.family?.replace("_", " ")}${r.at_cycle_cost ? `, ${r.at_cycle_cost} at cycle cost` : ""}${r.needs_partner ? ", with a bridge partner" : ""}`,
+      );
+    if (r.bait_unit) parts.push("bait unit");
+    if (r.bridge_partner) parts.push("bridge partner");
+    return parts.join("; ");
+  };
+  const rows = cards.map((c) => [
+    c.name,
+    c.kind === "support" ? "tower" : (c.rarity ?? "—"),
+    c.elixir_cost === null ? "—" : String(c.elixir_cost),
+    roleText(c),
+    c.role?.attested_at ? String(c.role.attested_at).slice(0, 10) : "—",
+    c.role?.source
+      ? {
+          text: "source",
+          title: c.role.source,
+          onClick: () => {
+            const url = c.role.source.match(/https?:\/\/\S+/)?.[0];
+            if (url) window.open(url, "_blank", "noopener");
+          },
+        }
+      : "—",
+  ]);
+  const queueRows = unattested.map((u) => [
+    u.name,
+    String(u.decks),
+    String(u.battles),
+  ]);
+  return (
+    <>
+      <LogTable
+        crumb="Admin"
+        title="Cards"
+        note={
+          version
+            ? `Vocabulary ${version.roles_version} from cr-agent-api-docs ${String(version.source_commit).slice(0, 7)}, imported ${ago(version.imported_at)}: ${version.roles} card roles, ${version.aliases} deck aliases. Read-only here; the file is edited in the reference repository, and every entry carries a public source.`
+            : "No vocabulary imported yet: every deck is named by its cost alone until the next deploy imports cr-agent-api-docs data/card-roles.json."
+        }
+        cols={[
+          ["CARD", "left"],
+          ["RARITY", "left"],
+          ["COST", "right"],
+          ["ROLE", "left"],
+          ["ATTESTED", "left"],
+          ["SOURCE", "left"],
+        ]}
+        rows={rows}
+        monoCols={[2, 4]}
+        filters={[{ key: "role", label: "Role", col: 3 }]}
+        minWidth={820}
+        empty="No catalog yet."
+        footnote="card joined to card_role. A card with no role is not a win condition, however new; a deck built around one is named by its family alone until a public source names it."
+      />
+      <LogTable
+        title="Unattested this season"
+        note={`Cards with no role that are the most expensive troop or building in a deck with no attested win condition${data?.season ? ` (season ${data.season})` : ""}, by the battles those decks hold. The research agent's queue: a card here is attested only when a deck site or guide names decks by it.`}
+        cols={[
+          ["CARD", "left"],
+          ["DECKS", "right"],
+          ["BATTLES", "right"],
+        ]}
+        rows={queueRows}
+        monoCols={[1, 2]}
+        minWidth={420}
+        empty="Every deck this season has an attested win condition."
+        footnote="Wizard and Baby Dragon here are support cards in decks with no win condition at all - the honest fallback, not a missing role."
+      />
+    </>
+  );
 }
 
 /** Everything sent, every account (Jamie, 2026-09-19: "we can audit

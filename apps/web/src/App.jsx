@@ -126,6 +126,7 @@ export const SECTIONS = {
       { slug: "feedback", label: "Feedback" },
       { slug: "emails", label: "Emails sent" },
       { slug: "usage", label: "Across accounts" },
+      { slug: "cards", label: "Cards" },
       { slug: "collectors", label: "Collectors", ownerOnly: true },
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
     ],
@@ -176,6 +177,9 @@ const ADMIN_SUBS = [
   // rail too, and the qualifier says whose these are (everyone's).
   ["emails", "Emails sent", "/admin/emails"],
   ["usage", "Across accounts", "/admin/usage"],
+  // "Cards", read-only: the archetype vocabulary in force and the
+  // unattested queue; the file is edited in cr-agent-api-docs.
+  ["cards", "Cards", "/admin/cards"],
 ];
 
 export const RAIL = [
@@ -632,6 +636,13 @@ export const DOC_LINKS = {
     [
       ["Limits", "/docs/limits"],
       ["Architecture", "/docs/architecture"],
+    ],
+  ],
+  "admin:cards": [
+    "The archetype vocabulary",
+    [
+      ["Deck archetypes", "/docs/archetypes"],
+      ["Cards", "/docs/cards"],
     ],
   ],
 };

@@ -50,6 +50,7 @@ export const keys = {
   adminServiceTokens: ["admin", "service-tokens"],
   adminCall: (id) => ["admin", "calls", id],
   adminEmailSends: ["admin", "email", "sends"],
+  adminCards: ["admin", "cards"],
   adminEmail: (id) => ["admin", "email", "sends", id],
   adminIntegrations: ["admin", "integrations"],
   adminCollections: ["admin", "collections"],
@@ -208,6 +209,9 @@ export const useAdminEmailSends = adminRead(
   keys.adminEmailSends,
   api.adminEmailSends,
 );
+
+/** The card catalog with its archetype roles and the unattested queue. */
+export const useAdminCards = adminRead(keys.adminCards, api.adminCards);
 
 /** An email attached to a feedback note, or opened from the sends
  *  audit: the row and the body as sent. */
