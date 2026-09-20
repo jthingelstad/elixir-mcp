@@ -607,3 +607,66 @@ phase 1 or 2 without changing the contract, since it edits data the
 tools already read. The verification of §8 is unchanged except that the
 fixture pins the *seed*, and an admin edit is expected to change labels
 — that is what it is for.
+
+### 12.4 Where the vocabulary lives, revised: the docs repo, imported (supersedes the editable table of §12.3)
+
+Jamie, on the required source line: onerous for a person, natural for
+an agent — and the domain's **Understand Clash Royale** objective
+already browses for new cards and balance changes daily and writes what
+holds for any caller to `cr-agent-api-docs`, with sources. Card roles
+and aliases are that kind of fact. And on versioning by season: no.
+
+**Not bound to the season table.** The meta (what is popular, what
+wins) is already versioned by season in `deck_meta_season`; nothing to
+build. The vocabulary (which cards are win conditions, bait units,
+bridge partners) changes by accretion a few times a year, and when it
+changes **history is relabelled on purpose**: a July deck built on Rune
+Giant was always a Rune Giant beatdown, Elixir lacked the word. A role
+is a property of the card, not of the month it was learned in; a
+season-bound role would freeze old decks under old ignorance. Costs
+change through the daily catalog fetch on their own; labels use the
+catalog's current cost, as the deck sites do, and `basis` says so.
+"Roles as of season 135" is the file at the commit before that roll —
+derivable if ever asked, never modelled.
+
+**The data:** `cr-agent-api-docs/data/card-roles.json` (one entry per
+card: id, name, `win_condition` tier or null, `implied_family` with the
+cycle-cost alternative where one exists, `bait_unit`, `bridge_partner`,
+`source`, `attested_at`) and `data/deck-aliases.json` (alias → card ids
++ family, source). The docs build's validator requires a source on
+every entry, every id to be a catalog card, every family to be one of
+the six: the onerous line lands on the agent, which has the URL it just
+read. Git history is the ledger — who, when, why, revertable —
+and `roles_version` is the commit date. The domain agent's objective
+gains one sentence: *card roles and deck aliases are game facts you
+maintain in `data/`; the unattested list Elixir publishes is your
+queue.*
+
+**The import:** the nightly jobs run reads the two files at their
+pinned commit into `card_role` and `deck_alias` (refusing a file that
+fails the same validation), stamps `roles_version`, and re-stamps
+every deck whose stamp is older. Not vendoring: nothing is edited
+locally, the version rides every archetype object, and drift is
+visible. Contracts keeps the grammar; the file holds the vocabulary.
+
+**Admin ▸ Cards shrinks to a read-only page:** the catalog with its
+roles, the `roles_version` in force and when it was imported, a link
+to the file — and the one operational list, **unattested cards**: no
+role, and the defining (most expensive) card in ≥ N `unclassified`
+decks this season. That list is what the agent reads too, so a card
+that needs a decision gets one before anyone notices. No editor, no
+source box, no approval workflow, no named decks.
+
+**Testing the agent for this job.** The seed *is* the test: before the
+nightly import is wired, Understand Clash Royale is given one bounded
+run — produce `card-roles.json` for the current catalog from public
+sources — and the output is checked three ways: agreement with §3.2 on
+the win conditions the community has named for years (every
+disagreement explained by a source or it is a miss), every source URL
+resolving and saying what the entry claims (spot-checked by hand), and
+**no role invented** for the cards §3.2 leaves unattested. The
+standing gates after that are mechanical: the docs validator on every
+commit, the import's refusal of an invalid file, and Elixir's
+`unclassified` share on the docs page (a rising share is the agent
+falling behind; a falling one with no commits is a card list that
+never needed it).
