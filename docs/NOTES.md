@@ -6618,3 +6618,28 @@ secondary list now carries the Miner; Lumberjack alone makes a
 P.E.K.K.A deck bridge spam by the partner test (the bot's rule; kept).
 The Rune Giant + Lumberjack + Golden Knight + Lightning decks (~3,000
 battles) are the largest honest fallback left.
+
+## 2026-09-20 — A card that names a deck without being its win condition (contract 6.10.0)
+
+The Rune Giant read. The largest honest fallback after the debug pass
+was Rune Giant + Lumberjack + Golden Knight + Lightning (+ Evo Wizard,
+Mother Witch), ~3,000 battles, no building-targeter: the wiki's own
+description of the card ("she will tank for them while giving them
+bonus damage every third hit, allowing them to chip a lot more damage
+from Crown Towers"; the enchantment "works with Golden Knight's Dashing
+Dash"), GamingOnPhone's "better suited as a buffing support troop", and
+the deck sites leading the name with it ("Rune Giant Ronin", "Evo Rune
+Giant Spirit Empress Beatdown"). Three options were weighed: leave it
+null (honest, useless), attest it as a win condition at the bottom tier
+(contradicts the one explicit statement), or a third role. Jamie took
+the third: **`names_deck`** in the vocabulary (`7bd537b`; the validator
+refuses a card that is both a namer and a win condition), read by the
+grammar only in the no-win-condition branch; `archetype.named_by` on
+every deck object, `win_conditions` empty on such a deck; the stamp
+carries the naming card so "rune giant beatdown" filters and folds.
+0149 adds the column. Deployed ~20:25Z, re-stamped (205,926 decks):
+**nameless share 1.3%** (from 24.2% this morning), "Rune Giant control"
+1,089 players / "Rune Giant beatdown" 837; the queue is Giant Skeleton,
+Wizard, Baby Dragon, Royal Recruits, Witch - support cards, and the
+domain agent's call whether Giant Skeleton or Royal Recruits ever earn
+`names_deck` from a public title.
