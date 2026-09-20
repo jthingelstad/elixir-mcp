@@ -398,6 +398,15 @@ const FIT_FOR_BLOCK = {
         "The mean card level of the decks the player actually played (decided pvp, this window and mode); null with none.",
     },
     fielded_battles: COUNT,
+    plays: {
+      type: "object",
+      description:
+        "The families and archetype labels of the decks the player fielded in the window and mode.",
+      properties: {
+        families: { type: "array", items: { type: "string" } },
+        archetypes: { type: "array", items: { type: "string" } },
+      },
+    },
   },
 };
 const DECK_FIT = {
@@ -433,6 +442,16 @@ const DECK_FIT = {
         "The path to the fielded level: each held card below it, largest deficit first (held_level, to_level, levels).",
     },
     mean_level_after_upgrades: { type: ["number", "null"] },
+    plays_family: {
+      type: "boolean",
+      description:
+        "The player already fields a deck of this row's family in the window.",
+    },
+    plays_archetype: {
+      type: "boolean",
+      description:
+        "The player already fields a deck of this row's exact label in the window.",
+    },
   },
 };
 
@@ -701,6 +720,11 @@ export const OUTPUT_SCHEMAS = {
         },
       },
       fit_for: FIT_FOR_BLOCK,
+      archetypes: {
+        type: "array",
+        description:
+          "With group_by: the population's decks folded by archetype label or family - decks, battles, record, players, share; members[] (player_tag, name, battles, wins, deck_hash) on a clan, player or collection segment. Sorted by players then battles; no shrunk rate.",
+      },
       unfieldable: {
         type: "array",
         description:

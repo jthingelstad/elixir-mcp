@@ -194,9 +194,36 @@ The response echoes `applied.archetype` — `family`, `win_conditions`,
 the resolved shape — and a note says what was matched. A name that is
 nothing is refused (`bad_request`) with the six families and the grammar
 in the hint; it is never a silent empty list that reads as "nobody plays
-that". The filter runs over the rows the call would have returned (on
-the meta reader, the top 2,000 by the sort), and denominators stay the
-population's.
+that". The filter runs over every deck in scope over `min_battles`, by
+its stamp, and denominators stay the population's.
+
+## Who plays what
+
+`battles_meta_decks { group_by: "archetype" }` folds a population's decks
+by label — one row per "Royal Hogs bridge spam", "Hog Rider cycle",
+"Graveyard control" — with `decks`, `battles`, the record, `players` and
+`share`; `group_by: "family"` folds to the six families. On a clan,
+player or collection segment each row carries **`members[]`**: who plays
+the shape, their battles and wins in it, and their most-played deck of
+it, so "what decks do our players use?" is one call answered the way a
+player would say it. Rows are sorted by who plays them (players, then
+battles) and carry **no shrunk rate**: the same label sits at 83% and
+40% in one clan, and a pooled family rate would read as a tier list.
+`decks[]` is empty with `group_by`.
+
+Underneath, every deck in the record carries its archetype as a
+**stamp** — written when a deck first appears, and caught up nightly for
+every deck behind the current grammar or vocabulary version — so a
+rule change or a vocabulary import reaches history by the next morning,
+and the fold and the filter cover a whole season instead of its top
+rows.
+
+With `fit_for`, the meta reader also says which families and shapes the
+player already fields (`fit_for.plays`), and on every row whether it is
+one of them (`fit.plays_family`, `fit.plays_archetype`): a row in a
+family they play costs the least to adopt, the same family with a
+different win condition is the usual next step, a new family is a new
+deck to learn as well as levels to buy.
 
 ## What is not here
 

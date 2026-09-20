@@ -18,6 +18,7 @@
 
 import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
+import { loadVocabulary, stampDecks } from "../../ingest/src/card-roles.mjs";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { runEmail } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
@@ -130,6 +131,18 @@ export async function sweepPayloads(databaseUrl, s3override) {
  *  oauth_token keeps 90 days (not 30): rotated-token rows are the
  *  memory behind family replay detection, and 90d is the absolute
  *  family lifetime — never trim below it. */
+/** Re-stamp every deck behind the current archetype version (0148). */
+export async function archetypeStampNightly(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const vocab = await loadVocabulary(db);
+    return await stampDecks(db, vocab, {});
+  } finally {
+    await db.end();
+  }
+}
+
 export async function sweepOperational(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -313,7 +326,11 @@ export async function handler(event) {
   if (event?.meta_rollup_nightly) {
     const result = await metaRollupNightly(process.env.DATABASE_URL);
     console.log(JSON.stringify({ meta_rollup_nightly: result }));
-    return result;
+    // The archetype stamp (0148) catches up nightly: every deck behind
+    // the current grammar + vocabulary version is re-stamped.
+    const stamped = await archetypeStampNightly(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ archetype_stamp: stamped }));
+    return { ...result, archetype_stamp: stamped };
   }
   if (event?.meta_rollup_hourly) {
     const result = await metaRollupHourly(process.env.DATABASE_URL);

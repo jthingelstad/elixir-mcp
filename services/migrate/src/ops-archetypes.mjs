@@ -25,7 +25,11 @@ import {
   BEATDOWN_MIN,
   GRAMMAR_VERSION,
 } from "@elixir-mcp/contracts";
-import { rowToRole } from "../../ingest/src/card-roles.mjs";
+import {
+  rowToRole,
+  loadVocabulary,
+  stampDecks,
+} from "../../ingest/src/card-roles.mjs";
 
 const FAMILY_SET = new Set(FAMILIES.filter((f) => f !== "unclassified"));
 const isUrl = (s) => typeof s === "string" && /https?:\/\//.test(s);
@@ -299,6 +303,25 @@ export async function archetypeCensus(databaseUrl, spec = {}) {
         .sort((x, y) => y.battles - x.battles || y.decks - x.decks)
         .slice(0, 30),
     };
+  } finally {
+    await db.end();
+  }
+}
+
+/** {archetype_stamp}: the backfill / re-stamp on demand (the nightly
+ *  does the same after the rollup). Every deck behind the current
+ *  grammar + vocabulary version, in batches; the census reads the
+ *  stamps only through the readers, never here. */
+export async function archetypeStamp(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const vocab = await loadVocabulary(db);
+    const result = await stampDecks(db, vocab, {});
+    const { rows } = await db.query(
+      `select archetype_version, count(*)::int as decks from deck group by 1 order by 2 desc`,
+    );
+    return { ...result, versions: rows };
   } finally {
     await db.end();
   }

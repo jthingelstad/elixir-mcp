@@ -56,12 +56,19 @@ import {
   ARCHETYPE_ARG,
   resolveArchetypeArg,
   matchesArchetype,
+  deckStamps,
+  stampMatches,
 } from "./shared.mjs";
 
-/** How many candidate rows the archetype filter labels before the
- *  limit (6.5.0): read-time classification is cheap per deck, not per
- *  season. */
-const ARCHETYPE_SCAN = 2000;
+/** group_by on battles_meta_decks (6.6.0, design §6): the population's
+ *  decks folded by archetype label or by family, with the members who
+ *  play each on a clan, player or collection segment. */
+const GROUP_BY_SCHEMA = {
+  type: "string",
+  enum: ["archetype", "family"],
+  description:
+    'Fold the population\'s decks by archetype label ("Royal Hogs bridge spam") or by family (six rows). Rows carry decks, battles, record and players; on a clan, player or collection segment each carries members[] (who plays it, with their most-played deck of that shape). Sorted by players then battles - who plays what, never a tier list: shrunk_win_rate is deliberately absent. decks[] is empty with group_by.',
+};
 
 /** fit_for on the meta tools (6.4.0, feedback #70). */
 const FIT_FOR_SCHEMA = {
@@ -114,7 +121,122 @@ function fitNotes(fitBlock, decks, unfieldable) {
   return [
     `Checked against ${fitBlock.player_tag}'s collection as of ${fitBlock.collection_as_of}: ${decks.length} of the top ${decks.length + unfieldable.length} rows are fieldable as held (decks[]); ${unfieldable.length} are not (unfieldable[], each naming the card or form missing). The population's ranking is unchanged - the split is after sort and limit, so raise limit for more fieldable rows.`,
     `${fielded}. mean_level_gap on a row is the population's players' edge over their opponents, not ${fitBlock.player_tag}'s; own_mean_level is what the deck would be at their levels, and held_level rides each card.`,
+    `fit.plays_family and fit.plays_archetype say whether ${fitBlock.player_tag} already fields this row's family or exact shape (fit_for.plays lists theirs): a row in a family they play costs the least to adopt, a row sharing the family with a different win condition is the usual next step, and a row in a new family is a new deck to learn as well as levels to buy.`,
   ];
+}
+
+/** Fold deck rows by their stamped archetype (label or family). With
+ *  members, one scan of the scope's battle rows by player and deck says
+ *  who plays each shape and their most-played deck of it; `players` is
+ *  then exact. Without (the corpus), `players` sums the decks' distinct
+ *  players and the note says a player on two decks of one shape counts
+ *  twice. */
+async function groupByArchetype(
+  db,
+  { groupBy, rows, where, params, withMembers, limit },
+) {
+  const stamps = await deckStamps(
+    db,
+    rows.map((r) => r.deck_hash),
+  );
+  const keyOf = (stamp) => (groupBy === "family" ? stamp.family : stamp.label);
+  const groups = new Map();
+  const total = rows.reduce((n, r) => n + r.battles, 0);
+  for (const r of rows) {
+    const stamp = stamps.get(r.deck_hash);
+    if (!stamp) continue;
+    const key = keyOf(stamp);
+    const g = groups.get(key) ?? {
+      ...(groupBy === "family"
+        ? { family: stamp.family }
+        : {
+            label: stamp.label,
+            family: stamp.family,
+            win_condition_ids: stamp.win_condition_ids,
+          }),
+      decks: 0,
+      battles: 0,
+      wins: 0,
+      losses: 0,
+      players: 0,
+      _hashes: new Set(),
+    };
+    g.decks += 1;
+    g.battles += r.battles;
+    g.wins += r.wins;
+    g.losses += r.losses;
+    g.players += r.players ?? 0;
+    g._hashes.add(r.deck_hash);
+    groups.set(key, g);
+  }
+  let members = null;
+  if (withMembers) {
+    // Who plays what, over the same scope the deck rows came from.
+    const { rows: plays } = await db.query(
+      `select bp.player_tag, p.name, bp.deck_hash,
+              count(*)::int as battles,
+              count(*) filter (where bp.outcome = 'win')::int as wins
+       from battle_participant bp
+       left join player p on p.player_tag = bp.player_tag
+       where ${where.join(" and ")}
+       group by bp.player_tag, p.name, bp.deck_hash`,
+      params,
+    );
+    members = new Map(); // key -> Map(player_tag -> {name, battles, wins, best})
+    for (const pl of plays) {
+      const stamp = stamps.get(pl.deck_hash);
+      if (!stamp) continue;
+      const key = keyOf(stamp);
+      const byPlayer = members.get(key) ?? new Map();
+      const m = byPlayer.get(pl.player_tag) ?? {
+        player_tag: pl.player_tag,
+        name: pl.name ?? null,
+        battles: 0,
+        wins: 0,
+        deck_hash: pl.deck_hash,
+        _deckBattles: 0,
+      };
+      m.battles += pl.battles;
+      m.wins += pl.wins;
+      if (pl.battles > m._deckBattles) {
+        m._deckBattles = pl.battles;
+        m.deck_hash = pl.deck_hash;
+      }
+      byPlayer.set(pl.player_tag, m);
+      members.set(key, byPlayer);
+    }
+  }
+  const out = [...groups.values()].map((g) => {
+    const row = { ...g };
+    delete row._hashes;
+    const byPlayer = members?.get(groupBy === "family" ? g.family : g.label);
+    const list = byPlayer
+      ? [...byPlayer.values()]
+          .sort(
+            (a, z) =>
+              z.battles - a.battles || a.player_tag.localeCompare(z.player_tag),
+          )
+          .map(({ _deckBattles, ...m }) => m)
+      : null;
+    return {
+      ...row,
+      ...(list ? { players: list.length, members: list } : {}),
+      win_rate:
+        row.wins + row.losses > 0
+          ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
+          : null,
+      share: total > 0 ? Number((row.battles / total).toFixed(3)) : null,
+    };
+  });
+  out.sort((a, z) => z.players - a.players || z.battles - a.battles);
+  return {
+    rows: out.slice(0, limit),
+    folded: `Folded ${rows.length} decks over min_battles into ${out.length} ${groupBy === "family" ? "families" : "archetypes"} by their stamped label, sorted by who plays them (players, then battles); share is of the ${total} decided battles those decks hold. ${
+      withMembers
+        ? "members lists each player of the shape with their most-played deck of it; players is exact."
+        : "players sums the decks' distinct players, so a player on two decks of one shape counts twice."
+    } No win rate is shrunk or ranked here: the same label wins and loses with the player.`,
+  };
 }
 
 function cardFitNote(fitBlock, cards) {
@@ -1502,6 +1624,7 @@ export const battlesTools = {
         },
         fit_for: FIT_FOR_SCHEMA,
         archetype: ARCHETYPE_ARG,
+        group_by: GROUP_BY_SCHEMA,
       },
       required: ["segment"],
       additionalProperties: false,
@@ -1722,21 +1845,32 @@ export const battlesTools = {
       // so with one asked the identities are fetched for every candidate
       // row and the filter runs before the limit; without one, for the
       // returned rows only, as before.
-      // Bounded at the top 2,000 candidates by the sort (a corpus season
-      // has more decks over min_battles than that); the stamped column
-      // of design phase 2 lifts the bound.
+      // Over the stamp (0148), so the whole population is filtered.
       let archetypeCandidates = null;
       if (archetype) {
-        const candidates = shaped.slice(0, ARCHETYPE_SCAN);
-        archetypeCandidates = candidates.length;
-        const all = await deckIdentities(
+        archetypeCandidates = shaped.length;
+        const stamps = await deckStamps(
           ctx.db,
-          candidates.map((r) => r.deck_hash),
+          shaped.map((r) => r.deck_hash),
         );
-        shaped = candidates.filter((r) =>
-          matchesArchetype(all.get(r.deck_hash)?.archetype, archetype),
+        shaped = shaped.filter((r) =>
+          stampMatches(stamps.get(r.deck_hash), archetype),
         );
       }
+      // group_by (6.6.0): fold every deck in scope (over min_battles) by
+      // its stamp; the deck rows are not returned.
+      requireEnum(args.group_by, ["archetype", "family"], "group_by");
+      const grouped = args.group_by
+        ? await groupByArchetype(ctx.db, {
+            groupBy: args.group_by,
+            rows: shaped,
+            where,
+            params,
+            withMembers: Boolean(seg.where),
+            limit,
+          })
+        : null;
+      if (grouped) shaped = [];
       shaped = shaped.slice(0, limit);
       // The identity's cards come from deck_card (0091), for the returned
       // rows only - no exemplar, no participant JSON. The row's mode
@@ -1767,11 +1901,40 @@ export const battlesTools = {
           to,
           types: args.mode ? typesForModeGroup(args.mode) : null,
         });
+        // What the player already fields, by shape (6.6.0, design §12.2):
+        // a row in a family they play costs the least to adopt.
+        const { rows: ownDecks } = await ctx.db.query(
+          `select distinct deck_hash from battle_participant
+           where player_tag = $1 and battle_time >= $2
+             and ($3::timestamptz is null or battle_time < $3)
+             and ($4::text[] is null or type = any($4))
+             and type_class = 'pvp' and deck_hash is not null`,
+          [
+            fit.tag,
+            from,
+            to ?? null,
+            args.mode ? typesForModeGroup(args.mode) : null,
+          ],
+        );
+        const ownStamps = await deckStamps(
+          ctx.db,
+          ownDecks.map((r) => r.deck_hash),
+        );
+        const playsFamily = new Set(
+          [...ownStamps.values()].map((st) => st.family),
+        );
+        const playsLabel = new Set(
+          [...ownStamps.values()].map((st) => st.label),
+        );
         fitBlock = {
           player_tag: fit.tag,
           collection_as_of: fit.as_of,
           fielded_mean_level: fielded.mean_level,
           fielded_battles: fielded.battles,
+          plays: {
+            families: [...playsFamily].sort(),
+            archetypes: [...playsLabel].sort(),
+          },
         };
         shaped = shaped.map((row) => ({
           ...row,
@@ -1779,7 +1942,11 @@ export const battlesTools = {
             ...c,
             held_level: fit.held.get(c.id)?.level ?? null,
           })),
-          fit: deckFit(row.cards, fit.held, fielded.mean_level),
+          fit: {
+            ...deckFit(row.cards, fit.held, fielded.mean_level),
+            plays_family: playsFamily.has(row.archetype?.family),
+            plays_archetype: playsLabel.has(row.archetype?.label),
+          },
         }));
         unfieldable = shaped.filter((r) => !r.fit.fieldable);
         shaped = shaped.filter((r) => r.fit.fieldable);
@@ -1800,6 +1967,7 @@ export const battlesTools = {
           containing: args.containing,
           fit_for: fit?.tag,
           archetype: archetype ?? undefined,
+          group_by: args.group_by,
           min_battles: minBattles,
           sort,
           limit,
@@ -1821,13 +1989,15 @@ export const battlesTools = {
         comparable: clash === null,
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
         ...(fitBlock ? { fit_for: fitBlock } : {}),
+        ...(grouped ? { archetypes: grouped.rows } : {}),
         decks: shaped,
         ...(fitBlock ? { unfieldable } : {}),
         notes: notes(
+          grouped ? grouped.folded : null,
           fitBlock ? fitNotes(fitBlock, shaped, unfieldable) : NO_FIT_NOTE,
           ARCHETYPE_NOTE,
           archetype
-            ? `archetype '${archetype.requested}' resolved to ${archetype.family ? archetype.family.replace("_", " ") : "any family"}${archetype.win_conditions.length ? ` with ${archetype.win_conditions.map((w) => w.name).join(" and ")}` : ""} (${archetype.resolved_from}); the filter ran over the top ${archetypeCandidates} rows by ${sort}${archetypeCandidates === ARCHETYPE_SCAN ? ", the most it labels in one call" : ""}, and decided_battles and usage_share stay the population's.`
+            ? `archetype '${archetype.requested}' resolved to ${archetype.family ? archetype.family.replace("_", " ") : "any family"}${archetype.win_conditions.length ? ` with ${archetype.win_conditions.map((w) => w.name).join(" and ")}` : ""} (${archetype.resolved_from}); the filter ran over all ${archetypeCandidates} decks over min_battles, and decided_battles and usage_share stay the population's.`
             : null,
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,

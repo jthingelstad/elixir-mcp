@@ -56,7 +56,11 @@ import {
   pollStateOp,
 } from "./ops-diagnostics.mjs";
 import { auditCensus, argsCensus, pollReplay } from "./ops-analysis.mjs";
-import { cardRolesImport, archetypeCensus } from "./ops-archetypes.mjs";
+import {
+  cardRolesImport,
+  archetypeCensus,
+  archetypeStamp,
+} from "./ops-archetypes.mjs";
 import {
   feedbackPending,
   feedbackRead,
@@ -260,6 +264,11 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.card_roles_import,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.archetype_stamp) {
+    const result = await archetypeStamp(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

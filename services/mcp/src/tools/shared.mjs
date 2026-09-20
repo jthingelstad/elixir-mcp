@@ -33,7 +33,7 @@ import {
   normalizeName,
   FAMILIES,
 } from "@elixir-mcp/contracts";
-import { loadVocabulary } from "../../../ingest/src/card-roles.mjs";
+import { cachedVocabulary } from "../../../ingest/src/card-roles.mjs";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 import { resolveInstant } from "../time.mjs";
@@ -1170,17 +1170,9 @@ export async function decksContaining(db, cardIds) {
   return new Set(rows.map((r) => r.deck_hash));
 }
 
-/** The archetype vocabulary (0147), cached per connection for five
- *  minutes: it changes at a deploy, and every deck object needs it. */
-const VOCABULARY_TTL_MS = 5 * 60_000;
-const vocabularyCache = new WeakMap();
-async function vocabulary(db) {
-  const hit = vocabularyCache.get(db);
-  if (hit && hit.until > Date.now()) return hit.value;
-  const value = await loadVocabulary(db);
-  vocabularyCache.set(db, { value, until: Date.now() + VOCABULARY_TTL_MS });
-  return value;
-}
+/** The archetype vocabulary (0147): one cache for the readers and the
+ *  ingest path (card-roles.mjs). */
+const vocabulary = cachedVocabulary;
 
 /** A deck's archetype object (design §4.2): the grammar over the cards
  *  with their catalog costs, the vocabulary's version beside the
@@ -1253,6 +1245,49 @@ export function matchesArchetype(archetype, resolved) {
   if (resolved.family && archetype.family !== resolved.family) return false;
   const ids = new Set(archetype.win_conditions.map((w) => w.id));
   return resolved.win_conditions.every((w) => ids.has(w.id));
+}
+
+/** The stamped archetype of many decks at once (0148): family, label,
+ *  win condition ids per hash. A deck the nightly has not reached yet is
+ *  classified here from its cards, so a reader never sees a hole. */
+export async function deckStamps(db, hashes) {
+  const wanted = [...new Set(hashes.filter(Boolean))];
+  const out = new Map();
+  if (wanted.length === 0) return out;
+  const { rows } = await db.query(
+    `select deck_hash, archetype_family, archetype_label, archetype_win_conditions
+     from deck where deck_hash = any($1)`,
+    [wanted],
+  );
+  const missing = [];
+  for (const r of rows) {
+    if (r.archetype_label === null) missing.push(r.deck_hash);
+    else
+      out.set(r.deck_hash, {
+        family: r.archetype_family,
+        label: r.archetype_label,
+        win_condition_ids: r.archetype_win_conditions ?? [],
+      });
+  }
+  if (missing.length) {
+    const identities = await deckIdentities(db, missing);
+    for (const [hash, identity] of identities)
+      out.set(hash, {
+        family: identity.archetype.family,
+        label: identity.archetype.label,
+        win_condition_ids: identity.archetype.win_conditions.map((w) => w.id),
+      });
+  }
+  return out;
+}
+
+/** Does a stamp match a resolution (the stamped twin of matchesArchetype). */
+export function stampMatches(stamp, resolved) {
+  if (!stamp) return false;
+  if (resolved.family && stamp.family !== resolved.family) return false;
+  return resolved.win_conditions.every((w) =>
+    stamp.win_condition_ids.includes(w.id),
+  );
 }
 
 /** The note that rides any response carrying deck objects (once). */

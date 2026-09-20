@@ -723,3 +723,145 @@ test("6.5.0: every deck object carries its archetype once the vocabulary is impo
     await fresh.end();
   }
 });
+
+// --- 6.6.0: the stamp, group_by archetype with members, plays_* -----------
+
+test("6.6.0: decks are stamped (backfill and at insert), group_by folds by label or family with members, the filter reads the stamp, fit says what the player already plays", async () => {
+  const { archetypeStamp } =
+    await import("../../migrate/src/ops-archetypes.mjs");
+  const { default: pg } = await import("pg");
+  // The vocabulary was imported by the 6.5.0 test above; the two fixture
+  // decks pre-date it, so they are unstamped until the backfill.
+  const { rows: before } = await scratch.db.query(
+    `select count(*) filter (where archetype_label is null)::int as unstamped from deck`,
+  );
+  assert.ok(before[0].unstamped >= 2);
+  const stamped = await archetypeStamp(scratch.url);
+  assert.ok(stamped.written >= 2);
+  assert.match(stamped.version, /^2026-09\|/);
+  const { rows: after } = await scratch.db.query(
+    `select archetype_family, archetype_label, archetype_win_conditions, archetype_version from deck where archetype_label is not null`,
+  );
+  assert.ok(after.length >= 2);
+  for (const r of after) {
+    assert.equal(r.archetype_family, "cycle");
+    assert.equal(r.archetype_label, "Hog Rider cycle");
+    assert.deepEqual(r.archetype_win_conditions, [26000021]);
+    assert.equal(r.archetype_version, stamped.version);
+  }
+  // A second run writes nothing: the stamp is current.
+  const again = await archetypeStamp(scratch.url);
+  assert.equal(again.written, 0);
+
+  // A deck inserted now is stamped at insert (deck-cards.mjs
+  // projectDecks): a new tower troop makes a new identity.
+  const { projectDecks } = await import("../../ingest/src/deck-cards.mjs");
+  const NEW_TOWER = { id: 159000001, name: "Cannoneer" };
+  const newHash = deckHash({
+    cards: IDS.map((id) => ({ id })),
+    towerTroopId: NEW_TOWER.id,
+  });
+  // (A fresh client: the vocabulary cache on scratch.db predates the import.)
+  const ingestClient = new pg.Client({ connectionString: scratch.url });
+  await ingestClient.connect();
+  await projectDecks(ingestClient, [
+    {
+      battle_id: "df-stamp-1",
+      player_tag: TAG,
+      battle_time: "2026-09-04T12:00:00Z",
+      deck_hash: newHash,
+      deck: { cards: cards(0), supportCards: [NEW_TOWER] },
+    },
+  ]);
+  await ingestClient.end();
+  const { rows: fresh } = await scratch.db.query(
+    `select archetype_label, archetype_version from deck where deck_hash = $1`,
+    [newHash],
+  );
+  assert.equal(fresh.length, 1);
+  assert.equal(fresh[0].archetype_label, "Hog Rider cycle");
+  assert.equal(fresh[0].archetype_version, stamped.version);
+
+  const client = new pg.Client({ connectionString: scratch.url });
+  await client.connect();
+  try {
+    const callFresh = (name, args) =>
+      registry.invoke(name, { db: client, account }, args);
+    // group_by archetype on the player segment: one row, with members.
+    const byLabel = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      group_by: "archetype",
+    });
+    assert.deepEqual(byLabel.decks, []);
+    assert.equal(byLabel.applied.group_by, "archetype");
+    assert.equal(byLabel.archetypes.length, 1);
+    const row = byLabel.archetypes[0];
+    assert.equal(row.label, "Hog Rider cycle");
+    assert.equal(row.family, "cycle");
+    assert.deepEqual(row.win_condition_ids, [26000021]);
+    assert.equal(row.decks, 2);
+    assert.equal(row.battles, 6);
+    assert.equal(row.wins, 6);
+    assert.equal(row.players, 1, "exact: one member");
+    assert.equal(row.share, 1);
+    assert.equal(row.members.length, 1);
+    assert.equal(row.members[0].player_tag, TAG);
+    assert.equal(row.members[0].battles, 6);
+    assert.ok(row.members[0].deck_hash, "their most-played deck of the shape");
+    assert.ok(!("shrunk_win_rate" in row), "never a tier list");
+    assert.match(byLabel.notes[0], /Folded 2 decks .* into 1 archetypes/);
+    assert.match(byLabel.notes[0], /players is exact/);
+    // By family: the same one row under family.
+    const byFamily = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      group_by: "family",
+    });
+    assert.equal(byFamily.archetypes.length, 1);
+    assert.equal(byFamily.archetypes[0].family, "cycle");
+    assert.ok(!("label" in byFamily.archetypes[0]));
+    // The filter now reads the stamp over every candidate.
+    const filtered = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      archetype: "hog cycle",
+    });
+    assert.equal(filtered.decks.length, 2);
+    assert.ok(filtered.notes.some((n) => /ran over all 2 decks/.test(n)));
+    // fit_for on a player who fields these decks: plays_family true.
+    await scratch.db.query(
+      `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
+       select $1, card_id, 14, 1, 1, 0, now(), now() from card where card_id in (26000007,26000021,26000000,26000010,28000011,26000014,27000000,28000001)
+       on conflict do nothing`,
+      [TAG],
+    );
+    const fitted = await callFresh("battles_meta_decks", {
+      segment: { player_tag: TAG },
+      from: "2026-09-01",
+      min_battles: 1,
+      fit_for: TAG,
+    });
+    assert.deepEqual(fitted.fit_for.plays, {
+      families: ["cycle"],
+      archetypes: ["Hog Rider cycle"],
+    });
+    for (const d of fitted.decks) {
+      assert.equal(d.fit.plays_family, true);
+      assert.equal(d.fit.plays_archetype, true);
+    }
+    assert.ok(fitted.notes.some((n) => /costs the least to adopt/.test(n)));
+    await assert.rejects(
+      callFresh("battles_meta_decks", {
+        segment: { player_tag: TAG },
+        group_by: "colour",
+      }),
+      (e) => e.code === "bad_request",
+    );
+  } finally {
+    await client.end();
+  }
+});

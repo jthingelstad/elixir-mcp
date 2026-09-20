@@ -25,6 +25,8 @@
 /** The (round, slot, card) rows a canonical participant's deck JSON
  *  holds. slot 1..8 as the API listed the cards; slot 0 is the tower
  *  troop; round 0 except for duels, where each round is its own deck. */
+import { cachedVocabulary, stampDecks } from "./card-roles.mjs";
+
 export function participantCardRows(deck) {
   if (!deck) return [];
   const out = [];
@@ -170,6 +172,11 @@ export async function projectDecks(db, partRows) {
        on conflict do nothing`,
       [JSON.stringify(deckCards)],
     );
+    // The archetype stamp (0148) on the batch's decks: a new deck is
+    // named the moment it exists; a known one is re-stamped cheaply.
+    await stampDecks(db, await cachedVocabulary(db), {
+      hashes: deckRows.map((d) => d.deck_hash),
+    });
   }
   return { cards, stubbed };
 }
