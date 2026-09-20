@@ -6514,3 +6514,40 @@ Minion Horde and Skeletons as bait units; Archer Queen and Mini
 P.E.K.K.A as bridge partners; and a look at Royal Giant's family.
 Elixir's own queue (Admin ▸ Cards) still says Goblinstein and Giant
 Skeleton are the cards most worth a public citation.
+
+## 2026-09-20 — The resolver (contract 6.8.0), and the first read of two players' decks
+
+`9d0ad7a`, deployed ~19:00Z: `cards_archetype` - `{ name }` to family,
+win conditions, aliases and this season's share by the stamp; `{ cards }`
+(ids or names, `Evo`/`Hero` prefixes) to an archetype with no record
+needed and `in_the_record`; `{}` the vocabulary. Jamie: the tool-list
+weight is not the constraint while the product is still evolving.
+
+**The test Jamie asked for: his decks and Tyler's (raquaza).** King
+Thing: the ladder deck reads "Royal Hogs bridge spam" (3.75; Royal Ghost
+is the partner), the war variant with Musketeer for Cannon shares the
+label (two identities, one name - as intended), the Evo Mortar war deck
+reads "Evo Mortar siege" (3.13; players would also say "Mortar cycle"
+or "Mortar bait", both resolve to it), the casual Graveyard deck reads
+"Graveyard control". Tyler: the ranked deck reads "Miner control" (3.88)
+- Miner outranks Goblin Barrel with no bait unit beside it and Boss
+Bandit at 9.5, which is right, though a player might say "Miner Boss
+Bandit" (see below); his two casual decks read bare "Cycle" at 3.38 and
+3.25 - Skeletons, Evo Valkyrie, Hero Mini P.E.K.K.A, Cannon, Tesla,
+Rocket, Hero Barbarian Barrel, Royal Delivery: a **Rocket cycle**, the
+exact entry the independent seed run had proposed and the vocabulary
+lacked. Attested (`a597919` in cr-agent-api-docs: RoyaleTracker's
+"Rocket Cycle", deckmelon's titles; tier 10, the spell-only anchor
+below every troop and building), re-imported at 19:05Z, the record
+re-stamped in 2 m: both decks now read "Rocket cycle".
+
+**Two observations from the read, not changed:** (1) `win_conditions[]`
+carries the anchor (and its pair) only, so Tyler's Miner / Goblin Barrel
+/ Boss Bandit deck says "Miner" and an agent cannot see the other two
+win-condition cards without reading `cards[]` - a `secondary_win_conditions`
+list (every attested win condition present, anchor excluded) would let
+it say "Miner control with Goblin Barrel and Boss Bandit"; cheap, and
+Jamie's call whether the label itself should ever carry two names beyond
+the pairs. (2) Mortar with two bait units (Dart Goblin, Spear Goblins)
+is siege-first by tier; "Mortar bait" is a shape the community names and
+Elixir resolves by alias only if one is added.
