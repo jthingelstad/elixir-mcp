@@ -6452,3 +6452,19 @@ Admin ▸ Cards page (design §12.4); the resolver tool (deferred by
 Jamie); the agent's seed run (queued for Understand Clash Royale's next
 scheduled run - its objective carries the job as of `15b7fa0`, domain
 checkout, unpushed).
+
+## 2026-09-20 — Deck archetypes, the arc closed on the product side (contract 6.7.0)
+
+`e91023b`, deployed ~18:50Z. Admin ▸ Cards (`GET /api/admin/cards`,
+admins only, read-only): the catalog with each card's role and its
+public source, the vocabulary version and the cr-agent-api-docs commit
+it came from, the alias table, and the unattested queue computed from
+the stamp (decks with `archetype_win_conditions = '{}'` this season,
+their most expensive troop or building with no role). Nothing edits;
+the file lives in the reference repository (design §12.4). `cards_card`
+takes the `archetype` filter over the decks carrying the card. The
+6.6.0 What's-new entry, which a failed script had silently skipped,
+landed here beside 6.7.0's. Left for later, all deferred by Jamie or by
+the design: the resolver tool; a `same_family` narrowing on the meta
+reader; the bot's retirement of `_classify` when its MCP pin reads the
+label.
