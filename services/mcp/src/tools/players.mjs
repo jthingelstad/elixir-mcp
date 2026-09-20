@@ -44,6 +44,7 @@ import {
   docsRef,
   deckIdentities,
   seasonFieldsForDays,
+  fieldedLevel,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
 import {
@@ -566,7 +567,7 @@ export const playersTools = {
 
   players_collection: {
     description:
-      "Full card collection as last recorded: levels (in-game 1-16 scale), counts, forms, star levels, collection level. evolutionLevel / maxEvolutionLevel are FORM bit fields (1 = Evolution, 2 = Hero, 3 = both), decoded into forms_unlocked / forms_available. verbosity compact keeps id, name, level and forms per card.",
+      "Full card collection as last recorded: levels (in-game 1-16 scale), counts, forms, star levels, collection level, and fielded: the mean level of the decks the player has actually played in the last 30 days, the benchmark a held level reads against. evolutionLevel / maxEvolutionLevel are FORM bit fields (1 = Evolution, 2 = Hero, 3 = both), decoded into forms_unlocked / forms_available. verbosity compact keeps id, name, level and forms per card.",
     inputSchema: {
       type: "object",
       properties: {
@@ -620,6 +621,13 @@ export const playersTools = {
         rows[0].observed_at,
       );
       const compact = args.verbosity === "compact";
+      // The benchmark (6.4.0, feedback #70): 128 held levels mean little
+      // without the level the player actually fields.
+      const fielded = await fieldedLevel(ctx.db, tag, {
+        from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+        to: null,
+        types: null,
+      });
       const shape = (r) => {
         const full = {
           id: r.card_id,
@@ -654,12 +662,20 @@ export const playersTools = {
         player_tag: tag,
         applied: appliedBlock({ verbosity: compact ? "compact" : "full" }),
         collection_level: lvl[0]?.collection_level ?? null,
+        fielded: {
+          days: 30,
+          mean_level: fielded.mean_level,
+          battles: fielded.battles,
+        },
         cards: rows.filter((r) => r.kind !== "support").map(shape),
         support_cards: rows.filter((r) => r.kind === "support").map(shape),
         as_of_payload: asOf.toISOString(),
         notes: notes(
           "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
           "Levels are the in-game 1-16 scale; starLevel is cosmetic.",
+          fielded.mean_level === null
+            ? "fielded.mean_level is null: no decided pvp battle with a recorded deck in the last 30 days, so there is no benchmark for what this player fields."
+            : `fielded.mean_level (${fielded.mean_level} over ${fielded.battles} decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below it is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection.`,
         ),
         docs: FORMS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),

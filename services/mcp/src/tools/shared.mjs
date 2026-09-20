@@ -25,6 +25,9 @@ import {
   roleQuotas,
   MODE_GROUPS,
   formName,
+  normalizeTag,
+  cardForms,
+  CARD_FORM_BITS,
 } from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
@@ -1266,4 +1269,154 @@ export async function ensureClanRecording(db, tag, requestedBy) {
 export async function settleClanRecording(db, tag) {
   const { stopped } = await reconcileRecording(db, "clan", tag, null);
   return stopped;
+}
+
+/** The fit of the population's decks against one player's collection
+ *  (6.4.0, feedback #70: a corpus deck sorted by win rate reads as
+ *  advice, and the payload carried nothing about what the caller holds,
+ *  so an agent recommended a deck the player could not field - two
+ *  rows ran a card he did not own, the top row cost him two mean
+ *  levels). Jamie's call: recommendations come from the player's
+ *  collection, and the agent must be free to say what a few upgrades
+ *  would open - so a row carries what the player holds, what it would
+ *  field at, and the upgrade path; a row with a card or form the player
+ *  lacks leaves decks[] for unfieldable[]. The levels are the display
+ *  scale on both sides (contracts displayLevel, the one conversion). */
+
+/** What a player holds: card_id -> { level, forms }. An empty map means
+ *  no collection is recorded. */
+async function heldCards(db, tag) {
+  const { rows } = await db.query(
+    `select card_id, level, evolution_level, observed_at from player_card where player_tag = $1`,
+    [tag],
+  );
+  const held = new Map();
+  let asOf = null;
+  for (const r of rows) {
+    held.set(r.card_id, { level: r.level, forms: r.evolution_level ?? 0 });
+    if (asOf === null || r.observed_at > asOf) asOf = r.observed_at;
+  }
+  return { held, as_of: asOf ? asOf.toISOString() : null };
+}
+
+/** The mean level a player has actually fielded: the average of their
+ *  decks' mean card level over decided pvp battles in the window (and
+ *  mode, when one is asked). The benchmark that makes a held level
+ *  meaningful; null with no such battles. */
+export async function fieldedLevel(db, tag, { from, to, types }) {
+  const { rows } = await db.query(
+    `select round(avg(deck_avg_level)::numeric, 2) as mean, count(deck_avg_level)::int as battles
+     from battle_participant
+     where player_tag = $1 and battle_time >= $2
+       and ($3::timestamptz is null or battle_time < $3)
+       and ($4::text[] is null or type = any($4))
+       and type_class = 'pvp' and outcome in ('win', 'loss') and deck_avg_level is not null`,
+    [tag, from, to ?? null, types ?? null],
+  );
+  const r = rows[0];
+  return {
+    mean_level:
+      r?.mean === null || r?.mean === undefined ? null : Number(r.mean),
+    battles: r?.battles ?? 0,
+  };
+}
+
+/** Resolve a fit_for argument to a tag with a recorded collection, or
+ *  refuse: a fit against nothing would read as "owns nothing". */
+export async function resolveFitFor(db, value) {
+  let tag;
+  try {
+    tag = normalizeTag(String(value));
+  } catch {
+    throw new ToolFailure(
+      "invalid_tag",
+      `Invalid fit_for tag: ${value}`,
+      TAG_RULE_HINT,
+    );
+  }
+  const collection = await heldCards(db, tag);
+  if (collection.held.size === 0)
+    throw new ToolFailure(
+      "not_recorded",
+      `No collection recorded for ${tag}, so nothing to fit against.`,
+      "The collection is read from the player's profile; players_profile({ live: true }) fetches one now, or omit fit_for for the population's decks alone.",
+    );
+  return { tag, ...collection };
+}
+
+/** One deck's cards against what the player holds: fieldable or not
+ *  (missing names the card and why), the mean level the player would
+ *  field it at, that against the level they have been fielding, and
+ *  the upgrade path to the fielded level (what could be). */
+export function deckFit(cards, held, fielded) {
+  const missing = [];
+  const levels = [];
+  const upgrades = [];
+  const target = fielded === null ? null : Math.round(fielded);
+  for (const c of cards) {
+    const h = held.get(c.id);
+    const bit = CARD_FORM_BITS[c.form] ?? 0;
+    if (!h) {
+      missing.push({
+        id: c.id,
+        name: c.name,
+        form: c.form,
+        reason: "not_owned",
+      });
+      continue;
+    }
+    if (bit !== 0 && (h.forms & bit) === 0)
+      missing.push({
+        id: c.id,
+        name: c.name,
+        form: c.form,
+        reason: "form_not_unlocked",
+      });
+    if (h.level !== null) {
+      levels.push(h.level);
+      if (target !== null && h.level < target)
+        upgrades.push({
+          id: c.id,
+          name: c.name,
+          form: c.form,
+          held_level: h.level,
+          to_level: target,
+          levels: target - h.level,
+        });
+    }
+  }
+  upgrades.sort((a, z) => z.levels - a.levels || a.id - z.id);
+  const mean = (xs) =>
+    xs.length
+      ? Number((xs.reduce((s, x) => s + x, 0) / xs.length).toFixed(3))
+      : null;
+  const ownMean = missing.some((m) => m.reason === "not_owned")
+    ? null
+    : mean(levels);
+  return {
+    fieldable: missing.length === 0,
+    missing,
+    own_mean_level: ownMean,
+    vs_fielded:
+      ownMean === null || fielded === null
+        ? null
+        : Number((ownMean - fielded).toFixed(3)),
+    upgrades,
+    mean_level_after_upgrades:
+      ownMean === null || target === null
+        ? null
+        : mean(levels.map((l) => Math.max(l, target))),
+  };
+}
+
+/** What a player holds of one card, for a card row: null when unowned. */
+export function heldCard(held, cardId, form) {
+  const h = held.get(cardId);
+  if (!h) return null;
+  const bit = CARD_FORM_BITS[form] ?? 0;
+  return {
+    level: h.level,
+    forms_unlocked: cardForms(h.forms),
+    has_form: bit === 0 || (h.forms & bit) !== 0,
+  };
 }

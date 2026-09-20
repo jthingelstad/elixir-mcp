@@ -386,3 +386,180 @@ test("5.0.0 cards_card: a clan segment says who played the card and who holds it
   assert.equal(res.members.held[0].level, 14);
   assert.deepEqual(res.members.held[0].forms_unlocked, ["evolution"]);
 });
+
+// --- 6.4.0: fit_for, the population's decks against one collection (#70) ----
+
+test("6.4.0 fit_for: a row the player cannot field leaves decks[]; a fieldable row says what it would field at and the upgrade path", async () => {
+  const FIT = "#2PPLUV0";
+  await scratch.db.query("insert into player (player_tag) values ($1)", [FIT]);
+  // Owns seven of the eight cards (no Cannon), the Witch without her
+  // evolution, at mixed levels: 16,16,15,14,13,12,11.
+  const levels = {
+    26000007: [13, 0], // Witch, base only
+    26000021: [16, 0],
+    26000000: [16, 0],
+    26000010: [15, 0],
+    28000011: [14, 0],
+    26000014: [12, 0],
+    28000001: [11, 0],
+  };
+  for (const [id, [level, forms]] of Object.entries(levels))
+    await scratch.db.query(
+      `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
+       values ($1, $2, $3, 1, $4, 0, now(), '2026-09-20T06:42:49Z')`,
+      [FIT, Number(id), level, forms],
+    );
+  const args = {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    fit_for: FIT,
+    min_battles: 1,
+  };
+  // Without a fielded level: both rows unfieldable, both name the Cannon.
+  const res = await call("battles_meta_decks", args);
+  assert.equal(res.applied.fit_for, FIT);
+  assert.equal(res.fit_for.player_tag, FIT);
+  assert.equal(res.fit_for.collection_as_of, "2026-09-20T06:42:49.000Z");
+  assert.equal(res.fit_for.fielded_mean_level, null);
+  assert.deepEqual(res.decks, []);
+  assert.equal(res.unfieldable.length, 2);
+  for (const row of res.unfieldable) {
+    assert.equal(row.fit.fieldable, false);
+    assert.ok(
+      row.fit.missing.some(
+        (m) => m.id === 27000000 && m.reason === "not_owned",
+      ),
+    );
+    assert.equal(
+      row.fit.own_mean_level,
+      null,
+      "a deck with an unowned card has no level",
+    );
+    assert.ok(row.cards.every((c) => "held_level" in c));
+    assert.equal(row.cards.find((c) => c.id === 27000000).held_level, null);
+  }
+  const evoRow = res.unfieldable.find((r) =>
+    r.cards.some((c) => c.id === 26000007 && c.form === "evolution"),
+  );
+  assert.ok(
+    evoRow.fit.missing.some(
+      (m) => m.id === 26000007 && m.reason === "form_not_unlocked",
+    ),
+  );
+  assert.ok(res.notes[0].startsWith(`Checked against ${FIT}'s collection`));
+  assert.match(res.notes[0], /0 of the top 2 rows are fieldable/);
+  assert.ok(
+    res.notes.some((n) =>
+      /no decided pvp battles with a recorded deck in this window/.test(n),
+    ),
+  );
+
+  // Give them the Cannon at 10 and a fielded history at 15.4 (three
+  // battles: the benchmark). The base deck is fieldable; the Evo deck
+  // still is not.
+  await scratch.db.query(
+    `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
+     values ($1, 27000000, 10, 1, 0, 0, now(), '2026-09-20T06:42:49Z')`,
+    [FIT],
+  );
+  // Two days ago: inside the meta window and inside players_collection's
+  // 30 days whenever the test runs.
+  const recent = new Date(Date.now() - 2 * 86_400_000).toISOString();
+  for (const [n, lvl] of [
+    [1, 15.5],
+    [2, 15.5],
+    [3, 15.2],
+  ]) {
+    await scratch.db.query(
+      `insert into battle (battle_id,battle_time,type,type_class,game_mode_name)
+       values ($1,$2::timestamptz,'PvP','pvp','Ladder')`,
+      [`fit-${n}`, recent],
+    );
+    await scratch.db.query(
+      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class,deck_avg_level)
+       values ($1,$2,0,'loss',$5::timestamptz,0,$3,'PvP','pvp',$4)`,
+      [`fit-${n}`, FIT, hashFor(0), lvl, recent],
+    );
+  }
+  const again = await call("battles_meta_decks", args);
+  assert.equal(again.fit_for.fielded_mean_level, 15.4);
+  assert.equal(again.fit_for.fielded_battles, 3);
+  assert.equal(again.decks.length, 1);
+  assert.equal(again.unfieldable.length, 1);
+  const base = again.decks[0];
+  assert.equal(base.fit.fieldable, true);
+  assert.deepEqual(base.fit.missing, []);
+  // (13+16+16+15+14+12+11+10)/8 = 13.375
+  assert.equal(base.fit.own_mean_level, 13.375);
+  assert.equal(base.fit.vs_fielded, -2.025);
+  // Target is the fielded level rounded (15): five cards below it,
+  // largest deficit first.
+  assert.deepEqual(
+    base.fit.upgrades.map((u) => [u.name, u.held_level, u.to_level, u.levels]),
+    [
+      ["Cannon", 10, 15, 5],
+      ["Arrows", 11, 15, 4],
+      ["Musketeer", 12, 15, 3],
+      ["Witch", 13, 15, 2],
+      ["The Log", 14, 15, 1],
+    ],
+  );
+  // (15+16+16+15+15+15+15+15)/8 = 15.25
+  assert.equal(base.fit.mean_level_after_upgrades, 15.25);
+  assert.ok(
+    again.notes.some((n) => /1 of the top 2 rows are fieldable/.test(n)),
+  );
+  assert.ok(
+    again.notes.some((n) =>
+      /fielded a mean card level of 15.4 over 3 decided battles/.test(n),
+    ),
+  );
+  // The population's ranking is untouched: the rows themselves are the same.
+  assert.equal(base.battles, 3);
+
+  // Without fit_for the note says the population knows nothing of the caller.
+  const plain = await call("battles_meta_decks", {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    min_battles: 1,
+  });
+  assert.match(plain.notes[0], /nothing here checks what any one player holds/);
+  assert.ok(!("unfieldable" in plain));
+  assert.ok(!("fit" in plain.decks[0]));
+
+  // The card meta carries held per row.
+  const cards = await call("battles_meta_cards", {
+    segment: { player_tag: TAG },
+    from: "2026-09-01",
+    min_battles: 1,
+    fit_for: FIT,
+  });
+  const witchEvo = cards.cards.find(
+    (c) => c.card_id === 26000007 && c.form === "evolution",
+  );
+  const witchBase = cards.cards.find(
+    (c) => c.card_id === 26000007 && c.form === "base",
+  );
+  assert.deepEqual(witchEvo.held, {
+    level: 13,
+    forms_unlocked: [],
+    has_form: false,
+  });
+  assert.deepEqual(witchBase.held, {
+    level: 13,
+    forms_unlocked: [],
+    has_form: true,
+  });
+  assert.equal(cards.fit_for.fielded_mean_level, 15.4);
+  assert.ok(cards.notes[0].startsWith(`held on each row is what ${FIT} holds`));
+
+  // An unrecorded collection refuses rather than reading as "owns nothing".
+  await assert.rejects(
+    call("battles_meta_decks", { ...args, fit_for: "#2LLLL" }),
+    (e) => e.code === "not_recorded",
+  );
+
+  // players_collection carries the same benchmark.
+  const coll = await call("players_collection", { player_tag: FIT });
+  assert.deepEqual(coll.fielded, { days: 30, mean_level: 15.4, battles: 3 });
+});

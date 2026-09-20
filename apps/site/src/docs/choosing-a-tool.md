@@ -35,6 +35,7 @@ conventions that hold everywhere.
 | How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
 | What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment` |
+| Which of those decks could THIS player actually play, and what would a few upgrades open? | the same, with `fit_for: "#TAG"`: rows they cannot field move to `unfieldable[]`, every row carries `fit` (their mean level, the gap to what they field, the upgrade path) |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
 | What happened since I last looked? | `elixir_timeline` (items in order and an entry per subject, then drill with the data tools) |

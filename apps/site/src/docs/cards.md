@@ -83,7 +83,8 @@ card's win rate describes who played it as much as the card.
 | Who in my clan plays it, and at what level? Who holds it? | `cards_card` with `segment: "mine"` (`members`) |
 | Which of MY cards carry, which enemy cards beat me? | `battles_cards` (`perspective`) |
 | My battles with or against a card | `battles_query` (`with_card`, `with_cards`, `against_card`) |
-| My collection: levels, forms, counts | `players_collection` |
+| My collection: levels, forms, counts, and the level I actually field | `players_collection` (`fielded`) |
+| Which meta decks can I field, and what would upgrades open? | `battles_meta_decks` with `fit_for` (`decks[]` fieldable as held, `unfieldable[]` with the missing card or form, `fit.upgrades` on every row); `battles_meta_cards` with `fit_for` carries `held` per row |
 
 What beats a card across the corpus - the matchup question - is not yet
 answered; it needs a rollup the record does not keep, and is queued.

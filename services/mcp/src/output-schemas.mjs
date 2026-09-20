@@ -17,7 +17,7 @@
  */
 
 const ISO = { type: "string", description: "ISO 8601 UTC instant." };
-/** A subject's last-observed name beside its tag (6.3.0). */
+/** A subject's last-observed name beside its tag (6.4.0). */
 const NAME = {
   type: ["string", "null"],
   description: "Last-observed name; null when the record has none.",
@@ -337,6 +337,59 @@ const META_COMMON = {
   docs: DOCS,
   meta: META,
 };
+/** fit_for on the meta tools (6.4.0): the population's rows against
+ *  one player's collection. */
+const FIT_FOR_BLOCK = {
+  type: "object",
+  description:
+    "Present with fit_for: whose collection, as of when, and the benchmark.",
+  properties: {
+    player_tag: TAG,
+    collection_as_of: { type: ["string", "null"] },
+    fielded_mean_level: {
+      type: ["number", "null"],
+      description:
+        "The mean card level of the decks the player actually played (decided pvp, this window and mode); null with none.",
+    },
+    fielded_battles: COUNT,
+  },
+};
+const DECK_FIT = {
+  type: "object",
+  description:
+    "With fit_for: this deck against what the player holds. Levels are the 1-16 display scale.",
+  properties: {
+    fieldable: { type: "boolean" },
+    missing: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: COUNT,
+          name: { type: ["string", "null"] },
+          form: { type: "string" },
+          reason: { type: "string", enum: ["not_owned", "form_not_unlocked"] },
+        },
+      },
+    },
+    own_mean_level: {
+      type: ["number", "null"],
+      description:
+        "The deck's mean level at the player's held levels; null when a card is not owned.",
+    },
+    vs_fielded: {
+      type: ["number", "null"],
+      description: "own_mean_level minus fit_for.fielded_mean_level.",
+    },
+    upgrades: {
+      type: "array",
+      description:
+        "The path to the fielded level: each held card below it, largest deficit first (held_level, to_level, levels).",
+    },
+    mean_level_after_upgrades: { type: ["number", "null"] },
+  },
+};
+
 export const OUTPUT_SCHEMAS = {
   elixir_my_feedback: {
     type: "object",
@@ -588,6 +641,7 @@ export const OUTPUT_SCHEMAS = {
             dominant_mode: { type: ["object", "null"] },
             cards: { type: "array", items: DECK_CARD },
             tower_troop: { type: ["object", "null"] },
+            fit: DECK_FIT,
           },
           required: [
             "deck_hash",
@@ -598,6 +652,12 @@ export const OUTPUT_SCHEMAS = {
             "cards",
           ],
         },
+      },
+      fit_for: FIT_FOR_BLOCK,
+      unfieldable: {
+        type: "array",
+        description:
+          "With fit_for: the rows the player cannot field as held (a card not owned or a form not unlocked), the same shape as decks[], each fit.missing naming why. Absent without fit_for.",
       },
     },
     required: ["applied", "decided_battles", "decks", "notes", "docs", "meta"],
@@ -620,10 +680,16 @@ export const OUTPUT_SCHEMAS = {
               description: "The card FORM this row counts (5.0.0).",
             },
             ...META_ROW_COMMON,
+            held: {
+              type: ["object", "null"],
+              description:
+                "With fit_for: what the player holds of the card - level, forms_unlocked, has_form (the row's form is unlocked) - or null when not owned. Absent without fit_for.",
+            },
           },
           required: ["card_id", "battles", "wins", "losses", "win_rate"],
         },
       },
+      fit_for: FIT_FOR_BLOCK,
     },
     required: ["applied", "decided_battles", "cards", "notes", "docs", "meta"],
   },

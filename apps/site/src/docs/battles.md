@@ -218,6 +218,39 @@ both participants of a match when both are in the segment, and itemize what
 the window held and left out in `excluded`. The formulas, priors and floors
 are on [How the numbers are made](/docs/methodology#deck-and-card-meta-exactly-what-is-counted).
 
+### The meta against one player's collection
+
+A population's deck sorted by win rate reads as advice, and the population's
+holdings are not the caller's: the same eight cards at one player's levels
+can be two mean levels below what they have been fielding, or contain a
+card they do not own. So the meta tools take **`fit_for`**, a player tag
+with a recorded collection, and a recommendation to a person should not omit
+it. On `battles_meta_decks` every returned row's cards then carry
+`held_level`, and every row carries `fit`:
+
+- `fieldable`, and `missing` — each card not owned or form not unlocked,
+  with its reason. **A row the player cannot field is not in `decks[]`**: it
+  sits in `unfieldable[]`, the same shape, after sort and limit, so the
+  population's ranking is unchanged (raise `limit` for more fieldable rows)
+  and an agent cannot recommend what is not in the array.
+- `own_mean_level` — the deck at the player's held levels; `vs_fielded` —
+  that against `fit_for.fielded_mean_level`, the mean card level of the decks
+  the player actually played in the window and mode (the benchmark; null
+  with no such battles, and then the gap and the path are null too).
+- `upgrades` — what could be: each held card below the fielded level,
+  largest deficit first, with `held_level`, `to_level` and `levels`; and
+  `mean_level_after_upgrades`, the deck once those are done. A form not
+  unlocked is in `missing`, not `upgrades`.
+
+`battles_meta_cards` with `fit_for` carries `held` on each row (level,
+forms unlocked, whether the row's form is unlocked) or null when the card is
+not owned. `players_collection` carries the same benchmark as `fielded`
+(thirty days). Two things the notes repeat: `mean_level_gap` on a meta row
+is the population's players' edge over their opponents, never the caller's
+(on `battles_decks` the same name is the caller's); and without `fit_for`
+nothing in a meta response checks what any one player holds. Levels are the
+1-16 display scale on both sides.
+
 ## Deck identity and forms
 
 A deck's identity is `deck_hash`: the SHA-256 hex of

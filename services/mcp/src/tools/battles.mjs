@@ -48,7 +48,18 @@ import {
   deckIdentities,
   renderDecks,
   populationBlock,
+  resolveFitFor,
+  fieldedLevel,
+  deckFit,
+  heldCard,
 } from "./shared.mjs";
+
+/** fit_for on the meta tools (6.4.0, feedback #70). */
+const FIT_FOR_SCHEMA = {
+  type: "string",
+  description:
+    "A player tag whose recorded collection every row is checked against. On battles_meta_decks a row the player cannot field (a card not owned, a form not unlocked) leaves decks[] for unfieldable[] with the reason, and every row carries fit: the mean level the player would field it at, that against the level they have been fielding in the window (fit_for.fielded_mean_level), and the upgrade path to it. On battles_meta_cards each row carries held (level and forms) or null. Omit for the population alone; a recommendation to a person should not omit it.",
+};
 import {
   seasonRollup,
   seasonPrior,
@@ -82,6 +93,31 @@ const META_TROPHY_BAND_SCHEMA = {
 };
 
 /** The band fallback sentence when the rollup is not yet built. */
+/** The meta tools and the caller's collection (6.4.0, feedback #70). */
+const NO_FIT_NOTE =
+  "These are the population's decks and levels; nothing here checks what any one player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.";
+
+function fitNotes(fitBlock, decks, unfieldable) {
+  const fielded =
+    fitBlock.fielded_mean_level === null
+      ? `${fitBlock.player_tag} has no decided pvp battles with a recorded deck in this window, so fit.vs_fielded and fit.upgrades are null: there is no fielded level to measure against`
+      : `${fitBlock.player_tag} has fielded a mean card level of ${fitBlock.fielded_mean_level} over ${fitBlock.fielded_battles} decided battles in this window; fit.vs_fielded is each row's own_mean_level against that, and fit.upgrades is the path to it`;
+  return [
+    `Checked against ${fitBlock.player_tag}'s collection as of ${fitBlock.collection_as_of}: ${decks.length} of the top ${decks.length + unfieldable.length} rows are fieldable as held (decks[]); ${unfieldable.length} are not (unfieldable[], each naming the card or form missing). The population's ranking is unchanged - the split is after sort and limit, so raise limit for more fieldable rows.`,
+    `${fielded}. mean_level_gap on a row is the population's players' edge over their opponents, not ${fitBlock.player_tag}'s; own_mean_level is what the deck would be at their levels, and held_level rides each card.`,
+  ];
+}
+
+function cardFitNote(fitBlock, cards) {
+  const unowned = cards.filter((c) => c.held === null).length;
+  const noForm = cards.filter((c) => c.held && !c.held.has_form).length;
+  return `held on each row is what ${fitBlock.player_tag} holds of the card as of ${fitBlock.collection_as_of} (${unowned} of ${cards.length} rows not owned, ${noForm} owned without the form played); ${
+    fitBlock.fielded_mean_level === null
+      ? "no fielded level is known for this window"
+      : `their fielded mean level in this window is ${fitBlock.fielded_mean_level}, the benchmark a held level reads against`
+  }. mean_level_gap is the population's, not theirs.`;
+}
+
 const BAND_FALLBACK_NOTE =
   "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it), so distinct-player counts are exact and the read is slower.";
 import { resolveInstant } from "../time.mjs";
@@ -1441,6 +1477,7 @@ export const battlesTools = {
           description:
             "Only decks whose played cards include ALL these card ids, any form, tower troop excluded (the with_cards semantics of battles_query). Applied after aggregation: usage_share and decided_battles stay the population's.",
         },
+        fit_for: FIT_FOR_SCHEMA,
       },
       required: ["segment"],
       additionalProperties: false,
@@ -1449,6 +1486,10 @@ export const battlesTools = {
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
       const win = await resolveSeasonWindow(ctx, args);
+      const fit =
+        args.fit_for === undefined
+          ? null
+          : await resolveFitFor(ctx.db, args.fit_for);
       const scope = []; // segment + window + mode: the population considered
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
@@ -1668,6 +1709,34 @@ export const battlesTools = {
           ...(identities.get(row.deck_hash) ?? { cards: [] }),
         };
       });
+      // The fit (6.4.0): what the player holds rides each card, each
+      // row says what it would field at and what upgrades would open,
+      // and a row the player cannot field is not in decks[] at all.
+      let fitBlock = null;
+      let unfieldable = [];
+      if (fit) {
+        const fielded = await fieldedLevel(ctx.db, fit.tag, {
+          from,
+          to,
+          types: args.mode ? typesForModeGroup(args.mode) : null,
+        });
+        fitBlock = {
+          player_tag: fit.tag,
+          collection_as_of: fit.as_of,
+          fielded_mean_level: fielded.mean_level,
+          fielded_battles: fielded.battles,
+        };
+        shaped = shaped.map((row) => ({
+          ...row,
+          cards: row.cards.map((c) => ({
+            ...c,
+            held_level: fit.held.get(c.id)?.level ?? null,
+          })),
+          fit: deckFit(row.cards, fit.held, fielded.mean_level),
+        }));
+        unfieldable = shaped.filter((r) => !r.fit.fieldable);
+        shaped = shaped.filter((r) => r.fit.fieldable);
+      }
       const clash = comparabilityNote(
         shaped.map((r) => ({ ...r, label: shortHash(r.deck_hash) })),
       );
@@ -1682,6 +1751,7 @@ export const battlesTools = {
           mode: args.mode,
           trophy_band: args.trophy_band,
           containing: args.containing,
+          fit_for: fit?.tag,
           min_battles: minBattles,
           sort,
           limit,
@@ -1702,8 +1772,11 @@ export const battlesTools = {
         ...(roll ? { players_as_of: roll.players_as_of } : {}),
         comparable: clash === null,
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
+        ...(fitBlock ? { fit_for: fitBlock } : {}),
         decks: shaped,
+        ...(fitBlock ? { unfieldable } : {}),
         notes: notes(
+          fitBlock ? fitNotes(fitBlock, shaped, unfieldable) : NO_FIT_NOTE,
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped) : null,
@@ -1752,6 +1825,7 @@ export const battlesTools = {
           description:
             "Only these card ids (every form of each). Applied after aggregation: usage_share and decided_battles stay the population's; min_battles still applies.",
         },
+        fit_for: FIT_FOR_SCHEMA,
       },
       required: ["segment"],
       additionalProperties: false,
@@ -1760,6 +1834,10 @@ export const battlesTools = {
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
       const win = await resolveSeasonWindow(ctx, args);
+      const fit =
+        args.fit_for === undefined
+          ? null
+          : await resolveFitFor(ctx.db, args.fit_for);
       const scope = [];
       if (seg.where) scope.push(seg.where);
       const from = win.from.toISOString();
@@ -1951,7 +2029,23 @@ export const battlesTools = {
           (modesByCard ? modesByCard.get(`${row.card_id}|${_form}`) : _types) ??
             [],
         ),
+        // What the player holds of the card, on the row (6.4.0).
+        ...(fit ? { held: heldCard(fit.held, row.card_id, row.form) } : {}),
       }));
+      let fitBlock = null;
+      if (fit) {
+        const fielded = await fieldedLevel(ctx.db, fit.tag, {
+          from,
+          to,
+          types: args.mode ? typesForModeGroup(args.mode) : null,
+        });
+        fitBlock = {
+          player_tag: fit.tag,
+          collection_as_of: fit.as_of,
+          fielded_mean_level: fielded.mean_level,
+          fielded_battles: fielded.battles,
+        };
+      }
       const clash = comparabilityNote(
         shaped.map((r) => ({ ...r, label: r.name })),
         { what: "card" },
@@ -1966,6 +2060,7 @@ export const battlesTools = {
           mode: args.mode,
           trophy_band: args.trophy_band,
           cards: args.cards,
+          fit_for: fit?.tag,
           min_battles: minBattles,
           sort,
           limit,
@@ -1986,8 +2081,10 @@ export const battlesTools = {
         ...(roll ? { players_as_of: roll.players_as_of } : {}),
         comparable: clash === null,
         ...(modeGroups ? { modes_in_window: modeGroups } : {}),
+        ...(fitBlock ? { fit_for: fitBlock } : {}),
         cards: shaped,
         notes: notes(
+          fitBlock ? cardFitNote(fitBlock, shaped) : NO_FIT_NOTE,
           clash,
           modeGroups ? pooledModesNote(modeGroups) : null,
           seg.where ? singlePlayerNote(shaped, { what: "card" }) : null,
