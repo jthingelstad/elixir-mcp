@@ -17,6 +17,11 @@
  */
 
 const ISO = { type: "string", description: "ISO 8601 UTC instant." };
+/** A subject's last-observed name beside its tag (6.3.0). */
+const NAME = {
+  type: ["string", "null"],
+  description: "Last-observed name; null when the record has none.",
+};
 const DATE = { type: "string", description: "YYYY-MM-DD." };
 const TAG = {
   type: "string",
@@ -489,6 +494,7 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       clan_tag: TAG,
+      name: NAME,
       applied: { type: "object" },
       weeks: {
         type: "array",
@@ -979,6 +985,7 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       player_tag: TAG,
+      name: NAME,
       battle_id: { type: "string" },
       deck_hash: { type: "string" },
       deck_stats: { type: "object" },
@@ -1051,6 +1058,7 @@ export const OUTPUT_SCHEMAS = {
               type: "object",
               properties: {
                 player_tag: TAG,
+                name: NAME,
                 outcome: { type: "string" },
                 crowns: { type: ["integer", "null"] },
                 trophy_change: { type: ["integer", "null"] },
@@ -1085,6 +1093,7 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       player_tag: TAG,
+      name: NAME,
       applied: {
         type: "object",
         properties: { window: WINDOW_ECHO },

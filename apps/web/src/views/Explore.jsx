@@ -436,14 +436,14 @@ function Lookup({ me, navigate, browse }) {
                 <span className="kind-chip">{m.source}</span>
                 {m.clan_tag && (
                   <span
-                    className="mono"
                     style={{
                       marginLeft: "auto",
                       fontSize: "11px",
                       color: "var(--ink-faint)",
                     }}
                   >
-                    {m.clan_tag}
+                    {m.clan_name ? `${m.clan_name} ` : ""}
+                    <span className="mono">{m.clan_tag}</span>
                   </span>
                 )}
               </a>
@@ -1049,6 +1049,7 @@ function buildView(kind, rawId, res, me) {
       throw e;
     }
     const myTag = bt.me.player_tag ?? b.player_tag;
+    const myName = bt.me.name ?? b.name ?? null;
     const opp = bt.opponents?.[0];
     const fields = [
       { label: "battle_time", value: fmt(bt.battle_time) },
@@ -1060,6 +1061,7 @@ function buildView(kind, rawId, res, me) {
         value: myTag,
         mono: true,
         href: `/explore/player/${encTag(myTag)}`,
+        hint: myName,
       },
       ...(opp
         ? [
@@ -1113,7 +1115,7 @@ function buildView(kind, rawId, res, me) {
                   : "",
           }
         : null,
-      sub: `As recorded from ${myTag}'s perspective. A battle has no children — every value here is the record itself.`,
+      sub: `As recorded from ${myName ? `${myName} ${myTag}` : myTag}'s perspective. A battle has no children — every value here is the record itself.`,
       fields,
       tiles: [],
       note: b.card_legend,
@@ -1222,6 +1224,7 @@ function buildView(kind, rawId, res, me) {
           value: b.clan_tag,
           mono: true,
           href: `/explore/clan/${encTag(b.clan_tag)}`,
+          hint: b.name,
         },
       ],
       tiles: [],
@@ -1251,11 +1254,16 @@ function buildListView(rawId, res) {
         },
         ...(what === "deckbattles"
           ? [
-              {
-                text: myTag,
-                mono: true,
-                href: `/explore/player/${encTag(myTag)}`,
-              },
+              bt.me.name
+                ? {
+                    text: bt.me.name,
+                    href: `/explore/player/${encTag(myTag)}`,
+                  }
+                : {
+                    text: myTag,
+                    mono: true,
+                    href: `/explore/player/${encTag(myTag)}`,
+                  },
             ]
           : [
               opp
@@ -1285,7 +1293,7 @@ function buildListView(rawId, res) {
       title:
         what === "deckbattles"
           ? `battles · deck ${key.slice(0, 10)}…`
-          : `battles · ${decTag(key)}`,
+          : `battles · ${b.name ?? decTag(key)}`,
       tag: what === "deckbattles" ? null : decTag(key),
       chip: null,
       sub: b.total_count
@@ -1310,7 +1318,7 @@ function buildListView(rawId, res) {
     return {
       kindLabel: "DECKS",
       crumb: "decks",
-      title: `decks · ${decTag(key)}`,
+      title: `decks · ${b.name ?? decTag(key)}`,
       tag: decTag(key),
       sub: `${b.total_battles_in_window?.toLocaleString?.() ?? ""} battles across ${b.decks?.length ?? 0} distinct decks in the window.`,
       table: {
@@ -1383,7 +1391,7 @@ function buildListView(rawId, res) {
     return {
       kindLabel: "WAR WEEKS",
       crumb: "weeks",
-      title: `war weeks · ${decTag(key)}`,
+      title: `war weeks · ${b.name ?? decTag(key)}`,
       tag: decTag(key),
       sub: "Recorded river-race weeks, newest first.",
       table: {

@@ -675,6 +675,11 @@ export const warTools = {
          where clan_tag = $1 order by season_id, section_index limit 1`,
         [clanTag],
       );
+      const {
+        rows: [clanRow],
+      } = await ctx.db.query(`select name from clan where clan_tag = $1`, [
+        clanTag,
+      ]);
       const { rows: weeks } = await ctx.db.query(
         `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at, w.closed_at,
                 own.fame as our_fame, own.rank as our_rank, own.trophy_change,
@@ -800,6 +805,7 @@ export const warTools = {
       // fought; older null-standings weeks are capture gaps.
       return {
         clan_tag: clanTag,
+        name: clanRow?.name ?? null,
         applied: appliedBlock({
           clan_tag: clanTag,
           seasons: hasSeason ? undefined : seasons,

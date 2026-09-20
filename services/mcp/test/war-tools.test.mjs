@@ -761,6 +761,51 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
   assert.equal(out.body.error.code, "no_subject");
 });
 
+test("6.3.0: a name beside every tag - war_history, players_search, battles_query", async () => {
+  const {
+    rows: [clanRow],
+  } = await db.query(`select name from clan where clan_tag = $1`, [CLAN]);
+  assert.ok(clanRow.name, "the roster ingest named the clan");
+
+  const hist = await call(invoke, "war_history", { seasons: 1 });
+  assert.equal(hist.isError, false, JSON.stringify(hist.body));
+  assert.equal(hist.body.clan_tag, CLAN);
+  assert.equal(hist.body.name, clanRow.name);
+
+  const member = (
+    await db.query(
+      `select cm.player_tag, p.name from clan_membership cm
+       join player p on p.player_tag = cm.player_tag
+       where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null limit 1`,
+      [CLAN],
+    )
+  ).rows[0];
+  const hit = await call(invoke, "players_search", { query: member.name });
+  const row = hit.body.matches.find((m) => m.player_tag === member.player_tag);
+  assert.equal(row.clan_tag, CLAN);
+  assert.equal(row.clan_name, clanRow.name);
+
+  // The caller's own page names its subject beside the tag - and so does
+  // an empty page (a window before recording), from the player row
+  // rather than the absent rows.
+  const mine = await call(invoke, "battles_query", { limit: 1 });
+  assert.equal(mine.isError, false, JSON.stringify(mine.body));
+  const {
+    rows: [alice],
+  } = await db.query(`select name from player where player_tag = $1`, [
+    mine.body.player_tag,
+  ]);
+  assert.ok(alice.name, "the roster named alice");
+  assert.equal(mine.body.name, alice.name);
+  const empty = await call(invoke, "battles_query", {
+    from: "2020-01-01",
+    to: "2020-01-02",
+  });
+  assert.equal(empty.isError, false, JSON.stringify(empty.body));
+  assert.equal(empty.body.battles.length, 0);
+  assert.equal(empty.body.name, alice.name);
+});
+
 test("players_search: corpus-wide names resolve; unknowns honest-empty", async () => {
   const member = (
     await db.query(

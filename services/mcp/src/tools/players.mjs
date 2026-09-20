@@ -793,10 +793,13 @@ export const playersTools = {
              and nn.player_tag = p.player_tag
            where p.name ilike $2 or nn.nickname ilike $2)
          select h.player_tag, h.name, h.nickname, h.source,
-                (select cm.clan_tag from clan_membership cm
-                 where cm.player_tag = h.player_tag and cm.left_observed_at is null
-                 limit 1) as clan_tag
+                cl.clan_tag, cl.name as clan_name
          from hits h
+         left join lateral (
+           select cm.clan_tag, c.name from clan_membership cm
+           left join clan c on c.clan_tag = cm.clan_tag
+           where cm.player_tag = h.player_tag and cm.left_observed_at is null
+           limit 1) cl on true
          order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
                   h.name
          limit $3`,

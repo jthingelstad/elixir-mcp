@@ -425,9 +425,10 @@ export const battlesTools = {
                 b.prev_towers_destroyed, b.remaining_towers,
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
-                bp.princess_tower_hp_2, bp.outcome
+                bp.princess_tower_hp_2, bp.outcome, p.name as player_name
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
+         left join player p on p.player_tag = bp.player_tag
          where ${where.join(" and ")}
          order by b.battle_time desc, b.battle_id desc
          limit ${limit}`,
@@ -550,7 +551,9 @@ export const battlesTools = {
               }
             : {}),
           me: {
-            ...(tag ? {} : { player_tag: r.player_tag }),
+            // Who this row is, when the call did not name one subject
+            // (a battle by id, a deck across the corpus).
+            ...(tag ? {} : { player_tag: r.player_tag, name: r.player_name }),
             outcome: r.outcome,
             crowns: r.crowns,
             trophy_change: r.trophy_change,
@@ -613,6 +616,20 @@ export const battlesTools = {
         totalCount = cnt[0].n;
       }
 
+      // The subject's last-observed name beside its tag: the page's rows
+      // carry it when there are any, and an empty page still names who.
+      let subjectName = null;
+      if (tag) {
+        subjectName = rows[0]?.player_name ?? null;
+        if (subjectName === null) {
+          const { rows: named } = await ctx.db.query(
+            `select name from player where player_tag = $1`,
+            [tag],
+          );
+          subjectName = named[0]?.name ?? null;
+        }
+      }
+
       // Empty page + a window that ends before the first recorded battle
       // reads as "player was inactive" unless we say otherwise.
       const caveats = [];
@@ -630,7 +647,7 @@ export const battlesTools = {
       }
 
       return {
-        ...(tag ? { player_tag: tag } : {}),
+        ...(tag ? { player_tag: tag, name: subjectName } : {}),
         ...(byBattle ? { battle_id: String(args.battle_id) } : {}),
         ...(deckStats
           ? { deck_hash: String(args.deck_hash), deck_stats: deckStats }
@@ -1358,8 +1375,14 @@ export const battlesTools = {
         decks.map((d) => ({ ...d, label: shortHash(d.deck_hash) })),
         { what: "deck" },
       );
+      const {
+        rows: [named],
+      } = await ctx.db.query(`select name from player where player_tag = $1`, [
+        tag,
+      ]);
       return {
         player_tag: tag,
+        name: named?.name ?? null,
         applied: appliedBlock({
           window: win.echo,
           mode: args.mode,

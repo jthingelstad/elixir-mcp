@@ -901,6 +901,19 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
   assert.equal(byId.body.battle_id, one[0].battle_id);
   assert.equal(byId.body.battles.length, 1, "one battle, one perspective row");
   assert.ok(byId.body.battles[0].me.player_tag, "perspective identity present");
+  // The perspective row names itself beside its tag (6.3.0): the
+  // record's last-observed name, null when it has none.
+  const {
+    rows: [named],
+  } = await db.query(`select name from player where player_tag = $1`, [
+    byId.body.battles[0].me.player_tag,
+  ]);
+  assert.ok(Object.hasOwn(byId.body.battles[0].me, "name"));
+  assert.equal(byId.body.battles[0].me.name, named.name);
+  assert.ok(
+    !Object.hasOwn(byId.body, "name"),
+    "no one subject, no top-level name",
+  );
   assert.ok(byId.body.battles[0].opponents.length >= 1, "both sides returned");
 
   const byDeck = await call("battles_query", {
