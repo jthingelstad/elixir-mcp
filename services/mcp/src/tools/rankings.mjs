@@ -398,7 +398,9 @@ export const rankingsTools = {
               : noSnapshotNote(row, asOf, horizon),
             board === "trophy"
               ? "The Trophy Road board has been served empty by the API for recent seasons; Path of Legends (board: pol) is the competitive ranking."
-              : FLOOR_NOTE,
+              : board === "pol_final"
+                ? null
+                : FLOOR_NOTE,
           ),
           docs: docsRef("recording", "leaderboards"),
           meta,

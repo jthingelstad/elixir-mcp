@@ -644,6 +644,10 @@ test("pol_final: three seasons, three different notes; live is never offered; se
       !b.notes.some((n) => /live: true/.test(n)),
       JSON.stringify(b.notes),
     );
+    assert.ok(
+      !b.notes.some((n) => /at most 1,000 places/.test(n)),
+      "no live-board floor talk on a final",
+    );
   }
   assert.equal(future.applied.season_requested, 999);
   assert.match(
