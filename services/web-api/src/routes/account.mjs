@@ -439,7 +439,38 @@ export function accountRoutes({
          where account_id = $1 order by event_id desc limit 20`,
         [account.accountId],
       );
-      return json(200, { events: rows });
+      // An event's detail names its subject by tag alone (the writers
+      // are many; the reader is one): resolve the last-observed name here
+      // so the console never shows a tag with nothing beside it.
+      const playerTags = [
+        ...new Set(rows.map((r) => r.detail?.player_tag).filter(Boolean)),
+      ];
+      const clanTags = [
+        ...new Set(rows.map((r) => r.detail?.clan_tag).filter(Boolean)),
+      ];
+      const names = new Map();
+      if (playerTags.length > 0) {
+        const { rows: named } = await db.query(
+          `select player_tag as tag, name from player where player_tag = any($1)`,
+          [playerTags],
+        );
+        for (const n of named) if (n.name) names.set(n.tag, n.name);
+      }
+      if (clanTags.length > 0) {
+        const { rows: named } = await db.query(
+          `select clan_tag as tag, name from clan where clan_tag = any($1)`,
+          [clanTags],
+        );
+        for (const n of named) if (n.name) names.set(n.tag, n.name);
+      }
+      return json(200, {
+        events: rows.map((r) => {
+          const tag = r.detail?.player_tag ?? r.detail?.clan_tag ?? null;
+          return tag && names.has(tag)
+            ? { ...r, detail: { ...r.detail, subject_name: names.get(tag) } }
+            : r;
+        }),
+      });
     },
 
     "GET /api/me/usage": async (db, event) => {

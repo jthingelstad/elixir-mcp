@@ -88,6 +88,8 @@ export function adminRoutes({
                 a.mcp_daily_quota,
                 (select c.player_tag from claim c
                  where c.account_id = a.account_id and c.is_primary) as primary_tag,
+                (select p.name from claim c join player p on p.player_tag = c.player_tag
+                 where c.account_id = a.account_id and c.is_primary) as primary_name,
                 count(m.audit_id)::int as calls_7d,
                 count(m.audit_id) filter (where (m.created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date)::int as calls_today,
                 count(m.audit_id) filter (where m.error_code is not null)::int as errors_7d,

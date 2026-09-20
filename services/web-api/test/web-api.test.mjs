@@ -510,6 +510,10 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     ),
   );
   const row = fleet.accounts.find((a) => a.primary_tag === "#2PP0V90Y");
+  assert.ok(
+    Object.hasOwn(row, "primary_name"),
+    "the label can name the player",
+  );
   assert.equal(row.calls_7d, 3);
   assert.equal(row.errors_7d, 1);
   assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
@@ -789,6 +793,33 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   assert.ok(kinds.includes("recording_started"));
   assert.ok(kinds.includes("gateway_raised"));
   assert.ok(kinds.includes("connection_revoked"));
+  // An event about a player or a clan is named at read time from the
+  // record, so the console's DETAIL column never shows a tag alone.
+  const claimed = act.events.find((e) => e.kind === "claim_added");
+  const claimedTag = claimed.detail.player_tag;
+  assert.ok(claimedTag);
+  assert.equal(
+    claimed.detail.subject_name,
+    undefined,
+    "unnamed until observed",
+  );
+  await db.query(`update player set name = 'Newcomer' where player_tag = $1`, [
+    claimedTag,
+  ]);
+  const named = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/activity",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.equal(
+    named.events.find((e) => e.kind === "claim_added").detail.subject_name,
+    "Newcomer",
+  );
 
   // Cap: one tag added; drop the cap to 1 and the next ADD refuses.
   await db.query(

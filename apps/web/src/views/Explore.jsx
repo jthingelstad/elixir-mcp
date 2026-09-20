@@ -332,7 +332,15 @@ function Lookup({ me, navigate, browse }) {
 
   const tryChips = [
     ...(me?.claims?.[0]
-      ? [{ label: me.claims[0].player_tag, q: me.claims[0].player_tag }]
+      ? [
+          {
+            label:
+              me.claims[0].nickname ??
+              me.claims[0].name ??
+              me.claims[0].player_tag,
+            q: me.claims[0].player_tag,
+          },
+        ]
       : []),
     ...collections.slice(0, 2).map((c) => ({ label: c.slug, q: c.slug })),
   ];

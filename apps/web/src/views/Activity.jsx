@@ -141,15 +141,18 @@ export function Activity({ sub, navigate }) {
   }
 
   if (view === "events") {
-    const rows = (events ?? []).map((e) => [
-      when(e.created_at),
-      (e.kind ?? "").replaceAll("_", " "),
-      e.detail?.player_tag ??
-        e.detail?.clan_tag ??
-        e.detail?.role ??
-        e.detail?.name ??
-        "",
-    ]);
+    const rows = (events ?? []).map((e) => {
+      const tag = e.detail?.player_tag ?? e.detail?.clan_tag ?? null;
+      return [
+        when(e.created_at),
+        (e.kind ?? "").replaceAll("_", " "),
+        tag
+          ? e.detail?.subject_name
+            ? `${e.detail.subject_name} ${tag}`
+            : tag
+          : (e.detail?.role ?? e.detail?.name ?? ""),
+      ];
+    });
     return (
       <LogTable
         crumb="Activity"

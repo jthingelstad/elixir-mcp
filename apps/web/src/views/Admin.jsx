@@ -46,7 +46,10 @@ import {
  * whose job is telling you who did what. An agent has a name; use it.
  */
 function principalLabel(a) {
-  if (a.primary_tag) return a.primary_tag;
+  if (a.primary_tag)
+    return a.primary_name
+      ? `${a.primary_name} ${a.primary_tag}`
+      : a.primary_tag;
   // A PERSON is their email hash. Their tokens have names too, and reaching
   // for one made the owner's own row read as "elixir-bot" -- a person
   // labelled with a machine they happen to own.
