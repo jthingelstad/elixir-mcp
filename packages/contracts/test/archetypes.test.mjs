@@ -121,6 +121,10 @@ const CARDS = {
   28000002: ["Rage", 2],
   26000044: ["Hunter", 4],
   28000005: ["Freeze", 4],
+  26000099: ["Goblinstein", 5],
+  26000107: ["Minion Giant", 4],
+  27000001: ["Goblin Hut", 4],
+  26000022: ["Minion Horde", 5],
 };
 const deck = (ids, forms = {}) =>
   ids.map((id) => {
@@ -459,13 +463,67 @@ const CASES = [
     "beatdown",
   ],
   [
-    "Sparky without a Goblin Giant",
+    "Sparky beside a Giant is Giant Sparky",
     [
       26000033, 26000003, 26000015, 26000042, 28000008, 26000039, 26000031,
       27000009,
     ],
-    "Giant beatdown",
+    "Giant Sparky beatdown",
     "beatdown",
+  ],
+  [
+    "Minion Giant in the Hog slot of 2.6 Hog",
+    [
+      26000107, 26000014, 27000000, 26000010, 26000030, 28000000, 28000011,
+      26000038,
+    ],
+    "Minion Giant cycle",
+    "cycle",
+  ],
+  [
+    "Goblinstein beside Royal Hogs: Royal Hogs anchors",
+    [
+      26000059, 26000099, 26000010, 26000030, 26000084, 27000000, 28000011,
+      28000017,
+    ],
+    "Royal Hogs cycle",
+    "cycle",
+  ],
+  [
+    "Goblinstein with no classic win condition, heavy",
+    [
+      26000099, 26000017, 26000015, 26000063, 28000007, 26000016, 26000011,
+      26000018,
+    ],
+    "Goblinstein control",
+    "control",
+  ],
+  [
+    "Ronin behind huts and a horde is control, not bridge spam",
+    [
+      26000106, 27000001, 26000022, 28000000, 26000039, 26000015, 28000015,
+      26000049,
+    ],
+    "Ronin control",
+    "control",
+  ],
+  [
+    "A heavy Wall Breakers deck is control",
+    [
+      26000058, 26000017, 26000007, 26000015, 28000007, 26000016, 26000011,
+      26000018,
+    ],
+    "Wall Breakers control",
+    "control",
+  ],
+  [
+    "Goblin Drill outranks Wall Breakers by the tier order, not by id",
+    [
+      27000013, 26000058, 26000010, 26000030, 26000001, 26000000, 28000000,
+      28000011,
+    ],
+    "Goblin Drill cycle",
+    "cycle",
   ],
   [
     "Ronin bridge spam",
@@ -549,6 +607,33 @@ test("every case composes the expected label and family", () => {
     assert.ok(FAMILIES.includes(a.family));
     assert.equal(typeof a.grammar_version, "string");
   }
+});
+
+test("secondary_win_conditions carries what the label leaves out", () => {
+  // Tyler's ranked deck: Miner anchors; Goblin Barrel (no bait unit
+  // beside it) and Boss Bandit are the secondaries, by tier.
+  const a = classifyDeck(
+    deck([
+      26000032, 28000004, 26000103, 26000007, 26000018, 26000037, 27000010,
+      28000011,
+    ]),
+    roles,
+  );
+  assert.equal(a.label, "Miner control");
+  assert.deepEqual(
+    a.secondary_win_conditions.map((w) => w.name),
+    ["Boss Bandit", "Goblin Barrel"],
+  );
+  assert.deepEqual(
+    classifyDeck(
+      deck([
+        26000021, 26000014, 27000000, 26000010, 26000030, 28000000, 28000011,
+        26000038,
+      ]),
+      roles,
+    ).secondary_win_conditions,
+    [],
+  );
 });
 
 test("Mirror: the average is over the seven cards that carry a cost", () => {

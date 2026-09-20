@@ -107,6 +107,9 @@ export interface WinCondition {
 export interface Archetype {
   family: Family;
   win_conditions: WinCondition[];
+  /** Every other attested win condition in the deck, by tier: what the
+   *  name leaves out ("Miner control" with Goblin Barrel and Boss Bandit). */
+  secondary_win_conditions: WinCondition[];
   label: string;
   average_elixir: number | null;
   basis: string;
@@ -216,6 +219,7 @@ export function classifyDeck(
     return {
       family,
       win_conditions: [],
+      secondary_win_conditions: [],
       label: composeLabel(family, []),
       average_elixir: average,
       basis: ARCHETYPE_BASIS,
@@ -240,9 +244,14 @@ export function classifyDeck(
     winConditions.push(winCondition(pair.id));
     if (pair.family) family = pair.family;
   }
+  const named = new Set(winConditions.map((w) => w.id));
+  const secondary = candidates
+    .filter((c) => !named.has(c.role.id))
+    .map((c) => winCondition(c.role.id));
   return {
     family,
     win_conditions: winConditions,
+    secondary_win_conditions: secondary,
     label: composeLabel(family, winConditions),
     average_elixir: average,
     basis: ARCHETYPE_BASIS,

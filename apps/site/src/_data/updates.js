@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-20",
+    title:
+      "The archetype debug pass: three new cards named, and the names say what they leave out",
+    body: "A few hundred recorded decks read beside their labels. The labels landed where they should on the classic shapes; what they missed was the new meta: a quarter of this season's battles were decks Elixir could only name by cost, and the cards defining them were Minion Giant (the season's most-played nameless deck was 2.6 Hog's eight with Minion Giant in the Hog slot), Goblinstein and Rune Giant. Public sources name the first two as win conditions and say the third is a support troop, so the vocabulary now carries Minion Giant and Goblinstein and declines Rune Giant with the reason. Four smaller corrections from the same read: Giant beside Sparky is 'Giant Sparky', a heavy Wall Breakers deck is not a cycle deck, Ronin or Elite Barbarians behind huts and a horde is not bridge spam, and two cards on the same tier no longer tie by id. And every archetype now lists its secondary win conditions - the cards the name leaves out - so 'Miner control' can be said as 'Miner control with Goblin Barrel and Boss Bandit'. Contract 6.9.0, additive.",
+  },
+  {
+    date: "2026-09-20",
     title: "cards_archetype: what a deck name means, and what to call a deck",
     body: "One tool for the two questions a player asks in one breath. Give it a name - 'bridge spam', 'Royal Hogs bridge spam', 'LavaLoon', '2.6 Hog' - and it says the family and win conditions it means, the other names for that shape, and how much of this season's record plays it. Give it eight cards, by id or by name with 'Evo' or 'Hero' where it matters, and it names the deck - no record required, and it says whether anyone recorded has played that exact set. Give it nothing and it hands over the whole vocabulary: the six families with their definitions, every win condition with its tier, the bait units and bridge partners, the aliases, and the version in force. Contract 6.8.0, additive.",
   },

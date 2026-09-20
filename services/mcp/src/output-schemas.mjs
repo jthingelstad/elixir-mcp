@@ -186,6 +186,11 @@ const ARCHETYPE = {
         },
       },
     },
+    secondary_win_conditions: {
+      type: "array",
+      description:
+        "Every other attested win condition in the deck, by priority: what the label leaves out (a 'Miner control' carrying Goblin Barrel and Boss Bandit).",
+    },
     label: {
       type: "string",
       description:

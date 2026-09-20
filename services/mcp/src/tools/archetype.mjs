@@ -235,6 +235,7 @@ export const archetypeTools = {
             family: a.family,
             family_definition: FAMILY_DEFINITIONS[a.family],
             win_conditions: a.win_conditions,
+            secondary_win_conditions: a.secondary_win_conditions,
             label: a.label,
             average_elixir: a.average_elixir,
             basis: a.basis,
