@@ -6468,3 +6468,49 @@ landed here beside 6.7.0's. Left for later, all deferred by Jamie or by
 the design: the resolver tool; a `same_family` narrowing on the meta
 reader; the bot's retirement of `_classify` when its MCP pin reads the
 label.
+
+## 2026-09-20 — The agent's seed run, graded: Understand Clash Royale can keep the vocabulary
+
+Design §12.4 said the seed is the test. An independent run (fresh
+context, public web only, forbidden to read the committed file, told
+that null is the correct answer for an unnamed card; 37 tool uses, 9.4
+minutes) produced its own `card-roles` from the Fandom Glossary via the
+MediaWiki API, the curated Fandom `Deck:` guides, deckmelon's per-card
+deck lists (333 named decks parsed), RoyaleTracker and one guide - Deck
+Shop and RoyaleAPI are Cloudflare-blocked to it, as to us. Graded
+against `cr-agent-api-docs` `6c4f517`:
+
+- **Agreement on the settled cards: 25 win conditions in both, 22 the
+  same family**; the three that differ are the known edges, and two of
+  them are agreement in substance: Hog Rider "cycle" against our
+  control-with-cycle-at-cost; Royal Hogs "control" (RoyaleTracker)
+  against our bridge spam, which Jamie decided; Royal Giant "beatdown"
+  against our control is the one real difference (deckmelon's titles
+  say both). Ours-only: Ronin and Boss Bandit as tier-9.5 anchors - the
+  agent calls them bridge partners because every named deck it saw also
+  carried a classic win condition, which is exactly what tier 9.5 means
+  (they anchor only when nothing else does; the corpus has 1,046 players
+  on "Ronin bridge spam" this season). Agent-only: Rocket as a cycle win
+  condition ("Rocket Cycle" on RoyaleTracker, ours an alias) - a fair
+  candidate for tier 10.
+- **Sources say what they are claimed to say** (spot-checked:
+  deckmelon `rune-giant` names "Rune Giant Ronin", `ronin` names "Ronin
+  Bridge Spam", RoyaleTracker names "Rocket Cycle").
+- **No invented roles.** Goblinstein, Giant Skeleton, Royal Recruits,
+  Goblin Machine, Spirit Empress, Goblin Demolisher and Mighty Miner all
+  returned null WITH the reason (each named deck carries a classic win
+  condition, or the card is support). Two entries it marked THIN and
+  provisional - Minion Giant (two named decks, zero battles) and Rune
+  Giant (one named deck, 41 battles) - are the half-fail: under the rule
+  they should have been left out, but it said so in capitals rather than
+  hiding it, which is the behaviour the objective text now asks for.
+
+**Verdict: it can do the job.** The domain objective stands as written
+(`15b7fa0`). Its first real run has a queue of candidates from this
+one, none merged here because the file is its to keep: Rocket at tier
+10 (cycle); the Fandom Glossary's aliases (Glone, LavaClone, LavaMiner,
+Goison, Moison, Hogquake, IceBow, TesBow, PBS, FreezeLoon, RageLoon);
+Minion Horde and Skeletons as bait units; Archer Queen and Mini
+P.E.K.K.A as bridge partners; and a look at Royal Giant's family.
+Elixir's own queue (Admin ▸ Cards) still says Goblinstein and Giant
+Skeleton are the cards most worth a public citation.

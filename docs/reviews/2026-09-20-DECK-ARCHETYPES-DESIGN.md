@@ -693,3 +693,14 @@ question is one call. Remaining from the design: the read-only Admin ▸
 Cards page, `cards_card.decks` filter, the resolver tool (deferred), the
 agent's seed run.
 
+## 15. Arc closed — 2026-09-20 (contract 6.7.0)
+
+Admin ▸ Cards (read-only) and the `cards_card` filter shipped (`e91023b`).
+The agent's seed run graded (ledger, same date): 22 of 25 shared win
+conditions agree on family, the differences are the documented edges,
+sources verified, no role invented for the unattested cards, two
+provisional entries marked THIN rather than hidden. Understand Clash
+Royale keeps the vocabulary from here. Deferred by decision: the
+resolver tool; the bot's `_classify` retires when its pin reads the
+label.
+
