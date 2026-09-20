@@ -6152,3 +6152,31 @@ reads the session prime added), the bucket's minimum `Tokens` per hour
 through the surge (whether the live reserve was ever the only thing
 left), RDS CPU / WriteIOPS / connections across the doubling of
 receipts, and `{stats}`'s `player` and `poll_state` write rates.
+
+**Addendum, 11:45Z, after the sign-in — the reads that waited.**
+*Ledger, per hour (`ElixirMCP/Ledger` sums, UTC):* `PlannedJobs`
+642–738 (mean ~690) in the eight hours before the deploy; **1,598 /
+1,231 / 665 / 1,188** through the surge and its wave (20:00–23:00Z);
+**764–974, mean ~890, from 00:00Z** — +29% — and 1,236 in the board
+hour. `SessionFollowupJobs` 168–233/hr steady (a fifth of what is
+planned: the share of the fleet in a sitting at any moment).
+`RequestedProfileJobs` **41–58/hr** steady against 0 before: that is the
+after-session profile prime, ~45 extra profile reads an hour on top of
+the daily base, so profile reads sit near 105/hr against 51–113 before —
+level, as planned. `ReadCappedJobs` 11–20/hr, unchanged. *The bucket:*
+minimum `Tokens` **30 in the 20:00Z surge hour** — exactly the 10% live
+reserve, which is the design holding, not failing: the planner took
+every bulk token and never the reserve — and 30 again in the 10:00Z
+board hour (as every board hour); 171–235 every other hour, so the
+clock never touched the reserve in steady state. `OldestQueuedAgeSeconds`
+peaked at 301 s in the surge hour (jobs waited a tick for collectors)
+and read 1–7 s otherwise. *RDS (`elixir-mcp-enc`, hourly means):* CPU
+5.9–6.8% against 6.0–6.5% before; WriteIOPS 16–19 against 17–21; ReadIOPS
+32–57 against 39–74; swap flat at 31–32 MB; FreeableMemory 126–142 MB.
+**Doubling the battle-log receipts did not move the box**: an empty read
+is one receipt row and one `poll_state` update, no battles. (The 16:00Z
+spike on 09-19 — CPU 14.7%, ReadIOPS 146, swap 68 MB for the hour — was
+before the deploy and is not this change; unattributed, noted.) *Last
+hour at 11:45Z:* 700 polls, 71% nothing new, **0 gaps**; fetch errors
+in 24 h are the usual `rankings_pol` 404 backoff population. Nothing in
+this addendum changes the verdict; it removes the caveats on it.
