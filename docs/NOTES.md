@@ -6320,3 +6320,22 @@ recommendation shape there); `fit_for` is a tag, not `on_behalf_of` — an
 agent passes the mapped player's tag. Another session's 6.3.0 (`3836084`,
 names beside tags) landed on this checkout mid-run and rode my push and
 the 13:05Z deploy; hence this is 6.4.0.
+
+## 2026-09-20 — Deck archetypes: the design (not applied)
+
+Jamie: players talk about decks by name, and Elixir has to name a deck
+and know what a name means — the first consumer is Elixir Clan ("what
+decks do our players use", by archetype and win condition). Matchup
+expectations are OUT (the elixir-bot matrix was a mistake and does not
+come forward); nothing may be clan-specific. The web says the
+community keeps two layers apart — six universal *families* (what
+RoyaleAPI filters on) and hand-curated *named decks* (Deck Shop titles)
+— and publishes no algorithm. Design in
+`docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md`: the family layer
+as vocabulary never verdict, a versioned sourced rule set in contracts
+composing `<win condition(s)> <family>`, on every deck object at the
+`deckIdentities` seam; names resolve back (family, composed label,
+attested alias table) into a filter and, in phase 2 with a stamped
+column on `deck`, `battles_meta_decks group_by: "archetype"` with
+`members[]`. Five decisions for Jamie in §11 (cycle bound, Royal Hogs,
+the newer cards, a resolver tool or none, where the docs page lives).
