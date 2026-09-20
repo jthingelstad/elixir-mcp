@@ -6596,7 +6596,15 @@ decks - and the queue holds only support cards (Baby Dragon, Wizard,
 Giant Skeleton, Bowler). The season's top archetype is **Minion Giant**:
 18,190 players on Minion Giant control and 10,704 on Minion Giant cycle,
 ahead of Evo Skeleton Barrel bait (8,869) and Hog Rider cycle (8,555).
-Nobody could see that while it read "Cycle".
+Nobody could see that while it read "Cycle". Jamie: **Minion Giant is a
+brand-new card this season** - which is the whole case for the loop: a
+card released this month was a quarter of the record within two weeks,
+every guide-derived vocabulary had it as null because the guides had
+not caught up, the corpus saw it first, and the queue named it. A new
+card is the trigger for Understand Clash Royale, not a season roll; Rune
+Giant, also new and also in the queue, is the counter-example - the
+public reading is "support", so it stays null however many battles it
+carries until a source names decks by it.
 
 **Grammar:** `secondary_win_conditions[]` on every archetype (every
 other attested win condition present, by tier), so Tyler's ranked deck
