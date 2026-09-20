@@ -53,7 +53,11 @@ function validateVocabulary({ roles, aliases }) {
         problems.push(`${where}: at_cycle_cost`);
       if (r.bait_tiers === undefined && typeof r.tier !== "number")
         problems.push(`${where}: tier`);
-    } else if (r?.bait_unit !== true && r?.bridge_partner !== true) {
+    } else if (
+      r?.bait_unit !== true &&
+      r?.bridge_partner !== true &&
+      r?.names_deck !== true
+    ) {
       problems.push(`${where}: no role`);
     }
   }
@@ -111,8 +115,8 @@ export async function cardRolesImport(databaseUrl, spec) {
     await db.query("delete from card_role");
     for (const r of roles) {
       await db.query(
-        `insert into card_role (card_id, name, tier, family, at_cycle_cost, needs_partner, pairs_with, bait_tiers, bait_unit, bridge_partner, source, attested_at, roles_version)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        `insert into card_role (card_id, name, tier, family, at_cycle_cost, needs_partner, pairs_with, bait_tiers, bait_unit, bridge_partner, names_deck, source, attested_at, roles_version)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [
           r.id,
           r.name,
@@ -124,6 +128,7 @@ export async function cardRolesImport(databaseUrl, spec) {
           r.bait_tiers ? JSON.stringify(r.bait_tiers) : null,
           r.bait_unit === true,
           r.bridge_partner === true,
+          r.names_deck === true,
           r.source,
           r.attested_at ?? null,
           roles_version,
@@ -242,7 +247,7 @@ export async function archetypeCensus(databaseUrl, spec = {}) {
       }
       // A fallback deck's defining card: its most expensive card with no
       // role. Counted so the unattested queue is ranked by evidence.
-      if (a.win_conditions.length === 0) {
+      if (a.win_conditions.length === 0 && !a.named_by) {
         // Troops and buildings only: a spell is never a win condition
         // (Lightning led the first census's queue).
         const candidates = cards

@@ -1183,6 +1183,7 @@ function archetypeOf(cards, vocab) {
     family: a.family,
     win_conditions: a.win_conditions,
     secondary_win_conditions: a.secondary_win_conditions,
+    named_by: a.named_by,
     label: a.label,
     average_elixir: a.average_elixir,
     basis: a.basis,

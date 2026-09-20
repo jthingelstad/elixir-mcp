@@ -126,6 +126,7 @@ function AdminCards() {
       );
     if (r.bait_unit) parts.push("bait unit");
     if (r.bridge_partner) parts.push("bridge partner");
+    if (r.names_deck) parts.push("names a deck (not a win condition)");
     return parts.join("; ");
   };
   const rows = cards.map((c) => [

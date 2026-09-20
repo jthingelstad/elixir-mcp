@@ -92,7 +92,7 @@ export function adminRoutes({
       const { rows: cards } = await db.query(
         `select c.card_id, c.name, c.kind, c.rarity, c.elixir_cost, c.max_evolution_level,
                 r.tier, r.family, r.at_cycle_cost, r.needs_partner, r.pairs_with, r.bait_tiers,
-                r.bait_unit, r.bridge_partner, r.source, r.attested_at
+                r.bait_unit, r.bridge_partner, r.names_deck, r.source, r.attested_at
            from card c
            left join card_role r on r.card_id = c.card_id
           where c.name is not null
@@ -140,7 +140,11 @@ export function adminRoutes({
           elixir_cost: c.elixir_cost,
           forms_available: c.max_evolution_level,
           role:
-            c.tier !== null || c.bait_tiers || c.bait_unit || c.bridge_partner
+            c.tier !== null ||
+            c.bait_tiers ||
+            c.bait_unit ||
+            c.bridge_partner ||
+            c.names_deck
               ? {
                   win_condition: c.tier !== null || Boolean(c.bait_tiers),
                   tier: c.tier === null ? null : Number(c.tier),
@@ -151,6 +155,7 @@ export function adminRoutes({
                   bait_tiers: c.bait_tiers,
                   bait_unit: c.bait_unit,
                   bridge_partner: c.bridge_partner,
+                  names_deck: c.names_deck,
                   source: c.source,
                   attested_at: c.attested_at,
                 }

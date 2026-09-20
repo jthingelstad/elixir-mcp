@@ -11,6 +11,12 @@ export default [
   {
     date: "2026-09-20",
     title:
+      "Rune Giant beatdown: a deck can be named by its tank without pretending the tank is a win condition",
+    body: "The largest bucket of unnamed decks left after the debug pass was Rune Giant with Lumberjack, Golden Knight and Lightning - about three thousand battles with no building-targeter at all, the tower damage coming from enchanted troops behind the tank. The wiki describes Rune Giant as exactly that, the guides say plainly it is not a win condition, and the deck sites still lead the name with it. So the vocabulary gained a third kind of role: a card that names a deck when the deck has no win condition. Every archetype now carries named_by beside its win conditions; such a deck reads 'Rune Giant beatdown', its win conditions stay empty, and the name filters and folds like any other. Contract 6.10.0, additive.",
+  },
+  {
+    date: "2026-09-20",
+    title:
       "The archetype debug pass: three new cards named, and the names say what they leave out",
     body: "A few hundred recorded decks read beside their labels. The labels landed where they should on the classic shapes; what they missed was the new meta: a quarter of this season's battles were decks Elixir could only name by cost, and the cards defining them were Minion Giant (the season's most-played nameless deck was 2.6 Hog's eight with Minion Giant in the Hog slot), Goblinstein and Rune Giant. Public sources name the first two as win conditions and say the third is a support troop, so the vocabulary now carries Minion Giant and Goblinstein and declines Rune Giant with the reason. Four smaller corrections from the same read: Giant beside Sparky is 'Giant Sparky', a heavy Wall Breakers deck is not a cycle deck, Ronin or Elite Barbarians behind huts and a horde is not bridge spam, and two cards on the same tier no longer tie by id. And every archetype now lists its secondary win conditions - the cards the name leaves out - so 'Miner control' can be said as 'Miner control with Goblin Barrel and Boss Bandit'. Contract 6.9.0, additive.",
   },

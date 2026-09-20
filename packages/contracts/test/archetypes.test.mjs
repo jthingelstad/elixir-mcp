@@ -101,6 +101,7 @@ const CARDS = {
   27000008: ["X-Bow", 6],
   27000009: ["Tombstone", 3],
   27000010: ["Furnace", 4],
+  26000083: ["Mother Witch", 4],
   27000013: ["Goblin Drill", 4],
   28000000: ["Fireball", 4],
   28000001: ["Arrows", 3],
@@ -580,12 +581,12 @@ const CASES = [
     "control",
   ],
   [
-    "Rune Giant is unattested: named by cost",
+    "Rune Giant names a deck with no win condition",
     [
       26000101, 26000042, 26000015, 26000063, 28000007, 28000012, 26000039,
       26000049,
     ],
-    "Control",
+    "Rune Giant control",
     "control",
   ],
   [
@@ -607,6 +608,36 @@ test("every case composes the expected label and family", () => {
     assert.ok(FAMILIES.includes(a.family));
     assert.equal(typeof a.grammar_version, "string");
   }
+});
+
+test("a card that names a deck never anchors over a win condition, and named_by says which it is", () => {
+  // Rune Giant + Lumberjack + Golden Knight + Lightning: no win
+  // condition; the deck is named by Rune Giant with the family from cost.
+  const named = classifyDeck(
+    deck([
+      26000101, 26000035, 26000074, 28000007, 26000017, 26000083, 28000015,
+      26000015,
+    ]),
+    roles,
+  );
+  assert.equal(named.label, "Rune Giant beatdown");
+  assert.deepEqual(named.win_conditions, []);
+  assert.deepEqual(named.named_by, {
+    id: 26000101,
+    name: "Rune Giant",
+    form: "base",
+  });
+  // Beside a Hog Rider it is nothing but a card.
+  const hog = classifyDeck(
+    deck([
+      26000101, 26000021, 26000064, 26000010, 28000011, 28000014, 27000000,
+      26000030,
+    ]),
+    roles,
+  );
+  assert.equal(hog.label, "Hog Rider cycle");
+  assert.equal(hog.named_by, null);
+  assert.ok(!hog.secondary_win_conditions.some((w) => w.id === 26000101));
 });
 
 test("secondary_win_conditions carries what the label leaves out", () => {

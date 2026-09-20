@@ -86,6 +86,10 @@ export interface CardRole {
   bait_tiers?: Record<string, number>;
   bait_unit?: boolean;
   bridge_partner?: boolean;
+  /** Names a deck that has no win condition (the tank of an enchanted
+   *  or support push, as the deck sites lead with it); never a win
+   *  condition, never over one. */
+  names_deck?: boolean;
   source?: string;
   attested_at?: string;
 }
@@ -110,6 +114,9 @@ export interface Archetype {
   /** Every other attested win condition in the deck, by tier: what the
    *  name leaves out ("Miner control" with Goblin Barrel and Boss Bandit). */
   secondary_win_conditions: WinCondition[];
+  /** With no win condition in the deck, the card the name leads with
+   *  (Rune Giant beatdown); null otherwise. Not a win condition. */
+  named_by: WinCondition | null;
   label: string;
   average_elixir: number | null;
   basis: string;
@@ -154,13 +161,16 @@ function capitalize(s: string): string {
 }
 
 /** The label: win conditions (with the form prefix players use) then
- *  the family; a deck with no win condition is the bare family. */
+ *  the family; a deck with no win condition is the bare family, or the
+ *  card that names it when one is present. */
 export function composeLabel(
   family: Family,
   winConditions: WinCondition[],
+  namedBy: WinCondition | null = null,
 ): string {
-  if (winConditions.length === 0) return capitalize(FAMILY_LABEL[family]);
-  return `${winConditions.map((w) => `${FORM_PREFIX[w.form]}${w.name}`).join(" ")} ${FAMILY_LABEL[family]}`;
+  const lead = winConditions.length ? winConditions : namedBy ? [namedBy] : [];
+  if (lead.length === 0) return capitalize(FAMILY_LABEL[family]);
+  return `${lead.map((w) => `${FORM_PREFIX[w.form]}${w.name}`).join(" ")} ${FAMILY_LABEL[family]}`;
 }
 
 /** Classify one deck against the vocabulary. `roles` is the card-role
@@ -216,11 +226,19 @@ export function classifyDeck(
   const first = candidates[0];
   if (!first) {
     const family = fallbackFamily(average);
+    // No win condition: the deck is named by its family from the cost,
+    // led by a card that names decks when one is present (lowest id
+    // when two are - rare enough not to order).
+    const namer = [...present.keys()]
+      .filter((id) => byId.get(id)?.names_deck === true)
+      .sort((a, b) => a - b)[0];
+    const namedBy = namer === undefined ? null : winCondition(namer);
     return {
       family,
       win_conditions: [],
       secondary_win_conditions: [],
-      label: composeLabel(family, []),
+      named_by: namedBy,
+      label: composeLabel(family, [], namedBy),
       average_elixir: average,
       basis: ARCHETYPE_BASIS,
       grammar_version: GRAMMAR_VERSION,
@@ -252,6 +270,7 @@ export function classifyDeck(
     family,
     win_conditions: winConditions,
     secondary_win_conditions: secondary,
+    named_by: null,
     label: composeLabel(family, winConditions),
     average_elixir: average,
     basis: ARCHETYPE_BASIS,

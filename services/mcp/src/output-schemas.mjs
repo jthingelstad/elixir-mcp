@@ -191,6 +191,11 @@ const ARCHETYPE = {
       description:
         "Every other attested win condition in the deck, by priority: what the label leaves out (a 'Miner control' carrying Goblin Barrel and Boss Bandit).",
     },
+    named_by: {
+      type: ["object", "null"],
+      description:
+        "With no win condition in the deck, the card the label leads with (Rune Giant beatdown) - a tank of a chip push, not a win condition; null otherwise.",
+    },
     label: {
       type: "string",
       description:

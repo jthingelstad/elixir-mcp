@@ -99,7 +99,11 @@ Composition, in order:
    Miner (which makes it cycle), Giant beside Graveyard (which makes it
    beatdown — the community's "Giant Graveyard").
 4. **No win condition**: by cost — at or under the cycle bound *cycle*,
-   4.0 and over *beatdown*, between them *control*.
+   4.0 and over *beatdown*, between them *control* — led by the card
+   that **names** the deck when one is present: "Rune Giant beatdown" for
+   a deck whose tower damage is chip from enchanted troops behind the
+   tank. Such a card (`named_by`) is not a win condition and never
+   anchors over one; `win_conditions` stays empty.
 
 `secondary_win_conditions[]` carries every other attested win condition
 in the deck, by priority — what the label leaves out — so "Miner control"

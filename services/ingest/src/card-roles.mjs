@@ -21,6 +21,7 @@ export function rowToRole(r) {
     ...(r.bait_tiers ? { bait_tiers: r.bait_tiers } : {}),
     ...(r.bait_unit ? { bait_unit: true } : {}),
     ...(r.bridge_partner ? { bridge_partner: true } : {}),
+    ...(r.names_deck ? { names_deck: true } : {}),
   };
 }
 
@@ -106,11 +107,19 @@ export async function stampDecks(
     if (rows.length === 0) break;
     const stamps = rows.map((r) => {
       const a = classifyDeck(r.cards, vocab.roles);
+      // The stamped ids are the ones the LABEL names: the win
+      // conditions, or the card that names a deck with none, so the
+      // filter and the fold read "Rune Giant beatdown" like any other.
       return {
         deck_hash: r.deck_hash,
         family: a.family,
         label: a.label,
-        win_conditions: a.win_conditions.map((w) => w.id),
+        win_conditions: (a.win_conditions.length
+          ? a.win_conditions
+          : a.named_by
+            ? [a.named_by]
+            : []
+        ).map((w) => w.id),
       };
     });
     await db.query(

@@ -318,6 +318,13 @@
       "attested_at": "2026-09-20"
     },
     {
+      "id": 26000101,
+      "name": "Rune Giant",
+      "names_deck": true,
+      "source": "https://clashroyale.fandom.com/wiki/Rune_Giant ('She will tank for them while giving them bonus damage every third hit, allowing them to chip a lot more damage from Crown Towers'; the enchantment 'works with Golden Knight's Dashing Dash'); https://gamingonphone.com/guides/clash-royale-rune-giant-best-decks-guide/ ('better suited as a buffing support troop' - not a win condition); https://deckmelon.com/best-decks/with/rune-giant ('Rune Giant Ronin'); https://bestclashdecks.com/rune-giant/ ('Evo Rune Giant Spirit Empress Beatdown', 'Rune Giant Elite Barbarians Furnace'). Names a deck that has no win condition - the tank of an enchanted chip push - and never one that has.",
+      "attested_at": "2026-09-20"
+    },
+    {
       "id": 26000103,
       "name": "Boss Bandit",
       "tier": 9.5,
@@ -682,11 +689,6 @@
   ],
   "unattested": [
     {
-      "id": 26000101,
-      "name": "Rune Giant",
-      "reason": "Declined 2026-09-20: 'doesn't have enough hitpoints to make it a full-blown win condition ... better suited as a buffing support troop' (https://gamingonphone.com/guides/clash-royale-rune-giant-best-decks-guide/); the named decks carry Goblin Giant or Hog Rider."
-    },
-    {
       "id": 26000096,
       "name": "Goblin Machine"
     },
@@ -704,6 +706,6 @@
       "reason": "Support/tank in the named decks (they carry Battle Ram, Sparky or Royal Hogs); no source names decks by it."
     }
   ],
-  "roles_version": "2026-09-20T19:25:27.000Z",
-  "source_commit": "130a770ba638347111c52cf57edf8ba9a1ba61c7"
+  "roles_version": "2026-09-20T20:16:47.000Z",
+  "source_commit": "7bd537b4ac03ded8fc730681a3bc9bfd94497d1d"
 }

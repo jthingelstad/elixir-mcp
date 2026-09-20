@@ -236,6 +236,7 @@ export const archetypeTools = {
             family_definition: FAMILY_DEFINITIONS[a.family],
             win_conditions: a.win_conditions,
             secondary_win_conditions: a.secondary_win_conditions,
+            named_by: a.named_by,
             label: a.label,
             average_elixir: a.average_elixir,
             basis: a.basis,
@@ -252,6 +253,9 @@ export const archetypeTools = {
           notes: notes(
             played.length < 8
               ? `${played.length} cards named, not eight: the archetype is of the cards given, and the average elixir is over them.`
+              : null,
+            a.named_by
+              ? `${a.named_by.name} names this deck but is not a win condition: the deck has none, and its tower damage is chip from the troops behind the tank.`
               : null,
             `in_the_record counts the deck identities with exactly these ${played.length} cards in any forms and with any tower troop, and their battles and players in season ${season}; 0 identities means nobody recorded has played this card set, and the name stands anyway - it needs no record.`,
             ARCHETYPE_NOTE,
@@ -290,6 +294,9 @@ export const archetypeTools = {
           .map((r) => ({ id: r.id, name: r.name })),
         bridge_partners: vocab.roles
           .filter((r) => r.bridge_partner)
+          .map((r) => ({ id: r.id, name: r.name })),
+        names_deck: vocab.roles
+          .filter((r) => r.names_deck)
           .map((r) => ({ id: r.id, name: r.name })),
         aliases: vocab.aliases.map((a) => ({
           alias: a.alias,
