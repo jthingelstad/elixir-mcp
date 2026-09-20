@@ -6339,3 +6339,75 @@ attested alias table) into a filter and, in phase 2 with a stamped
 column on `deck`, `battles_meta_decks group_by: "archetype"` with
 `members[]`. Five decisions for Jamie in §11 (cycle bound, Royal Hogs,
 the newer cards, a resolver tool or none, where the docs page lives).
+
+## 2026-09-20 — Deck archetypes, phase 1 shipped (contract 6.5.0): every deck carries its name, a name resolves to decks
+
+Jamie's go on the design (`docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md`,
+§12 for his decisions). Shipped `0781364` + `0ff4179`, deployed ~18:00Z
+and ~18:07Z, verify green, live acceptance read-only (request
+`4dc85f3a`: `battles_meta_decks { archetype: "Royal Hogs bridge spam" }`
+resolves by label, echoes the alias "Archer Queen Royal Hogs", every row
+carries `archetype`).
+
+**Grammar in code, vocabulary in data.** `packages/contracts/src/archetypes.ts`
+(`classifyDeck`, `resolveArchetypeName`, `composeLabel`, `GRAMMAR_VERSION`
+"2026-09", `CYCLE_MAX` 3.4, `BEATDOWN_MIN` 4.0). The vocabulary is
+`cr-agent-api-docs` `data/card-roles.json` (43 entries: 27 win conditions
+with tier, implied family, cycle-cost alternative, partner rule, pairs;
+bait units; bridge partners) and `data/deck-aliases.json` (27), a public
+URL on every entry, guarded by `validate-card-roles.mjs` in the docs
+build (`a870693`, `aec87db`, `6c4f517`), with `deck-archetypes.md` as the
+reference page. Imported at deploy by `infra/scripts/import-card-roles.mjs`
+from the sibling checkout (the Lambdas have no internet) into
+`card_role` / `deck_alias` / `card_role_version` (0147); the file's
+commit time is `roles_version` on every archetype object. The script
+also refreshes `fixtures/card-roles.snapshot.json`, the tests' copy
+(generated, never edited; CI has no sibling). Refuses a dirty sibling
+and a card the catalog has not seen.
+
+**On the wire.** `archetype` { family, win_conditions[] with form,
+label, average_elixir, basis, grammar_version, roles_version } at the
+two seams every deck passes through, `deckIdentities` and `renderDecks`
+(shared.mjs), so `battles_query`, `battles_decks`, `battles_meta_decks`,
+`cards_card.decks`, `players_summary` all carry it; `ARCHETYPE_NOTE`
+once per response. `archetype` argument on `battles_meta_decks` and
+`battles_decks` (alias → family → composed label; `applied.archetype`
+echo; `bad_request` with the vocabulary on a miss; the meta reader
+labels its top 2,000 candidates by the sort before the limit - the
+stamp of phase 2 lifts that). `/docs/archetypes`.
+
+**The cycle bound, measured.** `{archetype_census}` on the migrate
+Lambda (18 s over 204,957 decks; family distribution, unclassified
+share, top labels, per-win-condition histograms on the exact eighths,
+the unattested queue). Season 2026-09, 570,488 battles: the trough for
+Hog Rider, Royal Hogs and Miner sits at exactly 3.5 (Hog: 3.375 →
+3,628 battles, 3.5 → 1,853, 3.625 → 2,776), so 3.375 is cycle and 3.5
+is not: `CYCLE_MAX` 3.4 confirmed, the guides' "under 3.5" read
+literally; elixir-bot's 3.3 would have cut the 3.375 bin out against
+the evidence. Families by season battles: beatdown 30%, cycle 23%,
+control 17%, bridge spam 15%, bait 10%, siege 5%. **24% of season
+battles are decks with no attested win condition** (bare "Beatdown" /
+"Cycle" / "Control"), far above elixir-bot's ~2% on the clan's decks -
+the corpus is mid-ladder too, and the queue explains part of it:
+Goblinstein (30k battles as the defining card of a bare-family deck),
+Giant Skeleton (15k), Rune Giant, Minion Giant, Royal Recruits. Left
+unattested on purpose (Jamie: attest only what public titles attest;
+null is the correct answer) - the domain's Understand Clash Royale
+objective now owns the file and reads this queue (`15b7fa0` in the
+domain checkout; committed, NOT pushed - that checkout carries another
+actor's two unpushed commits).
+
+**Port equivalence.** 44 cases against elixir-bot `_classify`: 42 agree
+on family; the two that differ are sourced community usage (Giant
+Graveyard → beatdown per RoyaleTracker; Royal Giant → cycle at cycle
+cost per "3.1 Royal Giant Cycle"); labels differ in wording only (the
+bot says "Hog Cycle", Elixir "Hog Rider cycle"; the bot "Lavaloon",
+Elixir "Lava Hound Balloon beatdown" with the alias returned on
+resolution). The bot is unchanged.
+
+**Not done (phase 2+):** the stamped `archetype_*` columns on `deck` and
+`group_by: "archetype"` with `members[]` (the Elixir Clan question);
+`fit.plays_family` / `plays_archetype`; `cards_card.decks` archetype
+filter; the read-only Admin ▸ Cards page; the resolver tool. The
+agent's seed run (design §12.4) is the next step and is not this
+session's.

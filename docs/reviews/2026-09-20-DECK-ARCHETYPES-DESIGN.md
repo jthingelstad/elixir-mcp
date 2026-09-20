@@ -670,3 +670,17 @@ commit, the import's refusal of an invalid file, and Elixir's
 `unclassified` share on the docs page (a rising share is the agent
 falling behind; a falling one with no commits is a card list that
 never needed it).
+
+---
+
+## 13. Phase 1 shipped — 2026-09-20 (contract 6.5.0)
+
+`0781364`, `0ff4179`; the vocabulary at `cr-agent-api-docs` `6c4f517`.
+The cycle bound measured on the corpus: trough at 3.5 for Hog Rider,
+Royal Hogs and Miner; `CYCLE_MAX` 3.4 confirmed (3.375 is cycle). 24% of
+season battles carry no attested win condition; the unattested queue
+(Goblinstein, Giant Skeleton, Rune Giant, Minion Giant, Royal Recruits)
+belongs to Understand Clash Royale. Details in `docs/NOTES.md` under the
+same date. Phase 2 (the stamp, `group_by: "archetype"` with members) is
+next.
+
