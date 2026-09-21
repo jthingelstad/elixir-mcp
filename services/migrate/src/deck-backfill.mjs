@@ -172,6 +172,63 @@ export async function explainMeta(databaseUrl, spec = {}) {
        group by 1, 2`,
       [from],
     );
+    // The population-table path (6.12.0): a corpus window inside the
+    // running season, the card aggregate as the tool runs it, under the
+    // tool's work_mem.
+    const {
+      rows: [running],
+    } = await db.query(
+      `select s.season_month from season s join meta_season_state st on st.season_month = s.season_month
+        where st.pop_through is not null and not st.final
+          and s.starts_at <= now() and s.ends_at > now() limit 1`,
+    );
+    if (running) {
+      await db.query("set work_mem = '32MB'");
+      await explain(
+        "corpus card aggregate (population table, as battles_meta_cards)",
+        `with pairs as (
+           select bp.deck_hash, bp.player_tag, bp.type,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n
+           from meta_season_pop bp
+           where bp.season_month = $1 and bp.game_day >= game_day($2::timestamptz - interval '1 day')
+             and bp.battle_time >= $2
+             and bp.deck_hash is not null and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
+           group by bp.deck_hash, bp.player_tag, bp.type),
+         per_type as (
+           select dc.card_id, dc.form, p.type, sum(p.battles)::int as battles, sum(p.wins)::int as wins,
+                  sum(p.gap_sum) as gap_sum, sum(p.gap_n)::int as gap_n
+           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
+           group by dc.card_id, dc.form, p.type),
+         per_card as (
+           select dc.card_id, dc.form, count(distinct p.player_tag)::int as players
+           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
+           group by dc.card_id, dc.form)
+         select pt.card_id, pt.form, sum(pt.battles)::int, pc.players
+         from per_type pt join per_card pc on pc.card_id = pt.card_id and pc.form = pt.form
+         group by pt.card_id, pt.form, pc.players`,
+        [running.season_month, from],
+      );
+      await explain(
+        "corpus deck aggregate (population table, as battles_meta_decks)",
+        `with d as (
+           select bp.deck_hash, bp.type, bp.player_tag, count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n
+           from meta_season_pop bp
+           where bp.season_month = $1 and bp.game_day >= game_day($2::timestamptz - interval '1 day')
+             and bp.battle_time >= $2
+             and bp.deck_hash is not null and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
+           group by bp.deck_hash, bp.type, bp.player_tag),
+         w as (select sum(battles) as decided, count(distinct player_tag) as players from d),
+         dp as (select deck_hash, count(distinct player_tag)::int as deck_players from d group by deck_hash having sum(battles) >= 5)
+         select d.deck_hash, d.type, sum(d.battles)::int, count(distinct d.player_tag)::int, dp.deck_players, w.players
+         from d join dp on dp.deck_hash = d.deck_hash cross join w
+         group by d.deck_hash, d.type, dp.deck_players, w.players`,
+        [running.season_month, from],
+      );
+    }
     return { clan_tag: clanTag, days, explains: out };
   } finally {
     await db.end();

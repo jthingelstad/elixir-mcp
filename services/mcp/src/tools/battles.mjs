@@ -1764,7 +1764,7 @@ export const battlesTools = {
         playersInWindow = roll.players;
         if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
-        if (!pop) await rawScanMemory(ctx.db);
+        await rawScanMemory(ctx.db);
         const { prior: populationPrior, ...breakdown } =
           await excludedBreakdown(ctx.db, scope, params, {
             withPrior: !seg.where,
@@ -1823,36 +1823,28 @@ export const battlesTools = {
              from d),
            dp as (
              select deck_hash, count(distinct player_tag)::int as deck_players
-             from d group by deck_hash having sum(battles) >= $${params.length + 1})
-           select d.deck_hash, d.type,
-                  sum(d.battles)::int as battles, sum(d.wins)::int as wins, sum(d.losses)::int as losses,
-                  count(distinct d.player_tag)::int as players,
-                  min(d.first_used) as first_used, max(d.last_used) as last_used,
-                  sum(d.gap_sum) as gap_sum, sum(d.gap_n)::int as gap_n,
-                  dp.deck_players,
-                  w.players as window_players, w.decided as window_decided,
-                  w.wins as window_wins, w.by_type as window_types
-           from d join dp on dp.deck_hash = d.deck_hash cross join w
-           group by d.deck_hash, d.type, dp.deck_players, w.players, w.decided, w.wins, w.by_type`,
+             from d group by deck_hash having sum(battles) >= $${params.length + 1}),
+           decks as (
+             select d.deck_hash, d.type,
+                    sum(d.battles)::int as battles, sum(d.wins)::int as wins, sum(d.losses)::int as losses,
+                    count(distinct d.player_tag)::int as players,
+                    min(d.first_used) as first_used, max(d.last_used) as last_used,
+                    sum(d.gap_sum) as gap_sum, sum(d.gap_n)::int as gap_n,
+                    dp.deck_players
+             from d join dp on dp.deck_hash = d.deck_hash
+             group by d.deck_hash, d.type, dp.deck_players)
+           -- The window row rides every deck row, and stands alone (a
+           -- null deck_hash) when no deck is over min_battles.
+           select w.players as window_players, w.decided as window_decided,
+                  w.wins as window_wins, w.by_type as window_types,
+                  decks.*
+           from w left join decks on true`,
           [...params, minBattles],
         );
-        // An empty deck list still has a window: totals from a second,
-        // cheap read of the same shape.
-        const window =
-          byDeckType[0] ??
-          (
-            await ctx.db.query(
-              `select count(*)::int as window_decided,
-                      count(*) filter (where bp.outcome = 'win')::int as window_wins,
-                      count(distinct bp.player_tag)::int as window_players,
-                      '[]'::jsonb as window_types
-                 from ${pop ? "meta_season_pop" : "battle_participant"} bp
-                where ${where.join(" and ")}`,
-              params,
-            )
-          ).rows[0];
+        const window = byDeckType[0] ?? {};
         const byDeck = new Map();
         for (const t of byDeckType) {
+          if (t.deck_hash === null) continue;
           const cur = byDeck.get(t.deck_hash) ?? {
             deck_hash: t.deck_hash,
             battles: 0,
@@ -2225,7 +2217,7 @@ export const battlesTools = {
         playersInWindow = roll.players;
         if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
-        if (!pop) await rawScanMemory(ctx.db);
+        await rawScanMemory(ctx.db);
         const { prior: populationPrior, ...breakdown } =
           await excludedBreakdown(ctx.db, scope, params, {
             withPrior: !seg.where,
