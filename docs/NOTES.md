@@ -6852,3 +6852,64 @@ cheap, but whether family or win condition dominates adoption cost is a
 product call. (3) The `shrunk_win_rate` floor note reads per-row while
 the floor is per-segment (`methodology#deck-and-card-meta` is right;
 behaviour is right); reword when that note next moves.
+
+## 2026-09-21 — Backlog #77–#80 actioned (contract 6.12.0): the corpus meta on a week's window, and a compact size
+
+Filed the evening of 09-20 by the daily meta-report agent: every 7-day
+corpus read of `battles_meta_decks` / `battles_meta_cards` answered
+`query_timeout` (#77, #78, #79), and four full payloads crossed a turn's
+token ceiling before the report was written (#80). Shipped across five
+commits (`4e2c2f3`…, last deploy ~13:05Z), all four answered `done`;
+backlog after: 0.
+
+**1. Why a week timed out when a season did not.** The whole-season
+read comes from the nightly rollup; any other corpus window scanned the
+participant heap (840k rows, 1.3 GB) with a per-row LATERAL for the
+level gap, and the deck aggregate had two correlated subqueries per
+(deck, type) output row — `deck_players` and `window_players` over the
+CTE — quadratic on a 110k-player window, then shipped 100k+ deck rows to
+the handler to sum totals. **The population table (0140) is the fix:**
+`meta_season_pop` already holds one row per participant with
+`mode_group`, `trophy_band` and `level_gap`, keyed by game day. A corpus
+window that is not a whole season reads it (`popWindow` in
+`meta-season.mjs`: scope = season keys + a game-day range one day wide
+of the instants + the exact `battle_time` bounds; the band is a column;
+`excludedBreakdown` takes a `source`), with a note naming the nightly's
+cursor. The raw path stays for segments, a window starting past the
+cursor, or one reaching a season whose population is gone. Totals and
+per-type groups now come from ONE pass and the deck rows returned are
+the ones over `min_battles` (the window row rides every deck row and
+stands alone on an empty list — the query-budget test counts scans).
+**Kept the previous season's population**: `dropPop` at a season's final
+drops the seasons OLDER than it, so a window may span the roll (a
+date-only `from` in Chicago starts five hours before the roll; "this
+week against last" is asked most in a season's first week). One-off:
+`{meta_rollup_season: {season_month: "2026-08"}}` (new jobs op) rebuilt
+August's 79,560 rows in 129 s. Disk: 20 GB allocated, 12.4 GB free; a
+season's population is ~250 MB.
+
+**2. What `{explain_meta}` showed, and the shape that survived.** The
+op now carries the two population-path aggregates. Cards, first shape:
+18.6 s — the planner hashed all 1.7M `deck_card` rows TWICE, once per
+aggregate (`per_type`, `per_card`), at 4 MB work_mem (the pop path had
+skipped `rawScanMemory`). Second shape, an index probe per deck into a
+materialized `cards` CTE: 56 s — a 7-day corpus window holds 65k
+distinct decks and `deck_card`'s index-only scan did 236k heap fetches
+(the visibility-map lesson again). Kept: ONE hash join of the pairs to
+`deck_card` into a materialized `joined` set both aggregates read, at
+32 MB. Live: decks ~5 s, cards ~8–12 s, the cross-roll 09-07..09-14
+window ~10 s. Inside the 18 s budget, not comfortably: **the next step
+if it creeps is a per-game-day card rollup** (`card_meta_day`: sums
+add, `players` would be null on an ad-hoc window as it is on the
+hourly's new decks). Sorts now break ties on the identity so the
+rollup and raw lists compare equal whatever plan produced the rows.
+
+**3. `verbosity: 'compact'` on the meta tools (#80).** A deck row keeps
+`deck_hash`, `archetype_label`, `card_names` (one string, Evo/Hero
+prefixed), the counts, `usage_share`, `win_rate`, `shrunk_win_rate`,
+`players`, `dominant_mode` and `fit` without `upgrades`; a card row the
+counts, rates, `players`, `held`; both drop `modes`, the instants, the
+level gap, the card and archetype objects, `methodology` and
+`modes_in_window`. Scalars and flags identical between sizes (pinned).
+`cards` is no longer required on the deck-row output schema;
+`card_names` and `archetype_label` are described as compact's.
