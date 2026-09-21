@@ -6683,3 +6683,67 @@ Not a product surface; the op stays as a diagnostic. If anyone wants
 the read again, invoke with `AWS_MAX_ATTEMPTS=1` and read the result
 from the log line (the CLI's 60 s read timeout retried the first call
 into `ReservedFunctionConcurrentInvocationLimitExceeded`).
+
+## 2026-09-21 — The session clock's first full day (acceptance read, part two)
+
+Read 05:41–06:05Z, the 09-20 row an hour old (`capture_efficiency_daily`,
+computed 05:20:27Z), with `{poll_replay: {days: 1, cutoff}}` (deployed
+2f1fa58 for this read: the gapped intervals' loss split by whether their
+newest gap fell before or after an instant), the ledger and bucket
+metrics for the day, and `{stats}`. Baselines are the three pre-clock
+days (09-16/17/18): 313 reads/hr, 61% empty, ~22,000 captured a day,
+101–121 gaps, 513–646 lost on ~90 players.
+
+**Verdict: above the bar.** The clock's own loss on its first full day
+is **at most 70 battles, 0.26% of 26,849 captured**, against 513–646
+(2.3–2.9%); gaps **9** against 101–121 (−92%); reads 16,949, 706/hr
+(2.26×, under the replay's 835); `PlannedJobs` ~900/hr in ordinary
+hours (+38%); the live reserve never touched except where it always is.
+
+**The row, and why it says 409.** `lost_battles` 409 on 66 players is
+the day the intervals ENDED, not the day the loss happened: a profile
+interval is a day long (median 26 h), so an interval ending on 09-20
+morning holds 09-19's evening — the old clock's last hours and the
+surge that read everyone at once and collected every gap the old clock
+had left. Split by the newest gap inside each interval: **60 intervals
+whose gaps fell on 09-19 carry 340 of the 409; 7 intervals whose gaps
+fell on 09-20 carry 70** (shortfall 79 on expected 978, noise 0.9%
+off). Even that 70 is an upper bound: an interval with a gap on both
+days lands in the 09-20 bucket with its whole shortfall. The 9 gaps
+themselves are 9 of 16,873 audited reads, 0.05%; on the replay's own
+footing the day held 19 intervals over 25 battles, against the
+replay's prediction of 9 for a week at this ceiling and 1,041 for a
+week of the old clock. Captured battles went UP, 22,000 → 26,849 a day,
+a Sunday and a schedule that misses less. Tomorrow's row (09-21,
+landing 05:20Z 09-22) is the first whose intervals start after the
+switch and will read the loss straight; expect it under 100 on under
+10 players with no split needed.
+
+**Spend, settled.** `PlannedJobs` per hour on 09-20: 764–974 in
+ordinary hours (mean ~900 against ~650 the week before), 1,236 in the
+10:00Z board hour, and **1,904 at 23:00Z** — the Monday-00:10Z
+pre-reset watcher forcing 817 profile reads in the hour before the
+donation reset, as it does every Sunday night; the bucket's minimum
+read 30 (the live reserve) in exactly those two hours and 180–218 in
+every other, so the clock never competed with the live lane. Day
+total 23,802 planned. `SessionFollowupJobs` 225/hr (a quarter of the
+reads are a player mid-sitting), `RequestedProfileJobs` 39/hr (the
+after-session profile prime), reader cap unchanged. Reads 67% empty:
+the price of readiness, and each one bodiless. Today so far (00:00–
+05:41Z): 700 reads/hr, 67% empty, 1 gap; last hour 688 reads, 0 gaps.
+Recordings 817 (799 on 09-19).
+
+**Still open, none of it blocking.** (1) The collectors' `yield_24h`
+column now reads 0.44–0.54 for everyone and is decided by the schedule,
+not the operator; (2) collector points reward `new_facts > 0` only, so
+an operator earns fewer per fetch for the same work — both Jamie's
+call: re-word, or count a read at the clock's cadence as worth its
+point. (3) The cleanup migration after this has settled: drop
+`player_activity.rhythm`, `rhythm_weight`, `rhythm_battles`,
+`half_life_days` and `poll_state.burst_bph`, `burst_at`. (4) Retire
+`{poll_replay}`'s replay half once the clock has a week of its own
+rows; its loss half with the cutoff split is the tool for any future
+schedule change. The efficiency page is the standing read; Keep the
+Record True carries the threshold (a lost-battles line that does not
+stay near zero, or gaps above ~1 an hour, names the players before it
+touches the ceiling).
