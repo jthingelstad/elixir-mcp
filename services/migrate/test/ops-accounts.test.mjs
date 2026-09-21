@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
-import { accountEnrollOp } from "../src/ops-accounts.mjs";
+import { accountEnrollOp, accountTrackOp } from "../src/ops-accounts.mjs";
 import { emailHash } from "../../auth/src/crypto.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -222,4 +222,80 @@ test("fill_empty fills an existing account that tracks nothing and leaves one th
     accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
   });
   assert.equal(again.plan[0].reason, "exists_tracking");
+});
+
+test("account_track adds an alt to the account that holds the primary, once, and refuses an ambiguous primary", async () => {
+  const dry = await accountTrackOp(SCRATCH_URL, {
+    primary_tag: "2pp0v9qq",
+    player_tag: "#2PP0V9UU",
+    dry_run: true,
+  });
+  assert.equal(dry.dry_run, true);
+  assert.equal(dry.relationship, "alt");
+  assert.equal(dry.account.players, 1);
+  assert.equal(dry.account.already_tracked, false);
+  assert.ok(!("account_id" in dry) && !("email" in dry));
+  const { rows: before } = await db.query(
+    `select count(*)::int as n from claim where player_tag = '#2PP0V9UU'`,
+  );
+  assert.equal(before[0].n, 0);
+
+  const out = await accountTrackOp(SCRATCH_URL, {
+    primary_tag: "#2PP0V9QQ",
+    player_tag: "#2PP0V9UU",
+  });
+  assert.equal(out.added, true);
+  assert.equal(out.recording_started, true);
+  const { rows: claims } = await db.query(
+    `select c.player_tag, c.is_primary, c.relationship, c.status
+     from claim c join account a on a.account_id = c.account_id
+     where a.email = 'two@example.com' order by c.player_tag`,
+  );
+  assert.deepEqual(claims, [
+    {
+      player_tag: "#2PP0V9QQ",
+      is_primary: true,
+      relationship: "primary",
+      status: "unverified",
+    },
+    {
+      player_tag: "#2PP0V9UU",
+      is_primary: false,
+      relationship: "alt",
+      status: "unverified",
+    },
+  ]);
+  const { rows: ev } = await db.query(
+    `select e.kind from account_event e join account a on a.account_id = e.account_id
+     where a.email = 'two@example.com' order by event_id desc limit 3`,
+  );
+  assert.deepEqual(
+    ev.map((e) => e.kind),
+    ["tracked_by_ops", "recording_started", "claim_added"],
+  );
+
+  const again = await accountTrackOp(SCRATCH_URL, {
+    primary_tag: "#2PP0V9QQ",
+    player_tag: "#2PP0V9UU",
+  });
+  assert.equal(again.account.already_tracked, true);
+  assert.equal(again.added, undefined);
+
+  // #2PP0V9PP is primary on two accounts by now: never guess which.
+  const amb = await accountTrackOp(SCRATCH_URL, {
+    primary_tag: "#2PP0V9PP",
+    player_tag: "#2PP0V9UU",
+  });
+  assert.equal(amb.error, "ambiguous");
+  assert.equal(amb.accounts, 2);
+  assert.equal(
+    (
+      await accountTrackOp(SCRATCH_URL, {
+        primary_tag: "#2PP0V9QQ",
+        player_tag: "#2PP0V9UU",
+        relationship: "primary",
+      })
+    ).error,
+    "relationship must be alt, friend or watching",
+  );
 });

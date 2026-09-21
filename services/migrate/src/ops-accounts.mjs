@@ -494,3 +494,83 @@ export async function accountEnrollOp(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/**
+ * Track a player on somebody else's account, at their owner's word.
+ *
+ * {account_track: {primary_tag, player_tag, relationship?, dry_run?}}
+ *
+ * The account is named by the tag it holds as primary, never by address,
+ * so nothing personal enters the invoke payload or its log line. The add
+ * is @elixir-mcp/claims' addPlayer, the same act the holder's own "track"
+ * click performs (quota, recording start, claim_added event), plus an
+ * account_event that says it was ops that did it. Built 2026-09-20 for
+ * Jamie adding Tyler's alt; the claim lands unverified exactly as a
+ * self-added one would, and the holder can remove it the same way.
+ */
+export async function accountTrackOp(databaseUrl, spec) {
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const primaryTag = normalizeTag(String(spec?.primary_tag ?? ""));
+  const playerTag = normalizeTag(String(spec?.player_tag ?? ""));
+  const relationship = spec?.relationship ?? "alt";
+  if (!["alt", "friend", "watching"].includes(relationship))
+    return { error: "relationship must be alt, friend or watching" };
+  if (primaryTag === playerTag)
+    return { error: "player_tag is already the account's primary" };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: holders } = await db.query(
+      `select a.account_id, a.role, a.status, a.kind,
+              (select count(*)::int from claim where account_id = a.account_id) as players,
+              exists (select 1 from claim
+                      where account_id = a.account_id and player_tag = $2) as already
+       from claim c join account a on a.account_id = c.account_id
+       where c.player_tag = $1 and c.relationship = 'primary'`,
+      [primaryTag, playerTag],
+    );
+    if (holders.length !== 1)
+      return {
+        error: holders.length === 0 ? "no_account_for_primary" : "ambiguous",
+        primary_tag: primaryTag,
+        accounts: holders.length,
+      };
+    const holder = holders[0];
+    const plan = {
+      dry_run: spec?.dry_run === true,
+      primary_tag: primaryTag,
+      player_tag: playerTag,
+      relationship,
+      account: {
+        role: holder.role,
+        status: holder.status,
+        kind: holder.kind,
+        players: holder.players,
+        already_tracked: holder.already,
+      },
+    };
+    if (holder.status !== "approved" || holder.kind !== "person")
+      return { ...plan, error: "account_not_a_person_or_not_approved" };
+    if (plan.dry_run || holder.already) return plan;
+    const added = await addPlayer(
+      db,
+      { accountId: holder.account_id },
+      { tag: playerTag, makePrimary: false, via: "ops", relationship },
+    );
+    if (added.ok !== true) return { ...plan, error: added.error, added };
+    await db.query(
+      `insert into account_event (account_id, kind, detail) values ($1, 'tracked_by_ops', $2)`,
+      [
+        holder.account_id,
+        JSON.stringify({ player_tag: playerTag, relationship, via: "ops" }),
+      ],
+    );
+    return {
+      ...plan,
+      added: added.added,
+      recording_started: added.recordingStarted,
+    };
+  } finally {
+    await db.end();
+  }
+}

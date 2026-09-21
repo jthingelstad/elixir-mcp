@@ -22,6 +22,7 @@ import {
   accountEmailOp,
   accountRoleOp,
   accountEnrollOp,
+  accountTrackOp,
   principalOp,
   integrationOp,
 } from "./ops-accounts.mjs";
@@ -101,6 +102,14 @@ export async function handler(event) {
     const result = await playerNames(
       process.env.DATABASE_URL,
       event.player_names,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.account_track) {
+    const result = await accountTrackOp(
+      process.env.DATABASE_URL,
+      event.account_track,
     );
     console.log(JSON.stringify(result));
     return result;
