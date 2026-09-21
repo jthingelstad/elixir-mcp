@@ -663,3 +663,67 @@ test("the close slot: a captured 09:57Z read of the next race keys to the CURREN
     sectionIndex: 1,
   });
 });
+
+test("decks the counter rolled past land on the previous war day (the Gym's open question 2, 2026-09-21)", async () => {
+  // Day 3's last poll sees a member at 10 decks, 3 of them today; day
+  // 4's first poll sees 12 decks, 1 of them today. The extra one was
+  // played late on day 3 after the poll: day 3's row becomes 4, day 4's
+  // is 1, and by_day sums to the cumulative again.
+  const day3 = structuredClone(await fixture("currentriverrace/war_day.json"));
+  const member = day3.clan.participants[0];
+  // The fixture is period 27 (war day 4); make it day 3 for the first poll.
+  day3.periodIndex = 26;
+  member.decksUsed = 10;
+  member.decksUsedToday = 3;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: day3,
+    fetchedAt: "2026-08-30T08:30:00Z",
+    nowMs: Date.parse("2026-08-30T08:30:00Z"),
+  });
+  const day4 = structuredClone(day3);
+  day4.periodIndex = 27;
+  day4.clan.participants[0].decksUsed = 12;
+  day4.clan.participants[0].decksUsedToday = 1;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: day4,
+    fetchedAt: "2026-08-30T10:30:00Z",
+    nowMs: Date.parse("2026-08-30T10:30:00Z"),
+  });
+  const { rows } = await ctx.db.query(
+    `select war_day, decks_used_today from war_attendance_day
+     where clan_tag = $1 and season_id = 135 and section_index = 3 and player_tag = $2
+     order by war_day`,
+    [CLAN, member.tag],
+  );
+  const byDay = Object.fromEntries(
+    rows.map((r) => [r.war_day, r.decks_used_today]),
+  );
+  assert.equal(
+    byDay[3],
+    4,
+    "the deck played after day 3's last poll lands on day 3",
+  );
+  assert.equal(byDay[4], 1, "today is today's");
+  // A second poll on day 4 carries nothing more.
+  const later = structuredClone(day4);
+  later.clan.participants[0].decksUsed = 13;
+  later.clan.participants[0].decksUsedToday = 2;
+  await projectRiverRace(ctx.db, {
+    clanTag: CLAN,
+    payload: later,
+    fetchedAt: "2026-08-30T12:30:00Z",
+    nowMs: Date.parse("2026-08-30T12:30:00Z"),
+  });
+  const { rows: again } = await ctx.db.query(
+    `select decks_used_today from war_attendance_day
+     where clan_tag = $1 and season_id = 135 and section_index = 3 and player_tag = $2 and war_day = 3`,
+    [CLAN, member.tag],
+  );
+  assert.equal(
+    again[0].decks_used_today,
+    4,
+    "a poll inside a day never carries",
+  );
+});

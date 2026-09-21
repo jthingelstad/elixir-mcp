@@ -4,7 +4,14 @@
  *  invariant rather than the numbers of the day. A case that overlaps an
  *  identities case points at it instead of repeating it. */
 
+import { readFileSync } from "node:fs";
 import { answered, ok, eq, isInt, CLAN } from "../lib.mjs";
+import { gymCases } from "../gym-interp.mjs";
+
+/** The Gym's own blocks (gym.json), run as written. */
+const filed = gymCases(
+  JSON.parse(readFileSync(new URL("../gym.json", import.meta.url), "utf8")),
+);
 
 const read = (ctx, tool, args = {}) =>
   ctx
@@ -12,6 +19,7 @@ const read = (ctx, tool, args = {}) =>
     .then((r) => answered(r, `${tool} ${JSON.stringify(args)}`));
 
 export const gym = [
+  ...filed,
   {
     // #70 (6.4.0): fit_for splits after sort; the unfieldable rows name
     // what is missing. The invariant half is identities/fit_for-split-after-sort.

@@ -54,5 +54,21 @@
       "performance-30-days.json"
     ],
     "expect": "players_summary 93 vs battles_performance 90"
+  },
+  {
+    "feedback": 81,
+    "contract": "6.10.0",
+    "why": "the Gym's own block 81.1 on the answer it read: finished_early on no row",
+    "case": "gym/81.1",
+    "captures": ["81-war_history-exact-135-3.json"],
+    "expect": "has weeks\\[\\].finished_early"
+  },
+  {
+    "feedback": 81,
+    "contract": "6.10.0",
+    "why": "the Gym's block 81.7: war_decks_by_day one short of war_decks for a member (polls missed the day's last deck; the ingest carries it to the previous day since 2026-09-21)",
+    "case": "gym/81.7",
+    "captures": ["81-7-participation-by-day-short.json"],
+    "expect": "sum_eq"
   }
 ]

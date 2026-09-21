@@ -43,18 +43,30 @@ scale**, and that is where the last two days' defects lived:
 
 The `acceptance` key carries its own hourly ceiling (`{service_token_limits}`, 2,400/hour - a build day runs the suite several times an hour), so it spends from its own bucket: a run is ~170 calls, and before this a run took 40% of the owner's hour, which the Discord agent shares.
 
-### What the Gym should file
+### What the Gym files, and how it runs
 
-A finding ends with a block the suite can take as written:
+Every finding ends with a JSON block (the Gym's prompt since 2026-09-21);
+`gym.json` holds the blocks verbatim and `gym-interp.mjs` runs them as
+written - nothing is hand-translated. The vocabulary:
 
-```json
-{ "tool": "war_history", "args": { "season_id": 135, "section_index": 3 },
-  "request_id": "6d84426c-...", "assert": [
-    { "every_row_has": ["weeks", "finished_early"] },
-    { "eq": ["weeks[0].finished_early", true] } ] }
-```
+- **paths**: dotted, `[N]` an index, `[]` every element, `[?key=value]`
+  the first element where key equals value; with `calls`, the first
+  segment is an alias (`r.rivals[?clan_tag=#QUGRGLU2].mean_fame`).
+- **verbs**: `has`, `eq`, `neq`, `lte`, `count_eq`, `sum_eq`,
+  `sorted_desc`, `notes_match`, `notes_not_match`, `every_row_has`. An
+  `eq` right-hand side that parses as a path is read as one. The notes
+  verbs also read a refusal's `error.message` and `error.hint`.
+- **modifiers**: `when` (skip when false, said aloud), `for_each` (per
+  row of a list), `calls` (aliased reads), `stability` `frozen` (closed
+  data: exact values are fair) or `live` (invariants only), `control`,
+  `needs_fixture` and `open_question` (SKIP with the text).
+- **rules**: ids unique; `args` as the call was MADE (the acceptance
+  principal acts for #J2RGCRVG too, so a defaulted clan matches the
+  capture); `request_id` is what `bites/fetch.mjs` needs, and a block
+  whose answer was wrong gets a bite that must fail it.
 
-`request_id` is what `bites/fetch.mjs` needs; the asserts map onto `lib.mjs` one to one.
+A verb the interpreter lacks is added to `gym-interp.mjs`, never
+paraphrased in the filing.
 
 ## What it asserts
 

@@ -1,0 +1,1333 @@
+{
+  "feedback": 81,
+  "contract_version": "6.10.0",
+  "captured_at": "2026-09-21T07:17:04.271Z",
+  "request": {
+    "tool": "clans_participation",
+    "arguments": {
+      "weeks": 2
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "name": "POAP KINGS",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "weeks": 2,
+      "verbosity": "full",
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": null,
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      }
+    },
+    "recording_active_since": "2026-09-03T17:58:41.623Z",
+    "first_roster_observed_at": "2026-03-12T02:21:45.000Z",
+    "basis": "recorded",
+    "weeks": [
+      {
+        "iso_week": "2026-W38",
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z"
+      },
+      {
+        "iso_week": "2026-W39",
+        "from": "2026-09-21T00:00:00.000Z",
+        "to": "2026-09-28T00:00:00.000Z",
+        "partial": true,
+        "covers": {
+          "from": "2026-09-21T00:00:00.000Z",
+          "to": "2026-09-21T07:17:03.709Z"
+        }
+      }
+    ],
+    "war_weeks": [
+      {
+        "season_id": 136,
+        "section_index": 0,
+        "is_colosseum": false,
+        "started_observed_at": "2026-09-07T10:42:47.000Z",
+        "finished_observed_at": "2026-09-14T09:38:05.000Z"
+      },
+      {
+        "season_id": 136,
+        "section_index": 1,
+        "is_colosseum": false,
+        "started_observed_at": "2026-09-14T09:57:54.000Z",
+        "finished_observed_at": null
+      }
+    ],
+    "member_count": 46,
+    "members": [
+      {
+        "player_tag": "#20CGPVUL92",
+        "name": "pigsareus",
+        "role": "member",
+        "joined_observed_at": "2026-04-01T04:28:31.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 173,
+        "log_recorded": true,
+        "recorded_since": "2026-03-26T01:25:57.000Z",
+        "last_battle_time": "2026-09-19T19:15:54.000Z",
+        "last_battle_time_in_clan": "2026-09-19T19:15:54.000Z",
+        "days_since_battle": 1.5,
+        "battles": [16, 0],
+        "ranked_battles": [0, 0],
+        "donations": [129, null],
+        "war_decks": [0, 2],
+        "war_points": [0, 500],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [2, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [1, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#20CLVPLG8R",
+        "name": "VVSBUDGET",
+        "role": "member",
+        "joined_observed_at": "2026-09-12T13:37:58.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 8,
+        "log_recorded": true,
+        "recorded_since": "2026-08-25T13:28:34.000Z",
+        "last_battle_time": "2026-09-13T11:28:02.000Z",
+        "last_battle_time_in_clan": "2026-09-13T11:28:02.000Z",
+        "days_since_battle": 7.83,
+        "battles": [0, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [null, null, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#20G0JGQLPL",
+        "name": "alex",
+        "role": "member",
+        "joined_observed_at": "2026-07-08T04:09:28.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 75,
+        "log_recorded": true,
+        "recorded_since": "2026-07-08T00:39:03.000Z",
+        "last_battle_time": "2026-09-13T01:49:27.000Z",
+        "last_battle_time_in_clan": "2026-09-13T01:49:27.000Z",
+        "days_since_battle": 8.23,
+        "battles": [0, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#20G9RY299P",
+        "name": "Waltadr",
+        "role": "member",
+        "joined_observed_at": "2026-04-21T04:11:22.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 153,
+        "log_recorded": true,
+        "recorded_since": "2026-04-16T16:14:42.000Z",
+        "last_battle_time": "2026-09-18T00:40:28.000Z",
+        "last_battle_time_in_clan": "2026-09-18T00:40:28.000Z",
+        "days_since_battle": 3.28,
+        "battles": [8, 0],
+        "ranked_battles": [0, 0],
+        "donations": [113, null],
+        "war_decks": [1, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 1],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [1, 0]
+      },
+      {
+        "player_tag": "#20GPQPC9RV",
+        "name": "bonus",
+        "role": "elder",
+        "joined_observed_at": "2026-06-12T15:29:55.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 100,
+        "log_recorded": true,
+        "recorded_since": "2026-04-24T13:39:42.000Z",
+        "last_battle_time": "2026-09-20T21:29:04.000Z",
+        "last_battle_time_in_clan": "2026-09-20T21:29:04.000Z",
+        "days_since_battle": 0.41,
+        "battles": [204, 0],
+        "ranked_battles": [0, 0],
+        "donations": [203, null],
+        "war_decks": [16, 13],
+        "war_points": [1700, 1800],
+        "war_decks_by_day": [
+          [4, 4, 4, 4],
+          [4, 4, 4, 1]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 1]
+        ],
+        "war_days_battled": [4, 4]
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "role": "leader",
+        "joined_observed_at": "2026-03-12T02:21:45.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 193,
+        "log_recorded": true,
+        "recorded_since": "2026-03-03T04:38:28.000Z",
+        "last_battle_time": "2026-09-21T01:04:46.000Z",
+        "last_battle_time_in_clan": "2026-09-21T01:04:46.000Z",
+        "days_since_battle": 0.26,
+        "battles": [18, 4],
+        "ranked_battles": [0, 0],
+        "donations": [400, null],
+        "war_decks": [12, 16],
+        "war_points": [2100, 1800],
+        "war_decks_by_day": [
+          [4, 4, 4, 0],
+          [4, 4, 4, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 3, 3, 3]
+        ],
+        "war_days_battled": [3, 4]
+      },
+      {
+        "player_tag": "#20LP8UPJ8R",
+        "name": "I Hate Witch",
+        "role": "member",
+        "joined_observed_at": "2026-08-25T18:18:34.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 26,
+        "log_recorded": true,
+        "recorded_since": "2026-07-17T10:10:49.000Z",
+        "last_battle_time": "2026-09-19T08:54:29.000Z",
+        "last_battle_time_in_clan": "2026-09-19T08:54:29.000Z",
+        "days_since_battle": 1.93,
+        "battles": [31, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [5, 5],
+        "war_points": [900, 1000],
+        "war_decks_by_day": [
+          [2, 0, 3, 0],
+          [2, 3, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 2, 0, 0]
+        ],
+        "war_days_battled": [2, 2]
+      },
+      {
+        "player_tag": "#20R8QRLYLP",
+        "name": "Chanco",
+        "role": "elder",
+        "joined_observed_at": "2026-07-26T06:09:52.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 57,
+        "log_recorded": true,
+        "recorded_since": "2026-03-05T09:06:58.000Z",
+        "last_battle_time": "2026-09-21T06:02:20.000Z",
+        "last_battle_time_in_clan": "2026-09-21T06:02:20.000Z",
+        "days_since_battle": 0.05,
+        "battles": [109, 1],
+        "ranked_battles": [31, 0],
+        "donations": [831, null],
+        "war_decks": [16, 16],
+        "war_points": [1600, 1900],
+        "war_decks_by_day": [
+          [4, 4, 4, 4],
+          [4, 4, 4, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 8, 4]
+        ],
+        "war_days_battled": [4, 4]
+      },
+      {
+        "player_tag": "#2209PJPVGG",
+        "name": "shimmeringhost",
+        "role": "elder",
+        "joined_observed_at": "2026-03-12T02:21:45.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 193,
+        "log_recorded": true,
+        "recorded_since": "2026-03-10T03:55:18.000Z",
+        "last_battle_time": "2026-09-21T02:13:51.000Z",
+        "last_battle_time_in_clan": "2026-09-21T02:13:51.000Z",
+        "days_since_battle": 0.21,
+        "battles": [51, 2],
+        "ranked_battles": [0, 0],
+        "donations": [439, null],
+        "war_decks": [12, 12],
+        "war_points": [1800, 1900],
+        "war_decks_by_day": [
+          [4, 4, 4, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_days_battled": [3, 3]
+      },
+      {
+        "player_tag": "#229QY8UL9U",
+        "name": "Mega Goblin",
+        "role": "elder",
+        "joined_observed_at": "2026-07-28T14:55:08.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 54,
+        "log_recorded": true,
+        "recorded_since": "2026-07-09T17:35:51.000Z",
+        "last_battle_time": "2026-09-20T17:10:28.000Z",
+        "last_battle_time_in_clan": "2026-09-20T17:10:28.000Z",
+        "days_since_battle": 0.59,
+        "battles": [45, 0],
+        "ranked_battles": [0, 0],
+        "donations": [136, null],
+        "war_decks": [16, 16],
+        "war_points": [2000, 1900],
+        "war_decks_by_day": [
+          [4, 4, 4, 4],
+          [4, 4, 4, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [5, 2, 4, 4]
+        ],
+        "war_days_battled": [4, 4]
+      },
+      {
+        "player_tag": "#2CY2RJL9G",
+        "name": "L-Drxgo⚡",
+        "role": "elder",
+        "joined_observed_at": "2026-04-01T04:28:31.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 173,
+        "log_recorded": true,
+        "recorded_since": "2026-03-06T17:54:52.000Z",
+        "last_battle_time": "2026-09-21T00:35:06.000Z",
+        "last_battle_time_in_clan": "2026-09-21T00:35:06.000Z",
+        "days_since_battle": 0.28,
+        "battles": [150, 6],
+        "ranked_battles": [95, 6],
+        "donations": [640, null],
+        "war_decks": [0, 4],
+        "war_points": [0, 800],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 3, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 4, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#2G09Q20QC",
+        "name": "Kurd Paraw",
+        "role": "member",
+        "joined_observed_at": "2026-08-14T12:51:45.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 37,
+        "log_recorded": true,
+        "recorded_since": "2026-08-07T14:07:18.000Z",
+        "last_battle_time": "2026-09-20T16:37:32.000Z",
+        "last_battle_time_in_clan": "2026-09-20T16:37:32.000Z",
+        "days_since_battle": 0.61,
+        "battles": [34, 0],
+        "ranked_battles": [34, 0],
+        "donations": [80, null],
+        "war_decks": [2, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 2],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [1, 0]
+      },
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "role": "elder",
+        "joined_observed_at": "2026-05-05T04:48:32.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 139,
+        "log_recorded": true,
+        "recorded_since": "2026-04-17T06:57:19.000Z",
+        "last_battle_time": "2026-09-21T06:45:33.000Z",
+        "last_battle_time_in_clan": "2026-09-21T06:45:33.000Z",
+        "days_since_battle": 0.02,
+        "battles": [373, 13],
+        "ranked_battles": [2, 0],
+        "donations": [697, null],
+        "war_decks": [12, 12],
+        "war_points": [2100, 2500],
+        "war_decks_by_day": [
+          [4, 4, 4, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [4, 2, 2, 0]
+        ],
+        "war_days_battled": [3, 3]
+      },
+      {
+        "player_tag": "#2LRYLQPL",
+        "name": "Andy",
+        "role": "member",
+        "joined_observed_at": "2026-06-28T15:33:45.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 84,
+        "log_recorded": true,
+        "recorded_since": "2026-06-23T04:51:31.000Z",
+        "last_battle_time": "2026-09-21T04:33:05.000Z",
+        "last_battle_time_in_clan": "2026-09-21T04:33:05.000Z",
+        "days_since_battle": 0.11,
+        "battles": [45, 3],
+        "ranked_battles": [0, 0],
+        "donations": [312, null],
+        "war_decks": [7, 12],
+        "war_points": [800, 1200],
+        "war_decks_by_day": [
+          [4, 0, 1, 2],
+          [0, 4, 4, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [1, 3, 7, 4]
+        ],
+        "war_days_battled": [3, 4]
+      },
+      {
+        "player_tag": "#2P9GRU2Q0",
+        "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+        "role": "elder",
+        "joined_observed_at": "2026-03-18T04:27:36.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 187,
+        "log_recorded": true,
+        "recorded_since": "2026-02-13T15:14:20.000Z",
+        "last_battle_time": "2026-09-11T13:18:57.000Z",
+        "last_battle_time_in_clan": "2026-09-11T13:18:57.000Z",
+        "days_since_battle": 9.75,
+        "battles": [0, 0],
+        "ranked_battles": [0, 0],
+        "donations": [16, null],
+        "war_decks": [3, 0],
+        "war_points": [600, 0],
+        "war_decks_by_day": [
+          [0, 3, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [1, 0]
+      },
+      {
+        "player_tag": "#2YG98VVQ",
+        "name": "Alfablack",
+        "role": "member",
+        "joined_observed_at": "2026-07-08T20:57:08.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 74,
+        "log_recorded": true,
+        "recorded_since": "2026-07-02T16:40:02.000Z",
+        "last_battle_time": "2026-09-20T19:26:44.000Z",
+        "last_battle_time_in_clan": "2026-09-20T19:26:44.000Z",
+        "days_since_battle": 0.49,
+        "battles": [26, 0],
+        "ranked_battles": [0, 0],
+        "donations": [84, null],
+        "war_decks": [0, 4],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 3]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#8G8UYG2PQ",
+        "name": "Gabriel",
+        "role": "member",
+        "joined_observed_at": "2026-08-02T21:58:39.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 49,
+        "log_recorded": true,
+        "recorded_since": "2026-07-31T23:07:16.000Z",
+        "last_battle_time": "2026-09-20T02:13:29.000Z",
+        "last_battle_time_in_clan": "2026-09-20T02:13:29.000Z",
+        "days_since_battle": 1.21,
+        "battles": [18, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#8U2P0JPR",
+        "name": "Fullboat",
+        "role": "elder",
+        "joined_observed_at": "2026-04-13T04:25:40.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 161,
+        "log_recorded": true,
+        "recorded_since": "2026-02-22T02:09:07.000Z",
+        "last_battle_time": "2026-09-20T15:56:59.000Z",
+        "last_battle_time_in_clan": "2026-09-20T15:56:59.000Z",
+        "days_since_battle": 0.64,
+        "battles": [12, 0],
+        "ranked_battles": [0, 0],
+        "donations": [166, null],
+        "war_decks": [16, 15],
+        "war_points": [1600, 2100],
+        "war_decks_by_day": [
+          [4, 4, 4, 4],
+          [4, 4, 4, 3]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 3, 3, 1]
+        ],
+        "war_days_battled": [4, 4]
+      },
+      {
+        "player_tag": "#9Q9QRCPPU",
+        "name": "dez42",
+        "role": "elder",
+        "joined_observed_at": "2026-04-24T04:34:33.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 150,
+        "log_recorded": true,
+        "recorded_since": "2026-04-11T16:46:19.000Z",
+        "last_battle_time": "2026-09-20T22:41:21.000Z",
+        "last_battle_time_in_clan": "2026-09-20T22:41:21.000Z",
+        "days_since_battle": 0.36,
+        "battles": [29, 0],
+        "ranked_battles": [14, 0],
+        "donations": [150, null],
+        "war_decks": [14, 15],
+        "war_points": [1700, 2050],
+        "war_decks_by_day": [
+          [4, 4, 2, 4],
+          [4, 4, 4, 3]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 2],
+          [3, 3, 2, 1]
+        ],
+        "war_days_battled": [4, 4]
+      },
+      {
+        "player_tag": "#9QQLPJRLV",
+        "name": "duki suzuki",
+        "role": "member",
+        "joined_observed_at": "2026-09-19T16:37:56.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 1,
+        "log_recorded": true,
+        "recorded_since": "2026-09-17T07:00:41.000Z",
+        "last_battle_time": "2026-09-21T06:55:05.000Z",
+        "last_battle_time_in_clan": "2026-09-21T06:55:05.000Z",
+        "days_since_battle": 0.02,
+        "battles": [37, 3],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [null, 0],
+        "war_points": [null, 0],
+        "war_decks_by_day": [
+          [null, null, null, null],
+          [null, null, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [null, 0]
+      },
+      {
+        "player_tag": "#C920YGLC2",
+        "name": "Vijay",
+        "role": "coLeader",
+        "joined_observed_at": "2026-03-12T02:21:45.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 193,
+        "log_recorded": true,
+        "recorded_since": "2026-03-06T17:00:03.000Z",
+        "last_battle_time": "2026-09-20T20:29:11.000Z",
+        "last_battle_time_in_clan": "2026-09-20T20:29:11.000Z",
+        "days_since_battle": 0.45,
+        "battles": [375, 0],
+        "ranked_battles": [248, 0],
+        "donations": [1117, null],
+        "war_decks": [6, 4],
+        "war_points": [900, 500],
+        "war_decks_by_day": [
+          [4, 2, 0, 0],
+          [0, 1, 2, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 1, 2, 0]
+        ],
+        "war_days_battled": [2, 2]
+      },
+      {
+        "player_tag": "#CV20JCY0V",
+        "name": "BigNorton",
+        "role": "member",
+        "joined_observed_at": "2026-09-01T03:37:02.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 20,
+        "log_recorded": true,
+        "recorded_since": "2026-07-12T21:38:42.000Z",
+        "last_battle_time": "2026-09-18T22:00:50.000Z",
+        "last_battle_time_in_clan": "2026-09-18T22:00:50.000Z",
+        "days_since_battle": 2.39,
+        "battles": [28, 0],
+        "ranked_battles": [0, 0],
+        "donations": [11, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#G2CUUJQ8V",
+        "name": "kiruba⚜️",
+        "role": "member",
+        "joined_observed_at": "2026-04-15T04:20:31.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 159,
+        "log_recorded": true,
+        "recorded_since": "2026-02-21T12:26:11.000Z",
+        "last_battle_time": "2026-09-11T02:33:43.000Z",
+        "last_battle_time_in_clan": "2026-09-11T02:33:43.000Z",
+        "days_since_battle": 10.2,
+        "battles": [0, 0],
+        "ranked_battles": [0, 0],
+        "donations": [20, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#JRVV9VC0C",
+        "name": "NOBITA",
+        "role": "member",
+        "joined_observed_at": "2026-09-04T19:05:47.660Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 16,
+        "log_recorded": true,
+        "recorded_since": "2026-08-27T12:13:44.000Z",
+        "last_battle_time": "2026-09-20T14:25:05.000Z",
+        "last_battle_time_in_clan": "2026-09-20T14:25:05.000Z",
+        "days_since_battle": 0.7,
+        "battles": [80, 0],
+        "ranked_battles": [0, 0],
+        "donations": [363, null],
+        "war_decks": [4, 12],
+        "war_points": [700, 1600],
+        "war_decks_by_day": [
+          [0, 0, 4, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 3, 0]
+        ],
+        "war_days_battled": [1, 3]
+      },
+      {
+        "player_tag": "#JYRQ8U92C",
+        "name": "sikander sidhu",
+        "role": "elder",
+        "joined_observed_at": "2026-07-04T10:37:03.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 78,
+        "log_recorded": true,
+        "recorded_since": "2026-06-06T12:35:32.000Z",
+        "last_battle_time": "2026-09-21T07:05:28.000Z",
+        "last_battle_time_in_clan": "2026-09-21T07:05:28.000Z",
+        "days_since_battle": 0.01,
+        "battles": [292, 18],
+        "ranked_battles": [0, 0],
+        "donations": [602, null],
+        "war_decks": [12, 16],
+        "war_points": [1200, 2550],
+        "war_decks_by_day": [
+          [0, 4, 4, 4],
+          [4, 4, 4, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 9, 6, 2]
+        ],
+        "war_days_battled": [3, 4]
+      },
+      {
+        "player_tag": "#P2U0PC2UU",
+        "name": "canavar",
+        "role": "member",
+        "joined_observed_at": "2026-08-11T13:06:56.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 40,
+        "log_recorded": true,
+        "recorded_since": "2026-05-28T12:38:00.000Z",
+        "last_battle_time": "2026-09-20T12:21:31.000Z",
+        "last_battle_time_in_clan": "2026-09-20T12:21:31.000Z",
+        "days_since_battle": 0.79,
+        "battles": [41, 0],
+        "ranked_battles": [40, 0],
+        "donations": [0, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#PLCCYUQL",
+        "name": "TDuck",
+        "role": "elder",
+        "joined_observed_at": "2026-04-14T04:28:46.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 160,
+        "log_recorded": true,
+        "recorded_since": "2026-04-08T00:59:09.000Z",
+        "last_battle_time": "2026-09-21T02:54:23.000Z",
+        "last_battle_time_in_clan": "2026-09-21T02:54:23.000Z",
+        "days_since_battle": 0.18,
+        "battles": [58, 10],
+        "ranked_battles": [41, 10],
+        "donations": [348, null],
+        "war_decks": [8, 12],
+        "war_points": [1400, 1900],
+        "war_decks_by_day": [
+          [0, 4, 4, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_days_battled": [2, 3]
+      },
+      {
+        "player_tag": "#PR8YLQ2CV",
+        "name": "The Joesma",
+        "role": "member",
+        "joined_observed_at": "2026-04-01T04:28:31.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 173,
+        "log_recorded": true,
+        "recorded_since": "2026-03-12T04:39:13.000Z",
+        "last_battle_time": "2026-09-18T16:20:37.000Z",
+        "last_battle_time_in_clan": "2026-09-18T16:20:37.000Z",
+        "days_since_battle": 2.62,
+        "battles": [7, 0],
+        "ranked_battles": [0, 0],
+        "donations": [64, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#RJ9RRQPVU",
+        "name": "OllieTurtle",
+        "role": "elder",
+        "joined_observed_at": "2026-03-25T04:25:07.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 180,
+        "log_recorded": true,
+        "recorded_since": "2026-03-23T15:06:58.000Z",
+        "last_battle_time": "2026-09-21T03:47:13.000Z",
+        "last_battle_time_in_clan": "2026-09-21T03:47:13.000Z",
+        "days_since_battle": 0.15,
+        "battles": [57, 2],
+        "ranked_battles": [38, 2],
+        "donations": [202, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#RRU9PGJQ9",
+        "name": "Brotherinpants",
+        "role": "member",
+        "joined_observed_at": "2026-09-09T02:47:43.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 12,
+        "log_recorded": true,
+        "recorded_since": "2026-08-11T03:52:01.000Z",
+        "last_battle_time": "2026-09-18T15:44:53.000Z",
+        "last_battle_time_in_clan": "2026-09-18T15:44:53.000Z",
+        "days_since_battle": 2.65,
+        "battles": [3, 0],
+        "ranked_battles": [0, 0],
+        "donations": [10, null],
+        "war_decks": [0, 4],
+        "war_points": [0, 800],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 4, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 3, 0, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#U08P889Y0",
+        "name": "Tere",
+        "role": "member",
+        "joined_observed_at": "2026-04-21T04:11:22.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 153,
+        "log_recorded": true,
+        "recorded_since": "2026-04-17T16:15:44.000Z",
+        "last_battle_time": "2026-09-19T15:59:19.000Z",
+        "last_battle_time_in_clan": "2026-09-19T15:59:19.000Z",
+        "days_since_battle": 1.64,
+        "battles": [11, 0],
+        "ranked_battles": [0, 0],
+        "donations": [83, null],
+        "war_decks": [1, 1],
+        "war_points": [200, 200],
+        "war_decks_by_day": [
+          [0, 0, 1, 0],
+          [0, 0, 1, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 1, 0]
+        ],
+        "war_days_battled": [1, 1]
+      },
+      {
+        "player_tag": "#U8RYG9Y2U",
+        "name": "King Levy",
+        "role": "coLeader",
+        "joined_observed_at": "2026-03-12T02:21:45.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 193,
+        "log_recorded": true,
+        "recorded_since": "2026-01-16T18:57:55.000Z",
+        "last_battle_time": "2026-09-20T21:54:21.000Z",
+        "last_battle_time_in_clan": "2026-09-20T21:54:21.000Z",
+        "days_since_battle": 0.39,
+        "battles": [7, 0],
+        "ranked_battles": [7, 0],
+        "donations": [130, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#U92P8PQG0",
+        "name": "God Bless You",
+        "role": "member",
+        "joined_observed_at": "2026-07-28T11:11:34.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 54,
+        "log_recorded": true,
+        "recorded_since": "2026-06-14T15:01:17.000Z",
+        "last_battle_time": "2026-09-21T02:29:28.000Z",
+        "last_battle_time_in_clan": "2026-09-21T02:29:28.000Z",
+        "days_since_battle": 0.2,
+        "battles": [114, 2],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [16, 12],
+        "war_points": [2150, 1350],
+        "war_decks_by_day": [
+          [4, 4, 4, 4],
+          [4, 4, 0, 4]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 4, 1, 3]
+        ],
+        "war_days_battled": [4, 4]
+      },
+      {
+        "player_tag": "#UCRLVL29U",
+        "name": "Ak",
+        "role": "member",
+        "joined_observed_at": "2026-08-06T21:55:19.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 45,
+        "log_recorded": true,
+        "recorded_since": "2026-06-12T18:27:00.000Z",
+        "last_battle_time": "2026-09-20T16:58:23.000Z",
+        "last_battle_time_in_clan": "2026-09-20T16:58:23.000Z",
+        "days_since_battle": 0.6,
+        "battles": [93, 0],
+        "ranked_battles": [0, 0],
+        "donations": [243, null],
+        "war_decks": [0, 4],
+        "war_points": [0, 350],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 4, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 4, 0, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#UL2V9QRG0",
+        "name": "raquaza",
+        "role": "coLeader",
+        "joined_observed_at": "2026-03-12T02:21:45.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 193,
+        "log_recorded": true,
+        "recorded_since": "2026-01-11T23:30:51.000Z",
+        "last_battle_time": "2026-09-20T16:32:36.000Z",
+        "last_battle_time_in_clan": "2026-09-20T16:32:36.000Z",
+        "days_since_battle": 0.61,
+        "battles": [14, 0],
+        "ranked_battles": [11, 0],
+        "donations": [120, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#UQ2R9RGVP",
+        "name": "Sandeep",
+        "role": "elder",
+        "joined_observed_at": "2026-04-14T04:28:46.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 160,
+        "log_recorded": true,
+        "recorded_since": "2026-03-10T10:04:33.000Z",
+        "last_battle_time": "2026-09-20T14:11:09.000Z",
+        "last_battle_time_in_clan": "2026-09-20T14:11:09.000Z",
+        "days_since_battle": 0.71,
+        "battles": [92, 0],
+        "ranked_battles": [43, 0],
+        "donations": [128, null],
+        "war_decks": [12, 12],
+        "war_points": [2300, 2600],
+        "war_decks_by_day": [
+          [4, 4, 4, 0],
+          [4, 4, 4, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 5, 1, 0]
+        ],
+        "war_days_battled": [3, 3]
+      },
+      {
+        "player_tag": "#URPCLR8UQ",
+        "name": "x.x.hari.x.x",
+        "role": "member",
+        "joined_observed_at": "2026-08-30T10:55:27.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 21,
+        "log_recorded": true,
+        "recorded_since": "2026-08-28T07:48:06.000Z",
+        "last_battle_time": "2026-09-20T14:25:48.000Z",
+        "last_battle_time_in_clan": "2026-09-20T14:25:48.000Z",
+        "days_since_battle": 0.7,
+        "battles": [108, 0],
+        "ranked_battles": [0, 0],
+        "donations": [466, null],
+        "war_decks": [0, 1],
+        "war_points": [0, 100],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 1, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 1, 0, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#UVQ8RJYG9",
+        "name": "AHMOメŞΛDØW",
+        "role": "member",
+        "joined_observed_at": "2026-07-23T15:30:32.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 59,
+        "log_recorded": true,
+        "recorded_since": "2026-07-22T15:21:13.000Z",
+        "last_battle_time": "2026-09-20T18:51:45.000Z",
+        "last_battle_time_in_clan": "2026-09-20T18:51:45.000Z",
+        "days_since_battle": 0.52,
+        "battles": [16, 0],
+        "ranked_battles": [0, 0],
+        "donations": [84, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#V0CRYP2GG",
+        "name": "pokemon",
+        "role": "member",
+        "joined_observed_at": "2026-06-11T17:33:21.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 101,
+        "log_recorded": true,
+        "recorded_since": "2026-02-09T02:38:44.000Z",
+        "last_battle_time": "2026-09-12T16:34:46.000Z",
+        "last_battle_time_in_clan": "2026-09-12T16:34:46.000Z",
+        "days_since_battle": 8.61,
+        "battles": [0, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#V8Q8PUL0U",
+        "name": "ryguy67",
+        "role": "elder",
+        "joined_observed_at": "2026-04-15T04:20:31.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 159,
+        "log_recorded": true,
+        "recorded_since": "2026-03-29T00:39:37.000Z",
+        "last_battle_time": "2026-09-18T22:54:22.000Z",
+        "last_battle_time_in_clan": "2026-09-18T22:54:22.000Z",
+        "days_since_battle": 2.35,
+        "battles": [80, 0],
+        "ranked_battles": [10, 0],
+        "donations": [114, null],
+        "war_decks": [8, 4],
+        "war_points": [525, 700],
+        "war_decks_by_day": [
+          [4, 0, 0, 4],
+          [4, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 2],
+          [4, 0, 0, 0]
+        ],
+        "war_days_battled": [2, 1]
+      },
+      {
+        "player_tag": "#VC8VY8R29",
+        "name": "nyje47",
+        "role": "member",
+        "joined_observed_at": "2026-08-05T23:24:50.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 46,
+        "log_recorded": true,
+        "recorded_since": "2026-08-02T19:58:29.000Z",
+        "last_battle_time": "2026-09-20T22:46:08.000Z",
+        "last_battle_time_in_clan": "2026-09-20T22:46:08.000Z",
+        "days_since_battle": 0.35,
+        "battles": [82, 0],
+        "ranked_battles": [0, 0],
+        "donations": [34, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#VGC22YGP",
+        "name": "MONICA",
+        "role": "member",
+        "joined_observed_at": "2026-08-20T14:57:47.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 31,
+        "log_recorded": true,
+        "recorded_since": "2026-02-01T12:49:27.000Z",
+        "last_battle_time": "2026-09-21T04:24:29.000Z",
+        "last_battle_time_in_clan": "2026-09-21T04:24:29.000Z",
+        "days_since_battle": 0.12,
+        "battles": [132, 4],
+        "ranked_battles": [80, 4],
+        "donations": [289, null],
+        "war_decks": [0, 1],
+        "war_points": [0, 200],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [1, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [1, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#VJG09L9YY",
+        "name": "£eoππe§§;",
+        "role": "member",
+        "joined_observed_at": "2026-08-15T14:31:45.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 36,
+        "log_recorded": true,
+        "recorded_since": "2026-08-12T13:06:40.000Z",
+        "last_battle_time": "2026-09-19T22:51:19.000Z",
+        "last_battle_time_in_clan": "2026-09-19T22:51:19.000Z",
+        "days_since_battle": 1.35,
+        "battles": [11, 0],
+        "ranked_battles": [0, 0],
+        "donations": [169, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#VQUQJP8Q9",
+        "name": "1spaceO2",
+        "role": "member",
+        "joined_observed_at": "2026-06-22T03:30:48.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 91,
+        "log_recorded": true,
+        "recorded_since": "2026-03-25T18:10:36.000Z",
+        "last_battle_time": "2026-09-18T13:23:51.000Z",
+        "last_battle_time_in_clan": "2026-09-18T13:23:51.000Z",
+        "days_since_battle": 2.75,
+        "battles": [24, 0],
+        "ranked_battles": [0, 0],
+        "donations": [162, null],
+        "war_decks": [0, 3],
+        "war_points": [0, 400],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 1]
+      },
+      {
+        "player_tag": "#VR0QRP2PG",
+        "name": "round hamster",
+        "role": "member",
+        "joined_observed_at": "2026-03-21T04:42:53.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 184,
+        "log_recorded": true,
+        "recorded_since": "2026-02-07T03:05:33.000Z",
+        "last_battle_time": "2026-09-20T01:27:28.000Z",
+        "last_battle_time_in_clan": "2026-09-20T01:27:28.000Z",
+        "days_since_battle": 1.24,
+        "battles": [3, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, null],
+        "war_decks": [0, 0],
+        "war_points": [0, 0],
+        "war_decks_by_day": [
+          [null, null, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0]
+      },
+      {
+        "player_tag": "#YC8LLR8Q2",
+        "name": "sniperhendo",
+        "role": "member",
+        "joined_observed_at": "2026-06-15T16:38:47.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 97,
+        "log_recorded": true,
+        "recorded_since": "2026-03-12T04:39:13.000Z",
+        "last_battle_time": "2026-09-20T17:47:16.000Z",
+        "last_battle_time_in_clan": "2026-09-20T17:47:16.000Z",
+        "days_since_battle": 0.56,
+        "battles": [24, 0],
+        "ranked_battles": [18, 0],
+        "donations": [116, null],
+        "war_decks": [0, 2],
+        "war_points": [0, 300],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [1, 1, 0, 0]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [1, 1, 0, 0]
+        ],
+        "war_days_battled": [0, 2]
+      }
+    ],
+    "notes": [
+      "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
+      "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",
+      "donations is the game's weekly counter as of the last daily snapshot in that ISO week (it resets Mondays); null means no snapshot fell in the week.",
+      "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
+      "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
+      "Counts cover RECORDED battles only (log_recorded and recorded_since per member say whose log is recorded and since when; elixir_coverage per tag says how complete it is); war_days_battled per war week counts the days a member fought from polls and recorded battles, null when neither source covered the week; last_battle_time_in_clan is the last recorded battle played as a member of this clan."
+    ],
+    "docs": "recording#participation-by-week",
+    "meta": {
+      "contract_version": "6.10.0"
+    }
+  },
+  "timings": {
+    "db_ms": 553,
+    "db_queries": 15,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

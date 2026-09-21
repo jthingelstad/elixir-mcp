@@ -300,6 +300,44 @@ export async function projectRiverRace(
         ],
       );
       facts += dayMoved;
+      // The decks the counter rolled past (the Gym's open question 2,
+      // 2026-09-21: war_decks_by_day summed one short of war_decks for
+      // two of 46 members). Between the last poll of a day and the first
+      // of the next, a member's cumulative decksUsed grows by the decks
+      // played late on the old day plus the new day's so far; the API's
+      // decksUsedToday holds only the latter. The difference was played
+      // before this day began - on the previous war day - and no poll
+      // saw it there. Added to that day's row, capped at the four a day
+      // holds; a poll inside a day never carries (its delta is at most
+      // today's growth).
+      if (clock.warDay > 1) {
+        const carries = participants
+          .map((p) => ({
+            tag: p.tag,
+            carry: (deckDeltas.get(p.tag) ?? 0) - p.decksUsedToday,
+          }))
+          .filter((c) => c.carry > 0);
+        if (carries.length > 0) {
+          const { rowCount: carried } = await db.query(
+            `insert into war_attendance_day
+               (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+             select $1, $2, $3, $4, t.tag, least(4, t.carry)
+             from unnest($5::text[], $6::int[]) as t(tag, carry)
+             on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
+               decks_used_today = least(4, war_attendance_day.decks_used_today + excluded.decks_used_today)
+             where war_attendance_day.decks_used_today < 4`,
+            [
+              tag,
+              clock.seasonId,
+              clock.sectionIndex,
+              clock.warDay - 1,
+              carries.map((c) => c.tag),
+              carries.map((c) => c.carry),
+            ],
+          );
+          facts += carried;
+        }
+      }
     }
   }
 

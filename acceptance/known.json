@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "case": "gym/81.7",
+    "reason": "war_decks_by_day sums short of war_decks on weeks recorded before 2026-09-21: polls missed a day's last deck and nothing carried it. The ingest carries rolled-past decks to the previous day from this deploy; weeks:2 is clean once both weeks post-date it.",
+    "until": "2026-10-06",
+    "filed": "2026-09-21"
+  }
+]
