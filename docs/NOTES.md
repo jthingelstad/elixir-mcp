@@ -7105,3 +7105,39 @@ Final: **216 cases, 0 failed, 0 skipped, 184 calls, ~4.5 min**, through
 the gate. **Next in the build:** the identity DSL (one-liners for
 cross-tool number pairs); the Gym prompt's JSON block; `cards_card`
 corpus ~10 s and `battles_trends` clan ~9 s watched.
+
+## 2026-09-21 — The identity DSL, and the day's third product bug (dailySql's DATE-typed parameter)
+
+**The DSL (`acceptance/dsl.mjs`).** A cross-tool invariant is one line:
+`same(label, rows(tool, args, list, key, value), rows(...))` (the right
+side's value function sees the left side's body — the running week from
+`war_current` picks the column in `clans_participation`), `scalar()`,
+`ordered(chain)`, `sums(total, parts)`, `implies(when, then)`,
+`bounded(value, low, high)`, `sumAtMost`, `check`. Arguments may be a
+function of ctx (the closed week found at run time). **A field a rule
+names must exist**: undefined fails (the `finished_races` class), null
+skips (an honest unknown) — the #82 bite proved the first draft blind:
+null-skipping had made `ordered` pass on the 6.10.0 capture that lacks
+the field. `identities.mjs`: 27 cases, 25 one-liners, ten of them new
+pairs (roster size vs `war_current.member_count`, the two meta tools'
+`decided_battles`, `rankings_clans.field_size` vs the players board's
+`snapshot.entries`, a player's 30-day battles on two tools, …).
+
+**What the new pairs found.** `players_summary.last_30_days.battles`
+93 vs `battles_performance {days: 30}` 90 over the same instant — three
+battles on the window's first day before its instant. `dailySql`'s
+bound parameter appeared first as `($2)::date`, which typed the WHOLE
+parameter `date`; every later `battle_time >= $2` then compared against
+midnight and the start day counted whole. The fixture test passed for a
+month because its windows held no battle in that gap and its `from` was
+a string literal; production passed a Date. Cast at every use now; the
+test seeds a pre-instant battle; `clans_standings` (standings-sql.mjs)
+read the same SQL and was wrong the same way. Both answers are bites.
+**Lesson for every query in this repo:** a `$n` used in more than one
+place takes its type from the FIRST use; cast it where the cast is
+meant, never rely on inference.
+
+Final: **235 cases, 0 failed, 187 calls**, through the gate. The build
+list from this morning is done: catalogue, bites, shapes (retired),
+known, ground, DSL. Left for Jamie: the Gym prompt's JSON block (in the
+README).

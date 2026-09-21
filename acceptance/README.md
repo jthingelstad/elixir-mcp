@@ -28,6 +28,7 @@ scale**, and that is where the last two days' defects lived:
 | **bites** | captured answers from a day the product was wrong, and the case or rule that must FAIL on each; runs under `npm test` with no network. A rule that passes on known-bad history is decoration. | `bites/`, `bites.test.mjs` |
 | **known** | failures filed for a decision rather than a fix: a reason and an expiry; reported as KNOWN and not counted until the date passes | `known.json` |
 | **shapes** | recorded key-path baselines for tools with no `outputSchema`, provenance printed by every run; the stopgap that shrinks as schemas are written. Empty since 6.14.0: every tool publishes an outputSchema. | `shapes/`, `--update-shapes --reason` |
+| **dsl** | a cross-tool invariant as one declaration: `same()` over keyed rows or scalars, `ordered()` chains, `sums()`, `implies()`, `bounded()`, `sumAtMost()`, `check()`. A field a rule names must exist - undefined fails, null skips. `identities.mjs` is 25 one-liners and two code cases. | `dsl.mjs`, `checks/identities.mjs` |
 | **ground** | the record against the game: two live CR API reads from this machine (the operator key; never through the door) compared with `players_profile` and `war_current` - identity facts equal, polled counters never ahead of the game, equal when fresh. SKIP, said aloud, where no key answers. | `checks/ground.mjs` |
 
 ### Why a recorded baseline cannot ossify an error
