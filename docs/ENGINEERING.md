@@ -346,8 +346,8 @@ tie sponsorship (`/support`) to anything on an account.
 
 `node infra/scripts/deploy.mjs` with `AWS_PROFILE=jamie` **in the environment** —
 the CLI profile flag alone does not satisfy the SDK's provider chain. Order is
-build → upload → migrate → vocabulary import → stack → web. It is smoke-gated
-and acceptance-gated (below), and deploys are cumulative: never deploy past a commit whose infrastructure
+build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
+and acceptance-gated when asked (`--acceptance`; below), and deploys are cumulative: never deploy past a commit whose infrastructure
 change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
 refuses a checkout whose `data/card-roles.json` or `data/deck-aliases.json`
 is uncommitted: commit (and push) the reference first. It also refreshes
@@ -377,8 +377,12 @@ never values that change daily: every field a note names is on the response
 (`contracts`), one number two tools serve agrees and every count carries its
 denominator (`identities`), the heavy calls stay under a ceiling well below
 the 18 s query budget (`budgets`), and the Gym's filed repros keep their
-acceptance criteria (`gym`). The deploy runs it after the smoke gate and
-fails on a red case; it never writes and never passes `live: true`. When the
+acceptance criteria (`gym`). The deploy runs it after the smoke gate **when
+asked** (`node infra/scripts/deploy.mjs --acceptance`, or `ACCEPTANCE=1`;
+Jamie, 2026-09-21: four and a half minutes and a pass of heavy reads on the
+shared micro, so it is turned on when wanted - a contract bump, a query
+change, a release - not on every deploy) and fails on a red case; `npm run
+acceptance` runs it any time. It never writes and never passes `live: true`. When the
 Gym files a finding, its criterion goes under the feedback id in
 `checks/gym.mjs` and the invariant behind it in `identities` or `contracts`.
 

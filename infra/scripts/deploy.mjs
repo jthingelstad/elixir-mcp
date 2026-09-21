@@ -317,13 +317,22 @@ if (smoke.status !== 0) {
 
 // Acceptance gate (2026-09-21): the deployed product against the real
 // record, read-only, as a read-only agent principal - invariants the
-// fixture tests cannot see (live data shape, live scale). A few minutes;
-// a red case fails the deploy. Skipped with a warning when the token file
-// is absent (acceptance/README.md), never silently.
+// fixture tests cannot see (live data shape, live scale). Opt-in per
+// deploy (Jamie, 2026-09-21: ~4.5 minutes and a pass of heavy reads on
+// the shared micro, so it is turned on when wanted, not on every
+// deploy): `--acceptance` on the command line or ACCEPTANCE=1 in the
+// environment. Without it the deploy says so in one line. A red case
+// fails the deploy; a missing token file warns.
 const { existsSync } = await import("node:fs");
 const acceptanceEnv = new URL("../../acceptance/.env", import.meta.url)
   .pathname;
-if (existsSync(acceptanceEnv)) {
+const wantAcceptance =
+  process.argv.includes("--acceptance") || process.env.ACCEPTANCE === "1";
+if (!wantAcceptance) {
+  console.log(
+    "acceptance: not run (opt in with --acceptance or ACCEPTANCE=1; npm run acceptance any time).",
+  );
+} else if (existsSync(acceptanceEnv)) {
   const acceptance = spawnSync(
     process.execPath,
     [new URL("../../acceptance/run.mjs", import.meta.url).pathname],

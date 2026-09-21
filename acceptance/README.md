@@ -1,8 +1,12 @@
 # Acceptance suite
 
 The deployed product against the real record, read-only, as a release
-gate. `npm run acceptance` on demand; the deploy runs it after the smoke
-gate and fails on a red case.
+gate. `npm run acceptance` on demand; `node infra/scripts/deploy.mjs
+--acceptance` (or `ACCEPTANCE=1`) runs it after the smoke gate and fails
+the deploy on a red case. Opt-in per deploy: ~4.5 minutes and a pass of
+heavy reads on the shared database, so it is turned on when wanted - a
+contract bump, a query change, a release - not on every deploy. A deploy
+without it prints one line saying so.
 
 ## Why this exists beside the unit tests
 
