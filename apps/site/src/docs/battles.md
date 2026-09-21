@@ -242,10 +242,11 @@ it. On `battles_meta_decks` every returned row's cards then carry
   `mean_level_after_upgrades`, the deck once those are done. A form not
   unlocked is in `missing`, not `upgrades`.
 
-With `fit_for` the reader also says which archetype families and shapes
-the player already fields (`fit_for.plays`, and `fit.plays_family` /
-`fit.plays_archetype` on every row; see [Deck archetypes](/docs/archetypes)):
-a deck in a family they play costs the least to adopt.
+With `fit_for` the reader also says which archetype families, win
+conditions and shapes the player already fields (`fit_for.plays`, and
+`fit.plays_family` / `fit.plays_win_condition` / `fit.plays_archetype`
+on every row; see [Deck archetypes](/docs/archetypes)): the exact shape
+costs the least to adopt, then the same win condition in another family.
 `battles_meta_cards` with `fit_for` carries `held` on each row (level,
 forms unlocked, whether the row's form is unlocked) or null when the card is
 not owned. `players_collection` carries the same benchmark as `fielded`

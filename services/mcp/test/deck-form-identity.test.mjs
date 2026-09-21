@@ -847,13 +847,24 @@ test("6.6.0: decks are stamped (backfill and at insert), group_by folds by label
     });
     assert.deepEqual(fitted.fit_for.plays, {
       families: ["cycle"],
+      win_conditions: ["Hog Rider"],
       archetypes: ["Hog Rider cycle"],
     });
     for (const d of fitted.decks) {
       assert.equal(d.fit.plays_family, true);
+      // 6.13.0: the middle rung - the win condition, form included.
+      assert.equal(d.fit.plays_win_condition, true);
       assert.equal(d.fit.plays_archetype, true);
     }
-    assert.ok(fitted.notes.some((n) => /costs the least to adopt/.test(n)));
+    assert.ok(fitted.notes.some((n) => /costs the least/.test(n)));
+    assert.ok(
+      fitted.notes.some((n) => /plays_win_condition/.test(n)),
+      "the note names the rung",
+    );
+    assert.ok(
+      fitted.notes.some((n) => /Evo Royal Hogs is not Royal Hogs/.test(n)),
+      "the form rule is said",
+    );
     // cards_card.decks takes the same filter.
     const cc = await callFresh("cards_card", {
       card_id: 26000007,

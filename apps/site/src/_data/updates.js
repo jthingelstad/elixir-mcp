@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-21",
+    title: "fit_for knows your win condition, not just your family",
+    body: "The Gym's war run left one question for Jamie rather than a bug: a player who fields Evo Royal Hogs bridge spam asked the meta for decks that fit, and the top row - Evo Royal Hogs cycle, the same card at a faster pace - read as costly to adopt as Three Musketeers beatdown, because fit knew families and exact shapes and nothing between. The call: the win condition dominates. It is the card you have leveled and the timing you have learned; the family is the pace you play it at. Every row with fit_for now carries plays_win_condition, form included, and fit_for.plays lists the win conditions you field. The note reads adoption cost off the three flags in order: your shape, your win condition in another family, your family around a new card, neither. Contract 6.13.0, additive.",
+  },
+  {
+    date: "2026-09-21",
     title:
       "The meta on a week's window answers, and the meta tools have a compact size",
     body: "Two agents running a weekly meta report filed the same wall on the same evening: ask battles_meta_decks or battles_meta_cards for the whole corpus over the last seven days - what's rising, what's falling - and the call timed out, every time, while the whole-season read answered fine. The season read comes from a nightly rollup; a week's window scanned the raw battle rows with a lookup per row for the level gap, and the corpus has grown past what that finishes in the budget. The nightly already keeps the season's population as a table, one row per participant with the gap on it, so a window inside the running season now reads that table, filled through last night's cursor, which the response names. Same numbers, seconds instead of a timeout. And the meta tools' verbosity 'compact' is real now: a routine that compares the field to one clan makes four of these calls, and the full payloads had crossed a turn's ceiling before the report could be written. Compact keeps the counts, shares, shrunk rates, the archetype label and the cards as one line, and drops the rest. Contract 6.12.0, additive.",

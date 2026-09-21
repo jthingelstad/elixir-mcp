@@ -411,9 +411,14 @@ const FIT_FOR_BLOCK = {
     plays: {
       type: "object",
       description:
-        "The families and archetype labels of the decks the player fielded in the window and mode.",
+        "The families, win conditions (form included, as a label speaks them) and archetype labels of the decks the player fielded in the window and mode.",
       properties: {
         families: { type: "array", items: { type: "string" } },
+        win_conditions: {
+          type: "array",
+          items: { type: "string" },
+          description: "6.13.0: e.g. 'Evo Royal Hogs', 'Hog Rider'.",
+        },
         archetypes: { type: "array", items: { type: "string" } },
       },
     },
@@ -456,6 +461,11 @@ const DECK_FIT = {
       type: "boolean",
       description:
         "The player already fields a deck of this row's family in the window.",
+    },
+    plays_win_condition: {
+      type: "boolean",
+      description:
+        "The player already fields one of this row's win conditions, form included (6.13.0): the card leveled and learned, whatever family it was played in.",
     },
     plays_archetype: {
       type: "boolean",

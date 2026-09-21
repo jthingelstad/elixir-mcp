@@ -235,12 +235,18 @@ rule change or a vocabulary import reaches history by the next morning,
 and the fold and the filter cover a whole season instead of its top
 rows.
 
-With `fit_for`, the meta reader also says which families and shapes the
-player already fields (`fit_for.plays`), and on every row whether it is
-one of them (`fit.plays_family`, `fit.plays_archetype`): a row in a
-family they play costs the least to adopt, the same family with a
-different win condition is the usual next step, a new family is a new
-deck to learn as well as levels to buy.
+With `fit_for`, the meta reader also says which families, win
+conditions and shapes the player already fields (`fit_for.plays`), and
+on every row whether it is one of them (`fit.plays_archetype`,
+`fit.plays_win_condition`, `fit.plays_family`). Adoption cost reads off
+them in that order: the exact shape costs the least; the same win
+condition in another family - Evo Royal Hogs cycle to a player who
+fields Evo Royal Hogs bridge spam - is the card they have leveled and
+learned played at a different pace, the usual next step; the same
+family around a new win condition is a new card to level; a row sharing
+neither is a new deck to learn as well as levels to buy. The win
+condition is matched form included: Evo Royal Hogs is not Royal Hogs,
+because the form is what is unlocked and leveled.
 
 ## What is not here
 

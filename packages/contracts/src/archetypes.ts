@@ -160,6 +160,15 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** A card the way a label speaks it: the form prefix players use, then
+ *  the name ("Evo Royal Hogs", "Hero Musketeer", "Hog Rider"). */
+export function cardDisplayName(card: {
+  name: string;
+  form: WinCondition["form"];
+}): string {
+  return `${FORM_PREFIX[card.form]}${card.name}`;
+}
+
 /** The label: win conditions (with the form prefix players use) then
  *  the family; a deck with no win condition is the bare family, or the
  *  card that names it when one is present. */
@@ -170,7 +179,7 @@ export function composeLabel(
 ): string {
   const lead = winConditions.length ? winConditions : namedBy ? [namedBy] : [];
   if (lead.length === 0) return capitalize(FAMILY_LABEL[family]);
-  return `${lead.map((w) => `${FORM_PREFIX[w.form]}${w.name}`).join(" ")} ${FAMILY_LABEL[family]}`;
+  return `${lead.map(cardDisplayName).join(" ")} ${FAMILY_LABEL[family]}`;
 }
 
 /** Classify one deck against the vocabulary. `roles` is the card-role

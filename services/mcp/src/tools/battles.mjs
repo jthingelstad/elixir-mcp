@@ -11,6 +11,7 @@ import {
   MODE_GROUPS,
   typesForModeGroup,
   formName,
+  cardDisplayName,
 } from "@elixir-mcp/contracts";
 import { formatLocal } from "../time.mjs";
 import {
@@ -123,7 +124,7 @@ function fitNotes(fitBlock, decks, unfieldable) {
   return [
     `Checked against ${fitBlock.player_tag}'s collection as of ${fitBlock.collection_as_of}: ${decks.length} of the top ${decks.length + unfieldable.length} rows are fieldable as held (decks[]); ${unfieldable.length} are not (unfieldable[], each naming the card or form missing). The population's ranking is unchanged - the split is after sort and limit, so raise limit for more fieldable rows.`,
     `${fielded}. mean_level_gap on a row is the population's players' edge over their opponents, not ${fitBlock.player_tag}'s; own_mean_level is what the deck would be at their levels, and held_level rides each card.`,
-    `fit.plays_family and fit.plays_archetype say whether ${fitBlock.player_tag} already fields this row's family or exact shape (fit_for.plays lists theirs): a row in a family they play costs the least to adopt, a row sharing the family with a different win condition is the usual next step, and a row in a new family is a new deck to learn as well as levels to buy.`,
+    `fit.plays_archetype, fit.plays_win_condition and fit.plays_family say whether ${fitBlock.player_tag} already fields this row's exact shape, its win condition (form included: Evo Royal Hogs is not Royal Hogs) or its family (fit_for.plays lists theirs). Adoption cost reads off them in that order: the exact shape costs the least; the same win condition in another family is the card they have leveled and learned played at a different pace (the usual next step); the same family around a new win condition is a new card to level; a row sharing neither is a new deck to learn as well as levels to buy.`,
   ];
 }
 
@@ -376,11 +377,7 @@ function compactDeckRow(row) {
     ...rest,
     archetype_label: archetype?.label ?? null,
     card_names: (cards ?? [])
-      .map((c) =>
-        c.form === "base" || !c.form
-          ? c.name
-          : `${c.form === "evolution" ? "Evo" : c.form === "hero" ? "Hero" : c.form} ${c.name}`,
-      )
+      .map((c) => cardDisplayName({ name: c.name, form: c.form ?? "base" }))
       .join(", "),
     ...(fit
       ? {
@@ -2020,6 +2017,18 @@ export const battlesTools = {
         const playsLabel = new Set(
           [...ownStamps.values()].map((st) => st.label),
         );
+        // The win conditions they field, form included (6.13.0, the
+        // Gym's open question 1): the card that is leveled and learned,
+        // whatever family it is played in. From the identities, since
+        // the stamp keeps ids without form.
+        const ownIdentities = await deckIdentities(
+          ctx.db,
+          ownDecks.map((r) => r.deck_hash),
+        );
+        const playsWin = new Map();
+        for (const identity of ownIdentities.values())
+          for (const w of identity.archetype?.win_conditions ?? [])
+            playsWin.set(`${w.id}|${w.form}`, cardDisplayName(w));
         fitBlock = {
           player_tag: fit.tag,
           collection_as_of: fit.as_of,
@@ -2027,6 +2036,7 @@ export const battlesTools = {
           fielded_battles: fielded.battles,
           plays: {
             families: [...playsFamily].sort(),
+            win_conditions: [...new Set(playsWin.values())].sort(),
             archetypes: [...playsLabel].sort(),
           },
         };
@@ -2039,6 +2049,9 @@ export const battlesTools = {
           fit: {
             ...deckFit(row.cards, fit.held, fielded.mean_level),
             plays_family: playsFamily.has(row.archetype?.family),
+            plays_win_condition: (row.archetype?.win_conditions ?? []).some(
+              (w) => playsWin.has(`${w.id}|${w.form}`),
+            ),
             plays_archetype: playsLabel.has(row.archetype?.label),
           },
         }));
