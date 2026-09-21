@@ -2,8 +2,8 @@
  * The nightly battle-activity row (0084) over a scratch database: the
  * not-recorded marks from the capture audit and the coverage rule -
  * carried forward across rebuilds, and never before recording began -
- * and the row's own dates. The 24x7 rhythm retired 2026-09-19 (0146):
- * the columns stay null until they drop.
+ * and the row's own dates. The 24x7 rhythm retired 2026-09-19 (0146,
+ * columns dropped in 0150).
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -146,10 +146,7 @@ test("rebuild: marks from both rules, the row's dates, no rhythm, and a row for 
     [PLAYER],
   );
   const row = rows[0];
-  assert.equal(row.rhythm, null, "the rhythm is no longer written");
-  assert.equal(row.rhythm_weight, null);
-  assert.equal(row.rhythm_battles, null);
-  assert.equal(row.half_life_days, null);
+  assert.equal("rhythm" in row, false, "the rhythm columns are gone (0150)");
   assert.equal(
     row.battles_28d,
     4,

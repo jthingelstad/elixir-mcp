@@ -6,7 +6,7 @@
  *  this job also built (step one of adaptive polling, NOTES 2026-09-12)
  *  retired 2026-09-19: scored against a week of polls it did not place
  *  them, and Jamie called the year the product and the tile not worth
- *  its place. Its columns are no longer written (0146) and drop later.
+ *  its place. Its columns went in 0150.
  *
  *  Everything here is UTC (AGENTS.md: store UTC, timezone is display).
  *
@@ -188,7 +188,7 @@ export async function activityHistogram(
       out.not_recorded_days += notRecorded.length;
       // Typed (0123/0125): the not-recorded days as date[]. The year's
       // daily counts are the daily rollup, which the graphic's route
-      // reads directly. The rhythm columns are left null (0146).
+      // reads directly.
       await db.query(
         `insert into player_activity
            (player_tag, computed_at, window_days, not_recorded_days,
@@ -197,10 +197,6 @@ export async function activityHistogram(
          on conflict (player_tag) do update set
            computed_at = excluded.computed_at,
            window_days = excluded.window_days,
-           half_life_days = null,
-           rhythm = null,
-           rhythm_weight = null,
-           rhythm_battles = null,
            not_recorded_days = excluded.not_recorded_days,
            recorded_from = excluded.recorded_from,
            first_battle_at = excluded.first_battle_at,

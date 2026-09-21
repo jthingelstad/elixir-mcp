@@ -6771,3 +6771,15 @@ collector cadence, or alarm threshold was changed. Jamie needs to decide the
 account-wide spend envelope: either approve a revised guard after the account
 cost review, or name the cost-reduction target. Do not make that spending
 decision through an Elixir runtime change.
+
+## 2026-09-21 — Contract half of the clock: the rhythm and burst columns drop (0150)
+
+Jamie, after part two: items 1 and 2 (the collectors' `yield_24h`
+column and points per fetch) stay as they are; do item 3. 0150 drops
+`player_activity.rhythm`, `rhythm_weight`, `rhythm_battles`,
+`half_life_days` and `poll_state.burst_bph`, `burst_at`; the nightly job
+no longer names them in its upsert. Nothing deployed had read them
+since 09-19 (0144 for the burst pair, 0146 for the rhythm), which is
+the expand-and-contract rule satisfied. Small tables, no rewrite.
+`yield_bph` stays on `poll_state`: the clan row's churn signal and the
+planner's ranking under a starved budget still read it.
