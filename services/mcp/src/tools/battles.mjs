@@ -87,6 +87,8 @@ import {
   rollupDeckModes,
   rollupCardModes,
   rollupModeGroups,
+  popWindow,
+  popBandClause,
 } from "../meta-season.mjs";
 
 /** The trophy band argument the three meta tools take (0135): the
@@ -336,6 +338,65 @@ import {
 function modeClause(args, add) {
   requireEnum(args.mode, MODE_GROUPS, "mode");
   if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+}
+
+/** compact on the meta tools (feedback #80): a weekly routine comparing
+ *  the field to one clan makes four of these calls, and four full
+ *  payloads (~1.3 KB a deck row) crossed a turn's token ceiling before
+ *  the report could be written. One row keeps what a comparison reads -
+ *  counts, share, the shrunk rate, players, the label and the card
+ *  names as one string - and drops the split, the instants, the level gap, the
+ *  card objects and the archetype object; the response drops the
+ *  methodology block (documented) and the per-mode groups (the pooled
+ *  note stays). fit keeps its verdict and drops the upgrade path. */
+const COMPACT_DESC =
+  "one row keeps deck_hash, archetype_label, card_names (one string), battles, wins, losses, players, usage_share, win_rate, shrunk_win_rate, dominant_mode and (with fit_for) fit without its upgrade path; drops modes, first/last_used, the level gap, the card objects, the archetype object, methodology and modes_in_window.";
+const COMPACT_CARDS_DESC =
+  "one row keeps card_id, name, form, battles, wins, losses, players, usage_share, win_rate, shrunk_win_rate and (with fit_for) held; drops modes, the level gap, methodology and modes_in_window.";
+function compactDeckRow(row) {
+  const {
+    modes,
+    first_used,
+    last_used,
+    mean_level_gap,
+    level_gap_battles,
+    cards,
+    tower_troop,
+    archetype,
+    fit,
+    ...rest
+  } = row;
+  void modes;
+  void first_used;
+  void last_used;
+  void mean_level_gap;
+  void level_gap_battles;
+  void tower_troop;
+  return {
+    ...rest,
+    archetype_label: archetype?.label ?? null,
+    card_names: (cards ?? [])
+      .map((c) =>
+        c.form === "base" || !c.form
+          ? c.name
+          : `${c.form === "evolution" ? "Evo" : c.form === "hero" ? "Hero" : c.form} ${c.name}`,
+      )
+      .join(", "),
+    ...(fit
+      ? {
+          fit: (({ upgrades, ...verdict }) => {
+            void upgrades;
+            return verdict;
+          })(fit),
+        }
+      : {}),
+  };
+}
+function compactCardRow(row) {
+  const { modes, mean_level_gap, ...rest } = row;
+  void modes;
+  void mean_level_gap;
+  return rest;
 }
 
 export const battlesTools = {
@@ -1625,11 +1686,13 @@ export const battlesTools = {
         fit_for: FIT_FOR_SCHEMA,
         archetype: ARCHETYPE_ARG,
         group_by: GROUP_BY_SCHEMA,
+        verbosity: VERBOSITY(COMPACT_DESC),
       },
       required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
+      const compact = args.verbosity === "compact";
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
       const win = await resolveSeasonWindow(ctx, args);
@@ -1641,8 +1704,13 @@ export const battlesTools = {
         args.archetype === undefined
           ? null
           : await resolveArchetypeArg(ctx.db, args.archetype);
+      // A corpus window inside the running season reads the population
+      // table (feedback #77-#79); its scope is the season key and a
+      // game-day range, and the band is a column.
+      const pop = await popWindow(ctx.db, { win, seg });
       const scope = []; // segment + window + mode: the population considered
       if (seg.where) scope.push(seg.where);
+      if (pop) scope.push(...pop.scope(params));
       const from = win.from.toISOString();
       params.push(from);
       scope.push(`${seg.timeColumn} >= $${params.length}`);
@@ -1658,7 +1726,11 @@ export const battlesTools = {
       }
       requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
       if (args.trophy_band)
-        scope.push(trophyBandClause(args.trophy_band, params));
+        scope.push(
+          pop
+            ? popBandClause(args.trophy_band, params)
+            : trophyBandClause(args.trophy_band, params),
+        );
       const where = [
         ...scope,
         "bp.deck_hash is not null",
@@ -1692,10 +1764,11 @@ export const battlesTools = {
         playersInWindow = roll.players;
         if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
-        await rawScanMemory(ctx.db);
+        if (!pop) await rawScanMemory(ctx.db);
         const { prior: populationPrior, ...breakdown } =
           await excludedBreakdown(ctx.db, scope, params, {
             withPrior: !seg.where,
+            source: pop ? "meta_season_pop" : "battle_participant",
           });
         excluded = breakdown;
         prior =
@@ -1710,7 +1783,8 @@ export const battlesTools = {
         // 0099: type_class and type); no join to battle.
         // ONE scan, grouped by (deck, type): the per-deck row, its mode
         // split and the window's per-type groups all fold from it (3.16.0);
-        // the level gap is the lateral avg battles_decks uses (3.13.0).
+        // the level gap is the lateral avg battles_decks uses (3.13.0), or
+        // the population table's own column.
         const { rows: byDeckType } = await ctx.db.query(
           `with d as (
              select bp.deck_hash, bp.type, bp.player_tag,
@@ -1719,13 +1793,17 @@ export const battlesTools = {
                     count(*) filter (where bp.outcome = 'loss')::int as losses,
                     min(bp.battle_time) as first_used,
                     max(bp.battle_time) as last_used,
-                    sum(bp.deck_avg_level - lv.lvl) as gap_sum,
+                    ${
+                      pop
+                        ? "sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n from meta_season_pop bp"
+                        : `sum(bp.deck_avg_level - lv.lvl) as gap_sum,
                     count(lv.lvl)::int as gap_n
              from battle_participant bp
              left join lateral (
                select avg(o.deck_avg_level) as lvl from battle_participant o
                where o.battle_id = bp.battle_id and o.side <> bp.side
-                 and bp.deck_avg_level is not null) lv on true
+                 and bp.deck_avg_level is not null) lv on true`
+                    }
              where ${where.join(" and ")}
              group by bp.deck_hash, bp.type, bp.player_tag)
            select deck_hash, type,
@@ -1958,6 +2036,13 @@ export const battlesTools = {
       const population = seg.where
         ? null
         : await populationBlock(ctx.db, { playersInWindow });
+      const fitNote = fitBlock
+        ? fitNotes(fitBlock, shaped, unfieldable)
+        : NO_FIT_NOTE;
+      if (compact) {
+        shaped = shaped.map(compactDeckRow);
+        unfieldable = unfieldable.map(compactDeckRow);
+      }
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -1971,9 +2056,10 @@ export const battlesTools = {
           min_battles: minBattles,
           sort,
           limit,
+          verbosity: compact ? "compact" : "full",
         }),
         ...(population ? { population } : {}),
-        methodology: META_METHODOLOGY,
+        ...(compact ? {} : { methodology: META_METHODOLOGY }),
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
         prior_win_rate: Number(priorMean.toFixed(3)),
@@ -1987,14 +2073,14 @@ export const battlesTools = {
         excluded,
         ...(roll ? { players_as_of: roll.players_as_of } : {}),
         comparable: clash === null,
-        ...(modeGroups ? { modes_in_window: modeGroups } : {}),
+        ...(modeGroups && !compact ? { modes_in_window: modeGroups } : {}),
         ...(fitBlock ? { fit_for: fitBlock } : {}),
         ...(grouped ? { archetypes: grouped.rows } : {}),
         decks: shaped,
         ...(fitBlock ? { unfieldable } : {}),
         notes: notes(
           grouped ? grouped.folded : null,
-          fitBlock ? fitNotes(fitBlock, shaped, unfieldable) : NO_FIT_NOTE,
+          fitNote,
           ARCHETYPE_NOTE,
           archetype
             ? `archetype '${archetype.requested}' resolved to ${archetype.family ? archetype.family.replace("_", " ") : "any family"}${archetype.win_conditions.length ? ` with ${archetype.win_conditions.map((w) => w.name).join(" and ")}` : ""} (${archetype.resolved_from}); the filter ran over all ${archetypeCandidates} decks over min_battles, and decided_battles and usage_share stay the population's.`
@@ -2009,6 +2095,7 @@ export const battlesTools = {
           SEGMENT_NOTES,
           win.seasonNotes,
           roll?.note,
+          pop?.note,
         ),
         docs: SEGMENT_DOCS,
         meta: responseMeta({
@@ -2048,11 +2135,13 @@ export const battlesTools = {
             "Only these card ids (every form of each). Applied after aggregation: usage_share and decided_battles stay the population's; min_battles still applies.",
         },
         fit_for: FIT_FOR_SCHEMA,
+        verbosity: VERBOSITY(COMPACT_CARDS_DESC),
       },
       required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
+      const compact = args.verbosity === "compact";
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
       const win = await resolveSeasonWindow(ctx, args);
@@ -2060,8 +2149,10 @@ export const battlesTools = {
         args.fit_for === undefined
           ? null
           : await resolveFitFor(ctx.db, args.fit_for);
+      const pop = await popWindow(ctx.db, { win, seg });
       const scope = [];
       if (seg.where) scope.push(seg.where);
+      if (pop) scope.push(...pop.scope(params));
       const from = win.from.toISOString();
       params.push(from);
       scope.push(`${seg.timeColumn} >= $${params.length}`);
@@ -2077,7 +2168,11 @@ export const battlesTools = {
       }
       requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
       if (args.trophy_band)
-        scope.push(trophyBandClause(args.trophy_band, params));
+        scope.push(
+          pop
+            ? popBandClause(args.trophy_band, params)
+            : trophyBandClause(args.trophy_band, params),
+        );
       const where = [
         ...scope,
         "bp.deck_hash is not null",
@@ -2108,10 +2203,11 @@ export const battlesTools = {
         playersInWindow = roll.players;
         if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
       } else {
-        await rawScanMemory(ctx.db);
+        if (!pop) await rawScanMemory(ctx.db);
         const { prior: populationPrior, ...breakdown } =
           await excludedBreakdown(ctx.db, scope, params, {
             withPrior: !seg.where,
+            source: pop ? "meta_season_pop" : "battle_participant",
           });
         excluded = breakdown;
         prior =
@@ -2136,13 +2232,17 @@ export const battlesTools = {
            select bp.deck_hash, bp.player_tag, bp.type,
                   count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
-                  sum(bp.deck_avg_level - lv.lvl) as gap_sum,
+                  ${
+                    pop
+                      ? "sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n from meta_season_pop bp"
+                      : `sum(bp.deck_avg_level - lv.lvl) as gap_sum,
                   count(lv.lvl)::int as gap_n
            from battle_participant bp
            left join lateral (
              select avg(o.deck_avg_level) as lvl from battle_participant o
              where o.battle_id = bp.battle_id and o.side <> bp.side
-               and bp.deck_avg_level is not null) lv on true
+               and bp.deck_avg_level is not null) lv on true`
+                  }
            where ${where.join(" and ")}
            group by bp.deck_hash, bp.player_tag, bp.type),
          totals as (
@@ -2275,6 +2375,7 @@ export const battlesTools = {
       const population = seg.where
         ? null
         : await populationBlock(ctx.db, { playersInWindow });
+      if (compact) shaped = shaped.map(compactCardRow);
       return {
         applied: appliedBlock({
           segment: seg.echo,
@@ -2286,9 +2387,10 @@ export const battlesTools = {
           min_battles: minBattles,
           sort,
           limit,
+          verbosity: compact ? "compact" : "full",
         }),
         ...(population ? { population } : {}),
-        methodology: META_METHODOLOGY,
+        ...(compact ? {} : { methodology: META_METHODOLOGY }),
         decided_battles: totalDecided,
         segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
         prior_win_rate: Number(priorMean.toFixed(3)),
@@ -2302,7 +2404,7 @@ export const battlesTools = {
         excluded,
         ...(roll ? { players_as_of: roll.players_as_of } : {}),
         comparable: clash === null,
-        ...(modeGroups ? { modes_in_window: modeGroups } : {}),
+        ...(modeGroups && !compact ? { modes_in_window: modeGroups } : {}),
         ...(fitBlock ? { fit_for: fitBlock } : {}),
         cards: shaped,
         notes: notes(
@@ -2317,6 +2419,7 @@ export const battlesTools = {
           SEGMENT_NOTES,
           win.seasonNotes,
           roll?.note,
+          pop?.note,
           FORM_ROWS_NOTE,
           "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments.",
         ),

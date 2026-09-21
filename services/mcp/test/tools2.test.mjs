@@ -2262,3 +2262,222 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
   const both = await call("battles_query", { season: "previous", days: 2 });
   assert.equal(both.body.applied.window.source, "argument");
 });
+
+// ------------------------------------------------------------ 6.12.0 (#77-#79)
+// A corpus read whose window sits inside the running season but is not
+// the whole season used to scan the participant heap with a per-row
+// lateral for the level gap: every 7-day corpus read timed out at the 18 s
+// budget (feedback #77, #78, #79). The population table (0140) holds the
+// same rows with the gap on them; the read answers what the heap answered.
+test("6.12.0: a sub-season corpus window reads the population table and answers what the raw scan answered", async () => {
+  const {
+    rows: [season],
+  } = await db.query(`select * from season where season_month = '2026-08'`);
+  const bounds = { from: "2026-08-10T10:00:00Z", to: "2026-08-31T10:00:00Z" };
+  const strip = (body) => {
+    const rest = { ...body };
+    for (const k of ["applied", "notes", "meta", "players_as_of"])
+      delete rest[k];
+    return rest;
+  };
+  const byKey = (rows, key) => Object.fromEntries(rows.map((r) => [key(r), r]));
+  const cases = [
+    [
+      "battles_meta_decks",
+      { min_battles: 1, limit: 40, segment: "corpus" },
+      (r) => r.deck_hash,
+      "decks",
+    ],
+    [
+      "battles_meta_cards",
+      { min_battles: 1, limit: 130, segment: "corpus" },
+      (r) => `${r.card_id}|${r.form}`,
+      "cards",
+    ],
+  ];
+  // The 0121 test left the season final: its population is dropped, so
+  // the window reads the heap (no population note).
+  const raw = {};
+  for (const [tool, args] of cases) {
+    raw[tool] = await call(tool, { ...args, ...bounds });
+    assert.equal(raw[tool].isError, false, JSON.stringify(raw[tool].body));
+    assert.ok(!raw[tool].body.notes.some((n) => /population table/.test(n)));
+  }
+  // Rebuilt as the running season would be (not final): the table holds
+  // the rows and the same window reads it.
+  const rebuilt = await rebuildSeason(db, season, { final: false });
+  assert.ok(rebuilt.pop_rows > 0, JSON.stringify(rebuilt));
+  try {
+    for (const [tool, args, key, listKey] of cases) {
+      const pop = await call(tool, { ...args, ...bounds });
+      assert.equal(pop.isError, false, JSON.stringify(pop.body));
+      assert.ok(
+        pop.body.notes.some((n) =>
+          /Read from the season's population table \(filled through/.test(n),
+        ),
+        `${tool}: says its source and its cursor`,
+      );
+      const a = strip(raw[tool].body);
+      const b = strip(pop.body);
+      const listA = byKey(a[listKey], key);
+      const listB = byKey(b[listKey], key);
+      delete a[listKey];
+      delete b[listKey];
+      assert.deepEqual(b, a, `${tool}: scalars, excluded, prior`);
+      assert.deepEqual(Object.keys(listB).sort(), Object.keys(listA).sort());
+      for (const k of Object.keys(listA))
+        assert.deepEqual(listB[k], listA[k], `${tool}: row ${k}`);
+    }
+    // A band and a mode take the table's own columns.
+    const banded = await call("battles_meta_decks", {
+      segment: "corpus",
+      ...bounds,
+      trophy_band: "under_5000",
+      mode: "ladder",
+      min_battles: 1,
+    });
+    assert.equal(banded.isError, false, JSON.stringify(banded.body));
+    assert.ok(banded.body.notes.some((n) => /population table/.test(n)));
+    // An open window past the cursor says what is not counted; a segment
+    // read and a whole-season read never touch the table.
+    const open = await call("battles_meta_decks", {
+      segment: "corpus",
+      from: "2026-08-10T10:00:00Z",
+      min_battles: 1,
+    });
+    assert.ok(
+      open.body.notes.some((n) =>
+        /battles recorded since are not counted/.test(n),
+      ) || !open.body.notes.some((n) => /population table/.test(n)),
+      "an open window either names the cursor or crossed a roll and stayed raw",
+    );
+    const seg = await call("battles_meta_decks", {
+      segment: { collection: "test-pros" },
+      ...bounds,
+      min_battles: 1,
+    });
+    assert.ok(!seg.body.notes.some((n) => /population table/.test(n)));
+    const whole = await call("battles_meta_decks", {
+      segment: "corpus",
+      season: "2026-08",
+      min_battles: 1,
+    });
+    assert.ok(!whole.body.notes.some((n) => /population table/.test(n)));
+    assert.ok(whole.body.notes.some((n) => /season rollup/.test(n)));
+  } finally {
+    await rebuildSeason(db, season, { final: true });
+  }
+});
+
+// ---------------------------------------------------------------- 6.12.0 (#80)
+test("6.12.0: compact on the meta tools keeps the comparison and drops the detail (feedback #80)", async () => {
+  const full = await call("battles_meta_decks", {
+    segment: "corpus",
+    from: "2020-01-01",
+    min_battles: 1,
+    limit: 5,
+    fit_for: OBSERVER,
+  });
+  assert.equal(full.isError, false, JSON.stringify(full.body));
+  const compact = await call("battles_meta_decks", {
+    segment: "corpus",
+    from: "2020-01-01",
+    min_battles: 1,
+    limit: 5,
+    fit_for: OBSERVER,
+    verbosity: "compact",
+  });
+  assert.equal(compact.isError, false, JSON.stringify(compact.body));
+  assert.equal(compact.body.applied.verbosity, "compact");
+  assert.ok(!compact.body.notes.some((n) => /has one size/.test(n)));
+  assert.equal(compact.body.methodology, undefined);
+  assert.equal(compact.body.modes_in_window, undefined);
+  assert.ok(full.body.methodology && full.body.modes_in_window);
+  // The scalars a comparison reads are the same on both sizes.
+  for (const k of [
+    "decided_battles",
+    "segment_win_rate",
+    "prior_win_rate",
+    "comparable",
+    "excluded",
+  ])
+    assert.deepEqual(compact.body[k], full.body[k], k);
+  const rowsFull = [...full.body.decks, ...full.body.unfieldable];
+  const rowsCompact = [...compact.body.decks, ...compact.body.unfieldable];
+  assert.equal(rowsCompact.length, rowsFull.length);
+  for (const [i, row] of rowsCompact.entries()) {
+    const ref = rowsFull[i];
+    assert.equal(row.deck_hash, ref.deck_hash);
+    for (const k of [
+      "battles",
+      "wins",
+      "losses",
+      "players",
+      "usage_share",
+      "win_rate",
+      "shrunk_win_rate",
+      "dominant_mode",
+    ])
+      assert.deepEqual(row[k], ref[k], `${k} kept`);
+    for (const k of [
+      "modes",
+      "first_used",
+      "last_used",
+      "mean_level_gap",
+      "level_gap_battles",
+      "cards",
+      "archetype",
+      "tower_troop",
+    ])
+      assert.ok(!(k in row), `${k} dropped`);
+    assert.equal(row.archetype_label, ref.archetype.label);
+    assert.equal(
+      row.card_names.split(", ").length,
+      ref.cards.length,
+      "one name per card",
+    );
+    assert.equal(row.fit.fieldable, ref.fit.fieldable);
+    assert.ok(!("upgrades" in row.fit), "the upgrade path is the detail");
+  }
+  assert.ok(
+    JSON.stringify(rowsCompact).length < JSON.stringify(rowsFull).length / 2,
+    "a compact row is less than half a full one",
+  );
+  assert.ok(
+    JSON.stringify(compact.body).length < JSON.stringify(full.body).length,
+  );
+
+  const fullCards = await call("battles_meta_cards", {
+    segment: "corpus",
+    from: "2020-01-01",
+    min_battles: 1,
+    limit: 10,
+    fit_for: OBSERVER,
+  });
+  const compactCards = await call("battles_meta_cards", {
+    segment: "corpus",
+    from: "2020-01-01",
+    min_battles: 1,
+    limit: 10,
+    fit_for: OBSERVER,
+    verbosity: "compact",
+  });
+  assert.equal(compactCards.isError, false, JSON.stringify(compactCards.body));
+  assert.equal(compactCards.body.methodology, undefined);
+  assert.equal(compactCards.body.cards.length, fullCards.body.cards.length);
+  for (const [i, row] of compactCards.body.cards.entries()) {
+    const ref = fullCards.body.cards[i];
+    for (const k of [
+      "card_id",
+      "name",
+      "form",
+      "battles",
+      "players",
+      "usage_share",
+      "shrunk_win_rate",
+      "held",
+    ])
+      assert.deepEqual(row[k], ref[k], `${k} kept`);
+    assert.ok(!("modes" in row) && !("mean_level_gap" in row));
+  }
+});

@@ -1059,7 +1059,7 @@ export async function excludedBreakdown(
   db,
   where,
   params,
-  { withPrior = false } = {},
+  { withPrior = false, source = "battle_participant" } = {},
 ) {
   // type and type_class are on the participant (0095, 0099); battle joins
   // in only when the caller's scope still names it (a mode filter).
@@ -1087,7 +1087,7 @@ export async function excludedBreakdown(
             count(*) filter (where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
                                and not coalesce(bp.type = any($${params.length + 1}), false)
                                and bp.deck_hash is null)::int as no_deck
-     from battle_participant bp ${battleJoin}
+     from ${source} bp ${battleJoin}
      where ${where.join(" and ")}`,
     [...params, DUEL_TYPES],
   );

@@ -344,3 +344,57 @@ export async function rollupSynergy(
     partners,
   };
 }
+
+/** The population table as a corpus read's source (feedback #77-#79):
+ *  a window inside the running season that is not the whole season -
+ *  `days: 7`, "this week vs last" - used to scan the participant heap
+ *  with a per-row lateral for the level gap and timed out at the 18 s
+ *  budget every time. meta_season_pop (0140) holds the same population
+ *  one row per participant with mode_group, trophy_band and level_gap
+ *  already on the row, keyed by game day, bounded by the nightly's
+ *  cursor. Null when the read is a segment's (the heap's indexes serve
+ *  it), the whole season's (the rollup's), crosses a roll, or starts at
+ *  or past the cursor (nothing built yet: the heap answers, and small). */
+export async function popWindow(db, { win, seg }) {
+  if (seg?.where || win.source === "season") return null;
+  if (!win.from || !win.season?.season_month || win.crosses?.length)
+    return null;
+  const {
+    rows: [state],
+  } = await db.query(
+    `select pop_through from meta_season_state
+      where season_month = $1 and pop_through is not null and not final
+        and exists (select 1 from meta_season_pop_day d where d.season_month = $1)`,
+    [win.season.season_month],
+  );
+  if (!state || win.from.getTime() >= state.pop_through.getTime()) return null;
+  const popThrough = state.pop_through.toISOString();
+  return {
+    month: win.season.season_month,
+    popThrough,
+    /** The scope's own predicates over the table: the season key (the
+     *  primary key's prefix) and a game-day range one day wide of the
+     *  instants (a battle at 02:00Z belongs to the previous game day). */
+    scope: (params) => {
+      params.push(win.season.season_month);
+      const clauses = [`bp.season_month = $${params.length}`];
+      params.push(new Date(win.from.getTime() - 86_400_000));
+      clauses.push(`bp.game_day >= game_day($${params.length})`);
+      if (win.to) {
+        params.push(win.to);
+        clauses.push(`bp.game_day <= game_day($${params.length})`);
+      }
+      return clauses;
+    },
+    note:
+      !win.to || win.to.getTime() > state.pop_through.getTime()
+        ? `Read from the season's population table, which the nightly rebuild filled through ${popThrough}: battles recorded since are not counted here (the whole-season read's counters are hourly).`
+        : `Read from the season's population table (filled through ${popThrough}).`,
+  };
+}
+
+/** The raw-path predicate for a band on the population table. */
+export function popBandClause(band, params) {
+  params.push(band);
+  return `bp.trophy_band = $${params.length}`;
+}

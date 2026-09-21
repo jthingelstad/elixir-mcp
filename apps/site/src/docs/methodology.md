@@ -76,11 +76,32 @@ counters (battles, wins, losses) for battles recorded since. Two things
 follow, and the response says both in `players_as_of` and a note:
 distinct-player counts are as of the last nightly rebuild, so a deck or
 card first seen since then carries `players: null` until tonight; and the
-counters can trail the record by up to an hour. A segment read (a clan, a
-player, a collection) and any explicit `from`/`to` window scan the raw
-rows as before, exact to the instant, and take only the corpus prior from
-the rollup. The two paths answer the same numbers over the same window;
-a test holds them equal.
+counters can trail the record by up to an hour. A corpus read whose
+window sits inside the running season without being the whole of it
+(`days: 7`, a `from`/`to` pair, "this week against last") is answered
+from the season's population table: the same rows the nightly rebuild
+aggregates, one per participant with its mode, band and level gap
+already on it, filled through the nightly's cursor. The response names
+that cursor in a note; battles recorded since are not in such a read,
+and a window that starts past the cursor, crosses a season roll, or
+falls in an ended season scans the raw rows instead. (Until 6.12.0 every
+sub-season corpus window scanned the raw rows with a per-row level-gap
+lookup and timed out at the query budget.) A segment read (a clan, a
+player, a collection) scans the raw rows, exact to the instant, and takes
+only the corpus prior from the rollup. The paths answer the same numbers
+over the same window; tests hold them equal.
+
+**`verbosity: 'compact'` on the meta tools (6.12.0).** A routine that
+compares the field to one clan makes four of these calls, and four full
+payloads can cross a turn's ceiling before the report is written. Compact
+keeps what a comparison reads - on a deck row `deck_hash`,
+`archetype_label`, `card_names` (one string), the counts, `usage_share`,
+`win_rate`, `shrunk_win_rate`, `players`, `dominant_mode` and, with
+`fit_for`, `fit` without its upgrade path; on a card row the same counts
+and rates with `held` - and drops `modes`, the instants, the level gap,
+the card objects, the archetype object, the `methodology` block and
+`modes_in_window`. The scalars (`decided_battles`, `excluded`,
+`comparable`, the sample flags) are the same on both sizes.
 
 **The control next to each meta row (3.16.0).** Every deck and card row
 carries `modes` (its decided observations by mode group) and

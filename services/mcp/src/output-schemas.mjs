@@ -728,19 +728,26 @@ export const OUTPUT_SCHEMAS = {
             last_used: { type: ["string", "null"] },
             level_gap_battles: NULLABLE_INT,
             dominant_mode: { type: ["object", "null"] },
-            cards: { type: "array", items: DECK_CARD },
+            cards: {
+              type: "array",
+              items: DECK_CARD,
+              description:
+                "Full verbosity; compact carries card_names instead.",
+            },
+            card_names: {
+              type: "string",
+              description:
+                "Compact verbosity (6.12.0): the eight cards as one string, Evo/Hero prefixed by form.",
+            },
+            archetype_label: {
+              type: ["string", "null"],
+              description: "Compact verbosity (6.12.0): archetype.label alone.",
+            },
             archetype: ARCHETYPE,
             tower_troop: { type: ["object", "null"] },
             fit: DECK_FIT,
           },
-          required: [
-            "deck_hash",
-            "battles",
-            "wins",
-            "losses",
-            "win_rate",
-            "cards",
-          ],
+          required: ["deck_hash", "battles", "wins", "losses", "win_rate"],
         },
       },
       fit_for: FIT_FOR_BLOCK,
