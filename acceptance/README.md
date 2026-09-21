@@ -27,7 +27,8 @@ scale**, and that is where the last two days' defects lived:
 | **allowances** | tokens a note or doc uses as prose or as a conditional field, each with a written reason | `catalogue-allow.json` |
 | **bites** | captured answers from a day the product was wrong, and the case or rule that must FAIL on each; runs under `npm test` with no network. A rule that passes on known-bad history is decoration. | `bites/`, `bites.test.mjs` |
 | **known** | failures filed for a decision rather than a fix: a reason and an expiry; reported as KNOWN and not counted until the date passes | `known.json` |
-| **shapes** | recorded key-path baselines for tools with no `outputSchema`, provenance printed by every run; the stopgap that shrinks as schemas are written | `shapes/`, `--update-shapes --reason` |
+| **shapes** | recorded key-path baselines for tools with no `outputSchema`, provenance printed by every run; the stopgap that shrinks as schemas are written. Empty since 6.14.0: every tool publishes an outputSchema. | `shapes/`, `--update-shapes --reason` |
+| **ground** | the record against the game: two live CR API reads from this machine (the operator key; never through the door) compared with `players_profile` and `war_current` - identity facts equal, polled counters never ahead of the game, equal when fresh. SKIP, said aloud, where no key answers. | `checks/ground.mjs` |
 
 ### Why a recorded baseline cannot ossify an error
 
@@ -39,7 +40,7 @@ scale**, and that is where the last two days' defects lived:
 
 ### Its own budget
 
-The `acceptance` key carries its own hourly ceiling (`{service_token_limits}`, 900/hour), so it spends from its own bucket: a run is ~170 calls, and before this a run took 40% of the owner's hour, which the Discord agent shares.
+The `acceptance` key carries its own hourly ceiling (`{service_token_limits}`, 2,400/hour - a build day runs the suite several times an hour), so it spends from its own bucket: a run is ~170 calls, and before this a run took 40% of the owner's hour, which the Discord agent shares.
 
 ### What the Gym should file
 

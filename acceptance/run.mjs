@@ -36,10 +36,18 @@ import { identities } from "./checks/identities.mjs";
 import { budgets } from "./checks/budgets.mjs";
 import { gym } from "./checks/gym.mjs";
 import { catalogue } from "./checks/catalogue.mjs";
+import { ground } from "./checks/ground.mjs";
 import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
 
-export const SUITES = { contracts, identities, budgets, gym, catalogue };
+export const SUITES = {
+  contracts,
+  identities,
+  budgets,
+  gym,
+  catalogue,
+  ground,
+};
 /** Failures filed for a decision rather than a fix, each with a reason
  *  and an expiry: reported as KNOWN and not counted until the date. */
 const KNOWN = new Map(
@@ -83,9 +91,11 @@ export async function runSuite(
     const started = performance.now();
     let error = null;
     let ms = null;
+    let skip = null;
     try {
       const out = await c.run(ctx);
       ms = out?.ms ?? null;
+      skip = out?.skip ?? null;
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     }
@@ -103,8 +113,9 @@ export async function runSuite(
       error,
     });
     if (counts) report.failures += 1;
+    if (skip) report.skipped = (report.skipped ?? 0) + 1;
     log(
-      `${!error ? "ok  " : counts ? "FAIL" : "KNOWN"} ${id}${ms !== null ? ` (${ms} ms)` : ""}${error ? `\n     ${error}` : ""}${known && !expired ? `\n     known until ${known.until}: ${known.reason}` : ""}${expired ? `\n     the known-failure entry expired ${known.until}` : ""}`,
+      `${skip ? "SKIP" : !error ? "ok  " : counts ? "FAIL" : "KNOWN"} ${id}${skip ? ` - ${skip}` : ""}${ms !== null ? ` (${ms} ms)` : ""}${error ? `\n     ${error}` : ""}${known && !expired ? `\n     known until ${known.until}: ${known.reason}` : ""}${expired ? `\n     the known-failure entry expired ${known.until}` : ""}`,
     );
   };
   for (const [suite, cases] of Object.entries(SUITES)) {
@@ -210,7 +221,7 @@ if (isMain) {
   if (json) console.log(JSON.stringify(report, null, 2));
   else {
     console.log(
-      `\n${report.cases.length} cases, ${report.failures} failed, ${report.calls} distinct calls`,
+      `\n${report.cases.length} cases, ${report.failures} failed${report.skipped ? `, ${report.skipped} skipped` : ""}, ${report.calls} distinct calls`,
     );
     console.log(`slowest: ${slow.map((c) => `${c.id} ${c.ms} ms`).join(", ")}`);
     console.log(
