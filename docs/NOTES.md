@@ -6984,3 +6984,83 @@ were allowed per case (`points_earned` on a training day with
 daily is the Gym's to read, not a gate's); no `live: true` (CR budget);
 no write tools (the token cannot). The Gym's weekly run is unchanged —
 the suite is its Pass 2, not its Pass 4.
+
+## 2026-09-21 — The acceptance layer, second build: catalogue, bites, shapes, known — and what it found
+
+Jamie: build it out, "we found several bugs building the first group;
+I expect several more just building this." Six commits, each through
+the gate; final run **214 cases, 0 failed, 4 KNOWN, 182 calls, ~4.5 min**.
+
+**The layers (acceptance/README.md has the table).** `catalogue.json` —
+what agents actually called this week, derived by `catalogue.mjs
+--refresh` from the new migrate op `{acceptance_catalogue}` (top
+argument sets per read-only tool among calls that answered, on_behalf_of
+and live dropped, p50/p95 per tool), plus `catalogue-seed.json` (hand-
+picked sets with a reason each). Sets the current contract refuses are
+validated against the local inputSchema at refresh, listed and dropped
+(usage from before 4.0.0's `segment` requirement was in the week).
+Generic rules over every set (`checks/catalogue.mjs`): answers; published
+`outputSchema` holds (19 tools) else the recorded shape baseline; under a
+ceiling from the tool's own p95 (1.5× + 500 ms, floor 4 s, cap 15 s); a
+two-size tool's compact is a subset and its full twin is read; every
+field its notes name is on some response of the tool (keys OR values —
+`tower_troop` is a value — plus arguments, enum values, description
+words, every published tool name via tools.json, the error enum,
+`catalogue-allow.json` with a reason each); every backticked field its
+docs section names is on some response THIS RUN, any tool (the Gym's I7:
+documented somewhere, served nowhere). **Bites** (`bites/`,
+`bites.test.mjs` under verify, no network): captured answers from the
+archive bucket (`bites/fetch.mjs <date> <request-id prefix> <name>`)
+with a manifest naming the case or rule that must FAIL on each — #81,
+#82, #77, the closed week without `in_progress`, and today's
+`battles_query` timeout. **Shapes** (`shapes/`, `--update-shapes
+--reason`): key-path baselines for the 23 tools with no outputSchema,
+one-directional, provenance printed by every run as the to-do list.
+**Known** (`known.json`): a failure filed for a decision with a reason
+and an expiry, reported KNOWN and not counted until the date. Runs one
+call at a time (three concurrent heavy reads on the micro inflated each
+other's timings: cards_synergy 8–11 s in a pool of three, 4 s alone).
+
+**What building it found — seven, two of them product bugs:**
+1. **The gate itself starved its owner.** The hourly rate limit keys on
+   the paying ACCOUNT, so one run took 40% of Jamie's hour, which the
+   Discord agent shares — the second gated deploy went red on
+   `tools/list: Rate limit reached`. A service token that carries its
+   own `hourly_rate_limit` now spends from its own bucket
+   (`mcp#token#<id>`); `{service_token_limits: {name, hourly_rate_limit,
+   daily_quota}}` sets one by name; `acceptance` has 900/hour. Test:
+   a busy key's spent hour does not touch a plain key on the same account.
+2. **`battles_query {limit: 1}` for the most-recorded player timed out
+   at 24 s**, every run, while the same call for another member took
+   5.6 s and the audit's p95 read 2.1 s (the timeouts were in the audit
+   as `timeout` under a key set nobody had looked at). The window moved
+   onto `bp.battle_time` at review 3.3; the ORDER BY and the keyset
+   cursor stayed on `b.battle_time`, so the planner walked the battle
+   table's time index backwards probing each row for the player. Ordered
+   on the participant's copy now (the `(player_tag, battle_time)`
+   covering index serves it); `battles_performance`'s sample too. The
+   timing-out answer is a bite.
+3. **`players_collection` at full verbosity exceeds the 48k cap for any
+   mature collection** (Jamie's, raquaza's; `iconUrls` per card is most
+   of it), and **`clans_members_timeline` full with five metrics over a
+   week exceeds it at the default limit** — defaults that cannot be
+   read. KNOWN until 10-05: Jamie's call (drop iconUrls, a removal; raise
+   the cap per tool; or document compact as the readable size).
+4. A `clans_timeline` note pointed at `years_played` without naming the
+   tool it lives on (`players_profile.years_played` now); the protocol
+   page said events carry `created_at` where timeline items carry `at`.
+5. `in_progress` (earlier today, 6.13.0).
+6. Docs sections that name fields as NOT existing (`filters_applied`,
+   `nominal_period_elapsed` "removed at 4.0.0") read as promises to a
+   rule; they are allowances with the reason quoted.
+7. The catalogue exposed how much of a week's usage the current
+   contract refuses (six sets across the meta tools and cards_synergy):
+   agents still send pre-4.0.0 shapes. Not a defect here; a signal for
+   Close the Loop's friction pass.
+
+**Open, watched:** `budgets/meta-decks-clan-season` 8.2–9 s; `cards_card`
+corpus 9.5–11.4 s and `battles_trends` clan 8.8–10.2 s (both under their
+p95 ceilings, both slow); 23 tools on recorded baselines. **Next:** write
+outputSchemas for the 23 (the baselines retire as each lands); the
+identity DSL; the ground-truth suite against the live CR API (2–3 calls
+from this Mac); the Gym prompt gains the JSON block in the README.
