@@ -7141,3 +7141,35 @@ Final: **235 cases, 0 failed, 187 calls**, through the gate. The build
 list from this morning is done: catalogue, bites, shapes (retired),
 known, ground, DSL. Left for Jamie: the Gym prompt's JSON block (in the
 README).
+
+## 2026-09-21 — The Gym's block runs as written; the by-day carry
+
+Jamie put the JSON block in the Gym's prompt and it restated the day's
+findings in it — richer than the README's sketch: `has`/`eq`/`neq`/`lte`/
+`count_eq`/`sum_eq`/`sorted_desc`/`notes_match`/`notes_not_match`/
+`every_row_has`, `[?clan_tag=…]` filters, `[N]`, `calls` aliases for a
+two-tool comparison, `when`, `for_each`, `stability` frozen|live,
+`control`, `needs_fixture`, `open_question`. Built `gym-interp.mjs` to
+run exactly that; `gym.json` is the block verbatim (a duplicate id
+merged, 81.4 answered `null`, `clan_tag` dropped where the Gym's own
+call defaulted it so the capture matches). Two interpreter slips on the
+first run (an ISO instant read as a path; `lte` with a literal on the
+left), then **27 gym cases, 0 failed, 3 skipped** (the fixture-only
+control, and two `when`s that do not hold on a training day).
+
+**81.7 failed live, as expected — the Gym's open question 2 is a
+product gap and is fixed at the ingest.** `war_decks_by_day` summed one
+short of `war_decks` for two of 46 members: between a day's last poll
+and the next day's first, a member's cumulative `decksUsed` grows by
+the old day's late decks plus the new day's, and `decksUsedToday`
+holds only the latter; the difference was played before the API's day
+rolled and no poll saw it. `projectRiverRace` now carries
+`delta − decksUsedToday` to the previous war day's row (`least(4, …)`);
+a poll inside a day carries nothing (its delta is at most today's
+growth). Past weeks stay short; `known.json` holds 81.7 until 10-06,
+when both of `weeks: 2` post-date the deploy. Scoring_decks (6.11.0)
+reads the same rows, so it tightens too.
+
+Gate: **253 cases, 0 failed, 3 skipped, 194 calls.** The gym suite is
+now the Gym's own words plus five code cases the block does not cover
+(#74, #77–79, #56/64).
