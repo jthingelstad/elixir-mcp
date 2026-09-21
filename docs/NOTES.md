@@ -6913,3 +6913,74 @@ level gap, the card and archetype objects, `methodology` and
 `modes_in_window`. Scalars and flags identical between sizes (pinned).
 `cards` is no longer required on the deck-row output schema;
 `card_names` and `archetype_label` are described as compact's.
+
+## 2026-09-21 — 6.13.0 `plays_win_condition`, and the acceptance suite (the release gate the fixtures cannot be)
+
+**1. The Gym's open question, decided and shipped (6.13.0, deployed
+~14:05Z).** Jamie: the win condition dominates the family for adoption
+cost — it is the card leveled and the timing learned; the family is the
+pace. `fit.plays_win_condition` on every `battles_meta_decks` row with
+`fit_for`, matched form included against the identities of the decks the
+player fielded (the stamp keeps ids without form, so `deckIdentities` on
+the player's own decks, a handful); `fit_for.plays.win_conditions[]` as a
+label speaks them (`cardDisplayName` in contracts is now the one place
+the Evo/Hero prefix is written; compact's `card_names` uses it). The note
+reads the three booleans in order: exact shape → same win condition in
+another family → same family around a new win condition → neither. Live
+on the Gym's exact call: `72c6c8fb` Evo Royal Hogs cycle reads
+`plays_win_condition: true, plays_family: false`; Evo P.E.K.K.A bridge
+spam the reverse; Minion Giant cycle neither. **Not** an `adoption_cost`
+score — three booleans and a note are the right altitude (the Pilot
+Score lesson).
+
+**2. The acceptance suite (`acceptance/`, wired into the deploy after
+smoke, `npm run acceptance` on demand, daily in Run Elixir MCP).**
+Jamie: "we run the risk of regression without it." The unit tests pin
+logic over fixtures; nothing pinned the deployed product against the
+live record, and that is where `finished_early === 10000` and the
+corpus meta timeout lived. Design: a read-only **agent principal**
+`acceptance` (clan #J2RGCRVG, scope `cr:read`, its own `/a/dc50d5ed5e0e/mcp`;
+token minted locally with `mintServiceTokenValue`, only the hash sent
+through `{principal}`, the raw value written to `acceptance/.env` mode
+0600 and never printed — the recipe is in `acceptance/README.md`). One
+runner, no dependencies, stateless JSON-RPC like the boards client; a
+case is `{ id, run(ctx) }` that throws; `ctx.read` caches by tool+args so
+39 cases cost 26 calls (~2 min, the corpus meta reads are most of it).
+Four suites: `contracts` (a generic rule: every snake_case token a note
+names must be a key somewhere on the response, an argument of the tool,
+a tool name, a `tool.field` path, or vocabulary — the finished_early
+class; plus the per-row fields the docs promise), `identities`
+(`war_current.participants[].decks_used` ⟷ `clans_participation`
+`war_decks` by index; `war_rivals.mean_fame` and `zero_fame_races`
+rebuilt from the exact weeks' standings; `finished_early` ⟷
+`finish_war_day`; `scoring_decks ≤ decks_used`; `excluded.considered` =
+exclusions + decided; usage_share ≤ 1; `full ⟹ !truncated`; the fit
+split is after sort and limit), `budgets` (ceilings ~1.5× the times
+measured today: corpus week decks 9 s, cards 15 s; every duration
+printed), `gym` (#70, #71/#76, #72, #73, #74, #77–#79, #81, #82, #56/#64
+as the Gym wrote them). A harness test against a fake door runs under
+verify and pins that no case names a write tool or sends `live: true`.
+The deploy skips the gate with a WARNING when `acceptance/.env` is
+absent, never silently.
+
+**What its first runs found.** (a) `war_history.weeks[].in_progress`
+was emitted only when true — an absent flag read as false, the
+finished_early defect's shape — now on every row (folded into 6.13.0).
+(b) The first gated deploy went red on its own note change (the
+full-board note named `rated_players`, `rankings_clans`'s field, beside
+the tool name): the rule now takes `tool.field` as a pointer and the
+note writes it so. The gate refusing a deploy over a note it could not
+verify is the behaviour wanted. (c) **Open:** `battles_meta_decks
+{segment: "mine"}` over the season answers in **8.6 s** on every run
+(ceiling set at 10 s so it is watched, not blocking) — a 46-member clan
+on the raw path with the per-row lateral; the 2026-09-15 note had clan
+meta at 1.7 s. Worth an `{explain_meta}` read (the clan-scope plans are
+in it) before it creeps to the budget. (d) Tokens notes use as prose
+were allowed per case (`points_earned` on a training day with
+`days_closed: []`, a floored loss's `trophy_change` the game omits,
+`members_not_in_race` pointed at from `clans_roster`).
+
+**Not done, on purpose:** no value assertions (a number that changes
+daily is the Gym's to read, not a gate's); no `live: true` (CR budget);
+no write tools (the token cannot). The Gym's weekly run is unchanged —
+the suite is its Pass 2, not its Pass 4.
