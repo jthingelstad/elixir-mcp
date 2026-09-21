@@ -24,6 +24,17 @@ const list = (...items: string[]) => items.map((i) => `- ${i}`).join("\n");
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "6.14.0",
+    date: "2026-09-21",
+    summary: md(
+      "players_collection at full verbosity fits again. A mature collection's full answer was ~55k characters against the 48k result cap - every read refused, and with no limit to narrow, the refusal could not price a retry. 31k of it was the catalog repeated per card.",
+      list(
+        "Collection rows no longer carry `iconUrls`, `rarity`, `elixirCost`, `maxLevel` or `maxLevelRarityScale`: they are the same for every player and `cards_catalog` carries them once. A row keeps id, name, level, count, starLevel, evolutionLevel, maxEvolutionLevel, forms_available and forms_unlocked. A 126-card collection reads ~24k at full.",
+      ),
+      "A minor, not a major, by Jamie's call (2026-09-21): the fields removed are catalog facts, and no client could receive the full answer for a mature collection - the last week's reads were all compact. The output schema and docs say so.",
+    ),
+  },
+  {
     version: "6.13.0",
     date: "2026-09-21",
     summary: md(

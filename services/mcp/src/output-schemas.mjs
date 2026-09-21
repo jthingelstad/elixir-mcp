@@ -973,6 +973,58 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
+  players_collection: {
+    type: "object",
+    description:
+      "The collection's own facts per card (6.14.0): the catalog's - iconUrls, rarity, elixirCost, maxLevel, maxLevelRarityScale - are cards_catalog's, once.",
+    properties: {
+      player_tag: TAG,
+      applied: { type: "object" },
+      collection_level: NULLABLE_INT,
+      fielded: {
+        type: "object",
+        properties: {
+          days: COUNT,
+          mean_level: { type: ["number", "null"] },
+          battles: COUNT,
+        },
+        required: ["days", "mean_level", "battles"],
+      },
+      cards: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: COUNT,
+            name: { type: ["string", "null"] },
+            level: COUNT,
+            count: COUNT,
+            starLevel: COUNT,
+            evolutionLevel: COUNT,
+            maxEvolutionLevel: COUNT,
+            forms_available: { type: "array", items: { type: "string" } },
+            forms_unlocked: { type: "array", items: { type: "string" } },
+          },
+          required: ["id", "level", "forms_unlocked"],
+        },
+      },
+      support_cards: { type: "array" },
+      as_of_payload: { type: "string" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "player_tag",
+      "applied",
+      "cards",
+      "as_of_payload",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
+
   players_profile: {
     type: "object",
     properties: {

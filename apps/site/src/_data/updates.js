@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-21",
+    title:
+      "Your full collection can be read again: the catalog is not repeated per card",
+    body: "The acceptance suite's first day found that players_collection at full verbosity refused for any mature collection - the answer ran to 55,000 characters against the 48,000 cap, and with no limit to narrow, the refusal could not even say what would fit. Thirty-one thousand of those characters were the card catalog, repeated once per card: the icon URLs, the rarity, the elixir cost, the maxima, identical for every player and one cards_catalog call away. They are gone from the collection rows; what stays is what is yours - level, count, star level, forms unlocked. A full collection reads at about 24,000 characters now. Contract 6.14.0.",
+  },
+  {
+    date: "2026-09-21",
     title: "fit_for knows your win condition, not just your family",
     body: "The Gym's war run left one question for Jamie rather than a bug: a player who fields Evo Royal Hogs bridge spam asked the meta for decks that fit, and the top row - Evo Royal Hogs cycle, the same card at a faster pace - read as costly to adopt as Three Musketeers beatdown, because fit knew families and exact shapes and nothing between. The call: the win condition dominates. It is the card you have leveled and the timing you have learned; the family is the pace you play it at. Every row with fit_for now carries plays_win_condition, form included, and fit_for.plays lists the win conditions you field. The note reads adoption cost off the three flags in order: your shape, your win condition in another family, your family around a new card, neither. Contract 6.13.0, additive.",
   },

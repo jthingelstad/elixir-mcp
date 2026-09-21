@@ -240,9 +240,23 @@ test("players_collection: API-shaped passthrough of the latest payload", async (
   assert.ok(Array.isArray(body.cards) && body.cards.length > 50);
   assert.ok(body.cards[0].id && body.cards[0].name, "API shapes pass through");
   assert.ok(body.collection_level !== undefined);
-  // Levels are display-scale: every card caps at 16, none exceeds it.
-  assert.ok(body.cards.every((c) => c.maxLevel === 16));
+  // Levels are display-scale: none exceeds 16.
   assert.ok(body.cards.every((c) => c.level <= 16));
+  // 6.14.0: the catalog's facts are not repeated per card.
+  for (const k of [
+    "iconUrls",
+    "rarity",
+    "elixirCost",
+    "maxLevel",
+    "maxLevelRarityScale",
+  ])
+    assert.ok(
+      body.cards.every((c) => !(k in c)),
+      `${k} is cards_catalog's`,
+    );
+  assert.ok(
+    body.cards.every((c) => "forms_unlocked" in c && "forms_available" in c),
+  );
   // The profile fixture holds at least one maxed non-common: raw level
   // below 16 that normalizes to exactly 16.
   assert.ok(

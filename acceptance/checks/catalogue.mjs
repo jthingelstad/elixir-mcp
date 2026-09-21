@@ -31,6 +31,7 @@ import {
   deepKeys,
   deepValues,
   noteTokens,
+  pricedRefusal,
   VOCABULARY,
 } from "../lib.mjs";
 
@@ -163,6 +164,10 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
             const c = await ctx.read(tool, compactArgs);
             const f = await ctx.read(tool, fullArgs);
             const cb = answered(c, `${tool} compact`);
+            // The full twin of a compact call the caller made compact may
+            // be a page nobody asked for: a refusal that prices the retry
+            // is the documented answer, and there is nothing to compare.
+            if (pricedRefusal(f)) return { ms: r.ms };
             const fb = answered(f, `${tool} full`);
             bodies.get(tool).push({ args: fullArgs, body: fb });
             // An empty answer is the same both ways but for the echo.

@@ -4,12 +4,7 @@ import { readRecordedProfile } from "../../../ingest/src/recorded-profile.mjs";
  *  players_collection · players_names · players_search. Conventions
  *  (1.0.0): `applied`, `notes[]` + `docs`, `verbosity`. */
 
-import {
-  MAX_DISPLAY_LEVEL,
-  cardForms,
-  normalizeTag,
-  responseMeta,
-} from "@elixir-mcp/contracts";
+import { cardForms, normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import {
   PLAYER_METRICS,
   metricSelect,
@@ -56,7 +51,6 @@ import {
   trophyFloor,
   trophyFloorNote,
 } from "../controls.mjs";
-import { iconUrlsOf } from "./cards.mjs";
 
 /** Escape LIKE/ILIKE metacharacters so user text matches literally
  *  (Postgres' default escape character is the backslash). */
@@ -599,8 +593,7 @@ export const playersTools = {
       // static facts; levels are already on the 1-16 scale.
       const { rows } = await ctx.db.query(
         `select pc.card_id, pc.level, pc.count, pc.evolution_level, pc.star_level, pc.observed_at,
-                c.name, c.kind, c.rarity, c.elixir_cost, c.max_level, c.max_evolution_level,
-               c.icon_medium, c.icon_evolution_medium, c.icon_hero_medium
+                c.name, c.kind, c.max_evolution_level
          from player_card pc
          left join card c on c.card_id = pc.card_id
          where pc.player_tag = $1
@@ -632,13 +625,17 @@ export const playersTools = {
         to: null,
         types: null,
       });
+      // The collection's own facts per card (6.14.0). The catalog's -
+      // iconUrls, rarity, elixirCost, maxLevel, maxLevelRarityScale, the
+      // same for every player - were 31k of a 55k answer that no mature
+      // collection could receive under the result cap (the acceptance
+      // suite, 2026-09-21); cards_catalog is the one call for them.
+      // maxEvolutionLevel stays: it is what forms_unlocked reads against.
       const shape = (r) => {
         const full = {
           id: r.card_id,
           name: r.name ?? null,
           level: r.level,
-          maxLevel: MAX_DISPLAY_LEVEL,
-          ...(r.max_level !== null ? { maxLevelRarityScale: r.max_level } : {}),
           ...(r.count !== null ? { count: r.count } : {}),
           ...(r.star_level !== null ? { starLevel: r.star_level } : {}),
           ...(r.evolution_level !== null
@@ -647,9 +644,6 @@ export const playersTools = {
           ...(r.max_evolution_level !== null
             ? { maxEvolutionLevel: r.max_evolution_level }
             : {}),
-          ...(r.rarity ? { rarity: r.rarity } : {}),
-          ...(r.elixir_cost !== null ? { elixirCost: r.elixir_cost } : {}),
-          ...(iconUrlsOf(r) ? { iconUrls: iconUrlsOf(r) } : {}),
           forms_available: cardForms(r.max_evolution_level),
           forms_unlocked: cardForms(r.evolution_level),
         };
@@ -676,7 +670,7 @@ export const playersTools = {
         as_of_payload: asOf.toISOString(),
         notes: notes(
           "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
-          "Levels are the in-game 1-16 scale; starLevel is cosmetic.",
+          "Levels are the in-game 1-16 scale (every card caps at 16); starLevel is cosmetic. The catalog's facts - rarity, elixirCost, maxLevelRarityScale, iconUrls - are not repeated per card here: cards_catalog carries them, once.",
           fielded.mean_level === null
             ? "fielded.mean_level is null: no decided pvp battle with a recorded deck in the last 30 days, so there is no benchmark for what this player fields."
             : `fielded.mean_level (${fielded.mean_level} over ${fielded.battles} decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below it is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection.`,

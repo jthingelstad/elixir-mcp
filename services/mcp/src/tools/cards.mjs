@@ -50,7 +50,7 @@ const compactCard = (c) => ({
  *  card avatars. */
 /** The API's iconUrls object from the three columns (0123): the keys
  *  it carried, none it did not. */
-export function iconUrlsOf(r) {
+function iconUrlsOf(r) {
   const out = {};
   if (r.icon_medium) out.medium = r.icon_medium;
   if (r.icon_evolution_medium) out.evolutionMedium = r.icon_evolution_medium;

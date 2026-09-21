@@ -19,11 +19,23 @@ export function isInt(v) {
 
 /** An answer, or the refusal as the failure. */
 export function answered(r, what) {
-  if (r.isError)
+  if (r.isError) {
+    const e = r.body?.error ?? {};
     fail(
-      `${what}: refused ${r.body?.error?.code ?? ""} ${r.body?.error?.message ?? JSON.stringify(r.body).slice(0, 200)}`,
+      `${what}: refused ${e.code ?? ""} ${e.message ?? JSON.stringify(r.body).slice(0, 200)}${e.hint ? ` - ${e.hint}` : ""}`,
     );
+  }
   return r.body;
+}
+
+/** A result_too_large that says what would fit: the #56/#64 behaviour,
+ *  an answer in its own right when the ask was a page no one made. */
+export function pricedRefusal(r) {
+  return (
+    r.isError &&
+    r.body?.error?.code === "result_too_large" &&
+    /a limit of \d+ should fit/.test(r.body.error.hint ?? "")
+  );
 }
 
 /** Every key anywhere in a value (objects and arrays walked). */
