@@ -1,0 +1,241 @@
+{
+  "contract_version": "6.14.0",
+  "captured_at": "2026-09-21T18:31:48.910Z",
+  "request": {
+    "tool": "players_summary",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU"
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "name": "King Thing",
+    "clan": {
+      "clan_tag": "#J2RGCRVG",
+      "name": "POAP KINGS"
+    },
+    "trophies": 12505,
+    "trophies_as_of": "2026-09-21",
+    "applied": {
+      "window": {
+        "from": "2026-08-22T18:31:48.832Z",
+        "to": "2026-09-21T18:31:48.832Z",
+        "source": "fixed",
+        "days": 30
+      }
+    },
+    "last_30_days": {
+      "battles": 93,
+      "wins": 49,
+      "losses": 44,
+      "draws": 0,
+      "net_trophies": -27,
+      "win_rate": 0.527,
+      "first_recorded": "2026-08-22T00:14:10.000Z",
+      "modes": {
+        "war": {
+          "battles": 47,
+          "wins": 30,
+          "losses": 17
+        },
+        "ladder": {
+          "battles": 45,
+          "wins": 19,
+          "losses": 26
+        },
+        "casual": {
+          "battles": 1,
+          "wins": 0,
+          "losses": 1
+        }
+      }
+    },
+    "trophy_floor": {
+      "floor": 12500,
+      "arena": {
+        "id": 54000142,
+        "name": "Ultimate Clash Pit"
+      },
+      "source": "losses_on_floor",
+      "floored": true,
+      "on_floor_losses": 3,
+      "losses_landing_on_floor": 4,
+      "ladder_battles": 44,
+      "trophy_range": {
+        "lowest": 12500,
+        "highest": 12600
+      }
+    },
+    "top_deck": {
+      "deck_hash": "b2860741bee79ef1a9af7dd990055ad2aaeebdb6685a02d83f114c6a3d46ba9f",
+      "cards": [
+        {
+          "id": 26000007,
+          "name": "Witch",
+          "form": "evolution"
+        },
+        {
+          "id": 26000012,
+          "name": "Skeleton Army",
+          "form": "base"
+        },
+        {
+          "id": 26000018,
+          "name": "Mini P.E.K.K.A",
+          "form": "hero"
+        },
+        {
+          "id": 26000037,
+          "name": "Inferno Dragon",
+          "form": "base"
+        },
+        {
+          "id": 26000050,
+          "name": "Royal Ghost",
+          "form": "evolution"
+        },
+        {
+          "id": 26000059,
+          "name": "Royal Hogs",
+          "form": "base"
+        },
+        {
+          "id": 27000000,
+          "name": "Cannon",
+          "form": "base"
+        },
+        {
+          "id": 28000001,
+          "name": "Arrows",
+          "form": "base"
+        }
+      ],
+      "archetype": {
+        "family": "bridge_spam",
+        "win_conditions": [
+          {
+            "id": 26000059,
+            "name": "Royal Hogs",
+            "form": "base"
+          }
+        ],
+        "secondary_win_conditions": [],
+        "named_by": null,
+        "label": "Royal Hogs bridge spam",
+        "average_elixir": 3.75,
+        "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+        "grammar_version": "2026-09",
+        "roles_version": "2026-09-20T20:16:47.000Z"
+      },
+      "battles": 43,
+      "win_rate": 0.419,
+      "modes": {
+        "ladder": {
+          "battles": 43,
+          "wins": 18,
+          "losses": 25
+        }
+      },
+      "dominant_mode": {
+        "mode": "ladder",
+        "share": 1
+      },
+      "mean_level_gap": 0.58
+    },
+    "best_deck": {
+      "deck_hash": "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0",
+      "cards": [
+        {
+          "id": 26000019,
+          "name": "Spear Goblins",
+          "form": "base"
+        },
+        {
+          "id": 26000040,
+          "name": "Dart Goblin",
+          "form": "base"
+        },
+        {
+          "id": 26000046,
+          "name": "Bandit",
+          "form": "base"
+        },
+        {
+          "id": 26000063,
+          "name": "Electro Dragon",
+          "form": "base"
+        },
+        {
+          "id": 26000074,
+          "name": "Golden Knight",
+          "form": "base"
+        },
+        {
+          "id": 27000002,
+          "name": "Mortar",
+          "form": "evolution"
+        },
+        {
+          "id": 28000011,
+          "name": "The Log",
+          "form": "base"
+        },
+        {
+          "id": 28000017,
+          "name": "Giant Snowball",
+          "form": "evolution"
+        }
+      ],
+      "archetype": {
+        "family": "siege",
+        "win_conditions": [
+          {
+            "id": 27000002,
+            "name": "Mortar",
+            "form": "evolution"
+          }
+        ],
+        "secondary_win_conditions": [],
+        "named_by": null,
+        "label": "Evo Mortar siege",
+        "average_elixir": 3.13,
+        "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+        "grammar_version": "2026-09",
+        "roles_version": "2026-09-20T20:16:47.000Z"
+      },
+      "battles": 15,
+      "win_rate": 0.667,
+      "modes": {
+        "war": {
+          "battles": 15,
+          "wins": 10,
+          "losses": 5
+        }
+      },
+      "dominant_mode": {
+        "mode": "war",
+        "share": 1
+      },
+      "mean_level_gap": 1.68
+    },
+    "notes": [
+      "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded.",
+      "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Win rates here are NOT comparable across rows: deck b2860741… was played 100% in ladder (mean level gap +0.58) and deck ce06788a… 100% in war (gap +1.68); matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank decks only within one mode and similar mean_level_gap (pass mode; the record describes the gap and does not adjust for it).",
+      "This player stood on the 12,500 trophy floor (Ultimate Clash Pit) during the window: 3 ladder losses ON the floor cost nothing (trophy_change null) and 4 landed exactly on it (clamped or full), so net_trophies counts wins in full and those losses at zero and tracks how recently the player played more than how well; read trophy_range and win_rate instead.",
+      "History may predate active recording; elixir_coverage has the capture story."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "6.14.0"
+    }
+  },
+  "timings": {
+    "db_ms": 77,
+    "db_queries": 18,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

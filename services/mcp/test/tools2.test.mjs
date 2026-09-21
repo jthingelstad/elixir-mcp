@@ -1910,9 +1910,25 @@ test("dailySql sums equal the raw rows over any instant window, edge days includ
     `select distinct player_tag from battle_participant order by 1 limit 12`,
   );
   const players = tags.map((r) => r.player_tag);
+  // A battle BEFORE a mid-day window start, on the start day (the
+  // acceptance suite, 2026-09-21: players_summary counted 93 battles
+  // where battles_performance counted 90 over the same 30 days - three
+  // battles on the window's first day before its instant). The
+  // parameter's first use in dailySql was `($2)::date`, which typed the
+  // whole parameter DATE, so the timestamptz comparison saw midnight.
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class) values ('edge-early', '2026-08-20T10:00:00Z', 'PvP', 'pvp')`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class)
+     values ('edge-early', $1, '2026-08-20T10:00:00Z', 0, 'win', 'PvP', 'pvp')`,
+    [players[0]],
+  );
+  await refreshDailyRollups(db, [{ playerTag: players[0], day: "2026-08-20" }]);
   const windows = [
     ["2026-08-20T00:00:00Z", null],
     ["2026-08-20T14:30:00Z", "2026-09-03T09:15:00Z"],
+    ["2026-08-20T14:30:00Z", null], // the edge-early battle is before this
     ["2026-09-02T06:00:00Z", "2026-09-02T18:00:00Z"], // one day, both edges
     ["2026-08-31T23:00:00Z", "2026-09-01T01:00:00Z"], // a midnight
     ["2026-07-01T00:00:00Z", "2026-09-05T00:00:00Z"],

@@ -11,9 +11,9 @@
     "feedback": 82,
     "contract": "6.10.0",
     "why": "war_rivals fame statistics with no finished_races denominator on the row",
-    "case": "identities/war_rivals-denominators",
+    "case": "identities/ordered:a-rival's-counts-nest",
     "captures": ["82-war_rivals.json"],
-    "expect": "finished undefined"
+    "expect": "lacks finished_races"
   },
   {
     "feedback": 82,
@@ -44,5 +44,15 @@
     "rule": "answered",
     "capture": "battles_query-limit-1-timeout.json",
     "expect": "refused query_timeout"
+  },
+  {
+    "contract": "6.14.0",
+    "why": "players_summary counted the window's first day whole (93) where battles_performance counted from the instant (90): dailySql's parameter took type DATE from its first use (the identity DSL's first product finding)",
+    "case": "identities/same:a-player's-30-day-battles",
+    "captures": [
+      "summary-30-days-counts-the-whole-start-day.json",
+      "performance-30-days.json"
+    ],
+    "expect": "players_summary 93 vs battles_performance 90"
   }
 ]

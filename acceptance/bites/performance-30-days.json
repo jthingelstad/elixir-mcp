@@ -1,0 +1,94 @@
+{
+  "contract_version": "6.14.0",
+  "captured_at": "2026-09-21T18:31:49.190Z",
+  "request": {
+    "tool": "battles_performance",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU",
+      "days": 30
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "applied": {
+      "window": {
+        "from": "2026-08-22T18:31:49.148Z",
+        "to": null,
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      }
+    },
+    "window": {
+      "battles": 90,
+      "wins": 46,
+      "losses": 44,
+      "draws": 0,
+      "boat_battles": 0,
+      "duel_battles": 17,
+      "crowns_for": 119,
+      "crowns_against": 89,
+      "net_trophies": -57,
+      "current_streak": -2,
+      "decided_battles": 90,
+      "decided_wins": 46,
+      "decided_losses": 44,
+      "win_rate": 0.511,
+      "head_to_head_battles": 73,
+      "three_crown_rate": 0.151
+    },
+    "trophy_floor": {
+      "floor": 12500,
+      "arena": {
+        "id": 54000142,
+        "name": "Ultimate Clash Pit"
+      },
+      "source": "losses_on_floor",
+      "floored": true,
+      "on_floor_losses": 3,
+      "losses_landing_on_floor": 4,
+      "ladder_battles": 44,
+      "trophy_range": {
+        "lowest": 12500,
+        "highest": 12600
+      }
+    },
+    "notes": [
+      "This player stood on the 12,500 trophy floor (Ultimate Clash Pit) during the window: 3 ladder losses ON the floor cost nothing (trophy_change null) and 4 landed exactly on it (clamped or full), so net_trophies counts wins in full and those losses at zero and tracks how recently the player played more than how well; read trophy_range and win_rate instead.",
+      "Window spans S135 (2026-08) and S136 (2026-09); balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+      "win_rate = decided_wins / decided_battles, where decided_battles = decided_wins + decided_losses: boat battles and draws are outside both sides, while wins/losses still count boat wins.",
+      "duel_battles collapse up to three games and count crowns once per round, so crowns_for/against mix units when duels are present.",
+      "three_crown_rate = three-crown wins / head_to_head_battles, duels and boat battles excluded from both sides."
+    ],
+    "docs": "battles#decided-battles-and-denominators",
+    "meta": {
+      "contract_version": "6.14.0"
+    }
+  },
+  "timings": {
+    "db_ms": 46,
+    "db_queries": 11,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

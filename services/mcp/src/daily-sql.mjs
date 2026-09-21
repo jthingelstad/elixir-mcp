@@ -38,6 +38,15 @@ export function dailySql({
 }) {
   const modeRollup = modeGroup ? `and r.mode_group = ${modeGroup}` : "";
   const modeRaw = types ? `and bp.type = any(${types})` : "";
+  // The instants are cast timestamptz at EVERY use. A bound parameter
+  // takes its type from its first appearance, and `($2)::date` first
+  // typed the whole parameter DATE: every later `battle_time >= $2`
+  // then compared against midnight, and the window's first day was
+  // counted whole (players_summary 93 battles against
+  // battles_performance's 90 over one instant window; the acceptance
+  // suite, 2026-09-21). A literal never showed it; a Date did.
+  const f = `(${from})::timestamptz`;
+  const t = `(${to})::timestamptz`;
   return `(
     select r.player_tag, r.day, r.mode_group,
            sum(r.battles_captured)::int as battles,
@@ -45,8 +54,8 @@ export function dailySql({
            sum(r.draws)::int as draws, sum(r.trophy_delta)::int as trophy_delta
     from player_daily_battle_rollup r
     where r.player_tag = any(${players})
-      and r.day > (${from})::date
-      and (${to}::timestamptz is null or r.day < (${to})::date)
+      and r.day > ${f}::date
+      and (${t} is null or r.day < ${t}::date)
       ${modeRollup}
     group by r.player_tag, r.day, r.mode_group
     union all
@@ -61,15 +70,15 @@ export function dailySql({
         -- The day the window starts in: a range the (player, time)
         -- index walks, never a cast the planner filters after the fact
         -- (live 2026-09-17: 12,961 rows read for 408 kept, 3.4 s of I/O).
-        (bp.battle_time >= ${from}
-         and bp.battle_time < (${from})::date + 1
-         and (${to}::timestamptz is null or bp.battle_time < ${to}))
+        (bp.battle_time >= ${f}
+         and bp.battle_time < ${f}::date + 1
+         and (${t} is null or bp.battle_time < ${t}))
         or
         -- The day it ends in, when that is a different day.
-        (${to}::timestamptz is not null
-         and (${to})::date <> (${from})::date
-         and bp.battle_time >= (${to})::date
-         and bp.battle_time < ${to})
+        (${t} is not null
+         and ${t}::date <> ${f}::date
+         and bp.battle_time >= ${t}::date
+         and bp.battle_time < ${t})
       )
       ${modeRaw}
     group by bp.player_tag, bp.battle_time::date, ${MODE_GROUP_CASE}
