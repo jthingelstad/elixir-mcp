@@ -346,8 +346,8 @@ tie sponsorship (`/support`) to anything on an account.
 
 `node infra/scripts/deploy.mjs` with `AWS_PROFILE=jamie` **in the environment** —
 the CLI profile flag alone does not satisfy the SDK's provider chain. Order is
-build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
-and deploys are cumulative: never deploy past a commit whose infrastructure
+build → upload → migrate → vocabulary import → stack → web. It is smoke-gated
+and acceptance-gated (below), and deploys are cumulative: never deploy past a commit whose infrastructure
 change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
 refuses a checkout whose `data/card-roles.json` or `data/deck-aliases.json`
 is uncommitted: commit (and push) the reference first. It also refreshes
@@ -365,6 +365,22 @@ remove obsolete entries instead of suppressing configuration hints. Successful
 account journeys use the real web API, JSON transport and per-run scratch
 Postgres databases. Crash-containment tests serve a different purpose and do
 not substitute for those journeys.
+
+**The acceptance suite is the release gate the fixtures cannot be**
+(`acceptance/`, 2026-09-21). The unit tests pin logic over fixture
+databases and cannot see the live data shape at the live scale - which is
+where `finished_early === 10000` (true on a July fixture, on no live-polled
+week) and the corpus meta's 7-day timeout (past 800k rows) lived. `npm run
+acceptance` reads the deployed door as a read-only agent principal
+(`acceptance/.env`, `cr:read`, its own `/a/<id>/mcp`) and asserts invariants,
+never values that change daily: every field a note names is on the response
+(`contracts`), one number two tools serve agrees and every count carries its
+denominator (`identities`), the heavy calls stay under a ceiling well below
+the 18 s query budget (`budgets`), and the Gym's filed repros keep their
+acceptance criteria (`gym`). The deploy runs it after the smoke gate and
+fails on a red case; it never writes and never passes `live: true`. When the
+Gym files a finding, its criterion goes under the feedback id in
+`checks/gym.mjs` and the invariant behind it in `identities` or `contracts`.
 
 Metadata rules live in `packages/contracts/src/meta.ts`. Producers validate
 there and at the registry boundary; a new metadata field needs its type and

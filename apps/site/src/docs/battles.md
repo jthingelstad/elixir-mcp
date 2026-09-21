@@ -326,9 +326,10 @@ because that endpoint does not report the former current-day value.
 
 `war_history` returns one row per recorded week with:
 
-- `in_progress`, true while the week is still being fought; on older weeks a
-  `null` `our_rank` or `our_fame` means the week was observed without a
-  standings capture, a capture gap rather than a zero.
+- `in_progress`, true while the week is still being fought and false
+  otherwise (on every row since 6.13.0); on older weeks a `null` `our_rank`
+  or `our_fame` means the week was observed without a standings capture, a
+  capture gap rather than a zero.
 - `finished_early`, true on a regular week whose boat reached the
   10,000-fame line, false when it did not, and `null` on a Colosseum week
   (which has no finish line) or a week observed without a standings

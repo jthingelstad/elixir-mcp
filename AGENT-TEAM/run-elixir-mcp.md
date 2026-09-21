@@ -66,6 +66,14 @@ Establish, with receipts:
   after a deploy re-verifies with reads). `elixir-mcp-migrate-duration`
   quiet: it fires when a migrate invocation runs past 90 s, which means
   someone ran a diagnostics op against production — find who and why.
+- **The acceptance suite, once a day.** `npm run acceptance` (read-only,
+  the `acceptance` agent principal, `acceptance/.env` on the operator
+  machine): the live invariants the deploy gate checks, re-checked
+  between deploys, since the record moves without one - a note that
+  names a field no row carries, two tools disagreeing on one number, a
+  heavy call creeping toward the 18 s budget. A red case is a finding
+  for Close the Loop (product) or this objective (capacity: the
+  `budgets` suite), never re-run until green.
 - **Discord preview.** Own operational acceptance of `../elixir-mcp-discord`:
   managed service `com.poapkings.elixir-mcp-discord`, its existing run ledger,
   event cursor freshness, correct principal/contract version, both configured

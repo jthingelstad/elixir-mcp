@@ -980,10 +980,11 @@ export const warTools = {
           season_id: w.season_id,
           section_index: w.section_index,
           is_colosseum: w.is_colosseum,
-          in_progress:
-            w.is_latest_recorded && w.finished_observed_at === null
-              ? true
-              : undefined,
+          // Served on every row (6.13.0): an absent flag read as false,
+          // which is the finished_early defect's shape.
+          in_progress: Boolean(
+            w.is_latest_recorded && w.finished_observed_at === null,
+          ),
           finished: w.finished_observed_at?.toISOString() ?? null,
           // The API's own close instant (riverracelog createdDate); finished
           // is the recorder's sighting and carries polling latency.

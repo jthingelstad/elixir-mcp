@@ -315,6 +315,32 @@ if (smoke.status !== 0) {
   process.exit(1);
 }
 
+// Acceptance gate (2026-09-21): the deployed product against the real
+// record, read-only, as a read-only agent principal - invariants the
+// fixture tests cannot see (live data shape, live scale). A few minutes;
+// a red case fails the deploy. Skipped with a warning when the token file
+// is absent (acceptance/README.md), never silently.
+const { existsSync } = await import("node:fs");
+const acceptanceEnv = new URL("../../acceptance/.env", import.meta.url)
+  .pathname;
+if (existsSync(acceptanceEnv)) {
+  const acceptance = spawnSync(
+    process.execPath,
+    [new URL("../../acceptance/run.mjs", import.meta.url).pathname],
+    { stdio: "inherit" },
+  );
+  if (acceptance.status !== 0) {
+    console.error(
+      "ACCEPTANCE FAILED - the deploy is live but an invariant broke; fix forward or roll back.",
+    );
+    process.exit(1);
+  }
+} else {
+  console.warn(
+    "acceptance: skipped - no acceptance/.env on this machine (see acceptance/README.md).",
+  );
+}
+
 console.log("\ndeploy complete.");
 console.log(
   `site + mcp door: https://${outputs.SiteDistributionDomain}  (CNAME elixir.poapkings.com here)`,
