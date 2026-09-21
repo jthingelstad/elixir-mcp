@@ -196,12 +196,22 @@ export async function explainMeta(databaseUrl, spec = {}) {
              and bp.battle_time >= $2
              and bp.deck_hash is not null and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
            group by bp.deck_hash, bp.player_tag, bp.type),
-         cards as materialized (
-           select dc.deck_hash, dc.card_id, dc.form from deck_card dc
-           where dc.deck_hash in (select distinct deck_hash from pairs)),
+
+         -- The pairs joined to the identities' cards ONCE, into a set both
+
+         -- aggregates read: the planner hashed all of deck_card twice (one
+
+         -- join per aggregate, 18.6 s on a 7-day corpus window), and an
+
+         -- index probe per deck is worse (65k decks in such a window, 47 s
+
+         -- of heap fetches). Measured live 2026-09-21 with {explain_meta}.
+
          joined as materialized (
-           select c.card_id, c.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
-           from pairs p join cards c on c.deck_hash = p.deck_hash),
+
+           select dc.card_id, dc.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+
+           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash),
          per_type as (
            select card_id, form, type, sum(battles)::int as battles, sum(wins)::int as wins,
                   sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n
