@@ -6747,3 +6747,27 @@ schedule change. The efficiency page is the standing read; Keep the
 Record True carries the threshold (a lost-battles line that does not
 stay near zero, or gaps above ~1 an hour, names the players before it
 touches the ceiling).
+
+## 2026-09-21 — Run Elixir MCP: pipeline healthy; account-cost decision needed
+
+Run receipt, 09:48–09:53Z: public `/api/public/status` was green (one-second
+fetch and admission freshness, 867 battles in the prior hour, five active
+collectors, one draining, empty email DLQ and no dead jobs). Its capture audit
+reported 8 gaps in 17,218 polls. The read-only migrate `{stats: true}` receipt
+reported 722 battle-log polls in its trailing hour with 0 gaps; its 24-hour
+errors were 14 expected upstream 404s and one transport receipt. The three
+Discord preview LaunchAgents were running, their editor cursors were current,
+and their boot evidence had observed contract 6.10.0. All Elixir service-health
+alarms were OK; RDS `elixir-mcp-enc` was available at its 20 GB floor with a
+100 GB autoscaling ceiling.
+
+The account-wide `elixir-mcp-estimated-charges` alarm is ALARM: CloudWatch's
+latest EstimatedCharges datum is $41.57 against its $40 threshold (the alarm
+first crossed at $40.01). Cost Explorer's 2026-09-01..21 estimated unblended
+total is $160.6323339922, and its `Application` tag grouping returns only the
+empty tag, so this objective cannot attribute that account-wide spend to Elixir.
+The alarm is already routed to `elixir-mcp-alarms`; no runtime capacity,
+collector cadence, or alarm threshold was changed. Jamie needs to decide the
+account-wide spend envelope: either approve a revised guard after the account
+cost review, or name the cost-reduction target. Do not make that spending
+decision through an Elixir runtime change.
