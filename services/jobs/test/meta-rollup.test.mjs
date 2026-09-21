@@ -400,20 +400,30 @@ test("the population table (0140): days build and seal, a late battle lands in i
     assert.equal(t.equal, true, `${table}: ${JSON.stringify(t)}`);
   assert.ok(eq.tables.deck_meta_season.live_rows > 0);
 
-  // The final path builds the same way and drops the rows after.
+  // The final path builds the same way and drops the OLDER seasons'
+  // rows after (6.12.0); this season's stay.
+  const olderDays = (
+    await db.query(
+      `select count(*)::int as n from meta_season_pop_day where season_month < $1`,
+      [month],
+    )
+  ).rows[0].n;
   const fin = await rebuildSeason(db, current, {
     final: true,
     nowMs: later + 120_000,
   });
   assert.equal(fin.final, true);
-  assert.equal(fin.days.dropped, expectDays);
+  // 6.12.0: the season going final KEEPS its population (the meta tools
+  // read a sub-season window from it, and one spanning the roll into
+  // the running season); what drops is every older season's.
+  assert.equal(fin.days.dropped, olderDays, "the older seasons' days");
   const {
     rows: [{ n: after }],
   } = await db.query(
     `select count(*)::int as n from meta_season_pop where season_month = $1`,
     [month],
   );
-  assert.equal(after, 0);
+  assert.equal(after, 8, "the final season's rows stay");
   assert.equal(
     (
       await db.query(
@@ -421,8 +431,31 @@ test("the population table (0140): days build and seal, a late battle lands in i
         [month],
       )
     ).rows[0].n,
-    0,
+    expectDays,
   );
+  // A later season going final drops this one's.
+  const {
+    rows: [next],
+  } = await db.query(
+    `select * from season where season_month > $1 order by season_month limit 1`,
+    [month],
+  );
+  if (next) {
+    const fin2 = await rebuildSeason(db, next, {
+      final: true,
+      nowMs: later + 120_000,
+    });
+    assert.equal(fin2.days.dropped, expectDays, "the older season's days");
+    assert.equal(
+      (
+        await db.query(
+          `select count(*)::int as n from meta_season_pop where season_month = $1`,
+          [month],
+        )
+      ).rows[0].n,
+      0,
+    );
+  }
   const {
     rows: [{ decided: finalDecided }],
   } = await db.query(

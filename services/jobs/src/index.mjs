@@ -7,7 +7,7 @@
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
  *  {activity_histogram: true} · {capture_efficiency: true} · {meta_rollup_nightly: true} ·
- *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} ·
+ *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} · {meta_rollup_season: {season_month}} ·
  *  {shape_census: true} · {email: "<kind>",
  *  account_id?, force?} (docs/EMAIL.md: the six product mail kinds, one
  *  EventBridge rule each; account_id + force is the account page's
@@ -28,6 +28,7 @@ import {
   metaRollupNightly,
   metaRollupHourly,
   metaRollupEquivalence,
+  metaRollupSeason,
 } from "./meta-rollup.mjs";
 import { shapeCensus } from "./shape-census.mjs";
 import { seriesMetrics } from "./series-metrics.mjs";
@@ -331,6 +332,14 @@ export async function handler(event) {
     const stamped = await archetypeStampNightly(process.env.DATABASE_URL);
     console.log(JSON.stringify({ archetype_stamp: stamped }));
     return { ...result, archetype_stamp: stamped };
+  }
+  if (event?.meta_rollup_season) {
+    const result = await metaRollupSeason(
+      process.env.DATABASE_URL,
+      event.meta_rollup_season,
+    );
+    console.log(JSON.stringify({ meta_rollup_season: result }));
+    return result;
   }
   if (event?.meta_rollup_hourly) {
     const result = await metaRollupHourly(process.env.DATABASE_URL);

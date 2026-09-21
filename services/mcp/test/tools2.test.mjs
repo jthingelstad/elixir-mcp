@@ -2270,10 +2270,20 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
 // budget (feedback #77, #78, #79). The population table (0140) holds the
 // same rows with the gap on them; the read answers what the heap answered.
 test("6.12.0: a sub-season corpus window reads the population table and answers what the raw scan answered", async () => {
-  const {
-    rows: [season],
-  } = await db.query(`select * from season where season_month = '2026-08'`);
-  const bounds = { from: "2026-08-10T10:00:00Z", to: "2026-08-31T10:00:00Z" };
+  const { rows: seasons } = await db.query(
+    `select * from season where season_month in ('2026-08', '2026-09') order by season_month`,
+  );
+  assert.equal(seasons.length, 2);
+  const inside = {
+    from: "2026-08-10T10:00:00Z",
+    to: "2026-08-31T10:00:00Z",
+  };
+  // A window spanning the roll into the running season: both
+  // populations are kept, so it reads the table too.
+  const acrossRoll = {
+    from: "2026-08-25T10:00:00Z",
+    to: "2026-09-10T10:00:00Z",
+  };
   const strip = (body) => {
     const rest = { ...body };
     for (const k of ["applied", "notes", "meta", "players_as_of"])
@@ -2295,65 +2305,87 @@ test("6.12.0: a sub-season corpus window reads the population table and answers 
       "cards",
     ],
   ];
-  // The 0121 test left the season final: its population is dropped, so
-  // the window reads the heap (no population note).
+  // With no population built, the windows read the heap (no population
+  // note): the reference.
+  await db.query(`delete from meta_season_pop`);
+  await db.query(`delete from meta_season_pop_day`);
   const raw = {};
-  for (const [tool, args] of cases) {
-    raw[tool] = await call(tool, { ...args, ...bounds });
-    assert.equal(raw[tool].isError, false, JSON.stringify(raw[tool].body));
-    assert.ok(!raw[tool].body.notes.some((n) => /population table/.test(n)));
-  }
-  // Rebuilt as the running season would be (not final): the table holds
-  // the rows and the same window reads it.
-  const rebuilt = await rebuildSeason(db, season, { final: false });
-  assert.ok(rebuilt.pop_rows > 0, JSON.stringify(rebuilt));
-  try {
-    for (const [tool, args, key, listKey] of cases) {
-      const pop = await call(tool, { ...args, ...bounds });
-      assert.equal(pop.isError, false, JSON.stringify(pop.body));
-      assert.ok(
-        pop.body.notes.some((n) =>
-          /Read from the season's population table \(filled through/.test(n),
-        ),
-        `${tool}: says its source and its cursor`,
-      );
-      const a = strip(raw[tool].body);
-      const b = strip(pop.body);
-      const listA = byKey(a[listKey], key);
-      const listB = byKey(b[listKey], key);
-      delete a[listKey];
-      delete b[listKey];
-      assert.deepEqual(b, a, `${tool}: scalars, excluded, prior`);
-      assert.deepEqual(Object.keys(listB).sort(), Object.keys(listA).sort());
-      for (const k of Object.keys(listA))
-        assert.deepEqual(listB[k], listA[k], `${tool}: row ${k}`);
+  for (const [tool, args] of cases)
+    for (const [name, bounds] of [
+      ["inside", inside],
+      ["across", acrossRoll],
+    ]) {
+      const r = await call(tool, { ...args, ...bounds });
+      assert.equal(r.isError, false, JSON.stringify(r.body));
+      assert.ok(!r.body.notes.some((n) => /population table/.test(n)));
+      raw[`${tool}:${name}`] = r;
     }
+  // Both seasons rebuilt as the nightly leaves them: August final (its
+  // population kept), September running.
+  const aug = await rebuildSeason(db, seasons[0], { final: true });
+  const sep = await rebuildSeason(db, seasons[1], { final: false });
+  assert.ok(aug.pop_rows > 0 && sep.pop_rows > 0, JSON.stringify({ aug, sep }));
+  try {
+    for (const [tool, args, key, listKey] of cases)
+      for (const [name, bounds, notePattern] of [
+        [
+          "inside",
+          inside,
+          /Read from the season population table \(filled through/,
+        ],
+        [
+          "across",
+          acrossRoll,
+          /Read from the season population table \(filled through/,
+        ],
+      ]) {
+        const pop = await call(tool, { ...args, ...bounds });
+        assert.equal(pop.isError, false, JSON.stringify(pop.body));
+        assert.ok(
+          pop.body.notes.some((n) => notePattern.test(n)),
+          `${tool} ${name}: says its source and its cursor: ${pop.body.notes.join(" | ")}`,
+        );
+        const a = strip(raw[`${tool}:${name}`].body);
+        const b = strip(pop.body);
+        const listA = byKey(a[listKey], key);
+        const listB = byKey(b[listKey], key);
+        delete a[listKey];
+        delete b[listKey];
+        assert.deepEqual(b, a, `${tool} ${name}: scalars, excluded, prior`);
+        assert.deepEqual(
+          Object.keys(listB).sort(),
+          Object.keys(listA).sort(),
+          `${tool} ${name}: the same rows`,
+        );
+        for (const k of Object.keys(listA))
+          assert.deepEqual(listB[k], listA[k], `${tool} ${name}: row ${k}`);
+      }
     // A band and a mode take the table's own columns.
     const banded = await call("battles_meta_decks", {
       segment: "corpus",
-      ...bounds,
+      ...inside,
       trophy_band: "under_5000",
       mode: "ladder",
       min_battles: 1,
     });
     assert.equal(banded.isError, false, JSON.stringify(banded.body));
     assert.ok(banded.body.notes.some((n) => /population table/.test(n)));
-    // An open window past the cursor says what is not counted; a segment
-    // read and a whole-season read never touch the table.
+    // An open window into the running season names the cursor.
     const open = await call("battles_meta_decks", {
       segment: "corpus",
-      from: "2026-08-10T10:00:00Z",
+      from: "2026-08-25T10:00:00Z",
       min_battles: 1,
     });
     assert.ok(
       open.body.notes.some((n) =>
         /battles recorded since are not counted/.test(n),
-      ) || !open.body.notes.some((n) => /population table/.test(n)),
-      "an open window either names the cursor or crossed a roll and stayed raw",
+      ),
+      open.body.notes.join(" | "),
     );
+    // A segment read and a whole-season read never touch the table.
     const seg = await call("battles_meta_decks", {
       segment: { collection: "test-pros" },
-      ...bounds,
+      ...inside,
       min_battles: 1,
     });
     assert.ok(!seg.body.notes.some((n) => /population table/.test(n)));
@@ -2363,9 +2395,19 @@ test("6.12.0: a sub-season corpus window reads the population table and answers 
       min_battles: 1,
     });
     assert.ok(!whole.body.notes.some((n) => /population table/.test(n)));
-    assert.ok(whole.body.notes.some((n) => /season rollup/.test(n)));
+    assert.ok(whole.body.notes.some((n) => /final rollup/.test(n)));
+    // A season whose population is gone sends the window back to the heap.
+    await db.query(
+      `delete from meta_season_pop_day where season_month = '2026-08'`,
+    );
+    const gone = await call("battles_meta_decks", {
+      segment: "corpus",
+      ...acrossRoll,
+      min_battles: 1,
+    });
+    assert.ok(!gone.body.notes.some((n) => /population table/.test(n)));
   } finally {
-    await rebuildSeason(db, season, { final: true });
+    await rebuildSeason(db, seasons[0], { final: true });
   }
 });
 

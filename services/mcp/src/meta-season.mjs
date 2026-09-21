@@ -346,38 +346,52 @@ export async function rollupSynergy(
 }
 
 /** The population table as a corpus read's source (feedback #77-#79):
- *  a window inside the running season that is not the whole season -
- *  `days: 7`, "this week vs last" - used to scan the participant heap
- *  with a per-row lateral for the level gap and timed out at the 18 s
- *  budget every time. meta_season_pop (0140) holds the same population
- *  one row per participant with mode_group, trophy_band and level_gap
- *  already on the row, keyed by game day, bounded by the nightly's
- *  cursor. Null when the read is a segment's (the heap's indexes serve
- *  it), the whole season's (the rollup's), crosses a roll, or starts at
- *  or past the cursor (nothing built yet: the heap answers, and small). */
+ *  a window that is not a whole season - `days: 7`, "this week vs
+ *  last" - used to scan the participant heap with a per-row lateral for
+ *  the level gap and timed out at the 18 s budget every time.
+ *  meta_season_pop (0140) holds the same population one row per
+ *  participant with mode_group, trophy_band and level_gap already on
+ *  the row, keyed by season and game day; the nightly keeps the running
+ *  season's and the previous season's (dropped when the one after goes
+ *  final), so a window may span the roll. Null when the read is a
+ *  segment's (the heap's indexes serve it), a whole season's (the
+ *  rollup's), touches a season whose population is gone, or starts at
+ *  or past the running season's cursor (nothing built yet: the heap
+ *  answers, and small). */
 export async function popWindow(db, { win, seg }) {
   if (seg?.where || win.source === "season") return null;
-  if (!win.from || !win.season?.season_month || win.crosses?.length)
-    return null;
-  const {
-    rows: [state],
-  } = await db.query(
-    `select pop_through from meta_season_state
-      where season_month = $1 and pop_through is not null and not final
-        and exists (select 1 from meta_season_pop_day d where d.season_month = $1)`,
-    [win.season.season_month],
+  if (!win.from || !win.season?.season_month) return null;
+  const months = [
+    win.season.season_month,
+    ...(win.crosses ?? []).map((c) => c.to_season?.month).filter(Boolean),
+  ];
+  const { rows } = await db.query(
+    `select st.season_month, st.pop_through, st.final
+       from meta_season_state st
+      where st.season_month = any($1) and st.pop_through is not null
+        and exists (select 1 from meta_season_pop_day d where d.season_month = st.season_month)`,
+    [months],
   );
-  if (!state || win.from.getTime() >= state.pop_through.getTime()) return null;
-  const popThrough = state.pop_through.toISOString();
+  if (rows.length !== months.length) return null;
+  // The running season's cursor bounds what a window reaching into it
+  // holds; an ended season's population is complete.
+  const running = rows.find((r) => !r.final) ?? null;
+  const last = rows.reduce((a, r) => (r.season_month > a.season_month ? r : a));
+  if (running && win.from.getTime() >= running.pop_through.getTime())
+    return null;
+  const popThrough = last.pop_through.toISOString();
+  const openPast =
+    running !== null &&
+    (!win.to || win.to.getTime() > running.pop_through.getTime());
   return {
-    month: win.season.season_month,
+    months,
     popThrough,
-    /** The scope's own predicates over the table: the season key (the
+    /** The scope's own predicates over the table: the season keys (the
      *  primary key's prefix) and a game-day range one day wide of the
      *  instants (a battle at 02:00Z belongs to the previous game day). */
     scope: (params) => {
-      params.push(win.season.season_month);
-      const clauses = [`bp.season_month = $${params.length}`];
+      params.push(months);
+      const clauses = [`bp.season_month = any($${params.length})`];
       params.push(new Date(win.from.getTime() - 86_400_000));
       clauses.push(`bp.game_day >= game_day($${params.length})`);
       if (win.to) {
@@ -386,10 +400,9 @@ export async function popWindow(db, { win, seg }) {
       }
       return clauses;
     },
-    note:
-      !win.to || win.to.getTime() > state.pop_through.getTime()
-        ? `Read from the season's population table, which the nightly rebuild filled through ${popThrough}: battles recorded since are not counted here (the whole-season read's counters are hourly).`
-        : `Read from the season's population table (filled through ${popThrough}).`,
+    note: openPast
+      ? `Read from the season population table, which the nightly rebuild filled through ${popThrough}: battles recorded since are not counted here (the whole-season read's counters are hourly).`
+      : `Read from the season population table (filled through ${popThrough}).`,
   };
 }
 

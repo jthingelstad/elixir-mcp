@@ -397,21 +397,25 @@ async function buildPopDays(db, season, cursor, { deadlineMs }) {
   return out;
 }
 
-/** The season's population rows dropped once its rollup is final: one
- *  statement a day, never the season in one (the 0099 rule's spirit). */
+/** The population rows of every season OLDER than the one just made
+ *  final, dropped: one statement a day, never a season in one (the 0099
+ *  rule's spirit). The season going final keeps its own rows, so the
+ *  meta tools can answer a window inside it, or one spanning the roll
+ *  into the running season, from the table (6.12.0, feedback #77-#79):
+ *  "this week against last" is asked most in a season's first week. */
 async function dropPop(db, season) {
-  const month = season.season_month;
   const { rows } = await db.query(
-    `select game_day::text as day from meta_season_pop_day where season_month = $1 order by 1`,
-    [month],
+    `select season_month, game_day::text as day from meta_season_pop_day
+      where season_month < $1 order by 1, 2`,
+    [season.season_month],
   );
   for (const r of rows)
     await db.query(
       `delete from meta_season_pop where season_month = $1 and game_day = $2`,
-      [month, r.day],
+      [r.season_month, r.day],
     );
-  await db.query(`delete from meta_season_pop_day where season_month = $1`, [
-    month,
+  await db.query(`delete from meta_season_pop_day where season_month < $1`, [
+    season.season_month,
   ]);
   return rows.length;
 }
@@ -535,6 +539,39 @@ const POP_DEADLINE_MS = 480_000;
 
 /** The running season and every ended season with battles but no final
  *  rollup, oldest first, within the budget. */
+/** {meta_rollup_season: {season_month, final?}}: one named season rebuilt
+ *  on demand - its population days brought up to the cursor (from the
+ *  heap where they are gone) and its aggregates. The one-off that
+ *  restores an ended season's population after 6.12.0 began keeping
+ *  the previous season's (2026-08 was dropped at its final under the
+ *  old rule). `final` defaults to the season's current state. */
+export async function metaRollupSeason(databaseUrl, spec = {}) {
+  const month = String(spec.season_month ?? "");
+  if (!/^\d{4}-\d{2}$/.test(month))
+    throw new Error("meta_rollup_season needs season_month as YYYY-MM");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const {
+      rows: [season],
+    } = await db.query(
+      `select s.season_month, s.starts_at, s.ends_at, coalesce(st.final, false) as final
+         from season s left join meta_season_state st on st.season_month = s.season_month
+        where s.season_month = $1`,
+      [month],
+    );
+    if (!season) throw new Error(`no season ${month}`);
+    const final =
+      typeof spec.final === "boolean" ? spec.final : season.final === true;
+    return await rebuildSeason(db, season, {
+      final,
+      deadlineMs: Date.now() + POP_DEADLINE_MS,
+    });
+  } finally {
+    await db.end();
+  }
+}
+
 export async function metaRollupNightly(
   databaseUrl,
   { budgetMs = NIGHTLY_BUDGET_MS, nowMs = Date.now() } = {},

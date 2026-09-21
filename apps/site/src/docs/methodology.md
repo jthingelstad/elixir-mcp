@@ -77,16 +77,17 @@ follow, and the response says both in `players_as_of` and a note:
 distinct-player counts are as of the last nightly rebuild, so a deck or
 card first seen since then carries `players: null` until tonight; and the
 counters can trail the record by up to an hour. A corpus read whose
-window sits inside the running season without being the whole of it
-(`days: 7`, a `from`/`to` pair, "this week against last") is answered
-from the season's population table: the same rows the nightly rebuild
-aggregates, one per participant with its mode, band and level gap
-already on it, filled through the nightly's cursor. The response names
-that cursor in a note; battles recorded since are not in such a read,
-and a window that starts past the cursor, crosses a season roll, or
-falls in an ended season scans the raw rows instead. (Until 6.12.0 every
-sub-season corpus window scanned the raw rows with a per-row level-gap
-lookup and timed out at the query budget.) A segment read (a clan, a
+window is not a whole season (`days: 7`, a `from`/`to` pair, "this
+week against last") is answered from the season population table: the
+same rows the nightly rebuild aggregates, one per participant with its
+mode, band and level gap already on it, kept for the running season
+and the one before it (so a window may span the roll), filled through
+the nightly's cursor. The response names that cursor in a note;
+battles recorded since are not in such a read, and a window that
+starts past the cursor or reaches a season whose population is gone
+scans the raw rows instead. (Until 6.12.0 every sub-season corpus
+window scanned the raw rows with a per-row level-gap lookup and timed
+out at the query budget.) A segment read (a clan, a
 player, a collection) scans the raw rows, exact to the instant, and takes
 only the corpus prior from the rollup. The paths answer the same numbers
 over the same window; tests hold them equal.
